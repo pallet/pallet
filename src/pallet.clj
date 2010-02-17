@@ -170,6 +170,11 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 	 (when image-password
 	   (.write out (str "echo \"" image-password "\" | sudo -S ")))
 	 (.write out (str "chef-solo -c ~/solo.rb -j ~/conf.json"))
+	 (.println out)
+	 (.write out (str "rm -rf /srv/chef/*"))
+	 (.println out)
+	 (.write out "mkdir -p /srv/chef")
+	 (.println out)
 	 file))))
 
 (defn bootstrap-node
@@ -202,7 +207,7 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 
 ;;; Provisioning
 (def chef-repo nil)
-(def remote-chef-repo "/srv/chef")
+(def remote-chef-repo "/srv/chef/")
 
 (defmacro with-chef-repository [path & body]
   `(binding [chef-repo ~path]
@@ -215,9 +220,9 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
     (system cmd)))
 
 
-(defn rsync-node [node]
+(defn rsync-node [node user]
   (if (primary-ip node)
-    (rsync-repo chef-repo (primary-ip node) (default-user node))))
+    (rsync-repo chef-repo (primary-ip node) user)))
 
 
 (defn chef-cook-solo
@@ -235,7 +240,7 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
     (chef-cook-solo (primary-ip node) (.getTag node) user password private-key)))
 
 (defn cook-node [node user password private-key]
-  (rsync-node node)
+  (rsync-node node user)
   (chef-cook node user password private-key))
 
 

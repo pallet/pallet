@@ -7,7 +7,7 @@ A demo for pallet + crane + jsclouds.
 
   (pallet/with-chef-repository \"path_to_your_chef_repository\"
     (pallet/with-node-templates demo/templates
-      (pallet/converge cs demo/the-farm)))
+      (pallet/converge cs demo/the-farm \"admin-user\" \"admin-password\")))
 
 "}
   demo
