@@ -47,46 +47,39 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 	       (.append sb (char c))
 	       (recur (.read r)))))))))
 
+(defn slurp-as-byte-array
+  [#^java.io.File file]
+  (let [size (.length file)
+	bytes #^bytes (byte-array size)
+	stream (new java.io.FileInputStream file)]
+    bytes))
+
 (defn system
   "Launch a system process, return a string containing the process output."
   [cmd]
   (let [command-line (CommandLine/parse cmd)
 	executor (DefaultExecutor.)
 	watchdog  (ExecuteWatchdog. 60000)]
+    (println "exec " (str command-line))
     (.setExitValue executor 0)
     (.setWatchdog executor watchdog)
     (.execute executor command-line)))
 
-(defn remote-cmd
-  "Run a command on a server."
-   ([server command]
-      (remote-cmd server command "root"))
-   ([server command user]
-      (remote-cmd server command user (default-private-key-path)))
-   ([#^java.net.InetAddress server #^String command #^String user #^String private-key ]
-      (with-connection [connection (session private-key user (str server))]
-	(let [channel (shell-channel connection)]
-	  (pprint
-	   (seq (.split #"\r?\n"
-			(sh! channel command))))))))
+(defn pprint-lines [s]
+  (pprint (seq (.split #"\r?\n" s))))
 
-(defn remote-script
-  "Run a command on a server."
-  [#^java.net.InetAddress server #^java.io.File file #^String user #^String private-key ]
-  (with-connection [connection (session private-key user (str server))]
-    (put connection file ".")
-    (let [channel (shell-channel connection)]
-      (pprint
-       (sh! channel (str "bash ./" (.getName file)))))))
-
-(defn remote-sudo
+(defn sudo!
   "Run a sudo command on a server."
-  [#^java.net.InetAddress server #^java.io.File file #^String user #^String password #^String private-key ]
+  [#^java.net.InetAddress server #^String command #^String user #^String private-key #^String password]
   (with-connection [connection (session private-key user (str server))]
-    (put connection file (str "/home/" user))
     (let [channel (exec-channel connection)]
-      (pprint
-       (sh! channel (str "echo \"" password "\" | sudo -S bash /home/" user "/" (.getName file)))))))
+      (.setErrStream channel System/err true)
+      (let [resp (sh! channel (str "echo \"" password "\" | sudo -S " command))]
+	(when (not (.isClosed channel))
+	  (try
+	   (Thread/sleep 1000)
+	   (catch Exception ee)))
+	[resp (.getExitStatus channel)]))))
 
 
 ;;; Server Node Configs
@@ -204,12 +197,16 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
   "Run a chef solo command on a server.  A command is expected to exist as
    chef-repo/config/command.json"
    ([#^java.net.InetAddress server #^String command user]
-      (remote-cmd
-       (str server)
-       (str "cd " remote-chef-repo " && (echo \"" (:password user) "\" | sudo -S "
-	    "chef-solo -c config/solo.rb -j config/" command ".json )")
-       (:username user)
-       (:private-key-path user))))
+      (let [[resp status]
+	    (sudo!
+	     (str server)
+	     (str "chef-solo -c " remote-chef-repo "config/solo.rb -j " remote-chef-repo "config/" command ".json")
+	     (:username user)
+	     (:private-key-path user)
+	     (:password user))]
+	(pprint-lines resp)
+	(if (not (zero? (Integer. status)))
+	  (println "CHEF FAILED -------------------------------")))))
 
 (defn chef-cook [node user]
   (if (primary-ip node)

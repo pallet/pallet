@@ -5,9 +5,11 @@ A demo for pallet + crane + jclouds.
   (def cloudservers-password \"your api key\")
   (def cs (demo/cloudservers))
 
+  (def user (pallet/make-user \"admin-user\" \"admin-password\"))
+
   (pallet/with-chef-repository \"path_to_your_chef_repository\"
     (pallet/with-node-templates demo/templates
-      (pallet/converge cs demo/the-farm \"admin-user\" \"admin-password\")))
+      (pallet/converge cs demo/the-farm user)))
 
 "}
   demo
