@@ -11,7 +11,7 @@ A demo for pallet + crane + jclouds.
     (pallet/with-node-templates demo/templates
       (pallet/converge cs demo/the-farm user)))
 
-"}
+" :author "Hugo Duncan"}
   demo
   (:use crane.compute pallet)
    (:import org.jclouds.compute.domain.OsFamily

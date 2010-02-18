@@ -4,3 +4,4 @@ lib
 logs
 classes
 snippets
+autodoc/**

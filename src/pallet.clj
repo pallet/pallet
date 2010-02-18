@@ -1,6 +1,6 @@
 (ns #^{:doc "
 Pallet is used to start provisioning a compute node using crane and jclouds.
-"}
+" :author "Hugo Duncan"}
   pallet
  (:use crane.compute
        crane.ssh2
@@ -67,6 +67,20 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 
 (defn pprint-lines [s]
   (pprint (seq (.split #"\r?\n" s))))
+
+(defn remote-cmd
+  "Run a command on a server."
+   ([server command]
+      (remote-cmd server command "root"))
+   ([server command user]
+      (remote-cmd server command user (default-private-key-path)))
+   ([#^java.net.InetAddress server #^String command #^String user #^String private-key ]
+      (println "sh! " command)
+      (with-connection [connection (session private-key user (str server))]
+	(let [channel (shell-channel connection)]
+	  (pprint
+	   (seq (.split #"\r?\n"
+			(sh! channel command))))))))
 
 (defn sudo!
   "Run a sudo command on a server."
