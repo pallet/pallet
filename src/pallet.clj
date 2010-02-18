@@ -72,15 +72,21 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 
 (defn remote-script
   "Run a command on a server."
-   ([server file user]
-      (remote-script server file user (default-private-key-path)))
-   ([#^java.net.InetAddress server #^java.io.File file #^String user #^String private-key ]
-      (with-connection [connection (session private-key user (str server))]
-	(put connection file ".")
-	(let [channel (exec-channel connection)]
-	  (pprint
-	   (sh! channel (str "bash ./" (.getName file))))))))
+  [#^java.net.InetAddress server #^java.io.File file #^String user #^String private-key ]
+  (with-connection [connection (session private-key user (str server))]
+    (put connection file ".")
+    (let [channel (shell-channel connection)]
+      (pprint
+       (sh! channel (str "bash ./" (.getName file)))))))
 
+(defn remote-sudo
+  "Run a sudo command on a server."
+  [#^java.net.InetAddress server #^java.io.File file #^String user #^String password #^String private-key ]
+  (with-connection [connection (session private-key user (str server))]
+    (put connection file (str "/home/" user))
+    (let [channel (exec-channel connection)]
+      (pprint
+       (sh! channel (str "echo \"" password "\" | sudo -S bash /home/" user "/" (.getName file)))))))
 
 
 ;;; Server Node Configs
@@ -94,9 +100,11 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 
 (defn node-template
   "Build the template for specified target node and compute context"
-  [compute target public-key-path]
+  [compute target public-key-path init-script]
   {:pre [(keyword? target)]}
-  (.build ((target tag-templates) compute public-key-path)))
+  (.build
+   ((target tag-templates)
+    compute public-key-path (.getBytes init-script))))
 
 ;;; Node utilities
 (defn node-list [node-set]
@@ -137,67 +145,36 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 (defn md5crypt [passwd]
   (.replace (md5crypt.MD5Crypt/crypt passwd) "$" "\\$"))
 
-(defn write-bootstrap-script-file
-  "Write a script to install chef and create the specified user, enabled for
-  access with the specified public key."
-  ([image-user image-password username password public-key-path]
-     (write-bootstrap-script-file
-      image-user image-password username password public-key-path
-      "http://github.com/hugoduncan/orcloud-cookbooks/tarball/master"))
-  ([image-user image-password username password public-key-path bootstrap-repo]
-     (let [file (java.io.File/createTempFile "pallet" "init")]
-       (with-open [out (java.io.PrintWriter.
-			(java.io.BufferedOutputStream.
-			 (java.io.FileOutputStream. file)))]
-	 (.write out (slurp-resource "server_init.sh"))
-	 (.println out)
-	 (.write out "cat > ~/conf.json <<EOF")
-	 (.println out)
-	 (.write out (str "{\"orc\":{\"user\":{\"name\":\"" username"\",\"password\":\""
-			  (md5crypt password) "\"},\"sudoers\":[\"" username"\""))
-	 (if (and image-user (not (= image-user "root")))
-	   (.write out (str ",\"" image-user "\"")))
-	 (.write out (str "],\"pk\":\"" (.trim (slurp public-key-path))
-			  "\"},\"run_list\":[\"bootstrap-node\"]}"))
-	 (.println out)
-	 (.write out "EOF")
-	 (.println out)
-	 ;; github tarballs have a top level dir
-	 (.write out "mkdir -p /srv/chef")
-	 (.println out)
-	 (.write out (str "wget -nv -O- " bootstrap-repo " | tar xvz -C /srv/chef --strip-components 1"))
-	 (.println out)
-	 (when image-password
-	   (.write out (str "echo \"" image-password "\" | sudo -S ")))
-	 (.write out (str "chef-solo -c ~/solo.rb -j ~/conf.json"))
-	 (.println out)
-	 (.write out (str "rm -rf /srv/chef/*"))
-	 (.println out)
-	 (.write out "mkdir -p /srv/chef")
-	 (.println out)
-	 file))))
+(def bootstrap-repo "http://github.com/hugoduncan/orcloud-cookbooks/tarball/master")
 
-(defn bootstrap-node
-  "Add a bootstrap initialisation script"
-  [node username password public-key-path]
-  (let [credentials (.getCredentials node)
-	image-user (or (and credentials (.account credentials)) "root")
-	image-password (and credentials (.key node))
-	image-password (if (and image-password
-				(not (.contains image-password "PRIVATE KEY")))
-			 image-password)
-	file (write-bootstrap-script-file image-user image-password username password public-key-path)]
-    (if (primary-ip node)
-      (remote-script (primary-ip node) file image-user (default-private-key-path)))))
+(defn bootstrap-script
+  "A script to install chef and create the specified user, enabled for
+  access with the specified public key."
+  ([user] (bootstrap-script user bootstrap-repo))
+  ([user bootstrap-repo]
+     (str (slurp-resource "server_init.sh")
+	  (apply str (interpose
+		      "\n"
+		      [ "cat > ~/conf.json <<EOF"
+			(str "{\"orc\":{\"user\":{\"name\":\"" (:username user) "\",\"password\":\""
+			     (md5crypt (:password user)) "\"},\"sudoers\":[\"" (:username user) "\"],")
+			(str "\"pk\":\"" (.trim (slurp (:public-key-path user)))
+			     "\"},\"run_list\":[\"bootstrap-node\"]}")
+			"EOF"
+			"mkdir -p /srv/chef"
+			(str "wget -nv -O- " bootstrap-repo " | tar xvz -C /srv/chef --strip-components 1")
+			(str "chef-solo -c ~/solo.rb -j ~/conf.json")
+			(str "rm -rf /srv/chef/*")])))))
+
 
 (defn create-nodes
   "Create a node based on the keyword tag"
-  [compute tag count username password public-key-path]
+  [compute tag count user]
   {:pre [(keyword? tag)]}
-  (let [nodes (node-list
+  (let [script (bootstrap-script user)
+	nodes (node-list
 	       (run-nodes compute (name tag) count
-			  (node-template compute tag public-key-path)))]
-    (dorun (map #(bootstrap-node % username password public-key-path) nodes))))
+			  (node-template compute tag (:public-key-path user) script)))]))
 
 
 (defn default-user [node]
@@ -215,8 +192,7 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 
 (defn rsync-repo [from to user]
   (let [cmd (str "/usr/bin/rsync -rP --delete --copy-links -F -F "
-		 from  " " user "@" to ":" remote-chef-repo)]
-    (println cmd)
+		 from  " " (:username user) "@" to ":" remote-chef-repo)]
     (system cmd)))
 
 
@@ -224,28 +200,27 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
   (if (primary-ip node)
     (rsync-repo chef-repo (primary-ip node) user)))
 
-
 (defn chef-cook-solo
-  "Run a chef solo command on a server.  A command is expected to exist as chef-repo/config/command.json"
-   ([#^java.net.InetAddress server #^String command #^String user #^String password #^String private-key]
+  "Run a chef solo command on a server.  A command is expected to exist as
+   chef-repo/config/command.json"
+   ([#^java.net.InetAddress server #^String command user]
       (remote-cmd
        (str server)
-       (str "cd " remote-chef-repo " && (echo " password " | sudo -S "
+       (str "cd " remote-chef-repo " && (echo \"" (:password user) "\" | sudo -S "
 	    "chef-solo -c config/solo.rb -j config/" command ".json )")
-       user
-       private-key)))
+       (:username user)
+       (:private-key-path user))))
 
-(defn chef-cook [node user password private-key]
+(defn chef-cook [node user]
   (if (primary-ip node)
-    (chef-cook-solo (primary-ip node) (.getTag node) user password private-key)))
+    (chef-cook-solo (primary-ip node) (.getTag node) user)))
 
-(defn cook-node [node user password private-key]
+(defn cook-node [node user]
   (rsync-node node user)
-  (chef-cook node user password private-key))
+  (chef-cook node user))
 
-
-(defn cook-nodes [nodes user password private-key]
-  (dorun (map #(cook-node % user password private-key) nodes)))
+(defn cook-nodes [nodes user]
+  (dorun (map #(cook-node % user) nodes)))
 
 
 
@@ -257,9 +232,8 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 
 (defn adjust-node-counts
   "Start or stop the specified number of nodes."
-  [compute node-map nodes username password public-key-path]
-  (dorun (map #(create-nodes compute (first %) (second %)
-			     username password public-key-path)
+  [compute node-map nodes user]
+  (dorun (map #(create-nodes compute (first %) (second %) user)
 	      (filter #(pos? (second %)) node-map)))
   ;;    (map #(destroy-nodes compute (first %) (second %) nodes) (filter #(neg? (second %))) node-map)
   (dorun (map #(println "destroy-nodes compute" (first %) (second %) nodes) (filter #(neg? (second %)) node-map))))
@@ -267,23 +241,29 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 (defn converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
    instances."
-  [compute node-map username password public-key-path]
+  [compute node-map user]
   (let [nodes (node-list (nodes compute))]
     (boot-if-down compute nodes) ;; this needs improving - should only reboot if required
-    (adjust-node-counts compute
-			(merge-with + node-map
-				    (negative-node-counts nodes))
-			nodes
-			username password public-key-path)))
+    (adjust-node-counts
+     compute
+     (merge-with + node-map (negative-node-counts nodes))
+     nodes
+     user)))
+
+(defn make-user
+  ([username password]
+     (make-user username password (default-public-key-path) (default-private-key-path)))
+  ([username password public-key-path private-key-path]
+     {:username username
+      :password password
+      :public-key-path public-key-path
+      :private-key-path private-key-path}))
 
 ;; We have some options for converging
 ;; Unneeded nodes can be just shut dowm, or could be destroyed.
 ;; That means we need to pass some options
 (defn converge
-  ([compute node-map username password]
-     (converge compute node-map username password (default-public-key-path) (default-private-key-path)))
-  ([compute node-map username password public-key-path private-key-path]
-     (converge-node-counts compute node-map username password public-key-path)
-     (cook-nodes (node-list (nodes compute)) username password private-key-path)))
-
-
+  "Converge the existing compute resources with what is required"
+  [compute node-map user]
+  (converge-node-counts compute node-map user)
+  (cook-nodes (node-list (nodes compute)) user))

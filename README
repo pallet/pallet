@@ -10,14 +10,13 @@ It uses a declaritive map for specifying the number of nodes with a given tag.  
   (require 'pallet)
   (def cloudservers-user \"your user\")
   (def cloudservers-password \"your api key\")
-  (def cloudservers-compute-name "cloudservers)
-(defn cloudservers
-  "Return a cloudservers compute context."
-  []
-  (crane.compute/compute-context
-   cloudservers-compute-name user/cloudservers-user user/cloudservers-password
-   (crane.compute/modules :log4j :ssh :enterprise)))
-  (def cs (demo/cloudservers))
+  (def cloudservers-compute-name cloudservers)
+
+  (defn cloudservers []
+    (crane.compute/compute-context
+       cloudservers-compute-name cloudservers-user cloudservers-password
+       (crane.compute/modules :log4j :ssh :enterprise)))
+  (def cs (cloudservers))
 
   (pallet/with-chef-repository \"path_to_your_chef_repository\"
     (pallet/with-node-templates demo/templates

@@ -1,5 +1,5 @@
 (ns #^{:doc "
-A demo for pallet + crane + jsclouds.
+A demo for pallet + crane + jclouds.
 
   (def cloudservers-user \"your user\")
   (def cloudservers-password \"your api key\")
@@ -36,12 +36,13 @@ A demo for pallet + crane + jsclouds.
 
 (defn server-template
   "Cheapest Ubuntu 9.10 Server"
-  [#^org.jclouds.compute.ComputeServiceContext compute public-key-path]
+  [#^org.jclouds.compute.ComputeServiceContext compute public-key-path init-script]
   (.. compute (getComputeService) (templateBuilder)
       (osFamily OsFamily/UBUNTU)
       (osDescriptionMatches "[^J]+9.10[^64]+")
       smallest
-      (options (org.jclouds.compute.options.TemplateOptions$Builder/authorizePublicKey (slurp public-key-path)))))
+      (options (.. (org.jclouds.compute.options.TemplateOptions$Builder/authorizePublicKey (slurp public-key-path))
+		   (runScript init-script)))))
 
 (def #^{ :doc "This is a map defining node tag to instance template builder."}
      templates { :combined server-template})

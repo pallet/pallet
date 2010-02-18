@@ -1,4 +1,10 @@
 #!/bin/bash
+if ! grep nameserver /etc/resolv.conf ; then
+   echo "nameserver 208.67.222.222"  >> /etc/resolv.conf
+fi
+cp /etc/apt/sources.list /tmp/sources.list.old
+sed 's~us.archive.ubuntu.com~mirror.anl.gov/pub~g' /tmp/sources.list.old > /etc/apt/sources.list
+
 apt-get update
 apt-get upgrade -y
 apt-get install -y ruby ruby1.8-dev libopenssl-ruby1.8 rdoc build-essential wget rsync libshadow-ruby1.8
