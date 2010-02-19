@@ -1,11 +1,25 @@
 # pallet
 
-Pallet is used to start provision compute nodes using crane, jclouds and chef.
+Pallet is used to provision configured compute nodes using crane, jclouds and chef.
 
-It uses a declaritive map for specifying the number of nodes with a given tag.  Each tag is used to look up a machine image template specification (in crane and jsclouds), and to lookup configuration information (in chef).  The converge function then tries to bring you compute servers into alignment with your declared counts.
+It uses a declaritive map for specifying the number of nodes with a given tag.
+Each tag is used to look up a machine image template specification (in crane and
+jsclouds), and to lookup configuration information (in chef).  The converge
+function then tries to bring you compute servers into alignment with your
+declared counts and configurations.
 
-The bootstrap process installs a user with sudo permissions, using the specified username and password. The installed user is used to execute the chef cookbooks.
+The bootstrap process for new compute nodes installs a user with sudo
+permissions, using the specified username and password. The installed user is
+used to execute the chef cookbooks.
 
+Once the nodes are bootstrapped, and fall all existing nodes,
+the configured node information is written to the "compute-nodes" cookbook
+before chef is run, and this provides a :compute_nodes attribute.  The
+compute-nodes cookbook is expected to exist in the site-cookbooks of the
+chef-repository you specify with `with-chef-repository`.
+
+`chef-solo` is then run with chef repository you have specified using the node
+tag as a configuration target.
 
 ## Usage
 
@@ -52,4 +66,4 @@ Make the template declarations nicer.
 
 ## Installation
 
-Installation will be using leiningen
+Installation is with leiningen.  Add `[pallet "0.0.1-SNAPSHOT"]` to your :dependencies in project.clj.
