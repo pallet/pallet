@@ -1,6 +1,9 @@
-# pallet
+# Pallet
 
-Pallet is used to provision configured compute nodes using crane, jclouds and chef.
+Pallet is used to provision configured compute nodes using
+[crane](http://github.com/bradford/crane),
+[jclouds](http://github.com/jclouds/jclouds) and
+[chef](http://wiki.opscode.com/display/chef/Home).
 
 It uses a declaritive map for specifying the number of nodes with a given tag.
 Each tag is used to look up a machine image template specification (in crane and
@@ -20,6 +23,8 @@ chef-repository you specify with `with-chef-repository`.
 
 `chef-solo` is then run with chef repository you have specified using the node
 tag as a configuration target.
+
+[API documentation](http://hugoduncan.github.com/pallet) is available.
 
 ## Usage
 
@@ -46,7 +51,7 @@ tag as a configuration target.
     ;; declare the nodes required
     (def required-nodes { :combined 2 :monitor 1})
 
-    ;; create an provision the nodes
+    ;; create and provision the nodes
     (pallet/with-chef-repository \"path_to_your_chef_repository\"
       (pallet/with-node-templates templates
         (pallet/converge cs required-nodes user)))
@@ -55,8 +60,9 @@ tag as a configuration target.
 
 Make password handling shell character safe.
 Add error handling.
-Make the template declarations nicer.
+Add progress reporting.
 
 ## Installation
 
-Installation is with leiningen.  Add `[pallet "0.0.1-SNAPSHOT"]` to your :dependencies in project.clj.
+Installation is with [Leiningen](http://github.com/technomancy/leiningen).  Add
+`[pallet "0.0.1-SNAPSHOT"]` to your :dependencies in project.clj.

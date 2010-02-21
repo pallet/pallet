@@ -36,11 +36,11 @@ A demo for pallet + crane + jclouds.
    cloudservers-compute-name user/cloudservers-user user/cloudservers-password
    (crane.compute/modules :log4j :ssh :enterprise)))
 
-(def webserver-template [:ubuntu :X86_32 :smallest :os-description-matches "[^J]+9.10[^64]+"])
+(def webserver-template [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"])
 (def balancer-template (apply vector :inbound-ports [22 80] webserver-template))
 
 (def #^{ :doc "This is a map defining node tag to instance template builder."}
-     templates { :webserver server-template :balancer balancer-template })
+     templates { :webserver webserver-template :balancer balancer-template })
 
 (def #^{ :doc "This is a map defining node tag to number of instances."}
      the-farm
