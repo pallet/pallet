@@ -38,14 +38,7 @@ tag as a configuration target.
     (def user (pallet/make-user \"admin-user\" \"admin-password\"))
 
     ;; Template for describing the node image to be used
-    (defn server-template
-      [compute public-key-path init-script]
-        (.. compute (getComputeService) (templateBuilder)
-	(osFamily OsFamily/UBUNTU)
-        (osDescriptionMatches "[^J]+9.10[^64]+")
-	smallest
-        (options (.. (org.jclouds.compute.options.TemplateOptions$Builder/authorizePublicKey (slurp public-key-path))
-			   (runScript init-script)))))
+    (def server-template [:ubuntu :X86_32 :smallest :os-description-matches "[^J]+9.10[^64]+"])
 
     ;; map from tags to templates
     (def templates { :combined server-template :monitor server-template})

@@ -1,12 +1,30 @@
 (ns
     #^{:author "Hugo Duncan"
        :doc "
-Pallet is used to start provisioning a compute node using crane and jclouds.
+Pallet is used to provision configured compute nodes using crane, jclouds and chef.
+
+It uses a declaritive map for specifying the number of nodes with a given tag.
+Each tag is used to look up a machine image template specification (in crane and
+jsclouds), and to lookup configuration information (in chef).  The converge
+function then tries to bring you compute servers into alignment with your
+declared counts and configurations.
+
+The bootstrap process for new compute nodes installs a user with sudo
+permissions, using the specified username and password. The installed user is
+used to execute the chef cookbooks.
+
+Once the nodes are bootstrapped, and fall all existing nodes
+the configured node information is written to the \"compute-nodes\" cookbook
+before chef is run, and this provides a :compute_nodes attribute.  The
+compute-nodes cookbook is expected to exist in the site-cookbooks of the
+chef-repository you specify with `with-chef-repository`.
+
+`chef-solo` is then run with chef repository you have specified using the node
+tag as a configuration target.
 "}
   pallet
   (:use crane.compute
         crane.ssh2
-        [clojure.contrib.json.write :only [json-str]]
         [clojure.contrib.pprint :only [pprint]]
         [clojure.contrib.java-utils :only [file]]
         [clojure.contrib.duck-streams :only [with-out-writer]])
@@ -88,11 +106,11 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 
 (defn sudo!
   "Run a sudo command on a server."
-  [#^java.net.InetAddress server #^String command #^String user #^String private-key #^String password]
-  (with-connection [connection (session private-key user (str server))]
+  [#^java.net.InetAddress server #^String command user]
+  (with-connection [connection (session (:private-key-path user) (:username user) (str server))]
     (let [channel (exec-channel connection)]
       (.setErrStream channel System/err true)
-      (let [resp (sh! channel (str "echo \"" password "\" | sudo -S " command))]
+      (let [resp (sh! channel (str "echo \"" (:password user) "\" | sudo -S " command))]
         (when (not (.isClosed channel))
           (try
            (Thread/sleep 1000)
@@ -113,9 +131,15 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
   "Build the template for specified target node and compute context"
   [compute target public-key-path init-script]
   {:pre [(keyword? target)]}
-  (.build
-   ((target tag-templates)
-    compute public-key-path (.getBytes init-script))))
+  (let [add-if-none (fn [options keyword arg]
+                      (if (not-any? #(= keyword %) options)
+                        (apply vector keyword arg options)
+                        options))
+        options (add-if-none
+                 (add-if-none (target tag-templates)
+                              :authorize-public-key (slurp public-key-path))
+                 :run-script (.getBytes init-script))]
+    (apply crane.compute/build-template compute options)))
 
 ;;; Node utilities
 (defn primary-ip
@@ -126,7 +150,7 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 (defn nodes-by-tag-map [nodes]
   (reduce #(assoc %1
              (keyword (tag %2))
-             (conj (get (keyword (tag %2)) %1 []) %2)) {} nodes))
+             (conj (get %1 (keyword (tag %2)) []) %2)) {} nodes))
 
  ;;; Actions
 (defn reboot [compute nodes]
@@ -138,10 +162,10 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 
 (defn shutdown-node
   "Shutdown a node."
-  [compute node]
+  [compute node user]
   (let [ip (primary-ip node)]
     (if ip
-      (remote-cmd ip "shutdown -h 0" "root"))))
+      (sudo! ip "shutdown -h 0" user))))
 
 (defn shutdown [compute nodes]
   (dorun (map #(shutdown-node compute %) nodes)))
@@ -166,7 +190,7 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
                         (str "\"pk\":\"" (.trim (slurp (:public-key-path user)))
                              "\"},\"run_list\":[\"bootstrap-node\"]}")
                         "EOF"
-                        "mkdir -p " remote-chef-repo
+                        (str "mkdir -p " remote-chef-repo)
                         (str "wget -nv -O- " bootstrap-repo " | tar xvz -C " remote-chef-repo " --strip-components 1")
                         (str "chef-solo -c ~/solo.rb -j ~/conf.json")
                         (str "rm -rf " remote-chef-repo "/*")]))))) ;; prevent permission issues
@@ -210,7 +234,7 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
 (defn ips-to-rb [nodes]
   (letfn [(output-node [node]
                        (str "{"
-                            " :name => " (hostname node)
+                            " :name => " (quoted (hostname node))
                             ",:public_ips => [" (apply str (interpose "," (map quoted (public-ips node)))) "]"
                             ",:private_ips => [" (apply str (interpose "," (map quoted (private-ips node)))) "]"
                             "}"))
@@ -218,7 +242,7 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
                       (str "set[:compute_nodes][" tag "] = ["
                            (apply str (interpose "," (map output-node nodes)))
                            "]" ))]
-    (apply str (map output-tag (nodes-by-tag-map nodes)))))
+    (apply str (interpose "\n" (map output-tag (nodes-by-tag-map nodes))))))
 
 (def node-cookbook "compute-nodes")
 
@@ -234,10 +258,9 @@ Pallet is used to start provisioning a compute node using crane and jclouds.
       (let [[resp status]
             (sudo!
              (str server)
-             (str "chef-solo -c " remote-chef-repo "config/solo.rb -j " remote-chef-repo "config/" command ".json")
-             (:username user)
-             (:private-key-path user)
-             (:password user))]
+             (str "chef-solo -c " remote-chef-repo "config/solo.rb -j "
+                  remote-chef-repo "config/" command ".json")
+             user)]
         (pprint-lines resp)
         (if (not (zero? (Integer. status)))
           (println "CHEF FAILED -------------------------------")))))

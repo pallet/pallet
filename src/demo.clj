@@ -36,20 +36,13 @@ A demo for pallet + crane + jclouds.
    cloudservers-compute-name user/cloudservers-user user/cloudservers-password
    (crane.compute/modules :log4j :ssh :enterprise)))
 
-(defn server-template
-  "Cheapest Ubuntu 9.10 Server"
-  [#^org.jclouds.compute.ComputeServiceContext compute public-key-path init-script]
-  (.. compute (getComputeService) (templateBuilder)
-      (osFamily OsFamily/UBUNTU)
-      (osDescriptionMatches "[^J]+9.10[^64]+")
-      smallest
-      (options (.. (org.jclouds.compute.options.TemplateOptions$Builder/authorizePublicKey (slurp public-key-path))
-		   (runScript init-script)))))
+(def webserver-template [:ubuntu :X86_32 :smallest :os-description-matches "[^J]+9.10[^64]+"])
+(def balancer-template (apply vector :inbound-ports [22 80] webserver-template))
 
 (def #^{ :doc "This is a map defining node tag to instance template builder."}
-     templates { :combined server-template})
+     templates { :webserver server-template :balancer balancer-template })
 
 (def #^{ :doc "This is a map defining node tag to number of instances."}
      the-farm
-     { :combined 1 })
+     { :webserver 2 :balancer 1 })
 
