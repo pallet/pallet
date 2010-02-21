@@ -60,6 +60,8 @@ namespace.
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet/create-nodes">create-nodes</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet/make-user">make-user</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet/node-template">node-template</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet/primary-ip">primary-ip</a>
@@ -73,6 +75,8 @@ namespace.
       <a href="#pallet/sudo!">sudo!</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet/system">system</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet/with-chef-repository">with-chef-repository</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet/with-node-templates">with-node-templates</a>
     </div>
@@ -89,7 +93,26 @@ by <span id="author">Hugo Duncan</span><br />
 </pre><pre>
 </pre><h2>Overview</h2>
 <pre id="namespace-docstr">
-Pallet is used to start provisioning a compute node using crane and jclouds.</pre>
+Pallet is used to provision configured compute nodes using crane, jclouds and chef.
+
+It uses a declaritive map for specifying the number of nodes with a given tag.
+Each tag is used to look up a machine image template specification (in crane and
+jsclouds), and to lookup configuration information (in chef).  The converge
+function then tries to bring you compute servers into alignment with your
+declared counts and configurations.
+
+The bootstrap process for new compute nodes installs a user with sudo
+permissions, using the specified username and password. The installed user is
+used to execute the chef cookbooks.
+
+Once the nodes are bootstrapped, and fall all existing nodes
+the configured node information is written to the "compute-nodes" cookbook
+before chef is run, and this provides a :compute_nodes attribute.  The
+compute-nodes cookbook is expected to exist in the site-cookbooks of the
+chef-repository you specify with `with-chef-repository`.
+
+`chef-solo` is then run with chef repository you have specified using the node
+tag as a configuration target.</pre>
 <br />
 <h2>Public Variables and Functions</h2>
 <div id="var-entry">
@@ -100,7 +123,7 @@ Pallet is used to start provisioning a compute node using crane and jclouds.</pr
   <pre id="var-usage">Usage: (adjust-node-counts compute node-map nodes user)
 </pre>
   <pre id="var-docstr">Start or stop the specified number of nodes.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L244" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L285" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
@@ -111,7 +134,7 @@ Pallet is used to start provisioning a compute node using crane and jclouds.</pr
 </pre>
   <pre id="var-docstr">A script to install chef and create the specified user, enabled for
 access with the specified public key.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L157" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L179" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
@@ -121,7 +144,7 @@ access with the specified public key.</pre>
 </pre>
   <pre id="var-docstr">Run a chef solo command on a server.  A command is expected to exist as
 chef-repo/config/command.json</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L210" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L254" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
@@ -130,7 +153,7 @@ chef-repo/config/command.json</pre>
   <pre id="var-usage">Usage: (converge compute node-map user)
 </pre>
   <pre id="var-docstr">Converge the existing compute resources with what is required</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L276" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L320" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
@@ -140,7 +163,7 @@ chef-repo/config/command.json</pre>
 </pre>
   <pre id="var-docstr">Converge the nodes counts, given a compute facility and a reference number of
 instances.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L252" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L293" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
@@ -149,7 +172,18 @@ instances.</pre>
   <pre id="var-usage">Usage: (create-nodes compute tag count user)
 </pre>
   <pre id="var-docstr">Create a node based on the keyword tag</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L177" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L199" id="var-source">Source</a>
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet/make-user">make-user</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (make-user username password)
+       (make-user username password public-key-path private-key-path)
+</pre>
+  <pre id="var-docstr">Create a description of the admin user to be created and used for running
+chef.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L305" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
@@ -158,7 +192,7 @@ instances.</pre>
   <pre id="var-usage">Usage: (node-template compute target public-key-path init-script)
 </pre>
   <pre id="var-docstr">Build the template for specified target node and compute context</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L108" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L130" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
@@ -167,7 +201,7 @@ instances.</pre>
   <pre id="var-usage">Usage: (primary-ip node)
 </pre>
   <pre id="var-docstr">Returns the first public IP for the node.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L120" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L145" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
@@ -178,16 +212,16 @@ instances.</pre>
        (remote-cmd server command user private-key)
 </pre>
   <pre id="var-docstr">Run a command on a server.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L71" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L93" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
   <h2 id="pallet/shutdown-node">shutdown-node</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (shutdown-node compute node)
+  <pre id="var-usage">Usage: (shutdown-node compute node user)
 </pre>
   <pre id="var-docstr">Shutdown a node.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L141" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L163" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
@@ -198,16 +232,16 @@ instances.</pre>
 </pre>
   <pre id="var-docstr">Reads the resource named by name using the encoding enc into a string
 and returns it.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L34" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L56" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
   <h2 id="pallet/sudo!">sudo!</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (sudo! server command user private-key password)
+  <pre id="var-usage">Usage: (sudo! server command user)
 </pre>
   <pre id="var-docstr">Run a sudo command on a server.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L85" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L107" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
@@ -216,7 +250,16 @@ and returns it.</pre>
   <pre id="var-usage">Usage: (system cmd)
 </pre>
   <pre id="var-docstr">Launch a system process, return a string containing the process output.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L57" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L79" id="var-source">Source</a>
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet/with-chef-repository">with-chef-repository</h2>
+  <span id="var-type">macro</span><br />
+  <pre id="var-usage">Usage: (with-chef-repository path &amp; body)
+</pre>
+  <pre id="var-docstr">Specifies the chef repository that contains the cookboks and configurations</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L214" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
@@ -225,7 +268,7 @@ and returns it.</pre>
   <pre id="var-usage">Usage: (with-node-templates map &amp; body)
 </pre>
   <pre id="var-docstr">Set the template map</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/0fded91c919d33a7891644d178a9d0e7d814d193/src/pallet.clj#L102" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/169977095263d20796f1dc6092c8ae3465884839/src/pallet.clj#L124" id="var-source">Source</a>
 </div>
 
 

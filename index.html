@@ -89,10 +89,29 @@ A demo for pallet + crane + jclouds.
   by <span id="author">Hugo Duncan</span><br />
   <a href="pallet-api.html" id="api-link">Detailed API documentation</a><br />
   <pre id="namespace-docstr">
-Pallet is used to start provisioning a compute node using crane and jclouds.</pre>
+Pallet is used to provision configured compute nodes using crane, jclouds and chef.
+
+It uses a declaritive map for specifying the number of nodes with a given tag.
+Each tag is used to look up a machine image template specification (in crane and
+jsclouds), and to lookup configuration information (in chef).  The converge
+function then tries to bring you compute servers into alignment with your
+declared counts and configurations.
+
+The bootstrap process for new compute nodes installs a user with sudo
+permissions, using the specified username and password. The installed user is
+used to execute the chef cookbooks.
+
+Once the nodes are bootstrapped, and fall all existing nodes
+the configured node information is written to the "compute-nodes" cookbook
+before chef is run, and this provides a :compute_nodes attribute.  The
+compute-nodes cookbook is expected to exist in the site-cookbooks of the
+chef-repository you specify with `with-chef-repository`.
+
+`chef-solo` is then run with chef repository you have specified using the node
+tag as a configuration target.</pre>
   
   Public variables and functions:
-  <span id="var-link"><a href="pallet-api.html#pallet/adjust-node-counts" id="var-tag">adjust-node-counts</a> </span><span id="var-link"><a href="pallet-api.html#pallet/bootstrap-script" id="var-tag">bootstrap-script</a> </span><span id="var-link"><a href="pallet-api.html#pallet/chef-cook-solo" id="var-tag">chef-cook-solo</a> </span><span id="var-link"><a href="pallet-api.html#pallet/converge" id="var-tag">converge</a> </span><span id="var-link"><a href="pallet-api.html#pallet/converge-node-counts" id="var-tag">converge-node-counts</a> </span><span id="var-link"><a href="pallet-api.html#pallet/create-nodes" id="var-tag">create-nodes</a> </span><span id="var-link"><a href="pallet-api.html#pallet/node-template" id="var-tag">node-template</a> </span><span id="var-link"><a href="pallet-api.html#pallet/primary-ip" id="var-tag">primary-ip</a> </span><span id="var-link"><a href="pallet-api.html#pallet/remote-cmd" id="var-tag">remote-cmd</a> </span><span id="var-link"><a href="pallet-api.html#pallet/shutdown-node" id="var-tag">shutdown-node</a> </span><span id="var-link"><a href="pallet-api.html#pallet/slurp-resource" id="var-tag">slurp-resource</a> </span><span id="var-link"><a href="pallet-api.html#pallet/sudo!" id="var-tag">sudo!</a> </span><span id="var-link"><a href="pallet-api.html#pallet/system" id="var-tag">system</a> </span><span id="var-link"><a href="pallet-api.html#pallet/with-node-templates" id="var-tag">with-node-templates</a> </span><br />
+  <span id="var-link"><a href="pallet-api.html#pallet/adjust-node-counts" id="var-tag">adjust-node-counts</a> </span><span id="var-link"><a href="pallet-api.html#pallet/bootstrap-script" id="var-tag">bootstrap-script</a> </span><span id="var-link"><a href="pallet-api.html#pallet/chef-cook-solo" id="var-tag">chef-cook-solo</a> </span><span id="var-link"><a href="pallet-api.html#pallet/converge" id="var-tag">converge</a> </span><span id="var-link"><a href="pallet-api.html#pallet/converge-node-counts" id="var-tag">converge-node-counts</a> </span><span id="var-link"><a href="pallet-api.html#pallet/create-nodes" id="var-tag">create-nodes</a> </span><span id="var-link"><a href="pallet-api.html#pallet/make-user" id="var-tag">make-user</a> </span><span id="var-link"><a href="pallet-api.html#pallet/node-template" id="var-tag">node-template</a> </span><span id="var-link"><a href="pallet-api.html#pallet/primary-ip" id="var-tag">primary-ip</a> </span><span id="var-link"><a href="pallet-api.html#pallet/remote-cmd" id="var-tag">remote-cmd</a> </span><span id="var-link"><a href="pallet-api.html#pallet/shutdown-node" id="var-tag">shutdown-node</a> </span><span id="var-link"><a href="pallet-api.html#pallet/slurp-resource" id="var-tag">slurp-resource</a> </span><span id="var-link"><a href="pallet-api.html#pallet/sudo!" id="var-tag">sudo!</a> </span><span id="var-link"><a href="pallet-api.html#pallet/system" id="var-tag">system</a> </span><span id="var-link"><a href="pallet-api.html#pallet/with-chef-repository" id="var-tag">with-chef-repository</a> </span><span id="var-link"><a href="pallet-api.html#pallet/with-node-templates" id="var-tag">with-node-templates</a> </span><br />
   
 </div>
 </div>
