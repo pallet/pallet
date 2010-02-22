@@ -182,10 +182,15 @@ tag as a configuration target.
   [#^NodeMetadata node]
   (first (public-ips node)))
 
-(defn nodes-by-tag-map [nodes]
+(defn nodes-by-tag [nodes]
   (reduce #(assoc %1
              (keyword (tag %2))
              (conj (get %1 (keyword (tag %2)) []) %2)) {} nodes))
+
+(defn node-counts-by-tag [nodes]
+  (reduce #(assoc %1
+             (keyword (tag %2))
+             (inc (get %1 (keyword (tag %2)) 0))) {} nodes))
 
  ;;; Actions
 (defn reboot [compute nodes]
@@ -269,7 +274,7 @@ tag as a configuration target.
                       (str "set[:compute_nodes][" tag "] = ["
                            (apply str (interpose "," (map output-node nodes)))
                            "]" ))]
-    (apply str (interpose "\n" (map output-tag (nodes-by-tag-map nodes))))))
+    (apply str (interpose "\n" (map output-tag (nodes-by-tag nodes))))))
 
 (def node-cookbook "compute-nodes")
 
@@ -311,12 +316,6 @@ tag as a configuration target.
 (defn cook-nodes [nodes user]
   (dorun (map #(cook-node % user) nodes)))
 
-(defn negative-node-counts [nodes]
-  (reduce #(assoc %1
-             (keyword (tag %2))
-             (dec (get %1 (keyword (tag %2)) 0)))
-          {} nodes))
-
 (defn node-has-tag? [tag node]
   (= (name tag) (node-tag node)))
 
@@ -325,17 +324,20 @@ tag as a configuration target.
   (dorun (map (partial destroy-node compute)
               (take count (filter (partial node-has-tag? tag) nodes)))))
 
+(defn node-count-difference [node-map nodes]
+  (merge-with - node-map
+              (select-keys (node-counts-by-tag nodes) (keys node-map))))
+
 (defn adjust-node-counts
   "Start or stop the specified number of nodes."
-  ([compute node-map nodes user]
-     (adjust-node-counts compute node-map nodes user *bootstrap-repo*))
-  ([compute node-map nodes user bootstrap-repo]
+  ([compute delta-map nodes user]
+     (adjust-node-counts compute delta-map nodes user *bootstrap-repo*))
+  ([compute delta-map nodes user bootstrap-repo]
      (dorun (map #(create-nodes compute (first %) (second %) user bootstrap-repo)
-                 (filter #(pos? (second %)) node-map)))
+                 (filter #(pos? (second %)) delta-map)))
      (info (str "adjust-node-counts finished starting nodes"))
      (dorun (map #(destroy-nodes-with-count compute nodes (first %) (- (second %)))
-                 (filter #(neg? (second %)) node-map)))
-     ;; (dorun (map #(println "destroy-nodes compute" (first %) (second %) nodes) (filter #(neg? (second %)) node-map)))
+                 (filter #(neg? (second %)) delta-map)))
      (info (str "adjust-node-counts finished destroying nodes"))))
 
 (defn converge-node-counts
@@ -346,11 +348,8 @@ tag as a configuration target.
   ([compute node-map user bootstrap-repo]
      (let [nodes (nodes compute)]
        (boot-if-down compute nodes) ;; this needs improving - should only reboot if required
-       (adjust-node-counts
-        compute
-        (merge-with + node-map (negative-node-counts nodes))
-        nodes user bootstrap-repo))))
-
+       (adjust-node-counts compute (node-count-difference node-map nodes)
+                           nodes user bootstrap-repo))))
 
 
 ;; We have some options for converging
