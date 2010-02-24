@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>demo API reference (Pallet)</title>
+    <title>pallet.utils API reference (Pallet)</title>
     <link href="static/favicon.png" rel="icon" />
     <link href="static/favicon.png" rel="shortcut icon" />
     <link media="all" type="text/css" href="static/clojure.css" rel="stylesheet" />
@@ -47,81 +47,71 @@ namespace.
   <h1 class="nopad">Table of Contents</h1>
   <div style="margin-left: 1em;" class="toc-section">
     <a href="#toc0">Overview</a>
-    
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/make-user">make-user</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/remote-sudo">remote-sudo</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/slurp-resource">slurp-resource</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/system">system</a>
+    </div>
     <br />
   </div>
 </div>
 </div>
-                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">demo</span></h1>
-by <span id="author">Hugo Duncan</span><br />
+                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.utils</span></h1>
+by <span id="author">Unknown</span><br />
 <br />Usage:
 <pre>
 (ns your-namespace
-  (:require <span id="long-name">demo</span>))
+  (:require <span id="long-name">pallet.utils</span>))
 </pre><pre>
 </pre><h2>Overview</h2>
-<pre id="namespace-docstr">
-A demo for pallet + crane + jclouds.
-
-  ;; First we provide some credentials
-  (def terremark-user "your user")
-  (def terremark-password "your api key")
-
-  ;; Npw we can load the demo package
-  (require 'demo)
-  (in-ns 'demo)
-
-  ;; and log in to the cloud using the credentials defined above.
-  (def tm (demo/terremark))
-
-  ;; At this point we can manage instance counts as a map.
-  ;; e.g add a node using the webserver template
-  (with-node-templates templates
-    (converge tm {:webserver 1}))
-
-  ;; ... and remove it again
-  (with-node-templates templates
-    (converge tm {:webserver 0}))
-
-  ;; templates is a description of the images to use for each of
-  ;; our node tags
-  templates
-
-  ;; Images are configured differently between clouds and os's.
-  ;; We might want to update our machines to use the latest
-  ;; package manager.  pallet has a couple of templates, and
-  ;; you can add your own, see resources/bootstrap.  Templates
-  ;; have a default implementation, but can be specialised
-  ;; for a given tag or operating system family.
-  (with-node-templates templates
-    (converge tm {:webserver 1}
-      (bootstrap-with (bootstrap-template :ensure-resolve)
-                      (bootstrap-template :update-pkg-mgr))))
-
-  ;; We probably want an admin user.  We can ensure our admin
-  ;; user is created with the image by specifying :boostrap-admin-user.
-  (def user (make-user "admin-user" "admin-password"))
-
-  ;; this time we create the a bootstrapped node
-  (with-node-templates templates
-    (converge tm {:webserver 1}
-      (bootstrap-with (bootstrap-template :ensure-resolve)
-                      (bootstrap-admin-user user))))
-
-  ;; Bootstrapping is fine, but we might also want to configure the machines
-  ;; with chef
-  (with-node-templates templates
-    (converge tm {:webserver 1}
-      (bootstrap-with (bootstrap-template :ensure-resolve)
-                      (bootstrap-template :update-pkg-mgr)
-                      (bootstrap-admin-user user))
-      (configure-with-chef user "path_to_your_chef_repository")))
-
-  ;; and we can tun chef-solo at any time with
-  (cook-nodes (nodes tm) user "path_to_your_chef_repository")</pre>
+<pre id="namespace-docstr"></pre>
 <br />
 <h2>Public Variables and Functions</h2>
-
+<div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.utils/make-user">make-user</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (make-user username password)
+       (make-user username password public-key-path private-key-path)
+</pre>
+  <pre id="var-docstr">Create a description of the admin user to be created and used for running
+chef.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/04f6c1ed980ab8ea6cdc8db6061908b80bbc06da/src/pallet/utils.clj#L57" id="var-source">Source</a>
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.utils/remote-sudo">remote-sudo</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (remote-sudo server command user)
+</pre>
+  <pre id="var-docstr">Run a sudo command on a server.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/04f6c1ed980ab8ea6cdc8db6061908b80bbc06da/src/pallet/utils.clj#L81" id="var-source">Source</a>
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.utils/slurp-resource">slurp-resource</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (slurp-resource name)
+       (slurp-resource name enc)
+</pre>
+  <pre id="var-docstr">Reads the resource named by name using the encoding enc into a string
+and returns it.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/04f6c1ed980ab8ea6cdc8db6061908b80bbc06da/src/pallet/utils.clj#L26" id="var-source">Source</a>
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.utils/system">system</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (system cmd)
+</pre>
+  <pre id="var-docstr">Launch a system process, return a string containing the process output.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/04f6c1ed980ab8ea6cdc8db6061908b80bbc06da/src/pallet/utils.clj#L69" id="var-source">Source</a>
+</div>
 
 
 </div>

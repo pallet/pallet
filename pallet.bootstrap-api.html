@@ -1,0 +1,161 @@
+<html>
+  <head>
+    <title>pallet.bootstrap API reference (Pallet)</title>
+    <link href="static/favicon.png" rel="icon" />
+    <link href="static/favicon.png" rel="shortcut icon" />
+    <link media="all" type="text/css" href="static/clojure.css" rel="stylesheet" />
+    <link media="all" type="text/css" href="static/wiki.css" rel="stylesheet" />
+    <link media="all" type="text/css" href="static/internal.css" rel="stylesheet" />
+    <!-- TODO: are we using these (from clojure.org)? If so, add the files -->
+    <script src="file/view/code_highlighter.js" type="text/javascript"></script>
+    <script src="file/view/clojure.js" type="text/javascript"></script>
+    <style>.menuWrapper{height: 36px;}</style>
+    <!--[if lte IE 6]>
+    <link rel="stylesheet" href="http://www.wikispaces.com/_/2009051601/s/internal_ie.css" type="text/css" />
+    <![endif]-->
+  </head>
+<!--
+This document was auto-generated from the source by the clojure autodoc system.
+To report errors or ask questions about the overall documentation structure, formatting,
+etc., contact Tom Faulhaber (google mail name: tomfaulhaber).
+For errors in the documentation of a particular namespace, contact the author of that
+namespace.
+-->
+  <body>
+    <div id="AllContentContainer">
+      <div id="Header">
+	<a id="Logo" href="index.html"><img alt="Clojure" height="100" width="100" src="static/clojure-icon.gif" /></a>
+	<h1><a title="page header title" id="page-header" href="index.html">Pallet</a></h1>
+      </div>
+      <div id="leftcolumn"><div style="text-align: center;"></div>
+<div class="menu">
+  <div class="WikiCustomNav WikiElement wiki">
+    <a class="wiki_link" href="index.html">Overview</a><br />
+    <a class="wiki_link" href="api-index.html">API Index</a><br />
+    <a class="wiki_link" href="#">Namespaces:</a>
+    <ul id="left-sidebar-list">
+      <li><a href="demo-api.html" class="wiki_link">demo</a></li><li><a href="pallet.bootstrap-api.html" class="wiki_link">pallet.bootstrap</a></li><li><a href="pallet.chef-api.html" class="wiki_link">pallet.chef</a></li><li><a href="pallet.compute-api.html" class="wiki_link">pallet.compute</a></li><li><a href="pallet.core-api.html" class="wiki_link">pallet.core</a></li><li><a href="pallet.utils-api.html" class="wiki_link">pallet.utils</a></li>
+    </ul>
+  </div>
+</div>
+</div>
+      <div id="rightcolumn">
+	<div id="Content">
+	  <div class="contentBox"><div class="innerContentBox">
+              <div id="content_view" class="wiki wikiPage">
+                <div id="right-sidebar"><div id="toc">
+  <h1 class="nopad">Table of Contents</h1>
+  <div style="margin-left: 1em;" class="toc-section">
+    <a href="#toc0">Overview</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.bootstrap/bootstrap-admin-user">bootstrap-admin-user</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.bootstrap/bootstrap-fragment">bootstrap-fragment</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.bootstrap/bootstrap-script">bootstrap-script</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.bootstrap/bootstrap-template">bootstrap-template</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.bootstrap/bootstrap-with">bootstrap-with</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.bootstrap/with-bootstrap-repo">with-bootstrap-repo</a>
+    </div>
+    <br />
+  </div>
+</div>
+</div>
+                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.bootstrap</span></h1>
+by <span id="author">Hugo Duncan</span><br />
+<br />Usage:
+<pre>
+(ns your-namespace
+  (:require <span id="long-name">pallet.bootstrap</span>))
+</pre><pre>
+</pre><h2>Overview</h2>
+<pre id="namespace-docstr">Boostrap functions.
+</pre>
+<br />
+<h2>Public Variables and Functions</h2>
+<div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.bootstrap/bootstrap-admin-user">bootstrap-admin-user</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (bootstrap-admin-user user)
+       (bootstrap-admin-user user bootstrap-repo)
+</pre>
+  <pre id="var-docstr">Returns a bootstrap descriptor for installing an admin user.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/04f6c1ed980ab8ea6cdc8db6061908b80bbc06da/src/pallet/bootstrap.clj#L104" id="var-source">Source</a>
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.bootstrap/bootstrap-fragment">bootstrap-fragment</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (bootstrap-fragment fragment tag template)
+</pre>
+  <pre id="var-docstr">Returns a fragment. Fragments should be resources under the bootstrap
+path. It returns the first fragment it finds in the following paths:
+
+  bootstrap/fragment/tag
+  bootstrap/fragment/os-family
+  bootstrap/fragment</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/04f6c1ed980ab8ea6cdc8db6061908b80bbc06da/src/pallet/bootstrap.clj#L28" id="var-source">Source</a>
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.bootstrap/bootstrap-script">bootstrap-script</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (bootstrap-script tag template)
+       (bootstrap-script tag template user)
+       (bootstrap-script tag template user bootstrap-url)
+</pre>
+  <pre id="var-docstr">A script to install chef and create the specified user, enabled for
+access with the specified public key.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/04f6c1ed980ab8ea6cdc8db6061908b80bbc06da/src/pallet/bootstrap.clj#L69" id="var-source">Source</a>
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.bootstrap/bootstrap-template">bootstrap-template</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (bootstrap-template fragment)
+</pre>
+  <pre id="var-docstr">Returns a bootstrap script function that returns a fragment based on
+specified template.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/04f6c1ed980ab8ea6cdc8db6061908b80bbc06da/src/pallet/bootstrap.clj#L48" id="var-source">Source</a>
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.bootstrap/bootstrap-with">bootstrap-with</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (bootstrap-with &amp; bootstraps)
+</pre>
+  <pre id="var-docstr">Specify bootstrap functions to apply.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/04f6c1ed980ab8ea6cdc8db6061908b80bbc06da/src/pallet/bootstrap.clj#L116" id="var-source">Source</a>
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.bootstrap/with-bootstrap-repo">with-bootstrap-repo</h2>
+  <span id="var-type">macro</span><br />
+  <pre id="var-usage">Usage: (with-bootstrap-repo url &amp; body)
+</pre>
+  <pre id="var-docstr">Define the url used to retrieve the bootstrap repository.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/04f6c1ed980ab8ea6cdc8db6061908b80bbc06da/src/pallet/bootstrap.clj#L59" id="var-source">Source</a>
+</div>
+
+
+</div>
+              </div>
+            </div>
+          </div>
+	</div>
+	<div id="foot">
+	  <div style="text-align: center;" id="copyright">Copyright Hugo Duncan 2010. All rights reserved.</div>
+	</div>
+      </div>
+      <div id="DesignedBy">Logo &amp; site design by <a title="Visit Tom Hickey's website." href="http://www.tomhickey.com">Tom Hickey</a>.<br />
+      Clojure auto-documentation system by Tom Faulhaber.</div>
+    </div>
+    <!-- /AllContentContainer -->
+  </body>
+
+</html>

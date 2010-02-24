@@ -34,7 +34,7 @@ namespace.
     <a class="wiki_link" href="api-index.html">API Index</a><br />
     <a class="wiki_link" href="#">Namespaces:</a>
     <ul id="left-sidebar-list">
-      <li><a href="demo-api.html" class="wiki_link">demo</a></li><li><a href="pallet-api.html" class="wiki_link">pallet</a></li>
+      <li><a href="demo-api.html" class="wiki_link">demo</a></li><li><a href="pallet.bootstrap-api.html" class="wiki_link">pallet.bootstrap</a></li><li><a href="pallet.chef-api.html" class="wiki_link">pallet.chef</a></li><li><a href="pallet.compute-api.html" class="wiki_link">pallet.compute</a></li><li><a href="pallet.core-api.html" class="wiki_link">pallet.core</a></li><li><a href="pallet.utils-api.html" class="wiki_link">pallet.utils</a></li>
     </ul>
   </div>
 </div>
@@ -50,7 +50,23 @@ namespace.
     
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
-    <a href="#pallet">pallet</a>
+    <a href="#pallet.bootstrap">pallet.bootstrap</a>
+    
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.chef">pallet.chef</a>
+    
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.compute">pallet.compute</a>
+    
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.core">pallet.core</a>
+    
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.utils">pallet.utils</a>
     
     <br />
   </div>
@@ -69,15 +85,62 @@ namespace.
   <pre id="namespace-docstr">
 A demo for pallet + crane + jclouds.
 
-  (def cloudservers-user "your user")
-  (def cloudservers-password "your api key")
-  (def cs (demo/cloudservers))
+  ;; First we provide some credentials
+  (def terremark-user "your user")
+  (def terremark-password "your api key")
 
-  (def user (pallet/make-user "admin-user" "admin-password"))
+  ;; Npw we can load the demo package
+  (require 'demo)
+  (in-ns 'demo)
 
-  (pallet/with-chef-repository "path_to_your_chef_repository"
-    (pallet/with-node-templates demo/templates
-      (pallet/converge cs demo/the-farm user)))</pre>
+  ;; and log in to the cloud using the credentials defined above.
+  (def tm (demo/terremark))
+
+  ;; At this point we can manage instance counts as a map.
+  ;; e.g add a node using the webserver template
+  (with-node-templates templates
+    (converge tm {:webserver 1}))
+
+  ;; ... and remove it again
+  (with-node-templates templates
+    (converge tm {:webserver 0}))
+
+  ;; templates is a description of the images to use for each of
+  ;; our node tags
+  templates
+
+  ;; Images are configured differently between clouds and os's.
+  ;; We might want to update our machines to use the latest
+  ;; package manager.  pallet has a couple of templates, and
+  ;; you can add your own, see resources/bootstrap.  Templates
+  ;; have a default implementation, but can be specialised
+  ;; for a given tag or operating system family.
+  (with-node-templates templates
+    (converge tm {:webserver 1}
+      (bootstrap-with (bootstrap-template :ensure-resolve)
+                      (bootstrap-template :update-pkg-mgr))))
+
+  ;; We probably want an admin user.  We can ensure our admin
+  ;; user is created with the image by specifying :boostrap-admin-user.
+  (def user (make-user "admin-user" "admin-password"))
+
+  ;; this time we create the a bootstrapped node
+  (with-node-templates templates
+    (converge tm {:webserver 1}
+      (bootstrap-with (bootstrap-template :ensure-resolve)
+                      (bootstrap-admin-user user))))
+
+  ;; Bootstrapping is fine, but we might also want to configure the machines
+  ;; with chef
+  (with-node-templates templates
+    (converge tm {:webserver 1}
+      (bootstrap-with (bootstrap-template :ensure-resolve)
+                      (bootstrap-template :update-pkg-mgr)
+                      (bootstrap-admin-user user))
+      (configure-with-chef user "path_to_your_chef_repository")))
+
+  ;; and we can tun chef-solo at any time with
+  (cook-nodes (nodes tm) user "path_to_your_chef_repository")</pre>
   
   Public variables and functions:
   <br />
@@ -85,9 +148,43 @@ A demo for pallet + crane + jclouds.
 </div><div id="namespace-entry">
   <br />
   <hr />
-  <h2 id="pallet">pallet</h2>
+  <h2 id="pallet.bootstrap">pallet.bootstrap</h2>
   by <span id="author">Hugo Duncan</span><br />
-  <a href="pallet-api.html" id="api-link">Detailed API documentation</a><br />
+  <a href="pallet.bootstrap-api.html" id="api-link">Detailed API documentation</a><br />
+  <pre id="namespace-docstr">Boostrap functions.
+</pre>
+  
+  Public variables and functions:
+  <span id="var-link"><a href="pallet.bootstrap-api.html#pallet.bootstrap/bootstrap-admin-user" id="var-tag">bootstrap-admin-user</a> </span><span id="var-link"><a href="pallet.bootstrap-api.html#pallet.bootstrap/bootstrap-fragment" id="var-tag">bootstrap-fragment</a> </span><span id="var-link"><a href="pallet.bootstrap-api.html#pallet.bootstrap/bootstrap-script" id="var-tag">bootstrap-script</a> </span><span id="var-link"><a href="pallet.bootstrap-api.html#pallet.bootstrap/bootstrap-template" id="var-tag">bootstrap-template</a> </span><span id="var-link"><a href="pallet.bootstrap-api.html#pallet.bootstrap/bootstrap-with" id="var-tag">bootstrap-with</a> </span><span id="var-link"><a href="pallet.bootstrap-api.html#pallet.bootstrap/with-bootstrap-repo" id="var-tag">with-bootstrap-repo</a> </span><br />
+  
+</div><div id="namespace-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.chef">pallet.chef</h2>
+  by <span id="author">unknown author</span><br />
+  <a href="pallet.chef-api.html" id="api-link">Detailed API documentation</a><br />
+  <pre id="namespace-docstr"></pre>
+  
+  Public variables and functions:
+  <span id="var-link"><a href="pallet.chef-api.html#pallet.chef/chef-cook-solo" id="var-tag">chef-cook-solo</a> </span><span id="var-link"><a href="pallet.chef-api.html#pallet.chef/configure-with-chef" id="var-tag">configure-with-chef</a> </span><span id="var-link"><a href="pallet.chef-api.html#pallet.chef/cook-node" id="var-tag">cook-node</a> </span><span id="var-link"><a href="pallet.chef-api.html#pallet.chef/output-attributes" id="var-tag">output-attributes</a> </span><span id="var-link"><a href="pallet.chef-api.html#pallet.chef/with-chef-repository" id="var-tag">with-chef-repository</a> </span><span id="var-link"><a href="pallet.chef-api.html#pallet.chef/with-remote-chef-path" id="var-tag">with-remote-chef-path</a> </span><br />
+  
+</div><div id="namespace-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.compute">pallet.compute</h2>
+  by <span id="author">unknown author</span><br />
+  <a href="pallet.compute-api.html" id="api-link">Detailed API documentation</a><br />
+  <pre id="namespace-docstr"></pre>
+  
+  Public variables and functions:
+  <span id="var-link"><a href="pallet.compute-api.html#pallet.compute/primary-ip" id="var-tag">primary-ip</a> </span><span id="var-link"><a href="pallet.compute-api.html#pallet.compute/shutdown-node" id="var-tag">shutdown-node</a> </span><br />
+  
+</div><div id="namespace-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.core">pallet.core</h2>
+  by <span id="author">Hugo Duncan</span><br />
+  <a href="pallet.core-api.html" id="api-link">Detailed API documentation</a><br />
   <pre id="namespace-docstr">
 Pallet is used to provision configured compute nodes using crane, jclouds and chef.
 
@@ -111,7 +208,18 @@ chef-repository you specify with `with-chef-repository`.
 tag as a configuration target.</pre>
   
   Public variables and functions:
-  <span id="var-link"><a href="pallet-api.html#pallet/adjust-node-counts" id="var-tag">adjust-node-counts</a> </span><span id="var-link"><a href="pallet-api.html#pallet/bootstrap-script" id="var-tag">bootstrap-script</a> </span><span id="var-link"><a href="pallet-api.html#pallet/chef-cook-solo" id="var-tag">chef-cook-solo</a> </span><span id="var-link"><a href="pallet-api.html#pallet/converge" id="var-tag">converge</a> </span><span id="var-link"><a href="pallet-api.html#pallet/converge-node-counts" id="var-tag">converge-node-counts</a> </span><span id="var-link"><a href="pallet-api.html#pallet/create-nodes" id="var-tag">create-nodes</a> </span><span id="var-link"><a href="pallet-api.html#pallet/make-user" id="var-tag">make-user</a> </span><span id="var-link"><a href="pallet-api.html#pallet/node-template" id="var-tag">node-template</a> </span><span id="var-link"><a href="pallet-api.html#pallet/primary-ip" id="var-tag">primary-ip</a> </span><span id="var-link"><a href="pallet-api.html#pallet/remote-cmd" id="var-tag">remote-cmd</a> </span><span id="var-link"><a href="pallet-api.html#pallet/shutdown-node" id="var-tag">shutdown-node</a> </span><span id="var-link"><a href="pallet-api.html#pallet/slurp-resource" id="var-tag">slurp-resource</a> </span><span id="var-link"><a href="pallet-api.html#pallet/sudo!" id="var-tag">sudo!</a> </span><span id="var-link"><a href="pallet-api.html#pallet/system" id="var-tag">system</a> </span><span id="var-link"><a href="pallet-api.html#pallet/with-chef-repository" id="var-tag">with-chef-repository</a> </span><span id="var-link"><a href="pallet-api.html#pallet/with-node-templates" id="var-tag">with-node-templates</a> </span><br />
+  <span id="var-link"><a href="pallet.core-api.html#pallet.core/*admin-user*" id="var-tag">*admin-user*</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/*node-templates*" id="var-tag">*node-templates*</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/adjust-node-counts" id="var-tag">adjust-node-counts</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/bootstrap-none" id="var-tag">bootstrap-none</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/configure-nodes-none" id="var-tag">configure-nodes-none</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/converge" id="var-tag">converge</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/converge-node-counts" id="var-tag">converge-node-counts</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/create-nodes" id="var-tag">create-nodes</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/node-template" id="var-tag">node-template</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/with-admin-user" id="var-tag">with-admin-user</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/with-node-templates" id="var-tag">with-node-templates</a> </span><br />
+  
+</div><div id="namespace-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.utils">pallet.utils</h2>
+  by <span id="author">unknown author</span><br />
+  <a href="pallet.utils-api.html" id="api-link">Detailed API documentation</a><br />
+  <pre id="namespace-docstr"></pre>
+  
+  Public variables and functions:
+  <span id="var-link"><a href="pallet.utils-api.html#pallet.utils/make-user" id="var-tag">make-user</a> </span><span id="var-link"><a href="pallet.utils-api.html#pallet.utils/remote-sudo" id="var-tag">remote-sudo</a> </span><span id="var-link"><a href="pallet.utils-api.html#pallet.utils/slurp-resource" id="var-tag">slurp-resource</a> </span><span id="var-link"><a href="pallet.utils-api.html#pallet.utils/system" id="var-tag">system</a> </span><br />
   
 </div>
 </div>
