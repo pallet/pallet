@@ -1,22 +1,70 @@
 (ns #^{:doc "
 A demo for pallet + crane + jclouds.
 
-  (def cloudservers-user \"your user\")
-  (def cloudservers-password \"your api key\")
-  (def cs (demo/cloudservers))
+  ;; First we provide some credentials
+  (def terremark-user \"your user\")
+  (def terremark-password \"your api key\")
 
-  (def user (pallet/make-user \"admin-user\" \"admin-password\"))
+  ;; Npw we can load the demo package
+  (require 'demo)
+  (in-ns 'demo)
 
-  (pallet/with-chef-repository \"path_to_your_chef_repository\"
-    (pallet/with-node-templates demo/templates
-      (pallet/converge cs demo/the-farm user)))
+  ;; and log in to the cloud using the credentials defined above.
+  (def tm (demo/terremark))
+
+  ;; At this point we can manage instance counts as a map.
+  ;; e.g add a node using the webserver template
+  (with-node-templates templates
+    (converge tm {:webserver 1}))
+
+  ;; ... and remove it again
+  (with-node-templates templates
+    (converge tm {:webserver 0}))
+
+  ;; templates is a description of the images to use for each of
+  ;; our node tags
+  templates
+
+  ;; Images are configured differently between clouds and os's.
+  ;; We might want to update our machines to use the latest
+  ;; package manager.  pallet has a couple of templates, and
+  ;; you can add your own, see resources/bootstrap.  Templates
+  ;; have a default implementation, but can be specialised
+  ;; for a given tag or operating system family.
+  (with-node-templates templates
+    (converge tm {:webserver 1}
+      (bootstrap-with (bootstrap-template :ensure-resolve)
+                      (bootstrap-template :update-pkg-mgr))))
+
+  ;; We probably want an admin user.  We can ensure our admin
+  ;; user is created with the image by specifying :boostrap-admin-user.
+  (def user (make-user \"admin-user\" \"admin-password\"))
+
+  ;; this time we create the a bootstrapped node
+  (with-node-templates templates
+    (converge tm {:webserver 1}
+      (bootstrap-with (bootstrap-template :ensure-resolve)
+                      (bootstrap-admin-user user))))
+
+  ;; Bootstrapping is fine, but we might also want to configure the machines
+  ;; with chef
+  (with-node-templates templates
+    (converge tm {:webserver 1}
+      (bootstrap-with (bootstrap-template :ensure-resolve)
+                      (bootstrap-template :update-pkg-mgr)
+                      (bootstrap-admin-user user))
+      (configure-with-chef user \"path_to_your_chef_repository\")))
+
+  ;; and we can tun chef-solo at any time with
+  (cook-nodes (nodes tm) user \"path_to_your_chef_repository\")
 
 " :author "Hugo Duncan"}
   demo
-  (:use crane.compute pallet)
-   (:import org.jclouds.compute.domain.OsFamily
-	    org.jclouds.compute.options.TemplateOptions
-	    org.jclouds.compute.domain.NodeMetadata))
+  (:use crane.compute
+        pallet.utils
+        pallet.core
+        pallet.chef
+        pallet.bootstrap))
 
 ;;; Terremark
 (def terremark-compute-name "terremark")
