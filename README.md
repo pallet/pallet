@@ -51,6 +51,23 @@ Add templating by cloud provider.
 Installation is with [Leiningen](http://github.com/technomancy/leiningen).  Add
 `[pallet "0.0.1-SNAPSHOT"]` to your :dependencies in project.clj.
 
+### Quickstart
+
+If you just want to try out pallet, then you can follow these instructions:
+
+- Download [the tarfile](http://github.com/hugoduncan/pallet/tarball/master)
+  or [zipfile](http://github.com/hugoduncan/pallet/zipball/master), and unpack.
+
+- Install [Leiningen](http://github.com/technomancy/leiningen).
+
+- In a shell, go to the directory containing the pallet source code and enter
+    $ lein deps
+    $ lein javac
+    $ lein repl
+
+You should now have a working repl, which you can use to explore pallet.
+
+
 ## See also
 [chef](http://wiki.opscode.com/display/chef/Home),
 [crane](http://github.com/bradford/crane),
