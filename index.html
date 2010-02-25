@@ -34,7 +34,7 @@ namespace.
     <a class="wiki_link" href="api-index.html">API Index</a><br />
     <a class="wiki_link" href="#">Namespaces:</a>
     <ul id="left-sidebar-list">
-      <li><a href="demo-api.html" class="wiki_link">demo</a></li><li><a href="pallet.bootstrap-api.html" class="wiki_link">pallet.bootstrap</a></li><li><a href="pallet.chef-api.html" class="wiki_link">pallet.chef</a></li><li><a href="pallet.compute-api.html" class="wiki_link">pallet.compute</a></li><li><a href="pallet.core-api.html" class="wiki_link">pallet.core</a></li><li><a href="pallet.utils-api.html" class="wiki_link">pallet.utils</a></li>
+      <li><a href="demo-api.html" class="wiki_link">demo</a></li><li><a href="pallet-api.html" class="wiki_link">pallet</a></li>
     </ul>
   </div>
 </div>
@@ -50,23 +50,7 @@ namespace.
     
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
-    <a href="#pallet.bootstrap">pallet.bootstrap</a>
-    
-    <br />
-  </div><div style="margin-left: 1em;" class="toc-section">
-    <a href="#pallet.chef">pallet.chef</a>
-    
-    <br />
-  </div><div style="margin-left: 1em;" class="toc-section">
-    <a href="#pallet.compute">pallet.compute</a>
-    
-    <br />
-  </div><div style="margin-left: 1em;" class="toc-section">
-    <a href="#pallet.core">pallet.core</a>
-    
-    <br />
-  </div><div style="margin-left: 1em;" class="toc-section">
-    <a href="#pallet.utils">pallet.utils</a>
+    <a href="#pallet">pallet</a>
     
     <br />
   </div>
@@ -148,79 +132,150 @@ A demo for pallet + crane + jclouds.
 </div><div id="namespace-entry">
   <br />
   <hr />
-  <h2 id="pallet.bootstrap">pallet.bootstrap</h2>
+  <h2 id="pallet">pallet</h2>
   by <span id="author">Hugo Duncan</span><br />
-  <a href="pallet.bootstrap-api.html" id="api-link">Detailed API documentation</a><br />
-  <pre id="namespace-docstr">Boostrap functions.
-</pre>
-  
-  Public variables and functions:
-  <span id="var-link"><a href="pallet.bootstrap-api.html#pallet.bootstrap/bootstrap-admin-user" id="var-tag">bootstrap-admin-user</a> </span><span id="var-link"><a href="pallet.bootstrap-api.html#pallet.bootstrap/bootstrap-fragment" id="var-tag">bootstrap-fragment</a> </span><span id="var-link"><a href="pallet.bootstrap-api.html#pallet.bootstrap/bootstrap-script" id="var-tag">bootstrap-script</a> </span><span id="var-link"><a href="pallet.bootstrap-api.html#pallet.bootstrap/bootstrap-template" id="var-tag">bootstrap-template</a> </span><span id="var-link"><a href="pallet.bootstrap-api.html#pallet.bootstrap/bootstrap-with" id="var-tag">bootstrap-with</a> </span><span id="var-link"><a href="pallet.bootstrap-api.html#pallet.bootstrap/with-bootstrap-repo" id="var-tag">with-bootstrap-repo</a> </span><br />
-  
-</div><div id="namespace-entry">
-  <br />
-  <hr />
-  <h2 id="pallet.chef">pallet.chef</h2>
-  by <span id="author">unknown author</span><br />
-  <a href="pallet.chef-api.html" id="api-link">Detailed API documentation</a><br />
-  <pre id="namespace-docstr"></pre>
-  
-  Public variables and functions:
-  <span id="var-link"><a href="pallet.chef-api.html#pallet.chef/chef-cook-solo" id="var-tag">chef-cook-solo</a> </span><span id="var-link"><a href="pallet.chef-api.html#pallet.chef/configure-with-chef" id="var-tag">configure-with-chef</a> </span><span id="var-link"><a href="pallet.chef-api.html#pallet.chef/cook-node" id="var-tag">cook-node</a> </span><span id="var-link"><a href="pallet.chef-api.html#pallet.chef/output-attributes" id="var-tag">output-attributes</a> </span><span id="var-link"><a href="pallet.chef-api.html#pallet.chef/with-chef-repository" id="var-tag">with-chef-repository</a> </span><span id="var-link"><a href="pallet.chef-api.html#pallet.chef/with-remote-chef-path" id="var-tag">with-remote-chef-path</a> </span><br />
-  
-</div><div id="namespace-entry">
-  <br />
-  <hr />
-  <h2 id="pallet.compute">pallet.compute</h2>
-  by <span id="author">unknown author</span><br />
-  <a href="pallet.compute-api.html" id="api-link">Detailed API documentation</a><br />
-  <pre id="namespace-docstr"></pre>
-  
-  Public variables and functions:
-  <span id="var-link"><a href="pallet.compute-api.html#pallet.compute/primary-ip" id="var-tag">primary-ip</a> </span><span id="var-link"><a href="pallet.compute-api.html#pallet.compute/shutdown-node" id="var-tag">shutdown-node</a> </span><br />
-  
-</div><div id="namespace-entry">
-  <br />
-  <hr />
-  <h2 id="pallet.core">pallet.core</h2>
-  by <span id="author">Hugo Duncan</span><br />
-  <a href="pallet.core-api.html" id="api-link">Detailed API documentation</a><br />
+  <a href="pallet-api.html" id="api-link">Detailed API documentation</a><br />
   <pre id="namespace-docstr">
-Pallet is used to provision configured compute nodes using crane, jclouds and chef.
+Pallet is used to provision configured compute nodes, and aims to solve the
+problem of providing a consistently configured running image across a range of
+clouds.  It is designed for use from the Clojure (<a href="http://clojure.org)">http://clojure.org)</a> REPL, and
+from clojure scripts.
 
-It uses a declaritive map for specifying the number of nodes with a given tag.
-Each tag is used to look up a machine image template specification (in crane and
-jsclouds), and to lookup configuration information (in chef).  The converge
-function then tries to bring you compute servers into alignment with your
-declared counts and configurations.
+It uses jclouds (<a href="http://github.com/jclouds/jclouds)">http://github.com/jclouds/jclouds)</a> to gain portable access to
+different cloud providers.  While jclouds solves the issue of creating
+destroying and configuring cloud level access to nodes, it does not address the
+differences in images used across providers.  This is what Pallet adds.
 
-The bootstrap process for new compute nodes installs a user with sudo
-permissions, using the specified username and password. The installed user is
-used to execute the chef cookbooks.
+Pallet works with a declaritive map for specifying the number of nodes with a
+given tag.  Each tag is used to look up a machine image template specification
+and to lookup configuration information.  The converge function then tries to
+bring you compute servers into alignment with your declared counts and
+configurations.
 
-Once the nodes are bootstrapped, and fall all existing nodes
-the configured node information is written to the "compute-nodes" cookbook
-before chef is run, and this provides a :compute_nodes attribute.  The
-compute-nodes cookbook is expected to exist in the site-cookbooks of the
-chef-repository you specify with `with-chef-repository`.
+The bootstrap process for new compute nodes is configurable.  At the moment
+there is the possibility of using scripts, which are specialised by tag or
+operating system family, and of using installing an admin user with sudo
+permissions, using the specified username and password.  Script templates exist
+for ensuring a functional resolv configuration, package manager update
+installation of rubygems, etc, and can be added to freely.
 
-`chef-solo` is then run with chef repository you have specified using the node
-tag as a configuration target.</pre>
-  
+An installed admin user can be used to execute chef cookbooks using 'chef-solo'.
+Once the nodes are bootstrapped, and fall all existing nodes, the configured
+node information is written to the 'compute-nodes' cookbook before chef is run
+and this provides a :compute_nodes attribute.  The compute-nodes cookbook is
+expected to exist in the site-cookbooks of the chef-repository you specify with
+`with-chef-repository`. `chef-solo` is then run with chef repository you have
+specified using the node tag as a configuration target.
+
+This can also be used to bootstrap chef-server and chef client installation.
+
+API documentation (<a href="http://hugoduncan.github.com/pallet)">http://hugoduncan.github.com/pallet)</a> is available.
+
+## Usage
+
+See demo documentation (http://hugoduncan.github.com/pallet/demo-api.html).
+
+## Todo
+
+Make password handling shell character safe.
+Add error handling.
+Add progress reporting.
+Add templating by cloud provider.
+
+## Installation
+
+Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen)">http://github.com/technomancy/leiningen)</a>.  Add
+`[pallet "0.0.1-SNAPSHOT"]` to your :dependencies in project.clj.</pre>
+  <span id="see-also">See also: 
+    <span id="see-also-link">
+      <a href="chef">http://wiki.opscode.com/display/chef/Home</a>
+    </span><span id="see-also-link">
+      <a href="crane">http://github.com/bradford/crane</a>
+    </span><span id="see-also-link">
+      <a href="jclouds">http://github.com/jclouds/jclouds</a>
+    </span><br />
+  </span>
   Public variables and functions:
-  <span id="var-link"><a href="pallet.core-api.html#pallet.core/*admin-user*" id="var-tag">*admin-user*</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/*node-templates*" id="var-tag">*node-templates*</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/adjust-node-counts" id="var-tag">adjust-node-counts</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/bootstrap-none" id="var-tag">bootstrap-none</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/configure-nodes-none" id="var-tag">configure-nodes-none</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/converge" id="var-tag">converge</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/converge-node-counts" id="var-tag">converge-node-counts</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/create-nodes" id="var-tag">create-nodes</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/node-template" id="var-tag">node-template</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/with-admin-user" id="var-tag">with-admin-user</a> </span><span id="var-link"><a href="pallet.core-api.html#pallet.core/with-node-templates" id="var-tag">with-node-templates</a> </span><br />
-  
-</div><div id="namespace-entry">
   <br />
-  <hr />
-  <h2 id="pallet.utils">pallet.utils</h2>
-  by <span id="author">unknown author</span><br />
-  <a href="pallet.utils-api.html" id="api-link">Detailed API documentation</a><br />
-  <pre id="namespace-docstr"></pre>
-  
-  Public variables and functions:
-  <span id="var-link"><a href="pallet.utils-api.html#pallet.utils/make-user" id="var-tag">make-user</a> </span><span id="var-link"><a href="pallet.utils-api.html#pallet.utils/remote-sudo" id="var-tag">remote-sudo</a> </span><span id="var-link"><a href="pallet.utils-api.html#pallet.utils/slurp-resource" id="var-tag">slurp-resource</a> </span><span id="var-link"><a href="pallet.utils-api.html#pallet.utils/system" id="var-tag">system</a> </span><br />
-  
+  <span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.bootstrap</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.bootstrap/bootstrap-admin-user">bootstrap-admin-user</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.bootstrap/bootstrap-fragment">bootstrap-fragment</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.bootstrap/bootstrap-script">bootstrap-script</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.bootstrap/bootstrap-template">bootstrap-template</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.bootstrap/bootstrap-with">bootstrap-with</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.bootstrap/with-bootstrap-repo">with-bootstrap-repo</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.chef</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.chef/chef-cook-solo">chef-cook-solo</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.chef/configure-with-chef">configure-with-chef</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.chef/cook-node">cook-node</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.chef/output-attributes">output-attributes</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.chef/with-chef-repository">with-chef-repository</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.chef/with-remote-chef-path">with-remote-chef-path</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.compute</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/primary-ip">primary-ip</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/shutdown-node">shutdown-node</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.core</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/*admin-user*">*admin-user*</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/*node-templates*">*node-templates*</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/adjust-node-counts">adjust-node-counts</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/bootstrap-none">bootstrap-none</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/configure-nodes-none">configure-nodes-none</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/converge">converge</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/converge-node-counts">converge-node-counts</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/create-nodes">create-nodes</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/node-template">node-template</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/with-admin-user">with-admin-user</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/with-node-templates">with-node-templates</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.utils</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.utils/make-user">make-user</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.utils/remote-sudo">remote-sudo</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.utils/slurp-resource">slurp-resource</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.utils/system">system</a>
+    </span>
+    <br />
+  </span>
 </div>
 </div>
               </div>
