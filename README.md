@@ -61,6 +61,7 @@ If you just want to try out pallet, then you can follow these instructions:
 - Install [Leiningen](http://github.com/technomancy/leiningen).
 
 - In a shell, go to the directory containing the pallet source code and enter
+
     $ lein deps
     $ lein javac
     $ lein repl
