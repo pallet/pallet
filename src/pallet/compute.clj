@@ -1,6 +1,13 @@
 (ns pallet.compute
   (:use crane.compute
-        [pallet.utils :only [remote-sudo]]))
+        [pallet.utils :only [remote-sudo resource-properties]]))
+
+;;; Meta
+(defn supported-clouds []
+  (map second
+       (filter (comp not nil?)
+               (map #(re-find #"(.*)\.contextbuilder" %)
+                    (keys (resource-properties "compute.properties"))))))
 
 ;;; Node utilities
 (defn primary-ip
@@ -38,4 +45,5 @@
 
 (defn shutdown [compute nodes]
   (dorun (map #(shutdown-node compute %) nodes)))
+
 

@@ -5,16 +5,10 @@
   (:use [crane.compute :only [os-families]]
         [pallet.core :only [*admin-user*]]
         [pallet.chef :only [*remote-chef-path*]]
-        [pallet.utils :only [make-user slurp-resource resource-path quoted]]
+        [pallet.utils :only [make-user slurp-resource resource-path quoted as-string]]
         [clojure.contrib.java-utils :only [file]]
         clojure.contrib.logging))
 
-
-(defn- as-string [arg]
-  (cond
-   (symbol? arg) (name arg)
-   (keyword? arg) (name arg)
-   :else (str arg)))
 
 ;;; Bootstrap from fragments
 (defonce fragment-root "bootstrap")
@@ -36,7 +30,8 @@ path. It returns the first fragment it finds in the following paths:
   [fragment tag template]
   (let [os-family (template-os-family template)
         found (remove
-               nil? (map #(slurp-resource (.getPath %))
+               nil?
+               (map #(slurp-resource (.getPath %))
                          (bootstrap-fragment-paths fragment tag os-family)))]
     (if (empty? found)
       (do

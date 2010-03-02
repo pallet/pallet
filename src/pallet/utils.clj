@@ -1,16 +1,24 @@
 (ns pallet.utils
   (:use crane.ssh2
         clojure.contrib.logging
-        [clojure.contrib.pprint :only [pprint]])
-  (:import (org.apache.commons.exec CommandLine
-                                    DefaultExecutor
-                                    ExecuteWatchdog)))
+        [clojure.contrib.shell-out :only [sh]]
+        [clojure.contrib.pprint :only [pprint]]
+        [clojure.contrib.duck-streams :as io]))
 
 (defn pprint-lines [s]
   (pprint (seq (.split #"\r?\n" s))))
 
 (defn quoted [s]
   (str "\"" s "\""))
+
+(defn underscore [s]
+  (apply str (interpose "_"  (.split s "-"))))
+
+(defn as-string [arg]
+  (cond
+   (symbol? arg) (name arg)
+   (keyword? arg) (name arg)
+   :else (str arg)))
 
 (defn resource-path [name]
   (let [loader (.getContextClassLoader (Thread/currentThread))
@@ -42,12 +50,22 @@
                    (.append sb (char c))
                    (recur (.read r)))))))))))
 
+(defn resource-properties [name]
+  (let [loader (.getContextClassLoader (Thread/currentThread))]
+    (with-open [stream (.getResourceAsStream loader name)]
+      (let [properties (new java.util.Properties)]
+        (.load properties stream)
+        (let [keysseq (enumeration-seq (. properties propertyNames))]
+          (reduce (fn [a b] (assoc a b (. properties getProperty b)))
+                  {} keysseq))))))
+
 (defn slurp-as-byte-array
   [#^java.io.File file]
   (let [size (.length file)
         bytes #^bytes (byte-array size)
         stream (new java.io.FileInputStream file)]
     bytes))
+
 
 (defn default-private-key-path []
   (str (. System getProperty "user.home") "/.ssh/id_rsa"))
@@ -67,15 +85,21 @@
       :private-key-path private-key-path}))
 
 (defn system
-  "Launch a system process, return a string containing the process output."
-  [cmd]
-  (let [command-line (CommandLine/parse cmd)
-        executor (DefaultExecutor.)
-        watchdog  (ExecuteWatchdog. 180000)]
-    (info (str "system " (str command-line)))
-    (.setExitValue executor 0)
-    (.setWatchdog executor watchdog)
-    (.execute executor command-line)))
+  "Launch a system process, return a map containing the exit code, stahdard
+  output and standard error of the process."
+  [& cmd]
+  (apply sh :return-map [:exit :out :err] cmd))
+
+(defmacro with-temp-file [[varname content] & body]
+  `(let [~varname (java.io.File/createTempFile "stevedore", ".tmp")]
+     (io/copy ~content ~varname)
+     (let [rv# (do ~@body)]
+       (.delete ~varname)
+       rv#)))
+
+(defn bash [cmds]
+  (with-temp-file [file cmds]
+    (system "/usr/bin/env" "bash" (.getPath file))))
 
 
 (defn remote-sudo
