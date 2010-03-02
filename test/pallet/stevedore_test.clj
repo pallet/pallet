@@ -46,6 +46,10 @@
     (is (= "42" (script (clj foo))))
     (is (= "42" (script ~foo)))))
 
+(deftest test-str
+  (is (= "foobar"
+         (script (str foo bar)))))
+
 (deftest test-fn
   (is (= "function foo(x) {\nfoo a\nbar b\n }"
          (strip-ws (script (fn foo [x] (foo a) (bar b)))))))

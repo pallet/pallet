@@ -18,13 +18,13 @@
   (grep ~(str \" "^" username ":" \") "/etc/passwd"))
 
 (defimpl create-user :default [username options]
-  (useradd ~options ~username))
+  (useradd ~(map-to-arg-string options) ~username))
 
 (defimpl modify-user :default [username options]
-  (usermod ~options ~username))
+  (usermod ~(map-to-arg-string options) ~username))
 
 (defimpl remove-user :default [username options]
-  (userdel ~options ~username))
+  (userdel ~(map-to-arg-string options) ~username))
 
 (defimpl lock-user :default [username options]
   (usermod --lock ~username))

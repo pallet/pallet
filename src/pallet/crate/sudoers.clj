@@ -88,7 +88,7 @@
 
 (deftemplate sudoer-templates
   [aliases-map default-map spec-map]
-  {{:path "/etc/sudoers" :owner "root" :mode "0644"}
+  {{:path "/etc/sudoers" :owner "root" :mode "0440"}
    (str
     (aliases aliases-map)
     (defaults default-map)

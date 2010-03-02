@@ -64,6 +64,8 @@ A demo for pallet + crane + jclouds.
         pallet.utils
         pallet.core
         pallet.chef
+        pallet.resource
+        pallet.crate.automated-admin-user
         pallet.bootstrap))
 
 ;;; Terremark

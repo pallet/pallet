@@ -6,15 +6,21 @@
         pallet.script))
 
 
-(defn arg-string [option argument]
-  (let [opt (underscore (name option))]
+(defn arg-string [option argument do-underscore]
+  (let [opt (if do-underscore (underscore (name option)) (name option))]
     (if argument
       (if (> (.length opt) 1)
         (str "--" opt (if-not (= argument true) (str "=" argument)))
         (str "-" opt (if-not (= argument true) (str " " argument)))))))
 
-(defn map-to-arg-string [m]
-  (apply str (interpose " " (map #(arg-string (first %) (second %)) m))))
+(defn map-to-arg-string [m & options]
+  (let [opts (apply hash-map options)]
+    (println "map-to-arg-string " m)
+    (apply str (interpose " " (map #(arg-string (first %) (second %) (opts :underscore)) m)))))
+
+(declare inner-walk outer-walk)
+
+
 
 (defmulti emit (fn [ expr ] (do (type expr))))
 
@@ -51,7 +57,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['if 'if-not '= 'aget 'fn 'return 'set! 'var 'let 'local 'literally 'deref 'do]))
+(def special-forms (set ['if 'if-not '= 'aget 'fn 'return 'set! 'var 'let 'local 'literally 'deref 'do 'str]))
 
 (def infix-operators (set ['+ '- '/ '* '% '== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '||]))
 (def logical-operators (set ['== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '||]))
@@ -88,12 +94,15 @@
 (defmethod emit-special 'let [type [let name expr]]
   (str "let " (emit name) "=" (emit expr)))
 
+(defmethod emit-special 'str [str [str & args]]
+  (string/map-str emit args))
+
 (defmethod emit-special 'invoke [type [name & args]]
   (debug (str "invoke [" *script-file*
               ":" *script-line* "] "
               name (print-args args)))
   (or (try
-       (invoke-target name (map emit args))
+       (invoke-target name (map (partial walk inner-walk outer-walk) args))
        (catch java.lang.IllegalArgumentException e
          (throw (java.lang.IllegalArgumentException. (str "Invalid arguments for " name) e))))
       (apply str (emit name) (if (empty? args) "" " ") (interpose " " (map emit args)))))
@@ -208,8 +217,6 @@
 
 (defn handle-unquote [form]
   (second form))
-
-(declare inner-walk outer-walk)
 
 (defn- inner-walk [form]
   (cond

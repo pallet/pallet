@@ -1,5 +1,6 @@
 (ns pallet.resource-test
   (:use [pallet.resource] :reload-all)
+  (:require pallet.resource.test-resource)
   (:use clojure.test
         pallet.test-utils))
 
@@ -54,6 +55,13 @@
   (defresource test-resource test-atom identity [arg])
   (test-resource :a)
   (is (= [[:a]] @test-atom)))
+
+(deftest bootstrap-resources-test
+  (reset! required-resources [:a])
+  (let [f (bootstrap-resources
+           (is (= [] @required-resources))
+           (pallet.resource.test-resource/test-resource))]
+    (is (= "test-resource" ((:bootstrap-script f) :tag [:ubuntu])))))
 
 
 

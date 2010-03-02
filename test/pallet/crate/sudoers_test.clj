@@ -265,7 +265,7 @@ matt valkyrie = KILL
 WEBMASTERS www = (www) ALL,(root) /usr/bin/su www
 ALL CDROM = NOPASSWD: /sbin/umount /CDROM,/sbin/mount -o nosuid\\,nodev /dev/cd0a /CDROM
 EOF
-chmod 0644 ${file}
+chmod 0440 ${file}
 chown root ${file}
 "
        ((pallet.resource/build-resources

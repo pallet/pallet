@@ -72,15 +72,17 @@ args is the argument signature for the resource.
      (partial pallet.resource/output-resources
               (pallet.resource/configured-resources))))
 
-(defmacro bootstrao-resources
+(defmacro bootstrap-resources
   "Returns a map that can be used with bootstrap-with."
   [& body]
   `(do
      (reset-resources)
      ~@body
-     (let [resources# (pallet.resource/configured-resources)]
-       (fn [tag# template#]
-         (with-target-template template#
-           (with-target-tag tag#
-             {:bootstrap-script
-              (pallet.resource/output-resources resources#)}))))))
+     (let [resources# (pallet.resource/configured-resources)
+           f# (partial pallet.resource/output-resources resources#)]
+       {:bootstrap-script
+        (fn [tag# template#]
+          (with-target-template template#
+            (with-target-tag tag#
+              (f#))))})))
+
