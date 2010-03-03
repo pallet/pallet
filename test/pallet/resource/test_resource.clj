@@ -1,7 +1,7 @@
 (ns pallet.resource.test-resource
   (:require [clojure.contrib.str-utils2 :as string])
   (:use
-   [pallet.target :only [admin-group]]
+   [pallet.target :only [admin-group *target-tag* *target-template*]]
    [pallet.stevedore :only [script]]
    [pallet.template]
    [pallet.resource :only [defresource]]

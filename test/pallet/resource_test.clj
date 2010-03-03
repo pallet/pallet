@@ -61,7 +61,8 @@
   (let [f (bootstrap-resources
            (is (= [] @required-resources))
            (pallet.resource.test-resource/test-resource))]
-    (is (= "test-resource" ((:bootstrap-script f) :tag [:ubuntu])))))
+    (is (= "test-resource::tag[:ubuntu]"
+           ((:bootstrap-script f) :tag [:ubuntu])))))
 
 
 
