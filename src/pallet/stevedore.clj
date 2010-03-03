@@ -1,22 +1,27 @@
-(ns #^{ :doc "Based on scriptjure"} pallet.stevedore
+(ns #^{ :doc "Embed shell script in clojure"}
+  pallet.stevedore
   (:require [clojure.contrib.str-utils2 :as string])
   (:use clojure.walk
         clojure.contrib.logging
         [pallet.utils :only [underscore]]
         pallet.script))
 
-
-(defn arg-string [option argument do-underscore]
+(defn arg-string [option argument do-underscore do-assign]
   (let [opt (if do-underscore (underscore (name option)) (name option))]
     (if argument
       (if (> (.length opt) 1)
-        (str "--" opt (if-not (= argument true) (str "=" argument)))
+        (str "--" opt (if-not (= argument true)
+                        (str (if do-assign "=" " ") argument)))
         (str "-" opt (if-not (= argument true) (str " " argument)))))))
 
 (defn map-to-arg-string [m & options]
   (let [opts (apply hash-map options)]
     (println "map-to-arg-string " m)
-    (apply str (interpose " " (map #(arg-string (first %) (second %) (opts :underscore)) m)))))
+    (apply
+     str (interpose
+          " "
+          (map #(arg-string (first %) (second %)
+                            (opts :underscore) (:opts :assign)) m)))))
 
 (declare inner-walk outer-walk)
 
