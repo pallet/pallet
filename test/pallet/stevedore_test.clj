@@ -70,6 +70,12 @@
   (is (= "not foo\n"
          (bash-out (script (if (== foo bar) (do (echo "foo")) (do (echo "not foo"))))))))
 
+(deftest test-if-not
+  (is (= "if [ ! \\( \\( foo == bar \\) -a \\( foo == baz \\) \\) ]; then echo fred;fi\n"
+         (script (if-not (&& (== foo bar) (== foo baz)) (echo fred)))))
+  (is (= "fred\n"
+         (bash-out (script (if-not (&& (== foo foo) (== foo baz)) (echo "fred")))))))
+
 (deftest test-map
   (is (= "([packages]=(columnchart))" (strip-ws (script {:packages ["columnchart"]}))))
   (is (= "x=([packages]=columnchart)\necho ${x[packages]}"

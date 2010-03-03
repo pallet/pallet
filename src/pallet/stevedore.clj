@@ -110,28 +110,33 @@
 (defn emit-method [obj method args]
   (str (emit obj) "." (emit method) (comma-list (map emit args))))
 
+(defn- logical-test? [test]
+  (and (sequential? test) (infix-operator? (first test))))
+
+(defn- emit-body-for-if [form]
+  (if (compound-form? form)
+    (str \newline (emit form))
+    (str " " (emit form) ";")))
+
 (defmethod emit-special 'if [type [if test true-form & false-form]]
-  (letfn [(emit-body [form]
-                     (if (compound-form? form)
-                       (str \newline (emit form))
-                       (str " " (emit form) ";")))]
-    (str "if " (if (and (sequential? test) (infix-operator? (first test)))
-                 (str "[ " (emit test) " ]")
-                 (emit test))
-         "; then"
-         (emit-body true-form)
-         (when (first false-form)
-           (str "else" (emit-body (first false-form))))
-         "fi\n")))
+  (str "if "
+       (if (logical-test? test) (str "[ " (emit test) " ]") (emit test))
+       "; then"
+       (emit-body-for-if true-form)
+       (when (first false-form)
+         (str "else" (emit-body-for-if (first false-form))))
+       "fi\n"))
 
 (defmethod emit-special 'if-not [type [if test true-form & false-form]]
-  (str "if ! " (emit test) "; then\n"
-       (emit true-form)
-       "\n"
+  (str "if "
+       (if (logical-test? test)
+         (str "[ ! " (emit test) " ]")
+         (str "! " (emit test)))
+       "; then"
+       (emit-body-for-if true-form)
        (when (first false-form)
-	 (str "else\n"
-	      (emit (first false-form))))
-       "\nfi\n"))
+         (str "else" (emit-body-for-if (first false-form))))
+       "fi\n"))
 
 (defmethod emit-special 'dot-method [type [method obj & args]]
   (let [method (symbol (string/drop (str method) 1))]
