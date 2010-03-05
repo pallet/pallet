@@ -1,5 +1,5 @@
 (ns pallet.chef
-  (:use [crane.compute :only [hostname public-ips private-ips tag nodes]]
+  (:use [org.jclouds.compute :only [hostname public-ips private-ips tag nodes]]
         [pallet.compute :only [primary-ip nodes-by-tag]]
         [pallet.utils :only [remote-sudo system pprint-lines quoted]]
         [pallet.core :only [*admin-user*]]

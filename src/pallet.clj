@@ -53,7 +53,6 @@ Installation is with Leiningen (http://github.com/technomancy/leiningen).  Add
 `[pallet \"0.0.1-SNAPSHOT\"]` to your :dependencies in project.clj.
 
 " :see-also [["chef" "http://wiki.opscode.com/display/chef/Home"]
-             ["crane" "http://github.com/bradford/crane"]
              ["jclouds" "http://github.com/jclouds/jclouds"]]}
   pallet
   (:require pallet.core pallet.utils pallet.compute pallet.bootstrap pallet.chef))

@@ -2,7 +2,7 @@
        "Boostrap functions.
 "}
   pallet.bootstrap
-  (:use [crane.compute :only [os-families]]
+  (:use [org.jclouds.compute :only [os-families]]
         [pallet.core :only [*admin-user*]]
         [pallet.chef :only [*remote-chef-path*]]
         [pallet.utils :only [make-user slurp-resource resource-path quoted as-string]]

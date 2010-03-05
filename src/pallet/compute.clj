@@ -1,5 +1,5 @@
 (ns pallet.compute
-  (:use crane.compute
+  (:use org.jclouds.compute
         [pallet.utils :only [remote-sudo resource-properties]]))
 
 ;;; Meta

@@ -1,11 +1,11 @@
 (ns
     #^{:author "Hugo Duncan"
        :doc "
-Pallet is used to provision configured compute nodes using crane, jclouds and chef.
+Pallet is used to provision configured compute nodes using jclouds and chef.
 
 It uses a declaritive map for specifying the number of nodes with a given tag.
-Each tag is used to look up a machine image template specification (in crane and
-jsclouds), and to lookup configuration information (in chef).  The converge
+Each tag is used to look up a machine image template specification (in
+jclouds), and to lookup configuration information (in chef).  The converge
 function then tries to bring you compute servers into alignment with your
 declared counts and configurations.
 
@@ -72,7 +72,7 @@ specification is a vector of arguments for build-template."}
            options (if (and init-script (not (:run-script options)))
                      (apply vector :run-script (.getBytes (init-script target options)) options)
                      options)]
-       (apply crane.compute/build-template compute options))))
+       (apply org.jclouds.compute/build-template compute options))))
 
 
 (def #^{:doc "Default bootstrap option. A no-op."}

@@ -1,5 +1,5 @@
 (ns #^{:doc "
-A demo for pallet + crane + jclouds.
+A demo for pallet + jclouds.
 
   ;; First we provide some credentials
   (def terremark-user \"your user\")
@@ -60,7 +60,7 @@ A demo for pallet + crane + jclouds.
 
 " :author "Hugo Duncan"}
   demo
-  (:use crane.compute
+  (:use org.jclouds.compute
         pallet.utils
         pallet.core
         pallet.chef
@@ -73,18 +73,18 @@ A demo for pallet + crane + jclouds.
 (defn terremark
   "Return a terremark compute context."
   []
-  (crane.compute/compute-context
+  (compute-context
    terremark-compute-name user/terremark-user user/terremark-password
-   (crane.compute/modules :log4j :ssh :enterprise)))
+   (modules :log4j :ssh :enterprise)))
 
 ;;; Cloudservers
 (def cloudservers-compute-name "cloudservers")
 (defn cloudservers
   "Return a cloudservers compute context."
   []
-  (crane.compute/compute-context
+  (compute-context
    cloudservers-compute-name user/cloudservers-user user/cloudservers-password
-   (crane.compute/modules :log4j :ssh :enterprise)))
+   (modules :log4j :ssh :enterprise)))
 
 (def webserver-template [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"])
 (def balancer-template (apply vector :inbound-ports [22 80] webserver-template))
