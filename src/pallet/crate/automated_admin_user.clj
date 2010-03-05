@@ -10,7 +10,7 @@
   in scripts, etc."
   ([username] (automated-admin-user username (default-public-key-path)))
   ([username public-key-path]
-     (user username :create-home true)
+     (user username :create-home true :shell :bash)
      (authorize-key username (slurp public-key-path))
      (sudoers {} {} {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})))
 
