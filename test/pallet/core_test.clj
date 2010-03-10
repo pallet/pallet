@@ -1,12 +1,36 @@
 (ns pallet.core-test
   (:use [pallet.core] :reload-all)
+  (require [pallet.utils])
   (:use clojure.test
         pallet.test-utils))
 
 (deftest with-admin-user-test
   (let [x (rand)]
     (with-admin-user x
-      (is (= x *admin-user*)))))
+      (is (= x pallet.utils/*admin-user*)))))
+
+(deftest admin-user-test
+  (let [username "userfred"
+        old pallet.utils/*admin-user*]
+    (admin-user username)
+    (is (map? pallet.utils/*admin-user*))
+    (is (= username (:username pallet.utils/*admin-user*)))
+    (is (= (pallet.utils/default-public-key-path)
+           (:public-key-path pallet.utils/*admin-user*)))
+    (is (= (pallet.utils/default-private-key-path)
+           (:private-key-path pallet.utils/*admin-user*)))
+    (is (nil? (:password pallet.utils/*admin-user*)))
+
+    (admin-user username :password "pw" :public-key-path "pub"
+                :private-key-path "pri")
+    (is (map? pallet.utils/*admin-user*))
+    (is (= username (:username pallet.utils/*admin-user*)))
+    (is (= "pub" (:public-key-path pallet.utils/*admin-user*)))
+    (is (= "pri" (:private-key-path pallet.utils/*admin-user*)))
+    (is (= "pw" (:password pallet.utils/*admin-user*)))
+
+    (admin-user old)
+    (is (= old pallet.utils/*admin-user*))))
 
 (deftest with-node-templates-test
   (let [x (rand)]

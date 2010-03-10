@@ -8,3 +8,22 @@
 
 (deftest bash-test
   (is (= {:exit 0 :out "fred\n" :err ""} (bash "echo fred"))))
+
+(deftest make-user-test
+  (let [username "userfred"
+        password "pw"
+        private-key-path "pri"
+        public-key-path "pub"]
+    (is (= {:username username
+            :password password
+            :private-key-path private-key-path
+            :public-key-path public-key-path}
+           (make-user username
+            :password password
+            :private-key-path private-key-path
+            :public-key-path public-key-path)))
+    (is (= {:username username
+            :password nil
+            :private-key-path (default-private-key-path)
+            :public-key-path (default-public-key-path)}
+           (make-user username)))))

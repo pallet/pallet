@@ -1,4 +1,5 @@
 (ns pallet.resource
+  "Resource definition interface."
   (:require [clojure.contrib.str-utils2 :as string])
   (:use [pallet.target :only [with-target-template with-target-tag]]
         [clojure.contrib.def :only [name-with-attributes]]))
@@ -57,32 +58,38 @@ args is the argument signature for the resource.
                     `(apply vector ~@(filter #(not (= '& %)) args))
                     `[~@args]))))))
 
-
 (defn output-resources
-  "Invoke all accumulated resources."
+  "Invoke all passed resources."
   [resources]
   (string/join \newline (map #(%) resources)))
 
 (defmacro build-resources
-  "Returns a function that outputs the resources specified in the body"
+  "Returns a function that outputs the resources specified in the body."
   [& body]
   `(do
      (reset-resources)
      ~@body
-     (partial pallet.resource/output-resources
-              (pallet.resource/configured-resources))))
+     (output-resources (configured-resources))))
+
+(defmacro build-resource-fn
+  "Returns a function that outputs the resources specified in the body."
+  [& body]
+  `(do
+     (reset-resources)
+     ~@body
+     (partial output-resources (configured-resources))))
+
+(defmacro resource-fn
+  "Returns a function that binds the target tag and template and outputs the
+resources specified in the body."
+  [& body]
+  `(fn [tag# template#]
+      (with-target-template template#
+        (with-target-tag tag#
+          (build-resources ~@body)))))
 
 (defmacro bootstrap-resources
   "Returns a map that can be used with bootstrap-with."
   [& body]
-  `(do
-     (reset-resources)
-     ~@body
-     (let [resources# (pallet.resource/configured-resources)
-           f# (partial pallet.resource/output-resources resources#)]
-       {:bootstrap-script
-        (fn [tag# template#]
-          (with-target-template template#
-            (with-target-tag tag#
-              (f#))))})))
+  `{:bootstrap-script (resource-fn ~@body)})
 

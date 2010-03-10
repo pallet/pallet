@@ -1,6 +1,7 @@
 (ns pallet.compute
   (:use org.jclouds.compute
-        [pallet.utils :only [remote-sudo resource-properties]]))
+        [pallet.utils :only [*admin-user* remote-sudo remote-sudo-script
+                             resource-properties]]))
 
 ;;; Meta
 (defn supported-clouds []
@@ -46,4 +47,9 @@
 (defn shutdown [compute nodes]
   (dorun (map #(shutdown-node compute %) nodes)))
 
+(defn execute-script
+  "Execute a script on a specified node."
+  ([script node] (execute-script script node *admin-user*))
+  ([script node user]
+     (remote-sudo-script (primary-ip node) script user)))
 

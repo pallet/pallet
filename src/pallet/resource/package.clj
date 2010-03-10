@@ -1,26 +1,29 @@
 (ns #^{ :doc "Package management resource."}
   pallet.resource.package
+  (:require [clojure.contrib.str-utils2 :as string])
   (:use pallet.script
-        pallet.stevedore))
+        pallet.stevedore
+        [pallet.resource :only [defresource]]
+        [clojure.contrib.logging]))
 
-(defscript update-package-list [])
-(defscript install-package [name options])
-(defscript remove-package [name options])
-(defscript purge-package [name options])
+(defscript update-package-list [& options])
+(defscript install-package [name & options])
+(defscript remove-package [name & options])
+(defscript purge-package [name & options])
 
-(defimpl update-package-list :default [options]
-  (aptitude update ~options))
+(defimpl update-package-list :default [& options]
+  (aptitude update ~(option-args options)))
 
-(defimpl install-package :default [package options]
-  (aptitude install -y ~options ~package))
+(defimpl install-package :default [package & options]
+  (aptitude install -y ~(option-args options) ~package))
 
-(defimpl remove-package :default [package options]
-  (aptitude remove ~options ~package))
+(defimpl remove-package :default [package & options]
+  (aptitude remove ~(option-args options) ~package))
 
-(defimpl purge-package :default [package options]
-  (aptitude purge ~options ~package))
+(defimpl purge-package :default [package & options]
+  (aptitude purge ~(option-args options) ~package))
 
-(defn package
+(defn apply-package
   "Package management"
   [package-name & options]
   (let [opts (if options (apply assoc {} options))
@@ -29,9 +32,9 @@
     (condp = action
       :install
       (script
-       (install-package
+       (apply install-package
         ~package-name
-        ~(select-keys opts [:base-dir :home :system :create-home :password])))
+        ~(apply concat (select-keys opts [:y :force]))))
       :remove
       (if (options :purge)
         (script (purge-package ~package-name))
@@ -43,3 +46,14 @@
 
       (throw (IllegalArgumentException.
               (str action " is not a valid action for package resource"))))))
+
+
+(def package-args (atom []))
+
+(defn- apply-packages [package-args]
+  (info "apply-packages")
+  (string/join \newline (map #(apply apply-package %) package-args)))
+
+
+(defresource package "Package management.
+" package-args apply-packages [packagename & options])

@@ -1,0 +1,16 @@
+gem sources -a http://gems.opscode.com
+gem sources -a http://gemcutter.org
+gem sources -a http://gems.github.com
+gem update --system
+gem install chef
+gem install passenger # cheat!
+
+cat > ~/solo.rb <<EOF
+log_level          :info
+log_location       STDOUT
+file_cache_path    "/srv/chef"
+cookbook_path      [ "/srv/chef/site-cookbooks", "/srv/chef/cookbooks" ]
+role_path          "/srv/chef/roles"
+ssl_verify_mode    :verify_none
+Chef::Log::Formatter.show_time = false
+EOF

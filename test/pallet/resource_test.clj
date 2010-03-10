@@ -37,13 +37,23 @@
   (invoke-resource test-atom identity :a)
   (invoke-resource test-atom identity :b)
   (let [fs (configured-resources)]
+    (is (not (.contains "lazy" (str fs))))
     (is (= [] @test-atom))
     (reset-resources)
     (is (= [:a :b] ((first fs))))))
 
 (deftest build-resources-test
   (reset! test-atom [])
-  (let [f (build-resources
+  (let [s (build-resources
+           (invoke-resource test-atom identity "a")
+           (invoke-resource test-atom identity "b"))]
+    (is (= [] @test-atom))
+    (reset-resources)
+    (is (= "[\"a\" \"b\"]" s))))
+
+(deftest build-resource-fn-test
+  (reset! test-atom [])
+  (let [f (build-resource-fn
            (invoke-resource test-atom identity "a")
            (invoke-resource test-atom identity "b"))]
     (is (= [] @test-atom))
@@ -61,8 +71,8 @@
   (let [f (bootstrap-resources
            (is (= [] @required-resources))
            (pallet.resource.test-resource/test-resource))]
+    (is (map? f))
+    (is (:bootstrap-script f))
+    (is (ifn? (:bootstrap-script f)))
     (is (= "test-resource::tag[:ubuntu]"
            ((:bootstrap-script f) :tag [:ubuntu])))))
-
-
-

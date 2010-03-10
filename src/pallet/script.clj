@@ -1,5 +1,6 @@
-(ns #^{:doc "Base infrastructure for script generation"}
+(ns
   pallet.script
+  "Base infrastructure for script generation"
   (:use [pallet.target :only [*target-template*]]
         [clojure.contrib.def :only [defvar-]]
         clojure.contrib.logging))
@@ -65,8 +66,10 @@
               script " " (print-args args)))
   (when-let [f (best-match (keyword (name script)))]
     (debug (str "Found implementation for " script " - " f
-                " invoking with " (print-args args)))
-    (apply f args)))
+                " invoking with " (print-args args) " empty? " (empty? args)))
+    (if (empty? args)
+      (f)
+      (apply f args))))
 
 ;; TODO - ensure that metadat is correctlplaced on the generated function
 (defmacro defscript

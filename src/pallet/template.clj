@@ -1,5 +1,5 @@
-(ns #^{:doc "Template file writing"}
-  pallet.template
+(ns pallet.template
+  "Template file writing"
   (:require [clojure.contrib.str-utils2 :as string])
   (:use [pallet.stevedore :only [script]]
         [clojure.contrib.logging]))

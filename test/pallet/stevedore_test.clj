@@ -42,9 +42,11 @@
            (script (grep ~(str "\"^" name "\"") "/etc/passwd"))))))
 
 (deftest test-clj
-  (let [foo 42]
+  (let [foo 42
+        bar [1 2 3]]
     (is (= "42" (script (clj foo))))
-    (is (= "42" (script ~foo)))))
+    (is (= "42" (script ~foo)))
+    (is (= "foo 1 2 3" (script (apply foo ~bar))))))
 
 (deftest test-str
   (is (= "foobar"

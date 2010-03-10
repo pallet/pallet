@@ -1,8 +1,10 @@
-(ns pallet.chef
+(ns #^{:author "Hugo Duncan"}
+  pallet.chef
+  "Execute chef recipes using chef solo."
   (:use [org.jclouds.compute :only [hostname public-ips private-ips tag nodes]]
         [pallet.compute :only [primary-ip nodes-by-tag]]
-        [pallet.utils :only [remote-sudo system pprint-lines quoted]]
-        [pallet.core :only [*admin-user*]]
+        [pallet.utils :only [*admin-user* remote-sudo system pprint-lines
+                             quoted]]
         [clojure.contrib.java-utils :only [file]]
         [clojure.contrib.duck-streams :only [with-out-writer]]
         clojure.contrib.logging))
@@ -69,14 +71,13 @@
      (chef-cook-solo server command user *remote-chef-path*))
   ([server command user remote-chef-path]
      (info (str "chef-cook-solo " server))
-     (let [[resp status]
-            (remote-sudo
-             (str server)
-             (str "chef-solo -c " remote-chef-path "config/solo.rb -j "
-                  remote-chef-path "config/" command ".json")
-             user)]
-        (pprint-lines resp)
-        (if (not (zero? (Integer. status)))
+     (let [resp
+           (remote-sudo
+            (str server)
+            (str "chef-solo -c " remote-chef-path "config/solo.rb -j "
+                 remote-chef-path "config/" command ".json")
+            user)]
+        (if (not (zero? (resp :exit)))
           (println "CHEF FAILED -------------------------------")))))
 
 (defn chef-cook [node user]

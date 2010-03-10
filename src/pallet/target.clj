@@ -1,4 +1,5 @@
-(ns #^{:doc "Provide information about the target image"}  pallet.target)
+(ns pallet.target
+  "Provide information about the target image")
 
 ;; A conscious decision was made to use rebindable vars here, as passing them around
 ;; explicitly would create a lot of noise in resources, templates and crates

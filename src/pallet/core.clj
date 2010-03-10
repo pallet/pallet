@@ -1,7 +1,6 @@
-(ns
-    #^{:author "Hugo Duncan"
-       :doc "
-Pallet is used to provision configured compute nodes using jclouds and chef.
+(ns #^{:author "Hugo Duncan"}
+  pallet.core
+"Pallet is used to provision configured compute nodes using jclouds and chef.
 
 It uses a declaritive map for specifying the number of nodes with a given tag.
 Each tag is used to look up a machine image template specification (in
@@ -21,30 +20,39 @@ chef-repository you specify with `with-chef-repository`.
 
 `chef-solo` is then run with chef repository you have specified using the node
 tag as a configuration target.
-"}
-  pallet.core
-  (:use crane.compute
-        [pallet.utils :only [remote-sudo make-user]]
+"
+  (:use [pallet.utils :only [remote-sudo make-user *admin-user*
+                             default-public-key-path as-string]]
         [pallet.compute :only [node-has-tag? node-counts-by-tag boot-if-down]]
+        [org.jclouds.compute :only [run-nodes destroy-node nodes]]
         clojure.contrib.logging)
   (:import org.jclouds.compute.domain.OsFamily
            org.jclouds.compute.options.TemplateOptions
            org.jclouds.compute.domain.NodeMetadata))
 
 
-(def #^{:doc "The admin user is used for running remote admin commands that
-require root permissions."}
-     *admin-user* (make-user "admin" "dontuseMe123"))
-
 (defmacro with-admin-user
   "Specify the admin user for running remote commands.  The user is specified
   either as a user map, which can be created with make-user, or as an argument
   list that will be passed to make-user."
   [user & exprs]
-
   `(let [user# ~user]
      (binding [*admin-user* (if (vector? user#) (apply make-user user#) user#)]
        ~@exprs)))
+
+(defn admin-user
+  "Set the root binding for the admin user.
+The user arg is a map as returned by make-user, or a username.
+When passing a username the following options can be specified:
+  :password
+  :private-key-path
+  :public-key-path
+"
+  [user & options]
+  (alter-var-root
+   #'*admin-user* #(identity %2) (if (string? user)
+                                   (apply make-user user options)
+                                   user)))
 
 (def #^{:doc "Map from tag keyword to template specification.  Each template
 specification is a vector of arguments for build-template."}
@@ -56,6 +64,22 @@ specification is a vector of arguments for build-template."}
   `(binding [*node-templates* ~map]
      ~@body))
 
+(defn build-node-template
+  "Build a template for passing to jclouds run-nodes."
+  ([compute options]
+     (build-node-template compute options (default-public-key-path) nil))
+  ([compute options public-key-path init-script]
+     (let [options
+           (if (and public-key-path (not (:authorize-public-key options)))
+             (apply
+              vector :authorize-public-key (slurp public-key-path) options)
+             options)
+           options
+           (if (and init-script (not (:run-script options)))
+             (apply vector :run-script (.getBytes init-script) options)
+             options)]
+    (apply org.jclouds.compute/build-template compute options))))
+
 (defn node-template
   "Build the template for specified target node and compute context"
   ([compute target public-key-path init-script]
@@ -65,15 +89,17 @@ specification is a vector of arguments for build-template."}
      (info (str "building node template for " target))
      (when public-key-path (info (str "  authorizing " public-key-path)))
      (when init-script (info (str "  using init script")))
-     (let [options (target node-templates)
-           options (if (and public-key-path (not (:authorize-public-key options)))
-                     (apply vector :authorize-public-key (slurp public-key-path) options)
-                     options)
-           options (if (and init-script (not (:run-script options)))
-                     (apply vector :run-script (.getBytes (init-script target options)) options)
-                     options)]
-       (apply org.jclouds.compute/build-template compute options))))
+     (let [options (target node-templates)]
+       (build-node-template
+        compute
+        options
+        public-key-path
+        (if init-script (init-script target options))))))
 
+(defn start-node
+  "Convience function for explicitly starting nodes."
+  [compute tag template]
+  (run-nodes compute (as-string tag) 1 (build-node-template compute template)))
 
 (def #^{:doc "Default bootstrap option. A no-op."}
      bootstrap-none {:authorize-public-key nil :bootstrap-script nil})

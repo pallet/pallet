@@ -1,5 +1,5 @@
-(ns #^{ :doc "Embed shell script in clojure"}
-  pallet.stevedore
+(ns pallet.stevedore
+  "Embed shell script in clojure"
   (:require [clojure.contrib.str-utils2 :as string])
   (:use clojure.walk
         clojure.contrib.logging
@@ -14,22 +14,33 @@
                         (str (if do-assign "=" " ") argument)))
         (str "-" opt (if-not (= argument true) (str " " argument)))))))
 
-(defn map-to-arg-string [m & options]
+(defn map-to-arg-string
+  "Output a set of command line switches from a map"
+  [m & options]
+  (debug (str "map-to-arg-string " m " options " options))
   (let [opts (apply hash-map options)]
-    (println "map-to-arg-string " m)
     (apply
      str (interpose
           " "
           (map #(arg-string (first %) (second %)
                             (opts :underscore) (:opts :assign)) m)))))
 
+(defn option-args
+  "Output a set of command line switches from a sequence of options"
+  [& options]
+  (let [m (if (first options) (apply hash-map options) {})
+        assign (m :assign)
+        underscore (m :underscore)]
+    (map-to-arg-string
+     (dissoc m :assign :underscore) :assign assign :underscore underscore)))
+
 (declare inner-walk outer-walk)
 
+(defmulti emit
+  (fn [ expr ] (do (type expr))))
 
-
-(defmulti emit (fn [ expr ] (do (type expr))))
-
-(defmulti emit-special (fn [ & args] (identity (first args))))
+(defmulti emit-special
+  (fn [ & args] (identity (first args))))
 
 (def statement-separator "\n")
 
@@ -40,6 +51,10 @@
 
 (defn comma-list [coll]
   (str "(" (string/join ", " coll) ")"))
+
+(defn splice-list [coll]
+  (debug (str "splicing " coll))
+  (string/join " " coll))
 
 (defmethod emit nil [expr]
   "null")
@@ -62,7 +77,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['if 'if-not '= 'aget 'fn 'return 'set! 'var 'let 'local 'literally 'deref 'do 'str]))
+(def special-forms (set ['if 'if-not '= 'aget 'fn 'return 'set! 'var 'let 'local 'literally 'deref 'do 'str 'quote 'apply]))
 
 (def infix-operators (set ['+ '- '/ '* '% '== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '||]))
 (def logical-operators (set ['== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '||]))
@@ -99,18 +114,23 @@
 (defmethod emit-special 'let [type [let name expr]]
   (str "let " (emit name) "=" (emit expr)))
 
-(defmethod emit-special 'str [str [str & args]]
+(defmethod emit-special 'str [type [str & args]]
   (string/map-str emit args))
+
+(defmethod emit-special 'quote [type [quote arg]]
+  (emit arg))
 
 (defmethod emit-special 'invoke [type [name & args]]
   (debug (str "invoke [" *script-file*
               ":" *script-line* "] "
-              name (print-args args)))
+              name " " (print-args args)))
   (or (try
        (invoke-target name (map (partial walk inner-walk outer-walk) args))
        (catch java.lang.IllegalArgumentException e
-         (throw (java.lang.IllegalArgumentException. (str "Invalid arguments for " name) e))))
-      (apply str (emit name) (if (empty? args) "" " ") (interpose " " (map emit args)))))
+         (throw (java.lang.IllegalArgumentException.
+                 (str "Invalid arguments for " name) e))))
+      (apply str (emit name) (if (empty? args) "" " ")
+             (interpose " " (map emit args)))))
 
 (defn emit-method [obj method args]
   (str (emit obj) "." (emit method) (comma-list (map emit args))))
@@ -186,21 +206,40 @@
       (emit-function nil signature body))))
 
 (defmethod emit clojure.lang.Cons [expr]
+  (debug (str "emit Cons " (print-args expr)))
   (emit (list* expr)))
 
-(defmethod emit clojure.lang.IPersistentList [expr]
+(defn emit-s-expr [expr]
+  (debug (str "emit s-expr " (print-args expr)))
   (if (symbol? (first expr))
     (let [head (symbol (name (first expr)))  ; remove any ns resolution
 	  expr (conj (rest expr) head)]
       (debug (str "emit list " (print-args expr)))
+      (debug (str "head " head " special-form? " (special-form? head)))
       (cond
 	(and (= (string/get (str head) 0) \.) (> (count (str head)) 1)) (emit-special 'dot-method expr)
 	(special-form? head) (emit-special head expr)
 	(infix-operator? head) (emit-infix head expr)
 	:else (emit-special 'invoke expr)))
-    (throw (new Exception (str "invalid form: " expr)))))
+    (string/join " " (map emit expr))))
+
+(defmethod emit clojure.lang.IPersistentList [expr]
+  (debug (str "emit IPersistentList " (print-args expr)))
+  (emit-s-expr expr))
+
+(defn- spread
+  [arglist]
+  (cond
+   (nil? arglist) nil
+   (nil? (next arglist)) (seq (first arglist))
+   :else (apply list (first arglist) (spread (next arglist)))))
+
+(defmethod emit-special 'apply [type [apply & exprs]]
+  (debug (str "emit apply " exprs))
+  (emit-s-expr (spread exprs)))
 
 (defmethod emit clojure.lang.IPersistentVector [expr]
+  (debug (str "emit IPersistentVector " (print-args expr)))
   (str "(" (string/join " " (map emit expr)) ")"))
 
 ;; (defmethod emit clojure.lang.IPersistentMap [expr]
@@ -210,6 +249,7 @@
 ;  (emit (into [] expr)))
 
 (defmethod emit clojure.lang.IPersistentMap [expr]
+  (debug (str "emit IPersistentMap " (print-args expr)))
   (letfn [(subscript-assign [pair] (str "["(emit (key pair)) "]=" (emit (val pair))))]
     (str "(" (string/join " " (map subscript-assign (seq expr))) ")")))
 
@@ -229,11 +269,13 @@
   (second form))
 
 (defn- inner-walk [form]
+  (debug (str "inner " form))
   (cond
-    (unquote? form) (handle-unquote form)
-    :else (walk inner-walk outer-walk form)))
+   (unquote? form) (handle-unquote form)
+   :else (walk inner-walk outer-walk form)))
 
 (defn- outer-walk [form]
+  (debug (str "outer " form))
   (cond
     (symbol? form) (list 'quote form)
     (seq? form) (list* 'list form)

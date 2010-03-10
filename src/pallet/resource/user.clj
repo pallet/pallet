@@ -16,7 +16,7 @@
 (defscript user-home [username])
 
 (defimpl user-exists? :default [username]
-  (grep ~(str \" "^" username ":" \") "/etc/passwd"))
+  (getent passwd ~username))
 
 (defimpl create-user :default [username options]
   (useradd ~(map-to-arg-string options) ~username))

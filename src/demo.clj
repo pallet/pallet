@@ -1,25 +1,39 @@
-(ns #^{:doc "
-A demo for pallet + jclouds.
+(ns #^{:author "Hugo Duncan"}
+  demo
+  "A demo for pallet + jclouds.
 
-  ;; First we provide some credentials
-  (def terremark-user \"your user\")
-  (def terremark-password \"your api key\")
-
-  ;; Npw we can load the demo package
+  ;; First we load the demo package, and switch to the demo namespace
   (require 'demo)
   (in-ns 'demo)
 
+  ;; Supported providers can be found with
+  (supported-clouds)
+
+  ;; We provide some credentials
+  (def my-user \"your user\")
+  (def my-password \"your api key\")
+
   ;; and log in to the cloud using the credentials defined above.
-  (def tm (demo/terremark))
+  ;; provider is a string specifiying the provider, as returned
+  ;; from (supported-clouds)
+  (def context (compute-context \"provider\" my-user my-password))
+
+  ;; nodes can be listed with the nodes function
+  (nodes context)
+
+  ;; We can create a node, by specifying a name tag and a template.
+  ;; webserver-template is a vector specifying features we want in
+  ;; our image.
+  (start-node context :webserver webserver-template)
 
   ;; At this point we can manage instance counts as a map.
-  ;; e.g add a node using the webserver template
+  ;; e.g ensure that we have two webserver nodes
   (with-node-templates templates
-    (converge tm {:webserver 1}))
+    (converge context {:webserver 2}))
 
-  ;; ... and remove it again
+  ;; ... and we can remove our nodes
   (with-node-templates templates
-    (converge tm {:webserver 0}))
+    (converge context {:webserver 0}))
 
   ;; templates is a description of the images to use for each of
   ;; our node tags
@@ -32,59 +46,43 @@ A demo for pallet + jclouds.
   ;; have a default implementation, but can be specialised
   ;; for a given tag or operating system family.
   (with-node-templates templates
-    (converge tm {:webserver 1}
+    (converge context {:webserver 1}
       (bootstrap-with (bootstrap-template :ensure-resolve)
                       (bootstrap-template :update-pkg-mgr))))
 
   ;; We probably want an admin user.  We can ensure our admin
   ;; user is created with the image by specifying :boostrap-admin-user.
-  (def user (make-user \"admin-user\" \"admin-password\"))
+  (def user (make-user \"admin-user\" :password \"admin-password\"))
 
   ;; this time we create the a bootstrapped node
   (with-node-templates templates
-    (converge tm {:webserver 1}
+    (converge context {:webserver 1}
       (bootstrap-with (bootstrap-template :ensure-resolve)
                       (bootstrap-admin-user user))))
 
   ;; Bootstrapping is fine, but we might also want to configure the machines
   ;; with chef
   (with-node-templates templates
-    (converge tm {:webserver 1}
+    (converge context {:webserver 1}
       (bootstrap-with (bootstrap-template :ensure-resolve)
                       (bootstrap-template :update-pkg-mgr)
+                      (bootstrap-template :install-rubygems)
+                      (bootstrap-template :install-chef)
                       (bootstrap-admin-user user))
       (configure-with-chef user \"path_to_your_chef_repository\")))
 
-  ;; and we can tun chef-solo at any time with
-  (cook-nodes (nodes tm) user \"path_to_your_chef_repository\")
-
-" :author "Hugo Duncan"}
-  demo
-  (:use org.jclouds.compute
+  ;; and we can then run chef-solo at any time with
+  (cook-nodes (nodes context) user \"path_to_your_chef_repository\")"
+(:use org.jclouds.compute
         pallet.utils
         pallet.core
         pallet.chef
         pallet.resource
+        pallet.compute
         pallet.crate.automated-admin-user
-        pallet.bootstrap))
+        pallet.bootstrap
+        clj-ssh.ssh))
 
-;;; Terremark
-(def terremark-compute-name "terremark")
-(defn terremark
-  "Return a terremark compute context."
-  []
-  (compute-context
-   terremark-compute-name user/terremark-user user/terremark-password
-   (modules :log4j :ssh :enterprise)))
-
-;;; Cloudservers
-(def cloudservers-compute-name "cloudservers")
-(defn cloudservers
-  "Return a cloudservers compute context."
-  []
-  (compute-context
-   cloudservers-compute-name user/cloudservers-user user/cloudservers-password
-   (modules :log4j :ssh :enterprise)))
 
 (def webserver-template [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"])
 (def balancer-template (apply vector :inbound-ports [22 80] webserver-template))

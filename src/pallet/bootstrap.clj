@@ -1,11 +1,10 @@
-(ns #^{:author "Hugo Duncan" :doc
-       "Boostrap functions.
-"}
+(ns #^{:author "Hugo Duncan"}
   pallet.bootstrap
+  "Boostrap functions."
   (:use [org.jclouds.compute :only [os-families]]
-        [pallet.core :only [*admin-user*]]
         [pallet.chef :only [*remote-chef-path*]]
-        [pallet.utils :only [make-user slurp-resource resource-path quoted as-string]]
+        [pallet.utils :only [*admin-user* make-user slurp-resource
+                             resource-path quoted as-string]]
         [clojure.contrib.java-utils :only [file]]
         clojure.contrib.logging))
 

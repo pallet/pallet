@@ -1,6 +1,6 @@
 (ns pallet.utils
-  (:use crane.ssh2
-        clojure.contrib.logging
+  (:use clojure.contrib.logging
+        [clj-ssh.ssh]
         [clojure.contrib.shell-out :only [sh]]
         [clojure.contrib.pprint :only [pprint]]
         [clojure.contrib.duck-streams :as io]))
@@ -75,20 +75,25 @@
 (defn make-user
   "Create a description of the admin user to be created and used for running
    chef."
-  ([username password]
-     (make-user username password
-                (default-public-key-path) (default-private-key-path)))
-  ([username password public-key-path private-key-path]
-     {:username username
-      :password password
-      :public-key-path public-key-path
-      :private-key-path private-key-path}))
+  [username & options]
+  (let [options (if (first options) (apply array-map options) {})]
+    {:username username
+     :password (options :password)
+     :private-key-path (or (options :private-key-path)
+                           (default-private-key-path))
+     :public-key-path (or (options :public-key-path)
+                          (default-public-key-path))}))
+
+
+(def #^{:doc "The admin user is used for running remote admin commands that
+require root permissions."}
+     *admin-user* (make-user "admin"))
 
 (defn system
   "Launch a system process, return a map containing the exit code, stahdard
   output and standard error of the process."
-  [& cmd]
-  (apply sh :return-map [:exit :out :err] cmd))
+  [cmd]
+  (apply sh :return-map [:exit :out :err] (.split cmd " ")))
 
 (defmacro with-temp-file [[varname content] & body]
   `(let [~varname (java.io.File/createTempFile "stevedore", ".tmp")]
@@ -99,23 +104,54 @@
 
 (defn bash [cmds]
   (with-temp-file [file cmds]
-    (system "/usr/bin/env" "bash" (.getPath file))))
+    (system (str "/usr/bin/env bash " (.getPath file)))))
 
 
 (defn remote-sudo
   "Run a sudo command on a server."
   [#^java.net.InetAddress server #^String command user]
-  (with-connection [connection (session (:private-key-path user) (:username user) (str server))]
-    (let [channel (exec-channel connection)
-          cmd (str "echo \"" (:password user) "\" | sudo -S " command)]
-      (.setErrStream channel System/err true)
-      (info (str "sudo! " cmd))
-      (with-logs 'pallet
-        (let [resp (sh! channel cmd)]
-          (when (not (.isClosed channel))
-            (try
-             (Thread/sleep 1000)
-             (catch Exception ee)))
-          [resp (.getExitStatus channel)])))))
+  (with-ssh-agent []
+    (add-identity (:private-key-path user))
+    (let [session (session server
+                           :username (:username user)
+                           :strict-host-key-checking :no)]
+      (with-connection session
+        (let [prefix (if (:password user)
+                       (str "echo \"" (:password user) "\" | sudo -S ")
+                       "sudo ")
+              cmd (str prefix command)
+              _ (info (str "remote-sudo " cmd))
+              result (ssh session cmd :return-map true)]
+          (info (result :out))
+          (when (not (zero? (result :exit)))
+            (error (str "Exit status " (result :exit)))
+            (error (result :err)))
+          result)))))
+
+(defn remote-sudo-script
+  "Run a sudo script on a server."
+  [#^java.net.InetAddress server #^String command user]
+  (with-ssh-agent []
+    (add-identity (:private-key-path user))
+    (let [session (session server
+                           :username (:username user)
+                           :strict-host-key-checking :no)]
+      (with-connection session
+        (let [mktemp-result (ssh session "mktemp sudocmd.XXXXX" :return-map true)
+              tmpfile (mktemp-result :out)
+              channel (ssh-sftp session)]
+          (assert (zero? (mktemp-result :exit)))
+          (info (str "Executing script " tmpfile))
+          (sftp channel :put (java.io.ByteArrayInputStream. (.getBytes command)) tmpfile)
+          (let [script-result (ssh session (str "bash " tmpfile) :return-map true)]
+            (if (zero? (script-result :exit))
+              (info (script-result :out))
+              (do
+                (error (str "Exit status " (script-result :exit)))
+                (error (script-result :err))))
+            (ssh session (str "rm " tmpfile))
+            script-result))))))
+
+
 
 
