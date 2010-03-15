@@ -1,5 +1,5 @@
-(ns #^{ :doc "Package management resource."}
-  pallet.resource.package
+(ns pallet.resource.package
+  "Package management resource."
   (:require [clojure.contrib.str-utils2 :as string])
   (:use pallet.script
         pallet.stevedore
@@ -34,7 +34,8 @@
       (script
        (apply install-package
         ~package-name
-        ~(apply concat (select-keys opts [:y :force]))))
+        ~(apply concat (select-keys opts [:y :force])))
+       (echo "done"))
       :remove
       (if (options :purge)
         (script (purge-package ~package-name))
@@ -65,8 +66,8 @@
   (script
    (var tmpfile @(mktemp addscopeXXXX))
    (cp "-p" ~file @tmpfile)
-   (awk "'$1 ~" ~(str "/^" type "/") "&& !" ~(str "/" scope "/")
-        "{print $0 \" \" \"" ~scope  "\" }' "
+   (awk "'{if ($1 ~" ~(str "/^" type "/") "&& !" ~(str "/" scope "/")
+        " ) print $0 \" \" \"" ~scope  "\" ; else print; }' "
         ~file " > " @tmpfile " && mv -f" @tmpfile ~file )))
 
 (defn- parse-args [options]
@@ -84,6 +85,10 @@
       :multiverse
       (add-scope (or (options :type) "deb.*")
                  "multiverse"
+                 (or (options :file) "/etc/apt/sources.list"))
+      :universe
+      (add-scope (or (options :type) "deb.*")
+                 "universe"
                  (or (options :file) "/etc/apt/sources.list"))
       (throw (IllegalArgumentException.
               (str action " is not a valid action for package resource"))))))

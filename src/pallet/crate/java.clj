@@ -11,6 +11,7 @@ By default sun jdk will be installed."
   [& options]
   (let [implementations (filter (set (keys package-names)) options)
         components (filter #{:jdk :jre} options)]
+    (package-manager :universe)
     (package-manager :multiverse)
     (package-manager :update)
     (doseq [implementation (or (seq implementations) [:sun])
