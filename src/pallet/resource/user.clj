@@ -81,7 +81,6 @@
 (def user-args (atom []))
 
 (defn- apply-users [user-args]
-  (info "apply-users")
   (string/join \newline (map #(apply apply-user %) user-args)))
 
 

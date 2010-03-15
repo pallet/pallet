@@ -78,6 +78,7 @@
         pallet.core
         pallet.chef
         pallet.resource
+        pallet.resource-apply
         pallet.compute
         pallet.crate.automated-admin-user
         pallet.bootstrap

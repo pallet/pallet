@@ -64,7 +64,7 @@ args is the argument signature for the resource.
   (string/join \newline (map #(%) resources)))
 
 (defmacro build-resources
-  "Returns a function that outputs the resources specified in the body."
+  "Outputs the resources specified in the body."
   [& body]
   `(do
      (reset-resources)

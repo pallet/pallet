@@ -27,3 +27,8 @@
             :private-key-path (default-private-key-path)
             :public-key-path (default-public-key-path)}
            (make-user username)))))
+
+(deftest sh-script-test
+  (let [res (sh-script
+             "file=$(mktemp utilXXXX); echo fred > $file ;cat $file ; rm $file")]
+    (is (= "fred\n" res))))

@@ -1,6 +1,9 @@
 (ns pallet.resource.package-test
   (:use [pallet.resource.package] :reload-all)
   (:use [pallet.stevedore :only [script]]
+        [pallet.utils :only [sh-script]]
+        [clojure.contrib.shell-out :only [sh]]
+        [clojure.contrib.duck-streams :only [copy]]
         clojure.test
         pallet.test-utils))
 
@@ -15,6 +18,34 @@
 
 (deftest test-install-example
   (is (= "aptitude install -y  java\naptitude install -y  rubygems"
-         ((pallet.resource/build-resources
-           (package "java" :action :install)
-           (package "rubygems" :action :install))))))
+         (pallet.resource/build-resources
+          (package "java" :action :install)
+          (package "rubygems" :action :install)))))
+
+(deftest add-scope-test
+  (is (= "tmpfile=$(mktemp addscopeXXXX)
+cp -p /etc/apt/sources.list ${tmpfile}
+awk '$1 ~ /^deb/ && ! /multiverse/ {print $0 \" \" \" multiverse \" }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list
+" (add-scope "deb" "multiverse" "/etc/apt/sources.list")))
+
+  (testing "with sources.list"
+    (let [tmp (java.io.File/createTempFile "package_test" "test")]
+      (copy "deb http://archive.ubuntu.com/ubuntu/ karmic main restricted
+deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
+            tmp)
+      (is (= "" (sh-script (add-scope "deb" "multiverse" (.getPath tmp)))))
+      (is (= "deb http://archive.ubuntu.com/ubuntu/ karmic main restricted  multiverse \ndeb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted  multiverse \n"
+             (slurp (.getPath tmp))))
+      (.delete tmp))))
+
+(deftest package-manager*-test
+  (is (= "tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '$1 ~ /^deb.*/ && ! /multiverse/ {print $0 \" \" \" multiverse \" }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list\n"
+         (package-manager* :multiverse)))
+  (is (= "aptitude update "
+         (package-manager* :update))))
+
+(deftest test-add-multiverse-example
+  (is (= "tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '$1 ~ /^deb.*/ && ! /multiverse/ {print $0 \" \" \" multiverse \" }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list\n\naptitude update "
+         (pallet.resource/build-resources
+          (package-manager :multiverse)
+          (package-manager :update)))))

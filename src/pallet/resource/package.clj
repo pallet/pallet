@@ -51,9 +51,53 @@
 (def package-args (atom []))
 
 (defn- apply-packages [package-args]
-  (info "apply-packages")
   (string/join \newline (map #(apply apply-package %) package-args)))
 
 
 (defresource package "Package management.
 " package-args apply-packages [packagename & options])
+
+
+
+(defn add-scope
+  "Add a scope to all the existing package sources"
+  [type scope file]
+  (script
+   (var tmpfile @(mktemp addscopeXXXX))
+   (cp "-p" ~file @tmpfile)
+   (awk "'$1 ~" ~(str "/^" type "/") "&& !" ~(str "/" scope "/")
+        "{print $0 \" \" \"" ~scope  "\" }' "
+        ~file " > " @tmpfile " && mv -f" @tmpfile ~file )))
+
+(defn- parse-args [options]
+  (if (seq options)
+    (apply array-map options)
+    {}))
+
+(defn package-manager*
+  "Package management"
+  [action & options]
+  (let [options (parse-args options)]
+    (condp = action
+      :update
+      (script (update-package-list))
+      :multiverse
+      (add-scope (or (options :type) "deb.*")
+                 "multiverse"
+                 (or (options :file) "/etc/apt/sources.list"))
+      (throw (IllegalArgumentException.
+              (str action " is not a valid action for package resource"))))))
+
+
+(def package-manager-args (atom []))
+
+(defn- apply-package-manager [package-manager-args]
+  (apply str
+   (interpose \newline
+    (map #(apply package-manager* %) package-manager-args))))
+
+(defresource package-manager
+  "Package manager controls.
+:multiverse        - enable multiverse
+:update            - update the package manager"
+  package-manager-args apply-package-manager [action & options])

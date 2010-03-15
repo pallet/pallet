@@ -1,4 +1,5 @@
 (ns pallet.utils
+  (:require [clojure.contrib.str-utils2 :as string])
   (:use clojure.contrib.logging
         [clj-ssh.ssh]
         [clojure.contrib.shell-out :only [sh]]
@@ -120,13 +121,13 @@ require root permissions."}
                        (str "echo \"" (:password user) "\" | sudo -S ")
                        "sudo ")
               cmd (str prefix command)
-              _ (info (str "remote-sudo " cmd))
               result (ssh session cmd :return-map true)]
           (info (result :out))
           (when (not (zero? (result :exit)))
             (error (str "Exit status " (result :exit)))
             (error (result :err)))
           result)))))
+
 
 (defn remote-sudo-script
   "Run a sudo script on a server."
@@ -137,13 +138,15 @@ require root permissions."}
                            :username (:username user)
                            :strict-host-key-checking :no)]
       (with-connection session
-        (let [mktemp-result (ssh session "mktemp sudocmd.XXXXX" :return-map true)
-              tmpfile (mktemp-result :out)
+        (let [mktemp-result (ssh session "mktemp sudocmdXXXXX" :return-map true)
+              tmpfile (string/chomp (mktemp-result :out))
               channel (ssh-sftp session)]
           (assert (zero? (mktemp-result :exit)))
-          (info (str "Executing script " tmpfile))
           (sftp channel :put (java.io.ByteArrayInputStream. (.getBytes command)) tmpfile)
-          (let [script-result (ssh session (str "bash " tmpfile) :return-map true)]
+          (let [chmod-result (ssh session (str "chmod 755 " tmpfile) :return-map true)]
+            (if (pos? (chmod-result :exit))
+              (error (str "Couldn't chmod script : " ) (chmod-result :err))))
+          (let [script-result (ssh session (str "/usr/bin/sudo ~" (:username user) "/" tmpfile) :return-map true)]
             (if (zero? (script-result :exit))
               (info (script-result :out))
               (do
@@ -152,6 +155,12 @@ require root permissions."}
             (ssh session (str "rm " tmpfile))
             script-result))))))
 
-
-
-
+(defn sh-script
+  "Run a sudo script on a server."
+  [command]
+  (let [tmp (java.io.File/createTempFile "pallet" "script")]
+    (try
+     (copy command tmp)
+     (sh "chmod" "+x" (.getPath tmp))
+     (sh "bash" (.getPath tmp))
+     (finally  (.delete tmp)))))
