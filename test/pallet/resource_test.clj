@@ -1,7 +1,9 @@
 (ns pallet.resource-test
   (:use [pallet.resource] :reload-all)
-  (:require pallet.resource.test-resource)
+  (:require pallet.resource.test-resource
+            [clojure.contrib.str-utils2 :as string])
   (:use clojure.test
+
         pallet.test-utils))
 
 (def test-atom (atom []))
@@ -42,23 +44,26 @@
     (reset-resources)
     (is (= [:a :b] ((first fs))))))
 
+(defn test-combiner [args]
+  (string/join "\n" args))
+
 (deftest build-resources-test
   (reset! test-atom [])
   (let [s (build-resources
-           (invoke-resource test-atom identity "a")
-           (invoke-resource test-atom identity "b"))]
+           (invoke-resource test-atom test-combiner "a")
+           (invoke-resource test-atom test-combiner "b"))]
     (is (= [] @test-atom))
     (reset-resources)
-    (is (= "[\"a\" \"b\"]" s))))
+    (is (= "a\nb\n" s))))
 
 (deftest build-resource-fn-test
   (reset! test-atom [])
   (let [f (build-resource-fn
-           (invoke-resource test-atom identity "a")
-           (invoke-resource test-atom identity "b"))]
+           (invoke-resource test-atom test-combiner "a")
+           (invoke-resource test-atom test-combiner "b"))]
     (is (= [] @test-atom))
     (reset-resources)
-    (is (= "[\"a\" \"b\"]" (f)))))
+    (is (= "a\nb\n" (f)))))
 
 (deftest defresource-test
   (reset! test-atom [])
@@ -74,5 +79,5 @@
     (is (map? f))
     (is (:bootstrap-script f))
     (is (ifn? (:bootstrap-script f)))
-    (is (= "test-resource::tag[:ubuntu]"
+    (is (= "test-resource::tag[:ubuntu]\n"
            ((:bootstrap-script f) :tag [:ubuntu])))))

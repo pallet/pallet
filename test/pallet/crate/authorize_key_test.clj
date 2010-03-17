@@ -54,7 +54,7 @@ EOF
 chmod 0644 ${file}
 chown user ${file}
 "
-         ((pallet.resource/build-resources
-           (authorize-key "user" "key1")
-           (authorize-key "user" "key2")
-           (authorize-key "user2" "key3"))))))
+         (pallet.resource/build-resources
+          (authorize-key "user" "key1")
+          (authorize-key "user" "key2")
+          (authorize-key "user2" "key3")))))

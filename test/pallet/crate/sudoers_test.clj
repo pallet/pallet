@@ -268,53 +268,53 @@ EOF
 chmod 0440 ${file}
 chown root ${file}
 "
-       ((pallet.resource/build-resources
-          (sudoers {:user {:FULLTIMERS ["millert" "mikef" "dowdy"]
-                           :PARTTIMERS ["bostley" "jwfox" "crawl"]
-                           :WEBMASTERS ["will" "wendy" "wim"]}
-                    :host {:SPARC ["bigtime" "eclipse" "moet" "anchor"]
-                           :SGI ["grolsch" "dandelion" "black"]
-                           :ALPHA  ["widget" "thalamus" "foobar"]
-                           :HPPA  ["boa" "nag" "python"]
-                           :CUNETS  ["128.138.0.0/255.255.0.0"]
-                           :CSNETS  ["128.138.243.0" "128.138.204.0/24" "128.138.242.0"]
-                           :SERVERS  ["master" "mail" "www" "ns"]
-                           :CDROM  ["orion" "perseus" "hercules"]}
-                    :run-as-user {:OP ["root" "operator"]
-                                  :DB ["oracle" "sybase"]}
-                    :cmnd {:DUMPS ["/usr/bin/mt" "/usr/sbin/dump" "/usr/sbin/rdump" "/usr/sbin/restore" "/usr/sbin/rrestore"]
-                           :KILL  ["/usr/bin/kill"]
-                           :PRINTING  ["/usr/sbin/lpc" "/usr/bin/lprm"]
-                           :SHUTDOWN  ["/usr/sbin/shutdown"]
-                           :HALT  ["/usr/sbin/halt"]
-                           :REBOOT  ["/usr/sbin/reboot"]
-                           :SHELLS  ["/usr/bin/sh" "/usr/bin/csh" "/usr/bin/ksh" "/usr/local/bin/tcsh" "/usr/bin/rsh" "/usr/local/bin/zsh"]
-                           :SU  ["/usr/bin/su"] }}
-                   {:default { :syslog :auth }
-                    :user {:FULLTIMERS { :lecture false }
-                           "millert" {:authenticate false}}
-                    :host { :SERVERS { :log_year true :logfile "/var/log/sudo.log" } }
-                    :run-as-user { "root" { :set_logname false } } }
-                   (array-map
-                    "root" {:ALL {:run-as-user :ALL}}
-                    "%wheel" {:ALL {:run-as-user :ALL}}
-                    :FULLTIMERS {:ALL {:tags :NOPASSWD}}
-                    :PARTTIMERS {:ALL {}}
-                    "jack" { :host :CSNETS :ALL {}}
-                    "lisa" { :host :CUNETS :ALL {}}
-                    "operator" {[:DUMPS :KILL :SHUTDOWN :HALT :REBOOT :PRINTING "sudoedit /etc/printcap" "/usr/oper/bin/"] {}}
-                    "joe"  {["/usr/bin/su operator"] {}}
-                    "pete" {:host :HPPA  ["/usr/bin/passwd [A-z]*" "!/usr/bin/passwd root"] {}}
-                    "bob" [{:host :SPARC :ALL {:run-as-user :OP} }
-                           {:host :SGI :ALL {:run-as-user :OP} }]
-                    "jim"  {:host "+biglab" :ALL {}}
-                    "+secretaries" { [:PRINTING "/usr/bin/adduser" "/usr/bin/rmuser"] {}}
-                    "fred" { :ALL { :run-as-user :DB :tags :NOPASSWD}}
-                    "john" { :host :ALPHA ["/usr/bin/su [!-]*" "!/usr/bin/su *root*"] {}}
-                    "jen" { :host [:ALL "!SERVERS"] :ALL {}}
-                    "jill" {:host :SERVERS ["/usr/bin/" "!SU" "!SHELLS"] {}}
-                    "steve" {:host :CSNETS  "/usr/local/op_commands/" {:run-as-user "operator"}}
-                    "matt" {:host :valkyrie :KILL {}}
-                    :WEBMASTERS {:host :www  :ALL {:run-as-user :www}  "/usr/bin/su www" {:run-as-user :root}}
-                    :ALL {:host :CDROM  [ "/sbin/umount /CDROM" "/sbin/mount -o nosuid\\,nodev /dev/cd0a /CDROM"] {:tags :NOPASSWD}}
-                    )))))))
+       (pallet.resource/build-resources
+        (sudoers {:user {:FULLTIMERS ["millert" "mikef" "dowdy"]
+                         :PARTTIMERS ["bostley" "jwfox" "crawl"]
+                         :WEBMASTERS ["will" "wendy" "wim"]}
+                  :host {:SPARC ["bigtime" "eclipse" "moet" "anchor"]
+                         :SGI ["grolsch" "dandelion" "black"]
+                         :ALPHA  ["widget" "thalamus" "foobar"]
+                         :HPPA  ["boa" "nag" "python"]
+                         :CUNETS  ["128.138.0.0/255.255.0.0"]
+                         :CSNETS  ["128.138.243.0" "128.138.204.0/24" "128.138.242.0"]
+                         :SERVERS  ["master" "mail" "www" "ns"]
+                         :CDROM  ["orion" "perseus" "hercules"]}
+                  :run-as-user {:OP ["root" "operator"]
+                                :DB ["oracle" "sybase"]}
+                  :cmnd {:DUMPS ["/usr/bin/mt" "/usr/sbin/dump" "/usr/sbin/rdump" "/usr/sbin/restore" "/usr/sbin/rrestore"]
+                         :KILL  ["/usr/bin/kill"]
+                         :PRINTING  ["/usr/sbin/lpc" "/usr/bin/lprm"]
+                         :SHUTDOWN  ["/usr/sbin/shutdown"]
+                         :HALT  ["/usr/sbin/halt"]
+                         :REBOOT  ["/usr/sbin/reboot"]
+                         :SHELLS  ["/usr/bin/sh" "/usr/bin/csh" "/usr/bin/ksh" "/usr/local/bin/tcsh" "/usr/bin/rsh" "/usr/local/bin/zsh"]
+                         :SU  ["/usr/bin/su"] }}
+                 {:default { :syslog :auth }
+                  :user {:FULLTIMERS { :lecture false }
+                         "millert" {:authenticate false}}
+                  :host { :SERVERS { :log_year true :logfile "/var/log/sudo.log" } }
+                  :run-as-user { "root" { :set_logname false } } }
+                 (array-map
+                  "root" {:ALL {:run-as-user :ALL}}
+                  "%wheel" {:ALL {:run-as-user :ALL}}
+                  :FULLTIMERS {:ALL {:tags :NOPASSWD}}
+                  :PARTTIMERS {:ALL {}}
+                  "jack" { :host :CSNETS :ALL {}}
+                  "lisa" { :host :CUNETS :ALL {}}
+                  "operator" {[:DUMPS :KILL :SHUTDOWN :HALT :REBOOT :PRINTING "sudoedit /etc/printcap" "/usr/oper/bin/"] {}}
+                  "joe"  {["/usr/bin/su operator"] {}}
+                  "pete" {:host :HPPA  ["/usr/bin/passwd [A-z]*" "!/usr/bin/passwd root"] {}}
+                  "bob" [{:host :SPARC :ALL {:run-as-user :OP} }
+                         {:host :SGI :ALL {:run-as-user :OP} }]
+                  "jim"  {:host "+biglab" :ALL {}}
+                  "+secretaries" { [:PRINTING "/usr/bin/adduser" "/usr/bin/rmuser"] {}}
+                  "fred" { :ALL { :run-as-user :DB :tags :NOPASSWD}}
+                  "john" { :host :ALPHA ["/usr/bin/su [!-]*" "!/usr/bin/su *root*"] {}}
+                  "jen" { :host [:ALL "!SERVERS"] :ALL {}}
+                  "jill" {:host :SERVERS ["/usr/bin/" "!SU" "!SHELLS"] {}}
+                  "steve" {:host :CSNETS  "/usr/local/op_commands/" {:run-as-user "operator"}}
+                  "matt" {:host :valkyrie :KILL {}}
+                  :WEBMASTERS {:host :www  :ALL {:run-as-user :www}  "/usr/bin/su www" {:run-as-user :root}}
+                  :ALL {:host :CDROM  [ "/sbin/umount /CDROM" "/sbin/mount -o nosuid\\,nodev /dev/cd0a /CDROM"] {:tags :NOPASSWD}}
+                  ))))))

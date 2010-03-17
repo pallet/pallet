@@ -17,16 +17,14 @@
 
 
 (deftest test-install-example
-  (is (= "aptitude install -y  java\naptitude install -y  rubygems"
+  (is (= "aptitude install -y  java\naptitude install -y  rubygems\n"
          (pallet.resource/build-resources
           (package "java" :action :install)
           (package "rubygems" :action :install)))))
 
 (deftest add-scope-test
-  (is (= "tmpfile=$(mktemp addscopeXXXX)
-cp -p /etc/apt/sources.list ${tmpfile}
-awk '$1 ~ /^deb/ && ! /multiverse/ {print $0 \" \" \" multiverse \" }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list
-" (add-scope "deb" "multiverse" "/etc/apt/sources.list")))
+  (is (= "tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list\n"
+         (add-scope "deb" "multiverse" "/etc/apt/sources.list")))
 
   (testing "with sources.list"
     (let [tmp (java.io.File/createTempFile "package_test" "test")]
@@ -39,13 +37,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
       (.delete tmp))))
 
 (deftest package-manager*-test
-  (is (= "tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '$1 ~ /^deb.*/ && ! /multiverse/ {print $0 \" \" \" multiverse \" }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list\n"
+  (is (= "tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list\n"
          (package-manager* :multiverse)))
   (is (= "aptitude update "
          (package-manager* :update))))
 
 (deftest test-add-multiverse-example
-  (is (= "tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '$1 ~ /^deb.*/ && ! /multiverse/ {print $0 \" \" \" multiverse \" }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list\n\naptitude update "
+  (is (= "tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list\n\naptitude update\n"
          (pallet.resource/build-resources
           (package-manager :multiverse)
           (package-manager :update)))))

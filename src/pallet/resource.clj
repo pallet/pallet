@@ -61,7 +61,9 @@ args is the argument signature for the resource.
 (defn output-resources
   "Invoke all passed resources."
   [resources]
-  (string/join \newline (map #(%) resources)))
+  (str
+   (string/join \newline (map #(string/trim (%)) resources))
+   \newline))
 
 (defmacro build-resources
   "Outputs the resources specified in the body."

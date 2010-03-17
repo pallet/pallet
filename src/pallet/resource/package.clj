@@ -33,9 +33,8 @@
       :install
       (script
        (apply install-package
-        ~package-name
-        ~(apply concat (select-keys opts [:y :force])))
-       (echo "done"))
+              ~package-name
+              ~(apply concat (select-keys opts [:y :force]))))
       :remove
       (if (options :purge)
         (script (purge-package ~package-name))
