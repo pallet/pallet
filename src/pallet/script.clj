@@ -71,12 +71,15 @@
       (f)
       (apply f args))))
 
-;; TODO - ensure that metadat is correctlplaced on the generated function
+;; TODO - ensure that metadata is correctly placed on the generated function
 (defmacro defscript
   "Define a script fragment"
   [name [& args]]
-  `(defn ~name [~@args]
-     (apply dispatch-target (keyword (name ~name)) ~@(filter #(not (= '& %)) args))))
+  (let [fwd-args (filter #(not (= '& %)) args)]
+    `(defn ~name [~@args]
+       ~(if (seq fwd-args)
+          `(apply dispatch-target (keyword (name ~name)) ~@fwd-args)
+          `(dispatch-target (keyword (name ~name)))))))
 
 (defn add-to-scripts [scripts script-name specialisers f]
   (assoc scripts script-name

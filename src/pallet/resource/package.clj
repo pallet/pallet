@@ -4,6 +4,7 @@
   (:use pallet.script
         pallet.stevedore
         [pallet.resource :only [defresource]]
+        [pallet.utils :only [cmd-join]]
         [clojure.contrib.logging]))
 
 (defscript update-package-list [& options])
@@ -22,6 +23,19 @@
 
 (defimpl purge-package :default [package & options]
   (aptitude purge ~(option-args options) ~package))
+
+
+(defscript debconf-set-selections [& selections])
+(defimpl debconf-set-selections :default [& selections]
+  ("debconf-set-selections"
+   ~(str "<<EOF\n" (string/join \newline selections) "\nEOF\n")))
+
+(defscript package-manager-non-interactive [])
+(defimpl package-manager-non-interactive :default []
+  (debconf-set-selections
+   "debconf debconf/frontend select noninteractive"
+   "debconf debconf/frontend seen false"))
+
 
 (defn apply-package
   "Package management"
@@ -51,7 +65,10 @@
 (def package-args (atom []))
 
 (defn- apply-packages [package-args]
-  (string/join \newline (map #(apply apply-package %) package-args)))
+  (cmd-join
+   (cons
+    (script (package-manager-non-interactive))
+    (map #(apply apply-package %) package-args))))
 
 
 (defresource package "Package management.
@@ -77,18 +94,20 @@
 (defn package-manager*
   "Package management"
   [action & options]
-  (let [options (parse-args options)]
+  (let [opts (parse-args options)]
     (condp = action
       :update
       (script (update-package-list))
       :multiverse
-      (add-scope (or (options :type) "deb.*")
+      (add-scope (or (opts :type) "deb.*")
                  "multiverse"
-                 (or (options :file) "/etc/apt/sources.list"))
+                 (or (opts :file) "/etc/apt/sources.list"))
       :universe
-      (add-scope (or (options :type) "deb.*")
+      (add-scope (or (opts :type) "deb.*")
                  "universe"
-                 (or (options :file) "/etc/apt/sources.list"))
+                 (or (opts :file) "/etc/apt/sources.list"))
+      :debconf
+      (script (apply debconf-set-selections ~options))
       (throw (IllegalArgumentException.
               (str action " is not a valid action for package resource"))))))
 
@@ -96,9 +115,8 @@
 (def package-manager-args (atom []))
 
 (defn- apply-package-manager [package-manager-args]
-  (apply str
-   (interpose \newline
-    (map #(apply package-manager* %) package-manager-args))))
+  (cmd-join
+   (map #(apply package-manager* %) package-manager-args)))
 
 (defresource package-manager
   "Package manager controls.

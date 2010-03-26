@@ -32,3 +32,8 @@
   (let [res (sh-script
              "file=$(mktemp utilXXXX); echo fred > $file ;cat $file ; rm $file")]
     (is (= "fred\n" res))))
+
+(deftest cmd-join-test
+  (is (= "fred\n" (cmd-join ["fred"])))
+  (is (= "fred\nblogs\n" (cmd-join ["fred" "blogs"])))
+  (is (= "fred\nblogs\n" (cmd-join ["fred\n\n" "blogs\n"]))))

@@ -5,22 +5,43 @@
         pallet.test-utils
         [pallet.resource.package :only [package package-manager]]
         [pallet.resource :only [build-resources]]
+        [pallet.stevedore :only [script]]
+        [pallet.utils :only [cmd-join]]
         [clojure.contrib.java-utils :only [file]]))
 
-(def pkg-congif (build-resources (package-manager :universe)
+(def pkg-config (build-resources (package-manager :universe)
                                  (package-manager :multiverse)
                                  (package-manager :update)))
 
+(def noninteractive (script (package-manager-non-interactive)))
+
+(defn debconf [pkg]
+  (build-resources
+   (package-manager
+    :debconf
+    (str pkg " shared/present-sun-dlj-v1-1 note")
+    (str pkg " shared/accepted-sun-dlj-v1-1 boolean true"))))
+
 (deftest java-default-test
-  (is (= (str pkg-congif (build-resources (package "sun-java6-jdk")))
+  (is (= (cmd-join
+          [pkg-config
+           (debconf "sun-java6-bin")
+           (debconf "sun-java6-jdk")
+           (build-resources (package "sun-java6-bin")
+                            (package "sun-java6-jdk"))])
          (pallet.resource/build-resources (java)))))
 
 (deftest java-sun-test
-  (is (= (str pkg-congif (build-resources (package "sun-java6-jdk")))
+  (is (= (cmd-join
+          [pkg-config
+           (debconf "sun-java6-bin")
+           (debconf "sun-java6-jdk")
+           (build-resources (package "sun-java6-bin")
+                            (package "sun-java6-jdk"))])
          (pallet.resource/build-resources
-          (java :sun :jdk)))))
+          (java :sun :bin :jdk)))))
 
 (deftest java-openjdk-test
-  (is (= (str pkg-congif (build-resources (package "openjdk-6-jre")))
+  (is (= (str pkg-config (build-resources (package "openjdk-6-jre")))
          (pallet.resource/build-resources
           (java :openjdk :jre)))))

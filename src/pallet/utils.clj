@@ -21,6 +21,11 @@
    (keyword? arg) (name arg)
    :else (str arg)))
 
+(defn cmd-join [cmds]
+  (str
+   (string/join \newline (map #(string/trim %) cmds))
+   \newline))
+
 (defn resource-path [name]
   (let [loader (.getContextClassLoader (Thread/currentThread))
         resource (. loader getResource name)]

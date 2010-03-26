@@ -2,6 +2,7 @@
   "Resource definition interface."
   (:require [clojure.contrib.str-utils2 :as string])
   (:use [pallet.target :only [with-target-template with-target-tag]]
+        [pallet.utils :only [cmd-join]]
         [clojure.contrib.def :only [name-with-attributes]]))
 
 (def required-resources (atom []))
@@ -61,9 +62,7 @@ args is the argument signature for the resource.
 (defn output-resources
   "Invoke all passed resources."
   [resources]
-  (str
-   (string/join \newline (map #(string/trim (%)) resources))
-   \newline))
+  (cmd-join (map #(%) resources)))
 
 (defmacro build-resources
   "Outputs the resources specified in the body."
