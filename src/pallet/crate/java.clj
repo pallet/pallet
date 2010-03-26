@@ -6,6 +6,8 @@
 (defmulti java-package-name "lookup package name"
   (fn [mgr vendor component] mgr))
 
+(def vendor-keywords #{:openjdk :sun})
+
 (def deb-package-names
      {:openjdk "openjdk-6-"
       :sun "sun-java6-"})
@@ -25,8 +27,8 @@
   "Install java.  Options can be :sun, :openjdk, :jdk, :jre.
 By default sun jdk will be installed."
   [& options]
-  (let [vendors (or (seq (filter (set (keys package-names)) options))
-                            [:sun])
+  (let [vendors (or (seq (filter vendor-keywords options))
+                    [:sun])
         components (or (seq (filter #{:jdk :jre :bin} options))
                        [:bin :jdk])
         packager (packager)]

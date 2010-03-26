@@ -37,5 +37,7 @@
       (some #(#{:centos :rhel} %) target)
       :yum
       (some #(#{:gentoo} %) target)
-      :portage)))
+      :portage
+      :else
+      :aptitude)))
 

@@ -42,6 +42,6 @@
           (java :sun :bin :jdk)))))
 
 (deftest java-openjdk-test
-  (is (= (str pkg-config (build-resources (package "openjdk-6-jre")))
+  (is (= (build-resources (package "openjdk-6-jre"))
          (pallet.resource/build-resources
           (java :openjdk :jre)))))
