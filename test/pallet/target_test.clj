@@ -11,3 +11,10 @@
 (deftest with-target-tag-test
   (with-target-tag :ubuntu
     (is (= :ubuntu *target-tag*))))
+
+(deftest packager-test
+  (with-target-template [:ubuntu]
+    (is (= :aptitude (packager))))
+  (is (= :aptitude (packager [:ubuntu])))
+  (is (= :yum (packager [:centos])))
+  (is (= :portage (packager [:gentoo]))))

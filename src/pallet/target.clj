@@ -27,3 +27,15 @@
        :ubuntu "adm"
        "wheel")))
 
+(defn packager
+  "Default package manager"
+  ([] (packager *target-template*))
+  ([target]
+     (cond
+      (some #(#{:ubuntu :debian :jeos} %) target)
+      :aptitude
+      (some #(#{:centos :rhel} %) target)
+      :yum
+      (some #(#{:gentoo} %) target)
+      :portage)))
+

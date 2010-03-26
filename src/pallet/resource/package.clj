@@ -24,6 +24,18 @@
 (defimpl purge-package :default [package & options]
   (aptitude purge ~(option-args options) ~package))
 
+(defimpl update-package-list [#{:centos :rhel}] [& options]
+  (yum makecache ~(option-args options)))
+
+(defimpl install-package [#{:centos :rhel}] [package & options]
+  (yum install -y ~(option-args options) ~package))
+
+(defimpl remove-package [#{:centos :rhel}] [package & options]
+  (yum remove ~(option-args options) ~package))
+
+(defimpl purge-package [#{:centos :rhel}] [package & options]
+  (yum purge ~(option-args options) ~package))
+
 
 (defscript debconf-set-selections [& selections])
 (defimpl debconf-set-selections :default [& selections]
@@ -35,6 +47,9 @@
   (debconf-set-selections
    "debconf debconf/frontend select noninteractive"
    "debconf debconf/frontend seen false"))
+
+(defimpl package-manager-non-interactive [#{:centos :rhel}] []
+  "")
 
 
 (defn apply-package

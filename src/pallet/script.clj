@@ -24,11 +24,14 @@
 (defn print-args [args]
   (str "(" (apply str (interpose " " args)) ")"))
 
+(defn- match-fn [fn-key]
+  (some #(if (set? fn-key) (fn-key %) (= fn-key %)) *target-template*))
+
 (defn- matches?
   "Return the keys that match the template, or nil if any of the keys are not in
   the template."
   [keys]
-  (every? #(some (partial = %) *target-template*) keys))
+  (every? match-fn keys))
 
 (defn- more-explicit? [current candidate]
   (or (= current :default)
