@@ -3,7 +3,7 @@
   (:use pallet.script
         pallet.stevedore
         [pallet.utils :only [cmd-join]]
-        [pallet.resource :only [defresource]]
+        [pallet.resource :only [defcomponent]]
         clojure.contrib.logging))
 
 (defscript rm [file & options])
@@ -31,18 +31,26 @@
 (defimpl sed-file :default [file expr replacement & options]
   (sed "-i" ~(str "/" expr "/" replacement "/") ~file))
 
+(defscript tmp-dir [])
+(defimpl tmp-dir :default []
+  @TMPDIR-/tmp)
+
 (defn adjust-file [path opts]
   (cmd-join
    (filter
     (complement nil?)
-    [ (script
-       (touch ~path ~(select-keys opts [:force])))
-      (when (opts :owner)
-        (script (chown ~(opts :owner) ~path)))
-      (when (opts :group)
-        (script (chgrp ~(opts :group) ~path)))
-      (when (opts :mode)
-        (script (chmod ~(opts :mode) ~path)))])))
+    [(when (opts :owner)
+       (script (chown ~(opts :owner) ~path)))
+     (when (opts :group)
+       (script (chgrp ~(opts :group) ~path)))
+     (when (opts :mode)
+       (script (chmod ~(opts :mode) ~path)))])))
+
+(defn touch-file [path opts]
+  (cmd-join
+   [(script
+     (touch ~path ~(select-keys opts [:force])))
+    (adjust-file path opts)]))
 
 (defn file*
   [path & options]
@@ -52,15 +60,9 @@
       :delete
       (script (rm ~path ~(select-keys opts [:force])))
       :create
-      (adjust-file path opts)
+      (touch-file path opts)
       :touch
-      (adjust-file path opts))))
+      (touch-file path opts))))
 
-(def file-args (atom []))
-
-(defn- apply-files [file-args]
-  (cmd-join (map #(apply file* %) file-args)))
-
-
-(defresource file "File management."
-  file-args apply-files [filename & options])
+(defcomponent file "File management."
+  file* [filename & options])

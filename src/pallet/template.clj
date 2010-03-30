@@ -2,6 +2,7 @@
   "Template file writing"
   (:require [clojure.contrib.str-utils2 :as string])
   (:use [pallet.stevedore :only [script]]
+        [pallet.resource.file]
         [clojure.contrib.logging]))
 
 (defmacro deftemplate [template [& args] m]
@@ -17,11 +18,11 @@
                           content
                           "\nEOF\n"
                           (when-let [mode (:mode file-spec)]
-                            (script (do (chmod ~mode @file))))
+                            (script (do ("chmod" ~mode @file))))
                           (when-let [group (:group file-spec)]
-                            (script (do (chgrp ~group @file))))
+                            (script (do ("chgrp" ~group @file))))
                           (when-let [owner (:owner file-spec)]
-                            (script (do (chown ~owner @file))))]))))
+                            (script (do ("chown" ~owner @file))))]))))
 
 ;; TODO - add chmod, owner, group
 (defn apply-templates [template-fn args]

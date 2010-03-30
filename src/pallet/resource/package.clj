@@ -72,7 +72,6 @@
       (script (purge-package ~package-name))
       :update-package-list
       (script (update-package-list))
-
       (throw (IllegalArgumentException.
               (str action " is not a valid action for package resource"))))))
 

@@ -6,6 +6,9 @@
         [pallet.utils :only [underscore]]
         pallet.script))
 
+(defn- add-quotes [s]
+  (str "\"" s "\""))
+
 (defn arg-string [option argument do-underscore do-assign]
   (let [opt (if do-underscore (underscore (name option)) (name option))]
     (if argument
@@ -77,12 +80,15 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['if 'if-not '= 'aget 'fn 'return 'set! 'var 'let 'local 'literally 'deref 'do 'str 'quote 'apply]))
+(def special-forms (set ['if 'if-not '= 'aget 'fn 'return 'set! 'var 'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists?]))
 
 (def infix-operators (set ['+ '- '/ '* '% '== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '||]))
-(def logical-operators (set ['== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '||]))
+(def logical-operators (set ['== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '|| 'file-exists?]))
 
-(def infix-conversions { '&& "-a" })
+(def infix-conversions
+     {'&& "-a"
+      '< "\\<"
+      '> "\\>"})
 
 (defn special-form? [expr]
   (contains? special-forms expr))
@@ -96,14 +102,25 @@
 (defn logical-operator? [expr]
   (contains? logical-operators expr))
 
+(defn emit-quoted-if-not-subexpr [f expr]
+  (let [s (emit expr)]
+    (if (or (.startsWith s "\\(")
+            (.startsWith s "-"))
+      s
+      (f s))))
+
 (defn emit-infix [type [operator & args]]
   (when (< (count args) 2)
     (throw (Exception. "not supported yet")))
   (let [open (if (logical-operator? operator) "\\( " "(")
-        close (if (logical-operator? operator) " \\)" ")")]
-    (str open (emit (first args)) " "
+        close (if (logical-operator? operator) " \\)" ")")
+        quoting (if (logical-operator? operator) add-quotes identity)]
+    (str open (emit-quoted-if-not-subexpr quoting (first args)) " "
          (get infix-conversions operator operator)
-         " " (emit (second args)) close)))
+         " " (emit-quoted-if-not-subexpr quoting (second args)) close)))
+
+(defmethod emit-special 'file-exists? [type [file-exists? path]]
+  (str "-e " (emit path)))
 
 (defmethod emit-special 'local [type [local name expr]]
   (str "local " (emit name) "=" (emit expr)))
@@ -117,8 +134,8 @@
 (defmethod emit-special 'str [type [str & args]]
   (string/map-str emit args))
 
-(defmethod emit-special 'quote [type [quote arg]]
-  (emit arg))
+(defmethod emit-special 'quoted [type [quoted arg]]
+  (add-quotes (emit arg)))
 
 (defmethod emit-special 'invoke [type [name & args]]
   (debug (str "invoke [" *script-file*
@@ -136,10 +153,13 @@
   (str (emit obj) "." (emit method) (comma-list (map emit args))))
 
 (defn- logical-test? [test]
-  (and (sequential? test) (infix-operator? (first test))))
+  (and (sequential? test)
+       (or (infix-operator? (first test))
+           (logical-operator? (first test)))))
 
 (defn- emit-body-for-if [form]
-  (if (compound-form? form)
+  (if (or (compound-form? form)
+          (= 'if (first form)))
     (str \newline (emit form))
     (str " " (emit form) ";")))
 
@@ -277,9 +297,9 @@
 (defn- outer-walk [form]
   (debug (str "outer " form))
   (cond
-    (symbol? form) (list 'quote form)
-    (seq? form) (list* 'list form)
-    :else form))
+   (symbol? form) (list 'quote form)
+   (seq? form) (list* 'list form)
+   :else form))
 
 (defmacro quasiquote [form]
   (let [post-form (walk inner-walk outer-walk form)]

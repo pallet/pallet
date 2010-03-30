@@ -4,7 +4,7 @@
    [pallet.target :only [admin-group *target-tag* *target-template*]]
    [pallet.stevedore :only [script]]
    [pallet.template]
-   [pallet.resource :only [defresource]]
+   [pallet.resource :only [defresource defcomponent]]
    [pallet.resource.user :only [user-home]]
    [clojure.contrib.logging]))
 
@@ -15,3 +15,9 @@
 
 (defresource test-resource
   test-resource-args apply-test-resources [])
+
+(defn- test-component-fn [arg]
+  (str arg))
+
+(defcomponent test-component
+  test-component-fn [arg])

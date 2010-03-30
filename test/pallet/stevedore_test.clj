@@ -63,17 +63,31 @@
   (is (= "(1 2 \"3\" foo)" (script [1 "2" "\"3\"" :foo]))))
 
 (deftest test-if
-  (is (= "if [ \\( \\( foo == bar \\) -a \\( foo != baz \\) \\) ]; then echo fred;fi\n"
+  (is (= "if [ \\( \\( \"foo\" == \"bar\" \\) -a \\( \"foo\" != \"baz\" \\) \\) ]; then echo fred;fi\n"
          (script (if (&& (== foo bar) (!= foo baz)) (echo fred)))))
   (is (= "fred\n"
          (bash-out (script (if (&& (== foo foo) (!= foo baz)) (echo "fred"))))))
   (is (= "if foo; then\nx=3\nfoo x\nelse\ny=4\nbar y\nfi\n"
          (script (if foo (do (var x 3) (foo x)) (do (var y 4) (bar y))))))
   (is (= "not foo\n"
-         (bash-out (script (if (== foo bar) (do (echo "foo")) (do (echo "not foo"))))))))
+         (bash-out (script (if (== foo bar)
+                             (do (echo "foo"))
+                             (do (echo "not foo"))))))))
+
+(deftest if-nested-test
+  (is (= "if [ \\( \"foo\" == \"bar\" \\) ]; then
+if [ \\( \"foo\" != \"baz\" \\) ]; then echo fred;fi
+fi\n"
+         (script (if (== foo bar)
+                   (if (!= foo baz)
+                     (echo fred)))))))
 
 (deftest test-if-not
-  (is (= "if [ ! \\( \\( foo == bar \\) -a \\( foo == baz \\) \\) ]; then echo fred;fi\n"
+  (is (= "if [ ! -e bar ]; then echo fred;fi\n"
+         (script (if-not (file-exists? bar) (echo fred)))))
+  (is (= "if [ ! \\( -e bar -a \\( \"foo\" == \"bar\" \\) \\) ]; then echo fred;fi\n"
+         (script (if-not (&& (file-exists? bar) (== foo bar)) (echo fred)))))
+  (is (= "if [ ! \\( \\( \"foo\" == \"bar\" \\) -a \\( \"foo\" == \"baz\" \\) \\) ]; then echo fred;fi\n"
          (script (if-not (&& (== foo bar) (== foo baz)) (echo fred)))))
   (is (= "fred\n"
          (bash-out (script (if-not (&& (== foo foo) (== foo baz)) (echo "fred")))))))
@@ -101,6 +115,10 @@
 	   (let y 4)
 	   (let z (+ x y))
            (echo @z))))))
+
+(deftest deref-test
+  (is (= "${TMPDIR-/tmp}" (script @TMPDIR-/tmp)))
+  (is (= "$(ls)" (script @(ls)))))
 
 (deftest test-combine-forms
   (let [stuff (quote (do

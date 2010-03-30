@@ -6,6 +6,7 @@
    [pallet.template]
    [pallet.resource :only [defresource]]
    [pallet.resource.user :only [user-home]]
+   [pallet.resource.file :only [chmod chown]]
    [clojure.contrib.logging]))
 
 
@@ -20,9 +21,9 @@
 (defn- produce-authorize-key [[user keys]]
   (str
    (script (var dir (str (user-home ~user) "/.ssh"))
-           (mkdir -p @dir)
-           (chmod 755 @dir)
-           (chown ~user @dir))
+           ("mkdir" -p @dir)
+           ("chmod" 755 @dir)
+           ("chown" ~user @dir))
    (apply-templates authorized-keys-template [user keys])))
 
 (def authorize-key-args (atom []))

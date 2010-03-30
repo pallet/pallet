@@ -21,6 +21,10 @@
   (is (= "chmod  0666 file1"
          (script (chmod "0666" "file1")))))
 
+(deftest tmpdir-test
+  (is (= "${TMPDIR-/tmp}"
+         (script (tmp-dir)))))
+
 (deftest file-test
   (is (= "touch  file1\n"
          (build-resources (file "file1"))))

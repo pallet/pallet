@@ -69,6 +69,7 @@ specification is a vector of arguments for build-template."}
   ([compute options]
      (build-node-template compute options (default-public-key-path) nil))
   ([compute options public-key-path init-script]
+     (debug (str "Init script\n" init-script))
      (let [options
            (if (and public-key-path (not (:authorize-public-key options)))
              (apply
@@ -89,12 +90,13 @@ specification is a vector of arguments for build-template."}
      (info (str "building node template for " target))
      (when public-key-path (info (str "  authorizing " public-key-path)))
      (when init-script (info (str "  using init script")))
-     (let [options (target node-templates)]
+     (let [options (target node-templates)
+           init-script (if init-script (init-script target options))]
        (build-node-template
         compute
         options
         public-key-path
-        (if init-script (init-script target options))))))
+        init-script))))
 
 (defn start-node
   "Convience function for explicitly starting nodes."

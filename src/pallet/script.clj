@@ -7,7 +7,7 @@
 
 ;; map from script name to implementations
 ;; where implementations is a map from keywords to function
-(def  *scripts* {})
+(defonce *scripts* {})
 
 (def *script-line* nil)
 (def *script-file* nil)

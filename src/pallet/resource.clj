@@ -3,6 +3,7 @@
   (:require [clojure.contrib.str-utils2 :as string])
   (:use [pallet.target :only [with-target-template with-target-tag]]
         [pallet.utils :only [cmd-join]]
+        [pallet.stevedore :only [script]]
         [clojure.contrib.def :only [name-with-attributes]]))
 
 (def required-resources (atom []))
@@ -20,16 +21,20 @@
   "Handle invocation of a resource.  Invocation should add the args to the
   resources configuration args, and add the resource to the required-resources
   as a [invoke-fn arg-var] tuple."
-  [arg-var invoke-fn args]
-  (swap! arg-var conj args)
-  (swap! required-resources conj [invoke-fn arg-var]))
+  ([invoke-fn args]
+     (swap! required-resources conj [invoke-fn args]))
+  ([arg-var invoke-fn args]
+     (swap! arg-var conj args)
+     (swap! required-resources conj [invoke-fn arg-var])))
 
 (defn- produce-resource-fn
   "Create a produce funtion for a given resource invoker, binding its arg var
   value.  As a side effect, reset the arg var value."
   [[invoke-fn v]]
-  (returning (partial invoke-fn @v)
-    (reset! v [])))
+  (if (instance? clojure.lang.IDeref v)
+    (returning (partial invoke-fn @v)
+               (reset! v []))
+    (partial apply invoke-fn v)))
 
 (defn configured-resources
   "The currently configured resources"
@@ -45,19 +50,33 @@ multiple invocations of the resource. It should be initialised with (atom []).
 
 apply-fn is a function that will read arg-var and produce a resource.
 
-args is the argument signature for the resource.
-"
+args is the argument signature for the resource."
   [facility & args]
   (let [[facility args] (name-with-attributes facility args)
         [arg-var apply-fn args] args]
-    `(do
-       (defn ~facility [~@args]
-         (invoke-resource
-          ~arg-var
-          ~apply-fn
-          ~(if (some #{'&} args)
-                    `(apply vector ~@(filter #(not (= '& %)) args))
-                    `[~@args]))))))
+    `(defn ~facility [~@args]
+       (invoke-resource
+        ~arg-var
+        ~apply-fn
+        ~(if (some #{'&} args)
+           `(apply vector ~@(filter #(not (= '& %)) args))
+           `[~@args])))))
+
+(defmacro defcomponent
+  "defcomponent is used to define a resource and takes the following arguments:
+      [f args]
+
+f is a function that will accept the arguments and produce a resource.
+args is the argument signature for the resource, and must end with a variadic element."
+  [facility & args]
+  (let [[facility args] (name-with-attributes facility args)
+        [f args] args]
+    `(defn ~facility [~@args]
+       (invoke-resource
+        ~f
+        ~(if (some #{'&} args)
+           `(apply vector ~@(filter #(not (= '& %)) args))
+           `[~@args])))))
 
 (defn output-resources
   "Invoke all passed resources."

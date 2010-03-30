@@ -93,7 +93,7 @@
 
 (def #^{:doc "The admin user is used for running remote admin commands that
 require root permissions."}
-     *admin-user* (make-user "admin"))
+     *admin-user* (make-user (. System getProperty "user.name")))
 
 (defn system
   "Launch a system process, return a map containing the exit code, stahdard
@@ -133,6 +133,7 @@ require root permissions."}
             (error (result :err)))
           result)))))
 
+(def prolog "#!/usr/bin/env bash\n")
 
 (defn remote-sudo-script
   "Run a sudo script on a server."
@@ -147,7 +148,7 @@ require root permissions."}
               tmpfile (string/chomp (mktemp-result :out))
               channel (ssh-sftp session)]
           (assert (zero? (mktemp-result :exit)))
-          (sftp channel :put (java.io.ByteArrayInputStream. (.getBytes command)) tmpfile)
+          (sftp channel :put (java.io.ByteArrayInputStream. (.getBytes (str prolog command))) tmpfile)
           (let [chmod-result (ssh session (str "chmod 755 " tmpfile) :return-map true)]
             (if (pos? (chmod-result :exit))
               (error (str "Couldn't chmod script : " ) (chmod-result :err))))

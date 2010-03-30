@@ -36,6 +36,7 @@
 
 (deftest configured-resources-test
   (reset! test-atom [])
+  (reset-resources)
   (invoke-resource test-atom identity :a)
   (invoke-resource test-atom identity :b)
   (let [fs (configured-resources)]
@@ -70,6 +71,16 @@
   (defresource test-resource test-atom identity [arg])
   (test-resource :a)
   (is (= [[:a]] @test-atom)))
+
+(defn- test-component-fn [arg]
+  (str arg))
+
+(defcomponent test-component test-component-fn [arg & options])
+
+(deftest defcomponent-test
+  (test-component :a)
+  (is (= ":a\n"
+         (build-resources (test-component :a)))))
 
 (deftest bootstrap-resources-test
   (reset! required-resources [:a])

@@ -82,14 +82,20 @@
         pallet.compute
         pallet.crate.automated-admin-user
         pallet.bootstrap
+        pallet.crate.rubygems
+        pallet.crate.ruby
+        pallet.crate.java
+        pallet.crate.chef
         clj-ssh.ssh))
 
-
+(def centos-template [:centos :X86_64 :smallest :os-description-matches ".*5.4.*"])
 (def webserver-template [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"])
 (def balancer-template (apply vector :inbound-ports [22 80] webserver-template))
 
 (def #^{ :doc "This is a map defining node tag to instance template builder."}
-     templates { :webserver webserver-template :balancer balancer-template })
+     templates {:webserver webserver-template
+                :balancer balancer-template
+                :centos centos-template})
 
 (def #^{ :doc "This is a map defining node tag to number of instances."}
      the-farm
