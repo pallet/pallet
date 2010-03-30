@@ -30,22 +30,34 @@
              (inc (get %1 (keyword (tag %2)) 0))) {} nodes))
 
  ;;; Actions
-(defn reboot [compute nodes]
-  (dorun (map (partial reboot-node compute) nodes)))
+(defn reboot
+  "Reboot the specified nodes"
+  ([nodes] (reboot nodes *compute*))
+  ([nodes compute]
+     (dorun (map #(reboot-node % compute) nodes))))
 
-(defn boot-if-down [compute nodes]
-  (map (partial reboot-node compute)
-       (filter terminated? nodes)))
+(defn boot-if-down
+  "Boot the specified nodes, if they are not running."
+  ([nodes] (boot-if-down nodes *compute*))
+  ([nodes compute]
+     (map #(reboot-node % compute)
+          (filter terminated? nodes))))
 
 (defn shutdown-node
   "Shutdown a node."
-  [compute user node]
-  (let [ip (primary-ip node)]
-    (if ip
-      (remote-sudo ip "shutdown -h 0" user))))
+  ([node] (shutdown-node node *admin-user* *compute*))
+  ([node user] (shutdown-node node user *compute*))
+  ([node user compute]
+     (let [ip (primary-ip node)]
+       (if ip
+         (remote-sudo ip "shutdown -h 0" user)))))
 
-(defn shutdown [compute nodes]
-  (dorun (map #(shutdown-node compute %) nodes)))
+(defn shutdown
+  "Shutdown specified nodes"
+  ([nodes] (shutdown nodes *admin-user* *compute*))
+  ([nodes user] (shutdown nodes user *compute*))
+  ([nodes user compute]
+     (dorun (map #(shutdown-node % compute) nodes))))
 
 (defn execute-script
   "Execute a script on a specified node."

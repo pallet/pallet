@@ -21,10 +21,13 @@ chef-repository you specify with `with-chef-repository`.
 `chef-solo` is then run with chef repository you have specified using the node
 tag as a configuration target.
 "
-  (:use [pallet.utils :only [remote-sudo make-user *admin-user*
-                             default-public-key-path as-string]]
-        [pallet.compute :only [node-has-tag? node-counts-by-tag boot-if-down]]
-        [org.jclouds.compute :only [run-nodes destroy-node nodes]]
+  (:use [pallet.utils
+         :only [remote-sudo make-user *admin-user* default-public-key-path
+                as-string]]
+        [pallet.compute
+         :only [node-has-tag? node-counts-by-tag boot-if-down]]
+        [org.jclouds.compute
+         :only [run-nodes destroy-node nodes compute-service? *compute*]]
         clojure.contrib.logging)
   (:import org.jclouds.compute.domain.OsFamily
            org.jclouds.compute.options.TemplateOptions
@@ -100,8 +103,8 @@ specification is a vector of arguments for build-template."}
 
 (defn start-node
   "Convience function for explicitly starting nodes."
-  [compute tag template]
-  (run-nodes compute (as-string tag) 1 (build-node-template compute template)))
+  ([tag template compute]
+     (run-nodes (as-string tag) 1 (build-node-template compute template) compute)))
 
 (def #^{:doc "Default bootstrap option. A no-op."}
      bootstrap-none {:authorize-public-key nil :bootstrap-script nil})
@@ -120,9 +123,9 @@ specification is a vector of arguments for build-template."}
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
 bootstrap-script value is expected tobe a function that produces a
 script that is run with root privileges immediatly after first boot."
-  ([compute tag count]
+  ([tag count compute]
      (create-nodes compute tag count bootstrap-none))
-  ([compute tag count bootstrap]
+  ([tag count bootstrap compute]
      {:pre [(keyword? tag)]}
      (info (str "Starting " count " nodes for " tag))
      (run-nodes compute (name tag) count
@@ -131,9 +134,9 @@ script that is run with root privileges immediatly after first boot."
                  (:authorize-public-key bootstrap)
                  (bootstrap-script-fn (:bootstrap-script bootstrap))))))
 
-(defn destroy-nodes-with-count [compute nodes tag count]
+(defn destroy-nodes-with-count [nodes tag count compute]
   (info (str "destroying " count " nodes with tag " tag))
-  (dorun (map (partial destroy-node compute)
+  (dorun (map #(destroy-node % compute)
               (take count (filter (partial node-has-tag? tag) nodes)))))
 
 (defn node-count-difference [node-map nodes]
@@ -146,11 +149,12 @@ script that is run with root privileges immediatly after first boot."
      (adjust-node-counts compute delta-map nodes bootstrap-none))
   ([compute delta-map nodes bootstrap]
      (info (str "destroying excess nodes"))
-     (dorun (map #(destroy-nodes-with-count compute nodes (first %) (- (second %)))
-                 (filter #(neg? (second %)) delta-map)))
+     (doseq [node-count (filter #(neg? (second %)) delta-map)]
+       (destroy-nodes-with-count
+         nodes (first node-count) (- (second node-count)) compute))
      (info (str "adjust-node-counts starting new nodes"))
-     (doall (mapcat #(create-nodes compute (first %) (second %) bootstrap)
-                    (filter #(pos? (second %)) delta-map)))))
+     (mapcat #(create-nodes (first %) (second %) bootstrap compute)
+             (filter #(pos? (second %)) delta-map))))
 
 (defn converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
@@ -167,17 +171,26 @@ script that is run with root privileges immediatly after first boot."
   "A function for no configuration"
   [compute new-nodes] new-nodes)
 
+(defn converge*
+  [compute node-map bootstrap configure]
+  (configure compute (converge-node-counts compute node-map bootstrap)))
 
 ;; We have some options for converging
 ;; Unneeded nodes can be just shut dowm, or could be destroyed.
 ;; That means we need to pass some options
 (defn converge
   "Converge the existing compute resources with what is specified in node-map.
-Returns a sequence containing the node metadata for new nodes."
-  ([compute node-map]
-     (converge compute node-map bootstrap-none configure-nodes-none))
-  ([compute node-map bootstrap]
-     (converge compute node-map bootstrap configure-nodes-none))
-  ([compute node-map bootstrap configure]
-     (configure compute (converge-node-counts compute node-map bootstrap))))
+Returns a sequence containing the node metadata for new nodes.
+
+Takes node-map ( bootstrap-fn configure-fn? )? compute-service?"
+  ([node-map & options]
+     (let [fns (filter (partial instance? clojure.lang.IFn) options)
+           bootstrap (or (first
+                          (filter #(and (map? %)
+                                        (:bootstrap-script %)) options))
+                         bootstrap-none)
+           configure (or (fnext fns) configure-nodes-none)
+           compute (or (first (filter compute-service? options)) *compute*)]
+       (println compute node-map bootstrap configure)
+       (converge* compute node-map bootstrap configure))))
 
