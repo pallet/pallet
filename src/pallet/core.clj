@@ -117,22 +117,22 @@ specification is a vector of arguments for build-template."}
    (fn [tag template] (apply str (interpose "\n" (map #(% tag template) fns))))
    :else fns))
 
-
 (defn create-nodes
   "Create count nodes based on the template for tag. The boostrap argument
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
 bootstrap-script value is expected tobe a function that produces a
 script that is run with root privileges immediatly after first boot."
   ([tag count compute]
-     (create-nodes compute tag count bootstrap-none))
+     (create-nodes tag count bootstrap-none compute))
   ([tag count bootstrap compute]
      {:pre [(keyword? tag)]}
      (info (str "Starting " count " nodes for " tag))
-     (run-nodes compute (name tag) count
+     (run-nodes (name tag) count
                 (node-template
                  compute tag
                  (:authorize-public-key bootstrap)
-                 (bootstrap-script-fn (:bootstrap-script bootstrap))))))
+                 (bootstrap-script-fn (:bootstrap-script bootstrap)))
+                compute)))
 
 (defn destroy-nodes-with-count [nodes tag count compute]
   (info (str "destroying " count " nodes with tag " tag))

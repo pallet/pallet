@@ -25,6 +25,14 @@
   (is (= "${TMPDIR-/tmp}"
          (script (tmp-dir)))))
 
+(deftest heredoc-script-test
+  (is (= "cat > somepath <<EOF\nsomecontent\nEOF"
+         (script (heredoc "somepath" "somecontent")))))
+
+(deftest heredoc-test
+  (is (= "cat > somepath <<EOF\nsomecontent\nEOF"
+         (heredoc "somepath" "somecontent"))))
+
 (deftest file-test
   (is (= "touch  file1\n"
          (build-resources (file "file1"))))

@@ -87,6 +87,7 @@
 
 (def infix-conversions
      {'&& "-a"
+      '|| "-o"
       '< "\\<"
       '> "\\>"})
 

@@ -2,20 +2,21 @@
   (:require [clojure.contrib.str-utils2 :as string])
   (:use [pallet.target :only [with-target-template with-target-tag]]
         [pallet.utils :only [*admin-user*]]
-        [pallet.compute :only [execute-script]]
+        [pallet.compute :only [execute-script node-tag]]
         [pallet.core :only [*node-templates*]]
         [pallet.resource]
-        [org.jclouds.compute :only [nodes node-tag]]
+        [org.jclouds.compute :only [nodes]]
         [clojure.contrib.def :only [name-with-attributes]]))
 
 
 (defn configure-node
+  "Configure nodes using the specified configuration function."
   ([node f] (configure-node node f (*node-templates* (keyword (node-tag node)))))
   ([node f template] (configure-node node f template *admin-user*))
-  ([node f template user]
+  ([node f template user & options]
      (let [tag-name (node-tag node)
            tag (keyword tag-name)]
-       (execute-script (f tag template) node user))))
+       (apply execute-script (f tag template) node user options))))
 
 (defn configure-nodes [nodes f user]
   (doseq [node nodes]

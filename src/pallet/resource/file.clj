@@ -35,6 +35,14 @@
 (defimpl tmp-dir :default []
   @TMPDIR-/tmp)
 
+(defscript heredoc [path content])
+(defimpl heredoc :default [path content]
+  ("cat" ">" ~path ~(str "<<EOF\n" content "\nEOF")))
+
+(defn heredoc
+  [path content]
+  (script ("cat" ">" ~path ~(str "<<EOF\n" content "\nEOF"))))
+
 (defn adjust-file [path opts]
   (cmd-join
    (filter

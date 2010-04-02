@@ -5,7 +5,8 @@
         pallet.stevedore
         [pallet.resource :only [defresource]]
         [pallet.utils :only [cmd-join]]
-        [clojure.contrib.logging]))
+        [clojure.contrib.logging]
+        [pallet.target :only [packager]]))
 
 (defscript update-package-list [& options])
 (defscript install-package [name & options])
@@ -121,7 +122,8 @@
                  "universe"
                  (or (opts :file) "/etc/apt/sources.list"))
       :debconf
-      (script (apply debconf-set-selections ~options))
+      (if (= :aptitude (packager))
+        (script (apply debconf-set-selections ~options)))
       (throw (IllegalArgumentException.
               (str action " is not a valid action for package resource"))))))
 
@@ -137,3 +139,10 @@
 :multiverse        - enable multiverse
 :update            - update the package manager"
   package-manager-args apply-package-manager [action & options])
+
+(defn packages
+  "Install a list of packages keyed on packager"
+  [& options]
+  (let [opts (apply array-map options)]
+    (doseq [pkg (opts (packager))]
+      (package pkg))))

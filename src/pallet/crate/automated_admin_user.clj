@@ -1,7 +1,7 @@
 (ns pallet.crate.automated-admin-user
   (:use [pallet.resource.user :only [user]]
         [pallet.crate.sudoers]
-        [pallet.crate.authorize-key]
+        [pallet.crate.ssh-key :only [authorize-key]]
         [pallet.utils :only [default-public-key-path]]))
 
 (defn automated-admin-user

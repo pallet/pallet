@@ -137,22 +137,33 @@ require root permissions."}
 
 (defn remote-sudo-script
   "Run a sudo script on a server."
-  [#^java.net.InetAddress server #^String command user]
+  [#^java.net.InetAddress server #^String command user & options]
   (with-ssh-agent []
     (add-identity (:private-key-path user))
-    (let [session (session server
-                           :username (:username user)
-                           :strict-host-key-checking :no)]
+    (let [options (if (seq options) (apply array-map options) {})
+          session (session server
+                           :username (user :username)
+                           :strict-host-key-checking :no
+                           :port (or (options :port) 22)
+                           :password (user :password))]
       (with-connection session
         (let [mktemp-result (ssh session "mktemp sudocmdXXXXX" :return-map true)
               tmpfile (string/chomp (mktemp-result :out))
               channel (ssh-sftp session)]
           (assert (zero? (mktemp-result :exit)))
-          (sftp channel :put (java.io.ByteArrayInputStream. (.getBytes (str prolog command))) tmpfile)
+          (sftp channel :put (java.io.ByteArrayInputStream.
+                              (.getBytes (str prolog command))) tmpfile)
           (let [chmod-result (ssh session (str "chmod 755 " tmpfile) :return-map true)]
             (if (pos? (chmod-result :exit))
               (error (str "Couldn't chmod script : " ) (chmod-result :err))))
-          (let [script-result (ssh session (str "/usr/bin/sudo ~" (:username user) "/" tmpfile) :return-map true)]
+          (let [sudo (if (options :sudo-password)
+                       (str "echo \"" (user :password) "\" | sudo -S")
+                       "/usr/bin/sudo")
+                script-result
+                (ssh
+                 session
+                 (str sudo " ~" (:username user) "/" tmpfile)
+                 :return-map true)]
             (if (zero? (script-result :exit))
               (info (script-result :out))
               (do

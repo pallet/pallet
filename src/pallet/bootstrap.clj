@@ -97,6 +97,7 @@ path. It returns the first fragment it finds in the following paths:
 
 (defn bootstrap-admin-user
   "Returns a bootstrap descriptor for installing an admin user."
+  ([] (bootstrap-admin-user *admin-user* *bootstrap-repo*))
   ([user] (bootstrap-admin-user user *bootstrap-repo*))
   ([user bootstrap-repo]
      {:authorize-public-key (:public-key-path user)

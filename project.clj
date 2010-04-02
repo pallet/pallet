@@ -15,6 +15,7 @@
                  [org.jclouds/jclouds-terremark "1.0-SNAPSHOT"]
                  [org.jclouds/jclouds-hostingdotcom "1.0-SNAPSHOT"]
                  [org.jclouds/jclouds-rimuhosting "1.0-SNAPSHOT"]
+                 [org.jclouds/jclouds-gogrid "1.0-SNAPSHOT"]
                  [org.jclouds/jclouds-jsch "1.0-SNAPSHOT"]
                  [org.jclouds/jclouds-log4j "1.0-SNAPSHOT"]
                  [org.jclouds/jclouds-enterprise "1.0-SNAPSHOT"]

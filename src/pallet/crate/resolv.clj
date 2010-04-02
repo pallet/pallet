@@ -48,8 +48,6 @@
     (if arg [arg] [])))
 
 (defn- merge-resolve-spec [m1 m2]
-  (println "m1 " m1)
-  (println "m2 " m2)
   (let [[d1 n1 s1 r1 opt1] m1
         [d2 n2] m2
         opt2 (apply hash-map (drop 2 m2))
@@ -70,17 +68,13 @@
    (reduce merge-resolve-spec [nil [] [] [] {}] args)))
 
 (defresource resolv "Resolv configuration. Generates a resolv.conf file.
-
-Examples of the arguments are:
-
 options are:
 
 :search    search order
 :sortlist  sortlist
 
-or one of the resolv.conf options
-
-" resolv-args apply-resolv [domainname nameservers & options])
+or one of the resolv.conf options"
+  resolv-args apply-resolv [domainname nameservers & options])
 
 
 

@@ -4,7 +4,7 @@
         pallet.stevedore
         [pallet.utils :only [cmd-join]]
         [pallet.resource :only [defcomponent]]
-        [pallet.resource.file :only [adjust-file]]
+        [pallet.resource.file :only [adjust-file heredoc]]
         clojure.contrib.logging))
 
 (defn remote-file*
@@ -14,6 +14,7 @@
     (condp = (opts :action)
       :create
       (let [source (opts :source)
+            content (opts :content)
             md5 (opts :md5)]
         (cmd-join
          [(cond
@@ -23,6 +24,7 @@
               (wget "-O" ~path ~source)))
            source (script
                    (wget "-O" ~path ~source))
+           content (heredoc path content)
            :else "")
           (adjust-file path opts)])))))
 
