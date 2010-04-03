@@ -82,66 +82,62 @@ namespace.
 ;; and log in to the cloud using the credentials defined above.
 ;; provider is a string specifiying the provider, as returned
 ;; from (supported-clouds)
-(def context (compute-context "provider" my-user my-password))
+(def service (compute-service "provider" my-user my-password :log4j))
 
 ;; nodes can be listed with the nodes function
-(nodes context)
+(nodes service)
+
+;; the compute service can also be bound
+(with-compute-service [service]
+  (nodes))
+
+;; or even
+(with-compute-service ["provider" my-user my-password :log4j]
+  (nodes))
 
 ;; We can create a node, by specifying a name tag and a template.
 ;; webserver-template is a vector specifying features we want in
 ;; our image.
-(start-node context :webserver webserver-template)
+(start-node service :webserver webserver-template)
 
 ;; At this point we can manage instance counts as a map.
 ;; e.g ensure that we have two webserver nodes
 (with-node-templates templates
-  (converge context {:webserver 2}))
+  (converge service {:webserver 2}))
 
 ;; ... and we can remove our nodes
 (with-node-templates templates
-  (converge context {:webserver 0}))
+  (converge service {:webserver 0}))
 
 ;; templates is a description of the images to use for each of
 ;; our node tags
 templates
 
 ;; Images are configured differently between clouds and os's.
-;; We might want to update our machines to use the latest
-;; package manager.  pallet has a couple of templates, and
-;; you can add your own, see resources/bootstrap.  Templates
-;; have a default implementation, but can be specialised
-;; for a given tag or operating system family.
+;; Pallet comes with some "crates" that can be used to normalise
+;; the images.  public-dns-if-no-nameserver ensures there is a
+;; nameserver if none is already configured.
+;; We probably want an admin user. The default is to use your current login
+;; name, with no password and your id_rsa ssh key.
 (with-node-templates templates
-  (converge context {:webserver 1}
-    (bootstrap-with (bootstrap-template :ensure-resolve)
-                    (bootstrap-template :update-pkg-mgr))))
-
-;; We probably want an admin user.  We can ensure our admin
-;; user is created with the image by specifying :boostrap-admin-user.
-(def user (make-user "admin-user" :password "admin-password"))
-
-;; this time we create the a bootstrapped node
-(with-node-templates templates
-  (converge context {:webserver 1}
-    (bootstrap-with (bootstrap-template :ensure-resolve)
-                    (bootstrap-admin-user user))))
+  (converge service {:webserver 1}
+    (bootstrap-with (public-dns-if-no-nameserver)
+                    (bootstrap-admin-user))))
 
 ;; Bootstrapping is fine, but we might also want to configure the machines
-;; with chef
+;; with chef.
 (with-node-templates templates
-  (converge context {:webserver 1}
-    (bootstrap-with (bootstrap-template :ensure-resolve)
-                    (bootstrap-template :update-pkg-mgr)
-                    (bootstrap-template :install-rubygems)
-                    (bootstrap-template :install-chef)
-                    (bootstrap-admin-user user))
+  (converge service {:webserver 1}
+    (bootstrap-with (public-dns-if-no-nameserver)
+                    (bootstrap-admin-user)
+                    (chef))
     (configure-with-chef user "path_to_your_chef_repository")))
 
 ;; and we can then run chef-solo at any time with
-(cook-nodes (nodes context) user "path_to_your_chef_repository")</pre>
+(cook-nodes (nodes service) user "path_to_your_chef_repository")</pre>
   
   Public variables and functions:
-  <br />
+  <span id="var-link"><a href="demo-api.html#demo/templates" id="var-tag">templates</a> </span><span id="var-link"><a href="demo-api.html#demo/the-farm" id="var-tag">the-farm</a> </span><br />
   
 </div><div id="namespace-entry">
   <br />
@@ -212,9 +208,15 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
   <span id="subspace"><br />Variables and functions in
     <span id="name">pallet.bootstrap</span>:
     <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.bootstrap/bootstrap-admin-user">bootstrap-admin-user</a>
+    </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.bootstrap/bootstrap-fragment">bootstrap-fragment</a>
     </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.bootstrap/bootstrap-script">bootstrap-script</a>
+    </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.bootstrap/bootstrap-template">bootstrap-template</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.bootstrap/bootstrap-with">bootstrap-with</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.bootstrap/with-bootstrap-repo">with-bootstrap-repo</a>
     </span>
@@ -238,9 +240,15 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.compute</span>:
     <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/boot-if-down">boot-if-down</a>
+    </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.compute/execute-script">execute-script</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.compute/primary-ip">primary-ip</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/reboot">reboot</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/shutdown">shutdown</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.compute/shutdown-node">shutdown-node</a>
     </span>
@@ -276,21 +284,73 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
-    <span id="name">pallet.crate.authorize-key</span>:
-    <span id="sub-var-link">
-      <a href="pallet-api.html#pallet.crate.authorize-key/authorize-key">authorize-key</a>
-    </span>
-    <br />
-  </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.automated-admin-user</span>:
     <span id="sub-var-link">
       <a href="pallet-api.html#pallet.crate.automated-admin-user/automated-admin-user">automated-admin-user</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.chef</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.chef/chef">chef</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.git</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.git/git">git</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.java</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.java/java">java</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.java/java-package-name">java-package-name</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.mysql</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.mysql/mysql-conf">mysql-conf</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.public-dns-if-no-nameserver</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.public-dns-if-no-nameserver/public-dns-if-no-nameserver">public-dns-if-no-nameserver</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.resolv</span>:
     <span id="sub-var-link">
       <a href="pallet-api.html#pallet.crate.resolv/resolv">resolv</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.ruby</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ruby/ruby">ruby</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ruby/ruby-packages">ruby-packages</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.rubygems</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rubygems/gem">gem</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rubygems/gem-source">gem-source</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rubygems/rubygems">rubygems</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.ssh-key</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ssh-key/authorize-key">authorize-key</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ssh-key/install-key">install-key</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
@@ -310,6 +370,8 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/configured-resources">configured-resources</a>
     </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource/defcomponent">defcomponent</a>
+    </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/defresource">defresource</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/invoke-resource">invoke-resource</a>
@@ -322,16 +384,58 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource-apply</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource-apply/configure-node">configure-node</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource-apply/configure-resources">configure-resources</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.directory</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.directory/directory">directory</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.exec-script</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.file</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.file/file">file</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.resource.hostinfo</span>:
     
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.resource.package</span>:
     <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/add-scope">add-scope</a>
+    </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource.package/apply-package">apply-package</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource.package/package">package</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/package-manager">package-manager</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/package-manager*">package-manager*</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/packages">packages</a>
     </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.remote-file</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.remote-file/remote-file">remote-file</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.resource-when</span>:
+    
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.resource.user</span>:
@@ -371,11 +475,19 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
       <a href="pallet-api.html#pallet.target/admin-group">admin-group</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.target/os">os</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.target/packager">packager</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.template</span>:
     
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.template.properties</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.template.properties/properties">properties</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.utils</span>:
@@ -387,6 +499,8 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
       <a href="pallet-api.html#pallet.utils/remote-sudo">remote-sudo</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.utils/remote-sudo-script">remote-sudo-script</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.utils/sh-script">sh-script</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.utils/slurp-resource">slurp-resource</a>
     </span><span id="sub-var-link">

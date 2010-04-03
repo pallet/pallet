@@ -52,9 +52,15 @@ namespace.
   </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.bootstrap">pallet.bootstrap</a>
     <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.bootstrap/bootstrap-admin-user">bootstrap-admin-user</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.bootstrap/bootstrap-fragment">bootstrap-fragment</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.bootstrap/bootstrap-script">bootstrap-script</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.bootstrap/bootstrap-template">bootstrap-template</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.bootstrap/bootstrap-with">bootstrap-with</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.bootstrap/with-bootstrap-repo">with-bootstrap-repo</a>
     </div>
@@ -78,9 +84,15 @@ namespace.
   </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.compute">pallet.compute</a>
     <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.compute/boot-if-down">boot-if-down</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.compute/execute-script">execute-script</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.compute/primary-ip">primary-ip</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.compute/reboot">reboot</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.compute/shutdown">shutdown</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.compute/shutdown-node">shutdown-node</a>
     </div>
@@ -116,21 +128,73 @@ namespace.
     </div>
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
-    <a href="#pallet.crate.authorize-key">pallet.crate.authorize-key</a>
-    <div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.crate.authorize-key/authorize-key">authorize-key</a>
-    </div>
-    <br />
-  </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.crate.automated-admin-user">pallet.crate.automated-admin-user</a>
     <div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.crate.automated-admin-user/automated-admin-user">automated-admin-user</a>
     </div>
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.crate.chef">pallet.crate.chef</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.chef/chef">chef</a>
+    </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.crate.git">pallet.crate.git</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.git/git">git</a>
+    </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.crate.java">pallet.crate.java</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.java/java">java</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.java/java-package-name">java-package-name</a>
+    </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.crate.mysql">pallet.crate.mysql</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.mysql/mysql-conf">mysql-conf</a>
+    </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.crate.public-dns-if-no-nameserver">pallet.crate.public-dns-if-no-nameserver</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.public-dns-if-no-nameserver/public-dns-if-no-nameserver">public-dns-if-no-nameserver</a>
+    </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.crate.resolv">pallet.crate.resolv</a>
     <div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.crate.resolv/resolv">resolv</a>
+    </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.crate.ruby">pallet.crate.ruby</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.ruby/ruby">ruby</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.ruby/ruby-packages">ruby-packages</a>
+    </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.crate.rubygems">pallet.crate.rubygems</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.rubygems/gem">gem</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.rubygems/gem-source">gem-source</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.rubygems/rubygems">rubygems</a>
+    </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.crate.ssh-key">pallet.crate.ssh-key</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.ssh-key/authorize-key">authorize-key</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.ssh-key/install-key">install-key</a>
     </div>
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
@@ -150,6 +214,8 @@ namespace.
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource/configured-resources">configured-resources</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource/defcomponent">defcomponent</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource/defresource">defresource</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource/invoke-resource">invoke-resource</a>
@@ -162,16 +228,58 @@ namespace.
     </div>
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.resource-apply">pallet.resource-apply</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource-apply/configure-node">configure-node</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource-apply/configure-resources">configure-resources</a>
+    </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.resource.directory">pallet.resource.directory</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.directory/directory">directory</a>
+    </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.resource.exec-script">pallet.resource.exec-script</a>
+    
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.resource.file">pallet.resource.file</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.file/file">file</a>
+    </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.resource.hostinfo">pallet.resource.hostinfo</a>
     
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.resource.package">pallet.resource.package</a>
     <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.package/add-scope">add-scope</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.package/apply-package">apply-package</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.package/package">package</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.package/package-manager">package-manager</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.package/package-manager*">package-manager*</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.package/packages">packages</a>
     </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.resource.remote-file">pallet.resource.remote-file</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.remote-file/remote-file">remote-file</a>
+    </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.resource.resource-when">pallet.resource.resource-when</a>
+    
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.resource.user">pallet.resource.user</a>
@@ -211,11 +319,19 @@ namespace.
       <a href="#pallet.target/admin-group">admin-group</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.target/os">os</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.target/packager">packager</a>
     </div>
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.template">pallet.template</a>
     
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.template.properties">pallet.template.properties</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.template.properties/properties">properties</a>
+    </div>
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.utils">pallet.utils</a>
@@ -227,6 +343,8 @@ namespace.
       <a href="#pallet.utils/remote-sudo">remote-sudo</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.utils/remote-sudo-script">remote-sudo-script</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/sh-script">sh-script</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.utils/slurp-resource">slurp-resource</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
@@ -309,6 +427,16 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
 <br />
 <div id="var-entry">
   <hr />
+  <h2 id="pallet.bootstrap/bootstrap-admin-user">bootstrap-admin-user</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (bootstrap-admin-user)
+       (bootstrap-admin-user user)
+       (bootstrap-admin-user user bootstrap-repo)
+</pre>
+  <pre id="var-docstr">Returns a bootstrap descriptor for installing an admin user.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/bootstrap.clj#L98" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
   <h2 id="pallet.bootstrap/bootstrap-fragment">bootstrap-fragment</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (bootstrap-fragment fragment tag template)
@@ -319,7 +447,18 @@ path. It returns the first fragment it finds in the following paths:
   bootstrap/fragment/tag
   bootstrap/fragment/os-family
   bootstrap/fragment</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/bootstrap.clj#L21" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/bootstrap.clj#L21" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.bootstrap/bootstrap-script">bootstrap-script</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (bootstrap-script tag template)
+       (bootstrap-script tag template user)
+       (bootstrap-script tag template user bootstrap-url)
+</pre>
+  <pre id="var-docstr">A script to install chef and create the specified user, enabled for
+access with the specified public key.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/bootstrap.clj#L63" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.bootstrap/bootstrap-template">bootstrap-template</h2>
@@ -328,7 +467,15 @@ path. It returns the first fragment it finds in the following paths:
 </pre>
   <pre id="var-docstr">Returns a bootstrap script function that returns a fragment based on
 specified template.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/bootstrap.clj#L42" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/bootstrap.clj#L42" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.bootstrap/bootstrap-with">bootstrap-with</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (bootstrap-with &amp; bootstraps)
+</pre>
+  <pre id="var-docstr">Specify bootstrap functions to apply.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/bootstrap.clj#L111" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.bootstrap/with-bootstrap-repo">with-bootstrap-repo</h2>
@@ -336,7 +483,7 @@ specified template.</pre>
   <pre id="var-usage">Usage: (with-bootstrap-repo url &amp; body)
 </pre>
   <pre id="var-docstr">Define the url used to retrieve the bootstrap repository.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/bootstrap.clj#L53" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/bootstrap.clj#L53" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.chef</h2>
 <pre id="namespace-docstr">Execute chef recipes using chef solo.</pre>
@@ -400,13 +547,23 @@ chef-repo/config/command.json</pre>
 <br />
 <div id="var-entry">
   <hr />
+  <h2 id="pallet.compute/boot-if-down">boot-if-down</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (boot-if-down nodes)
+       (boot-if-down nodes compute)
+</pre>
+  <pre id="var-docstr">Boot the specified nodes, if they are not running.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/compute.clj#L39" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
   <h2 id="pallet.compute/execute-script">execute-script</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (execute-script script node)
-       (execute-script script node user)
+       (execute-script script node user &amp; options)
 </pre>
-  <pre id="var-docstr">Execute a script on a specified node.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/compute.clj#L50" id="var-source">Source</a>
+  <pre id="var-docstr">Execute a script on a specified node. Also accepts an IP or hostname as a
+node.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/compute.clj#L74" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.compute/primary-ip">primary-ip</h2>
@@ -414,15 +571,36 @@ chef-repo/config/command.json</pre>
   <pre id="var-usage">Usage: (primary-ip node)
 </pre>
   <pre id="var-docstr">Returns the first public IP for the node.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/compute.clj#L14" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/compute.clj#L14" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.compute/reboot">reboot</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (reboot nodes)
+       (reboot nodes compute)
+</pre>
+  <pre id="var-docstr">Reboot the specified nodes</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/compute.clj#L33" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.compute/shutdown">shutdown</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (shutdown nodes)
+       (shutdown nodes user)
+       (shutdown nodes user compute)
+</pre>
+  <pre id="var-docstr">Shutdown specified nodes</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/compute.clj#L55" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.compute/shutdown-node">shutdown-node</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (shutdown-node compute user node)
+  <pre id="var-usage">Usage: (shutdown-node node)
+       (shutdown-node node user)
+       (shutdown-node node user compute)
 </pre>
   <pre id="var-docstr">Shutdown a node.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/compute.clj#L40" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/compute.clj#L46" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.core</h2>
 <pre id="namespace-docstr">Pallet is used to provision configured compute nodes using jclouds and chef.
@@ -453,7 +631,7 @@ tag as a configuration target.</pre>
   <pre id="var-usage"></pre>
   <pre id="var-docstr">Map from tag keyword to template specification.  Each template
 specification is a vector of arguments for build-template.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/core.clj#L57" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L60" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/adjust-node-counts">adjust-node-counts</h2>
@@ -462,7 +640,7 @@ specification is a vector of arguments for build-template.</pre>
        (adjust-node-counts compute delta-map nodes bootstrap)
 </pre>
   <pre id="var-docstr">Start or stop the specified number of nodes.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/core.clj#L141" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L146" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/admin-user">admin-user</h2>
@@ -475,14 +653,14 @@ When passing a username the following options can be specified:
   :password
   :private-key-path
   :public-key-path</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/core.clj#L43" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L46" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/bootstrap-none">bootstrap-none</h2>
   <span id="var-type">var</span><br />
   <pre id="var-usage"></pre>
   <pre id="var-docstr">Default bootstrap option. A no-op.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/core.clj#L104" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L109" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/build-node-template">build-node-template</h2>
@@ -491,7 +669,7 @@ When passing a username the following options can be specified:
        (build-node-template compute options public-key-path init-script)
 </pre>
   <pre id="var-docstr">Build a template for passing to jclouds run-nodes.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/core.clj#L67" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L70" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/configure-nodes-none">configure-nodes-none</h2>
@@ -499,18 +677,18 @@ When passing a username the following options can be specified:
   <pre id="var-usage">Usage: (configure-nodes-none compute new-nodes)
 </pre>
   <pre id="var-docstr">A function for no configuration</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/core.clj#L164" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L170" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/converge">converge</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (converge compute node-map)
-       (converge compute node-map bootstrap)
-       (converge compute node-map bootstrap configure)
+  <pre id="var-usage">Usage: (converge node-map &amp; options)
 </pre>
   <pre id="var-docstr">Converge the existing compute resources with what is specified in node-map.
-Returns a sequence containing the node metadata for new nodes.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/core.clj#L172" id="var-source">Source</a>
+Returns a sequence containing the node metadata for new nodes.
+
+Takes node-map ( bootstrap-fn configure-fn? )? compute-service?</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L181" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/converge-node-counts">converge-node-counts</h2>
@@ -520,19 +698,19 @@ Returns a sequence containing the node metadata for new nodes.</pre>
 </pre>
   <pre id="var-docstr">Converge the nodes counts, given a compute facility and a reference number of
 instances.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/core.clj#L153" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L159" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/create-nodes">create-nodes</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (create-nodes compute tag count)
-       (create-nodes compute tag count bootstrap)
+  <pre id="var-usage">Usage: (create-nodes tag count compute)
+       (create-nodes tag count bootstrap compute)
 </pre>
   <pre id="var-docstr">Create count nodes based on the template for tag. The boostrap argument
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
 bootstrap-script value is expected tobe a function that produces a
 script that is run with root privileges immediatly after first boot.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/core.clj#L116" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L120" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/node-template">node-template</h2>
@@ -541,15 +719,15 @@ script that is run with root privileges immediatly after first boot.</pre>
        (node-template compute target public-key-path init-script node-templates)
 </pre>
   <pre id="var-docstr">Build the template for specified target node and compute context</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/core.clj#L83" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L87" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/start-node">start-node</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (start-node compute tag template)
+  <pre id="var-usage">Usage: (start-node tag template compute)
 </pre>
   <pre id="var-docstr">Convience function for explicitly starting nodes.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/core.clj#L99" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L104" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/with-admin-user">with-admin-user</h2>
@@ -559,7 +737,7 @@ script that is run with root privileges immediatly after first boot.</pre>
   <pre id="var-docstr">Specify the admin user for running remote commands.  The user is specified
 either as a user map, which can be created with make-user, or as an argument
 list that will be passed to make-user.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/core.clj#L34" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L37" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/with-node-templates">with-node-templates</h2>
@@ -567,19 +745,7 @@ list that will be passed to make-user.</pre>
   <pre id="var-usage">Usage: (with-node-templates map &amp; body)
 </pre>
   <pre id="var-docstr">Set the template map</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/core.clj#L61" id="var-source">Source</a>
-</div>
-<h2 id="namespace-name">pallet.crate.authorize-key</h2>
-<pre id="namespace-docstr"></pre>
-<br />
-<div id="var-entry">
-  <hr />
-  <h2 id="pallet.crate.authorize-key/authorize-key">authorize-key</h2>
-  <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (authorize-key username public-key-string)
-</pre>
-  <pre id="var-docstr">Authorize a public key on the specified user.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/9e169a7f37ff0e3cc899ffc56580ac5d81ab813b/src/pallet/crate/authorize_key.clj#L42" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L64" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.crate.automated-admin-user</h2>
 <pre id="namespace-docstr"></pre>
@@ -588,13 +754,82 @@ list that will be passed to make-user.</pre>
   <hr />
   <h2 id="pallet.crate.automated-admin-user/automated-admin-user">automated-admin-user</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (automated-admin-user username)
+  <pre id="var-usage">Usage: (automated-admin-user)
+       (automated-admin-user username)
        (automated-admin-user username public-key-path)
 </pre>
-  <pre id="var-docstr">Builds a user for use in remote-admin automation.  The user is given
+  <pre id="var-docstr">Builds a user for use in remote-admin automation. The user is given
 permission to sudo without password, so that passwords don't have to appear
 in scripts, etc.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/987eb4b54bc1cf8b68c2bc77c702b45cd18bb39d/src/pallet/crate/automated_admin_user.clj#L7" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/crate/automated_admin_user.clj#L7" id="var-source">Source</a>
+</div>
+<h2 id="namespace-name">pallet.crate.chef</h2>
+<pre id="namespace-docstr">Installation of chef</pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.chef/chef">chef</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (chef)
+</pre>
+  <pre id="var-docstr">Install chef</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/crate/chef.clj#L8" id="var-source">Source</a>
+</div>
+<h2 id="namespace-name">pallet.crate.git</h2>
+<pre id="namespace-docstr"></pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.git/git">git</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (git)
+</pre>
+  <pre id="var-docstr">Install git</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/crate/git.clj#L6" id="var-source">Source</a>
+</div>
+<h2 id="namespace-name">pallet.crate.java</h2>
+<pre id="namespace-docstr"></pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.java/java">java</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (java &amp; options)
+</pre>
+  <pre id="var-docstr">Install java.  Options can be :sun, :openjdk, :jdk, :jre.
+By default sun jdk will be installed.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/34b71202c2ba01a3d9c2785c96125a197782f2ec/src/pallet/crate/java.clj#L26" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.java/java-package-name">java-package-name</h2>
+  <span id="var-type">multimethod</span><br />
+  <pre id="var-usage">No usage documentation available</pre>
+  <pre id="var-docstr">lookup package name</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/34b71202c2ba01a3d9c2785c96125a197782f2ec/src/pallet/crate/java.clj#L6" id="var-source">Source</a>
+</div>
+<h2 id="namespace-name">pallet.crate.mysql</h2>
+<pre id="namespace-docstr"></pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.mysql/mysql-conf">mysql-conf</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (mysql-conf config)
+</pre>
+  <pre id="var-docstr">my.cnf configuration file for mysql</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/crate/mysql.clj#L38" id="var-source">Source</a>
+</div>
+<h2 id="namespace-name">pallet.crate.public-dns-if-no-nameserver</h2>
+<pre id="namespace-docstr"></pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.public-dns-if-no-nameserver/public-dns-if-no-nameserver">public-dns-if-no-nameserver</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (public-dns-if-no-nameserver &amp; nameservers)
+</pre>
+  <pre id="var-docstr">Install a public nameserver if nonone configured</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/crate/public_dns_if_no_nameserver.clj#L10" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.crate.resolv</h2>
 <pre id="namespace-docstr"></pre>
@@ -606,16 +841,83 @@ in scripts, etc.</pre>
   <pre id="var-usage">Usage: (resolv domainname nameservers &amp; options)
 </pre>
   <pre id="var-docstr">Resolv configuration. Generates a resolv.conf file.
-
-Examples of the arguments are:
-
 options are:
 
 :search    search order
 :sortlist  sortlist
 
 or one of the resolv.conf options</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/crate/resolv.clj#L72" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/crate/resolv.clj#L70" id="var-source">Source</a>
+</div>
+<h2 id="namespace-name">pallet.crate.ruby</h2>
+<pre id="namespace-docstr">Installation of ruby from source</pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.ruby/ruby">ruby</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (ruby)
+       (ruby version)
+</pre>
+  <pre id="var-docstr">Install ruby from source</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/crate/ruby.clj#L30" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.ruby/ruby-packages">ruby-packages</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (ruby-packages)
+</pre>
+  <pre id="var-docstr">Install ruby from packages</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/crate/ruby.clj#L65" id="var-source">Source</a>
+</div>
+<h2 id="namespace-name">pallet.crate.rubygems</h2>
+<pre id="namespace-docstr">Installation of rubygems from source</pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.rubygems/gem">gem</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (gem name &amp; options)
+</pre>
+  <pre id="var-docstr">Gem management.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/crate/rubygems.clj#L59" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.rubygems/gem-source">gem-source</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (gem-source source &amp; options)
+</pre>
+  <pre id="var-docstr">Gem source management.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/crate/rubygems.clj#L73" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.rubygems/rubygems">rubygems</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (rubygems)
+       (rubygems version)
+</pre>
+  <pre id="var-docstr">Install rubygems from source</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/crate/rubygems.clj#L20" id="var-source">Source</a>
+</div>
+<h2 id="namespace-name">pallet.crate.ssh-key</h2>
+<pre id="namespace-docstr"></pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.ssh-key/authorize-key">authorize-key</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (authorize-key username public-key-string)
+</pre>
+  <pre id="var-docstr">Authorize a public key on the specified user.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/crate/ssh_key.clj#L43" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.ssh-key/install-key">install-key</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (install-key username private-key-name private-key-string public-key-string)
+</pre>
+  <pre id="var-docstr">Install a ssh private key</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/crate/ssh_key.clj#L59" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.crate.sudoers</h2>
 <pre id="namespace-docstr"></pre>
@@ -656,7 +958,7 @@ specs [ { ["user1" "user2"]
   <pre id="var-usage">Usage: (bootstrap-resources &amp; body)
 </pre>
   <pre id="var-docstr">Returns a map that can be used with bootstrap-with.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/resource.clj#L91" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/resource.clj#L111" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource/build-resource-fn">build-resource-fn</h2>
@@ -664,15 +966,15 @@ specs [ { ["user1" "user2"]
   <pre id="var-usage">Usage: (build-resource-fn &amp; body)
 </pre>
   <pre id="var-docstr">Returns a function that outputs the resources specified in the body.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/resource.clj#L74" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/resource.clj#L94" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource/build-resources">build-resources</h2>
   <span id="var-type">macro</span><br />
   <pre id="var-usage">Usage: (build-resources &amp; body)
 </pre>
-  <pre id="var-docstr">Returns a function that outputs the resources specified in the body.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/resource.clj#L66" id="var-source">Source</a>
+  <pre id="var-docstr">Outputs the resources specified in the body.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/resource.clj#L86" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource/configured-resources">configured-resources</h2>
@@ -680,7 +982,19 @@ specs [ { ["user1" "user2"]
   <pre id="var-usage">Usage: (configured-resources)
 </pre>
   <pre id="var-docstr">The currently configured resources</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/resource.clj#L33" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/resource.clj#L39" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource/defcomponent">defcomponent</h2>
+  <span id="var-type">macro</span><br />
+  <pre id="var-usage">Usage: (defcomponent facility &amp; args)
+</pre>
+  <pre id="var-docstr">defcomponent is used to define a resource and takes the following arguments:
+      [f args]
+
+f is a function that will accept the arguments and produce a resource.
+args is the argument signature for the resource, and must end with a variadic element.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/resource.clj#L65" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource/defresource">defresource</h2>
@@ -696,17 +1010,18 @@ multiple invocations of the resource. It should be initialised with (atom []).
 apply-fn is a function that will read arg-var and produce a resource.
 
 args is the argument signature for the resource.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/resource.clj#L38" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/resource.clj#L44" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource/invoke-resource">invoke-resource</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (invoke-resource arg-var invoke-fn args)
+  <pre id="var-usage">Usage: (invoke-resource invoke-fn args)
+       (invoke-resource arg-var invoke-fn args)
 </pre>
   <pre id="var-docstr">Handle invocation of a resource.  Invocation should add the args to the
 resources configuration args, and add the resource to the required-resources
 as a [invoke-fn arg-var] tuple.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/resource.clj#L18" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/resource.clj#L20" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource/output-resources">output-resources</h2>
@@ -714,7 +1029,7 @@ as a [invoke-fn arg-var] tuple.</pre>
   <pre id="var-usage">Usage: (output-resources resources)
 </pre>
   <pre id="var-docstr">Invoke all passed resources.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/resource.clj#L61" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/resource.clj#L81" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource/reset-resources">reset-resources</h2>
@@ -722,7 +1037,7 @@ as a [invoke-fn arg-var] tuple.</pre>
   <pre id="var-usage">Usage: (reset-resources)
 </pre>
   <pre id="var-docstr">Reset the list of resources that should be applied to a target</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/resource.clj#L14" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/resource.clj#L16" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource/resource-fn">resource-fn</h2>
@@ -731,7 +1046,57 @@ as a [invoke-fn arg-var] tuple.</pre>
 </pre>
   <pre id="var-docstr">Returns a function that binds the target tag and template and outputs the
 resources specified in the body.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/resource.clj#L82" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/resource.clj#L102" id="var-source">Source</a>
+</div>
+<h2 id="namespace-name">pallet.resource-apply</h2>
+<pre id="namespace-docstr"></pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource-apply/configure-node">configure-node</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (configure-node node f)
+       (configure-node node f template)
+       (configure-node node f template user &amp; options)
+</pre>
+  <pre id="var-docstr">Configure nodes using the specified configuration function.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/resource_apply.clj#L12" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource-apply/configure-resources">configure-resources</h2>
+  <span id="var-type">macro</span><br />
+  <pre id="var-usage">Usage: (configure-resources [&amp; user] &amp; body)
+</pre>
+  <pre id="var-docstr">Generates a function that may me be used to run chef on a sequence of nodes</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/resource_apply.clj#L25" id="var-source">Source</a>
+</div>
+<h2 id="namespace-name">pallet.resource.directory</h2>
+<pre id="namespace-docstr">Directory manipulation.</pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.directory/directory">directory</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (directory path &amp; options)
+</pre>
+  <pre id="var-docstr">Directory management.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/resource/directory.clj#L48" id="var-source">Source</a>
+</div>
+<h2 id="namespace-name">pallet.resource.exec-script</h2>
+<pre id="namespace-docstr">Script execution.</pre>
+<br />
+
+<h2 id="namespace-name">pallet.resource.file</h2>
+<pre id="namespace-docstr">File manipulation.</pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.file/file">file</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (file filename &amp; options)
+</pre>
+  <pre id="var-docstr">File management.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/resource/file.clj#L75" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.resource.hostinfo</h2>
 <pre id="namespace-docstr">Host information.</pre>
@@ -742,12 +1107,20 @@ resources specified in the body.</pre>
 <br />
 <div id="var-entry">
   <hr />
+  <h2 id="pallet.resource.package/add-scope">add-scope</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (add-scope type scope file)
+</pre>
+  <pre id="var-docstr">Add a scope to all the existing package sources</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/resource/package.clj#L94" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
   <h2 id="pallet.resource.package/apply-package">apply-package</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (apply-package package-name &amp; options)
 </pre>
   <pre id="var-docstr">Package management</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/resource/package.clj#L26" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/resource/package.clj#L56" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource.package/package">package</h2>
@@ -756,8 +1129,50 @@ resources specified in the body.</pre>
 </pre>
   <pre id="var-docstr">Package management.
 </pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/resource/package.clj#L58" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/resource/package.clj#L89" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.package/package-manager">package-manager</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (package-manager action &amp; options)
+</pre>
+  <pre id="var-docstr">Package manager controls.
+:multiverse        - enable multiverse
+:update            - update the package manager</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/resource/package.clj#L137" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.package/package-manager*">package-manager*</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (package-manager* action &amp; options)
+</pre>
+  <pre id="var-docstr">Package management</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/resource/package.clj#L109" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.package/packages">packages</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (packages &amp; options)
+</pre>
+  <pre id="var-docstr">Install a list of packages keyed on packager</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/resource/package.clj#L143" id="var-source">Source</a>
 </div>
+<h2 id="namespace-name">pallet.resource.remote-file</h2>
+<pre id="namespace-docstr">File Contents.</pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.remote-file/remote-file">remote-file</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (remote-file filename &amp; options)
+</pre>
+  <pre id="var-docstr">File contents management.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/resource/remote_file.clj#L31" id="var-source">Source</a>
+</div>
+<h2 id="namespace-name">pallet.resource.resource-when</h2>
+<pre id="namespace-docstr">Conditional resource execution.</pre>
+<br />
+
 <h2 id="namespace-name">pallet.resource.user</h2>
 <pre id="namespace-docstr">User management resource.</pre>
 <br />
@@ -768,7 +1183,7 @@ resources specified in the body.</pre>
   <pre id="var-usage">Usage: (apply-user username &amp; options)
 </pre>
   <pre id="var-docstr">Require a user</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/resource/user.clj#L44" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6ae8e7189f76954da11999b88ef4f421654bcc8f/src/pallet/resource/user.clj#L44" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource.user/user">user</h2>
@@ -777,7 +1192,7 @@ resources specified in the body.</pre>
 </pre>
   <pre id="var-docstr">User management.
 </pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/resource/user.clj#L88" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6ae8e7189f76954da11999b88ef4f421654bcc8f/src/pallet/resource/user.clj#L87" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.script</h2>
 <pre id="namespace-docstr">Base infrastructure for script generation</pre>
@@ -789,7 +1204,7 @@ resources specified in the body.</pre>
   <pre id="var-usage">Usage: (defscript name [&amp; args])
 </pre>
   <pre id="var-docstr">Define a script fragment</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/script.clj#L75" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/script.clj#L78" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.script/dispatch-target">dispatch-target</h2>
@@ -797,7 +1212,7 @@ resources specified in the body.</pre>
   <pre id="var-usage">Usage: (dispatch-target script &amp; args)
 </pre>
   <pre id="var-docstr">Invoke target, raising if there is no implementation.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/script.clj#L53" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/script.clj#L56" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.script/invoke-target">invoke-target</h2>
@@ -805,7 +1220,7 @@ resources specified in the body.</pre>
   <pre id="var-usage">Usage: (invoke-target script args)
 </pre>
   <pre id="var-docstr">Invoke target when possible, otherwise return nil</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/script.clj#L62" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/script.clj#L65" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.script/with-line-number">with-line-number</h2>
@@ -813,7 +1228,7 @@ resources specified in the body.</pre>
   <pre id="var-usage">Usage: (with-line-number &amp; body)
 </pre>
   <pre id="var-docstr">Record the source line number</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/script.clj#L15" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/script.clj#L15" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.stevedore</h2>
 <pre id="namespace-docstr">Embed shell script in clojure</pre>
@@ -825,7 +1240,7 @@ resources specified in the body.</pre>
   <pre id="var-usage">Usage: (defimpl script-name specialisers [&amp; args] &amp; body)
 </pre>
   <pre id="var-docstr">Define a script fragment implementation for a given set of specialisers</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/stevedore.clj#L294" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/stevedore.clj#L315" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.stevedore/map-to-arg-string">map-to-arg-string</h2>
@@ -833,7 +1248,7 @@ resources specified in the body.</pre>
   <pre id="var-usage">Usage: (map-to-arg-string m &amp; options)
 </pre>
   <pre id="var-docstr">Output a set of command line switches from a map</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/stevedore.clj#L17" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/stevedore.clj#L20" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.stevedore/option-args">option-args</h2>
@@ -841,7 +1256,7 @@ resources specified in the body.</pre>
   <pre id="var-usage">Usage: (option-args &amp; options)
 </pre>
   <pre id="var-docstr">Output a set of command line switches from a sequence of options</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/stevedore.clj#L28" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/stevedore.clj#L31" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.stevedore/script">script</h2>
@@ -849,7 +1264,7 @@ resources specified in the body.</pre>
   <pre id="var-usage">Usage: (script &amp; forms)
 </pre>
   <pre id="var-docstr">Takes one or more forms. Returns a string of the forms translated into javascript</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/stevedore.clj#L288" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/stevedore.clj#L309" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.target</h2>
 <pre id="namespace-docstr">Provide information about the target image</pre>
@@ -862,7 +1277,7 @@ resources specified in the body.</pre>
        (admin-group target)
 </pre>
   <pre id="var-docstr">Default administrator group</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/target.clj#L22" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/34b71202c2ba01a3d9c2785c96125a197782f2ec/src/pallet/target.clj#L22" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.target/os">os</h2>
@@ -871,12 +1286,33 @@ resources specified in the body.</pre>
        (os target)
 </pre>
   <pre id="var-docstr">OS family</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/target.clj#L17" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/34b71202c2ba01a3d9c2785c96125a197782f2ec/src/pallet/target.clj#L17" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.target/packager">packager</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (packager)
+       (packager target)
+</pre>
+  <pre id="var-docstr">Default package manager</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/34b71202c2ba01a3d9c2785c96125a197782f2ec/src/pallet/target.clj#L30" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.template</h2>
 <pre id="namespace-docstr">Template file writing</pre>
 <br />
 
+<h2 id="namespace-name">pallet.template.properties</h2>
+<pre id="namespace-docstr">A template for writing properties style config files.</pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.template.properties/properties">properties</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (properties values)
+</pre>
+  <pre id="var-docstr">Write a properties file based on the input argument.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/template/properties.clj#L14" id="var-source">Source</a>
+</div>
 <h2 id="namespace-name">pallet.utils</h2>
 <pre id="namespace-docstr"></pre>
 <br />
@@ -887,7 +1323,7 @@ resources specified in the body.</pre>
   <pre id="var-usage"></pre>
   <pre id="var-docstr">The admin user is used for running remote admin commands that
 require root permissions.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/utils.clj#L88" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/utils.clj#L94" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.utils/make-user">make-user</h2>
@@ -896,7 +1332,7 @@ require root permissions.</pre>
 </pre>
   <pre id="var-docstr">Create a description of the admin user to be created and used for running
 chef.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/utils.clj#L75" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/utils.clj#L81" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.utils/remote-sudo">remote-sudo</h2>
@@ -904,15 +1340,23 @@ chef.</pre>
   <pre id="var-usage">Usage: (remote-sudo server command user)
 </pre>
   <pre id="var-docstr">Run a sudo command on a server.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/utils.clj#L110" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/utils.clj#L116" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.utils/remote-sudo-script">remote-sudo-script</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (remote-sudo-script server command user)
+  <pre id="var-usage">Usage: (remote-sudo-script server command user &amp; options)
 </pre>
   <pre id="var-docstr">Run a sudo script on a server.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/utils.clj#L131" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/utils.clj#L138" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.utils/sh-script">sh-script</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (sh-script command)
+</pre>
+  <pre id="var-docstr">Run a sudo script on a server.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/utils.clj#L175" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.utils/slurp-resource">slurp-resource</h2>
@@ -922,7 +1366,7 @@ chef.</pre>
 </pre>
   <pre id="var-docstr">Reads the resource named by name using the encoding enc into a string
 and returns it.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/utils.clj#L34" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/utils.clj#L40" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.utils/system">system</h2>
@@ -931,7 +1375,7 @@ and returns it.</pre>
 </pre>
   <pre id="var-docstr">Launch a system process, return a map containing the exit code, stahdard
 output and standard error of the process.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/dbbad8c316fea7d266bf53d4e7859ba5b294badb/src/pallet/utils.clj#L92" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/utils.clj#L98" id="var-source">Source</a>
 </div>
 
 
