@@ -73,9 +73,9 @@
       pallet.utils
       pallet.core
       pallet.chef
-      pallet.package
       pallet.resource
       pallet.resource-apply
+      pallet.resource.package
       pallet.compute
       pallet.crate.automated-admin-user
       pallet.crate.public-dns-if-no-nameserver
@@ -85,8 +85,6 @@
       pallet.crate.java
       pallet.crate.chef
       clj-ssh.ssh))
-
-[id=1532, name=CentOS 5.3 (64-bit) w/ None, locationId=SANFRANCISCO, architecture=X86_64, osDescription=CentOS 5.3 (64-bit), osFamily=centos, version
 
 (def centos-template [:centos :X86_64 :smallest
                       :os-description-matches ".*5.3.*"
