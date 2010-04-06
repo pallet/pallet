@@ -51,13 +51,16 @@
          (cd "ext/zlib")
          (ruby "extconf.rb" "--with-zlib")
          (cd "../../")
+         (cd "ext/openssl")
+         (ruby "extconf.rb")
+         (cd "../../")
          (make)
          (make install))))))
 
 
 (def ruby-package-names
      {:aptitude
-      ["ruby" "ruby-dev" "rdoc" "ri" "irb"]
+      ["ruby" "ruby-dev" "rdoc" "ri" "irb" "libopenssl-ruby"]
       :yum
       ["ruby" "ruby-devel" "ruby-docs" "ruby-ri" "ruby-rdoc" "ruby-irb"]})
 

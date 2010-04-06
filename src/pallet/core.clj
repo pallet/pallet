@@ -102,7 +102,8 @@ specification is a vector of arguments for build-template."}
         init-script))))
 
 (defn start-node
-  "Convience function for explicitly starting nodes."
+  "Convenience function for explicitly starting nodes."
+  ([tag template] (start-node tag template *compute*))
   ([tag template compute]
      (run-nodes (as-string tag) 1 (build-node-template compute template) compute)))
 
@@ -163,7 +164,8 @@ script that is run with root privileges immediatly after first boot."
      (converge-node-counts compute node-map bootstrap-none))
   ([compute node-map bootstrap]
      (let [nodes (nodes compute)]
-       (boot-if-down compute nodes) ;; this needs improving - should only reboot if required
+       (boot-if-down compute nodes)     ; this needs improving
+                                        ; should only reboot if required
        (adjust-node-counts compute (node-count-difference node-map nodes)
                            nodes bootstrap))))
 
@@ -182,7 +184,22 @@ script that is run with root privileges immediatly after first boot."
   "Converge the existing compute resources with what is specified in node-map.
 Returns a sequence containing the node metadata for new nodes.
 
-Takes node-map ( bootstrap-fn configure-fn? )? compute-service?"
+Takes node-map ( bootstrap-fn configure-fn? )? compute-service?
+
+Nodes in excess of those specified in node-map are destroyed.  Conversely, if
+the node count for a given tag is too low, new nodes are started.  The image
+template for a given tag is looked up in *node-templates*, which can be bound
+using (with-node-templates ...)
+
+Templates specify a vector of features that should match a single image.  The
+keywords match those used in jclouds TemplateBuilder, adjusted for clojure
+conventions (so imageId becomes :image-id).  Values for the jclouds enums used
+in TemplateBuilder are recognised (eg. :ubuntu).
+
+bootstrap-fn is executed while logged in as the default image user, and is only
+executed when starting new images.  configure-fn is executed as the
+*admin-user* which can be bound using (with-admin-user ...), and is always
+executed."
   ([node-map & options]
      (let [fns (filter (partial instance? clojure.lang.IFn) options)
            bootstrap (or (first
@@ -191,6 +208,4 @@ Takes node-map ( bootstrap-fn configure-fn? )? compute-service?"
                          bootstrap-none)
            configure (or (fnext fns) configure-nodes-none)
            compute (or (first (filter compute-service? options)) *compute*)]
-       (println compute node-map bootstrap configure)
        (converge* compute node-map bootstrap configure))))
-

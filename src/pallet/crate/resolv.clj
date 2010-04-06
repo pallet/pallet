@@ -5,7 +5,6 @@
    [pallet.stevedore :only [script]]
    [pallet.template]
    [pallet.resource :only [defresource]]
-   [pallet.resource.user :only [user-home]]
    [pallet.resource.hostinfo :only [dnsdomainname]]
    [pallet.utils :only [as-string]]
    [clojure.contrib.logging]))

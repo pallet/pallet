@@ -3,6 +3,7 @@
    [pallet.resource.package :only [package package-manager]]
    [pallet.target :only [packager]]
    [pallet.resource :only [defcomponent]]
+   [pallet.stevedore :only [script]]
    [pallet.template :only [deftemplate apply-templates]]))
 
 (def mysql-package-names
@@ -32,12 +33,21 @@
   {{:path (mysql-my-cnf (packager)) :owner "root" :mode "0440"}
    string})
 
-(defn apply-mysql-conf [config]
+(defn mysql-conf* [config]
   (apply-templates my-cnf-template [config]))
 
 (defcomponent mysql-conf
   "my.cnf configuration file for mysql"
-  apply-mysql-conf [config])
+  mysql-conf* [config])
+
+(defn mysql-script*
+  [username password sql-script]
+  (script (mysql "-u" ~username ~(str "--password=" password)
+                 ~(str "<<EOF\n" sql-script "\nEOF"))))
+
+(defcomponent mysql-script
+  "Execute a mysql script"
+  mysql-script* [username password sql-script])
 
 ;yum install php-mysql mysql mysql-server
 ;/sbin/chkconfig --levels 235 mysqld on

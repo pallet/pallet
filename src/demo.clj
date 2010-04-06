@@ -32,7 +32,7 @@
   ;; We can create a node, by specifying a name tag and a template.
   ;; webserver-template is a vector specifying features we want in
   ;; our image.
-  (start-node service :webserver webserver-template)
+  (start-node :webserver webserver-template service)
 
   ;; At this point we can manage instance counts as a map.
   ;; e.g ensure that we have two webserver nodes
@@ -56,14 +56,14 @@
   (with-node-templates templates
     (converge service {:webserver 1}
       (bootstrap-with (public-dns-if-no-nameserver)
-                      (bootstrap-admin-user))))
+                      (automated-admin-user))))
 
   ;; Bootstrapping is fine, but we might also want to configure the machines
   ;; with chef.
   (with-node-templates templates
     (converge service {:webserver 1}
       (bootstrap-with (public-dns-if-no-nameserver)
-                      (bootstrap-admin-user)
+                      (automated-admin-user)
                       (chef))
       (configure-with-chef user \"path_to_your_chef_repository\")))
 
@@ -86,11 +86,18 @@
       pallet.crate.chef
       clj-ssh.ssh))
 
-(def centos-template [:centos :X86_64 :smallest
-                      :os-description-matches ".*5.3.*"
-                      :image-description-matches "[^gr]+"])
-(def webserver-template [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"])
-(def balancer-template (apply vector :inbound-ports [22 80] webserver-template))
+(def #^{ :doc "This is a template for centos, that works across several providers."}
+     centos-template
+     [:centos :X86_64 :smallest :os-description-matches ".*5.3.*"
+      :image-description-matches "[^gr]+"])
+
+(def #^{ :doc "This is a template for a ubuntu apache server."}
+     webserver-template
+     [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"])
+
+(def #^{ :doc "This is a template for a ubuntu ha-proxy server."}
+     balancer-template
+     (apply vector :inbound-ports [22 80] webserver-template))
 
 (def #^{ :doc "This is a map defining node tag to instance template builder."}
      templates {:webserver webserver-template

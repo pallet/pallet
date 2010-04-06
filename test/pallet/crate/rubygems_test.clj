@@ -20,3 +20,7 @@
 (deftest gem-source-test
   (is (= "if ! gem sources --list | grep http://rubygems.org; then gem sources --add http://rubygems.org;fi\n"
          (build-resources (gem-source "http://rubygems.org")))))
+
+(deftest gemrc-test
+  (is (= "cat > $(getent passwd quote user | cut -d: -f6)/.gemrc <<EOF\n\"gem\":\"--no-rdoc --no-ri\"\nEOF\nchown  fred $(getent passwd quote user | cut -d: -f6)/.gemrc\n"
+         (build-resources (gemrc {:gem "--no-rdoc --no-ri"} "fred")))))
