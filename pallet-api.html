@@ -157,6 +157,8 @@ namespace.
     <a href="#pallet.crate.mysql">pallet.crate.mysql</a>
     <div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.crate.mysql/mysql-conf">mysql-conf</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.mysql/mysql-script">mysql-script</a>
     </div>
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
@@ -185,6 +187,8 @@ namespace.
       <a href="#pallet.crate.rubygems/gem">gem</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.crate.rubygems/gem-source">gem-source</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.crate.rubygems/gemrc">gemrc</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.crate.rubygems/rubygems">rubygems</a>
     </div>
@@ -631,7 +635,7 @@ tag as a configuration target.</pre>
   <pre id="var-usage"></pre>
   <pre id="var-docstr">Map from tag keyword to template specification.  Each template
 specification is a vector of arguments for build-template.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L60" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/core.clj#L60" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/adjust-node-counts">adjust-node-counts</h2>
@@ -640,7 +644,7 @@ specification is a vector of arguments for build-template.</pre>
        (adjust-node-counts compute delta-map nodes bootstrap)
 </pre>
   <pre id="var-docstr">Start or stop the specified number of nodes.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L146" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/core.clj#L147" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/admin-user">admin-user</h2>
@@ -653,14 +657,14 @@ When passing a username the following options can be specified:
   :password
   :private-key-path
   :public-key-path</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L46" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/core.clj#L46" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/bootstrap-none">bootstrap-none</h2>
   <span id="var-type">var</span><br />
   <pre id="var-usage"></pre>
   <pre id="var-docstr">Default bootstrap option. A no-op.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L109" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/core.clj#L110" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/build-node-template">build-node-template</h2>
@@ -669,7 +673,7 @@ When passing a username the following options can be specified:
        (build-node-template compute options public-key-path init-script)
 </pre>
   <pre id="var-docstr">Build a template for passing to jclouds run-nodes.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L70" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/core.clj#L70" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/configure-nodes-none">configure-nodes-none</h2>
@@ -677,7 +681,7 @@ When passing a username the following options can be specified:
   <pre id="var-usage">Usage: (configure-nodes-none compute new-nodes)
 </pre>
   <pre id="var-docstr">A function for no configuration</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L170" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/core.clj#L172" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/converge">converge</h2>
@@ -687,8 +691,23 @@ When passing a username the following options can be specified:
   <pre id="var-docstr">Converge the existing compute resources with what is specified in node-map.
 Returns a sequence containing the node metadata for new nodes.
 
-Takes node-map ( bootstrap-fn configure-fn? )? compute-service?</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L181" id="var-source">Source</a>
+Takes node-map ( bootstrap-fn configure-fn? )? compute-service?
+
+Nodes in excess of those specified in node-map are destroyed.  Conversely, if
+the node count for a given tag is too low, new nodes are started.  The image
+template for a given tag is looked up in *node-templates*, which can be bound
+using (with-node-templates ...)
+
+Templates specify a vector of features that should match a single image.  The
+keywords match those used in jclouds TemplateBuilder, adjusted for clojure
+conventions (so imageId becomes :image-id).  Values for the jclouds enums used
+in TemplateBuilder are recognised (eg. :ubuntu).
+
+bootstrap-fn is executed while logged in as the default image user, and is only
+executed when starting new images.  configure-fn is executed as the
+*admin-user* which can be bound using (with-admin-user ...), and is always
+executed.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/core.clj#L183" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/converge-node-counts">converge-node-counts</h2>
@@ -698,7 +717,7 @@ Takes node-map ( bootstrap-fn configure-fn? )? compute-service?</pre>
 </pre>
   <pre id="var-docstr">Converge the nodes counts, given a compute facility and a reference number of
 instances.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L159" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/core.clj#L160" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/create-nodes">create-nodes</h2>
@@ -710,7 +729,7 @@ instances.</pre>
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
 bootstrap-script value is expected tobe a function that produces a
 script that is run with root privileges immediatly after first boot.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L120" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/core.clj#L121" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/node-template">node-template</h2>
@@ -719,15 +738,16 @@ script that is run with root privileges immediatly after first boot.</pre>
        (node-template compute target public-key-path init-script node-templates)
 </pre>
   <pre id="var-docstr">Build the template for specified target node and compute context</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L87" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/core.clj#L87" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/start-node">start-node</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (start-node tag template compute)
+  <pre id="var-usage">Usage: (start-node tag template)
+       (start-node tag template compute)
 </pre>
-  <pre id="var-docstr">Convience function for explicitly starting nodes.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L104" id="var-source">Source</a>
+  <pre id="var-docstr">Convenience function for explicitly starting nodes.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/core.clj#L104" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/with-admin-user">with-admin-user</h2>
@@ -737,7 +757,7 @@ script that is run with root privileges immediatly after first boot.</pre>
   <pre id="var-docstr">Specify the admin user for running remote commands.  The user is specified
 either as a user map, which can be created with make-user, or as an argument
 list that will be passed to make-user.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L37" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/core.clj#L37" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/with-node-templates">with-node-templates</h2>
@@ -745,7 +765,7 @@ list that will be passed to make-user.</pre>
   <pre id="var-usage">Usage: (with-node-templates map &amp; body)
 </pre>
   <pre id="var-docstr">Set the template map</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/core.clj#L64" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/core.clj#L64" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.crate.automated-admin-user</h2>
 <pre id="namespace-docstr"></pre>
@@ -817,7 +837,15 @@ By default sun jdk will be installed.</pre>
   <pre id="var-usage">Usage: (mysql-conf config)
 </pre>
   <pre id="var-docstr">my.cnf configuration file for mysql</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/crate/mysql.clj#L38" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/crate/mysql.clj#L39" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.mysql/mysql-script">mysql-script</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (mysql-script username password sql-script)
+</pre>
+  <pre id="var-docstr">Execute a mysql script</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/crate/mysql.clj#L48" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.crate.public-dns-if-no-nameserver</h2>
 <pre id="namespace-docstr"></pre>
@@ -847,7 +875,7 @@ options are:
 :sortlist  sortlist
 
 or one of the resolv.conf options</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/6b96c56c16e9d1710c05985cde4422d88070e45a/src/pallet/crate/resolv.clj#L70" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/crate/resolv.clj#L69" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.crate.ruby</h2>
 <pre id="namespace-docstr">Installation of ruby from source</pre>
@@ -860,7 +888,7 @@ or one of the resolv.conf options</pre>
        (ruby version)
 </pre>
   <pre id="var-docstr">Install ruby from source</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/crate/ruby.clj#L30" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/crate/ruby.clj#L30" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.crate.ruby/ruby-packages">ruby-packages</h2>
@@ -868,7 +896,7 @@ or one of the resolv.conf options</pre>
   <pre id="var-usage">Usage: (ruby-packages)
 </pre>
   <pre id="var-docstr">Install ruby from packages</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/crate/ruby.clj#L65" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/crate/ruby.clj#L68" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.crate.rubygems</h2>
 <pre id="namespace-docstr">Installation of rubygems from source</pre>
@@ -880,7 +908,7 @@ or one of the resolv.conf options</pre>
   <pre id="var-usage">Usage: (gem name &amp; options)
 </pre>
   <pre id="var-docstr">Gem management.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/crate/rubygems.clj#L59" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/crate/rubygems.clj#L73" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.crate.rubygems/gem-source">gem-source</h2>
@@ -888,7 +916,15 @@ or one of the resolv.conf options</pre>
   <pre id="var-usage">Usage: (gem-source source &amp; options)
 </pre>
   <pre id="var-docstr">Gem source management.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/crate/rubygems.clj#L73" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/crate/rubygems.clj#L87" id="var-source">Source</a>
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.crate.rubygems/gemrc">gemrc</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (gemrc m &amp; user?)
+</pre>
+  <pre id="var-docstr">rubygems configuration</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/crate/rubygems.clj#L96" id="var-source">Source</a>
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.crate.rubygems/rubygems">rubygems</h2>
@@ -897,7 +933,7 @@ or one of the resolv.conf options</pre>
        (rubygems version)
 </pre>
   <pre id="var-docstr">Install rubygems from source</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/f2716f1787fc2a1c627ff4771a9a206a222f85b2/src/pallet/crate/rubygems.clj#L20" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/pallet/crate/rubygems.clj#L29" id="var-source">Source</a>
 </div>
 <h2 id="namespace-name">pallet.crate.ssh-key</h2>
 <pre id="namespace-docstr"></pre>

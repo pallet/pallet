@@ -98,7 +98,7 @@ namespace.
 ;; We can create a node, by specifying a name tag and a template.
 ;; webserver-template is a vector specifying features we want in
 ;; our image.
-(start-node service :webserver webserver-template)
+(start-node :webserver webserver-template service)
 
 ;; At this point we can manage instance counts as a map.
 ;; e.g ensure that we have two webserver nodes
@@ -122,14 +122,14 @@ templates
 (with-node-templates templates
   (converge service {:webserver 1}
     (bootstrap-with (public-dns-if-no-nameserver)
-                    (bootstrap-admin-user))))
+                    (automated-admin-user))))
 
 ;; Bootstrapping is fine, but we might also want to configure the machines
 ;; with chef.
 (with-node-templates templates
   (converge service {:webserver 1}
     (bootstrap-with (public-dns-if-no-nameserver)
-                    (bootstrap-admin-user)
+                    (automated-admin-user)
                     (chef))
     (configure-with-chef user "path_to_your_chef_repository")))
 
@@ -137,7 +137,7 @@ templates
 (cook-nodes (nodes service) user "path_to_your_chef_repository")</pre>
   
   Public variables and functions:
-  <span id="var-link"><a href="demo-api.html#demo/templates" id="var-tag">templates</a> </span><span id="var-link"><a href="demo-api.html#demo/the-farm" id="var-tag">the-farm</a> </span><br />
+  <span id="var-link"><a href="demo-api.html#demo/balancer-template" id="var-tag">balancer-template</a> </span><span id="var-link"><a href="demo-api.html#demo/centos-template" id="var-tag">centos-template</a> </span><span id="var-link"><a href="demo-api.html#demo/templates" id="var-tag">templates</a> </span><span id="var-link"><a href="demo-api.html#demo/the-farm" id="var-tag">the-farm</a> </span><span id="var-link"><a href="demo-api.html#demo/webserver-template" id="var-tag">webserver-template</a> </span><br />
   
 </div><div id="namespace-entry">
   <br />
@@ -313,6 +313,8 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     <span id="name">pallet.crate.mysql</span>:
     <span id="sub-var-link">
       <a href="pallet-api.html#pallet.crate.mysql/mysql-conf">mysql-conf</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.mysql/mysql-script">mysql-script</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
@@ -341,6 +343,8 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
       <a href="pallet-api.html#pallet.crate.rubygems/gem">gem</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.crate.rubygems/gem-source">gem-source</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rubygems/gemrc">gemrc</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.crate.rubygems/rubygems">rubygems</a>
     </span>

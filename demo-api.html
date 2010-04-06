@@ -48,9 +48,15 @@ namespace.
   <div style="margin-left: 1em;" class="toc-section">
     <a href="#toc0">Overview</a>
     <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#demo/balancer-template">balancer-template</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#demo/centos-template">centos-template</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#demo/templates">templates</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#demo/the-farm">the-farm</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#demo/webserver-template">webserver-template</a>
     </div>
     <br />
   </div>
@@ -96,7 +102,7 @@ by <span id="author">Hugo Duncan</span><br />
 ;; We can create a node, by specifying a name tag and a template.
 ;; webserver-template is a vector specifying features we want in
 ;; our image.
-(start-node service :webserver webserver-template)
+(start-node :webserver webserver-template service)
 
 ;; At this point we can manage instance counts as a map.
 ;; e.g ensure that we have two webserver nodes
@@ -120,14 +126,14 @@ templates
 (with-node-templates templates
   (converge service {:webserver 1}
     (bootstrap-with (public-dns-if-no-nameserver)
-                    (bootstrap-admin-user))))
+                    (automated-admin-user))))
 
 ;; Bootstrapping is fine, but we might also want to configure the machines
 ;; with chef.
 (with-node-templates templates
   (converge service {:webserver 1}
     (bootstrap-with (public-dns-if-no-nameserver)
-                    (bootstrap-admin-user)
+                    (automated-admin-user)
                     (chef))
     (configure-with-chef user "path_to_your_chef_repository")))
 
@@ -138,11 +144,27 @@ templates
 <div id="var-entry">
   <br />
   <hr />
+  <h2 id="demo/balancer-template">balancer-template</h2>
+  <span id="var-type">var</span><br />
+  <pre id="var-usage"></pre>
+  <pre id="var-docstr">This is a template for a ubuntu ha-proxy server.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/demo.clj#L98" id="var-source">Source</a>
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="demo/centos-template">centos-template</h2>
+  <span id="var-type">var</span><br />
+  <pre id="var-usage"></pre>
+  <pre id="var-docstr">This is a template for centos, that works across several providers.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/demo.clj#L89" id="var-source">Source</a>
+</div><div id="var-entry">
+  <br />
+  <hr />
   <h2 id="demo/templates">templates</h2>
   <span id="var-type">var</span><br />
   <pre id="var-usage"></pre>
   <pre id="var-docstr">This is a map defining node tag to instance template builder.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/decaa3112d623971de90653c87d9de033d7e9728/src/demo.clj#L95" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/demo.clj#L102" id="var-source">Source</a>
 </div><div id="var-entry">
   <br />
   <hr />
@@ -150,7 +172,15 @@ templates
   <span id="var-type">var</span><br />
   <pre id="var-usage"></pre>
   <pre id="var-docstr">This is a map defining node tag to number of instances.</pre>
-  <a href="http://github.com/hugoduncan/pallet/blob/decaa3112d623971de90653c87d9de033d7e9728/src/demo.clj#L100" id="var-source">Source</a>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/demo.clj#L107" id="var-source">Source</a>
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="demo/webserver-template">webserver-template</h2>
+  <span id="var-type">var</span><br />
+  <pre id="var-usage"></pre>
+  <pre id="var-docstr">This is a template for a ubuntu apache server.</pre>
+  <a href="http://github.com/hugoduncan/pallet/blob/ad330556b930b4eb2e34dc879dc69147c9212d5b/src/demo.clj#L94" id="var-source">Source</a>
 </div>
 
 
