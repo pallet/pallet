@@ -1,9 +1,8 @@
 (ns pallet.crate.couchdb
   (:use
-   [pallet.resource.package :only [packages]]))
+   [pallet.resource.package :only [package]]))
 
 (defn couchdb
   "Installs couchdb."
   []
-  (packages :yum ["couchdb"]
-            :aptitude ["couchdb"]))
+  (package "couchdb"))
