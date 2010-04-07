@@ -21,10 +21,14 @@
            (and source md5)
            (script
             (if-not (&& (file-exists? ~path) (== ~md5 @(md5sum ~path)))
-              (wget "-O" ~path ~source)))
+              (wget "-O" ~path ~source))
+            (echo "MD5 sum is" @(md5sum ~path)))
            source (script
-                   (wget "-O" ~path ~source))
-           content (heredoc path content)
+                   (wget "-O" ~path ~source)
+                   (echo "MD5 sum is" @(md5sum ~path)))
+           content (apply heredoc
+                    path content
+                    (apply concat (seq (select-keys opts [:literal]))))
            :else "")
           (adjust-file path opts)])))))
 

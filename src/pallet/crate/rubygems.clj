@@ -66,9 +66,9 @@
         opts (merge {:action :install} opts)]
     (condp = (opts :action)
       :install
-      (script (gem "install" ~name ~(select-keys opts [:version])))
+      (script (gem "install" ~name ~(select-keys opts [:version :no-ri :no-rdoc])))
       :delete
-      (script (gem "uninstall" ~name ~(select-keys opts [:version]))))))
+      (script (gem "uninstall" ~name ~(select-keys opts [:version :no-ri :no-rdoc]))))))
 
 (defcomponent gem "Gem management."
   gem* [name & options])

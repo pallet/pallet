@@ -23,9 +23,12 @@
   ([root-password start-on-boot]
      (package-manager
       :debconf
-      (str "mysql-server-5.1 mysql-server/root_password " root-password)
-      (str "mysql-server-5.1 mysql-server/root_password_again " root-password)
+      (str "mysql-server-5.1 mysql-server/root_password password " root-password)
+      (str "mysql-server-5.1 mysql-server/root_password_again password " root-password)
       (str "mysql-server-5.1 mysql-server/start_on_boot boolean " start-on-boot))
+      (str "mysql-server-5.1 mysql-server-5.1/root_password password " root-password)
+      (str "mysql-server-5.1 mysql-server-5.1/root_password_again password " root-password)
+      (str "mysql-server-5.1 mysql-server/start_on_boot boolean " start-on-boot)
      (package "mysql-server")))
 
 (deftemplate my-cnf-template
@@ -43,7 +46,7 @@
 (defn mysql-script*
   [username password sql-script]
   (script (mysql "-u" ~username ~(str "--password=" password)
-                 ~(str "<<EOF\n" sql-script "\nEOF"))))
+                 ~(str "<<EOF\n" (.replace sql-script "`" "\\`") "\nEOF"))))
 
 (defcomponent mysql-script
   "Execute a mysql script"

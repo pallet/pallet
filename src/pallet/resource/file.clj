@@ -40,8 +40,11 @@
   ("cat" ">" ~path ~(str "<<EOF\n" content "\nEOF")))
 
 (defn heredoc
-  [path content]
-  (script ("cat" ">" ~path ~(str "<<EOF\n" content "\nEOF"))))
+  [path content & options]
+  (let [options (if (seq options) (apply hash-map options) {})]
+    (script ("cat" ">" ~path
+             ~(str (if (options :literal) "<<'EOF'\n" "<<EOF\n")
+                   content "\nEOF")))))
 
 (defn adjust-file [path opts]
   (cmd-join

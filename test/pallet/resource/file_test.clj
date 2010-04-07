@@ -33,6 +33,10 @@
   (is (= "cat > somepath <<EOF\nsomecontent\nEOF"
          (heredoc "somepath" "somecontent"))))
 
+(deftest heredoc-test
+  (is (= "cat > somepath <<'EOF'\nsomecontent\nEOF"
+         (heredoc "somepath" "somecontent" :literal true))))
+
 (deftest file-test
   (is (= "touch  file1\n"
          (build-resources (file "file1"))))

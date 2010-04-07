@@ -56,9 +56,9 @@
 (defn apply-package
   "Package management"
   [package-name & options]
-  (let [opts (if options (apply assoc {} options))
-        opts (merge opts {:action :install})
-        action (get opts :action)]
+  (let [opts (if options (apply assoc {} options) {})
+        opts (merge {:action :install} opts)
+        action (opts :action)]
     (condp = action
       :install
       (script
@@ -66,7 +66,7 @@
               ~package-name
               ~(apply concat (select-keys opts [:y :force]))))
       :remove
-      (if (options :purge)
+      (if (opts :purge)
         (script (purge-package ~package-name))
         (script (remove-package ~package-name)))
       :upgrade

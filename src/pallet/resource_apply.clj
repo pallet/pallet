@@ -10,7 +10,11 @@
 
 
 (defn configure-node
-  "Configure nodes using the specified configuration function."
+  "Configure nodes using the specified configuration function.
+This can be used to configure any machine that is reachable over ssh.
+
+node - a jclouds node, a hostname or an ip address string
+f - a resource fn."
   ([node f] (configure-node node f (*node-templates* (keyword (node-tag node)))))
   ([node f template] (configure-node node f template *admin-user*))
   ([node f template user & options]

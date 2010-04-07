@@ -55,17 +55,27 @@
   ;; name, with no password and your id_rsa ssh key.
   (with-node-templates templates
     (converge service {:webserver 1}
-      (bootstrap-with (public-dns-if-no-nameserver)
-                      (automated-admin-user))))
+      (bootstrap-resources
+        (public-dns-if-no-nameserver)
+        (automated-admin-user))))
 
   ;; Bootstrapping is fine, but we might also want to configure the machines
   ;; with chef.
   (with-node-templates templates
     (converge service {:webserver 1}
-      (bootstrap-with (public-dns-if-no-nameserver)
-                      (automated-admin-user)
-                      (chef))
+      (bootstrap-resources
+        (public-dns-if-no-nameserver)
+        (automated-admin-user)
+        (chef))
       (configure-with-chef user \"path_to_your_chef_repository\")))
+
+  ;; Another example, that just installs java
+  (with-node-templates templates
+    (converge service {:webserver 1}
+      (bootstrap-resources
+        (public-dns-if-no-nameserver)
+        (automated-admin-user))
+      (configure-resources [] (java :openjdk))))
 
   ;; and we can then run chef-solo at any time with
   (cook-nodes (nodes service) user \"path_to_your_chef_repository\")"

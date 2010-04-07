@@ -38,7 +38,7 @@
 
 (defvar- shell-names
   {:bash "/bin/bash" :csh "/bin/csh" :ksh "/bin/ksh" :rsh "/bin/rsh"
-   :sh "/bin/sh" :tcsh "/bin/tcsh" :zsh "/bin/zsh"}
+   :sh "/bin/sh" :tcsh "/bin/tcsh" :zsh "/bin/zsh" :false "/bin/false"}
   "Map for looking up shell path based on keyword.")
 
 (defn apply-user
