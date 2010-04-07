@@ -26,11 +26,10 @@
   "Generates a function that may me be used to run chef on a sequence of nodes"
   [[& user] & body]
   `(let [user# (or (first ~user) *admin-user*)]
-     (fn [compute# new-nodes#]
-       (let [nodes# (nodes compute#)]
-         (configure-nodes
-          nodes#
-          (resource-fn ~@body)
-          user#)))))
+     (fn [compute# nodes#]
+       (configure-nodes
+         nodes#
+         (resource-fn ~@body)
+         user#))))
 
 

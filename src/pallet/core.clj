@@ -27,7 +27,7 @@ tag as a configuration target.
         [pallet.compute
          :only [node-has-tag? node-counts-by-tag boot-if-down]]
         [org.jclouds.compute
-         :only [run-nodes destroy-node nodes compute-service? *compute*]]
+         :only [run-nodes destroy-node nodes tag running? compute-service? *compute*]]
         clojure.contrib.logging)
   (:import org.jclouds.compute.domain.OsFamily
            org.jclouds.compute.options.TemplateOptions
@@ -173,16 +173,22 @@ script that is run with root privileges immediatly after first boot."
 
 (defn converge*
   [compute node-map bootstrap configure]
-  (configure compute (converge-node-counts compute node-map bootstrap)))
+  (converge-node-counts compute node-map bootstrap)
+  (let [tags (->> node-map keys (map name) set)]
+    (configure compute (->> (nodes compute)
+                         (filter running?)
+                         (filter #(-> % tag tags))))))
 
 ;; We have some options for converging
 ;; Unneeded nodes can be just shut dowm, or could be destroyed.
 ;; That means we need to pass some options
 (defn converge
   "Converge the existing compute resources with what is specified in node-map.
-Returns a sequence containing the node metadata for new nodes.
+   Note that the non-bootstrap configuration is applied to all running nodes
+   whose tags match keys in the node-map.
+   Returns a sequence containing the node metadata for *new* nodes.
 
-Takes node-map ( bootstrap-fn configure-fn? )? compute-service?"
+   Takes node-map ( bootstrap-fn configure-fn? )? compute-service?"
   ([node-map & options]
      (let [fns (filter (partial instance? clojure.lang.IFn) options)
            bootstrap (or (first
