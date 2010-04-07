@@ -20,7 +20,8 @@
          [(cond
            (and source md5)
            (script
-            (if-not (&& (file-exists? ~path) (== ~md5 @(md5sum ~path)))
+            (if-not (&& (file-exists? ~path)
+                        (== ~md5 @(md5sum ~path "|" cut "-f1 -d' '")))
               (wget "-O" ~path ~source))
             (echo "MD5 sum is" @(md5sum ~path)))
            source (script

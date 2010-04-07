@@ -41,8 +41,10 @@
   [warfile]
   (exec-script
    (script
-    (cp ~warfile ~(str tomcat-doc-root "webapps/"))
-    (service "tomcat6" :action :restart))))
+    (cp ~warfile ~(str tomcat-doc-root "webapps/"))))
+  ;; restart fails to regenerate security policy cache
+  (service "tomcat6" :action :stop)
+  (service "tomcat6" :action :start))
 
 (defn output-grants [[code-base permissions]]
   (str
@@ -53,7 +55,7 @@
 (defn tomcat-policy*
   [number name grants]
   (remote-file*
-   (str tomcat-config-root "policy.d/" number name)
+   (str tomcat-config-root "policy.d/" number name ".policy")
    :content (string/join \newline (map output-grants grants))
    :literal true))
 

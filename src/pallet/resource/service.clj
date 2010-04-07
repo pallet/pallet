@@ -10,8 +10,6 @@
   (let [opts (if (seq options) (apply hash-map options) {})
         opts (merge {:action :start} opts)
         action (opts :action)]
-    (info "Action is " action)
-    (info (str "/etc/init.d/" service-name) (name action))
     (script ( ~(str "/etc/init.d/" service-name) ~(name action)))))
 
 (defcomponent service
