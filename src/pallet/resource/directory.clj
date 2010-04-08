@@ -20,11 +20,11 @@
    (filter
     (complement nil?)
     [(when (opts :owner)
-       (script (chown ~(opts :owner) ~path)))
+       (script (chown ~(opts :owner) ~path  ~(select-keys opts [:recursive]))))
      (when (opts :group)
-       (script (chgrp ~(opts :group) ~path)))
+       (script (chgrp ~(opts :group) ~path  ~(select-keys opts [:recursive]))))
      (when (opts :mode)
-       (script (chmod ~(opts :mode) ~path)))])))
+       (script (chmod ~(opts :mode) ~path  ~(select-keys opts [:recursive]))))])))
 
 (defn make-directory [path opts]
   (cmd-join
