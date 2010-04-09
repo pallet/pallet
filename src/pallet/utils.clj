@@ -163,7 +163,8 @@ require root permissions."}
                 (ssh
                  session
                  (str sudo " ~" (:username user) "/" tmpfile)
-                 :return-map true)]
+                 :return-map true
+                 :pty true)]
             (if (zero? (script-result :exit))
               (info (script-result :out))
               (do
