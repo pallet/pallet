@@ -2,6 +2,7 @@
   (:require [clojure.contrib.str-utils2 :as string])
   (:use clojure.contrib.logging
         [clj-ssh.ssh]
+        [clojure.contrib.def]
         [clojure.contrib.shell-out :only [sh]]
         [clojure.contrib.pprint :only [pprint]]
         [clojure.contrib.duck-streams :as io]))
@@ -80,7 +81,7 @@
 
 (defn make-user
   "Create a description of the admin user to be created and used for running
-   chef."
+   configuration actions on the administered nodes."
   [username & options]
   (let [options (if (first options) (apply array-map options) {})]
     {:username username
@@ -88,18 +89,24 @@
      :private-key-path (or (options :private-key-path)
                            (default-private-key-path))
      :public-key-path (or (options :public-key-path)
-                          (default-public-key-path))}))
+                          (default-public-key-path))
+     :sudo-password (options :password)}))
 
 
-(def #^{:doc "The admin user is used for running remote admin commands that
-require root permissions."}
-     *admin-user* (make-user (. System getProperty "user.name")))
+(defvar *admin-user*
+  (make-user (. System getProperty "user.name"))
+  "The admin user is used for running remote admin commands that require root
+   permissions.")
 
 (defn system
   "Launch a system process, return a map containing the exit code, stahdard
   output and standard error of the process."
   [cmd]
-  (apply sh :return-map [:exit :out :err] (.split cmd " ")))
+  (let [result (apply sh :return-map true (.split cmd " "))]
+    (when (pos? (result :exit))
+      (error (str "Command failed: " cmd "\n" (result :err))))
+    (info (result :out))
+    result))
 
 (defmacro with-temp-file [[varname content] & body]
   `(let [~varname (java.io.File/createTempFile "stevedore", ".tmp")]
@@ -156,8 +163,8 @@ require root permissions."}
           (let [chmod-result (ssh session (str "chmod 755 " tmpfile) :return-map true)]
             (if (pos? (chmod-result :exit))
               (error (str "Couldn't chmod script : " ) (chmod-result :err))))
-          (let [sudo (if (options :sudo-password)
-                       (str "echo \"" (user :password) "\" | sudo -S")
+          (let [sudo (if-let [pw (options :sudo-password)]
+                       (str "echo \"" (or (user :password) pw) "\" | /usr/bin/sudo -S")
                        "/usr/bin/sudo")
                 script-result
                 (ssh
@@ -173,11 +180,16 @@ require root permissions."}
             script-result))))))
 
 (defn sh-script
-  "Run a sudo script on a server."
+  "Run a script on local machine."
   [command]
   (let [tmp (java.io.File/createTempFile "pallet" "script")]
     (try
      (copy command tmp)
      (sh "chmod" "+x" (.getPath tmp))
      (sh "bash" (.getPath tmp))
+     (let [result (sh "bash" (.getPath tmp) :return-map true)]
+       (when (pos? (result :exit))
+         (error (str "Command failed: " command "\n" (result :err))))
+       (info (result :out))
+       result)
      (finally  (.delete tmp)))))

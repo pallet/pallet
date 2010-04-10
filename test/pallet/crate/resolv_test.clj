@@ -67,7 +67,7 @@ EOF
 chmod 0644 ${file}
 chown root ${file}
 "
-       (pallet.resource/build-resources
+       (pallet.resource/build-resources []
         (resolv "domain" ["123.123.123.123" "123.123.123.123"]
                 :search "some.domain" :sort "123.12.32.12"
                 :rotate true :attempts 2)))))

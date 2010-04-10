@@ -22,7 +22,7 @@ debconf debconf/frontend select noninteractive
 debconf debconf/frontend seen false
 EOF
 aptitude install -y  java\naptitude install -y  rubygems\n"
-         (pallet.resource/build-resources
+         (pallet.resource/build-resources []
           (package "java" :action :install)
           (package "rubygems" :action :install)))))
 
@@ -43,7 +43,8 @@ EOF
       (copy "deb http://archive.ubuntu.com/ubuntu/ karmic main restricted
 deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             tmp)
-      (is (= "" (sh-script (add-scope "deb" "multiverse" (.getPath tmp)))))
+      (is (= {:exit 0, :out "", :err ""}
+             (sh-script (add-scope "deb" "multiverse" (.getPath tmp)))))
       (is (= "deb http://archive.ubuntu.com/ubuntu/ karmic main restricted  multiverse \ndeb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted  multiverse \n"
              (slurp (.getPath tmp))))
       (.delete tmp))))
@@ -56,6 +57,6 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 
 (deftest test-add-multiverse-example
   (is (= "tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list\naptitude update\n"
-         (pallet.resource/build-resources
+         (pallet.resource/build-resources []
           (package-manager :multiverse)
           (package-manager :update)))))

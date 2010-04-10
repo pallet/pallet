@@ -9,14 +9,15 @@
         [pallet.utils :only [cmd-join]]
         [clojure.contrib.java-utils :only [file]]))
 
-(def pkg-config (build-resources (package-manager :universe)
-                                 (package-manager :multiverse)
-                                 (package-manager :update)))
+(def pkg-config (build-resources
+                 [] (package-manager :universe)
+                 (package-manager :multiverse)
+                 (package-manager :update)))
 
 (def noninteractive (script (package-manager-non-interactive)))
 
 (defn debconf [pkg]
-  (build-resources
+  (build-resources []
    (package-manager
     :debconf
     (str pkg " shared/present-sun-dlj-v1-1 note")
@@ -27,21 +28,21 @@
           [pkg-config
            (debconf "sun-java6-bin")
            (debconf "sun-java6-jdk")
-           (build-resources (package "sun-java6-bin")
+           (build-resources [] (package "sun-java6-bin")
                             (package "sun-java6-jdk"))])
-         (pallet.resource/build-resources (java)))))
+         (pallet.resource/build-resources [] (java)))))
 
 (deftest java-sun-test
   (is (= (cmd-join
           [pkg-config
            (debconf "sun-java6-bin")
            (debconf "sun-java6-jdk")
-           (build-resources (package "sun-java6-bin")
+           (build-resources [] (package "sun-java6-bin")
                             (package "sun-java6-jdk"))])
-         (pallet.resource/build-resources
+         (pallet.resource/build-resources []
           (java :sun :bin :jdk)))))
 
 (deftest java-openjdk-test
-  (is (= (build-resources (package "openjdk-6-jre"))
-         (pallet.resource/build-resources
+  (is (= (build-resources [] (package "openjdk-6-jre"))
+         (pallet.resource/build-resources []
           (java :openjdk :jre)))))

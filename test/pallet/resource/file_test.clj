@@ -39,12 +39,12 @@
 
 (deftest file-test
   (is (= "touch  file1\n"
-         (build-resources (file "file1"))))
+         (build-resources [] (file "file1"))))
   (is (= "touch  file1\nchown  user1 file1\n"
-         (build-resources (file "file1" :owner "user1"))))
+         (build-resources [] (file "file1" :owner "user1"))))
   (is (= "touch  file1\nchown  user1 file1\n"
-         (build-resources (file "file1" :owner "user1" :action :create))))
+         (build-resources [] (file "file1" :owner "user1" :action :create))))
   (is (= "touch  file1\nchgrp  group1 file1\n"
-         (build-resources (file "file1" :group "group1" :action :touch))))
+         (build-resources [] (file "file1" :group "group1" :action :touch))))
   (is (= "rm --force file1\n"
-         (build-resources (file "file1" :action :delete :force true)))))
+         (build-resources [] (file "file1" :action :delete :force true)))))

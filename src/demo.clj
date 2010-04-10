@@ -29,62 +29,84 @@
   (with-compute-service [\"provider\" my-user my-password :log4j]
     (nodes))
 
-  ;; We can create a node, by specifying a name tag and a template.
-  ;; webserver-template is a vector specifying features we want in
-  ;; our image.
-  (start-node :webserver webserver-template service)
+  ;; In order to create nodes, we need to define node types.
+  ;; :image is a vector specifying features we want in our image.
+  (defnode webserver
+    :image [:ubuntu :X86_64 :smallest
+            :os-description-matches \"[^J]+9.10[^32]+\"])
+
+  ;; We can create a node, by specifying the node type.
+  (start-node webserver service)
 
   ;; At this point we can manage instance counts as a map.
   ;; e.g ensure that we have two webserver nodes
-  (with-node-templates templates
-    (converge service {:webserver 2}))
+  (converge {webserver 2} service)
 
   ;; ... and we can remove our nodes
-  (with-node-templates templates
-    (converge service {:webserver 0}))
-
-  ;; templates is a description of the images to use for each of
-  ;; our node tags
-  templates
+  (converge {webserver 0} service)
 
   ;; Images are configured differently between clouds and os's.
   ;; Pallet comes with some \"crates\" that can be used to normalise
   ;; the images.  public-dns-if-no-nameserver ensures there is a
   ;; nameserver if none is already configured.
-  ;; We probably want an admin user. The default is to use your current login
-  ;; name, with no password and your id_rsa ssh key.
-  (with-node-templates templates
-    (converge service {:webserver 1}
-      (bootstrap-resources
-        (public-dns-if-no-nameserver)
-        (automated-admin-user))))
+  ;; We probably want an admin user. The default for automated-admin-user is to
+  ;; use your current login name, with no password and your id_rsa ssh key.
+  (defnode webserver
+    :image [:ubuntu :X86_64 :smallest
+            :os-description-matches \"[^J]+9.10[^32]+\"]
+    :bootstrap [(public-dns-if-no-nameserver)
+                (automated-admin-user)])
 
-  ;; Bootstrapping is fine, but we might also want to configure the machines
-  ;; with chef.
-  (with-node-templates templates
-    (converge service {:webserver 1}
-      (bootstrap-resources
-        (public-dns-if-no-nameserver)
-        (automated-admin-user)
-        (chef))
-      (configure-with-chef user \"path_to_your_chef_repository\")))
+  ;; recreate a node with our admin-user
+  (converge {webserver 1} service)
 
-  ;; Another example, that just installs java
-  (with-node-templates templates
-    (converge service {:webserver 1}
-      (bootstrap-resources
-        (public-dns-if-no-nameserver)
-        (automated-admin-user))
-      (configure-resources [] (java :openjdk))))
+  ;; Another example, that adds java to our node type, then converges
+  ;; to install java
+  (defnode webserver
+    :image [:ubuntu :X86_64 :smallest
+            :os-description-matches \"[^J]+9.10[^32]+\"]
+    :bootstrap [(public-dns-if-no-nameserver)
+                (automated-admin-user)]
+    :configure [(java :openjdk)])
 
-  ;; and we can then run chef-solo at any time with
-  (cook-nodes (nodes service) user \"path_to_your_chef_repository\")"
+  (converge {webserver 1} service)
+
+  ;; if you do not want to adjust the number of nodes, there is also
+  ;; a lift function, which can be used to apply configuration
+  (lift webserver service)
+
+  ;; :bootstrap and :configure are two phases.  These are used by default
+  ;; by the converge method.  The :bootstrap phase applies to nodes on first
+  ;; boot, and :configure on every invocation of converge. You can also
+  ;; specify other phases, either as a keyword, in which case the
+  ;; configuration is taken from the corresponding section of the
+  ;; defnode, or as an inline definiton, with phase
+  (converge {webserver 1} service :remove-build-tools)
+  (converge {webserver 1} service (phase (package \"curl\")))
+
+  ;; :configure is also the default phase for lift, but unlike with
+  ;; converge, the :configure phase is not added if not specified.
+  (lift [webserver balancer] service (phase (package \"curl\")))
+
+  ;; you can manage arbitrary machines that are ssh accesable, including
+  ;; local virtual machines.  For this to work you may have to specify
+  ;; the :sudo-password option in the admin user, even if you can
+  ;; log in without a password
+  (defnode vm :image [:ubuntu])
+  (def vm1 (make-unmanaged-node \"vm\" \"localhost\" :ssh-port 2223))
+  (with-admin-user [\"myuser\" :sudo-password \"xxx\"]
+    (lift vm1 service (phase (package \"curl\"))))
+
+  ;; We might also want to configure the machines with chef-solo.
+  ;; This expects a webserver.json file in the cookbook repository's
+  ;; config directory.
+  (lift webserver service (phase (chef)))
+  (cook webserver \"path_to_your_chef_repository\")"
 (:use [org.jclouds.compute :exclude [node-tag]]
       pallet.utils
       pallet.core
       pallet.chef
       pallet.resource
-      pallet.resource-apply
       pallet.resource.package
       pallet.compute
       pallet.crate.automated-admin-user
@@ -96,25 +118,18 @@
       pallet.crate.chef
       clj-ssh.ssh))
 
-(def #^{ :doc "This is a template for centos, that works across several providers."}
-     centos-template
-     [:centos :X86_64 :smallest :os-description-matches ".*5.3.*"
-      :image-description-matches "[^gr]+"])
+(defnode webserver
+  :image [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"]
+  :bootstrap [(automated-admin-user)]
+  :configure [(package "apache2")])
 
-(def #^{ :doc "This is a template for a ubuntu apache server."}
-     webserver-template
-     [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"])
+(defnode balancer
+  :image (apply vector :inbound-ports [22 80] (webserver :image))
+  :bootstrap [(automated-admin-user)])
 
-(def #^{ :doc "This is a template for a ubuntu ha-proxy server."}
-     balancer-template
-     (apply vector :inbound-ports [22 80] webserver-template))
+(defnode centos
+  :image [:centos :X86_64 :smallest :os-description-matches ".*5.3.*"
+          :image-description-matches "[^gr]+"]
+  :bootstrap [(automated-admin-user)])
 
-(def #^{ :doc "This is a map defining node tag to instance template builder."}
-     templates {:webserver webserver-template
-                :balancer balancer-template
-                :centos centos-template})
-
-(def #^{ :doc "This is a map defining node tag to number of instances."}
-     the-farm
-     { :webserver 2 :balancer 1 })
 

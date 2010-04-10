@@ -1,8 +1,11 @@
 (ns pallet.core-test
   (:use [pallet.core] :reload-all)
   (require [pallet.utils])
-  (:use clojure.test
-        pallet.test-utils))
+  (:use
+   clojure.test
+   pallet.test-utils
+   [pallet.compute :only [make-node]]
+   [pallet.resource :as resource]))
 
 (deftest with-admin-user-test
   (let [x (rand)]
@@ -32,20 +35,69 @@
     (admin-user old)
     (is (= old pallet.utils/*admin-user*))))
 
-(deftest with-node-templates-test
-  (let [x (rand)]
-    (with-node-templates x
-      (is (= x *node-templates*)))))
+(deftest node-count-difference-test
+  (is (= { {:tag :a} 1 {:tag :b} -1}
+         (node-count-difference
+          { {:tag :a} 2 {:tag :b} 0}
+          [(make-node "a") (make-node "b")])))
+  (is (= { {:tag :a} 1 {:tag :b} 1}
+         (node-count-difference { {:tag :a} 1 {:tag :b} 1} []))))
 
-(deftest configure-nodes-none-test
-  (let [x (rand)]
-    (is (= x (configure-nodes-none "unused" x)))))
+(deftest nodes-in-set-test
+  (let [a (make-node "a")
+        b (make-node "b")]
+    (is (= [a] (nodes-in-set a nil)))
+    (is (= [a b] (nodes-in-set [a b] nil)))))
 
-(with-private-vars [pallet.core [bootstrap-script-fn]]
-  (deftest bootstrap-script-fn-test
-    (is (nil? ((bootstrap-script-fn nil) "template" [])))
-    (is (= "template1" ((bootstrap-script-fn str) "template" "1")))
-    (is (= "1template2\ntemplate2"
-           ((bootstrap-script-fn [(partial str "1") str]) "template" "2")))
-    (is (= "2template3\ntemplate3"
-           ((bootstrap-script-fn (sequence [(partial str "2") str])) "template" "3")))))
+(deftest node-in-types?-test
+  (defnode a)
+  (defnode b)
+  (is (node-in-types? [a b] (make-node "a")))
+  (is (not (node-in-types? [a b] (make-node "c")))))
+
+(deftest nodes-for-types-test
+  (defnode a)
+  (defnode b)
+  (let [na (make-node "a")
+        nb (make-node "b")
+        nc (make-node "c")]
+    (is (= [na nb] (nodes-for-types [na nb nc] [a b])))
+    (is (= [na] (nodes-for-types [na nc] [a b])))))
+
+(deftest nodes-in-map-test
+  (defnode a)
+  (defnode b)
+  (defnode c)
+  (let [na (make-node "a")
+        nb (make-node "b")]
+    (is (= [na nb] (nodes-in-map {a 1 b 1 c 1} [na nb])))
+    (is (= [na] (nodes-in-map {a 1 c 1} [na nb])))))
+
+
+(defn- test-component-fn [arg]
+  (str arg))
+
+(resource/defcomponent test-component test-component-fn [arg & options])
+
+(with-private-vars [pallet.core [node-types]]
+  (deftest defnode-test
+    (reset! node-types {})
+    (defnode fred :image [:ubuntu])
+    (is (= {:tag :fred :image [:ubuntu] :phases {}} fred))
+    (is (= {:fred fred} @node-types))
+    (defnode tom :image [:centos])
+    (is (= {:tag :tom :image [:centos] :phases {}} tom))
+    (is (= {:tom tom :fred fred} @node-types))
+    (defnode harry :image (tom :image))
+    (is (= {:tag :harry :image [:centos] :phases {}} harry))
+    (is (= {:harry harry :tom tom :fred fred} @node-types))
+    (defnode with-phases :image (tom :image)
+      :bootstrap [(test-component :a)]
+      :configure [(test-component :b)])
+    (is (= [:bootstrap :configure] (keys (with-phases :phases))))
+    (is (= ":a\n"
+           (resource/produce-phases
+            [:bootstrap] "tag" [] (with-phases :phases))))
+    (is (= ":b\n"
+           (resource/produce-phases
+            [:configure] "tag" [] (with-phases :phases))))))

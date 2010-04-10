@@ -21,14 +21,19 @@ chef-repository you specify with `with-chef-repository`.
 `chef-solo` is then run with chef repository you have specified using the node
 tag as a configuration target.
 "
-  (:use [pallet.utils
-         :only [remote-sudo make-user *admin-user* default-public-key-path
-                as-string]]
-        [pallet.compute
-         :only [node-has-tag? node-counts-by-tag boot-if-down]]
-        [org.jclouds.compute
-         :only [run-nodes destroy-node nodes tag running? compute-service? *compute*]]
-        clojure.contrib.logging)
+  (:use
+   [pallet.utils
+    :only [remote-sudo make-user *admin-user* default-public-key-path
+           as-string]]
+   [pallet.resource
+    :only [produce-phases defphases]]
+   [pallet.compute
+    :only [node-has-tag? node-counts-by-tag boot-if-down compute-node?
+           execute-script ssh-port]]
+   [org.jclouds.compute
+    :only [run-nodes destroy-node nodes tag running? compute-service? *compute*]]
+   clojure.contrib.logging
+   clojure.contrib.def)
   (:import org.jclouds.compute.domain.OsFamily
            org.jclouds.compute.options.TemplateOptions
            org.jclouds.compute.domain.NodeMetadata))
@@ -57,22 +62,42 @@ When passing a username the following options can be specified:
                                    (apply make-user user options)
                                    user)))
 
-(def #^{:doc "Map from tag keyword to template specification.  Each template
-specification is a vector of arguments for build-template."}
-     *node-templates* {})
+(defvar- node-types (atom {}) "Enable lookup from tag to node type")
 
-(defmacro with-node-templates
-  "Set the template map"
-  [map & body]
-  `(binding [*node-templates* ~map]
-     ~@body))
+(defn add-node-type
+  "Add a node type to the tag lookup map"
+  [node] (swap! node-types merge {(node :tag) node}))
 
-(defn build-node-template
+(defn node-type
+  "Return the node type definition that matches the tag of the specified node."
+  [node]
+  (@node-types (-> node tag keyword)))
+
+(defmacro defnode
+  "Define a node type.  The name is used for the node tag. Options are:
+
+   :image defines the image selector template.  This is a vector of keyword or
+          keyword value pairs that are used to filter the image list to select
+          an image.
+   :configure defines the configuration of the node."
+  [name & options]
+  (let [[name options] (name-with-attributes name options)
+        opts (apply hash-map options)]
+    `(do
+       (def ~name
+            (apply hash-map
+                   (vector :tag (keyword (name '~name))
+                           :image ~(opts :image)
+                           :phases (defphases ~@options))))
+       (add-node-type ~name))))
+
+(defn build-node-template-impl
   "Build a template for passing to jclouds run-nodes."
   ([compute options]
-     (build-node-template compute options (default-public-key-path) nil))
+     (build-node-template-impl compute options (default-public-key-path) nil))
   ([compute options public-key-path init-script]
-     (debug (str "Init script\n" init-script))
+     (info (str "Options " options))
+     (info (str "Init script\n" init-script))
      (let [options
            (if (and public-key-path (not (:authorize-public-key options)))
              (apply
@@ -84,134 +109,189 @@ specification is a vector of arguments for build-template."}
              options)]
     (apply org.jclouds.compute/build-template compute options))))
 
-(defn node-template
+(defn build-node-template
   "Build the template for specified target node and compute context"
-  ([compute target public-key-path init-script]
-     (node-template compute target public-key-path init-script *node-templates*))
-  ([compute target public-key-path init-script node-templates]
-     {:pre [(keyword? target)]}
-     (info (str "building node template for " target))
-     (when public-key-path (info (str "  authorizing " public-key-path)))
-     (when init-script (info (str "  using init script")))
-     (let [options (target node-templates)
-           init-script (if init-script (init-script target options))]
-       (build-node-template
-        compute
-        options
-        public-key-path
-        init-script))))
+  [compute target public-key-path]
+  {:pre [(map? target)]}
+  (info (str "building node template for " (target :tag)))
+  (when public-key-path (info (str "  authorizing " public-key-path)))
+  (let [options (target :image)
+        init-script (produce-phases
+                     [:bootstrap] (target :tag) options (target :phases))]
+    (when init-script (info (str "  using init script")))
+    (build-node-template-impl
+     compute
+     options
+     public-key-path
+     init-script)))
 
 (defn start-node
   "Convenience function for explicitly starting nodes."
-  ([tag template] (start-node tag template *compute*))
-  ([tag template compute]
-     (run-nodes (as-string tag) 1 (build-node-template compute template) compute)))
-
-(def #^{:doc "Default bootstrap option. A no-op."}
-     bootstrap-none {:authorize-public-key nil :bootstrap-script nil})
-
-(defn- bootstrap-script-fn
-  [fns]
-  (cond
-   (nil? fns) (fn [tag template] nil)
-   (or (vector? fns) (seq? fns))
-   (fn [tag template] (apply str (interpose "\n" (map #(% tag template) fns))))
-   :else fns))
+  ([node-type] (start-node node-type *compute*))
+  ([node-type compute]
+     (run-nodes
+      (as-string (node-type :tag))
+      1
+      (build-node-template-impl compute (node-type :image))
+      compute)))
 
 (defn create-nodes
   "Create count nodes based on the template for tag. The boostrap argument
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
 bootstrap-script value is expected tobe a function that produces a
 script that is run with root privileges immediatly after first boot."
-  ([tag count compute]
-     (create-nodes tag count bootstrap-none compute))
-  ([tag count bootstrap compute]
-     {:pre [(keyword? tag)]}
-     (info (str "Starting " count " nodes for " tag))
-     (run-nodes (name tag) count
-                (node-template
-                 compute tag
-                 (:authorize-public-key bootstrap)
-                 (bootstrap-script-fn (:bootstrap-script bootstrap)))
-                compute)))
+  [node count compute]
+  {:pre [(map? node)]}
+  (info (str "Starting " count " nodes for " (node :tag)))
+  (run-nodes (->> node (:tag) (name)) count
+             (build-node-template
+              compute node
+              nil)
+             compute))
 
-(defn destroy-nodes-with-count [nodes tag count compute]
+(defn destroy-nodes-with-count
+  "Destroys the specified number of nodes with the given tag.  Nodes are
+   selected at random."
+  [nodes tag count compute]
   (info (str "destroying " count " nodes with tag " tag))
   (dorun (map #(destroy-node % compute)
               (take count (filter (partial node-has-tag? tag) nodes)))))
 
-(defn node-count-difference [node-map nodes]
-  (merge-with - node-map
-              (select-keys (node-counts-by-tag nodes) (keys node-map))))
+(defn node-count-difference
+  "Find the difference between the required and actual node counts by tag."
+  [node-map nodes]
+  (let [node-counts (node-counts-by-tag nodes)]
+    (merge-with
+     - node-map
+     (into {} (map #(vector (first %) (get node-counts ((first %) :tag) 0))
+                   node-map)))))
 
 (defn adjust-node-counts
   "Start or stop the specified number of nodes."
-  ([compute delta-map nodes]
-     (adjust-node-counts compute delta-map nodes bootstrap-none))
-  ([compute delta-map nodes bootstrap]
-     (info (str "destroying excess nodes"))
-     (doseq [node-count (filter #(neg? (second %)) delta-map)]
-       (destroy-nodes-with-count
-         nodes (first node-count) (- (second node-count)) compute))
-     (info (str "adjust-node-counts starting new nodes"))
-     (mapcat #(create-nodes (first %) (second %) bootstrap compute)
-             (filter #(pos? (second %)) delta-map))))
+  [compute delta-map nodes]
+  (info (str "destroying excess nodes"))
+  (doseq [node-count (filter #(neg? (second %)) delta-map)]
+    (destroy-nodes-with-count
+      nodes ((first node-count) :tag) (- (second node-count)) compute))
+  (info (str "adjust-node-counts starting new nodes"))
+  (mapcat #(create-nodes (first %) (second %) compute)
+          (filter #(pos? (second %)) delta-map)))
 
 (defn converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
    instances."
-  ([compute node-map]
-     (converge-node-counts compute node-map bootstrap-none))
-  ([compute node-map bootstrap]
-     (let [nodes (nodes compute)]
-       (boot-if-down compute nodes)     ; this needs improving
+  [compute node-map]
+  (info "converging nodes")
+  (let [nodes (nodes compute)]
+    (boot-if-down compute nodes)        ; this needs improving
                                         ; should only reboot if required
-       (adjust-node-counts compute (node-count-difference node-map nodes)
-                           nodes bootstrap))))
+    (adjust-node-counts
+     compute (node-count-difference node-map nodes) nodes)))
 
-(defn configure-nodes-none
-  "A function for no configuration"
-  [compute new-nodes] new-nodes)
+(defn apply-phases-to-node
+  "Apply a list of phases to a sequence of nodes"
+  [compute node phases user]
+  (info "apply-phases-to-node")
+  (let [node-info (node-type node)
+        phases (if (seq phases) phases [:configure])
+        port (ssh-port node)
+        options (if port [:port port] [])]
+    (doseq [phase phases]
+      (when-let [script (produce-phases [phase] (tag node) (node-info :image)
+                                        (node-info :phases))]
+        (info script)
+        (apply execute-script script node user options)))))
+
+(defn apply-phases
+  "Apply a list of phases to a sequence of nodes"
+  ([compute nodes phases] (apply-phases compute nodes phases *admin-user*))
+  ([compute nodes phases user]
+     (info "apply-phases")
+     (doseq [node nodes]
+       (apply-phases-to-node compute node phases user))))
+
+(defn nodes-in-map
+  "Return nodes with tags corresponding to the keys in node-map"
+  [node-map nodes]
+  (let [tags (->> node-map keys (map :tag) (map name) set)]
+    (->> nodes (filter running?) (filter #(-> % tag tags)))))
 
 (defn converge*
-  [compute node-map bootstrap configure]
-  (converge-node-counts compute node-map bootstrap)
-  (let [tags (->> node-map keys (map name) set)]
-    (configure compute (->> (nodes compute)
-                         (filter running?)
-                         (filter #(-> % tag tags))))))
+  [compute node-map phases]
+  (converge-node-counts compute node-map)
+  (apply-phases
+   compute
+   (nodes-in-map node-map (nodes compute))
+   (if (some #{:configure} phases)
+     phases
+     (concat [:configure] phases))))
 
-;; We have some options for converging
-;; Unneeded nodes can be just shut dowm, or could be destroyed.
-;; That means we need to pass some options
+(defn lift*
+  [compute nodes phases]
+  (apply-phases
+     compute
+     (->> nodes (filter running?))
+     phases))
+
+(defn node-in-types?
+  "Predicate for matching a node belonging to a set of node types"
+  [node-types node]
+  (some #(= (tag node) (name (% :tag))) node-types))
+
+(defn nodes-for-types
+  "Return the nodes that hav a tag that matches one of the node types"
+  [nodes node-types]
+  (let [tags (set (map #(name (% :tag)) node-types))]
+    (filter #(tags (tag %)) nodes)))
+
+(defn nodes-in-set
+  "Build a sequence of nodes for the given node-set. A node set can be a node
+  type, a sequence of node types, a node, or a sequence of nodes."
+  ([node-set] (nodes-in-set node-set *compute*))
+  ([node-set compute]
+     (cond
+      (compute-node? node-set) [node-set]
+      (and (not (map? node-set))
+           (or (seq node-set) (vector? node-set) (set? node-set)))
+      (if (every? compute-node? node-set)
+        node-set
+        (nodes-for-types (nodes compute) node-set))
+      :else (nodes-for-types (nodes compute) [node-set]))))
+
+(defn compute-service-and-options
+  "Extract the compute service form a vector of options, returning the bound
+  compute service if none specified."
+  [options]
+  (let [compute (or (first (filter compute-service? options)) *compute*)]
+    [compute (remove #{compute} options)]))
+
 (defn converge
-  "Converge the existing compute resources with what is specified in node-map.
-   Note that the non-bootstrap configuration is applied to all running nodes
-   whose tags match keys in the node-map.
-   Returns a sequence containing the node metadata for *new* nodes.
+  "Converge the existing compute resources with the counts specified in node-map.
+   The compute service may be supplied as an option, otherwise the bound
+   compute-service is used.
 
-   Takes node-map ( bootstrap-fn configure-fn? )? compute-service?
-
-   Nodes in excess of those specified in node-map are destroyed.  Conversely, if
-   the node count for a given tag is too low, new nodes are started.  The image
-   template for a given tag is looked up in *node-templates*, which can be bound
-   using (with-node-templates ...)
-
-   Templates specify a vector of features that should match a single image.  The
-   keywords match those used in jclouds TemplateBuilder, adjusted for clojure
-   conventions (so imageId becomes :image-id).  Values for the jclouds enums
-   used in TemplateBuilder are recognised (eg. :ubuntu).
-
-   bootstrap-fn is executed while logged in as the default image user, and is
-   only executed when starting new images.  configure-fn is executed as the
-   *admin-user* which can be bound using (with-admin-user ...), and is always
-   executed."
+   This applies the bootstrap phase to all new nodes, and the configure phase to
+   all running nodes whose tag matches a key in the node map.  Additional phases
+   can also be specified in the options, and will be applied to all matching
+   nodes.  The :configure phase is always applied, as the first (post bootstrap)
+   phase.  You can change the order in which the phases are applied by
+   explicitly listing them."
   ([node-map & options]
-     (let [fns (filter (partial instance? clojure.lang.IFn) options)
-           bootstrap (or (first
-                          (filter #(and (map? %)
-                                        (:bootstrap-script %)) options))
-                         bootstrap-none)
-           configure (or (fnext fns) configure-nodes-none)
-           compute (or (first (filter compute-service? options)) *compute*)]
-       (converge* compute node-map bootstrap configure))))
+     (let [[compute phases] (compute-service-and-options options)]
+       (converge* compute node-map phases))))
+
+(defn lift
+  "Lift the running nodes in the specified node-set by applying the specified phases.
+   The compute service may be supplied as an option, otherwise the bound
+   compute-service is used.  The configure phase is applied by default, unless
+   other phases are specified.
+
+   node-set can be a node type, a sequence of node types, a node, or a sequence
+            of nodes.
+
+   options can also be keywords specifying the phases to apply, or an immediate
+           phase specified with the phase macro, or a function that will be
+           called with each matching node."
+  [node-set & options]
+  (let [[compute phases] (compute-service-and-options options)]
+    (lift* compute (nodes-in-set node-set compute) phases)))

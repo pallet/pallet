@@ -16,7 +16,7 @@
     [(fn []
        (script
         (if ~condition
-          (do (unquote (build-resources ~@resources))))))]))
+          (do (unquote (build-resources [] ~@resources))))))]))
 
 (defmacro resource-when-not [condition & resources]
   `(invoke-resource
@@ -24,4 +24,4 @@
     [(fn []
        (script
         (if-not ~condition
-          (do (unquote (build-resources ~@resources))))))]))
+          (do (unquote (build-resources [] ~@resources))))))]))

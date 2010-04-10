@@ -1,10 +1,12 @@
 (ns #^{:author "Hugo Duncan"}
   pallet.chef
   "Execute chef recipes using chef solo."
-  (:use [org.jclouds.compute :only [hostname public-ips private-ips tag nodes]]
-        [pallet.compute :only [primary-ip nodes-by-tag]]
-        [pallet.utils :only [*admin-user* remote-sudo system pprint-lines
-                             quoted]]
+  (:use [org.jclouds.compute
+         :only [hostname public-ips private-ips tag nodes *compute*]]
+        [pallet.compute :only [primary-ip nodes-by-tag ssh-port]]
+        [pallet.core :only [nodes-in-set]]
+        [pallet.utils
+         :only [*admin-user* remote-sudo system pprint-lines quoted sh-script]]
         [clojure.contrib.java-utils :only [file]]
         [clojure.contrib.duck-streams :only [with-out-writer]]
         clojure.contrib.logging))
@@ -17,7 +19,7 @@
      ~@body))
 
 
-(def *remote-chef-path* "/srv/chef/")
+(def *remote-chef-path* "/var/lib/chef/")
 (defmacro with-remote-chef-path
   "Specifies the path to use for the chef cookbooks on the remote machine."
   [path & body]
@@ -25,18 +27,22 @@
      ~@body))
 
 ;;; Provisioning
-(defn rsync-repo [from to user]
+(defn rsync-repo [from to user port]
   (info (str "rsyncing chef repository to " to))
-  (let [cmd (str "/usr/bin/rsync -rP --delete --copy-links -F -F "
+  (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
+                 (if port (str "-p " port " ")))
+        cmd (str "/usr/bin/rsync "
+                 "-e '" ssh "' "
+                 " -rP --delete --copy-links -F -F "
                  from  " " (:username user) "@" to ":" *remote-chef-path*)]
-    (system cmd)))
+    (sh-script cmd)))
 
 (defn rsync-node
   ([node user]
      (rsync-node node user *chef-repository*))
   ([node user chef-repository]
      (if (primary-ip node)
-       (rsync-repo chef-repository (primary-ip node) user))))
+       (rsync-repo chef-repository (primary-ip node) user (ssh-port node)))))
 
 ;;; Chef recipe attribute output
 (defn ips-to-rb [nodes]
@@ -86,23 +92,17 @@
 
 (defn cook-node
   "Run chef on the specified node."
-  [node user chef-repository]
+  [node chef-repository user]
   (rsync-node node user chef-repository)
   (chef-cook node user))
 
-(defn cook-nodes
-  ([nodes] (cook-nodes nodes *admin-user* *chef-repository*))
-  ([nodes user] (cook-nodes nodes user *chef-repository*))
-  ([nodes user chef-repository]
-     (dorun (map #(cook-node % user chef-repository) nodes))))
-
-(defn configure-with-chef
-  "Generates a function that may me be used to run chef on a sequence of nodes"
-  ([] (configure-with-chef *admin-user* *chef-repository*))
-  ([user] (configure-with-chef user *chef-repository*))
-  ([user repository-path]
-     (fn [compute new-nodes]
-       (let [nodes (nodes compute)]
-         (output-attributes nodes repository-path)
-         (cook-nodes nodes user repository-path)
-         nodes))))
+(defn cook
+  ([nodes]
+     (cook nodes *chef-repository* *compute* *admin-user*))
+  ([nodes chef-repository]
+     (cook nodes chef-repository *compute* *admin-user*))
+  ([nodes chef-repository compute]
+     (cook nodes chef-repository compute *admin-user*))
+  ([nodes chef-repository compute user]
+     (doseq [node (nodes-in-set nodes compute)]
+       (cook-node node chef-repository user))))

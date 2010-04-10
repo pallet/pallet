@@ -88,5 +88,3 @@
   (assoc scripts script-name
          (assoc (get *scripts* script-name {})
            specialisers f)))
-
-

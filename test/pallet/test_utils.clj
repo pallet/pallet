@@ -1,4 +1,8 @@
-(ns pallet.test-utils)
+(ns pallet.test-utils
+  (:import
+   org.jclouds.compute.domain.internal.NodeMetadataImpl
+   org.jclouds.compute.domain.NodeState))
+
 
 (defmacro with-private-vars [[ns fns] & tests]
   "Refers private fns from ns and runs tests in context.  From users mailing

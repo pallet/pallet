@@ -17,7 +17,8 @@
     (is (= {:username username
             :password password
             :private-key-path private-key-path
-            :public-key-path public-key-path}
+            :public-key-path public-key-path
+            :sudo-password password}
            (make-user username
             :password password
             :private-key-path private-key-path
@@ -25,13 +26,14 @@
     (is (= {:username username
             :password nil
             :private-key-path (default-private-key-path)
-            :public-key-path (default-public-key-path)}
+            :public-key-path (default-public-key-path)
+            :sudo-password nil}
            (make-user username)))))
 
 (deftest sh-script-test
   (let [res (sh-script
              "file=$(mktemp utilXXXX); echo fred > $file ;cat $file ; rm $file")]
-    (is (= "fred\n" res))))
+    (is (= {:exit 0 :err "" :out "fred\n"} res))))
 
 (deftest cmd-join-test
   (is (= "fred\n" (cmd-join ["fred"])))

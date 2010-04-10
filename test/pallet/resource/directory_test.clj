@@ -12,4 +12,4 @@
 
 (deftest directory-test
   (is (= "mkdir -p file1\n"
-         (build-resources (directory "file1")))))
+         (build-resources [] (directory "file1")))))

@@ -1,7 +1,13 @@
 (ns pallet.compute
-  (:use [pallet.utils :only [*admin-user* remote-sudo remote-sudo-script
-                             resource-properties]])
-  (:require [org.jclouds.compute :as jclouds]))
+  "Additions to the jclouds compute interface"
+  (:use
+   [pallet.utils
+    :only [*admin-user* remote-sudo remote-sudo-script resource-properties]])
+  (:require [org.jclouds.compute :as jclouds])
+  (:import
+   org.jclouds.compute.domain.internal.NodeMetadataImpl
+   [org.jclouds.compute.domain NodeState NodeMetadata]))
+
 
 ;;; Meta
 (defn supported-clouds []
@@ -11,6 +17,54 @@
                     (keys (resource-properties "compute.properties"))))))
 
 ;;; Node utilities
+(defn make-node [tag & options]
+  (let [options (if (seq options) (apply hash-map options) {})]
+    (NodeMetadataImpl.
+     tag                                ; id
+     tag                                ; name
+     (get options :location "NOWHERE")
+     (java.net.URI. tag)                ; uri
+     (get options :user-metadata {})
+     tag
+     (get options :state NodeState/RUNNING)
+     (get options :public-ips [])
+     (get options :private-ips [])
+     (get options :extra {})
+     (get options :credentials nil))))
+
+(defn make-unmanaged-node
+  "Make a node that is not created by pallet's node management.
+   This can be used to manage configuration of any machine accessable over
+   ssh, including virtual machines."
+  [tag host-or-ip & options]
+  (let [options (if (seq options) (apply hash-map options) {})
+        meta (dissoc options :location :user-metadata :state :public-ips
+                     :private-ips :extra :credentials)]
+    (NodeMetadataImpl.
+     tag                                ; id
+     tag                                ; name
+     (get options :location "NOWHERE")
+     (java.net.URI. tag)                ; uri
+     (merge (get options :user-metadata {}) meta)
+     tag
+     (get options :state NodeState/RUNNING)
+     (conj (get options :public-ips [])
+           (java.net.InetAddress/getByName host-or-ip))
+     (get options :private-ips [])
+     (get options :extra {})
+     (get options :credentials nil))))
+
+
+(defn compute-node? [object]
+  (instance? NodeMetadata object))
+
+(defn ssh-port
+  "Extract the port from the node's userMetadata"
+  [node]
+  (let [md (into {} (.getUserMetadata node))
+        port (md :ssh-port)]
+    (if port (Integer. port))))
+
 (defn primary-ip
   "Returns the first public IP for the node."
   [#^NodeMetadata node]

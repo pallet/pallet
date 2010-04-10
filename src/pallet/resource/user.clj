@@ -14,6 +14,7 @@
 (defscript lock-user [name])
 (defscript unlock-user [name])
 (defscript user-home [username])
+(defscript current-user [])
 
 (defimpl user-exists? :default [username]
   (getent passwd ~username))
@@ -35,6 +36,9 @@
 
 (defimpl user-home :default [username]
   @(getent passwd ~username | cut "-d:" "-f6"))
+
+(defimpl current-user :default []
+  @(whoami))
 
 (defvar- shell-names
   {:bash "/bin/bash" :csh "/bin/csh" :ksh "/bin/ksh" :rsh "/bin/rsh"
