@@ -268,7 +268,7 @@ EOF
 chmod 0440 ${file}
 chown root ${file}
 "
-       (pallet.resource/build-resources
+       (pallet.resource/build-resources []
         (sudoers {:user {:FULLTIMERS ["millert" "mikef" "dowdy"]
                          :PARTTIMERS ["bostley" "jwfox" "crawl"]
                          :WEBMASTERS ["will" "wendy" "wim"]}
