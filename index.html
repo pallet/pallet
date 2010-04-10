@@ -95,49 +95,82 @@ namespace.
 (with-compute-service ["provider" my-user my-password :log4j]
   (nodes))
 
-;; We can create a node, by specifying a name tag and a template.
-;; webserver-template is a vector specifying features we want in
-;; our image.
-(start-node :webserver webserver-template service)
+;; In order to create nodes, we need to define node types.
+;; :image is a vector specifying features we want in our image.
+(defnode webserver
+  :image [:ubuntu :X86_64 :smallest
+          :os-description-matches "[^J]+9.10[^32]+"])
+
+;; We can create a node, by specifying the node type.
+(start-node webserver service)
 
 ;; At this point we can manage instance counts as a map.
 ;; e.g ensure that we have two webserver nodes
-(with-node-templates templates
-  (converge service {:webserver 2}))
+(converge {webserver 2} service)
 
 ;; ... and we can remove our nodes
-(with-node-templates templates
-  (converge service {:webserver 0}))
-
-;; templates is a description of the images to use for each of
-;; our node tags
-templates
+(converge {webserver 0} service)
 
 ;; Images are configured differently between clouds and os's.
 ;; Pallet comes with some "crates" that can be used to normalise
 ;; the images.  public-dns-if-no-nameserver ensures there is a
 ;; nameserver if none is already configured.
-;; We probably want an admin user. The default is to use your current login
-;; name, with no password and your id_rsa ssh key.
-(with-node-templates templates
-  (converge service {:webserver 1}
-    (bootstrap-with (public-dns-if-no-nameserver)
-                    (automated-admin-user))))
+;; We probably want an admin user. The default for automated-admin-user is to
+;; use your current login name, with no password and your id_rsa ssh key.
+(defnode webserver
+  :image [:ubuntu :X86_64 :smallest
+          :os-description-matches "[^J]+9.10[^32]+"]
+  :bootstrap [(public-dns-if-no-nameserver)
+              (automated-admin-user)])
 
-;; Bootstrapping is fine, but we might also want to configure the machines
-;; with chef.
-(with-node-templates templates
-  (converge service {:webserver 1}
-    (bootstrap-with (public-dns-if-no-nameserver)
-                    (automated-admin-user)
-                    (chef))
-    (configure-with-chef user "path_to_your_chef_repository")))
+;; recreate a node with our admin-user
+(converge {webserver 1} service)
 
-;; and we can then run chef-solo at any time with
-(cook-nodes (nodes service) user "path_to_your_chef_repository")</pre>
+;; Another example, that adds java to our node type, then converges
+;; to install java
+(defnode webserver
+  :image [:ubuntu :X86_64 :smallest
+          :os-description-matches "[^J]+9.10[^32]+"]
+  :bootstrap [(public-dns-if-no-nameserver)
+              (automated-admin-user)]
+  :configure [(java :openjdk)])
+
+(converge {webserver 1} service)
+
+;; if you do not want to adjust the number of nodes, there is also
+;; a lift function, which can be used to apply configuration
+(lift webserver service)
+
+;; :bootstrap and :configure are two phases.  These are used by default
+;; by the converge method.  The :bootstrap phase applies to nodes on first
+;; boot, and :configure on every invocation of converge. You can also
+;; specify other phases, either as a keyword, in which case the
+;; configuration is taken from the corresponding section of the
+;; defnode, or as an inline definiton, with phase
+(converge {webserver 1} service :remove-build-tools)
+(converge {webserver 1} service (phase (package "curl")))
+
+;; :configure is also the default phase for lift, but unlike with
+;; converge, the :configure phase is not added if not specified.
+(lift [webserver balancer] service (phase (package "curl")))
+
+;; you can manage arbitrary machines that are ssh accesable, including
+;; local virtual machines.  For this to work you may have to specify
+;; the :sudo-password option in the admin user, even if you can
+;; log in without a password
+(defnode vm :image [:ubuntu])
+(def vm1 (make-unmanaged-node "vm" "localhost" :ssh-port 2223))
+(with-admin-user ["myuser" :sudo-password "xxx"]
+  (lift vm1 service (phase (package "curl"))))
+
+;; We might also want to configure the machines with chef-solo.
+;; This expects a webserver.json file in the cookbook repository's
+;; config directory.
+(lift webserver service (phase (chef)))
+(cook webserver "path_to_your_chef_repository")</pre>
   
   Public variables and functions:
-  <span id="var-link"><a href="demo-api.html#demo/balancer-template" id="var-tag">balancer-template</a> </span><span id="var-link"><a href="demo-api.html#demo/centos-template" id="var-tag">centos-template</a> </span><span id="var-link"><a href="demo-api.html#demo/templates" id="var-tag">templates</a> </span><span id="var-link"><a href="demo-api.html#demo/the-farm" id="var-tag">the-farm</a> </span><span id="var-link"><a href="demo-api.html#demo/webserver-template" id="var-tag">webserver-template</a> </span><br />
+  <br />
   
 </div><div id="namespace-entry">
   <br />
@@ -146,7 +179,7 @@ templates
   by <span id="author">Hugo Duncan</span><br />
   <a href="pallet-api.html" id="api-link">Detailed API documentation</a><br />
   <pre id="namespace-docstr">
-Pallet is used to provision configured compute nodes, and aims to solve the
+Pallet is used to provision and maintain compute nodes, and aims to solve the
 problem of providing a consistently configured running image across a range of
 clouds.  It is designed for use from the Clojure (<a href="http://clojure.org)">http://clojure.org)</a> REPL, and
 from clojure scripts.
@@ -156,28 +189,20 @@ different cloud providers.  While jclouds solves the issue of creating
 destroying and configuring cloud level access to nodes, it does not address the
 differences in images used across providers.  This is what Pallet adds.
 
-Pallet works with a declaritive map for specifying the number of nodes with a
-given tag.  Each tag is used to look up a machine image template specification
-and to lookup configuration information.  The converge function then tries to
-bring you compute servers into alignment with your declared counts and
-configurations.
+Pallet can be used in a declaritive or an imperative fashion. defnode is used to
+decalre node types, specifying the image template and possibly bootstrap and
+other configuration. The converge function can then be used to control the
+number of nodes of each type that are running in your cloud, and applies the
+declared configuration as required.  The lift function can also be used to apply
+configuration without adjusting node counts.  Both converge and lift both accept
+inline definiton of configuration actions that should be run.
 
-The bootstrap process for new compute nodes is configurable.  At the moment
-there is the possibility of using scripts, which are specialised by tag or
-operating system family, and of using installing an admin user with sudo
-permissions, using the specified username and password.  Script templates exist
-for ensuring a functional resolv configuration, package manager update
-installation of rubygems, etc, and can be added to freely.
+In pallet, low level resources can be combined in clojure functions, known as
+crates, that are used to specify configuration.  Crates are clojure functions
+and can call other crates, with arguments, as required. Crates can be packaged
+and distributed as clojure jar files.
 
-An installed admin user can be used to execute chef cookbooks using 'chef-solo'.
-Once the nodes are bootstrapped, and fall all existing nodes, the configured
-node information is written to the 'compute-nodes' cookbook before chef is run
-and this provides a :compute_nodes attribute.  The compute-nodes cookbook is
-expected to exist in the site-cookbooks of the chef-repository you specify with
-`with-chef-repository`. `chef-solo` is then run with chef repository you have
-specified using the node tag as a configuration target.
-
-This can also be used to bootstrap chef-server and chef client installation.
+Pallet can also execute chef cookbooks using 'chef-solo'.
 
 API documentation (<a href="http://hugoduncan.github.com/pallet)">http://hugoduncan.github.com/pallet)</a> is available.
 
@@ -226,8 +251,6 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     <span id="sub-var-link">
       <a href="pallet-api.html#pallet.chef/chef-cook-solo">chef-cook-solo</a>
     </span><span id="sub-var-link">
-      <a href="pallet-api.html#pallet.chef/configure-with-chef">configure-with-chef</a>
-    </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.chef/cook-node">cook-node</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.chef/output-attributes">output-attributes</a>
@@ -244,6 +267,8 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.compute/execute-script">execute-script</a>
     </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/make-unmanaged-node">make-unmanaged-node</a>
+    </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.compute/primary-ip">primary-ip</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.compute/reboot">reboot</a>
@@ -251,22 +276,28 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
       <a href="pallet-api.html#pallet.compute/shutdown">shutdown</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.compute/shutdown-node">shutdown-node</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/ssh-port">ssh-port</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.core</span>:
     <span id="sub-var-link">
-      <a href="pallet-api.html#pallet.core/*node-templates*">*node-templates*</a>
+      <a href="pallet-api.html#pallet.core/add-node-type">add-node-type</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.core/adjust-node-counts">adjust-node-counts</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.core/admin-user">admin-user</a>
     </span><span id="sub-var-link">
-      <a href="pallet-api.html#pallet.core/bootstrap-none">bootstrap-none</a>
+      <a href="pallet-api.html#pallet.core/apply-phases">apply-phases</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/apply-phases-to-node">apply-phases-to-node</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.core/build-node-template">build-node-template</a>
     </span><span id="sub-var-link">
-      <a href="pallet-api.html#pallet.core/configure-nodes-none">configure-nodes-none</a>
+      <a href="pallet-api.html#pallet.core/build-node-template-impl">build-node-template-impl</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/compute-service-and-options">compute-service-and-options</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.core/converge">converge</a>
     </span><span id="sub-var-link">
@@ -274,13 +305,27 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.core/create-nodes">create-nodes</a>
     </span><span id="sub-var-link">
-      <a href="pallet-api.html#pallet.core/node-template">node-template</a>
+      <a href="pallet-api.html#pallet.core/defnode">defnode</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/destroy-nodes-with-count">destroy-nodes-with-count</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/lift">lift</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/node-count-difference">node-count-difference</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/node-in-types?">node-in-types?</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/node-type">node-type</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/nodes-for-types">nodes-for-types</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/nodes-in-map">nodes-in-map</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/nodes-in-set">nodes-in-set</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.core/start-node">start-node</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.core/with-admin-user">with-admin-user</a>
-    </span><span id="sub-var-link">
-      <a href="pallet-api.html#pallet.core/with-node-templates">with-node-templates</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
@@ -296,9 +341,37 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.couchdb</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.couchdb/couchdb">couchdb</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.cruise-control-rb</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.cruise-control-rb/cruise-control-rb">cruise-control-rb</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.git</span>:
     <span id="sub-var-link">
       <a href="pallet-api.html#pallet.crate.git/git">git</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.hudson</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/determine-scm-type">determine-scm-type</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/hudson">hudson</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/hudson-job">hudson-job</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/hudson-plugin">hudson-plugin</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/output-build-for">output-build-for</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/output-scm-for">output-scm-for</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
@@ -350,6 +423,12 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.sphinx</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.sphinx/sphinx">sphinx</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.ssh-key</span>:
     <span id="sub-var-link">
       <a href="pallet-api.html#pallet.crate.ssh-key/authorize-key">authorize-key</a>
@@ -364,11 +443,25 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.tomcat</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/tomcat">tomcat</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/tomcat-application-conf">tomcat-application-conf</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/tomcat-policy">tomcat-policy</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/tomcat-user">tomcat-user</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.resource</span>:
     <span id="sub-var-link">
-      <a href="pallet-api.html#pallet.resource/bootstrap-resources">bootstrap-resources</a>
+      <a href="pallet-api.html#pallet.resource/*phase*">*phase*</a>
     </span><span id="sub-var-link">
-      <a href="pallet-api.html#pallet.resource/build-resource-fn">build-resource-fn</a>
+      <a href="pallet-api.html#pallet.resource/add-invocation">add-invocation</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource/after-phase">after-phase</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/build-resources">build-resources</a>
     </span><span id="sub-var-link">
@@ -376,23 +469,27 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/defcomponent">defcomponent</a>
     </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource/defphases">defphases</a>
+    </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/defresource">defresource</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource/execute-after-phase">execute-after-phase</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource/in-phase">in-phase</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/invoke-resource">invoke-resource</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/output-resources">output-resources</a>
     </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource/phase">phase</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource/produce-phases">produce-phases</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource/required-resources">required-resources</a>
+    </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/reset-resources">reset-resources</a>
     </span><span id="sub-var-link">
-      <a href="pallet-api.html#pallet.resource/resource-fn">resource-fn</a>
-    </span>
-    <br />
-  </span><span id="subspace"><br />Variables and functions in
-    <span id="name">pallet.resource-apply</span>:
-    <span id="sub-var-link">
-      <a href="pallet-api.html#pallet.resource-apply/configure-node">configure-node</a>
-    </span><span id="sub-var-link">
-      <a href="pallet-api.html#pallet.resource-apply/configure-resources">configure-resources</a>
+      <a href="pallet-api.html#pallet.resource/resource-phases">resource-phases</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
@@ -440,6 +537,12 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.resource.resource-when</span>:
     
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.service</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.service/service">service</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.resource.user</span>:
