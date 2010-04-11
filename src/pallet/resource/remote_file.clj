@@ -9,8 +9,7 @@
 
 (defn remote-file*
   [path & options]
-  (let [opts (if (seq options) (apply hash-map options) {})
-        opts (merge {:action :create} opts)]
+  (let [opts (merge {:action :create} (apply hash-map options))]
     (condp = (opts :action)
       :create
       (let [source (opts :source)
@@ -28,8 +27,8 @@
                    (wget "-O" ~path ~source)
                    (echo "MD5 sum is" @(md5sum ~path)))
            content (apply heredoc
-                    path content
-                    (apply concat (seq (select-keys opts [:literal]))))
+                          path content
+                          (apply concat (seq (select-keys opts [:literal]))))
            :else "")
           (adjust-file path opts)])))))
 

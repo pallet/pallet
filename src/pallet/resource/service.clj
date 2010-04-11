@@ -7,7 +7,7 @@
 
 (defn service*
   [service-name & options]
-  (let [opts (if (seq options) (apply hash-map options) {})
+  (let [opts (apply hash-map options)
         opts (merge {:action :start} opts)
         action (opts :action)]
     (script ( ~(str "/etc/init.d/" service-name) ~(name action)))))

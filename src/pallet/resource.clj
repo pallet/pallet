@@ -149,7 +149,7 @@ args is the argument signature for the resource, and must end with a variadic el
   "Define phases.  A phase is a keyword/(do) pair.
    Returns a map of phase to (fn [tag template])."
   [& options]
-  (let [options (if (seq options) (apply hash-map options) {})]
+  (let [options (apply hash-map options)]
     `(resource-phases
       ~@(mapcat #(vector `(in-phase ~(first %) ~@(second %))) options))))
 

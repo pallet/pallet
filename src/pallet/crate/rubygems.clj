@@ -62,7 +62,7 @@
   [] (exec-script (script ("gem" "update" "--system"))))
 
 (defn gem* [name & options]
-  (let [opts (if (seq options) (apply hash-map options) {})
+  (let [opts (apply hash-map options)
         opts (merge {:action :install} opts)]
     (condp = (opts :action)
       :install
@@ -74,8 +74,8 @@
   gem* [name & options])
 
 (defn gem-source* [source & options]
-(let [opts (if (seq options) (apply hash-map options) {})
-        opts (merge {:action :create} opts)]
+(let [opts (apply hash-map options)
+      opts (merge {:action :create} opts)]
     (condp = (opts :action)
       :create
       (script

@@ -52,7 +52,7 @@
 
 (defn hudson-plugin*
   [plugin & options]
-  (let [opts (if (seq options) (apply hash-map options) {})]
+  (let [opts (apply hash-map options)]
     (remote-file*
      (str hudson-data-path "/plugins/" (name plugin) ".hpi")
      :source (or (opts :source) (hudson-plugins plugin)))))

@@ -17,8 +17,7 @@
 
 (defn tomcat
   "Install tomcat"
-  []
-  (package "tomcat6"))
+  [] (package "tomcat6"))
 
 (defn tomcat-deploy
   [warfile]

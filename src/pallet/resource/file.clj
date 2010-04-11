@@ -41,7 +41,7 @@
 
 (defn heredoc
   [path content & options]
-  (let [options (if (seq options) (apply hash-map options) {})]
+  (let [options (apply hash-map options)]
     (script ("cat" ">" ~path
              ~(str (if (options :literal) "<<'EOF'\n" "<<EOF\n")
                    content "\nEOF")))))
@@ -65,7 +65,7 @@
 
 (defn file*
   [path & options]
-  (let [opts (if (seq options) (apply hash-map options) {})
+  (let [opts (apply hash-map options)
         opts (merge {:action :create} opts)]
     (condp = (opts :action)
       :delete

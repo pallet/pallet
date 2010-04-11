@@ -34,7 +34,7 @@
 
 (defn directory*
   [path & options]
-  (let [opts (if (seq options) (apply hash-map options) {})
+  (let [opts (apply hash-map options)
         opts (merge {:action :create} opts)]
     (condp = (opts :action)
       :delete

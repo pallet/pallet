@@ -187,7 +187,6 @@
     (try
      (copy command tmp)
      (sh "chmod" "+x" (.getPath tmp))
-     (sh "bash" (.getPath tmp))
      (let [result (sh "bash" (.getPath tmp) :return-map true)]
        (when (pos? (result :exit))
          (error (str "Command failed: " command "\n" (result :err))))

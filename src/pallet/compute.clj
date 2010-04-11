@@ -18,7 +18,7 @@
 
 ;;; Node utilities
 (defn make-node [tag & options]
-  (let [options (if (seq options) (apply hash-map options) {})]
+  (let [options (apply hash-map options)]
     (NodeMetadataImpl.
      tag                                ; id
      tag                                ; name
@@ -37,7 +37,7 @@
    This can be used to manage configuration of any machine accessable over
    ssh, including virtual machines."
   [tag host-or-ip & options]
-  (let [options (if (seq options) (apply hash-map options) {})
+  (let [options (apply hash-map options)
         meta (dissoc options :location :user-metadata :state :public-ips
                      :private-ips :extra :credentials)]
     (NodeMetadataImpl.

@@ -101,15 +101,10 @@
         " ) print $0 \" \" \"" ~scope  "\" ; else print; }' "
         ~file " > " @tmpfile " && mv -f" @tmpfile ~file )))
 
-(defn- parse-args [options]
-  (if (seq options)
-    (apply array-map options)
-    {}))
-
 (defn package-manager*
   "Package management"
   [action & options]
-  (let [opts (parse-args options)]
+  (let [opts (apply hash-map options)]
     (condp = action
       :update
       (script (update-package-list))
