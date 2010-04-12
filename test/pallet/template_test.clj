@@ -3,6 +3,16 @@
   (:use clojure.test
         pallet.test-utils))
 
+(deftest path-components-test
+  (are ["a/b/c" "d" "e"] (= path-components "a/b/c/d.e")))
+
+(deftest pathname-test
+  (is (= "a/b/c/d.e" (pathname "a/b/c" "d" "e"))))
+
+(deftest candidate-templates-test
+  (is (= ["a/b/c_t.d" "a/b/c.d"]
+         (candidate-templates "a/b/c.d" "t" [:ubuntu]))))
+
 (with-private-vars [pallet.template [apply-template-file]]
   (deftest apply-template-file-test
     (is (= "file=/etc/file

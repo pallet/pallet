@@ -20,6 +20,7 @@
                  [org.jclouds/jclouds-log4j "1.0-SNAPSHOT"]
                  [org.jclouds/jclouds-enterprise "1.0-SNAPSHOT"]
                  [org.danlarkin/clojure-json "1.1-SNAPSHOT"]
+                 [enlive "1.0.0-SNAPSHOT"]
 		 [clj-ssh "0.0.1-SNAPSHOT"]
                  [log4j/log4j "1.2.14"]
                  [com.jcraft/jsch "0.1.42"]
