@@ -10,7 +10,7 @@
   (is (= "a/b/c/d.e" (pathname "a/b/c" "d" "e"))))
 
 (deftest candidate-templates-test
-  (is (= ["a/b/c_t.d" "a/b/c.d"]
+  (is (= ["a/b/c_t.d" "resource/a/b/c_t.d" "a/b/c.d" "resource/a/b/c.d"]
          (candidate-templates "a/b/c.d" "t" [:ubuntu]))))
 
 (with-private-vars [pallet.template [apply-template-file]]

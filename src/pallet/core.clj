@@ -54,13 +54,18 @@ The user arg is a map as returned by make-user, or a username.
 When passing a username the following options can be specified:
   :password
   :private-key-path
-  :public-key-path
-"
+  :public-key-path"
   [user & options]
   (alter-var-root
    #'*admin-user* #(identity %2) (if (string? user)
                                    (apply make-user user options)
                                    user)))
+
+(defmacro with-no-compute-service
+  "Bind a null provider, for use when accessing local vms."
+  [& body]
+  `(binding [*compute* nil]
+     ~@body))
 
 (defvar- node-types (atom {}) "Enable lookup from tag to node type")
 
@@ -80,14 +85,13 @@ When passing a username the following options can be specified:
           keyword value pairs that are used to filter the image list to select
           an image.
    :configure defines the configuration of the node."
-  [name & options]
-  (let [[name options] (name-with-attributes name options)
-        opts (apply hash-map options)]
+  [name image & options]
+  (let [[name options] (name-with-attributes name options)]
     `(do
        (def ~name
             (apply hash-map
                    (vector :tag (keyword (name '~name))
-                           :image ~(opts :image)
+                           :image ~image
                            :phases (defphases ~@options))))
        (add-node-type ~name))))
 

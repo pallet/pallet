@@ -50,14 +50,14 @@
     (is (= [a b] (nodes-in-set [a b] nil)))))
 
 (deftest node-in-types?-test
-  (defnode a)
-  (defnode b)
+  (defnode a [])
+  (defnode b [])
   (is (node-in-types? [a b] (make-node "a")))
   (is (not (node-in-types? [a b] (make-node "c")))))
 
 (deftest nodes-for-types-test
-  (defnode a)
-  (defnode b)
+  (defnode a [])
+  (defnode b [])
   (let [na (make-node "a")
         nb (make-node "b")
         nc (make-node "c")]
@@ -65,9 +65,9 @@
     (is (= [na] (nodes-for-types [na nc] [a b])))))
 
 (deftest nodes-in-map-test
-  (defnode a)
-  (defnode b)
-  (defnode c)
+  (defnode a [])
+  (defnode b [])
+  (defnode c [])
   (let [na (make-node "a")
         nb (make-node "b")]
     (is (= [na nb] (nodes-in-map {a 1 b 1 c 1} [na nb])))
@@ -82,16 +82,16 @@
 (with-private-vars [pallet.core [node-types]]
   (deftest defnode-test
     (reset! node-types {})
-    (defnode fred :image [:ubuntu])
+    (defnode fred [:ubuntu])
     (is (= {:tag :fred :image [:ubuntu] :phases {}} fred))
     (is (= {:fred fred} @node-types))
-    (defnode tom :image [:centos])
+    (defnode tom [:centos])
     (is (= {:tag :tom :image [:centos] :phases {}} tom))
     (is (= {:tom tom :fred fred} @node-types))
-    (defnode harry :image (tom :image))
+    (defnode harry (tom :image))
     (is (= {:tag :harry :image [:centos] :phases {}} harry))
     (is (= {:harry harry :tom tom :fred fred} @node-types))
-    (defnode with-phases :image (tom :image)
+    (defnode with-phases (tom :image)
       :bootstrap [(test-component :a)]
       :configure [(test-component :b)])
     (is (= [:bootstrap :configure] (keys (with-phases :phases))))
