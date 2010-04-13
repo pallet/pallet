@@ -119,17 +119,17 @@
       clj-ssh.ssh))
 
 (defnode webserver
-  :image [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"]
+  [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"]
   :bootstrap [(automated-admin-user)]
   :configure [(package "apache2")])
 
 (defnode balancer
-  :image (apply vector :inbound-ports [22 80] (webserver :image))
+  (apply vector :inbound-ports [22 80] (webserver :image))
   :bootstrap [(automated-admin-user)])
 
 (defnode centos
-  :image [:centos :X86_64 :smallest :os-description-matches ".*5.3.*"
-          :image-description-matches "[^gr]+"]
+  [:centos :X86_64 :smallest :os-description-matches ".*5.3.*"
+   :image-description-matches "[^gr]+"]
   :bootstrap [(automated-admin-user)])
 
 
