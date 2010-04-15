@@ -61,10 +61,10 @@
     (exec-script (script (rm ~temp-remote-file)))))
 
 (defn output-grants [[code-base permissions]]
-  (str
-   "grant codeBase \"" code-base "\" {" \newline
-   (string/join ";\n" permissions) ";\n"
-   "};"))
+  (let [code-base (when code-base
+                    (format "codeBase \"%s\"" code-base))]
+  (format
+    "grant %s {\n  %s;\n};" (or code-base "") (string/join ";\n  " permissions))))
 
 (defn policy*
   [number name grants]

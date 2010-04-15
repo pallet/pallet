@@ -27,12 +27,19 @@
          (build-resources [] (deploy "file.war" nil)))))
 
 (deftest tomcat-policy-test
-  (is (= "cat > /etc/tomcat6/policy.d/100hudson.policy <<'EOF'\ngrant codeBase \"file:${catalina.base}/webapps/hudson/-\" {\npermission java.lang.RuntimePermission \"getAttribute\";\n};\nEOF\n"
+  (is (= "cat > /etc/tomcat6/policy.d/100hudson.policy <<'EOF'\ngrant codeBase \"file:${catalina.base}/webapps/hudson/-\" {\n  permission java.lang.RuntimePermission \"getAttribute\";\n};\nEOF\n"
          (build-resources []
           (policy
            100 "hudson"
            {"file:${catalina.base}/webapps/hudson/-"
             ["permission java.lang.RuntimePermission \"getAttribute\""]})))))
+
+(deftest tomcat-blanket-policy-test
+  (is (= "cat > /etc/tomcat6/policy.d/100hudson.policy <<'EOF'\ngrant  {\n  permission java.lang.RuntimePermission \"getAttribute\";\n};\nEOF\n"
+         (build-resources []
+          (policy
+           100 "hudson"
+           {nil ["permission java.lang.RuntimePermission \"getAttribute\""]})))))
 
 (deftest tomcat-application-conf-test
   (is (= "cat > /etc/tomcat6/Catalina/localhost/hudson.xml <<'EOF'\n<?xml version='1.0' encoding='utf-8'?>\n<Context docBase=\"/srv/hudson/hudson.war\">\n<Environment name=\"HUDSON_HOME\"/>\n</Context>\nEOF\n"
