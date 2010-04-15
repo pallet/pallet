@@ -36,6 +36,25 @@
      ~@body
      (service "tomcat6" :action :start)))
 
+(defn undeploy
+  "Removes the named webapp directories, and any war files with the same base names."
+  [& app-names]
+  (doseq [app-name app-names
+          :let [app-name (or app-name "ROOT")
+                app-name (if (string? app-name) app-name (name app-name))]]
+    (let [exploded-app-dir (str tomcat-doc-root "webapps/" app-name)]
+      (exec-script
+        (script
+          (rm ~exploded-app-dir ~{:r true :f true})
+          (rm ~(str exploded-app-dir ".war") ~{:f true}))))))
+
+(defn undeploy-all
+  "Removes all deployed war file and exploded webapp directories."
+  []
+  (exec-script
+    (script
+      (rm ~(str tomcat-doc-root "webapps/*") ~{:r true :f true}))))
+
 (defn deploy
   "Copies the specified remote .war file to the tomcat server under
    webapps/${app-name}.war.  An app-name of \"ROOT\" or nil will deploy the

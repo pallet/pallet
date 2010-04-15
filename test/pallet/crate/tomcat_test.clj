@@ -26,6 +26,15 @@
   (is (= "cp file.war /var/lib/tomcat6/webapps/ROOT.war\ntouch  /var/lib/tomcat6/webapps/ROOT.war\nchown  tomcat6 /var/lib/tomcat6/webapps/ROOT.war\nchgrp  tomcat6 /var/lib/tomcat6/webapps/ROOT.war\nchmod  600 /var/lib/tomcat6/webapps/ROOT.war\n"
          (build-resources [] (deploy "file.war" nil)))))
 
+(deftest tomcat-undeploy-all-test
+  (is (= "rm -r -f /var/lib/tomcat6/webapps/*\n"
+        (build-resources [] (build-resources [] (undeploy-all))))))
+
+(deftest tomcat-undeploy-test
+  (is (= "rm -r -f /var/lib/tomcat6/webapps/ROOT\nrm -f /var/lib/tomcat6/webapps/ROOT.war\nrm -r -f /var/lib/tomcat6/webapps/app\nrm -f /var/lib/tomcat6/webapps/app.war\nrm -r -f /var/lib/tomcat6/webapps/foo\nrm -f /var/lib/tomcat6/webapps/foo.war\n"
+        (build-resources [] (undeploy nil :app "foo"))))
+  (is (= "" (build-resources [] (undeploy)))))
+
 (deftest tomcat-policy-test
   (is (= "cat > /etc/tomcat6/policy.d/100hudson.policy <<'EOF'\ngrant codeBase \"file:${catalina.base}/webapps/hudson/-\" {\n  permission java.lang.RuntimePermission \"getAttribute\";\n};\nEOF\n"
          (build-resources []
