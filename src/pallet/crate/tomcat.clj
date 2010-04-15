@@ -32,9 +32,9 @@
   [& body]
   ;; restart fails to regenerate security policy cache
   `(do
-     (service "tomcat6" :action :stop)
+     (service/service "tomcat6" :action :stop)
      ~@body
-     (service "tomcat6" :action :start)))
+     (service/service "tomcat6" :action :start)))
 
 (defn undeploy
   "Removes the named webapp directories, and any war files with the same base names."
