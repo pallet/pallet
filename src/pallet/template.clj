@@ -41,6 +41,7 @@
   "Find a template for the specified path, for application to the given node.
    Templates may be specialised."
   [path node-type]
+  {:pre [node-type]}
   (some
    get-resource
    (candidate-templates path (node-type :tag) (node-type :image))))

@@ -25,7 +25,7 @@
                  [log4j/log4j "1.2.14"]
                  [com.jcraft/jsch "0.1.42"]
                  [jline "0.9.94"]]
-  :dev-dependencies [[leiningen/lein-swank "1.1.0"]
+  :dev-dependencies [[leiningen/lein-swank "1.2.0-SNAPSHOT"]
 		     [leiningen/lein-javac "1.0.0"]
                      [autodoc "0.7.0"]]
   :repositories [["jclouds" "http://jclouds.googlecode.com/svn/repo"]

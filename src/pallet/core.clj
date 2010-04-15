@@ -38,7 +38,6 @@ tag as a configuration target.
            org.jclouds.compute.options.TemplateOptions
            org.jclouds.compute.domain.NodeMetadata))
 
-
 (defmacro with-admin-user
   "Specify the admin user for running remote commands.  The user is specified
   either as a user map, which can be created with make-user, or as an argument
@@ -77,6 +76,11 @@ When passing a username the following options can be specified:
   "Return the node type definition that matches the tag of the specified node."
   [node]
   (@node-types (-> node tag keyword)))
+
+(defn node-type-for-tag
+  "Return the node type definition that matches the specified tag."
+  [tag]
+  (@node-types tag))
 
 (defmacro defnode
   "Define a node type.  The name is used for the node tag. Options are:
@@ -195,17 +199,19 @@ script that is run with root privileges immediatly after first boot."
 (defn apply-phases-to-node
   "Apply a list of phases to a sequence of nodes"
   [compute node phases user]
-  (info "apply-phases-to-node")
+  (info (str "apply-phases-to-node " (tag node)))
   (let [node-info (node-type node)
         phases (if (seq phases) phases [:configure])
         port (ssh-port node)
         options (if port [:port port] [])]
-    (doseq [phase phases]
-      (binding [*file-transfers* {}]
-        (when-let [script (produce-phases [phase] (tag node) (node-info :image)
-                            (node-info :phases))]
-          (info script)
-          (apply execute-script script node user options))))))
+    (if node-info
+      (doseq [phase phases]
+        (binding [*file-transfers* {}]
+          (when-let [script (produce-phases [phase] (node-info :tag) (node-info :image)
+                                            (node-info :phases))]
+            (info script)
+            (apply execute-script script node user options))))
+      (error (str "Could not find node type for node " (tag node))))))
 
 (defn apply-phases
   "Apply a list of phases to a sequence of nodes"

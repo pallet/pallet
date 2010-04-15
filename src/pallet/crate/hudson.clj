@@ -1,7 +1,6 @@
 (ns pallet.crate.hudson
  "Installation of hudson"
   (:use
-   [pallet.crate.tomcat :only [tomcat-deploy tomcat-policy tomcat-application-conf]]
    [pallet.utils :only [cmd-join]]
    [pallet.resource :only [defcomponent]]
    [pallet.resource.service :only [service]]
@@ -9,27 +8,30 @@
    [pallet.resource.remote-file :only [remote-file remote-file*]]
    [pallet.resource.user :only [user]]
    [clojure.contrib.prxml :only [prxml]]
-   [clojure.contrib.logging]))
+   [clojure.contrib.logging])
+  (:require
+   [pallet.crate.tomcat :as tomcat]))
 
-(def hudson-data-path "/var/hudson")
+(def hudson-data-path "/var/lib/hudson")
 (def hudson-owner "root")
 (def hudson-group "tomcat6")
 
-(defn hudson
-  "Install hudson"
+(defn tomcat-deploy
+  "Install hudson on tomcat"
   []
+  (trace (str "Hudson - install on tomcat"))
   (let [file (str hudson-data-path "/hudson.war")]
     (directory hudson-data-path :owner hudson-owner :group hudson-group :mode "775")
     (remote-file file
      :url "http://hudson-ci.org/latest/hudson.war"
      :md5  "680e1525fca0562cfd19552b8d8174e2")
-    (tomcat-policy
+    (tomcat/policy
      99 "hudson"
      {(str "file:${catalina.base}/webapps/hudson/-")
       ["permission java.security.AllPermission"]
       (str "file:" hudson-data-path "/-")
       ["permission java.security.AllPermission"]})
-    (tomcat-application-conf
+    (tomcat/application-conf
       "hudson"
       (format "<?xml version=\"1.0\" encoding=\"utf-8\"?>
  <Context
@@ -45,22 +47,23 @@
  override=\"false\"/>
  </Context>"
               hudson-data-path))
-    (tomcat-deploy file "hudson")))
+    (tomcat/deploy file "hudson")))
 
 (def hudson-plugins
      {:git "https://hudson.dev.java.net/files/documents/2402/135478/git.hpi"})
 
-(defn hudson-plugin*
+(defn plugin*
   [plugin & options]
+  (trace (str "Hudson - add plugin " plugin))
   (let [opts (apply hash-map options)]
     (remote-file*
      (str hudson-data-path "/plugins/" (name plugin) ".hpi")
      :url (or (opts :url) (hudson-plugins plugin)))))
 
-(defcomponent hudson-plugin
+(defcomponent plugin
   "Install a hudson plugin.  The plugin should be a keyword.
   :url can be used to specify a string containing the download url"
-  hudson-plugin* [plugin & options])
+  plugin* [plugin & options])
 
 ;; (defn hudson-config*
 ;;   [& options])
@@ -75,7 +78,6 @@
 ;; (defresource hudson-config
 ;;   "Configure hudson"
 ;;   hudson-config-args apply-hudson-config [& options])
-
 
 (defn determine-scm-type
   "determine the scm type"
@@ -138,8 +140,9 @@
         (map #(vector (first %) (second %)) options)]))))
 
 
-(defn hudson-job*
+(defn job*
   [build-type name & options]
+  (trace (str "Hudson - configure job " name))
   (let [opts (apply hash-map options)]
     (cmd-join
      [(directory* (str hudson-data-path "/jobs/" name) :p true)
@@ -157,7 +160,7 @@
        :mode "g+w"
        :recursive true)])))
 
-(defcomponent hudson-job
+(defcomponent job
   "Configure a hudson job.
 build-type - :maven2
 name - name to be used in links
@@ -169,5 +172,5 @@ options are:
 :description \"a descriptive string\"
 :branches [\"branch1\" \"branch2\"]
 "
-  hudson-job* [build-type name & options])
+  job* [build-type name & options])
 

@@ -35,6 +35,15 @@
     (admin-user old)
     (is (= old pallet.utils/*admin-user*))))
 
+(deftest node-type-test
+  (defnode a [])
+  (let [anode (make-node "a")]
+    (is (= a (node-type anode)))))
+
+(deftest node-type-for-tag-test
+  (defnode a [])
+  (is (= a (node-type-for-tag :a))))
+
 (deftest node-count-difference-test
   (is (= { {:tag :a} 1 {:tag :b} -1}
          (node-count-difference

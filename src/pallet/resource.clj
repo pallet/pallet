@@ -146,7 +146,7 @@ args is the argument signature for the resource, and must end with a variadic el
     `(vector ~s (resource-phases (in-phase ~s ~@body)))))
 
 (defmacro defphases
-  "Define phases.  A phase is a keyword/(do) pair.
+  "Define phases.  A phase is a keyword/[crates] pair.
    Returns a map of phase to (fn [tag template])."
   [& options]
   (let [options (apply hash-map options)]

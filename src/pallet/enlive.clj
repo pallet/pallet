@@ -22,6 +22,15 @@
 ;;             (enlive/flatmap
 ;;              (enlive/transformation ~@forms) nodes#)))))
 
+(defmacro transform-nodes
+  [[nodes] & forms]
+  `(enlive/flatmap (enlive/transformation ~@forms) ~nodes))
+
+(defmacro deffragment
+  [name args & forms]
+  `(defn ~name ~args
+     (fn [nodes#] (transform-nodes [nodes#] ~@forms))))
+
 (def memo-xml-resource
      (memoize
       (fn [source node-type]
@@ -44,3 +53,6 @@
   [f & args]
   (str "<?xml version='1.0' encoding='utf-8'?>\n"
        (apply str (apply f args))))
+
+(defmacro transform-if [expr transform]
+  `(if ~expr ~transform identity))

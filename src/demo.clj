@@ -30,10 +30,9 @@
     (nodes))
 
   ;; In order to create nodes, we need to define node types.
-  ;; :image is a vector specifying features we want in our image.
+  ;; The second argument is a vector specifying features we want in our image.
   (defnode webserver
-    :image [:ubuntu :X86_64 :smallest
-            :os-description-matches \"[^J]+9.10[^32]+\"])
+     [:ubuntu :X86_64 :smallest :os-description-matches \"[^J]+9.10[^32]+\"])
 
   ;; We can create a node, by specifying the node type.
   (start-node webserver service)
@@ -52,8 +51,7 @@
   ;; We probably want an admin user. The default for automated-admin-user is to
   ;; use your current login name, with no password and your id_rsa ssh key.
   (defnode webserver
-    :image [:ubuntu :X86_64 :smallest
-            :os-description-matches \"[^J]+9.10[^32]+\"]
+    [:ubuntu :X86_64 :smallest :os-description-matches \"[^J]+9.10[^32]+\"]
     :bootstrap [(public-dns-if-no-nameserver)
                 (automated-admin-user)])
 
@@ -63,8 +61,7 @@
   ;; Another example, that adds java to our node type, then converges
   ;; to install java
   (defnode webserver
-    :image [:ubuntu :X86_64 :smallest
-            :os-description-matches \"[^J]+9.10[^32]+\"]
+    [:ubuntu :X86_64 :smallest :os-description-matches \"[^J]+9.10[^32]+\"]
     :bootstrap [(public-dns-if-no-nameserver)
                 (automated-admin-user)]
     :configure [(java :openjdk)])
@@ -92,7 +89,7 @@
   ;; local virtual machines.  For this to work you may have to specify
   ;; the :sudo-password option in the admin user, even if you can
   ;; log in without a password
-  (defnode vm :image [:ubuntu])
+  (defnode vm [:ubuntu])
   (def vm1 (make-unmanaged-node \"vm\" \"localhost\" :ssh-port 2223))
   (with-admin-user [\"myuser\" :sudo-password \"xxx\"]
     (lift vm1 service (phase (package \"curl\"))))

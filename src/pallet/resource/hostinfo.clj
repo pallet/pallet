@@ -23,3 +23,16 @@
 (defimpl nameservers :default []
   @("grep" nameserver "/etc/resolv.conf" | cut "-f2"))
 
+(defscript debian-version [])
+(defimpl debian-version :default []
+  (if (file-exists? "/etc/debian") (cat "/etc/debian")))
+
+(defscript redhat-version [])
+(defimpl redhat-version :default []
+  (if (file-exists? "/etc/redhat-release") (cat "/etc/redhat-release")))
+
+(defscript ubuntu-version [])
+(defimpl ubuntu-version :default []
+  (if (file-exists? "/usr/bin/lsb_release") @("/usr/bin/lsb_release" -c -s)))
+
+

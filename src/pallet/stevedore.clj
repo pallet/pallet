@@ -9,11 +9,11 @@
 (defn- add-quotes [s]
   (str "\"" s "\""))
 
-(defn arg-string [option argument do-underscore do-assign]
+(defn arg-string [option argument do-underscore do-assign dash]
   (let [opt (if do-underscore (underscore (name option)) (name option))]
     (if argument
       (if (> (.length opt) 1)
-        (str "--" opt (if-not (= argument true)
+        (str dash opt (if-not (= argument true)
                         (str (if do-assign "=" " ") argument)))
         (str "-" opt (if-not (= argument true) (str " " argument)))))))
 
@@ -25,8 +25,10 @@
     (apply
      str (interpose
           " "
-          (map #(arg-string (first %) (second %)
-                            (opts :underscore) (:opts :assign)) m)))))
+          (map #(arg-string
+                 (first %) (second %) (opts :underscore) (:opts :assign)
+                 (get opts :dash "--"))
+               m)))))
 
 (defn option-args
   "Output a set of command line switches from a sequence of options"
