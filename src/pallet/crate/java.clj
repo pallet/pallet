@@ -1,5 +1,10 @@
 (ns pallet.crate.java
   (:use
+    [pallet.resource.exec-script :only [exec-script]]
+    [pallet.stevedore :only [script defimpl]]
+    [pallet.resource.remote-file :only [remote-file]]
+    [pallet.resource.file :only [file]]
+    [pallet.script :only [defscript]]
    [pallet.resource.package :only [package package-manager]]
    [pallet.target :only [packager]]))
 
@@ -50,3 +55,24 @@ By default sun jdk will be installed."
            (str p " shared/present-sun-dlj-v1-1 note")
            (str p " shared/accepted-sun-dlj-v1-1 boolean true")))
         (package p)))))
+
+(defscript jre-lib-security [])
+(defimpl jre-lib-security :default []
+  (str @(update-java-alternatives -l "|" cut "-d ' '" -f 3 "|" head -1)
+       "/jre/lib/security/"))
+
+(defn jce-policy-file
+  "Installs a local JCE policy jar at the given path in the remote
+   JAVA_HOME's lib/security directory, enabling the use of \"unlimited strength\"
+   crypto implementations. Options are as for remote-file.
+
+   e.g. (jce-policy-file \"local_policy.jar\" :local-file \"path/to/local_policy.jar\")
+
+   Note this only intended to work for ubuntu/aptitude-managed systems and Sun JDKs right now."
+  [filename & options]
+  (apply remote-file
+    (script (str (jre-lib-security) ~filename))
+    (concat [:owner "root"
+             :group "root"
+             :mode 644]
+      options)))
