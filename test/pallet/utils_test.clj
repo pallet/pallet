@@ -28,7 +28,22 @@
             :private-key-path (default-private-key-path)
             :public-key-path (default-public-key-path)
             :sudo-password nil}
-           (make-user username)))))
+           (make-user username)))
+        (is (= {:username username
+            :password nil
+            :private-key-path (default-private-key-path)
+            :public-key-path (default-public-key-path)
+            :sudo-password password}
+           (make-user username :sudo-password password)))))
+
+(deftest sudo-cmd-for-test
+  (let [no-pw "/usr/bin/sudo"
+        pw "echo \"fred\" | /usr/bin/sudo -S"]
+    (is (= no-pw (sudo-cmd-for (make-user "fred"))))
+    (is (= pw (sudo-cmd-for (make-user "fred" :password "fred"))))
+    (is (= pw (sudo-cmd-for (make-user "fred" :sudo-password "fred"))))
+    (is (= no-pw
+           (sudo-cmd-for (make-user "fred" :password "fred" :sudo-password false))))))
 
 (deftest sh-script-test
   (let [res (sh-script

@@ -90,7 +90,7 @@
                            (default-private-key-path))
      :public-key-path (or (options :public-key-path)
                           (default-public-key-path))
-     :sudo-password (options :password)}))
+     :sudo-password (get options :sudo-password (options :password))}))
 
 
 (defvar *admin-user*
@@ -159,6 +159,11 @@
 
 (def prolog "#!/usr/bin/env bash\n")
 
+(defn sudo-cmd-for [user]
+  (if-let [pw (user :sudo-password)]
+    (str "echo \"" (or (user :password) pw) "\" | /usr/bin/sudo -S")
+    "/usr/bin/sudo"))
+
 (defn remote-sudo-script
   "Run a sudo script on a server."
   [#^java.net.InetAddress server #^String command user & options]
@@ -179,17 +184,18 @@
                               (.getBytes (str prolog command))) tmpfile)
           (doseq [[file remote-name] *file-transfers*]
             (info (format "Transferring file %s to node @ %s" file remote-name))
-            (sftp channel :put (-> file java.io.FileInputStream. java.io.BufferedInputStream.) remote-name)
+            (sftp channel
+                  :put (-> file java.io.FileInputStream.
+                           java.io.BufferedInputStream.)
+                  remote-name)
             (sftp channel :chmod 600 remote-name))
           (let [chmod-result (ssh session (str "chmod 755 " tmpfile) :return-map true)]
             (if (pos? (chmod-result :exit))
               (error (str "Couldn't chmod script : " ) (chmod-result :err))))
-          (let [sudo (if-let [pw (options :sudo-password)]
-                       (str "echo \"" (or (user :password) pw) "\" | /usr/bin/sudo -S")
-                       "/usr/bin/sudo")
-                script-result (ssh
+          (let [script-result (ssh
                                 session
-                                (str sudo " ~" (:username user) "/" tmpfile)
+                                (str (sudo-cmd-for user)
+                                     " ~" (:username user) "/" tmpfile)
                                 :return-map true
                                 :pty true)]
             (if (zero? (script-result :exit))
