@@ -19,9 +19,10 @@
         (cmd-join
           [(cond
              (and url md5) (script
-                             (if-not (&& (file-exists? ~path)
-                                       (== ~md5 @(md5sum ~path "|" cut "-f1 -d' '")))
-                               (wget "-O" ~path ~url))
+                             (if-not (file-exists? ~path)
+                               (do (if-not
+                                       (== ~md5 @(md5sum ~path "|" cut "-f1 -d' '"))
+                                     (wget "-O" ~path ~url))))
                              (echo "MD5 sum is" @(md5sum ~path)))
              url (script
                    (wget "-O" ~path ~url)

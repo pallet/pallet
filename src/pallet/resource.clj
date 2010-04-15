@@ -4,7 +4,7 @@
   (:use [pallet.target
          :only [with-target-template with-target-tag
                 *target-tag* *target-template*]]
-        [pallet.utils :only [cmd-join]]
+        [pallet.utils :only [cmd-join *file-transfers*]]
         [pallet.stevedore :only [script]]
         [clojure.contrib.def :only [defvar name-with-attributes]]
         clojure.contrib.logging))
@@ -159,13 +159,14 @@ args is the argument signature for the resource, and must end with a variadic el
   [[& phases] tag template phase-map]
   (with-target-template template
     (with-target-tag tag
-      (string/join
-       ""
-       (map (fn [phase]
-              (if (keyword? phase)
-                (output-resources phase phase-map)
-                (output-resources (first phase) (second phase))))
-            (phase-list phases))))))
+      (binding [*file-transfers* {}]
+        (string/join
+         ""
+         (map (fn [phase]
+                (if (keyword? phase)
+                  (output-resources phase phase-map)
+                  (output-resources (first phase) (second phase))))
+              (phase-list phases)))))))
 
 (defmacro build-resources
   "Outputs the resources specified in the body for the specified phases.
