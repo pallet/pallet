@@ -21,7 +21,7 @@
   (let [file (str hudson-data-path "/hudson.war")]
     (directory hudson-data-path :owner hudson-owner :group hudson-group :mode "775")
     (remote-file file
-     :source "http://hudson-ci.org/latest/hudson.war"
+     :url "http://hudson-ci.org/latest/hudson.war"
      :md5  "680e1525fca0562cfd19552b8d8174e2")
     (tomcat-policy
      99 "hudson"
@@ -55,11 +55,11 @@
   (let [opts (apply hash-map options)]
     (remote-file*
      (str hudson-data-path "/plugins/" (name plugin) ".hpi")
-     :source (or (opts :source) (hudson-plugins plugin)))))
+     :url (or (opts :url) (hudson-plugins plugin)))))
 
 (defcomponent hudson-plugin
   "Install a hudson plugin.  The plugin should be a keyword.
-  :source can be used to specify a string containing the download url"
+  :url can be used to specify a string containing the download url"
   hudson-plugin* [plugin & options])
 
 ;; (defn hudson-config*

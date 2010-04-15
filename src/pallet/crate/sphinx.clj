@@ -15,7 +15,7 @@
            basename (str "sphinx-" version)
            tarfile (str basename ".tar.gz")
            tarpath (str (script (tmp-dir)) "/" tarfile)]
-       (remote-file tarpath :source (first info) :md5 (second info))
+       (remote-file tarpath :url (first info) :md5 (second info))
        (exec-script
         (script
          (cd (tmp-dir))

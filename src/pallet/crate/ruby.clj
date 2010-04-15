@@ -37,7 +37,7 @@
        (doseq [p src-packages]
          (package p))
        (remote-file
-        tarpath :source (ftp-path tarfile) :md5 (version-md5 version))
+        tarpath :url (ftp-path tarfile) :md5 (version-md5 version))
        (exec-script
         (script
          (cd (tmp-dir))
