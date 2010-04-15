@@ -45,7 +45,7 @@
  override=\"false\"/>
  </Context>"
               hudson-data-path))
-    (tomcat-deploy file)))
+    (tomcat-deploy file "hudson")))
 
 (def hudson-plugins
      {:git "https://hudson.dev.java.net/files/documents/2402/135478/git.hpi"})

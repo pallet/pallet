@@ -14,8 +14,8 @@
          (build-resources [] (tomcat)))))
 
 (deftest tomcat-deploy-test
-  (is (= "cp file.war /var/lib/tomcat6/webapps/\n/etc/init.d/tomcat6 stop\n/etc/init.d/tomcat6 start\n"
-         (build-resources [] (tomcat-deploy "file.war")))))
+  (is (= "cp file.war /var/lib/tomcat6/webapps/ROOT.war\ntouch  /var/lib/tomcat6/webapps/ROOT.war\nchown  tomcat6 /var/lib/tomcat6/webapps/ROOT.war\nchgrp  tomcat6 /var/lib/tomcat6/webapps/ROOT.war\nchmod  600 /var/lib/tomcat6/webapps/ROOT.war\n"
+         (build-resources [] (tomcat-deploy "file.war" nil)))))
 
 (deftest tomcat-policy-test
   (is (= "cat > /etc/tomcat6/policy.d/100hudson.policy <<'EOF'\ngrant codeBase \"file:${catalina.base}/webapps/hudson/-\" {\npermission java.lang.RuntimePermission \"getAttribute\";\n};\nEOF\n"

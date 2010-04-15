@@ -3,7 +3,7 @@
   (:use
    [pallet.stevedore :only [script]]
    [pallet.resource :only [defcomponent defresource]]
-   [pallet.resource.file :only [heredoc]]
+   [pallet.resource.file :only [heredoc file]]
    [pallet.resource.remote-file :only [remote-file remote-file*]]
    [pallet.resource.exec-script :only [exec-script]]
    [pallet.resource.service :only [service]]
@@ -19,14 +19,37 @@
   "Install tomcat"
   [] (package "tomcat6"))
 
-(defn tomcat-deploy
-  [warfile]
-  (exec-script
-   (script
-    (cp ~warfile ~(str tomcat-doc-root "webapps/"))))
+(defmacro with-restart
+  [& body]
   ;; restart fails to regenerate security policy cache
-  (service "tomcat6" :action :stop)
-  (service "tomcat6" :action :start))
+  `(do
+     (service "tomcat6" :action :stop)
+     ~@body
+     (service "tomcat6" :action :start)))
+
+(defn tomcat-deploy
+  "Copies the specified remote .war file to the tomcat server under webapps/${app-name}.war.
+   An app-name of \"ROOT\" or nil will deploy the source war file as the / webapp. Options:
+
+   :clear-existing true -- will remove the existing exploded ${app-name} directory"
+  [warfile app-name & opts]
+  (let [opts (apply hash-map opts)
+        exploded-app-dir (str tomcat-doc-root "webapps/" (or app-name "ROOT"))
+        deployed-warfile (str exploded-app-dir ".war")]
+    (exec-script
+      (script
+        (cp ~warfile ~deployed-warfile)))
+    (file deployed-warfile :owner "tomcat6" :group "tomcat6" :mode 600)
+    (when (:clear-existing opts)
+      (exec-script
+        (script (rm ~exploded-app-dir ~{:r true :f true}))))))
+
+(defn deploy-local-file
+  [warfile app-name & opts]
+  (let [temp-remote-file (str "pallet-tomcat-deploy-" (java.util.UUID/randomUUID))]
+    (remote-file temp-remote-file :local-file warfile)
+    (apply tomcat-deploy temp-remote-file app-name opts)
+    (exec-script (script (rm ~temp-remote-file)))))
 
 (defn output-grants [[code-base permissions]]
   (str
