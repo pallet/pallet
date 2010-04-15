@@ -24,7 +24,7 @@ tag as a configuration target.
   (:use
    [pallet.utils
     :only [remote-sudo make-user *admin-user* default-public-key-path
-           as-string]]
+           as-string *file-transfers*]]
    [pallet.resource
     :only [produce-phases defphases]]
    [pallet.compute
@@ -201,10 +201,11 @@ script that is run with root privileges immediatly after first boot."
         port (ssh-port node)
         options (if port [:port port] [])]
     (doseq [phase phases]
-      (when-let [script (produce-phases [phase] (tag node) (node-info :image)
-                                        (node-info :phases))]
-        (info script)
-        (apply execute-script script node user options)))))
+      (binding [*file-transfers* {}]
+        (when-let [script (produce-phases [phase] (tag node) (node-info :image)
+                            (node-info :phases))]
+          (info script)
+          (apply execute-script script node user options))))))
 
 (defn apply-phases
   "Apply a list of phases to a sequence of nodes"

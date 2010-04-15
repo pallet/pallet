@@ -119,6 +119,23 @@
   (with-temp-file [file cmds]
     (system (str "/usr/bin/env bash " (.getPath file)))))
 
+(def *file-transfers* {})
+
+(defn register-file-transfer!
+  [local-file]
+  ; will use io/file under 1.2
+  (let [f (java.io.File. local-file)]
+    (when-not (and (.exists f) (.isFile f) (.canRead f))
+      (throw (IllegalArgumentException.
+               (format "'%s' does not exist, is a directory, or is unreadable; cannot register it for transfer" local-file))))
+    ; need to eagerly determine a destination for the file, as crates will need to know
+    ; where to find the transferred file
+    (let [remote-name (format "pallet-transfer-%s-%s"
+                        (java.util.UUID/randomUUID)
+                        ; silly UUID collision paranoia
+                        (.length f))]
+      (set! *file-transfers* (assoc *file-transfers* f remote-name))
+      remote-name)))
 
 (defn remote-sudo
   "Run a sudo command on a server."
@@ -160,24 +177,29 @@
           (assert (zero? (mktemp-result :exit)))
           (sftp channel :put (java.io.ByteArrayInputStream.
                               (.getBytes (str prolog command))) tmpfile)
+          (doseq [[file remote-name] *file-transfers*]
+            (info (format "Transferring file %s to node @ %s" file remote-name))
+            (sftp channel :put (-> file java.io.FileInputStream. java.io.BufferedInputStream.) remote-name)
+            (sftp channel :chmod 600 remote-name))
           (let [chmod-result (ssh session (str "chmod 755 " tmpfile) :return-map true)]
             (if (pos? (chmod-result :exit))
               (error (str "Couldn't chmod script : " ) (chmod-result :err))))
           (let [sudo (if-let [pw (options :sudo-password)]
                        (str "echo \"" (or (user :password) pw) "\" | /usr/bin/sudo -S")
                        "/usr/bin/sudo")
-                script-result
-                (ssh
-                 session
-                 (str sudo " ~" (:username user) "/" tmpfile)
-                 :return-map true
-                 :pty true)]
+                script-result (ssh
+                                session
+                                (str sudo " ~" (:username user) "/" tmpfile)
+                                :return-map true
+                                :pty true)]
             (if (zero? (script-result :exit))
               (info (script-result :out))
               (do
                 (error (str "Exit status " (script-result :exit)))
                 (error (script-result :err))))
             (ssh session (str "rm " tmpfile))
+            (doseq [[file remote-name] *file-transfers*]
+              (ssh session (str "rm " remote-name)))
             script-result))))))
 
 (defn sh-script
