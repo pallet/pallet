@@ -15,3 +15,12 @@
 (defcomponent service
   "Control serives"
   service* [service-name & options])
+
+(defmacro with-restart
+  "Stop the given service, execute the body, and then restart."
+  [service-name & body]
+  `(let [service# ~service-name]
+     (service service# :action :stop)
+     ~@body
+     (service service# :action :start)))
+
