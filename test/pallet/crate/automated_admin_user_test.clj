@@ -3,8 +3,7 @@
   (:require [pallet.template :only [apply-templates]]
             [pallet.resource :only [build-resources]])
   (:use clojure.test
-        pallet.test-utils
-        [clojure.contrib.java-utils :only [file]]))
+        pallet.test-utils))
 
 (with-private-vars [pallet.crate.authorize-key
                     []])

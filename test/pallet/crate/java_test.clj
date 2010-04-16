@@ -6,8 +6,7 @@
         [pallet.resource.package :only [package package-manager]]
         [pallet.resource :only [build-resources]]
         [pallet.stevedore :only [script]]
-        [pallet.utils :only [cmd-join]]
-        [clojure.contrib.java-utils :only [file]]))
+        [pallet.utils :only [cmd-join]]))
 
 (def pkg-config (build-resources
                  [] (package-manager :universe)

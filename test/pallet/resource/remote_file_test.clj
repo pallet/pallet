@@ -5,10 +5,12 @@
         clojure.test
         pallet.test-utils)
   (:require
+    pallet.compat
    [pallet.core :as core]
    [pallet.compute :as compute]
-   [pallet.utils :as utils]
-   [clojure.contrib.duck-streams :as io]))
+   [pallet.utils :as utils]))
+
+(pallet.compat/require-contrib)
 
 (deftest remote-file-test
   (is (= "cat > file1 <<EOF\nsomecontent\nEOF\n"

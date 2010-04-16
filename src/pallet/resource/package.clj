@@ -1,12 +1,14 @@
 (ns pallet.resource.package
   "Package management resource."
-  (:require [clojure.contrib.str-utils2 :as string])
+  (:require pallet.compat)
   (:use pallet.script
         pallet.stevedore
         [pallet.resource :only [defresource]]
         [pallet.utils :only [cmd-join]]
         [clojure.contrib.logging]
         [pallet.target :only [packager]]))
+
+(pallet.compat/require-contrib)
 
 (defscript update-package-list [& options])
 (defscript install-package [name & options])

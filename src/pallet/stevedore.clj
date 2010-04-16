@@ -1,10 +1,12 @@
 (ns pallet.stevedore
   "Embed shell script in clojure"
-  (:require [clojure.contrib.str-utils2 :as string])
+  (:require pallet.compat)
   (:use clojure.walk
         clojure.contrib.logging
         [pallet.utils :only [underscore]]
         pallet.script))
+
+(pallet.compat/require-contrib)
 
 (defn- add-quotes [s]
   (str "\"" s "\""))
@@ -50,7 +52,7 @@
 (def statement-separator "\n")
 
 (defn statement [expr]
-  (if (not (= statement-separator (string/tail expr (count statement-separator))))
+  (if (not (= statement-separator (.substring expr (- (count expr) (count statement-separator)))))
     (str expr statement-separator)
     expr))
 

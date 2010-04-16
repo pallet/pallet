@@ -1,11 +1,12 @@
 (ns pallet.resource.package-test
+ (:require pallet.compat)
   (:use [pallet.resource.package] :reload-all)
   (:use [pallet.stevedore :only [script]]
         [pallet.utils :only [sh-script]]
-        [clojure.contrib.shell-out :only [sh]]
-        [clojure.contrib.duck-streams :only [copy]]
         clojure.test
         pallet.test-utils))
+
+(pallet.compat/require-contrib)
 
 (deftest update-package-list-test
   (is (= "aptitude update "
@@ -40,7 +41,7 @@ EOF
 
   (testing "with sources.list"
     (let [tmp (java.io.File/createTempFile "package_test" "test")]
-      (copy "deb http://archive.ubuntu.com/ubuntu/ karmic main restricted
+      (io/copy "deb http://archive.ubuntu.com/ubuntu/ karmic main restricted
 deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             tmp)
       (is (= {:exit 0, :out "", :err ""}

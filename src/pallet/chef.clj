@@ -1,15 +1,16 @@
 (ns #^{:author "Hugo Duncan"}
   pallet.chef
   "Execute chef recipes using chef solo."
+ (:require pallet.compat)
   (:use [org.jclouds.compute
          :only [hostname public-ips private-ips tag nodes *compute*]]
         [pallet.compute :only [primary-ip nodes-by-tag ssh-port]]
         [pallet.core :only [nodes-in-set]]
         [pallet.utils
          :only [*admin-user* remote-sudo system pprint-lines quoted sh-script]]
-        [clojure.contrib.java-utils :only [file]]
-        [clojure.contrib.duck-streams :only [with-out-writer]]
         clojure.contrib.logging))
+
+(pallet.compat/require-contrib)
 
 (def *chef-repository* nil)
 (defmacro with-chef-repository
@@ -65,8 +66,8 @@
   ([nodes]
      (output-attributes nodes *chef-repository*))
   ([nodes chef-repository]
-     (with-out-writer (file chef-repository "site-cookbooks" node-cookbook
-                            "attributes" (str node-cookbook ".rb"))
+     (io/with-out-writer (pallet.compat/file chef-repository "site-cookbooks" node-cookbook
+                           "attributes" (str node-cookbook ".rb"))
        (println (ips-to-rb nodes)))))
 
 ;;; Chef invocation

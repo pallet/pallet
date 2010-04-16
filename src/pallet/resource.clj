@@ -1,6 +1,6 @@
 (ns pallet.resource
   "Resource definition interface."
-  (:require [clojure.contrib.str-utils2 :as string])
+  (:require pallet.compat)
   (:use [pallet.target
          :only [with-target-template with-target-tag
                 *target-tag* *target-template*]]
@@ -8,6 +8,8 @@
         [pallet.stevedore :only [script]]
         [clojure.contrib.def :only [defvar name-with-attributes]]
         clojure.contrib.logging))
+
+(pallet.compat/require-contrib)
 
 (defvar required-resources (atom {}) "Resources for each phase")
 (defvar *phase* :configure "Execution phase for resources")
@@ -160,12 +162,12 @@ args is the argument signature for the resource, and must end with a variadic el
   (with-target-template template
     (with-target-tag tag
       (string/join
-       ""
-       (map (fn [phase]
-              (if (keyword? phase)
-                (output-resources phase phase-map)
-                (output-resources (first phase) (second phase))))
-            (phase-list phases))))))
+        ""
+        (map (fn [phase]
+               (if (keyword? phase)
+                 (output-resources phase phase-map)
+                 (output-resources (first phase) (second phase))))
+          (phase-list phases))))))
 
 (defmacro build-resources
   "Outputs the resources specified in the body for the specified phases.

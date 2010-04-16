@@ -2,15 +2,24 @@
   (:use [pallet.stevedore] :reload-all)
   (:use [pallet.utils :only [bash]]
         clojure.test)
-  (:require [clojure.contrib.str-utils2 :as string]))
+ (:require pallet.compat))
+
+(pallet.compat/require-contrib)
 
 (defn strip-ws
   "strip extraneous whitespace so tests don't fail because of differences in whitespace"
-  [s] (string/trim (string/replace s #"[ ]+" " ")))
+  [s]
+  (-> s
+    (.replaceAll "[ ]+" " ")
+    .trim))
 
 (defn strip-line-ws
   "strip extraneous whitespace so tests don't fail because of differences in whitespace"
-  [s] (string/trim (string/replace (string/replace s #"\n" " ") #"[ ]+" " ")))
+  [#^String s]
+  (-> s
+    (.replace "\n" " ")
+    (.replaceAll "[ ]+" " ")
+    .trim))
 
 (defmacro bash-out
   "Check output of bash. Macro so that errors appear on the correct line."

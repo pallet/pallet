@@ -1,12 +1,12 @@
 (ns pallet.template
   "Template file writing"
-  (:require [clojure.contrib.str-utils2 :as string])
+  (:require pallet.compat)
   (:use [pallet.stevedore :only [script]]
         [pallet.resource.file]
         [pallet.core :only [node-type]]
-        [clojure.contrib.duck-streams :only [slurp*]]
         [clojure.contrib.logging]))
 
+(pallet.compat/require-contrib)
 
 (defn get-resource
   "Loads a resource. Returns a URI."

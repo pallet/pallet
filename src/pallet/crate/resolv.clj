@@ -1,6 +1,6 @@
 (ns pallet.crate.resolv
-  (:require [clojure.contrib.str-utils2 :as string])
-  (:use
+ (:require pallet.compat)
+ (:use
    [pallet.target :only [admin-group]]
    [pallet.stevedore :only [script]]
    [pallet.template]
@@ -9,6 +9,7 @@
    [pallet.utils :only [as-string]]
    [clojure.contrib.logging]))
 
+(pallet.compat/require-contrib)
 
 (defn- write-key-value [key value]
   (str (as-string key) " " (as-string value) \newline))

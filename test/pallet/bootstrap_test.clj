@@ -1,8 +1,10 @@
 (ns pallet.bootstrap-test
+ (:require pallet.compat)
   (:use [pallet.bootstrap] :reload-all)
   (:use clojure.test
-        pallet.test-utils
-        [clojure.contrib.java-utils :only [file]]))
+        pallet.test-utils))
+
+(pallet.compat/require-contrib)
 
 (def expected-fragment "apt-get update\n")
 
@@ -14,16 +16,16 @@
                                       bootstrap-merge
                                       template-os-family]]
   (deftest bootstrap-fragment-paths-test
-    (is (= [ (file "bootstrap" "frag" "tag")
-             (file "bootstrap" "frag" "os-family")
-             (file "bootstrap" "frag" "default")]
+    (is (= [ (pallet.compat/file "bootstrap" "frag" "tag")
+             (pallet.compat/file "bootstrap" "frag" "os-family")
+             (pallet.compat/file "bootstrap" "frag" "default")]
            (bootstrap-fragment-paths :frag "tag" :os-family)))
-    (is (= [ (file "bootstrap" "frag" "tag")
-             (file "bootstrap" "frag" "os-family")
-             (file "bootstrap" "frag" "default")]
+    (is (= [ (pallet.compat/file "bootstrap" "frag" "tag")
+             (pallet.compat/file "bootstrap" "frag" "os-family")
+             (pallet.compat/file "bootstrap" "frag" "default")]
            (bootstrap-fragment-paths :frag :tag :os-family)))
-    (is (= [ (file "bootstrap" "frag" "tag")
-             (file "bootstrap" "frag" "default")]
+    (is (= [ (pallet.compat/file "bootstrap" "frag" "tag")
+             (pallet.compat/file "bootstrap" "frag" "default")]
            (bootstrap-fragment-paths :frag "tag" nil))))
 
   (deftest bootstrap-merge-test

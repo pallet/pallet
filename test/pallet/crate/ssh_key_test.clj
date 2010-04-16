@@ -3,8 +3,7 @@
   (:require [pallet.template :only [apply-templates]]
             [pallet.resource :only [build-resources]])
   (:use clojure.test
-        pallet.test-utils
-        [clojure.contrib.java-utils :only [file]]))
+        pallet.test-utils))
 
 (deftest authorized-keys-template-test
   (is (= "file=$(getent passwd userx | cut -d: -f6)/.ssh/authorized_keys
