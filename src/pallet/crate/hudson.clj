@@ -50,15 +50,20 @@
     (tomcat/deploy file "hudson")))
 
 (def hudson-plugins
-     {:git "https://hudson.dev.java.net/files/documents/2402/135478/git.hpi"})
+     {:git {:url "https://hudson.dev.java.net/files/documents/2402/135478/git.hpi"
+            :md5 "98db63b28bdf9ab0e475c2ec5ba209f1"}})
 
 (defn plugin*
   [plugin & options]
-  (trace (str "Hudson - add plugin " plugin))
-  (let [opts (apply hash-map options)]
-    (remote-file*
-     (str hudson-data-path "/plugins/" (name plugin) ".hpi")
-     :url (or (opts :url) (hudson-plugins plugin)))))
+  (info (str "Hudson - add plugin " plugin))
+  (let [opts (apply hash-map options)
+        src (merge (get hudson-plugins plugin {})
+                   (select-keys opts [:url :md5]))]
+    (cmd-join
+     [(directory* (str hudson-data-path "/plugins"))
+      (apply remote-file*
+       (str hudson-data-path "/plugins/" (name plugin) ".hpi")
+       (apply concat src))])))
 
 (defcomponent plugin
   "Install a hudson plugin.  The plugin should be a keyword.

@@ -1,28 +1,32 @@
 <?xml version='1.0' encoding='utf-8'?>
 <Server port="8005" shutdown="SHUTDOWN">
-  <Listener/>
+  <Listener className="org.apache.catalina.core.JasperListener" />
+  <Listener className="org.apache.catalina.mbeans.ServerLifecycleListener" />
+  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
   <GlobalNamingResources>
-    <Environment/>
-    <Resource/>
-    <Transaction/>
+    <Resource name="UserDatabase" auth="Container"
+              type="org.apache.catalina.UserDatabase"
+              description="User database that can be updated and saved"
+              factory="org.apache.catalina.users.MemoryUserDatabaseFactory"
+              pathname="conf/tomcat-users.xml" />
   </GlobalNamingResources>
+
   <Service name="Catalina">
     <Connector port="8080" protocol="HTTP/1.1"
 	       connectionTimeout="20000"
 	       redirectPort="8443" />
     <Engine name="Catalina" defaultHost="localhost">
-      <Cluster className="org.apache.catalina.ha.tcp.SimpleTcpCluster"/>
-      <Valve className="org.apache.catalina.valves.RequestDumperValve"/>
       <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
 	     resourceName="UserDatabase"/>
 
-      <Host name="localhost"  appBase="webapps"
-	    unpackWARs="true" autoDeploy="true"
+      <Host name="localhost"
+	    appBase="webapps" unpackWARs="true"
+	    autoDeploy="true" deployOnStartup="true"
 	    xmlValidation="false" xmlNamespaceAware="false">
 
-	<Valve className="org.apache.catalina.authenticator.SingleSignOn" />
-	<Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
-	       prefix="localhost_access_log." suffix=".txt" pattern="common" resolveHosts="false"/>
+	<Valve className="org.apache.catalina.valves.AccessLogValve"
+	       directory="logs" prefix="localhost_access." suffix=".log"
+	       pattern="common" resolveHosts="false"/>
       </Host>
     </Engine>
   </Service>

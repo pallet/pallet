@@ -21,7 +21,7 @@ list, Alan Dipert and MeikelBrandmeyer."
    (= (count bindings) 0) `(do ~@body)
    (symbol? (bindings 0)) `(let ~(subvec bindings 0 2)
                              (try
-                              (with-open ~(subvec bindings 2) ~@body)
+                              (with-temporary ~(subvec bindings 2) ~@body)
                               (finally
                                (. ~(bindings 0) delete))))
    :else (throw (IllegalArgumentException.

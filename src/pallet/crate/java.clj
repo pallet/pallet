@@ -6,7 +6,10 @@
     [pallet.resource.file :only [file]]
     [pallet.script :only [defscript]]
    [pallet.resource.package :only [package package-manager]]
-   [pallet.target :only [packager]]))
+   [pallet.target :only [packager]]
+   [pallet.resource.remote-file :only [remote-file]]
+   [pallet.script :only [defscript]]
+   [pallet.stevedore :only [script defimpl]]))
 
 (defmulti java-package-name "lookup package name"
   (fn [mgr vendor component] mgr))

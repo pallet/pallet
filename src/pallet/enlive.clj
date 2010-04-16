@@ -22,6 +22,13 @@
 ;;             (enlive/flatmap
 ;;              (enlive/transformation ~@forms) nodes#)))))
 
+(defn elt
+ ([tag] (elt tag nil))
+ ([tag attrs & content]
+   {:tag tag
+    :attrs attrs
+    :content content}))
+
 (defmacro transform-nodes
   [[nodes] & forms]
   `(enlive/flatmap (enlive/transformation ~@forms) ~nodes))
@@ -29,7 +36,7 @@
 (defmacro deffragment
   [name args & forms]
   `(defn ~name ~args
-     (fn [nodes#] (transform-nodes [nodes#] ~@forms))))
+     (fn [nodes#] (enlive/at nodes# ~@forms))))
 
 (def memo-xml-resource
      (memoize

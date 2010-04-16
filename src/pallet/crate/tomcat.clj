@@ -11,7 +11,7 @@
    [pallet.resource.exec-script :only [exec-script]]
    [pallet.resource.package :only [package]]
    [pallet.template :only [find-template]]
-   [pallet.enlive :only [xml-template xml-emit transform-if deffragment]]
+   [pallet.enlive :only [xml-template xml-emit transform-if deffragment elt]]
    [clojure.contrib.prxml :only [prxml]])
   (:require
    [pallet.resource :as resource]
@@ -206,30 +206,58 @@ content - an xml application context"
 
 (deffragment server-resources-transform
   [global-resources]
+  [:Environment] (transform-if (global-resources :environment) nil)
+  [:Resource] (transform-if (global-resources :resource) nil)
+  [:Transaction] (transform-if (global-resources :transaction) nil)
+  [:GlobalNamingResources]
+  (enlive/do-> ; ensure we have elements to configure
+   (transform-if (global-resources :environment)
+                 (enlive/prepend (elt :Environment)))
+   (transform-if (global-resources :resource)
+                 (enlive/prepend (elt :resource)))
+   (transform-if (global-resources :transaction)
+                 (enlive/prepend (elt :Transaction))))
   [:Environment]
-  (enlive/clone-for [environment (global-resources :environment)]
-    (apply enlive/set-attr (flatten-map environment)))
+  (transform-if (global-resources :environment)
+   (enlive/clone-for [environment (global-resources :environment)]
+                     (apply enlive/set-attr (flatten-map environment))))
   [:Resource]
-  (enlive/clone-for [resource (global-resources :resource)]
-    (apply enlive/set-attr (flatten-map resource)))
+  (transform-if (global-resources :resource)
+   (enlive/clone-for [resource (global-resources :resource)]
+                     (apply enlive/set-attr (flatten-map resource))))
   [:Transaction]
-  (enlive/clone-for [transaction (global-resources :transaction)]
-    (apply enlive/set-attr (flatten-map transaction))))
+  (transform-if (global-resources :transaction)
+   (enlive/clone-for [transaction (global-resources :transaction)]
+                     (apply enlive/set-attr (flatten-map transaction)))))
 
 (deffragment engine-transform
   [engine]
+  [:Host] (transform-if (engine :host) nil)
+  [:Valve] (transform-if (engine :valve) nil)
+  [:Realm] (transform-if (engine :realm) nil)
+  [:Engine]
+  (enlive/do-> ; ensure we have elements to configure
+   (transform-if (engine :host)
+                 (enlive/prepend (elt :Host)))
+   (transform-if (engine :valve)
+                 (enlive/prepend (elt :Valve)))
+   (transform-if (engine :realm)
+                 (enlive/prepend (elt :Realm))))
   [:Host]
-  (enlive/clone-for
-   [host (engine :host)]
-   (enlive/do->
-    (apply enlive/set-attr (flatten-map host))
-    (engine-transform (engine :host))))
+  (transform-if (engine :host)
+                (enlive/clone-for
+                 [host (engine :host)]
+                 (enlive/do->
+                  (apply enlive/set-attr (flatten-map host))
+                  (engine-transform (engine :host)))))
   [:Valve]
-  (enlive/clone-for
-   [valve (engine :valve)]
-   (apply enlive/set-attr (flatten-map valve)))
+  (transform-if (engine :valve)
+                (enlive/clone-for
+                 [valve (engine :valve)]
+                 (apply enlive/set-attr (flatten-map valve))))
   [:Realm]
-  (enlive/set-attr (flatten-map (engine :realm))))
+  (transform-if (engine :realm)
+                (enlive/set-attr (flatten-map (engine :realm)))))
 
 (deffragment service-transform
   [service]
@@ -249,8 +277,20 @@ content - an xml application context"
   (xml-emit
    (xml-template
     (path-for *server-file*) node-type [server]
+    [:Listener]
+    (transform-if (server :listener) nil)
+    [:GlobalNamingResources]
+    (transform-if (server :global-resources) nil)
     [:Server]
-    (enlive/set-attr :port (server :port) :shutdown (server :shutdown))
+    (enlive/do->
+     (transform-if (seq (apply concat (select-keys server [:port :shutdown])))
+                   (apply enlive/set-attr
+                          (apply concat (select-keys server [:port :shutdown]))))
+     (transform-if (server :listener)
+                   (enlive/prepend (elt :Listener)))
+     (transform-if (server :global-resources)
+                   (enlive/prepend
+                    (elt :GlobalNamingResources))))
     [:Listener]
     (transform-if (server :listener)
       (enlive/clone-for
@@ -456,7 +496,7 @@ content - an xml application context"
   [server]
   #{:pre [*target-tag*]}
   (remote-file*
-   (str tomcat-doc-root "server.xml")
+   (str tomcat-doc-root "conf/server.xml")
    :content (apply
              str (tomcat-server-xml
                   (node-type-for-tag *target-tag*) server))))
