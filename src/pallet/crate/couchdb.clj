@@ -1,10 +1,12 @@
 (ns pallet.crate.couchdb
  (:use [pallet.stevedore :only [script]])
  (:require
+   pallet.compat
    [pallet.resource.package :as package]
    [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.service :as service]
-   [clojure.contrib.json.write :as json]))
+   [pallet.resource.service :as service]))
+
+(pallet.compat/require-contrib)
 
 (defn couchdb
   "Installs couchdb (and curl, as a basis for convenient configuration), optionally
@@ -28,7 +30,7 @@
                                 (map #(if (string? %) % (name %)))
                                 (interpose "/"))
                   url (apply str "http://localhost:5984/_config/" config-path)
-                  v-json (str \' (json/json-str v) \')]]
+                  v-json (str \' (json-write/json-str v) \')]]
       (exec-script/exec-script
         (script (curl -X PUT -d ~v-json ~url))))
     (service/service "couchdb" :action :restart)))

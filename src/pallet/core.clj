@@ -208,7 +208,7 @@ script that is run with root privileges immediatly after first boot."
       (doseq [phase phases]
         (binding [*file-transfers* {}]
           (when-let [script (produce-phases [phase] (node-info :tag) (node-info :image)
-                                            (node-info :phases))]
+                              (node-info :phases))]
             (info script)
             (apply execute-script script node user options))))
       (error (str "Could not find node type for node " (tag node))))))

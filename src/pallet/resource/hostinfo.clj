@@ -1,10 +1,8 @@
 (ns #^{ :doc "Host information."}
   pallet.resource.hostinfo
-  (:require [clojure.contrib.str-utils2 :as string])
   (:use pallet.script
         [pallet.resource :only [defresource]]
         pallet.stevedore
-        [clojure.contrib.def :only [defvar-]]
         clojure.contrib.logging))
 
 (defscript os-version-name [])

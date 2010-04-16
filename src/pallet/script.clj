@@ -2,7 +2,6 @@
   pallet.script
   "Base infrastructure for script generation"
   (:use [pallet.target :only [*target-template*]]
-        [clojure.contrib.def :only [defvar-]]
         clojure.contrib.logging))
 
 ;; map from script name to implementations

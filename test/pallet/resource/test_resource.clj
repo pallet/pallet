@@ -1,5 +1,5 @@
 (ns pallet.resource.test-resource
-  (:require [clojure.contrib.str-utils2 :as string])
+  (:require pallet.compat)
   (:use
    [pallet.target :only [admin-group *target-tag* *target-template*]]
    [pallet.stevedore :only [script]]
@@ -7,6 +7,8 @@
    [pallet.resource :only [defresource defcomponent]]
    [pallet.resource.user :only [user-home]]
    [clojure.contrib.logging]))
+
+(pallet.compat/require-contrib)
 
 (def test-resource-args (atom []))
 

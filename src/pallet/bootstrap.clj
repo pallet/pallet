@@ -1,18 +1,19 @@
 (ns #^{:author "Hugo Duncan"}
   pallet.bootstrap
   "Boostrap functions."
+ (:require pallet.compat)
   (:use [org.jclouds.compute :only [os-families]]
         [pallet.chef :only [*remote-chef-path*]]
         [pallet.utils :only [*admin-user* make-user slurp-resource
                              resource-path quoted as-string]]
-        [clojure.contrib.java-utils :only [file]]
         clojure.contrib.logging))
 
+(pallet.compat/require-contrib)
 
 ;;; Bootstrap from fragments
 (defonce fragment-root "bootstrap")
 (defn- bootstrap-fragment-paths [fragment tag os-family]
-  (map #(file fragment-root (name fragment) %)
+  (map #(pallet.compat/file fragment-root (name fragment) %)
        (remove nil? [(as-string tag) (and os-family (name os-family)) "default"])))
 
 (defn- template-os-family [template]

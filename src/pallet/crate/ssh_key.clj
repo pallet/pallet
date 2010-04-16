@@ -1,5 +1,5 @@
 (ns pallet.crate.ssh-key
-  (:require [clojure.contrib.str-utils2 :as string])
+  (:require pallet.compat)
   (:use
    [pallet.target :only [admin-group]]
    [pallet.stevedore :only [script]]
@@ -12,6 +12,7 @@
    [pallet.resource.directory :only [directory*]]
    [clojure.contrib.logging]))
 
+(pallet.compat/require-contrib)
 
 (deftemplate authorized-keys-template
   [user keys]

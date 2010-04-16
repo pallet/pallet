@@ -11,9 +11,8 @@
         [pallet.target :only [with-target-tag]]
         [pallet.resource :only [build-resources]]
         [pallet.stevedore :only [script]]
-        [pallet.utils :only [cmd-join slurp-resource]]
-        [pallet.core :only [defnode]]
-        [clojure.contrib.java-utils :only [file]]))
+        [pallet.utils :only [cmd-join]]
+        [pallet.core :only [defnode]]))
 
 (deftest tomcat-test
   (is (= "debconf-set-selections <<EOF\ndebconf debconf/frontend select noninteractive\ndebconf debconf/frontend seen false\nEOF\naptitude install -y  tomcat6\n"

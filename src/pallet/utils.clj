@@ -1,11 +1,11 @@
 (ns pallet.utils
-  (:require [clojure.contrib.str-utils2 :as string])
+  (:require pallet.compat)
   (:use clojure.contrib.logging
         [clj-ssh.ssh]
         [clojure.contrib.def]
-        [clojure.contrib.shell-out :only [sh]]
-        [clojure.contrib.pprint :only [pprint]]
-        [clojure.contrib.duck-streams :as io]))
+        [clojure.contrib.pprint :only [pprint]]))
+
+(pallet.compat/require-contrib)
 
 (defn pprint-lines [s]
   (pprint (seq (.split #"\r?\n" s))))
@@ -102,7 +102,7 @@
   "Launch a system process, return a map containing the exit code, stahdard
   output and standard error of the process."
   [cmd]
-  (let [result (apply sh :return-map true (.split cmd " "))]
+  (let [result (apply shell/sh :return-map true (.split cmd " "))]
     (when (pos? (result :exit))
       (error (str "Command failed: " cmd "\n" (result :err))))
     (info (result :out))
@@ -124,7 +124,7 @@
 (defn register-file-transfer!
   [local-file]
   ; will use io/file under 1.2
-  (let [f (java.io.File. local-file)]
+  (let [f (pallet.compat/file local-file)]
     (when-not (and (.exists f) (.isFile f) (.canRead f))
       (throw (IllegalArgumentException.
                (format "'%s' does not exist, is a directory, or is unreadable; cannot register it for transfer" local-file))))
@@ -214,9 +214,9 @@
   [command]
   (let [tmp (java.io.File/createTempFile "pallet" "script")]
     (try
-     (copy command tmp)
-     (sh "chmod" "+x" (.getPath tmp))
-     (let [result (sh "bash" (.getPath tmp) :return-map true)]
+     (io/copy command tmp)
+     (shell/sh "chmod" "+x" (.getPath tmp))
+     (let [result (shell/sh "bash" (.getPath tmp) :return-map true)]
        (when (pos? (result :exit))
          (error (str "Command failed: " command "\n" (result :err))))
        (info (result :out))

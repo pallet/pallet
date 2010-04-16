@@ -1,10 +1,11 @@
 (ns pallet.resource-test
   (:use [pallet.resource] :reload-all)
   (:require pallet.resource.test-resource
-            [clojure.contrib.str-utils2 :as string])
+    pallet.compat)
   (:use clojure.test
-
         pallet.test-utils))
+
+(pallet.compat/require-contrib)
 
 (def test-atom (atom []))
 

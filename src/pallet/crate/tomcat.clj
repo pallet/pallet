@@ -14,10 +14,12 @@
    [pallet.enlive :only [xml-template xml-emit transform-if deffragment elt]]
    [clojure.contrib.prxml :only [prxml]])
   (:require
+    pallet.compat
    [pallet.resource :as resource]
    [pallet.resource.service :as service]
-   [net.cgrand.enlive-html :as enlive]
-   [clojure.contrib.str-utils2 :as string]))
+   [net.cgrand.enlive-html :as enlive]))
+
+(pallet.compat/require-contrib)
 
 (def tomcat-config-root "/etc/tomcat6/")
 (def tomcat-doc-root "/var/lib/tomcat6/")

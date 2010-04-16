@@ -1,11 +1,13 @@
 (ns #^{ :doc "User management resource."}
   pallet.resource.user
-  (:require [clojure.contrib.str-utils2 :as string])
+  (:require pallet.compat)
   (:use pallet.script
         [pallet.resource :only [defresource]]
         pallet.stevedore
         [clojure.contrib.def :only [defvar-]]
         clojure.contrib.logging))
+
+(pallet.compat/require-contrib)
 
 (defscript user-exists? [name])
 (defscript modify-user [name options])
