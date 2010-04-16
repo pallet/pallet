@@ -180,15 +180,16 @@
               tmpfile (string/chomp (mktemp-result :out))
               channel (ssh-sftp session)]
           (assert (zero? (mktemp-result :exit)))
-          (sftp channel :put (java.io.ByteArrayInputStream.
-                              (.getBytes (str prolog command))) tmpfile)
-          (doseq [[file remote-name] *file-transfers*]
-            (info (format "Transferring file %s to node @ %s" file remote-name))
-            (sftp channel
-                  :put (-> file java.io.FileInputStream.
-                           java.io.BufferedInputStream.)
-                  remote-name)
-            (sftp channel :chmod 600 remote-name))
+          (with-connection channel
+            (sftp channel :put (java.io.ByteArrayInputStream.
+                                (.getBytes (str prolog command))) tmpfile)
+            (doseq [[file remote-name] *file-transfers*]
+              (info (format "Transferring file %s to node @ %s" file remote-name))
+              (sftp channel
+                    :put (-> file java.io.FileInputStream.
+                             java.io.BufferedInputStream.)
+                    remote-name)
+              (sftp channel :chmod 0600 remote-name)))
           (let [chmod-result (ssh session (str "chmod 755 " tmpfile) :return-map true)]
             (if (pos? (chmod-result :exit))
               (error (str "Couldn't chmod script : " ) (chmod-result :err))))

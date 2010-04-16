@@ -159,22 +159,22 @@ args is the argument signature for the resource, and must end with a variadic el
   [[& phases] tag template phase-map]
   (with-target-template template
     (with-target-tag tag
-      (binding [*file-transfers* {}]
-        (string/join
-         ""
-         (map (fn [phase]
-                (if (keyword? phase)
-                  (output-resources phase phase-map)
-                  (output-resources (first phase) (second phase))))
-              (phase-list phases)))))))
+      (string/join
+       ""
+       (map (fn [phase]
+              (if (keyword? phase)
+                (output-resources phase phase-map)
+                (output-resources (first phase) (second phase))))
+            (phase-list phases))))))
 
 (defmacro build-resources
   "Outputs the resources specified in the body for the specified phases.
    This is useful in testing."
   [[& phases] & body]
-  `(produce-phases
-    ~phases *target-tag* *target-template*
-    (resource-phases ~@body)))
+  `(binding [*file-transfers* {}]
+     (produce-phases
+      ~phases *target-tag* *target-template*
+      (resource-phases ~@body))))
 
 
 

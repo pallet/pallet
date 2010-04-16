@@ -1,9 +1,14 @@
 (ns pallet.resource.remote-file-test
   (:use [pallet.resource.remote-file] :reload-all)
   (:use [pallet.stevedore :only [script]]
-        [pallet.resource :only [build-resources]]
+        [pallet.resource :only [build-resources phase]]
         clojure.test
-        pallet.test-utils))
+        pallet.test-utils)
+  (:require
+   [pallet.core :as core]
+   [pallet.compute :as compute]
+   [pallet.utils :as utils]
+   [clojure.contrib.duck-streams :as io]))
 
 (deftest remote-file-test
   (is (= "cat > file1 <<EOF\nsomecontent\nEOF\n"
@@ -41,6 +46,19 @@
 
   (with-temporary [tmp (tmpfile)]
     (is (re-find #"mv pallet-transfer-[a-f0-9-]+ file1"
-         (build-resources
-          [] (remote-file
-              "file1" :local-file (.getPath tmp)))))))
+                 (build-resources
+                  [] (remote-file
+                      "file1" :local-file (.getPath tmp))))))
+
+  (with-temporary [tmp (tmpfile)
+                   target-tmp (tmpfile)]
+    (.delete target-tmp)
+    (io/copy "text" tmp)
+    (core/defnode tag [])
+    (core/apply-phases-to-node
+     nil (compute/make-unmanaged-node "tag" "localhost")
+     [(phase
+       (remote-file (.getPath target-tmp) :local-file (.getPath tmp)))]
+     utils/*admin-user*)
+    (is (.canRead target-tmp))
+    (is (= "text" (slurp (.getPath target-tmp))))))
