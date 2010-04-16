@@ -2,8 +2,7 @@
   (:use [pallet.crate.sudoers] :reload-all)
   (:require [pallet.resource :only [reset-resources build-resources]])
   (:use clojure.test
-        pallet.test-utils
-        [clojure.contrib.java-utils :only [file]]))
+        pallet.test-utils))
 
 (with-private-vars [pallet.crate.sudoers
                     [default-specs

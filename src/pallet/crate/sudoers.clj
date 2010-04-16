@@ -1,12 +1,13 @@
 (ns pallet.crate.sudoers
-  (:require [clojure.contrib.str-utils2 :as string :only [join chomp upper-case]])
-  (:use
+ (:require pallet.compat)
+ (:use
    [pallet.utils :only [underscore as-string]]
    [pallet.target :only [admin-group]]
    [pallet.template]
    [pallet.resource :only [defresource]]
-   [clojure.contrib.seq-utils :only [flatten]]
    [clojure.contrib.logging]))
+
+(pallet.compat/require-contrib)
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
