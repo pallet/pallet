@@ -23,7 +23,7 @@
     (is (= "c" (classname-for "c" m)))))
 
 (deftest tomcat-deploy-test
-  (is (= "cp file.war /var/lib/tomcat6/webapps/ROOT.war\ntouch  /var/lib/tomcat6/webapps/ROOT.war\nchown  tomcat6 /var/lib/tomcat6/webapps/ROOT.war\nchgrp  tomcat6 /var/lib/tomcat6/webapps/ROOT.war\nchmod  600 /var/lib/tomcat6/webapps/ROOT.war\n"
+  (is (= "cp file.war /var/lib/tomcat6/webapps/ROOT.war\nchown  tomcat6 /var/lib/tomcat6/webapps/ROOT.war\nchgrp  tomcat6 /var/lib/tomcat6/webapps/ROOT.war\nchmod  600 /var/lib/tomcat6/webapps/ROOT.war\n"
          (build-resources [] (deploy "file.war" nil)))))
 
 (deftest tomcat-undeploy-all-test

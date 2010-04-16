@@ -23,11 +23,21 @@
           [] (remote-file
               "file1" :url "http://xx.com/abc" :md5 "abcd" :owner "user1"))))
 
+  (is (= "cp file2 file1\nchown  user1 file1\n"
+         (build-resources
+          [] (remote-file
+              "file1" :remote-file "file2" :owner "user1"))))
+
   (is (thrown-with-msg? RuntimeException
         #".*/some/non-existing/file.*does not exist, is a directory, or is unreadable.*"
         (build-resources
          [] (remote-file
              "file1" :local-file "/some/non-existing/file" :owner "user1"))))
+
+  (is (thrown-with-msg? RuntimeException
+        #".*file1.*without content.*"
+        (build-resources
+         [] (remote-file "file1" :owner "user1"))))
 
   (with-temporary [tmp (tmpfile)]
     (is (re-find #"mv pallet-transfer-[a-f0-9-]+ file1"

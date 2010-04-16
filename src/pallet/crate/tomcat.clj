@@ -64,10 +64,8 @@
   (let [opts (apply hash-map opts)
         exploded-app-dir (str tomcat-doc-root "webapps/" (or app-name "ROOT"))
         deployed-warfile (str exploded-app-dir ".war")]
-    (exec-script
-      (script
-        (cp ~warfile ~deployed-warfile)))
-    (file deployed-warfile :owner tomcat-user :group tomcat-group :mode 600)
+    (remote-file deployed-warfile :remote-file warfile
+                 :owner tomcat-user :group tomcat-group :mode 600)
     (when (:clear-existing opts)
       (exec-script
         (script (rm ~exploded-app-dir ~{:r true :f true}))))))
