@@ -95,9 +95,11 @@
 
 
 (defvar *admin-user*
-  (make-user (. System getProperty "user.name"))
+  (make-user (or (. System getProperty "pallet.admin.username")
+                 (. System getProperty "user.name")))
   "The admin user is used for running remote admin commands that require root
-   permissions.")
+   permissions.  The default admin user is taken from the pallet.admin.username
+   property.  If not specified then the user.name property is used.")
 
 (defn system
   "Launch a system process, return a map containing the exit code, stahdard

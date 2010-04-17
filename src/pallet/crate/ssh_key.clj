@@ -50,20 +50,24 @@
   "Authorize a public key on the specified user."
   authorize-key-args apply-authorize-keys [username public-key-string])
 
-(defn authorize-key-for-localhost* [user public-key-filename]
-  (cmd-join
-   [(script
-     (var key_file ~(str (user-ssh-dir user) public-key-filename))
-     (var auth_file ~(str (user-ssh-dir user) "authorized_keys")))
-    (file* (str (user-ssh-dir user) "authorized_keys") :owner user :mode "644")
-    (script
-     (if-not (grep @(cat @key_file) @auth_file)
-       (cat @key_file ">>" @auth_file)))]))
+(defn authorize-key-for-localhost* [user public-key-filename & options]
+  (let [options (apply hash-map options)
+        target-user (get options :authorize-for-user user)]
+    (cmd-join
+     [(script
+       (var key_file ~(str (user-ssh-dir user) public-key-filename))
+       (var auth_file ~(str (user-ssh-dir target-user) "authorized_keys")))
+      (file* (str (user-ssh-dir target-user) "authorized_keys")
+             :owner target-user :mode "644")
+      (script
+       (if-not (grep @(cat @key_file) @auth_file)
+         (cat @key_file ">>" @auth_file)))])))
 
 (defcomponent authorize-key-for-localhost
   "Authorize a user's public key on the specified user, for ssh access to
-  localhost."
-  authorize-key-for-localhost* [username public-key-filename])
+  localhost.  The :authorize-for-user option can be used to specify the
+  user to who's authorized_keys file is modified."
+  authorize-key-for-localhost* [username public-key-filename & options])
 
 (defn install-key*
   [user key-name private-key-string public-key-string]

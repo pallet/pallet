@@ -14,11 +14,14 @@
   (package "maven2")
   (git)
   (tomcat/tomcat)
+  (user/user "testuser")
   (service/with-restart "tomcat6"
     (tomcat/server-configuration (tomcat/server))
     (user/user (hudson/hudson-user-name) :comment "\"hudson,,,\"")
     (ssh-key/generate-key (hudson/hudson-user-name))
-    (ssh-key/authorize-key-for-localhost (hudson/hudson-user-name) "id_rsa.pub")
+    (ssh-key/authorize-key-for-localhost
+     (hudson/hudson-user-name) "id_rsa.pub"
+     :authorize-for-user "testuser")
     (hudson/tomcat-deploy)
     (hudson/plugin :git)
     (hudson/maven "default maven" "2.2.1")
@@ -27,5 +30,6 @@
                 :goals "test"
                 :group-id "pallet"
                 :artifact-id "pallet"
+                :maven-opts "-Dpallet.admin.username=testuser"
                 :scm ["http://github.com/hugoduncan/pallet.git"])))
 

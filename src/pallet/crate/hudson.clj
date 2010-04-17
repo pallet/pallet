@@ -192,6 +192,9 @@
     [:mavenName]
     (enlive/transform-if-let [maven-name (options :maven-name)]
                              (xml/content maven-name))
+    [:mavenOpts]
+    (enlive/transform-if-let [maven-opts (options :maven-opts)]
+                             (xml/content maven-opts))
     [:goals]
     (enlive/transform-if-let [goals (options :goals)]
                              (xml/content goals))

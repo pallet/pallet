@@ -44,5 +44,7 @@ chown userx ${file}
 
 (deftest authorize-key-for-localhost*-test
   (is (= "key_file=$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub\nauth_file=$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys\ntouch  $(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys\nchown  fred $(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys\nchmod  644 $(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys\nif ! grep $(cat ${key_file}) ${auth_file}; then cat ${key_file} >> ${auth_file};fi\n"
-         (authorize-key-for-localhost* "fred" "id_dsa.pub"))))
+         (authorize-key-for-localhost* "fred" "id_dsa.pub")))
+  (is (= "key_file=$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub\nauth_file=$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys\ntouch  $(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys\nchown  tom $(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys\nchmod  644 $(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys\nif ! grep $(cat ${key_file}) ${auth_file}; then cat ${key_file} >> ${auth_file};fi\n"
+         (authorize-key-for-localhost* "fred" "id_dsa.pub" :authorize-for-user "tom"))))
 
