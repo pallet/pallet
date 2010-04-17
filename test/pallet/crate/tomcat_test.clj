@@ -97,6 +97,27 @@
   (is (= {:pallet-type :alias :name "fred"}
          (alias "fred"))))
 
+(deftest connector-test
+  (is (= {:pallet-type :connector :port 8443}
+         (connector :port 8443))))
+
+(deftest ssl-jsee-connector-test
+  (is (= {:pallet-type :connector
+          :maxThreads 150 :protocol "HTTP/1.1" :scheme "https"
+          :keystorePass "changeit" :sslProtocol "TLS" :clientAuth "false"
+          :SSLEnabled "true" :port 8442 :secure "true"
+          :keystoreFile "${user.home}/.keystore"}
+         (ssl-jsee-connector :port 8442))))
+
+(deftest ssl-apr-connector-test
+  (is (= {:pallet-type :connector
+          :maxThreads 150 :protocol "HTTP/1.1" :scheme "https"
+          :sslProtocol "TLSv1" :clientAuth "optional" :SSLEnabled "true"
+          :port 8442 :secure "true"
+          :SSLCertificateKeyFile= "/usr/local/ssl/server.pem"
+          :SSLCertificateFile "/usr/local/ssl/server.crt"}
+         (ssl-apr-connector :port 8442))))
+
 (deftest listener-test
   (is (= {:pallet-type :listener :className "org.apache.catalina.core.JasperListener"}
          (listener :jasper))))

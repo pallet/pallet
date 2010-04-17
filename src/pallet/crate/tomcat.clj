@@ -353,7 +353,9 @@ content - an xml application context"
 (defn listener
   "Define a tomcat listener. listener-type is a classname or a key from
    listener-classnames. Options are listener-type specific, and match
-   the attributes in the tomcat docs."
+   the attributes in the tomcat docs.
+   For example, to configure the APR SSL support:
+     (listener :apr-lifecycle :SSLEngine \"on\" :SSLRandomSeed \"builtin\")"
   [listener-type & options]
   (pallet-type :listener
                :className (classname-for listener-type listener-classnames)
@@ -404,9 +406,48 @@ content - an xml application context"
   (pallet-type :service :members [:engine] :collections [:connector] options))
 
 (defn connector
-  "Define a tomcat connector"
+  "Define a tomcat connector."
   [& options]
   (pallet-type :connector options))
+
+(defn ssl-jsee-connector
+  "Define a SSL connector using JSEE.  This connector can be specified for a
+   service.
+
+   This connector has defaults equivalant to:
+     (tomcat/connector :port 8443 :protocol \"HTTP/1.1\" :SSLEnabled \"true\"
+       :maxThreads 150 :scheme \"https\" :secure \"true\"
+       :clientAuth \"false\" :sslProtocol \"TLS\"
+       :keystoreFile \"${user.home}/.keystore\" :keystorePass \"changeit\")"
+  [& options]
+  (pallet-type
+   :connector
+   (concat [:port 8443 :protocol "HTTP/1.1" :SSLEnabled "true"
+            :maxThreads 150 :scheme "https" :secure "true"
+            :clientAuth "false" :sslProtocol "TLS"
+            :keystoreFile "${user.home}/.keystore" :keystorePass "changeit"]
+           options)))
+
+(defn ssl-apr-connector
+  "Define a SSL connector using APR.  This connector can be specified for a
+   service.  You can use the :SSLEngine and :SSLRandomSeed options on the
+   server's APR lifecycle listener to configure which engine is used.
+
+   This connector has defaults equivalant to:
+     (tomcat/connector :port 8443 :protocol \"HTTP/1.1\" :SSLEnabled \"true\"
+       :maxThreads 150 :scheme \"https\" :secure \"true\"
+       :clientAuth \"optional\" :sslProtocol \"TLSv1\"
+       :SSLCertificateFile \"/usr/local/ssl/server.crt\"
+       :SSLCertificateKeyFile=\"/usr/local/ssl/server.pem\")"
+  [& options]
+  (pallet-type
+   :connector
+   (concat [:port 8443 :protocol "HTTP/1.1" :SSLEnabled "true"
+            :maxThreads 150 :scheme "https" :secure "true"
+            :clientAuth "optional" :sslProtocol "TLSv1"
+            :SSLCertificateFile "/usr/local/ssl/server.crt"
+            :SSLCertificateKeyFile="/usr/local/ssl/server.pem"]
+           options)))
 
 (defn engine
   "Define a tomcat engine. Options are:
