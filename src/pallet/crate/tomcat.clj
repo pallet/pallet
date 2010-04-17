@@ -278,7 +278,7 @@ content - an xml application context"
 (defn tomcat-server-xml
   "Generate server.xml content"
   [node-type server]
-  #{:pre [node-type]}
+  {:pre [node-type]}
   (xml-emit
    (xml-template
     (path-for *server-file*) node-type [server]
@@ -540,7 +540,7 @@ content - an xml application context"
      :services         vector of services
      :global-resources vector of resources."
   [server]
-  #{:pre [*target-tag*]}
+  {:pre [*target-tag*]}
   (remote-file*
    (str tomcat-doc-root "conf/server.xml")
    :content (apply

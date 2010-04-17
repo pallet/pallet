@@ -14,7 +14,7 @@
   (package "maven2")
   (git)
   (tomcat/tomcat)
-  (user/user "testuser")
+  (user/user "testuser" :create-home true :shell :bash)
   (service/with-restart "tomcat6"
     (tomcat/server-configuration (tomcat/server))
     (user/user (hudson/hudson-user-name) :comment "\"hudson,,,\"")

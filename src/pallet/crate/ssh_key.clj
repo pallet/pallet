@@ -57,6 +57,7 @@
      [(script
        (var key_file ~(str (user-ssh-dir user) public-key-filename))
        (var auth_file ~(str (user-ssh-dir target-user) "authorized_keys")))
+      (directory* (user-ssh-dir target-user) :owner target-user :mode "755")
       (file* (str (user-ssh-dir target-user) "authorized_keys")
              :owner target-user :mode "644")
       (script
