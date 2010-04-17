@@ -340,7 +340,8 @@ content - an xml application context"
                        result))
         members (reduce add-member {} options)
         options (filter (complement pallet-type) options)]
-    (merge members (apply hash-map options))))
+    (merge members (into {} (map vec (partition 2 options))))))
+
 
 (defn extract-options [& options]
   (extract-nested-maps (extract-member-keys options)))
