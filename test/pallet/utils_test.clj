@@ -18,32 +18,45 @@
             :password password
             :private-key-path private-key-path
             :public-key-path public-key-path
-            :sudo-password password}
+            :sudo-password password
+            :no-sudo nil}
            (make-user username
-            :password password
-            :private-key-path private-key-path
-            :public-key-path public-key-path)))
+                      :password password
+                      :private-key-path private-key-path
+                      :public-key-path public-key-path)))
     (is (= {:username username
             :password nil
             :private-key-path (default-private-key-path)
             :public-key-path (default-public-key-path)
-            :sudo-password nil}
+            :sudo-password nil
+            :no-sudo nil}
            (make-user username)))
-        (is (= {:username username
+    (is (= {:username username
             :password nil
             :private-key-path (default-private-key-path)
             :public-key-path (default-public-key-path)
-            :sudo-password password}
-           (make-user username :sudo-password password)))))
+            :sudo-password password
+            :no-sudo nil}
+           (make-user username :sudo-password password)))
+    (is (= {:username username
+            :password nil
+            :private-key-path (default-private-key-path)
+            :public-key-path (default-public-key-path)
+            :sudo-password nil
+            :no-sudo true}
+           (make-user username :no-sudo true)))))
 
 (deftest sudo-cmd-for-test
   (let [no-pw "/usr/bin/sudo"
-        pw "echo \"fred\" | /usr/bin/sudo -S"]
+        pw "echo \"fred\" | /usr/bin/sudo -S"
+        no-sudo ""]
     (is (= no-pw (sudo-cmd-for (make-user "fred"))))
     (is (= pw (sudo-cmd-for (make-user "fred" :password "fred"))))
     (is (= pw (sudo-cmd-for (make-user "fred" :sudo-password "fred"))))
     (is (= no-pw
-           (sudo-cmd-for (make-user "fred" :password "fred" :sudo-password false))))))
+           (sudo-cmd-for (make-user "fred" :password "fred" :sudo-password false))))
+    (is (= no-sudo (sudo-cmd-for (make-user "root"))))
+    (is (= no-sudo (sudo-cmd-for (make-user "fred" :no-sudo true))))))
 
 (deftest sh-script-test
   (let [res (sh-script

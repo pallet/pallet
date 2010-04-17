@@ -59,6 +59,6 @@
      nil (compute/make-unmanaged-node "tag" "localhost")
      [(phase
        (remote-file (.getPath target-tmp) :local-file (.getPath tmp)))]
-     utils/*admin-user*)
+     (assoc utils/*admin-user* :no-sudo true))
     (is (.canRead target-tmp))
     (is (= "text" (slurp (.getPath target-tmp))))))

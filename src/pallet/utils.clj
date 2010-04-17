@@ -90,7 +90,8 @@
                            (default-private-key-path))
      :public-key-path (or (options :public-key-path)
                           (default-public-key-path))
-     :sudo-password (get options :sudo-password (options :password))}))
+     :sudo-password (get options :sudo-password (options :password))
+     :no-sudo (options :no-sudo)}))
 
 
 (defvar *admin-user*
@@ -160,9 +161,11 @@
 (def prolog "#!/usr/bin/env bash\n")
 
 (defn sudo-cmd-for [user]
-  (if-let [pw (user :sudo-password)]
-    (str "echo \"" (or (user :password) pw) "\" | /usr/bin/sudo -S")
-    "/usr/bin/sudo"))
+  (if (or (= (user :username) "root") (user :no-sudo))
+    ""
+    (if-let [pw (user :sudo-password)]
+      (str "echo \"" (or (user :password) pw) "\" | /usr/bin/sudo -S")
+      "/usr/bin/sudo")))
 
 (defn remote-sudo-script
   "Run a sudo script on a server."
