@@ -45,6 +45,13 @@
           (enlive/xml-resource source)
           (error (str "No template found for " source " " (node-type :tag)))))))
 
+(defmacro defsnippet
+  "A snippet returns a collection of nodes."
+  [name source node-type args & forms]
+  `(defn ~name ~args
+    (if-let [nodes# (memo-xml-resource ~source ~node-type)]
+      (enlive/at nodes# ~@forms))))
+
 (defmacro xml-template
   "A template returns a seq of string:
    Overridden from enlive to defer evaluation of the source until runtime, and
@@ -63,3 +70,6 @@
 
 (defmacro transform-if [expr transform]
   `(if ~expr ~transform identity))
+
+(defmacro transform-if-let [binding transform]
+  `(if-let ~binding ~transform identity))

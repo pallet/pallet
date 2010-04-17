@@ -26,6 +26,9 @@
 (def tomcat-user "tomcat6")
 (def tomcat-group "tomcat6")
 
+(defn tomcat-user-name [] tomcat-user)
+(defn tomcat-group-name [] tomcat-group)
+
 (defn tomcat
   "Install tomcat"
   [] (package "tomcat6"))

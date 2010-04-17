@@ -14,7 +14,8 @@
   <Service name="Catalina">
     <Connector port="8080" protocol="HTTP/1.1"
 	       connectionTimeout="20000"
-	       redirectPort="8443" />
+	       redirectPort="8443"
+	       URIEncoding="UTF-8" />
     <Engine name="Catalina" defaultHost="localhost">
       <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
 	     resourceName="UserDatabase"/>

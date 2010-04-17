@@ -65,9 +65,9 @@
       (script
        (if (user-exists? ~username)
          (modify-user
-          ~username ~(select-keys opts [:home :shell]))
+          ~username ~(select-keys opts [:home :shell :comment]))
          (create-user
-          ~username ~(select-keys opts [:base-dir :home :system
+          ~username ~(select-keys opts [:base-dir :home :system :comment
                                         :create-home :pasword :shell]))))
       :lock
       (script
@@ -92,6 +92,3 @@
 
 (defresource user "User management.
 " user-args apply-users [username & options])
-
-
-

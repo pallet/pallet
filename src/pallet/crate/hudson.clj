@@ -2,26 +2,49 @@
  "Installation of hudson"
   (:use
    [pallet.utils :only [cmd-join]]
-   [pallet.resource :only [defcomponent]]
    [pallet.resource.service :only [service]]
    [pallet.resource.directory :only [directory directory*]]
    [pallet.resource.remote-file :only [remote-file remote-file*]]
    [pallet.resource.user :only [user]]
    [clojure.contrib.prxml :only [prxml]]
-   [clojure.contrib.logging])
+   [clojure.contrib.logging]
+   [clojure.contrib.def])
   (:require
-   [pallet.crate.tomcat :as tomcat]))
+   [pallet.crate.tomcat :as tomcat]
+   [net.cgrand.enlive-html :as xml]
+   [pallet.enlive :as enlive]
+   [pallet.core :as core]
+   [pallet.resource :as resource]
+   [pallet.target :as target]))
 
 (def hudson-data-path "/var/lib/hudson")
 (def hudson-owner "root")
-(def hudson-group "tomcat6")
+(def hudson-user (atom "hudson"))
+(def hudson-group (atom "hudson"))
+
+(defn hudson-user-name [] @hudson-user)
+(defn hudson-group-name [] @hudson-group)
+
+(defvar- *maven-file* "hudson.tasks.Maven.xml")
+(defvar- *maven2-job-config-file* "job/maven2_config.xml")
+(defvar- *git-file* "scm/git.xml")
+
+(defn path-for
+  "Get the actual filename corresponding to a template."
+  [base] (str "crate/hudson/" base))
+
 
 (defn tomcat-deploy
   "Install hudson on tomcat"
   []
   (trace (str "Hudson - install on tomcat"))
+  (reset! hudson-user (tomcat/tomcat-user-name))
+  (reset! hudson-group (tomcat/tomcat-group-name))
+
   (let [file (str hudson-data-path "/hudson.war")]
-    (directory hudson-data-path :owner hudson-owner :group hudson-group :mode "775")
+    (directory
+     hudson-data-path
+     :owner hudson-owner :group (hudson-group-name) :mode "775")
     (remote-file file
      :url "http://hudson-ci.org/latest/hudson.war"
      :md5  "680e1525fca0562cfd19552b8d8174e2")
@@ -65,7 +88,7 @@
        (str hudson-data-path "/plugins/" (name plugin) ".hpi")
        (apply concat src))])))
 
-(defcomponent plugin
+(resource/defcomponent plugin
   "Install a hudson plugin.  The plugin should be a keyword.
   :url can be used to specify a string containing the download url"
   plugin* [plugin & options])
@@ -98,23 +121,42 @@
 
 (defmulti output-scm-for
   "Output the scm definition for specified type"
-  (fn [scm-type scm-path options] scm-type))
+  (fn [scm-type node-type scm-path options] scm-type))
 
-(defmethod output-scm-for :git [scm-type scm-path options]
-  (prxml
-   [:org.spearce.jgit.transport.RemoteConfig
-    [:string (get options :name "origin")]
-    [:int 5]
-    [:string "fetch"]
-    [:string (get options :refspec "+refs/heads/*:refs/remotes/origin/*")]
-    [:string "receivepack"]
-    [:string (get options :receivepack "git-upload-pack")]
-    [:string "uploadpack"]
-    [:string (get options :uploadpack "git-upload-pack")]
-    [:string "url"]
-    [:string scm-path]
-    [:string "tagopt"]
-    [:string (get options :tagopt "")]]))
+
+;; "Generate git scm configuration for job content"
+(enlive/defsnippet git-job-xml
+  (path-for *git-file*) node-type
+  [node-type scm-path options]
+  [:#url]
+  (xml/do->
+   (xml/content scm-path)
+   (xml/remove-attr :id))
+  [:#refspec]
+  (xml/do->
+   (xml/remove-attr :id)
+   (enlive/transform-if-let [refspec (options :refspec)]
+                            (xml/content refspec)))
+  [:#receivepack]
+  (xml/do->
+   (xml/remove-attr :id)
+   (enlive/transform-if-let [receivepack (options :receivepack)]
+                            (xml/content receivepack)))
+  [:#uploadpack]
+  (xml/do->
+   (xml/remove-attr :id)
+   (enlive/transform-if-let [upload-pack (options :uploadpack)]
+                            (xml/content upload-pack)))
+  [:#tagopt]
+  (xml/do->
+   (xml/remove-attr :id)
+   (enlive/transform-if-let [tagopt (options :tagopt)]
+                            (xml/content tagopt))))
+
+(defmethod output-scm-for :git
+  [scm-type node-type scm-path options]
+  (git-job-xml node-type scm-path options))
+
 
 (defn normalise-scms [scms]
   (map #(if (string? %) [%] %) scms))
@@ -122,27 +164,53 @@
 (def class-for-scm
      { :git "hudson.plugins.git.GitSCM"})
 
+(enlive/deffragment branch-transform
+  [branch]
+  [:name]
+  (xml/content branch))
+
+(defn maven2-job-xml
+  "Generate maven2 job/config.xml content"
+  [node-type scm-type scms options]
+  (enlive/xml-emit
+   (enlive/xml-template
+    (path-for *maven2-job-config-file*) node-type [scm-type scms options]
+    [:scm] (xml/set-attr :class (class-for-scm scm-type))
+    [:remoteRepositories :> :*] nil
+    [:remoteRepositories]
+    (apply
+     xml/prepend
+     (mapcat #(output-scm-for
+               scm-type
+               node-type
+               (first %)
+               (if (seq (next %)) (apply hash-map %) {}))
+             scms))
+    [:hudson.plugins.git.BranchSpec]
+    (xml/clone-for [branch (get options :branches ["origin/master"])]
+                   (branch-transform branch))
+    [:mavenName]
+    (enlive/transform-if-let [maven-name (options :maven-name)]
+                             (xml/content maven-name))
+    [:goals]
+    (enlive/transform-if-let [goals (options :goals)]
+                             (xml/content goals))
+    [:groupId]
+    (enlive/transform-if-let [group-id (options :group-id)]
+                             (xml/content group-id))
+    [:artifactId]
+    (enlive/transform-if-let [artifact-id (options :artifact-id)]
+                             (xml/content artifact-id)))
+   scm-type scms options))
+
 (defmulti output-build-for
   "Output the build definition for specified type"
-  (fn [build-type scm-type scms options] build-type))
+  (fn [build-type node-type scm-type scms options] build-type))
 
 (defmethod output-build-for :maven2
-  [build-type scm-type scms options]
+  [build-type node-type scm-type scms options]
   (let [scm-type (or scm-type (some determine-scm-type scms))]
-    (with-out-str
-      (prxml
-       [:maven2-moduleset
-        [:scm { :class (class-for-scm scm-type)}
-         [:remoteRepositories
-          (map #(output-scm-for
-                 scm-type
-                 (first %)
-                 (if (seq (next %)) (apply hash-map %) {}))
-               scms)]
-         [:branches
-          [:hudson.plugins.git.BranchSpec
-           (map #(vector :name %) (get options :branches ["origin/master"]))]]]
-        (map #(vector (first %) (second %)) options)]))))
+    (maven2-job-xml node-type scm-type scms options)))
 
 
 (defn job*
@@ -156,16 +224,17 @@
        :content
        (output-build-for
         build-type
+        (core/node-type-for-tag target/*target-tag*)
         (opts :scm-type)
         (normalise-scms (opts :scm))
         (dissoc opts :scm :scm-type)))
       (directory*
        hudson-data-path
-       :owner hudson-owner :group hudson-group
+       :owner hudson-owner :group (hudson-group-name)
        :mode "g+w"
        :recursive true)])))
 
-(defcomponent job
+(resource/defcomponent job
   "Configure a hudson job.
 build-type - :maven2
 name - name to be used in links
@@ -179,3 +248,42 @@ options are:
 "
   job* [build-type name & options])
 
+
+
+(enlive/deffragment hudson-task-transform
+  [name version]
+  [:name]
+  (xml/content name)
+  [:id]
+  (xml/content version))
+
+(defn hudson-maven-xml
+  "Generate hudson.task.Maven.xml content"
+  [node-type maven-tasks]
+  (enlive/xml-emit
+   (enlive/xml-template
+    (path-for *maven-file*) node-type
+    [tasks]
+    [:installations :* xml/first-child]
+    (enlive/transform-if (seq tasks)
+                         (xml/clone-for [task tasks]
+                                        (apply hudson-task-transform task))))
+   maven-tasks))
+
+(def hudson-maven-args (atom []))
+
+(defn apply-hudson-maven [args]
+  (cmd-join
+   [(directory* "/usr/share/tomcat6/.m2" :group (hudson-group-name) :mode "g+w")
+    (remote-file*
+     (str hudson-data-path "/" *maven-file*)
+     :content (apply
+               str (hudson-maven-xml
+                    (core/node-type-for-tag target/*target-tag*) args))
+     :owner hudson-owner
+     :group (hudson-group-name))]))
+
+
+(resource/defresource maven
+  "Configure a maven instance for hudson."
+  hudson-maven-args apply-hudson-maven [name version])

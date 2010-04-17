@@ -1,0 +1,14 @@
+<org.spearce.jgit.transport.RemoteConfig>
+  <string>origin</string>
+  <int>5</int>
+  <string>fetch</string>
+  <string id="refspec">+refs/heads/*:refs/remotes/origin/*</string>
+  <string>receivepack</string>
+  <string id="receivepack">git-upload-pack</string>
+  <string>uploadpack</string>
+  <string id="uploadpack">git-upload-pack</string>
+  <string>url</string>
+  <string id="url">repository-path</string>
+  <string>tagopt</string>
+  <string id="tagopt"></string>
+</org.spearce.jgit.transport.RemoteConfig>
