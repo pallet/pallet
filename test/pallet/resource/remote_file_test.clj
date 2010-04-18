@@ -12,6 +12,11 @@
 
 (pallet.compat/require-contrib)
 
+(defn test-username
+  "Function to get test username. This is a function to avoid issues with AOT."
+  [] (or (. System getProperty "ssh.username")
+         (. System getProperty "user.name")))
+
 (deftest remote-file-test
   (is (= "cat > file1 <<EOF\nsomecontent\nEOF\n"
          (build-resources
@@ -61,6 +66,6 @@
      nil (compute/make-unmanaged-node "tag" "localhost")
      [(phase
        (remote-file (.getPath target-tmp) :local-file (.getPath tmp)))]
-     (assoc utils/*admin-user* :no-sudo true))
+     (assoc utils/*admin-user* :username (test-username) :no-sudo true))
     (is (.canRead target-tmp))
     (is (= "text" (slurp (.getPath target-tmp))))))
