@@ -30,13 +30,13 @@
                 :goals "test"
                 :group-id "pallet"
                 :artifact-id "pallet"
-                :maven-opts "-Dssh.username=testuser"
+                :maven-opts "-Ptestuser"
                 :scm ["http://github.com/hugoduncan/pallet.git"])
     (hudson/job :maven2 "clj-ssh"
                 :maven-name "default maven"
                 :goals "test"
                 :group-id "clj-ssh"
                 :artifact-id "clj-ssh"
-                :maven-opts "-Dssh.username=testuser"
+                :maven-opts "-Ptestuser"
                 :scm ["http://github.com/hugoduncan/clj-ssh.git"])))
 

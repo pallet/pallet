@@ -212,5 +212,23 @@
           </dependency>
         </dependencies>
       </profile>
+      <profile>
+        <id>testuser</id>
+        <build>
+          <plugins>
+            <plugin>
+              <groupId>com.theoryinpractise</groupId>
+              <artifactId>clojure-maven-plugin</artifactId>
+              <version>1.3.2</version>
+              <configuration>
+                <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m -Dssh.username=testuser</clojureOptions>
+              </configuration>
+            </plugin>
+          </plugins>
+        </build>
+      </profile>
     </profiles>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
 </project>
