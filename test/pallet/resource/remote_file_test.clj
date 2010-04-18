@@ -65,7 +65,8 @@
     (core/apply-phases-to-node
      nil (compute/make-unmanaged-node "tag" "localhost")
      [(phase
-       (remote-file (.getPath target-tmp) :local-file (.getPath tmp)))]
+       (remote-file (.getPath target-tmp) :local-file (.getPath tmp)
+                    :owner (. System getProperty "user.name")))]
      (assoc utils/*admin-user* :username (test-username) :no-sudo true))
     (is (.canRead target-tmp))
     (is (= "text" (slurp (.getPath target-tmp))))))

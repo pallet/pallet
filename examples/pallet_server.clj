@@ -27,16 +27,16 @@
     (hudson/maven "default maven" "2.2.1")
     (hudson/job :maven2 "pallet"
                 :maven-name "default maven"
-                :goals "test"
+                :goals "-Ptestuser test"
                 :group-id "pallet"
                 :artifact-id "pallet"
-                :maven-opts "-Ptestuser"
+                :maven-opts ""
                 :scm ["http://github.com/hugoduncan/pallet.git"])
     (hudson/job :maven2 "clj-ssh"
                 :maven-name "default maven"
-                :goals "test"
+                :goals "-Ptestuser test"
                 :group-id "clj-ssh"
                 :artifact-id "clj-ssh"
-                :maven-opts "-Ptestuser"
+                :maven-opts ""
                 :scm ["http://github.com/hugoduncan/clj-ssh.git"])))
 
