@@ -208,6 +208,7 @@
               (info (script-result :out))
               (do
                 (error (str "Exit status " (script-result :exit)))
+                (error (script-result :out))
                 (error (script-result :err))))
             (ssh session (str "rm " tmpfile))
             (doseq [[file remote-name] *file-transfers*]
