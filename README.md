@@ -73,3 +73,7 @@ You should now have a working repl, which you can use to explore pallet.
 [chef](http://wiki.opscode.com/display/chef/Home),
 [crane](http://github.com/bradford/crane),
 [jclouds](http://github.com/jclouds/jclouds)
+
+## License
+
+Licensed under [EPL](http://www.eclipse.org/legal/epl-v10.html)
