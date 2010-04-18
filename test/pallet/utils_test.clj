@@ -53,8 +53,8 @@
            (make-user username :no-sudo true)))))
 
 (deftest sudo-cmd-for-test
-  (let [no-pw "/usr/bin/sudo"
-        pw "echo \"fred\" | /usr/bin/sudo -S"
+  (let [no-pw "/usr/bin/sudo -n"
+        pw "echo \"fred\" | /usr/bin/sudo -S -n"
         no-sudo ""]
     (is (= no-pw (sudo-cmd-for (make-user "fred"))))
     (is (= pw (sudo-cmd-for (make-user "fred" :password "fred"))))

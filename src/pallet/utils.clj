@@ -166,8 +166,8 @@
   (if (or (= (user :username) "root") (user :no-sudo))
     ""
     (if-let [pw (user :sudo-password)]
-      (str "echo \"" (or (user :password) pw) "\" | /usr/bin/sudo -S")
-      "/usr/bin/sudo")))
+      (str "echo \"" (or (user :password) pw) "\" | /usr/bin/sudo -S -n")
+      "/usr/bin/sudo -n")))
 
 (defn remote-sudo-script
   "Run a sudo script on a server."
