@@ -26,7 +26,7 @@ tag as a configuration target.
     :only [remote-sudo make-user *admin-user* default-public-key-path
            as-string *file-transfers*]]
    [pallet.resource
-    :only [produce-phases defphases]]
+    :only [produce-phases defphases with-init-resources]]
    [pallet.compute
     :only [node-has-tag? node-counts-by-tag boot-if-down compute-node?
            execute-script ssh-port]]
@@ -206,11 +206,12 @@ script that is run with root privileges immediatly after first boot."
         options (if port [:port port] [])]
     (if node-info
       (doseq [phase phases]
-        (binding [*file-transfers* {}]
-          (when-let [script (produce-phases [phase] (node-info :tag) (node-info :image)
-                              (node-info :phases))]
-            (info script)
-            (apply execute-script script node user options))))
+        (with-init-resources nil
+          (binding [*file-transfers* {}]
+            (when-let [script (produce-phases [phase] (node-info :tag) (node-info :image)
+                                (node-info :phases))]
+              (info script)
+              (apply execute-script script node user options)))))
       (error (str "Could not find node type for node " (tag node))))))
 
 (defn apply-phases

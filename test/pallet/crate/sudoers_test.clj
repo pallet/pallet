@@ -45,15 +45,15 @@
                           [{} {} (array-map "user0" {})]]))))
 
   (deftest merge-test
-    (pallet.resource/reset-resources)
-    (reset! sudoer-args [])
-    (sudoers {} {} (array-map "user1" [{:host "h1" :ALL {}}]))
-    (sudoers {} {} (array-map "user2" {:host "h2" :ALL {}}))
-    (is (= [{} {} (array-map "root" {:ALL {:run-as-user :ALL}}
-                             "%wheel" {:ALL {:run-as-user :ALL}}
-                             "user1" [{:host "h1" :ALL {}}]
-                             "user2" {:host "h2" :ALL {}})]
-           (sudoer-merge [{} {} (default-specs)] @sudoer-args))))
+    (pallet.resource/with-init-resources nil
+      (reset! sudoer-args [])
+      (sudoers {} {} (array-map "user1" [{:host "h1" :ALL {}}]))
+      (sudoers {} {} (array-map "user2" {:host "h2" :ALL {}}))
+      (is (= [{} {} (array-map "root" {:ALL {:run-as-user :ALL}}
+                      "%wheel" {:ALL {:run-as-user :ALL}}
+                      "user1" [{:host "h1" :ALL {}}]
+                      "user2" {:host "h2" :ALL {}})]
+            (sudoer-merge [{} {} (default-specs)] @sudoer-args)))))
 
   (deftest test-param-string
     (is (= "fqdn" (param-string [:fqdn true])))

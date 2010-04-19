@@ -6,17 +6,24 @@
                 *target-tag* *target-template*]]
         [pallet.utils :only [cmd-join *file-transfers*]]
         [pallet.stevedore :only [script]]
-        [clojure.contrib.def :only [defvar name-with-attributes]]
+        [clojure.contrib.def :only [defvar defvar- name-with-attributes]]
         clojure.contrib.logging))
 
 (pallet.compat/require-contrib)
 
-(defvar required-resources (atom {}) "Resources for each phase")
+(defvar *required-resources* {} "Resources for each phase")
 (defvar *phase* :configure "Execution phase for resources")
 
 (defn reset-resources
   "Reset the list of resources that should be applied to a target"
-  [] (reset! required-resources {}))
+  [] (set! *required-resources* {}))
+
+(defmacro with-init-resources
+  "Invokes ~@body within a context where the required resources are initially
+   bound to the value of ~resources."
+  [resources & body]
+  `(binding [*required-resources* (or ~resources {})]
+     ~@body))
 
 (defmacro in-phase
   "Specify the phase for excution of resources."
@@ -43,14 +50,13 @@
 
 (defn invoke-resource
   "Handle invocation of a resource.  Invocation should add the args to the
-  resources configuration args, and add the resource to the required-resources
+  resources configuration args, and add the resource to the *required-resources*
   as a [invoke-fn arg-var] tuple."
   ([invoke-fn args]
-     (swap! required-resources add-invocation [invoke-fn args]))
+     (set! *required-resources* (add-invocation *required-resources* [invoke-fn args])))
   ([arg-var invoke-fn args]
      (swap! arg-var conj args)
-     (swap! required-resources add-invocation [invoke-fn arg-var])))
-
+     (set! *required-resources* (add-invocation *required-resources* [invoke-fn arg-var]))))
 
 (defmacro returning [v & body]
   `(let [return-value# ~v]
@@ -70,10 +76,10 @@
   "The currently configured resources"
   []
   (into {}
-        (map #(vector
-               (first %)
-               (map produce-resource-fn (distinct (second %))))
-             @required-resources)))
+    (map #(vector
+            (first %)
+            (map produce-resource-fn (distinct (second %))))
+      *required-resources*)))
 
 (defmacro defresource
   "defresource is used to define a resource and takes the following arguments:
@@ -137,9 +143,9 @@ args is the argument signature for the resource, and must end with a variadic el
   "Returns the configured resource map for given resources."
   [& body]
   `(do
-     (reset-resources)
-     ~@body
-     (configured-resources)))
+     (with-init-resources nil
+       ~@body
+       (configured-resources))))
 
 (defmacro phase
   "Inline phase definition for use in arguments to the lift method"
@@ -173,7 +179,8 @@ args is the argument signature for the resource, and must end with a variadic el
   "Outputs the resources specified in the body for the specified phases.
    This is useful in testing."
   [[& phases] & body]
-  `(binding [*file-transfers* {}]
+  `(binding [*file-transfers* {}
+             *required-resources* {}]
      (produce-phases
       ~phases *target-tag* *target-template*
       (resource-phases ~@body))))

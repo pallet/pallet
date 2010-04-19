@@ -30,7 +30,7 @@
 
 (deftest tomcat-undeploy-all-test
   (is (= "rm -r -f /var/lib/tomcat6/webapps/*\n"
-        (build-resources [] (build-resources [] (undeploy-all))))))
+        (build-resources [] (undeploy-all)))))
 
 (deftest tomcat-undeploy-test
   (is (= "rm -r -f /var/lib/tomcat6/webapps/ROOT\nrm -f /var/lib/tomcat6/webapps/ROOT.war\nrm -r -f /var/lib/tomcat6/webapps/app\nrm -f /var/lib/tomcat6/webapps/app.war\nrm -r -f /var/lib/tomcat6/webapps/foo\nrm -f /var/lib/tomcat6/webapps/foo.war\n"
