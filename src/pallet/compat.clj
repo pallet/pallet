@@ -11,7 +11,7 @@
                 [json :as json-write]
                 [json :as json-read]))
     (use '(clojure.contrib [io :only [file] :rename {file -file}]))
-    (catch Exception e
+    (catch Throwable e
       (require '(clojure.contrib [duck-streams :as io]
                   [seq-utils :as seq]
                   [str-utils2 :as string]
