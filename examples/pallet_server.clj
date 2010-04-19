@@ -31,12 +31,19 @@
                 :group-id "pallet"
                 :artifact-id "pallet"
                 :maven-opts ""
-                :scm ["http://github.com/hugoduncan/pallet.git"])
+                :scm ["git://github.com/hugoduncan/pallet.git"])
+    (hudson/job :maven2 "pallet-clojure-1.2"
+                :maven-name "default maven"
+                :goals "-Ptestuser -Pclojure-1.2 test"
+                :group-id "pallet"
+                :artifact-id "pallet"
+                :maven-opts ""
+                :scm ["git://github.com/hugoduncan/pallet.git"])
     (hudson/job :maven2 "clj-ssh"
                 :maven-name "default maven"
                 :goals "-Ptestuser test"
                 :group-id "clj-ssh"
                 :artifact-id "clj-ssh"
                 :maven-opts ""
-                :scm ["http://github.com/hugoduncan/clj-ssh.git"])))
+                :scm ["git://github.com/hugoduncan/clj-ssh.git"])))
 
