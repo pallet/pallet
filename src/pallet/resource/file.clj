@@ -3,7 +3,7 @@
   (:use pallet.script
         pallet.stevedore
         [pallet.utils :only [cmd-join]]
-        [pallet.resource :only [defcomponent]]
+        [pallet.resource :only [defresource]]
         clojure.contrib.logging))
 
 (defscript rm [file & options])
@@ -75,5 +75,5 @@
       :touch
       (touch-file path opts))))
 
-(defcomponent file "File management."
+(defresource file "File management."
   file* [filename & options])

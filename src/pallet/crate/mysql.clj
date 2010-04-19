@@ -2,7 +2,7 @@
   (:use
    [pallet.resource.package :only [package package-manager]]
    [pallet.target :only [packager]]
-   [pallet.resource :only [defcomponent]]
+   [pallet.resource :only [defresource]]
    [pallet.stevedore :only [script]]
    [pallet.template :only [deftemplate apply-templates]]))
 
@@ -39,7 +39,7 @@
 (defn mysql-conf* [config]
   (apply-templates my-cnf-template [config]))
 
-(defcomponent mysql-conf
+(defresource mysql-conf
   "my.cnf configuration file for mysql"
   mysql-conf* [config])
 
@@ -48,7 +48,7 @@
   (script (mysql "-u" ~username ~(str "--password=" password)
                  ~(str "<<EOF\n" (.replace sql-script "`" "\\`") "\nEOF"))))
 
-(defcomponent mysql-script
+(defresource mysql-script
   "Execute a mysql script"
   mysql-script* [username password sql-script])
 

@@ -4,7 +4,7 @@
    [pallet.target :only [admin-group]]
    [pallet.stevedore :only [script]]
    [pallet.template]
-   [pallet.resource :only [defresource]]
+   [pallet.resource :only [defresource defaggregate]]
    [pallet.resource.hostinfo :only [dnsdomainname]]
    [pallet.utils :only [as-string]]
    [clojure.contrib.logging]))
@@ -39,9 +39,6 @@
   {{:path "/etc/resolv.conf" :owner "root" :mode "0644"}
    (write domainname nameservers searches sortlist options)})
 
-
-(def resolv-args (atom []))
-
 (defn- ensure-vector [arg]
   (if (vector? arg)
     arg
@@ -67,14 +64,15 @@
    resolv-templates
    (reduce merge-resolve-spec [nil [] [] [] {}] args)))
 
-(defresource resolv "Resolv configuration. Generates a resolv.conf file.
+(defaggregate resolv
+  "Resolv configuration. Generates a resolv.conf file.
 options are:
 
 :search    search order
 :sortlist  sortlist
 
 or one of the resolv.conf options"
-  resolv-args apply-resolv [domainname nameservers & options])
+  apply-resolv [domainname nameservers & options])
 
 
 

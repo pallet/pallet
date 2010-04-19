@@ -3,7 +3,7 @@
   (:use pallet.script
         pallet.stevedore
         [pallet.utils :only [cmd-join]]
-        [pallet.resource :only [defcomponent]]
+        [pallet.resource :only [defresource]]
         [pallet.resource.file :only [chown chgrp chmod]]
         clojure.contrib.logging))
 
@@ -45,5 +45,5 @@
       :touch
       (make-directory path (merge {:p true} opts)))))
 
-(defcomponent directory "Directory management."
+(defresource directory "Directory management."
   directory* [path & options])

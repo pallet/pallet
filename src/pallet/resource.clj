@@ -6,8 +6,8 @@
                 *target-tag* *target-template*]]
         [pallet.utils :only [cmd-join *file-transfers*]]
         [pallet.stevedore :only [script]]
-        [clojure.contrib.def :only [defvar defvar- name-with-attributes]]
-        clojure.contrib.logging))
+        (clojure.contrib core logging
+            [def :only [defvar defvar- name-with-attributes]])))
 
 (pallet.compat/require-contrib)
 
@@ -42,81 +42,101 @@
   `(binding [*phase* (after-phase *phase*)]
      ~@body))
 
-(defn add-invocation
-  "Add an invocation to the current phase"
-  [resources invocation]
-  (assoc resources *phase*
-         (conj (or (resources *phase*) []) invocation)))
-
 (defn invoke-resource
-  "Handle invocation of a resource.  Invocation should add the args to the
-  resources configuration args, and add the resource to the *required-resources*
-  as a [invoke-fn arg-var] tuple."
-  ([invoke-fn args]
-     (set! *required-resources* (add-invocation *required-resources* [invoke-fn args])))
-  ([arg-var invoke-fn args]
-     (swap! arg-var conj args)
-     (set! *required-resources* (add-invocation *required-resources* [invoke-fn arg-var]))))
+  "Registers a resource whose generation is defined by the specified
+   invocation function and arguments that will be applied to that fn
+   when the associated phase is applied to a node.
 
-(defmacro returning [v & body]
-  `(let [return-value# ~v]
-     ~@body
-     return-value#))
+   The invocation can be scheduled within one of two 'executions'
+   (conceptually, sub-phases):
 
-(defn- produce-resource-fn
-  "Create a produce funtion for a given resource invoker, binding its arg var
-  value.  As a side effect, reset the arg var value."
-  [[invoke-fn v]]
-  (if (instance? clojure.lang.IDeref v)
-    (returning (partial invoke-fn @v)
-               (reset! v []))
-    (partial apply invoke-fn v)))
+   :in-sequence - The generated resource will be applied to the node
+        \"in order\", as it is defined lexically in the source crate.
+        This is the default.
+   :aggregated - All aggregated resources are applied to the node
+        in the order they are defined, but before all :in-sequence
+        resources. Note that all of the arguments to any given
+        invocation fn are gathered such that there is only ever one
+        invocation of each fn within each phase."
+  ([invoke-fn args] (invoke-resource invoke-fn args :in-sequence))
+  ([invoke-fn args execution]
+    (set! *required-resources*
+      (update-in *required-resources*
+        [*phase* execution]
+        #(conj (or % []) [invoke-fn args])))))
+
+(defn- group-pairs-by-key
+  "Transforms a seq of key-value pairs, generally some with identical keys,
+   into a seq of pairs (one per unique key in the input seq) where values
+   are the concatenation of all of the values of associated with each key
+   in the original seq.  Key order from the original seq is retained.
+
+   e.g. (group-pairs-by-key [[:a [1 2]] [:b [3 4]] [:a [5 6]] [:c [7 8]]]) =>
+        =>  ([:a ([1 2] [5 6])]
+              [:c ([7 8])]
+              [:b ([3 4])])"
+  [invocations]
+  (loop [groups []
+         [[invoke-fn] & pairs :as all] invocations]
+    (if-not invoke-fn
+      (for [invocations groups]
+        [(ffirst invocations) (concat (map second invocations))])
+      (let [[matching rest] (seq/separate #(= (first %) invoke-fn) all)]
+        (recur (conj groups matching) rest)))))
+
+(defmulti invocations->resource-fns
+  "Given an execution's invocations, will return a seq of
+   functions pre-processed appropriately for that execution."
+  (fn [execution invocations] execution))
+
+(defmethod invocations->resource-fns :in-sequence
+  [_ invocations]
+  (for [[invoke-fn args] (map distinct invocations)]
+    (partial apply invoke-fn args)))
+
+(defmethod invocations->resource-fns :aggregated
+  [_ invocations]
+  (for [[invoke-fn args*] (group-pairs-by-key invocations)]
+    (partial invoke-fn args*)))
+
+(defvar- execution-ordering {:aggregated 10, :in-sequence 20})
 
 (defn configured-resources
   "The currently configured resources"
   []
   (into {}
-    (map #(vector
-            (first %)
-            (map produce-resource-fn (distinct (second %))))
-      *required-resources*)))
+    (for [[phase invocations] *required-resources*]
+      [phase (apply concat
+               (for [[execution invocations] (sort-by execution-ordering invocations)]
+                 (invocations->resource-fns execution invocations)))])))
 
 (defmacro defresource
-  "defresource is used to define a resource and takes the following arguments:
-      [arg-var apply-fn args]
+  "Defines a resource-producing functions.  Takes a name, the
+   \"backing function\" that will actually produce the resource, the
+   argument signature that the function exposes, and optional arguments.
 
-arg-var is a var that will be used to collect the information passed by
-multiple invocations of the resource. It should be initialised with (atom []).
+   Options:
 
-apply-fn is a function that will read arg-var and produce a resource.
-
-args is the argument signature for the resource."
+   :execution - the execution that the specified resource will be applied
+        within (see 'invoke-resource' for details).  The default is
+        :in-sequence"
   [facility & args]
   (let [[facility args] (name-with-attributes facility args)
-        [arg-var apply-fn args] args]
+        [apply-fn args & options] args
+        options (apply hash-map options)]
     `(defn ~facility [~@args]
        (invoke-resource
-        ~arg-var
         ~apply-fn
         ~(if (some #{'&} args)
            `(apply vector ~@(filter #(not (= '& %)) args))
-           `[~@args])))))
+           `[~@args])
+         ~(:execution options :in-sequence)))))
 
-(defmacro defcomponent
-  "defcomponent is used to define a resource and takes the following arguments:
-      [f args]
-
-f is a function that will accept the arguments and produce a resource.
-args is the argument signature for the resource, and must end with a variadic element."
-  [facility & args]
-  (let [[facility args] (name-with-attributes facility args)
-        [f args] args]
-    `(defn ~facility [~@args]
-       (invoke-resource
-        ~f
-        ~(if (some #{'&} args)
-           `(apply vector ~@(filter #(not (= '& %)) args))
-           `[~@args])))))
+(defmacro defaggregate
+  "Shortcut for defining a resource-producing function with an
+   :execution of :aggregate."
+  [name & args]
+  `(defresource ~name ~@(concat args [:execution :aggregated])))
 
 (defn output-resources
   "Invoke all passed resources."

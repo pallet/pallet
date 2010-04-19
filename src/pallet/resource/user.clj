@@ -2,7 +2,7 @@
   pallet.resource.user
   (:require pallet.compat)
   (:use pallet.script
-        [pallet.resource :only [defresource]]
+        [pallet.resource :only [defresource defaggregate]]
         pallet.stevedore
         [clojure.contrib.def :only [defvar-]]
         clojure.contrib.logging))
@@ -89,6 +89,5 @@
 (defn- apply-users [user-args]
   (string/join \newline (map #(apply apply-user %) user-args)))
 
-
-(defresource user "User management.
-" user-args apply-users [username & options])
+(defaggregate user "User management."
+  apply-users [username & options])

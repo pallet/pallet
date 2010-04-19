@@ -2,7 +2,7 @@
   "Service control."
   (:use pallet.script
         pallet.stevedore
-        [pallet.resource :only [defcomponent]]
+        [pallet.resource :only [defresource]]
         clojure.contrib.logging))
 
 (defn service*
@@ -12,7 +12,7 @@
         action (opts :action)]
     (script ( ~(str "/etc/init.d/" service-name) ~(name action)))))
 
-(defcomponent service
+(defresource service
   "Control serives"
   service* [service-name & options])
 

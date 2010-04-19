@@ -4,7 +4,7 @@
    [pallet.utils :only [underscore as-string]]
    [pallet.target :only [admin-group]]
    [pallet.template]
-   [pallet.resource :only [defresource]]
+   [pallet.resource :only [defresource defaggregate]]
    [clojure.contrib.logging]))
 
 (pallet.compat/require-contrib)
@@ -95,8 +95,6 @@
     (defaults default-map)
     (specs spec-map))})
 
-(def sudoer-args (atom []))
-
 (defn- merge-user-spec [m1 m2]
   (cond
    (and (map? m1) (map? m2) (and (= (:host m1) (:host m2))))
@@ -125,7 +123,8 @@
    sudoer-templates
    (sudoer-merge [(array-map) (array-map) (default-specs)] args)))
 
-(defresource sudoers "Sudo configuration. Generates a sudoers file.
+(defaggregate sudoers
+  "Sudo configuration. Generates a sudoers file.
 By default, root and an admin group are already present.
 
 Examples of the arguments are:
@@ -142,6 +141,6 @@ default-map { :default { :fqdn true }
 specs [ { [\"user1\" \"user2\"]
           { :host :TRUSTED
             :KILL { :run-as-user \"operator\" :tags :NOPASSWORD }
-            [\"/usr/bin/*\" \"/usr/local/bin/*\"] { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }
-" sudoer-args apply-sudoers [aliases defaults specs])
+            [\"/usr/bin/*\" \"/usr/local/bin/*\"] { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }"
+  apply-sudoers [aliases defaults specs])
 

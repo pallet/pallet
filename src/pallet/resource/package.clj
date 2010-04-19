@@ -3,7 +3,7 @@
   (:require pallet.compat)
   (:use pallet.script
         pallet.stevedore
-        [pallet.resource :only [defresource]]
+        [pallet.resource :only [defaggregate defresource]]
         [pallet.utils :only [cmd-join]]
         [clojure.contrib.logging]
         [pallet.target :only [packager]]))
@@ -78,20 +78,14 @@
       (throw (IllegalArgumentException.
               (str action " is not a valid action for package resource"))))))
 
-
-(def package-args (atom []))
-
 (defn- apply-packages [package-args]
   (cmd-join
    (cons
     (script (package-manager-non-interactive))
     (map #(apply apply-package %) package-args))))
 
-
-(defresource package "Package management."
-  package-args apply-packages [packagename & options])
-
-
+(defaggregate package "Package management."
+  apply-packages [packagename & options])
 
 (defn add-scope
   "Add a scope to all the existing package sources"
@@ -124,18 +118,15 @@
       (throw (IllegalArgumentException.
               (str action " is not a valid action for package resource"))))))
 
-
-(def package-manager-args (atom []))
-
 (defn- apply-package-manager [package-manager-args]
   (cmd-join
    (map #(apply package-manager* %) package-manager-args)))
 
-(defresource package-manager
+(defaggregate package-manager
   "Package manager controls.
 :multiverse        - enable multiverse
 :update            - update the package manager"
-  package-manager-args apply-package-manager [action & options])
+  apply-package-manager [action & options])
 
 (defn packages
   "Install a list of packages keyed on packager"

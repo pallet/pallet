@@ -7,7 +7,7 @@
    [pallet.stevedore :only [script]]
    [pallet.template]
    [pallet.utils :only [cmd-join]]
-   [pallet.resource :only [defresource defcomponent]]
+   [pallet.resource :only [defresource defaggregate]]
    [pallet.resource.user :only [user-home]]
    [pallet.resource.file :only [chmod chown file*]]
    [pallet.resource.remote-file :only [remote-file*]]
@@ -32,8 +32,6 @@
    (directory* (user-ssh-dir user) :owner user :mode "755")
    (apply-templates authorized-keys-template [user keys])))
 
-(def authorize-key-args (atom []))
-
 (defn- conj-merge [a b]
   (if (vector? a)
     (conj a b)
@@ -46,9 +44,9 @@
     produce-authorize-key
     (reduce #(merge-with conj-merge %1 (apply array-map %2)) {} args))))
 
-(defresource authorize-key
+(defaggregate authorize-key
   "Authorize a public key on the specified user."
-  authorize-key-args apply-authorize-keys [username public-key-string])
+  apply-authorize-keys [username public-key-string])
 
 (defn authorize-key-for-localhost* [user public-key-filename & options]
   (let [options (apply hash-map options)
@@ -64,7 +62,7 @@
        (if-not (grep @(cat @key_file) @auth_file)
          (cat @key_file ">>" @auth_file)))])))
 
-(defcomponent authorize-key-for-localhost
+(defresource authorize-key-for-localhost
   "Authorize a user's public key on the specified user, for ssh access to
   localhost.  The :authorize-for-user option can be used to specify the
   user to who's authorized_keys file is modified."
@@ -82,7 +80,7 @@
        (str ssh-dir "/" key-name ".pub") :owner user :mode 644
        :content public-key-string)])))
 
-(defcomponent install-key
+(defresource install-key
   "Install a ssh private key"
   install-key* [username private-key-name private-key-string public-key-string])
 
@@ -111,7 +109,7 @@
       (file* (script @key_path) :owner user :mode "0600")
       (file* (str (script @key_path) ".pub") :owner user :mode "0644")])))
 
-(defcomponent generate-key
+(defresource generate-key
   "Generate an ssh key pair for the given user. Options are
      :file path     -- output file name
      :type key-type -- key type selection"

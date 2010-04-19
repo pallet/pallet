@@ -5,7 +5,7 @@
    [pallet.resource.exec-script :only [exec-script]]
    [pallet.resource.remote-file :only [remote-file remote-file*]]
    [pallet.resource.resource-when :only [resource-when resource-when-not]]
-   [pallet.resource :only [defcomponent]]
+   [pallet.resource :only [defresource]]
    [pallet.crate.ruby :only [ruby ruby-packages ruby-version]]
    [pallet.resource.user :only [user-home]]
    [pallet.stevedore :only [script defimpl map-to-arg-string]]
@@ -70,7 +70,7 @@
       :delete
       (script (gem "uninstall" ~name ~(select-keys opts [:version :no-ri :no-rdoc]))))))
 
-(defcomponent gem "Gem management."
+(defresource gem "Gem management."
   gem* [name & options])
 
 (defn gem-source* [source & options]
@@ -84,7 +84,7 @@
       :delete
       (script (gem "sources" ~source ~{:remove true})))))
 
-(defcomponent gem-source "Gem source management."
+(defresource gem-source "Gem source management."
   gem-source* [source & options])
 
 (defn gemrc* [m & user?]
@@ -93,5 +93,5 @@
                   :content (.replaceAll (json/encode-to-str m) "[{}]" "")
                   :owner user)))
 
-(defcomponent gemrc "rubygems configuration"
+(defresource gemrc "rubygems configuration"
   gemrc* [m & user?])

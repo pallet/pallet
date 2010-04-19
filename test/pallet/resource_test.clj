@@ -7,8 +7,6 @@
 
 (pallet.compat/require-contrib)
 
-(def test-atom (atom []))
-
 (deftest reset-resources-test
   (with-init-resources {:k :v}
     (reset-resources)
@@ -26,59 +24,48 @@
     (execute-after-phase
      (is (= :after-fred *phase*)))))
 
-(deftest add-invocation-test
-  (with-init-resources nil
-    (is (= {:configure [[:a :b]]}
-          (set! *required-resources* (add-invocation *required-resources* [:a :b]))))
-    (in-phase :fred
-      (is (= {:configure [[:a :b]] :fred [[:c :d]]}
-            (set! *required-resources* (add-invocation *required-resources* [:c :d])))))))
-
 (deftest invoke-resource-test
-  (reset! test-atom [])
   (with-init-resources nil
-    (invoke-resource test-atom identity :a)
-    (is (= [:a] @test-atom))
-    (is (= {:configure [[identity test-atom]]} *required-resources*))
+    (invoke-resource identity :a :aggregated)
+    (is (= identity (-> *required-resources* :configure :aggregated ffirst)))
+    (is (= :a (-> *required-resources* :configure :aggregated first second)))
 
-    (invoke-resource test-atom identity :b)
-    (is (= [:a :b] @test-atom))
-    (is (= {:configure [[identity test-atom][identity test-atom]]}
-          *required-resources*))))
+    (invoke-resource identity :b :in-sequence)
+    (is (= identity (-> *required-resources* :configure :in-sequence ffirst)))
+    (is (= :b (-> *required-resources* :configure :in-sequence first second)))))
 
-(with-private-vars [pallet.resource [produce-resource-fn]]
-  (deftest produce-resource-fn-test
-    (reset! test-atom [])
-    (swap! test-atom conj :a)
-    (let [f (produce-resource-fn [identity test-atom])]
-      (is (= [] @test-atom))
-      (is (= [:a] (f))))))
+(deftest group-pairs-by-key-test
+  (is (= '([1
+            ((0 1 2)
+              [:a :b])]
+           [3 ((\f \o \o))]
+           [2
+            ((0 1 2)
+              ["bar baz"])])
+        (#'pallet.resource/group-pairs-by-key
+          [[1 (range 3)] [3 (seq "foo")] [2 (range 3)] [2 ["bar baz"]] [1 [:a :b]]]))))
 
 (deftest configured-resources-test
-  (reset! test-atom [])
   (with-init-resources nil
-    (invoke-resource test-atom identity :a)
-    (invoke-resource test-atom identity :b)
+    (invoke-resource identity :a :aggregated)
+    (invoke-resource identity :b :aggregated)
     (let [fs (configured-resources)]
       (is (not (.contains "lazy" (str fs))))
-      (is (= [] @test-atom))
-      (reset-resources)
       (is (= [:a :b] ((first (fs :configure))))))))
 
 (defn test-combiner [args]
   (string/join "\n" args))
 
 (deftest defresource-test
-  (reset! test-atom [])
   (with-init-resources nil
-    (defresource test-resource test-atom identity [arg])
+    (defaggregate test-resource identity [arg])
     (test-resource :a)
-    (is (= [[:a]] @test-atom))))
+    (is (= [:a] (-> *required-resources* :configure :aggregated first second)))))
 
 (defn- test-component-fn [arg]
   (str arg))
 
-(defcomponent test-component test-component-fn [arg & options])
+(defresource test-component test-component-fn [arg & options])
 
 (deftest defcomponent-test
   (with-init-resources nil
@@ -103,12 +90,10 @@
           (produce-phases [(phase (test-component :a))] "tag" [] {})))))
 
 (deftest build-resources-test
-  (reset! test-atom [])
   (with-init-resources nil
     (let [s (build-resources []
-              (invoke-resource test-atom test-combiner "a")
-              (invoke-resource test-atom test-combiner "b"))]
-      (is (= [] @test-atom))
+              (invoke-resource test-combiner ["a"])
+              (invoke-resource test-combiner ["b"]))]
       (is (= "a\nb\n" s)))))
 
 (deftest defphases-test

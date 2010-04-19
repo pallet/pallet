@@ -88,7 +88,7 @@
        (str hudson-data-path "/plugins/" (name plugin) ".hpi")
        (apply concat src))])))
 
-(resource/defcomponent plugin
+(resource/defresource plugin
   "Install a hudson plugin.  The plugin should be a keyword.
   :url can be used to specify a string containing the download url"
   plugin* [plugin & options])
@@ -237,7 +237,7 @@
        :mode "g+w"
        :recursive true)])))
 
-(resource/defcomponent job
+(resource/defresource job
   "Configure a hudson job.
 build-type - :maven2
 name - name to be used in links
@@ -273,8 +273,6 @@ options are:
                                         (apply hudson-task-transform task))))
    maven-tasks))
 
-(def hudson-maven-args (atom []))
-
 (defn apply-hudson-maven [args]
   (cmd-join
    [(directory* "/usr/share/tomcat6/.m2" :group (hudson-group-name) :mode "g+w")
@@ -282,11 +280,11 @@ options are:
      (str hudson-data-path "/" *maven-file*)
      :content (apply
                str (hudson-maven-xml
-                    (core/node-type-for-tag target/*target-tag*) args))
+                     (core/node-type-for-tag target/*target-tag*) args))
      :owner hudson-owner
      :group (hudson-group-name))]))
 
 
-(resource/defresource maven
+(resource/defaggregate maven
   "Configure a maven instance for hudson."
-  hudson-maven-args apply-hudson-maven [name version])
+  apply-hudson-maven [name version])

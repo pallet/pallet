@@ -86,7 +86,7 @@
 (defn- test-component-fn [arg]
   (str arg))
 
-(resource/defcomponent test-component test-component-fn [arg & options])
+(resource/defresource test-component test-component-fn [arg & options])
 
 (with-private-vars [pallet.core [node-types]]
   (deftest defnode-test

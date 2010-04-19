@@ -3,7 +3,7 @@
   (:use pallet.script
         pallet.stevedore
         [pallet.utils :only [cmd-join register-file-transfer!]]
-        [pallet.resource :only [defcomponent]]
+        [pallet.resource :only [defresource]]
         [pallet.resource.file :only [adjust-file heredoc]]
         clojure.contrib.logging))
 
@@ -39,7 +39,7 @@
                     (str "Remote file " path " specified without content."))))
           (adjust-file path opts)])))))
 
-(defcomponent remote-file "Remote file with contents management.
+(defresource remote-file "Remote file with contents management.
 Options for specifying the file's content are:
   :url url          - download the specified url to the given filepath
   :content string   - use the specified content directly

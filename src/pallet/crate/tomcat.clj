@@ -5,7 +5,7 @@
    [pallet.core :only [node-type-for-tag]]
    [pallet.target :only [*target-tag*]]
    [pallet.stevedore :only [script]]
-   [pallet.resource :only [defcomponent defresource]]
+   [pallet.resource :only [defresource]]
    [pallet.resource.file :only [heredoc file]]
    [pallet.resource.remote-file :only [remote-file remote-file*]]
    [pallet.resource.exec-script :only [exec-script]]
@@ -95,7 +95,7 @@
    :content (string/join \newline (map output-grants grants))
    :literal true))
 
-(resource/defcomponent policy
+(resource/defresource policy
   "Configure tomcat policies.
 number - determines sequence i which policies are applied
 name - a name for the policy
@@ -109,7 +109,7 @@ grants - a map from codebase to sequence of permissions"
    :content content
    :literal true))
 
-(resource/defcomponent application-conf
+(resource/defresource application-conf
   "Configure tomcat applications.
 name - a name for the policy
 content - an xml application context"
@@ -128,8 +128,6 @@ content - an xml application context"
                            :roles (string/join "," ((second %) :roles))})
            users)])))
 
-(def tomcat-user-args (atom []))
-
 (defn merge-tomcat-users [args]
   (loop [args args
          users {}
@@ -144,13 +142,13 @@ content - an xml application context"
   (let [[roles users] (merge-tomcat-users (apply concat args))]
     (users* roles users)))
 
-(resource/defresource user
+(resource/defaggregate user
   "Configure tomcat users.
    options are:
 
    :role rolename
    username {:password \"pw\" :roles [\"role1\" \"role 2\"]}"
-  tomcat-user-args apply-tomcat-user [& options])
+  apply-tomcat-user [& options])
 
 (def listener-classnames
      {:apr-lifecycle
@@ -553,6 +551,6 @@ content - an xml application context"
              str (tomcat-server-xml
                   (node-type-for-tag *target-tag*) server))))
 
-(resource/defcomponent server-configuration
+(resource/defresource server-configuration
   "Configure tomcat. Accepts a server definition."
   server-configuration* [server])
