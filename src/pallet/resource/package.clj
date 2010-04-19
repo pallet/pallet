@@ -88,8 +88,8 @@
     (map #(apply apply-package %) package-args))))
 
 
-(defresource package "Package management.
-" package-args apply-packages [packagename & options])
+(defresource package "Package management."
+  package-args apply-packages [packagename & options])
 
 
 
