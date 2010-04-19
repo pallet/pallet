@@ -1,6 +1,6 @@
 (ns pallet.crate.sudoers-test
   (:use [pallet.crate.sudoers] :reload-all)
-  (:require [pallet.resource :only [reset-resources build-resources]])
+  (:require [pallet.resource :only [reset-resources build-resources configured-resources]])
   (:use clojure.test
         pallet.test-utils))
 
@@ -46,14 +46,16 @@
 
   (deftest merge-test
     (pallet.resource/with-init-resources nil
-      (reset! sudoer-args [])
       (sudoers {} {} (array-map "user1" [{:host "h1" :ALL {}}]))
       (sudoers {} {} (array-map "user2" {:host "h2" :ALL {}}))
       (is (= [{} {} (array-map "root" {:ALL {:run-as-user :ALL}}
                       "%wheel" {:ALL {:run-as-user :ALL}}
                       "user1" [{:host "h1" :ALL {}}]
                       "user2" {:host "h2" :ALL {}})]
-            (sudoer-merge [{} {} (default-specs)] @sudoer-args)))))
+            (sudoer-merge [{} {} (default-specs)] (->> pallet.resource/*required-resources*
+                                                    :configure
+                                                    :aggregated
+                                                    (map second)))))))
 
   (deftest test-param-string
     (is (= "fqdn" (param-string [:fqdn true])))
