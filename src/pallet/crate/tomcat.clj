@@ -157,9 +157,9 @@ content - an xml application context"
       "org.apache.catalina.core.AprLifecycleListener"
       :jasper
       "org.apache.catalina.core.JasperListener"
-      :server-lifecycle
+      ::server-lifecycle
       "org.apache.catalina.mbeans.ServerLifecycleListener"
-      :global-resources-lifecycle
+      ::global-resources-lifecycle
       "org.apache.catalina.mbeans.GlobalResourcesLifecycleListener"
      :jmx-remote-lifecycle
       "org.apache.catalina.mbeans.JmxRemoteLifecycleListener"
@@ -205,75 +205,77 @@ content - an xml application context"
 
 
 (defn flatten-map
-  "Flatten a map, removing the :pallet-type and specified keys"
+  "Flatten a map, removing all namespaced keywords and specified keys"
   [m & dissoc-keys]
-  (apply concat (apply dissoc m :pallet-type dissoc-keys)))
+  (apply concat (remove (fn [[k v]]
+                          (and (keyword? k) (namespace k)))
+                  (apply dissoc m dissoc-keys))))
 
 (deffragment server-resources-transform
   [global-resources]
-  [:Environment] (transform-if (global-resources :environment) nil)
-  [:Resource] (transform-if (global-resources :resource) nil)
-  [:Transaction] (transform-if (global-resources :transaction) nil)
+  [:Environment] (transform-if (global-resources ::environment) nil)
+  [:Resource] (transform-if (global-resources ::resource) nil)
+  [:Transaction] (transform-if (global-resources ::transaction) nil)
   [:GlobalNamingResources]
   (enlive/do-> ; ensure we have elements to configure
-   (transform-if (global-resources :environment)
+   (transform-if (global-resources ::environment)
                  (enlive/prepend (elt :Environment)))
-   (transform-if (global-resources :resource)
-                 (enlive/prepend (elt :resource)))
-   (transform-if (global-resources :transaction)
+   (transform-if (global-resources ::resource)
+                 (enlive/prepend (elt ::resource)))
+   (transform-if (global-resources ::transaction)
                  (enlive/prepend (elt :Transaction))))
   [:Environment]
-  (transform-if (global-resources :environment)
-   (enlive/clone-for [environment (global-resources :environment)]
+  (transform-if (global-resources ::environment)
+   (enlive/clone-for [environment (global-resources ::environment)]
                      (apply enlive/set-attr (flatten-map environment))))
   [:Resource]
-  (transform-if (global-resources :resource)
-   (enlive/clone-for [resource (global-resources :resource)]
+  (transform-if (global-resources ::resource)
+   (enlive/clone-for [resource (global-resources ::resource)]
                      (apply enlive/set-attr (flatten-map resource))))
   [:Transaction]
-  (transform-if (global-resources :transaction)
-   (enlive/clone-for [transaction (global-resources :transaction)]
+  (transform-if (global-resources ::transaction)
+   (enlive/clone-for [transaction (global-resources ::transaction)]
                      (apply enlive/set-attr (flatten-map transaction)))))
 
 (deffragment engine-transform
   [engine]
-  [:Host] (transform-if (engine :host) nil)
-  [:Valve] (transform-if (engine :valve) nil)
-  [:Realm] (transform-if (engine :realm) nil)
+  [:Host] (transform-if (engine ::host) nil)
+  [:Valve] (transform-if (engine ::valve) nil)
+  [:Realm] (transform-if (engine ::realm) nil)
   [:Engine]
   (enlive/do-> ; ensure we have elements to configure
-   (transform-if (engine :host)
+   (transform-if (engine ::host)
                  (enlive/prepend (elt :Host)))
-   (transform-if (engine :valve)
+   (transform-if (engine ::valve)
                  (enlive/prepend (elt :Valve)))
-   (transform-if (engine :realm)
+   (transform-if (engine ::realm)
                  (enlive/prepend (elt :Realm))))
   [:Host]
-  (transform-if (engine :host)
+  (transform-if (engine ::host)
                 (enlive/clone-for
-                 [host (engine :host)]
+                 [host (engine ::host)]
                  (enlive/do->
                   (apply enlive/set-attr (flatten-map host))
-                  (engine-transform (engine :host)))))
+                  (engine-transform (engine ::host)))))
   [:Valve]
-  (transform-if (engine :valve)
+  (transform-if (engine ::valve)
                 (enlive/clone-for
-                 [valve (engine :valve)]
+                 [valve (engine ::valve)]
                  (apply enlive/set-attr (flatten-map valve))))
   [:Realm]
-  (transform-if (engine :realm)
-                (enlive/set-attr (flatten-map (engine :realm)))))
+  (transform-if (engine ::realm)
+                (enlive/set-attr (flatten-map (engine ::realm)))))
 
 (deffragment service-transform
   [service]
   [:Connector]
-  (enlive/clone-for [connector (service :connector)]
+  (enlive/clone-for [connector (service ::connector)]
                     (apply enlive/set-attr (flatten-map connector)))
   [:Engine]
-  (transform-if (service :engine)
+  (transform-if (service ::engine)
                 (enlive/do->
-                 (apply enlive/set-attr (flatten-map (service :engine)))
-                 (engine-transform (service :engine)))))
+                 (apply enlive/set-attr (flatten-map (service ::engine)))
+                 (engine-transform (service ::engine)))))
 
 (defn tomcat-server-xml
   "Generate server.xml content"
@@ -283,27 +285,30 @@ content - an xml application context"
    (xml-template
     (path-for *server-file*) node-type [server]
     [:Listener]
-    (transform-if (server :listener) nil)
+    (transform-if (server ::listener) nil)
     [:GlobalNamingResources]
-    (transform-if (server :global-resources) nil)
+    (transform-if (server ::global-resources) nil)
+    [:Service] (transform-if (server ::service)
+                 (enlive/clone-for [service (server ::service)]
+                   (service-transform service)))
     [:Server]
     (enlive/do->
      (transform-if (seq (apply concat (select-keys server [:port :shutdown])))
                    (apply enlive/set-attr
                           (apply concat (select-keys server [:port :shutdown]))))
-     (transform-if (server :listener)
+     (transform-if (server ::listener)
                    (enlive/prepend (elt :Listener)))
-     (transform-if (server :global-resources)
+     (transform-if (server ::global-resources)
                    (enlive/prepend
                     (elt :GlobalNamingResources))))
     [:Listener]
-    (transform-if (server :listener)
+    (transform-if (server ::listener)
       (enlive/clone-for
-       [listener (server :listener)]
+       [listener (server ::listener)]
        (apply enlive/set-attr (flatten-map listener))))
     [:GlobalNamingResources]
-    (transform-if (server :global-resources)
-      (server-resources-transform (server :global-resources))))
+    (transform-if (server ::global-resources)
+      (server-resources-transform (server ::global-resources))))
    server))
 
 (defn classname-for
@@ -330,7 +335,7 @@ content - an xml application context"
   ""
   [[members collections options]]
   (let [pallet-type (fn [object]
-                      (and (map? object) (object :pallet-type)))
+                      (and (map? object) (object ::pallet-type)))
         add-member (fn [result object]
                      (if-let [pt (pallet-type object)]
                        (assoc result pt
@@ -349,7 +354,7 @@ content - an xml application context"
 (defmacro pallet-type
   "Create a pallet type-map"
   [type-tag & options]
-  `(assoc (apply extract-options ~@options) :pallet-type ~type-tag))
+  `(assoc (apply extract-options ~@options) ::pallet-type ~type-tag))
 
 (defn listener
   "Define a tomcat listener. listener-type is a classname or a key from
@@ -358,7 +363,7 @@ content - an xml application context"
    For example, to configure the APR SSL support:
      (listener :apr-lifecycle :SSLEngine \"on\" :SSLRandomSeed \"builtin\")"
   [listener-type & options]
-  (pallet-type :listener
+  (pallet-type ::listener
                :className (classname-for listener-type listener-classnames)
                options))
 
@@ -367,17 +372,17 @@ content - an xml application context"
    Options include:
      resources, transactions, environments"
   [& options]
-  (pallet-type :global-resources
-               :collections [:resource :transaction :environment]
+  (pallet-type ::global-resources
+               :collections [::resource ::transaction ::environment]
                options))
 
 (defn environment
   "Define tomcat environment variable."
   ([name value type]
-     (pallet-type :environment
+     (pallet-type ::environment
                   [:name name :value value :type (.getName type)]))
   ([name value type override]
-     (pallet-type :environment
+     (pallet-type ::environment
                   [:name name :value value :type (.getName type)
                    :override override])))
 
@@ -386,7 +391,7 @@ content - an xml application context"
    resource-type is a classname, or on of :sql-datasource.
    Options include:"
   [name resource-type & options]
-  (pallet-type :resource
+  (pallet-type ::resource
                :name name
                :type (classname-for resource-type resource-classnames)
                options))
@@ -399,17 +404,17 @@ content - an xml application context"
 (defn transaction
   "Define tomcat transaction factory."
   [factory-classname]
-  (pallet-type :transaction [:factory factory-classname]))
+  (pallet-type ::transaction [:factory factory-classname]))
 
 (defn service
   "Define a tomcat service"
   [& options]
-  (pallet-type :service :members [:engine] :collections [:connector] options))
+  (pallet-type ::service :members [::engine] :collections [::connector] options))
 
 (defn connector
   "Define a tomcat connector."
   [& options]
-  (pallet-type :connector options))
+  (pallet-type ::connector options))
 
 (defn ssl-jsee-connector
   "Define a SSL connector using JSEE.  This connector can be specified for a
@@ -422,7 +427,7 @@ content - an xml application context"
        :keystoreFile \"${user.home}/.keystore\" :keystorePass \"changeit\")"
   [& options]
   (pallet-type
-   :connector
+   ::connector
    (concat [:port 8443 :protocol "HTTP/1.1" :SSLEnabled "true"
             :maxThreads 150 :scheme "https" :secure "true"
             :clientAuth "false" :sslProtocol "TLS"
@@ -442,7 +447,7 @@ content - an xml application context"
        :SSLCertificateKeyFile=\"/usr/local/ssl/server.pem\")"
   [& options]
   (pallet-type
-   :connector
+   ::connector
    (concat [:port 8443 :protocol "HTTP/1.1" :SSLEnabled "true"
             :maxThreads 150 :scheme "https" :secure "true"
             :clientAuth "optional" :sslProtocol "TLSv1"
@@ -455,7 +460,7 @@ content - an xml application context"
      valves, realm, hosts"
   [name default-host & options]
   (pallet-type
-   :engine :members [:realm] :collections [:valve :host]
+   ::engine :members [::realm] :collections [::valve ::host]
    :name name :defaultHost default-host options))
 
 ;; TODO : Create specialised constructors for each realm
@@ -463,26 +468,26 @@ content - an xml application context"
   "Define a tomcat realm."
   [realm-type & options]
   (pallet-type
-   :realm :className (classname-for realm-type realm-classnames) options))
+   ::realm :className (classname-for realm-type realm-classnames) options))
 
 (defn valve
   "Define a tomcat valve."
   [valve-type & options]
   (pallet-type
-   :valve :className (classname-for valve-type valve-classnames) options))
+   ::valve :className (classname-for valve-type valve-classnames) options))
 
 (defn host
   "Define a tomcat host. Options include:
      valves, contexts, aliases and listeners"
   [name app-base & options]
   (pallet-type
-   :host :collections [:valve :context :alias :listener]
+   ::host :collections [::valve ::context ::alias ::listener]
    :name name :appBase app-base options))
 
 (defn alias
   "Define a tomcat alias."
   [name]
-  (pallet-type :alias [:name name]))
+  (pallet-type ::alias [:name name]))
 
 (defn context
   "Define a tomcat context. Options include: valves, listeners, loader, manager
@@ -490,26 +495,26 @@ content - an xml application context"
    watched-resources"
   [name & options]
   (pallet-type
-   :context
-   :members [:loader :manager :realm]
-   :collections [:valve :listener :resource :resource-link :parameter
-                 :environment :transaction :watched-resource]
+   ::context
+   :members [::loader :manager ::realm]
+   :collections [::valve ::listener ::resource ::resource-link :parameter
+                 ::environment ::transaction :watched-resource]
    options))
 
 (defn loader
   "Define a tomcat class loader."
   [classname options]
-  (pallet-type :loader :className classname options))
+  (pallet-type ::loader :className classname options))
 
 (defn parameter
   "Define a tomcat parameter. Options are :description and :override."
   [name value & options]
-  (pallet-type :parameters :name name :value value options))
+  (pallet-type ::parameters :name name :value value options))
 
 (defn watched-resource
   "Define a tomcat watched resource. Used in a tomcat context."
   [name]
-  (pallet-type :watched-resources [:name name]))
+  (pallet-type ::watched-resources [:name name]))
 
 (defn server
   "Define a tomcat server. Accepts server, listener and a global-resources
@@ -523,9 +528,9 @@ content - an xml application context"
                 :connectionTimeout \"20000\" :redirectPort \"8443\")))"
   [& options]
   (pallet-type
-   :server
-   :members [:global-resources]
-   :collections [:listener :service]
+   ::server
+   :members [::global-resources]
+   :collections [::listener ::service]
    options))
 
 (defn server-configuration*
@@ -535,11 +540,11 @@ content - an xml application context"
      :class-name       imlementation class - org.apache.catalina.Server
      :port             shutdown listen port - 8005
      :shutdown         shutdown command string - SHUTDOWN
-     :listeners        vector of listeners, each described as an attribute/value map.
-                       The listener can be specified using the :listener key and
+     ::listeners        vector of listeners, each described as an attribute/value map.
+                       The listener can be specified using the ::listener key and
                        one of the listener-classname values, or as a :className key.
-     :services         vector of services
-     :global-resources vector of resources."
+     ::services         vector of services
+     ::global-resources vector of resources."
   [server]
   {:pre [*target-tag*]}
   (remote-file*

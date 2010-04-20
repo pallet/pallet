@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [alias])
   (:use [pallet.crate.tomcat] :reload-all)
   (:require
+    [pallet.crate.tomcat :as tc]
    [pallet.template :only [apply-templates]]
    [net.cgrand.enlive-html :as enlive-html]
    [pallet.enlive :as enlive])
@@ -78,31 +79,31 @@
 
 (deftest extract-nested-maps-test
   (is (= {:d 1
-          :c [{:pallet-type :c :v 2} {:pallet-type :c :v 3}]
-          :m {:pallet-type :m :v 1}}
+          :c [{::tc/pallet-type :c :v 2} {::tc/pallet-type :c :v 3}]
+          :m {::tc/pallet-type :m :v 1}}
          (extract-nested-maps
           [#{:m} #{:c}
-           [{:pallet-type :m :v 1}
-            {:pallet-type :c :v 2}
-            {:pallet-type :c :v 3}
+           [{::tc/pallet-type :m :v 1}
+            {::tc/pallet-type :c :v 2}
+            {::tc/pallet-type :c :v 3}
             :d 1]]))))
 
 (deftest pallet-type-test
-  (= {:pallet-type :t :u {:pallet-type :u :v 1} :a 1}
-     (pallet-type :t :member [:u] [:a 1 {:pallet-type :u :v 1}]))
-  (= {:pallet-type :t :a 1}
+  (= {::tc/pallet-type :t :u {::tc/pallet-type :u :v 1} :a 1}
+     (pallet-type :t :member [:u] [:a 1 {::tc/pallet-type :u :v 1}]))
+  (= {::tc/pallet-type :t :a 1}
      (pallet-type :t [:a 1])))
 
 (deftest alias-test
-  (is (= {:pallet-type :alias :name "fred"}
+  (is (= {::tc/pallet-type ::tc/alias :name "fred"}
          (alias "fred"))))
 
 (deftest connector-test
-  (is (= {:pallet-type :connector :port 8443}
+  (is (= {::tc/pallet-type ::tc/connector :port 8443}
          (connector :port 8443))))
 
 (deftest ssl-jsee-connector-test
-  (is (= {:pallet-type :connector
+  (is (= {::tc/pallet-type ::tc/connector
           :maxThreads 150 :protocol "HTTP/1.1" :scheme "https"
           :keystorePass "changeit" :sslProtocol "TLS" :clientAuth "false"
           :SSLEnabled "true" :port 8442 :secure "true"
@@ -110,7 +111,7 @@
          (ssl-jsee-connector :port 8442))))
 
 (deftest ssl-apr-connector-test
-  (is (= {:pallet-type :connector
+  (is (= {::tc/pallet-type ::tc/connector
           :maxThreads 150 :protocol "HTTP/1.1" :scheme "https"
           :sslProtocol "TLSv1" :clientAuth "optional" :SSLEnabled "true"
           :port 8442 :secure "true"
@@ -119,31 +120,31 @@
          (ssl-apr-connector :port 8442))))
 
 (deftest listener-test
-  (is (= {:pallet-type :listener :className "org.apache.catalina.core.JasperListener"}
+  (is (= {::tc/pallet-type ::tc/listener :className "org.apache.catalina.core.JasperListener"}
          (listener :jasper))))
 
 (deftest global-resources-test
-  (is (= {:pallet-type :global-resources}
+  (is (= {::tc/pallet-type ::tc/global-resources}
          (global-resources))))
 
 (deftest host-test
-  (is (= {:pallet-type :host :name "localhost" :appBase "webapps"
-          :valve [{:pallet-type :valve
+  (is (= {::tc/pallet-type ::tc/host :name "localhost" :appBase "webapps"
+          ::tc/valve [{::tc/pallet-type ::tc/valve
                     :className "org.apache.catalina.valves.RequestDumperValve"}]
-          :alias [{:pallet-type :alias :name "www.domain.com"}]}
+          ::tc/alias [{::tc/pallet-type ::tc/alias :name "www.domain.com"}]}
          (host "localhost" "webapps"
            (alias "www.domain.com")
              (valve :request-dumper)))))
 
 (deftest service-test
-  (is (= {:pallet-type :service
-          :connector
-          [{:pallet-type :connector :redirectPort "8443" :connectionTimeout "20000"
+  (is (= {::tc/pallet-type ::tc/service
+          ::tc/connector
+          [{::tc/pallet-type ::tc/connector :redirectPort "8443" :connectionTimeout "20000"
             :port "8080" :protocol "HTTP/1.1"}]
-          :engine {:pallet-type :engine :defaultHost "host" :name "catalina"
-                   :valve
-                   [{:pallet-type :valve
-                     :className "org.apache.catalina.valves.RequestDumperValve"}]}}
+          ::tc/engine {::tc/pallet-type ::tc/engine :defaultHost "host" :name "catalina"
+                       ::tc/valve
+                       [{::tc/pallet-type ::tc/valve
+                         :className "org.apache.catalina.valves.RequestDumperValve"}]}}
          (service
           (engine "catalina" "host"
                   (valve :request-dumper))
@@ -152,29 +153,29 @@
                      :redirectPort "8443")))))
 
 (deftest server-test
-  (is (= {:pallet-type :server :port "123", :shutdown "SHUTDOWNx"
-          :global-resources {:pallet-type :global-resources}
-          :listener
-          [{:pallet-type :listener :className "org.apache"}
-           {:pallet-type :listener
+  (is (= {::tc/pallet-type ::tc/server :port "123", :shutdown "SHUTDOWNx"
+          ::tc/global-resources {::tc/pallet-type ::tc/global-resources}
+          ::tc/listener
+          [{::tc/pallet-type ::tc/listener :className "org.apache"}
+           {::tc/pallet-type ::tc/listener
             :className "org.apache.catalina.core.JasperListener"}]}
          (server
           :port "123" :shutdown "SHUTDOWNx"
           (listener "org.apache")
           (listener :jasper)
           (global-resources))))
-  (is (= {:pallet-type :server :port "123" :shutdown "SHUTDOWNx"
-          :service
-          [{:pallet-type :service
-            :connector
-            [{:pallet-type :connector :redirectPort "8443"
+  (is (= {::tc/pallet-type ::tc/server :port "123" :shutdown "SHUTDOWNx"
+          ::tc/service
+          [{::tc/pallet-type ::tc/service
+            ::tc/connector
+            [{::tc/pallet-type ::tc/connector :redirectPort "8443"
               :connectionTimeout "20000" :port "8080" :protocol "HTTP/1.1"}]
-            :engine
-            {:pallet-type :engine :defaultHost "host" :name "catalina"
-             :host [{:pallet-type :host, :name "localhost", :appBase "webapps"}]
-             :valve [{:pallet-type :valve :className
+            ::tc/engine
+            {::tc/pallet-type ::tc/engine :defaultHost "host" :name "catalina"
+             ::tc/host [{::tc/pallet-type ::tc/host, :name "localhost", :appBase "webapps"}]
+             ::tc/valve [{::tc/pallet-type ::tc/valve :className
                        "org.apache.catalina.valves.RequestDumperValve"}]}}]
-          :global-resources {:pallet-type :global-resources}}
+          ::tc/global-resources {::tc/pallet-type ::tc/global-resources}}
          (server
           :port "123" :shutdown "SHUTDOWNx"
           (global-resources)
@@ -220,7 +221,7 @@
 (deftest server-configuration-test
   (defnode a [])
   (with-target-tag :a
-    (is (= "cat > /var/lib/tomcat6/conf/server.xml <<EOF\n<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWNx\" port=\"123\"><GlobalNamingResources></GlobalNamingResources><Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\"></Listener>\n  \n  \n  \n  \n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"8080\"></Connector>\n    <Engine defaultHost=\"localhost\" name=\"Catalina\">\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t<Valve resolveHosts=\"false\" pattern=\"common\" suffix=\".log\" prefix=\"localhost_access.\" directory=\"logs\" className=\"org.apache.catalina.valves.AccessLogValve\"></Valve>\n      </Host>\n    </Engine>\n  </Service>\n</Server>\nEOF\n"
+    (is (= "cat > /var/lib/tomcat6/conf/server.xml <<EOF\n<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWNx\" port=\"123\"><GlobalNamingResources></GlobalNamingResources><Listener className=\"\"></Listener>\n  \n  \n  \n  \n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"80\"></Connector>\n    <Engine defaultHost=\"host\" name=\"catalina\"><Valve className=\"org.apache.catalina.valves.RequestDumperValve\"></Valve>\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t\n      </Host>\n    </Engine>\n  </Service>\n</Server>\nEOF\n"
            (build-resources []
                             (server-configuration
                              (server
@@ -230,7 +231,7 @@
                               (service
                                (engine "catalina" "host"
                                        (valve :request-dumper))
-                               (connector :port "8080" :protocol "HTTP/1.1"
+                               (connector :port "80" :protocol "HTTP/1.1"
                                           :connectionTimeout "20000"
                                           :redirectPort "8443")))))))
     (is (= "cat > /var/lib/tomcat6/conf/server.xml <<EOF\n<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWN\" port=\"8005\">\n  <Listener className=\"org.apache.catalina.core.JasperListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.ServerLifecycleListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\"></Listener>\n  <GlobalNamingResources>\n    <Resource pathname=\"conf/tomcat-users.xml\" factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\" description=\"User database that can be updated and saved\" type=\"org.apache.catalina.UserDatabase\" auth=\"Container\" name=\"UserDatabase\"></Resource>\n  </GlobalNamingResources>\n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"8080\"></Connector>\n    <Engine defaultHost=\"localhost\" name=\"Catalina\">\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t<Valve resolveHosts=\"false\" pattern=\"common\" suffix=\".log\" prefix=\"localhost_access.\" directory=\"logs\" className=\"org.apache.catalina.valves.AccessLogValve\"></Valve>\n      </Host>\n    </Engine>\n  </Service>\n</Server>\nEOF\n"
