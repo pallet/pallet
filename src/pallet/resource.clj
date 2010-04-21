@@ -99,16 +99,21 @@
   (for [[invoke-fn args*] (group-pairs-by-key invocations)]
     (partial invoke-fn args*)))
 
-(defvar- execution-ordering {:aggregated 10, :in-sequence 20})
+(defvar- execution-ordering-seq {:aggregated 10, :in-sequence 20})
+
+(defn- execution-ordering
+  [item]
+  (execution-ordering-seq (first item)))
 
 (defn configured-resources
   "The currently configured resources"
   []
   (into {}
     (for [[phase invocations] *required-resources*]
-      [phase (apply concat
-               (for [[execution invocations] (sort-by execution-ordering invocations)]
-                 (invocations->resource-fns execution invocations)))])))
+      [phase (apply
+              concat
+              (for [[execution invocations] (sort-by execution-ordering invocations)]
+                (invocations->resource-fns execution invocations)))])))
 
 (defmacro defresource
   "Defines a resource-producing functions.  Takes a name, the

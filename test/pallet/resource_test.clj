@@ -45,13 +45,25 @@
         (#'pallet.resource/group-pairs-by-key
           [[1 (range 3)] [3 (seq "foo")] [2 (range 3)] [2 ["bar baz"]] [1 [:a :b]]]))))
 
+(with-private-vars [pallet.resource [execution-ordering]]
+  (deftest execution-ordering-test
+    (is (= '([:aggregated 1] [:in-sequence 2])
+           (sort-by execution-ordering [[:in-sequence 2] [:aggregated 1]])))))
+
 (deftest configured-resources-test
   (with-init-resources nil
     (invoke-resource identity :a :aggregated)
     (invoke-resource identity :b :aggregated)
     (let [fs (configured-resources)]
       (is (not (.contains "lazy" (str fs))))
-      (is (= [:a :b] ((first (fs :configure))))))))
+      (is (= [:a :b] ((first (fs :configure)))))))
+  (with-init-resources nil
+    (invoke-resource identity :a :aggregated)
+    (invoke-resource identity [:b] :in-sequence)
+    (let [fs (configured-resources)]
+      (is (not (.contains "lazy" (str fs))))
+      (is (= [:a] ((first (fs :configure)))))
+      (is (= :b ((second (fs :configure))))))))
 
 (defn test-combiner [args]
   (string/join "\n" args))
