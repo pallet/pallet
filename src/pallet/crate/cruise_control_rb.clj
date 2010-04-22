@@ -1,7 +1,6 @@
 (ns pallet.crate.cruise-control-rb
  "Installation cruise-control.rb"
  (:require
-  [pallet.core :as core]
   [pallet.stevedore :as stevedore]
   [pallet.resource :as resource]
   [pallet.template :as template]
@@ -78,7 +77,7 @@ cruiscontrol.rb init script."
      :content (utils/load-resource-url
                (template/find-template
                 cruise-control-rb-init-script
-                (core/target-node-type)))
+                (target/node-type)))
      :literal true))
 
 (resource/defresource cruise-control-rb-init

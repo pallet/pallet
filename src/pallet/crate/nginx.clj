@@ -1,7 +1,7 @@
 (ns pallet.crate.nginx
   "Crate for nginx management functions"
   (:require
-   [pallet.core :as core]
+   [pallet.target :as target]
    [pallet.resource :as resource]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
@@ -129,7 +129,7 @@
      :content (utils/load-resource-url
                (template/find-template
                 nginx-init-script
-                (core/target-node-type)))
+                (target/node-type)))
      :literal true))
 
 (resource/defresource init

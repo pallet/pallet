@@ -13,7 +13,7 @@
    [pallet.crate.tomcat :as tomcat]
    [net.cgrand.enlive-html :as xml]
    [pallet.enlive :as enlive]
-   [pallet.core :as core]
+   [pallet.target :as target]
    [pallet.resource :as resource]))
 
 (def hudson-data-path "/var/lib/hudson")
@@ -239,7 +239,7 @@
        :content
        (output-build-for
         build-type
-        (core/target-node-type)
+        (target/node-type)
         (opts :scm-type)
         (normalise-scms (opts :scm))
         (dissoc opts :scm :scm-type)))
@@ -292,7 +292,7 @@ options are:
      (str hudson-data-path "/" *maven-file*)
      :content (apply
                str (hudson-maven-xml
-                    (core/target-node-type) args))
+                    (target/node-type) args))
      :owner hudson-owner
      :group (hudson-group-name))]))
 

@@ -1,8 +1,9 @@
 (ns pallet.resource
   "Resource definition interface."
-  (:require pallet.compat)
-  (:use [pallet.target
-         :only [with-target *target-node* *target-node-type*]]
+  (:require
+   pallet.compat
+   [pallet.target :as target])
+  (:use
         [pallet.utils :only [cmd-join *file-transfers*]]
         [pallet.stevedore :only [script]]
         (clojure.contrib core logging
@@ -185,7 +186,7 @@
   "Binds the target tag and template and outputs the
    resources specified in the body for the given phases."
   [[& phases] node node-type phase-map]
-  (with-target node node-type
+  (target/with-target node node-type
     (string/join
       ""
       (map (fn [phase]
@@ -201,7 +202,7 @@
   `(binding [*file-transfers* {}
              *required-resources* {}]
      (produce-phases
-      ~phases *target-node* *target-node-type*
+      ~phases (target/node) (target/node-type)
       (resource-phases ~@body))))
 
 

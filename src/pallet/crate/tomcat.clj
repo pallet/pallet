@@ -563,7 +563,7 @@ content - an xml application context"
   (remote-file*
    (str tomcat-doc-root "conf/server.xml")
    :content (apply
-             str (tomcat-server-xml (core/target-node-type) server))))
+             str (tomcat-server-xml (target/node-type) server))))
 
 (resource/defresource server-configuration
   "Configure tomcat. Accepts a server definition."

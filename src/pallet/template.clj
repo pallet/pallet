@@ -3,10 +3,10 @@
   (:require
    pallet.compat
    [pallet.strint :as strint]
+   [pallet.target :as target]
    [pallet.utils :as utils])
   (:use [pallet.stevedore :only [script]]
         [pallet.resource.file]
-        [pallet.core :only [node-type]]
         [clojure.contrib.logging]))
 
 (pallet.compat/require-contrib)
@@ -57,7 +57,7 @@
   [path values]
   (strint/<<!
    (utils/load-resource-url
-    (find-template path (pallet.core/target-node-type))) values))
+    (find-template path (target/node-type))) values))
 
 
 

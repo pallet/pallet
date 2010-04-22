@@ -34,8 +34,6 @@ tag as a configuration target.
     :only [run-nodes destroy-node nodes tag running? compute-service? *compute*]]
    clojure.contrib.logging
    clojure.contrib.def)
-  (:require
-   [pallet.target :as target])
   (:import org.jclouds.compute.domain.OsFamily
            org.jclouds.compute.options.TemplateOptions
            org.jclouds.compute.domain.NodeMetadata))
@@ -83,11 +81,6 @@ When passing a username the following options can be specified:
   "Return the node type definition that matches the specified tag."
   [tag]
   (@node-types tag))
-
-(defn target-node-type
-  "Obtain the current target node type."
-  []
-  (node-type-for-tag (target/tag)))
 
 (defmacro defnode
   "Define a node type.  The name is used for the node tag. Options are:

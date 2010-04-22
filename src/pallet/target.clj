@@ -20,6 +20,12 @@
   ([] (template *target-node-type*))
   ([node-type] (:image node-type)))
 
+(defn node
+  [] *target-node*)
+
+(defn node-type
+  [] *target-node-type*)
+
 (defn os
   "OS family"
   ([] (os (template)))
