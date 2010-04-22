@@ -2,8 +2,7 @@
   "Resource definition interface."
   (:require pallet.compat)
   (:use [pallet.target
-         :only [with-target-template with-target-tag
-                *target-tag* *target-template*]]
+         :only [with-target *target-node* *target-node-type*]]
         [pallet.utils :only [cmd-join *file-transfers*]]
         [pallet.stevedore :only [script]]
         (clojure.contrib core logging
@@ -99,11 +98,7 @@
   (for [[invoke-fn args*] (group-pairs-by-key invocations)]
     (partial invoke-fn args*)))
 
-(defvar- execution-ordering-seq {:aggregated 10, :in-sequence 20})
-
-(defn- execution-ordering
-  [item]
-  (execution-ordering-seq (first item)))
+(defvar- execution-ordering {:aggregated 10, :in-sequence 20})
 
 (defn configured-resources
   "The currently configured resources"
@@ -112,7 +107,7 @@
     (for [[phase invocations] *required-resources*]
       [phase (apply
               concat
-              (for [[execution invocations] (sort-by execution-ordering invocations)]
+              (for [[execution invocations] (sort-by (comp execution-ordering key) invocations)]
                 (invocations->resource-fns execution invocations)))])))
 
 (defmacro defresource
@@ -189,16 +184,15 @@
 (defn produce-phases
   "Binds the target tag and template and outputs the
    resources specified in the body for the given phases."
-  [[& phases] tag template phase-map]
-  (with-target-template template
-    (with-target-tag tag
-      (string/join
-        ""
-        (map (fn [phase]
-               (if (keyword? phase)
-                 (output-resources phase phase-map)
-                 (output-resources (first phase) (second phase))))
-          (phase-list phases))))))
+  [[& phases] node node-type phase-map]
+  (with-target node node-type
+    (string/join
+      ""
+      (map (fn [phase]
+             (if (keyword? phase)
+               (output-resources phase phase-map)
+               (output-resources (first phase) (second phase))))
+        (phase-list phases)))))
 
 (defmacro build-resources
   "Outputs the resources specified in the body for the specified phases.
@@ -207,7 +201,7 @@
   `(binding [*file-transfers* {}
              *required-resources* {}]
      (produce-phases
-      ~phases *target-tag* *target-template*
+      ~phases *target-node* *target-node-type*
       (resource-phases ~@body))))
 
 

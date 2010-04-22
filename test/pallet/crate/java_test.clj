@@ -8,10 +8,10 @@
         [pallet.stevedore :only [script]]
         [pallet.utils :only [cmd-join]]))
 
-(def pkg-config (build-resources
-                 [] (package-manager :universe)
-                 (package-manager :multiverse)
-                 (package-manager :update)))
+(def pkg-config (build-resources []
+                  (package-manager :universe)
+                  (package-manager :multiverse)
+                  (package-manager :update)))
 
 (def noninteractive (script (package-manager-non-interactive)))
 

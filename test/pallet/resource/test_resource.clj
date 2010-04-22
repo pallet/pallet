@@ -1,7 +1,7 @@
 (ns pallet.resource.test-resource
   (:require pallet.compat)
   (:use
-   [pallet.target :only [admin-group *target-tag* *target-template*]]
+   [pallet.target :only [admin-group tag template]]
    [pallet.stevedore :only [script]]
    [pallet.template]
    [pallet.resource :only [defresource defaggregate]]
@@ -11,7 +11,7 @@
 (pallet.compat/require-contrib)
 
 (defn- apply-test-resources [args]
-  (str "test-resource:" *target-tag* *target-template*))
+  (str "test-resource:" (tag) (template)))
 
 (defaggregate test-resource
   apply-test-resources [])

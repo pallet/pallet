@@ -48,7 +48,7 @@
 (with-private-vars [pallet.resource [execution-ordering]]
   (deftest execution-ordering-test
     (is (= '([:aggregated 1] [:in-sequence 2])
-           (sort-by execution-ordering [[:in-sequence 2] [:aggregated 1]])))))
+           (sort-by (comp execution-ordering first) [[:in-sequence 2] [:aggregated 1]])))))
 
 (deftest configured-resources-test
   (with-init-resources nil

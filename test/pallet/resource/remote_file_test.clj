@@ -21,7 +21,7 @@
 
 (deftest remote-file*-test
   (core/defnode n [])
-  (target/with-target-tag :n
+  (target/with-target nil {:tag :n}
     (is (= "cat > path <<EOF\na 1\n\nEOF\n\n"
            (remote-file* "path" :template "template/strint" :values {'a 1})))))
 

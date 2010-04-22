@@ -87,8 +87,7 @@ When passing a username the following options can be specified:
 (defn target-node-type
   "Obtain the current target node type."
   []
-  {:pre [target/*target-tag*]}
-  (node-type-for-tag target/*target-tag*))
+  (node-type-for-tag (target/tag)))
 
 (defmacro defnode
   "Define a node type.  The name is used for the node tag. Options are:
@@ -208,16 +207,16 @@ script that is run with root privileges immediatly after first boot."
   "Apply a list of phases to a sequence of nodes"
   [compute node phases user]
   (info (str "apply-phases-to-node " (tag node)))
-  (let [node-info (node-type node)
+  (let [node-type (node-type node)
         phases (if (seq phases) phases [:configure])
         port (ssh-port node)
         options (if port [:port port] [])]
-    (if node-info
+    (if node-type
       (doseq [phase phases]
         (with-init-resources nil
           (binding [*file-transfers* {}]
-            (when-let [script (produce-phases [phase] (node-info :tag) (node-info :image)
-                                (node-info :phases))]
+            (when-let [script (produce-phases [phase] node node-type
+                                (node-type :phases))]
               (info script)
               (apply execute-script script node user options)))))
       (error (str "Could not find node type for node " (tag node))))))

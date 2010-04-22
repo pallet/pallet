@@ -1,16 +1,16 @@
 (ns pallet.script-test
   (:use [pallet.script] :reload-all)
-  (:use [pallet.target :only [with-target-template]]
-        clojure.test
+  (:require [pallet.target :as target])
+  (:use clojure.test
         pallet.test-utils))
 
 (with-private-vars [pallet.script [matches? more-explicit?]]
   (deftest matches?-test
-    (with-target-template [:ubuntu]
+    (target/with-target nil {:image [:ubuntu]}
       (is (matches? [:ubuntu]))
       (is (not (matches? [:fedora])))
       (is (not (matches? [:ubuntu :smallest]))))
-    (with-target-template [:ubuntu :smallest]
+    (target/with-target nil {:image [:ubuntu :smallest]}
       (is (matches? [:ubuntu]))
       (is (matches? [:smallest]))
       (is (not (matches? [:fedora])))

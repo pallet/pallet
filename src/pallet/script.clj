@@ -1,7 +1,7 @@
 (ns
   pallet.script
   "Base infrastructure for script generation"
-  (:use [pallet.target :only [*target-template*]]
+  (:use [pallet.target :only [template]]
         clojure.contrib.logging))
 
 ;; map from script name to implementations
@@ -24,7 +24,7 @@
   (str "(" (apply str (interpose " " args)) ")"))
 
 (defn- match-fn [fn-key]
-  (some #(if (set? fn-key) (fn-key %) (= fn-key %)) *target-template*))
+  (some #(if (set? fn-key) (fn-key %) (= fn-key %)) (template)))
 
 (defn- matches?
   "Return the keys that match the template, or nil if any of the keys are not in

@@ -3,25 +3,31 @@
 
 ;; A conscious decision was made to use rebindable vars here, as passing them around
 ;; explicitly would create a lot of noise in resources, templates and crates
-(def *target-template* nil)
-(def *target-tag* nil)
+(def *target-node* nil)
+(def *target-node-type* nil)
 
-(defmacro with-target-template [template & body]
-  `(binding [*target-template* ~template]
+(defmacro with-target
+  [node node-type & body]
+  `(binding [*target-node* ~node
+             *target-node-type* ~node-type]
     ~@body))
 
-(defmacro with-target-tag [tag & body]
-  `(binding [*target-tag* ~tag]
-    ~@body))
+(defn tag
+  ([] (tag *target-node-type*))
+  ([node-type] (:tag node-type)))
+
+(defn template
+  ([] (template *target-node-type*))
+  ([node-type] (:image node-type)))
 
 (defn os
   "OS family"
-  ([] (os *target-template*))
+  ([] (os (template)))
   ([target] (:os-family target)))
 
 (defn admin-group
   "Default administrator group"
-  ([] (admin-group *target-template*))
+  ([] (admin-group (template)))
   ([target]
      (condp = (os target)
        :ubuntu "adm"
@@ -29,7 +35,7 @@
 
 (defn packager
   "Default package manager"
-  ([] (packager *target-template*))
+  ([] (packager (template)))
   ([target]
      (cond
       (some #(#{:ubuntu :debian :jeos} %) target)

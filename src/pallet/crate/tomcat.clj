@@ -19,6 +19,7 @@
    [pallet.resource.file :as file]
    [pallet.resource.directory :as directory]
    [pallet.resource.service :as service]
+   [pallet.target :as target]
    [net.cgrand.enlive-html :as enlive]))
 
 (pallet.compat/require-contrib)

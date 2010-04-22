@@ -65,7 +65,7 @@ EOF
 
 (deftest interpolate-template-test
   (core/defnode n [])
-  (target/with-target-tag :n
+  (target/with-target nil {:tag :n}
     (let [a 1]
       (is (= "a 1\n"
              (interpolate-template "template/strint" (strint/capture-values a)))))))
