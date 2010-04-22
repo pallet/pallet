@@ -34,7 +34,7 @@
 
 (defn option-args
   "Output a set of command line switches from a sequence of options"
-  [& options]
+  [options]
   (let [m (if (first options) (apply hash-map options) {})
         assign (m :assign)
         underscore (m :underscore)]
@@ -84,10 +84,11 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['if 'if-not '= 'aget 'fn 'return 'set! 'var 'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists?]))
+(def special-forms (set ['if 'if-not '= 'aget 'fn 'return 'set! 'var 'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists? 'not]))
 
 (def infix-operators (set ['+ '- '/ '* '% '== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '||]))
-(def logical-operators (set ['== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '|| 'file-exists?]))
+(def logical-operators (set ['== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '|| 'file-exists? 'not]))
+(def quoted-operators (disj logical-operators 'file-exists?))
 
 (def infix-conversions
      {'&& "-a"
@@ -107,9 +108,13 @@
 (defn logical-operator? [expr]
   (contains? logical-operators expr))
 
+(defn quoted-operator? [expr]
+  (contains? quoted-operators expr))
+
 (defn emit-quoted-if-not-subexpr [f expr]
   (let [s (emit expr)]
     (if (or (.startsWith s "\\(")
+            (.startsWith s "!")
             (.startsWith s "-"))
       s
       (f s))))
@@ -119,13 +124,16 @@
     (throw (Exception. "not supported yet")))
   (let [open (if (logical-operator? operator) "\\( " "(")
         close (if (logical-operator? operator) " \\)" ")")
-        quoting (if (logical-operator? operator) add-quotes identity)]
+        quoting (if (quoted-operator? operator) add-quotes identity)]
     (str open (emit-quoted-if-not-subexpr quoting (first args)) " "
          (get infix-conversions operator operator)
          " " (emit-quoted-if-not-subexpr quoting (second args)) close)))
 
 (defmethod emit-special 'file-exists? [type [file-exists? path]]
   (str "-e " (emit path)))
+
+(defmethod emit-special 'not [type [not expr]]
+  (str "! " (emit expr)))
 
 (defmethod emit-special 'local [type [local name expr]]
   (str "local " (emit name) "=" (emit expr)))

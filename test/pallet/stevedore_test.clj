@@ -81,7 +81,13 @@
   (is (= "not foo\n"
          (bash-out (script (if (== foo bar)
                              (do (echo "foo"))
-                             (do (echo "not foo"))))))))
+                             (do (echo "not foo")))))))
+  (is (= "if [ -e file1 ]; then echo foo;fi\n"
+         (script (if (file-exists? "file1") (echo "foo")))))
+  (is (= "if [ ! -e file1 ]; then echo foo;fi\n"
+         (script (if (not (file-exists? "file1")) (echo "foo")))))
+  (is (= "if [ \\( ! -e file1 -o \\( \"a\" == \"b\" \\) \\) ]; then echo foo;fi\n"
+           (script (if (|| (not (file-exists? "file1")) (== "a" "b")) (echo "foo"))))))
 
 (deftest if-nested-test
   (is (= "if [ \\( \"foo\" == \"bar\" \\) ]; then
