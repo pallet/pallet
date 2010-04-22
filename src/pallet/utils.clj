@@ -177,6 +177,13 @@
 
 (def prolog "#!/usr/bin/env bash\n")
 
+(defn- strip-sudo-password
+  "Elides the user's password or sudo-password from the given ssh output."
+  [#^String s user]
+  (.replace s
+    (format "\"%s\"" (or (:password user) (:sudo-password user)))
+    "XXXXXXX"))
+
 (defn sudo-cmd-for [user]
   (if (or (= (user :username) "root") (user :no-sudo))
     ""
@@ -215,16 +222,19 @@
               (error (str "Couldn't chmod script : " ) (chmod-result :err))))
           (let [script-result (ssh
                                 session
-                                (str (sudo-cmd-for user)
-                                     " ~" (:username user) "/" tmpfile)
+                                ;; using :in forces a shell session, rather than exec; some
+                                ;; services check for a shell session before detaching
+                                ;;    (couchdb being one prime example)
+                                :in (str (sudo-cmd-for user)
+                                      " ~" (:username user) "/" tmpfile)
                                 :return-map true
                                 :pty true)]
             (if (zero? (script-result :exit))
-              (info (script-result :out))
+              (info (strip-sudo-password (script-result :out) user))
               (do
-                (error (str "Exit status : " (script-result :exit)))
-                (error (str "Output      : " (script-result :out)))
-                (error (str "Error output: " (script-result :err)))))
+                (error (str "Exit status " (script-result :exit)))
+                (error (str "Output      : " (strip-sudo-password (script-result :out) user)))
+                (error (str "Error output: " (strip-sudo-password (script-result :err) user)))))
             (ssh session (str "rm " tmpfile))
             (doseq [[file remote-name] *file-transfers*]
               (ssh session (str "rm " remote-name)))
