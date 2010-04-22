@@ -2,8 +2,6 @@
   :description "Pallet - provisioning of compute nodes using jclouds"
   :java-source-path "java"
   :javac-fork "true"
-  :repositories [["build.clojure.org" "http://build.clojure.org/releases/"]
-		 ["snaphsotbuild.clojure.org" "http://build.clojure.org/snapshots/"]]
   :dependencies [[org.clojure/clojure "1.1.0"]
 		 [org.clojure/clojure-contrib "1.1.0"]
                  [org.jclouds/jclouds-blobstore "1.0-SNAPSHOT"]
@@ -28,7 +26,9 @@
   :dev-dependencies [[leiningen/lein-swank "1.2.0-SNAPSHOT"]
 		     [leiningen/lein-javac "1.0.0"]
                      [autodoc "0.7.0"]]
-  :repositories [["jclouds" "http://jclouds.googlecode.com/svn/repo"]
+  :repositories [["build.clojure.org" "http://build.clojure.org/releases/"]
+		 ["snaphsotbuild.clojure.org" "http://build.clojure.org/snapshots/"]
+                 ["jclouds" "http://jclouds.googlecode.com/svn/repo"]
                  ["jclouds-snapshot" "http://jclouds.rimuhosting.com/maven2/snapshots"]]
   :autodoc {:name "Pallet"
 	    :description "Pallet is used to start provision compute nodes using jclouds and chef."

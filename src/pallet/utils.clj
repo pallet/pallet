@@ -33,10 +33,25 @@
     (when resource
       (.getFile resource))))
 
+
 (defn load-resource
   [name]
   (let [loader (.getContextClassLoader (Thread/currentThread))]
     (.getResourceAsStream loader name)))
+
+(defn load-resource-url
+  [name]
+  (with-open [stream (.getContent name)
+              r (new java.io.BufferedReader
+                     (new java.io.InputStreamReader
+                          stream (.name (java.nio.charset.Charset/defaultCharset))))]
+    (let [sb (new StringBuilder)]
+      (loop [c (.read r)]
+        (if (neg? c)
+          (str sb)
+          (do
+            (.append sb (char c))
+            (recur (.read r))))))))
 
 (defn slurp-resource
   "Reads the resource named by name using the encoding enc into a string
@@ -207,9 +222,9 @@
             (if (zero? (script-result :exit))
               (info (script-result :out))
               (do
-                (error (str "Exit status " (script-result :exit)))
-                (error (script-result :out))
-                (error (script-result :err))))
+                (error (str "Exit status : " (script-result :exit)))
+                (error (str "Output      : " (script-result :out)))
+                (error (str "Error output: " (script-result :err)))))
             (ssh session (str "rm " tmpfile))
             (doseq [[file remote-name] *file-transfers*]
               (ssh session (str "rm " remote-name)))
@@ -228,3 +243,12 @@
        (info (result :out))
        result)
      (finally  (.delete tmp)))))
+
+(defn map-with-keys-as-symbols
+  [m]
+  (letfn [(to-symbol [x]
+                     (cond
+                      (symbol? x) x
+                      (string? x) (symbol x)
+                      (keyword? x) (symbol (name x))))]
+    (zipmap (map to-symbol (keys m)) (vals m))))

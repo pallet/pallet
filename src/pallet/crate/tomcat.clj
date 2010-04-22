@@ -3,7 +3,6 @@
   (:refer-clojure :exclude [alias])
   (:use
    [pallet.core :only [node-type-for-tag]]
-   [pallet.target :only [*target-tag*]]
    [pallet.stevedore :only [script]]
    [pallet.resource :only [defresource]]
    [pallet.resource.file :only [heredoc file]]
@@ -16,6 +15,9 @@
   (:require
     pallet.compat
    [pallet.resource :as resource]
+   [pallet.core :as core]
+   [pallet.resource.file :as file]
+   [pallet.resource.directory :as directory]
    [pallet.resource.service :as service]
    [net.cgrand.enlive-html :as enlive]))
 
@@ -31,7 +33,12 @@
 
 (defn tomcat
   "Install tomcat"
-  [] (package "tomcat6"))
+  [& options]
+  (apply package "tomcat6" options)
+  (let [options (apply hash-map options)]
+    (when (options :purge)
+      (directory/directory
+       tomcat-doc-root :action :delete :recursive true :force true))))
 
 (defmacro with-restart
   [& body]
@@ -89,31 +96,39 @@
     "grant %s {\n  %s;\n};" (or code-base "") (string/join ";\n  " permissions))))
 
 (defn policy*
-  [number name grants]
-  (remote-file*
-   (str tomcat-config-root "policy.d/" number name ".policy")
-   :content (string/join \newline (map output-grants grants))
-   :literal true))
+  [number name grants & options]
+  (let [policy-file (str tomcat-config-root "policy.d/" number name ".policy")
+        options (merge {:action :create} (apply hash-map options))]
+    (condp = (options :action)
+      :create (remote-file*
+               policy-file
+               :content (string/join \newline (map output-grants grants))
+               :literal true)
+      :remove (file/file* policy-file :action :delete))))
 
 (resource/defresource policy
   "Configure tomcat policies.
 number - determines sequence i which policies are applied
 name - a name for the policy
 grants - a map from codebase to sequence of permissions"
-  policy* [number name grants])
+  policy* [number name grants & options])
 
 (defn application-conf*
-  [name content]
-  (remote-file*
-   (str tomcat-config-root "Catalina/localhost/" name ".xml")
-   :content content
-   :literal true))
+  [name content & options]
+  (let [app-file (str tomcat-config-root "Catalina/localhost/" name ".xml")
+        options (merge {:action :create} (apply hash-map options))]
+    (condp = (options :action)
+      :create (remote-file*
+               app-file
+               :content content
+               :literal true)
+      :remove (file/file* app-file :action :delete))))
 
 (resource/defresource application-conf
   "Configure tomcat applications.
 name - a name for the policy
 content - an xml application context"
-  application-conf* [name content])
+  application-conf* [name content & options])
 
 
 (defn users*
@@ -544,12 +559,10 @@ content - an xml application context"
      ::services         vector of services
      ::global-resources vector of resources."
   [server]
-  {:pre [*target-tag*]}
   (remote-file*
    (str tomcat-doc-root "conf/server.xml")
    :content (apply
-             str (tomcat-server-xml
-                  (node-type-for-tag *target-tag*) server))))
+             str (tomcat-server-xml (core/target-node-type) server))))
 
 (resource/defresource server-configuration
   "Configure tomcat. Accepts a server definition."

@@ -2,8 +2,10 @@
   "Service control."
   (:use pallet.script
         pallet.stevedore
-        [pallet.resource :only [defresource]]
-        clojure.contrib.logging))
+        clojure.contrib.logging)
+  (:require
+   [pallet.resource.remote-file :as remote-file]
+   [pallet.resource :as resource]))
 
 (defn service*
   [service-name & options]
@@ -12,7 +14,7 @@
         action (opts :action)]
     (script ( ~(str "/etc/init.d/" service-name) ~(name action)))))
 
-(defresource service
+(resource/defresource service
   "Control serives"
   service* [service-name & options])
 
@@ -24,3 +26,14 @@
      ~@body
      (service service# :action :start)))
 
+(defn init-script*
+  "Install an init script.  Sources as for remote-file."
+  [name & options]
+  (let [filename (str "/etc/init.d/" name)]
+    (apply remote-file/remote-file*
+           filename :owner "root" :group "root" :mode "0755"
+           options)))
+
+(resource/defresource init-script
+  "Install an init script.  Sources as for remote-file."
+  init-script* [name & options])

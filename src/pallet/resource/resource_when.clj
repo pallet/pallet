@@ -18,7 +18,11 @@
         (if ~condition
           (do (unquote (build-resources [] ~@resources))))))]))
 
-(defmacro resource-when-not [condition & resources]
+;; This is a macro, so that the condition can be wrapped in a function
+;; preventing capture of its literal value, and ensuring that it is
+;; specialised on target node
+(defmacro resource-when-not
+  [condition & resources]
   `(invoke-resource
     exec-when*
     [(fn []

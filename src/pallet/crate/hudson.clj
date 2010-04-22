@@ -14,8 +14,7 @@
    [net.cgrand.enlive-html :as xml]
    [pallet.enlive :as enlive]
    [pallet.core :as core]
-   [pallet.resource :as resource]
-   [pallet.target :as target]))
+   [pallet.resource :as resource]))
 
 (def hudson-data-path "/var/lib/hudson")
 (def hudson-owner "root")
@@ -71,6 +70,19 @@
  </Context>"
               hudson-data-path))
     (tomcat/deploy file "hudson")))
+
+(defn tomcat-undeploy
+  "Remove hudson on tomcat"
+  []
+  (trace (str "Hudson - uninistall from tomcat"))
+  (reset! hudson-user (tomcat/tomcat-user-name))
+  (reset! hudson-group (tomcat/tomcat-group-name))
+
+  (tomcat/undeploy "hudson")
+  (let [file (str hudson-data-path "/hudson.war")]
+    (tomcat/policy 99 "hudson" nil :action :remove)
+    (tomcat/application-conf "hudson" nil :action :remove))
+  (directory hudson-data-path :action :delete :force true :recursive true))
 
 (def hudson-plugins
      {:git {:url "https://hudson.dev.java.net/files/documents/2402/135478/git.hpi"
@@ -227,7 +239,7 @@
        :content
        (output-build-for
         build-type
-        (core/node-type-for-tag target/*target-tag*)
+        (core/target-node-type)
         (opts :scm-type)
         (normalise-scms (opts :scm))
         (dissoc opts :scm :scm-type)))
@@ -280,7 +292,7 @@ options are:
      (str hudson-data-path "/" *maven-file*)
      :content (apply
                str (hudson-maven-xml
-                     (core/node-type-for-tag target/*target-tag*) args))
+                    (core/target-node-type) args))
      :owner hudson-owner
      :group (hudson-group-name))]))
 

@@ -22,10 +22,10 @@
   (aptitude install -y ~(option-args options) ~package))
 
 (defimpl remove-package :default [package & options]
-  (aptitude remove ~(option-args options) ~package))
+  (aptitude remove -y ~(option-args options) ~package))
 
 (defimpl purge-package :default [package & options]
-  (aptitude purge ~(option-args options) ~package))
+  (aptitude purge -y  ~(option-args options) ~package))
 
 (defimpl update-package-list [#{:centos :rhel}] [& options]
   (yum makecache ~(option-args options)))
