@@ -5,7 +5,17 @@
         [pallet.utils :only [cmd-join register-file-transfer!]]
         [pallet.resource :only [defresource]]
         [pallet.resource.file :only [adjust-file heredoc]]
-        clojure.contrib.logging))
+        clojure.contrib.logging)
+  (:require
+   [pallet.template :as template]
+   [clojure.contrib.def :as def]))
+
+(def/defvar
+  content-options
+  [:local-file :remote-file :url :md5 :content :literal :template :values
+   :action]
+  "A vector of the options accepted by remote-file.  Can be used for option
+  forwarding when calling remote-file from other crates.")
 
 (defn remote-file*
   [path & options]
@@ -16,14 +26,14 @@
             content (opts :content)
             md5 (opts :md5)
             local-file (opts :local-file)
-            remote-file (opts :remote-file)]
+            remote-file (opts :remote-file)
+            template-name (opts :template)]
         (cmd-join
           [(cond
             (and url md5) (script
-                           (if-not (file-exists? ~path)
-                             (do (if-not
-                                     (== ~md5 @(md5sum ~path "|" cut "-f1 -d' '"))
-                                   (wget "-O" ~path ~url))))
+                           (if (|| (not (file-exists? ~path))
+                                   (!= ~md5 @(md5sum ~path "|" cut "-f1 -d' '")))
+                             (wget "-O" ~path ~url))
                            (echo "MD5 sum is" @(md5sum ~path)))
             url (script
                  (wget "-O" ~path ~url)
@@ -34,6 +44,12 @@
             local-file (let [temp-path (register-file-transfer! local-file)]
                          (script (mv ~temp-path ~path)))
             remote-file (script (cp ~remote-file ~path))
+            template-name (apply
+                           heredoc
+                           path (template/interpolate-template
+                                 template-name (get opts :values {}))
+                           (apply concat (seq (select-keys opts [:literal]))))
+
             :else (throw
                    (IllegalArgumentException.
                     (str "Remote file " path " specified without content."))))

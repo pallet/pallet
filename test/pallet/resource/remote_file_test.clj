@@ -9,6 +9,7 @@
    [pallet.core :as core]
    [pallet.resource.exec-script :as exec-script]
    [pallet.compute :as compute]
+   [pallet.target :as target]
    [pallet.utils :as utils]))
 
 (pallet.compat/require-contrib)
@@ -17,6 +18,12 @@
   "Function to get test username. This is a function to avoid issues with AOT."
   [] (or (. System getProperty "ssh.username")
          (. System getProperty "user.name")))
+
+(deftest remote-file*-test
+  (core/defnode n [])
+  (target/with-target-tag :n
+    (is (= "cat > path <<EOF\na 1\n\nEOF\n\n"
+           (remote-file* "path" :template "template/strint" :values {'a 1})))))
 
 (deftest remote-file-test
   (is (= "cat > file1 <<EOF\nsomecontent\nEOF\n"
@@ -31,7 +38,7 @@
   (is (= "wget -O file1 http://xx.com/abc\necho MD5 sum is $(md5sum file1)\nchown  user1 file1\n"
          (build-resources
           [] (remote-file "file1" :url "http://xx.com/abc" :owner "user1"))))
-  (is (= "if [ ! -e file1 ]; then\nif [ ! \\( \"abcd\" == \"$(md5sum file1 | cut -f1 -d' ')\" \\) ]; then wget -O file1 http://xx.com/abc;fi\nfi\necho MD5 sum is $(md5sum file1)\nchown  user1 file1\n"
+  (is (= "if [ \\( ! -e file1 -o \\( \"abcd\" != \"$(md5sum file1 | cut -f1 -d' ')\" \\) \\) ]; then wget -O file1 http://xx.com/abc;fi\necho MD5 sum is $(md5sum file1)\nchown  user1 file1\n"
          (build-resources
           [] (remote-file
               "file1" :url "http://xx.com/abc" :md5 "abcd" :owner "user1"))))

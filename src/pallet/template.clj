@@ -1,6 +1,9 @@
 (ns pallet.template
   "Template file writing"
-  (:require pallet.compat)
+  (:require
+   pallet.compat
+   [pallet.strint :as strint]
+   [pallet.utils :as utils])
   (:use [pallet.stevedore :only [script]]
         [pallet.resource.file]
         [pallet.core :only [node-type]]
@@ -19,23 +22,26 @@
   (let [f (java.io.File. path)
         filename (.getName f)
         i (.lastIndexOf filename "." )]
-    [(.getParent f) (.substring filename 0 i) (.substring filename (inc i))]))
+    [(.getParent f)
+     (if (neg? i) filename (.substring filename 0 i))
+     (if (neg? i) nil (.substring filename (inc i)))]))
 
 (defn pathname
   "Build a pathname from a list of path and filename parts.  Last part is assumed
    to be a file extension."
   [& parts]
-  (str (apply str (interpose java.io.File/separator (butlast parts)))
-       "." (last parts)))
+  (let [ext (last parts)]
+    (str (apply str (interpose java.io.File/separator (butlast parts)))
+         (if ext (str "." ext)))))
 
 (defn candidate-templates
   "Generate a prioritised list of possible template paths."
   [path tag template]
   (let [[dirpath base ext] (path-components path)]
     [(pathname dirpath (str base "_" tag) ext)
-     (pathname (str "resource/" dirpath) (str base "_" tag) ext)
+     (pathname (str "resources/" dirpath) (str base "_" tag) ext)
      path
-     (str "resource/" path)]))
+     (str "resources/" path)]))
 
 (defn find-template
   "Find a template for the specified path, for application to the given node.
@@ -46,7 +52,12 @@
    get-resource
    (candidate-templates path (node-type :tag) (node-type :image))))
 
-
+(defn interpolate-template
+  "Interpolate the given template."
+  [path values]
+  (strint/<<!
+   (utils/load-resource-url
+    (find-template path (pallet.core/target-node-type))) values))
 
 
 
