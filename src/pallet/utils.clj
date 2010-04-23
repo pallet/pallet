@@ -1,14 +1,16 @@
 (ns pallet.utils
-  (:require pallet.compat)
-  (:use clojure.contrib.logging
-        [clj-ssh.ssh]
-        [clojure.contrib.def]
-        [clojure.contrib.pprint :only [pprint]]))
+  (:require
+   pallet.compat
+   [clojure.contrib.pprint :as pprint])
+  (:use
+   clojure.contrib.logging
+   clj-ssh.ssh
+   clojure.contrib.def))
 
 (pallet.compat/require-contrib)
 
 (defn pprint-lines [s]
-  (pprint (seq (.split #"\r?\n" s))))
+  (pprint/pprint (seq (.split #"\r?\n" s))))
 
 (defn quoted [s]
   (str "\"" s "\""))

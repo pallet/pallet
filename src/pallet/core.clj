@@ -230,6 +230,7 @@ script that is run with root privileges immediatly after first boot."
 
 (defn converge*
   [compute node-map phases]
+  {:pre [(map? node-map)]}
   (converge-node-counts compute node-map)
   (apply-phases
    compute

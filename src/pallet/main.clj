@@ -3,7 +3,8 @@
   (:require
    [org.jclouds.compute :as jclouds]
    [clojure.contrib.command-line :as command-line]
-   pallet.core)
+   pallet.core
+   [pallet.utils :as utils])
   (:use clojure.contrib.logging))
 
 (defn abort [msg]
@@ -39,16 +40,25 @@
      (catch java.io.FileNotFoundException e
        error-fn))))
 
-(defn read-arg
+(defn parse-as-qualified-symbol
+  "Convert the given string into a namespace qualified symbol.
+   Returns a vector of ns and symbol"
+  [arg]
+  {:pre [(string? arg)]}
+  (if (.contains arg "/")
+    (if-let [sym (symbol arg)]
+      [(symbol (namespace sym)) sym])))
+
+(defn map-and-resolve-symbols
   "Function to build a symbol->value map, requiring namespaces as needed."
   [symbol-map arg]
-  (if (.contains arg "/")
-    (let [i (.lastIndexOf arg "/")
-          ns (.substring arg 0 i)]
-      (require (symbol ns))
-      (assoc symbol-map (symbol arg) (var-get (find-var (symbol arg)))))
+  (if-let [[ns sym] (parse-as-qualified-symbol arg)]
+    (do
+      (require ns)
+      (if-let [v (find-var sym)]
+        (assoc symbol-map sym (var-get v))
+        symbol-map))
     symbol-map))
-
 
 (defn -main
   "Command line runner."
@@ -61,13 +71,16 @@
      args]
     (let [[task & args] args
           task (or (aliases task) task "help")]
-      (let [symbol-map (reduce read-arg {} args)
+      (let [symbol-map (reduce map-and-resolve-symbols {} args)
             arg-line (str "[ " (apply str (interpose " " args)) " ]")
             params (read-string arg-line)
             params (clojure.walk/prewalk-replace symbol-map params)]
+        (println "admin-user" utils/*admin-user*)
         (if (@no-service-needed task)
           (apply (resolve-task task) params)
           (jclouds/with-compute-service [service user key]
             (apply (resolve-task task) params))))
       ;; In case tests or some other task started any:
-      (shutdown-agents))))
+      (flush)
+      (shutdown-agents)
+      (System/exit 0))))
