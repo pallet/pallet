@@ -4,7 +4,8 @@
    [org.jclouds.compute :as jclouds]
    [clojure.contrib.command-line :as command-line]
    pallet.core
-   [pallet.utils :as utils])
+   [pallet.utils :as utils]
+   [pallet.maven :as maven])
   (:use clojure.contrib.logging))
 
 (defn abort [msg]
@@ -75,11 +76,13 @@
             arg-line (str "[ " (apply str (interpose " " args)) " ]")
             params (read-string arg-line)
             params (clojure.walk/prewalk-replace symbol-map params)]
-        (println "admin-user" utils/*admin-user*)
         (if (@no-service-needed task)
           (apply (resolve-task task) params)
-          (jclouds/with-compute-service [service user key]
-            (apply (resolve-task task) params))))
+          (let [[service user key] (if service
+                                     [service user key]
+                                     (maven/credentials))]
+            (jclouds/with-compute-service [service user key]
+              (apply (resolve-task task) params)))))
       ;; In case tests or some other task started any:
       (flush)
       (shutdown-agents)
