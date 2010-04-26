@@ -7,6 +7,7 @@
         pallet.test-utils)
   (:require
    [pallet.core :as core]
+   [pallet.resource :as resource]
    [pallet.target :as target]))
 
 (pallet.compat/require-contrib)
@@ -69,7 +70,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (core/defnode a [:ubuntu])
   (core/defnode b [:centos])
   (target/with-target nil a
-    (is (= "cat > /etc/apt/sources.list.d/source1 <<EOF\ndeb http://somewhere/apt $(lsb_release -c -s) main\n\nEOF\n\n"
+    (is (= "cat > /etc/apt/sources.list.d/source1.list <<EOF\ndeb http://somewhere/apt $(lsb_release -c -s) main\n\nEOF\n\n"
            (package-source*
             "source1"
             :aptitude {:url "http://somewhere/apt"
@@ -82,3 +83,26 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             :aptitude {:url "http://somewhere/apt"
                        :scopes ["main"]}
             :yum {:url "http://somewhere/yum"})))))
+
+
+(deftest package-source-test
+  (core/defnode a [:ubuntu])
+  (core/defnode b [:centos])
+  (target/with-target nil a
+    (is (= "cat > /etc/apt/sources.list.d/source1.list <<EOF\ndeb http://somewhere/apt $(lsb_release -c -s) main\n\nEOF\n"
+           (resource/build-resources
+            []
+            (package-source
+             "source1"
+             :aptitude {:url "http://somewhere/apt"
+                        :scopes ["main"]}
+             :yum {:url "http://somewhere/yum"})))))
+  (target/with-target nil b
+    (is (= "cat > /etc/yum.repos.d/source1.repo <<EOF\n[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\n\nEOF\n"
+           (resource/build-resources
+            []
+            (package-source
+             "source1"
+             :aptitude {:url "http://somewhere/apt"
+                        :scopes ["main"]}
+             :yum {:url "http://somewhere/yum"}))))))

@@ -1,5 +1,5 @@
-(ns #^{ :doc "Host information."}
-  pallet.resource.hostinfo
+(ns pallet.resource.hostinfo
+  "Host information."
   (:use pallet.script
         [pallet.resource :only [defresource]]
         pallet.stevedore

@@ -38,6 +38,9 @@ tag as a configuration target.
            org.jclouds.compute.options.TemplateOptions
            org.jclouds.compute.domain.NodeMetadata))
 
+(. System setProperty "http.agent"
+   (str "Pallet " (System/getProperty "pallet.version")))
+
 (defmacro with-admin-user
   "Specify the admin user for running remote commands.  The user is specified
   either as a user map, which can be created with make-user, or as an argument

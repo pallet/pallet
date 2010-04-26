@@ -27,10 +27,18 @@
   ([task] (println (help-for task)))
   ([]
      (println "Pallet is a cloud administration tool.\n")
-     (println "You will need to write a task in a pallet directory.\n")
      (println "Several tasks are available:")
      (doseq [task-ns tasks]
        ;; (println (help-summary-for task-ns))
        (println " " (last (.split (name task-ns) "\\."))))
      (println "\nRun pallet help $TASK for details.")
+
+     (println "\nYou can write project specific tasks in a pallet directory.")
+     (println "\nOptions:")
+     (println "  -service name-of-cloud-service")
+     (println "  -user    login for cloud service API")
+     (println "  -key     key or password for cloud service API")
+     (println "If no options are given, the ~/.m2/settings.xml is checked for")
+     (println "an active maven profile with the pallet.service, pallet.user,")
+     (println "and pallet.key properties.")
      (println "See http://github.com/hugoduncan/pallet as well.")))

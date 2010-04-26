@@ -24,16 +24,16 @@
          (normalise-scms ["http://project.org/project.git"]))))
 
 (deftest output-scm-for-git-test
-  (core/defnode n [])
   (is (= "<org.spearce.jgit.transport.RemoteConfig>\n  <string>origin</string>\n  <int>5</int>\n  <string>fetch</string>\n  <string>+refs/heads/*:refs/remotes/origin/*</string>\n  <string>receivepack</string>\n  <string>git-upload-pack</string>\n  <string>uploadpack</string>\n  <string>git-upload-pack</string>\n  <string>url</string>\n  <string>http://project.org/project.git</string>\n  <string>tagopt</string>\n  <string></string>\n</org.spearce.jgit.transport.RemoteConfig>"
          (apply str
           (xml/emit*
-           (output-scm-for :git n "http://project.org/project.git" {}))))))
+           (output-scm-for :git {:tag :b :image [:ubuntu]}
+                           "http://project.org/project.git" {}))))))
 
 (deftest hudson-job-test
   (core/defnode n [])
   (is (= "mkdir -p /var/lib/hudson/jobs/project\ncat > /var/lib/hudson/jobs/project/config.xml <<EOF\n<?xml version='1.0' encoding='utf-8'?>\n<maven2-moduleset>\n  <actions></actions>\n  <description></description>\n  <logRotator>\n    <daysToKeep>-1</daysToKeep>\n    <numToKeep>-1</numToKeep>\n    <artifactDaysToKeep>-1</artifactDaysToKeep>\n    <artifactNumToKeep>-1</artifactNumToKeep>\n  </logRotator>\n  <keepDependencies>false</keepDependencies>\n  <properties></properties>\n  <scm class=\"hudson.plugins.git.GitSCM\">\n    <remoteRepositories><org.spearce.jgit.transport.RemoteConfig>\n  <string>origin</string>\n  <int>5</int>\n  <string>fetch</string>\n  <string>+refs/heads/*:refs/remotes/origin/*</string>\n  <string>receivepack</string>\n  <string>git-upload-pack</string>\n  <string>uploadpack</string>\n  <string>git-upload-pack</string>\n  <string>url</string>\n  <string>http://project.org/project.git</string>\n  <string>tagopt</string>\n  <string></string>\n</org.spearce.jgit.transport.RemoteConfig>\n      \n    </remoteRepositories>\n    <branches>\n      <hudson.plugins.git.BranchSpec>\n        <name>origin/master</name>\n      </hudson.plugins.git.BranchSpec>\n    </branches>\n    <mergeOptions></mergeOptions>\n    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>\n    <submoduleCfg class=\"list\"></submoduleCfg>\n  </scm>\n  <canRoam>true</canRoam>\n  <disabled>false</disabled>\n  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>\n  <triggers class=\"vector\">\n    <hudson.triggers.SCMTrigger>\n      <spec>*/15 * * * *</spec>\n    </hudson.triggers.SCMTrigger>\n  </triggers>\n  <concurrentBuild>false</concurrentBuild>\n  <rootModule>\n    <groupId>project</groupId>\n    <artifactId>artifact</artifactId>\n  </rootModule>\n  <goals>clojure:test</goals>\n  <mavenOpts>-Dx=y</mavenOpts>\n  <mavenName>base maven</mavenName>\n  <aggregatorStyleBuild>false</aggregatorStyleBuild>\n  <incrementalBuild>false</incrementalBuild>\n  <usePrivateRepository>false</usePrivateRepository>\n  <ignoreUpstremChanges>false</ignoreUpstremChanges>\n  <archivingDisabled>false</archivingDisabled>\n  <reporters></reporters>\n  <publishers></publishers>\n  <buildWrappers></buildWrappers>\n</maven2-moduleset>\nEOF\nmkdir -p /var/lib/hudson\nchown --recursive root /var/lib/hudson\nchgrp --recursive tomcat6 /var/lib/hudson\nchmod --recursive g+w /var/lib/hudson\n"
-         (target/with-target nil {:tag :n}
+         (target/with-target nil {:tag :n :image [:ubuntu]}
            (build-resources []
                             (job
                              :maven2 "project"
@@ -51,6 +51,6 @@
 (deftest hudson-maven-test
   (core/defnode n [])
   (is (= "mkdir -p /usr/share/tomcat6/.m2\nchgrp  tomcat6 /usr/share/tomcat6/.m2\nchmod  g+w /usr/share/tomcat6/.m2\ncat > /var/lib/hudson/hudson.tasks.Maven.xml <<EOF\n<?xml version='1.0' encoding='utf-8'?>\n<hudson.tasks.Maven_-DescriptorImpl>\n  <installations>\n    <hudson.tasks.Maven_-MavenInstallation>\n      <name>default maven</name>\n      <home></home>\n      <properties>\n        <hudson.tools.InstallSourceProperty>\n          <installers>\n            <hudson.tasks.Maven_-MavenInstaller>\n              <id>2.2.0</id>\n            </hudson.tasks.Maven_-MavenInstaller>\n          </installers>\n        </hudson.tools.InstallSourceProperty>\n      </properties>\n    </hudson.tasks.Maven_-MavenInstallation>\n  </installations>\n</hudson.tasks.Maven_-DescriptorImpl>\nEOF\nchown  root /var/lib/hudson/hudson.tasks.Maven.xml\nchgrp  tomcat6 /var/lib/hudson/hudson.tasks.Maven.xml\n"
-         (target/with-target nil {:tag :n}
+         (target/with-target nil {:tag :n :image [:ubuntu]}
            (build-resources []
                             (maven "default maven" "2.2.0"))))))

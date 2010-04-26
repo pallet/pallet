@@ -1,5 +1,5 @@
-(ns #^{ :doc "User management resource."}
-  pallet.resource.user
+(ns pallet.resource.user
+  "User management resource."
   (:require pallet.compat)
   (:use pallet.script
         [pallet.resource :only [defresource defaggregate]]

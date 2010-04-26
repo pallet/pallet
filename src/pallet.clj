@@ -1,7 +1,8 @@
-(ns
-    #^{:author "Hugo Duncan"
-       :doc "
-Pallet is used to provision and maintain compute nodes, and aims to solve the
+(ns #^{:author "Hugo Duncan"
+       :see-also [["chef" "http://wiki.opscode.com/display/chef/Home"]
+                  ["jclouds" "http://github.com/jclouds/jclouds"]]}
+  pallet
+"Pallet is used to provision and maintain compute nodes, and aims to solve the
 problem of providing a consistently configured running image across a range of
 clouds.  It is designed for use from the Clojure (http://clojure.org) REPL, and
 from clojure scripts.
@@ -44,9 +45,7 @@ Add templating by cloud provider.
 Installation is with Leiningen (http://github.com/technomancy/leiningen).  Add
 `[pallet \"0.0.1-SNAPSHOT\"]` to your :dependencies in project.clj.
 
-" :see-also [["chef" "http://wiki.opscode.com/display/chef/Home"]
-             ["jclouds" "http://github.com/jclouds/jclouds"]]}
-  pallet
+"
   (:require pallet.core pallet.utils pallet.compute pallet.bootstrap pallet.chef))
 
 (refer 'pallet.core 'pallet.utils 'pallet.compute 'pallet.bootstrap 'pallet.chef)

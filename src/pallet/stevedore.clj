@@ -86,8 +86,8 @@
 
 (def special-forms (set ['if 'if-not '= 'aget 'fn 'return 'set! 'var 'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists? 'not]))
 
-(def infix-operators (set ['+ '- '/ '* '% '== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '||]))
-(def logical-operators (set ['== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '^ '| '&& '|| 'file-exists? 'not]))
+(def infix-operators (set ['+ '- '/ '* '% '== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '||]))
+(def logical-operators (set ['== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '|| 'file-exists? 'not]))
 (def quoted-operators (disj logical-operators 'file-exists?))
 
 (def infix-conversions
@@ -327,8 +327,8 @@
 (defmacro defimpl
   "Define a script fragment implementation for a given set of specialisers"
   [script-name specialisers [& args]  & body]
-  #^{:pre [(or (= :default specialisers)
-               (vector? specialisers))]}
+  {:pre [(or (= :default specialisers)
+             (vector? specialisers))]}
   `(alter-var-root
     (find-var 'pallet.script/*scripts*)
     (fn [current#]

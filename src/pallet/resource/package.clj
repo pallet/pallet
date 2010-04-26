@@ -77,15 +77,16 @@
                  :gpgkey 0
                  :name name}
                 (options (packager))))
-      (when (and (-> options :aptitude :key-url)
+      (if (and (-> options :aptitude :key-url)
                  (= (packager) :aptitude))
         (utils/cmd-join
          [(remote-file/remote-file*
            "aptkey.tmp"
            :url (-> options :aptitude :key-url))
-          (stevedore/script (apt-key add aptkey.tmp))]))])))
+          (stevedore/script (apt-key add aptkey.tmp))])
+        "")])))
 
-(defresource package-source
+(defaggregate package-source
   "Control package sources.
    Options are the package manager keywords, each specifying a map of
    packager specific options.
@@ -99,7 +100,8 @@
    :yum
      :url url              - repository url
      :gpgkey keystring     - pgp key string for repository"
-  package-source* [name packager-map & options])
+  #(cmd-join (map (fn [x] (apply package-source* x)) %))
+  [name packager-map & options])
 
 (defn apply-package
   "Package management"
