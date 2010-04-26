@@ -33,4 +33,10 @@
 (defimpl ubuntu-version :default []
   (if (file-exists? "/usr/bin/lsb_release") @("/usr/bin/lsb_release" -c -s)))
 
+(defscript arch [])
+(defimpl architecture :default []
+  @(uname -p))
 
+(defn architecture []
+  "Machine CPU architecture."
+  (script (arch)))

@@ -1,0 +1,4 @@
+[~{name}]
+name=~{name}
+baseurl=~{url}
+gpgcheck=~(or gpgkey 0)

@@ -1,6 +1,11 @@
 (ns pallet.resource.package
   "Package management resource."
-  (:require pallet.compat)
+  (:require
+   pallet.compat
+   [pallet.resource.remote-file :as remote-file]
+   [pallet.resource.hostinfo :as hostinfo]
+   [pallet.stevedore :as stevedore]
+   [pallet.utils :as utils])
   (:use pallet.script
         pallet.stevedore
         [pallet.resource :only [defaggregate defresource]]
@@ -51,9 +56,50 @@
    "debconf debconf/frontend select noninteractive"
    "debconf debconf/frontend seen false"))
 
-(defimpl package-manager-non-interactive [#{:centos :rhel}] []
-  "")
+(def source-location
+     {:aptitude "/etc/apt/sources.list.d/%s.list"
+      :yum "/etc/yum.repos.d/%s.repo"})
 
+(def source-template "resource/package/source")
+
+(defn package-source*
+  "Add a packager source."
+  [name & options]
+  (let [options (apply hash-map options)]
+    (utils/cmd-join
+     [(remote-file/remote-file*
+       (format (source-location (packager)) name)
+       :template source-template
+       :values (merge
+                {:source-type "deb"
+                 :release (stevedore/script (hostinfo/os-version-name))
+                 :scopes ["main"]
+                 :gpgkey 0
+                 :name name}
+                (options (packager))))
+      (when (and (-> options :aptitude :key-url)
+                 (= (packager) :aptitude))
+        (utils/cmd-join
+         [(remote-file/remote-file*
+           "aptkey.tmp"
+           :url (-> options :aptitude :key-url))
+          (stevedore/script (apt-key add aptkey.tmp))]))])))
+
+(defresource package-source
+  "Control package sources.
+   Options are the package manager keywords, each specifying a map of
+   packager specific options.
+
+   :aptitude
+     :source-type string   - source type (deb)
+     :url url              - repository url
+     :scope seq            - scopes to enable for repository
+     :key-url url          - url for key
+
+   :yum
+     :url url              - repository url
+     :gpgkey keystring     - pgp key string for repository"
+  package-source* [name packager-map & options])
 
 (defn apply-package
   "Package management"
@@ -98,7 +144,7 @@
         ~file " > " @tmpfile " && mv -f" @tmpfile ~file )))
 
 (defn package-manager*
-  "Package management"
+  "Package management."
   [action & options]
   (let [opts (apply hash-map options)]
     (condp = action

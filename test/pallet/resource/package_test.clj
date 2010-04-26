@@ -4,7 +4,10 @@
   (:use [pallet.stevedore :only [script]]
         [pallet.utils :only [sh-script]]
         clojure.test
-        pallet.test-utils))
+        pallet.test-utils)
+  (:require
+   [pallet.core :as core]
+   [pallet.target :as target]))
 
 (pallet.compat/require-contrib)
 
@@ -56,8 +59,26 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (is (= "aptitude update "
          (package-manager* :update))))
 
-(deftest test-add-multiverse-example
+(deftest add-multiverse-example-test
   (is (= "tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list\naptitude update\n"
          (pallet.resource/build-resources []
           (package-manager :multiverse)
           (package-manager :update)))))
+
+(deftest package-source*-test
+  (core/defnode a [:ubuntu])
+  (core/defnode b [:centos])
+  (target/with-target nil a
+    (is (= "cat > /etc/apt/sources.list.d/source1 <<EOF\ndeb http://somewhere/apt $(lsb_release -c -s) main\n\nEOF\n\n"
+           (package-source*
+            "source1"
+            :aptitude {:url "http://somewhere/apt"
+                       :scopes ["main"]}
+            :yum {:url "http://somewhere/yum"}))))
+    (target/with-target nil b
+    (is (= "cat > /etc/yum.repos.d/source1.repo <<EOF\n[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\n\nEOF\n\n"
+           (package-source*
+            "source1"
+            :aptitude {:url "http://somewhere/apt"
+                       :scopes ["main"]}
+            :yum {:url "http://somewhere/yum"})))))
