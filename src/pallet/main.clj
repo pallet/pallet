@@ -61,6 +61,8 @@
         symbol-map))
     symbol-map))
 
+(def default-service-opts [:log4j :enterprise :ssh])
+
 (defn -main
   "Command line runner."
   [& args]
@@ -81,8 +83,14 @@
           (let [[service user key] (if service
                                      [service user key]
                                      (maven/credentials))]
-            (jclouds/with-compute-service [service user key]
-              (apply (resolve-task task) params)))))
+            (if service
+              (let [compute (apply jclouds/compute-service
+                             (concat [service user key] default-service-opts))]
+                (jclouds/with-compute-service [compute]
+                  (apply (resolve-task task) params)))
+              (do
+                (println "Error: no credentials supplied\n\n")
+                (apply (resolve-task "help")))))))
       ;; In case tests or some other task started any:
       (flush)
       (shutdown-agents)
