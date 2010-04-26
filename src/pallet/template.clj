@@ -57,9 +57,8 @@
   [path values]
   (strint/<<!
    (utils/load-resource-url
-    (find-template path (target/node-type))) values))
-
-
+    (find-template path (target/node-type)))
+   (utils/map-with-keys-as-symbols values)))
 
 ;;; programatic templates - umm not really templates at all
 

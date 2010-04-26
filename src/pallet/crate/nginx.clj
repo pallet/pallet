@@ -113,12 +113,11 @@
     (remote-file/remote-file
      (format "%s/nginx.conf" nginx-conf-dir)
      :template nginx-conf
-     :values (utils/map-with-keys-as-symbols
-               (reduce
-                merge {}
-                [nginx-default-conf
-                 (options :configuration)
-                 (strint/capture-values nginx-user nginx-group)]))
+     :values (reduce
+              merge {}
+              [nginx-default-conf
+               (options :configuration)
+               (strint/capture-values nginx-user nginx-group)])
      :owner "root" :group nginx-group :mode "0644")))
 
 
