@@ -6,15 +6,13 @@
   (:require [org.jclouds.compute :as jclouds])
   (:import
    org.jclouds.compute.domain.internal.NodeMetadataImpl
+   org.jclouds.compute.util.ComputeUtils
    [org.jclouds.compute.domain NodeState NodeMetadata]))
 
 
 ;;; Meta
 (defn supported-clouds []
-  (map second
-       (filter (comp not nil?)
-               (map #(re-find #"(.*)\.contextbuilder" %)
-                    (keys (resource-properties "compute.properties"))))))
+  (ComputeUtils/getSupportedProviders))
 
 ;;; Node utilities
 (defn make-node [tag & options]
@@ -22,10 +20,11 @@
     (NodeMetadataImpl.
      tag                                ; id
      tag                                ; name
-     (get options :location "NOWHERE")
+     (options :location)
      (java.net.URI. tag)                ; uri
      (get options :user-metadata {})
      tag
+     (options :image)
      (get options :state NodeState/RUNNING)
      (get options :public-ips [])
      (get options :private-ips [])
@@ -43,10 +42,11 @@
     (NodeMetadataImpl.
      tag                                ; id
      tag                                ; name
-     (get options :location "NOWHERE")
+     (options :location)
      (java.net.URI. tag)                ; uri
      (merge (get options :user-metadata {}) meta)
      tag
+     (options :image)
      (get options :state NodeState/RUNNING)
      (conj (get options :public-ips [])
            (java.net.InetAddress/getByName host-or-ip))
