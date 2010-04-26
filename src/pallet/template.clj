@@ -37,11 +37,18 @@
 (defn candidate-templates
   "Generate a prioritised list of possible template paths."
   [path tag template]
-  (let [[dirpath base ext] (path-components path)]
-    [(pathname dirpath (str base "_" tag) ext)
-     (pathname (str "resources/" dirpath) (str base "_" tag) ext)
-     path
-     (str "resources/" path)]))
+  (let [[dirpath base ext] (path-components path)
+        variants (fn [specifier]
+                   (let [p (pathname
+                            dirpath
+                            (if specifier (str base "_" specifier) base)
+                            ext)]
+                     [p (str "resources/" p)]))]
+    (concat
+     (variants tag)
+     (variants (name (target/os-family template)))
+     (variants (name (target/packager template)))
+     (variants nil))))
 
 (defn find-template
   "Find a template for the specified path, for application to the given node.

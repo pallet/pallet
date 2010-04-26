@@ -18,7 +18,7 @@
   (is (= "a/b/c/d" (pathname "a/b/c" "d" nil))))
 
 (deftest candidate-templates-test
-  (is (= ["a/b/c_t.d" "resources/a/b/c_t.d" "a/b/c.d" "resources/a/b/c.d"]
+  (is (= ["a/b/c_t.d" "resources/a/b/c_t.d" "a/b/c_ubuntu.d" "resources/a/b/c_ubuntu.d"  "a/b/c_aptitude.d" "resources/a/b/c_aptitude.d" "a/b/c.d" "resources/a/b/c.d"]
          (candidate-templates "a/b/c.d" "t" [:ubuntu]))))
 
 (with-private-vars [pallet.template [apply-template-file]]
@@ -55,7 +55,7 @@ EOF
                             nil))))
 
 (deftest find-template-test
-  (core/defnode a [])
+  (core/defnode a [:ubuntu])
   (is (re-find
        #"resources/template/strint"
        (str (find-template "template/strint" a))))
@@ -64,8 +64,8 @@ EOF
         (find-template "template/strint" a)))))
 
 (deftest interpolate-template-test
-  (core/defnode n [])
-  (target/with-target nil {:tag :n}
+  (core/defnode n [:ubuntu])
+  (target/with-target nil n
     (let [a 1]
       (is (= "a 1\n"
              (interpolate-template "template/strint" (strint/capture-values a)))))))
