@@ -143,17 +143,15 @@
 
 (defn register-file-transfer!
   [local-file]
-  ; will use io/file under 1.2
-  (let [f (pallet.compat/file local-file)]
+  (let [f (pallet.compat/file local-file)]   ;; will use io/file under 1.2
     (when-not (and (.exists f) (.isFile f) (.canRead f))
       (throw (IllegalArgumentException.
                (format "'%s' does not exist, is a directory, or is unreadable; cannot register it for transfer" local-file))))
-    ; need to eagerly determine a destination for the file, as crates will need to know
-    ; where to find the transferred file
+    ;; need to eagerly determine a destination for the file, as crates will need
+    ;; to know where to find the transferred file
     (let [remote-name (format "pallet-transfer-%s-%s"
                         (java.util.UUID/randomUUID)
-                        ; silly UUID collision paranoia
-                        (.length f))]
+                        (.length f))] ; silly UUID collision paranoia
       (set! *file-transfers* (assoc *file-transfers* f remote-name))
       remote-name)))
 
@@ -205,38 +203,43 @@
                            :port (or (options :port) 22)
                            :password (user :password))]
       (with-connection session
-        (let [mktemp-result (ssh session "mktemp sudocmdXXXXX" :return-map true)
+        (let [mktemp-result (ssh
+                             session "mktemp sudocmdXXXXX" :return-map true)
               tmpfile (string/chomp (mktemp-result :out))
               channel (ssh-sftp session)]
           (assert (zero? (mktemp-result :exit)))
-          (with-connection channel
-            (sftp channel :put (java.io.ByteArrayInputStream.
-                                (.getBytes (str prolog command))) tmpfile)
-            (doseq [[file remote-name] *file-transfers*]
-              (info (format "Transferring file %s to node @ %s" file remote-name))
-              (sftp channel
-                    :put (-> file java.io.FileInputStream.
-                             java.io.BufferedInputStream.)
-                    remote-name)
-              (sftp channel :chmod 0600 remote-name)))
-          (let [chmod-result (ssh session (str "chmod 755 " tmpfile) :return-map true)]
+          (sftp channel :put (java.io.ByteArrayInputStream.
+                              (.getBytes (str prolog command))) tmpfile)
+          (doseq [[file remote-name] *file-transfers*]
+            (info
+             (format "Transferring file %s to node @ %s" file remote-name))
+            (sftp channel
+                  :put (-> file java.io.FileInputStream.
+                           java.io.BufferedInputStream.)
+                  remote-name)
+            (sftp channel :chmod 0600 remote-name))
+          (let [chmod-result (ssh session (str "chmod 755 " tmpfile)
+                                  :return-map true)]
             (if (pos? (chmod-result :exit))
               (error (str "Couldn't chmod script : " ) (chmod-result :err))))
           (let [script-result (ssh
-                                session
-                                ;; using :in forces a shell session, rather than exec; some
-                                ;; services check for a shell session before detaching
-                                ;;    (couchdb being one prime example)
-                                :in (str (sudo-cmd-for user)
-                                      " ~" (:username user) "/" tmpfile)
-                                :return-map true
-                                :pty true)]
+                               session
+                               ;; using :in forces a shell session, rather than
+                               ;; exec; some services check for a shell session
+                               ;; before detaching (couchdb being one prime
+                               ;; example)
+                               :in (str (sudo-cmd-for user)
+                                        " ~" (:username user) "/" tmpfile)
+                               :return-map true
+                               :pty true)]
             (if (zero? (script-result :exit))
               (info (strip-sudo-password (script-result :out) user))
               (do
                 (error (str "Exit status " (script-result :exit)))
-                (error (str "Output      : " (strip-sudo-password (script-result :out) user)))
-                (error (str "Error output: " (strip-sudo-password (script-result :err) user)))))
+                (error (str "Output      : "
+                            (strip-sudo-password (script-result :out) user)))
+                (error (str "Error output: "
+                            (strip-sudo-password (script-result :err) user)))))
             (ssh session (str "rm " tmpfile))
             (doseq [[file remote-name] *file-transfers*]
               (ssh session (str "rm " remote-name)))
