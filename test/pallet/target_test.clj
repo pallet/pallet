@@ -9,6 +9,12 @@
     (is (= [:ubuntu] (template)))
     (is (= :ubuntu (tag)))))
 
+(deftest os-family-test
+  (is (= :ubuntu (os-family [:ubuntu])))
+  (with-target nil {:image [:ubuntu]
+                    :tag :ubuntu}
+    (is (= :ubuntu (os-family)))))
+
 (deftest packager-test
   (with-target nil {:image [:ubuntu]}
     (is (= :aptitude (packager))))

@@ -1,5 +1,7 @@
 (ns pallet.target
-  "Provide information about the target image")
+  "Provide information about the target image"
+  (:require
+   [org.jclouds.compute :as jclouds]))
 
 ;; A conscious decision was made to use rebindable vars here, as passing them around
 ;; explicitly would create a lot of noise in resources, templates and crates
@@ -26,16 +28,16 @@
 (defn node-type
   [] *target-node-type*)
 
-(defn os
+(defn os-family
   "OS family"
-  ([] (os (template)))
-  ([target] (:os-family target)))
+  ([] (os-family (template)))
+  ([target] (some (set (map (comp keyword str) (jclouds/os-families))) target)))
 
 (defn admin-group
   "Default administrator group"
   ([] (admin-group (template)))
   ([target]
-     (condp = (os target)
+     (condp = (os-family target)
        :ubuntu "adm"
        "wheel")))
 
