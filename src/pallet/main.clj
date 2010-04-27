@@ -90,7 +90,7 @@
                   (apply (resolve-task task) params)))
               (do
                 (println "Error: no credentials supplied\n\n")
-                (apply (resolve-task "help")))))))
+                (apply (resolve-task "help") []))))))
       ;; In case tests or some other task started any:
       (flush)
       (shutdown-agents)
