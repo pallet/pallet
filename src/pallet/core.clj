@@ -69,22 +69,6 @@ When passing a username the following options can be specified:
   `(binding [*compute* nil]
      ~@body))
 
-(defvar- node-types (atom {}) "Enable lookup from tag to node type")
-
-(defn add-node-type
-  "Add a node type to the tag lookup map"
-  [node] (swap! node-types merge {(node :tag) node}))
-
-(defn node-type
-  "Return the node type definition that matches the tag of the specified node."
-  [node]
-  (@node-types (-> node tag keyword)))
-
-(defn node-type-for-tag
-  "Return the node type definition that matches the specified tag."
-  [tag]
-  (@node-types tag))
-
 (defmacro defnode
   "Define a node type.  The name is used for the node tag. Options are:
 
@@ -94,13 +78,11 @@ When passing a username the following options can be specified:
    :configure defines the configuration of the node."
   [name image & options]
   (let [[name options] (name-with-attributes name options)]
-    `(do
-       (def ~name
-            (apply hash-map
-                   (vector :tag (keyword (name '~name))
-                           :image ~image
-                           :phases (defphases ~@options))))
-       (add-node-type ~name))))
+    `(def ~name
+          (apply hash-map
+                 (vector :tag (keyword (name '~name))
+                         :image ~image
+                         :phases (defphases ~@options))))))
 
 (defn build-node-template-impl
   "Build a template for passing to jclouds run-nodes."
@@ -180,6 +162,7 @@ script that is run with root privileges immediatly after first boot."
 (defn adjust-node-counts
   "Start or stop the specified number of nodes."
   [compute delta-map nodes]
+  (trace (str "adjust-node-counts" delta-map))
   (info (str "destroying excess nodes"))
   (doseq [node-count (filter #(neg? (second %)) delta-map)]
     (destroy-nodes-with-count
@@ -193,18 +176,20 @@ script that is run with root privileges immediatly after first boot."
    instances."
   [compute node-map]
   (info "converging nodes")
+  (trace (str "  " node-map))
   (let [nodes (nodes compute)]
     (boot-if-down compute nodes)        ; this needs improving
                                         ; should only reboot if required
     (adjust-node-counts
-     compute (node-count-difference node-map nodes) nodes)))
+     compute
+     (node-count-difference node-map nodes)
+     (filter running? nodes))))
 
 (defn apply-phases-to-node
   "Apply a list of phases to a sequence of nodes"
-  [compute node phases user]
+  [compute node-type node phases user]
   (info (str "apply-phases-to-node " (tag node)))
-  (let [node-type (node-type node)
-        phases (if (seq phases) phases [:configure])
+  (let [phases (if (seq phases) phases [:configure])
         port (ssh-port node)
         options (if port [:port port] [])]
     (if node-type
@@ -219,11 +204,13 @@ script that is run with root privileges immediatly after first boot."
 
 (defn apply-phases
   "Apply a list of phases to a sequence of nodes"
-  ([compute nodes phases] (apply-phases compute nodes phases *admin-user*))
-  ([compute nodes phases user]
-     (info "apply-phases")
+  ([compute node-type nodes phases]
+     (apply-phases compute node-type nodes phases *admin-user*))
+  ([compute node-type nodes phases user]
+     (trace (str "apply-phases for " (node-type :tag)
+                 " " (count nodes) " nodes"))
      (doseq [node nodes]
-       (apply-phases-to-node compute node phases user))))
+       (apply-phases-to-node compute node-type node phases user))))
 
 (defn nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"
@@ -231,83 +218,130 @@ script that is run with root privileges immediatly after first boot."
   (let [tags (->> node-map keys (map :tag) (map name) set)]
     (->> nodes (filter running?) (filter #(-> % tag tags)))))
 
-(defn converge*
-  [compute node-map phases]
-  {:pre [(map? node-map)]}
-  (converge-node-counts compute node-map)
-  (apply-phases
-   compute
-   (nodes-in-map node-map (nodes compute))
-   (if (some #{:configure} phases)
-     phases
-     (concat [:configure] phases))))
+(defn filter-nodes-with-tag
+  "Return nodes with the given tag"
+  [nodes with-tag]
+  (filter #(= (name with-tag) (tag %)) nodes))
 
-(defn lift*
-  [compute nodes phases]
-  (apply-phases
-     compute
-     (->> nodes (filter running?))
-     phases))
+(defn add-prefix-to-node-type
+  [prefix node-type]
+  (update-in node-type [:tag]
+             (fn [tag] (keyword (str prefix (name tag))))))
+
+(defn add-prefix-to-node-map [prefix node-map]
+  (zipmap
+   (map (partial add-prefix-to-node-type prefix) (keys node-map))
+   (vals node-map)))
+
+(defn ensure-configure-phase [phases]
+  (if (some #{:configure} phases)
+    phases
+    (concat [:configure] phases)))
+
+(defn converge*
+  [compute prefix node-map phases]
+  {:pre [(map? node-map)]}
+  (trace (str "converge*  " node-map))
+  (let [node-map (add-prefix-to-node-map prefix node-map)]
+    (converge-node-counts compute node-map)
+    (let [nodes (nodes compute)
+          phases (ensure-configure-phase phases)]
+      (doseq [node-type (keys node-map)]
+        (apply-phases
+         compute
+         node-type
+         (filter-nodes-with-tag nodes (node-type :tag))
+         phases)))))
 
 (defn node-in-types?
   "Predicate for matching a node belonging to a set of node types"
   [node-types node]
   (some #(= (tag node) (name (% :tag))) node-types))
 
-(defn nodes-for-types
-  "Return the nodes that hav a tag that matches one of the node types"
-  [nodes node-types]
-  (let [tags (set (map #(name (% :tag)) node-types))]
-    (filter #(tags (tag %)) nodes)))
+(defn nodes-for-type
+  "Return the nodes that have a tag that matches one of the node types"
+  [nodes node-type]
+  (let [tag-string (name (node-type :tag))]
+    (filter #(= tag-string (tag %)) nodes)))
+
+(defn node-type?
+  "Prdicate for testing if argument is node-type."
+  [x]
+  (and (map? x) (x :tag) (x :image) true))
 
 (defn nodes-in-set
-  "Build a sequence of nodes for the given node-set. A node set can be a node
-  type, a sequence of node types, a node, or a sequence of nodes."
-  ([node-set] (nodes-in-set node-set *compute*))
-  ([node-set compute]
-     (cond
-      (compute-node? node-set) [node-set]
-      (and (not (map? node-set))
-           (or (seq node-set) (vector? node-set) (set? node-set)))
-      (if (every? compute-node? node-set)
-        node-set
-        (nodes-for-types (nodes compute) node-set))
-      :else (nodes-for-types (nodes compute) [node-set]))))
+  "Build a map of nodes for the given node-set. A node set can be a node
+  type, a sequence of node types, a node node-typ vector, or a sequence of nodes.
+  e.g
+     [node-type1 node-type2 {node-type #{node1 node2}}]
+
+  The return value is a map of node-type -> node sequence."
+  ([node-set prefix] (nodes-in-set node-set prefix *compute*))
+  ([node-set prefix compute]
+     (nodes-in-set node-set prefix compute (nodes compute)))
+  ([node-set prefix compute nodes]
+     (letfn [(ensure-set [x] (if (set? x) x #{x}))
+             (ensure-set-values
+              [m]
+              (zipmap (keys m) (map ensure-set (vals m))))]
+       (cond
+        (and (map? node-set) (not (node-type? node-set)))
+        (ensure-set-values (add-prefix-to-node-map prefix node-set))
+        (node-type? node-set)
+        (let [node-type (add-prefix-to-node-type prefix node-set )]
+          {node-type (set (nodes-for-type nodes node-type))})
+        :else (reduce
+               #(merge-with concat %) {}
+               (apply #(nodes-in-set % compute nodes) node-set))))))
+
+(defn lift*
+  [compute prefix node-set phases]
+  (doseq [[node-type nodes] (nodes-in-set node-set prefix compute)]
+    (apply-phases
+     compute
+     node-type
+     (filter running? nodes)
+     phases)))
 
 (defn compute-service-and-options
   "Extract the compute service form a vector of options, returning the bound
   compute service if none specified."
-  [options]
-  (let [compute (or (first (filter compute-service? options)) *compute*)]
-    [compute (remove #{compute} options)]))
+  [arg options]
+  (let [prefix (if (string? arg) arg)
+        node-spec (if prefix (first options) arg)
+        options (if prefix (rest options) options)
+        compute (or (first (filter compute-service? options)) *compute*)]
+    [compute prefix node-spec (remove #{compute} options)]))
 
 (defn converge
-  "Converge the existing compute resources with the counts specified in node-map.
-   The compute service may be supplied as an option, otherwise the bound
-   compute-service is used.
+  "Converge the existing compute resources with the counts specified in
+   node-map.  The compute service may be supplied as an option, otherwise the
+   bound compute-service is used.
 
    This applies the bootstrap phase to all new nodes, and the configure phase to
    all running nodes whose tag matches a key in the node map.  Additional phases
    can also be specified in the options, and will be applied to all matching
    nodes.  The :configure phase is always applied, as the first (post bootstrap)
    phase.  You can change the order in which the phases are applied by
-   explicitly listing them."
-  ([node-map & options]
-     (let [[compute phases] (compute-service-and-options options)]
-       (converge* compute node-map phases))))
+   explicitly listing them.
+
+   An optional tag prefix may be specified before the node-map."
+  [node-map & options]
+  (apply converge* (compute-service-and-options node-map options)))
 
 (defn lift
-  "Lift the running nodes in the specified node-set by applying the specified phases.
-   The compute service may be supplied as an option, otherwise the bound
-   compute-service is used.  The configure phase is applied by default, unless
-   other phases are specified.
+  "Lift the running nodes in the specified node-set by applying the specified
+   phases.  The compute service may be supplied as an option, otherwise the
+   bound compute-service is used.  The configure phase is applied by default
+   unless other phases are specified.
 
    node-set can be a node type, a sequence of node types, a node, or a sequence
             of nodes.
 
    options can also be keywords specifying the phases to apply, or an immediate
-           phase specified with the phase macro, or a function that will be
-           called with each matching node."
+   phase specified with the phase macro, or a function that will be called with
+   each matching node.
+
+   An optional tag prefix may be specified before the node-set."
   [node-set & options]
-  (let [[compute phases] (compute-service-and-options options)]
-    (lift* compute (nodes-in-set node-set compute) phases)))
+  (apply lift* (compute-service-and-options node-set options)))

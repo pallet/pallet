@@ -2,7 +2,7 @@
 
 VERSION="0.0.1-SNAPSHOT"
 
-CLASSPATH=src/:"$(find lib/ -follow -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)":$CLASSPATH
+#CLASSPATH=src/:"$(find lib/ -follow -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)":$CLASSPATH
 PALLET_JAR="$HOME/.m2/repository/pallet/pallet/$VERSION/pallet-$VERSION-standalone.jar"
 CLOJURE_JAR="$HOME/.m2/repository/org/clojure/clojure/1.1.0/clojure-1.1.0.jar"
 
@@ -30,7 +30,8 @@ if [ -r "$BIN_DIR/../src/pallet/core.clj" ]; then
     # Running from source checkout
     PALLET_DIR="$(dirname "$BIN_DIR")"
     PALLET_LIBS="$(find -H $PALLET_DIR/lib -mindepth 2> /dev/null 1 -maxdepth 1 -print0 | tr \\0 \:)"
-    CLASSPATH="$CLOJURE_JAR:$PALLET_DIR/src:$PALLET_DIR/pallet:$PALLET_LIBS:$CLASSPATH"
+    # PALLET_LIBS=$( echo $PALLET_LIBS | sed s#:./lib/clojure-1.1.0.jar## )
+    CLASSPATH="$PALLET_DIR/src:$PALLET_DIR/pallet:$PALLET_LIBS:$CLASSPATH"
 
     if [ "$PALLET_LIBS" = "" -a "$1" != "self-install" ]; then
         echo "Your Pallet development checkout is missing its dependencies."
@@ -79,22 +80,23 @@ if [ "$1" = "repl" ]; then
     fi
     $RLWRAP java -client $JAVA_OPTS -cp "src/:classes/:resources/:$CLASSPATH" $JLINE clojure.main ${@:2}
 elif [ "$1" = "self-install" ]; then
-    if [[ $VERSION == *SNAPSHOT ]]; then
-        echo "The self-install task is only meant for stable releases."
-        echo "See the \"Hacking\" section of the README."
-        exit 1
-    fi
+#     if [[ $VERSION == *SNAPSHOT ]]; then
+#         echo "The self-install task is only meant for stable releases."
+#         echo "See the \"Hacking\" section of the README."
+#         exit 1
+#     fi
     echo "Downloading Pallet now..."
     PALLET_DIR=`dirname "$PALLET_JAR"`
     mkdir -p "$PALLET_DIR"
+
     PALLET_URL="http://github.com/downloads/hugoduncan/pallet/pallet-$VERSION-standalone.jar"
     exec $HTTP_CLIENT "$PALLET_JAR" "$PALLET_URL"
 elif [ "$1" = "upgrade" ]; then
-    if [[ $VERSION == *SNAPSHOT ]]; then
-        echo "The upgrade task is only meant for stable releases."
-        echo "See the \"Hacking\" section of the README."
-        exit 1
-    fi
+#     if [[ $VERSION == *SNAPSHOT ]]; then
+#         echo "The upgrade task is only meant for stable releases."
+#         echo "See the \"Hacking\" section of the README."
+#         exit 1
+#     fi
     if [ ! -w "$SCRIPT" ]; then
         echo "You do not have permission to upgrade the installation in $SCRIPT"
         exit 1
@@ -106,7 +108,12 @@ elif [ "$1" = "upgrade" ]; then
             y|Y|"")
                 echo
                 echo "Upgrading..."
-                PALLET_SCRIPT_URL="http://github.com/technomancy/pallet/raw/stable/bin/pallet"
+		if [[ $VERSION == *SNAPSHOT ]]; then
+		    BRANCH="master"
+		else
+		    BRANCH="stable"
+		fi
+                PALLET_SCRIPT_URL="http://github.com/hugoduncan/pallet/raw/$BRANCH/bin/pallet"
                 $HTTP_CLIENT "$SCRIPT" "$PALLET_SCRIPT_URL" \
                     && chmod +x "$SCRIPT" \
                     && echo && $SCRIPT self-install && echo && echo "Now running" `$SCRIPT version`
@@ -125,6 +132,6 @@ else
 
     # The -Xbootclasspath argument is optional here: if the jar
     # doesn't exist everything will still work, it will just have a
-    # slower JVM boot.  -Xbootclasspath/a:"$CLOJURE_JAR"
-    exec java -client $JAVA_OPTS -cp "$CLASSPATH" -Dpallet.version="$VERSION" clojure.main -e "(require 'pallet.main)(pallet.main/-main $ESCAPED_ARGS)"
+    # slower JVM boot. -Xbootclasspath/a:"$CLOJURE_JAR"
+    exec java  -client $JAVA_OPTS -cp "$CLASSPATH" -Dpallet.version="$VERSION" clojure.main -e "(require 'pallet.main)(pallet.main/-main $ESCAPED_ARGS)"
 fi

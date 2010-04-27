@@ -35,14 +35,12 @@
     (admin-user old)
     (is (= old pallet.utils/*admin-user*))))
 
-(deftest node-type-test
-  (defnode a [])
-  (let [anode (make-node "a")]
-    (is (= a (node-type anode)))))
 
-(deftest node-type-for-tag-test
-  (defnode a [])
-  (is (= a (node-type-for-tag :a))))
+(deftest add-prefix-to-node-type-test
+  (is (= {:tag :pa} (add-prefix-to-node-type "p" {:tag :a}))))
+
+(deftest add-prefix-to-node-map-test
+  (is (= {{:tag :pa} 1} (add-prefix-to-node-map "p" {{:tag :a} 1}))))
 
 (deftest node-count-difference-test
   (is (= { {:tag :a} 1 {:tag :b} -1}
@@ -53,10 +51,26 @@
          (node-count-difference { {:tag :a} 1 {:tag :b} 1} []))))
 
 (deftest nodes-in-set-test
-  (let [a (make-node "a")
-        b (make-node "b")]
-    (is (= [a] (nodes-in-set a nil)))
-    (is (= [a b] (nodes-in-set [a b] nil)))))
+  (defnode a [:ubuntu])
+  (defnode b [:ubuntu])
+  (defnode pa [:ubuntu])
+  (defnode pb [:ubuntu])
+  (let [a-node (make-node "a")
+        b-node (make-node "b")]
+    (is (= {a #{a-node}}
+           (nodes-in-set {a a-node} nil nil nil)))
+    (is (= {a #{a-node b-node}}
+           (nodes-in-set {a #{a-node b-node}} nil nil nil)))
+    (is (= {a #{a-node} b #{b-node}}
+           (nodes-in-set {a #{a-node} b #{b-node}} nil nil nil))))
+  (let [a-node (make-node "a")
+        b-node (make-node "b")]
+    (is (= {pa #{a-node}}
+           (nodes-in-set {a a-node} "p" nil nil)))
+    (is (= {pa #{a-node b-node}}
+           (nodes-in-set {a #{a-node b-node}} "p" nil nil)))
+    (is (= {pa #{a-node} pb #{b-node}}
+           (nodes-in-set {a #{a-node} b #{b-node}} "p" nil nil)))))
 
 (deftest node-in-types?-test
   (defnode a [])
@@ -64,14 +78,14 @@
   (is (node-in-types? [a b] (make-node "a")))
   (is (not (node-in-types? [a b] (make-node "c")))))
 
-(deftest nodes-for-types-test
+(deftest nodes-for-type-test
   (defnode a [])
   (defnode b [])
   (let [na (make-node "a")
         nb (make-node "b")
         nc (make-node "c")]
-    (is (= [na nb] (nodes-for-types [na nb nc] [a b])))
-    (is (= [na] (nodes-for-types [na nc] [a b])))))
+    (is (= [nb] (nodes-for-type [na nb nc] b)))
+    (is (= [na] (nodes-for-type [na nc] a)))))
 
 (deftest nodes-in-map-test
   (defnode a [])
@@ -82,31 +96,33 @@
     (is (= [na nb] (nodes-in-map {a 1 b 1 c 1} [na nb])))
     (is (= [na] (nodes-in-map {a 1 c 1} [na nb])))))
 
+(deftest compute-service-and-options-test
+  (binding [org.jclouds.compute/*compute* :compute]
+    (is (= [:compute nil 'a '()]
+           (compute-service-and-options 'a [])))
+        (is (= [:compute "prefix" 'a '()]
+           (compute-service-and-options "prefix" ['a])))))
 
 (defn- test-component-fn [arg]
   (str arg))
 
 (resource/defresource test-component test-component-fn [arg & options])
 
-(with-private-vars [pallet.core [node-types]]
-  (deftest defnode-test
-    (reset! node-types {})
-    (defnode fred [:ubuntu])
-    (is (= {:tag :fred :image [:ubuntu] :phases {}} fred))
-    (is (= {:fred fred} @node-types))
-    (defnode tom [:centos])
-    (is (= {:tag :tom :image [:centos] :phases {}} tom))
-    (is (= {:tom tom :fred fred} @node-types))
-    (defnode harry (tom :image))
-    (is (= {:tag :harry :image [:centos] :phases {}} harry))
-    (is (= {:harry harry :tom tom :fred fred} @node-types))
-    (defnode with-phases (tom :image)
-      :bootstrap [(test-component :a)]
-      :configure [(test-component :b)])
-    (is (= [:bootstrap :configure] (keys (with-phases :phases))))
-    (is (= ":a\n"
-           (resource/produce-phases
-            [:bootstrap] "tag" [] (with-phases :phases))))
-    (is (= ":b\n"
-           (resource/produce-phases
-            [:configure] "tag" [] (with-phases :phases))))))
+
+(deftest defnode-test
+  (defnode fred [:ubuntu])
+  (is (= {:tag :fred :image [:ubuntu] :phases {}} fred))
+  (defnode tom [:centos])
+  (is (= {:tag :tom :image [:centos] :phases {}} tom))
+  (defnode harry (tom :image))
+  (is (= {:tag :harry :image [:centos] :phases {}} harry))
+  (defnode with-phases (tom :image)
+    :bootstrap [(test-component :a)]
+    :configure [(test-component :b)])
+  (is (= [:bootstrap :configure] (keys (with-phases :phases))))
+  (is (= ":a\n"
+         (resource/produce-phases
+          [:bootstrap] "tag" [] (with-phases :phases))))
+  (is (= ":b\n"
+         (resource/produce-phases
+          [:configure] "tag" [] (with-phases :phases)))))

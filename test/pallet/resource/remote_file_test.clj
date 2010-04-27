@@ -72,14 +72,14 @@
       (io/copy "text" tmp)
       (core/defnode tag [])
       (core/apply-phases-to-node
-       nil (compute/make-unmanaged-node "tag" "localhost")
+       nil tag (compute/make-unmanaged-node "tag" "localhost")
        [(phase
          (remote-file (.getPath target-tmp) :local-file (.getPath tmp) :mode "0666"))]
        user)
       (is (.canRead target-tmp))
       (is (= "text" (slurp (.getPath target-tmp))))
       (core/apply-phases-to-node
-       nil (compute/make-unmanaged-node "tag" "localhost")
+       nil tag (compute/make-unmanaged-node "tag" "localhost")
        [(phase (exec-script/exec-script (script (rm ~(.getPath target-tmp)))))]
        user)
       (is (not (.exists target-tmp))))))

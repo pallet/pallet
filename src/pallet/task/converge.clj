@@ -1,6 +1,8 @@
 (ns pallet.task.converge
   "Adjust node counts."
-  (:require [pallet.core :as core]))
+  (:require
+   [pallet.core :as core]
+   [clojure.contrib.logging :as logging]))
 
 (defn- build-args [args]
   (loop [args args
@@ -9,12 +11,18 @@
          phases []]
     (if-let [a (first args)]
       (cond
-       (and (nil? m) (string? a)) (recur (next args) a m phases)
+       (and (nil? m) (symbol? a) (nil? (namespace a))) (recur
+                                                        (next args)
+                                                        (name a)
+                                                        m
+                                                        phases)
        (not (keyword? a)) (recur
-                           (nnext args) prefix (assoc (or m {}) a (fnext args)) phases)
+                           (nnext args)
+                           prefix
+                           (assoc (or m {}) a (fnext args))
+                           phases)
        :else (recur (next args) prefix m (conj phases a)))
-      (let [res (if prefix [prefix] [])]
-        (concat (conj res m) phases)))))
+      (concat (conj (if prefix [prefix] []) m) phases))))
 
 (defn converge
   "Adjust node counts.  Requires a map of node-type, count pairs.

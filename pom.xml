@@ -172,6 +172,11 @@
             <artifactId>enlive</artifactId>
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
+        <dependency>
+	  <groupId>org.apache.maven</groupId>
+	  <artifactId>maven-settings</artifactId>
+	  <version>2.0.10</version>
+        </dependency>
     </dependencies>
 
     <repositories>

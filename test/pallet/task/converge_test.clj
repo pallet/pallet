@@ -14,4 +14,4 @@
     (is (= [{a 1}] (build-args [a 1])))
     (is (= [{a 1 b 2}] (build-args [a 1 b 2])))
     (is (= [{a 1} :b] (build-args [a 1 :b])))
-    (is (= ["a" {a 1} :b] (build-args ["a" a 1 :b])))))
+    (is (= ["a" {a 1} :b] (build-args ['a a 1 :b])))))

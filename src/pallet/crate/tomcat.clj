@@ -2,7 +2,6 @@
   "Installation of tomcat"
   (:refer-clojure :exclude [alias])
   (:use
-   [pallet.core :only [node-type-for-tag]]
    [pallet.stevedore :only [script]]
    [pallet.resource :only [defresource]]
    [pallet.resource.file :only [heredoc file]]
