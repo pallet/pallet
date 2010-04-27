@@ -2,7 +2,7 @@
 
 VERSION="0.0.1-SNAPSHOT"
 
-#CLASSPATH=src/:"$(find lib/ -follow -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)":$CLASSPATH
+CLASSPATH=pallet/src/:"$(find pallet/lib -follow -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)":$CLASSPATH
 PALLET_JAR="$HOME/.m2/repository/pallet/pallet/$VERSION/pallet-$VERSION-standalone.jar"
 CLOJURE_JAR="$HOME/.m2/repository/org/clojure/clojure/1.1.0/clojure-1.1.0.jar"
 
