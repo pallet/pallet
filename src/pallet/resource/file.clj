@@ -1,8 +1,8 @@
 (ns pallet.resource.file
   "File manipulation."
+  (:require [pallet.utils :as utils])
   (:use pallet.script
         pallet.stevedore
-        [pallet.utils :only [cmd-join]]
         [pallet.resource :only [defresource]]
         clojure.contrib.logging))
 
@@ -37,17 +37,18 @@
 
 (defscript heredoc [path content])
 (defimpl heredoc :default [path content]
-  ("cat" ">" ~path ~(str "<<EOF\n" content "\nEOF")))
+  ("{ cat" ">" ~path ~(str "<<EOF\n" content "\nEOF\n }")))
 
+;; the cat is wrapped in braces so that the final newline is protected
 (defn heredoc
   [path content & options]
   (let [options (apply hash-map options)]
-    (script ("cat" ">" ~path
+    (script ("{ cat" ">" ~path
              ~(str (if (options :literal) "<<'EOF'\n" "<<EOF\n")
-                   content "\nEOF")))))
+                   content "\nEOF\n }")))))
 
 (defn adjust-file [path opts]
-  (cmd-join
+  (utils/cmd-chain
    (filter
     (complement nil?)
     [(when (opts :owner)
@@ -58,7 +59,7 @@
        (script (chmod ~(opts :mode) ~path)))])))
 
 (defn touch-file [path opts]
-  (cmd-join
+  (utils/cmd-chain
    [(script
      (touch ~path ~(select-keys opts [:force])))
     (adjust-file path opts)]))
@@ -67,13 +68,14 @@
   [path & options]
   (let [opts (apply hash-map options)
         opts (merge {:action :create} opts)]
-    (condp = (opts :action)
-      :delete
-      (script (rm ~path ~(select-keys opts [:force])))
-      :create
-      (touch-file path opts)
-      :touch
-      (touch-file path opts))))
+    (utils/cmd-checked (str "file " path)
+     (condp = (opts :action)
+       :delete
+       (script (rm ~path ~(select-keys opts [:force])))
+       :create
+       (touch-file path opts)
+       :touch
+       (touch-file path opts)))))
 
 (defresource file "File management."
   file* [filename & options])

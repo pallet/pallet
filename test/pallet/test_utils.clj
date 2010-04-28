@@ -1,4 +1,6 @@
 (ns pallet.test-utils
+  (:require [pallet.utils :as utils])
+  (:use clojure.test)
   (:import
    org.jclouds.compute.domain.internal.NodeMetadataImpl
    org.jclouds.compute.domain.NodeState))
@@ -26,3 +28,13 @@ list, Alan Dipert and MeikelBrandmeyer."
                                (. ~(bindings 0) delete))))
    :else (throw (IllegalArgumentException.
                  "with-temporary only allows Symbols in bindings"))))
+
+(defmacro bash-out
+  "Check output of bash. Macro so that errors appear on the correct line."
+  ([str] `(bash-out ~str 0 ""))
+  ([str exit err-msg]
+  `(let [r# (utils/bash ~str)]
+    (is (= ~err-msg (:err r#)))
+    (is (= ~exit (:exit r#)))
+    (:out r#))))
+

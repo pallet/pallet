@@ -89,7 +89,7 @@
 
 (defn gemrc* [m & user?]
   (let [user (or (first user?) (*admin-user* :username))]
-    (remote-file* (str (script (user-home user)) "/.gemrc")
+    (remote-file* (str (script (user-home ~user)) "/.gemrc")
                   :content (.replaceAll (json/encode-to-str m) "[{}]" "")
                   :owner user)))
 

@@ -91,7 +91,7 @@ cruiscontrol.rb init script."
   [name repository-url & options]
   (let [options (merge {:action :create} (apply hash-map options))]
     (condp = (options :action)
-      :create (stevedore/script
+      :create (stevedore/checked-script "cruise-control-rb"
                (export ~(format "CRUISE_DATA_ROOT=%s" cruise-control-rb-data))
                (if-not (file-exists? ~(project-path name))
                  (sudo

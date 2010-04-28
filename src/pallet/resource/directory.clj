@@ -1,8 +1,9 @@
 (ns pallet.resource.directory
   "Directory manipulation."
+  (:require
+   [pallet.utils :as utils])
   (:use pallet.script
         pallet.stevedore
-        [pallet.utils :only [cmd-join]]
         [pallet.resource :only [defresource]]
         [pallet.resource.file :only [chown chgrp chmod]]
         clojure.contrib.logging))
@@ -16,7 +17,7 @@
   ("mkdir" ~(map-to-arg-string (first options)) ~directory))
 
 (defn adjust-directory [path opts]
-  (cmd-join
+  (utils/cmd-chain
    (filter
     (complement nil?)
     [(when (opts :owner)
@@ -27,7 +28,8 @@
        (script (chmod ~(opts :mode) ~path  ~(select-keys opts [:recursive]))))])))
 
 (defn make-directory [path opts]
-  (cmd-join
+  (utils/cmd-join-checked
+   (str "directory " path)
    [(script
      (mkdir ~path ~(select-keys opts [:p :v :m])))
     (adjust-directory path opts)]))
@@ -38,8 +40,10 @@
         opts (merge {:action :create} opts)]
     (condp = (opts :action)
       :delete
-      (script (rm ~path ~{:r (get opts :recursive true)
-                          :f (get opts :force true)}))
+      (checked-script
+       (str "directory " path)
+       (rm ~path ~{:r (get opts :recursive true)
+                   :f (get opts :force true)}))
       :create
       (make-directory path (merge {:p true} opts))
       :touch

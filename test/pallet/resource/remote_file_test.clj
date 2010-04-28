@@ -20,29 +20,47 @@
          (. System getProperty "user.name")))
 
 (deftest remote-file*-test
+  (is (= "echo \"remote-file path...\"\n{ { cat > path <<EOF\nxxx\nEOF\n }; } || { echo remote-file path failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+         (remote-file* "path" :content "xxx")))
+
+  (is (= "echo \"remote-file path...\"\n{ { cat > path <<EOF\nxxx\nEOF\n } && chown  o path && chgrp  g path && chmod  m path; } || { echo remote-file path failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+         (remote-file* "path" :content "xxx" :owner "o" :group "g" :mode "m")))
+
+  (with-temporary [tmp (tmpfile)]
+    (is (= (str "remote-file " (.getPath tmp) "...\n"
+                "...done\n")
+           (bash-out (remote-file* (.getPath tmp) :content "xxx"))))
+    (is (= "xxx\n" (slurp (.getPath tmp)))))
+
+  (with-temporary [tmp (tmpfile)]
+    (is (= (str "remote-file " (.getPath tmp) "...\n"
+                "...done\n")
+           (bash-out (remote-file* (.getPath tmp) :content "xxx" :chmod "0666"))))
+    (is (= "xxx\n" (slurp (.getPath tmp)))))
+
   (target/with-target nil {:tag :n :image [:ubuntu]}
-    (is (= "cat > path <<EOF\na 1\n\nEOF\n\n"
+    (is (= "echo \"remote-file path...\"\n{ { cat > path <<EOF\na 1\n\nEOF\n }; } || { echo remote-file path failed ; exit 1 ; } >&2 \necho \"...done\"\n"
            (remote-file* "path" :template "template/strint" :values {'a 1})))))
 
 (deftest remote-file-test
-  (is (= "cat > file1 <<EOF\nsomecontent\nEOF\n"
+  (is (= "echo \"remote-file file1...\"\n{ { cat > file1 <<EOF\nsomecontent\nEOF\n }; } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (build-resources
           [] (remote-file "file1" :content "somecontent"))))
-  (is (= "cat > file1 <<'EOF'\nsomecontent\nEOF\n"
+  (is (= "echo \"remote-file file1...\"\n{ { cat > file1 <<'EOF'\nsomecontent\nEOF\n }; } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (build-resources
           [] (remote-file "file1" :content "somecontent" :literal true))))
-  (is (= "wget -O file1 http://xx.com/abc\necho MD5 sum is $(md5sum file1)\n"
+  (is (= "echo \"remote-file file1...\"\n{ wget -O file1 http://xx.com/abc\necho MD5 sum is $(md5sum file1); } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (build-resources
           [] (remote-file "file1" :url "http://xx.com/abc"))))
-  (is (= "wget -O file1 http://xx.com/abc\necho MD5 sum is $(md5sum file1)\nchown  user1 file1\n"
+  (is (= "echo \"remote-file file1...\"\n{ wget -O file1 http://xx.com/abc\necho MD5 sum is $(md5sum file1) && chown  user1 file1; } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (build-resources
           [] (remote-file "file1" :url "http://xx.com/abc" :owner "user1"))))
-  (is (= "if [ \\( ! -e file1 -o \\( \"abcd\" != \"$(md5sum file1 | cut -f1 -d' ')\" \\) \\) ]; then wget -O file1 http://xx.com/abc;fi\necho MD5 sum is $(md5sum file1)\nchown  user1 file1\n"
+  (is (= "echo \"remote-file file1...\"\n{ if [ \\( ! -e file1 -o \\( \"abcd\" != \"$(md5sum file1 | cut -f1 -d' ')\" \\) \\) ]; then wget -O file1 http://xx.com/abc;fi\necho MD5 sum is $(md5sum file1) && chown  user1 file1; } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (build-resources
           [] (remote-file
               "file1" :url "http://xx.com/abc" :md5 "abcd" :owner "user1"))))
 
-  (is (= "cp file2 file1\nchown  user1 file1\n"
+  (is (= "echo \"remote-file file1...\"\n{ cp file2 file1 && chown  user1 file1; } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (build-resources
           [] (remote-file
               "file1" :remote-file "file2" :owner "user1"))))

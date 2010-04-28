@@ -1,9 +1,9 @@
 (ns pallet.stevedore
   "Embed shell script in clojure"
   (:require pallet.compat)
+  (:require [pallet.utils :as utils])
   (:use clojure.walk
         clojure.contrib.logging
-        [pallet.utils :only [underscore]]
         pallet.script))
 
 (pallet.compat/require-contrib)
@@ -12,7 +12,7 @@
   (str "\"" s "\""))
 
 (defn arg-string [option argument do-underscore do-assign dash]
-  (let [opt (if do-underscore (underscore (name option)) (name option))]
+  (let [opt (if do-underscore (utils/underscore (name option)) (name option))]
     (if argument
       (if (> (.length opt) 1)
         (str dash opt (if-not (= argument true)
@@ -173,7 +173,7 @@
 (defn- emit-body-for-if [form]
   (if (or (compound-form? form)
           (= 'if (first form)))
-    (str \newline (emit form))
+    (str \newline (string/trim (emit form)) \newline)
     (str " " (emit form) ";")))
 
 (defmethod emit-special 'if [type [if test true-form & false-form]]
@@ -183,7 +183,7 @@
        (emit-body-for-if true-form)
        (when (first false-form)
          (str "else" (emit-body-for-if (first false-form))))
-       "fi\n"))
+       "fi"))
 
 (defmethod emit-special 'if-not [type [if test true-form & false-form]]
   (str "if "
@@ -194,7 +194,7 @@
        (emit-body-for-if true-form)
        (when (first false-form)
          (str "else" (emit-body-for-if (first false-form))))
-       "fi\n"))
+       "fi"))
 
 (defmethod emit-special 'dot-method [type [method obj & args]]
   (let [method (symbol (string/drop (str method) 1))]
@@ -319,10 +319,18 @@
     post-form))
 
 (defmacro script
-  "Takes one or more forms. Returns a string of the forms translated into javascript"
+  "Takes one or more forms. Returns a string of the forms translated into
+  javascript."
   [& forms]
   `(with-line-number
      (_script (quasiquote ~forms))))
+
+(defmacro checked-script
+  "Takes one or more forms. Returns a string of the forms translated into
+  javascript.  Wraps the expression in a test for the result status."
+  [message & forms]
+  `(utils/cmd-checked ~message
+    (script ~@forms)))
 
 (defmacro defimpl
   "Define a script fragment implementation for a given set of specialisers"

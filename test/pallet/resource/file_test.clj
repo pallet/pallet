@@ -26,25 +26,25 @@
          (script (tmp-dir)))))
 
 (deftest heredoc-script-test
-  (is (= "cat > somepath <<EOF\nsomecontent\nEOF"
+  (is (= "{ cat > somepath <<EOF\nsomecontent\nEOF\n }"
          (script (heredoc "somepath" "somecontent")))))
 
 (deftest heredoc-test
-  (is (= "cat > somepath <<EOF\nsomecontent\nEOF"
+  (is (= "{ cat > somepath <<EOF\nsomecontent\nEOF\n }"
          (heredoc "somepath" "somecontent"))))
 
-(deftest heredoc-test
-  (is (= "cat > somepath <<'EOF'\nsomecontent\nEOF"
+(deftest heredoc-literal-test
+  (is (= "{ cat > somepath <<'EOF'\nsomecontent\nEOF\n }"
          (heredoc "somepath" "somecontent" :literal true))))
 
 (deftest file-test
-  (is (= "touch  file1\n"
+  (is (= "echo \"file file1...\"\n{ touch  file1; } || { echo file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (build-resources [] (file "file1"))))
-  (is (= "touch  file1\nchown  user1 file1\n"
+  (is (= "echo \"file file1...\"\n{ touch  file1 && chown  user1 file1; } || { echo file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (build-resources [] (file "file1" :owner "user1"))))
-  (is (= "touch  file1\nchown  user1 file1\n"
+  (is (= "echo \"file file1...\"\n{ touch  file1 && chown  user1 file1; } || { echo file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (build-resources [] (file "file1" :owner "user1" :action :create))))
-  (is (= "touch  file1\nchgrp  group1 file1\n"
+  (is (= "echo \"file file1...\"\n{ touch  file1 && chgrp  group1 file1; } || { echo file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (build-resources [] (file "file1" :group "group1" :action :touch))))
-  (is (= "rm --force file1\n"
+  (is (= "echo \"file file1...\"\n{ rm --force file1; } || { echo file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (build-resources [] (file "file1" :action :delete :force true)))))

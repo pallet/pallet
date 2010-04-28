@@ -103,7 +103,7 @@
   #(cmd-join (map (fn [x] (apply package-source* x)) %))
   [name packager-map & options])
 
-(defn apply-package
+(defn package*
   "Package management"
   [package-name & options]
   (let [opts (if options (apply assoc {} options) {})
@@ -130,7 +130,7 @@
   (cmd-join
    (cons
     (script (package-manager-non-interactive))
-    (map #(apply apply-package %) package-args))))
+    (map #(apply package* %) package-args))))
 
 (defaggregate package "Package management."
   apply-packages [packagename & options])
@@ -149,22 +149,23 @@
   "Package management."
   [action & options]
   (let [opts (apply hash-map options)]
-    (condp = action
-      :update
-      (script (update-package-list))
-      :multiverse
-      (add-scope (or (opts :type) "deb.*")
-                 "multiverse"
-                 (or (opts :file) "/etc/apt/sources.list"))
-      :universe
-      (add-scope (or (opts :type) "deb.*")
-                 "universe"
-                 (or (opts :file) "/etc/apt/sources.list"))
-      :debconf
-      (if (= :aptitude (packager))
-        (script (apply debconf-set-selections ~options)))
-      (throw (IllegalArgumentException.
-              (str action " is not a valid action for package resource"))))))
+    (utils/cmd-checked "package-manager"
+     (condp = action
+       :update
+       (script (update-package-list))
+       :multiverse
+       (add-scope (or (opts :type) "deb.*")
+                  "multiverse"
+                  (or (opts :file) "/etc/apt/sources.list"))
+       :universe
+       (add-scope (or (opts :type) "deb.*")
+                  "universe"
+                  (or (opts :file) "/etc/apt/sources.list"))
+       :debconf
+       (if (= :aptitude (packager))
+         (script (apply debconf-set-selections ~options)))
+       (throw (IllegalArgumentException.
+               (str action " is not a valid action for package resource")))))))
 
 (defn- apply-package-manager [package-manager-args]
   (cmd-join

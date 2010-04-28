@@ -2,7 +2,7 @@
 
 VERSION="0.0.1-SNAPSHOT"
 
-CLASSPATH=pallet/src/:"$(find pallet/lib -follow -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)":$CLASSPATH
+CLASSPATH=./pallet/src/:"$(find pallet/lib -follow -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)":$CLASSPATH
 PALLET_JAR="$HOME/.m2/repository/pallet/pallet/$VERSION/pallet-$VERSION-standalone.jar"
 CLOJURE_JAR="$HOME/.m2/repository/org/clojure/clojure/1.1.0/clojure-1.1.0.jar"
 
@@ -31,7 +31,7 @@ if [ -r "$BIN_DIR/../src/pallet/core.clj" ]; then
     PALLET_DIR="$(dirname "$BIN_DIR")"
     PALLET_LIBS="$(find -H $PALLET_DIR/lib -mindepth 2> /dev/null 1 -maxdepth 1 -print0 | tr \\0 \:)"
     # PALLET_LIBS=$( echo $PALLET_LIBS | sed s#:./lib/clojure-1.1.0.jar## )
-    CLASSPATH="$PALLET_DIR/src:$PALLET_DIR/pallet:$PALLET_LIBS:$CLASSPATH"
+    CLASSPATH="$PALLET_DIR/src:$PALLET_LIBS:$CLASSPATH"
 
     if [ "$PALLET_LIBS" = "" -a "$1" != "self-install" ]; then
         echo "Your Pallet development checkout is missing its dependencies."
@@ -41,7 +41,7 @@ if [ -r "$BIN_DIR/../src/pallet/core.clj" ]; then
     fi
 else
     # Not running from a checkout
-    CLASSPATH="$PALLET_JAR:$CLASSPATH:./pallet"
+    CLASSPATH="$PALLET_JAR:$CLASSPATH"
 
     if [ ! -r "$PALLET_JAR" -a "$1" != "self-install" ]; then
         echo "Pallet is not installed. Please run \"pallet self-install\"."

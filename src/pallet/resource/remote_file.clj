@@ -8,6 +8,7 @@
         clojure.contrib.logging)
   (:require
    [pallet.template :as template]
+   [pallet.utils :as utils]
    [clojure.contrib.def :as def]))
 
 (def/defvar
@@ -28,7 +29,7 @@
             local-file (opts :local-file)
             remote-file (opts :remote-file)
             template-name (opts :template)]
-        (cmd-join
+        (utils/cmd-join-checked (str "remote-file " path)
           [(cond
             (and url md5) (script
                            (if (|| (not (file-exists? ~path))
@@ -52,7 +53,7 @@
 
             :else (throw
                    (IllegalArgumentException.
-                    (str "Remote file " path " specified without content."))))
+                    (str "remote-file " path " specified without content."))))
           (adjust-file path opts)])))))
 
 (defresource remote-file "Remote file with contents management.

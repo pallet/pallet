@@ -66,7 +66,7 @@
         #(conj (or % []) [invoke-fn args])))))
 
 (defn- group-pairs-by-key
-  "Transforms a seq of key-value pairs, generally some with identical keys,
+  "Transforms a seq of key-value pairs, generally some with identical keys
    into a seq of pairs (one per unique key in the input seq) where values
    are the concatenation of all of the values of associated with each key
    in the original seq.  Key order from the original seq is retained.

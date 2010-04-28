@@ -1,6 +1,7 @@
 (ns pallet.crate.rubygems-test
   (:use [pallet.crate.rubygems] :reload-all)
-  (:require [pallet.template :only [apply-templates]])
+  (:require
+   [pallet.resource.remote-file :as remote-file])
   (:use clojure.test
         pallet.test-utils
         [pallet.resource.package :only [package package-manager]]
@@ -21,5 +22,8 @@
          (build-resources [] (gem-source "http://rubygems.org")))))
 
 (deftest gemrc-test
-  (is (= "cat > $(getent passwd quote user | cut -d: -f6)/.gemrc <<EOF\n\"gem\":\"--no-rdoc --no-ri\"\nEOF\nchown  fred $(getent passwd quote user | cut -d: -f6)/.gemrc\n"
+  (is (= (remote-file/remote-file*
+          "$(getent passwd fred | cut -d: -f6)/.gemrc"
+          :content "\"gem\":\"--no-rdoc --no-ri\""
+          :owner "fred")
          (build-resources [] (gemrc {:gem "--no-rdoc --no-ri"} "fred")))))

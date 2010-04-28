@@ -47,7 +47,7 @@
    :sh "/bin/sh" :tcsh "/bin/tcsh" :zsh "/bin/zsh" :false "/bin/false"}
   "Map for looking up shell path based on keyword.")
 
-(defn apply-user
+(defn user*
   "Require a user"
   [username & options]
   (let [opts (if options (apply assoc {} options))
@@ -84,10 +84,8 @@
       (throw (IllegalArgumentException.
               (str action " is not a valid action for user resource"))))))
 
-(def user-args (atom []))
-
 (defn- apply-users [user-args]
-  (string/join \newline (map #(apply apply-user %) user-args)))
+  (string/join \newline (map #(apply user* %) user-args)))
 
 (defaggregate user "User management."
   apply-users [username & options])

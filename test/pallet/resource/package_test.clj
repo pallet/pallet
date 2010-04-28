@@ -8,6 +8,7 @@
   (:require
    [pallet.core :as core]
    [pallet.resource :as resource]
+   [pallet.resource.remote-file :as remote-file]
    [pallet.target :as target]))
 
 (pallet.compat/require-contrib)
@@ -55,13 +56,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
       (.delete tmp))))
 
 (deftest package-manager*-test
-  (is (= "tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list\n"
+  (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (package-manager* :multiverse)))
-  (is (= "aptitude update "
+  (is (= "echo \"package-manager...\"\n{ aptitude update; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (package-manager* :update))))
 
 (deftest add-multiverse-example-test
-  (is (= "tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list\naptitude update\n"
+  (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"package-manager...\"\n{ aptitude update; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (pallet.resource/build-resources []
           (package-manager :multiverse)
           (package-manager :update)))))
@@ -70,26 +71,31 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (core/defnode a [:ubuntu])
   (core/defnode b [:centos])
   (target/with-target nil a
-    (is (= "cat > /etc/apt/sources.list.d/source1.list <<EOF\ndeb http://somewhere/apt $(lsb_release -c -s) main\n\nEOF\n\n"
+    (is (= (remote-file/remote-file*
+            "/etc/apt/sources.list.d/source1.list"
+            :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
            (package-source*
             "source1"
             :aptitude {:url "http://somewhere/apt"
                        :scopes ["main"]}
             :yum {:url "http://somewhere/yum"}))))
-    (target/with-target nil b
-    (is (= "cat > /etc/yum.repos.d/source1.repo <<EOF\n[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\n\nEOF\n\n"
+  (target/with-target nil b
+    (is (= (remote-file/remote-file*
+            "/etc/yum.repos.d/source1.repo"
+            :content "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\n")
            (package-source*
             "source1"
             :aptitude {:url "http://somewhere/apt"
                        :scopes ["main"]}
             :yum {:url "http://somewhere/yum"})))))
 
-
 (deftest package-source-test
   (core/defnode a [:ubuntu])
   (core/defnode b [:centos])
   (target/with-target nil a
-    (is (= "cat > /etc/apt/sources.list.d/source1.list <<EOF\ndeb http://somewhere/apt $(lsb_release -c -s) main\n\nEOF\n"
+    (is (= (remote-file/remote-file*
+            "/etc/apt/sources.list.d/source1.list"
+            :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
            (resource/build-resources
             []
             (package-source
@@ -98,7 +104,9 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                         :scopes ["main"]}
              :yum {:url "http://somewhere/yum"})))))
   (target/with-target nil b
-    (is (= "cat > /etc/yum.repos.d/source1.repo <<EOF\n[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\n\nEOF\n"
+    (is (= (remote-file/remote-file*
+            "/etc/yum.repos.d/source1.repo"
+            :content "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\n")
            (resource/build-resources
             []
             (package-source

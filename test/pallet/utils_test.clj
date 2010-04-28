@@ -69,7 +69,31 @@
              "file=$(mktemp utilXXXX); echo fred > $file ;cat $file ; rm $file")]
     (is (= {:exit 0 :err "" :out "fred\n"} res))))
 
+(deftest blank?-test
+  (is (blank? nil))
+  (is (blank? ""))
+  (is (not (blank? "a")))
+  (is (not (blank? 'a))))
+
 (deftest cmd-join-test
   (is (= "fred\n" (cmd-join ["fred"])))
   (is (= "fred\nblogs\n" (cmd-join ["fred" "blogs"])))
   (is (= "fred\nblogs\n" (cmd-join ["fred\n\n" "blogs\n"]))))
+
+(deftest do-script-test
+  (is (= "fred\n" (do-script "fred")))
+  (is (= "fred\nblogs\n" (do-script "fred" "blogs")))
+  (is (= "fred\nblogs\n" (do-script "fred\n\n" "blogs\n"))))
+
+(deftest cmd-chain-test
+  (is (= "fred" (cmd-chain ["fred"])))
+  (is (= "fred && blogs" (cmd-chain ["fred" "blogs"])))
+  (is (= "fred && blogs" (cmd-chain ["fred\n\n" "blogs\n"]))))
+
+(deftest cmd-join-checked-test
+  (is (= "echo \"test...\"\n{ echo fred && echo tom; } || { echo test failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+         (cmd-join-checked "test" ["echo fred" "echo tom"])))
+  (is (= "test...\nfred\ntom\n...done\n"
+         (bash-out (cmd-join-checked "test" ["echo fred" "echo tom"]))))
+  (is (= "test...\n"
+         (bash-out (cmd-join-checked "test" ["test 1 = 2"]) 1 "test failed\n"))))

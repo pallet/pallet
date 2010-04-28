@@ -1,15 +1,22 @@
 (ns pallet.resource.directory-test
   (:use [pallet.resource.directory] :reload-all)
-  (:use [pallet.stevedore :only [script]]
-        [pallet.resource :only [build-resources]]
-        clojure.test
-        pallet.test-utils))
+  (:require
+   [pallet.utils :as utils]
+   [pallet.stevedore :as stevedore]
+   [pallet.resource :as resource])
+  (:use
+   clojure.test
+   pallet.test-utils))
 
 (deftest mkdir-test
   (is (= "mkdir -p dir"
-         (script (mkdir "dir" ~{:p true})))))
+         (stevedore/script (mkdir "dir" ~{:p true})))))
 
+
+(deftest directory*-test
+  (is (= (utils/cmd-checked "directory file1" "mkdir -p file1")
+         (directory* "file1"))))
 
 (deftest directory-test
-  (is (= "mkdir -p file1\n"
-         (build-resources [] (directory "file1")))))
+  (is (= (utils/cmd-checked "directory file1" "mkdir -p file1")
+         (resource/build-resources [] (directory "file1")))))

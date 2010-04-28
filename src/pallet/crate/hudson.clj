@@ -13,6 +13,7 @@
    [pallet.crate.tomcat :as tomcat]
    [net.cgrand.enlive-html :as xml]
    [pallet.enlive :as enlive]
+   [pallet.utils :as utils]
    [pallet.target :as target]
    [pallet.resource :as resource]))
 
@@ -232,22 +233,22 @@
   [build-type name & options]
   (trace (str "Hudson - configure job " name))
   (let [opts (apply hash-map options)]
-    (cmd-join
-     [(directory* (str hudson-data-path "/jobs/" name) :p true)
-      (remote-file*
-       (str hudson-data-path "/jobs/" name "/config.xml" )
-       :content
-       (output-build-for
-        build-type
-        (target/node-type)
-        (opts :scm-type)
-        (normalise-scms (opts :scm))
-        (dissoc opts :scm :scm-type)))
-      (directory*
-       hudson-data-path
-       :owner hudson-owner :group (hudson-group-name)
-       :mode "g+w"
-       :recursive true)])))
+    (utils/do-script
+     (directory* (str hudson-data-path "/jobs/" name) :p true)
+     (remote-file*
+      (str hudson-data-path "/jobs/" name "/config.xml" )
+      :content
+      (output-build-for
+       build-type
+       (target/node-type)
+       (opts :scm-type)
+       (normalise-scms (opts :scm))
+       (dissoc opts :scm :scm-type)))
+     (directory*
+      hudson-data-path
+      :owner hudson-owner :group (hudson-group-name)
+      :mode "g+w"
+      :recursive true))))
 
 (resource/defresource job
   "Configure a hudson job.
@@ -285,18 +286,21 @@ options are:
                                         (apply hudson-task-transform task))))
    maven-tasks))
 
-(defn apply-hudson-maven [args]
-  (cmd-join
-   [(directory* "/usr/share/tomcat6/.m2" :group (hudson-group-name) :mode "g+w")
-    (remote-file*
-     (str hudson-data-path "/" *maven-file*)
-     :content (apply
-               str (hudson-maven-xml
-                    (target/node-type) args))
-     :owner hudson-owner
-     :group (hudson-group-name))]))
+(defn hudson-maven* [args]
+  (utils/do-script
+   (directory* "/usr/share/tomcat6/.m2" :group (hudson-group-name) :mode "g+w")
+   (directory*
+    hudson-data-path
+    :owner hudson-owner :group (hudson-group-name) :mode "775")
+   (remote-file*
+    (str hudson-data-path "/" *maven-file*)
+    :content (apply
+              str (hudson-maven-xml
+                   (target/node-type) args))
+    :owner hudson-owner
+    :group (hudson-group-name))))
 
 
 (resource/defaggregate maven
   "Configure a maven instance for hudson."
-  apply-hudson-maven [name version])
+  hudson-maven* [name version])

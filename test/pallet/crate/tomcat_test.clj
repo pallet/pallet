@@ -4,16 +4,18 @@
   (:require
     [pallet.crate.tomcat :as tc]
     [pallet.target :as target]
-   [pallet.template :only [apply-templates]]
-   [net.cgrand.enlive-html :as enlive-html]
-   [pallet.enlive :as enlive])
-  (:use clojure.test
-        pallet.test-utils
-        [pallet.resource.package :only [package package-manager]]
-        [pallet.resource :only [build-resources]]
-        [pallet.stevedore :only [script]]
-        [pallet.utils :only [cmd-join]]
-        [pallet.core :only [defnode]]))
+    [pallet.resource.remote-file :as remote-file]
+    [pallet.template :as template]
+    [net.cgrand.enlive-html :as enlive-html]
+    [pallet.enlive :as enlive])
+  (:use
+   clojure.test
+   pallet.test-utils
+   [pallet.resource.package :only [package package-manager]]
+   [pallet.resource :only [build-resources]]
+   [pallet.stevedore :only [script]]
+   [pallet.utils :only [cmd-join]]
+   [pallet.core :only [defnode]]))
 
 (deftest tomcat-test
   (is (= "debconf-set-selections <<EOF\ndebconf debconf/frontend select noninteractive\ndebconf debconf/frontend seen false\nEOF\naptitude install -y  tomcat6\n"
@@ -26,7 +28,10 @@
     (is (= "c" (classname-for "c" m)))))
 
 (deftest tomcat-deploy-test
-  (is (= "cp file.war /var/lib/tomcat6/webapps/ROOT.war\nchown  tomcat6 /var/lib/tomcat6/webapps/ROOT.war\nchgrp  tomcat6 /var/lib/tomcat6/webapps/ROOT.war\nchmod  600 /var/lib/tomcat6/webapps/ROOT.war\n"
+  (is (= (remote-file/remote-file*
+          "/var/lib/tomcat6/webapps/ROOT.war"
+          :remote-file "file.war"
+          :owner "tomcat6" :group "tomcat6" :mode "600")
          (build-resources [] (deploy "file.war" nil)))))
 
 (deftest tomcat-undeploy-all-test
@@ -39,7 +44,10 @@
   (is (= "" (build-resources [] (undeploy)))))
 
 (deftest tomcat-policy-test
-  (is (= "cat > /etc/tomcat6/policy.d/100hudson.policy <<'EOF'\ngrant codeBase \"file:${catalina.base}/webapps/hudson/-\" {\n  permission java.lang.RuntimePermission \"getAttribute\";\n};\nEOF\n"
+  (is (= (remote-file/remote-file*
+          "/etc/tomcat6/policy.d/100hudson.policy"
+          :content "grant codeBase \"file:${catalina.base}/webapps/hudson/-\" {\n  permission java.lang.RuntimePermission \"getAttribute\";\n};"
+          :literal true)
          (build-resources []
           (policy
            100 "hudson"
@@ -47,14 +55,20 @@
             ["permission java.lang.RuntimePermission \"getAttribute\""]})))))
 
 (deftest tomcat-blanket-policy-test
-  (is (= "cat > /etc/tomcat6/policy.d/100hudson.policy <<'EOF'\ngrant  {\n  permission java.lang.RuntimePermission \"getAttribute\";\n};\nEOF\n"
+  (is (= (remote-file/remote-file*
+          "/etc/tomcat6/policy.d/100hudson.policy"
+          :content "grant  {\n  permission java.lang.RuntimePermission \"getAttribute\";\n};"
+          :literal true)
          (build-resources []
           (policy
            100 "hudson"
            {nil ["permission java.lang.RuntimePermission \"getAttribute\""]})))))
 
 (deftest tomcat-application-conf-test
-  (is (= "cat > /etc/tomcat6/Catalina/localhost/hudson.xml <<'EOF'\n<?xml version='1.0' encoding='utf-8'?>\n<Context docBase=\"/srv/hudson/hudson.war\">\n<Environment name=\"HUDSON_HOME\"/>\n</Context>\nEOF\n"
+  (is (= (remote-file/remote-file*
+          "/etc/tomcat6/Catalina/localhost/hudson.xml"
+          :content "<?xml version='1.0' encoding='utf-8'?>\n<Context docBase=\"/srv/hudson/hudson.war\">\n<Environment name=\"HUDSON_HOME\"/>\n</Context>"
+          :literal true)
          (build-resources []
           (application-conf
            "hudson"
@@ -221,7 +235,9 @@
 (deftest server-configuration-test
   (defnode a [])
   (target/with-target nil {:tag :a :image [:ubuntu]}
-    (is (= "cat > /var/lib/tomcat6/conf/server.xml <<EOF\n<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWNx\" port=\"123\"><GlobalNamingResources></GlobalNamingResources><Listener className=\"\"></Listener>\n  \n  \n  \n  \n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"80\"></Connector>\n    <Engine defaultHost=\"host\" name=\"catalina\"><Valve className=\"org.apache.catalina.valves.RequestDumperValve\"></Valve>\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t\n      </Host>\n    </Engine>\n  </Service>\n</Server>\nEOF\n"
+    (is (= (remote-file/remote-file*
+            "/var/lib/tomcat6/conf/server.xml"
+            :content "<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWNx\" port=\"123\"><GlobalNamingResources></GlobalNamingResources><Listener className=\"\"></Listener>\n  \n  \n  \n  \n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"80\"></Connector>\n    <Engine defaultHost=\"host\" name=\"catalina\"><Valve className=\"org.apache.catalina.valves.RequestDumperValve\"></Valve>\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t\n      </Host>\n    </Engine>\n  </Service>\n</Server>")
            (build-resources []
                             (server-configuration
                              (server
@@ -234,7 +250,9 @@
                                (connector :port "80" :protocol "HTTP/1.1"
                                           :connectionTimeout "20000"
                                           :redirectPort "8443")))))))
-    (is (= "cat > /var/lib/tomcat6/conf/server.xml <<EOF\n<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWN\" port=\"8005\">\n  <Listener className=\"org.apache.catalina.core.JasperListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.ServerLifecycleListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\"></Listener>\n  <GlobalNamingResources>\n    <Resource pathname=\"conf/tomcat-users.xml\" factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\" description=\"User database that can be updated and saved\" type=\"org.apache.catalina.UserDatabase\" auth=\"Container\" name=\"UserDatabase\"></Resource>\n  </GlobalNamingResources>\n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"8080\"></Connector>\n    <Engine defaultHost=\"localhost\" name=\"Catalina\">\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t<Valve resolveHosts=\"false\" pattern=\"common\" suffix=\".log\" prefix=\"localhost_access.\" directory=\"logs\" className=\"org.apache.catalina.valves.AccessLogValve\"></Valve>\n      </Host>\n    </Engine>\n  </Service>\n</Server>\nEOF\n"
+    (is (= (remote-file/remote-file*
+            "/var/lib/tomcat6/conf/server.xml"
+            :content "<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWN\" port=\"8005\">\n  <Listener className=\"org.apache.catalina.core.JasperListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.ServerLifecycleListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\"></Listener>\n  <GlobalNamingResources>\n    <Resource pathname=\"conf/tomcat-users.xml\" factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\" description=\"User database that can be updated and saved\" type=\"org.apache.catalina.UserDatabase\" auth=\"Container\" name=\"UserDatabase\"></Resource>\n  </GlobalNamingResources>\n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"8080\"></Connector>\n    <Engine defaultHost=\"localhost\" name=\"Catalina\">\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t<Valve resolveHosts=\"false\" pattern=\"common\" suffix=\".log\" prefix=\"localhost_access.\" directory=\"logs\" className=\"org.apache.catalina.valves.AccessLogValve\"></Valve>\n      </Host>\n    </Engine>\n  </Service>\n</Server>")
            (build-resources []
                             (server-configuration
                              (server)))))))

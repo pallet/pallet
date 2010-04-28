@@ -1,8 +1,11 @@
 (ns pallet.stevedore-test
   (:use [pallet.stevedore] :reload-all)
-  (:use [pallet.utils :only [bash]]
-        clojure.test)
- (:require pallet.compat))
+  (:use
+   clojure.test
+   pallet.test-utils)
+  (:require
+   pallet.compat
+   [pallet.utils :as utils]))
 
 (pallet.compat/require-contrib)
 
@@ -20,14 +23,6 @@
     (.replace "\n" " ")
     (.replaceAll "[ ]+" " ")
     .trim))
-
-(defmacro bash-out
-  "Check output of bash. Macro so that errors appear on the correct line."
-  [str]
-  `(let [r# (bash ~str)]
-    (is (= 0 (:exit r#)))
-    (is (= "" (:err r#)))
-    (:out r#)))
 
 (deftest number-literal
   (is (= "42" (script 42)))
@@ -72,37 +67,40 @@
   (is (= "(1 2 \"3\" foo)" (script [1 "2" "\"3\"" :foo]))))
 
 (deftest test-if
-  (is (= "if [ \\( \\( \"foo\" == \"bar\" \\) -a \\( \"foo\" != \"baz\" \\) \\) ]; then echo fred;fi\n"
+  (is (= "if [ \\( \\( \"foo\" == \"bar\" \\) -a \\( \"foo\" != \"baz\" \\) \\) ]; then echo fred;fi"
          (script (if (&& (== foo bar) (!= foo baz)) (echo fred)))))
   (is (= "fred\n"
          (bash-out (script (if (&& (== foo foo) (!= foo baz)) (echo "fred"))))))
-  (is (= "if foo; then\nx=3\nfoo x\nelse\ny=4\nbar y\nfi\n"
+  (is (= "if foo; then\nx=3\nfoo x\nelse\ny=4\nbar y\nfi"
          (script (if foo (do (var x 3) (foo x)) (do (var y 4) (bar y))))))
   (is (= "not foo\n"
          (bash-out (script (if (== foo bar)
                              (do (echo "foo"))
                              (do (echo "not foo")))))))
-  (is (= "if [ -e file1 ]; then echo foo;fi\n"
+  (is (= "if [ -e file1 ]; then echo foo;fi"
          (script (if (file-exists? "file1") (echo "foo")))))
-  (is (= "if [ ! -e file1 ]; then echo foo;fi\n"
+  (is (= "if [ ! -e file1 ]; then echo foo;fi"
          (script (if (not (file-exists? "file1")) (echo "foo")))))
-  (is (= "if [ \\( ! -e file1 -o \\( \"a\" == \"b\" \\) \\) ]; then echo foo;fi\n"
+  (is (= "if [ \\( ! -e file1 -o \\( \"a\" == \"b\" \\) \\) ]; then echo foo;fi"
            (script (if (|| (not (file-exists? "file1")) (== "a" "b")) (echo "foo"))))))
 
 (deftest if-nested-test
   (is (= "if [ \\( \"foo\" == \"bar\" \\) ]; then
 if [ \\( \"foo\" != \"baz\" \\) ]; then echo fred;fi
-fi\n"
+fi"
          (script (if (== foo bar)
                    (if (!= foo baz)
-                     (echo fred)))))))
+                     (echo fred))))))
+  (is (= "" (bash-out (script (if (== foo bar)
+                                (if (!= foo baz)
+                                  (echo fred))))))))
 
 (deftest test-if-not
-  (is (= "if [ ! -e bar ]; then echo fred;fi\n"
+  (is (= "if [ ! -e bar ]; then echo fred;fi"
          (script (if-not (file-exists? bar) (echo fred)))))
-  (is (= "if [ ! \\( -e bar -a \\( \"foo\" == \"bar\" \\) \\) ]; then echo fred;fi\n"
+  (is (= "if [ ! \\( -e bar -a \\( \"foo\" == \"bar\" \\) \\) ]; then echo fred;fi"
          (script (if-not (&& (file-exists? bar) (== foo bar)) (echo fred)))))
-  (is (= "if [ ! \\( \\( \"foo\" == \"bar\" \\) -a \\( \"foo\" == \"baz\" \\) \\) ]; then echo fred;fi\n"
+  (is (= "if [ ! \\( \\( \"foo\" == \"bar\" \\) -a \\( \"foo\" == \"baz\" \\) \\) ]; then echo fred;fi"
          (script (if-not (&& (== foo bar) (== foo baz)) (echo fred)))))
   (is (= "fred\n"
          (bash-out (script (if-not (&& (== foo foo) (== foo baz)) (echo "fred")))))))
@@ -142,4 +140,6 @@ fi\n"
     (is (= "function foo(x) {\nlocal x=3\nlocal y=4\n }"
 	   (strip-ws (script (fn foo [x] ~stuff)))))))
 
-
+(deftest checked-script-test
+  (is (= (utils/cmd-checked "msg" (script 42))
+         (checked-script "msg" 42))))

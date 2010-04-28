@@ -24,10 +24,38 @@
    (keyword? arg) (name arg)
    :else (str arg)))
 
+(defn blank?
+  [x]
+  (or (nil? x) (and (string? x) (= x ""))))
+
 (defn cmd-join [cmds]
   (str
-   (string/join \newline (map #(string/trim %) cmds))
+   (string/join \newline
+     (filter (complement blank?) (map #(string/trim %) cmds)))
    \newline))
+
+(defmacro do-script
+  "Concatenate multiple scripts"
+  [& scripts]
+  `(cmd-join [~@scripts]))
+
+(defn cmd-chain
+  "Chain commands together with &&."
+  [cmds]
+  (string/join " && "
+    (filter (complement blank?) (map #(string/trim %) cmds))))
+
+(defn cmd-checked [message cmd]
+  (str
+   "echo \"" message "...\"" \newline
+   "{ " (string/trim cmd) "; } || { echo " message " failed ; exit 1 ; } >&2 " \newline
+   "echo \"...done\"\n"))
+
+(defn cmd-join-checked [message cmds]
+  (cmd-checked
+   message
+   (string/join " && "
+    (filter (complement blank?) (map #(string/trim %) cmds)))))
 
 (defn resource-path [name]
   (let [loader (.getContextClassLoader (Thread/currentThread))
@@ -238,8 +266,9 @@
                 (error (str "Exit status " (script-result :exit)))
                 (error (str "Output      : "
                             (strip-sudo-password (script-result :out) user)))
-                (error (str "Error output: "
-                            (strip-sudo-password (script-result :err) user)))))
+                (error
+                 (str "Error output: "
+                   (strip-sudo-password (get script-result :err "") user)))))
             (ssh session (str "rm " tmpfile))
             (doseq [[file remote-name] *file-transfers*]
               (ssh session (str "rm " remote-name)))
