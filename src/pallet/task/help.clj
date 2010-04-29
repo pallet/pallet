@@ -24,6 +24,7 @@
          " - " (:doc (meta (find-ns task-ns))))))
 
 (defn help
+  {:no-service-required true}
   ([task] (println (help-for task)))
   ([]
      (println "Pallet is a cloud administration tool.\n")

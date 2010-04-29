@@ -24,8 +24,6 @@
 (def aliases {"--help" "help" "-h" "help" "-?" "help" "-v" "version"
               "--version" "version"})
 
-(def no-service-needed (atom #{"help" "version"}))
-
 (defn resolve-task [task]
   (let [task-ns (symbol (str "pallet.task." task))
         task (symbol task)
@@ -77,17 +75,18 @@
       (let [symbol-map (reduce map-and-resolve-symbols {} args)
             arg-line (str "[ " (apply str (interpose " " args)) " ]")
             params (read-string arg-line)
-            params (clojure.walk/prewalk-replace symbol-map params)]
-        (if (@no-service-needed task)
-          (apply (resolve-task task) params)
+            params (clojure.walk/prewalk-replace symbol-map params)
+            task (resolve-task task)]
+        (if (get (meta task) :no-service-required nil)
+          (apply task params)
           (let [[service user key] (if service
                                      [service user key]
                                      (maven/credentials))]
             (if service
               (let [compute (apply jclouds/compute-service
-                             (concat [service user key] default-service-opts))]
+                                   (concat [service user key] default-service-opts))]
                 (jclouds/with-compute-service [compute]
-                  (apply (resolve-task task) params)))
+                  (apply task params)))
               (do
                 (println "Error: no credentials supplied\n\n")
                 (apply (resolve-task "help") []))))))
