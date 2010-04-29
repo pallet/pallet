@@ -2,9 +2,16 @@
 
 VERSION="0.0.1-SNAPSHOT"
 
-CLASSPATH=./pallet/src/:"$(find pallet/lib -follow -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)":$CLASSPATH
-PALLET_JAR="$HOME/.m2/repository/pallet/pallet/$VERSION/pallet-$VERSION-standalone.jar"
+# use a sub-project or current project if available
+if [ -d ./pallet/src -o -d ./pallet/dir ]; then
+    CLASSPATH=./pallet/src/:"$(find ./pallet/lib -follow -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)":$CLASSPATH
+elif [ -e ./lib/pallet-$VERSION.jar ]; then
+    CLASSPATH=./src/:"$(find ./lib -follow -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)":$CLASSPATH
+fi
+
+PALLET_JAR="$HOME/.m2/repository/pallet/pallet/$VERSION/pallet-$VERSION.jar"
 CLOJURE_JAR="$HOME/.m2/repository/org/clojure/clojure/1.1.0/clojure-1.1.0.jar"
+BOOTPATH=-Xbootclasspath/a:"$CLOJURE_JAR"
 
 # normalize $0 on certain BSDs
 if [ "$(dirname $0)" = "." ]; then
@@ -26,12 +33,42 @@ done
 
 BIN_DIR="$(dirname "$SCRIPT")"
 
+
+do_download()
+{
+    echo "Downloading Pallet now..."
+    PALLET_DIR=`dirname "$PALLET_JAR"`
+    mkdir -p "$PALLET_DIR"
+
+    # allow use of snapshots
+    if [[ $VERSION == *SNAPSHOT ]]; then
+	echo "Checking for latest SNAPSHOT version"
+	METAFILE="http://clojars.org/repo/pallet/pallet/$VERSION/maven-metadata.xml"
+	HTTP_CLIENT2="wget "
+	if type -p curl >/dev/null 2>&1; then
+	    HTTP_CLIENT2="curl -L "
+	fi
+	JARDATE=$( $HTTP_CLIENT - -q $METAFILE | egrep "[0-9]{8}\.[0-9]{6}" -o )
+	JARBUILD=$( $HTTP_CLIENT - -q $METAFILE | fgrep "buildNumber" | egrep "[0-9]+" -o )
+	JARVERSION=$( echo $VERSION | sed s/-SNAPSHOT// )
+	PALLET_URL="http://clojars.org/repo/pallet/pallet/$VERSION/pallet-$JARVERSION-$JARDATE-$JARBUILD.jar"
+	echo "URL " $PALLET_URL
+    else
+	PALLET_URL="http://clojars.org/repo/pallet/pallet/$VERSION/pallet-$VERSION.jar"
+    fi
+
+    $HTTP_CLIENT "$PALLET_JAR" "$PALLET_URL"
+}
+
+
+
 if [ -r "$BIN_DIR/../src/pallet/core.clj" ]; then
     # Running from source checkout
     PALLET_DIR="$(dirname "$BIN_DIR")"
     PALLET_LIBS="$(find -H $PALLET_DIR/lib -mindepth 2> /dev/null 1 -maxdepth 1 -print0 | tr \\0 \:)"
     # PALLET_LIBS=$( echo $PALLET_LIBS | sed s#:./lib/clojure-1.1.0.jar## )
     CLASSPATH="$PALLET_DIR/src:$PALLET_LIBS:$CLASSPATH"
+    BOOTPATH=
 
     if [ "$PALLET_LIBS" = "" -a "$1" != "self-install" ]; then
         echo "Your Pallet development checkout is missing its dependencies."
@@ -41,11 +78,17 @@ if [ -r "$BIN_DIR/../src/pallet/core.clj" ]; then
     fi
 else
     # Not running from a checkout
-    CLASSPATH="$PALLET_JAR:$CLASSPATH"
+    if [ ! -e "pallet/lib/pallet-$VERSION.jar" ]; then
+	CLASSPATH="$PALLET_JAR:$CLASSPATH"
+	BOOTPATH=""
+    fi
 
-    if [ ! -r "$PALLET_JAR" -a "$1" != "self-install" ]; then
-        echo "Pallet is not installed. Please run \"pallet self-install\"."
-        exit 1
+    if [ ! -r "$PALLET_JAR" -a \
+         ! -r ./lib/pallet-$VERSION.jar -a \
+         ! -r ./pallet/lib/pallet-$VERSION.jar -a \
+         "$1" != "self-install" ]; then
+        echo "Pallet is not installed. Running \"pallet self-install\"."
+        do_download
     fi
 fi
 
@@ -75,28 +118,14 @@ if [ "$1" = "repl" ]; then
     # Use rlwrap if it's available, otherwise fall back to JLine
     RLWRAP=`which rlwrap`
     JLINE=jline.ConsoleRunner
-    if [ $RLWRAP != "" ]; then
+    if [ "$RLWRAP" != "" ]; then
         JLINE=
     fi
     $RLWRAP java -client $JAVA_OPTS -cp "src/:classes/:resources/:$CLASSPATH" $JLINE clojure.main ${@:2}
 elif [ "$1" = "self-install" ]; then
-#     if [[ $VERSION == *SNAPSHOT ]]; then
-#         echo "The self-install task is only meant for stable releases."
-#         echo "See the \"Hacking\" section of the README."
-#         exit 1
-#     fi
-    echo "Downloading Pallet now..."
-    PALLET_DIR=`dirname "$PALLET_JAR"`
-    mkdir -p "$PALLET_DIR"
-
-    PALLET_URL="http://github.com/downloads/hugoduncan/pallet/pallet-$VERSION-standalone.jar"
-    exec $HTTP_CLIENT "$PALLET_JAR" "$PALLET_URL"
+    do_download
+    exit $#
 elif [ "$1" = "upgrade" ]; then
-#     if [[ $VERSION == *SNAPSHOT ]]; then
-#         echo "The upgrade task is only meant for stable releases."
-#         echo "See the \"Hacking\" section of the README."
-#         exit 1
-#     fi
     if [ ! -w "$SCRIPT" ]; then
         echo "You do not have permission to upgrade the installation in $SCRIPT"
         exit 1
@@ -132,6 +161,6 @@ else
 
     # The -Xbootclasspath argument is optional here: if the jar
     # doesn't exist everything will still work, it will just have a
-    # slower JVM boot. -Xbootclasspath/a:"$CLOJURE_JAR"
+    # slower JVM boot. -Xbootclasspath/a:"$CLOJURE_JAR" $BOOTPATH
     exec java  -client $JAVA_OPTS -cp "$CLASSPATH" -Dpallet.version="$VERSION" clojure.main -e "(require 'pallet.main)(pallet.main/-main $ESCAPED_ARGS)"
 fi

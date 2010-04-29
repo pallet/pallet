@@ -1,12 +1,8 @@
 (ns pallet.main
   (:gen-class)
   (:require
-   [org.jclouds.compute :as jclouds]
-   [clojure.contrib.command-line :as command-line]
-   pallet.core
-   [pallet.utils :as utils]
-   [pallet.maven :as maven])
-  (:use clojure.contrib.logging))
+   clojure.walk
+   [pallet.command-line :as command-line]))
 
 (defn abort [msg]
   (println msg)
@@ -79,17 +75,9 @@
             task (resolve-task task)]
         (if (get (meta task) :no-service-required nil)
           (apply task params)
-          (let [[service user key] (if service
-                                     [service user key]
-                                     (maven/credentials))]
-            (if service
-              (let [compute (apply jclouds/compute-service
-                                   (concat [service user key] default-service-opts))]
-                (jclouds/with-compute-service [compute]
-                  (apply task params)))
-              (do
-                (println "Error: no credentials supplied\n\n")
-                (apply (resolve-task "help") []))))))
+          (let [_ (require 'pallet.main-invoker)
+                invoker (find-var 'pallet.main-invoker/invoke)]
+            (invoker service user key task args))))
       ;; In case tests or some other task started any:
       (flush)
       (shutdown-agents)
