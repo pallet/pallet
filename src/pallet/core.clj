@@ -278,7 +278,7 @@ script that is run with root privileges immediatly after first boot."
   The return value is a map of node-type -> node sequence."
   ([node-set prefix] (nodes-in-set node-set prefix *compute*))
   ([node-set prefix compute]
-     (nodes-in-set node-set prefix compute (nodes compute)))
+     (nodes-in-set node-set prefix compute (if compute (nodes compute))))
   ([node-set prefix compute nodes]
      (letfn [(ensure-set [x] (if (set? x) x #{x}))
              (ensure-set-values
