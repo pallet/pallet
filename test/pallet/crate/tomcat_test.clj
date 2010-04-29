@@ -116,13 +116,13 @@
   (is (= {::tc/pallet-type ::tc/connector :port 8443}
          (connector :port 8443))))
 
-(deftest ssl-jsee-connector-test
+(deftest ssl-jsse-connector-test
   (is (= {::tc/pallet-type ::tc/connector
           :maxThreads 150 :protocol "HTTP/1.1" :scheme "https"
           :keystorePass "changeit" :sslProtocol "TLS" :clientAuth "false"
           :SSLEnabled "true" :port 8442 :secure "true"
           :keystoreFile "${user.home}/.keystore"}
-         (ssl-jsee-connector :port 8442))))
+         (ssl-jsse-connector :port 8442))))
 
 (deftest ssl-apr-connector-test
   (is (= {::tc/pallet-type ::tc/connector

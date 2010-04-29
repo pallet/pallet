@@ -429,7 +429,7 @@ content - an xml application context"
   [& options]
   (pallet-type ::connector options))
 
-(defn ssl-jsee-connector
+(defn ssl-jsse-connector
   "Define a SSL connector using JSEE.  This connector can be specified for a
    service.
 
