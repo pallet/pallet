@@ -10,11 +10,11 @@
           (filter #(re-find #"(.*)\.contextbuilder" (first %))
                   (utils/resource-properties "compute.properties")))))
 
-(defn enabled?
+(defn- enabled?
   [provider]
   (try
-   ;(import (symbol provider))
-   (catch java.lang.RuntimeException e)))
+   (Class/forName provider)
+   (catch java.lang.ClassNotFoundException e)))
 
 (defn providers
   "Provide information on the supported and enabled providers."
