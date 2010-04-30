@@ -78,12 +78,14 @@
 (deftest cmd-join-test
   (is (= "fred\n" (cmd-join ["fred"])))
   (is (= "fred\nblogs\n" (cmd-join ["fred" "blogs"])))
-  (is (= "fred\nblogs\n" (cmd-join ["fred\n\n" "blogs\n"]))))
+  (is (= "fred\nblogs\n" (cmd-join ["fred\n\n" "blogs\n"])))
+  (is (= "fred\nblogs\n" (cmd-join ["fred\n\n" nil "blogs\n"]))))
 
 (deftest do-script-test
   (is (= "fred\n" (do-script "fred")))
   (is (= "fred\nblogs\n" (do-script "fred" "blogs")))
-  (is (= "fred\nblogs\n" (do-script "fred\n\n" "blogs\n"))))
+  (is (= "fred\nblogs\n" (do-script "fred\n\n" "blogs\n")))
+  (is (= "fred\nblogs\n" (do-script "fred\n\n" nil "blogs\n"))))
 
 (deftest cmd-chain-test
   (is (= "fred" (cmd-chain ["fred"])))

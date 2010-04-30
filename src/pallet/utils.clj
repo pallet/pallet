@@ -32,7 +32,7 @@
 (defn cmd-join [cmds]
   (str
    (string/join \newline
-     (filter (complement blank?) (map #(string/trim %) cmds)))
+     (filter (complement blank?) (map #(when % (string/trim %)) cmds)))
    \newline))
 
 (defmacro do-script
