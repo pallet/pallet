@@ -97,3 +97,17 @@
          (bash-out (cmd-join-checked "test" ["echo fred" "echo tom"]))))
   (is (= "test...\n"
          (bash-out (cmd-join-checked "test" ["test 1 = 2"]) 1 "test failed\n"))))
+
+(deftest remote-sudo-script-test
+  (is (= 0
+         ((remote-sudo-script
+           "localhost"
+           "ls /"
+           (assoc *admin-user* :no-sudo true))
+          :exit)))
+  (is (thrown?
+       clojure.contrib.condition.Condition
+       (remote-sudo-script
+        "localhost"
+        "exit 1"
+        (assoc *admin-user* :no-sudo true)))))

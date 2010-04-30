@@ -1,7 +1,8 @@
 (ns pallet.utils
   (:require
    pallet.compat
-   [clojure.contrib.pprint :as pprint])
+   [clojure.contrib.pprint :as pprint]
+   [clojure.contrib.condition :as condition])
   (:use
    clojure.contrib.logging
    clj-ssh.ssh
@@ -221,7 +222,7 @@
 
 (defn remote-sudo-script
   "Run a sudo script on a server."
-  [#^java.net.InetAddress server #^String command user & options]
+  [#^String server #^String command user & options]
   (with-ssh-agent []
     (add-identity (:private-key-path user))
     (let [options (if (seq options) (apply array-map options) {})
@@ -260,15 +261,19 @@
                                         " ~" (:username user) "/" tmpfile)
                                :return-map true
                                :pty true)]
-            (if (zero? (script-result :exit))
-              (info (strip-sudo-password (script-result :out) user))
-              (do
-                (error (str "Exit status " (script-result :exit)))
-                (error (str "Output      : "
-                            (strip-sudo-password (script-result :out) user)))
-                (error
-                 (str "Error output: "
-                   (strip-sudo-password (get script-result :err "") user)))))
+            (let [stdout (strip-sudo-password (script-result :out) user)
+                  stderr (strip-sudo-password (get script-result :err "") user)]
+              (if (zero? (script-result :exit))
+                (info stdout)
+                (do
+                  (error (str "Exit status  : " (script-result :exit)))
+                  (error (str "Output       : " stdout))
+                  (error (str "Error output : " stderr))
+                  (condition/raise
+                   :script-exit (script-result :exit)
+                   :script-out stdout
+                   :script-err stderr
+                   :server server))))
             (ssh session (str "rm " tmpfile))
             (doseq [[file remote-name] *file-transfers*]
               (ssh session (str "rm " remote-name)))
