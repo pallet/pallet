@@ -23,21 +23,22 @@
 
 
 (deftest test-install-example
-  (is (= "debconf-set-selections <<EOF
+  (is (= "{ debconf-set-selections <<EOF
 debconf debconf/frontend select noninteractive
 debconf debconf/frontend seen false
 EOF
+}
 aptitude install -y  java\naptitude install -y  rubygems\n"
          (pallet.resource/build-resources []
           (package "java" :action :install)
           (package "rubygems" :action :install)))))
 
 (deftest package-manager-non-interactive-test
-  (is (= "debconf-set-selections <<EOF
+  (is (= "{ debconf-set-selections <<EOF
 debconf debconf/frontend select noninteractive
 debconf debconf/frontend seen false
 EOF
-"
+}"
          (script (package-manager-non-interactive)))))
 
 (deftest add-scope-test

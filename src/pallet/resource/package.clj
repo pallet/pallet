@@ -47,8 +47,8 @@
 
 (defscript debconf-set-selections [& selections])
 (defimpl debconf-set-selections :default [& selections]
-  ("debconf-set-selections"
-   ~(str "<<EOF\n" (string/join \newline selections) "\nEOF\n")))
+  ("{ debconf-set-selections"
+   ~(str "<<EOF\n" (string/join \newline selections) "\nEOF\n}")))
 
 (defscript package-manager-non-interactive [])
 (defimpl package-manager-non-interactive :default []
