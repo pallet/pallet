@@ -23,6 +23,7 @@
             "apt-key add aptkey.tmp\n"
             (package/package-manager* :update)
             (stevedore/script (package/package-manager-non-interactive))
+            \newline
             (package/package* "cloudkick-agent")
             \newline
             (remote-file/remote-file*

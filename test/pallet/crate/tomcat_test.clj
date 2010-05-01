@@ -14,11 +14,10 @@
    [pallet.resource.package :only [package package-manager]]
    [pallet.resource :only [build-resources]]
    [pallet.stevedore :only [script]]
-   [pallet.utils :only [cmd-join]]
    [pallet.core :only [defnode]]))
 
 (deftest tomcat-test
-  (is (= "debconf-set-selections <<EOF\ndebconf debconf/frontend select noninteractive\ndebconf debconf/frontend seen false\nEOF\naptitude install -y  tomcat6\n"
+  (is (= "{ debconf-set-selections <<EOF\ndebconf debconf/frontend select noninteractive\ndebconf debconf/frontend seen false\nEOF\n}\naptitude install -y  tomcat6\n"
          (build-resources [] (tomcat)))))
 
 (deftest classname-for-test

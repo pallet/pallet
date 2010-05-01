@@ -1,12 +1,14 @@
 (ns pallet.crate.java-test
   (:use [pallet.crate.java] :reload-all)
-  (:require [pallet.template :only [apply-templates]])
+  (:require
+   [pallet.template :as template]
+   [pallet.stevedore :as stevedore]
+   [pallet.utils :as utils])
   (:use clojure.test
         pallet.test-utils
         [pallet.resource.package :only [package package-manager]]
         [pallet.resource :only [build-resources]]
-        [pallet.stevedore :only [script]]
-        [pallet.utils :only [cmd-join]]))
+        [pallet.stevedore :only [script]]))
 
 (def pkg-config (build-resources []
                   (package-manager :universe)
@@ -23,21 +25,21 @@
     (str pkg " shared/accepted-sun-dlj-v1-1 boolean true"))))
 
 (deftest java-default-test
-  (is (= (cmd-join
-          [pkg-config
-           (debconf "sun-java6-bin")
-           (debconf "sun-java6-jdk")
-           (build-resources [] (package "sun-java6-bin")
-                            (package "sun-java6-jdk"))])
+  (is (= (stevedore/do-script
+          pkg-config
+          (debconf "sun-java6-bin")
+          (debconf "sun-java6-jdk")
+          (build-resources [] (package "sun-java6-bin")
+                           (package "sun-java6-jdk")))
          (pallet.resource/build-resources [] (java)))))
 
 (deftest java-sun-test
-  (is (= (cmd-join
-          [pkg-config
-           (debconf "sun-java6-bin")
-           (debconf "sun-java6-jdk")
-           (build-resources [] (package "sun-java6-bin")
-                            (package "sun-java6-jdk"))])
+  (is (= (stevedore/do-script
+          pkg-config
+          (debconf "sun-java6-bin")
+          (debconf "sun-java6-jdk")
+          (build-resources [] (package "sun-java6-bin")
+                           (package "sun-java6-jdk")))
          (pallet.resource/build-resources []
           (java :sun :bin :jdk)))))
 

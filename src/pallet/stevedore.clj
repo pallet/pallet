@@ -84,17 +84,18 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['if 'if-not '= 'aget 'fn 'return 'set! 'var 'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists? 'not]))
+(def special-forms (set ['if 'if-not 'aget 'defn 'return 'set! 'var 'defvar 'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists? 'not 'println]))
 
-(def infix-operators (set ['+ '- '/ '* '% '== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '||]))
-(def logical-operators (set ['== '< '> '<= '>= '!= '<< '>> '<<< '>>> '!== '& '| '&& '|| 'file-exists? 'not]))
+(def infix-operators (set ['+ '- '/ '* '% '== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '||]))
+(def logical-operators (set ['== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '|| 'file-exists? 'not]))
 (def quoted-operators (disj logical-operators 'file-exists?))
 
 (def infix-conversions
      {'&& "-a"
       '|| "-o"
       '< "\\<"
-      '> "\\>"})
+      '> "\\>"
+      '= "=="})
 
 (defn special-form? [expr]
   (contains? special-forms expr))
@@ -141,6 +142,9 @@
 (defmethod emit-special 'var [type [var name expr]]
   (str (emit name) "=" (emit expr)))
 
+(defmethod emit-special 'defvar [type [defvar name expr]]
+  (str (emit name) "=" (emit expr)))
+
 (defmethod emit-special 'let [type [let name expr]]
   (str "let " (emit name) "=" (emit expr)))
 
@@ -149,6 +153,9 @@
 
 (defmethod emit-special 'quoted [type [quoted arg]]
   (add-quotes (emit arg)))
+
+(defmethod emit-special 'println [type [println & args]]
+  (str "echo " (emit args)))
 
 (defmethod emit-special 'invoke [type [name & args]]
   (debug (str "invoke [" *script-file*
@@ -228,7 +235,7 @@
   (assert (vector? sig))
   (str "function " name (comma-list sig) " {\n" (emit-do body) " }\n"))
 
-(defmethod emit-special 'fn [type [fn & expr]]
+(defmethod emit-special 'defn [type [fn & expr]]
   (if (symbol? (first expr))
     (let [name (first expr)
 	  signature (second expr)
@@ -325,12 +332,53 @@
   `(with-line-number
      (_script (quasiquote ~forms))))
 
+(defn do-script*
+  "Concatenate multiple scripts."
+  [scripts]
+  (str
+   (string/join \newline
+     (filter (complement utils/blank?) (map #(when % (string/trim %)) scripts)))
+   \newline))
+
+(defn do-script
+  "Concatenate multiple scripts."
+  [& scripts]
+  (do-script* scripts))
+
+(defn chain-commands*
+  "Chain commands together with &&."
+  [scripts]
+  (string/join " && "
+    (filter (complement utils/blank?) (map #(when % (string/trim %)) scripts))))
+
+(defn chain-commands
+  "Chain commands together with &&."
+  [& scripts]
+  (chain-commands* scripts))
+
+(defn checked-commands
+  "Wrap a command in a code that checks the return value. Code to output the
+  messages is added before the command."
+  [message & cmds]
+  (str
+   "echo \"" message "...\"" \newline
+   "{ " (chain-commands* cmds) "; } || { echo " message " failed ; exit 1 ; } >&2 "
+   \newline
+   "echo \"...done\"\n"))
+
+(defmacro chained-script
+  "Takes one or more forms. Returns a string of the forms translated into a
+   chained shell script command."
+  [& forms]
+  `(chain-commands
+    ~@(map (fn [f] (list `script f)) forms)))
+
 (defmacro checked-script
   "Takes one or more forms. Returns a string of the forms translated into
-  javascript.  Wraps the expression in a test for the result status."
+   shell scrip.  Wraps the expression in a test for the result status."
   [message & forms]
-  `(utils/cmd-checked ~message
-    (script ~@forms)))
+  `(checked-commands ~message
+    ~@(map (fn [f] (list `script f)) forms)))
 
 (defmacro defimpl
   "Define a script fragment implementation for a given set of specialisers"

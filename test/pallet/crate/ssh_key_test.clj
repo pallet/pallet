@@ -21,7 +21,7 @@ chown userx ${file}
 (with-private-vars [pallet.crate.ssh-key
                     [authorize-key*]]
   (deftest authorize-key*-test
-    (is (= (utils/do-script
+    (is (= (stevedore/do-script
             (directory/directory*
              "$(getent passwd userx | cut -d: -f6)/.ssh/"
              :owner "userx" :mode "755")
@@ -32,7 +32,7 @@ chown userx ${file}
            (authorize-key* "userx" ["key1" "key2"] )))))
 
 (deftest authorize-key-test
-  (is (= (utils/do-script
+  (is (= (stevedore/do-script
           (directory/directory*
            "$(getent passwd user2 | cut -d: -f6)/.ssh/"
            :owner "user2" :mode "755")
@@ -85,7 +85,7 @@ chown userx ${file}
           (install-key "fred" "id" "private" "public")))))
 
 (deftest generate-key*-test
-  (is (= (utils/do-script
+  (is (= (stevedore/do-script
           (directory/directory*
            "$(getent passwd fred | cut -d: -f6)/.ssh/"
            :owner "fred" :mode "755")
@@ -101,7 +101,7 @@ chown userx ${file}
            :owner "fred" :mode "0644"))
          (generate-key* "fred")))
 
-  (is (= (utils/do-script
+  (is (= (stevedore/do-script
           (directory/directory*
            "$(getent passwd fred | cut -d: -f6)/.ssh/"
            :owner "fred" :mode "755")
@@ -117,7 +117,7 @@ chown userx ${file}
            :owner "fred" :mode "0644"))
          (generate-key* "fred" :type "dsa")))
 
-  (is (= (utils/do-script
+  (is (= (stevedore/do-script
           (directory/directory*
            "$(getent passwd fred | cut -d: -f6)/.ssh/"
            :owner "fred" :mode "755")
@@ -134,7 +134,7 @@ chown userx ${file}
          (generate-key* "fred" :type "rsa1"))))
 
 (deftest authorize-key-for-localhost*-test
-  (is (= (utils/do-script
+  (is (= (stevedore/do-script
           (stevedore/script
            (var key_file "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
            (var auth_file "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"))
@@ -149,7 +149,7 @@ chown userx ${file}
                                       (cat @key_file ">>" @auth_file))))
          (authorize-key-for-localhost* "fred" "id_dsa.pub")))
 
-  (is (= (utils/do-script
+  (is (= (stevedore/do-script
           (stevedore/script
            (var key_file "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
            (var auth_file "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys"))

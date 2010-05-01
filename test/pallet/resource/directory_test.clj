@@ -14,9 +14,9 @@
 
 
 (deftest directory*-test
-  (is (= (utils/cmd-checked "directory file1" "mkdir -p file1")
+  (is (= (stevedore/checked-commands "directory file1" "mkdir -p file1")
          (directory* "file1"))))
 
 (deftest directory-test
-  (is (= (utils/cmd-checked "directory file1" "mkdir -p file1")
+  (is (= (stevedore/checked-commands "directory file1" "mkdir -p file1")
          (resource/build-resources [] (directory "file1")))))

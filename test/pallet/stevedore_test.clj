@@ -58,7 +58,7 @@
 
 (deftest test-fn
   (is (= "function foo(x) {\nfoo a\nbar b\n }"
-         (strip-ws (script (fn foo [x] (foo a) (bar b)))))))
+         (strip-ws (script (defn foo [x] (foo a) (bar b)))))))
 
 (deftest test-aget
   (is (= "${foo[2]}" (script (aget foo 2)))))
@@ -67,6 +67,8 @@
   (is (= "(1 2 \"3\" foo)" (script [1 "2" "\"3\"" :foo]))))
 
 (deftest test-if
+  (is (= "if [ \\( \"foo\" == \"bar\" \\) ]; then echo fred;fi"
+         (script (if (= foo bar) (echo fred)))))
   (is (= "if [ \\( \\( \"foo\" == \"bar\" \\) -a \\( \"foo\" != \"baz\" \\) \\) ]; then echo fred;fi"
          (script (if (&& (== foo bar) (!= foo baz)) (echo fred)))))
   (is (= "fred\n"
@@ -138,8 +140,60 @@ fi"
 		       (local x 3)
 		       (local y 4)))]
     (is (= "function foo(x) {\nlocal x=3\nlocal y=4\n }"
-	   (strip-ws (script (fn foo [x] ~stuff)))))))
+	   (strip-ws (script (defn foo [x] ~stuff)))))))
 
 (deftest checked-script-test
-  (is (= (utils/cmd-checked "msg" (script 42))
-         (checked-script "msg" 42))))
+  (is (= (checked-commands "msg" (script ls) (script ls))
+         (checked-script "msg" (ls) (ls)))))
+
+(deftest defvar-test
+  (is (= "x=1"
+         (script (defvar x 1)))))
+
+(deftest println-test
+  (is (= "echo hello"
+         (script (println hello))))
+  (is (= "echo hello there"
+         (script (println hello there)))))
+
+(deftest do-script-test
+  (is (= "fred\n" (do-script "fred")))
+  (is (= "fred\nblogs\n" (do-script "fred" "blogs")))
+  (is (= "fred\nblogs\n" (do-script "fred\n\n" "blogs\n")))
+  (is (= "fred\nblogs\n" (do-script "fred\n\n" nil "blogs\n"))))
+
+(deftest chain-commands*-test
+  (is (= "fred" (chain-commands* ["fred"])))
+  (is (= "fred && blogs" (chain-commands* ["fred" "blogs"])))
+  (is (= "fred && blogs" (chain-commands* ["fred\n\n" "blogs\n"])))
+  (is (= "fred && blogs" (chain-commands* ["fred\n\n" nil "blogs\n"]))))
+
+(deftest chain-commands-test
+  (is (= "fred" (chain-commands "fred")))
+  (is (= "fred && blogs" (chain-commands "fred" "blogs")))
+  (is (= "fred && blogs" (chain-commands "fred\n\n" "blogs\n")))
+  (is (= "fred && blogs" (chain-commands "fred\n\n" nil "blogs\n"))))
+
+(deftest chain-script-test
+  (is (= "fred" (chained-script (fred))))
+  (is (= "fred && blogs" (chained-script (fred) (blogs)))))
+
+(deftest checked-commands-test
+  (is (= "echo \"test...\"\n{ echo fred && echo tom; } || { echo test failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+         (checked-commands "test" "echo fred" "echo tom")))
+  (is (= "test...\ntom\n...done\n"
+         (bash-out (checked-commands "test" "echo tom"))))
+  (is (= "test...\nfred\ntom\n...done\n"
+         (bash-out (checked-commands "test" "echo fred" "echo tom"))))
+  (is (= "test...\n"
+         (bash-out (checked-commands "test" "test 1 = 2") 1 "test failed\n"))))
+
+(deftest checked-script-test
+  (is (= "echo \"test...\"\n{ echo fred && echo tom; } || { echo test failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+         (checked-script "test" (echo fred) (echo tom))))
+  (is (= "test...\ntom\n...done\n"
+         (bash-out (checked-script "test" (echo tom)))))
+  (is (= "test...\nfred\ntom\n...done\n"
+         (bash-out (checked-script "test" (echo fred) (echo tom)))))
+  (is (= "test...\n"
+         (bash-out (checked-script "test" (test 1 = 2)) 1 "test failed\n"))))

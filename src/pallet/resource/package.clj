@@ -9,7 +9,6 @@
   (:use pallet.script
         pallet.stevedore
         [pallet.resource :only [defaggregate defresource]]
-        [pallet.utils :only [cmd-join]]
         [clojure.contrib.logging]
         [pallet.target :only [packager]]))
 
@@ -66,25 +65,25 @@
   "Add a packager source."
   [name & options]
   (let [options (apply hash-map options)]
-    (utils/cmd-join
-     [(remote-file/remote-file*
-       (format (source-location (packager)) name)
-       :template source-template
-       :values (merge
-                {:source-type "deb"
-                 :release (stevedore/script (hostinfo/os-version-name))
-                 :scopes ["main"]
-                 :gpgkey 0
-                 :name name}
-                (options (packager))))
-      (if (and (-> options :aptitude :key-url)
-                 (= (packager) :aptitude))
-        (utils/cmd-join
-         [(remote-file/remote-file*
-           "aptkey.tmp"
-           :url (-> options :aptitude :key-url))
-          (stevedore/script (apt-key add aptkey.tmp))])
-        "")])))
+    (stevedore/do-script
+     (remote-file/remote-file*
+      (format (source-location (packager)) name)
+      :template source-template
+      :values (merge
+               {:source-type "deb"
+                :release (stevedore/script (hostinfo/os-version-name))
+                :scopes ["main"]
+                :gpgkey 0
+                :name name}
+               (options (packager))))
+     (if (and (-> options :aptitude :key-url)
+              (= (packager) :aptitude))
+       (stevedore/do-script
+        (remote-file/remote-file*
+         "aptkey.tmp"
+         :url (-> options :aptitude :key-url))
+        (stevedore/script (apt-key add aptkey.tmp)))
+       ""))))
 
 (defaggregate package-source
   "Control package sources.
@@ -100,7 +99,7 @@
    :yum
      :url url              - repository url
      :gpgkey keystring     - pgp key string for repository"
-  #(cmd-join (map (fn [x] (apply package-source* x)) %))
+  #(stevedore/do-script* (map (fn [x] (apply package-source* x)) %))
   [name packager-map & options])
 
 (defn package*
@@ -127,7 +126,7 @@
               (str action " is not a valid action for package resource"))))))
 
 (defn- apply-packages [package-args]
-  (cmd-join
+  (stevedore/do-script*
    (cons
     (script (package-manager-non-interactive))
     (map #(apply package* %) package-args))))
@@ -149,7 +148,7 @@
   "Package management."
   [action & options]
   (let [opts (apply hash-map options)]
-    (utils/cmd-checked "package-manager"
+    (stevedore/checked-commands "package-manager"
      (condp = action
        :update
        (script (update-package-list))
@@ -168,7 +167,7 @@
                (str action " is not a valid action for package resource")))))))
 
 (defn- apply-package-manager [package-manager-args]
-  (cmd-join
+  (stevedore/do-script*
    (map #(apply package-manager* %) package-manager-args)))
 
 (defaggregate package-manager

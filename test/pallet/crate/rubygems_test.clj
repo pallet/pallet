@@ -6,8 +6,7 @@
         pallet.test-utils
         [pallet.resource.package :only [package package-manager]]
         [pallet.resource :only [build-resources]]
-        [pallet.stevedore :only [script]]
-        [pallet.utils :only [cmd-join]]))
+        [pallet.stevedore :only [script]]))
 
 (deftest gem-script-test
   (is (= "gem install  fred"

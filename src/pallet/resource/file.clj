@@ -1,10 +1,13 @@
 (ns pallet.resource.file
   "File manipulation."
-  (:require [pallet.utils :as utils])
-  (:use pallet.script
-        pallet.stevedore
-        [pallet.resource :only [defresource]]
-        clojure.contrib.logging))
+  (:require
+   [pallet.utils :as utils]
+   [pallet.stevedore :as stevedore])
+  (:use
+   pallet.script
+   pallet.stevedore
+   [pallet.resource :only [defresource]]
+   clojure.contrib.logging))
 
 (defscript rm [file & options])
 (defimpl rm :default [file & options]
@@ -41,6 +44,8 @@
 
 ;; the cat is wrapped in braces so that the final newline is protected
 (defn heredoc
+  "Generates a heredoc. Options:
+      :literal boolean  - if true, prevents shell expansion of contents"
   [path content & options]
   (let [options (apply hash-map options)]
     (script ("{ cat" ">" ~path
@@ -48,7 +53,7 @@
                    content "\nEOF\n }")))))
 
 (defn adjust-file [path opts]
-  (utils/cmd-chain
+  (stevedore/chain-commands*
    (filter
     (complement nil?)
     [(when (opts :owner)
@@ -59,22 +64,28 @@
        (script (chmod ~(opts :mode) ~path)))])))
 
 (defn touch-file [path opts]
-  (utils/cmd-chain
-   [(script
-     (touch ~path ~(select-keys opts [:force])))
-    (adjust-file path opts)]))
+  (stevedore/chain-commands
+   (script
+    (touch ~path ~(select-keys opts [:force])))
+   (adjust-file path opts)))
 
 (defn file*
   [path & options]
   (let [opts (apply hash-map options)
         opts (merge {:action :create} opts)]
-    (utils/cmd-checked (str "file " path)
-     (condp = (opts :action)
-       :delete
-       (script (rm ~path ~(select-keys opts [:force])))
-       :create
-       (touch-file path opts)
-       :touch
+
+    (condp = (opts :action)
+      :delete
+      (stevedore/checked-script
+       (str "file " path)
+       (rm ~path ~(select-keys opts [:force])))
+      :create
+      (stevedore/checked-commands
+       (str "file " path)
+       (touch-file path opts))
+      :touch
+      (stevedore/checked-commands
+       (str "file " path)
        (touch-file path opts)))))
 
 (defresource file "File management."

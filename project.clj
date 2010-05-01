@@ -1,7 +1,7 @@
 (defproject pallet "0.0.1-SNAPSHOT"
   :description "Pallet - provisioning of compute nodes using jclouds"
   :url "http://github.com/hugpduncan/pallet"
-  :java-source-path "java"
+  :java-source-path "src"
   :javac-fork "true"
   :main pallet.main
   :dependencies [[org.clojure/clojure "1.1.0"]

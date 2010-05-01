@@ -1,21 +1,18 @@
 (ns pallet.crate.nginx-test
   (:use [pallet.crate.nginx] :reload-all)
   (:require
-   [pallet.template :only [apply-templates]]
-   [pallet.core :as core]
    [pallet.resource :as resource]
    [pallet.resource.directory :as directory]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.file :as file]
-   [pallet.utils :as utils]
-   [pallet.target :as target]
-   [net.cgrand.enlive-html :as xml])
+   [pallet.stevedore :as stevedore]
+   [pallet.target :as target])
   (:use clojure.test
         pallet.test-utils))
 
 (deftest site-test
   []
-  (is (= (utils/do-script
+  (is (= (stevedore/do-script
           (directory/directory* "/etc/nginx/sites-available")
           (directory/directory* "/etc/nginx/sites-enabled")
           (remote-file/remote-file*

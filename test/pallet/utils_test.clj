@@ -75,30 +75,6 @@
   (is (not (blank? "a")))
   (is (not (blank? 'a))))
 
-(deftest cmd-join-test
-  (is (= "fred\n" (cmd-join ["fred"])))
-  (is (= "fred\nblogs\n" (cmd-join ["fred" "blogs"])))
-  (is (= "fred\nblogs\n" (cmd-join ["fred\n\n" "blogs\n"])))
-  (is (= "fred\nblogs\n" (cmd-join ["fred\n\n" nil "blogs\n"]))))
-
-(deftest do-script-test
-  (is (= "fred\n" (do-script "fred")))
-  (is (= "fred\nblogs\n" (do-script "fred" "blogs")))
-  (is (= "fred\nblogs\n" (do-script "fred\n\n" "blogs\n")))
-  (is (= "fred\nblogs\n" (do-script "fred\n\n" nil "blogs\n"))))
-
-(deftest cmd-chain-test
-  (is (= "fred" (cmd-chain ["fred"])))
-  (is (= "fred && blogs" (cmd-chain ["fred" "blogs"])))
-  (is (= "fred && blogs" (cmd-chain ["fred\n\n" "blogs\n"]))))
-
-(deftest cmd-join-checked-test
-  (is (= "echo \"test...\"\n{ echo fred && echo tom; } || { echo test failed ; exit 1 ; } >&2 \necho \"...done\"\n"
-         (cmd-join-checked "test" ["echo fred" "echo tom"])))
-  (is (= "test...\nfred\ntom\n...done\n"
-         (bash-out (cmd-join-checked "test" ["echo fred" "echo tom"]))))
-  (is (= "test...\n"
-         (bash-out (cmd-join-checked "test" ["test 1 = 2"]) 1 "test failed\n"))))
 
 (deftest remote-sudo-script-test
   (is (= 0

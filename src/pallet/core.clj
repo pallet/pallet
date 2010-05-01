@@ -335,8 +335,11 @@ script that is run with root privileges immediatly after first boot."
    bound compute-service is used.  The configure phase is applied by default
    unless other phases are specified.
 
-   node-set can be a node type, a sequence of node types, a node, or a sequence
-            of nodes.
+   node-set can be a node type, a sequence of node types, or a map
+            of node type to nodes. Examples:
+              [node-type1 node-type2 {node-type #{node1 node2}}]
+              node-type
+              {node-type #{node1 node2}}
 
    options can also be keywords specifying the phases to apply, or an immediate
    phase specified with the phase macro, or a function that will be called with

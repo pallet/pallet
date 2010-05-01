@@ -2,7 +2,6 @@
   "Conditional resource execution."
   (:use pallet.script
         pallet.stevedore
-        [pallet.utils :only [cmd-join]]
         [pallet.resource :only [invoke-resource build-resources]]
         clojure.contrib.logging))
 

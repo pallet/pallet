@@ -29,35 +29,6 @@
   [x]
   (or (nil? x) (and (string? x) (= x ""))))
 
-(defn cmd-join [cmds]
-  (str
-   (string/join \newline
-     (filter (complement blank?) (map #(when % (string/trim %)) cmds)))
-   \newline))
-
-(defmacro do-script
-  "Concatenate multiple scripts"
-  [& scripts]
-  `(cmd-join [~@scripts]))
-
-(defn cmd-chain
-  "Chain commands together with &&."
-  [cmds]
-  (string/join " && "
-    (filter (complement blank?) (map #(string/trim %) cmds))))
-
-(defn cmd-checked [message cmd]
-  (str
-   "echo \"" message "...\"" \newline
-   "{ " (string/trim cmd) "; } || { echo " message " failed ; exit 1 ; } >&2 " \newline
-   "echo \"...done\"\n"))
-
-(defn cmd-join-checked [message cmds]
-  (cmd-checked
-   message
-   (string/join " && "
-    (filter (complement blank?) (map #(string/trim %) cmds)))))
-
 (defn resource-path [name]
   (let [loader (.getContextClassLoader (Thread/currentThread))
         resource (. loader getResource name)]

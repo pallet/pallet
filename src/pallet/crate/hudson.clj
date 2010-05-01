@@ -1,7 +1,6 @@
 (ns pallet.crate.hudson
  "Installation of hudson"
   (:use
-   [pallet.utils :only [cmd-join]]
    [pallet.resource.service :only [service]]
    [pallet.resource.directory :only [directory directory*]]
    [pallet.resource.remote-file :only [remote-file remote-file*]]
@@ -14,6 +13,7 @@
    [net.cgrand.enlive-html :as xml]
    [pallet.enlive :as enlive]
    [pallet.utils :as utils]
+   [pallet.stevedore :as stevedore]
    [pallet.target :as target]
    [pallet.resource :as resource]))
 
@@ -95,7 +95,7 @@
   (let [opts (apply hash-map options)
         src (merge (get hudson-plugins plugin {})
                    (select-keys opts [:url :md5]))]
-    (cmd-join
+    (stevedore/do-script
      [(directory* (str hudson-data-path "/plugins"))
       (apply remote-file*
        (str hudson-data-path "/plugins/" (name plugin) ".hpi")
@@ -233,7 +233,7 @@
   [build-type name & options]
   (trace (str "Hudson - configure job " name))
   (let [opts (apply hash-map options)]
-    (utils/do-script
+    (stevedore/do-script
      (directory* (str hudson-data-path "/jobs/" name) :p true)
      (remote-file*
       (str hudson-data-path "/jobs/" name "/config.xml" )
@@ -287,7 +287,7 @@ options are:
    maven-tasks))
 
 (defn hudson-maven* [args]
-  (utils/do-script
+  (stevedore/do-script
    (directory* "/usr/share/tomcat6/.m2" :group (hudson-group-name) :mode "g+w")
    (directory*
     hudson-data-path

@@ -3,6 +3,7 @@
   (:require
    [pallet.template :only [apply-templates]]
    [pallet.core :as core]
+   [pallet.stevedore :as stevedore]
    [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
    [pallet.target :as target])
@@ -10,7 +11,7 @@
         pallet.test-utils))
 
 (deftest crontab-test
-  (is (= (str
+  (is (= (stevedore/do-script
           (remote-file/remote-file*
            "$(getent passwd quote user | cut -d: -f6)/crontab.in"
            :content "contents" :owner "fred" :mode "0600")

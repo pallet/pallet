@@ -150,17 +150,17 @@
                               merge {}
                               [nginx-default-site
                                options]))))]
-    (utils/do-script
+    (stevedore/do-script
      (directory/directory* (format "%s/sites-available" nginx-conf-dir))
      (directory/directory* (format "%s/sites-enabled" nginx-conf-dir))
      (condp = (get options :action :enable)
-       :enable (utils/do-script
+       :enable (stevedore/do-script
                 (site enabled)
                 (file/file* available :action :delete))
-       :disable (utils/do-script
+       :disable (stevedore/do-script
                  (site available)
                  (file/file* enabled :action :delete))
-       :remove (utils/do-script
+       :remove (stevedore/do-script
                 (file/file* available :action :delete)
                 (file/file* enabled :action :delete))))))
 

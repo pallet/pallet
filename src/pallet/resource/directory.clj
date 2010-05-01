@@ -1,7 +1,8 @@
 (ns pallet.resource.directory
   "Directory manipulation."
   (:require
-   [pallet.utils :as utils])
+   [pallet.utils :as utils]
+   [pallet.stevedore :as stevedore])
   (:use pallet.script
         pallet.stevedore
         [pallet.resource :only [defresource]]
@@ -17,7 +18,7 @@
   ("mkdir" ~(map-to-arg-string (first options)) ~directory))
 
 (defn adjust-directory [path opts]
-  (utils/cmd-chain
+  (stevedore/chain-commands*
    (filter
     (complement nil?)
     [(when (opts :owner)
@@ -28,11 +29,11 @@
        (script (chmod ~(opts :mode) ~path  ~(select-keys opts [:recursive]))))])))
 
 (defn make-directory [path opts]
-  (utils/cmd-join-checked
+  (stevedore/checked-commands
    (str "directory " path)
-   [(script
-     (mkdir ~path ~(select-keys opts [:p :v :m])))
-    (adjust-directory path opts)]))
+   (script
+    (mkdir ~path ~(select-keys opts [:p :v :m])))
+   (adjust-directory path opts)))
 
 (defn directory*
   [path & options]
@@ -40,10 +41,11 @@
         opts (merge {:action :create} opts)]
     (condp = (opts :action)
       :delete
-      (checked-script
+      (stevedore/checked-script
        (str "directory " path)
-       (rm ~path ~{:r (get opts :recursive true)
-                   :f (get opts :force true)}))
+       (stevedore/script
+        (rm ~path ~{:r (get opts :recursive true)
+                    :f (get opts :force true)})))
       :create
       (make-directory path (merge {:p true} opts))
       :touch

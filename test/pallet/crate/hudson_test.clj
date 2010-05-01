@@ -4,6 +4,7 @@
    [pallet.template :only [apply-templates]]
    [pallet.core :as core]
    [pallet.target :as target]
+   [pallet.stevedore :as stevedore]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.directory :as directory]
    [pallet.utils :as utils]
@@ -12,11 +13,10 @@
         pallet.test-utils
         [pallet.resource.package :only [package package-manager]]
         [pallet.resource :only [build-resources]]
-        [pallet.stevedore :only [script]]
-        [pallet.utils :only [cmd-join]]))
+        [pallet.stevedore :only [script]]))
 
 (deftest hudson-tomcat-test
-  (is (= "echo \"directory /var/lib/hudson...\"\n{ mkdir -p /var/lib/hudson && chown  root /var/lib/hudson && chgrp  tomcat6 /var/lib/hudson && chmod  775 /var/lib/hudson; } || { echo directory /var/lib/hudson failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"remote-file /var/lib/hudson/hudson.war...\"\n{ if [ \\( ! -e /var/lib/hudson/hudson.war -o \\( \"680e1525fca0562cfd19552b8d8174e2\" != \"$(md5sum /var/lib/hudson/hudson.war | cut -f1 -d' ')\" \\) \\) ]; then wget -O /var/lib/hudson/hudson.war http://hudson-ci.org/latest/hudson.war;fi\necho MD5 sum is $(md5sum /var/lib/hudson/hudson.war); } || { echo remote-file /var/lib/hudson/hudson.war failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"remote-file /etc/tomcat6/policy.d/99hudson.policy...\"\n{ { cat > /etc/tomcat6/policy.d/99hudson.policy <<'EOF'\ngrant codeBase \"file:${catalina.base}/webapps/hudson/-\" {\n  permission java.security.AllPermission;\n};\ngrant codeBase \"file:/var/lib/hudson/-\" {\n  permission java.security.AllPermission;\n};\nEOF\n }; } || { echo remote-file /etc/tomcat6/policy.d/99hudson.policy failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"remote-file /etc/tomcat6/Catalina/localhost/hudson.xml...\"\n{ { cat > /etc/tomcat6/Catalina/localhost/hudson.xml <<'EOF'\n<?xml version=\"1.0\" encoding=\"utf-8\"?>\n <Context\n privileged=\"true\"\n path=\"/hudson\"\n allowLinking=\"true\"\n swallowOutput=\"true\"\n >\n <Environment\n name=\"HUDSON_HOME\"\n value=\"/var/lib/hudson\"\n type=\"java.lang.String\"\n override=\"false\"/>\n </Context>\nEOF\n }; } || { echo remote-file /etc/tomcat6/Catalina/localhost/hudson.xml failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"remote-file /var/lib/tomcat6/webapps/hudson.war...\"\n{ cp /var/lib/hudson/hudson.war /var/lib/tomcat6/webapps/hudson.war && chown  tomcat6 /var/lib/tomcat6/webapps/hudson.war && chgrp  tomcat6 /var/lib/tomcat6/webapps/hudson.war && chmod  600 /var/lib/tomcat6/webapps/hudson.war; } || { echo remote-file /var/lib/tomcat6/webapps/hudson.war failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= "echo \"directory /var/lib/hudson...\"\n{ mkdir -p /var/lib/hudson && chown  root /var/lib/hudson && chgrp  tomcat6 /var/lib/hudson && chmod  775 /var/lib/hudson; } || { echo directory /var/lib/hudson failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"remote-file /var/lib/hudson/hudson.war...\"\n{ if [ \\( ! -e /var/lib/hudson/hudson.war -o \\( \"680e1525fca0562cfd19552b8d8174e2\" != \"$(md5sum /var/lib/hudson/hudson.war | cut -f1 -d' ')\" \\) \\) ]; then wget -O /var/lib/hudson/hudson.war http://hudson-ci.org/latest/hudson.war;fi && echo MD5 sum is $(md5sum /var/lib/hudson/hudson.war); } || { echo remote-file /var/lib/hudson/hudson.war failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"remote-file /etc/tomcat6/policy.d/99hudson.policy...\"\n{ { cat > /etc/tomcat6/policy.d/99hudson.policy <<'EOF'\ngrant codeBase \"file:${catalina.base}/webapps/hudson/-\" {\n  permission java.security.AllPermission;\n};\ngrant codeBase \"file:/var/lib/hudson/-\" {\n  permission java.security.AllPermission;\n};\nEOF\n }; } || { echo remote-file /etc/tomcat6/policy.d/99hudson.policy failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"remote-file /etc/tomcat6/Catalina/localhost/hudson.xml...\"\n{ { cat > /etc/tomcat6/Catalina/localhost/hudson.xml <<'EOF'\n<?xml version=\"1.0\" encoding=\"utf-8\"?>\n <Context\n privileged=\"true\"\n path=\"/hudson\"\n allowLinking=\"true\"\n swallowOutput=\"true\"\n >\n <Environment\n name=\"HUDSON_HOME\"\n value=\"/var/lib/hudson\"\n type=\"java.lang.String\"\n override=\"false\"/>\n </Context>\nEOF\n }; } || { echo remote-file /etc/tomcat6/Catalina/localhost/hudson.xml failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"remote-file /var/lib/tomcat6/webapps/hudson.war...\"\n{ cp /var/lib/hudson/hudson.war /var/lib/tomcat6/webapps/hudson.war && chown  tomcat6 /var/lib/tomcat6/webapps/hudson.war && chgrp  tomcat6 /var/lib/tomcat6/webapps/hudson.war && chmod  600 /var/lib/tomcat6/webapps/hudson.war; } || { echo remote-file /var/lib/tomcat6/webapps/hudson.war failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (build-resources [] (tomcat-deploy)))))
 
 (deftest determine-scm-type-test
@@ -35,7 +35,7 @@
 
 (deftest hudson-job-test
   (core/defnode n [])
-  (is (= (utils/do-script
+  (is (= (stevedore/do-script
           (directory/directory* "/var/lib/hudson/jobs/project" :p true)
           (remote-file/remote-file*
            "/var/lib/hudson/jobs/project/config.xml"
@@ -62,7 +62,7 @@
 
 (deftest hudson-maven-test
   (core/defnode n [])
-  (is (= (utils/do-script
+  (is (= (stevedore/do-script
           (directory/directory*
            "/usr/share/tomcat6/.m2" :group "tomcat6" :mode "g+w")
           (directory/directory*

@@ -2,7 +2,6 @@
   "Script execution."
   (:use pallet.script
         pallet.stevedore
-        [pallet.utils :only [cmd-join]]
         [pallet.resource :only [invoke-resource]]
         clojure.contrib.logging))
 

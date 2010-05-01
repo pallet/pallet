@@ -27,7 +27,7 @@
      keys)})
 
 (defn- authorize-key* [user keys]
-  (utils/do-script
+  (stevedore/do-script
    (directory/directory* (user-ssh-dir user) :owner user :mode "755")
    (remote-file/remote-file*
     (str (user-ssh-dir user) "authorized_keys")
@@ -55,7 +55,7 @@
 (defn authorize-key-for-localhost* [user public-key-filename & options]
   (let [options (apply hash-map options)
         target-user (get options :authorize-for-user user)]
-    (utils/do-script
+    (stevedore/do-script
      (stevedore/script
       (var key_file ~(str (user-ssh-dir user) public-key-filename))
       (var auth_file ~(str (user-ssh-dir target-user) "authorized_keys")))
@@ -75,7 +75,7 @@
 (defn install-key*
   [user key-name private-key-string public-key-string]
   (let [ssh-dir (user-ssh-dir user)]
-    (utils/do-script
+    (stevedore/do-script
      (directory/directory* ssh-dir :owner user :mode "755")
      (remote-file/remote-file*
       (str ssh-dir key-name) :owner user :mode "600"
@@ -103,7 +103,7 @@
                    (str ~(user-ssh-dir user)
                         ~(ssh-default-filenames key-type))))
         passphrase (get options :passphrase "\"\"")]
-    (utils/do-script
+    (stevedore/do-script
      (directory/directory* ssh-dir :owner user :mode "755")
      (stevedore/checked-script "ssh-keygen"
       (var key_path ~path)

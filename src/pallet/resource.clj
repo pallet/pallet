@@ -2,12 +2,13 @@
   "Resource definition interface."
   (:require
    pallet.compat
-   [pallet.target :as target])
+   [pallet.target :as target]
+   [pallet.utils :as utils]
+   [pallet.stevedore :as stevedore])
   (:use
-        [pallet.utils :only [cmd-join *file-transfers*]]
-        [pallet.stevedore :only [script]]
-        (clojure.contrib core logging
-            [def :only [defvar defvar- name-with-attributes]])))
+
+   (clojure.contrib core logging
+                    [def :only [defvar defvar- name-with-attributes]])))
 
 (pallet.compat/require-contrib)
 
@@ -143,7 +144,7 @@
   "Invoke all passed resources."
   [phase resources]
   (when-let [s (seq (resources phase))]
-    (cmd-join (map #(%) s))))
+    (stevedore/do-script* (map #(%) s))))
 
 (defn phase-list* [phases]
   (lazy-seq

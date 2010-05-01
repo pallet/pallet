@@ -2,11 +2,11 @@
   "File Contents."
   (:use pallet.script
         pallet.stevedore
-        [pallet.utils :only [cmd-join register-file-transfer!]]
         [pallet.resource :only [defresource]]
         [pallet.resource.file :only [adjust-file heredoc]]
         clojure.contrib.logging)
   (:require
+   [pallet.stevedore :as stevedore]
    [pallet.template :as template]
    [pallet.utils :as utils]
    [clojure.contrib.def :as def]))
@@ -29,32 +29,35 @@
             local-file (opts :local-file)
             remote-file (opts :remote-file)
             template-name (opts :template)]
-        (utils/cmd-join-checked (str "remote-file " path)
-          [(cond
-            (and url md5) (script
-                           (if (|| (not (file-exists? ~path))
-                                   (!= ~md5 @(md5sum ~path "|" cut "-f1 -d' '")))
-                             (wget "-O" ~path ~url))
-                           (echo "MD5 sum is" @(md5sum ~path)))
-            url (script
-                 (wget "-O" ~path ~url)
-                 (echo "MD5 sum is" @(md5sum ~path)))
-            content (apply heredoc
-                           path content
-                           (apply concat (seq (select-keys opts [:literal]))))
-            local-file (let [temp-path (register-file-transfer! local-file)]
-                         (script (mv ~temp-path ~path)))
-            remote-file (script (cp ~remote-file ~path))
-            template-name (apply
-                           heredoc
-                           path (template/interpolate-template
-                                 template-name (get opts :values {}))
-                           (apply concat (seq (select-keys opts [:literal]))))
+        (stevedore/checked-commands
+         (str "remote-file " path)
+         (cond
+          (and url md5) (stevedore/chained-script
+                         (if (|| (not (file-exists? ~path))
+                                 (!= ~md5 @(md5sum ~path "|" cut "-f1 -d' '")))
+                           (wget "-O" ~path ~url))
+                         (echo "MD5 sum is" @(md5sum ~path)))
+          url (stevedore/chained-script
+               (wget "-O" ~path ~url)
+               (echo "MD5 sum is" @(md5sum ~path)))
+          content (apply heredoc
+                         path content
+                         (apply concat (seq (select-keys opts [:literal]))))
+          local-file (let [temp-path (utils/register-file-transfer! local-file)]
+                       (stevedore/script
+                        (mv ~temp-path ~path)))
+          remote-file (stevedore/script
+                       (cp ~remote-file ~path))
+          template-name (apply
+                         heredoc
+                         path (template/interpolate-template
+                               template-name (get opts :values {}))
+                         (apply concat (seq (select-keys opts [:literal]))))
 
-            :else (throw
-                   (IllegalArgumentException.
-                    (str "remote-file " path " specified without content."))))
-          (adjust-file path opts)])))))
+          :else (throw
+                 (IllegalArgumentException.
+                  (str "remote-file " path " specified without content."))))
+         (adjust-file path opts))))))
 
 (defresource remote-file "Remote file with contents management.
 Options for specifying the file's content are:

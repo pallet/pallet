@@ -19,7 +19,9 @@
                :method "POST"
                :body (json-write/json-str
                       {:project heynote-project
-                       :text msg})
+                       :text msg
+                       :pallet-version (System/getProperty "pallet.version")
+                       :java-version (System/getProperty "java.version")})
                :headers {"Content-type" "application/json"})]
     (agent/result agent)
     (println
