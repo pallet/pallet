@@ -3,5 +3,6 @@
 lib
 logs
 classes
+target
 snippets
 autodoc/**
