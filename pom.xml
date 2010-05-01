@@ -31,8 +31,9 @@
                     </testSourceDirectories>
                     <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m</clojureOptions>
                     <warnOnReflection>true</warnOnReflection>
-                    <compileDeclaredNamespaceOnly>true</compileDeclaredNamespaceOnly>
-                    <testDeclaredNamespaceOnly>true</testDeclaredNamespaceOnly>
+                    <testDeclaredNamespaceOnly>false</testDeclaredNamespaceOnly>
+                    <!-- we want the AOT compile sanity check, but still only ship source -->
+                    <outputDirectory>${project.build.directory}/clojure-classes</outputDirectory>
                 </configuration>
                 <executions>
                     <execution>
@@ -47,19 +48,6 @@
                         <phase>test</phase>
                         <goals>
                             <goal>test</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>2.1.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -81,6 +69,7 @@
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-blobstore</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
@@ -91,56 +80,67 @@
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-azure</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-atmos</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-aws</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-rackspace</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-terremark</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-hostingdotcom</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-rimuhosting</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-gogrid</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-jsch</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-log4j</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-enterprise</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.danlarkin</groupId>
@@ -156,6 +156,7 @@
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.14</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>com.jcraft</groupId>
@@ -166,6 +167,7 @@
             <groupId>jline</groupId>
             <artifactId>jline</artifactId>
             <version>0.9.94</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>enlive</groupId>
