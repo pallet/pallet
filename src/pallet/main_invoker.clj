@@ -6,8 +6,10 @@
    [org.jclouds.compute :as jclouds]
    [pallet.maven :as maven]))
 
+(def default-service-opts [:log4j :enterprise :ssh])
+
 (defn invoke
-  [service user key task args]
+  [service user key task params]
   (let [[service user key] (if service
                              [service user key]
                              (maven/credentials))]

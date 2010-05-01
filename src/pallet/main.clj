@@ -55,8 +55,6 @@
         symbol-map))
     symbol-map))
 
-(def default-service-opts [:log4j :enterprise :ssh])
-
 (defn -main
   "Command line runner."
   [& args]
@@ -77,7 +75,7 @@
           (apply task params)
           (let [_ (require 'pallet.main-invoker)
                 invoker (find-var 'pallet.main-invoker/invoke)]
-            (invoker service user key task args))))
+            (invoker service user key task params))))
       ;; In case tests or some other task started any:
       (flush)
       (shutdown-agents)
