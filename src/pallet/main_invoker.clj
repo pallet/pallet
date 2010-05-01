@@ -4,7 +4,8 @@
    the world."
   (:require
    [org.jclouds.compute :as jclouds]
-   [pallet.maven :as maven]))
+   [pallet.maven :as maven]
+   [pallet.main :as main]))
 
 (def default-service-opts [:log4j :enterprise :ssh])
 
@@ -20,4 +21,4 @@
           (apply task params)))
       (do
         (println "Error: no credentials supplied\n\n")
-        (apply (pallet.main/resolve-task "help") [])))))
+        (apply (main/resolve-task "help") [])))))
