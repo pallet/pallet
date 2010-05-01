@@ -17,16 +17,16 @@
   (let [options (apply hash-map options)
         in-file (str (stevedore/script (user/user-home user)) "/crontab.in")]
     (condp = (get options :action :create)
-      :create (utils/cmd-join
-               [(apply
-                 remote-file/remote-file* in-file :owner user :mode "0600"
-                 (apply
-                  concat
-                  (select-keys options remote-file/content-options)))
-                (stevedore/script ("crontab" -u ~user ~in-file))])
-      :remove (utils/cmd-join
-               [(file/file* in-file :action :delete)
-                (stevedore/script ("crontab" -u ~user -r))]))))
+      :create (stevedore/do-script
+               (apply
+                remote-file/remote-file* in-file :owner user :mode "0600"
+                (apply
+                 concat
+                 (select-keys options remote-file/content-options)))
+               (stevedore/script ("crontab" -u ~user ~in-file)))
+      :remove (stevedore/do-script
+               (file/file* in-file :action :delete)
+               (stevedore/script ("crontab" -u ~user -r))))))
 
 (defn system-crontab*
   [name & options]
