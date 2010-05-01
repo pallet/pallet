@@ -200,7 +200,7 @@
   "Outputs the resources specified in the body for the specified phases.
    This is useful in testing."
   [[& phases] & body]
-  `(binding [*file-transfers* {}
+  `(binding [utils/*file-transfers* {}
              *required-resources* {}]
      (produce-phases
       ~phases (target/node) (target/node-type)
