@@ -10,6 +10,8 @@
   (:use clojure.test
         pallet.test-utils))
 
+(use-fixtures :each with-null-target)
+
 (deftest crontab-test
   (is (= (stevedore/do-script
           (remote-file/remote-file*

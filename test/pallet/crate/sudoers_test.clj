@@ -4,6 +4,8 @@
   (:use clojure.test
         pallet.test-utils))
 
+(use-fixtures :each with-null-target)
+
 (with-private-vars [pallet.crate.sudoers
                     [default-specs
                      param-string

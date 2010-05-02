@@ -10,6 +10,8 @@
   (:use clojure.test
         pallet.test-utils))
 
+(use-fixtures :each with-null-target)
+
 (deftest authorized-keys-template-test
   (is (= "file=$(getent passwd userx | cut -d: -f6)/.ssh/authorized_keys
 cat > ${file} <<EOF\nkey1\nkey2\nEOF
