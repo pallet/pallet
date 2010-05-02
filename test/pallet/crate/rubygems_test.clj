@@ -8,6 +8,8 @@
         [pallet.resource :only [build-resources]]
         [pallet.stevedore :only [script]]))
 
+(use-fixtures :each with-null-target)
+
 (deftest gem-script-test
   (is (= "gem install  fred"
          (script (gem "install" "fred")))))

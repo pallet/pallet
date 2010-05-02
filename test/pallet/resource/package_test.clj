@@ -13,6 +13,8 @@
 
 (pallet.compat/require-contrib)
 
+(use-fixtures :each with-null-target)
+
 (deftest update-package-list-test
   (is (= "aptitude update "
          (script (update-package-list)))))

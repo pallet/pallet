@@ -1,6 +1,7 @@
 (ns pallet.crate.java-test
   (:use [pallet.crate.java] :reload-all)
   (:require
+   [pallet.target :as target]
    [pallet.template :as template]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils])
@@ -10,19 +11,25 @@
         [pallet.resource :only [build-resources]]
         [pallet.stevedore :only [script]]))
 
-(def pkg-config (build-resources []
-                  (package-manager :universe)
-                  (package-manager :multiverse)
-                  (package-manager :update)))
+(use-fixtures :each with-null-target)
+
+(def pkg-config (target/with-target nil {}
+                  (build-resources
+                   []
+                   (package-manager :universe)
+                   (package-manager :multiverse)
+                   (package-manager :update))))
 
 (def noninteractive (script (package-manager-non-interactive)))
 
 (defn debconf [pkg]
-  (build-resources []
-   (package-manager
-    :debconf
-    (str pkg " shared/present-sun-dlj-v1-1 note")
-    (str pkg " shared/accepted-sun-dlj-v1-1 boolean true"))))
+  (target/with-target nil {}
+    (build-resources
+     []
+     (package-manager
+      :debconf
+      (str pkg " shared/present-sun-dlj-v1-1 note")
+      (str pkg " shared/accepted-sun-dlj-v1-1 boolean true")))))
 
 (deftest java-default-test
   (is (= (stevedore/do-script

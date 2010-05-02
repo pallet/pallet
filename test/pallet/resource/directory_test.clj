@@ -8,6 +8,8 @@
    clojure.test
    pallet.test-utils))
 
+(use-fixtures :each with-null-target)
+
 (deftest mkdir-test
   (is (= "mkdir -p dir"
          (stevedore/script (mkdir "dir" ~{:p true})))))

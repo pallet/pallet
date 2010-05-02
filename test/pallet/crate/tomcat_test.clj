@@ -16,6 +16,8 @@
    [pallet.stevedore :only [script]]
    [pallet.core :only [defnode]]))
 
+(use-fixtures :each with-null-target)
+
 (deftest tomcat-test
   (is (= "{ debconf-set-selections <<EOF\ndebconf debconf/frontend select noninteractive\ndebconf debconf/frontend seen false\nEOF\n}\naptitude install -y  tomcat6\n"
          (build-resources [] (tomcat)))))

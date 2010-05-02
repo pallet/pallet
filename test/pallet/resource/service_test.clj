@@ -5,6 +5,8 @@
         clojure.test
         pallet.test-utils))
 
+(use-fixtures :each with-null-target)
+
 (deftest service-test
   (is (= "/etc/init.d/tomcat start\n"
          (build-resources [] (service "tomcat"))))

@@ -1,10 +1,11 @@
 (ns pallet.test-utils
-  (:require [pallet.utils :as utils])
+  (:require
+   [pallet.target :as target]
+   [pallet.utils :as utils])
   (:use clojure.test)
   (:import
    org.jclouds.compute.domain.internal.NodeMetadataImpl
    org.jclouds.compute.domain.NodeState))
-
 
 (defmacro with-private-vars [[ns fns] & tests]
   "Refers private fns from ns and runs tests in context.  From users mailing
@@ -38,3 +39,8 @@ list, Alan Dipert and MeikelBrandmeyer."
     (is (= ~exit (:exit r#)))
     (:out r#))))
 
+(defn with-null-target
+  "Bind target to null values"
+  [f]
+  (target/with-target nil {}
+    (f)))

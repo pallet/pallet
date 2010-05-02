@@ -4,12 +4,12 @@
   (:require
    [clojure.contrib.condition :as condition]))
 
-(deftest verify-checks-test
+(deftest verify-expectations-test
   (is (thrown?
        clojure.contrib.condition.Condition
-       (verify-checks [(fn [] (condition/raise :error 1))])))
+       (verify-expectations [(fn [] (condition/raise :error 1))])))
   (is (nil?
-       (verify-checks [(fn [] true)]))))
+       (verify-expectations [(fn [] true)]))))
 
 (deftest once-test
   (with-expectations

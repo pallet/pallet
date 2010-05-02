@@ -7,6 +7,8 @@
 
 (pallet.compat/require-contrib)
 
+(use-fixtures :each with-null-target)
+
 (deftest reset-resources-test
   (with-init-resources {:k :v}
     (reset-resources)

@@ -1,17 +1,27 @@
 (ns pallet.target
   "Provide information about the target image"
   (:require
-   [org.jclouds.compute :as jclouds]))
+   [org.jclouds.compute :as jclouds])
+  (:use
+   [clojure.contrib.def :only [defunbound]]))
 
 ;; A conscious decision was made to use rebindable vars here, as passing them around
 ;; explicitly would create a lot of noise in resources, templates and crates
-(def *target-node* nil)
-(def *target-node-type* nil)
+(defunbound *all-nodes* "All nodes in service.")
+(defunbound *target-nodes* "All nodes targeted by the current operation.")
+(defunbound *target-node* "Current node.")
+(defunbound *target-node-type* "Node-type of current node.")
 
 (defmacro with-target
   [node node-type & body]
   `(binding [*target-node* ~node
              *target-node-type* ~node-type]
+    ~@body))
+
+(defmacro with-nodes
+  [nodes target-nodes & body]
+  `(binding [*all-nodes* ~nodes
+             *target-nodes* ~target-nodes]
     ~@body))
 
 (defn tag
@@ -27,6 +37,12 @@
 
 (defn node-type
   [] *target-node-type*)
+
+(defn all-nodes
+  [] *all-nodes*)
+
+(defn target-nodes
+  [] *target-nodes*)
 
 (defn os-family
   "OS family"

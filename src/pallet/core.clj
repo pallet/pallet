@@ -34,6 +34,8 @@ tag as a configuration target.
     :only [run-nodes destroy-node nodes tag running? compute-service? *compute*]]
    clojure.contrib.logging
    clojure.contrib.def)
+  (:require
+   [pallet.target :as target])
   (:import org.jclouds.compute.domain.OsFamily
            org.jclouds.compute.options.TemplateOptions
            org.jclouds.compute.domain.NodeMetadata))
@@ -245,14 +247,16 @@ script that is run with root privileges immediatly after first boot."
   (trace (str "converge*  " node-map))
   (let [node-map (add-prefix-to-node-map prefix node-map)]
     (converge-node-counts compute node-map)
-    (let [nodes (nodes compute)
+    (let [nodes (filter running? (nodes compute))
+          target-nodes (nodes-in-map node-map nodes)
           phases (ensure-configure-phase phases)]
-      (doseq [node-type (keys node-map)]
-        (apply-phases
-         compute
-         node-type
-         (filter-nodes-with-tag nodes (node-type :tag))
-         phases)))))
+      (target/with-nodes nodes target-nodes
+        (doseq [node-type (keys node-map)]
+          (apply-phases
+           compute
+           node-type
+           (filter-nodes-with-tag nodes (node-type :tag))
+           phases))))))
 
 (defn node-in-types?
   "Predicate for matching a node belonging to a set of node types"
@@ -297,12 +301,17 @@ script that is run with root privileges immediatly after first boot."
 
 (defn lift*
   [compute prefix node-set phases]
-  (doseq [[node-type nodes] (nodes-in-set node-set prefix compute)]
-    (apply-phases
-     compute
-     node-type
-     (filter running? nodes)
-     phases)))
+  (let [nodes (if compute (filter running? (nodes compute)))
+        target-node-map (nodes-in-set node-set prefix compute)
+        target-nodes (filter running? (apply concat (vals target-node-map)))
+        nodes (or nodes target-nodes)]
+    (target/with-nodes nodes target-nodes
+      (doseq [[node-type nodes] target-node-map]
+        (apply-phases
+         compute
+         node-type
+         (filter running? nodes)
+         phases)))))
 
 (defn compute-service-and-options
   "Extract the compute service form a vector of options, returning the bound

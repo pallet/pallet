@@ -6,6 +6,8 @@
   (:use clojure.test
         pallet.test-utils))
 
+(use-fixtures :each with-null-target)
+
 (deftest automated-admin-user-test
   (is (=
        (str

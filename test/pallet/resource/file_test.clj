@@ -5,6 +5,8 @@
         clojure.test
         pallet.test-utils))
 
+(use-fixtures :each with-null-target)
+
 (deftest rm-test
   (is (= "rm --force file1"
          (script (rm "file1" ~{:force true})))))

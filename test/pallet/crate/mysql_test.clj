@@ -1,8 +1,10 @@
 (ns pallet.crate.mysql-test
   (:use [pallet.crate.mysql] :reload-all)
   (:use [pallet.resource :only [build-resources]]
-        clojure.test))
+        clojure.test
+        pallet.test-utils))
 
+(use-fixtures :each with-null-target)
 
 (deftest mysql-conf-test
   (is (= "file=/etc/mysql/my.cnf\ncat > ${file} <<EOF\n[client]\nport = 3306\n\nEOF\nchmod 0440 ${file}\nchown root ${file}\n"

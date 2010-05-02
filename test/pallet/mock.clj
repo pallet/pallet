@@ -5,12 +5,14 @@
 
 (def *expectations*)
 
-(defn verify-checks
+(defn verify-expectations
   [checks]
   (doseq [check checks]
     (check)))
 
-(defmacro once [v args body]
+(defmacro once
+  "Add an expectation that the function is called once."
+  [v args body]
   `(let [counter# (atom 0)]
      (set! *expectations* (conj
                      *expectations*
@@ -23,26 +25,21 @@
        (swap! counter# inc)
        (apply (fn ~args ~@(rest body)) args#))))
 
-
 (defn construct-mock
   "Construct the mock. Checks for a mock wrapper around the body."
   [[v args body]]
-  (println "construct-mock " v args body (type body))
-  (if (list? body)
-    (println "  first "
-             (first body)
-             (type (first body))
-             (namespace (first body))
-             ))
   (if (and (list? body) (#{#'once} (resolve (first body))))
     `(~(first body) ~v ~args ~body)
     `(fn ~args ~@(if (seq? body) body (list body)))))
 
-(defn add-mock [mocks mock]
-  (println "add-mock " mock (first mock) (rest mock))
+(defn add-mock
+  "Add a mock to the bindings."
+  [mocks mock]
   (concat mocks [(first mock) (construct-mock mock)]))
 
-(defn construct-bindings [mocks]
+(defn construct-bindings
+  "Construct a binding vector from the mock specification."
+  [mocks]
   (vec (reduce add-mock [] mocks)))
 
 (defmacro with-expectations
@@ -50,12 +47,10 @@
   `(binding [*expectations* []]
      ~@body))
 
-(defmacro expects [mocks & body]
+(defmacro expects
+  "Binds a list of mocks, checling any expectations on exit of the block."
+  [mocks & body]
   `(with-expectations
      (binding ~(construct-bindings mocks)
        ~@body)
-     (verify-checks *expectations*)))
-
-(defmacro mock [args & body]
-  `(fn ~args ~@body))
-
+     (verify-expectations *expectations*)))

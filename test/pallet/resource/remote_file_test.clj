@@ -14,6 +14,8 @@
 
 (pallet.compat/require-contrib)
 
+(use-fixtures :each with-null-target)
+
 (defn test-username
   "Function to get test username. This is a function to avoid issues with AOT."
   [] (or (. System getProperty "ssh.username")

@@ -5,6 +5,8 @@
         clojure.test
         pallet.test-utils))
 
+(use-fixtures :each with-null-target)
+
 (deftest exec-script-test
   (is (= "ls file1\n"
          (build-resources [] (exec-script (script (ls "file1")))))))

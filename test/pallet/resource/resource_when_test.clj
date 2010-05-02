@@ -6,6 +6,8 @@
         clojure.test
         pallet.test-utils))
 
+(use-fixtures :each with-null-target)
+
 (deftest exec-when*-test
   (is (= 1 (exec-when* (fn [] 1)))))
 

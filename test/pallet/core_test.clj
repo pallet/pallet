@@ -5,6 +5,7 @@
    [pallet.stevedore :as stevedore]
    [pallet.resource.exec-script :as exec-script]
    [pallet.compute :as compute]
+   [pallet.target :as target]
    [pallet.mock :as mock])
   (:use
    clojure.test
@@ -69,6 +70,16 @@
     (let [a-node (compute/make-node "a" :state NodeState/TERMINATED)]
       (converge-node-counts nil {a 1} [a-node]))))
 
+(deftest nodes-in-map-test
+  (defnode a [:ubuntu])
+  (defnode b [:ubuntu])
+  (let [a-node (compute/make-node "a")
+        b-node (compute/make-node "b")
+        nodes [a-node b-node]]
+    (is (= [a-node]
+           (nodes-in-map {a 1} nodes)))
+    (is (= [a-node b-node]
+           (nodes-in-map {a 1 b 2} nodes)))))
 
 (deftest nodes-in-set-test
   (defnode a [:ubuntu])
@@ -158,3 +169,36 @@
                     (exec-script/exec-script
                      (stevedore/script
                       (ls "/")))))))))))
+
+(deftest lift*-nodes-binding-test
+  (defnode a [])
+  (defnode b [])
+  (let [na (compute/make-node "a")
+        nb (compute/make-node "b")
+        nc (compute/make-node "c" :state NodeState/TERMINATED)]
+    (mock/expects [(apply-phases
+                    [& _]
+                    (do
+                      (is (= [na nb] (target/all-nodes)))
+                      (is (= [na nb] (target/target-nodes)))))]
+                  (lift* nil "" {a #{na nb nc}} [:configure]))
+    (mock/expects [(apply-phases
+                    [& _]
+                    (do
+                      (is (= [na nb] (target/all-nodes)))
+                      (is (= [na nb] (target/target-nodes)))))]
+                  (lift* nil "" {a #{na} b #{nb}} [:configure]))))
+
+(deftest converge*-nodes-binding-test
+  (defnode a [])
+  (defnode b [])
+  (let [na (compute/make-node "a")
+        nb (compute/make-node "b")
+        nc (compute/make-node "b" :state NodeState/TERMINATED)]
+    (mock/expects [(apply-phases
+                    [& _]
+                    (do
+                      (is (= [na nb] (target/all-nodes)))
+                      (is (= [na nb] (target/target-nodes)))))
+                   (org.jclouds.compute/nodes [& _] [na nb nc])]
+                  (converge* nil "" {a 1 b 1} [:configure]))))
