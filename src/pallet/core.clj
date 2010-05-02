@@ -174,16 +174,17 @@ script that is run with root privileges immediatly after first boot."
 (defn converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
    instances."
-  [compute node-map]
-  (info "converging nodes")
-  (trace (str "  " node-map))
-  (let [nodes (nodes compute)]
-    (boot-if-down compute nodes)        ; this needs improving
+  ([compute node-map] (converge-node-counts compute node-map (nodes compute)))
+  ([compute node-map nodes]
+     (info "converging nodes")
+     (trace (str "  " node-map))
+     (boot-if-down compute nodes)       ; this needs improving
                                         ; should only reboot if required
-    (adjust-node-counts
-     compute
-     (node-count-difference node-map nodes)
-     (filter running? nodes))))
+     (let [nodes (filter running? nodes)]
+       (adjust-node-counts
+        compute
+        (node-count-difference node-map nodes)
+        nodes))))
 
 (defn apply-phases-to-node
   "Apply a list of phases to a sequence of nodes"

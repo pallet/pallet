@@ -4,11 +4,13 @@
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
    [pallet.resource.exec-script :as exec-script]
-   [pallet.compute :as compute])
+   [pallet.compute :as compute]
+   [pallet.mock :as mock])
   (:use
    clojure.test
    pallet.test-utils
-   [pallet.resource :as resource]))
+   [pallet.resource :as resource])
+  (:import [org.jclouds.compute.domain NodeState]))
 
 (deftest with-admin-user-test
   (let [x (rand)]
@@ -52,6 +54,21 @@
           [(compute/make-node "a") (compute/make-node "b")])))
   (is (= { {:tag :a} 1 {:tag :b} 1}
          (node-count-difference { {:tag :a} 1 {:tag :b} 1} []))))
+
+(deftest converge-node-counts-test
+  (defnode a [])
+  (let [a-node (compute/make-node "a" :state NodeState/RUNNING)]
+    (converge-node-counts nil {a 1} [a-node]))
+  (mock/expects [(org.jclouds.compute/run-nodes
+                  [tag n template compute]
+                  (mock/once
+                   (is (= n 1))))
+                 (org.jclouds.compute/build-template
+                  [compute & options]
+                  (mock/once :template))]
+    (let [a-node (compute/make-node "a" :state NodeState/TERMINATED)]
+      (converge-node-counts nil {a 1} [a-node]))))
+
 
 (deftest nodes-in-set-test
   (defnode a [:ubuntu])
