@@ -1,6 +1,7 @@
 (ns pallet.test-utils
   (:require
    [pallet.target :as target]
+   [pallet.resource :as resource]
    [pallet.utils :as utils])
   (:use clojure.test)
   (:import
@@ -44,3 +45,13 @@ list, Alan Dipert and MeikelBrandmeyer."
   [f]
   (target/with-target nil {}
     (f)))
+
+(defmacro test-resource-build
+  "Test build a resource. Ensures binding at correct times."
+  [[node node-type] & body]
+  `(let [resources# (binding [utils/*file-transfers* {}
+                              resource/*required-resources* {}]
+                      (resource/resource-phases ~@body))]
+     (resource/produce-phases
+      [:configure]  ~node ~node-type
+      resources#)))

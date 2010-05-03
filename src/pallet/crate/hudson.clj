@@ -33,21 +33,33 @@
   "Get the actual filename corresponding to a template."
   [base] (str "crate/hudson/" base))
 
+(defn hudson-url
+  [version]
+  (if (= version :latest)
+    "http://hudson-ci.org/latest/hudson.war"
+    (str "http://hudson-ci.org/download/war/" version "/hudson.war")))
+
+(def hudson-md5
+     {:latest "5d616c367d7a7888100ae6e98a5f2bd7"
+      "1.355" "5d616c367d7a7888100ae6e98a5f2bd7"})
 
 (defn tomcat-deploy
-  "Install hudson on tomcat"
-  []
+  "Install hudson on tomcat.
+     :version version-string   - specify version, eg 1.355, or :latest"
+  [& options]
   (trace (str "Hudson - install on tomcat"))
   (reset! hudson-user (tomcat/tomcat-user-name))
   (reset! hudson-group (tomcat/tomcat-group-name))
 
-  (let [file (str hudson-data-path "/hudson.war")]
+  (let [options (apply hash-map options)
+        version (get options :version :latest)
+        file (str hudson-data-path "/hudson.war")]
     (directory
      hudson-data-path
      :owner hudson-owner :group (hudson-group-name) :mode "775")
     (remote-file file
-     :url "http://hudson-ci.org/latest/hudson.war"
-     :md5  "680e1525fca0562cfd19552b8d8174e2")
+     :url (hudson-url version)
+     :md5  (hudson-md5 version))
     (tomcat/policy
      99 "hudson"
      {(str "file:${catalina.base}/webapps/hudson/-")
