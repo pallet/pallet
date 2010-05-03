@@ -296,13 +296,13 @@ script that is run with root privileges immediatly after first boot."
         (let [node-type (add-prefix-to-node-type prefix node-set )]
           {node-type (set (nodes-for-type nodes node-type))})
         :else (reduce
-               #(merge-with concat %) {}
-               (apply #(nodes-in-set % compute nodes) node-set))))))
+               #(merge-with concat %1 %2) {}
+               (map #(nodes-in-set % prefix compute nodes) node-set))))))
 
 (defn lift*
   [compute prefix node-set phases]
   (let [nodes (if compute (filter running? (nodes compute)))
-        target-node-map (nodes-in-set node-set prefix compute)
+        target-node-map (nodes-in-set node-set prefix compute nodes)
         target-nodes (filter running? (apply concat (vals target-node-map)))
         nodes (or nodes target-nodes)]
     (target/with-nodes nodes target-nodes

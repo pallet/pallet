@@ -23,7 +23,7 @@
     (ssh-key/authorize-key-for-localhost
      (hudson/hudson-user-name) "id_rsa.pub"
      :authorize-for-user "testuser")
-    (hudson/tomcat-deploy)
+    (hudson/tomcat-deploy :version "1.355")
     (hudson/plugin :git)
     (hudson/maven "default maven" "2.2.1")
     (hudson/job :maven2 "pallet"
@@ -57,6 +57,9 @@
   (tomcat/tomcat :action :remove :purge true))
 
 (core/defnode ci
-  [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"]
-  :bootstrap [(automated-admin-user/automated-admin-user)]
+  [:ubuntu :X86_64 :smallest
+   :image-name-matches ".*"
+   :os-description-matches "[^J]+9.10[^32]+"]
+  :bootstrap [(automated-admin-user/automated-admin-user)
+              (package/package-manager :update)]
   :configure [(ci-config)])

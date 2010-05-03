@@ -2,9 +2,9 @@
   demo
   "A demo for pallet + jclouds.
 
-  ;; First we load the demo package, and switch to the demo namespace
-  (require 'demo)
-  (in-ns 'demo)
+  ;; First we load the pallet commands into
+  (require 'pallet.repl)
+  (pallet.repl/use-pallet)
 
   ;; Supported providers can be found with
   (supported-clouds)
@@ -34,9 +34,6 @@
   (defnode webserver
      [:ubuntu :X86_64 :smallest :os-description-matches \"[^J]+9.10[^32]+\"])
 
-  ;; We can create a node, by specifying the node type.
-  (start-node webserver service)
-
   ;; At this point we can manage instance counts as a map.
   ;; e.g ensure that we have two webserver nodes
   (converge {webserver 2} service)
@@ -60,6 +57,7 @@
 
   ;; Another example, that adds java to our node type, then converges
   ;; to install java
+  (use 'pallet.crate.java)
   (defnode webserver
     [:ubuntu :X86_64 :smallest :os-description-matches \"[^J]+9.10[^32]+\"]
     :bootstrap [(public-dns-if-no-nameserver)
@@ -97,36 +95,9 @@
   ;; We might also want to configure the machines with chef-solo.
   ;; This expects a webserver.json file in the cookbook repository's
   ;; config directory.
+  (use 'pallet.chef)
   (lift webserver service (phase (chef)))
-  (cook webserver \"path_to_your_chef_repository\")"
-(:use [org.jclouds.compute :exclude [node-tag]]
-      pallet.utils
-      pallet.core
-      pallet.chef
-      pallet.resource
-      pallet.resource.package
-      pallet.compute
-      pallet.crate.automated-admin-user
-      pallet.crate.public-dns-if-no-nameserver
-      pallet.bootstrap
-      pallet.crate.rubygems
-      pallet.crate.ruby
-      pallet.crate.java
-      pallet.crate.chef
-      clj-ssh.ssh))
+  (cook webserver \"path_to_your_chef_repository\")")
 
-(defnode webserver
-  [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"]
-  :bootstrap [(automated-admin-user)]
-  :configure [(package "apache2")])
-
-(defnode balancer
-  (apply vector :inbound-ports [22 80] (webserver :image))
-  :bootstrap [(automated-admin-user)])
-
-(defnode centos
-  [:centos :X86_64 :smallest :os-description-matches ".*5.3.*"
-   :image-description-matches "[^gr]+"]
-  :bootstrap [(automated-admin-user)])
 
 

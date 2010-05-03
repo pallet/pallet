@@ -5,7 +5,7 @@
    [clojure.contrib.logging :as logging]))
 
 (defn describe-node
-  "Display the node defintion for the given node-types."
+  "Display the node definition for the given node-types."
   {:no-service-required true}
   [& args]
   (doseq [arg args]

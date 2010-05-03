@@ -1,6 +1,6 @@
 # Pallet
 
-Pallet is used to provision configured compute nodes, and aims to solve the
+Pallet is used to provision and maintain compute nodes, and aims to solve the
 problem of providing a consistently configured running image across a range of
 clouds.  It is designed for use from the [Clojure](http://clojure.org) REPL, and
 from clojure scripts.
@@ -10,28 +10,20 @@ different cloud providers.  While jclouds solves the issue of creating,
 destroying and configuring cloud level access to nodes, it does not address the
 differences in images used across providers.  This is what Pallet adds.
 
-Pallet works with a declaritive map for specifying the number of nodes with a
-given tag.  Each tag is used to look up a machine image template specification
-(in jclouds), and to lookup configuration information.  The converge function
-then tries to bring you compute servers into alignment with your declared counts
-and configurations.
+Pallet can be used in a declaritive or an imperative fashion. defnode is used to
+decalre node types, specifying the image template and possibly bootstrap and
+other configuration. The converge function can then be used to control the
+number of nodes of each type that are running in your cloud, and applies the
+declared configuration as required.  The lift function can also be used to apply
+configuration without adjusting node counts.  Both converge and lift both accept
+inline definiton of configuration actions that should be run.
 
-The bootstrap process for new compute nodes is configurable.  At the moment
-there is the possibility of using scripts, which are specialised by tag or
-operating system family, and of using installing an admin user with sudo
-permissions, using the specified username and password.  Script templates exist
-for ensuring a functional resolv configuration, package manager update,
-installation of rubygems, etc, and can be added to freely.
+In pallet, low level resources can be combined in clojure functions, known as
+crates, that are used to specify configuration.  Crates are clojure functions
+and can call other crates, with arguments, as required. Crates can be packaged
+and distributed as clojure jar files.
 
-An installed admin user can be used to execute chef cookbooks using 'chef-solo'.
-Once the nodes are bootstrapped, and fall all existing nodes, the configured
-node information is written to the "compute-nodes" cookbook before chef is run,
-and this provides a :compute_nodes attribute.  The compute-nodes cookbook is
-expected to exist in the site-cookbooks of the chef-repository you specify with
-`with-chef-repository`. `chef-solo` is then run with chef repository you have
-specified using the node tag as a configuration target.
-
-This can also be used to bootstrap chef-server and chef client installation.
+Pallet can also execute chef cookbooks using 'chef-solo'.
 
 [API documentation](http://hugoduncan.github.com/pallet) is available.
 
@@ -39,17 +31,12 @@ This can also be used to bootstrap chef-server and chef client installation.
 
 [See demo documentation](http://hugoduncan.github.com/pallet/demo-api.html).
 
-## Todo
-
-Make password handling shell character safe.
-Add error handling.
-Add progress reporting.
-Add templating by cloud provider.
-
 ## Installation
 
-Installation is with [Leiningen](http://github.com/technomancy/leiningen).  Add
-`[pallet "0.0.1-SNAPSHOT"]` to your :dependencies in project.clj.
+Pallet is distributed as a jar, and is available in the [clojars repository](http://clojars.org/pallet).
+
+Installation is with [Leiningen](http://github.com/technomancy/leiningen),
+maven, or your favourite maen repository aware build tool.
 
 ### Quickstart
 
@@ -66,8 +53,17 @@ If you just want to try out pallet, then you can follow these instructions:
         $ lein compile-java
         $ lein repl
 
-You should now have a working repl, which you can use to explore pallet.
+You should now have a working repl, which you can use to explore pallet.  You
+might want to make the basic pallet commands available without namespace prefix
+by typing the following at the repl.
 
+        user> (use 'pallet.repl)
+	user> (use-pallet)
+
+## Todo
+
+Make password handling shell character safe.
+Add progress reporting.
 
 ## See also
 [chef](http://wiki.opscode.com/display/chef/Home),

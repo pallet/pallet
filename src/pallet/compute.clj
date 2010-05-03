@@ -119,12 +119,6 @@
     node
     (primary-ip node)))
 
-(defn node-tag
-  [node]
-  (if (string? node)
-    node
-    (jclouds/node-tag node)))
-
 (defn execute-script
   "Execute a script on a specified node. Also accepts an IP or hostname as a
 node."

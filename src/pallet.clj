@@ -36,16 +36,12 @@ See demo documentation (http://hugoduncan.github.com/pallet/demo-api.html).
 ## Todo
 
 Make password handling shell character safe.
-Add error handling.
 Add progress reporting.
-Add templating by cloud provider.
 
 ## Installation
 
 Installation is with Leiningen (http://github.com/technomancy/leiningen).  Add
 `[pallet \"0.0.1-SNAPSHOT\"]` to your :dependencies in project.clj.
 
-"
-  (:require pallet.core pallet.utils pallet.compute pallet.bootstrap pallet.chef))
+")
 
-(refer 'pallet.core 'pallet.utils 'pallet.compute 'pallet.bootstrap 'pallet.chef)
