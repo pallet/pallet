@@ -96,10 +96,11 @@
         src (merge (get hudson-plugins plugin {})
                    (select-keys opts [:url :md5]))]
     (stevedore/do-script
-     [(directory* (str hudson-data-path "/plugins"))
-      (apply remote-file*
-       (str hudson-data-path "/plugins/" (name plugin) ".hpi")
-       (apply concat src))])))
+     (directory* (str hudson-data-path "/plugins"))
+     (apply
+      remote-file*
+      (str hudson-data-path "/plugins/" (name plugin) ".hpi")
+      (apply concat src)))))
 
 (resource/defresource plugin
   "Install a hudson plugin.  The plugin should be a keyword.

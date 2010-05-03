@@ -63,7 +63,6 @@
                       [["name" "2.2.0"]])))))
 
 (deftest hudson-maven-test
-  (core/defnode n [])
   (is (= (stevedore/do-script
           (directory/directory*
            "/usr/share/tomcat6/.m2" :group "tomcat6" :mode "g+w")
@@ -78,3 +77,14 @@
          (target/with-target nil {:tag :n :image [:ubuntu]}
            (build-resources []
                             (maven "default maven" "2.2.0"))))))
+
+(deftest pluign-test
+  (with-null-target
+    (is (= (str
+            (directory/directory* "/var/lib/hudson/plugins")
+            (remote-file/remote-file*
+             "/var/lib/hudson/plugins/git.hpi"
+             :md5 "98db63b28bdf9ab0e475c2ec5ba209f1"
+             :url "https://hudson.dev.java.net/files/documents/2402/135478/git.hpi"))
+           (build-resources []
+                            (plugin :git))))))
