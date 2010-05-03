@@ -62,9 +62,9 @@ by <span id="author">Hugo Duncan</span><br />
 </pre><h2>Overview</h2>
 <pre id="namespace-docstr">A demo for pallet + jclouds.
 
-;; First we load the demo package, and switch to the demo namespace
-(require 'demo)
-(in-ns 'demo)
+;; First we load the pallet commands into
+(require 'pallet.repl)
+(pallet.repl/use-pallet)
 
 ;; Supported providers can be found with
 (supported-clouds)
@@ -94,9 +94,6 @@ by <span id="author">Hugo Duncan</span><br />
 (defnode webserver
    [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"])
 
-;; We can create a node, by specifying the node type.
-(start-node webserver service)
-
 ;; At this point we can manage instance counts as a map.
 ;; e.g ensure that we have two webserver nodes
 (converge {webserver 2} service)
@@ -120,6 +117,7 @@ by <span id="author">Hugo Duncan</span><br />
 
 ;; Another example, that adds java to our node type, then converges
 ;; to install java
+(use 'pallet.crate.java)
 (defnode webserver
   [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"]
   :bootstrap [(public-dns-if-no-nameserver)
@@ -157,6 +155,7 @@ by <span id="author">Hugo Duncan</span><br />
 ;; We might also want to configure the machines with chef-solo.
 ;; This expects a webserver.json file in the cookbook repository's
 ;; config directory.
+(use 'pallet.chef)
 (lift webserver service (phase (chef)))
 (cook webserver "path_to_your_chef_repository")</pre>
 <br />
