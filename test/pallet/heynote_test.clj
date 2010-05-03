@@ -47,7 +47,10 @@
     (is (= {:project "p1" :user-id "user"} (message-map))))
 
   (deftest process-response-test
-    (reset! user-prefs {})
-    (process-response {"user-id" "user"})
-    (is (= "user" ((user-preferences) :id)))))
+    (with-temporary [tmp (tmpfile)]
+      (.delete tmp)
+      (reset! pallet.heynote/user-prefs nil)
+      (binding [pallet.heynote/user-prefs-file (.getPath tmp)]
+        (process-response {"user-id" "user"})
+        (is (= "user" ((user-preferences) :id)))))))
 
