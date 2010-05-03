@@ -15,8 +15,8 @@
   [name]
   (reset! heynote-project name))
 
-;;(def heynote-url "http://orcloud-heynote.appspot.com/")
-(def heynote-url "http://localhost:8080/")
+(def heynote-url "http://orcloud-heynote.appspot.com/")
+;;(def heynote-url "http://localhost:8080/")
 
 (def user-prefs (atom nil))
 
