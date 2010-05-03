@@ -117,3 +117,21 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              :aptitude {:url "http://somewhere/apt"
                         :scopes ["main"]}
              :yum {:url "http://somewhere/yum"}))))))
+
+(deftest packages-test
+  (core/defnode a [:ubuntu])
+  (core/defnode b [:centos])
+  (target/with-target nil a
+    (is (= "echo \"Packages...\"\n{ aptitude install -y  git-apt; } || { echo Packages failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+           (resource/build-resources
+            []
+            (packages
+             :aptitude ["git-apt"]
+             :yum ["git-yum"])))))
+  (target/with-target nil b
+    (is (= "echo \"Packages...\"\n{ yum install -y  git-yum; } || { echo Packages failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+           (resource/build-resources
+            []
+            (packages
+             :aptitude ["git-apt"]
+             :yum ["git-yum"]))))))

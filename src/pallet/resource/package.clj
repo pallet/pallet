@@ -176,9 +176,13 @@
 :update            - update the package manager"
   apply-package-manager [action & options])
 
-(defn packages
-  "Install a list of packages keyed on packager"
+(defn packages*
   [& options]
   (let [opts (apply array-map options)]
-    (doseq [pkg (opts (packager))]
-      (package pkg))))
+    (apply stevedore/checked-commands
+           "Packages"
+           (map package* (opts (packager))))))
+
+(defresource packages
+  "Install a list of packages keyed on packager"
+  packages* [& options])
