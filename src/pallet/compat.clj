@@ -18,7 +18,8 @@
                 [seq-utils :as seq]
                 [str-utils2 :as string]
                 [shell-out :as shell])
-              '[clojure.contrib.json.write :as json-write])
+              '[clojure.contrib.json.write :as json-write]
+              '[clojure.contrib.json.read :as json-read])
      (use '(clojure.contrib [java-utils :only [file] :rename {file -file}])))))
 
 (require-contrib)
