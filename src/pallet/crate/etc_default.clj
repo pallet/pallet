@@ -5,8 +5,7 @@
    [pallet.stevedore :as script]
    [pallet.resource.file :as file]
    [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.exec-script :as exec-script]
-   [clojure.contrib.string :as string]))
+   [pallet.resource.exec-script :as exec-script]))
 
 (pallet.compat/require-contrib)
 
