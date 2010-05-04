@@ -76,6 +76,10 @@
                 :gpgkey 0
                 :name name}
                (options (packager))))
+     (if (and (-> options :aptitude :key-id)
+              (= (packager) :aptitude))
+        (stevedore/script
+         (apt-key adv "--recv-keys" ~(option-args options))))
      (if (and (-> options :aptitude :key-url)
               (= (packager) :aptitude))
        (stevedore/do-script
@@ -95,6 +99,7 @@
      :url url              - repository url
      :scope seq            - scopes to enable for repository
      :key-url url          - url for key
+     :key-id id            - id for key to look it up from keyserver
 
    :yum
      :url url              - repository url
