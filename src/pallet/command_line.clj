@@ -12,7 +12,8 @@
 
 (ns #^{:author "Chris Houser"}
     pallet.command-line
-    "Process command-line arguments according to a given cmdspec")
+    "Process command-line arguments according to a given cmdspec"
+  (:refer-clojure :exclude [group-by]))
 
 (defn #^String join
   "Returns a string of all elements in coll, separated by
@@ -20,7 +21,7 @@
   [#^String separator coll]
   (apply str (interpose separator coll)))
 
-(defn group-by
+(defn group-by ;; in clojure 1.2 core
   "Returns a sorted map of the elements of coll keyed by the result of
   f on each element. The value at each key will be a vector of the
   corresponding elements, in the order they appeared in coll."
