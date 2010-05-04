@@ -7,7 +7,8 @@
   (:import
    org.jclouds.compute.domain.internal.NodeMetadataImpl
    org.jclouds.compute.util.ComputeUtils
-   [org.jclouds.compute.domain NodeState NodeMetadata]))
+   [org.jclouds.compute.domain NodeState NodeMetadata Image]
+   org.jclouds.domain.Location))
 
 
 ;;; Meta
@@ -126,3 +127,47 @@ node."
   ([script node user & options]
      (apply remote-sudo-script (node-address node) script user options)))
 
+;; (#<NodeMetadataImpl [id=212288, tag=small, name=rackcloud20-small-b1d, location=[id=811975ed9a4f632674063798df30b714, scope=HOST, description=811975ed9a4f632674063798df30b714, parent=DFW1], uri=null, image=[id=14362, name=Ubuntu 9.10 (karmic), locationId=[id=DFW1, scope=ZONE, description=Dallas, TX, parent=cloudservers], architecture=X86_64, osDescription=Ubuntu 9.10 (karmic), osFamily=ubuntu, version=], userMetadata={}, state=RUNNING, privateAddresses=[/10.179.79.217], publicAddresses=[/173.203.87.250]]>)
+
+(defn locations
+  "Return locations of a node as a seq."
+  [#^NodeMetadata node]
+  (letfn [(loc [#^Location l]
+               (when l (cons l (loc (.getParent l)))))]
+    (loc (.getLocation node))))
+
+(defn image-string
+  [#^Image image]
+  (let [name (.getName image)
+        description (.getOsDescription image)]
+    (format "%s %s %s %s"
+            (.getOsFamily image)
+            (.getArchitecture image)
+            name
+            (if (= name description) "" description))))
+
+(defn location-string
+  [#^Location location]
+  (format "%s/%s" (.getScope location) (.getId location)))
+
+(defmethod clojure.core/print-method Location
+   [location writer]
+   (.write writer (location-string location)))
+
+(defmethod clojure.core/print-method NodeMetadata
+   [node writer]
+   (.write
+    writer
+    (format
+     "%14s\t %s %s\n\t\t %s\n\t\t %s\n\t\t public: %s  private: %s"
+     (jclouds/node-tag node)
+     (apply str (interpose "." (map location-string (locations node))))
+     (.getDescription (.getLocation node))
+     (image-string (.getImage node))
+     (.getState node)
+     (apply
+      str (interpose
+           ", " (map #(.getHostAddress %) (.getPublicAddresses node))))
+     (apply
+      str (interpose
+           ", " (map #(.getHostAddress %) (.getPrivateAddresses node)))))))
