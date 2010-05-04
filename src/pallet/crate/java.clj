@@ -1,15 +1,11 @@
 (ns pallet.crate.java
-  (:use
-    [pallet.resource.exec-script :only [exec-script]]
-    [pallet.stevedore :only [script defimpl]]
-    [pallet.resource.remote-file :only [remote-file]]
-    [pallet.resource.file :only [file]]
-    [pallet.script :only [defscript]]
-   [pallet.resource.package :only [package package-manager]]
-   [pallet.target :only [packager]]
-   [pallet.resource.remote-file :only [remote-file]]
-   [pallet.script :only [defscript]]
-   [pallet.stevedore :only [script defimpl]]))
+  (:require
+   [pallet.resource :as resource]
+   [pallet.resource.package :as package]
+   [pallet.resource.remote-file :as remote-file]
+   [pallet.script :as script]
+   [pallet.stevedore :as stevedore]
+   [pallet.target :as target]))
 
 (defmulti java-package-name "lookup package name"
   (fn [mgr vendor component] mgr))
@@ -31,7 +27,7 @@
 
 (def sun-rpm-path "http://cds.sun.com/is-bin/INTERSHOP.enfinity/WFS/CDS-CDS_Developer-Site/en_US/-/USD/VerifyItem-Start/jdk-6u18-linux-i586-rpm.bin?BundledLineItemUUID=wb5IBe.lDHsAAAEn5u8ZJpvu&OrderID=yJxIBe.lc7wAAAEn2.8ZJpvu&ProductID=6XdIBe.pudAAAAElYStRSbJV&FileName=/jdk-6u18-linux-i586-rpm.bin")
 
-(defn java
+(defn java*
   "Install java.  Options can be :sun, :openjdk, :jdk, :jre.
 By default sun jdk will be installed."
   [& options]
@@ -39,28 +35,39 @@ By default sun jdk will be installed."
                     [:sun])
         components (or (seq (filter #{:jdk :jre :bin} options))
                        [:bin :jdk])
-        packager (packager)]
-    (if (some #(= :sun %) vendors)
-      (condp = packager
-        :aptitude
-        (do
-          (package-manager :universe)
-          (package-manager :multiverse)
-          (package-manager :update))
-        :yum
-        (package :install "jpackage-utils")))
-    (doseq [vendor vendors
-            component components]
-      (let [p (java-package-name packager vendor component)]
-        (when (and (= packager :aptitude) (= vendor :sun))
-          (package-manager
-           :debconf
-           (str p " shared/present-sun-dlj-v1-1 note")
-           (str p " shared/accepted-sun-dlj-v1-1 boolean true")))
-        (package p)))))
+        packager (target/packager)]
+    (stevedore/checked-commands "Install java"
+     (if (some #(= :sun %) vendors)
+       (condp = packager
+         :aptitude
+         (stevedore/chain-commands
+          (package/package-manager* :universe)
+          (package/package-manager* :multiverse)
+          (package/package-manager* :update))
+         :yum
+         (package/package* :install "jpackage-utils")))
 
-(defscript jre-lib-security [])
-(defimpl jre-lib-security :default []
+     (let [vc (fn [vendor component]
+                (let [p (java-package-name packager vendor component)]
+                  (stevedore/chain-commands
+                   (when (and (= packager :aptitude) (= vendor :sun))
+                     (package/package-manager*
+                      :debconf
+                      (str p " shared/present-sun-dlj-v1-1 note")
+                      (str p " shared/accepted-sun-dlj-v1-1 boolean true")))
+                   (package/package* p))))]
+       (stevedore/chain-commands*
+        (map #(stevedore/chain-commands*
+               (map (partial vc %) components))
+             vendors))))))
+
+(resource/defresource java
+  "Install java.  Options can be :sun, :openjdk, :jdk, :jre.
+By default sun jdk will be installed."
+  java* [& options])
+
+(script/defscript jre-lib-security [])
+(stevedore/defimpl jre-lib-security :default []
   (str @(update-java-alternatives -l "|" cut "-d ' '" -f 3 "|" head -1)
        "/jre/lib/security/"))
 
@@ -73,8 +80,8 @@ By default sun jdk will be installed."
 
    Note this only intended to work for ubuntu/aptitude-managed systems and Sun JDKs right now."
   [filename & options]
-  (apply remote-file
-    (script (str (jre-lib-security) ~filename))
+  (apply remote-file/remote-file
+    (stevedore/script (str (jre-lib-security) ~filename))
     (concat [:owner "root"
              :group "root"
              :mode 644]
