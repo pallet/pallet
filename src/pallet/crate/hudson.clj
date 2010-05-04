@@ -4,13 +4,14 @@
    [pallet.resource.service :only [service]]
    [pallet.resource.directory :only [directory directory*]]
    [pallet.resource.remote-file :only [remote-file remote-file*]]
-   [pallet.resource.user :only [user]]
    [clojure.contrib.prxml :only [prxml]]
    [clojure.contrib.logging]
    [clojure.contrib.def])
   (:require
    [pallet.crate.tomcat :as tomcat]
    [net.cgrand.enlive-html :as xml]
+   [pallet.resource.user :as user]
+   [pallet.crate.maven :as maven]
    [pallet.enlive :as enlive]
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
@@ -97,6 +98,15 @@
     (tomcat/application-conf "hudson" nil :action :remove))
   (directory hudson-data-path :action :delete :force true :recursive true))
 
+(defmulti plugin-config
+  "Plugin configuration"
+  (fn [plugin] plugin))
+
+(defmethod plugin-config :git
+  [plugin]
+  (user/user* @hudson-user :action :manage :comment "hudson"))
+
+
 (def hudson-plugins
      {:git {:url "https://hudson.dev.java.net/files/documents/2402/135478/git.hpi"
             :md5 "98db63b28bdf9ab0e475c2ec5ba209f1"}})
@@ -112,7 +122,8 @@
      (apply
       remote-file*
       (str hudson-data-path "/plugins/" (name plugin) ".hpi")
-      (apply concat src)))))
+      (apply concat src))
+     (plugin-config plugin))))
 
 (resource/defresource plugin
   "Install a hudson plugin.  The plugin should be a keyword.
@@ -311,7 +322,15 @@ options are:
               str (hudson-maven-xml
                    (target/node-type) args))
     :owner hudson-owner
-    :group (hudson-group-name))))
+    :group (hudson-group-name))
+   (stevedore/chain-commands*
+    (map
+     #(maven/download*
+       :maven-home (str hudson-data-path "/tools/" (.replace (first %) " " "_"))
+       :version (second %)
+       :owner hudson-owner
+       :group (hudson-group-name))
+     args))))
 
 
 (resource/defaggregate maven
