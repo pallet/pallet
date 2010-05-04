@@ -1,6 +1,7 @@
 (ns pallet.crate.java-test
   (:use [pallet.crate.java] :reload-all)
   (:require
+   [pallet.core :as core]
    [pallet.target :as target]
    [pallet.template :as template]
    [pallet.stevedore :as stevedore]
@@ -54,3 +55,8 @@
   (is (= (build-resources [] (package "openjdk-6-jre"))
          (pallet.resource/build-resources []
           (java :openjdk :jre)))))
+
+; ensure java is properly delaying execution
+(core/defnode test-delayed-exec
+  [:ubuntu]
+  :bootstrap [(java :sun)])
