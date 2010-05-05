@@ -3,12 +3,13 @@
   (:require
    pallet.compat
    [pallet.target :as target]
+   [pallet.compute :as compute]
+   [pallet.parameter :as parameter]
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore])
   (:use
    (clojure.contrib core logging
-                    [def :only [defvar defvar- name-with-attributes
-                                defunbound]])))
+                    [def :only [defvar defvar- name-with-attributes]])))
 
 (pallet.compat/require-contrib)
 
@@ -183,18 +184,29 @@
     `(resource-phases
       ~@(mapcat #(vector `(in-phase ~(first %) ~@(second %))) options))))
 
+(defn augment-template-from-node [node node-type]
+  (if-let [os-family (and node (compute/node-os-family node))]
+    (update-in node-type [:image] conj os-family)
+    node-type))
+
+(defn parameter-keys [node node-type]
+  [:default
+   (target/packager (node-type :image))
+   (target/os-family (node-type :image))])
+
 (defn produce-phases
   "Binds the target tag and template and outputs the
    resources specified in the body for the given phases."
   [[& phases] node node-type phase-map]
-  (target/with-target node node-type
-    (string/join
-      ""
-      (map (fn [phase]
-             (if (keyword? phase)
-               (output-resources phase phase-map)
-               (output-resources (first phase) (second phase))))
-        (phase-list phases)))))
+  (target/with-target node (augment-template-from-node node node-type)
+    (parameter/with-parameters (parameter-keys (target/node) (target/node-type))
+      (string/join
+       ""
+       (map (fn [phase]
+              (if (keyword? phase)
+                (output-resources phase phase-map)
+                (output-resources (first phase) (second phase))))
+            (phase-list phases))))))
 
 (defmacro build-resources
   "Outputs the resources specified in the body for the specified phases.

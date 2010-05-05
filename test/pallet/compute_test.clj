@@ -5,7 +5,7 @@
    [org.jclouds.compute :as jclouds])
   (:use clojure.test
         pallet.test-utils)
-  (:import [org.jclouds.compute.domain NodeState]))
+  (:import [org.jclouds.compute.domain NodeState OsFamily]))
 
 (deftest compute-node?-test
   (is (not (compute-node? 1)))
@@ -19,3 +19,13 @@
 (deftest running?-test
   (is (not (jclouds/running? (make-node "a" :state NodeState/TERMINATED))))
   (is (jclouds/running? (make-node "a" :state NodeState/RUNNING))))
+
+(deftest print-method-test
+  (is (= "             a\t  null\n\t\t null\n\t\t RUNNING\n\t\t public:   private: " (with-out-str (print (make-node "a"))))))
+
+(deftest node-os-family-test
+  (is (= :ubuntu
+         (node-os-family
+          (make-node
+           "t"
+           :image (make-image "1" :os-family OsFamily/UBUNTU))))))

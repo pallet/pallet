@@ -5,9 +5,9 @@
     :only [*admin-user* remote-sudo remote-sudo-script resource-properties]])
   (:require [org.jclouds.compute :as jclouds])
   (:import
-   org.jclouds.compute.domain.internal.NodeMetadataImpl
+   [org.jclouds.compute.domain.internal NodeMetadataImpl ImageImpl]
    org.jclouds.compute.util.ComputeUtils
-   [org.jclouds.compute.domain NodeState NodeMetadata Image]
+   [org.jclouds.compute.domain NodeState NodeMetadata Image Architecture]
    org.jclouds.domain.Location))
 
 
@@ -56,6 +56,25 @@
      (get options :credentials nil))))
 
 
+(defn make-image
+  [id & options]
+  (let [options (apply hash-map options)
+        meta (dissoc options :name :location :uri :user-metadata
+                     :version :os-family :os-description :architecture
+                     :default-credentials)]
+    (ImageImpl.
+     id
+     (options :name)
+     (options :location)
+     (options :uri)
+     (merge (get options :user-metadata {}) meta)
+     (get options :description "")
+     (get options :version "")
+     (options :os-family)
+     (get options :os-description "")
+     (get options :architecture Architecture/X86_32)
+     (options :default-credentials))))
+
 (defn compute-node? [object]
   (instance? NodeMetadata object))
 
@@ -84,7 +103,7 @@
              (keyword (jclouds/tag %2))
              (inc (get %1 (keyword (jclouds/tag %2)) 0))) {} nodes))
 
- ;;; Actions
+;;; Actions
 (defn reboot
   "Reboot the specified nodes"
   ([nodes] (reboot nodes jclouds/*compute*))
@@ -120,6 +139,12 @@
     node
     (primary-ip node)))
 
+(defn node-os-family
+  "Return a nodes os-family, or nil if not available."
+  [#^NodeMetadata node]
+  (when-let [image (.getImage node)]
+    (keyword (str (.getOsFamily image)))))
+
 (defn execute-script
   "Execute a script on a specified node. Also accepts an IP or hostname as a
 node."
@@ -136,36 +161,40 @@ node."
 
 (defn image-string
   [#^Image image]
-  (let [name (.getName image)
-        description (.getOsDescription image)]
-    (format "%s %s %s %s"
-            (.getOsFamily image)
-            (.getArchitecture image)
-            name
-            (if (= name description) "" description))))
+  (when image
+    (let [name (.getName image)
+          description (.getOsDescription image)]
+      (format "%s %s %s %s"
+              (.getOsFamily image)
+              (.getArchitecture image)
+              name
+              (if (= name description) "" description)))))
 
 (defn location-string
   [#^Location location]
-  (format "%s/%s" (.getScope location) (.getId location)))
+  (when location
+    (format "%s/%s" (.getScope location) (.getId location))))
 
 (defmethod clojure.core/print-method Location
-   [location writer]
-   (.write writer (location-string location)))
+  [location writer]
+  (.write writer (location-string location)))
 
 (defmethod clojure.core/print-method NodeMetadata
-   [node writer]
-   (.write
-    writer
-    (format
-     "%14s\t %s %s\n\t\t %s\n\t\t %s\n\t\t public: %s  private: %s"
-     (jclouds/node-tag node)
-     (apply str (interpose "." (map location-string (node-locations node))))
-     (.getDescription (.getLocation node))
-     (image-string (.getImage node))
-     (.getState node)
-     (apply
-      str (interpose
-           ", " (map #(.getHostAddress %) (.getPublicAddresses node))))
-     (apply
-      str (interpose
-           ", " (map #(.getHostAddress %) (.getPrivateAddresses node)))))))
+  [node writer]
+  (.write
+   writer
+   (format
+    "%14s\t %s %s\n\t\t %s\n\t\t %s\n\t\t public: %s  private: %s"
+    (jclouds/node-tag node)
+    (apply str (interpose "." (map location-string (node-locations node))))
+    (let [location (.getLocation node)]
+      (when (and location (not (= (.getDescription location) (.getId location))))
+        (.getDescription location)))
+    (image-string (.getImage node))
+    (.getState node)
+    (apply
+     str (interpose
+          ", " (map #(.getHostAddress %) (.getPublicAddresses node))))
+    (apply
+     str (interpose
+          ", " (map #(.getHostAddress %) (.getPrivateAddresses node)))))))

@@ -112,7 +112,7 @@ When passing a username the following options can be specified:
   (when public-key-path (info (str "  authorizing " public-key-path)))
   (let [options (target :image)
         init-script (produce-phases
-                     [:bootstrap] (target :tag) options (target :phases))]
+                     [:bootstrap] nil target (target :phases))]
     (when init-script (info (str "  using init script")))
     (build-node-template-impl
      compute

@@ -1,7 +1,9 @@
 (ns pallet.resource-test
   (:use pallet.resource :reload-all)
-  (:require pallet.resource.test-resource
-    pallet.compat)
+  (:require
+   [pallet.compute :as compute]
+   pallet.resource.test-resource
+   pallet.compat)
   (:use clojure.test
         pallet.test-utils))
 
@@ -97,11 +99,12 @@
           (output-resources :b {:a [(fn [] "abc") (fn [] "d")]})))))
 
 (deftest produce-phases-test
-  (with-init-resources nil
-    (is (= "abc\nd\n"
-          (produce-phases [:a] "tag" [] {:a [(fn [] "abc") (fn [] "d")]})))
-    (is (= ":a\n"
-          (produce-phases [(phase (test-component :a))] "tag" [] {})))))
+  (let [node (compute/make-node "tag")]
+    (with-init-resources nil
+      (is (= "abc\nd\n"
+             (produce-phases [:a] node {} {:a [(fn [] "abc") (fn [] "d")]})))
+      (is (= ":a\n"
+             (produce-phases [(phase (test-component :a))] node {} {}))))))
 
 (deftest build-resources-test
   (with-init-resources nil

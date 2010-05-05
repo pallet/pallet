@@ -56,8 +56,24 @@
   (is (= { {:tag :a} 1 {:tag :b} 1}
          (node-count-difference { {:tag :a} 1 {:tag :b} 1} []))))
 
+(deftest augment-template-from-node-test
+  (defnode a [:ubuntu])
+  (defnode b [])
+  (let [n1 (compute/make-node "n1")]
+    (is (= {:tag :a :image [:ubuntu] :phases {}}
+           (augment-template-from-node n1 a))))
+  (let [n1 (compute/make-node
+            "n1"
+            :image (compute/make-image
+                    "1"
+                    :os-family org.jclouds.compute.domain.OsFamily/UBUNTU))]
+    (is (= {:tag :a :image [:ubuntu :ubuntu] :phases {}}
+           (augment-template-from-node n1 a)))
+    (is (= {:tag :b :image [:ubuntu] :phases {}}
+           (augment-template-from-node n1 b)))))
+
 (deftest converge-node-counts-test
-  (defnode a [])
+  (defnode a [:ubuntu])
   (let [a-node (compute/make-node "a" :state NodeState/RUNNING)]
     (converge-node-counts nil {a 1} [a-node]))
   (mock/expects [(org.jclouds.compute/run-nodes
@@ -153,10 +169,10 @@
   (is (= [:bootstrap :configure] (keys (with-phases :phases))))
   (is (= ":a\n"
          (resource/produce-phases
-          [:bootstrap] "tag" [] (with-phases :phases))))
+          [:bootstrap] (compute/make-node "tag") {} (with-phases :phases))))
   (is (= ":b\n"
          (resource/produce-phases
-          [:configure] "tag" [] (with-phases :phases)))))
+          [:configure] (compute/make-node "tag") {} (with-phases :phases)))))
 
 (deftest lift-test
   (defnode x [])
