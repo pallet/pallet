@@ -11,9 +11,15 @@
 
 (def default-dir "/etc/default")
 
+(defn- quoted
+  [#^String s]
+  (str \" (.replace s "\"" "\\\"") \"))
+
 (defn write
   "Writes a KEY=value file to /etc/default/~{filename}, moving the original
    file to /etc/default/~{filename}.orig if it has not yet been moved.
+   Note that all values are quoted, and quotes in values are escaped, but
+   otherwise, values are written literally.
 
    e.g. (write \"tomcat6\"
           :JAVA_OPTS \"-Xmx1024m\"
@@ -30,5 +36,5 @@
       :mode 644
       :content (string/join \newline (for [[k v] (partition 2 key-value-pairs)
                                            :let [k (if (string? k) k (name k))]]
-                                       (str k "=" v))))))
+                                       (str k "=" (quoted v)))))))
 
