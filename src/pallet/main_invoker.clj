@@ -4,6 +4,7 @@
    the world."
   (:require
    [org.jclouds.compute :as jclouds]
+   [clojure.contrib.logging :as logging]
    [pallet.maven :as maven]
    [pallet.main :as main]))
 
@@ -17,6 +18,7 @@
     (if service
       (let [compute (apply jclouds/compute-service
                            (concat [service user key] default-service-opts))]
+        (logging/debug (format "Running os %s@%s" user service))
         (jclouds/with-compute-service [compute]
           (apply task params)))
       (do
