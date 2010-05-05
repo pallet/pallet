@@ -7,6 +7,7 @@
         pallet.test-utils)
   (:require
    [pallet.core :as core]
+   [pallet.stevedore :as stevedore]
    [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
    [pallet.target :as target]))
@@ -74,49 +75,80 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (core/defnode a [:ubuntu])
   (core/defnode b [:centos])
   (target/with-target nil a
-    (is (= (remote-file/remote-file*
-            "/etc/apt/sources.list.d/source1.list"
-            :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
+    (is (=
+         (stevedore/checked-commands
+          "Package source"
+          (remote-file/remote-file*
+           "/etc/apt/sources.list.d/source1.list"
+           :content "deb http://somewhere/apt $(lsb_release -c -s) main\n"))
+         (package-source*
+          "source1"
+          :aptitude {:url "http://somewhere/apt"
+                     :scopes ["main"]}
+          :yum {:url "http://somewhere/yum"}))))
+  (target/with-target nil b
+    (is (= (stevedore/checked-commands
+            "Package source"
+            (remote-file/remote-file*
+             "/etc/yum.repos.d/source1.repo"
+             :content "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\n"))
            (package-source*
             "source1"
             :aptitude {:url "http://somewhere/apt"
                        :scopes ["main"]}
             :yum {:url "http://somewhere/yum"}))))
-  (target/with-target nil b
-    (is (= (remote-file/remote-file*
-            "/etc/yum.repos.d/source1.repo"
-            :content "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\n")
+  (target/with-target nil a
+    (is (= (stevedore/checked-commands
+            "Package source"
+            (stevedore/script (add-apt-repository "ppa:abc")))
+           (package-source*
+            "source1"
+            :aptitude {:url "ppa:abc"}
+            :yum {:url "http://somewhere/yum"}))))
+  (target/with-target nil a
+    (is (= (stevedore/checked-commands
+            "Package source"
+            (remote-file/remote-file*
+             "/etc/apt/sources.list.d/source1.list"
+             :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
+            (stevedore/script
+             (apt-key adv "--recv-keys" 1234)))
            (package-source*
             "source1"
             :aptitude {:url "http://somewhere/apt"
-                       :scopes ["main"]}
+                       :scopes ["main"]
+                       :key-id 1234}
             :yum {:url "http://somewhere/yum"})))))
 
 (deftest package-source-test
   (core/defnode a [:ubuntu])
   (core/defnode b [:centos])
-  (target/with-target nil a
-    (is (= (remote-file/remote-file*
-            "/etc/apt/sources.list.d/source1.list"
-            :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
-           (resource/build-resources
-            []
-            (package-source
-             "source1"
-             :aptitude {:url "http://somewhere/apt"
-                        :scopes ["main"]}
-             :yum {:url "http://somewhere/yum"})))))
+  (is (= (stevedore/checked-commands
+          "Package source"
+          (remote-file/remote-file*
+           "/etc/apt/sources.list.d/source1.list"
+           :content "deb http://somewhere/apt $(lsb_release -c -s) main\n"))
+         (test-resource-build
+          [nil {:image [:ubuntu]}]
+          (package-source
+           "source1"
+           :aptitude {:url "http://somewhere/apt"
+                      :scopes ["main"]}
+           :yum {:url "http://somewhere/yum"}))))
+
   (target/with-target nil b
-    (is (= (remote-file/remote-file*
-            "/etc/yum.repos.d/source1.repo"
-            :content "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\n")
-           (resource/build-resources
-            []
-            (package-source
-             "source1"
-             :aptitude {:url "http://somewhere/apt"
-                        :scopes ["main"]}
-             :yum {:url "http://somewhere/yum"}))))))
+    (is (= (stevedore/checked-commands
+            "Package source"
+            (remote-file/remote-file*
+             "/etc/yum.repos.d/source1.repo"
+             :content "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\n")
+            (test-resource-build
+             [nil {:image [:ubuntu]}]
+             (package-source
+              "source1"
+              :aptitude {:url "http://somewhere/apt"
+                         :scopes ["main"]}
+              :yum {:url "http://somewhere/yum"})))))))
 
 (deftest packages-test
   (core/defnode a [:ubuntu])

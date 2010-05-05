@@ -65,29 +65,33 @@
   "Add a packager source."
   [name & options]
   (let [options (apply hash-map options)]
-    (stevedore/do-script
-     (remote-file/remote-file*
-      (format (source-location (packager)) name)
-      :template source-template
-      :values (merge
-               {:source-type "deb"
-                :release (stevedore/script (hostinfo/os-version-name))
-                :scopes ["main"]
-                :gpgkey 0
-                :name name}
-               (options (packager))))
+    (stevedore/checked-commands
+     "Package source"
+     (let [key-url (-> options :aptitude :url)]
+       (if (.startsWith key-url "ppa:")
+         (stevedore/do-script
+          (stevedore/script (add-apt-repository ~key-url)))
+         (remote-file/remote-file*
+          (format (source-location (packager)) name)
+          :template source-template
+          :values (merge
+                   {:source-type "deb"
+                    :release (stevedore/script (hostinfo/os-version-name))
+                    :scopes ["main"]
+                    :gpgkey 0
+                    :name name}
+                   (options (packager))))))
      (if (and (-> options :aptitude :key-id)
               (= (packager) :aptitude))
-        (stevedore/script
-         (apt-key adv "--recv-keys" ~(option-args options))))
+       (stevedore/script
+        (apt-key adv "--recv-keys" ~(-> options :aptitude :key-id))))
      (if (and (-> options :aptitude :key-url)
               (= (packager) :aptitude))
-       (stevedore/do-script
+       (stevedore/chain-commands
         (remote-file/remote-file*
          "aptkey.tmp"
          :url (-> options :aptitude :key-url))
-        (stevedore/script (apt-key add aptkey.tmp)))
-       ""))))
+        (stevedore/script (apt-key add aptkey.tmp)))))))
 
 (defaggregate package-source
   "Control package sources.

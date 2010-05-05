@@ -6,9 +6,9 @@
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore])
   (:use
-
    (clojure.contrib core logging
-                    [def :only [defvar defvar- name-with-attributes]])))
+                    [def :only [defvar defvar- name-with-attributes
+                                defunbound]])))
 
 (pallet.compat/require-contrib)
 
