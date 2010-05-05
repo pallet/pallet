@@ -360,11 +360,14 @@
   "Wrap a command in a code that checks the return value. Code to output the
   messages is added before the command."
   [message & cmds]
-  (str
-   "echo \"" message "...\"" \newline
-   "{ " (chain-commands* cmds) "; } || { echo " message " failed ; exit 1 ; } >&2 "
-   \newline
-   "echo \"...done\"\n"))
+  (let [chained-cmds (chain-commands* cmds)]
+    (if (utils/blank? chained-cmds)
+      ""
+      (str
+        "echo \"" message "...\"" \newline
+        "{ " chained-cmds "; } || { echo " message " failed ; exit 1 ; } >&2 "
+        \newline
+        "echo \"...done\"\n"))))
 
 (defmacro chained-script
   "Takes one or more forms. Returns a string of the forms translated into a
