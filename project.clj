@@ -1,8 +1,6 @@
 (defproject pallet "0.0.1-SNAPSHOT"
   :description "Pallet - provisioning of compute nodes using jclouds"
   :url "http://github.com/hugpduncan/pallet"
-  :java-source-path "src"
-  :javac-fork "true"
   :main pallet.main
   :dependencies [[org.clojure/clojure "1.1.0"]
 		 [org.clojure/clojure-contrib "1.1.0"]
@@ -27,7 +25,6 @@
                      [org.jclouds/jclouds-rimuhosting "1.0-SNAPSHOT"]
                      [org.jclouds/jclouds-gogrid "1.0-SNAPSHOT"]
                      [leiningen/lein-swank "1.2.0-SNAPSHOT"]
-		     [lein-javac "0.0.2-SNAPSHOT"]
                      [autodoc "0.7.0"]]
   :repositories [["build.clojure.org" "http://build.clojure.org/releases/"]
 		 ["clojars.org" "http://clojars.org/repo/"]

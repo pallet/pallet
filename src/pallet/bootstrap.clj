@@ -1,7 +1,9 @@
 (ns #^{:author "Hugo Duncan"}
   pallet.bootstrap
   "Boostrap functions."
- (:require pallet.compat)
+  (:require
+   pallet.compat
+   pallet.md5crypt)
   (:use [org.jclouds.compute :only [os-families]]
         [pallet.chef :only [*remote-chef-path*]]
         [pallet.utils :only [*admin-user* make-user slurp-resource
@@ -58,7 +60,7 @@ path. It returns the first fragment it finds in the following paths:
      ~@body))
 
 (defn md5crypt [passwd]
-  (.replace (md5crypt.MD5Crypt/crypt passwd) "$" "\\$"))
+  (.replace (pallet.md5crypt/crypt passwd) "$" "\\$"))
 
 
 (defn bootstrap-script
