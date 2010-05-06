@@ -15,6 +15,7 @@
     pallet.compat
    [pallet.resource :as resource]
    [pallet.core :as core]
+   [pallet.parameter :as parameter]
    [pallet.resource.file :as file]
    [pallet.resource.directory :as directory]
    [pallet.resource.service :as service]
@@ -24,12 +25,9 @@
 (pallet.compat/require-contrib)
 
 (def tomcat-config-root "/etc/tomcat6/")
-(def tomcat-doc-root "/var/lib/tomcat6/")
+(def tomcat-base "/var/lib/tomcat6/")
 (def tomcat-user "tomcat6")
 (def tomcat-group "tomcat6")
-
-(defn tomcat-user-name [] tomcat-user)
-(defn tomcat-group-name [] tomcat-group)
 
 (defn tomcat
   "Install tomcat"
@@ -38,7 +36,12 @@
   (let [options (apply hash-map options)]
     (when (options :purge)
       (directory/directory
-       tomcat-doc-root :action :delete :recursive true :force true))))
+       tomcat-base :action :delete :recursive true :force true))
+    (when (= :install (get options :action :install))
+      (resource/parameters
+       [:tomcat :base] tomcat-base
+       [:tomcat :owner] tomcat-user
+       [:tomcat :group] tomcat-group))))
 
 (defmacro with-restart
   [& body]
@@ -54,7 +57,7 @@
   (doseq [app-name app-names
           :let [app-name (or app-name "ROOT")
                 app-name (if (string? app-name) app-name (name app-name))]]
-    (let [exploded-app-dir (str tomcat-doc-root "webapps/" app-name)]
+    (let [exploded-app-dir (str tomcat-base "webapps/" app-name)]
       (exec-script
         (script
           (rm ~exploded-app-dir ~{:r true :f true})
@@ -65,7 +68,7 @@
   []
   (exec-script
     (script
-      (rm ~(str tomcat-doc-root "webapps/*") ~{:r true :f true}))))
+      (rm ~(str tomcat-base "webapps/*") ~{:r true :f true}))))
 
 (defn deploy
   "Copies the specified remote .war file to the tomcat server under
@@ -74,7 +77,7 @@
    :clear-existing true -- removes the existing exploded ${app-name} directory"
   [warfile app-name & opts]
   (let [opts (apply hash-map opts)
-        exploded-app-dir (str tomcat-doc-root "webapps/" (or app-name "ROOT"))
+        exploded-app-dir (str tomcat-base "webapps/" (or app-name "ROOT"))
         deployed-warfile (str exploded-app-dir ".war")]
     (remote-file deployed-warfile :remote-file warfile
                  :owner tomcat-user :group tomcat-group :mode 600)
@@ -560,7 +563,7 @@ content - an xml application context"
      ::global-resources vector of resources."
   [server]
   (remote-file*
-   (str tomcat-doc-root "conf/server.xml")
+   (str tomcat-base "conf/server.xml")
    :content (apply
              str (tomcat-server-xml (target/node-type) server))))
 

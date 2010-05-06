@@ -5,7 +5,10 @@
     [pallet.crate.tomcat :as tc]
     [pallet.target :as target]
     [pallet.resource.remote-file :as remote-file]
+    [pallet.resource.package :as package]
+    [pallet.parameter :as parameter]
     [pallet.template :as template]
+    [pallet.stevedore :as stevedore]
     [net.cgrand.enlive-html :as enlive-html]
     [pallet.enlive :as enlive])
   (:use
@@ -19,8 +22,15 @@
 (use-fixtures :each with-null-target)
 
 (deftest tomcat-test
-  (is (= "{ debconf-set-selections <<EOF\ndebconf debconf/frontend select noninteractive\ndebconf debconf/frontend seen false\nEOF\n}\naptitude install -y  tomcat6\n"
-         (build-resources [] (tomcat)))))
+  (is (= (target/with-target nil {:image [:ubuntu]}
+           (parameter/with-parameters [:default]
+             (stevedore/do-script
+              (stevedore/script (package-manager-non-interactive))
+              (package/package* "tomcat6"))))
+         (test-resource-build
+          [nil {:image [:ubuntu]}]
+          (tomcat)
+          (parameters-test [:tomcat :base] "/var/lib/tomcat6/")))))
 
 (deftest classname-for-test
   (let [m {:a "a" :b "b"}]

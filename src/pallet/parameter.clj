@@ -32,26 +32,36 @@
   [[& keys] value]
   (set! *parameters* (update-in *parameters* keys (fn [_] value))))
 
-(defonce _1
-  (defprotocol DelayedArgument
-    "A protocol for passing arguments, with delayed evaluation."
-    (evaluate [x])))
 
-(defonce _2
-  (extend-type
-   Object
-   DelayedArgument
-   (evaluate [x] x)))
+(defprotocol DelayedArgument
+  "A protocol for passing arguments, with delayed evaluation."
+  (evaluate [x]))
+
+(defonce _
+  [(extend-type
+    Object
+    DelayedArgument
+    (evaluate [x] x))
+
+   (deftype DelayedArgumentImpl
+     [keys]
+     DelayedArgument
+     (evaluate
+      [_]
+      (let [key (first keys)
+            rest-keys (seq (rest keys))
+            parameters (get *parameters* key ::not-set)]
+        (when (= ::not-set parameters)
+          (condition/raise
+           :type :parameter-not-found
+           :message (format "Could not find key %s in *parameters*" key)
+           :key-not-set key))
+        (if rest-keys
+          (apply parameters rest-keys)
+          parameters))))])
 
 (defn lookup
   "Lookup a parameter in a delayed manner. This produces a function, which is
    executed by it's toString method."
-  [key & keys]
-  (reify Object DelayedArgument
-    (evaluate [_]
-     (let [parameters (get *parameters* key ::not-set)]
-       (when (= ::not-set parameters)
-         (condition/raise :key-not-set key))
-       (if keys
-         (apply parameters keys)
-         parameters)))))
+  [& keys]
+  (DelayedArgumentImpl. keys))

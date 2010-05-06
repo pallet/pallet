@@ -8,23 +8,21 @@
    [clojure.contrib.logging]
    [clojure.contrib.def])
   (:require
-   [pallet.crate.tomcat :as tomcat]
    [net.cgrand.enlive-html :as xml]
-   [pallet.resource.user :as user]
    [pallet.crate.maven :as maven]
+   [pallet.crate.tomcat :as tomcat]
    [pallet.enlive :as enlive]
-   [pallet.utils :as utils]
+   [pallet.parameter :as parameter]
+   [pallet.resource :as resource]
+   [pallet.resource.user :as user]
    [pallet.stevedore :as stevedore]
    [pallet.target :as target]
-   [pallet.resource :as resource]))
+   [pallet.utils :as utils]))
 
 (def hudson-data-path "/var/lib/hudson")
 (def hudson-owner "root")
-(def hudson-user (atom "hudson"))
-(def hudson-group (atom "hudson"))
-
-(defn hudson-user-name [] @hudson-user)
-(defn hudson-group-name [] @hudson-group)
+(def hudson-user  "hudson")
+(def hudson-group  "hudson")
 
 (defvar- *maven-file* "hudson.tasks.Maven.xml")
 (defvar- *maven2-job-config-file* "job/maven2_config.xml")
@@ -49,15 +47,17 @@
      :version version-string   - specify version, eg 1.355, or :latest"
   [& options]
   (trace (str "Hudson - install on tomcat"))
-  (reset! hudson-user (tomcat/tomcat-user-name))
-  (reset! hudson-group (tomcat/tomcat-group-name))
+  (resource/parameters
+   [:hudson :user] (parameter/lookup :tomcat :user)
+   [:hudson :group] (parameter/lookup :tomcat :group))
 
   (let [options (apply hash-map options)
         version (get options :version :latest)
         file (str hudson-data-path "/hudson.war")]
     (directory
      hudson-data-path
-     :owner hudson-owner :group (hudson-group-name) :mode "775")
+     :owner hudson-owner
+     :group (parameter/lookup :hudson :group) :mode "775")
     (remote-file file
      :url (hudson-url version)
      :md5  (hudson-md5 version))
@@ -89,8 +89,9 @@
   "Remove hudson on tomcat"
   []
   (trace (str "Hudson - uninistall from tomcat"))
-  (reset! hudson-user (tomcat/tomcat-user-name))
-  (reset! hudson-group (tomcat/tomcat-group-name))
+  (resource/parameters
+   [:hudson :user] nil
+   [:hudson :group] nil)
 
   (tomcat/undeploy "hudson")
   (let [file (str hudson-data-path "/hudson.war")]
@@ -104,7 +105,9 @@
 
 (defmethod plugin-config :git
   [plugin]
-  (user/user* @hudson-user :action :manage :comment "hudson"))
+  (user/user*
+   (-> parameter/*parameters* :hudson :user)
+   :action :manage :comment "hudson"))
 
 
 (def hudson-plugins
@@ -129,20 +132,6 @@
   "Install a hudson plugin.  The plugin should be a keyword.
   :url can be used to specify a string containing the download url"
   plugin* [plugin & options])
-
-;; (defn hudson-config*
-;;   [& options])
-
-;; (def hudson-config-args (atom []))
-
-;; (defn apply-hudson-config [args]
-;;   (apply-templates
-;;    sudoer-templates
-;;    (reduce merge [(array-map) (array-map) (default-specs)] args)))
-
-;; (defresource hudson-config
-;;   "Configure hudson"
-;;   hudson-config-args apply-hudson-config [& options])
 
 (defn determine-scm-type
   "determine the scm type"
@@ -270,7 +259,7 @@
        (dissoc opts :scm :scm-type)))
      (directory*
       hudson-data-path
-      :owner hudson-owner :group (hudson-group-name)
+      :owner hudson-owner :group (-> parameter/*parameters* :hudson :group)
       :mode "g+w"
       :recursive true))))
 
@@ -312,24 +301,29 @@ options are:
 
 (defn hudson-maven* [args]
   (stevedore/do-script
-   (directory* "/usr/share/tomcat6/.m2" :group (hudson-group-name) :mode "g+w")
+   (directory*
+    "/usr/share/tomcat6/.m2"
+    :group (-> parameter/*parameters* :hudson :group)
+    :mode "g+w")
    (directory*
     hudson-data-path
-    :owner hudson-owner :group (hudson-group-name) :mode "775")
+    :owner hudson-owner
+    :group (-> parameter/*parameters* :hudson :group)
+    :mode "775")
    (remote-file*
     (str hudson-data-path "/" *maven-file*)
     :content (apply
               str (hudson-maven-xml
                    (target/node-type) args))
     :owner hudson-owner
-    :group (hudson-group-name))
+    :group (-> parameter/*parameters* :hudson :group))
    (stevedore/chain-commands*
     (map
      #(maven/download*
        :maven-home (str hudson-data-path "/tools/" (.replace (first %) " " "_"))
        :version (second %)
        :owner hudson-owner
-       :group (hudson-group-name))
+       :group (-> parameter/*parameters* :hudson :group))
      args))))
 
 
