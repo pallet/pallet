@@ -195,14 +195,14 @@
     (mock/expects [(apply-phases
                     [& _]
                     (do
-                      (is (= [na nb] (target/all-nodes)))
-                      (is (= [na nb] (target/target-nodes)))))]
+                      (is (= #{na nb} (set (target/all-nodes))))
+                      (is (= #{na nb} (set (target/target-nodes))))))]
                   (lift* nil "" {a #{na nb nc}} [:configure]))
     (mock/expects [(apply-phases
                     [& _]
                     (do
-                      (is (= [na nb] (target/all-nodes)))
-                      (is (= [na nb] (target/target-nodes)))))]
+                      (is (= #{na nb} (set (target/all-nodes))))
+                      (is (= #{na nb} (set (target/target-nodes))))))]
                   (lift* nil "" {a #{na} b #{nb}} [:configure]))))
 
 (deftest converge*-nodes-binding-test
@@ -214,7 +214,7 @@
     (mock/expects [(apply-phases
                     [& _]
                     (do
-                      (is (= [na nb] (target/all-nodes)))
-                      (is (= [na nb] (target/target-nodes)))))
+                      (is (= #{na nb} (set (target/all-nodes))))
+                      (is (= #{na nb} (set (target/target-nodes))))))
                    (org.jclouds.compute/nodes [& _] [na nb nc])]
                   (converge* nil "" {a 1 b 1} [:configure]))))
