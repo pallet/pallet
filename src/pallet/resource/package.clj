@@ -55,6 +55,38 @@
    "debconf debconf/frontend select noninteractive"
    "debconf debconf/frontend seen false"))
 
+(defn package*
+  "Package management"
+  [package-name & options]
+  (let [opts (if options (apply assoc {} options) {})
+        opts (merge {:action :install} opts)
+        action (opts :action)]
+    (condp = action
+      :install
+      (script
+       (apply install-package
+              ~package-name
+              ~(apply concat (select-keys opts [:y :force]))))
+      :remove
+      (if (opts :purge)
+        (script (purge-package ~package-name))
+        (script (remove-package ~package-name)))
+      :upgrade
+      (script (purge-package ~package-name))
+      :update-package-list
+      (script (update-package-list))
+      (throw (IllegalArgumentException.
+              (str action " is not a valid action for package resource"))))))
+
+(defn- apply-packages [package-args]
+  (stevedore/do-script*
+   (cons
+    (script (package-manager-non-interactive))
+    (map #(apply package* %) package-args))))
+
+(defaggregate package "Package management."
+  apply-packages [packagename & options])
+
 (def source-location
      {:aptitude "/etc/apt/sources.list.d/%s.list"
       :yum "/etc/yum.repos.d/%s.repo"})
@@ -69,7 +101,8 @@
      "Package source"
      (let [key-url (-> options :aptitude :url)]
        (if (.startsWith key-url "ppa:")
-         (stevedore/do-script
+         (stevedore/chain-commands
+          (package* "python-software-properties")
           (stevedore/script (add-apt-repository ~key-url)))
          (remote-file/remote-file*
           (format (source-location (packager)) name)
@@ -110,38 +143,6 @@
      :gpgkey keystring     - pgp key string for repository"
   #(stevedore/do-script* (map (fn [x] (apply package-source* x)) %))
   [name packager-map & options])
-
-(defn package*
-  "Package management"
-  [package-name & options]
-  (let [opts (if options (apply assoc {} options) {})
-        opts (merge {:action :install} opts)
-        action (opts :action)]
-    (condp = action
-      :install
-      (script
-       (apply install-package
-              ~package-name
-              ~(apply concat (select-keys opts [:y :force]))))
-      :remove
-      (if (opts :purge)
-        (script (purge-package ~package-name))
-        (script (remove-package ~package-name)))
-      :upgrade
-      (script (purge-package ~package-name))
-      :update-package-list
-      (script (update-package-list))
-      (throw (IllegalArgumentException.
-              (str action " is not a valid action for package resource"))))))
-
-(defn- apply-packages [package-args]
-  (stevedore/do-script*
-   (cons
-    (script (package-manager-non-interactive))
-    (map #(apply package* %) package-args))))
-
-(defaggregate package "Package management."
-  apply-packages [packagename & options])
 
 (defn add-scope
   "Add a scope to all the existing package sources"

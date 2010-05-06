@@ -12,16 +12,14 @@
 (defn drizzledev-config
   []
   (user/user "testuser" :create-home true :shell :bash)
-  (bzr/bzr)
   (package/package-source
-     "drizzle-developers"
-        :aptitude {:url
-        "http://ppa.launchpad.net/drizzle-developers/ppa/ubuntu"
-                      :key-id "06899068"}
-                         :yum { :url (str
-                         "http://5dollarwhitebox.org/repos/drizzle"
-                                             (hostinfo/architecture))})
+   "drizzle-developers"
+   :aptitude {:url "ppa:drizzle-developers/ppa"}
+   :yum { :url (str
+                "http://5dollarwhitebox.org/repos/drizzle"
+                (hostinfo/architecture))})
   (package/package-manager :update)
+  (bzr/bzr)
   (package/package "drizzle-dev"))
 
 
