@@ -2,7 +2,9 @@
   (:require
    [pallet.target :as target]
    [pallet.resource :as resource]
-   [pallet.utils :as utils])
+   [pallet.parameter :as parameter]
+   [pallet.utils :as utils]
+   [clojure.contrib.logging :as logging])
   (:use clojure.test)
   (:import
    org.jclouds.compute.domain.internal.NodeMetadataImpl
@@ -48,10 +50,26 @@ list, Alan Dipert and MeikelBrandmeyer."
 
 (defmacro test-resource-build
   "Test build a resource. Ensures binding at correct times."
-  [[node node-type] & body]
+  [[node node-type & parameters] & body]
   `(let [resources# (binding [utils/*file-transfers* {}
                               resource/*required-resources* {}]
                       (resource/resource-phases ~@body))]
+     (parameter/default ~@parameters)
      (resource/produce-phases
       [:configure]  ~node ~node-type
       resources#)))
+
+(defn parameters-test*
+  [& options]
+  (let [options (apply hash-map options)]
+    (doseq [[[key & keys] value] options]
+      (is (= value
+             (let [params (get parameter/*parameters* key ::not-set)]
+               (is (not (= ::not-set params)))
+               (if keys
+                 (apply params keys)
+                 params)))))
+    ""))
+
+(resource/defresource parameters-test
+  parameters-test* [& options])

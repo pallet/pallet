@@ -2,6 +2,7 @@
   (:use pallet.resource :reload-all)
   (:require
    [pallet.compute :as compute]
+   [pallet.parameter :as parameter]
    pallet.resource.test-resource
    pallet.compat)
   (:use clojure.test
@@ -131,3 +132,20 @@
       (is (map? (second p)))
       (is (= [(first p)] (keys (second p))))
       (is (= ":a\n" (output-resources (first p) (second p)))))))
+
+
+(defresource lookup-test-resource
+  (fn [a] (str a)) [a])
+
+(deftest lookup-test
+  (is (= "9\n"
+         (test-resource-build
+          [nil {} :a 1 :b 9]
+          (lookup-test-resource
+           (parameter/lookup :b))))))
+
+(deftest set-parameters-test
+  (test-resource-build
+   [nil {:image [:ubuntu]}]
+   (parameters [:a] 33)
+   (pallet.test-utils/parameters-test [:a] 33)))

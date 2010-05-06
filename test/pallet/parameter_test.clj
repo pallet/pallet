@@ -38,3 +38,17 @@
     (is (= {:a 1 :b 3} *parameters*))
     (update [:c] 4)
     (is (= {:a 1 :b 3 :c 4} *parameters*))))
+
+(deftest evaluate-test
+  (is (= "xx" (evaluate "xx"))))
+
+(deftest lookup-test
+  (default :a 1 :b 2)
+  (with-parameters [:default]
+    (let [l (lookup :b)]
+      (is (= 2 (evaluate l)))))
+  (let [kf (fn [] [:default])]
+    (with-parameters (kf)
+      (let [l (lookup :b)]
+        (is (= 2 (evaluate l)))))))
+

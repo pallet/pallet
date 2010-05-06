@@ -86,6 +86,10 @@
       (let [[matching rest] (seq/separate #(= (first %) invoke-fn) all)]
         (recur (conj groups matching) rest)))))
 
+(defn apply-evaluated
+  [fn args]
+  (apply fn (map parameter/evaluate args)))
+
 (defmulti invocations->resource-fns
   "Given an execution's invocations, will return a seq of
    functions pre-processed appropriately for that execution."
@@ -94,7 +98,7 @@
 (defmethod invocations->resource-fns :in-sequence
   [_ invocations]
   (for [[invoke-fn args] (map distinct invocations)]
-    (partial apply invoke-fn args)))
+    (partial apply-evaluated invoke-fn args)))
 
 (defmethod invocations->resource-fns :aggregated
   [_ invocations]
@@ -217,6 +221,16 @@
      (produce-phases
       ~phases (target/node) (target/node-type)
       (resource-phases ~@body))))
+
+(defn parameters*
+  [& options]
+  (let [options (apply hash-map options)]
+    (doseq [[keys value] options]
+      (parameter/update keys value))))
+
+(defresource parameters
+  "Set parameters"
+  parameters* [& options])
 
 
 
