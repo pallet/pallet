@@ -12,18 +12,18 @@
 
 (defn to64
   "Return value encoded as n base64 chars"
-  [value n]
+  [#^Integer value #^Integer n]
   (if (pos? n)
-    (str (.charAt itoa64 (bit-and value 0x3f))
+    (str (.charAt itoa64 (int (bit-and value 0x3f)))
          (to64 (bit-shift-right value 6) (dec n)))))
 
 (defn salt
   []
   (apply str (take 8 (repeatedly #(rand-nth itoa64)))))
 
-(defn clean-salt
+(defn #^String clean-salt
   "Clean up a passed salt value"
-  [salt magic]
+  [#^String salt #^String magic]
   (let [salt (if (.startsWith salt magic)
                 (.substring salt (.length magic))
                 salt)
@@ -35,14 +35,14 @@
                salt)]
     salt))
 
-(defn set-array [#^bytes array value]
+(defn set-array [#^bytes array #^Byte value]
   (dotimes [i (alength array)]
     (aset array i value))
   array)
 
-(defn byte-as-unsigned
+(defn #^Integer byte-as-unsigned
   [b]
-  (bit-and (int (byte b)) 0xff))
+  (int (bit-and (int (byte b)) 0xff)))
 
 (defn crypt
   "LINUX/BSD MD5Crypt function"
@@ -50,7 +50,7 @@
      (crypt password (salt) md5-magic))
   ([password salt]
      (crypt password salt md5-magic))
-  ([password salt magic]
+  ([#^String password #^String salt #^String magic]
      (let [salt (clean-salt salt magic)
            ctx (doto (MessageDigest/getInstance "md5")
                  (.update (.getBytes password))
@@ -65,7 +65,7 @@
        (loop [l (.length password)]
          (.update ctx final-state 0 (min l 16))
          (if (> l 16)
-           (recur (- l 16))))
+           (recur (int (- l 16)))))
 
        (set-array final-state (byte 0))
 
@@ -77,7 +77,7 @@
              (.update ctx (.getBytes password) 0 1))
            (recur (bit-shift-right i 1))))
 
-       (let [final-state (loop [final-state (.digest ctx)
+       (let [#^bytes final-state (loop [final-state (.digest ctx)
                                 i 0]
                            (if (< i 1000)
                              (let [ctx1 (MessageDigest/getInstance "md5")]
