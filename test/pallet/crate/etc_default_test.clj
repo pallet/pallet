@@ -1,16 +1,29 @@
 (ns pallet.crate.etc-default-test
- (:use clojure.test)
- (:require [pallet.crate.etc-default :as default]
-   [pallet.resource :as resource]
-   [pallet.target :as target]))
+ (:use
+  clojure.test
+  pallet.test-utils)
+ (:require
+  [pallet.crate.etc-default :as default]
+  [pallet.resource :as resource]
+  [pallet.stevedore :as stevedore]
+  [pallet.resource.remote-file :as remote-file]
+  [pallet.target :as target]))
 
 (deftest test-tomcat-defaults
-  (is (= "if [ ! -e /etc/default/tomcat6.orig ]; then cp /etc/default/tomcat6 /etc/default/tomcat6.orig;fi\necho \"remote-file /etc/default/tomcat6...\"\n{ { cat > /etc/default/tomcat6 <<EOF\nJAVA_OPTS=\"-Djava.awt.headless=true -Xmx1024m\"\nJSP_COMPILER=\"javac\"\nEOF\n } && chown  root:root /etc/default/tomcat6 && chmod  644 /etc/default/tomcat6; } || { echo remote-file /etc/default/tomcat6 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
-        (target/with-target nil [:ubuntu]
-          (resource/build-resources []
-            (default/write "tomcat6"
-              :JAVA_OPTS "-Djava.awt.headless=true -Xmx1024m"
-              "JSP_COMPILER" "javac"))))))
+  (is (= (stevedore/do-script
+          (stevedore/script
+           (if (not (file-exists? "/etc/default/tomcat6.orig"))
+             (cp "/etc/default/tomcat6" "/etc/default/tomcat6.orig")))
+	  (remote-file/remote-file*
+	   "/etc/default/tomcat6"
+	   :owner "root:root"
+	   :mode 644
+	   :content "JAVA_OPTS=\"-Djava.awt.headless=true -Xmx1024m\"\nJSP_COMPILER=\"javac\""))
+	 (test-resource-build
+	  [nil {:image [:ubuntu]}]
+	  (default/write "tomcat6"
+	    :JAVA_OPTS "-Djava.awt.headless=true -Xmx1024m"
+	    "JSP_COMPILER" "javac")))))
 
 (deftest test-quoting
   (is (= "\"\\\"quoted value\\\"\""
