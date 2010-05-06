@@ -9,6 +9,7 @@
    [pallet.core :as core]
    [pallet.stevedore :as stevedore]
    [pallet.resource :as resource]
+   [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]
    [pallet.target :as target]))
 
@@ -100,6 +101,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (target/with-target nil a
     (is (= (stevedore/checked-commands
             "Package source"
+            (package/package* "python-software-properties")
             (stevedore/script (add-apt-repository "ppa:abc")))
            (package-source*
             "source1"
