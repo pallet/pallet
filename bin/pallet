@@ -1,166 +1,103 @@
 #!/usr/bin/env bash
-
-VERSION="0.0.1-SNAPSHOT"
-
-# use a sub-project or current project if available
-if [ -d ./pallet/src -o -d ./pallet/dir ]; then
-    CLASSPATH=./pallet/src/:"$(find ./pallet/lib -follow -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)":$CLASSPATH
-elif [ -e ./lib/pallet-$VERSION.jar ]; then
-    CLASSPATH=./src/:"$(find ./lib -follow -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)":$CLASSPATH
-fi
-
-PALLET_JAR="$HOME/.m2/repository/pallet/pallet/$VERSION/pallet-$VERSION.jar"
-CLOJURE_JAR="$HOME/.m2/repository/org/clojure/clojure/1.1.0/clojure-1.1.0.jar"
-BOOTPATH=-Xbootclasspath/a:"$CLOJURE_JAR"
-
-# normalize $0 on certain BSDs
-if [ "$(dirname $0)" = "." ]; then
-    SCRIPT="$(which $(basename $0))"
-else
-    SCRIPT="$0"
-fi
-
-# resolve symlinks to the script itself portably
-while [ -h "$SCRIPT" ] ; do
-    ls=`ls -ld "$SCRIPT"`
-    link=`expr "$ls" : '.*-> \(.*\)$'`
-    if expr "$link" : '/.*' > /dev/null; then
-        SCRIPT="$link"
-    else
-        SCRIPT="`dirname "$SCRIPT"`/$link"
-    fi
+if [ \( "$(dirname $0)" == "." \) ]; then SCRIPT=$(which $(basename $0));else SCRIPT=$0;fi
+while [ -h ${SCRIPT} ]; do
+ls=$(ls -ld "${SCRIPT}")
+link=$(expr "${ls}" : '.*-> \(.*\)$')
+if expr "${link}" : '/.*' > /dev/null; then SCRIPT="${link}";else SCRIPT="$(dirname ${SCRIPT})/${link}";fi
 done
-
-BIN_DIR="$(dirname "$SCRIPT")"
-
-
-do_download()
-{
-    echo "Downloading Pallet now..."
-    PALLET_DIR=`dirname "$PALLET_JAR"`
-    mkdir -p "$PALLET_DIR"
-
-    # allow use of snapshots
-    if [[ $VERSION == *SNAPSHOT ]]; then
-	echo "Checking for latest SNAPSHOT version"
-	METAFILE="http://clojars.org/repo/pallet/pallet/$VERSION/maven-metadata.xml"
-	HTTP_CLIENT2="wget "
-	if type -p curl >/dev/null 2>&1; then
-	    HTTP_CLIENT2="curl -L "
-	fi
-	JARDATE=$( $HTTP_CLIENT - -q $METAFILE | egrep "[0-9]{8}\.[0-9]{6}" -o )
-	JARBUILD=$( $HTTP_CLIENT - -q $METAFILE | fgrep "buildNumber" | egrep "[0-9]+" -o )
-	JARVERSION=$( echo $VERSION | sed s/-SNAPSHOT// )
-	PALLET_URL="http://clojars.org/repo/pallet/pallet/$VERSION/pallet-$JARVERSION-$JARDATE-$JARBUILD.jar"
-	echo "URL " $PALLET_URL
-    else
-	PALLET_URL="http://clojars.org/repo/pallet/pallet/$VERSION/pallet-$VERSION.jar"
-    fi
-
-    $HTTP_CLIENT "$PALLET_JAR" "$PALLET_URL"
-}
-
-
-
-if [ -r "$BIN_DIR/../src/pallet/core.clj" ]; then
-    # Running from source checkout
-    PALLET_DIR="$(dirname "$BIN_DIR")"
-    PALLET_LIBS="$(find -H $PALLET_DIR/lib -mindepth 2> /dev/null 1 -maxdepth 1 -print0 | tr \\0 \:)"
-    # PALLET_LIBS=$( echo $PALLET_LIBS | sed s#:./lib/clojure-1.1.0.jar## )
-    CLASSPATH="$PALLET_DIR/src:$PALLET_LIBS:$CLASSPATH"
-    BOOTPATH=
-
-    if [ "$PALLET_LIBS" = "" -a "$1" != "self-install" ]; then
-        echo "Your Pallet development checkout is missing its dependencies."
-        echo "Please download a stable version of Pallet to fetch the deps."
-        echo "See the \"Hacking\" section of the readme for details."
-        exit 1
-    fi
-else
-    # Not running from a checkout
-    if [ ! -e "pallet/lib/pallet-$VERSION.jar" ]; then
-	CLASSPATH="$PALLET_JAR:$CLASSPATH"
-	BOOTPATH=""
-    fi
-
-    if [ ! -r "$PALLET_JAR" -a \
-         ! -r ./lib/pallet-$VERSION.jar -a \
-         ! -r ./pallet/lib/pallet-$VERSION.jar -a \
-         "$1" != "self-install" ]; then
-        echo "Pallet is not installed. Running \"pallet self-install\"."
-        do_download
-    fi
-fi
-
-if [ $DEBUG ]; then
-    echo $CLASSPATH
-fi
-
-# escape command-line arguments so they can be evaled as strings
-ESCAPED_ARGS=""
-for ARG in "$@"; do
-  ESCAPED_ARGS="$ESCAPED_ARGS"' "'$(echo $ARG | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')'"'
-done
-
-HTTP_CLIENT="wget -O"
+BIN_DIR="$(dirname "${SCRIPT}")"
+HTTP_CLIENT="wget "
+HTTP_OUTFILE="-O "
+HTTP_STDOUT="-q -O - "
 if type -p curl >/dev/null 2>&1; then
-    HTTP_CLIENT="curl -L -o"
+HTTP_CLIENT="curl -L "
+HTTP_OUTFILE="-o "
+HTTP_STDOUT=""
 fi
-
-if [ "$1" = "repl" ]; then
-    if [ -r project.clj ]; then
-        echo "Warning: the repl task currently doesn't honor some project.clj"
-        echo "options due to I/O stream issues. Future versions will address"
-        echo "this, but for now you will get more consistent behaviour from repls"
-        echo "launched by either the pallet-swank plugin or the pallet-nailgun plugin."
-        echo
-    fi
-    # Use rlwrap if it's available, otherwise fall back to JLine
-    RLWRAP=`which rlwrap`
-    JLINE=jline.ConsoleRunner
-    if [ "$RLWRAP" != "" ]; then
-        JLINE=
-    fi
-    $RLWRAP java -client $JAVA_OPTS -cp "src/:classes/:resources/:$CLASSPATH" $JLINE clojure.main ${@:2}
-elif [ "$1" = "self-install" ]; then
-    do_download
-    exit $#
-elif [ "$1" = "upgrade" ]; then
-    if [ ! -w "$SCRIPT" ]; then
-        echo "You do not have permission to upgrade the installation in $SCRIPT"
-        exit 1
-    else
-        echo "The script at $SCRIPT will be upgraded to the latest stable version."
-        echo -n "Do you want to continue [Y/n]? "
-        read RESP
-        case "$RESP" in
-            y|Y|"")
-                echo
-                echo "Upgrading..."
-		if [[ $VERSION == *SNAPSHOT ]]; then
-		    BRANCH="master"
-		else
-		    BRANCH="stable"
-		fi
-                PALLET_SCRIPT_URL="http://github.com/hugoduncan/pallet/raw/$BRANCH/bin/pallet"
-                $HTTP_CLIENT "$SCRIPT" "$PALLET_SCRIPT_URL" \
-                    && chmod +x "$SCRIPT" \
-                    && echo && $SCRIPT self-install && echo && echo "Now running" `$SCRIPT version`
-                exit $?;;
-            *)
-                echo "Aborted."
-                exit 1;;
-        esac
-    fi
+settings=${HOME}/.m2/settings.xml
+default_repo=${HOME}/.m2/repository
+if [ -e ${settings} ]; then
+repo=$({ cat ${settings} | tr -d '
+	 ' | egrep -o "<localRepository>(.*)</localRepository>" | sed -e "s%\${user.home}%${HOME}%" -e "s%<localRepository>%%" -e "s%</localRepository>%%"; } || echo ${default_repo})
+if [ \( "${repo}" == "" \) ]; then repo=${default_repo};fi
+else repo=${user-home}/.m2/repository;fi
+function snapshot-path() {
+version=$1
+metafile=$2
+base_path=$3
+METADATA=$(${HTTP_CLIENT} ${HTTP_STDOUT} ${metafile})
+JARDATE=$(echo ${META} | egrep "[0-9]{8}\.[0-9]{6}" -o)
+JARBUILD=$(echo ${META} | fgrep buildNumber | egrep "[0-9]+" -o)
+JARVERSION=0.0.1
+echo ${base_path}${JARVERSION}-${JARDATE}-${JARBUILD}.jar
+ }
+function do-download() {
+echo "Downloading dependencies..."
+{ ${HTTP_CLIENT} $HTTP_OUTFILE "${repo}/pallet/pallet/0.0.1-SNAPSHOT/pallet-0.0.1-SNAPSHOT.jar" "$(snapshot-path 0.0.1-SNAPSHOT http://clojars.org/repo/pallet/pallet/0.0.1-SNAPSHOT/maven-metadata.xml http://clojars.org/repo/pallet/pallet/0.0.1-SNAPSHOT/pallet-)" && ${HTTP_CLIENT} $HTTP_OUTFILE "${repo}/org/clojure/clojure/1.2.0-master-SNAPSHOT/clojure-1.2.0-master-SNAPSHOT.jar" "$(snapshot-path 1.2.0-master-SNAPSHOT http://build.clojure.org/snapshots/org/clojure/clojure/1.2.0-master-SNAPSHOT/maven-metadata.xml http://build.clojure.org/snapshots/org.clojure/org/clojure/1.2.0-master-SNAPSHOT/clojure-)"; } || { echo Downloading dependencies failed ; exit 1 ; } >&2
+echo "...done"
+ }
+function do-upgrade() {
+if [ ! -w $SCRIPT ]; then
+echo You do not have permission to upgrade the installation in  ${SCRIPT}
+exit 1
+fi
+echo The script at  ${SCRIPT}  will be upgraded to the latest stable version.
+echo -n Do you want to continue [Y/n]?
+read RESPONSE
+case ${RESPONSE} in
+y|Y|"")
+echo null
+echo Upgrading...
+BRANCH=master
+PALLET_SCRIPT_URL="http://github.com/hugoduncan/pallet/raw/${BRANCH}/bin/pallet"
+${HTTP_CLIENT} $HTTP_OUTFILE "${SCRIPT}" "${PALLET_SCRIPT_URL}" && chmod +x "${SCRIPT}" && echo null && ${SCRIPT} self-install && echo null && echo Now running $(${SCRIPT} version)
+exit $?
+;;
+*)
+echo Aborted
+exit 1
+;;
+esac
+ }
+function do-install() {
+do-download
+exit 0
+ }
+if [ \( "$1" == "self-install" \) ]; then do-install;fi
+if [ \( "$1" == "upgrade" \) ]; then do-upgrade;fi
+if [ -r ${BIN_DIR}/../src/pallet/core.clj ]; then
+PALLET_DIR="$(dirname "${BIN_DIR}")"
+PALLET_LIBS="$(find -H ${PALLET_DIR}/lib -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)"
+CLASSPATH="${PALLET_DIR}/src:${PALLET_LIBS}:${CLASSPATH}"
+BOOTPATH=""
+if [ \( \( "${PALLET_LIBS}" == "" \) -a \( "$1" != "self-install" \) \) ]; then
+echo Your Pallet development checkout is missing its dependencies.
+echo Please use you maven or lein to download the dependencies.
+echo    cd  ${PALLET_DIR}
+echo  and either:
+echo    lein deps
+echo    mvn -Dmaven.test.skip=true assembly:directory
+exit 1
+fi
 else
-    if type -p cygpath >/dev/null 2>&1; then
-        # When running on Cygwin, use Windows-style paths for java
-        CLOJURE_JAR=`cygpath -w "$CLOJURE_JAR"`
-        CLASSPATH=`cygpath -wp "$CLASSPATH"`
-    fi
-
-    # The -Xbootclasspath argument is optional here: if the jar
-    # doesn't exist everything will still work, it will just have a
-    # slower JVM boot. -Xbootclasspath/a:"$CLOJURE_JAR" $BOOTPATH
-    exec java  -client $JAVA_OPTS -cp "$CLASSPATH" -Dpallet.version="$VERSION" clojure.main -e "(require 'pallet.main)(pallet.main/-main $ESCAPED_ARGS)"
+if [ -r ./pallet/lib/pallet-0.0.1-SNAPSHOT.jar ]; then
+PALLET_LIBS="$(find -H ./pallet/lib/ -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)"
+CLASSPATH="${PALLET_LIBS}:${CLASSPATH}"
+BOOTPATH=""
+else
+if [ -r ./lib/pallet-0.0.1-SNAPSHOT.jar ]; then
+PALLET_LIBS="$(find -H ./lib/ -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)"
+CLASSPATH="${PALLET_LIBS}:${CLASSPATH}"
+BOOTPATH=""
+else
+CLASSPATH="${repo}/pallet/pallet/0.0.1-SNAPSHOT/pallet-0.0.1-SNAPSHOT.jar:${repo}/org/clojure/clojure/1.2.0-master-SNAPSHOT/clojure-1.2.0-master-SNAPSHOT.jar:${CLASSPATH}"
 fi
+fi
+BOOTPATH=""
+fi
+if type -p cygpath >/dev/null 2>&1; then
+CLOJURE_JAR=$(cygpath -w "${CLOJURE_JAR}")
+CLASSPATH=$(cygpath -w "${CLASSPATH}")
+fi
+if [ $DEBUG ]; then echo ${CLASSPATH};fi
+exec ${RLWRAP} java -client ${JAVA_OPTS} -cp "${CLASSPATH}" -Dpallet.version=0.0.1-SNAPSHOT ${JLINE} clojure.main -e "(use 'pallet.main)(-main)" /dev/null $@
