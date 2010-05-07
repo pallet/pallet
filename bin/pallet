@@ -68,26 +68,26 @@ if [ \( "$1" == "upgrade" \) ]; then do-upgrade;fi
 if [ -r ${BIN_DIR}/../src/pallet/core.clj ]; then
 PALLET_DIR="$(dirname "${BIN_DIR}")"
 PALLET_LIBS="$(find -H ${PALLET_DIR}/lib -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)"
-CLASSPATH="${PALLET_DIR}/src:${PALLET_LIBS}:${CLASSPATH}"
+CLASSPATH="${PALLET_DIR}/src:${PALLET_DIR}/pallet/src:${PALLET_LIBS}:${CLASSPATH}"
 BOOTPATH=""
 if [ \( \( "${PALLET_LIBS}" == "" \) -a \( "$1" != "self-install" \) \) ]; then
 echo Your Pallet development checkout is missing its dependencies.
 echo Please use you maven or lein to download the dependencies.
-echo    cd  ${PALLET_DIR}
-echo  and either:
-echo    lein deps
-echo    mvn -Dmaven.test.skip=true assembly:directory
+echo "   cd "
+echo " and either:"
+echo "   lein deps"
+echo "   mvn -Dmaven.test.skip=true assembly:directory"
 exit 1
 fi
 else
 if [ -r ./pallet/lib/pallet-0.0.1-SNAPSHOT.jar ]; then
 PALLET_LIBS="$(find -H ./pallet/lib/ -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)"
-CLASSPATH="${PALLET_LIBS}:${CLASSPATH}"
+CLASSPATH="${PALLET_LIBS}:./pallet/src/:${CLASSPATH}"
 BOOTPATH=""
 else
 if [ -r ./lib/pallet-0.0.1-SNAPSHOT.jar ]; then
 PALLET_LIBS="$(find -H ./lib/ -mindepth 1 -maxdepth 1 -print0 2> /dev/null | tr \\0 \:)"
-CLASSPATH="${PALLET_LIBS}:${CLASSPATH}"
+CLASSPATH="${PALLET_LIBS}:./pallet/src/:${CLASSPATH}"
 BOOTPATH=""
 else
 CLASSPATH="${repo}/pallet/pallet/0.0.1-SNAPSHOT/pallet-0.0.1-SNAPSHOT.jar:${repo}/org/clojure/clojure/1.2.0-master-SNAPSHOT/clojure-1.2.0-master-SNAPSHOT.jar:${CLASSPATH}"
