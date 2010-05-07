@@ -31,6 +31,11 @@ Pallet can also execute chef cookbooks using 'chef-solo'.
 
 [See demo documentation](http://hugoduncan.github.com/pallet/demo-api.html).
 
+
+## Support
+
+[On the group](http://groups.google.com/group/pallet-clj), or #pallet on freenode irc.
+
 ## Installation
 
 Pallet is distributed as a jar, and is available in the [clojars repository](http://clojars.org/pallet).
