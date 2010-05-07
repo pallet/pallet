@@ -57,26 +57,27 @@
 
 (defn -main
   "Command line runner."
-  [& args]
-  (command-line/with-command-line args
-    "Pallet command line"
-    [[service "Cloud service name."]
-     [user "Cloud user name."]
-     [key "Cloud key or password."]
-     args]
-    (let [[task & args] args
-          task (or (aliases task) task "help")]
-      (let [symbol-map (reduce map-and-resolve-symbols {} args)
-            arg-line (str "[ " (apply str (interpose " " args)) " ]")
-            params (read-string arg-line)
-            params (clojure.walk/prewalk-replace symbol-map params)
-            task (resolve-task task)]
-        (if (get (meta task) :no-service-required nil)
-          (apply task params)
-          (let [_ (require 'pallet.main-invoker)
-                invoker (find-var 'pallet.main-invoker/invoke)]
-            (invoker service user key task params))))
-      ;; In case tests or some other task started any:
-      (flush)
-      (shutdown-agents)
-      (System/exit 0))))
+  ([& args]
+     (command-line/with-command-line args
+       "Pallet command line"
+       [[service "Cloud service name."]
+        [user "Cloud user name."]
+        [key "Cloud key or password."]
+        args]
+       (let [[task & args] args
+             task (or (aliases task) task "help")]
+         (let [symbol-map (reduce map-and-resolve-symbols {} args)
+               arg-line (str "[ " (apply str (interpose " " args)) " ]")
+               params (read-string arg-line)
+               params (clojure.walk/prewalk-replace symbol-map params)
+               task (resolve-task task)]
+           (if (get (meta task) :no-service-required nil)
+             (apply task params)
+             (let [_ (require 'pallet.main-invoker)
+                   invoker (find-var 'pallet.main-invoker/invoke)]
+               (invoker service user key task params))))
+         ;; In case tests or some other task started any:
+         (flush)
+         (shutdown-agents)
+         (System/exit 0))))
+  ([] (apply -main *command-line-args*)))
