@@ -22,7 +22,6 @@
 (defn map-to-arg-string
   "Output a set of command line switches from a map"
   [m & options]
-  (debug (str "map-to-arg-string " m " options " options))
   (let [opts (apply hash-map options)]
     (apply
      str (interpose
@@ -60,7 +59,6 @@
   (str "(" (string/join ", " coll) ")"))
 
 (defn splice-list [coll]
-  (debug (str "splicing " coll))
   (string/join " " coll))
 
 (defmethod emit nil [expr]
@@ -84,11 +82,11 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['if 'if-not 'aget 'defn 'return 'set! 'var 'defvar 'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists? 'not 'println]))
+(def special-forms (set ['if 'if-not 'when 'case 'aget 'defn 'return 'set! 'var 'defvar 'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists? 'symlink? 'readable? 'writeable? 'not 'println 'group 'pipe 'chain-or 'chain-and 'while 'doseq]))
 
 (def infix-operators (set ['+ '- '/ '* '% '== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '||]))
-(def logical-operators (set ['== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '|| 'file-exists? 'not]))
-(def quoted-operators (disj logical-operators 'file-exists?))
+(def logical-operators (set ['== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '|| 'file-exists? 'symlink? 'readable? 'writeable? 'not]))
+(def quoted-operators (disj logical-operators 'file-exists? 'symlink 'can-read))
 
 (def infix-conversions
      {'&& "-a"
@@ -133,6 +131,18 @@
 (defmethod emit-special 'file-exists? [type [file-exists? path]]
   (str "-e " (emit path)))
 
+(defmethod emit-special 'symlink?
+  [type [symlink? path]]
+  (str "-h " (emit path)))
+
+(defmethod emit-special 'readable?
+  [type [readable? path]]
+  (str "-r " (emit path)))
+
+(defmethod emit-special 'writeable?
+  [type [readable? path]]
+  (str "-w " (emit path)))
+
 (defmethod emit-special 'not [type [not expr]]
   (str "! " (emit expr)))
 
@@ -157,15 +167,14 @@
 (defmethod emit-special 'println [type [println & args]]
   (str "echo " (emit args)))
 
-(defmethod emit-special 'invoke [type [name & args]]
-  (debug (str "invoke [" *script-file*
-              ":" *script-line* "] "
-              name " " (print-args args)))
+(defmethod emit-special 'invoke
+  [type [name & args]]
+  (trace (str "INVOKE " name args))
   (or (try
-       (invoke-target name (map (partial walk inner-walk outer-walk) args))
-       (catch java.lang.IllegalArgumentException e
-         (throw (java.lang.IllegalArgumentException.
-                 (str "Invalid arguments for " name) e))))
+        (invoke-target name args)
+        (catch java.lang.IllegalArgumentException e
+          (throw (java.lang.IllegalArgumentException.
+                  (str "Invalid arguments for " name) e))))
       (apply str (emit name) (if (empty? args) "" " ")
              (interpose " " (map emit args)))))
 
@@ -203,6 +212,14 @@
          (str "else" (emit-body-for-if (first false-form))))
        "fi"))
 
+(defmethod emit-special 'case
+  [type [case test & exprs]]
+  (str "case " (emit test) " in\n"
+       (string/join ";;\n"
+        (map #(str (emit (first %)) ")\n" (emit (second %)))
+             (partition 2 exprs)))
+       ";;\nesac"))
+
 (defmethod emit-special 'dot-method [type [method obj & args]]
   (let [method (symbol (string/drop (str method) 1))]
     (emit-method obj method args)))
@@ -219,7 +236,8 @@
 (defmethod emit-special 'aget [type [aget var idx]]
   (str "${" (emit var) "[" (emit idx) "]}"))
 
-(defmethod emit-special 'deref [type [deref expr]]
+(defmethod emit-special 'deref
+  [type [deref expr]]
   (if (instance? clojure.lang.IPersistentList expr)
     (str "$(" (emit expr) ")")
     (str "${" (emit expr) "}")))
@@ -230,10 +248,54 @@
 (defmethod emit-special 'do [type [ do & exprs]]
   (emit-do exprs))
 
+(defmethod emit-special 'when [type [when test & form]]
+  (str "if "
+       (if (logical-test? test) (str "[ " (emit test) " ]") (emit test))
+       "; then"
+       (str \newline (string/trim (emit-do form)) \newline)
+       "fi"))
+
+(defmethod emit-special 'while
+  [type [ while test & exprs]]
+  (str "while "
+       (if (logical-test? test) (str "[ " (emit test) " ]") (emit test))
+       "; do\n"
+       (emit-do exprs)
+       "done\n"))
+
+(defmethod emit-special 'doseq
+  [type [ doseq [arg values] & exprs]]
+  (str "for " (emit arg) " in " (string/join " " (map emit values))
+       "; do\n"
+       (emit-do exprs)
+       "done"))
+
+(defmethod emit-special 'group
+  [type [ group & exprs]]
+  (str "{ " (string/join "; " (map emit exprs)) "; }"))
+
+(defmethod emit-special 'pipe
+  [type [ pipe & exprs]]
+  (string/join " | " (map emit exprs)))
+
+(defmethod emit-special 'chain-or
+  [type [chain-or & exprs]]
+  (string/join " || " (map emit exprs)))
+
+(defmethod emit-special 'chain-and
+  [type [chain-and & exprs]]
+  (string/join " && " (map emit exprs)))
+
 (defn emit-function [name sig body]
   (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
-  (str "function " name (comma-list sig) " {\n" (emit-do body) " }\n"))
+  (str "function " name "() {\n"
+       (when (not (empty? sig))
+         (str
+          (string/join "\n" (map #(str (emit %1) "=" "$" %2) sig (iterate inc 1)))
+          \newline))
+       (emit-do body)
+       " }\n"))
 
 (defmethod emit-special 'defn [type [fn & expr]]
   (if (symbol? (first expr))
@@ -245,27 +307,26 @@
 	  body (rest expr)]
       (emit-function nil signature body))))
 
-(defmethod emit clojure.lang.Cons [expr]
-  (debug (str "emit Cons " (print-args expr)))
-  (emit (list* expr)))
-
 (defn emit-s-expr [expr]
-  (debug (str "emit s-expr " (print-args expr)))
   (if (symbol? (first expr))
     (let [head (symbol (name (first expr)))  ; remove any ns resolution
 	  expr (conj (rest expr) head)]
-      (debug (str "emit list " (print-args expr)))
-      (debug (str "head " head " special-form? " (special-form? head)))
       (cond
-	(and (= (string/get (str head) 0) \.) (> (count (str head)) 1)) (emit-special 'dot-method expr)
+	(and (= (string/get (str head) 0) \.)
+             (> (count (str head)) 1)) (emit-special 'dot-method expr)
 	(special-form? head) (emit-special head expr)
 	(infix-operator? head) (emit-infix head expr)
 	:else (emit-special 'invoke expr)))
     (string/join " " (map emit expr))))
 
 (defmethod emit clojure.lang.IPersistentList [expr]
-  (debug (str "emit IPersistentList " (print-args expr)))
   (emit-s-expr expr))
+
+(defmethod emit clojure.lang.Cons
+  [expr]
+  (if (= 'list (first expr))
+    (emit-s-expr (rest expr))
+    (emit-s-expr expr)))
 
 (defn- spread
   [arglist]
@@ -275,11 +336,9 @@
    :else (apply list (first arglist) (spread (next arglist)))))
 
 (defmethod emit-special 'apply [type [apply & exprs]]
-  (debug (str "emit apply " exprs))
   (emit-s-expr (spread exprs)))
 
 (defmethod emit clojure.lang.IPersistentVector [expr]
-  (debug (str "emit IPersistentVector " (print-args expr)))
   (str "(" (string/join " " (map emit expr)) ")"))
 
 ;; (defmethod emit clojure.lang.IPersistentMap [expr]
@@ -289,7 +348,6 @@
 ;  (emit (into [] expr)))
 
 (defmethod emit clojure.lang.IPersistentMap [expr]
-  (debug (str "emit IPersistentMap " (print-args expr)))
   (letfn [(subscript-assign [pair] (str "["(emit (key pair)) "]=" (emit (val pair))))]
     (str "(" (string/join " " (map subscript-assign (seq expr))) ")")))
 
@@ -309,13 +367,11 @@
   (second form))
 
 (defn- inner-walk [form]
-  (debug (str "inner " form))
   (cond
    (unquote? form) (handle-unquote form)
    :else (walk inner-walk outer-walk form)))
 
 (defn- outer-walk [form]
-  (debug (str "outer " form))
   (cond
    (symbol? form) (list 'quote form)
    (seq? form) (list* 'list form)

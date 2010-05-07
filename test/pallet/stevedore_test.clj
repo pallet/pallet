@@ -57,8 +57,8 @@
          (script (str foo bar)))))
 
 (deftest test-fn
-  (is (= "function foo(x) {\nfoo a\nbar b\n }"
-         (strip-ws (script (defn foo [x] (foo a) (bar b)))))))
+  (is (= "function foo() {\nx=$1\ny=$2\nfoo a\nbar b\n }"
+         (strip-ws (script (defn foo [x y] (foo a) (bar b)))))))
 
 (deftest test-aget
   (is (= "${foo[2]}" (script (aget foo 2)))))
@@ -107,6 +107,23 @@ fi"
   (is (= "fred\n"
          (bash-out (script (if-not (&& (== foo foo) (== foo baz)) (echo "fred")))))))
 
+(deftest test-when
+  (is (= "if [ \\( \"foo\" == \"bar\" \\) ]; then\necho fred\nfi"
+         (script (when (= foo bar) (echo fred)))))
+  (is (= "if foo; then\nx=3\nfoo x\nfi"
+         (script (when foo (var x 3) (foo x))))))
+
+(deftest test-case
+  (is (= "case ${X} in\n1)\nsomething;;\n\"2\")\nsomething else;;\nesac"
+         (script (case @X
+                       1 (something)
+                       (quoted "2") (something else))))))
+
+(deftest test-doseq
+  (is (= "for X in 1 2 3; do\nsomething ${X}\ndone"
+         (script (doseq [X [1 2 3]] (something @X))))))
+
+
 (deftest test-map
   (is (= "([packages]=(columnchart))" (strip-ws (script {:packages ["columnchart"]}))))
   (is (= "x=([packages]=columnchart)\necho ${x[packages]}"
@@ -139,7 +156,7 @@ fi"
   (let [stuff (quote (do
 		       (local x 3)
 		       (local y 4)))]
-    (is (= "function foo(x) {\nlocal x=3\nlocal y=4\n }"
+    (is (= "function foo() {\nx=$1\nlocal x=3\nlocal y=4\n }"
 	   (strip-ws (script (defn foo [x] ~stuff)))))))
 
 (deftest checked-script-test
@@ -197,3 +214,15 @@ fi"
          (bash-out (checked-script "test" (echo fred) (echo tom)))))
   (is (= "test...\n"
          (bash-out (checked-script "test" (test 1 = 2)) 1 "test failed\n"))))
+
+(deftest group-test
+  (is (= "{ ls; }"
+         (script (group (ls)))))
+  (is (= "{ ls; ls; }"
+         (script (group (ls) (ls))))))
+
+(deftest pipe-test
+  (is (= "ls"
+         (script (pipe (ls)))))
+  (is (= "ls | ls"
+         (script (pipe (ls) (ls))))))

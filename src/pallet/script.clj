@@ -43,9 +43,9 @@
     current))
 
 (defn best-match [script]
-  (debug (str "Looking up script " script))
+  (trace (str "Looking up script " script))
   (when-let [impls (*scripts* script)]
-    (debug "Found implementations")
+    (trace "Found implementations")
     (second (reduce better-match?
                     [:default (impls :default)]
                     (dissoc impls :default)))
@@ -67,7 +67,7 @@
   (trace (str "invoke-target [" *script-file* ":" *script-line* "] "
               script " " (print-args args)))
   (when-let [f (best-match (keyword (name script)))]
-    (debug (str "Found implementation for " script " - " f
+    (trace (str "Found implementation for " script " - " f
                 " invoking with " (print-args args) " empty? " (empty? args)))
     (if (empty? args)
       (f)
