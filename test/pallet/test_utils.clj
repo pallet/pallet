@@ -37,10 +37,11 @@ list, Alan Dipert and MeikelBrandmeyer."
   "Check output of bash. Macro so that errors appear on the correct line."
   ([str] `(bash-out ~str 0 ""))
   ([str exit err-msg]
-  `(let [r# (utils/bash ~str)]
-    (is (= ~err-msg (:err r#)))
-    (is (= ~exit (:exit r#)))
-    (:out r#))))
+     `(target/with-local-target
+        (let [r# (utils/bash ~str)]
+          (is (= ~err-msg (:err r#)))
+          (is (= ~exit (:exit r#)))
+          (:out r#)))))
 
 (defn with-null-target
   "Bind target to null values"

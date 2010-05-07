@@ -15,9 +15,9 @@
 (deftest crontab-test
   (is (= (stevedore/do-script
           (remote-file/remote-file*
-           "$(getent passwd quote user | cut -d: -f6)/crontab.in"
+           "$(getent passwd user | cut -d: -f6)/crontab.in"
            :content "contents" :owner "fred" :mode "0600")
-          "crontab -u fred $(getent passwd quote user | cut -d: -f6)/crontab.in\n")
+          "crontab -u fred $(getent passwd user | cut -d: -f6)/crontab.in\n")
          (resource/build-resources [] (crontab "fred" :content "contents")))))
 
 (deftest system-crontab-test

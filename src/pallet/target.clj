@@ -1,7 +1,8 @@
 (ns pallet.target
   "Provide information about the target image"
   (:require
-   [org.jclouds.compute :as jclouds])
+   [org.jclouds.compute :as jclouds]
+   [pallet.compute :as compute])
   (:use
    [clojure.contrib.def :only [defunbound]]))
 
@@ -17,6 +18,16 @@
   `(binding [*target-node* ~node
              *target-node-type* ~node-type]
     ~@body))
+
+(def jvm-os-map
+     { "Mac OS X" :os-x })
+
+(defmacro with-local-target
+  [& body]
+  `(with-target
+     (compute/make-node "localhost")
+     {:image [(get jvm-os-map (System/getProperty "os.name"))]}
+     ~@body))
 
 (defmacro with-nodes
   [nodes target-nodes & body]

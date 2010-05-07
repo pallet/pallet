@@ -6,7 +6,8 @@
    [pallet.resource.exec-script :as exec-script]
    [pallet.compute :as compute]
    [pallet.target :as target]
-   [pallet.mock :as mock])
+   [pallet.mock :as mock]
+   [org.jclouds.compute :as jclouds])
   (:use
    clojure.test
    pallet.test-utils
@@ -176,7 +177,7 @@
 
 (deftest lift-test
   (defnode x [])
-  (is (.contains "/bin"
+  (is (.contains "bin"
        (with-no-compute-service
          (with-admin-user (assoc utils/*admin-user* :no-sudo true)
            (with-out-str
@@ -204,6 +205,21 @@
                       (is (= #{na nb} (set (target/all-nodes))))
                       (is (= #{na nb} (set (target/target-nodes))))))]
                   (lift* nil "" {a #{na} b #{nb}} [:configure]))))
+
+(deftest lift-multiple-test
+  (defnode a [])
+  (defnode b [])
+  (let [na (compute/make-node "a")
+        nb (compute/make-node "b")
+        nc (compute/make-node "c")]
+    (mock/expects [(org.jclouds.compute/nodes [_] [na nb nc])
+                   (apply-phases
+                    [& _]
+                    (do
+                      (is (= #{na nb nc} (set (target/all-nodes))))
+                      (is (= #{na nb} (set (target/target-nodes))))))]
+                  (binding [jclouds/*compute* :dummy]
+                    (lift [a b] :configure)))))
 
 (deftest converge*-nodes-binding-test
   (defnode a [])

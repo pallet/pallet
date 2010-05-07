@@ -4,6 +4,7 @@
    [pallet.core :as core]
    [pallet.crate.git :as git]
    [pallet.crate.automated-admin-user :as automated-admin-user]
+   [pallet.parameter :as parameter]
    [pallet.resource.service :as service]
    [pallet.resource.user :as user]
    [pallet.crate.ssh-key :as ssh-key]
@@ -18,10 +19,10 @@
   (user/user "testuser" :create-home true :shell :bash)
   (service/with-restart "tomcat6"
     (tomcat/server-configuration (tomcat/server))
-    (user/user (hudson/hudson-user-name) :comment "\"hudson,,,\"")
-    (ssh-key/generate-key (hudson/hudson-user-name))
+    (user/user (parameter/lookup :hudson :user) :comment "\"hudson,,,\"")
+    (ssh-key/generate-key (parameter/lookup :hudson :user))
     (ssh-key/authorize-key-for-localhost
-     (hudson/hudson-user-name) "id_rsa.pub"
+     (parameter/lookup :hudson :user) "id_rsa.pub"
      :authorize-for-user "testuser")
     (hudson/tomcat-deploy :version "1.355")
     (hudson/plugin :git)

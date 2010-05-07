@@ -39,6 +39,12 @@
 (defimpl user-home :default [username]
   @(getent passwd ~username | cut "-d:" "-f6"))
 
+(defimpl user-home [:os-x] [username]
+  @(pipe
+    (dscl localhost -read ~(str "/Local/Default/Users/" username)
+          "dsAttrTypeNative:home")
+    (cut -d "' '" -f 2)))
+
 (defimpl current-user :default []
   @(whoami))
 

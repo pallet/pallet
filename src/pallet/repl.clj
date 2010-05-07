@@ -19,6 +19,7 @@
      (use 'org.jclouds.compute)
      (use 'pallet.utils)
      (use 'pallet.core)
+     (use 'pallet.maven)
      (use 'pallet.resource)
      (use 'pallet.resource.package)
      (use 'pallet.compute)
