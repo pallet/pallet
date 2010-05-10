@@ -187,16 +187,16 @@
               "2> /dev/null")
         (tr "\\\\0" "\\:"))))
    (defvar CLASSPATH
-     (quoted (str (str @PALLET_DIR "/src") ":" @PALLET_LIBS ":" @CLASSPATH)))
+     (quoted (str (str @PALLET_DIR "/src") ":" (str @PALLET_DIR "/pallet/src") ":" @PALLET_LIBS ":" @CLASSPATH)))
    (defvar BOOTPATH (quoted ""))
    (if (&& (= @PALLET_LIBS "") (!= "$1" "self-install" ))
      (do
        (println "Your Pallet development checkout is missing its dependencies.")
        (println "Please use you maven or lein to download the dependencies.")
-       (println "   cd " @PALLET_DIR)
-       (println " and either:")
-       (println "   lein deps")
-       (println "   mvn -Dmaven.test.skip=true assembly:directory")
+       (println (quoted "   cd " @PALLET_DIR))
+       (println (quoted " and either:"))
+       (println (quoted "   lein deps"))
+       (println (quoted "   mvn -Dmaven.test.skip=true assembly:directory"))
        (exit 1)))))
 
 ;; We want to run from the first of:
@@ -215,7 +215,7 @@
                   "2> /dev/null")
             (tr "\\\\0" "\\:"))))
        (defvar CLASSPATH
-         (quoted (str @PALLET_LIBS ":" @CLASSPATH)))
+         (quoted (str @PALLET_LIBS ":./pallet/src/:" @CLASSPATH)))
        (defvar BOOTPATH (quoted "")))
      (if (readable? (str "./lib/" ~(jar-name (first artifacts)) ))
        (do
@@ -225,7 +225,7 @@
             (find -H "./lib/" -mindepth 1 -maxdepth 1 -print0 "2> /dev/null")
             (tr "\\\\0" "\\:"))))
          (defvar CLASSPATH
-           (quoted (str @PALLET_LIBS ":" @CLASSPATH)))
+           (quoted (str @PALLET_LIBS ":./pallet/src/:" @CLASSPATH)))
          (defvar BOOTPATH (quoted "")))
        (do
          (defvar CLASSPATH
