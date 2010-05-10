@@ -83,6 +83,13 @@
            "ls /"
            (assoc *admin-user* :no-sudo true))
           :exit)))
+  (is (thrown? com.jcraft.jsch.JSchException
+         ((remote-sudo-script
+           "localhost"
+           "ls /"
+           (assoc *admin-user* :no-sudo true)
+           :port 1)
+          :exit)))
   (is (thrown?
        clojure.contrib.condition.Condition
        (remote-sudo-script
