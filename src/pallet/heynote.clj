@@ -38,7 +38,7 @@
 (defn- process-response
   [response]
   (when (nil? ((user-preferences) :id))
-    (user-preferences :id (response "user-id"))))
+    (user-preferences :id (response :user-id))))
 
 (defn- read-response
   "Read heynote response."
