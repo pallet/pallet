@@ -4,6 +4,10 @@
 
 (defmulti keychain-passphrase "Obtain password for path" (fn [system path] system))
 
+(defmethod keychain-passphrase :default
+  [system path]
+  nil)
+
 (defmethod keychain-passphrase "Mac OS X"
   [system path]
   (let [result (shell/sh
