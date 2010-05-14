@@ -93,24 +93,28 @@
 
 
 (defn default-private-key-path []
-  (str (. System getProperty "user.home") "/.ssh/id_rsa"))
+  (str (System/getProperty "user.home") "/.ssh/id_rsa"))
 (defn default-public-key-path []
-  (str (. System getProperty "user.home") "/.ssh/id_rsa.pub"))
+  (str (System/getProperty "user.home") "/.ssh/id_rsa.pub"))
+
+(defrecord User
+  [username public-key-path private-key-path passphrase
+   password sudo-password no-sudo])
 
 (defn make-user
-  "Create a description of the admin user to be created and used for running
-   configuration actions on the administered nodes."
-  [username & options]
-  (let [options (if (first options) (apply array-map options) {})]
-    {:username username
-     :password (options :password)
-     :private-key-path (or (options :private-key-path)
-                           (default-private-key-path))
-     :public-key-path (or (options :public-key-path)
-                          (default-public-key-path))
-     :sudo-password (get options :sudo-password (options :password))
-     :no-sudo (options :no-sudo)}))
+  "Creates a User record with the given username and options. Generally used
+   in conjunction with *admin-user* and pallet.core/with-admin-user.
+   Some options have default values:
 
+   :public-key-path (defaults to ~/.ssh/id_rsa.pub)
+   :private-key-path (defaults to ~/.ssh/id_rsa)
+   :sudo-password (defaults to :password)"
+  [username & {:as options}]
+  (merge (User. username nil nil nil nil nil nil)
+    {:private-key-path (default-private-key-path)
+     :public-key-path (default-public-key-path)
+     :sudo-password (:password options)}
+    options))
 
 (defvar *admin-user*
   (make-user (or (. System getProperty "pallet.admin.username")
@@ -186,10 +190,10 @@
     "XXXXXXX"))
 
 (defn sudo-cmd-for [user]
-  (if (or (= (user :username) "root") (user :no-sudo))
+  (if (or (= (:username user) "root") (:no-sudo user))
     ""
-    (if-let [pw (user :sudo-password)]
-      (str "echo \"" (or (user :password) pw) "\" | /usr/bin/sudo -S")
+    (if-let [pw (:sudo-password user)]
+      (str "echo \"" (or (:password user) pw) "\" | /usr/bin/sudo -S")
       "/usr/bin/sudo -n")))
 
 (defonce default-agent-atom (atom nil))
@@ -208,13 +212,13 @@
     (.readPassword console)))
 
 (defn possibly-add-identity
-  [agent private-key-path]
+  [agent private-key-path passphrase]
   (when-not (has-identity? agent private-key-path)
     (let [identity (make-identity private-key-path (str private-key-path ".pub"))]
       (if (.isEncrypted identity)
-        (let [passphrase (or
-                          (keychain/passphrase private-key-path)
-                          (ask-passphrase private-key-path))]
+        (let [passphrase (or passphrase
+                           (keychain/passphrase private-key-path)
+                           (ask-passphrase private-key-path))]
           (add-identity agent identity passphrase))
         (add-identity agent identity)))))
 
@@ -222,13 +226,13 @@
   "Run a sudo script on a server."
   [#^String server #^String command user & options]
   (with-ssh-agent [(default-agent)]
-    (possibly-add-identity *ssh-agent* (:private-key-path user))
+    (possibly-add-identity *ssh-agent* (:private-key-path user) (:passphrase user))
     (let [options (if (seq options) (apply array-map options) {})
           session (session server
-                           :username (user :username)
+                           :username (:username user)
                            :strict-host-key-checking :no
                            :port (or (options :port) 22)
-                           :password (user :password))]
+                           :password (:password user))]
       (with-connection session
         (let [mktemp-result (ssh
                              session "mktemp sudocmdXXXXX" :return-map true)
