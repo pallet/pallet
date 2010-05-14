@@ -40,17 +40,6 @@
   (when (nil? ((user-preferences) :id))
     (user-preferences :id (response :user-id))))
 
-(defn #^String slurp*
-  [f]
-  (with-open [r f]
-      (let [sb (StringBuilder.)]
-        (loop [c (.read r)]
-          (if (neg? c)
-            (str sb)
-            (do (.append sb (char c))
-                (logging/info (str sb) )
-                (recur (.read r))))))))
-
 (defn- read-response
   "Read heynote response."
   [http-agnt]
