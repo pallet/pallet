@@ -51,6 +51,6 @@
       (.delete tmp)
       (reset! pallet.heynote/user-prefs nil)
       (binding [pallet.heynote/user-prefs-file (.getPath tmp)]
-        (process-response {"user-id" "user"})
+        (process-response {:user-id "user"})
         (is (= "user" ((user-preferences) :id)))))))
 

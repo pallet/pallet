@@ -1,5 +1,7 @@
 (ns pallet.task.feedback
-  "Send feedback to the pallet project.  Arguments will be sent as text."
+  "Feedback to the pallet project.
+      add  - send new feedback. Arguments will be sent as text.
+      list - show recent feedback."
   (:require
    [pallet.heynote :as heynote]
    [clojure.contrib.http.agent :as agent]
@@ -10,8 +12,29 @@
 
 (def heynote-project (heynote/project "pallet"))
 
+(def desc "feedback")
+(defn as-keyword [x]
+  (cond
+   (string? x) (keyword x)
+   (symbol? x) (keyword (name x))
+   :else x))
+
 (defn feedback
   {:no-service-required true}
   [& args]
-  (heynote/new-item
-   :text (apply str (interpose " " args))))
+  (let [[task & args] args
+        task (as-keyword task)
+        task (or task :list)]
+    (condp = task
+        :add  (heynote/new-item
+               :text (apply str (interpose " " args)))
+        :list (heynote/items)
+        :comment (let [[item & args] args]
+                   (heynote/add-comment
+                    item
+                    :text (apply str (interpose " " args))))
+        (do (println "Unknown feedback command" task)
+            (println "Valid feedback commands:")
+            (println "  list         - list feedback")
+            (println "  add          - add a feedback (%tag to name it)")
+            (println "  comment %tag - add a comment on the specified item")))))

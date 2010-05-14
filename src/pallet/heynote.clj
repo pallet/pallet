@@ -40,15 +40,26 @@
   (when (nil? ((user-preferences) :id))
     (user-preferences :id (response :user-id))))
 
+(defn #^String slurp*
+  [f]
+  (with-open [r f]
+      (let [sb (StringBuilder.)]
+        (loop [c (.read r)]
+          (if (neg? c)
+            (str sb)
+            (do (.append sb (char c))
+                (logging/info (str sb) )
+                (recur (.read r))))))))
+
 (defn- read-response
   "Read heynote response."
   [http-agnt]
-  (let [reader (java.io.PushbackReader.
-                      (java.io.InputStreamReader.
-                       (agent/stream http-agnt)))]
-    (let [response (json-read/read-json reader)]
-      (process-response response)
-      response)))
+  (let [ response (json-read/read-json
+                   (java.io.PushbackReader.
+                    (java.io.InputStreamReader.
+                     (agent/stream http-agnt))))]
+    (process-response response)
+    response))
 
 (defn send-msg
   "Send the given message map."
@@ -62,8 +73,7 @@
         response (agent/result agent)]
     (println
      (if (agent/client-error? agent)
-       "There was a problem sending your feedback."
-       "Feedback sent."))
+       "There was a problem with the feedback system."))
     response))
 
 (defn message-map
@@ -77,4 +87,31 @@
 (defn new-item
   "Send new feedback with the given message"
   [& options]
-  (send-msg "item/new" "POST" (merge (message-map) (apply hash-map options))))
+  (let [response (send-msg
+                  "item/new" "POST"
+                  (merge (message-map) (apply hash-map options)))]
+    (println (response :item))))
+
+(defn items
+  "Recieve feedback items"
+  [& options]
+  (let [response (send-msg
+                  "items" "GET"
+                  (merge (message-map) (apply hash-map options)))
+        items (response :items [])]
+    (doseq [item items]
+      (println item))))
+
+(defn add-comment
+  "Recieve feedback items"
+  [item & options]
+  (let [response (send-msg
+                  "comment" "POST"
+                  (-> (message-map)
+                      (merge (apply hash-map options))
+                      (assoc :item-id (if (and (string? item)
+                                               (.startsWith item "%"))
+                                        (.substring item 1)
+                                        item))))
+        comment (response :item [])]
+    (println comment)))
