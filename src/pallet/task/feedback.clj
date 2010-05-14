@@ -29,12 +29,18 @@
         :add  (heynote/new-item
                :text (apply str (interpose " " args)))
         :list (heynote/items)
+        :show (if-let [item (first args)]
+                (heynote/item item)
+                (println "Specify the %tag to show."))
         :comment (let [[item & args] args]
-                   (heynote/add-comment
-                    item
-                    :text (apply str (interpose " " args))))
+                   (if item
+                     (heynote/add-comment
+                      item
+                      :text (apply str (interpose " " args)))
+                     (println "Specify the %tag to comment on.")))
         (do (println "Unknown feedback command" task)
             (println "Valid feedback commands:")
             (println "  list         - list feedback")
             (println "  add          - add a feedback (%tag to name it)")
-            (println "  comment %tag - add a comment on the specified item")))))
+            (println "  comment %tag - add a comment on the specified item")
+            (println "  show %tag    - show the specified item")))))

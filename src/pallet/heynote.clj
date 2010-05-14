@@ -91,16 +91,48 @@
     (doseq [item items]
       (println item))))
 
+
+(defn as-number-if-possible [x]
+  (if (string? x)
+    (try
+      (Long/parseLong x)
+      (catch NumberFormatException e
+        x))
+    x))
+
+(defn as-string
+  [x]
+  (cond
+   (keyword? x) (name x)
+   (symbol? x) (name x)
+   :else (str x)))
+
+(defn item-id-from-string
+  [item]
+  (as-number-if-possible
+   (.substring (as-string item) 1)))
+
+(defn item
+  "Recieve feedback item"
+  [item & options]
+  (let [response (send-msg
+                  "item" "GET"
+                  (-> (message-map)
+                      (merge (apply hash-map options))
+                      (assoc :item-id (item-id-from-string item))))
+        item (response :item)
+        comments (response :comments [])]
+    (println item)
+    (doseq [comment comments]
+      (println comment))))
+
 (defn add-comment
-  "Recieve feedback items"
+  "Receive feedback items"
   [item & options]
   (let [response (send-msg
                   "comment" "POST"
                   (-> (message-map)
                       (merge (apply hash-map options))
-                      (assoc :item-id (if (and (string? item)
-                                               (.startsWith item "%"))
-                                        (.substring item 1)
-                                        item))))
-        comment (response :item [])]
+                      (assoc :item-id (item-id-from-string item))))
+        comment (response :item "There was a problem adding your comment.")]
     (println comment)))
