@@ -6,7 +6,6 @@
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
    [pallet.template :as template]
-   [pallet.strint :as strint]
    [pallet.resource.exec-script :as exec-script]
    [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]
