@@ -13,9 +13,10 @@
        (default-public-key-path)))
   ([username] (automated-admin-user
                username (default-public-key-path)))
-  ([username public-key-path]
+  ([username & public-key-paths]
      (user username :create-home true :shell :bash)
-     (authorize-key username (slurp public-key-path))
+     (doseq [path public-key-paths]
+       (authorize-key username (slurp path)))
      (sudoers {} {} {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})))
 
 
