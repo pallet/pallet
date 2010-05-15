@@ -16,8 +16,8 @@
 
 (deftest with-admin-user-test
   (let [x (rand)]
-    (with-admin-user x
-      (is (= x pallet.utils/*admin-user*)))))
+    (with-admin-user [x]
+      (is (= x (:username pallet.utils/*admin-user*))))))
 
 (deftest admin-user-test
   (let [username "userfred"
