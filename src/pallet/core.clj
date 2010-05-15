@@ -45,11 +45,11 @@ tag as a configuration target.
 
 (defmacro with-admin-user
   "Specify the admin user for running remote commands.  The user is specified
-  either as a user map, which can be created with make-user, or as an argument
-  list that will be passed to make-user."
+  either as pallet.utils.User record (see the pallet.utils/make-user convenience fn),
+  or as an argument list that will be passed to make-user."
   [user & exprs]
   `(let [user# ~user]
-     (binding [*admin-user* (if (vector? user#) (apply make-user user#) user#)]
+     (binding [*admin-user* (if (instance? pallet.utils.User user#) user# (apply make-user user#))]
        ~@exprs)))
 
 (defn admin-user
