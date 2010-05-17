@@ -57,19 +57,27 @@
                     </execution>
                 </executions>
             </plugin>
-	    <plugin>
-	      <!-- NOTE: We don't need a groupId specification because the group is
-		   org.apache.maven.plugins ...which is assumed by default.
-	      -->
-	      <artifactId>maven-assembly-plugin</artifactId>
-	      <version>2.2-beta-5</version>
-	      <configuration>
-		<outputDirectory>${project.basedir}</outputDirectory>
-		<appendAssemblyId>false</appendAssemblyId>
-		<finalName>lib</finalName>
-		<descriptorSourceDirectory>${project.basedir}/assembly</descriptorSourceDirectory>
-	      </configuration>
-	    </plugin>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>log4j.xml</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <!-- NOTE: We don't need a groupId specification because the group is
+           org.apache.maven.plugins ...which is assumed by default.
+          -->
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.2-beta-5</version>
+                <configuration>
+                    <outputDirectory>${project.basedir}</outputDirectory>
+                    <appendAssemblyId>false</appendAssemblyId>
+                    <finalName>lib</finalName>
+                    <descriptorSourceDirectory>${project.basedir}/assembly</descriptorSourceDirectory>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <dependencies>
