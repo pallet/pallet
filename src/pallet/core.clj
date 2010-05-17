@@ -149,7 +149,7 @@ script that is run with root privileges immediatly after first boot."
    selected at random."
   [nodes tag count compute]
   (info (str "destroying " count " nodes with tag " tag))
-  (dorun (map #(destroy-node % compute)
+  (dorun (map #(destroy-node (.getLocation %) (.getId %) compute)
               (take count (filter (partial node-has-tag? tag) nodes)))))
 
 (defn node-count-difference
