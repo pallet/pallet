@@ -156,6 +156,11 @@
 
 (resource/defresource test-component test-component-fn [arg & options])
 
+(deftest make-node-test
+  (is (= {:tag :fred :image [:ubuntu] :phases {}}
+	 (make-node "fred" [:ubuntu])))
+  (is (= {:tag :tom :image [:centos] :phases {}}
+	 (make-node "tom" [:centos]))))
 
 (deftest defnode-test
   (defnode fred [:ubuntu])

@@ -71,20 +71,26 @@ When passing a username the following options can be specified:
   `(binding [*compute* nil]
      ~@body))
 
-(defmacro defnode
-  "Define a node type.  The name is used for the node tag. Options are:
+(defmacro make-node
+  "Create a node definition.  See defnode."
+  [name image & options]
+  `(apply hash-map
+          (vector :tag (keyword ~name)
+                  :image ~image
+                  :phases (defphases ~@options))))
 
-   :image defines the image selector template.  This is a vector of keyword or
+(defmacro defnode
+  "Define a node type.  The name is used for the node tag.
+
+   image defines the image selector template.  This is a vector of keyword or
           keyword value pairs that are used to filter the image list to select
           an image.
-   :configure defines the configuration of the node."
-  [name image & options]
-  (let [[name options] (name-with-attributes name options)]
-    `(def ~name
-          (apply hash-map
-                 (vector :tag (keyword (name '~name))
-                         :image ~image
-                         :phases (defphases ~@options))))))
+   Options are used to define phases. Standard phases are:
+     :bootstrap    run on first boot
+     :configure    defines the configuration of the node."
+  [tag image & options]
+  (let [[tag options] (name-with-attributes tag options)]
+    `(def ~tag (make-node (name '~tag) ~image ~@options))))
 
 (defn build-node-template-impl
   "Build a template for passing to jclouds run-nodes."
