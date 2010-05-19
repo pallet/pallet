@@ -15,8 +15,10 @@
                username (default-public-key-path)))
   ([username & public-key-paths]
      (user username :create-home true :shell :bash)
-     (doseq [path public-key-paths]
-       (authorize-key username (slurp path)))
+     (doseq [path-or-bytes public-key-paths]
+       (if (string? path-or-bytes)
+         (authorize-key username (slurp path-or-bytes))
+         (authorize-key username (String. path-or-bytes))))
      (sudoers {} {} {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})))
 
 
