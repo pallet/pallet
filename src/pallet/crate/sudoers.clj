@@ -1,13 +1,12 @@
 (ns pallet.crate.sudoers
- (:require pallet.compat)
- (:use
+  (:require
+   [clojure.contrib.string :as string])
+  (:use
    [pallet.utils :only [underscore as-string]]
    [pallet.target :only [admin-group]]
    [pallet.template]
    [pallet.resource :only [defresource defaggregate]]
    [clojure.contrib.logging]))
-
-(pallet.compat/require-contrib)
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page

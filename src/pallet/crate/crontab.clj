@@ -2,7 +2,6 @@
   "crontab management"
   (:refer-clojure :exclude [alias])
   (:require
-   pallet.compat
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
    [pallet.resource :as resource]
