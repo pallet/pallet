@@ -5,14 +5,12 @@
         clojure.test
         pallet.test-utils)
   (:require
-    pallet.compat
    [pallet.core :as core]
    [pallet.resource.exec-script :as exec-script]
    [pallet.compute :as compute]
    [pallet.target :as target]
-   [pallet.utils :as utils]))
-
-(pallet.compat/require-contrib)
+   [pallet.utils :as utils]
+   [clojure.contrib.io :as io]))
 
 (use-fixtures :each with-null-target)
 

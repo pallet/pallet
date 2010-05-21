@@ -1,42 +1,46 @@
 (ns pallet.resource.hostinfo
   "Host information."
-  (:use pallet.script
-        [pallet.resource :only [defresource]]
-        pallet.stevedore
-        clojure.contrib.logging))
+  (:require
+   [pallet.script :as script]
+   [pallet.stevedore :as stevedore])
+  (:use
+   [pallet.resource :only [defresource]]
+   clojure.contrib.logging))
 
-(defscript os-version-name [])
-(defimpl os-version-name :default []
+(script/defscript os-version-name [])
+(stevedore/defimpl os-version-name :default []
   @(lsb_release -c -s))
 
-(defscript hostname [& options])
-(defimpl hostname :default [& options]
-  @("hostname" ~(if (first options) (map-to-arg-string (apply hash-map options)))))
+(script/defscript hostname [& options])
+(stevedore/defimpl hostname :default [& options]
+  @("hostname"
+    ~(if (first options)
+       (stevedore/map-to-arg-string (apply hash-map options)))))
 
-(defscript dnsdomainname [])
-(defimpl dnsdomainname :default []
+(script/defscript dnsdomainname [])
+(stevedore/defimpl dnsdomainname :default []
   @("dnsdomainname"))
 
-(defscript nameservers [])
-(defimpl nameservers :default []
+(script/defscript nameservers [])
+(stevedore/defimpl nameservers :default []
   @("grep" nameserver "/etc/resolv.conf" | cut "-f2"))
 
-(defscript debian-version [])
-(defimpl debian-version :default []
+(script/defscript debian-version [])
+(stevedore/defimpl debian-version :default []
   (if (file-exists? "/etc/debian") (cat "/etc/debian")))
 
-(defscript redhat-version [])
-(defimpl redhat-version :default []
+(script/defscript redhat-version [])
+(stevedore/defimpl redhat-version :default []
   (if (file-exists? "/etc/redhat-release") (cat "/etc/redhat-release")))
 
-(defscript ubuntu-version [])
-(defimpl ubuntu-version :default []
+(script/defscript ubuntu-version [])
+(stevedore/defimpl ubuntu-version :default []
   (if (file-exists? "/usr/bin/lsb_release") @("/usr/bin/lsb_release" -c -s)))
 
-(defscript arch [])
-(defimpl architecture :default []
+(script/defscript arch [])
+(stevedore/defimpl architecture :default []
   @(uname -p))
 
 (defn architecture []
   "Machine CPU architecture."
-  (script (arch)))
+  (stevedore/script (arch)))

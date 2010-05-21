@@ -4,11 +4,9 @@
    [pallet.compute :as compute]
    [pallet.parameter :as parameter]
    pallet.resource.test-resource
-   pallet.compat)
+   [clojure.contrib.string :as string])
   (:use clojure.test
         pallet.test-utils))
-
-(pallet.compat/require-contrib)
 
 (use-fixtures :each with-null-target)
 

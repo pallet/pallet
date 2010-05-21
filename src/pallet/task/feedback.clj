@@ -5,10 +5,7 @@
   (:require
    [pallet.heynote :as heynote]
    [clojure.contrib.http.agent :as agent]
-   [clojure.contrib.http.connection :as connection]
-   pallet.compat))
-
-(pallet.compat/require-contrib)
+   [clojure.contrib.http.connection :as connection]))
 
 (def heynote-project (heynote/project "pallet"))
 

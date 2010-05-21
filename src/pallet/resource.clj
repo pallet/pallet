@@ -1,17 +1,16 @@
 (ns pallet.resource
   "Resource definition interface."
   (:require
-   pallet.compat
    [pallet.target :as target]
    [pallet.compute :as compute]
    [pallet.parameter :as parameter]
    [pallet.utils :as utils]
-   [pallet.stevedore :as stevedore])
+   [pallet.stevedore :as stevedore]
+   [clojure.contrib.seq :as seq]
+   [clojure.contrib.string :as string])
   (:use
    (clojure.contrib core logging
                     [def :only [defvar defvar- name-with-attributes]])))
-
-(pallet.compat/require-contrib)
 
 (defvar *required-resources* {} "Resources for each phase")
 (defvar *phase* :configure "Execution phase for resources")

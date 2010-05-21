@@ -1,12 +1,11 @@
 (ns pallet.stevedore
   "Embed shell script in clojure"
-  (:require pallet.compat)
-  (:require [pallet.utils :as utils])
+  (:require
+   [pallet.utils :as utils]
+   [clojure.contrib.string :as string])
   (:use clojure.walk
         clojure.contrib.logging
         pallet.script))
-
-(pallet.compat/require-contrib)
 
 (defn- add-quotes [s]
   (str "\"" s "\""))

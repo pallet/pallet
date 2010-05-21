@@ -1,6 +1,7 @@
 (ns pallet.crate.cloudkick
   "Agent install for cloudkick"
-  (:require pallet.resource.remote-file)
+  (:require
+   pallet.resource.remote-file)
   (:require
    [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]

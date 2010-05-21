@@ -19,8 +19,9 @@
 (defn make-node [tag & options]
   (let [options (apply hash-map options)]
     (NodeMetadataImpl.
-     tag                                ; id
+     tag                                ; providerId
      tag                                ; name
+     tag                                ; id
      (options :location)
      (java.net.URI. tag)                ; uri
      (get options :user-metadata {})
@@ -41,8 +42,9 @@
         meta (dissoc options :location :user-metadata :state :public-ips
                      :private-ips :extra :credentials)]
     (NodeMetadataImpl.
-     tag                                ; id
+     tag                                ; providerId
      tag                                ; name
+     tag                                ; id
      (options :location)
      (java.net.URI. tag)                ; uri
      (merge (get options :user-metadata {}) meta)
@@ -63,8 +65,9 @@
                      :version :os-family :os-description :architecture
                      :default-credentials)]
     (ImageImpl.
-     id
+     id ; providerId
      (options :name)
+     id
      (options :location)
      (options :uri)
      (merge (get options :user-metadata {}) meta)

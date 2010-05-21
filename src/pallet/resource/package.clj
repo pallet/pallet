@@ -1,56 +1,54 @@
 (ns pallet.resource.package
   "Package management resource."
   (:require
-   pallet.compat
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.hostinfo :as hostinfo]
    [pallet.stevedore :as stevedore]
-   [pallet.utils :as utils])
-  (:use pallet.script
-        pallet.stevedore
-        [pallet.resource :only [defaggregate defresource]]
-        [clojure.contrib.logging]
-        [pallet.target :only [packager]]))
+   [pallet.script :as script]
+   [pallet.utils :as utils]
+   [clojure.contrib.string :as string])
+  (:use
+   [pallet.resource :only [defaggregate defresource]]
+   [clojure.contrib.logging]
+   [pallet.target :only [packager]]))
 
-(pallet.compat/require-contrib)
+(script/defscript update-package-list [& options])
+(script/defscript install-package [name & options])
+(script/defscript remove-package [name & options])
+(script/defscript purge-package [name & options])
 
-(defscript update-package-list [& options])
-(defscript install-package [name & options])
-(defscript remove-package [name & options])
-(defscript purge-package [name & options])
+(stevedore/defimpl update-package-list :default [& options]
+  (aptitude update ~(stevedore/option-args options)))
 
-(defimpl update-package-list :default [& options]
-  (aptitude update ~(option-args options)))
+(stevedore/defimpl install-package :default [package & options]
+  (aptitude install -y ~(stevedore/option-args options) ~package))
 
-(defimpl install-package :default [package & options]
-  (aptitude install -y ~(option-args options) ~package))
+(stevedore/defimpl remove-package :default [package & options]
+  (aptitude remove -y ~(stevedore/option-args options) ~package))
 
-(defimpl remove-package :default [package & options]
-  (aptitude remove -y ~(option-args options) ~package))
+(stevedore/defimpl purge-package :default [package & options]
+  (aptitude purge -y  ~(stevedore/option-args options) ~package))
 
-(defimpl purge-package :default [package & options]
-  (aptitude purge -y  ~(option-args options) ~package))
+(stevedore/defimpl update-package-list [#{:centos :rhel}] [& options]
+  (yum makecache ~(stevedore/option-args options)))
 
-(defimpl update-package-list [#{:centos :rhel}] [& options]
-  (yum makecache ~(option-args options)))
+(stevedore/defimpl install-package [#{:centos :rhel}] [package & options]
+  (yum install -y ~(stevedore/option-args options) ~package))
 
-(defimpl install-package [#{:centos :rhel}] [package & options]
-  (yum install -y ~(option-args options) ~package))
+(stevedore/defimpl remove-package [#{:centos :rhel}] [package & options]
+  (yum remove ~(stevedore/option-args options) ~package))
 
-(defimpl remove-package [#{:centos :rhel}] [package & options]
-  (yum remove ~(option-args options) ~package))
-
-(defimpl purge-package [#{:centos :rhel}] [package & options]
-  (yum purge ~(option-args options) ~package))
+(stevedore/defimpl purge-package [#{:centos :rhel}] [package & options]
+  (yum purge ~(stevedore/option-args options) ~package))
 
 
-(defscript debconf-set-selections [& selections])
-(defimpl debconf-set-selections :default [& selections]
+(script/defscript debconf-set-selections [& selections])
+(stevedore/defimpl debconf-set-selections :default [& selections]
   ("{ debconf-set-selections"
    ~(str "<<EOF\n" (string/join \newline selections) "\nEOF\n}")))
 
-(defscript package-manager-non-interactive [])
-(defimpl package-manager-non-interactive :default []
+(script/defscript package-manager-non-interactive [])
+(stevedore/defimpl package-manager-non-interactive :default []
   (debconf-set-selections
    "debconf debconf/frontend select noninteractive"
    "debconf debconf/frontend seen false"))
@@ -63,25 +61,25 @@
         action (opts :action)]
     (condp = action
       :install
-      (script
+      (stevedore/script
        (apply install-package
               ~package-name
               ~(apply concat (select-keys opts [:y :force]))))
       :remove
       (if (opts :purge)
-        (script (purge-package ~package-name))
-        (script (remove-package ~package-name)))
+        (stevedore/script (purge-package ~package-name))
+        (stevedore/script (remove-package ~package-name)))
       :upgrade
-      (script (purge-package ~package-name))
+      (stevedore/script (purge-package ~package-name))
       :update-package-list
-      (script (update-package-list))
+      (stevedore/script (update-package-list))
       (throw (IllegalArgumentException.
               (str action " is not a valid action for package resource"))))))
 
 (defn- apply-packages [package-args]
   (stevedore/do-script*
    (cons
-    (script (package-manager-non-interactive))
+    (stevedore/script (package-manager-non-interactive))
     (map #(apply package* %) package-args))))
 
 (defaggregate package "Package management."
@@ -147,7 +145,7 @@
 (defn add-scope
   "Add a scope to all the existing package sources"
   [type scope file]
-  (script
+  (stevedore/script
    (var tmpfile @(mktemp addscopeXXXX))
    (cp "-p" ~file @tmpfile)
    (awk "'{if ($1 ~" ~(str "/^" type "/") "&& !" ~(str "/" scope "/")
@@ -161,7 +159,7 @@
     (stevedore/checked-commands "package-manager"
      (condp = action
        :update
-       (script (update-package-list))
+       (stevedore/script (update-package-list))
        :multiverse
        (add-scope (or (opts :type) "deb.*")
                   "multiverse"
@@ -172,7 +170,7 @@
                   (or (opts :file) "/etc/apt/sources.list"))
        :debconf
        (if (= :aptitude (packager))
-         (script (apply debconf-set-selections ~options)))
+         (stevedore/script (apply debconf-set-selections ~options)))
        (throw (IllegalArgumentException.
                (str action " is not a valid action for package resource")))))))
 

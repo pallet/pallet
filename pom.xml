@@ -169,11 +169,6 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.danlarkin</groupId>
-            <artifactId>clojure-json</artifactId>
-            <version>1.1-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>clj-ssh</groupId>
             <artifactId>clj-ssh</artifactId>
             <version>0.0.1-SNAPSHOT</version>

@@ -11,10 +11,10 @@
    [pallet.stevedore :only [script defimpl map-to-arg-string]]
    [pallet.script :only [defscript]]
    [pallet.utils :only [*admin-user*]]
-   [pallet.target :only [packager]])
+   [pallet.target :only [packager]]
+   [clojure.contrib.json :as json])
   (:require
-   [pallet.resource.file]
-   [org.danlarkin [json :as json]]))
+   [pallet.resource.file]))
 
 (defscript gem [action package & options])
 (defimpl gem :default [action package & options]
@@ -90,7 +90,7 @@
 (defn gemrc* [m & user?]
   (let [user (or (first user?) (*admin-user* :username))]
     (remote-file* (str (script (user-home ~user)) "/.gemrc")
-                  :content (.replaceAll (json/encode-to-str m) "[{}]" "")
+                  :content (.replaceAll (json/json-str m) "[{}]" "")
                   :owner user)))
 
 (defresource gemrc "rubygems configuration"

@@ -2,44 +2,43 @@
   "File manipulation."
   (:require
    [pallet.utils :as utils]
-   [pallet.stevedore :as stevedore])
+   [pallet.stevedore :as stevedore]
+   [pallet.script :as script])
   (:use
-   pallet.script
-   pallet.stevedore
    [pallet.resource :only [defresource]]
    clojure.contrib.logging))
 
-(defscript rm [file & options])
-(defimpl rm :default [file & options]
-  ("rm" ~(map-to-arg-string (first options)) ~file))
+(script/defscript rm [file & options])
+(stevedore/defimpl rm :default [file & options]
+  ("rm" ~(stevedore/map-to-arg-string (first options)) ~file))
 
-(defscript chown [owner file & options])
-(defimpl chown :default [owner file & options]
-  ("chown" ~(map-to-arg-string (first options)) ~owner ~file))
+(script/defscript chown [owner file & options])
+(stevedore/defimpl chown :default [owner file & options]
+  ("chown" ~(stevedore/map-to-arg-string (first options)) ~owner ~file))
 
-(defscript chgrp [group file & options])
-(defimpl chgrp :default [group file & options]
-  ("chgrp" ~(map-to-arg-string (first options)) ~group ~file))
+(script/defscript chgrp [group file & options])
+(stevedore/defimpl chgrp :default [group file & options]
+  ("chgrp" ~(stevedore/map-to-arg-string (first options)) ~group ~file))
 
-(defscript chmod [mode file & options])
-(defimpl chmod :default [mode file & options]
-  ("chmod" ~(map-to-arg-string (first options)) ~mode ~file))
+(script/defscript chmod [mode file & options])
+(stevedore/defimpl chmod :default [mode file & options]
+  ("chmod" ~(stevedore/map-to-arg-string (first options)) ~mode ~file))
 
-(defscript touch [file & options])
-(defimpl touch :default [file & options]
-  ("touch" ~(map-to-arg-string (first options)) ~file))
+(script/defscript touch [file & options])
+(stevedore/defimpl touch :default [file & options]
+  ("touch" ~(stevedore/map-to-arg-string (first options)) ~file))
 
-(defscript sed-file [file expr replacement & options])
+(script/defscript sed-file [file expr replacement & options])
 
-(defimpl sed-file :default [file expr replacement & options]
+(stevedore/defimpl sed-file :default [file expr replacement & options]
   (sed "-i" ~(str "/" expr "/" replacement "/") ~file))
 
-(defscript tmp-dir [])
-(defimpl tmp-dir :default []
+(script/defscript tmp-dir [])
+(stevedore/defimpl tmp-dir :default []
   @TMPDIR-/tmp)
 
-(defscript heredoc [path content])
-(defimpl heredoc :default [path content]
+(script/defscript heredoc [path content])
+(stevedore/defimpl heredoc :default [path content]
   ("{ cat" ">" ~path ~(str "<<EOF\n" content "\nEOF\n }")))
 
 ;; the cat is wrapped in braces so that the final newline is protected
@@ -48,7 +47,7 @@
       :literal boolean  - if true, prevents shell expansion of contents"
   [path content & options]
   (let [options (apply hash-map options)]
-    (script ("{ cat" ">" ~path
+    (stevedore/script ("{ cat" ">" ~path
              ~(str (if (options :literal) "<<'EOF'\n" "<<EOF\n")
                    content "\nEOF\n }")))))
 
@@ -57,15 +56,15 @@
    (filter
     (complement nil?)
     [(when (opts :owner)
-       (script (chown ~(opts :owner) ~path)))
+       (stevedore/script (chown ~(opts :owner) ~path)))
      (when (opts :group)
-       (script (chgrp ~(opts :group) ~path)))
+       (stevedore/script (chgrp ~(opts :group) ~path)))
      (when (opts :mode)
-       (script (chmod ~(opts :mode) ~path)))])))
+       (stevedore/script (chmod ~(opts :mode) ~path)))])))
 
 (defn touch-file [path opts]
   (stevedore/chain-commands
-   (script
+   (stevedore/script
     (touch ~path ~(select-keys opts [:force])))
    (adjust-file path opts)))
 

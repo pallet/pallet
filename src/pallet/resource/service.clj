@@ -1,9 +1,8 @@
 (ns pallet.resource.service
   "Service control."
-  (:use pallet.script
-        pallet.stevedore
-        clojure.contrib.logging)
+  (:use clojure.contrib.logging)
   (:require
+   [pallet.stevedore :as stevedore]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource :as resource]))
 
@@ -12,7 +11,7 @@
   (let [opts (apply hash-map options)
         opts (merge {:action :start} opts)
         action (opts :action)]
-    (script ( ~(str "/etc/init.d/" service-name) ~(name action)))))
+    (stevedore/script ( ~(str "/etc/init.d/" service-name) ~(name action)))))
 
 (resource/defresource service
   "Control serives"

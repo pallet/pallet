@@ -1,5 +1,4 @@
 (ns pallet.crate.resolv
- (:require pallet.compat)
  (:use
    [pallet.target :only [admin-group]]
    [pallet.stevedore :only [script]]
@@ -7,9 +6,9 @@
    [pallet.resource :only [defresource defaggregate]]
    [pallet.resource.hostinfo :only [dnsdomainname]]
    [pallet.utils :only [as-string]]
-   [clojure.contrib.logging]))
-
-(pallet.compat/require-contrib)
+   [clojure.contrib.logging])
+ (:require
+  [clojure.contrib.string :as string]))
 
 (defn- write-key-value [key value]
   (str (as-string key) " " (as-string value) \newline))

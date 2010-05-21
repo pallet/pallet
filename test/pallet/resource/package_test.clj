@@ -1,5 +1,4 @@
 (ns pallet.resource.package-test
- (:require pallet.compat)
   (:use [pallet.resource.package] :reload-all)
   (:use [pallet.stevedore :only [script]]
         [pallet.utils :only [sh-script]]
@@ -11,9 +10,8 @@
    [pallet.resource :as resource]
    [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]
-   [pallet.target :as target]))
-
-(pallet.compat/require-contrib)
+   [pallet.target :as target]
+   [clojure.contrib.io :as io]))
 
 (use-fixtures :each with-null-target)
 

@@ -1,6 +1,8 @@
 (ns pallet.utils
   (:require
-   pallet.compat
+   [clojure.contrib.shell :as shell]
+   [clojure.contrib.io :as io]
+   [clojure.contrib.string :as string]
    [clojure.contrib.pprint :as pprint]
    [clojure.contrib.condition :as condition]
    [pallet.keychain :as keychain])
@@ -8,8 +10,6 @@
    clojure.contrib.logging
    clj-ssh.ssh
    clojure.contrib.def))
-
-(pallet.compat/require-contrib)
 
 (defn pprint-lines [s]
   (pprint/pprint (seq (.split #"\r?\n" s))))
@@ -148,7 +148,7 @@
 
 (defn register-file-transfer!
   [local-file]
-  (let [f (pallet.compat/file local-file)]   ;; will use io/file under 1.2
+  (let [f (clojure.contrib.io/file local-file)]
     (when-not (and (.exists f) (.isFile f) (.canRead f))
       (throw (IllegalArgumentException.
                (format "'%s' does not exist, is a directory, or is unreadable; cannot register it for transfer" local-file))))

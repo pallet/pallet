@@ -4,10 +4,7 @@
    clojure.test
    pallet.test-utils)
   (:require
-   pallet.compat
    [pallet.utils :as utils]))
-
-(pallet.compat/require-contrib)
 
 (defn strip-ws
   "strip extraneous whitespace so tests don't fail because of differences in whitespace"

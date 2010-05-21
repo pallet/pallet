@@ -1,10 +1,10 @@
 (ns pallet.crate.ssh-key
   (:require
-   pallet.compat
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
    [pallet.resource.directory :as directory]
-   [pallet.resource.remote-file :as remote-file])
+   [pallet.resource.remote-file :as remote-file]
+   [clojure.contrib.string :as string])
   (:use
    [pallet.target :only [admin-group]]
    [pallet.template]
@@ -12,8 +12,6 @@
    [pallet.resource.user :only [user-home]]
    [pallet.resource.file :only [chmod chown file*]]
    [clojure.contrib.logging]))
-
-(pallet.compat/require-contrib)
 
 (defn user-ssh-dir [user]
   (str (stevedore/script (user-home ~user)) "/.ssh/"))
@@ -26,7 +24,7 @@
      (string/join "\n" (map string/rtrim keys))
      keys)})
 
-(defn- authorize-key* [user keys]
+(defn authorize-key* [user keys]
   (stevedore/do-script
    (directory/directory* (user-ssh-dir user) :owner user :mode "755")
    (remote-file/remote-file*

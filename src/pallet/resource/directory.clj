@@ -2,36 +2,39 @@
   "Directory manipulation."
   (:require
    [pallet.utils :as utils]
-   [pallet.stevedore :as stevedore])
-  (:use pallet.script
-        pallet.stevedore
-        [pallet.resource :only [defresource]]
-        [pallet.resource.file :only [chown chgrp chmod]]
-        clojure.contrib.logging))
+   [pallet.stevedore :as stevedore]
+   [pallet.script :as script])
+  (:use
+   [pallet.resource :only [defresource]]
+   [pallet.resource.file :only [chown chgrp chmod]]
+   clojure.contrib.logging))
 
-(defscript rmdir [directory & options])
-(defimpl rmdir :default [directory & options]
-  ("rmdir" ~(map-to-arg-string (first options)) ~directory))
+(script/defscript rmdir [directory & options])
+(stevedore/defimpl rmdir :default [directory & options]
+  ("rmdir" ~(stevedore/map-to-arg-string (first options)) ~directory))
 
-(defscript mkdir [directory & options])
-(defimpl mkdir :default [directory & options]
-  ("mkdir" ~(map-to-arg-string (first options)) ~directory))
+(script/defscript mkdir [directory & options])
+(stevedore/defimpl mkdir :default [directory & options]
+  ("mkdir" ~(stevedore/map-to-arg-string (first options)) ~directory))
 
 (defn adjust-directory [path opts]
   (stevedore/chain-commands*
    (filter
     (complement nil?)
     [(when (opts :owner)
-       (script (chown ~(opts :owner) ~path  ~(select-keys opts [:recursive]))))
+       (stevedore/script
+        (chown ~(opts :owner) ~path  ~(select-keys opts [:recursive]))))
      (when (opts :group)
-       (script (chgrp ~(opts :group) ~path  ~(select-keys opts [:recursive]))))
+       (stevedore/script
+        (chgrp ~(opts :group) ~path  ~(select-keys opts [:recursive]))))
      (when (opts :mode)
-       (script (chmod ~(opts :mode) ~path  ~(select-keys opts [:recursive]))))])))
+       (stevedore/script
+        (chmod ~(opts :mode) ~path  ~(select-keys opts [:recursive]))))])))
 
 (defn make-directory [path opts]
   (stevedore/checked-commands
    (str "directory " path)
-   (script
+   (stevedore/script
     (mkdir ~path ~(select-keys opts [:p :v :m])))
    (adjust-directory path opts)))
 

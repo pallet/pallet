@@ -2,7 +2,9 @@
   (:use [pallet.heynote] :reload-all)
   (:use
    clojure.test
-   pallet.test-utils))
+   pallet.test-utils)
+  (:require
+   [clojure.contrib.io :as io]))
 
 (defn reset-atoms
   [f]

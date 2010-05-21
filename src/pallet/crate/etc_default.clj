@@ -1,13 +1,11 @@
 (ns pallet.crate.etc-default
   "Generation and installation of /etc/default-style files."
  (:require
-   pallet.compat
    [pallet.stevedore :as script]
    [pallet.resource.file :as file]
    [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.exec-script :as exec-script]))
-
-(pallet.compat/require-contrib)
+   [pallet.resource.exec-script :as exec-script]
+   [clojure.contrib.string :as string]))
 
 (def default-dir "/etc/default")
 

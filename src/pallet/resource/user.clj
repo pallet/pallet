@@ -1,13 +1,13 @@
 (ns pallet.resource.user
   "User management resource."
-  (:require pallet.compat)
-  (:use pallet.script
-        [pallet.resource :only [defresource defaggregate]]
-        pallet.stevedore
-        [clojure.contrib.def :only [defvar-]]
-        clojure.contrib.logging))
-
-(pallet.compat/require-contrib)
+  (:use
+   pallet.script
+   [pallet.resource :only [defresource defaggregate]]
+   pallet.stevedore
+   [clojure.contrib.def :only [defvar-]]
+   clojure.contrib.logging)
+  (:require
+   [clojure.contrib.string :as string]))
 
 (defscript user-exists? [name])
 (defscript modify-user [name options])

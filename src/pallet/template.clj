@@ -1,15 +1,14 @@
 (ns pallet.template
   "Template file writing"
   (:require
-   pallet.compat
    [pallet.strint :as strint]
    [pallet.target :as target]
-   [pallet.utils :as utils])
-  (:use [pallet.stevedore :only [script]]
-        [pallet.resource.file]
-        [clojure.contrib.logging]))
-
-(pallet.compat/require-contrib)
+   [pallet.utils :as utils]
+   [clojure.contrib.string :as string]
+   [pallet.stevedore :as stevedore])
+  (:use
+   [pallet.resource.file]
+   [clojure.contrib.logging]))
 
 (defn get-resource
   "Loads a resource. Returns a URI."
@@ -78,15 +77,15 @@
   (let [path (:path file-spec)]
     (string/join ""
                  (filter (complement nil?)
-                         [(script (var file ~path) (cat > @file <<EOF))
+                         [(stevedore/script (var file ~path) (cat > @file <<EOF))
                           content
                           "\nEOF\n"
                           (when-let [mode (:mode file-spec)]
-                            (script (do ("chmod" ~mode @file))))
+                            (stevedore/script (do ("chmod" ~mode @file))))
                           (when-let [group (:group file-spec)]
-                            (script (do ("chgrp" ~group @file))))
+                            (stevedore/script (do ("chgrp" ~group @file))))
                           (when-let [owner (:owner file-spec)]
-                            (script (do ("chown" ~owner @file))))]))))
+                            (stevedore/script (do ("chown" ~owner @file))))]))))
 
 ;; TODO - add chmod, owner, group
 (defn apply-templates [template-fn args]

@@ -1,10 +1,9 @@
 (ns pallet.resource.remote-file
   "File Contents."
-  (:use pallet.script
-        pallet.stevedore
-        [pallet.resource :only [defresource]]
-        [pallet.resource.file :only [adjust-file heredoc]]
-        clojure.contrib.logging)
+  (:use
+   [pallet.resource :only [defresource]]
+   [pallet.resource.file :only [adjust-file heredoc]]
+   clojure.contrib.logging)
   (:require
    [pallet.stevedore :as stevedore]
    [pallet.template :as template]

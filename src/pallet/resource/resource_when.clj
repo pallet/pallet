@@ -1,9 +1,10 @@
 (ns pallet.resource.resource-when
   "Conditional resource execution."
-  (:use pallet.script
-        pallet.stevedore
-        [pallet.resource :only [invoke-resource build-resources]]
-        clojure.contrib.logging))
+  (:require
+   [pallet.stevedore :as stevedore])
+  (:use
+   [pallet.resource :only [invoke-resource build-resources]]
+   clojure.contrib.logging))
 
 (defn exec-when*
   [script]
@@ -13,7 +14,7 @@
   `(invoke-resource
     exec-when*
     [(fn []
-       (script
+       (stevedore/script
         (if ~condition
           (do (unquote (build-resources [] ~@resources))))))]))
 
@@ -25,6 +26,6 @@
   `(invoke-resource
     exec-when*
     [(fn []
-       (script
+       (stevedore/script
         (if-not ~condition
           (do (unquote (build-resources [] ~@resources))))))]))

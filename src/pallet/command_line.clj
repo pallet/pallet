@@ -65,16 +65,16 @@
    specifying right or left alignment (:r or :l) for each column."
    [spec & rows]
    (let [maxes (vec (for [n (range (count (first rows)))]
-                        (apply max (map (comp count #(nth % n)) rows))))
+                      (apply max (map (comp count #(nth % n)) rows))))
          fmt (join " "
-                  (for [n (range (count maxes))]
+                   (for [n (range (count maxes))]
                      (str "%"
-                        (when-not (zero? (maxes n))
-                           (str (when (= (spec n) :l) "-") (maxes n)))
+                          (when-not (zero? (maxes n))
+                            (str (when (= (spec n) :l) "-") (maxes n)))
                           "s")))]
-      (join "\n"
-         (for [row rows]
-            (apply format fmt row)))))
+     (join "\n"
+           (for [row rows]
+             (apply format fmt row)))))
 
 (defn- rmv-q
    "Remove ?"

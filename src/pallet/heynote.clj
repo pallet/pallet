@@ -1,12 +1,10 @@
 (ns pallet.heynote
   "Heynote feedback client"
   (:require
-   pallet.compat
    [clojure.contrib.logging :as logging]
    [clojure.contrib.http.agent :as agent]
-   [clojure.contrib.http.connection :as connection]))
-
-(pallet.compat/require-contrib)
+   [clojure.contrib.http.connection :as connection]
+   [clojure.contrib.json :as json]))
 
 (defonce heynote-project (atom nil))
 
@@ -32,7 +30,7 @@
        (reset! user-prefs {}))))
   (when (seq options)
     (swap! user-prefs merge (apply hash-map options))
-    (io/spit user-prefs-file (with-out-str (pr @user-prefs))))
+    (spit user-prefs-file (with-out-str (pr @user-prefs))))
   @user-prefs)
 
 (defn- process-response
@@ -43,7 +41,7 @@
 (defn- read-response
   "Read heynote response."
   [http-agnt]
-  (let [ response (json-read/read-json
+  (let [ response (json/read-json
                    (java.io.PushbackReader.
                     (java.io.InputStreamReader.
                      (agent/stream http-agnt))))]
@@ -56,7 +54,7 @@
   (let [agent (agent/http-agent
                (str heynote-url path)
                :method method
-               :body (json-write/json-str msg-map)
+               :body (json/json-str msg-map)
                :headers {"Content-type" "application/json"}
                :handler read-response)
         response (agent/result agent)]
