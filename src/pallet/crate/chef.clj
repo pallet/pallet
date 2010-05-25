@@ -16,5 +16,5 @@
      (rubygems)
      (gem-source "http://rubygems.org/")
      (gem "chef")
-     (directory cookbook-dir :owner (*admin-user* :username))))
+     (directory cookbook-dir :owner (:username *admin-user*))))
 

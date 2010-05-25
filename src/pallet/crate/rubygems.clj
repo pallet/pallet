@@ -14,7 +14,8 @@
    [pallet.target :only [packager]]
    [clojure.contrib.json :as json])
   (:require
-   [pallet.resource.file]))
+   [pallet.resource.file]
+   [pallet.stevedore :as stevedore]))
 
 (defscript gem [action package & options])
 (defimpl gem :default [action package & options]
@@ -30,7 +31,7 @@
   "Install rubygems from source"
   ([] (rubygems "1.3.6"))
   ([version]
-     ;(resource-when-not (file-exists? "/usr/bin/ruby"))
+     ;;(resource-when-not (file-exists? "/usr/bin/ruby"))
      (ruby-packages)
      (resource-when (< @(ruby-version) "1.8.6")
                     (ruby))
@@ -43,20 +44,24 @@
         :url (first info)
         :md5 (second info))
        (exec-script
-        (script
+        (stevedore/checked-script "Building rubygems"
          (cd (tmp-dir))
          (tar xfz ~tarfile)
          (cd ~basename)
          (ruby setup.rb)
          (if-not (|| (file-exists? "/usr/bin/gem1.8")
                      (file-exists? "/usr/local/bin/gem"))
-           (exit 1))
+           (do (println "Could not find rubygem executable")
+               (exit 1)))
          ;; Create a symlink if we only have one ruby version installed
          (if-not (&& (file-exists? "/usr/bin/gem1.8")
                      (file-exists? "/usr/bin/gem1.9"))
            (if (file-exists? "/usr/bin/gem1.8")
              (ln "-sfv" "/usr/bin/gem1.8" "/usr/bin/gem")))
-         )))))
+         (if-not (&& (file-exists? "/usr/local/bin/gem1.8")
+                     (file-exists? "/usr/local/bin/gem1.9"))
+           (if (file-exists? "/usr/local/bin/gem1.8")
+             (ln "-sfv" "/usr/locl/bin/gem1.8" "/usr/local/bin/gem"))))))))
 
 (defn rubygems-update
   [] (exec-script (script ("gem" "update" "--system"))))
