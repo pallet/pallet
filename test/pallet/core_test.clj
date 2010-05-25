@@ -217,7 +217,7 @@
   (let [na (compute/make-node "a")
         nb (compute/make-node "b")
         nc (compute/make-node "c")]
-    (mock/expects [(org.jclouds.compute/nodes [_] [na nb nc])
+    (mock/expects [(org.jclouds.compute/nodes-with-details [_] [na nb nc])
                    (apply-phases
                     [& _]
                     (do
@@ -237,5 +237,5 @@
                     (do
                       (is (= #{na nb} (set (target/all-nodes))))
                       (is (= #{na nb} (set (target/target-nodes))))))
-                   (org.jclouds.compute/nodes [& _] [na nb nc])]
+                   (org.jclouds.compute/nodes-with-details [& _] [na nb nc])]
                   (converge* nil "" {a 1 b 1} [:configure]))))

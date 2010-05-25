@@ -31,7 +31,8 @@ tag as a configuration target.
     :only [node-has-tag? node-counts-by-tag boot-if-down compute-node?
            execute-script ssh-port]]
    [org.jclouds.compute
-    :only [run-nodes destroy-node nodes tag running? compute-service? *compute*]]
+    :only [run-nodes destroy-node nodes-with-details tag running? compute-service?
+           *compute*]]
    clojure.contrib.logging
    clojure.contrib.def)
   (:require
@@ -182,7 +183,8 @@ script that is run with root privileges immediatly after first boot."
 (defn converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
    instances."
-  ([compute node-map] (converge-node-counts compute node-map (nodes compute)))
+  ([compute node-map] (converge-node-counts
+                       compute node-map (nodes-with-details compute)))
   ([compute node-map nodes]
      (info "converging nodes")
      (trace (str "  " node-map))
@@ -253,7 +255,7 @@ script that is run with root privileges immediatly after first boot."
   (trace (str "converge*  " node-map))
   (let [node-map (add-prefix-to-node-map prefix node-map)]
     (converge-node-counts compute node-map)
-    (let [nodes (filter running? (nodes compute))
+    (let [nodes (filter running? (nodes-with-details compute))
           target-nodes (nodes-in-map node-map nodes)
           phases (ensure-configure-phase phases)]
       (target/with-nodes nodes target-nodes
@@ -289,7 +291,8 @@ script that is run with root privileges immediatly after first boot."
   The return value is a map of node-type -> node sequence."
   ([node-set prefix] (nodes-in-set node-set prefix *compute*))
   ([node-set prefix compute]
-     (nodes-in-set node-set prefix compute (if compute (nodes compute))))
+     (nodes-in-set
+      node-set prefix compute (if compute (nodes-with-details compute))))
   ([node-set prefix compute nodes]
      (letfn [(ensure-set [x] (if (set? x) x #{x}))
              (ensure-set-values
@@ -307,7 +310,7 @@ script that is run with root privileges immediatly after first boot."
 
 (defn lift*
   [compute prefix node-set phases]
-  (let [nodes (if compute (filter running? (nodes compute)))
+  (let [nodes (if compute (filter running? (nodes-with-details compute)))
         target-node-map (nodes-in-set node-set prefix compute nodes)
         target-nodes (filter running? (apply concat (vals target-node-map)))
         nodes (or nodes target-nodes)]
