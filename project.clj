@@ -23,7 +23,7 @@
                      [org.jclouds/jclouds-hostingdotcom "1.0-SNAPSHOT"]
                      [org.jclouds/jclouds-rimuhosting "1.0-SNAPSHOT"]
                      [org.jclouds/jclouds-gogrid "1.0-SNAPSHOT"]
-                     [leiningen/lein-swank "1.2.0-SNAPSHOT"]
+                     [swank-clojure/swank-clojure "1.2.1"]
                      [autodoc "0.7.0"]]
   :repositories [["build.clojure.org" "http://build.clojure.org/releases/"]
 		 ["clojars.org" "http://clojars.org/repo/"]
