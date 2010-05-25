@@ -200,6 +200,12 @@
 	  <artifactId>maven-settings</artifactId>
 	  <version>2.0.10</version>
         </dependency>
+        <dependency>
+         <groupId>swank-clojure</groupId>
+         <artifactId>swank-clojure</artifactId>
+         <version>1.2.1</version>
+         <optional>true</optional>
+        </dependency>
     </dependencies>
 
     <repositories>
