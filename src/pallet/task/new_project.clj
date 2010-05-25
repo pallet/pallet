@@ -1,18 +1,19 @@
 (ns pallet.task.new-project
-  "Create a new pallet project."
+  "Create a new pallet project.
+     pallet new-project <project-directory>."
   (:import
    [java.io
     File OutputStreamWriter FileOutputStream PrintWriter]))
 
 ;;; We don't want this task to depend on clojure.contrib, or on lein
 
-(defn spit
-  "Opposite of slurp.  Opens f, writes content, then closes f."
-  [f content]
-  (with-open [w (PrintWriter.
-                 (OutputStreamWriter.
-                  (FileOutputStream. f)))]
-    (.print w content)))
+;; (defn spit
+;;   "Opposite of slurp.  Opens f, writes content, then closes f."
+;;   [f content]
+;;   (with-open [w (PrintWriter.
+;;                  (OutputStreamWriter.
+;;                   (FileOutputStream. f)))]
+;;     (.print w content)))
 
 (defn file
   [& args]
@@ -41,7 +42,7 @@
       (.mkdirs (.getParentFile (file project-dir "src" project-clj)))
       (spit (file project-dir "src" project-clj)
             (str "(ns " project-ns
-                 "\n  \"Admin and provisioning for \"FIXME:project\".\" "
+                 "\n  \"Admin and provisioning for FIXME:project.\" "
                  "\n  (:require"
                  "\n    [pallet.core :as core]))\n"))
       (.mkdirs (.getParentFile (file project-dir "test" test-clj)))
