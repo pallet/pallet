@@ -51,8 +51,7 @@
      tag
      (options :image)
      (get options :state NodeState/RUNNING)
-     (conj (get options :public-ips [])
-           (java.net.InetAddress/getByName host-or-ip))
+     (conj (get options :public-ips []) host-or-ip)
      (get options :private-ips [])
      (get options :extra {})
      (get options :credentials nil))))
@@ -196,8 +195,6 @@ node."
     (image-string (.getImage node))
     (.getState node)
     (apply
-     str (interpose
-          ", " (map #(.getHostAddress %) (.getPublicAddresses node))))
+     str (interpose ", " (.getPublicAddresses node)))
     (apply
-     str (interpose
-          ", " (map #(.getHostAddress %) (.getPrivateAddresses node)))))))
+     str (interpose ", " (.getPrivateAddresses node))))))

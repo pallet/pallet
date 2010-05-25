@@ -162,7 +162,7 @@
 
 (defn remote-sudo
   "Run a sudo command on a server."
-  [#^java.net.InetAddress server #^String command user]
+  [#^String server #^String command user]
   (with-ssh-agent []
     (add-identity (:private-key-path user))
     (let [session (session server
