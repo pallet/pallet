@@ -108,5 +108,6 @@
   ([nodes chef-repository compute]
      (cook nodes chef-repository compute *admin-user*))
   ([nodes chef-repository compute user]
-     (doseq [node (nodes-in-set nodes compute)]
+     (doseq [[node-type nodes-of-type] (nodes-in-set nodes nil compute)
+             node nodes-of-type]
        (cook-node node chef-repository user))))

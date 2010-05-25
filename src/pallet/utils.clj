@@ -160,11 +160,37 @@
       (set! *file-transfers* (assoc *file-transfers* f remote-name))
       remote-name)))
 
+(defonce default-agent-atom (atom nil))
+(defn default-agent
+  []
+  (or @default-agent-atom
+      (swap! default-agent-atom
+             (fn [agent]
+               (if agent
+                 agent
+                 (create-ssh-agent false))))))
+
+(defn ask-passphrase [path]
+  (when-let [console (. System console)]
+    (print "Passphrase for" path ": ")
+    (.readPassword console)))
+
+(defn possibly-add-identity
+  [agent private-key-path passphrase]
+  (when-not (has-identity? agent private-key-path)
+    (let [identity (make-identity private-key-path (str private-key-path ".pub"))]
+      (if (.isEncrypted identity)
+        (let [passphrase (or passphrase
+                           (keychain/passphrase private-key-path)
+                           (ask-passphrase private-key-path))]
+          (add-identity agent identity passphrase))
+        (add-identity agent identity)))))
+
 (defn remote-sudo
   "Run a sudo command on a server."
   [#^String server #^String command user]
-  (with-ssh-agent []
-    (add-identity (:private-key-path user))
+  (with-ssh-agent [(default-agent)]
+    (possibly-add-identity *ssh-agent* (:private-key-path user) (:passphrase user))
     (let [session (session server
                            :username (:username user)
                            :strict-host-key-checking :no)]
@@ -195,32 +221,6 @@
     (if-let [pw (:sudo-password user)]
       (str "echo \"" (or (:password user) pw) "\" | /usr/bin/sudo -S")
       "/usr/bin/sudo -n")))
-
-(defonce default-agent-atom (atom nil))
-(defn default-agent
-  []
-  (or @default-agent-atom
-      (swap! default-agent-atom
-             (fn [agent]
-               (if agent
-                 agent
-                 (create-ssh-agent false))))))
-
-(defn ask-passphrase [path]
-  (when-let [console (. System console)]
-    (print "Passphrase for" path ": ")
-    (.readPassword console)))
-
-(defn possibly-add-identity
-  [agent private-key-path passphrase]
-  (when-not (has-identity? agent private-key-path)
-    (let [identity (make-identity private-key-path (str private-key-path ".pub"))]
-      (if (.isEncrypted identity)
-        (let [passphrase (or passphrase
-                           (keychain/passphrase private-key-path)
-                           (ask-passphrase private-key-path))]
-          (add-identity agent identity passphrase))
-        (add-identity agent identity)))))
 
 (defn remote-sudo-script
   "Run a sudo script on a server."
