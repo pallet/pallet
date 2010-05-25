@@ -55,7 +55,6 @@ If you just want to try out pallet, then you can follow these instructions:
 - In a shell, go to the directory containing the pallet source code and enter
 
         $ lein deps
-        $ lein compile-java
         $ lein repl
 
 You should now have a working repl, which you can use to explore pallet.  You
