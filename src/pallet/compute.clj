@@ -3,7 +3,9 @@
   (:use
    [pallet.utils
     :only [*admin-user* remote-sudo remote-sudo-script resource-properties]])
-  (:require [org.jclouds.compute :as jclouds])
+  (:require
+   [org.jclouds.compute :as jclouds]
+   [pallet.utils :as utils])
   (:import
    [org.jclouds.compute.domain.internal NodeMetadataImpl ImageImpl]
    org.jclouds.compute.util.ComputeUtils
@@ -153,6 +155,13 @@ node."
   ([script node] (execute-script script node *admin-user*))
   ([script node user & options]
      (apply remote-sudo-script (node-address node) script user options)))
+
+(defn execute-cmds
+  "Execute cmds on a specified node. Also accepts an IP or hostname as a
+node."
+  ([script node] (execute-cmds script node *admin-user*) [])
+  ([script node user options]
+     (utils/remote-sudo-cmds (node-address node) script user options)))
 
 (defn node-locations
   "Return locations of a node as a seq."

@@ -36,7 +36,11 @@ tag as a configuration target.
    clojure.contrib.logging
    clojure.contrib.def)
   (:require
-   [pallet.target :as target])
+   [pallet.compute :as compute]
+   [pallet.target :as target]
+   [pallet.resource :as resource]
+   [clojure.contrib.condition :as condition]
+   [clojure.contrib.string :as string])
   (:import org.jclouds.compute.domain.OsFamily
            org.jclouds.compute.options.TemplateOptions
            org.jclouds.compute.domain.NodeMetadata))
@@ -93,6 +97,15 @@ When passing a username the following options can be specified:
   (let [[tag options] (name-with-attributes tag options)]
     `(def ~tag (make-node (name '~tag) ~image ~@options))))
 
+(defn produce-init-script
+  [target]
+  (let [cmds
+	(resource/with-target [nil target]
+	  (resource/produce-phases [:bootstrap] (:phases target)))]
+    (if-not (every? #(and (= 1 (count %)) (every? string? %)) cmds)
+      (condition/raise :message "Bootstrap can not contain local resources"))
+    (string/join "" (map first cmds))))
+
 (defn build-node-template-impl
   "Build a template for passing to jclouds run-nodes."
   ([compute options]
@@ -118,8 +131,7 @@ When passing a username the following options can be specified:
   (info (str "building node template for " (target :tag)))
   (when public-key-path (info (str "  authorizing " public-key-path)))
   (let [options (target :image)
-        init-script (produce-phases
-                     [:bootstrap] nil target (target :phases))]
+        init-script (produce-init-script target)]
     (when init-script (info (str "  using init script")))
     (build-node-template-impl
      compute
@@ -207,10 +219,10 @@ script that is run with root privileges immediatly after first boot."
       (doseq [phase phases]
         (with-init-resources nil
           (binding [*file-transfers* {}]
-            (when-let [script (produce-phases [phase] node node-type
-                                (node-type :phases))]
-              (info script)
-              (apply execute-script script node user options)))))
+	    (resource/with-target [node node-type]
+	      (when-let [phase-cmds (produce-phases [phase] (node-type :phases))]
+		(info (str "Phase commands" phase-cmds))
+		(compute/execute-cmds phase-cmds node user options))))))
       (error (str "Could not find node type for node " (tag node))))))
 
 (defn apply-phases

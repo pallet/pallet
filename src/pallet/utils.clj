@@ -281,6 +281,78 @@
               (ssh session (str "rm " remote-name)))
             script-result))))))
 
+
+
+(defn remote-sudo-cmd
+  [server session sftp-channel user tmpfile command]
+  (sftp sftp-channel :put (java.io.ByteArrayInputStream.
+                      (.getBytes (str prolog command))) tmpfile)
+  (let [script-result (ssh
+                       session
+                       ;; using :in forces a shell session, rather than
+                       ;; exec; some services check for a shell session
+                       ;; before detaching (couchdb being one prime
+                       ;; example)
+                       :in (str (sudo-cmd-for user)
+                                " ~" (:username user) "/" tmpfile)
+                       :return-map true
+                       :pty true)]
+    (let [stdout (strip-sudo-password (script-result :out) user)
+          stderr (strip-sudo-password (get script-result :err "") user)]
+      (if (zero? (script-result :exit))
+        (info stdout)
+        (do
+          (error (str "Exit status  : " (script-result :exit)))
+          (error (str "Output       : " stdout))
+          (error (str "Error output : " stderr))
+          (condition/raise
+           :script-exit (script-result :exit)
+           :script-out stdout
+           :script-err stderr
+           :server server))))
+    (ssh session (str "rm " tmpfile))
+    script-result))
+
+(defn remote-sudo-cmds
+  "Run cmds on a target."
+  [#^String server commands user options]
+  (with-ssh-agent [(default-agent)]
+    (possibly-add-identity *ssh-agent* (:private-key-path user) (:passphrase user))
+    (let [options (apply array-map options)
+          session (session server
+                           :username (:username user)
+                           :strict-host-key-checking :no
+                           :port (or (options :port) 22)
+                           :password (:password user))]
+      (with-connection session
+        (let [mktemp-result (ssh
+                             session "mktemp sudocmdXXXXX" :return-map true)
+              tmpfile (string/chomp (mktemp-result :out))
+              channel (ssh-sftp session)]
+          (assert (zero? (mktemp-result :exit)))
+          (doseq [[file remote-name] *file-transfers*]
+            (info
+             (format "Transferring file %s to node @ %s" file remote-name))
+            (sftp channel
+                  :put (-> file java.io.FileInputStream.
+                           java.io.BufferedInputStream.)
+                  remote-name)
+            (sftp channel :chmod 0600 remote-name))
+          (let [chmod-result (ssh session (str "chmod 755 " tmpfile)
+                                  :return-map true)]
+            (if (pos? (chmod-result :exit))
+              (error (str "Couldn't chmod script : " ) (chmod-result :err))))
+
+          (doseq [cmds commands
+                  cmd cmds]
+            (if (string? cmd)
+              (remote-sudo-cmd server session channel user tmpfile cmd)
+              (doseq [local-cmd cmd]
+                  (local-cmd))))
+          (doseq [[file remote-name] *file-transfers*]
+            (ssh session (str "rm " remote-name))))))))
+
+
 (defn sh-script
   "Run a script on local machine."
   [command]

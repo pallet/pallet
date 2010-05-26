@@ -50,15 +50,17 @@ list, Alan Dipert and MeikelBrandmeyer."
     (f)))
 
 (defmacro test-resource-build
-  "Test build a resource. Ensures binding at correct times."
+  "Test build a resource for :configure phase. Ensures binding at correct times.
+  This assumes no local resources."
   [[node node-type & parameters] & body]
   `(let [resources# (binding [utils/*file-transfers* {}
                               resource/*required-resources* {}]
                       (resource/resource-phases ~@body))]
      (parameter/default ~@parameters)
-     (resource/produce-phases
-      [:configure]  ~node ~node-type
-      resources#)))
+     (resource/with-target [~node ~node-type]
+       (ffirst (resource/produce-phases
+		[:configure]
+		resources#)))))
 
 (defn parameters-test*
   [& options]

@@ -54,6 +54,9 @@
    :in-sequence - The generated resource will be applied to the node
         \"in order\", as it is defined lexically in the source crate.
         This is the default.
+   :local-in-sequence - The generated resource will be applied to the node
+        \"in order\", as it is defined lexically in the source crate.
+        The execution is on the local machine.
    :aggregated - All aggregated resources are applied to the node
         in the order they are defined, but before all :in-sequence
         resources. Note that all of the arguments to any given
@@ -61,10 +64,13 @@
         invocation of each fn within each phase."
   ([invoke-fn args] (invoke-resource invoke-fn args :in-sequence))
   ([invoke-fn args execution]
-    (set! *required-resources*
-      (update-in *required-resources*
-        [*phase* execution]
-        #(conj (or % []) [invoke-fn args])))))
+     (let [[execution location] (if (= execution :local-in-sequence)
+                                  [:in-sequence :local]
+                                  [execution :remote])]
+       (set! *required-resources*
+             (update-in *required-resources*
+                        [*phase* execution]
+                        #(conj (or % []) [invoke-fn args location]))))))
 
 (defn- group-pairs-by-key
   "Transforms a seq of key-value pairs, generally some with identical keys
@@ -96,13 +102,13 @@
 
 (defmethod invocations->resource-fns :in-sequence
   [_ invocations]
-  (for [[invoke-fn args] (map distinct invocations)]
-    (partial apply-evaluated invoke-fn args)))
+  (for [[invoke-fn args location] (map distinct invocations)]
+    [location (partial apply-evaluated invoke-fn args)]))
 
 (defmethod invocations->resource-fns :aggregated
   [_ invocations]
   (for [[invoke-fn args*] (group-pairs-by-key invocations)]
-    (partial invoke-fn args*)))
+    [:remote (partial invoke-fn args*)]))
 
 (defvar- execution-ordering {:aggregated 10, :in-sequence 20})
 
@@ -113,7 +119,9 @@
     (for [[phase invocations] *required-resources*]
       [phase (apply
               concat
-              (for [[execution invocations] (sort-by (comp execution-ordering key) invocations)]
+              (for [[execution invocations] (sort-by
+                                             (comp execution-ordering key)
+                                             invocations)]
                 (invocations->resource-fns execution invocations)))])))
 
 (defmacro defresource
@@ -136,7 +144,7 @@
         ~(if (some #{'&} args)
            `(apply vector ~@(filter #(not (= '& %)) args))
            `[~@args])
-         ~(:execution options :in-sequence)))))
+        ~(:execution options :in-sequence)))))
 
 (defmacro defaggregate
   "Shortcut for defining a resource-producing function with an
@@ -144,11 +152,22 @@
   [name & args]
   `(defresource ~name ~@(concat args [:execution :aggregated])))
 
+(defmacro deflocal
+  "Shortcut for defining a resource-producing function with an
+   :execution of :aggregate."
+  [name & args]
+  `(defresource ~name ~@(concat args [:execution :local-in-sequence])))
+
 (defn output-resources
-  "Invoke all passed resources."
+  "Build an execution list for the passed resources.  The result is a sequence
+   of [location fn] pairs, where location is either :local or :remote, and fn is
+   a string for remote execution, or a no argument function for local
+   execution."
   [phase resources]
-  (when-let [s (seq (resources phase))]
-    (stevedore/do-script* (map #(%) s))))
+  (for [s (partition-by first (resources phase))]
+    (if (= :remote (ffirst s))
+      (stevedore/do-script* (map #((second %)) s))
+      (reduce #(conj %1 (second %2)) [] s))))
 
 (defn phase-list* [phases]
   (lazy-seq
@@ -197,29 +216,40 @@
    (target/packager (node-type :image))
    (target/os-family (node-type :image))])
 
+(defmacro with-target
+  "Binds the target tag and template, setting the relevant parameters"
+  [[node node-type] & body]
+  `(let [node# ~node]
+     (target/with-target node# (augment-template-from-node node# ~node-type)
+       (parameter/with-parameters (parameter-keys (target/node) (target/node-type))
+         ~@body))))
+
 (defn produce-phases
-  "Binds the target tag and template and outputs the
-   resources specified in the body for the given phases."
-  [[& phases] node node-type phase-map]
-  (target/with-target node (augment-template-from-node node node-type)
-    (parameter/with-parameters (parameter-keys (target/node) (target/node-type))
-      (string/join
-       ""
-       (map (fn [phase]
-              (if (keyword? phase)
-                (output-resources phase phase-map)
-                (output-resources (first phase) (second phase))))
-            (phase-list phases))))))
+  "For the target tag and template, output the resources specified in the body
+   for the given phases."
+  [[& phases] phase-map]
+  (doall ;; remove?
+   (filter
+    seq
+    (map (fn [phase]
+           (if (keyword? phase)
+             (output-resources phase phase-map)
+             (output-resources (first phase) (second phase))))
+         (phase-list phases)))))
 
 (defmacro build-resources
-  "Outputs the resources specified in the body for the specified phases.
-   This is useful in testing."
+  "Outputs the remote resources specified in the body for the specified phases.
+   This is useful in testing. No local resources are run."
   [[& phases] & body]
   `(binding [utils/*file-transfers* {}
              *required-resources* {}]
-     (produce-phases
-      ~phases (target/node) (target/node-type)
-      (resource-phases ~@body))))
+     (with-target [(target/node) (target/node-type)]
+       (string/join
+        ""
+        (map #(string/join "" (filter string? %))
+             (produce-phases
+              ~phases
+              (resource-phases ~@body)))))))
 
 (defn parameters*
   [& options]

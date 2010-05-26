@@ -173,24 +173,44 @@
     :bootstrap [(test-component :a)]
     :configure [(test-component :b)])
   (is (= [:bootstrap :configure] (keys (with-phases :phases))))
-  (is (= ":a\n"
-         (resource/produce-phases
-          [:bootstrap] (compute/make-node "tag") {} (with-phases :phases))))
-  (is (= ":b\n"
-         (resource/produce-phases
-          [:configure] (compute/make-node "tag") {} (with-phases :phases)))))
+  (resource/with-target [(compute/make-node "tag") {}]
+    (is (= [[":a\n"]]
+	     (resource/produce-phases
+	      [:bootstrap] (with-phases :phases))))
+    (is (= [[":b\n"]]
+	     (resource/produce-phases
+	      [:configure] (with-phases :phases))))))
+
+(deftest produce-init-script-test
+  (is (= "a\n"
+	 (produce-init-script
+	  {:image [] :phases {:bootstrap [[:remote (fn [] "a")]]}})))
+  (is (thrown? clojure.contrib.condition.Condition
+	 (produce-init-script
+	  {:image [] :phases {:bootstrap [[:local (fn [] "a")]]}}))))
 
 (deftest lift-test
-  (defnode x [])
-  (is (.contains "bin"
-       (with-no-compute-service
-         (with-admin-user (assoc utils/*admin-user* :no-sudo true)
-           (with-out-str
-             (lift {x (compute/make-unmanaged-node "x" "localhost")}
-                   (phase
-                    (exec-script/exec-script
-                     (stevedore/script
-                      (ls "/")))))))))))
+  (let [seen (atom nil)]
+
+
+    (defnode x [])
+    (deflocal localf (fn
+		       []
+		       (reset! seen true)
+		       (is (target/node))
+		       (is (target/node-type))) [])
+    (is (.contains "bin"
+		   (with-no-compute-service
+		     (with-admin-user (assoc utils/*admin-user* :no-sudo true)
+		       (with-out-str
+			 (lift {x (compute/make-unmanaged-node "x" "localhost")}
+			       (phase
+				(exec-script/exec-script
+				 (stevedore/script
+				  (ls "/"))))
+			       (phase
+				(localf))))))))
+    (is @seen)))
 
 (deftest lift*-nodes-binding-test
   (defnode a [])
