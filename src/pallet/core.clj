@@ -40,7 +40,8 @@ tag as a configuration target.
    [pallet.target :as target]
    [pallet.resource :as resource]
    [clojure.contrib.condition :as condition]
-   [clojure.contrib.string :as string])
+   [clojure.contrib.string :as string]
+   [org.jclouds.compute :as jclouds])
   (:import org.jclouds.compute.domain.OsFamily
            org.jclouds.compute.options.TemplateOptions
            org.jclouds.compute.domain.NodeMetadata))
@@ -265,18 +266,19 @@ script that is run with root privileges immediatly after first boot."
   [compute prefix node-map phases]
   {:pre [(map? node-map)]}
   (trace (str "converge*  " node-map))
-  (let [node-map (add-prefix-to-node-map prefix node-map)]
-    (converge-node-counts compute node-map)
-    (let [nodes (filter running? (nodes-with-details compute))
-          target-nodes (nodes-in-map node-map nodes)
-          phases (ensure-configure-phase phases)]
-      (target/with-nodes nodes target-nodes
-        (doseq [node-type (keys node-map)]
-          (apply-phases
-           compute
-           node-type
-           (filter-nodes-with-tag nodes (node-type :tag))
-           phases))))))
+  (binding [org.jclouds.compute/*compute* compute]
+    (let [node-map (add-prefix-to-node-map prefix node-map)]
+      (converge-node-counts compute node-map)
+      (let [nodes (filter running? (nodes-with-details compute))
+	    target-nodes (nodes-in-map node-map nodes)
+	    phases (ensure-configure-phase phases)]
+	(target/with-nodes nodes target-nodes
+	  (doseq [node-type (keys node-map)]
+	    (apply-phases
+	     compute
+	     node-type
+	     (filter-nodes-with-tag nodes (node-type :tag))
+	     phases)))))))
 
 (defn node-in-types?
   "Predicate for matching a node belonging to a set of node types"
@@ -322,17 +324,18 @@ script that is run with root privileges immediatly after first boot."
 
 (defn lift*
   [compute prefix node-set phases]
-  (let [nodes (if compute (filter running? (nodes-with-details compute)))
-        target-node-map (nodes-in-set node-set prefix compute nodes)
-        target-nodes (filter running? (apply concat (vals target-node-map)))
-        nodes (or nodes target-nodes)]
-    (target/with-nodes nodes target-nodes
-      (doseq [[node-type nodes] target-node-map]
-        (apply-phases
-         compute
-         node-type
-         (filter running? nodes)
-         phases)))))
+  (binding [org.jclouds.compute/*compute* compute]
+    (let [nodes (if compute (filter running? (nodes-with-details compute)))
+	  target-node-map (nodes-in-set node-set prefix compute nodes)
+	  target-nodes (filter running? (apply concat (vals target-node-map)))
+	  nodes (or nodes target-nodes)]
+      (target/with-nodes nodes target-nodes
+	(doseq [[node-type nodes] target-node-map]
+	  (apply-phases
+	   compute
+	   node-type
+	   (filter running? nodes)
+	   phases))))))
 
 (defn compute-service-and-options
   "Extract the compute service form a vector of options, returning the bound
