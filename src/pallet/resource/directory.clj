@@ -46,9 +46,8 @@
       :delete
       (stevedore/checked-script
        (str "directory " path)
-       (stevedore/script
-        (rm ~path ~{:r (get opts :recursive true)
-                    :f (get opts :force true)})))
+       (rm ~path ~{:r (get opts :recursive true)
+                   :f (get opts :force true)}))
       :create
       (make-directory path (merge {:p true} opts))
       :touch
