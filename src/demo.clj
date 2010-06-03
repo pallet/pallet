@@ -90,7 +90,7 @@
   (defnode vm [:ubuntu])
   (def vm1 (make-unmanaged-node \"vm\" \"localhost\" :ssh-port 2223))
   (with-admin-user [\"myuser\" :sudo-password \"xxx\"]
-    (lift vm1 service (phase (package \"curl\"))))
+    (lift {vm vm1} service (phase (package \"curl\"))))
 
   ;; We might also want to configure the machines with chef-solo.
   ;; This expects a webserver.json file in the cookbook repository's
