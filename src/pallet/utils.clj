@@ -4,8 +4,7 @@
    [clojure.contrib.io :as io]
    [clojure.contrib.string :as string]
    [clojure.contrib.pprint :as pprint]
-   [clojure.contrib.condition :as condition]
-   [pallet.keychain :as keychain])
+   [clojure.contrib.condition :as condition])
   (:use
    clojure.contrib.logging
    clj-ssh.ssh
@@ -170,21 +169,11 @@
                  agent
                  (create-ssh-agent false))))))
 
-(defn ask-passphrase [path]
-  (when-let [console (. System console)]
-    (print "Passphrase for" path ": ")
-    (.readPassword console)))
-
 (defn possibly-add-identity
   [agent private-key-path passphrase]
-  (when-not (has-identity? agent private-key-path)
-    (let [identity (make-identity private-key-path (str private-key-path ".pub"))]
-      (if (.isEncrypted identity)
-        (let [passphrase (or passphrase
-                           (keychain/passphrase private-key-path)
-                           (ask-passphrase private-key-path))]
-          (add-identity agent identity passphrase))
-        (add-identity agent identity)))))
+  (if passphrase
+    (add-identity agent private-key-path passphrase)
+    (add-identity-with-keychain agent private-key-path)))
 
 (defn remote-sudo
   "Run a sudo command on a server."
