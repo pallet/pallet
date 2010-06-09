@@ -29,3 +29,22 @@
           (make-node
            "t"
            :image (make-image "1" :os-family OsFamily/UBUNTU))))))
+
+(deftest make-unmanaged-node-test
+  (testing "basic tests"
+    (let [n (make-unmanaged-node "atag" "localhost")]
+      (is n)
+      (is (jclouds/running? n))
+      (is (compute-node? n))
+      (is (= "localhost" (primary-ip n)))))
+  (testing "with ssh-port specification"
+    (is (= 2222
+	   (ssh-port
+	    (make-unmanaged-node
+	     "atag" "localhost" :user-metadata {:ssh-port 2222})))))
+  (testing "with image specification"
+    (is (= :ubuntu
+	   (node-os-family
+	    (make-unmanaged-node
+	     "atag" "localhost"
+	     :image (make-image "id" :os-family OsFamily/UBUNTU)))))))
