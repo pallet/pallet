@@ -7,11 +7,11 @@
    [pallet.compute :only [primary-ip nodes-by-tag ssh-port]]
    [pallet.core :only [nodes-in-set]]
    [pallet.utils
-    :only [*admin-user* remote-sudo system pprint-lines quoted sh-script]]
-   clojure.contrib.logging)
+    :only [*admin-user* remote-sudo system pprint-lines quoted sh-script]])
   (:require
    [clojure.contrib.io :as io]
-   [clojure.contrib.java-utils :as java-utils]))
+   [clojure.contrib.java-utils :as java-utils]
+   [clojure.contrib.logging :as logging]))
 
 (def *chef-repository* nil)
 (defmacro with-chef-repository
@@ -30,7 +30,7 @@
 
 ;;; Provisioning
 (defn rsync-repo [from to user port]
-  (info (str "rsyncing chef repository to " to))
+  (logging/info (str "rsyncing chef repository to " to))
   (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
                  (if port (str "-p " port " ")))
         cmd (str "/usr/bin/rsync "
@@ -80,7 +80,7 @@
   ([server command user]
      (chef-cook-solo server command user *remote-chef-path*))
   ([server command user remote-chef-path]
-     (info (str "chef-cook-solo " server))
+     (logging/info (str "chef-cook-solo " server))
      (let [resp
            (remote-sudo
             (str server)

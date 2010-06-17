@@ -9,7 +9,7 @@
    [clojure.contrib.seq :as seq]
    [clojure.contrib.string :as string])
   (:use
-   (clojure.contrib core logging
+   (clojure.contrib core
                     [def :only [defvar defvar- name-with-attributes]])))
 
 (defvar *required-resources* {} "Resources for each phase")

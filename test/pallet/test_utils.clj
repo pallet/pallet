@@ -3,8 +3,7 @@
    [pallet.target :as target]
    [pallet.resource :as resource]
    [pallet.parameter :as parameter]
-   [pallet.utils :as utils]
-   [clojure.contrib.logging :as logging])
+   [pallet.utils :as utils])
   (:use clojure.test)
   (:import
    org.jclouds.compute.domain.internal.NodeMetadataImpl
