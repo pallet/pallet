@@ -66,25 +66,42 @@
 	     [:in-sequence 3 :local]])))))
 
 (deftest configured-resources-test
-  (with-init-resources nil
-    (invoke-resource identity :a :aggregated)
-    (invoke-resource identity :b :aggregated)
-    (let [fs (configured-resources)]
-      (is (not (.contains "lazy" (str fs))))
-      (is (= :remote (first (first (fs :configure)))))
-      (is (= [:a :b] ((second (first (fs :configure))))))))
-  (with-init-resources nil
-    (invoke-resource identity :a :aggregated)
-    (invoke-resource identity [:b] :in-sequence)
-    (invoke-resource identity [:c] :local-in-sequence)
-    (let [fs (configured-resources)]
-      (is (not (.contains "lazy" (str fs))))
-      (is (= [:a] ((second (first (fs :configure))))))
-      (is (= :b ((second (second (fs :configure))))))
-      (is (= :c ((second (last (fs :configure))))))
-      (is (= :remote (first (first (fs :configure)))))
-      (is (= :remote (first (second (fs :configure)))))
-      (is (= :local (first (last (fs :configure))))))))
+  (letfn [(combiner [args] (string/join "" (map #(apply str %) args)))]
+    (testing "aggregation"
+      (with-init-resources nil
+        (invoke-resource combiner [:a] :aggregated)
+        (invoke-resource combiner [:b] :aggregated)
+        (let [fs (configured-resources)]
+          (is (not (.contains "lazy" (str fs))))
+          (is (= :remote (first (first (fs :configure)))))
+          (is (= ":a:b" ((second (first (fs :configure)))))))))
+    (testing "with-local-sequence"
+      (with-init-resources nil
+        (invoke-resource combiner [:a] :aggregated)
+        (invoke-resource identity [:b] :in-sequence)
+        (invoke-resource identity [:c] :local-in-sequence)
+        (let [fs (configured-resources)]
+          (is (not (.contains "lazy" (str fs))))
+          (is (= ":a" ((second (first (fs :configure))))))
+          (is (= :b ((second (second (fs :configure))))))
+          (is (= :c ((second (last (fs :configure))))))
+          (is (= :remote (first (first (fs :configure)))))
+          (is (= :remote (first (second (fs :configure)))))
+          (is (= :local (first (last (fs :configure))))))))
+    (testing "aggregated parameters"
+      (with-init-resources nil
+        (invoke-resource combiner [:a] :aggregated)
+        (invoke-resource combiner ["b" :c] :aggregated)
+        (let [fs (produce-phases [:configure] (configured-resources))]
+          (is (= ":ab:c\n" (ffirst fs))))))
+    (testing "delayed parameters"
+      (with-init-resources nil
+        (invoke-resource combiner [:a] :aggregated)
+        (invoke-resource combiner [:b] :aggregated)
+        (invoke-resource combiner [(pallet.parameter/lookup :p)] :aggregated)
+        (binding [pallet.parameter/*parameters* {:p "p"}]
+          (let [fs (produce-phases [:configure] (configured-resources))]
+            (is (= ":a:bp\n" (ffirst fs)))))))))
 
 (defn test-combiner [args]
   (string/join "\n" args))

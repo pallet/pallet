@@ -1,6 +1,7 @@
 (ns pallet.parameter
   "Provides parameters for use across crates."
   (:require
+   pallet.arguments
    [clojure.contrib.condition :as condition])
   (:use
    [clojure.contrib.def :only [defunbound]]))
@@ -33,19 +34,10 @@
   (set! *parameters* (update-in *parameters* keys (fn [_] value))))
 
 
-(defprotocol DelayedArgument
-  "A protocol for passing arguments, with delayed evaluation."
-  (evaluate [x]))
 
-
-(extend-type
- Object
- DelayedArgument
- (evaluate [x] x))
-
-(deftype DelayedArgumentImpl
+(deftype ParameterLookup
   [keys]
-  DelayedArgument
+  pallet.arguments.DelayedArgument
   (evaluate
    [_]
    (let [key (first keys)
@@ -64,4 +56,4 @@
   "Lookup a parameter in a delayed manner. This produces a function, which is
    executed by it's toString method."
   [& keys]
-  (DelayedArgumentImpl. keys))
+  (ParameterLookup. keys))

@@ -2,7 +2,9 @@
   (:use pallet.parameter :reload-all)
   (:use
    clojure.test
-   pallet.test-utils))
+   pallet.test-utils)
+  (:require
+   pallet.arguments))
 
 (defn reset-default-parameters
   [f]
@@ -39,16 +41,13 @@
     (update [:c] 4)
     (is (= {:a 1 :b 3 :c 4} *parameters*))))
 
-(deftest evaluate-test
-  (is (= "xx" (evaluate "xx"))))
-
 (deftest lookup-test
   (default :a 1 :b 2)
   (with-parameters [:default]
     (let [l (lookup :b)]
-      (is (= 2 (evaluate l)))))
+      (is (= 2 (pallet.arguments/evaluate l)))))
   (let [kf (fn [] [:default])]
     (with-parameters (kf)
       (let [l (lookup :b)]
-        (is (= 2 (evaluate l)))))))
+        (is (= 2 (pallet.arguments/evaluate l)))))))
 

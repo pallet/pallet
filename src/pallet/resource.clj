@@ -1,6 +1,7 @@
 (ns pallet.resource
   "Resource definition interface."
   (:require
+   pallet.arguments
    [pallet.target :as target]
    [pallet.compute :as compute]
    [pallet.parameter :as parameter]
@@ -91,9 +92,14 @@
       (let [[matching rest] (seq/separate #(= (first %) invoke-fn) all)]
         (recur (conj groups matching) rest)))))
 
+
 (defn apply-evaluated
-  [fn args]
-  (apply fn (map parameter/evaluate args)))
+  [f args]
+  (apply f (map pallet.arguments/evaluate args)))
+
+(defn apply-aggregated-evaluated
+  [f args]
+  (f (map #(map pallet.arguments/evaluate %) args)))
 
 (defmulti invocations->resource-fns
   "Given an execution's invocations, will return a seq of
@@ -108,7 +114,7 @@
 (defmethod invocations->resource-fns :aggregated
   [_ invocations]
   (for [[invoke-fn args*] (group-pairs-by-key invocations)]
-    [:remote (partial invoke-fn args*)]))
+    [:remote (partial apply-aggregated-evaluated invoke-fn args*)]))
 
 (defvar- execution-ordering {:aggregated 10, :in-sequence 20})
 
@@ -248,7 +254,7 @@
         ""
         (map #(string/join "" (filter string? %))
              (produce-phases
-              ~phases
+              ~(vec phases)
               (resource-phases ~@body)))))))
 
 (defn parameters*
