@@ -209,32 +209,56 @@ script that is run with root privileges immediatly after first boot."
         (node-count-difference node-map nodes)
         nodes))))
 
+(defmacro execute-with-wrapper
+  "Execute body inside node-execution-wrapper."
+  [f [node user] & body]
+  `(~f ~node ~user (fn [] ~@body)))
+
 (defn apply-phases-to-node
   "Apply a list of phases to a sequence of nodes"
-  [compute node-type node phases user]
+  [compute node-type node phases user wrapper-fn]
   (info (str "apply-phases-to-node " (tag node)))
+  (info (str "  node-type " node-type))
   (let [phases (if (seq phases) phases [:configure])
         port (ssh-port node)
         options (if port [:port port] [])]
     (if node-type
-      (doseq [phase phases]
-        (with-init-resources nil
-          (binding [*file-transfers* {}]
-	    (resource/with-target [node node-type]
-	      (when-let [phase-cmds (produce-phases [phase] (node-type :phases))]
-		(info (str "Phase commands" phase-cmds))
-		(compute/execute-cmds phase-cmds node user options))))))
+      (execute-with-wrapper wrapper-fn [node user]
+        (doseq [phase phases]
+          (info (format "Apply phase %s" phase))
+          (with-init-resources nil
+            (binding [*file-transfers* {}]
+              (resource/with-target [node node-type]
+                (when-let [phase-cmds (produce-phases [phase] (node-type :phases))]
+                  (compute/execute-cmds phase-cmds node user options)))))))
       (error (str "Could not find node type for node " (tag node))))))
+
+(defn execute-with-user-credentials
+  [_ user f]
+  (pallet.utils/possibly-add-identity
+   (pallet.utils/default-agent) (:private-key-path user) (:passphrase user))
+  (f))
+
+(def node-execution-wrapper execute-with-user-credentials)
+
+(defmacro with-node-execution-wrapper
+  "Wrap node execution in the given function, wich must take an argument list of
+   [node user function-to-wrap]"
+  [f & body]
+  `(binding [node-execution-wrapper ~f]
+     ~@body))
 
 (defn apply-phases
   "Apply a list of phases to a sequence of nodes"
   ([compute node-type nodes phases]
      (apply-phases compute node-type nodes phases *admin-user*))
   ([compute node-type nodes phases user]
-     (trace (str "apply-phases for " (node-type :tag)
-                 " " (count nodes) " nodes"))
+     (trace
+      (format
+       "apply-phases for %s with %d nodes" (node-type :tag) (count nodes)))
      (doseq [node nodes]
-       (apply-phases-to-node compute node-type node phases user))))
+       (apply-phases-to-node
+        compute node-type node phases user node-execution-wrapper))))
 
 (defn nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"

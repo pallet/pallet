@@ -179,7 +179,8 @@
   "Run a sudo command on a server."
   [#^String server #^String command user]
   (with-ssh-agent [(default-agent)]
-    (possibly-add-identity *ssh-agent* (:private-key-path user) (:passphrase user))
+    (possibly-add-identity
+     *ssh-agent* (:private-key-path user) (:passphrase user))
     (let [session (session server
                            :username (:username user)
                            :strict-host-key-checking :no)]
@@ -274,8 +275,14 @@
 
 (defn remote-sudo-cmd
   [server session sftp-channel user tmpfile command]
-  (sftp sftp-channel :put (java.io.ByteArrayInputStream.
-                      (.getBytes (str prolog command))) tmpfile)
+  (let [response (sftp sftp-channel
+                       :put (java.io.ByteArrayInputStream.
+                             (.getBytes (str prolog command))) tmpfile
+                             :return-map true)]
+    (info (format "Transfering commands %s" response)))
+  (let [chmod-result (ssh session (str "chmod 755 " tmpfile) :return-map true)]
+    (if (pos? (chmod-result :exit))
+      (error (str "Couldn't chmod script : " ) (chmod-result :err))))
   (let [script-result (ssh
                        session
                        ;; using :in forces a shell session, rather than
@@ -306,7 +313,6 @@
   "Run cmds on a target."
   [#^String server commands user options]
   (with-ssh-agent [(default-agent)]
-    (possibly-add-identity *ssh-agent* (:private-key-path user) (:passphrase user))
     (let [options (apply array-map options)
           session (session server
                            :username (:username user)
@@ -317,29 +323,27 @@
         (let [mktemp-result (ssh
                              session "mktemp sudocmdXXXXX" :return-map true)
               tmpfile (string/chomp (mktemp-result :out))
-              channel (ssh-sftp session)]
-          (assert (zero? (mktemp-result :exit)))
-          (doseq [[file remote-name] *file-transfers*]
-            (info
-             (format "Transferring file %s to node @ %s" file remote-name))
-            (sftp channel
-                  :put (-> file java.io.FileInputStream.
-                           java.io.BufferedInputStream.)
-                  remote-name)
-            (sftp channel :chmod 0600 remote-name))
-          (let [chmod-result (ssh session (str "chmod 755 " tmpfile)
-                                  :return-map true)]
-            (if (pos? (chmod-result :exit))
-              (error (str "Couldn't chmod script : " ) (chmod-result :err))))
+              sftp-channel (ssh-sftp session)]
+          (with-connection sftp-channel
+            (assert (zero? (mktemp-result :exit)))
+            (doseq [[file remote-name] *file-transfers*]
+              (info
+               (format "Transferring file %s to node @ %s" file remote-name))
+              (sftp sftp-channel
+                    :put (-> file java.io.FileInputStream.
+                             java.io.BufferedInputStream.)
+                    remote-name)
+              (sftp sftp-channel :chmod 0600 remote-name))
 
-          (doseq [cmds commands
-                  cmd cmds]
-            (if (string? cmd)
-              (remote-sudo-cmd server session channel user tmpfile cmd)
-              (doseq [local-cmd cmd]
+            (doseq [cmds commands
+                    cmd cmds]
+              (clojure.contrib.logging/info (format "Cmd %s" cmd))
+              (if (string? cmd)
+                (remote-sudo-cmd server session sftp-channel user tmpfile cmd)
+                (doseq [local-cmd cmd]
                   (local-cmd))))
-          (doseq [[file remote-name] *file-transfers*]
-            (ssh session (str "rm " remote-name))))))))
+            (doseq [[file remote-name] *file-transfers*]
+              (ssh session (str "rm " remote-name)))))))))
 
 
 (defn sh-script
