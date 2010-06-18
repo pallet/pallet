@@ -14,6 +14,7 @@
 #+LINK_HOME:
 #+property: exports code
 #+property: results output
+#+property: cache true
 #+STYLE: <link rel="stylesheet" type="text/css" href="doc.css" />
 
 #+MACRO: clojure [[http://clojure.org][Clojure]]
@@ -235,6 +236,39 @@ You can then use this information with pallet:
               (concat (pallet.maven/credentials) [:log4j :enterprise :ssh])))
 #+END_SRC
 
+* Talking to nodes
+** The =admin= User
+
+To SSH to a node, pallet requires a username and an SSH key.  These are read
+from =pallet.utils/*admin-user*=, which defaults to your username, and =id_rsa=
+identity.  You can rebind this using =pallet.core/with-admin-user=.
+
+** Other SSH Key Strategies
+While convenient, having all your nodes authorise the same SSH key is not the
+best security practice.  Pallet allows you to install a function to provide an
+identity using you own strategy, =pallet.core/with-node-execution-wrapper=. A
+per node identity could be implemented using something like this:
+
+#+BEGIN_SRC clojure  :session s1
+  (require 'pallet.utils)
+  (require 'clj-ssh.ssh)
+
+  (defn lookup-identity [node]
+    ;; Implement this to
+    ;; return [private-key public-key passphrase]
+    )
+
+  (defn node-based-identity
+    [node user f]
+    (binding [pallet.utils/default-agent-atom (atom nil)]
+      (apply clj-ssh.ssh/add-identity
+       (pallet.utils/default-agent)
+       (lookup-identity))
+      (f)))
+#+END_SRC
+
+
+
 * Node Types
 
 In pallet, node types are defined with =defnode=.  The minimum requirement is
@@ -344,6 +378,5 @@ This is used in the sudoers crate, for example, to emit /etc/sudoers.
 
 ** Local resources
 =deflocal= defines a crate that will be run on the local machine.
-
 ** Parameters
 ** Delayed Arguments
