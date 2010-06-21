@@ -1,0 +1,519 @@
+<html>
+  <head>
+    <title>Pallet - Overview</title>
+    <link href="static/favicon.png" rel="icon" />
+    <link href="static/favicon.png" rel="shortcut icon" />
+    <link media="all" type="text/css" href="static/clojure.css" rel="stylesheet" />
+    <link media="all" type="text/css" href="static/wiki.css" rel="stylesheet" />
+    <link media="all" type="text/css" href="static/internal.css" rel="stylesheet" />
+    <!-- TODO: are we using these (from clojure.org)? If so, add the files -->
+    <script src="file/view/code_highlighter.js" type="text/javascript"></script>
+    <script src="file/view/clojure.js" type="text/javascript"></script>
+    <style>.menuWrapper{height: 36px;}</style>
+    <!--[if lte IE 6]>
+    <link rel="stylesheet" href="http://www.wikispaces.com/_/2009051601/s/internal_ie.css" type="text/css" />
+    <![endif]-->
+  </head>
+<!--
+This document was auto-generated from the source by the clojure autodoc system.
+To report errors or ask questions about the overall documentation structure, formatting,
+etc., contact Tom Faulhaber (google mail name: tomfaulhaber).
+For errors in the documentation of a particular namespace, contact the author of that
+namespace.
+-->
+  <body>
+    <div id="AllContentContainer">
+      <div id="Header">
+	<a id="Logo" href="index.html"><img alt="Clojure" height="100" width="100" src="static/clojure-icon.gif" /></a>
+	<h1><a title="page header title" id="page-header" href="index.html">Pallet</a></h1>
+      </div>
+      <div id="leftcolumn"><div style="text-align: center;"></div>
+<div class="menu">
+  <div class="WikiCustomNav WikiElement wiki">
+    <a class="wiki_link" href="index.html">Overview</a><br />
+    <a class="wiki_link" href="api-index.html">API Index</a><br />
+    <a class="wiki_link" href="#">Namespaces:</a>
+    <ul id="left-sidebar-list">
+      <li><a href="demo-api.html" class="wiki_link">demo</a></li><li><a href="pallet-api.html" class="wiki_link">pallet</a></li>
+    </ul>
+  </div>
+</div>
+</div>
+      <div id="rightcolumn">
+	<div id="Content">
+	  <div class="contentBox"><div class="innerContentBox">
+              <div id="content_view" class="wiki wikiPage">
+                <div id="right-sidebar"><div id="toc">
+  <h1 class="nopad">Table of Contents</h1>
+  <div style="margin-left: 1em;" class="toc-section">
+    <a href="#demo">demo</a>
+    
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet">pallet</a>
+    
+    <br />
+  </div>
+</div>
+</div>
+                <div id="content-tag"><h1 id="toc0">An Overview of the <span id="header-project">Pallet</span> API</h1>
+<br />
+<div id="project-description">Pallet is used to start provision, configure and administer compute nodes. Reference documentation is at http://hugoduncan.github.com/pallet</div>
+<br />
+<div id="namespace-entry">
+  <br />
+  <hr />
+  <h2 id="demo">demo</h2>
+  by <span id="author">Hugo Duncan</span><br />
+  <a href="demo-api.html" id="api-link">Detailed API documentation</a><br />
+  <pre id="namespace-docstr">A demo for pallet + jclouds.
+
+;; First we load the pallet commands into
+(require 'pallet.repl)
+(pallet.repl/use-pallet)
+
+;; Supported providers can be found with
+(supported-clouds)
+
+;; We provide some credentials
+(def my-user "your user")
+(def my-password "your api key")
+
+;; and log in to the cloud using the credentials defined above.
+;; provider is a string specifiying the provider, as returned
+;; from (supported-clouds)
+(def service (compute-service "provider" my-user my-password :log4j))
+
+;; nodes can be listed with the nodes function
+(nodes service)
+
+;; the compute service can also be bound
+(with-compute-service [service]
+  (nodes))
+
+;; or even
+(with-compute-service ["provider" my-user my-password :log4j]
+  (nodes))
+
+;; In order to create nodes, we need to define node types.
+;; The second argument is a vector specifying features we want in our image.
+(defnode webserver
+   [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"])
+
+;; At this point we can manage instance counts as a map.
+;; e.g ensure that we have two webserver nodes
+(converge {webserver 2} service)
+
+;; ... and we can remove our nodes
+(converge {webserver 0} service)
+
+;; Images are configured differently between clouds and os's.
+;; Pallet comes with some "crates" that can be used to normalise
+;; the images.  public-dns-if-no-nameserver ensures there is a
+;; nameserver if none is already configured.
+;; We probably want an admin user. The default for automated-admin-user is to
+;; use your current login name, with no password and your id_rsa ssh key.
+(defnode webserver
+  [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"]
+  :bootstrap [(public-dns-if-no-nameserver)
+              (automated-admin-user)])
+
+;; recreate a node with our admin-user
+(converge {webserver 1} service)
+
+;; Another example, that adds java to our node type, then converges
+;; to install java
+(use 'pallet.crate.java)
+(defnode webserver
+  [:ubuntu :X86_64 :smallest :os-description-matches "[^J]+9.10[^32]+"]
+  :bootstrap [(public-dns-if-no-nameserver)
+              (automated-admin-user)]
+  :configure [(java :openjdk)])
+
+(converge {webserver 1} service)
+
+;; if you do not want to adjust the number of nodes, there is also
+;; a lift function, which can be used to apply configuration
+(lift webserver service)
+
+;; :bootstrap and :configure are two phases.  These are used by default
+;; by the converge method.  The :bootstrap phase applies to nodes on first
+;; boot, and :configure on every invocation of converge. You can also
+;; specify other phases, either as a keyword, in which case the
+;; configuration is taken from the corresponding section of the
+;; defnode, or as an inline definiton, with phase
+(converge {webserver 1} service :remove-build-tools)
+(converge {webserver 1} service (phase (package "curl")))
+
+;; :configure is also the default phase for lift, but unlike with
+;; converge, the :configure phase is not added if not specified.
+(lift [webserver balancer] service (phase (package "curl")))
+
+;; you can manage arbitrary machines that are ssh accesable, including
+;; local virtual machines.  For this to work you may have to specify
+;; the :sudo-password option in the admin user, even if you can
+;; log in without a password
+(defnode vm [:ubuntu])
+(def vm1 (make-unmanaged-node "vm" "localhost" :ssh-port 2223))
+(with-admin-user ["myuser" :sudo-password "xxx"]
+  (lift {vm vm1} service (phase (package "curl"))))
+
+;; We might also want to configure the machines with chef-solo.
+;; This expects a webserver.json file in the cookbook repository's
+;; config directory.
+(use 'pallet.chef)
+(lift webserver service (phase (chef)))
+(cook webserver "path_to_your_chef_repository")</pre>
+  
+  Public variables and functions:
+  <br />
+  
+</div><div id="namespace-entry">
+  <br />
+  <hr />
+  <h2 id="pallet">pallet</h2>
+  by <span id="author">Hugo Duncan</span><br />
+  <a href="pallet-api.html" id="api-link">Detailed API documentation</a><br />
+  <pre id="namespace-docstr">Pallet is used to provision and maintain compute nodes, and aims to solve the
+problem of providing a consistently configured running image across a range of
+clouds.  It is designed for use from the Clojure (<a href="http://clojure.org)">http://clojure.org)</a> REPL, and
+from clojure scripts.
+
+It uses jclouds (<a href="http://github.com/jclouds/jclouds)">http://github.com/jclouds/jclouds)</a> to gain portable access to
+different cloud providers.  While jclouds solves the issue of creating
+destroying and configuring cloud level access to nodes, it does not address the
+differences in images used across providers.  This is what Pallet adds.
+
+Pallet can be used in a declaritive or an imperative fashion. defnode is used to
+decalre node types, specifying the image template and possibly bootstrap and
+other configuration. The converge function can then be used to control the
+number of nodes of each type that are running in your cloud, and applies the
+declared configuration as required.  The lift function can also be used to apply
+configuration without adjusting node counts.  Both converge and lift both accept
+inline definiton of configuration actions that should be run.
+
+In pallet, low level resources can be combined in clojure functions, known as
+crates, that are used to specify configuration.  Crates are clojure functions
+and can call other crates, with arguments, as required. Crates can be packaged
+and distributed as clojure jar files.
+
+Pallet can also execute chef cookbooks using 'chef-solo'.
+
+API documentation (<a href="http://hugoduncan.github.com/pallet)">http://hugoduncan.github.com/pallet)</a> is available.
+
+## Usage
+
+See demo documentation (http://hugoduncan.github.com/pallet/demo-api.html).
+
+## Todo
+
+Make password handling shell character safe.
+Add progress reporting.
+
+## Installation
+
+Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen)">http://github.com/technomancy/leiningen)</a>.  Add
+`[pallet "0.0.1-SNAPSHOT"]` to your :dependencies in project.clj.</pre>
+  <span id="see-also">See also: 
+    <span id="see-also-link">
+      <a href="chef">http://wiki.opscode.com/display/chef/Home</a>
+    </span><span id="see-also-link">
+      <a href="jclouds">http://github.com/jclouds/jclouds</a>
+    </span><br />
+  </span>
+  Public variables and functions:
+  <br />
+  <span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.arguments</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.arguments/DelayedArgument">DelayedArgument</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.arguments/computed">computed</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.chef</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.command-line</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.command-line/group-by">group-by</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.command-line/join">join</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.command-line/with-command-line">with-command-line</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.command-script</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.compute</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.core</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.chef</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.cloudkick</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.crontab</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.cruise-control-rb</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.etc-default</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.hudson</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.iozone</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.iptables</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.nginx</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.ruby</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.rubygems</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.ssh</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.tomcat</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.enlive</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.heynote</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.heynote/add-comment">add-comment</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.heynote/item">item</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.heynote/items">items</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.heynote/message-map">message-map</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.heynote/new-item">new-item</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.heynote/project">project</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.heynote/send-msg">send-msg</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.main</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.main/-main">-main</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.main/map-and-resolve-symbols">map-and-resolve-symbols</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.main/parse-as-qualified-symbol">parse-as-qualified-symbol</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.main-invoker</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.maven</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.md5crypt</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.md5crypt/clean-salt">clean-salt</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.md5crypt/crypt">crypt</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.md5crypt/to64">to64</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.parameter</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.parameter/*parameters*">*parameters*</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.parameter/default">default</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.parameter/default-for">default-for</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.parameter/lookup">lookup</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.parameter/update">update</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.parameter/with-parameters">with-parameters</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.repl</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.directory</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.exec-script</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.file</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.hostinfo</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.package</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.remote-file</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.resource-when</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.service</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.user</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.script</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.stevedore</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.strint</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.strint/&lt;&lt;!">&lt;&lt;!</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.strint/capture-values">capture-values</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.target</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.task.converge</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.task.describe-node</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.task.feedback</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.task.help</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.task.help/help-for">help-for</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.task.help/tasks">tasks</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.task.lift</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.task.new-project</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.task.nodes</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.task.providers</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.task.version</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.template</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.template.properties</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.utils</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.utils/*admin-user*">*admin-user*</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.utils/make-user">make-user</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.utils/slurp-resource">slurp-resource</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.utils/system">system</a>
+    </span>
+    <br />
+  </span>
+</div>
+</div>
+              </div>
+            </div>
+          </div>
+	</div>
+	<div id="foot">
+	  <div style="text-align: center;" id="copyright">Copyright Hugo Duncan 2010. All rights reserved.</div>
+	</div>
+      </div>
+      <div id="DesignedBy">Logo &amp; site design by <a title="Visit Tom Hickey's website." href="http://www.tomhickey.com">Tom Hickey</a>.<br />
+      Clojure auto-documentation system by Tom Faulhaber.</div>
+    </div>
+    <!-- /AllContentContainer -->
+  </body>
+
+</html>

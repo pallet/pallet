@@ -4,13 +4,13 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
 lang="en" xml:lang="en">
 <head>
-<title>Pallet</title>
+<title>Pallet Reference - Push over SSH</title>
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="generator" content="Org-mode"/>
 <meta name="generated" content="2010-06-17 Thu"/>
 <meta name="author" content="Hugo Duncan"/>
-<meta name="description" content="Pallet is a node provisioning, configuration and administration tool."/>
-<meta name="keywords" content=""/>
+<meta name="description" content="Pallet reference documentation for pushing over SSH"/>
+<meta name="keywords" content="pallet ssh push keys identity"/>
 <style type="text/css">
  <!--/*--><![CDATA[/*><!--*/
   html { font-family: Times, serif; font-size: 12pt; }
@@ -45,7 +45,7 @@ lang="en" xml:lang="en">
                                  font-weight:bold; }
   /*]]>*/-->
 </style>
-<link rel="stylesheet" type="text/css" href="doc.css" />
+<link rel="stylesheet" type="text/css" href="../doc.css" />
 <script type="text/javascript">
 <!--/*--><![CDATA[/*><!--*/
  function CodeHighlightOn(elem, id)
@@ -74,31 +74,66 @@ lang="en" xml:lang="en">
 <div id="org-div-home-and-up" style="text-align:right;font-size:70%;white-space:nowrap;">
  <a accesskey="h" href="index.html"> UP </a>
  |
- <a accesskey="H" href="index.html"> HOME </a>
+ <a accesskey="H" href="../index.html"> HOME </a>
 </div>
 
-<h1 class="title">Pallet</h1>
+<h1 class="title">Pallet Reference - Push over SSH</h1>
 
 
 <p>
-Pallet is a node provisioning, configuration and administration tool.  It is
-designed to make small to midsize deployments simple.
+Pallet executes scripts using push over SSH. Pallet provides several methods for
+handling SSH identities.
 </p>
-<ul>
-<li>
-<a href="overview.html">Overview</a>
-</li>
-<li>
-<a href="first_steps.html">First Steps</a>
-</li>
-<li>
-<a href="reference/index.html">Reference Documentation</a>
-</li>
-<li>
-<a href="autodoc/index.html">API Documentation</a>
 
-</li>
-</ul>
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">The <code>admin</code> User </h2>
+<div class="outline-text-2" id="text-1">
+
+
+<p>
+To SSH to a node, pallet requires a username and an SSH key.  These are read
+from <code>pallet.utils/*admin-user*</code>, which defaults to your username, and <code>id_rsa</code>
+identity.  You can rebind this using <code>pallet.core/with-admin-user</code>.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2">Other SSH Key Strategies </h2>
+<div class="outline-text-2" id="text-2">
+
+<p>While convenient, having all your nodes authorise the same SSH key is not the
+best security practice.  Pallet allows you to install a function to provide an
+identity using you own strategy, <code>pallet.core/with-node-execution-wrapper</code>. A
+per node identity could be implemented using something like this:
+</p>
+
+
+
+<pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.utils)
+(<span style="color: #0000ff;">require</span> 'clj-ssh.ssh)
+
+(<span style="color: #4682b4;">defn</span> <span style="color: #0000ff;">lookup-identity</span> [node]
+  <span style="color: #8b0000;">;; </span><span style="color: #cd5c5c;">Implement this to
+</span>  <span style="color: #8b0000;">;; </span><span style="color: #cd5c5c;">return [private-key public-key passphrase]
+</span>  )
+
+(<span style="color: #4682b4;">defn</span> <span style="color: #0000ff;">node-based-identity</span>
+  [node user f]
+  (<span style="color: #4682b4;">binding</span> [pallet.utils/default-agent-atom (<span style="color: #0000ff;">atom</span> nil)]
+    (<span style="color: #0000ff;">apply</span> clj-ssh.ssh/add-identity
+     (pallet.utils/default-agent)
+     (lookup-identity))
+    (f)))
+</pre>
+
+
+
+
+
+</div>
+</div>
 <div id="postamble">
 <p class="author"> Author: Hugo Duncan
 </p>

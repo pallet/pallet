@@ -4,13 +4,13 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
 lang="en" xml:lang="en">
 <head>
-<title>Pallet</title>
+<title>Pallet Reference - Crates</title>
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="generator" content="Org-mode"/>
 <meta name="generated" content="2010-06-17 Thu"/>
 <meta name="author" content="Hugo Duncan"/>
-<meta name="description" content="Pallet is a node provisioning, configuration and administration tool."/>
-<meta name="keywords" content=""/>
+<meta name="description" content="Pallet reference documentation crates"/>
+<meta name="keywords" content="pallet crates configuration"/>
 <style type="text/css">
  <!--/*--><![CDATA[/*><!--*/
   html { font-family: Times, serif; font-size: 12pt; }
@@ -45,7 +45,7 @@ lang="en" xml:lang="en">
                                  font-weight:bold; }
   /*]]>*/-->
 </style>
-<link rel="stylesheet" type="text/css" href="doc.css" />
+<link rel="stylesheet" type="text/css" href="../doc.css" />
 <script type="text/javascript">
 <!--/*--><![CDATA[/*><!--*/
  function CodeHighlightOn(elem, id)
@@ -74,31 +74,91 @@ lang="en" xml:lang="en">
 <div id="org-div-home-and-up" style="text-align:right;font-size:70%;white-space:nowrap;">
  <a accesskey="h" href="index.html"> UP </a>
  |
- <a accesskey="H" href="index.html"> HOME </a>
+ <a accesskey="H" href="../index.html"> HOME </a>
 </div>
 
-<h1 class="title">Pallet</h1>
+<h1 class="title">Pallet Reference - Crates</h1>
+
 
 
 <p>
-Pallet is a node provisioning, configuration and administration tool.  It is
-designed to make small to midsize deployments simple.
+Crates are functions that encapsulate some unit of configuration or
+administration. Crates can take arguments.
 </p>
-<ul>
-<li>
-<a href="overview.html">Overview</a>
-</li>
-<li>
-<a href="first_steps.html">First Steps</a>
-</li>
-<li>
-<a href="reference/index.html">Reference Documentation</a>
-</li>
-<li>
-<a href="autodoc/index.html">API Documentation</a>
 
-</li>
-</ul>
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">Composing existing crates </h2>
+<div class="outline-text-2" id="text-1">
+
+<p>The simplest way of creating a crate is to compose it from existing crates.
+</p>
+
+
+
+<pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.resource.package)
+(<span style="color: #0000ff;">require</span> 'pallet.crate.git)
+(<span style="color: #0000ff;">require</span> 'pallet.crate.tomcat)
+
+(<span style="color: #4682b4;">defn</span> <span style="color: #0000ff;">my-simple-config</span>
+  []
+  (pallet.resource.package/package <span style="color: #f4a460;">"maven2"</span>)
+  (pallet.crate.git/git)
+  (pallet.crate.tomcat/tomcat))
+</pre>
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2">Creating resources </h2>
+<div class="outline-text-2" id="text-2">
+
+<p><code>defresource</code> can be used to define crates that rely on node specific details.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-3" class="outline-2">
+<h2 id="sec-3">Aggregate resource </h2>
+<div class="outline-text-2" id="text-3">
+
+
+<p>
+<code>defaggregate</code> can be used to define crates that collect parameters over
+multiple invocations and emit a resource based on the aggregated parameters.
+This is used in the sudoers crate, for example, to emit /etc/sudoers.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-4" class="outline-2">
+<h2 id="sec-4">Local resources </h2>
+<div class="outline-text-2" id="text-4">
+
+<p><code>deflocal</code> defines a crate that will be run on the local machine.
+</p></div>
+
+</div>
+
+<div id="outline-container-5" class="outline-2">
+<h2 id="sec-5">Parameters </h2>
+<div class="outline-text-2" id="text-5">
+
+</div>
+
+</div>
+
+<div id="outline-container-6" class="outline-2">
+<h2 id="sec-6">Delayed Arguments </h2>
+<div class="outline-text-2" id="text-6">
+
+</div>
+</div>
 <div id="postamble">
 <p class="author"> Author: Hugo Duncan
 </p>
