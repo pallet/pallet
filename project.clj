@@ -10,7 +10,7 @@
                  [org.jclouds/jclouds-enterprise "1.0-SNAPSHOT"]
                  [org.apache.maven/maven-settings "2.0.10"]
                  [enlive "1.0.0-SNAPSHOT"]
-		 [clj-ssh "0.0.1-SNAPSHOT"]
+		 [clj-ssh "0.1.0"]
                  [log4j/log4j "1.2.14"]
                  [com.jcraft/jsch "0.1.42"]
                  [jline "0.9.94"]]

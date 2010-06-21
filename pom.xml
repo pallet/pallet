@@ -3,9 +3,9 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>pallet</groupId>
     <artifactId>pallet</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.1.0</version>
     <name>pallet</name>
-    <description>Pallet - provisioning of compute nodes using jclouds</description>
+    <description>Pallet - provisioning and configuration of compute nodes</description>
     <url>http://github.com/hugoduncan/pallet</url>
     <build>
         <sourceDirectory>src</sourceDirectory>
@@ -84,95 +84,95 @@
         <dependency>
           <groupId>org.clojure</groupId>
           <artifactId>clojure</artifactId>
-          <version>1.2.0-master-SNAPSHOT</version>
+          <version>1.2.0-master-20100607.150309-85</version>
         </dependency>
         <dependency>
           <groupId>org.clojure</groupId>
           <artifactId>clojure-contrib</artifactId>
-          <version>1.2.0-SNAPSHOT</version>
+          <version>1.2.0-20100615.150419-128</version>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-blobstore</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0-20100616.224621-188</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-compute</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0-20100616.224621-194</version>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-azure</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0-20100616.224621-185</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-atmos</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0-20100616.224621-185</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-aws</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0-20100616.224621-185</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-rackspace</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0-20100616.224621-185</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-terremark</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0-20100616.224621-176</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-hostingdotcom</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0-20100616.224621-176</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-rimuhosting</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0-20100616.224621-176</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-gogrid</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0-20100616.224621-175</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-jsch</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0-20100616.224621-186</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-log4j</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0-20100616.224621-194</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-enterprise</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0-20100616.224621-187</version>
             <optional>true</optional>
         </dependency>
 
         <dependency>
             <groupId>clj-ssh</groupId>
             <artifactId>clj-ssh</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>0.1.0</version>
         </dependency>
         <dependency>
             <groupId>log4j</groupId>
