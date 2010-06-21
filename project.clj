@@ -1,5 +1,5 @@
-(defproject pallet "0.0.1-SNAPSHOT"
-  :description "Pallet - provisioning of compute nodes using jclouds"
+(defproject pallet "0.2.0-SNAPSHOT"
+  :description "Pallet - provisioning and configuration of compute nodes"
   :url "http://github.com/hugpduncan/pallet"
   :main pallet.main
   :dependencies [[org.clojure/clojure "1.2.0-master-SNAPSHOT"]
@@ -10,7 +10,7 @@
                  [org.jclouds/jclouds-enterprise "1.0-SNAPSHOT"]
                  [org.apache.maven/maven-settings "2.0.10"]
                  [enlive "1.0.0-SNAPSHOT"]
-		 [clj-ssh "0.0.1-SNAPSHOT"]
+		 [clj-ssh "0.1.0"]
                  [log4j/log4j "1.2.14"]
                  [com.jcraft/jsch "0.1.42"]
                  [jline "0.9.94"]]
@@ -30,7 +30,7 @@
                  ["jclouds" "http://jclouds.googlecode.com/svn/repo"]
                  ["jclouds-snapshot" "http://jclouds.rimuhosting.com/maven2/snapshots"]]
   :autodoc {:name "Pallet"
-	    :description "Pallet is used to start provision compute nodes using jclouds and chef."
+	    :description "Pallet is used to start provision, configure and administer compute nodes using jclouds."
 	    :copyright "Copyright Hugo Duncan 2010. All rights reserved."
 	    :web-src-dir "http://github.com/hugoduncan/pallet/blob/"
 	    :web-home "http://hugoduncan.github.com/pallet/" })
