@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>pallet</groupId>
     <artifactId>pallet</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <name>pallet</name>
     <description>Pallet - provisioning and configuration of compute nodes</description>
     <url>http://github.com/hugoduncan/pallet</url>
@@ -194,7 +194,7 @@
         <dependency>
             <groupId>enlive</groupId>
             <artifactId>enlive</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0-20100502.112537-18</version>
         </dependency>
         <dependency>
           <groupId>org.apache.maven</groupId>
