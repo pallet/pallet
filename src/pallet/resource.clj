@@ -13,7 +13,10 @@
    (clojure.contrib core
                     [def :only [defvar defvar- name-with-attributes]])))
 
-(defvar *required-resources* {} "Resources for each phase")
+(defvar *required-resources* {}
+  "Resources for each phase. This is a map from phase -> map, where
+each map entry is an execution type -> seq of [invoke-fn args location].")
+
 (defvar *phase* :configure "Execution phase for resources")
 
 (defn reset-resources
@@ -88,7 +91,7 @@
          [[invoke-fn] & pairs :as all] invocations]
     (if-not invoke-fn
       (for [invocations groups]
-        [(ffirst invocations) (concat (map second invocations))])
+        [(ffirst invocations) (map second invocations)])
       (let [[matching rest] (seq/separate #(= (first %) invoke-fn) all)]
         (recur (conj groups matching) rest)))))
 
@@ -119,16 +122,17 @@
 (defvar- execution-ordering {:aggregated 10, :in-sequence 20})
 
 (defn configured-resources
-  "The currently configured resources"
-  []
+  "Configured resources for executions, binding args to methods."
+  [required-resources]
   (into {}
-    (for [[phase invocations] *required-resources*]
-      [phase (apply
-              concat
-              (for [[execution invocations] (sort-by
-                                             (comp execution-ordering key)
-                                             invocations)]
-                (invocations->resource-fns execution invocations)))])))
+    (for [[phase invocations] required-resources]
+      (do
+        [phase (apply
+                concat
+                (for [[execution invocations] (sort-by
+                                               (comp execution-ordering key)
+                                               invocations)]
+                  (invocations->resource-fns execution invocations)))]))))
 
 (defmacro defresource
   "Defines a resource-producing functions.  Takes a name, the
@@ -170,7 +174,8 @@
    a string for remote execution, or a no argument function for local
    execution."
   [phase resources]
-  (for [s (partition-by first (resources phase))]
+  ;; TODO wasteful to run configured-resources on all phases and then pick one
+  (for [s (partition-by first ((configured-resources resources) phase))]
     (if (= :remote (ffirst s))
       (stevedore/do-script* (map #((second %)) s))
       (reduce #(conj %1 (second %2)) [] s))))
@@ -191,12 +196,12 @@
   (phase-list* (or (seq phases) (seq [:configure]))))
 
 (defmacro resource-phases
-  "Returns the configured resource map for given resources."
+  "Returns the required resources map for given resources."
   [& body]
   `(do
      (with-init-resources nil
        ~@body
-       (configured-resources))))
+       *required-resources*)))
 
 (defmacro phase
   "Inline phase definition for use in arguments to the lift method"

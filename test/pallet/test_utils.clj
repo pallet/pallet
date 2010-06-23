@@ -57,9 +57,7 @@ list, Alan Dipert and MeikelBrandmeyer."
                       (resource/resource-phases ~@body))]
      (parameter/default ~@parameters)
      (resource/with-target [~node ~node-type]
-       (ffirst (resource/produce-phases
-		[:configure]
-		resources#)))))
+       (ffirst (resource/produce-phases [:configure] resources#)))))
 
 (defn parameters-test*
   [& options]

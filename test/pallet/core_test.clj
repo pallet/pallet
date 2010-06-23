@@ -184,32 +184,33 @@
 (deftest produce-init-script-test
   (is (= "a\n"
 	 (produce-init-script
-	  {:image [] :phases {:bootstrap [[:remote (fn [] "a")]]}})))
+	  {:image [] :phases {:bootstrap {:in-sequence
+                                          [[identity ["a"] :remote]]}}})))
   (is (thrown? clojure.contrib.condition.Condition
 	 (produce-init-script
-	  {:image [] :phases {:bootstrap [[:local (fn [] "a")]]}}))))
+	  {:image [] :phases {:bootstrap {:in-sequence
+                                          [[identity ["a"] :local]]}}}))))
 
 (deftest lift-test
   (let [seen (atom nil)]
-
-
     (defnode x [])
     (deflocal localf (fn
 		       []
 		       (reset! seen true)
 		       (is (target/node))
 		       (is (target/node-type))) [])
-    (is (.contains "bin"
-		   (with-no-compute-service
-		     (with-admin-user (assoc utils/*admin-user* :no-sudo true)
-		       (with-out-str
-			 (lift {x (compute/make-unmanaged-node "x" "localhost")}
-			       (phase
-				(exec-script/exec-script
-				 (stevedore/script
-				  (ls "/"))))
-			       (phase
-				(localf))))))))
+    (is (.contains
+         "bin"
+         (with-no-compute-service
+           (with-admin-user (assoc utils/*admin-user* :no-sudo true)
+             (with-out-str
+               (lift {x (compute/make-unmanaged-node "x" "localhost")}
+                     (phase
+                      (exec-script/exec-script
+                       (stevedore/script
+                        (ls "/"))))
+                     (phase
+                      (localf))))))))
     (is @seen)))
 
 (deftest lift*-nodes-binding-test

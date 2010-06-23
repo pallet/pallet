@@ -71,8 +71,7 @@
       (with-init-resources nil
         (invoke-resource combiner [:a] :aggregated)
         (invoke-resource combiner [:b] :aggregated)
-        (let [fs (configured-resources)]
-          (is (not (.contains "lazy" (str fs))))
+        (let [fs (configured-resources *required-resources*)]
           (is (= :remote (first (first (fs :configure)))))
           (is (= ":a:b" ((second (first (fs :configure)))))))))
     (testing "with-local-sequence"
@@ -80,7 +79,7 @@
         (invoke-resource combiner [:a] :aggregated)
         (invoke-resource identity [:b] :in-sequence)
         (invoke-resource identity [:c] :local-in-sequence)
-        (let [fs (configured-resources)]
+        (let [fs (configured-resources *required-resources*)]
           (is (not (.contains "lazy" (str fs))))
           (is (= ":a" ((second (first (fs :configure))))))
           (is (= :b ((second (second (fs :configure))))))
@@ -92,15 +91,21 @@
       (with-init-resources nil
         (invoke-resource combiner [:a] :aggregated)
         (invoke-resource combiner ["b" :c] :aggregated)
-        (let [fs (produce-phases [:configure] (configured-resources))]
-          (is (= ":ab:c\n" (ffirst fs))))))
+        (let [fs (produce-phases [:configure] *required-resources*)]
+          (is (= ":ab:c\n" (ffirst fs)))))
+      (with-init-resources nil
+        (invoke-resource combiner [:a] :aggregated)
+        (invoke-resource identity ["x"] :in-sequence)
+        (invoke-resource combiner ["b" :c] :aggregated)
+        (let [fs (produce-phases [:configure] *required-resources*)]
+          (is (= ":ab:c\nx\n" (ffirst fs))))))
     (testing "delayed parameters"
       (with-init-resources nil
         (invoke-resource combiner [:a] :aggregated)
         (invoke-resource combiner [:b] :aggregated)
         (invoke-resource combiner [(pallet.parameter/lookup :p)] :aggregated)
         (binding [pallet.parameter/*parameters* {:p "p"}]
-          (let [fs (produce-phases [:configure] (configured-resources))]
+          (let [fs (produce-phases [:configure] *required-resources*)]
             (is (= ":a:bp\n" (ffirst fs)))))))))
 
 (defn test-combiner [args]
@@ -122,35 +127,46 @@
 
 (defresource test-component test-component-fn [arg & options])
 
+(deftest resource-phases-test
+  (with-init-resources nil
+    (let [m (resource-phases (test-component :a))
+          v (first (-> m :configure :in-sequence))]
+      (is (= [:a] (second v)))
+      (is (= :remote (last v))))))
+
 (deftest defcomponent-test
   (with-init-resources nil
     (is (= ":a\n" (build-resources [] (test-component :a))))))
 
-(deftest resource-phases-test
-  (with-init-resources nil
-    (let [m (resource-phases (test-component :a))])))
 
 (deftest output-resources-test
   (with-init-resources nil
     (testing "concatenate remote phases"
       (is (= ["abc\nd\n"]
-	       (output-resources :a {:a [[:remote (fn [] "abc")]
-					 [:remote (fn [] "d")]]}))))
+	       (output-resources :a {:a {:in-sequence
+                                         [[identity ["abc"] :remote]
+                                          [identity ["d"]  :remote]]}}))))
     (testing "split local/remote phases"
-      (let [f (fn [])]
-	(is (= ["abc\n" [f] "d\n"]
-		 (output-resources :a {:a [[:remote (fn [] "abc")]
-					   [:local f]
-					   [:remote (fn [] "d")]]})))))
+      (let [f (fn [])
+            r (output-resources :a {:a {:in-sequence
+                                           [[identity ["abc"] :remote]
+                                            [f [] :local]
+                                            [identity ["d"] :remote]]}})]
+	(is (= "abc\n" (first r)))
+        (is (= nil  ((first (second r)))))
+        (is (= "d\n" (last r)))))
+
     (testing "sequence local phases"
-      (let [f (fn []) g (fn [])]
-	(is (= [[f g]]
-		 (output-resources :a {:a [[:local f]
-					   [:local g]]})))))
+      (let [f identity g identity]
+	(is (= [2 3]
+		 (map #(%) (first (output-resources :a {:a {:in-sequence
+                                                   [[f [2] :local]
+                                                    [g [3] :local]]}})))))))
     (testing "Undefined phase"
       (is (= '()
-	     (output-resources :b {:a [[:remote (fn [] "abc")]
-				       [:remote (fn [] "d")]]}))))))
+	     (output-resources :b {:a {:in-sequence
+                                       [[identity ["abc"] :remote]
+                                        [identity ["d"] :remote]]}}))))))
 
 (deftest produce-phases-test
   (let [node (compute/make-node "tag")]
@@ -160,7 +176,9 @@
 	  (is (= [["abc\nd\n"]]
 		   (produce-phases
 		    [:a]
-		    {:a [[:remote (fn [] "abc")] [:remote (fn [] "d")]]}))))
+		    {:a
+                     {:in-sequence
+                      [[(fn [] "abc") [] :remote] [(fn [] "d") [] :remote]]}}))))
 	(testing "inline phase"
 	  (is (= [[":a\n"]]
 		   (produce-phases [(phase (test-component :a))] {}))))))))
