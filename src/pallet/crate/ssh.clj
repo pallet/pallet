@@ -3,7 +3,8 @@
   (:require
    pallet.target
    pallet.crate.iptables
-   pallet.resource.package))
+   pallet.resource.package
+   pallet.resource.service))
 
 (defn openssh
   "Install OpenSSH"
