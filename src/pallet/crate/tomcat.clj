@@ -69,26 +69,28 @@
       (rm ~(str tomcat-base "webapps/*") ~{:r true :f true}))))
 
 (defn deploy
-  "Copies the specified remote .war file to the tomcat server under
-   webapps/${app-name}.war.  An app-name of \"ROOT\" or nil will deploy the
-   source war file as the / webapp. Options:
-   :clear-existing true -- removes the existing exploded ${app-name} directory"
-  [warfile app-name & opts]
+  "Copies a .war file to the tomcat server under webapps/${app-name}.war.  An
+   app-name of \"ROOT\" or nil will deploy the source war file as the / webapp.
+
+   Accepts options as for remote-file in order to specify the source.
+
+   Other Options:
+     :clear-existing true -- removes the existing exploded ${app-name} directory"
+  [app-name & opts]
   (let [opts (apply hash-map opts)
         exploded-app-dir (str tomcat-base "webapps/" (or app-name "ROOT"))
         deployed-warfile (str exploded-app-dir ".war")]
-    (remote-file deployed-warfile :remote-file warfile
-                 :owner tomcat-user :group tomcat-group :mode 600)
+    (apply
+     remote-file
+     deployed-warfile
+     (apply
+      concat
+      (merge
+       {:owner tomcat-user :group tomcat-group :mode 600}
+       (select-keys opts [:url :local-file :remote-file :owner :group :mode :md5]))))
     (when (:clear-existing opts)
       (exec-script
         (script (rm ~exploded-app-dir ~{:r true :f true}))))))
-
-(defn deploy-local-file
-  [warfile app-name & opts]
-  (let [temp-remote-file (str "pallet-tomcat-deploy-" (java.util.UUID/randomUUID))]
-    (remote-file temp-remote-file :local-file warfile)
-    (apply deploy temp-remote-file app-name opts)
-    (exec-script (script (rm ~temp-remote-file)))))
 
 (defn output-grants [[code-base permissions]]
   (let [code-base (when code-base

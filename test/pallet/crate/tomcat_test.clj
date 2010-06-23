@@ -43,7 +43,7 @@
           "/var/lib/tomcat6/webapps/ROOT.war"
           :remote-file "file.war"
           :owner "tomcat6" :group "tomcat6" :mode "600")
-         (build-resources [] (deploy "file.war" nil)))))
+         (build-resources [] (deploy nil :remote-file "file.war")))))
 
 (deftest tomcat-undeploy-all-test
   (is (= "rm -r -f /var/lib/tomcat6/webapps/*\n"

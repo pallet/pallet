@@ -30,7 +30,8 @@
                  ["jclouds" "http://jclouds.googlecode.com/svn/repo"]
                  ["jclouds-snapshot" "http://jclouds.rimuhosting.com/maven2/snapshots"]]
   :autodoc {:name "Pallet"
-	    :description "Pallet is used to start provision, configure and administer compute nodes using jclouds."
+	    :description "Pallet is used to start provision, configure and administer compute nodes. Reference documentation is at http://hugoduncan.github.com/pallet"
 	    :copyright "Copyright Hugo Duncan 2010. All rights reserved."
 	    :web-src-dir "http://github.com/hugoduncan/pallet/blob/"
-	    :web-home "http://hugoduncan.github.com/pallet/" })
+	    :web-home "http://hugoduncan.github.com/pallet/autodoc"
+            :output-path "autodoc/autodoc"})

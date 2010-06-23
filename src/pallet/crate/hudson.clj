@@ -83,7 +83,7 @@
  override=\"false\"/>
  </Context>"
               hudson-data-path))
-    (tomcat/deploy file "hudson")))
+    (tomcat/deploy "hudson" :remote-file file)))
 
 (defn tomcat-undeploy
   "Remove hudson on tomcat"
