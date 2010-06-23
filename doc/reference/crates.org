@@ -1,0 +1,54 @@
+#+TITLE:     Pallet Reference - Crates
+#+AUTHOR:    Hugo Duncan
+#+EMAIL:     hugo_duncan@yahoo.com
+#+DATE:      2010-06-17 Thu
+#+DESCRIPTION: Pallet reference documentation crates
+#+KEYWORDS: pallet crates configuration
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP: index.html
+#+LINK_HOME: ../index.html
+#+property: exports code
+#+property: results output
+#+property: cache true
+#+STYLE: <link rel="stylesheet" type="text/css" href="../doc.css" />
+
+#+MACRO: clojure [[http://clojure.org][Clojure]]
+#+MACRO: jclouds [[http://jclouds.org][jclouds]]
+
+
+Crates are functions that encapsulate some unit of configuration or
+administration. Crates can take arguments.
+
+* Composing existing crates
+The simplest way of creating a crate is to compose it from existing crates.
+
+#+BEGIN_SRC clojure  :session s1
+  (require 'pallet.resource.package)
+  (require 'pallet.crate.git)
+  (require 'pallet.crate.tomcat)
+
+  (defn my-simple-config
+    []
+    (pallet.resource.package/package "maven2")
+    (pallet.crate.git/git)
+    (pallet.crate.tomcat/tomcat))
+#+END_SRC
+
+* Creating resources
+=defresource= can be used to define crates that rely on node specific details.
+
+* Aggregate resource
+
+=defaggregate= can be used to define crates that collect parameters over
+multiple invocations and emit a resource based on the aggregated parameters.
+This is used in the sudoers crate, for example, to emit /etc/sudoers.
+
+* Local resources
+=deflocal= defines a crate that will be run on the local machine.
+* Parameters
+* Delayed Arguments

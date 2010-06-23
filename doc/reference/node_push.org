@@ -1,0 +1,57 @@
+#+TITLE:     Pallet Reference - Push over SSH
+#+AUTHOR:    Hugo Duncan
+#+EMAIL:     hugo_duncan@yahoo.com
+#+DATE:      2010-06-17 Thu
+#+DESCRIPTION: Pallet reference documentation for pushing over SSH
+#+KEYWORDS: pallet ssh push keys identity
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP: index.html
+#+LINK_HOME: ../index.html
+#+property: exports code
+#+property: results output
+#+property: cache true
+#+STYLE: <link rel="stylesheet" type="text/css" href="../doc.css" />
+
+#+MACRO: clojure [[http://clojure.org][Clojure]]
+#+MACRO: jclouds [[http://jclouds.org][jclouds]]
+
+Pallet executes scripts using push over SSH. Pallet provides several methods for
+handling SSH identities.
+
+* The =admin= User
+
+To SSH to a node, pallet requires a username and an SSH key.  These are read
+from =pallet.utils/*admin-user*=, which defaults to your username, and =id_rsa=
+identity.  You can rebind this using =pallet.core/with-admin-user=.
+
+* Other SSH Key Strategies
+While convenient, having all your nodes authorise the same SSH key is not the
+best security practice.  Pallet allows you to install a function to provide an
+identity using you own strategy, =pallet.core/with-node-execution-wrapper=. A
+per node identity could be implemented using something like this:
+
+#+BEGIN_SRC clojure  :session s1
+  (require 'pallet.utils)
+  (require 'clj-ssh.ssh)
+
+  (defn lookup-identity [node]
+    ;; Implement this to
+    ;; return [private-key public-key passphrase]
+    )
+
+  (defn node-based-identity
+    [node user f]
+    (binding [pallet.utils/default-agent-atom (atom nil)]
+      (apply clj-ssh.ssh/add-identity
+       (pallet.utils/default-agent)
+       (lookup-identity))
+      (f)))
+#+END_SRC
+
+
+

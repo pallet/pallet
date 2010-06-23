@@ -1,0 +1,47 @@
+#+TITLE:     Pallet - Node Types
+#+AUTHOR:    Hugo Duncan
+#+EMAIL:     hugo_duncan@yahoo.com
+#+DATE:      2010-06-17 Thu
+#+DESCRIPTION: Pallet Node Types
+#+KEYWORDS: pallet node type definition template tag phases
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP: index.html
+#+LINK_HOME: ../index.html
+#+property: exports code
+#+property: results output
+#+property: cache true
+#+STYLE: <link rel="stylesheet" type="text/css" href="../doc.css" />
+
+#+MACRO: clojure [[http://clojure.org][Clojure]]
+#+MACRO: jclouds [[http://jclouds.org][jclouds]]
+
+In pallet, node types are defined with =defnode=.  The minimum requirement is
+for a tag and an empty image template specification.
+
+#+BEGIN_SRC clojure  :session s1
+  (require 'pallet.core)
+  (pallet.core/defnode mytag [])
+#+END_SRC
+
+An empty template specification implies a default image will be used for the
+nodes, usually the latest Ubuntu version, or CentOS if no Ubuntu images are
+available.
+
+* Tags
+
+In pallet, tags are used to identify identically configured machines.  The
+=converge= command can be used to control the number of machines running with
+each tag, allowing simple cluster management. Tag names may not contain hyphens.
+
+Tags are used to select the nodes targeted by a [[file:operations.org][=converge= or =lift= operation]].
+
+* Image Templates
+
+The image used for a node can be specified by using JCloud's template
+mechanism.  The image template in =defnode= is exactly as for jclouds clojure API.
+

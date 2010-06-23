@@ -1,0 +1,55 @@
+#+TITLE:     Pallet - Phases
+#+AUTHOR:    Hugo Duncan
+#+EMAIL:     hugo_duncan@yahoo.com
+#+DATE:      2010-06-17 Thu
+#+DESCRIPTION: Pallet Phases
+#+KEYWORDS: pallet phase phases configuration crates
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP: index.html
+#+LINK_HOME: ../index.html
+#+property: exports code
+#+property: results output
+#+property: cache true
+#+STYLE: <link rel="stylesheet" type="text/css" href="../doc.css" />
+
+#+MACRO: clojure [[http://clojure.org][Clojure]]
+#+MACRO: jclouds [[http://jclouds.org][jclouds]]
+
+A phase specifies a sequence of crates to be executed.  A phase can be defined
+as part of a [[file:node_types.org][node type]], or inline in a [[file:operations.org][=configure= or =lift= invocation]], using
+the =phase= macro.
+
+* :bootstrap
+
+The =:bootstrap= phase is applied whenever pallet starts a new node.
+
+* :configure
+
+The =:configue= phase is applied by default by both the =converge= and the
+=lift= commands.
+
+* =phase= macro
+
+The =phase= macro can be used to carry out ad-hoc configuration or
+administration tasks. In this example we install =curl= on all running =mytag=
+nodes.
+
+#+BEGIN_SRC clojure  :session s1
+  (require 'pallet.core)
+  (require 'pallet.maven)
+  (require 'pallet.resource)
+  (require 'pallet.resource.package)
+
+  (def service
+       (apply org.jclouds.compute/compute-service
+        (concat (pallet.maven/credentials) [:log4j :enterprise :ssh])))
+  (pallet.core/defnode mytag [])
+  (pallet.core/lift mytag service
+    (pallet.resource/phase (pallet.resource.package/package "curl")))
+#+END_SRC
+
