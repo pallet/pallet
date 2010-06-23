@@ -156,13 +156,13 @@
      (condp = (get options :action :enable)
        :enable (stevedore/do-script
                 (site enabled)
-                (file/file* available :action :delete))
+                (file/file* available :action :delete :force true))
        :disable (stevedore/do-script
                  (site available)
-                 (file/file* enabled :action :delete))
+                 (file/file* enabled :action :delete :force true))
        :remove (stevedore/do-script
-                (file/file* available :action :delete)
-                (file/file* enabled :action :delete))))))
+                (file/file* available :action :delete :force true)
+                (file/file* enabled :action :delete :force true))))))
 
 (resource/defresource site
   "Enable or disable a site"
