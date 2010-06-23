@@ -1,0 +1,57 @@
+#+TITLE:     Pallet Reference - Operations
+#+AUTHOR:    Hugo Duncan
+#+EMAIL:     hugo_duncan@yahoo.com
+#+DATE:      2010-06-17 Thu
+#+DESCRIPTION: Pallet reference for converge and lift operations
+#+KEYWORDS: pallet reference documentation lift converge
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP: index.html
+#+LINK_HOME: ../index.html
+#+property: exports code
+#+property: results output
+#+property: cache true
+#+STYLE: <link rel="stylesheet" type="text/css" href="../doc.css" />
+
+#+MACRO: clojure [[http://clojure.org][Clojure]]
+#+MACRO: jclouds [[http://jclouds.org][jclouds]]
+
+* Converge
+
+The =converge= function can be used to adjust node counts and to apply phases.
+The =:bootstrap= phase is the first phase applied to any new node that is
+started, and =:configure= is always applied.  Additional phases may also be
+specified. If the =:configure= phase is not explicitly passed, then it will
+always be applied as the first phase (or second, after =:bootstrap= on new
+nodes).
+
+#+BEGIN_SRC clojure  :session s1
+  (require 'pallet.core)
+  (pallet.core/defnode mytag [])
+
+  (defn scale-cluster [n]
+    (pallet.core/converge {mytag n}))
+#+END_SRC
+
+=converge= also accepts a prefix, which is applied to the tags in the call.
+This can be used to build job specific clusters.
+
+#+BEGIN_SRC clojure  :session s1
+  (require 'pallet.core)
+  (pallet.core/defnode lb [] :configure [])
+  (pallet.core/defnode webapp [] :configure [])
+  (pallet.core/defnode db [] :configure [])
+
+  (defn scale-cluster [prefix n]
+    (pallet.core/converge prefix {lb 1 webapp n db (inc (/ n 2))}))
+#+END_SRC
+
+* Lift
+
+The =lift= function is used to apply phases. The :configure phase is run by
+default only if no phases are explicitly specified.
+

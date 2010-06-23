@@ -1,0 +1,81 @@
+#+TITLE:     Pallet Reference - Providers
+#+AUTHOR:    Hugo Duncan
+#+EMAIL:     hugo_duncan@yahoo.com
+#+DATE:      2010-06-17 Thu
+#+DESCRIPTION: Pallet reference documentation for providers
+#+KEYWORDS: pallet providers cloud api
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP: index.html
+#+LINK_HOME: ../index.html
+#+property: exports code
+#+property: results output
+#+property: cache true
+#+STYLE: <link rel="stylesheet" type="text/css" href="../doc.css" />
+
+#+MACRO: clojure [[http://clojure.org][Clojure]]
+#+MACRO: jclouds [[http://jclouds.org][jclouds]]
+
+Pallet uses {{{jclouds}}} to create, start and stop nodes.  In order to use the cloud,
+you will need to specify your cloud credentials.  Each cloud has a slightly
+different terminology for the username/key and password/secret.
+
+* Cloud Provider Names
+
+In order to sign in to your cloud API, you will need to tell pallet the name of
+your cloud.  The names pallet recognises can be displayed with the following:
+
+#+BEGIN_SRC clojure  :session s1
+   (require 'pallet.compute)
+   (pallet.compute/supported-clouds)
+#+END_SRC
+
+* Explicit credentials
+
+You can log in to the cloud explicitly
+
+#+source: explicit-credentials(provider username password)
+#+BEGIN_SRC clojure :session s1 :cache yes :results silent
+  (require 'org.jclouds.compute)
+  (defn service []
+    (org.jclouds.compute/compute-service
+     "provider" "username" "password" :log4j :enterprise :ssh))
+#+END_SRC
+
+* Credentials in settings.xml
+
+Settings.xml is a maven file, often used to hold user specific configuration for
+maven.  You can add your cloud provider information to this file, which is
+normally located at [[file:~/.m2/settings.xml][~/.m2/settings.xml]].
+
+#+BEGIN_SRC nxml
+  <settings>
+    <profiles>
+      <profile>
+        <id>terremark</id>
+        <activation>
+          <activeByDefault>true</activeByDefault>
+        </activation>
+        <properties>
+          <pallet.service>Your Cloud serivce name</pallet.service>
+          <pallet.user>Your Cloud API username or key</pallet.user>
+          <pallet.key>Your Cloud API secret or password</pallet.key>
+        </properties>
+      </profile>
+    </profiles>
+  </settings>
+#+END_SRC
+
+You can then use this information with pallet:
+
+#+BEGIN_SRC clojure  :session s1
+  (require 'pallet.maven)
+  (def service
+       (apply org.jclouds.compute/compute-service
+              (concat (pallet.maven/credentials) [:log4j :enterprise :ssh])))
+#+END_SRC
+

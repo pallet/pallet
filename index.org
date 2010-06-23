@@ -1,0 +1,27 @@
+#+TITLE:     Pallet
+#+AUTHOR:    Hugo Duncan
+#+EMAIL:     hugo_duncan@yahoo.com
+#+DATE:      2010-06-17 Thu
+#+DESCRIPTION: Pallet is a node provisioning, configuration and administration tool.
+#+KEYWORDS:
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:t toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP:
+#+LINK_HOME: index.html
+#+STYLE: <link rel="stylesheet" type="text/css" href="doc.css" />
+
+#+MACRO: clojure [[http://clojure.org][Clojure]]
+#+MACRO: jclouds [[http://jclouds.org][jclouds]]
+
+Pallet is a node provisioning, configuration and administration tool.  It is
+designed to make small to midsize deployments simple.
+
+  * [[file:overview.org][Overview]]
+  * [[file:first_steps.org][First Steps]]
+  * [[file:reference/index.org][Reference Documentation]]
+  * [[http:autodoc/index.html][API Documentation]]
+

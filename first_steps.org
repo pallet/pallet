@@ -1,0 +1,75 @@
+#+TITLE:     Pallet - First Steps
+#+AUTHOR:    Hugo Duncan
+#+EMAIL:     hugo_duncan@yahoo.com
+#+DATE:      2010-06-17 Thu
+#+DESCRIPTION: Pallet first steps introduction
+#+KEYWORDS: pallet introduction install first
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP: index.html
+#+LINK_HOME: index.html
+#+property: exports code
+#+property: results output
+#+property: cache true
+#+STYLE: <link rel="stylesheet" type="text/css" href="doc.css" />
+
+#+MACRO: clojure [[http://clojure.org][Clojure]]
+#+MACRO: jclouds [[http://jclouds.org][jclouds]]
+#+MACRO: leiningen [[http://github.com/technomancy/leiningen][leiningen]]
+#+MACRO: maven [[http://maven.apache.org/][maven]]
+
+The simplest way to start pallet (but definitely not the nicest) is with a git
+checkout of the source and maven (see below).
+
+#+source: def-service
+#+begin_src clojure :results silent :session s1
+  (require 'pallet.maven)
+  (require 'pallet.compute)
+  (require 'org.jclouds.compute)
+
+  (pallet.compute/supported-clouds) ; show supported clouds
+
+  ;; Open a connection to the cloud api specified in ~/.m2/settings.xml
+  (def service
+       (apply org.jclouds.compute/compute-service
+        (concat (pallet.maven/credentials) [:log4j :enterprise :ssh])))
+
+  ;; List all the nodes
+  (org.jclouds.compute/nodes service)
+#+end_src
+
+See also [[http:autodoc/demo-api.html][demo API code]] until it gets migrated into these docs.
+
+* Install
+
+Pallet can be used in projects as a jar file.  It is available at [[http://clojars.org/pallet][Clojars]], and
+can be used with {{{maven}}}, {{{leiningen}}} or any maven repository aware tool.
+
+* Source
+Pallet is available on [[http://github.com/hugoduncan/pallet][github]]. Pallet requires [[http://clojure.org/][Clojure 1.2]], and uses {{{jclouds}}}.
+
+#+BEGIN_SRC sh :dir tmp
+  git clone git://github.com/hugoduncan/pallet.git
+#+END_SRC
+
+You can start a REPL using {{{maven}}}.  At this time {{{leiningen}}} can not be
+used to start a REPL.
+
+#+BEGIN_SRC sh :dir tmp
+  mvn clojure:repl
+#+END_SRC
+
+Using {{{leiningen}}} or {{{maven}}} you can also start a swank session, and
+connect to it with Emacs, etc.
+
+#+BEGIN_SRC sh
+  mvn clojure:swank -Dmaven.test.skip=true
+#+END_SRC
+
+#+BEGIN_SRC sh
+  lein swank
+#+END_SRC

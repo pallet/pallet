@@ -1,0 +1,114 @@
+#+TITLE:     Overview
+#+AUTHOR:    Hugo Duncan
+#+EMAIL:     hugo_duncan@yahoo.com
+#+DATE:      2010-06-17 Thu
+#+DESCRIPTION: Overview of Pallet
+#+KEYWORDS: pallet clojure provisioning configuration automation
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:2 \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP: index.html
+#+LINK_HOME: index.html
+#+property: exports code
+#+property: results output
+#+property: cache true
+#+LINK_UP: index.html
+#+LINK_HOME: index.html
+#+STYLE: <link rel="stylesheet" type="text/css" href="doc.css" />
+
+#+MACRO: clojure [[http://clojure.org][Clojure]]
+#+MACRO: jclouds [[http://jclouds.org][jclouds]]
+
+What makes pallet different to some of the other tools out there?
+
+* Features
+** No Dependencies
+
+The machines being managed require no special dependencies to be installed. As
+long as they have bash and ssh running, they can be used with pallet.  For me
+this was important - it means that you can use pretty much any image out there,
+which is great for ad-hoc testing and development.
+
+** No Server
+
+Pallet has no central server to set up and maintain - it simply runs on
+demand. You can run it from anywhere, even over a remote REPL connection.
+
+** Everything in Version Control
+
+In pallet, all your configuration is handled in SCM controlled files - there is
+no database involved.  This means that your configuration can always be kept in
+step with the development of your crates, and the versions of the external
+crates that you use.
+
+** Jar File Distribution of Crates
+
+Custom crates can be distributed as jar files, and so can be published in maven
+repositories, and be consumed in a version controlled manner.  Hopefully this
+will promote shared crates.
+
+** Provisioning, Configuration and Administration
+
+Pallet aims quite wide. You can use it for starting an stopping nodes, for
+configuring nodes, deploying projects and also for running administration tasks.
+To be honest, this wasn't an initial design goal, but has come out of the wash
+that way.
+
+* How it works
+
+Pallet is written in {{{clojure}}}, and so runs in a JVM.  You can embed it in any JVM
+based project, or use it directly at the REPL.
+
+Pallet [[file:reference/providers.org][talks to a cloud provider]], in order to start up new nodes, etc.  It does
+this using the excellent {{{jclouds}}} library.  Once the nodes are running,
+Pallet uses SSH to [[file:reference/node_push.org][communicate with the nodes]].
+
+To execute actions on the nodes, pallet executes shell scripts.  These scripts
+are generated in {{{clojure}}}.  At the lowest level, Pallet [[file:reference/script.org][embeds shell script]]
+in {{{clojure}}}, and wraps shell script fragments into {{{clojure}}} functions,
+creating reusable resources.
+
+Of course, no two operating systems are identical, so Pallet allows dispatching
+of the functions based on packager, etc, enabling abstraction of a node's
+operating system.
+
+Higher level [[file:reference/crates.org][crates]] are then put together, that use the resources to install
+packages, etc. Crates can also be implemented using the same machinery as
+resource functions.
+
+[[file:reference/node_types.org][Node types]] are defined that specify a tag and the sequence of crates to apply
+for each of a number of phases. By default, pallet defines =:bootstrap= and
+=:configure= phases, but you can add as many phases as you like
+(e.g. =:backup=).
+
+[[file:reference/phases.org][Phases]] are executed using either the [[file:reference/operations.org][=converge= or =lift= commands]], with
+=converge= also adjusting the number of nodes running for each tag.
+
+
+* Related Projects
+
+*** Configuration
+| Project Name | Link |
+|-
+| Chef | [[http://wiki.opscode.com/display/chef/Home]] |
+| Puppet | [[http://www.puppetlabs.com/]] |
+| cfengine | [[http://www.cfengine.org]] |
+
+*** Node Provisioning
+| Project Name | Link |
+|-
+| jClouds | [[http://www.jclouds.org/ ]] |
+| fog | [[http://github.com/geemus/fog]] |
+
+*** Application Services
+| Project Name | Link |
+|-
+| Capistrano | |
+| Fabric | |
+| Func | |
+
+
+If you have a project that you would like included above, I'll be happy to add it.
