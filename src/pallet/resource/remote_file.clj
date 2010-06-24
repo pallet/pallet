@@ -34,10 +34,15 @@
           (and url md5) (stevedore/chained-script
                          (if (|| (not (file-exists? ~path))
                                  (!= ~md5 @(md5sum ~path "|" cut "-f1 -d' '")))
-                           (wget "-O" ~path ~url))
+                           ~(stevedore/chained-script
+                             (var tmpfile @(mktemp prfXXXXX))
+                             (wget "-O" @tmpfile ~url)
+                             (mv @tmpfile ~path)))
                          (echo "MD5 sum is" @(md5sum ~path)))
           url (stevedore/chained-script
-               (wget "-O" ~path ~url)
+               (var tmpfile @(mktemp prfXXXXX))
+               (wget "-O" @tmpfile ~url)
+               (mv @tmpfile ~path)
                (echo "MD5 sum is" @(md5sum ~path)))
           content (apply heredoc
                          path content
