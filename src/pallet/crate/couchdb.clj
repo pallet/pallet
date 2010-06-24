@@ -31,6 +31,22 @@
       (if (file-exists? ~dir)
         ~(format "chown -R couchdb:couchdb %s && chmod 0770 %s" dir dir))))))
 
+
+(defn configure
+  "Configure couchdb using a key->value map.
+
+   Note that the configuration options mirror the couchdb ini file hierarchy
+   documented here: http://wiki.apache.org/couchdb/Configurationfile_couch.ini"
+  [& option-keyvals]
+  (doseq [[k v] (apply hash-map option-keyvals)
+          :let [config-path (->> k
+                                 (map #(name %))
+                                 (interpose "/"))
+                url (apply str "http://localhost:5984/_config/" config-path)
+                v-json (str \' (json/json-str v) \')]]
+    (exec-script/exec-script
+     (script (curl -X PUT -d ~v-json ~url)))))
+
 (defn couchdb
   "Ensures couchdb is installed (along with curl, as a basis for convenient
    configuration) optionally configuring it as specified.
@@ -38,9 +54,6 @@
    e.g. (couchdb
           [:query_server_config :reduce_limit] \"false\"
           [:couchdb :database_dir] \"/var/some/other/path\")
-
-   Note that the configuration options mirror the couchdb ini file hierarchy
-   documented here: http://wiki.apache.org/couchdb/Configurationfile_couch.ini
 
    If any options are provided, then the couch server will be restarted after
    the configuraiton is modified."
@@ -53,14 +66,7 @@
     ;; requests for a little bit -- it appears that the real process that's
     ;; forked off is beam which ramps up couchdb *after* it's forked.
     (exec-script/exec-script (script (sleep 2)))
-    (doseq [[k v] (apply hash-map option-keyvals)
-            :let [config-path (->> k
-                                   (map #(if (string? %) % (name %)))
-                                   (interpose "/"))
-                  url (apply str "http://localhost:5984/_config/" config-path)
-                  v-json (str \' (json/json-str v) \')]]
-      (exec-script/exec-script
-       (script (curl -X PUT -d ~v-json ~url))))
+    (apply configure option-keyvals)
     (service/service "couchdb" :action :restart)
     (exec-script/exec-script
      (script

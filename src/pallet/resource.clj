@@ -98,11 +98,11 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
 
 (defn apply-evaluated
   [f args]
-  (apply f (map pallet.arguments/evaluate args)))
+  (apply f (map #(when % (pallet.arguments/evaluate %)) args)))
 
 (defn apply-aggregated-evaluated
   [f args]
-  (f (map #(map pallet.arguments/evaluate %) args)))
+  (f (map #(map (fn [x] (when x (pallet.arguments/evaluate x))) %) args)))
 
 (defmulti invocations->resource-fns
   "Given an execution's invocations, will return a seq of
@@ -126,13 +126,12 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
   [required-resources]
   (into {}
     (for [[phase invocations] required-resources]
-      (do
-        [phase (apply
-                concat
-                (for [[execution invocations] (sort-by
-                                               (comp execution-ordering key)
-                                               invocations)]
-                  (invocations->resource-fns execution invocations)))]))))
+      [phase (apply
+              concat
+              (for [[execution invocations] (sort-by
+                                             (comp execution-ordering key)
+                                             invocations)]
+                (invocations->resource-fns execution invocations)))])))
 
 (defmacro defresource
   "Defines a resource-producing functions.  Takes a name, the
