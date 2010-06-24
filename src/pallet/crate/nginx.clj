@@ -13,7 +13,8 @@
    [pallet.resource.service :as service]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.file :as file]
-   [pallet.resource.directory :as directory]))
+   [pallet.resource.directory :as directory]
+   [clojure.contrib.string :as string]))
 
 (def src-packages
      ["libpcre3" "libpcre3-dev" "libssl" "libssl-dev"])
@@ -36,6 +37,7 @@
 (def nginx-init-script "crate/nginx/nginx")
 (def nginx-conf "crate/nginx/nginx.conf")
 (def nginx-site "crate/nginx/site")
+(def nginx-location "crate/nginx/location")
 
 (def nginx-defaults
      {:version "0.7.65"
@@ -67,9 +69,11 @@
 (def nginx-default-site
      {:listen "80"
       :server_name "localhost"
-      :access_log (str nginx-log-dir "/access.log")
-      :location "/"
-      :root "/var/www/data"
+      :access_log (str nginx-log-dir "/access.log")})
+
+(def nginx-default-location
+     {:location "/"
+      :root nil
       :index ["index.html" "index.htm"]
       :proxy_pass nil})
 
@@ -142,14 +146,20 @@
         available (format "%s/sites-available/%s" nginx-conf-dir name)
         enabled (format "%s/sites-enabled/%s" nginx-conf-dir name)
         site (fn [filename]
-               (remote-file/remote-file*
-                   filename
-                   :template nginx-site
-                   :values (utils/map-with-keys-as-symbols
-                             (reduce
-                              merge {}
-                              [nginx-default-site
-                               options]))))]
+               (let [locations (string/join
+                                \newline
+                                (map
+                                 #(pallet.template/interpolate-template
+                                   nginx-location (merge nginx-default-location %))
+                                 (:locations options)))]
+                 (remote-file/remote-file*
+                  filename
+                  :template nginx-site
+                  :values (utils/map-with-keys-as-symbols
+                            (reduce
+                             merge {:locations locations}
+                             [nginx-default-site
+                              (dissoc options :locations)])))))]
     (stevedore/do-script
      (directory/directory* (format "%s/sites-available" nginx-conf-dir))
      (directory/directory* (format "%s/sites-enabled" nginx-conf-dir))
@@ -165,5 +175,9 @@
                 (file/file* enabled :action :delete :force true))))))
 
 (resource/defresource site
-  "Enable or disable a site"
+  "Enable or disable a site.  Options:
+:listen        -- address to listen on
+:server_name   -- name
+:locations     -- locations (a seq of maps, with keys :location, :root
+                  :index, :proxy_pass)"
   site* [site-name & options])

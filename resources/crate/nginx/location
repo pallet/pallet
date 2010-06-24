@@ -1,0 +1,5 @@
+location ~{location} {
+  ~(when root (format "root %s;" root))
+  index  ~(apply str (interpose " " index));
+  ~(when proxy_pass (format "proxy_pass %s;" proxy_pass))
+}
