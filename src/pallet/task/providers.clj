@@ -8,7 +8,7 @@
    hash-map
    (apply concat
           (filter #(re-find #"(.*)\.contextbuilder" (first %))
-                  (utils/resource-properties "compute.properties")))))
+                  (utils/resource-properties "rest.properties")))))
 
 (defn- enabled?
   [provider]

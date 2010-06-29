@@ -8,14 +8,14 @@
    [pallet.utils :as utils])
   (:import
    [org.jclouds.compute.domain.internal NodeMetadataImpl ImageImpl]
-   org.jclouds.compute.util.ComputeUtils
+   org.jclouds.compute.util.ComputeServiceUtils
    [org.jclouds.compute.domain NodeState NodeMetadata Image Architecture]
    org.jclouds.domain.Location))
 
 
 ;;; Meta
 (defn supported-clouds []
-  (ComputeUtils/getSupportedProviders))
+  (ComputeServiceUtils/getSupportedProviders))
 
 ;;; Node utilities
 (defn make-node [tag & options]
