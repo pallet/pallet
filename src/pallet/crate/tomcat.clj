@@ -79,15 +79,24 @@
   [app-name & opts]
   (let [opts (apply hash-map opts)
         exploded-app-dir (str tomcat-base "webapps/" (or app-name "ROOT"))
-        deployed-warfile (str exploded-app-dir ".war")]
+        deployed-warfile (str exploded-app-dir ".war")
+        options (merge
+                 {:owner tomcat-user :group tomcat-group :mode 600}
+                 (select-keys opts [:url :local-file :remote-file :owner :group
+                                    :mode :md5]))]
+    (when-not (:clear-existing opts)
+      ;; if we're not removing an existing, try at least to make sure
+      ;; that tomcat has the permissions to explode the war
+      (apply
+       directory/directory
+       exploded-app-dir
+       (apply concat
+              (merge {:owner tomcat-user :group tomcat-group :recursive true}
+                     (select-keys options [:owner :group :recursive])))))
     (apply
      remote-file
      deployed-warfile
-     (apply
-      concat
-      (merge
-       {:owner tomcat-user :group tomcat-group :mode 600}
-       (select-keys opts [:url :local-file :remote-file :owner :group :mode :md5]))))
+     (apply concat options))
     (when (:clear-existing opts)
       (exec-script
         (script (rm ~exploded-app-dir ~{:r true :f true}))))))

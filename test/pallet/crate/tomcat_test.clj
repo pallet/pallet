@@ -4,6 +4,7 @@
   (:require
     [pallet.crate.tomcat :as tc]
     [pallet.target :as target]
+    [pallet.resource.directory :as directory]
     [pallet.resource.remote-file :as remote-file]
     [pallet.resource.package :as package]
     [pallet.parameter :as parameter]
@@ -39,10 +40,14 @@
     (is (= "c" (classname-for "c" m)))))
 
 (deftest tomcat-deploy-test
-  (is (= (remote-file/remote-file*
-          "/var/lib/tomcat6/webapps/ROOT.war"
-          :remote-file "file.war"
-          :owner "tomcat6" :group "tomcat6" :mode "600")
+  (is (= (stevedore/do-script
+          (directory/directory*
+           "/var/lib/tomcat6/webapps/ROOT"
+           :owner "tomcat6" :group "tomcat6" :recursive true)
+          (remote-file/remote-file*
+           "/var/lib/tomcat6/webapps/ROOT.war"
+           :remote-file "file.war"
+           :owner "tomcat6" :group "tomcat6" :mode "600"))
          (build-resources [] (deploy nil :remote-file "file.war")))))
 
 (deftest tomcat-undeploy-all-test

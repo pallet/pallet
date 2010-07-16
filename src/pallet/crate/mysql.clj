@@ -1,27 +1,24 @@
 (ns pallet.crate.mysql
+  (:require
+   [pallet.resource.package :as package])
   (:use
-   [pallet.resource.package :only [package package-manager]]
    [pallet.target :only [packager]]
    [pallet.resource :only [defresource]]
    [pallet.stevedore :only [script]]
    [pallet.template :only [deftemplate apply-templates]]))
-
-(def mysql-package-names
-     {:yum [ "mysql-devel"]
-      :aptitude [ "libmysqlclient15-dev" ]})
 
 (def mysql-my-cnf
      {:yum "/etc/my.cnf"
       :aptitude "/etc/mysql/my.cnf"})
 
 (defn mysql-client []
-  (doseq [pkg (mysql-package-names (packager))]
-    (package pkg)))
+  (package/packages :yum [ "mysql-devel"]
+                    :aptitude [ "libmysqlclient15-dev" ]))
 
 (defn mysql-server
   ([root-password] (mysql-server root-password true))
   ([root-password start-on-boot]
-     (package-manager
+     (package/package-manager
       :debconf
       (str "mysql-server-5.1 mysql-server/root_password password " root-password)
       (str "mysql-server-5.1 mysql-server/root_password_again password " root-password)
@@ -29,7 +26,7 @@
       (str "mysql-server-5.1 mysql-server-5.1/root_password password " root-password)
       (str "mysql-server-5.1 mysql-server-5.1/root_password_again password " root-password)
       (str "mysql-server-5.1 mysql-server/start_on_boot boolean " start-on-boot)
-     (package "mysql-server")))
+      (package/package "mysql-server")))
 
 (deftemplate my-cnf-template
   [string]

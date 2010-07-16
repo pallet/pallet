@@ -1,7 +1,8 @@
 (ns pallet.crate.rubygems-test
   (:use [pallet.crate.rubygems] :reload-all)
   (:require
-   [pallet.resource.remote-file :as remote-file])
+   [pallet.resource.remote-file :as remote-file]
+   [pallet.stevedore :as stevedore])
   (:use clojure.test
         pallet.test-utils
         [pallet.resource.package :only [package package-manager]]
@@ -15,7 +16,9 @@
          (script (gem "install" "fred")))))
 
 (deftest gem-test
-  (is (= "gem install  fred\n"
+  (is (= (stevedore/checked-script
+          "Install gem fred"
+          (gem "install" "fred"))
          (build-resources [] (gem "fred")))))
 
 (deftest gem-source-test

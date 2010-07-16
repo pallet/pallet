@@ -39,7 +39,9 @@ COMMIT
                    (var tmp @(mktemp iptablesXXXX))
                    ~(pallet.resource.remote-file/remote-file*
                      "$tmp" :content table)
-                   ("/sbin/iptables-restore" < @tmp)
+                   ~(pallet.stevedore/checked-script
+                     "Restore IPtables"
+                     ("/sbin/iptables-restore" < @tmp))
                    (rm @tmp))
         :yum (pallet.resource.remote-file/remote-file
               "/etc/sysconfig/iptables"

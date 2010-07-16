@@ -2,7 +2,8 @@
   "Installation of ruby from source"
   (:require
    [pallet.resource :as resource]
-   [pallet.stevedore :as stevedore])
+   [pallet.stevedore :as stevedore]
+   [clojure.string :as string])
   (:use
    [pallet.resource.package :only [package package* package-manager]]
    [pallet.resource.exec-script :only [exec-script]]
@@ -17,6 +18,7 @@
 
 (def src-packages ["zlib-devel"  "gcc" "gcc-c++" "make"
                    "curl-devel" "expat-devel" "gettext-devel"
+                   "libncurses5-dev" "libreadline-dev"
                    ;; ubuntu 10.04
                    "zlib1g" "zlib1g-dev" "zlibc"
                    "libssl-dev"])
@@ -25,12 +27,14 @@
      {"1.8.7-p72" #"1.8.7.*patchlevel 72"})
 
 (def version-md5
-     {"1.8.7-p72" "5e5b7189674b3a7f69401284f6a7a36d"})
+     {"1.8.7-p72" "5e5b7189674b3a7f69401284f6a7a36d"
+      "1.8.7-p299" "43533980ee0ea57381040d4135cf9677"})
 
 (defn ftp-path [tarfile]
-  (if (.contains tarfile "1.8")
-    (str "ftp://ftp.ruby-lang.org/pub/ruby/1.8/" tarfile)
-    (str "ftp://ftp.ruby-lang.org/pub/ruby/1.9/" tarfile)))
+  (cond
+   (.contains tarfile "1.8") (str "ftp://ftp.ruby-lang.org/pub/ruby/1.8/" tarfile)
+   (.contains tarfile "stable") (str "ftp://ftp.ruby-lang.org/pub/ruby/" tarfile)
+   :else (str "ftp://ftp.ruby-lang.org/pub/ruby/1.9/" tarfile)))
 
 (defn ruby
   "Install ruby from source"
@@ -44,25 +48,39 @@
        (remote-file
         tarpath :url (ftp-path tarfile) :md5 (version-md5 version))
        (exec-script
-        (stevedore/checked-script "Building ruby"
-         (cd (tmp-dir))
-         (tar xfz ~tarfile)
-         (cd ~basename)
-         ("./configure" "--enable-shared" "--enable-pthread")
-         (make)
-         (make install)
-         (if-not (|| (file-exists? "/usr/bin/ruby")
-                     (file-exists? "/usr/local/bin/ruby"))
-           (do (println "Could not find ruby executable")
-               (exit 1)))
-         (cd "ext/zlib")
-         (ruby "extconf.rb" "--with-zlib")
-         (cd "../../")
-         (cd "ext/openssl")
-         (ruby "extconf.rb")
-         (cd "../../")
-         (make)
-         (make install))))))
+        (stevedore/script
+         (if-not (pipe ("ruby" "--version")
+                       (grep (quoted ~(string/replace version "-p" ".*"))))
+           (do
+             ~(stevedore/checked-script
+               "Building ruby"
+               (cd (tmp-dir))
+               (tar xfz ~tarfile)
+               (cd ~basename)
+               ("./configure" "--enable-shared" "--enable-pthread")
+               (make)
+               (make install)
+               (if-not (|| (file-exists? "/usr/bin/ruby")
+                           (file-exists? "/usr/local/bin/ruby"))
+                 (do (println "Could not find ruby executable")
+                     (exit 1)))
+               (cd "ext/zlib")
+               (ruby "extconf.rb" "--with-zlib")
+               (make)
+               (make install)
+               (cd "../../")
+               (cd "ext/openssl")
+               (ruby "extconf.rb")
+               (make)
+               (make install)
+               (cd "../../")
+               (cd "ext/readline")
+               (ruby "extconf.rb")
+               (make)
+               (make install)
+               (cd "../../")
+               (make)
+               (make install)))))))))
 
 
 (def ruby-package-names

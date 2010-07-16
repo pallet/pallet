@@ -1,0 +1,28 @@
+2010-07-16  Hugo Duncan  <hugo_duncan@yahoo.com>
+
+	* ruby: added readline support
+	* nginx: added passenger support
+	* src/pallet/stevedore.clj: added 'and and 'or
+
+	* src/pallet/resource/remote_directory.clj: added :recursive option to remote-directory
+
+	* src/pallet/resource/file.clj: changed heredoc EOF to EOFpallet to reduce conflicts
+
+	* src/pallet/resource/service.clj: added options for enable and disable of services
+
+	* src/pallet/resource/user.clj: added group management
+
+	* src/pallet/crate/ruby.clj:  added version checking before building in nginx, ruby and rubygems.
+
+2010-06-30  Hugo Duncan  <hugo_duncan@yahoo.com>
+
+	* src/pallet/resource/directory.clj: Added directories resource, to enable setting mode and ownership on multiple directories at once.
+
+2010-06-21  Hugo Duncan  <hugo_duncan@yahoo.com>
+
+	* remove explicit remote-file arg from pallet.crate.tomcat/deploy, and allow :url, :local-file, :remote-file options as per pallet.resource.remote-file.  Remove pallet.crate.tomcat/deploy-local-file
+
+2010-06-10  Hugo Duncan  <hugo_duncan@yahoo.com>
+
+	* test/pallet/crate/ssh_key_test.clj: add :no-dir and :comment options to generate-key
+
