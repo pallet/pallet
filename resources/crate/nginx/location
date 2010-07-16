@@ -2,4 +2,6 @@ location ~{location} {
   ~(when root (format "root %s;" root))
   index  ~(apply str (interpose " " index));
   ~(when proxy_pass (format "proxy_pass %s;" proxy_pass))
+  ~(when passenger-enabled (format "passenger_enabled %s;" passenger-enabled))
+  ~(when rails-env (format "rails_env %s;" rails-env))
 }

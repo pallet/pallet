@@ -52,3 +52,4 @@ This is used in the sudoers crate, for example, to emit /etc/sudoers.
 =deflocal= defines a crate that will be run on the local machine.
 * Parameters
 * Delayed Arguments
+* Templates
