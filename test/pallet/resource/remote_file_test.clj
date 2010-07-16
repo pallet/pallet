@@ -7,6 +7,8 @@
   (:require
    [pallet.core :as core]
    [pallet.resource.exec-script :as exec-script]
+   [pallet.resource.file :as file]
+   [pallet.stevedore :as stevedore]
    [pallet.compute :as compute]
    [pallet.target :as target]
    [pallet.utils :as utils]
@@ -20,10 +22,17 @@
          (. System getProperty "user.name")))
 
 (deftest remote-file*-test
-  (is (= "echo \"remote-file path...\"\n{ { cat > path <<EOF\nxxx\nEOF\n }; } || { echo remote-file path failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= (stevedore/checked-commands
+          "remote-file path"
+          (file/heredoc "path" "xxx"))
          (remote-file* "path" :content "xxx")))
 
-  (is (= "echo \"remote-file path...\"\n{ { cat > path <<EOF\nxxx\nEOF\n } && chown  o path && chgrp  g path && chmod  m path; } || { echo remote-file path failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= (stevedore/checked-commands
+          "remote-file path"
+          (file/heredoc "path" "xxx")
+          (stevedore/script (chown "o" "path"))
+          (stevedore/script (chgrp "g" "path"))
+          (stevedore/script (chmod "m" "path")))
          (remote-file* "path" :content "xxx" :owner "o" :group "g" :mode "m")))
 
   (with-temporary [tmp (tmpfile)]
@@ -39,14 +48,20 @@
     (is (= "xxx\n" (slurp (.getPath tmp)))))
 
   (target/with-target nil {:tag :n :image [:ubuntu]}
-    (is (= "echo \"remote-file path...\"\n{ { cat > path <<EOF\na 1\n\nEOF\n }; } || { echo remote-file path failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+    (is (= (stevedore/checked-commands
+            "remote-file path"
+            (file/heredoc "path" "a 1\n"))
            (remote-file* "path" :template "template/strint" :values {'a 1})))))
 
 (deftest remote-file-test
-  (is (= "echo \"remote-file file1...\"\n{ { cat > file1 <<EOF\nsomecontent\nEOF\n }; } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= (stevedore/checked-commands
+            "remote-file file1"
+            (file/heredoc "file1" "somecontent"))
          (build-resources
           [] (remote-file "file1" :content "somecontent"))))
-  (is (= "echo \"remote-file file1...\"\n{ { cat > file1 <<'EOF'\nsomecontent\nEOF\n }; } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= (stevedore/checked-commands
+            "remote-file file1"
+            (file/heredoc "file1" "somecontent" :literal true))
          (build-resources
           [] (remote-file "file1" :content "somecontent" :literal true))))
   (is (= "echo \"remote-file file1...\"\n{ tmpfile=$(mktemp prfXXXXX) && wget -O ${tmpfile} http://xx.com/abc && mv ${tmpfile} file1 && echo MD5 sum is $(md5sum file1); } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
