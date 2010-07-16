@@ -24,31 +24,22 @@
      (string/join "\n" (map string/rtrim keys))
      keys)})
 
-(defn authorize-key* [user keys]
-  (stevedore/do-script
-   (directory/directory* (user-ssh-dir user) :owner user :mode "755")
-   (remote-file/remote-file*
-    (str (user-ssh-dir user) "authorized_keys")
-    :content (if (vector? keys)
-               (string/join "\n" (map string/rtrim keys))
-               keys)
-    :owner user :mode "0644")))
+(defn authorize-key* [user public-key-string & options]
+  (let [options (apply hash-map options)
+        target-user (get options :authorize-for-user user)]
+    (stevedore/do-script
+     (stevedore/script
+      (var auth_file ~(str (user-ssh-dir target-user) "authorized_keys")))
+     (directory/directory* (user-ssh-dir target-user) :owner target-user :mode "755")
+     (file* (str (user-ssh-dir target-user) "authorized_keys")
+            :owner target-user :mode "644")
+     (stevedore/checked-script "authorize-key"
+      (if-not (grep (quoted ~public-key-string) @auth_file)
+        (echo (quoted ~public-key-string) ">>" @auth_file))))))
 
-(defn- conj-merge [a b]
-  (if (vector? a)
-    (conj a b)
-    [a b]))
-
-(defn- apply-authorize-keys [args]
-  (string/join
-   ""
-   (map
-    (partial apply authorize-key*)
-    (reduce #(merge-with conj-merge %1 (apply array-map %2)) {} args))))
-
-(defaggregate authorize-key
+(defresource authorize-key
   "Authorize a public key on the specified user."
-  apply-authorize-keys [username public-key-string])
+  authorize-key* [username public-key-string])
 
 (defn authorize-key-for-localhost* [user public-key-filename & options]
   (let [options (apply hash-map options)
@@ -116,8 +107,8 @@
      (file* (str (stevedore/script @key_path) ".pub") :owner user :mode "0644"))))
 
 (defresource generate-key
-  "Generate an ssh key pair for the given user. Options are
-     :file path     -- output file name
+  "Generate an ssh key pair for the given user, unless one already
+   exists. Options are:
      :file path     -- output file name
      :type key-type -- key type selection"
   generate-key* [username & options])

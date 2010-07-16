@@ -24,31 +24,24 @@ chown userx ${file}
                     [authorize-key*]]
   (deftest authorize-key*-test
     (is (= (stevedore/do-script
-            (directory/directory*
-             "$(getent passwd userx | cut -d: -f6)/.ssh/"
-             :owner "userx" :mode "755")
-            (remote-file/remote-file*
-             "$(getent passwd userx | cut -d: -f6)/.ssh/authorized_keys"
-             :content "key1\nkey2"
-             :owner "userx" :mode "0644"))
-           (authorize-key* "userx" ["key1" "key2"] )))))
+            (stevedore/script
+             (var auth_file "$(getent passwd userx | cut -d: -f6)/.ssh/authorized_keys"))
+            (directory/directory* "$(getent passwd userx | cut -d: -f6)/.ssh/"
+                                  :owner "userx" :mode "755")
+            (file/file* "$(getent passwd userx | cut -d: -f6)/.ssh/authorized_keys"
+                        :owner "userx" :mode "644")
+            (stevedore/checked-script
+             "authorize-key"
+             (if-not (grep (quoted "key1") @auth_file)
+               (echo (quoted "key1") ">>" @auth_file))))
+           (do
+             (authorize-key* "userx" "key1"))))))
 
 (deftest authorize-key-test
   (is (= (stevedore/do-script
-          (directory/directory*
-           "$(getent passwd user2 | cut -d: -f6)/.ssh/"
-           :owner "user2" :mode "755")
-          (remote-file/remote-file*
-           "$(getent passwd user2 | cut -d: -f6)/.ssh/authorized_keys"
-           :content "key3"
-           :owner "user2" :mode "0644")
-          (directory/directory*
-           "$(getent passwd user | cut -d: -f6)/.ssh/"
-           :owner "user" :mode "755")
-          (remote-file/remote-file*
-           "$(getent passwd user | cut -d: -f6)/.ssh/authorized_keys"
-           :content "key1\nkey2"
-           :owner "user" :mode "0644"))
+          (authorize-key* "user" "key1")
+          (authorize-key* "user" "key2")
+          (authorize-key* "user2" "key3"))
          (pallet.resource/build-resources []
           (authorize-key "user" "key1")
           (authorize-key "user" "key2")
