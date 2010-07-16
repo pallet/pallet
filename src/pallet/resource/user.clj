@@ -10,6 +10,7 @@
    [clojure.contrib.string :as string]))
 
 (defscript user-exists? [name])
+
 (defscript modify-user [name options])
 (defscript create-user [name options])
 (defscript remove-user [name options])
@@ -17,6 +18,11 @@
 (defscript unlock-user [name])
 (defscript user-home [username])
 (defscript current-user [])
+
+(defscript group-exists? [name])
+(defscript modify-group [name options])
+(defscript create-group [name options])
+(defscript remove-group [name options])
 
 (defimpl user-exists? :default [username]
   (getent passwd ~username))
@@ -47,6 +53,18 @@
 
 (defimpl current-user :default []
   @(whoami))
+
+(defimpl group-exists? :default [name]
+  (getent group ~name))
+
+(defimpl create-group :default [groupname options]
+  (groupadd ~(map-to-arg-string options) ~groupname))
+
+(defimpl modify-group :default [groupname options]
+  (groupmod ~(map-to-arg-string options) ~groupname))
+
+(defimpl remove-group :default [groupname options]
+  (groupdel ~(map-to-arg-string options) ~groupname))
 
 (defvar- shell-names
   {:bash "/bin/bash" :csh "/bin/csh" :ksh "/bin/ksh" :rsh "/bin/rsh"
@@ -95,3 +113,33 @@
 
 (defaggregate user "User management."
   apply-users [username & options])
+
+
+(defn group*
+  "Require a group"
+  [groupname & options]
+  (let [opts (if options (apply assoc {} options))
+        opts (merge {:action :manage} opts)
+        action (:action opts)]
+    (condp = action
+      :create
+      (script
+       (if-not (group-exists? ~groupname)
+         (create-group
+          ~groupname ~(select-keys opts [:system :gid :password]))))
+      :manage
+      (script
+       (if (group-exists? ~groupname)
+         (modify-group
+          ~groupname ~(select-keys opts [:gid :password]))
+         (create-group
+          ~groupname ~(select-keys opts [:system :gid :password]))))
+      :remove
+      (script
+       (if (group-exists? ~groupname)
+         (remove-group ~groupname {})))
+      (throw (IllegalArgumentException.
+              (str action " is not a valid action for group resource"))))))
+
+(defresource group "User Group Management."
+  group* [name & options])
