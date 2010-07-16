@@ -39,7 +39,7 @@
 
 (script/defscript heredoc [path content])
 (stevedore/defimpl heredoc :default [path content]
-  ("{ cat" ">" ~path ~(str "<<EOF\n" content "\nEOF\n }")))
+  ("{ cat" ">" ~path ~(str "<<EOFpallet\n" content "\nEOFpallet\n }")))
 
 ;; the cat is wrapped in braces so that the final newline is protected
 (defn heredoc
@@ -48,8 +48,8 @@
   [path content & options]
   (let [options (apply hash-map options)]
     (stevedore/script ("{ cat" ">" ~path
-             ~(str (if (options :literal) "<<'EOF'\n" "<<EOF\n")
-                   content "\nEOF\n }")))))
+             ~(str (if (options :literal) "<<'EOFpallet'\n" "<<EOFpallet\n")
+                   content "\nEOFpallet\n }")))))
 
 (defn adjust-file [path opts]
   (stevedore/chain-commands*

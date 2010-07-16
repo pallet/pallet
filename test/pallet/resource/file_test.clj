@@ -28,15 +28,15 @@
          (script (tmp-dir)))))
 
 (deftest heredoc-script-test
-  (is (= "{ cat > somepath <<EOF\nsomecontent\nEOF\n }"
+  (is (= "{ cat > somepath <<EOFpallet\nsomecontent\nEOFpallet\n }"
          (script (heredoc "somepath" "somecontent")))))
 
 (deftest heredoc-test
-  (is (= "{ cat > somepath <<EOF\nsomecontent\nEOF\n }"
+  (is (= "{ cat > somepath <<EOFpallet\nsomecontent\nEOFpallet\n }"
          (heredoc "somepath" "somecontent"))))
 
 (deftest heredoc-literal-test
-  (is (= "{ cat > somepath <<'EOF'\nsomecontent\nEOF\n }"
+  (is (= "{ cat > somepath <<'EOFpallet'\nsomecontent\nEOFpallet\n }"
          (heredoc "somepath" "somecontent" :literal true))))
 
 (deftest file-test
