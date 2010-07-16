@@ -83,13 +83,16 @@
 
 (def special-forms (set ['if 'if-not 'when 'case 'aget 'defn 'return 'set! 'var 'defvar 'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists? 'symlink? 'readable? 'writeable? 'not 'println 'group 'pipe 'chain-or 'chain-and 'while 'doseq]))
 
-(def infix-operators (set ['+ '- '/ '* '% '== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '||]))
-(def logical-operators (set ['== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '|| 'file-exists? 'symlink? 'readable? 'writeable? 'not]))
+(def infix-operators (set ['+ '- '/ '* '% '== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '|| 'and 'or]))
+(def logical-operators (set ['== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '|| 'file-exists? 'symlink? 'readable? 'writeable? 'not 'and 'or]))
+
 (def quoted-operators (disj logical-operators 'file-exists? 'symlink 'can-read))
 
 (def infix-conversions
      {'&& "-a"
+      'and "-a"
       '|| "-o"
+      'or "-o"
       '< "\\<"
       '> "\\>"
       '= "=="})
