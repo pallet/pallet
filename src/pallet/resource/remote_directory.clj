@@ -27,7 +27,12 @@
                      (tar ~(get options :tar-options "xz")
                          ~(str "--strip-components="
                                (get options :strip-components 1))
-                         -f ~tarpath))))))))))
+                         -f ~tarpath)))
+             (if (:recursive options)
+               (apply
+                directory/directory*
+                path (apply concat
+                            (select-keys options [:owner :group :recursive])))))))))))
 
 (resource/defresource remote-directory
   "Specify the contents of remote directory"

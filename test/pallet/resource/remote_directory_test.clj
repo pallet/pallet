@@ -23,4 +23,21 @@
            "/path"
            :url "http://site.com/a/file.tgz"
            :unpack :tar
-           :owner "fred")))))
+           :owner "fred"))))
+  (is (= (stevedore/checked-commands
+          "remote-directory"
+          (directory/directory* "/path" :owner "fred")
+          (remote-file/remote-file*
+           "${TMPDIR-/tmp}/file.tgz" :url "http://site.com/a/file.tgz" :md5 nil)
+          (stevedore/script
+           (cd "/path")
+           (tar xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz"))
+          (directory/directory* "/path" :owner "fred" :recursive true))
+         (test-resource-build
+          [nil {}]
+          (remote-directory
+           "/path"
+           :url "http://site.com/a/file.tgz"
+           :unpack :tar
+           :owner "fred"
+           :recursive true)))))
