@@ -31,10 +31,9 @@
      (stevedore/script
       (var auth_file ~(str (user-ssh-dir target-user) "authorized_keys")))
      (directory/directory* (user-ssh-dir target-user) :owner target-user :mode "755")
-     (file* (str (user-ssh-dir target-user) "authorized_keys")
-            :owner target-user :mode "644")
-     (stevedore/checked-script "authorize-key"
-      (if-not (grep (quoted ~public-key-string) @auth_file)
+     (file* "${auth_file}" :owner target-user :mode "644")
+     (stevedore/script
+      (if-not (fgrep (quoted ~(string/trim public-key-string)) @auth_file)
         (echo (quoted ~public-key-string) ">>" @auth_file))))))
 
 (defresource authorize-key
