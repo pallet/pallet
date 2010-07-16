@@ -2,16 +2,54 @@
   "Service control."
   (:use clojure.contrib.logging)
   (:require
+   [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource :as resource]))
+
+
+(script/defscript configure-service
+  [name action options])
+
+(def debian-configure-option-names
+     {:force :f})
+
+(defn debian-options [options]
+  (zipmap
+   (map #(% debian-configure-option-names %) (keys options))
+   (vals options)))
+
+(stevedore/defimpl configure-service :default [name action options]
+  ~(condp = action
+       :disable (stevedore/script
+                 (update-rc.d
+                  ~(stevedore/map-to-arg-string
+                    (select-keys [:f :n] (debian-options options)))
+                  ~name remove))
+       :enable (stevedore/script
+                (update-rc.d
+                 ~(stevedore/map-to-arg-string
+                   (select-keys [:n] (debian-options options)))
+                 ~name defaults
+                 ~(:sequence-start options 20)
+                 ~(:sequence-stop options (:sequence-start options 20))))
+       (stevedore/script ;; start/stop
+        (update-rc.d
+         ~(stevedore/map-to-arg-string
+           (select-keys [:n] (debian-options options)))
+         ~name ~(name action)
+         ~(:sequence-start options 20)
+         ~(:sequence-stop options (:sequence-start options 20))))))
+
 
 (defn service*
   [service-name & options]
   (let [opts (apply hash-map options)
         opts (merge {:action :start} opts)
         action (opts :action)]
-    (stevedore/script ( ~(str "/etc/init.d/" service-name) ~(name action)))))
+    (if (#{:enable :disable} action)
+      (stevedore/script (configure-service ~service-name ~action ~opts))
+      (stevedore/script ( ~(str "/etc/init.d/" service-name) ~(name action))))))
 
 (resource/defresource service
   "Control serives"
@@ -36,3 +74,4 @@
 (resource/defresource init-script
   "Install an init script.  Sources as for remote-file."
   init-script* [name & options])
+
