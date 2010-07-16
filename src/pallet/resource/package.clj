@@ -155,24 +155,26 @@
 (defn package-manager*
   "Package management."
   [action & options]
-  (let [opts (apply hash-map options)]
-    (stevedore/checked-commands "package-manager"
-     (condp = action
+  (stevedore/checked-commands
+   "package-manager"
+   (condp = action
        :update
-       (stevedore/script (update-package-list))
-       :multiverse
+     (stevedore/script (update-package-list))
+     :multiverse
+     (let [opts (apply hash-map options)]
        (add-scope (or (opts :type) "deb.*")
                   "multiverse"
-                  (or (opts :file) "/etc/apt/sources.list"))
-       :universe
+                  (or (opts :file) "/etc/apt/sources.list")))
+     :universe
+     (let [opts (apply hash-map options)]
        (add-scope (or (opts :type) "deb.*")
                   "universe"
-                  (or (opts :file) "/etc/apt/sources.list"))
-       :debconf
-       (if (= :aptitude (packager))
-         (stevedore/script (apply debconf-set-selections ~options)))
-       (throw (IllegalArgumentException.
-               (str action " is not a valid action for package resource")))))))
+                  (or (opts :file) "/etc/apt/sources.list")))
+     :debconf
+     (if (= :aptitude (packager))
+       (stevedore/script (apply debconf-set-selections ~options)))
+     (throw (IllegalArgumentException.
+             (str action " is not a valid action for package resource"))))))
 
 (defn- apply-package-manager [package-manager-args]
   (stevedore/do-script*
