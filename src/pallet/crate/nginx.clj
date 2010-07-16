@@ -176,15 +176,16 @@
 (defn init*
   [& options]
   (let [options (apply hash-map options)]
-    (service/init-script*
-     "nginx"
-     :content (utils/load-resource-url
-               (template/find-template
-                nginx-init-script
-                (target/node-type)))
-     :literal true)
-    (if-not (:no-enable options)
-      (service/service* "nginx" :action :enable))))
+    (stevedore/do-script
+     (service/init-script*
+      "nginx"
+      :content (utils/load-resource-url
+                (template/find-template
+                 nginx-init-script
+                 (target/node-type)))
+      :literal true)
+     (if-not (:no-enable options)
+       (service/service* "nginx" :action :enable)))))
 
 (resource/defresource init
   "Creates a nginx init script."
