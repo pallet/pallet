@@ -55,3 +55,13 @@
 
 (defresource directory "Directory management."
   directory* [path & options])
+
+(defn directories*
+  "Create directories and set permisions"
+  [paths & options]
+  (stevedore/chain-commands*
+   (map #(apply directory* % options) paths)))
+
+(defresource directories "Directory management of multiple directories."
+  directories* [paths & options])
+
