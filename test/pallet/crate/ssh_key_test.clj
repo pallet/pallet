@@ -25,14 +25,13 @@ chown userx ${file}
   (deftest authorize-key*-test
     (is (= (stevedore/do-script
             (stevedore/script
-             (var auth_file "$(getent passwd userx | cut -d: -f6)/.ssh/authorized_keys"))
-            (directory/directory* "$(getent passwd userx | cut -d: -f6)/.ssh/"
-                                  :owner "userx" :mode "755")
-            (file/file* "$(getent passwd userx | cut -d: -f6)/.ssh/authorized_keys"
-                        :owner "userx" :mode "644")
-            (stevedore/checked-script
-             "authorize-key"
-             (if-not (grep (quoted "key1") @auth_file)
+             (var auth_file
+                  "$(getent passwd userx | cut -d: -f6)/.ssh/authorized_keys"))
+            (directory/directory*
+             "$(getent passwd userx | cut -d: -f6)/.ssh/" :owner "userx" :mode "755")
+            (file/file* "${auth_file}" :owner "userx" :mode "644")
+            (stevedore/script
+             (if-not (fgrep (quoted "key1") @auth_file)
                (echo (quoted "key1") ">>" @auth_file))))
            (do
              (authorize-key* "userx" "key1"))))))
