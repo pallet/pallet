@@ -113,8 +113,9 @@
                          (merge default-config (dissoc options :servers))))
                    (string/join
                     \newline
-                    (map #(format "server.%s=zoo%s:%s:%s"
+                    (map #(format "server.%s=%s:%s:%s"
                                   (:id %)
+                                  (:hostname %)
                                   (:quorum-port % 2888)
                                   (:election-port % 3888))
                          (:servers options))))
