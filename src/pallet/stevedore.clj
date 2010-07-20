@@ -116,7 +116,8 @@
   (let [s (emit expr)]
     (if (or (.startsWith s "\\(")
             (.startsWith s "!")
-            (.startsWith s "-"))
+            (.startsWith s "-")
+            (.startsWith s "@"))
       s
       (f s))))
 

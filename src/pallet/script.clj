@@ -1,5 +1,4 @@
-(ns
-  pallet.script
+(ns pallet.script
   "Base infrastructure for script generation"
   (:use [pallet.target :only [template]]
         clojure.contrib.logging))
