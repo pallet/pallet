@@ -1,5 +1,12 @@
-2010-07-16  Hugo Duncan  <hugo_duncan@yahoo.com>
+2010-07-20  Hugo Duncan  <hugo_duncan@yahoo.com>
 
+	* src/pallet/arguments.clj: added delayed macro
+
+	* test/pallet/parameter_test.clj: factored out get-for
+
+2010-07-16  Hugo Duncan  <hugo_duncan@yahoo.com>
+	* ssh: authorize-key is now incremental
+	* rubygems: added checking of gem installs
 	* ruby: added readline support
 	* nginx: added passenger support
 	* src/pallet/stevedore.clj: added 'and and 'or

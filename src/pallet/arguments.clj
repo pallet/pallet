@@ -19,3 +19,8 @@
   "Pass a function to be used to compute an argument at resource applicaiton time."
   [f]
   (DelayedFunction. f))
+
+(defmacro delayed
+  "Pass an argument to be evaluated at resource applicaiton time."
+  [& body]
+  `(DelayedFunction. (fn [] ~@body)))

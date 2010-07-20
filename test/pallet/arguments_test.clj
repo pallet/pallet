@@ -9,3 +9,7 @@
 
 (deftest computed-test
   (is (= "xx" (evaluate (computed (fn [] "xx"))))))
+
+(deftest computed-test
+  (is (not= "xx" (delayed "xx")))
+  (is (= "xx" (evaluate (delayed "xx")))))

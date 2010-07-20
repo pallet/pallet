@@ -34,23 +34,25 @@
   (set! *parameters* (update-in *parameters* keys (fn [_] value))))
 
 
+(defn get-for [keys]
+  (let [key (first keys)
+        rest-keys (seq (rest keys))
+        parameters (get *parameters* key ::not-set)]
+    (when (= ::not-set parameters)
+      (condition/raise
+       :type :parameter-not-found
+       :message (format "Could not find key %s in *parameters*" key)
+       :key-not-set key))
+    (if rest-keys
+      (apply parameters rest-keys)
+      parameters)))
 
 (deftype ParameterLookup
   [keys]
   pallet.arguments.DelayedArgument
   (evaluate
    [_]
-   (let [key (first keys)
-         rest-keys (seq (rest keys))
-         parameters (get *parameters* key ::not-set)]
-     (when (= ::not-set parameters)
-       (condition/raise
-        :type :parameter-not-found
-        :message (format "Could not find key %s in *parameters*" key)
-        :key-not-set key))
-     (if rest-keys
-       (apply parameters rest-keys)
-       parameters))))
+   (get-for keys)))
 
 (defn lookup
   "Lookup a parameter in a delayed manner. This produces a function, which is
