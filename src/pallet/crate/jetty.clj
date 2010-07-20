@@ -61,12 +61,11 @@
      "JETTY_LOGS" log-path
      "JETTY_HOME" install-path
      "JAVA_HOME" "/usr/lib/jvm/java-6-openjdk")
-    (remote-file/remote-file
-     "/etc/init.d/jetty"
-     :remote-file (str install-path "/bin/jetty.sh")
-     :owner "root"
-     :group "root"
-     :mode "0755")
+    (service/init-script
+     "jetty"
+     :remote-file (str install-path "/bin/jetty.sh"))
+    (if-not (:no-enable options)
+       (service/service* "jetty" :action :enable))
     ;; Remove the default webapps
     (file/file
      (str install-path "/contexts/test.xml") :action :delete :force true)

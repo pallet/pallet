@@ -3,7 +3,8 @@
   (:use [pallet.stevedore :only [script]]
         [pallet.resource :only [build-resources]]
         clojure.test
-        pallet.test-utils))
+        pallet.test-utils)
+  (:require [pallet.stevedore :as stevedore]))
 
 (use-fixtures :each with-null-target)
 
@@ -50,3 +51,13 @@
          (build-resources [] (file "file1" :group "group1" :action :touch))))
   (is (= "echo \"file file1...\"\n{ rm --force file1; } || { echo file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (build-resources [] (file "file1" :action :delete :force true)))))
+
+(deftest sed-file-test
+  (is (= "sed -i -e \"s|a|b|\" path"
+         (stevedore/script (sed-file "path" {"a" "b"} {:seperator "|"})))))
+
+(deftest sed-test
+  (is (= (stevedore/checked-commands
+          "sed file path"
+          "sed -i -e \"s|a|b|\" path")
+         (sed* "path" {"a" "b"} {:seperator "|"}))))

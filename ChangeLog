@@ -1,5 +1,11 @@
 2010-07-20  Hugo Duncan  <hugo_duncan@yahoo.com>
 
+	* src/pallet/resource/service.clj: fixed start-stop configuration
+
+	* src/pallet/resource/remote_file.clj: added :md5-url option
+
+	* src/pallet/resource/file.clj: added sed resource
+
 	* src/pallet/arguments.clj: added delayed macro
 
 	* test/pallet/parameter_test.clj: factored out get-for

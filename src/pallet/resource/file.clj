@@ -3,7 +3,9 @@
   (:require
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
-   [pallet.script :as script])
+   [pallet.resource.file :as file]
+   [pallet.script :as script]
+   [clojure.string :as string])
   (:use
    [pallet.resource :only [defresource]]
    clojure.contrib.logging))
@@ -28,10 +30,22 @@
 (stevedore/defimpl touch :default [file & options]
   ("touch" ~(stevedore/map-to-arg-string (first options)) ~file))
 
-(script/defscript sed-file [file expr replacement & options])
+(script/defscript sed-file [file expr-map options])
 
-(stevedore/defimpl sed-file :default [file expr replacement & options]
-  (sed "-i" ~(str "/" expr "/" replacement "/") ~file))
+(stevedore/defimpl sed-file :default [file expr-map options]
+  ("sed" "-i"
+   ~(let [sep (:seperator options "/")]
+      (string/join
+       " "
+       (map
+        #(format "-e \"s%s%s%s%s%s\"" sep (first %) sep (second %) sep)
+        expr-map)))
+   ~file))
+
+(script/defscript download-file [url path])
+
+(stevedore/defimpl download-file :default [url path]
+  ("curl" "-o" ~path --retry 3 --silent --show-error --fail ~url))
 
 (script/defscript tmp-dir [])
 (stevedore/defimpl tmp-dir :default []
@@ -89,3 +103,11 @@
 
 (defresource file "File management."
   file* [filename & options])
+
+(defn sed* [path exprs options]
+  (stevedore/checked-script
+   (format "sed file %s" path)
+   (sed-file ~path ~exprs ~options)))
+
+(defresource sed
+  sed* [path exprs options])

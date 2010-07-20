@@ -9,6 +9,7 @@
    [pallet.resource.directory :as directory]
    [pallet.resource.user :as user]
    [pallet.crate.maven :as maven]
+   [pallet.crate.tomcat :as tomcat]
    [pallet.utils :as utils]
    [net.cgrand.enlive-html :as xml])
   (:use clojure.test
@@ -20,7 +21,41 @@
 (use-fixtures :each with-null-target)
 
 (deftest hudson-tomcat-test
-  (is (= "echo \"directory /var/lib/hudson...\"\n{ mkdir -p /var/lib/hudson && chown  root /var/lib/hudson && chgrp  tomcat6 /var/lib/hudson && chmod  775 /var/lib/hudson; } || { echo directory /var/lib/hudson failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"remote-file /var/lib/hudson/hudson.war...\"\n{ if [ \\( ! -e /var/lib/hudson/hudson.war -o \\( \"5d616c367d7a7888100ae6e98a5f2bd7\" != \"$(md5sum /var/lib/hudson/hudson.war | cut -f1 -d' ')\" \\) \\) ]; then tmpfile=$(mktemp prfXXXXX) && wget -O ${tmpfile} http://hudson-ci.org/latest/hudson.war && mv ${tmpfile} /var/lib/hudson/hudson.war;fi && echo MD5 sum is $(md5sum /var/lib/hudson/hudson.war); } || { echo remote-file /var/lib/hudson/hudson.war failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"remote-file /etc/tomcat6/policy.d/99hudson.policy...\"\n{ { cat > /etc/tomcat6/policy.d/99hudson.policy <<'EOFpallet'\ngrant codeBase \"file:${catalina.base}/webapps/hudson/-\" {\n  permission java.security.AllPermission;\n};\ngrant codeBase \"file:/var/lib/hudson/-\" {\n  permission java.security.AllPermission;\n};\nEOFpallet\n }; } || { echo remote-file /etc/tomcat6/policy.d/99hudson.policy failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"remote-file /etc/tomcat6/Catalina/localhost/hudson.xml...\"\n{ { cat > /etc/tomcat6/Catalina/localhost/hudson.xml <<'EOFpallet'\n<?xml version=\"1.0\" encoding=\"utf-8\"?>\n <Context\n privileged=\"true\"\n path=\"/hudson\"\n allowLinking=\"true\"\n swallowOutput=\"true\"\n >\n <Environment\n name=\"HUDSON_HOME\"\n value=\"/var/lib/hudson\"\n type=\"java.lang.String\"\n override=\"false\"/>\n </Context>\nEOFpallet\n }; } || { echo remote-file /etc/tomcat6/Catalina/localhost/hudson.xml failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"directory /var/lib/tomcat6/webapps/hudson...\"\n{ mkdir -p /var/lib/tomcat6/webapps/hudson && chown --recursive tomcat6 /var/lib/tomcat6/webapps/hudson && chgrp --recursive tomcat6 /var/lib/tomcat6/webapps/hudson; } || { echo directory /var/lib/tomcat6/webapps/hudson failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"remote-file /var/lib/tomcat6/webapps/hudson.war...\"\n{ cp /var/lib/hudson/hudson.war /var/lib/tomcat6/webapps/hudson.war && chown  tomcat6 /var/lib/tomcat6/webapps/hudson.war && chgrp  tomcat6 /var/lib/tomcat6/webapps/hudson.war && chmod  600 /var/lib/tomcat6/webapps/hudson.war; } || { echo remote-file /var/lib/tomcat6/webapps/hudson.war failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= (stevedore/do-script
+          (directory/directory*
+           "/var/lib/hudson" :owner "root" :group "tomcat6" :mode "775")
+          (remote-file/remote-file*
+           "/var/lib/hudson/hudson.war"
+           :url "http://hudson-ci.org/latest/hudson.war"
+           :md5 "5d616c367d7a7888100ae6e98a5f2bd7")
+          (tomcat/policy*
+           99 "hudson"
+           {(str "file:${catalina.base}/webapps/hudson/-")
+            ["permission java.security.AllPermission"]
+            (str "file:/var/lib/hudson/-")
+            ["permission java.security.AllPermission"]})
+          (tomcat/application-conf*
+           "hudson"
+           "<?xml version=\"1.0\" encoding=\"utf-8\"?>
+ <Context
+ privileged=\"true\"
+ path=\"/hudson\"
+ allowLinking=\"true\"
+ swallowOutput=\"true\"
+ >
+ <Environment
+ name=\"HUDSON_HOME\"
+ value=\"/var/lib/hudson\"
+ type=\"java.lang.String\"
+ override=\"false\"/>
+ </Context>")
+          (directory/directory*
+           "/var/lib/tomcat6/webapps/hudson"
+           :owner "tomcat6" :group "tomcat6" :recursive true)
+          (remote-file/remote-file*
+           "/var/lib/tomcat6/webapps/hudson.war"
+           :remote-file "/var/lib/hudson/hudson.war"
+           :owner "tomcat6" :group "tomcat6" :mode "600"))
          (test-resource-build
           [nil {} :tomcat {:user "tomcat6" :group "tomcat6"}]
           (tomcat-deploy)

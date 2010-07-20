@@ -33,13 +33,15 @@
                  ~name defaults
                  ~(:sequence-start options 20)
                  ~(:sequence-stop options (:sequence-start options 20))))
-       (stevedore/script ;; start/stop
-        (update-rc.d
-         ~(stevedore/map-to-arg-string
-           (select-keys [:n] (debian-options options)))
-         ~name ~(name action)
-         ~(:sequence-start options 20)
-         ~(:sequence-stop options (:sequence-start options 20))))))
+       :start-stop (stevedore/script ;; start/stop
+                    (update-rc.d
+                     ~(stevedore/map-to-arg-string
+                       (select-keys [:n] (debian-options options)))
+                     ~name
+                     start ~(:sequence-start options 20)
+                     "."
+                     stop ~(:sequence-stop options (:sequence-start options 20))
+                     "."))))
 
 
 (defn service*
@@ -47,8 +49,10 @@
   (let [opts (apply hash-map options)
         opts (merge {:action :start} opts)
         action (opts :action)]
-    (if (#{:enable :disable} action)
-      (stevedore/script (configure-service ~service-name ~action ~opts))
+    (if (#{:enable :disable :start-stop} action)
+      (stevedore/checked-script
+       (format "Confgure service %s" service-name)
+       (configure-service ~service-name ~action ~opts))
       (stevedore/script ( ~(str "/etc/init.d/" service-name) ~(name action))))))
 
 (resource/defresource service

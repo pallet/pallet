@@ -10,7 +10,6 @@
   (let [options (apply hash-map options)]
     (condp = (get options :action :create)
       (let [url (options :url)
-            md5 (options :md5)
             unpack (options :unpack)]
         (when (and url unpack)
           (let [filename (.getName (java.io.File. (.getFile (java.net.URL. url))))
@@ -20,7 +19,7 @@
              (apply directory/directory*
                     path (apply concat (select-keys options [:owner :group])))
              (remote-file/remote-file*
-              tarpath :url url :md5 md5)
+              tarpath :url url :md5 (options :md5) :md5-url (:md5-url options))
              (condp = unpack
                :tar (stevedore/script
                      (cd ~path)

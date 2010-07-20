@@ -64,13 +64,33 @@
             (file/heredoc "file1" "somecontent" :literal true))
          (build-resources
           [] (remote-file "file1" :content "somecontent" :literal true))))
-  (is (= "echo \"remote-file file1...\"\n{ tmpfile=$(mktemp prfXXXXX) && wget -O ${tmpfile} http://xx.com/abc && mv ${tmpfile} file1 && echo MD5 sum is $(md5sum file1); } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= (stevedore/checked-script
+          "remote-file file1"
+          (var tmpfile @(mktemp prfXXXXX))
+          (download-file @tmpfile "http://xx.com/abc")
+          (mv @tmpfile "file1")
+          (echo "MD5 sum is" @(md5sum "file1"))))
          (build-resources
-          [] (remote-file "file1" :url "http://xx.com/abc"))))
-  (is (= "echo \"remote-file file1...\"\n{ tmpfile=$(mktemp prfXXXXX) && wget -O ${tmpfile} http://xx.com/abc && mv ${tmpfile} file1 && echo MD5 sum is $(md5sum file1) && chown  user1 file1; } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+          [] (remote-file "file1" :url "http://xx.com/abc")))
+  (is (= (stevedore/checked-script
+          "remote-file file1"
+          (var tmpfile @(mktemp prfXXXXX))
+          (download-file @tmpfile "http://xx.com/abc")
+          (mv @tmpfile "file1")
+          (echo "MD5 sum is" @(md5sum "file1"))
+          (chown "user1" "file1"))
          (build-resources
           [] (remote-file "file1" :url "http://xx.com/abc" :owner "user1"))))
-  (is (= "echo \"remote-file file1...\"\n{ if [ \\( ! -e file1 -o \\( \"abcd\" != \"$(md5sum file1 | cut -f1 -d' ')\" \\) \\) ]; then tmpfile=$(mktemp prfXXXXX) && wget -O ${tmpfile} http://xx.com/abc && mv ${tmpfile} file1;fi && echo MD5 sum is $(md5sum file1) && chown  user1 file1; } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= (stevedore/checked-script
+          "remote-file file1"
+          (if (|| (not (file-exists? "file1"))
+                  (!= "abcd" @(md5sum "file1" "|" cut "-f1 -d' '")))
+            ~(stevedore/chained-script
+              (var tmpfile @(mktemp prfXXXXX))
+              (download-file "http://xx.com/abc" @tmpfile)
+              (mv @tmpfile "file1")))
+          (echo "MD5 sum is" @(md5sum "file1"))
+          (chown "user1" "file1"))
          (build-resources
           [] (remote-file
               "file1" :url "http://xx.com/abc" :md5 "abcd" :owner "user1"))))

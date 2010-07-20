@@ -7,6 +7,7 @@
   (:require
    [pallet.stevedore :as stevedore]
    [pallet.template :as template]
+   [pallet.resource.file :as file]
    [pallet.utils :as utils]
    [clojure.contrib.def :as def]))
 
@@ -21,10 +22,12 @@
   [path & options]
   (let [opts (merge {:action :create} (apply hash-map options))]
     (condp = (opts :action)
-      :create
+        :create
       (let [url (opts :url)
             content (opts :content)
             md5 (opts :md5)
+            link (opts :link)
+            md5-url (opts :md5-url)
             local-file (opts :local-file)
             remote-file (opts :remote-file)
             template-name (opts :template)]
@@ -36,12 +39,30 @@
                                  (!= ~md5 @(md5sum ~path "|" cut "-f1 -d' '")))
                            ~(stevedore/chained-script
                              (var tmpfile @(mktemp prfXXXXX))
-                             (wget "-O" @tmpfile ~url)
+                             (download-file ~url @tmpfile)
                              (mv @tmpfile ~path)))
                          (echo "MD5 sum is" @(md5sum ~path)))
+          (and url md5-url) (let [md5-path (format "%s.md5" path)]
+                              (stevedore/chained-script
+                               (cd @(dirname ~path))
+                               (if-not (file-exists? ~md5-path)
+                                 (download-file ~md5-url ~md5-path))
+                               (if-not (&& (file-exists? ~path)
+                                           @(md5sum --quiet --check ~md5-path))
+                                 (do
+                                   ~(stevedore/checked-script
+                                     (format "Download %s" url)
+                                     (var tmpfile @(mktemp prfXXXXX))
+                                     (download-file ~url @tmpfile)
+                                     (mv @tmpfile ~path)
+                                     (if-not (md5sum --quiet --check ~md5-path)
+                                       (do
+                                         (echo "Invalid md5 for " ~path)
+                                         (rm ~path)
+                                         (exit 1))))))))
           url (stevedore/chained-script
                (var tmpfile @(mktemp prfXXXXX))
-               (wget "-O" @tmpfile ~url)
+               (download-file @tmpfile ~url)
                (mv @tmpfile ~path)
                (echo "MD5 sum is" @(md5sum ~path)))
           content (apply heredoc
@@ -57,7 +78,7 @@
                          path (template/interpolate-template
                                template-name (get opts :values {}))
                          (apply concat (seq (select-keys opts [:literal]))))
-
+          link (stevedore/script (ln -f -s ~link ~path))
           :else (throw
                  (IllegalArgumentException.
                   (str "remote-file " path " specified without content."))))
