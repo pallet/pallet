@@ -174,7 +174,7 @@
      (if (= :aptitude (packager))
        (stevedore/script (apply debconf-set-selections ~options)))
      (throw (IllegalArgumentException.
-             (str action " is not a valid action for package resource"))))))
+             (str action " is not a valid action for package-manager resource"))))))
 
 (defn- apply-package-manager [package-manager-args]
   (stevedore/do-script*
