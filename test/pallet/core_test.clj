@@ -7,12 +7,24 @@
    [pallet.compute :as compute]
    [pallet.target :as target]
    [pallet.mock :as mock]
-   [org.jclouds.compute :as jclouds])
+   [org.jclouds.compute :as jclouds]
+   pallet.compute-test-utils
+   [pallet.ssh-test :as ssh-test])
   (:use
    clojure.test
    pallet.test-utils
    [pallet.resource :as resource])
   (:import [org.jclouds.compute.domain NodeState]))
+
+;; Allow running against other compute services if required
+(def *compute-service* ["stub" "" "" ])
+
+(use-fixtures
+  :once
+  (pallet.compute-test-utils/compute-service-fixture
+   *compute-service*
+   :extensions
+   [(ssh-test/ssh-test-client {})]))
 
 (deftest with-admin-user-test
   (let [x (rand)]
@@ -260,3 +272,8 @@
                       (is (= #{na nb} (set (target/target-nodes))))))
                    (org.jclouds.compute/nodes-with-details [& _] [na nb nc])]
                   (converge* nil "" {a 1 b 1} [:configure]))))
+
+(deftest converge-test
+  (pallet.compute-test-utils/purge-compute-service)
+  (converge {(make-node "a" []) 1})
+  (is (= 1 (count (org.jclouds.compute/nodes)))))

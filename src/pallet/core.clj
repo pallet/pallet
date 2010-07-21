@@ -229,7 +229,7 @@ script that is run with root privileges immediatly after first boot."
           (with-init-resources nil
             (binding [*file-transfers* {}]
               (resource/with-target [node node-type]
-                (when-let [phase-cmds (produce-phases [phase] (node-type :phases))]
+                (when-let [phase-cmds (seq (produce-phases [phase] (node-type :phases)))]
                   (compute/execute-cmds phase-cmds node user options)))))))
       (error (str "Could not find node type for node " (tag node))))))
 
