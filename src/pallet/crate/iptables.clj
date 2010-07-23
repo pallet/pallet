@@ -89,7 +89,7 @@ iptables configuration line (cf. arguments to an iptables invocation)"
 
 (defn iptables-redirect-port
   "Redirect a specific port, by default for tcp."
-  ([from-port to-port] (iptables-accept-port from-port to-port "tcp"))
+  ([from-port to-port] (iptables-redirect-port from-port to-port "tcp"))
   ([from-port to-port protocol]
      (iptables-rule "nat"
       (format "-I PREROUTING -p %s --dport %s -j REDIRECT --to-port %s"

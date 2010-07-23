@@ -37,3 +37,13 @@
               [] (iptables-rule "filter" "")))))))
 
 
+(deftest iptables-redirect-port-test
+  (testing "redirect with default protocol"
+    (is (= (target/with-target nil {:tag :n :image [:centos]}
+             (resource/build-resources
+              [] (iptables-rule
+                  "nat"
+                  "-I PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080")))
+           (target/with-target nil {:tag :n :image [:centos]}
+             (resource/build-resources
+              [] (iptables-redirect-port 80 8081)))))))
