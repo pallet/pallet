@@ -66,13 +66,14 @@
     (is (= pw (sudo-cmd-for (make-user "fred" :password "fred"))))
     (is (= pw (sudo-cmd-for (make-user "fred" :sudo-password "fred"))))
     (is (= no-pw
-           (sudo-cmd-for (make-user "fred" :password "fred" :sudo-password false))))
+           (sudo-cmd-for
+            (make-user "fred" :password "fred" :sudo-password false))))
     (is (= no-sudo (sudo-cmd-for (make-user "root"))))
     (is (= no-sudo (sudo-cmd-for (make-user "fred" :no-sudo true))))))
 
 (deftest sh-script-test
   (let [res (sh-script
-             "file=$(mktemp utilXXXX); echo fred > $file ;cat $file ; rm $file")]
+             "file=$(mktemp utilXXXX);echo fred > $file ;cat $file ;rm $file")]
     (is (= {:exit 0 :err "" :out "fred\n"} res))))
 
 (deftest blank?-test
@@ -102,3 +103,13 @@
         "localhost"
         "exit 1"
         (assoc *admin-user* :no-sudo true)))))
+
+(deftest remote-sudo-cmds-test
+  (let [result (remote-sudo-cmds
+                "localhost"
+                [["ls /"]]
+                (assoc *admin-user* :no-sudo true)
+                {})]
+    (is (= 1 (count result)))
+    (is (= 1 (count (first result))))
+    (is (= 0 (:exit (first (first result)))))))

@@ -163,7 +163,7 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
 
 (defmacro deflocal
   "Shortcut for defining a resource-producing function with an
-   :execution of :aggregate."
+   :execution of :local."
   [name & args]
   `(defresource ~name ~@(concat args [:execution :local-in-sequence])))
 

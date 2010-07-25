@@ -202,9 +202,11 @@
 (defn- strip-sudo-password
   "Elides the user's password or sudo-password from the given ssh output."
   [#^String s user]
-  (.replace s
-    (format "\"%s\"" (or (:password user) (:sudo-password user)))
-    "XXXXXXX"))
+  (string/replace-re
+   #"[\r\n]+" (str \newline)
+   (.replace s
+             (format "\"%s\"" (or (:password user) (:sudo-password user)))
+             "XXXXXXX")))
 
 (defn sudo-cmd-for [user]
   (if (or (= (:username user) "root") (:no-sudo user))
@@ -303,12 +305,14 @@
           (error (str "Output       : " stdout))
           (error (str "Error output : " stderr))
           (condition/raise
+           :message (str "Error executing script : " stdout)
+           :type :pallet-script-excution-error
            :script-exit (script-result :exit)
            :script-out stdout
            :script-err stderr
-           :server server))))
-    (ssh session (str "rm " tmpfile))
-    script-result))
+           :server server)))
+      (ssh session (str "rm " tmpfile))
+      {:out stdout :err stderr :exit (:exit script-result)})))
 
 (defn remote-sudo-cmds
   "Run cmds on a target."
@@ -336,15 +340,16 @@
                     remote-name)
               (sftp sftp-channel :chmod 0600 remote-name))
 
-            (doseq [cmds commands
-                    cmd cmds]
-              (clojure.contrib.logging/info (format "Cmd %s" cmd))
-              (if (string? cmd)
-                (remote-sudo-cmd server session sftp-channel user tmpfile cmd)
-                (doseq [local-cmd cmd]
-                  (local-cmd))))
-            (doseq [[file remote-name] *file-transfers*]
-              (ssh session (str "rm " remote-name)))))))))
+            (let [execute (fn [cmd]
+                            (clojure.contrib.logging/info (format "Cmd %s" cmd))
+                            (if (string? cmd)
+                              (remote-sudo-cmd
+                               server session sftp-channel user tmpfile cmd)
+                              (reduce #(conj %1 (%2)) [] cmd)))
+                  rv (doall (map #(doall (map execute %)) commands))]
+              (doseq [[file remote-name] *file-transfers*]
+                (ssh session (str "rm " remote-name)))
+              rv)))))))
 
 
 (defn sh-script
