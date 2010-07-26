@@ -86,16 +86,19 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                      :scopes ["main"]}
           :yum {:url "http://somewhere/yum"}))))
   (target/with-target nil b
-    (is (= (stevedore/checked-commands
-            "Package source"
-            (remote-file/remote-file*
-             "/etc/yum.repos.d/source1.repo"
-             :content "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\n"))
-           (package-source*
-            "source1"
-            :aptitude {:url "http://somewhere/apt"
-                       :scopes ["main"]}
-            :yum {:url "http://somewhere/yum"}))))
+    (is
+     (=
+      (stevedore/checked-commands
+       "Package source"
+       (remote-file/remote-file*
+        "/etc/yum.repos.d/source1.repo"
+        :content
+        "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\n"))
+      (package-source*
+       "source1"
+       :aptitude {:url "http://somewhere/apt"
+                  :scopes ["main"]}
+       :yum {:url "http://somewhere/yum"}))))
   (target/with-target nil a
     (is (= (stevedore/checked-commands
             "Package source"
@@ -112,7 +115,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              "/etc/apt/sources.list.d/source1.list"
              :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
             (stevedore/script
-             (apt-key adv "--recv-keys" 1234)))
+             (apt-key adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
            (package-source*
             "source1"
             :aptitude {:url "http://somewhere/apt"
