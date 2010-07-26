@@ -115,7 +115,9 @@
      (if (and (-> options :aptitude :key-id)
               (= (packager) :aptitude))
        (stevedore/script
-        (apt-key adv "--recv-keys" ~(-> options :aptitude :key-id))))
+        (apt-key adv
+                 "--keyserver subkeys.pgp.net --recv-keys"
+                 ~(-> options :aptitude :key-id))))
      (if (and (-> options :aptitude :key-url)
               (= (packager) :aptitude))
        (stevedore/chain-commands
