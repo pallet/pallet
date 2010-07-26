@@ -15,8 +15,15 @@ list, Alan Dipert and MeikelBrandmeyer."
   `(let ~(reduce #(conj %1 %2 `@(ns-resolve '~ns '~%2)) [] fns)
      ~@tests))
 
-(defn tmpfile []
-  (java.io.File/createTempFile "pallet_ssl" "test"))
+(defn tmpfile
+  "Create a temporary file"
+  ([] (java.io.File/createTempFile "pallet_" "test"))
+  ([^java.io.File dir] (java.io.File/createTempFile "pallet_" "test" dir)))
+
+(defn tmpdir []
+  (doto (java.io.File/createTempFile "pallet_" "test")
+    (.delete)
+    (.mkdir)))
 
 (defmacro with-temporary
   [bindings & body]
