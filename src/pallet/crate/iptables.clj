@@ -15,8 +15,7 @@
 :OUTPUT ACCEPT
 :FWR -
 -A INPUT -j FWR
--A FWR -i lo -j ACCEPT
-"})
+-A FWR -i lo -j ACCEPT"})
 (def suffix
      {"filter" "# Rejects all remaining connections with port-unreachable errors.
 -A FWR -p tcp -m tcp --tcp-flags SYN,RST,ACK SYN -j REJECT --reject-with icmp-port-unreachable
@@ -32,12 +31,12 @@ COMMIT
      "$tmp" :content rules)
    ~(pallet.stevedore/checked-script
      "Restore IPtables"
-     ("/sbin/iptables-restore" "-t" ~table < @tmp))
+     ("/sbin/iptables-restore" < @tmp))
    (rm @tmp)))
 
 (defn format-iptables
   [tables]
-  (string/join \newline (map #(str "*" (first %) \newline (second %)) tables)))
+  (string/join \newline (map second tables)))
 
 (defn iptables*
   "Combine all iptables rules"
@@ -46,16 +45,18 @@ COMMIT
         tables (into
                 {}
                 (map
-                 #(vector (first %)
-                          (string/join
-                           \newline (filter
-                                     (complement nil?)
-                                     [(prefix (first %))
-                                      (string/join
-                                       \newline
-                                       (map (fn [x]
-                                              (string/join \newline x)) (rest (second %))))
-                                      (suffix (first %))]))) args))
+                 #(vector
+                   (first %)
+                   (str
+                    "*" (first %) \newline
+                    (string/join
+                     \newline (filter
+                               identity
+                               [(prefix (first %))
+                                (string/join
+                                 \newline
+                                 (map second (second %)))
+                                (suffix (first %))])))) args))
         packager (pallet.target/packager)]
     (condp = packager
         :aptitude (stevedore/do-script* (map restore-iptables tables))
@@ -72,7 +73,9 @@ iptables configuration line (cf. arguments to an iptables invocation)"
 (defn iptables-accept-established
   "Accept established connections"
   []
-  (iptables-rule "filter" "-A FWR -m state --state RELATED,ESTABLISHED -j ACCEPT"))
+  (iptables-rule
+   "filter"
+   "-A FWR -m state --state RELATED,ESTABLISHED -j ACCEPT"))
 
 (defn iptables-accept-icmp
   "Accept ICMP"
@@ -107,4 +110,3 @@ iptables configuration line (cf. arguments to an iptables invocation)"
 -A %s -m recent --set --name %s
 -A %s -m recent --update --seconds %s --hitcount %s --name %s -j DROP"
        name protocol port name name name name time-period hitcount name))))
-
