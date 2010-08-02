@@ -45,7 +45,7 @@
 (script/defscript download-file [url path])
 
 (stevedore/defimpl download-file :default [url path]
-  ("curl" "-o" ~path --retry 3 --silent --show-error --fail ~url))
+  ("curl" "-o" ~path --retry 3 --silent --show-error --fail --location ~url))
 
 (script/defscript tmp-dir [])
 (stevedore/defimpl tmp-dir :default []

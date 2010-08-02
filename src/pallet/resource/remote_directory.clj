@@ -10,7 +10,7 @@
   (let [options (apply hash-map options)]
     (condp = (get options :action :create)
       (let [url (options :url)
-            unpack (options :unpack)]
+            unpack (options :unpack :tar)]
         (when (and url unpack)
           (let [filename (.getName (java.io.File. (.getFile (java.net.URL. url))))
                 tarpath (str (stevedore/script (tmp-dir)) "/" filename)]
@@ -34,5 +34,9 @@
                             (select-keys options [:owner :group :recursive])))))))))))
 
 (resource/defresource remote-directory
-  "Specify the contents of remote directory"
+  "Specify the contents of remote directory.
+   Options:
+     :url         - a url to download content from
+     :unpack      - how download should be extracts (default :tar)
+     :tar-options - options to pass to tar (default \"xz\")"
   remote-directory* [path & options])
