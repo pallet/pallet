@@ -13,7 +13,7 @@
 
 (defn maven-download-url
   [version]
-  (str "http://www.ibiblio.org/pub/mirrors/apache/maven/binaries/apache-maven-"
+  (str "http://mirrors.ibiblio.org/pub/mirrors/apache/maven/binaries/apache-maven-"
        version "-bin.tar.bz2"))
 
 (defn download*
