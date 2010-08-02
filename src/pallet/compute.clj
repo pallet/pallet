@@ -23,17 +23,17 @@
     (NodeMetadataImpl.
      tag                                ; providerId
      tag                                ; name
-     tag                                ; id
+     (options :id tag)                   ; id
      (options :location)
      (java.net.URI. tag)                ; uri
-     (get options :user-metadata {})
+     (options :user-metadata {})
      tag
      (options :image)
-     (get options :state NodeState/RUNNING)
-     (get options :public-ips [])
-     (get options :private-ips [])
-     (get options :extra {})
-     (get options :credentials nil))))
+     (options :state NodeState/RUNNING)
+     (options :public-ips [])
+     (options :private-ips [])
+     (options :extra {})
+     (options :credentials nil))))
 
 (defn make-unmanaged-node
   "Make a node that is not created by pallet's node management.
