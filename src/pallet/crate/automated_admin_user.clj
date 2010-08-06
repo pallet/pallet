@@ -20,5 +20,3 @@
          (authorize-key username (slurp path-or-bytes))
          (authorize-key username (String. path-or-bytes))))
      (sudoers {} {} {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})))
-
-
