@@ -43,7 +43,7 @@
 
 (deftest create-user-test
   (is (= (stevedore/do-script
-          (mysql-script* "root" "pwd" "GRANT USAGE ON *.* TO user IDENTIFIED BY `pw`"))
+          (mysql-script* "root" "pwd" "GRANT USAGE ON *.* TO user IDENTIFIED BY 'pw'"))
          (build-resources [] (create-user "user" "pw" "root" "pwd")))))
 
 (deftest grant-test

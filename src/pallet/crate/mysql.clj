@@ -2,7 +2,8 @@
   (:require
    [pallet.resource.package :as package]
    [pallet.resource :as resource]
-   [pallet.parameter :as parameter])
+   [pallet.parameter :as parameter]
+   [pallet.stevedore :as stevedore])
   (:use
    [pallet.target :only [packager]]
    [pallet.resource :only [defresource]]
@@ -46,8 +47,10 @@
 
 (defn mysql-script*
   [username password sql-script]
-  (script (mysql "-u" ~username ~(str "--password=" password)
-                 ~(str "<<EOF\n" (.replace sql-script "`" "\\`") "\nEOF"))))
+  (stevedore/checked-script
+   "MYSQL command"
+   ("{\n" mysql "-u" ~username ~(str "--password=" password)
+    ~(str "<<EOF\n" (.replace sql-script "`" "\\`") "\nEOF\n}"))))
 
 (defresource mysql-script
   "Execute a mysql script"
@@ -65,7 +68,7 @@
   ([user password username root-password]
      (mysql-script
       username root-password
-      (format "GRANT USAGE ON *.* TO %s IDENTIFIED BY `%s`" user password))))
+      (format "GRANT USAGE ON *.* TO %s IDENTIFIED BY '%s'" user password))))
 
 (defn grant
   ([privileges level user]
