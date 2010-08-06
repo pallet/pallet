@@ -98,6 +98,3 @@
   (use 'pallet.chef)
   (lift webserver service (phase (chef)))
   (cook webserver \"path_to_your_chef_repository\")")
-
-
-

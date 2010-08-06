@@ -6,8 +6,9 @@
   (:use
    [clojure.contrib.def :only [defunbound]]))
 
-;; A conscious decision was made to use rebindable vars here, as passing them around
-;; explicitly would create a lot of noise in resources, templates and crates
+;; A conscious decision was made to use rebindable vars here, as passing them
+;; around explicitly would create a lot of noise in resources, templates and
+;; crates.
 (defunbound *all-nodes* "All nodes in service.")
 (defunbound *target-nodes* "All nodes targeted by the current operation.")
 (defunbound *target-node* "Current node.")
@@ -23,6 +24,7 @@
      { "Mac OS X" :os-x })
 
 (defmacro with-local-target
+  "Bind a target for the local host"
   [& body]
   `(with-target
      (compute/make-node "localhost")
@@ -44,6 +46,7 @@
   ([node-type] (:image node-type)))
 
 (defn node
+  "The current target node."
   [] *target-node*)
 
 (defn node-type
@@ -81,4 +84,3 @@
       :portage
       :else
       :aptitude)))
-
