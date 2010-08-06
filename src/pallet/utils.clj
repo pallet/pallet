@@ -360,9 +360,9 @@
      (io/copy command tmp)
      (shell/sh "chmod" "+x" (.getPath tmp))
      (let [result (shell/sh "bash" (.getPath tmp) :return-map true)]
-       (when (pos? (result :exit))
-         (error (str "Command failed: " command "\n" (result :err))))
-       (info (result :out))
+       (when-not (zero? (:exit result))
+         (error (format "Command failed: %s\n%s" command (:err result))))
+       (info (:out result))
        result)
      (finally  (.delete tmp)))))
 
