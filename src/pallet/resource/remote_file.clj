@@ -62,7 +62,7 @@
                                          (exit 1))))))))
           url (stevedore/chained-script
                (var tmpfile @(mktemp prfXXXXX))
-               (download-file @tmpfile ~url)
+               (download-file ~url @tmpfile)
                (mv @tmpfile ~path)
                (echo "MD5 sum is" @(md5sum ~path)))
           content (apply heredoc
@@ -70,7 +70,7 @@
                          (apply concat (seq (select-keys opts [:literal]))))
           local-file (let [temp-path (utils/register-file-transfer! local-file)]
                        (stevedore/script
-                        (mv ~temp-path ~path)))
+                        (mv (str "~/" ~temp-path) ~path)))
           remote-file (stevedore/script
                        (cp ~remote-file ~path))
           template-name (apply
