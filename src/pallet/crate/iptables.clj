@@ -56,7 +56,7 @@ COMMIT
                                 (string/join
                                  \newline
                                  (map second (second %)))
-                                (suffix (first %))])))) args))
+                                (suffix (first %) "COMMIT\n")])))) args))
         packager (pallet.target/packager)]
     (condp = packager
         :aptitude (stevedore/do-script* (map restore-iptables tables))
