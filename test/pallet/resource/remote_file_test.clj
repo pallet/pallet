@@ -67,7 +67,7 @@
   (is (= (stevedore/checked-script
           "remote-file file1"
           (var tmpfile @(mktemp prfXXXXX))
-          (download-file @tmpfile "http://xx.com/abc")
+          (download-file "http://xx.com/abc" @tmpfile)
           (mv @tmpfile "file1")
           (echo "MD5 sum is" @(md5sum "file1"))))
          (build-resources
@@ -75,7 +75,7 @@
   (is (= (stevedore/checked-script
           "remote-file file1"
           (var tmpfile @(mktemp prfXXXXX))
-          (download-file @tmpfile "http://xx.com/abc")
+          (download-file "http://xx.com/abc" @tmpfile)
           (mv @tmpfile "file1")
           (echo "MD5 sum is" @(md5sum "file1"))
           (chown "user1" "file1"))
@@ -112,7 +112,7 @@
          [] (remote-file "file1" :owner "user1"))))
 
   (with-temporary [tmp (tmpfile)]
-    (is (re-find #"mv pallet-transfer-[a-f0-9-]+ file1"
+    (is (re-find #"mv ~/pallet-transfer-[a-f0-9-]+ file1"
                  (build-resources
                   [] (remote-file
                       "file1" :local-file (.getPath tmp))))))
