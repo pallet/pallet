@@ -33,6 +33,10 @@
   [& options]
   (let [options (apply hash-map options)
         path (download-path (:version options default-version))]
+    (resource/parameters
+       [:jetty :base] install-path
+       [:jetty :owner] jetty-user
+       [:jetty :group] jetty-group)
     (java/java :openjdk)
     (user/group jetty-group :system true)
     (user/user jetty-user :system true :shell "/bin/false")
