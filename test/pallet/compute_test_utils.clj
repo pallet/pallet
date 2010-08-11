@@ -26,4 +26,3 @@
   (fn [f]
     (purge-compute-service)
     (f)))
-

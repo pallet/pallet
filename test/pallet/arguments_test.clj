@@ -1,5 +1,5 @@
 (ns pallet.arguments-test
-  (:use pallet.arguments :reload-all)
+  (:use pallet.arguments)
   (:use
    clojure.test
    pallet.test-utils))

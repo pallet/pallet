@@ -1,5 +1,5 @@
 (ns pallet.core-test
-  (:use [pallet.core] :reload-all)
+  (:use pallet.core)
   (require
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
@@ -170,9 +170,9 @@
 
 (deftest make-node-test
   (is (= {:tag :fred :image [:ubuntu] :phases {}}
-	 (make-node "fred" [:ubuntu])))
+         (make-node "fred" [:ubuntu])))
   (is (= {:tag :tom :image [:centos] :phases {}}
-	 (make-node "tom" [:centos]))))
+         (make-node "tom" [:centos]))))
 
 (deftest defnode-test
   (defnode fred [:ubuntu])
@@ -187,30 +187,30 @@
   (is (= [:bootstrap :configure] (keys (with-phases :phases))))
   (resource/with-target [(compute/make-node "tag") {}]
     (is (= [[":a\n"]]
-	     (resource/produce-phases
-	      [:bootstrap] (with-phases :phases))))
+             (resource/produce-phases
+              [:bootstrap] (with-phases :phases))))
     (is (= [[":b\n"]]
-	     (resource/produce-phases
-	      [:configure] (with-phases :phases))))))
+             (resource/produce-phases
+              [:configure] (with-phases :phases))))))
 
 (deftest produce-init-script-test
   (is (= "a\n"
-	 (produce-init-script
-	  {:image [] :phases {:bootstrap {:in-sequence
+         (produce-init-script
+          {:image [] :phases {:bootstrap {:in-sequence
                                           [[identity ["a"] :remote]]}}})))
   (is (thrown? clojure.contrib.condition.Condition
-	 (produce-init-script
-	  {:image [] :phases {:bootstrap {:in-sequence
+         (produce-init-script
+          {:image [] :phases {:bootstrap {:in-sequence
                                           [[identity ["a"] :local]]}}}))))
 
 (deftest lift-test
   (let [seen (atom nil)]
     (defnode x [])
     (deflocal localf (fn
-		       []
-		       (reset! seen true)
-		       (is (target/node))
-		       (is (target/node-type))) [])
+                       []
+                       (reset! seen true)
+                       (is (target/node))
+                       (is (target/node-type))) [])
     (is (.contains
          "bin"
          (with-no-compute-service

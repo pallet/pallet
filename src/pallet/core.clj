@@ -31,17 +31,18 @@ tag as a configuration target.
     :only [node-has-tag? node-counts-by-tag boot-if-down compute-node?
            execute-script ssh-port]]
    [org.jclouds.compute
-    :only [run-nodes destroy-node nodes-with-details tag running? compute-service?
-           *compute*]]
-   clojure.contrib.logging
+    :only [run-nodes destroy-node nodes-with-details tag running?
+           compute-service? *compute*]]
    clojure.contrib.def)
   (:require
    [pallet.compute :as compute]
+   [pallet.utils :as utils]
    [pallet.target :as target]
    [pallet.resource :as resource]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.string :as string]
-   [org.jclouds.compute :as jclouds])
+   [org.jclouds.compute :as jclouds]
+   [clojure.contrib.logging :as logging])
   (:import org.jclouds.compute.domain.OsFamily
            org.jclouds.compute.options.TemplateOptions
            org.jclouds.compute.domain.NodeMetadata))
@@ -51,11 +52,13 @@ tag as a configuration target.
 
 (defmacro with-admin-user
   "Specify the admin user for running remote commands.  The user is specified
-  either as pallet.utils.User record (see the pallet.utils/make-user convenience fn)
-  or as an argument list that will be passed to make-user."
+   either as pallet.utils.User record (see the pallet.utils/make-user
+   convenience fn) or as an argument list that will be passed to make-user."
   [user & exprs]
   `(let [user# ~user]
-     (binding [*admin-user* (if (instance? pallet.utils.User user#) user# (apply make-user user#))]
+     (binding [*admin-user* (if (utils/is-user? user#)
+                              user#
+                              (apply make-user user#))]
        ~@exprs)))
 
 (defn admin-user
@@ -101,8 +104,8 @@ When passing a username the following options can be specified:
 (defn produce-init-script
   [target]
   (let [cmds
-	(resource/with-target [nil target]
-	  (resource/produce-phases [:bootstrap] (:phases target)))]
+        (resource/with-target [nil target]
+          (resource/produce-phases [:bootstrap] (:phases target)))]
     (if-not (every? #(and (= 1 (count %)) (every? string? %)) cmds)
       (condition/raise :message "Bootstrap can not contain local resources"))
     (string/join "" (map first cmds))))
@@ -112,8 +115,8 @@ When passing a username the following options can be specified:
   ([compute options]
      (build-node-template-impl compute options (default-public-key-path) nil))
   ([compute options public-key-path init-script]
-     (info (str "Options " options))
-     (info (str "Init script\n" init-script))
+     (logging/info (str "Options " options))
+     (logging/info (str "Init script\n" init-script))
      (let [options
            (if (and public-key-path (not (:authorize-public-key options)))
              (apply
@@ -129,11 +132,11 @@ When passing a username the following options can be specified:
   "Build the template for specified target node and compute context"
   [compute target public-key-path]
   {:pre [(map? target)]}
-  (info (str "building node template for " (target :tag)))
-  (when public-key-path (info (str "  authorizing " public-key-path)))
+  (logging/info (str "building node template for " (target :tag)))
+  (when public-key-path (logging/info (str "  authorizing " public-key-path)))
   (let [options (target :image)
         init-script (produce-init-script target)]
-    (when init-script (info (str "  using init script")))
+    (when init-script (logging/info (str "  using init script")))
     (build-node-template-impl
      compute
      options
@@ -157,7 +160,7 @@ bootstrap-script value is expected tobe a function that produces a
 script that is run with root privileges immediatly after first boot."
   [node count compute]
   {:pre [(map? node)]}
-  (info (str "Starting " count " nodes for " (node :tag)))
+  (logging/info (str "Starting " count " nodes for " (node :tag)))
   (run-nodes (->> node (:tag) (name)) count
              (build-node-template
               compute node
@@ -168,7 +171,7 @@ script that is run with root privileges immediatly after first boot."
   "Destroys the specified number of nodes with the given tag.  Nodes are
    selected at random."
   [nodes tag count compute]
-  (info (str "destroying " count " nodes with tag " tag))
+  (logging/info (str "destroying " count " nodes with tag " tag))
   (dorun (map #(destroy-node (.getId %) compute)
               (take count (filter (partial node-has-tag? tag) nodes)))))
 
@@ -184,12 +187,12 @@ script that is run with root privileges immediatly after first boot."
 (defn adjust-node-counts
   "Start or stop the specified number of nodes."
   [compute delta-map nodes]
-  (trace (str "adjust-node-counts" delta-map))
-  (info (str "destroying excess nodes"))
+  (logging/trace (str "adjust-node-counts" delta-map))
+  (logging/info (str "destroying excess nodes"))
   (doseq [node-count (filter #(neg? (second %)) delta-map)]
     (destroy-nodes-with-count
       nodes ((first node-count) :tag) (- (second node-count)) compute))
-  (info (str "adjust-node-counts starting new nodes"))
+  (logging/info (str "adjust-node-counts starting new nodes"))
   (mapcat #(create-nodes (first %) (second %) compute)
           (filter #(pos? (second %)) delta-map)))
 
@@ -199,8 +202,8 @@ script that is run with root privileges immediatly after first boot."
   ([compute node-map] (converge-node-counts
                        compute node-map (nodes-with-details compute)))
   ([compute node-map nodes]
-     (info "converging nodes")
-     (trace (str "  " node-map))
+     (logging/info "converging nodes")
+     (logging/trace (str "  " node-map))
      (boot-if-down compute nodes)       ; this needs improving
                                         ; should only reboot if required
      (let [nodes (filter running? nodes)]
@@ -217,21 +220,23 @@ script that is run with root privileges immediatly after first boot."
 (defn apply-phases-to-node
   "Apply a list of phases to a sequence of nodes"
   [compute node-type node phases user wrapper-fn]
-  (info (str "apply-phases-to-node " (tag node)))
-  (info (str "  node-type " node-type))
+  (logging/info (str "apply-phases-to-node " (tag node)))
+  (logging/info (str "  node-type " node-type))
   (let [phases (if (seq phases) phases [:configure])
         port (ssh-port node)
         options (if port [:port port] [])]
     (if node-type
       (execute-with-wrapper wrapper-fn [node user]
         (doseq [phase phases]
-          (info (format "Apply phase %s" phase))
+          (logging/info (format "Apply phase %s" phase))
           (with-init-resources nil
             (binding [*file-transfers* {}]
               (resource/with-target [node node-type]
-                (when-let [phase-cmds (seq (produce-phases [phase] (node-type :phases)))]
+                (when-let [phase-cmds (seq
+                                       (produce-phases [phase]
+                                                       (node-type :phases)))]
                   (compute/execute-cmds phase-cmds node user options)))))))
-      (error (str "Could not find node type for node " (tag node))))))
+      (logging/error (str "Could not find node type for node " (tag node))))))
 
 (defn execute-with-user-credentials
   [_ user f]
@@ -253,7 +258,7 @@ script that is run with root privileges immediatly after first boot."
   ([compute node-type nodes phases]
      (apply-phases compute node-type nodes phases *admin-user*))
   ([compute node-type nodes phases user]
-     (trace
+     (logging/trace
       (format
        "apply-phases for %s with %d nodes" (node-type :tag) (count nodes)))
      (doseq [node nodes]
@@ -289,20 +294,20 @@ script that is run with root privileges immediatly after first boot."
 (defn converge*
   [compute prefix node-map phases]
   {:pre [(map? node-map)]}
-  (trace (str "converge*  " node-map))
+  (logging/trace (str "converge*  " node-map))
   (binding [org.jclouds.compute/*compute* compute]
     (let [node-map (add-prefix-to-node-map prefix node-map)]
       (converge-node-counts compute node-map)
       (let [nodes (filter running? (nodes-with-details compute))
-	    target-nodes (nodes-in-map node-map nodes)
-	    phases (ensure-configure-phase phases)]
-	(target/with-nodes nodes target-nodes
-	  (doseq [node-type (keys node-map)]
-	    (apply-phases
-	     compute
-	     node-type
-	     (filter-nodes-with-tag nodes (node-type :tag))
-	     phases)))))))
+            target-nodes (nodes-in-map node-map nodes)
+            phases (ensure-configure-phase phases)]
+        (target/with-nodes nodes target-nodes
+          (doseq [node-type (keys node-map)]
+            (apply-phases
+             compute
+             node-type
+             (filter-nodes-with-tag nodes (node-type :tag))
+             phases)))))))
 
 (defn node-in-types?
   "Predicate for matching a node belonging to a set of node types"
@@ -350,16 +355,16 @@ script that is run with root privileges immediatly after first boot."
   [compute prefix node-set phases]
   (binding [org.jclouds.compute/*compute* compute]
     (let [nodes (if compute (filter running? (nodes-with-details compute)))
-	  target-node-map (nodes-in-set node-set prefix compute nodes)
-	  target-nodes (filter running? (apply concat (vals target-node-map)))
-	  nodes (or nodes target-nodes)]
+          target-node-map (nodes-in-set node-set prefix compute nodes)
+          target-nodes (filter running? (apply concat (vals target-node-map)))
+          nodes (or nodes target-nodes)]
       (target/with-nodes nodes target-nodes
-	(doseq [[node-type nodes] target-node-map]
-	  (apply-phases
-	   compute
-	   node-type
-	   (filter running? nodes)
-	   phases))))))
+        (doseq [[node-type nodes] target-node-map]
+          (apply-phases
+           compute
+           node-type
+           (filter running? nodes)
+           phases))))))
 
 (defn compute-service-and-options
   "Extract the compute service form a vector of options, returning the bound

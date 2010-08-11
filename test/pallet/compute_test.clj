@@ -1,5 +1,5 @@
 (ns pallet.compute-test
-  (:use [pallet.compute] :reload-all)
+  (:use pallet.compute)
   (require
    [pallet.utils]
    [org.jclouds.compute :as jclouds])
@@ -39,12 +39,12 @@
       (is (= "localhost" (primary-ip n)))))
   (testing "with ssh-port specification"
     (is (= 2222
-	   (ssh-port
-	    (make-unmanaged-node
-	     "atag" "localhost" :user-metadata {:ssh-port 2222})))))
+           (ssh-port
+            (make-unmanaged-node
+             "atag" "localhost" :user-metadata {:ssh-port 2222})))))
   (testing "with image specification"
     (is (= :ubuntu
-	   (node-os-family
-	    (make-unmanaged-node
-	     "atag" "localhost"
-	     :image (make-image "id" :os-family OsFamily/UBUNTU)))))))
+           (node-os-family
+            (make-unmanaged-node
+             "atag" "localhost"
+             :image (make-image "id" :os-family OsFamily/UBUNTU)))))))

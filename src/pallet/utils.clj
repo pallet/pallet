@@ -4,7 +4,8 @@
    [clojure.contrib.io :as io]
    [clojure.contrib.string :as string]
    [clojure.contrib.pprint :as pprint]
-   [clojure.contrib.condition :as condition])
+   [clojure.contrib.condition :as condition]
+   [clojure.contrib.logging :as logging])
   (:use
    clojure.contrib.logging
    clj-ssh.ssh
@@ -43,7 +44,7 @@
 
 (defn load-resource-url
   [name]
-  (info (format "load-resource-url %s" name))
+  (logging/info (format "load-resource-url %s" name))
   (with-open [stream (.getContent name)
               r (new java.io.BufferedReader
                      (new java.io.InputStreamReader
@@ -101,6 +102,9 @@
   [username public-key-path private-key-path passphrase
    password sudo-password no-sudo])
 
+(defn is-user? [user]
+  (instance? pallet.utils.User user))
+
 (defn make-user
   "Creates a User record with the given username and options. Generally used
    in conjunction with *admin-user* and pallet.core/with-admin-user.
@@ -129,8 +133,8 @@
   [cmd]
   (let [result (apply shell/sh :return-map true (.split cmd " "))]
     (when (pos? (result :exit))
-      (error (str "Command failed: " cmd "\n" (result :err))))
-    (info (result :out))
+      (logging/error (str "Command failed: " cmd "\n" (result :err))))
+    (logging/info (result :out))
     result))
 
 (defmacro with-temp-file [[varname content] & body]
@@ -191,10 +195,10 @@
                        "sudo ")
               cmd (str prefix command)
               result (ssh session cmd :return-map true)]
-          (info (result :out))
+          (logging/info (result :out))
           (when (not (zero? (result :exit)))
-            (error (str "Exit status " (result :exit)))
-            (error (result :err)))
+            (logging/error (str "Exit status " (result :exit)))
+            (logging/error (result :err)))
           result)))))
 
 (def prolog "#!/usr/bin/env bash\n")
@@ -235,7 +239,7 @@
           (sftp channel :put (java.io.ByteArrayInputStream.
                               (.getBytes (str prolog command))) tmpfile)
           (doseq [[file remote-name] *file-transfers*]
-            (info
+            (logging/info
              (format "Transferring file %s to node @ %s" file remote-name))
             (sftp channel
                   :put (-> file java.io.FileInputStream.
@@ -245,7 +249,7 @@
           (let [chmod-result (ssh session (str "chmod 755 " tmpfile)
                                   :return-map true)]
             (if (pos? (chmod-result :exit))
-              (error (str "Couldn't chmod script : " ) (chmod-result :err))))
+              (logging/error (str "Couldn't chmod script : " ) (chmod-result :err))))
           (let [script-result (ssh
                                session
                                ;; using :in forces a shell session, rather than
@@ -259,11 +263,11 @@
             (let [stdout (strip-sudo-password (script-result :out) user)
                   stderr (strip-sudo-password (get script-result :err "") user)]
               (if (zero? (script-result :exit))
-                (info stdout)
+                (logging/info stdout)
                 (do
-                  (error (str "Exit status  : " (script-result :exit)))
-                  (error (str "Output       : " stdout))
-                  (error (str "Error output : " stderr))
+                  (logging/error (str "Exit status  : " (script-result :exit)))
+                  (logging/error (str "Output       : " stdout))
+                  (logging/error (str "Error output : " stderr))
                   (condition/raise
                    :script-exit (script-result :exit)
                    :script-out stdout
@@ -282,10 +286,10 @@
                        :put (java.io.ByteArrayInputStream.
                              (.getBytes (str prolog command))) tmpfile
                              :return-map true)]
-    (info (format "Transfering commands %s" response)))
+    (logging/info (format "Transfering commands %s" response)))
   (let [chmod-result (ssh session (str "chmod 755 " tmpfile) :return-map true)]
     (if (pos? (chmod-result :exit))
-      (error (str "Couldn't chmod script : " ) (chmod-result :err))))
+      (logging/error (str "Couldn't chmod script : " ) (chmod-result :err))))
   (let [script-result (ssh
                        session
                        ;; using :in forces a shell session, rather than
@@ -299,11 +303,11 @@
     (let [stdout (strip-sudo-password (script-result :out) user)
           stderr (strip-sudo-password (get script-result :err "") user)]
       (if (zero? (script-result :exit))
-        (info stdout)
+        (logging/info stdout)
         (do
-          (error (str "Exit status  : " (script-result :exit)))
-          (error (str "Output       : " stdout))
-          (error (str "Error output : " stderr))
+          (logging/error (str "Exit status  : " (script-result :exit)))
+          (logging/error (str "Output       : " stdout))
+          (logging/error (str "Error output : " stderr))
           (condition/raise
            :message (str "Error executing script : " stdout)
            :type :pallet-script-excution-error
@@ -332,7 +336,7 @@
           (with-connection sftp-channel
             (assert (zero? (mktemp-result :exit)))
             (doseq [[file remote-name] *file-transfers*]
-              (info
+              (logging/info
                (format "Transferring file %s to node @ %s" file remote-name))
               (sftp sftp-channel
                     :put (-> file java.io.FileInputStream.
@@ -341,7 +345,7 @@
               (sftp sftp-channel :chmod 0600 remote-name))
 
             (let [execute (fn [cmd]
-                            (clojure.contrib.logging/info (format "Cmd %s" cmd))
+                            (logging/info (format "Cmd %s" cmd))
                             (if (string? cmd)
                               (remote-sudo-cmd
                                server session sftp-channel user tmpfile cmd)
@@ -361,8 +365,9 @@
      (shell/sh "chmod" "+x" (.getPath tmp))
      (let [result (shell/sh "bash" (.getPath tmp) :return-map true)]
        (when-not (zero? (:exit result))
-         (error (format "Command failed: %s\n%s" command (:err result))))
-       (info (:out result))
+         (logging/error
+          (format "Command failed: %s\n%s" command (:err result))))
+       (logging/info (:out result))
        result)
      (finally  (.delete tmp)))))
 

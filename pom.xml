@@ -37,17 +37,11 @@
                     <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m</clojureOptions>
                     <warnOnReflection>true</warnOnReflection>
                     <testDeclaredNamespaceOnly>false</testDeclaredNamespaceOnly>
+                    <compileDeclaredNamespaceOnly>true</compileDeclaredNamespaceOnly>
                     <!-- we want the AOT compile sanity check, but still only ship source -->
                     <outputDirectory>${project.build.directory}/clojure-classes</outputDirectory>
                 </configuration>
                 <executions>
-                    <execution>
-                        <id>compile-clojure</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
                     <execution>
                         <id>test-clojure</id>
                         <phase>test</phase>
@@ -184,7 +178,7 @@
         <dependency>
             <groupId>clj-ssh</groupId>
             <artifactId>clj-ssh</artifactId>
-            <version>0.1.0</version>
+            <version>0.2.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>log4j</groupId>
@@ -216,7 +210,7 @@
         <dependency>
          <groupId>swank-clojure</groupId>
          <artifactId>swank-clojure</artifactId>
-         <version>1.2.1</version>
+         <version>1.3.0-SNAPSHOT</version>
          <optional>true</optional>
         </dependency>
     </dependencies>
@@ -240,7 +234,7 @@
         </repository>
         <repository>
             <id>clojars</id>
-            <url>http://clojars.org/repo/</url>
+            <url>http://clojars.org/repo</url>
         </repository>
     </repositories>
     <profiles>
