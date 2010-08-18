@@ -1,5 +1,5 @@
 (ns pallet.crate.ssh-key-test
-  (:use [pallet.crate.ssh-key] :reload-all)
+  (:use pallet.crate.ssh-key)
   (:require [pallet.template :as template]
             [pallet.resource :as resource]
             [pallet.stevedore :as stevedore]

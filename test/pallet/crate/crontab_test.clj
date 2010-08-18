@@ -1,5 +1,5 @@
 (ns pallet.crate.crontab-test
-  (:use [pallet.crate.crontab] :reload-all)
+  (:use pallet.crate.crontab)
   (:require
    [pallet.template :only [apply-templates]]
    [pallet.core :as core]
