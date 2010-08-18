@@ -4,7 +4,8 @@
    pallet.target
    pallet.crate.iptables
    pallet.resource.package
-   pallet.resource.service))
+   pallet.resource.service
+   [pallet.crate.nagios-config :as nagios-config]))
 
 (defn openssh
   "Install OpenSSH"
@@ -48,3 +49,14 @@
   ([port time-period hitcount]
      (pallet.crate.iptables/iptables-throttle
       "SSH_CHECK" port "tcp" time-period hitcount)))
+
+(defn nagios-monitor
+  "Configure nagios monitoring for ssh"
+  [& {:keys [service-group service-description command]
+      :or {service-group "ssh-services"
+           command "check_ssh"
+           service-description "SSH"}}]
+  (nagios-config/service
+   {:service-group service-group
+    :service-description service-description
+    :command command}))

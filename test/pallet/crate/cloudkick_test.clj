@@ -1,5 +1,5 @@
 (ns pallet.crate.cloudkick-test
-  (:use pallet.crate.cloudkick :reload-all)
+  (:use pallet.crate.cloudkick)
   (:use clojure.test)
   (:require
    [pallet.core :as core]

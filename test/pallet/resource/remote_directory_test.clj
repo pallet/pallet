@@ -1,5 +1,5 @@
 (ns pallet.resource.remote-directory-test
-  (:use [pallet.resource.remote-directory] :reload-all)
+  (:use pallet.resource.remote-directory)
   (:use clojure.test
         pallet.test-utils)
   (:require

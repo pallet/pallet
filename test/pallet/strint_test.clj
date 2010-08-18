@@ -1,5 +1,5 @@
 (ns pallet.strint-test
-  (:use clojure.contrib.strint pallet.strint :reload-all)
+  (:use clojure.contrib.strint pallet.strint)
   (:use clojure.test
         pallet.test-utils))
 

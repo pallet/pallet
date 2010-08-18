@@ -55,6 +55,11 @@ list, Alan Dipert and MeikelBrandmeyer."
   (target/with-target nil {}
     (f)))
 
+(defn reset-default-parameters
+  [f]
+  (reset! parameter/default-parameters {})
+  (f))
+
 (defmacro test-resource-build
   "Test build a resource for :configure phase. Ensures binding at correct times.
   This assumes no local resources."
@@ -63,8 +68,9 @@ list, Alan Dipert and MeikelBrandmeyer."
                               resource/*required-resources* {}]
                       (resource/resource-phases ~@body))]
      (parameter/default ~@parameters)
-     (resource/with-target [~node ~node-type]
-       (ffirst (resource/produce-phases [:configure] resources#)))))
+     (target/with-nodes [~node] [~node]
+       (resource/with-target [~node ~node-type]
+         (ffirst (resource/produce-phases [:configure] resources#))))))
 
 (defn parameters-test*
   [& options]

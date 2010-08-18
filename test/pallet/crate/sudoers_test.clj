@@ -1,6 +1,5 @@
 (ns pallet.crate.sudoers-test
-  (:use [pallet.crate.sudoers] :reload-all)
-  (:require [pallet.resource :only [reset-resources build-resources configured-resources]])
+  (:use pallet.crate.sudoers)
   (:use clojure.test
         pallet.test-utils))
 

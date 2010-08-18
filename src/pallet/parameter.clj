@@ -1,5 +1,6 @@
 (ns pallet.parameter
   "Provides parameters for use across crates."
+  (:refer-clojure :exclude [assoc!])
   (:require
    pallet.arguments
    [clojure.contrib.condition :as condition])
@@ -21,31 +22,37 @@
   (doseq [[option-key value] (apply hash-map options)]
     (swap! default-parameters update-in [key option-key] (fn [_] value))))
 
+(defn update-default!
+  "Update a parameter in the default parameters"
+  [[& keys] f]
+  (swap! default-parameters update-in keys f))
 
 (defmacro with-parameters
-  "Initialise the parameters binding based on the given keys."
+  "Initialise the parameters binding based on the given keys, which are used
+   to merge maps from the defaults."
   [keys & body]
   `(binding [*parameters* (reduce merge {} (map @default-parameters ~keys))]
      ~@body))
 
-(defn update
+(defn update!
+  "Update a parameter in the bound parameters"
+  [[& keys] f]
+  (set! *parameters* (update-in *parameters* keys f)))
+
+(defn assoc!
   "Update a parameter in the bound parameters"
   [[& keys] value]
-  (set! *parameters* (update-in *parameters* keys (fn [_] value))))
-
+  (set! *parameters* (assoc-in *parameters* keys value)))
 
 (defn get-for [keys]
-  (let [key (first keys)
-        rest-keys (seq (rest keys))
-        parameters (get *parameters* key ::not-set)]
-    (when (= ::not-set parameters)
+  (let [result (get-in *parameters* keys ::not-set)]
+    (when (= ::not-set result)
       (condition/raise
        :type :parameter-not-found
-       :message (format "Could not find key %s in *parameters*" key)
-       :key-not-set key))
-    (if rest-keys
-      (apply parameters rest-keys)
-      parameters)))
+       :message (format
+                 "Could not find keys %s in *parameters*" keys)
+       :key-not-set keys))
+    result))
 
 (deftype ParameterLookup
   [keys]

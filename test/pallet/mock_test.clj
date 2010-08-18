@@ -1,5 +1,5 @@
 (ns pallet.mock-test
-  (:use pallet.mock :reload-all)
+  (:use pallet.mock)
   (:use clojure.test)
   (:require
    [clojure.contrib.condition :as condition]))

@@ -1,5 +1,5 @@
 (ns pallet.resource.remote-file-test
-  (:use [pallet.resource.remote-file] :reload-all)
+  (:use pallet.resource.remote-file)
   (:use [pallet.stevedore :only [script]]
         [pallet.resource :only [build-resources phase]]
         clojure.test
@@ -35,6 +35,12 @@
           (stevedore/script (chmod "m" "path")))
          (remote-file* "path" :content "xxx" :owner "o" :group "g" :mode "m")))
 
+  (testing "delete"
+    (is (= (stevedore/checked-script
+            "delete remote-file path"
+            ("rm" "--force" "path"))
+           (remote-file* "path" :action :delete :force true))))
+
   (with-temporary [tmp (tmpfile)]
     (is (= (str "remote-file " (.getPath tmp) "...\n"
                 "...done\n")
@@ -44,7 +50,8 @@
   (with-temporary [tmp (tmpfile)]
     (is (= (str "remote-file " (.getPath tmp) "...\n"
                 "...done\n")
-           (bash-out (remote-file* (.getPath tmp) :content "xxx" :chmod "0666"))))
+           (bash-out
+            (remote-file* (.getPath tmp) :content "xxx" :chmod "0666"))))
     (is (= "xxx\n" (slurp (.getPath tmp)))))
 
   (target/with-target nil {:tag :n :image [:ubuntu]}
@@ -120,21 +127,23 @@
   (with-temporary [tmp (tmpfile)
                    target-tmp (tmpfile)]
     ;; this is convoluted to get around the "t" sticky bit on temp dirs
-    (let [user (assoc utils/*admin-user* :username (test-username) :no-sudo true)]
+    (let [user (assoc utils/*admin-user*
+                 :username (test-username) :no-sudo true)]
       (.delete target-tmp)
       (io/copy "text" tmp)
       (core/defnode tag [])
-      (core/apply-phases-to-node
+      (core/apply-phase-to-node
        nil tag (compute/make-unmanaged-node "tag" "localhost")
-       [(phase
-         (remote-file (.getPath target-tmp) :local-file (.getPath tmp) :mode "0666"))]
+       (phase
+        (remote-file
+         (.getPath target-tmp) :local-file (.getPath tmp) :mode "0666"))
        user
        core/execute-with-user-credentials)
       (is (.canRead target-tmp))
       (is (= "text" (slurp (.getPath target-tmp))))
-      (core/apply-phases-to-node
+      (core/apply-phase-to-node
        nil tag (compute/make-unmanaged-node "tag" "localhost")
-       [(phase (exec-script/exec-script (script (rm ~(.getPath target-tmp)))))]
+       (phase (exec-script/exec-script (script (rm ~(.getPath target-tmp)))))
        user
        core/execute-with-user-credentials)
       (is (not (.exists target-tmp))))))

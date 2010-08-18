@@ -1,5 +1,5 @@
 (ns pallet.resource.rsync-test
-  (:use [pallet.resource.rsync] :reload-all)
+  (:use pallet.resource.rsync)
   (:use [pallet.stevedore :only [script]]
         clojure.test
         pallet.test-utils)
@@ -27,9 +27,9 @@
                  :username (test-username) :no-sudo true)]
       (io/copy "text" tmp)
       (core/defnode tag [])
-      (core/apply-phases-to-node
+      (core/apply-phase-to-node
        nil tag (compute/make-unmanaged-node "tag" "localhost")
-       [(resource/phase (rsync (.getPath dir) (.getPath target-dir) {}))]
+       (resource/phase (rsync (.getPath dir) (.getPath target-dir) {}))
        user
        core/execute-with-user-credentials)
       (let [target-tmp (java.io.File.

@@ -203,27 +203,31 @@
           {:image [] :phases {:bootstrap {:in-sequence
                                           [[identity ["a"] :local]]}}}))))
 
+
+(let [seen (atom nil)]
+  (defn seen? [] @seen)
+  (defn localf*
+    []
+    (reset! seen true)
+    (is (target/node))
+    (is (target/node-type))))
+
 (deftest lift-test
-  (let [seen (atom nil)]
-    (defnode x [])
-    (deflocal localf (fn
-                       []
-                       (reset! seen true)
-                       (is (target/node))
-                       (is (target/node-type))) [])
-    (is (.contains
-         "bin"
-         (with-no-compute-service
-           (with-admin-user (assoc utils/*admin-user* :no-sudo true)
-             (with-out-str
-               (lift {x (compute/make-unmanaged-node "x" "localhost")}
-                     (phase
-                      (exec-script/exec-script
-                       (stevedore/script
-                        (ls "/"))))
-                     (phase
-                      (localf))))))))
-    (is @seen)))
+  (defnode x [])
+  (deflocal localf localf* [])
+  (is (.contains
+       "bin"
+       (with-no-compute-service
+         (with-admin-user (assoc utils/*admin-user* :no-sudo true)
+           (with-out-str
+             (lift {x (compute/make-unmanaged-node "x" "localhost")}
+                   (phase
+                    (exec-script/exec-script
+                     (stevedore/script
+                      (ls "/"))))
+                   (phase
+                    (localf))))))))
+  (is (seen?)))
 
 (deftest lift*-nodes-binding-test
   (defnode a [])
@@ -231,18 +235,18 @@
   (let [na (compute/make-node "a")
         nb (compute/make-node "b")
         nc (compute/make-node "c" :state NodeState/TERMINATED)]
-    (mock/expects [(apply-phases
+    (mock/expects [(apply-phase
                     [& _]
                     (do
                       (is (= #{na nb} (set (target/all-nodes))))
                       (is (= #{na nb} (set (target/target-nodes))))))]
-                  (lift* nil "" {a #{na nb nc}} [:configure]))
-    (mock/expects [(apply-phases
+                  (lift* nil "" {a #{na nb nc}} :configure))
+    (mock/expects [(apply-phase
                     [& _]
                     (do
                       (is (= #{na nb} (set (target/all-nodes))))
                       (is (= #{na nb} (set (target/target-nodes))))))]
-                  (lift* nil "" {a #{na} b #{nb}} [:configure]))))
+                  (lift* nil "" {a #{na} b #{nb}} :configure))))
 
 (deftest lift-multiple-test
   (defnode a [])
@@ -251,7 +255,7 @@
         nb (compute/make-node "b")
         nc (compute/make-node "c")]
     (mock/expects [(org.jclouds.compute/nodes-with-details [_] [na nb nc])
-                   (apply-phases
+                   (apply-phase
                     [& _]
                     (do
                       (is (= #{na nb nc} (set (target/all-nodes))))
@@ -265,7 +269,7 @@
   (let [na (compute/make-node "a")
         nb (compute/make-node "b")
         nc (compute/make-node "b" :state NodeState/TERMINATED)]
-    (mock/expects [(apply-phases
+    (mock/expects [(apply-phase
                     [& _]
                     (do
                       (is (= #{na nb} (set (target/all-nodes))))

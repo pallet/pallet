@@ -1,5 +1,5 @@
 (ns pallet.crate.cruise-control-rb-test
-  (:use [pallet.crate.cruise-control-rb] :reload-all)
+  (:use pallet.crate.cruise-control-rb)
   (:require
    [pallet.template :only [apply-templates]]
    [pallet.core :as core]

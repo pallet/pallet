@@ -1,5 +1,5 @@
 (ns pallet.md5crypt-test
-  (:use pallet.md5crypt :reload-all)
+  (:use pallet.md5crypt)
   (:use clojure.test))
 
 (deftest salt-test

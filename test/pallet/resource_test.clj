@@ -1,5 +1,5 @@
 (ns pallet.resource-test
-  (:use pallet.resource :reload-all)
+  (:use pallet.resource)
   (:require
    [pallet.compute :as compute]
    [pallet.parameter :as parameter]
@@ -22,10 +22,26 @@
 (deftest after-phase-test
   (is (= :after-fred (after-phase :fred))))
 
+(deftest pre-phase-test
+  (is (= :pre-fred (pre-phase :fred))))
+
+(deftest phase-list-test
+  (testing "pre, after added"
+    (is (= [:pre-fred :fred :after-fred]
+             (phase-list [:fred]))))
+  (testing "configure as default"
+    (is (= [:pre-configure :configure :after-configure]
+             (phase-list [])))))
+
 (deftest execute-after-phase-test
   (in-phase :fred
     (execute-after-phase
      (is (= :after-fred *phase*)))))
+
+(deftest execute-pre-phase-test
+  (in-phase :fred
+    (execute-pre-phase
+     (is (= :pre-fred *phase*)))))
 
 (deftest invoke-resource-test
   (with-init-resources nil
@@ -37,33 +53,36 @@
     (invoke-resource identity :b :in-sequence)
     (is (= identity (-> *required-resources* :configure :in-sequence ffirst)))
     (is (= :b (-> *required-resources* :configure :in-sequence first second)))
-    (is (= :remote (-> *required-resources* :configure :in-sequence first last))))
+    (is (= :remote
+           (-> *required-resources* :configure :in-sequence first last))))
 
   (with-init-resources nil
     (invoke-resource identity :b :local-in-sequence)
     (is (= identity (-> *required-resources* :configure :in-sequence ffirst)))
     (is (= :b (-> *required-resources* :configure :in-sequence first second)))
-    (is (= :local (-> *required-resources* :configure :in-sequence first last)))))
+    (is (= :local
+           (-> *required-resources* :configure :in-sequence first last)))))
 
 (deftest group-pairs-by-key-test
   (is (= '([1
             ((0 1 2)
-	     [:a :b])]
+             [:a :b])]
            [3 ((\f \o \o))]
-	     [2
-	      ((0 1 2)
-	       ["bar baz"])])
-	 (#'pallet.resource/group-pairs-by-key
-          [[1 (range 3)] [3 (seq "foo")] [2 (range 3)] [2 ["bar baz"]] [1 [:a :b]]]))))
+             [2
+              ((0 1 2)
+               ["bar baz"])])
+         (#'pallet.resource/group-pairs-by-key
+          [[1 (range 3)] [3 (seq "foo")] [2 (range 3)] [2 ["bar baz"]]
+           [1 [:a :b]]]))))
 
 (with-private-vars [pallet.resource [execution-ordering]]
   (deftest execution-ordering-test
     (is (= '([:aggregated 1] [:in-sequence 2 :remote] [:in-sequence 3 :local])
            (sort-by
-	    (comp execution-ordering first)
-	    [[:in-sequence 2 :remote]
-	     [:aggregated 1]
-	     [:in-sequence 3 :local]])))))
+            (comp execution-ordering first)
+            [[:in-sequence 2 :remote]
+             [:aggregated 1]
+             [:in-sequence 3 :local]])))))
 
 (deftest configured-resources-test
   (letfn [(combiner [args] (string/join "" (map #(apply str %) args)))]
@@ -119,8 +138,8 @@
   (with-init-resources nil
     (deflocal test-resource identity [arg])
     (test-resource :a)
-    (is (= [identity [:a] :local]
-	     (-> *required-resources* :configure :in-sequence first)))))
+    (is (= [#'identity [:a] :local]
+             (-> *required-resources* :configure :in-sequence first)))))
 
 (defn- test-component-fn [arg]
   (str arg))
@@ -143,7 +162,7 @@
   (with-init-resources nil
     (testing "concatenate remote phases"
       (is (= ["abc\nd\n"]
-	       (output-resources :a {:a {:in-sequence
+               (output-resources :a {:a {:in-sequence
                                          [[identity ["abc"] :remote]
                                           [identity ["d"]  :remote]]}}))))
     (testing "split local/remote phases"
@@ -152,19 +171,19 @@
                                            [[identity ["abc"] :remote]
                                             [f [] :local]
                                             [identity ["d"] :remote]]}})]
-	(is (= "abc\n" (first r)))
+        (is (= "abc\n" (first r)))
         (is (= nil  ((first (second r)))))
         (is (= "d\n" (last r)))))
 
     (testing "sequence local phases"
       (let [f identity g identity]
-	(is (= [2 3]
-		 (map #(%) (first (output-resources :a {:a {:in-sequence
+        (is (= [2 3]
+                 (map #(%) (first (output-resources :a {:a {:in-sequence
                                                    [[f [2] :local]
                                                     [g [3] :local]]}})))))))
     (testing "Undefined phase"
       (is (= '()
-	     (output-resources :b {:a {:in-sequence
+             (output-resources :b {:a {:in-sequence
                                        [[identity ["abc"] :remote]
                                         [identity ["d"] :remote]]}}))))))
 
@@ -172,16 +191,17 @@
   (let [node (compute/make-node "tag")]
     (with-init-resources nil
       (with-target [node {}]
-	(testing "node with phase"
-	  (is (= [["abc\nd\n"]]
-		   (produce-phases
-		    [:a]
-		    {:a
+        (testing "node with phase"
+          (is (= [["abc\nd\n"]]
+                   (produce-phases
+                    [:a]
+                    {:a
                      {:in-sequence
-                      [[(fn [] "abc") [] :remote] [(fn [] "d") [] :remote]]}}))))
-	(testing "inline phase"
-	  (is (= [[":a\n"]]
-		   (produce-phases [(phase (test-component :a))] {}))))))))
+                      [[(fn [] "abc") [] :remote]
+                       [(fn [] "d") [] :remote]]}}))))
+        (testing "inline phase"
+          (is (= [[":a\n"]]
+                   (produce-phases [(phase (test-component :a))] {}))))))))
 
 (deftest build-resources-test
   (with-init-resources nil
@@ -210,15 +230,18 @@
       (is (= [":a\n"] (output-resources (first p) (second p)))))))
 
 
+(defn lookup-test-fn
+  [a] (str a))
+
 (defresource lookup-test-resource
-  (fn [a] (str a)) [a])
+  lookup-test-fn [a])
 
 (deftest lookup-test
   (is (= "9\n"
-	 (test-resource-build
-	  [nil {} :a 1 :b 9]
-	  (lookup-test-resource
-	   (parameter/lookup :b))))))
+         (test-resource-build
+          [nil {} :a 1 :b 9]
+          (lookup-test-resource
+           (parameter/lookup :b))))))
 
 (deftest set-parameters-test
   (test-resource-build

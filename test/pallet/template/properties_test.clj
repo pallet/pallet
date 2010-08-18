@@ -1,5 +1,5 @@
 (ns pallet.template.properties-test
-  (:use [pallet.template.properties] :reload-all)
+  (:use pallet.template.properties)
   (:use clojure.test))
 
 

@@ -1,5 +1,5 @@
 (ns pallet.crate.iptables-test
-  (:use pallet.crate.iptables :reload-all)
+  (:use pallet.crate.iptables)
   (:require
    [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
@@ -49,3 +49,33 @@
            (target/with-target nil {:tag :n :image [:centos]}
              (resource/build-resources
               [] (iptables-redirect-port 80 8081)))))))
+
+(deftest iptables-accept-port-test
+  (testing "accept with default protocol"
+    (is (= (target/with-target nil {:tag :n :image [:centos]}
+             (resource/build-resources
+              [] (iptables-rule
+                  "filter"
+                  "-A FWR -p tcp --dport 80 -j ACCEPT")))
+           (target/with-target nil {:tag :n :image [:centos]}
+             (resource/build-resources
+              [] (iptables-accept-port 80))))))
+  (testing "accept with source"
+    (is (= (target/with-target nil {:tag :n :image [:centos]}
+             (resource/build-resources
+              [] (iptables-rule
+                  "filter"
+                  "-A FWR -p tcp -s 1.2.3.4 --dport 80 -j ACCEPT")))
+           (target/with-target nil {:tag :n :image [:centos]}
+             (resource/build-resources
+              [] (iptables-accept-port 80 "tcp" :source "1.2.3.4"))))))
+  (testing "accept with source range"
+    (is (= (target/with-target nil {:tag :n :image [:centos]}
+             (resource/build-resources
+              [] (iptables-rule
+                  "filter"
+                  "-A FWR -p tcp -src-range 11.22.33.10-11.22.33.50 --dport 80 -j ACCEPT")))
+           (target/with-target nil {:tag :n :image [:centos]}
+             (resource/build-resources
+              [] (iptables-accept-port
+                  80 "tcp" :source-range "11.22.33.10-11.22.33.50")))))))

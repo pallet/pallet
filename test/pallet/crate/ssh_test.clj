@@ -1,5 +1,5 @@
 (ns pallet.crate.ssh-test
-  (:use [pallet.crate.ssh] :reload-all)
+  (:use pallet.crate.ssh)
   (:require
    pallet.crate.iptables
    [pallet.target :as target]

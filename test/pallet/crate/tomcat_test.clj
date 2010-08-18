@@ -1,6 +1,6 @@
 (ns pallet.crate.tomcat-test
   (:refer-clojure :exclude [alias])
-  (:use [pallet.crate.tomcat] :reload-all)
+  (:use pallet.crate.tomcat)
   (:require
     [pallet.crate.tomcat :as tc]
     [pallet.target :as target]

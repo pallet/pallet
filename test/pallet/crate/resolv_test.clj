@@ -1,5 +1,5 @@
 (ns pallet.crate.resolv-test
-  (:use [pallet.crate.resolv] :reload-all)
+  (:use pallet.crate.resolv)
   (:require [pallet.resource :only [reset-resources build-resources]])
   (:use clojure.test
         pallet.test-utils))

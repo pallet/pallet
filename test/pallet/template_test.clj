@@ -1,5 +1,5 @@
 (ns pallet.template-test
-  (:use [pallet.template] :reload-all)
+  (:use pallet.template)
   (:require
    [pallet.core :as core]
    [pallet.utils :as utils]

@@ -1,5 +1,5 @@
 (ns pallet.resource.directory-test
-  (:use [pallet.resource.directory] :reload-all)
+  (:use pallet.resource.directory)
   (:require
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
@@ -24,7 +24,6 @@
          (resource/build-resources [] (directory "file1"))))
   (testing "delete"
     (is (= (stevedore/checked-script "directory file1" "rm -r -f file1")
-	   (resource/build-resources
-	    []
-	    (directory "file1" :action :delete :recursive true))))))
-
+           (resource/build-resources
+            []
+            (directory "file1" :action :delete :recursive true))))))

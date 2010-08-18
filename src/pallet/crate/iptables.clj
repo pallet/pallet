@@ -2,6 +2,7 @@
   "Crate for managing iptables"
   (:require
    pallet.target
+   [pallet.arguments :as arguments]
    [pallet.stevedore :as stevedore]
    pallet.resource
    pallet.resource.remote-file
@@ -82,13 +83,25 @@ iptables configuration line (cf. arguments to an iptables invocation)"
   []
   (iptables-rule "filter" "-A FWR -p icmp -j ACCEPT"))
 
+(defonce accept-option-strings
+  {:source " -s %s" :source-range " -src-range %s"})
+
 (defn iptables-accept-port
   "Accept specific port, by default for tcp."
   ([port] (iptables-accept-port port "tcp"))
-  ([port protocol]
+  ([port protocol & {:keys [source source-range] :as options}]
      (iptables-rule
       "filter"
-      (format "-A FWR -p %s --dport %s -j ACCEPT" protocol port))))
+      (arguments/delayed
+       (format
+        "-A FWR -p %s%s --dport %s -j ACCEPT"
+        protocol
+        (reduce
+         #(str %1 (format
+                   ((first %2) accept-option-strings)
+                   (arguments/evaluate (second %2))))
+         "" options)
+        port)))))
 
 (defn iptables-redirect-port
   "Redirect a specific port, by default for tcp."

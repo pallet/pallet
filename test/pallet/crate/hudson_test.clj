@@ -1,5 +1,5 @@
 (ns pallet.crate.hudson-test
-  (:use [pallet.crate.hudson] :reload-all)
+  (:use pallet.crate.hudson)
   (:require
    [pallet.template :only [apply-templates]]
    [pallet.core :as core]

@@ -1,5 +1,5 @@
 (ns pallet.crate.git-test
-  (:use [pallet.crate.git] :reload-all)
+  (:use pallet.crate.git)
   (:require
    [pallet.resource.package :as package]
    [pallet.stevedore :as stevedore]

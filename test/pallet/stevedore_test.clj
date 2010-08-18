@@ -1,5 +1,5 @@
 (ns pallet.stevedore-test
-  (:use [pallet.stevedore] :reload-all)
+  (:use pallet.stevedore)
   (:use
    clojure.test
    pallet.test-utils)
@@ -7,19 +7,20 @@
    [pallet.utils :as utils]))
 
 (defn strip-ws
-  "strip extraneous whitespace so tests don't fail because of differences in whitespace"
-  [s]
+  "strip extraneous whitespace so tests don't fail because of differences in
+   whitespace" [s]
   (-> s
     (.replaceAll "[ ]+" " ")
     .trim))
 
 (defn strip-line-ws
-  "strip extraneous whitespace so tests don't fail because of differences in whitespace"
+  "strip extraneous whitespace so tests don't fail because of differences in
+   whitespace"
   [#^String s]
   (-> s
-    (.replace "\n" " ")
-    (.replaceAll "[ ]+" " ")
-    .trim))
+      (.replace "\n" " ")
+      (.replaceAll "[ ]+" " ")
+      .trim))
 
 (deftest number-literal
   (is (= "42" (script 42)))
@@ -81,7 +82,8 @@
   (is (= "if [ ! -e file1 ]; then echo foo;fi"
          (script (if (not (file-exists? "file1")) (echo "foo")))))
   (is (= "if [ \\( ! -e file1 -o \\( \"a\" == \"b\" \\) \\) ]; then echo foo;fi"
-           (script (if (|| (not (file-exists? "file1")) (== "a" "b")) (echo "foo"))))))
+           (script (if (|| (not (file-exists? "file1")) (== "a" "b"))
+                     (echo "foo"))))))
 
 (deftest if-nested-test
   (is (= "if [ \\( \"foo\" == \"bar\" \\) ]; then
@@ -102,7 +104,8 @@ fi"
   (is (= "if [ ! \\( \\( \"foo\" == \"bar\" \\) -a \\( \"foo\" == \"baz\" \\) \\) ]; then echo fred;fi"
          (script (if-not (&& (== foo bar) (== foo baz)) (echo fred)))))
   (is (= "fred\n"
-         (bash-out (script (if-not (&& (== foo foo) (== foo baz)) (echo "fred")))))))
+         (bash-out (script (if-not (&& (== foo foo) (== foo baz))
+                             (echo "fred")))))))
 
 (deftest test-when
   (is (= "if [ \\( \"foo\" == \"bar\" \\) ]; then\necho fred\nfi"
@@ -122,7 +125,8 @@ fi"
 
 
 (deftest test-map
-  (is (= "([packages]=(columnchart))" (strip-ws (script {:packages ["columnchart"]}))))
+  (is (= "([packages]=(columnchart))"
+         (strip-ws (script {:packages ["columnchart"]}))))
   (is (= "x=([packages]=columnchart)\necho ${x[packages]}"
          (strip-ws (script (do (var x {:packages "columnchart"})
                                (echo (aget x :packages)))))))
@@ -133,16 +137,16 @@ fi"
 (deftest test-do
   (is (= "let x=3\nlet y=4\nlet z=(x + y)"
          (strip-ws
-	  (script
-	   (let x 3)
-	   (let y 4)
-	   (let z (+ x y))))))
+          (script
+           (let x 3)
+           (let y 4)
+           (let z (+ x y))))))
   (is (= "7\n"
          (bash-out
-	  (script
-	   (let x 3)
-	   (let y 4)
-	   (let z (+ x y))
+          (script
+           (let x 3)
+           (let y 4)
+           (let z (+ x y))
            (echo @z))))))
 
 (deftest deref-test
@@ -151,10 +155,10 @@ fi"
 
 (deftest test-combine-forms
   (let [stuff (quote (do
-		       (local x 3)
-		       (local y 4)))]
+                       (local x 3)
+                       (local y 4)))]
     (is (= "function foo() {\nx=$1\nlocal x=3\nlocal y=4\n }"
-	   (strip-ws (script (defn foo [x] ~stuff)))))))
+           (strip-ws (script (defn foo [x] ~stuff)))))))
 
 (deftest checked-script-test
   (is (= (checked-commands "msg" (script ls) (script ls))

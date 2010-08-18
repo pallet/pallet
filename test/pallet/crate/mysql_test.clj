@@ -1,5 +1,5 @@
 (ns pallet.crate.mysql-test
-  (:use [pallet.crate.mysql] :reload-all)
+  (:use pallet.crate.mysql)
   (:use [pallet.resource :only [build-resources]]
         clojure.test
         pallet.test-utils)

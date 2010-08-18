@@ -1,5 +1,5 @@
 (ns pallet.task.converge-test
-  (:use [pallet.task.converge] :reload-all)
+  (:use pallet.task.converge)
   (:require [pallet.core :as core])
   (:use
    clojure.test

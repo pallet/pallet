@@ -1,5 +1,5 @@
 (ns pallet.crate.rubygems-test
-  (:use [pallet.crate.rubygems] :reload-all)
+  (:use pallet.crate.rubygems)
   (:require
    [pallet.resource.remote-file :as remote-file]
    [pallet.stevedore :as stevedore])

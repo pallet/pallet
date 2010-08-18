@@ -1,5 +1,5 @@
 (ns pallet.resource.hostinfo-test
-  (:use [pallet.resource.hostinfo] :reload-all)
+  (:use pallet.resource.hostinfo)
   (:use [pallet.stevedore :only [script]]
         clojure.test
         pallet.test-utils))

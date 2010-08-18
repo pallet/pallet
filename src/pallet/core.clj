@@ -217,25 +217,22 @@ script that is run with root privileges immediatly after first boot."
   [f [node user] & body]
   `(~f ~node ~user (fn [] ~@body)))
 
-(defn apply-phases-to-node
-  "Apply a list of phases to a sequence of nodes"
-  [compute node-type node phases user wrapper-fn]
-  (logging/info (str "apply-phases-to-node " (tag node)))
-  (logging/info (str "  node-type " node-type))
-  (let [phases (if (seq phases) phases [:configure])
-        port (ssh-port node)
+(defn apply-phase-to-node
+  "Apply a phase to a node"
+  [compute node-type node phase user wrapper-fn]
+  (logging/info (format "apply-phase-to-node %s %s" (tag node) phase))
+  (logging/trace (str "  node-type " node-type))
+  (let [port (ssh-port node)
         options (if port [:port port] [])]
     (if node-type
       (execute-with-wrapper wrapper-fn [node user]
-        (doseq [phase phases]
-          (logging/info (format "Apply phase %s" phase))
-          (with-init-resources nil
-            (binding [*file-transfers* {}]
-              (resource/with-target [node node-type]
-                (when-let [phase-cmds (seq
-                                       (produce-phases [phase]
-                                                       (node-type :phases)))]
-                  (compute/execute-cmds phase-cmds node user options)))))))
+        (with-init-resources nil
+          (binding [*file-transfers* {}]
+            (resource/with-target [node node-type]
+              (when-let [phase-cmds (seq
+                                     (produce-phases [phase]
+                                                     (node-type :phases)))]
+                (compute/execute-cmds phase-cmds node user options))))))
       (logging/error (str "Could not find node type for node " (tag node))))))
 
 (defn execute-with-user-credentials
@@ -253,17 +250,18 @@ script that is run with root privileges immediatly after first boot."
   `(binding [node-execution-wrapper ~f]
      ~@body))
 
-(defn apply-phases
+(defn apply-phase
   "Apply a list of phases to a sequence of nodes"
-  ([compute node-type nodes phases]
-     (apply-phases compute node-type nodes phases *admin-user*))
-  ([compute node-type nodes phases user]
+  ([compute node-type nodes phase]
+     (apply-phase compute node-type nodes phase *admin-user*))
+  ([compute node-type nodes phase user]
      (logging/trace
       (format
-       "apply-phases for %s with %d nodes" (node-type :tag) (count nodes)))
+       "apply-phase %s for %s with %d nodes"
+       phase (node-type :tag) (count nodes)))
      (doseq [node nodes]
-       (apply-phases-to-node
-        compute node-type node phases user node-execution-wrapper))))
+       (apply-phase-to-node
+        compute node-type node phase user node-execution-wrapper))))
 
 (defn nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"
@@ -302,12 +300,13 @@ script that is run with root privileges immediatly after first boot."
             target-nodes (nodes-in-map node-map nodes)
             phases (ensure-configure-phase phases)]
         (target/with-nodes nodes target-nodes
-          (doseq [node-type (keys node-map)]
-            (apply-phases
+          (doseq [phase (resource/phase-list (if (seq phases) phases [:configure]))
+                  node-type (keys node-map)]
+            (apply-phase
              compute
              node-type
              (filter-nodes-with-tag nodes (node-type :tag))
-             phases)))))))
+             phase)))))))
 
 (defn node-in-types?
   "Predicate for matching a node belonging to a set of node types"
@@ -359,12 +358,13 @@ script that is run with root privileges immediatly after first boot."
           target-nodes (filter running? (apply concat (vals target-node-map)))
           nodes (or nodes target-nodes)]
       (target/with-nodes nodes target-nodes
-        (doseq [[node-type nodes] target-node-map]
-          (apply-phases
+        (doseq [phase (resource/phase-list (if (seq phases) phases [:configure]))
+                [node-type nodes] target-node-map]
+          (apply-phase
            compute
            node-type
            (filter running? nodes)
-           phases))))))
+           phase))))))
 
 (defn compute-service-and-options
   "Extract the compute service form a vector of options, returning the bound

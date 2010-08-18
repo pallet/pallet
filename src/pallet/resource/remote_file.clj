@@ -82,7 +82,11 @@
           :else (throw
                  (IllegalArgumentException.
                   (str "remote-file " path " specified without content."))))
-         (adjust-file path opts))))))
+         (adjust-file path opts)))
+      :delete
+      (stevedore/checked-script
+       (str "delete remote-file " path)
+       (rm ~path ~(select-keys opts [:force]))))))
 
 (defresource remote-file "Remote file with contents management.
 Options for specifying the file's content are:
@@ -90,6 +94,7 @@ Options for specifying the file's content are:
   :content string   - use the specified content directly
   :local-file path  - use the file on the local machine at the given path
   :remote-file path - use the file on the remote machine at the given path
+  :literal          - prevent shell expansion on content
 Options for specifying the file's permissions are:
   :owner user-name
   :group group-name

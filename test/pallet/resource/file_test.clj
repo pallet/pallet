@@ -1,5 +1,5 @@
 (ns pallet.resource.file-test
-  (:use [pallet.resource.file] :reload-all)
+  (:use pallet.resource.file)
   (:use [pallet.stevedore :only [script]]
         [pallet.resource :only [build-resources]]
         clojure.test

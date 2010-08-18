@@ -89,10 +89,11 @@
       (script
        (if (user-exists? ~username)
          (modify-user
-          ~username ~(select-keys opts [:home :shell :comment]))
+          ~username ~(select-keys opts [:home :shell :comment :groups]))
          (create-user
           ~username ~(select-keys opts [:base-dir :home :system :comment
-                                        :create-home :pasword :shell]))))
+                                        :create-home :pasword :shell
+                                        :groups]))))
       :lock
       (script
        (if (user-exists? ~username)

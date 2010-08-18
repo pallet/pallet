@@ -126,6 +126,10 @@
          :url (-> options :aptitude :key-url))
         (stevedore/script (apt-key add aptkey.tmp)))))))
 
+(defn package-source-aggregate
+  [args]
+  stevedore/do-script* (map (fn [x] (apply package-source* x)) args))
+
 (defaggregate package-source
   "Control package sources.
    Options are the package manager keywords, each specifying a map of
@@ -141,7 +145,7 @@
    :yum
      :url url              - repository url
      :gpgkey keystring     - pgp key string for repository"
-  #(stevedore/do-script* (map (fn [x] (apply package-source* x)) %))
+  package-source-aggregate
   [name packager-map & options])
 
 (defn add-scope
@@ -176,7 +180,8 @@
      (if (= :aptitude (packager))
        (stevedore/script (apply debconf-set-selections ~options)))
      (throw (IllegalArgumentException.
-             (str action " is not a valid action for package-manager resource"))))))
+             (str action
+                  " is not a valid action for package-manager resource"))))))
 
 (defn- apply-package-manager [package-manager-args]
   (stevedore/do-script*

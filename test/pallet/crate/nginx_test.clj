@@ -1,5 +1,5 @@
 (ns pallet.crate.nginx-test
-  (:use [pallet.crate.nginx] :reload-all)
+  (:use pallet.crate.nginx)
   (:require
    [pallet.resource :as resource]
    [pallet.resource.directory :as directory]

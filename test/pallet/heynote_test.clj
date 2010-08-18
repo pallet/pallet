@@ -1,5 +1,5 @@
 (ns pallet.heynote-test
-  (:use [pallet.heynote] :reload-all)
+  (:use pallet.heynote)
   (:use
    clojure.test
    pallet.test-utils)

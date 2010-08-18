@@ -1,5 +1,5 @@
 (ns pallet.crate.java-test
-  (:use [pallet.crate.java] :reload-all)
+  (:use pallet.crate.java)
   (:require
    [pallet.core :as core]
    [pallet.resource :as resource]

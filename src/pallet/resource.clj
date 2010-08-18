@@ -36,10 +36,21 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
   `(binding [*phase* ~phase]
      ~@body))
 
+(defn pre-phase
+  "Calculate the name for the pre-phase"
+  [phase]
+  (keyword (str "pre-" (name phase))))
+
 (defn after-phase
   "Calculate the name for the after-phase"
   [phase]
   (keyword (str "after-" (name phase))))
+
+(defmacro execute-pre-phase
+  "Specify the pre phase for execution of resources."
+  [& body]
+  `(binding [*phase* (pre-phase *phase*)]
+     ~@body))
 
 (defmacro execute-after-phase
   "Specify the after phase for execution of resources."
@@ -149,7 +160,7 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
         options (apply hash-map options)]
     `(defn ~facility [~@args]
        (invoke-resource
-        ~apply-fn
+        #'~apply-fn
         ~(if (some #{'&} args)
            `(apply vector ~@(filter #(not (= '& %)) args))
            `[~@args])
@@ -184,12 +195,14 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
    (when (seq phases)
      (let [phase (first phases)]
        (if (keyword? phase)
-         (cons phase
-               (cons (after-phase phase)
-                     (phase-list* (rest phases))))
-         (cons phase
-               (cons [(after-phase (first phase)) (second phase)]
-                     (phase-list* (rest phases)))))))))
+         (cons (pre-phase phase)
+               (cons phase
+                     (cons (after-phase phase)
+                           (phase-list* (rest phases)))))
+         (cons (pre-phase (first phase))
+               (cons phase
+                     (cons [(after-phase (first phase)) (second phase)]
+                           (phase-list* (rest phases))))))))))
 
 (defn phase-list [phases]
   (phase-list* (or (seq phases) (seq [:configure]))))
@@ -231,7 +244,8 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
   [[node node-type] & body]
   `(let [node# ~node]
      (target/with-target node# (augment-template-from-node node# ~node-type)
-       (parameter/with-parameters (parameter-keys (target/node) (target/node-type))
+       (parameter/with-parameters
+         (parameter-keys (target/node) (target/node-type))
          ~@body))))
 
 (defn produce-phases
@@ -245,7 +259,7 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
            (if (keyword? phase)
              (output-resources phase phase-map)
              (output-resources (first phase) (second phase))))
-         (phase-list phases)))))
+         phases))))
 
 (defmacro build-resources
   "Outputs the remote resources specified in the body for the specified phases.
@@ -258,18 +272,15 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
         ""
         (map #(string/join "" (filter string? %))
              (produce-phases
-              ~(vec phases)
+              (phase-list ~(vec phases))
               (resource-phases ~@body)))))))
 
 (defn parameters*
   [& options]
   (let [options (apply hash-map options)]
     (doseq [[keys value] options]
-      (parameter/update keys value))))
+      (parameter/assoc! keys value))))
 
 (defresource parameters
   "Set parameters"
   parameters* [& options])
-
-
-
