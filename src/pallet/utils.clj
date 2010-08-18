@@ -344,13 +344,14 @@
                     remote-name)
               (sftp sftp-channel :chmod 0600 remote-name))
 
+            (logging/info (format "commands %s" (pr-str commands)))
             (let [execute (fn [cmd]
-                            (logging/info (format "Cmd %s" cmd))
+                            (logging/info (format "Cmd %s" (pr-str cmd)))
                             (if (string? cmd)
                               (remote-sudo-cmd
                                server session sftp-channel user tmpfile cmd)
                               (reduce #(conj %1 (%2)) [] cmd)))
-                  rv (doall (map #(doall (map execute %)) commands))]
+                  rv (doall (map execute commands))]
               (doseq [[file remote-name] *file-transfers*]
                 (ssh session (str "rm " remote-name)))
               rv)))))))

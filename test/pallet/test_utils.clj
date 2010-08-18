@@ -70,7 +70,7 @@ list, Alan Dipert and MeikelBrandmeyer."
      (parameter/default ~@parameters)
      (target/with-nodes [~node] [~node]
        (resource/with-target [~node ~node-type]
-         (ffirst (resource/produce-phases [:configure] resources#))))))
+         (resource/produce-phases [:configure] resources#)))))
 
 (defn parameters-test*
   [& options]

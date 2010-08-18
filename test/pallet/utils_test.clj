@@ -107,9 +107,8 @@
 (deftest remote-sudo-cmds-test
   (let [result (remote-sudo-cmds
                 "localhost"
-                [["ls /"]]
+                ["ls /"]
                 (assoc *admin-user* :no-sudo true)
                 {})]
     (is (= 1 (count result)))
-    (is (= 1 (count (first result))))
-    (is (= 0 (:exit (first (first result)))))))
+    (is (= 0 (:exit (first result))))))

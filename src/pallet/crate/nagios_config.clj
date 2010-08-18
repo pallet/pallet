@@ -19,10 +19,9 @@
        (or x [])
        (select-keys
         options
-        [:service-group :service-description :command])))))
-  "") ; produces no output on target
+        [:service-group :service-description :command]))))))
 
-(resource/defresource service
+(resource/deflocal service
   "Configure nagios service monitoring.
      :service-group        name for service group(s) service should be part of
      :command              command for service

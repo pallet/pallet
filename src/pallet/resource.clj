@@ -8,7 +8,8 @@
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
    [clojure.contrib.seq :as seq]
-   [clojure.contrib.string :as string])
+   [clojure.contrib.string :as string]
+   [clojure.contrib.logging :as logging])
   (:use
    (clojure.contrib core
                     [def :only [defvar defvar- name-with-attributes]])))
@@ -216,7 +217,8 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
        *required-resources*)))
 
 (defmacro phase
-  "Inline phase definition for use in arguments to the lift method"
+  "Inline phase definition for use in arguments to the lift method. Uses gensym
+   to provide a unique phase id."
   [& body]
   (let [s (keyword (name (gensym "phase")))]
     `(vector ~s (resource-phases (in-phase ~s ~@body)))))
@@ -248,32 +250,36 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
          (parameter-keys (target/node) (target/node-type))
          ~@body))))
 
-(defn produce-phases
+(defn produce-phase
   "For the target tag and template, output the resources specified in the body
-   for the given phases."
-  [[& phases] phase-map]
-  (doall ;; remove?
-   (filter
-    seq
-    (map (fn [phase]
-           (if (keyword? phase)
-             (output-resources phase phase-map)
-             (output-resources (first phase) (second phase))))
-         phases))))
+   for the given phase."
+  [phase phase-map]
+  (seq
+   (if (keyword? phase)
+     (output-resources phase phase-map)
+     (output-resources (first phase) (second phase)))))
+
+(defn produce-phases
+  "Join the result of produce-phase, executing local resources.
+   Useful for testing."
+  [phases phase-map]
+  (let [string-or-call (fn [phase]
+                         (string/join
+                          ""
+                          (for [cmds (produce-phase phase phase-map)]
+                            (if (string? cmds)
+                              cmds
+                              (doseq [cmd cmds] (cmd))))))]
+    (string/join "" (map string-or-call (phase-list phases)))))
 
 (defmacro build-resources
   "Outputs the remote resources specified in the body for the specified phases.
-   This is useful in testing. No local resources are run."
+   This is useful in testing."
   [[& phases] & body]
   `(binding [utils/*file-transfers* {}
              *required-resources* {}]
      (with-target [(target/node) (target/node-type)]
-       (string/join
-        ""
-        (map #(string/join "" (filter string? %))
-             (produce-phases
-              (phase-list ~(vec phases))
-              (resource-phases ~@body)))))))
+       (produce-phases ~(vec phases) (resource-phases ~@body)))))
 
 (defn parameters*
   [& options]

@@ -111,13 +111,13 @@
         (invoke-resource combiner [:a] :aggregated)
         (invoke-resource combiner ["b" :c] :aggregated)
         (let [fs (produce-phases [:configure] *required-resources*)]
-          (is (= ":ab:c\n" (ffirst fs)))))
+          (is (= ":ab:c\n" fs))))
       (with-init-resources nil
         (invoke-resource combiner [:a] :aggregated)
         (invoke-resource identity ["x"] :in-sequence)
         (invoke-resource combiner ["b" :c] :aggregated)
         (let [fs (produce-phases [:configure] *required-resources*)]
-          (is (= ":ab:c\nx\n" (ffirst fs))))))
+          (is (= ":ab:c\nx\n" fs)))))
     (testing "delayed parameters"
       (with-init-resources nil
         (invoke-resource combiner [:a] :aggregated)
@@ -125,7 +125,7 @@
         (invoke-resource combiner [(pallet.parameter/lookup :p)] :aggregated)
         (binding [pallet.parameter/*parameters* {:p "p"}]
           (let [fs (produce-phases [:configure] *required-resources*)]
-            (is (= ":a:bp\n" (ffirst fs)))))))))
+            (is (= ":a:bp\n" fs))))))))
 
 (defn test-combiner [args]
   (string/join "\n" args))
@@ -192,16 +192,16 @@
     (with-init-resources nil
       (with-target [node {}]
         (testing "node with phase"
-          (is (= [["abc\nd\n"]]
-                   (produce-phases
-                    [:a]
-                    {:a
-                     {:in-sequence
-                      [[(fn [] "abc") [] :remote]
-                       [(fn [] "d") [] :remote]]}}))))
+          (is (= "abc\nd\n"
+                 (produce-phases
+                  [:a]
+                  {:a
+                   {:in-sequence
+                    [[(fn [] "abc") [] :remote]
+                     [(fn [] "d") [] :remote]]}}))))
         (testing "inline phase"
-          (is (= [[":a\n"]]
-                   (produce-phases [(phase (test-component :a))] {}))))))))
+          (is (= ":a\n"
+                 (produce-phases [(phase (test-component :a))] {}))))))))
 
 (deftest build-resources-test
   (with-init-resources nil

@@ -128,7 +128,7 @@
 
 (defn package-source-aggregate
   [args]
-  stevedore/do-script* (map (fn [x] (apply package-source* x)) args))
+  (stevedore/do-script* (map (fn [x] (apply package-source* x)) args)))
 
 (defaggregate package-source
   "Control package sources.

@@ -25,8 +25,6 @@ tag as a configuration target.
    [pallet.utils
     :only [remote-sudo make-user *admin-user* default-public-key-path
            as-string *file-transfers*]]
-   [pallet.resource
-    :only [produce-phases defphases with-init-resources]]
    [pallet.compute
     :only [node-has-tag? node-counts-by-tag boot-if-down compute-node?
            execute-script ssh-port]]
@@ -86,7 +84,7 @@ When passing a username the following options can be specified:
   `(apply hash-map
           (vector :tag (keyword ~name)
                   :image ~image
-                  :phases (defphases ~@options))))
+                  :phases (resource/defphases ~@options))))
 
 (defmacro defnode
   "Define a node type.  The name is used for the node tag.
@@ -105,10 +103,10 @@ When passing a username the following options can be specified:
   [target]
   (let [cmds
         (resource/with-target [nil target]
-          (resource/produce-phases [:bootstrap] (:phases target)))]
-    (if-not (every? #(and (= 1 (count %)) (every? string? %)) cmds)
+          (resource/produce-phase :bootstrap (:phases target)))]
+    (if-not (every? string? cmds)
       (condition/raise :message "Bootstrap can not contain local resources"))
-    (string/join "" (map first cmds))))
+    (string/join "" cmds)))
 
 (defn build-node-template-impl
   "Build a template for passing to jclouds run-nodes."
@@ -226,12 +224,12 @@ script that is run with root privileges immediatly after first boot."
         options (if port [:port port] [])]
     (if node-type
       (execute-with-wrapper wrapper-fn [node user]
-        (with-init-resources nil
+        (resource/with-init-resources nil
           (binding [*file-transfers* {}]
             (resource/with-target [node node-type]
-              (when-let [phase-cmds (seq
-                                     (produce-phases [phase]
-                                                     (node-type :phases)))]
+              (when-let [phase-cmds (resource/produce-phase
+                                     phase (node-type :phases))]
+                (logging/info (format "phase-cmds %s" (pr-str phase-cmds)))
                 (compute/execute-cmds phase-cmds node user options))))))
       (logging/error (str "Could not find node type for node " (tag node))))))
 
@@ -358,7 +356,7 @@ script that is run with root privileges immediatly after first boot."
           target-nodes (filter running? (apply concat (vals target-node-map)))
           nodes (or nodes target-nodes)]
       (target/with-nodes nodes target-nodes
-        (doseq [phase (resource/phase-list (if (seq phases) phases [:configure]))
+        (doseq [phase (resource/phase-list phases)
                 [node-type nodes] target-node-map]
           (apply-phase
            compute

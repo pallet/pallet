@@ -186,12 +186,12 @@
     :configure [(test-component :b)])
   (is (= [:bootstrap :configure] (keys (with-phases :phases))))
   (resource/with-target [(compute/make-node "tag") {}]
-    (is (= [[":a\n"]]
-             (resource/produce-phases
-              [:bootstrap] (with-phases :phases))))
-    (is (= [[":b\n"]]
-             (resource/produce-phases
-              [:configure] (with-phases :phases))))))
+    (is (= ":a\n"
+           (resource/produce-phases
+            [:bootstrap] (with-phases :phases))))
+    (is (= ":b\n"
+           (resource/produce-phases
+            [:configure] (with-phases :phases))))))
 
 (deftest produce-init-script-test
   (is (= "a\n"
@@ -240,13 +240,13 @@
                     (do
                       (is (= #{na nb} (set (target/all-nodes))))
                       (is (= #{na nb} (set (target/target-nodes))))))]
-                  (lift* nil "" {a #{na nb nc}} :configure))
+                  (lift* nil "" {a #{na nb nc}} [:configure]))
     (mock/expects [(apply-phase
                     [& _]
                     (do
                       (is (= #{na nb} (set (target/all-nodes))))
                       (is (= #{na nb} (set (target/target-nodes))))))]
-                  (lift* nil "" {a #{na} b #{nb}} :configure))))
+                  (lift* nil "" {a #{na} b #{nb}} [:configure]))))
 
 (deftest lift-multiple-test
   (defnode a [])

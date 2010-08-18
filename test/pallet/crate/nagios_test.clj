@@ -5,7 +5,8 @@
    [pallet.compute :as compute]
    [pallet.stevedore :as stevedore]
    [pallet.resource.remote-file :as remote-file]
-   pallet.resource.file)
+   pallet.resource.file
+   [clojure.string :as string])
   (:use clojure.test
         pallet.test-utils))
 
@@ -19,10 +20,13 @@
              (rm "/etc/nagios3/conf.d/pallet-host-*.cfg" {:force true}))
             (remote-file/remote-file*
              "/etc/nagios3/conf.d/pallet-host-tag.cfg"
-             :content "\ndefine host {\n use generic-host\n host_name tag\n alias tag\n address null\n}\n\ndefine service {\n use null\n host_name tag\n service_description Service Name\n check_command check_cmd\n notification_interval null\n}\n"
+             :content "\ndefine host {\n use generic-host\n host_name tag\n alias tag\n address null\n}\n\ndefine service {\n use generic-service\n host_name tag\n service_description Service Name\n check_command check_cmd\n notification_interval 0\n}\n"
              :owner "root"))
-           (test-resource-build
-            [(compute/make-node "tag") {:image [:ubuntu]}]
-            (nagios-config/service
-             {:command "check_cmd" :service-description "Service Name"})
-            (hosts))))))
+           (string/join
+            (test-resource-build
+             [(compute/make-node "tag") {:image [:ubuntu]}]
+             (nagios-config/service
+              {:command "check_cmd" :service-description "Service Name"}))
+            (test-resource-build
+             [(compute/make-node "tag") {:image [:ubuntu]}]
+             (hosts)))))))
