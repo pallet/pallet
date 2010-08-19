@@ -2,8 +2,8 @@
   :description "Pallet - provisioning and configuration of compute nodes"
   :url "http://github.com/hugpduncan/pallet"
   :main pallet.main
-  :dependencies [[org.clojure/clojure "1.2.0-master-SNAPSHOT"]
-                 [org.clojure/clojure-contrib "1.2.0-SNAPSHOT"]
+  :dependencies [[org.clojure/clojure "1.2.0"]
+                 [org.clojure/clojure-contrib "1.2.0"]
                  [org.jclouds/jclouds-compute "1.0-SNAPSHOT"]
                  [org.jclouds/jclouds-jsch "1.0-SNAPSHOT"]
                  [org.jclouds/jclouds-log4j "1.0-SNAPSHOT"]
