@@ -14,7 +14,7 @@
    clojure.test
    pallet.test-utils
    [pallet.resource :as resource])
-  (:import [org.jclouds.compute.domain NodeState]))
+  (:import [org.jclouds.compute.domain NodeState OperatingSystem OsFamily]))
 
 ;; Allow running against other compute services if required
 (def *compute-service* ["stub" "" "" ])
@@ -77,9 +77,13 @@
            (augment-template-from-node n1 a))))
   (let [n1 (compute/make-node
             "n1"
-            :image (compute/make-image
-                    "1"
-                    :os-family org.jclouds.compute.domain.OsFamily/UBUNTU))]
+            :operating-system (OperatingSystem.
+                              OsFamily/UBUNTU
+                              "Ubuntu"
+                              "Some version"
+                              "Some arch"
+                              "Desc"
+                              true))]
     (is (= {:tag :a :image [:ubuntu :ubuntu] :phases {}}
            (augment-template-from-node n1 a)))
     (is (= {:tag :b :image [:ubuntu] :phases {}}

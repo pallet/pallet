@@ -9,7 +9,7 @@
   (:import
    [org.jclouds.compute.domain.internal NodeMetadataImpl ImageImpl]
    org.jclouds.compute.util.ComputeServiceUtils
-   [org.jclouds.compute.domain NodeState NodeMetadata Image Architecture]
+   [org.jclouds.compute.domain NodeState NodeMetadata Image OperatingSystem]
    org.jclouds.domain.Location))
 
 
@@ -29,6 +29,7 @@
      (options :user-metadata {})
      tag
      (options :image)
+     (options :operating-system)
      (options :state NodeState/RUNNING)
      (options :public-ips [])
      (options :private-ips [])
@@ -52,6 +53,7 @@
      (merge (get options :user-metadata {}) meta)
      tag
      (options :image)
+     (options :operating-system)
      (get options :state NodeState/RUNNING)
      (conj (get options :public-ips []) host-or-ip)
      (get options :private-ips [])
@@ -63,8 +65,8 @@
   [id & options]
   (let [options (apply hash-map options)
         meta (dissoc options :name :location :uri :user-metadata
-                     :version :os-family :os-description :architecture
-                     :default-credentials)]
+                     :version :operating-system :default-credentials
+                     :description)]
     (ImageImpl.
      id ; providerId
      (options :name)
@@ -72,11 +74,9 @@
      (options :location)
      (options :uri)
      (merge (get options :user-metadata {}) meta)
-     (get options :description "")
-     (get options :version "")
-     (options :os-family)
-     (get options :os-description "")
-     (get options :architecture Architecture/X86_32)
+     (get options :operating-system)
+     (get options :description "image description")
+     (get options :version "image version")
      (options :default-credentials))))
 
 (defn compute-node? [object]
@@ -146,8 +146,8 @@
 (defn node-os-family
   "Return a nodes os-family, or nil if not available."
   [#^NodeMetadata node]
-  (when-let [image (.getImage node)]
-    (keyword (str (.getOsFamily image)))))
+  (when-let [operating-system (.getOperatingSystem node)]
+    (keyword (str (.getFamily operating-system)))))
 
 (defn execute-script
   "Execute a script on a specified node. Also accepts an IP or hostname as a
@@ -174,10 +174,21 @@ node."
   [#^Image image]
   (when image
     (let [name (.getName image)
-          description (.getOsDescription image)]
+          description (.getDescription image)]
       (format "%s %s %s %s"
-              (.getOsFamily image)
-              (.getArchitecture image)
+              (.getFamily (.getOperatingSystem image))
+              (.getArch (.getOperatingSystem image))
+              name
+              (if (= name description) "" description)))))
+
+(defn os-string
+  [#^OperatingSystem os]
+  (when os
+    (let [name (.getName os)
+          description (.getDescription os)]
+      (format "%s %s %s %s"
+              (.getFamily os)
+              (.getArch os)
               name
               (if (= name description) "" description)))))
 
@@ -201,7 +212,7 @@ node."
     (let [location (.getLocation node)]
       (when (and location (not (= (.getDescription location) (.getId location))))
         (.getDescription location)))
-    (image-string (.getImage node))
+    (os-string (.getOperatingSystem node))
     (.getState node)
     (apply
      str (interpose ", " (.getPublicAddresses node)))

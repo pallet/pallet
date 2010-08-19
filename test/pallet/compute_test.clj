@@ -5,7 +5,7 @@
    [org.jclouds.compute :as jclouds])
   (:use clojure.test
         pallet.test-utils)
-  (:import [org.jclouds.compute.domain NodeState OsFamily]))
+  (:import [org.jclouds.compute.domain NodeState OsFamily OperatingSystem]))
 
 (deftest compute-node?-test
   (is (not (compute-node? 1)))
@@ -28,7 +28,13 @@
          (node-os-family
           (make-node
            "t"
-           :image (make-image "1" :os-family OsFamily/UBUNTU))))))
+           :operating-system (OperatingSystem.
+                              OsFamily/UBUNTU
+                              "Ubuntu"
+                              "Some version"
+                              "Some arch"
+                              "Desc"
+                              true))))))
 
 (deftest make-unmanaged-node-test
   (testing "basic tests"
@@ -47,4 +53,7 @@
            (node-os-family
             (make-unmanaged-node
              "atag" "localhost"
-             :image (make-image "id" :os-family OsFamily/UBUNTU)))))))
+             :image "id"
+             :operating-system (OperatingSystem. OsFamily/UBUNTU "Ubuntu"
+                                                 "Some version" "Some arch"
+                                                 "Desc" true)))))))
