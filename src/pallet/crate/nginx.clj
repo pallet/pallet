@@ -2,6 +2,7 @@
   "Crate for nginx management functions"
   (:require
    [pallet.crate.rubygems :as rubygems]
+   [pallet.parameter :as parameter]
    [pallet.resource :as resource]
    [pallet.resource.directory :as directory]
    [pallet.resource.exec-script :as exec-script]
@@ -40,6 +41,7 @@
 (def nginx-site "crate/nginx/site")
 (def nginx-location "crate/nginx/location")
 (def nginx-passenger-conf "crate/nginx/passenger.conf")
+(def nginx-mime-conf "crate/nginx/mime.types")
 
 (def nginx-defaults
      {:version "0.7.65"
@@ -170,8 +172,23 @@
        :owner "root" :group nginx-group :mode "0644"))
     (directory/directory
      nginx-pid-dir
-     :owner nginx-user :group nginx-group :mode "0755")))
+     :owner nginx-user :group nginx-group :mode "0755"))
+  (when (= :install (get options :action :install))
+    (resource/parameters
+     [:nginx :owner] nginx-user
+     [:nginx :group] nginx-group)))
 
+(defn mime
+  []
+  (remote-file/remote-file
+   (format "%s/mime.types" nginx-conf-dir)
+   :owner "root"
+   :group nginx-group
+   :mode "0644"
+   :template nginx-mime-conf)
+  (file/file
+   (format "%s/mime.types.default" nginx-conf-dir)
+   :action :delete))
 
 (defn init*
   [& options]
