@@ -233,6 +233,28 @@ script that is run with root privileges immediatly after first boot."
                 (compute/execute-cmds phase-cmds node user options))))))
       (logging/error (str "Could not find node type for node " (tag node))))))
 
+(defmacro with-local-exec
+  "Run only local commands"
+  [& body]
+  `(binding [compute/execute-cmds (fn [commands# & _#]
+                                    (utils/local-cmds commands#))]
+     ~@body))
+
+(defn no-exec
+  [commands node user options]
+  (logging/info
+   (format "Commands %s on node %s as user %s with options %s"
+           (pr-str commands)
+           (pr-str node)
+           (pr-str user)
+           (pr-str options))))
+
+(defmacro with-no-exec
+  "Log commands, but do not run anything"
+  [& body]
+  `(binding [compute/execute-cmds no-exec]
+     ~@body))
+
 (defn execute-with-user-credentials
   [_ user f]
   (pallet.utils/possibly-add-identity

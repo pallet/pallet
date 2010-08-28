@@ -356,6 +356,13 @@
                 (ssh session (str "rm " remote-name)))
               rv)))))))
 
+(defn local-cmds
+  "Run local cmds on a target."
+  [#^String commands]
+  (let [execute (fn [cmd] (reduce #(conj %1 (%2)) [] cmd))
+        rv (doall (map execute (filter (complement string?) commands)))]
+    rv))
+
 
 (defn sh-script
   "Run a script on local machine."
