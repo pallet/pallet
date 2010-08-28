@@ -6,7 +6,8 @@
    [pallet.resource.package :as package]
    [pallet.crate.iptables :as iptables]
    [pallet.target :as target]
-   [pallet.parameter :as parameter]))
+   [pallet.parameter :as parameter]
+   [clojure.string :as string]))
 
 (defn service*
   "A nagios service definition"
@@ -17,16 +18,26 @@
      (distinct
       (conj
        (or x [])
-       (select-keys
-        options
-        [:service-group :service-description :command]))))))
+       options)))))
 
 (resource/deflocal service
   "Configure nagios service monitoring.
-     :service-group        name for service group(s) service should be part of
-     :command              command for service
-     :service-description  description for the service"
+     :servicegroups        name for service group(s) service should be part of
+     :check_command        command for service
+     :service_description  description for the service"
   service* [options])
+
+(defn command*
+  [{:keys [name command-line] :as options}]
+  (parameter/update-default!
+   [:default :nagios :commands (keyword name)]
+   (fn [_] command-line)))
+
+(resource/deflocal command
+  "Configure nagios command monitoring.
+     :name          name
+     :command-line  command line"
+  command* [options])
 
 (defn nrpe-client
   "Configure nrpe on machine to be monitored"
@@ -48,34 +59,109 @@
 (defn nrpe-check-load
   []
   (service
-   {:service-group "machine"
-    :command "check_nrpe_1arg!check_load"
-    :service-description  "Current Load"}))
+   {:servicegroups [:machine]
+    :check_command "check_nrpe_1arg!check_load"
+    :service_description  "Current Load"}))
 
 (defn nrpe-check-users
   []
   (service
-   {:service-group "machine"
-    :command "check_nrpe_1arg!check_users"
-    :service-description  "Current Users"}))
+   {:servicegroups [:machine]
+    :check_command "check_nrpe_1arg!check_users"
+    :service_description  "Current Users"}))
 
 (defn nrpe-check-disk
   []
   (service
-   {:service-group "machine"
-    :command "check_nrpe_1arg!check_hda1"
-    :service-description  "Root Disk"}))
+   {:servicegroups [:machine]
+    :check_command "check_nrpe_1arg!check_hda1"
+    :service_description  "Root Disk"}))
 
 (defn nrpe-check-total-procs
   []
   (service
-   {:service-group "machine"
-    :command "check_nrpe_1arg!check_total_procs"
-    :service-description  "Total Processes"}))
+   {:servicegroups [:machine]
+    :check_command "check_nrpe_1arg!check_total_procs"
+    :service_description  "Total Processes"}))
 
 (defn nrpe-check-zombie-procs
   []
   (service
-   {:service-group "machine"
-    :command "check_nrpe_1arg!check_zombie_procs"
-    :service-description  "Zombie Processes"}))
+   {:servicegroups [:machine]
+    :check_command "check_nrpe_1arg!check_zombie_procs"
+    :service_description  "Zombie Processes"}))
+
+(def check-http-options
+  #{:port :ssl :use-ipv4 :use-ipv6 :timeout :no-body :url
+    :expect :string :method :certificate})
+
+(defn dissoc-keys
+  [m keys]
+  (apply dissoc m keys))
+
+(defn monitor-http
+  "Configure nagios monitoring of https certificate"
+  [& {:keys [port ssl use-ipv4 use-ipv6 timeout no-body url expect string
+             method]
+      :or {timeout 10}
+      :as options}]
+  (let [cmd (str
+             "check_http_"
+             (string/join
+              ""
+              (map name (filter check-http-options (keys options)))))]
+    (command
+     {:name cmd
+      :command-line
+      (format
+       "/usr/lib/nagios/plugins/check_http -I '$HOSTADDRESS$' %s --timeout=%s"
+       (str
+        (when port (format " --port=%d" port))
+        (when ssl " --ssl")
+        (when no-body " --no-body")
+        (when use-ipv4 " --use-ipv4")
+        (when use-ipv6 " --use-ipv6")
+        (when url (format " --url=%s" url))
+        (when expect (format " --expect=%s" expect))
+        (when string (format " --string=%s" string))
+        (when method (format " --method=%s" method)))
+       timeout)})
+    (service
+     (merge
+      {:servicegroups [:http-services]
+       :service_description (if ssl "HTTPS" "HTTP")}
+      (->
+       options
+       (dissoc-keys check-http-options)
+       (assoc :check_command cmd))))))
+
+(defn monitor-https-certificate
+  "Configure nagios monitoring of https certificate"
+  [& {:keys [port ssl use-ipv4 use-ipv6 timeout certificate]
+      :or {timeout 10 certificate 14}
+      :as options}]
+  (let [cmd (str
+             "check_https_certificate"
+             (string/join
+              ""
+              (map name (filter check-http-options (keys options)))))]
+    (command
+     {:name cmd
+      :command-line
+      (format
+       "/usr/lib/nagios/plugins/check_http -I '$HOSTADDRESS$' %s --timeout=%s"
+       (str
+        (when port (format " --port=%d" port))
+        (when ssl " --ssl")
+        (when use-ipv4 " --use-ipv4")
+        (when use-ipv6 " --use-ipv6")
+        (format " --certificate=%d" certificate))
+       timeout)})
+    (service
+     (merge
+      {:servicegroups [:http-services]
+       :service_description "HTTPS Certificate"}
+      (->
+       options
+       (dissoc-keys check-http-options)
+       (assoc :check_command cmd))))))

@@ -17,3 +17,10 @@
       (service* cfg)
       (parameter/with-parameters [:default]
         (is (= [cfg] (parameter/get-for [:nagios :host-services :tag])))))))
+
+(deftest command*-test
+  (let [cfg {:name "n" :command-line "c"}]
+    (target/with-target (compute/make-node "tag") {}
+      (command* cfg)
+      (parameter/with-parameters [:default]
+        (is (= {:n "c"} (parameter/get-for [:nagios :commands])))))))

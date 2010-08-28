@@ -45,18 +45,17 @@
 (defn iptables-throttle
   "Throttle ssh connection attempts, by default on port 22"
   ([] (iptables-throttle 22))
-  ([port] (iptables-throttle port 60 4))
+  ([port] (iptables-throttle port 60 6))
   ([port time-period hitcount]
      (pallet.crate.iptables/iptables-throttle
       "SSH_CHECK" port "tcp" time-period hitcount)))
 
 (defn nagios-monitor
   "Configure nagios monitoring for ssh"
-  [& {:keys [service-group service-description command]
-      :or {service-group "ssh-services"
-           command "check_ssh"
-           service-description "SSH"}}]
+  [& {:keys [command] :as options}]
   (nagios-config/service
-   {:service-group service-group
-    :service-description service-description
-    :command command}))
+   (merge
+    {:servicegroups [:ssh-services]
+     :service_description "SSH"
+     :check_command "check_ssh"}
+    options)))

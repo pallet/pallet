@@ -1,7 +1,8 @@
 (ns pallet.crate.postfix
+  "Install postfix.
+   To reconfigure: sudo dpkg-reconfigure postfix"
   (:use
    [pallet.resource.package :as package]))
-
 
 (def mailer-types
      {:internet-site "Internet Site"})
