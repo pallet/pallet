@@ -95,7 +95,7 @@
     (str install-path "/etc/jetty.conf")
     :content (string/join \newline (map first options)))))
 
-(resource/defaggregate configure
+(resource/defcollect configure
   "Specify a line for the configuration file"
   configure* [option-string])
 
@@ -104,8 +104,7 @@
   [content]
   (remote-file/remote-file
    (str install-path "/etc/jetty.xml")
-   :content content)
-  (configure "etc/jetty.xml"))
+   :content content)) ;; (configure "etc/jetty.xml") ; read by start.jar
 
 (defn ssl
   "Configure an ssl connector (jetty-ssl.xml)."
