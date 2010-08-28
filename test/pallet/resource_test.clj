@@ -50,6 +50,12 @@
     (is (= :a (-> *required-resources* :configure :aggregated first second)))
     (is (= :remote (-> *required-resources* :configure :aggregated first last)))
 
+    (testing "invoke collected execution"
+      (invoke-resource identity :a :collected)
+      (is (= identity (-> *required-resources* :configure :collected ffirst)))
+      (is (= :a (-> *required-resources* :configure :collected first second)))
+      (is (= :remote (-> *required-resources* :configure :collected first last))))
+
     (invoke-resource identity :b :in-sequence)
     (is (= identity (-> *required-resources* :configure :in-sequence ffirst)))
     (is (= :b (-> *required-resources* :configure :in-sequence first second)))
@@ -77,11 +83,16 @@
 
 (with-private-vars [pallet.resource [execution-ordering]]
   (deftest execution-ordering-test
-    (is (= '([:aggregated 1] [:in-sequence 2 :remote] [:in-sequence 3 :local])
+    (is (= '([:aggregated 1] [:aggregated 2]
+               [:in-sequence 2 :remote] [:in-sequence 3 :local]
+                 [:collected 1] [:collected 2])
            (sort-by
             (comp execution-ordering first)
             [[:in-sequence 2 :remote]
              [:aggregated 1]
+             [:collected 1]
+             [:aggregated 2]
+             [:collected 2]
              [:in-sequence 3 :local]])))))
 
 (deftest configured-resources-test
@@ -90,6 +101,13 @@
       (with-init-resources nil
         (invoke-resource combiner [:a] :aggregated)
         (invoke-resource combiner [:b] :aggregated)
+        (let [fs (configured-resources *required-resources*)]
+          (is (= :remote (first (first (fs :configure)))))
+          (is (= ":a:b" ((second (first (fs :configure)))))))))
+    (testing "collection"
+      (with-init-resources nil
+        (invoke-resource combiner [:a] :collected)
+        (invoke-resource combiner [:b] :collected)
         (let [fs (configured-resources *required-resources*)]
           (is (= :remote (first (first (fs :configure)))))
           (is (= ":a:b" ((second (first (fs :configure)))))))))
@@ -135,6 +153,10 @@
     (defaggregate test-resource identity [arg])
     (test-resource :a)
     (is (= [:a] (-> *required-resources* :configure :aggregated first second))))
+  (with-init-resources nil
+    (defcollect test-resource identity [arg])
+    (test-resource :a)
+    (is (= [:a] (-> *required-resources* :configure :collected first second))))
   (with-init-resources nil
     (deflocal test-resource identity [arg])
     (test-resource :a)

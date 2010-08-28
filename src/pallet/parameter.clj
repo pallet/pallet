@@ -44,15 +44,18 @@
   [[& keys] value]
   (set! *parameters* (assoc-in *parameters* keys value)))
 
-(defn get-for [keys]
-  (let [result (get-in *parameters* keys ::not-set)]
-    (when (= ::not-set result)
-      (condition/raise
-       :type :parameter-not-found
-       :message (format
-                 "Could not find keys %s in *parameters*" keys)
-       :key-not-set keys))
-    result))
+(defn get-for
+  ([keys]
+     (let [result (get-in *parameters* keys ::not-set)]
+       (when (= ::not-set result)
+         (condition/raise
+          :type :parameter-not-found
+          :message (format
+                    "Could not find keys %s in *parameters*" keys)
+          :key-not-set keys))
+       result))
+  ([keys default]
+       (get-in *parameters* keys default)))
 
 (deftype ParameterLookup
   [keys]

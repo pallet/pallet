@@ -5,7 +5,9 @@
    clojure.test
    pallet.test-utils)
   (:require
-   pallet.arguments))
+   pallet.arguments)
+  (:import
+   clojure.contrib.condition.Condition))
 
 (use-fixtures :each reset-default-parameters)
 
@@ -55,3 +57,11 @@
     (with-parameters (kf)
       (let [l (lookup :b)]
         (is (= 2 (pallet.arguments/evaluate l)))))))
+
+(deftest get-for-test
+  (default :a 1 :b { :c 2})
+  (with-parameters [:default]
+    (is (= 1 (get-for [:a])))
+    (is (= 2 (get-for [:b :c])))
+    (is (thrown? Condition (get-for [:b :c :d])))
+    (is (= ::abc (get-for [:b :c :d] ::abc)))))

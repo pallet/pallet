@@ -77,6 +77,11 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
         in the order they are defined, but before all :in-sequence
         resources. Note that all of the arguments to any given
         invocation fn are gathered such that there is only ever one
+        invocation of each fn within each phase.
+   :collected - All collected resources are applied to the node
+        in the order they are defined, but after all :in-sequence
+        resources. Note that all of the arguments to any given
+        invocation fn are gathered such that there is only ever one
         invocation of each fn within each phase."
   ([invoke-fn args] (invoke-resource invoke-fn args :in-sequence))
   ([invoke-fn args execution]
@@ -131,7 +136,12 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
   (for [[invoke-fn args*] (group-pairs-by-key invocations)]
     [:remote (partial apply-aggregated-evaluated invoke-fn args*)]))
 
-(defvar- execution-ordering {:aggregated 10, :in-sequence 20})
+(defmethod invocations->resource-fns :collected
+  [_ invocations]
+  (for [[invoke-fn args*] (group-pairs-by-key invocations)]
+    [:remote (partial apply-aggregated-evaluated invoke-fn args*)]))
+
+(defvar- execution-ordering {:aggregated 10, :in-sequence 20 :collected 30})
 
 (defn configured-resources
   "Configured resources for executions, binding args to methods."
@@ -172,6 +182,12 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
    :execution of :aggregate."
   [name & args]
   `(defresource ~name ~@(concat args [:execution :aggregated])))
+
+(defmacro defcollect
+  "Shortcut for defining a resource-producing function with an
+   :execution of :aggregate."
+  [name & args]
+  `(defresource ~name ~@(concat args [:execution :collected])))
 
 (defmacro deflocal
   "Shortcut for defining a resource-producing function with an

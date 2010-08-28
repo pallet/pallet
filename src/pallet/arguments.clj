@@ -24,3 +24,8 @@
   "Pass an argument to be evaluated at resource applicaiton time."
   [& body]
   `(DelayedFunction. (fn [] ~@body)))
+
+(defn delayed-fn
+  "Pass an argument to be evaluated at resource applicaiton time."
+  [f]
+  (DelayedFunction. f))
