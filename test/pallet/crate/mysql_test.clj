@@ -25,8 +25,10 @@
            (str "mysql-server-5.1 mysql-server-5.1/root_password password " "pwd")
            (str "mysql-server-5.1 mysql-server-5.1/root_password_again password " "pwd")
            (str "mysql-server-5.1 mysql-server/start_on_boot boolean " true))
-          "{ debconf-set-selections <<EOF\ndebconf debconf/frontend select noninteractive\ndebconf debconf/frontend seen false\nEOF\n}\n"
-          (package/package* "mysql-server")
+          (stevedore/checked-commands
+           "Packages"
+           (stevedore/script (package-manager-non-interactive))
+           (package/package* "mysql-server"))
           (resource/parameters*
            [:mysql :root-password] "pwd"))
          (target/with-target nil {:tag :n :image [:ubuntu]}

@@ -25,7 +25,8 @@
 (deftest tomcat-test
   (is (= (target/with-target nil {:image [:ubuntu]}
            (parameter/with-parameters [:default]
-             (stevedore/do-script
+             (stevedore/checked-commands
+              "Packages"
               (stevedore/script (package-manager-non-interactive))
               (package/package* "tomcat6"))))
          (test-resource-build

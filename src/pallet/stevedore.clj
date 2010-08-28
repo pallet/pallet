@@ -415,10 +415,10 @@
   [& scripts]
   (chain-commands* scripts))
 
-(defn checked-commands
+(defn checked-commands*
   "Wrap a command in a code that checks the return value. Code to output the
   messages is added before the command."
-  [message & cmds]
+  [message cmds]
   (let [chained-cmds (chain-commands* cmds)]
     (if (utils/blank? chained-cmds)
       ""
@@ -427,6 +427,12 @@
         "{ " chained-cmds "; } || { echo " message " failed ; exit 1 ; } >&2 "
         \newline
         "echo \"...done\"\n"))))
+
+(defn checked-commands
+  "Wrap a command in a code that checks the return value. Code to output the
+  messages is added before the command."
+  [message & cmds]
+  (checked-commands* message cmds))
 
 (defmacro chained-script
   "Takes one or more forms. Returns a string of the forms translated into a

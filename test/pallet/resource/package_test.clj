@@ -25,12 +25,11 @@
 
 
 (deftest test-install-example
-  (is (= "{ debconf-set-selections <<EOF
-debconf debconf/frontend select noninteractive
-debconf debconf/frontend seen false
-EOF
-}
-aptitude install -y  java\naptitude install -y  rubygems\n"
+  (is (= (stevedore/checked-commands
+          "Packages"
+          (script (package-manager-non-interactive))
+          "aptitude install -y  java"
+          "aptitude install -y  rubygems\n")
          (pallet.resource/build-resources []
           (package "java" :action :install)
           (package "rubygems" :action :install)))))
@@ -157,14 +156,21 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (core/defnode a [:ubuntu])
   (core/defnode b [:centos])
   (target/with-target nil a
-    (is (= "echo \"Packages...\"\n{ aptitude install -y  git-apt; } || { echo Packages failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+    (is (= (stevedore/checked-commands
+            "Packages"
+            (stevedore/script (package-manager-non-interactive))
+            (package* "git-apt")
+            (package* "git-apt2"))
            (resource/build-resources
             []
             (packages
-             :aptitude ["git-apt"]
+             :aptitude ["git-apt" "git-apt2"]
              :yum ["git-yum"])))))
   (target/with-target nil b
-    (is (= "echo \"Packages...\"\n{ yum install -y  git-yum; } || { echo Packages failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+    (is (= (stevedore/checked-commands
+            "Packages"
+            (stevedore/script (package-manager-non-interactive))
+            (package* "git-yum"))
            (resource/build-resources
             []
             (packages

@@ -77,7 +77,8 @@
               (str action " is not a valid action for package resource"))))))
 
 (defn- apply-packages [package-args]
-  (stevedore/do-script*
+  (stevedore/checked-commands*
+   "Packages"
    (cons
     (stevedore/script (package-manager-non-interactive))
     (map #(apply package* %) package-args))))
@@ -196,9 +197,7 @@
 (defn packages*
   [& options]
   (let [opts (apply array-map options)]
-    (apply stevedore/checked-commands
-           "Packages"
-           (map package* (opts (packager))))))
+    (apply-packages (map vector (opts (packager))))))
 
 (defresource packages
   "Install a list of packages keyed on packager"

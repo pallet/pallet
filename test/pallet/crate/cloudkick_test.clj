@@ -16,16 +16,19 @@
     (is (= (str
             (package/package-source*
              "cloudkick"
-             :aptitude {:url "http://packages.cloudkick.com/ubuntu"
-                        :key-url "http://packages.cloudkick.com/cloudkick.packages.key"}
-             :yum { :url (str "http://packages.cloudkick.com/redhat/"
-                              (hostinfo/architecture))})
+             :aptitude
+             {:url "http://packages.cloudkick.com/ubuntu"
+              :key-url "http://packages.cloudkick.com/cloudkick.packages.key"}
+             :yum
+             { :url (str "http://packages.cloudkick.com/redhat/"
+                         (hostinfo/architecture))})
             (package/package-manager* :update)
-            (stevedore/script (package/package-manager-non-interactive))
-            \newline
-            (package/package* "cloudkick-agent")
-            \newline
+            (stevedore/checked-commands
+             "Packages"
+             (stevedore/script (package/package-manager-non-interactive))
+             (package/package* "cloudkick-agent"))
             (remote-file/remote-file*
              "/etc/cloudkick.conf"
-             :content "oauth_key key\noauth_secret secret\ntags any\nname node\n\n\n\n"))
+             :content
+             "oauth_key key\noauth_secret secret\ntags any\nname node\n\n\n\n"))
            (resource/build-resources [] (cloudkick "node" "key" "secret"))))))

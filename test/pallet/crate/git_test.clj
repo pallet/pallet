@@ -12,6 +12,7 @@
   (is (= (target/with-target nil {:tag :n :image [:ubuntu]}
            (stevedore/checked-commands
             "Packages"
+            (stevedore/script (package-manager-non-interactive))
             (package/package* "git-core")
             (package/package* "git-email")))
          (test-resource-build
@@ -20,6 +21,7 @@
   (is (= (target/with-target nil {:tag :n :image [:centos]}
            (stevedore/checked-commands
             "Packages"
+            (stevedore/script (package-manager-non-interactive))
             (package/package* "git")
             (package/package* "git-email")))
          (test-resource-build
