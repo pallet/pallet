@@ -25,6 +25,7 @@
   rsync* [from to options])
 
 (defn rsync-directory
+  "Rsync from a local directory to a remote directory."
   [from to & options]
   (let [options (apply hash-map options)]
     (package/package "rsync")
