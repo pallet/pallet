@@ -3,18 +3,25 @@
   [pallet.stevedore :only [script]])
  (:require
    pallet.target
+   pallet.arguments
    [pallet.resource.package :as package]
    [pallet.resource.exec-script :as exec-script]
    [pallet.stevedore :as script]
    [pallet.resource.service :as service]
+   [pallet.resource.directory :as directory]
    [clojure.contrib.json :as json]))
 
+
+(def install-dirs
+  {:aptitude ["/var/log/couchdb" "/var/run/couchdb" "/var/lib/couchdb"
+              "/etc/couchdb"]
+   :yum ["/usr/local/var/log/couchdb" "/usr/local/var/run/couchdb"
+         "/usr/local/var/lib/couchdb" "/usr/local/etc/couchdb"]})
 
 (defn install
   "Installs couchdb, leaving all default configuration as-is.  Use the `couchdb`
    fn to install and configure."
   []
-  (package/package "couchdb")
   ;; this fixes this problem
   ;; https://bugs.launchpad.net/ubuntu/karmic/+source/couchdb/+bug/448682
   ;; apparently impacts centos, too.  The fix implemented here pulled from
@@ -22,14 +29,17 @@
   ;; I added the /var/run/couchdb dirs, which seemed to be tripping up service
   ;; stops and restarts.  The specified paths *should* cover the
   ;; common/reasonable locations....
-  (doseq [dir ["/usr/local/var/log/couchdb" "/var/log/couchdb"
-               "/usr/local/var/run/couchdb" "/var/run/couchdb"
-               "/usr/local/var/lib/couchdb" "/var/lib/couchdb"
-               "/usr/local/etc/couchdb" "/etc/couchdb"]]
-    (exec-script/exec-script
-     (script/script
-      (if (file-exists? ~dir)
-        ~(format "chown -R couchdb:couchdb %s && chmod 0770 %s" dir dir))))))
+  (directory/directories
+   (pallet.arguments/computed
+    (fn [] (install-dirs (pallet.target/packager))))
+   :mode "0770" :owner "couchdb" :group "couchdb")
+  (package/package "couchdb")
+  ;; the package seems to start couch in some way that the init script
+  ;; can't terminate it, so we kill it.
+  (script/checked-script
+   "Kill and re-start couchdb"
+   (pkill couchdb)
+   (pkill beam)))
 
 
 (defn configure
@@ -61,7 +71,7 @@
   (install)
   (when (seq option-keyvals)
     (package/package "curl")
-    (service/service "couchdb" :action :start)
+    (service/service "couchdb" :action :restart)
     ;; the sleeps are here because couchdb doesn't actually start taking
     ;; requests for a little bit -- it appears that the real process that's
     ;; forked off is beam which ramps up couchdb *after* it's forked.
