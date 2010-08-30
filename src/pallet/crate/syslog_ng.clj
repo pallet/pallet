@@ -1,11 +1,14 @@
 (ns pallet.crate.syslog-ng
   "Install and configure syslog-ng"
   (:require
+   [pallet.compute :as compute]
    [pallet.parameter :as parameter]
    [pallet.resource :as resource]
+   [pallet.target :as target]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.package :as package]
    [pallet.resource.user :as user]
+   [pallet.crate.iptables :as iptables]
    [clojure.string :as string]))
 
 (defn default-group "adm")
@@ -31,6 +34,12 @@
            :unix-stream "/dev/log"
            :file {:value "/proc/kmsg" :log_prefix "kernel: "}}})
 
+(defn receive-from
+  "Create a configuration for receiving from remote syslog-ng client. The return
+   value is suitable for specifying a source."
+  ([protocol] (receive-from protocol 514))
+  ([protocol port]  { protocol {:port port}}))
+
 (def default-destinations
   {:df_auth { :file "/var/log/auth.log" }
    :df_syslog { :file "/var/log/syslog" }
@@ -54,6 +63,14 @@
    :df_messages { :file "/var/log/messages" }
    :dp_xconsole { :pipe "/dev/xconsole" }
    :du_all { :usertty "*" }})
+
+(defn send-to
+  "Create a configuration for sending to a remote syslog-ng server. The return
+   value is suitable for specifying a destination."
+  ([destination] (send-to destination "tcp" 514))
+  ([destination protocol] (send-to destination protocol 514))
+  ([destination protocol port]
+     {:tcp {:value destination :port port}}))
 
 (def default-filters
   {:f_auth { :facility "auth, authpriv" }
@@ -191,8 +208,11 @@
   [value & _]
   nil)
 
+(def quoted-keys
+  #{:file :unix-stream :bad_hostname :template :log_prefix})
+
 (defn format-value [value key]
-  (if (#{:file :unix-stream :bad_hostname :template :log_prefix} key)
+  (if (quoted-keys key)
     (pr-str value)
     (str value)))
 
@@ -251,7 +271,8 @@
                    filters))
              (string/join
               \newline
-              (map #(configure-block "log" %) logs)))))
+              (map #(configure-block "log" %) logs)))
+   :literal true))
 
 (resource/defresource config
   config* [& options])
@@ -270,3 +291,18 @@
    config
    (apply concat
           (select-keys args [:options :sources :destinations :filters :logs]))))
+
+(defn set-server-ip
+  "Set the syslog-ng server ip, so that it may be picked up by clients. This
+   should probably be run in the pre-configure phase."
+  []
+  (resource/default-parameters
+    [:default :syslog-ng :server :ip]
+    (fn [_] (compute/primary-ip (target/node)))))
+
+(defn iptables-accept
+  "Accept connections, by default on port 514, with tcp."
+  ([] (iptables-accept 514 "tcp"))
+  ([port] (iptables-accept port "tcp"))
+  ([port protocol]
+     (pallet.crate.iptables/iptables-accept-port port)))
