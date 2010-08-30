@@ -306,3 +306,12 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
 (defresource parameters
   "Set parameters"
   parameters* [& options])
+
+(defn default-parameters*
+  [& {:as options}]
+  (doseq [[keys f] options]
+    (parameter/update-default! keys f)))
+
+(defresource default-parameters
+  "Set default parameters"
+  default-parameters* [& options])
