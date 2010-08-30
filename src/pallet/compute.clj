@@ -94,6 +94,10 @@
   [#^NodeMetadata node]
   (first (jclouds/public-ips node)))
 
+(defn is-64bit?
+  [#^NodeMetadata node]
+  (.. node getOperatingSystem is64Bit))
+
 (defn node-has-tag? [tag node]
   (= (name tag) (jclouds/node-tag node)))
 
