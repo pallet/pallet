@@ -104,6 +104,16 @@
 (defresource file "File management."
   file* [filename & options])
 
+(defn symbolic-link*
+  [from name & {:keys [force] :or {force true} :as options}]
+  (stevedore/checked-script
+   (format "Link %s as %s" from name)
+   (ln -s
+       ~(stevedore/map-to-arg-string {:force force})
+       ~from ~name)))
+
+(defresource symbolic-link
+  symbolic-link* [from name & options])
 
 (defn fifo*
   [path & options]
