@@ -10,6 +10,11 @@
 (defonce default-parameters (atom {}))
 (defunbound *parameters* "Data that is used across crates or functions.")
 
+(defn reset-defaults
+  "Reset default parameters"
+  []
+  (reset! default-parameters {}))
+
 (defn default
   "Set values on the default parameters."
   [& options]
