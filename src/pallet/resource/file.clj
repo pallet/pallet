@@ -104,6 +104,28 @@
 (defresource file "File management."
   file* [filename & options])
 
+
+(defn fifo*
+  [path & options]
+  (let [opts (apply hash-map options)
+        opts (merge {:action :create} opts)]
+
+    (condp = (opts :action)
+      :delete
+      (stevedore/checked-script
+       (str "fifo " path)
+       (rm ~path ~(select-keys opts [:force])))
+      :create
+      (stevedore/checked-commands
+       (str "fifo " path)
+       (stevedore/script
+        (if-not (file-exists? ~path)
+          (mkfifo ~path)))
+       (adjust-file path opts)))))
+
+(defresource fifo "FIFO pipe management."
+  fifo* [filename & options])
+
 (defn sed* [path exprs options]
   (stevedore/checked-script
    (format "sed file %s" path)
