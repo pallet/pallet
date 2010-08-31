@@ -194,8 +194,8 @@ define command {
 ;;   (format servicegroup-fmt servicegroup-name))
 
 (defn host-service
-  [hostname {:keys [template command service-description notification-interval
-                    service-group]
+  [hostname {:keys [template check_command service_description
+                    notification_interval service_group]
              :as options}]
   (define-service
     (-> (merge
