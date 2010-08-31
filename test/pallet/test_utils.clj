@@ -68,7 +68,7 @@ list, Alan Dipert and MeikelBrandmeyer."
                               resource/*required-resources* {}]
                       (resource/resource-phases ~@body))]
      (parameter/default ~@parameters)
-     (target/with-nodes [~node] [~node]
+     (target/with-nodes (filter identity [~node]) (filter identity [~node])
        (resource/with-target [~node ~node-type]
          (resource/produce-phases [:configure] resources#)))))
 
