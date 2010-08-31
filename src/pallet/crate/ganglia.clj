@@ -1,5 +1,5 @@
 (ns pallet.crate.ganglia
-  "Install and configure ganglia"
+  "Install and configure ganglia."
   (:require
    [pallet.arguments :as arguments]
    [pallet.compute :as compute]
@@ -7,14 +7,18 @@
    [pallet.resource :as resource]
    [pallet.stevedore :as stevedore]
    [pallet.resource.remote-file :as remote-file]
+   [pallet.resource.file :as file]
    [pallet.resource.package :as package]
+   [pallet.crate.nagios-config :as nagios-config]
    [clojure.string :as string]))
 
 (defn install
   []
   (package/packages
    :aptitude ["rrdtool" "librrds-perl" "librrd2-dev" "php5-gd"
-              "ganglia-monitor" "ganglia-webfrontend" "gmetad"]))
+              "ganglia-monitor" "ganglia-webfrontend" "gmetad"])
+  (file/symbolic-link
+   "/usr/share/ganglia-webfrontend" "/var/www/ganglia"))
 
 (defn monitor
   []
@@ -317,6 +321,34 @@
                :value_threshold  1.0
                :title  "Maximum Disk Space Used"}]}]})
 
+(defn nagios-monitor
+  "Monitor ganglia web frontent using nagios."
+  [& {:keys [url service_description]
+      :or {service_description "Ganglia Web Frontend"}
+      :as options}]
+  (nagios-config/monitor-http
+   :url "/ganglia"
+   :service_description service_description))
+
+(defn check-ganglia-script
+  []
+  (remote-file/remote-file
+   "/usr/lib/nagios/plugins/check_ganglia.py"
+   :template "crate/ganglia/check_ganglia.py"
+   :mode "0755")
+  (nagios-config/command
+   :command_name "check_ganglia"
+   :command_line
+   "$USER1$/check_ganglia.py -h $HOSTNAME$ -m $ARG1$ -w $ARG2$ -c $ARG3$"))
+
+(defn nagios-monitor-metric
+  [metric warn critical
+   & {:keys [service_description servicegroups]
+      :or {servicegroups [:ganglia-metrics]}}]
+  (nagios-config/service
+   {:service_description (or service_description (format "%s" metric))
+    :servicegroups servicegroups
+    :check_command (format "check_ganglia!%s!%s!%s" metric warn critical)}))
 
 #_
 (pallet.core/defnode ganglia
@@ -338,3 +370,22 @@
   :configure [(pallet.crate.ganglia/monitor)
               (pallet.crate.ganglia/metrics
                pallet.crate.ganglia/default-metrics)])
+
+#_
+(pallet.core/defnode ganglia
+  []
+  :bootstrap [(pallet.crate.automated-admin-user/automated-admin-user)]
+  :configure [(pallet.crate.nagios/nagios "nagiospwd")
+              (pallet.crate.ssh/nagios-monitor)
+              (pallet.crate.ganglia/install)
+              (pallet.crate.ganglia/configure
+               :data_sources {"localhost" {:hosts ["localhost"]}
+                              "gm1" {:hosts "gm1"}})
+              (pallet.crate.ganglia/monitor)
+              (pallet.crate.ganglia/metrics
+               pallet.crate.ganglia/default-metrics)
+              (pallet.crate.ganglia/nagios-monitor)
+              (pallet.crate.ganglia/check-ganglia-script)
+              (pallet.crate.ganglia/nagios-monitor-metric "cpu_user" 80 90)]
+ :restart-ganglia [(pallet.resource.service/service "gmetad" :action :restart)]
+ :restart-nagios [(pallet.resource.service/service "nagios3" :action :restart)])
