@@ -3,12 +3,14 @@
   (:require
    [pallet.crate.nagios-config :as nagios-config]
    [pallet.compute :as compute]
+   [pallet.parameter :as parameter]
    [pallet.stevedore :as stevedore]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.file :as file]
    [clojure.string :as string])
-  (:use clojure.test
-        pallet.test-utils))
+  (:use
+   clojure.test
+   pallet.test-utils))
 
 (use-fixtures :each reset-default-parameters)
 
@@ -21,23 +23,50 @@
              "/etc/nagios3/conf.d/pallet-host-tag.cfg"
              :content
              (str
-              "\ndefine host {\n use generic-host\n host_name tag\n alias tag\n address null\n}\n"
+              "\ndefine host "
+              "{\n use generic-host\n host_name tag\n alias tag\n address null\n}\n"
               (define-service {:check_command "check_cmd"
                                :service_description "Service Name"
                                :host_name "tag"
                                :notification_interval 0
                                :use "generic-service"}))
              :owner "root"))
-           (string/join
-            [(test-resource-build
+           (str
+            (test-resource-build
              [(compute/make-node "tag") {:image [:ubuntu]}]
              (nagios-config/service
-              {:host_name "h"
-               :check_command "check_cmd"
+              {:check_command "check_cmd"
                :service_description "Service Name"}))
             (test-resource-build
              [(compute/make-node "tag") {:image [:ubuntu]}]
-             (hosts))])))))
+             (hosts))))))
+  (testing "unmanaged host config"
+    (parameter/reset-defaults)
+    (is (= (str
+            (remote-file/remote-file*
+             "/etc/nagios3/conf.d/pallet-host-*.cfg" :action :delete :force true)
+            (remote-file/remote-file*
+             "/etc/nagios3/conf.d/pallet-host-tag.cfg"
+             :content
+             (str
+              "\ndefine host {\n use generic-host\n host_name tag\n alias tag\n address 1.2.3.4\n}\n"
+              (define-service {:check_command "check_cmd"
+                               :service_description "Service Name"
+                               :host_name "tag"
+                               :notification_interval 0
+                               :use "generic-service"}))
+             :owner "root"))
+           (str
+            (test-resource-build
+             [nil {:image []}]
+             (and (unmanaged-host "1.2.3.4" "tag") nil)
+             (nagios-config/service
+              {:host_name "tag"
+               :check_command "check_cmd"
+               :service_description "Service Name"}))
+            (test-resource-build
+             [nil {:image []}]
+             (hosts)))))))
 
 (deftest define-contact-test
   (is (= "define contact{\n email email\n contact_name name\n}\n"

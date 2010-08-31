@@ -11,9 +11,11 @@
 
 (defn service*
   "A nagios service definition"
-  [options]
+  [{:keys [host_name]
+    :as options}]
   (parameter/update-default!
-   [:default :nagios :host-services (keyword (.getName (target/node)))]
+   [:default :nagios :host-services
+    (keyword (or host_name (.getName (target/node))))]
    (fn [x]
      (distinct
       (conj

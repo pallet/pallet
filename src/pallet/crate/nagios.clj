@@ -208,6 +208,23 @@ define command {
   [node]
   (parameter/get-for [:nagios :host-services (keyword (.getName node))] nil))
 
+(defn config-for-unmanaged-node
+  [unmanaged-node]
+  (parameter/get-for
+   [:nagios :host-services (keyword (:name unmanaged-node))] nil))
+
+(defn unmanaged-host*
+  [ip name]
+  (parameter/update-default!
+   [:default :nagios :hosts]
+   (fn [m]
+     (distinct (conj (or m []) {:ip ip :name name })))))
+
+(resource/deflocal unmanaged-host
+  "Add an unmanaged host to a nagios server. Beware name conflicts between
+   managed and unmanged servers are not detected."
+  unmanaged-host* [ip name])
+
 (defn hosts*
   []
   (str
@@ -227,7 +244,23 @@ define command {
                   \newline
                   (map
                    (partial host-service hostname)
-                   (config-for-node node)))))))))
+                   (config-for-node node)))))))
+   (string/join
+    \newline
+    (for [node (filter
+                config-for-unmanaged-node
+                (parameter/get-for [:nagios :hosts] nil))
+          :let [hostname (:name node)]]
+      (remote-file/remote-file*
+       (format "/etc/nagios3/conf.d/pallet-host-%s.cfg" hostname)
+       :owner "root"
+       :content (str
+                 (host (:ip node) hostname)
+                 (string/join
+                  \newline
+                  (map
+                   (partial host-service hostname)
+                   (config-for-unmanaged-node node)))))))))
 
 (resource/defresource hosts
   "Define nagios hosts"
@@ -332,16 +365,23 @@ define command {
   record-nagios-server* [])
 
 (defn hostgroups
+  "Create host groups for each tag, and one for all managed machines."
   []
   (let [nodes (filter config-for-node (target/all-nodes))]
-    (reduce
-     #(str
-       %1 " "
-       (hostgroup
-        (first %2) (first %2)
-        (map (fn [n] (.getName n)) (second %2))))
+    (str
      (hostgroup "all-managed" "Managed Servers" (map #(.getName %) nodes))
-     (group-by (fn [n] (.getTag n)) nodes))))
+     (when-let  [unmanaged (parameter/get-for [:nagios :hosts] nil)]
+       (hostgroup
+        "all-unmanaged" "Unmanaged Servers"
+        (map :name unmanaged)))
+     (reduce
+      #(str
+        %1 " "
+        (hostgroup
+         (first %2) (first %2)
+         (map (fn [n] (.getName n)) (second %2))))
+      ""
+      (group-by (fn [n] (.getTag n)) nodes)))))
 
 
 (defn nagios
