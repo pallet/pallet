@@ -28,16 +28,16 @@
   service* [options])
 
 (defn command*
-  [{:keys [name command-line] :as options}]
+  [& {:keys [command_name command_line] :as options}]
   (parameter/update-default!
-   [:default :nagios :commands (keyword name)]
-   (fn [_] command-line)))
+   [:default :nagios :commands (keyword command_name)]
+   (fn [_] command_line)))
 
 (resource/deflocal command
   "Configure nagios command monitoring.
-     :name          name
-     :command-line  command line"
-  command* [options])
+     :command_name name
+     :command_line command line"
+  command* [& options])
 
 (defn nrpe-client
   "Configure nrpe on machine to be monitored"
@@ -111,21 +111,21 @@
               ""
               (map name (filter check-http-options (keys options)))))]
     (command
-     {:name cmd
-      :command-line
-      (format
-       "/usr/lib/nagios/plugins/check_http -I '$HOSTADDRESS$' %s --timeout=%s"
-       (str
-        (when port (format " --port=%d" port))
-        (when ssl " --ssl")
-        (when no-body " --no-body")
-        (when use-ipv4 " --use-ipv4")
-        (when use-ipv6 " --use-ipv6")
-        (when url (format " --url=%s" url))
-        (when expect (format " --expect=%s" expect))
-        (when string (format " --string=%s" string))
-        (when method (format " --method=%s" method)))
-       timeout)})
+     :command_name cmd
+     :command_line
+     (format
+      "/usr/lib/nagios/plugins/check_http -I '$HOSTADDRESS$' %s --timeout=%s"
+      (str
+       (when port (format " --port=%d" port))
+       (when ssl " --ssl")
+       (when no-body " --no-body")
+       (when use-ipv4 " --use-ipv4")
+       (when use-ipv6 " --use-ipv6")
+       (when url (format " --url=%s" url))
+       (when expect (format " --expect=%s" expect))
+       (when string (format " --string=%s" string))
+       (when method (format " --method=%s" method)))
+      timeout))
     (service
      (merge
       {:servicegroups [:http-services]
@@ -146,17 +146,17 @@
               ""
               (map name (filter check-http-options (keys options)))))]
     (command
-     {:name cmd
-      :command-line
-      (format
-       "/usr/lib/nagios/plugins/check_http -I '$HOSTADDRESS$' %s --timeout=%s"
-       (str
-        (when port (format " --port=%d" port))
-        (when ssl " --ssl")
-        (when use-ipv4 " --use-ipv4")
-        (when use-ipv6 " --use-ipv6")
-        (format " --certificate=%d" certificate))
-       timeout)})
+     :command_name cmd
+     :command_line
+     (format
+      "/usr/lib/nagios/plugins/check_http -I '$HOSTADDRESS$' %s --timeout=%s"
+      (str
+       (when port (format " --port=%d" port))
+       (when ssl " --ssl")
+       (when use-ipv4 " --use-ipv4")
+       (when use-ipv6 " --use-ipv6")
+       (format " --certificate=%d" certificate))
+      timeout))
     (service
      (merge
       {:servicegroups [:http-services]

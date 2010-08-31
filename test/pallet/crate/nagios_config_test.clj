@@ -19,8 +19,8 @@
         (is (= [cfg] (parameter/get-for [:nagios :host-services :tag])))))))
 
 (deftest command*-test
-  (let [cfg {:name "n" :command-line "c"}]
+  (let [cfg {:command_name "n" :command_line "c"}]
     (target/with-target (compute/make-node "tag") {}
-      (command* cfg)
+      (apply command* (apply concat cfg))
       (parameter/with-parameters [:default]
         (is (= {:n "c"} (parameter/get-for [:nagios :commands])))))))
