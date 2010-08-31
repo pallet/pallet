@@ -1,6 +1,5 @@
 (ns pallet.crate.syslog-ng-test
   (:use pallet.crate.syslog-ng)
-
   (:use clojure.test
         pallet.test-utils))
 

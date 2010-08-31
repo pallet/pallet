@@ -1,6 +1,7 @@
 (ns pallet.crate.splunk
   "Install and configure splunk"
   (:require
+   [pallet.arguments :as arguments]
    [pallet.compute :as compute]
    [pallet.target :as target]
    [pallet.resource :as resource]
@@ -99,9 +100,11 @@
             deb
             :url (url version f))
            (stevedore/script
-            (dpkg -i (quoted ~deb))
-            ("/opt/splunk/bin/splunk" start "--accept-license")
-            ("/opt/splunk/bin/splunk" enable boot-start))))
+            (if-not (file-exists? "/opt/splunk/bin/splunk")
+              (do
+                (dpkg -i (quoted ~deb))
+                ("/opt/splunk/bin/splunk" start "--accept-license")
+                ("/opt/splunk/bin/splunk" enable boot-start))))))
         :yum
         (let [f (rpmfile version)
               rpm (str (stevedore/script (tmp-dir)) "/" f)]
@@ -122,3 +125,33 @@
   [& {:keys [version ]
       :or {version "4.1.4"}}]
   (install :version version))
+
+
+(defn format-section
+  [m]
+  (reduce #(str %1 (format "%s = %s\n" (name (first %2)) (second %2))) "" m))
+
+(defn format-conf
+  [maps]
+  (reduce
+   #(str %1 (format
+             "[%s]\n%s\n"
+             (name (first %2)) (format-section (second %2))))
+   ""
+   maps))
+
+(defn fifo-input
+  [path & {:keys [host index sourcetype source queue] :as options}]
+  {(format "fifo://%s" path) options})
+
+(defn configure
+  [& {:keys [inputs host]
+      :or {inputs {}}}]
+  (remote-file/remote-file
+   "/opt/splunk/etc/system/local/inputs.conf"
+   :content (arguments/delayed
+             (format-conf
+              (merge
+               inputs
+               {:default {:host (or host (.getName (target/node)))}})))
+   :owner "splunk" :group "splunk"))

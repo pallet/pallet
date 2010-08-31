@@ -209,7 +209,7 @@
   nil)
 
 (def quoted-keys
-  #{:file :unix-stream :bad_hostname :template :log_prefix})
+  #{:file :pipe :unix-stream :bad_hostname :template :log_prefix})
 
 (defn format-value [value key]
   (if (quoted-keys key)
