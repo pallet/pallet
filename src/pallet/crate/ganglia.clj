@@ -35,7 +35,7 @@
                       hosts
                       (map
                        compute/primary-ip
-                       (filter #(= hosts (.getTag %)) (target/all-nodes)))))))
+                       (target/nodes-in-tag hosts))))))
 (defn configure*
   [{:keys [data_sources rras trusted_hosts]
       :as options}]

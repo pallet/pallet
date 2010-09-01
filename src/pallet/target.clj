@@ -58,10 +58,17 @@
 (defn target-nodes
   [] *target-nodes*)
 
+(defn nodes-in-tag
+  ([] (nodes-in-tag (.getTag *target-node*)))
+  ([tag] (filter #(= tag (.getTag %)) *target-nodes*)))
+
 (defn os-family
   "OS family"
   ([] (os-family (template)))
   ([target] (some (set (map (comp keyword str) (jclouds/os-families))) target)))
+
+(defn target-name
+  [] (.getName *target-node*))
 
 (defn admin-group
   "Default administrator group"
