@@ -129,7 +129,7 @@ define command {
                        concat
                        (map (comp :contactgroups first) options))))))))))
 
-(resource/defaggregate contact
+(resource/defcollect contact
   "Define a contact for nagios"
   contact* [options])
 

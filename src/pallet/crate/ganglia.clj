@@ -386,6 +386,10 @@
                pallet.crate.ganglia/default-metrics)
               (pallet.crate.ganglia/nagios-monitor)
               (pallet.crate.ganglia/check-ganglia-script)
-              (pallet.crate.ganglia/nagios-monitor-metric "cpu_user" 80 90)]
+              (pallet.crate.ganglia/nagios-monitor-metric "cpu_user" 80 90)
+              (pallet.crate.nagios/unmanaged-host
+               "69.89.31.199" "hugoduncan.org")
+              (pallet.crate.nagios-config/monitor-http
+               :host_name "hugoduncan.org")]
  :restart-ganglia [(pallet.resource.service/service "gmetad" :action :restart)]
  :restart-nagios [(pallet.resource.service/service "nagios3" :action :restart)])
