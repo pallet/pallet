@@ -13,10 +13,11 @@
 
 (deftest service*-test
   (let [cfg {:service-group "g" :service-description "d" :command "c"}]
-    (target/with-target (compute/make-node "tag") {}
+    (target/with-target (compute/make-node "tag" :id "id") {}
       (service* cfg)
       (parameter/with-parameters [:default]
-        (is (= [cfg] (parameter/get-for [:nagios :host-services :tag])))))))
+        (is (= [cfg]
+                 (parameter/get-for [:nagios :host-services :host-tag-id])))))))
 
 (deftest command*-test
   (let [cfg {:command_name "n" :command_line "c"}]

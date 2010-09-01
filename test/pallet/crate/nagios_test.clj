@@ -20,25 +20,27 @@
             (remote-file/remote-file*
              "/etc/nagios3/conf.d/pallet-host-*.cfg" :action :delete :force true)
             (remote-file/remote-file*
-             "/etc/nagios3/conf.d/pallet-host-tag.cfg"
+             "/etc/nagios3/conf.d/pallet-host-host-tag-id.cfg"
              :content
              (str
               "\ndefine host "
-              "{\n use generic-host\n host_name tag\n alias tag\n address null\n}\n"
+              "{\n use generic-host\n host_name host-tag-id\n alias host-tag-id\n address 1.2.3.4\n}\n"
               (define-service {:check_command "check_cmd"
                                :service_description "Service Name"
-                               :host_name "tag"
+                               :host_name "host-tag-id"
                                :notification_interval 0
                                :use "generic-service"}))
              :owner "root"))
            (str
             (test-resource-build
-             [(compute/make-node "tag") {:image [:ubuntu]}]
+             [(compute/make-node "tag" :id "id" :public-ips ["1.2.3.4"])
+              {:image [:ubuntu]}]
              (nagios-config/service
               {:check_command "check_cmd"
                :service_description "Service Name"}))
             (test-resource-build
-             [(compute/make-node "tag") {:image [:ubuntu]}]
+             [(compute/make-node "tag" :id "id" :public-ips ["1.2.3.4"])
+              {:image [:ubuntu]}]
              (hosts))))))
   (testing "unmanaged host config"
     (parameter/reset-defaults)

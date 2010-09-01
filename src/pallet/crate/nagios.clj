@@ -11,6 +11,11 @@
    [clojure.string :as string]
    [clojure.contrib.condition :as condition]))
 
+(defn nagios-hostname
+  "Return the nagios hostname for a node"
+  [node]
+  (format "host-%s-%s" (.getTag node) (.getId node)))
+
 (def hostgroup-fmt "
 define hostgroup {
   hostgroup_name %s
@@ -206,7 +211,8 @@ define command {
 
 (defn config-for-node
   [node]
-  (parameter/get-for [:nagios :host-services (keyword (.getName node))] nil))
+  (parameter/get-for
+   [:nagios :host-services (keyword (nagios-hostname node))] nil))
 
 (defn config-for-unmanaged-node
   [unmanaged-node]
@@ -233,7 +239,7 @@ define command {
    (string/join
     \newline
     (for [node (filter config-for-node (target/all-nodes))
-          :let [hostname (.getName node)]]
+          :let [hostname (nagios-hostname node)]]
       (remote-file/remote-file*
        (format "/etc/nagios3/conf.d/pallet-host-%s.cfg" hostname)
        :owner "root"
@@ -313,8 +319,11 @@ define command {
           (apply
            concat
            (map
-            #(map :servicegroups (config-for-node %))
-            (target/all-nodes))))))))))))
+            #(map :servicegroups %)
+            (concat
+             (map #(config-for-node %) (target/all-nodes))
+             (map #(config-for-unmanaged-node %)
+                  (parameter/get-for [:nagios :hosts] nil))))))))))))))
 
 (resource/defresource servicegroups
   servicegroups* [])
@@ -369,7 +378,7 @@ define command {
   []
   (let [nodes (filter config-for-node (target/all-nodes))]
     (str
-     (hostgroup "all-managed" "Managed Servers" (map #(.getName %) nodes))
+     (hostgroup "all-managed" "Managed Servers" (map nagios-hostname nodes))
      (when-let  [unmanaged (parameter/get-for [:nagios :hosts] nil)]
        (hostgroup
         "all-unmanaged" "Unmanaged Servers"
@@ -379,7 +388,7 @@ define command {
         %1 " "
         (hostgroup
          (first %2) (first %2)
-         (map (fn [n] (.getName n)) (second %2))))
+         (map (fn [n] (nagios-hostname n)) (second %2))))
       ""
       (group-by (fn [n] (.getTag n)) nodes)))))
 
@@ -400,6 +409,12 @@ define command {
               "nagios3" "nagios-plugins-extra nagios-nrpe-plugin"])
   ;; (user/group "nagcmd" :system true)
   ;; (user/user "nagios" :system true :shell "/usr/bin/false" :groups "nagcmd")
+
+  ;; remove any botched configuration files
+  (remote-file/remote-file
+   "/etc/nagios3/conf.d/pallet-hostgroups.cfg" :action :delete :force true)
+  (remote-file/remote-file
+   "/etc/nagios3/conf.d/pallet-servicegroups.cfg" :action :delete :force true)
 
   (resource/execute-pre-phase
    (record-nagios-server))

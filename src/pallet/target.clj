@@ -70,6 +70,9 @@
 (defn target-name
   [] (.getName *target-node*))
 
+(defn target-id
+  [] (.getId *target-node*))
+
 (defn admin-group
   "Default administrator group"
   ([] (admin-group (template)))

@@ -21,8 +21,8 @@
 (defn make-node [tag & options]
   (let [options (apply hash-map options)]
     (NodeMetadataImpl.
-     tag                                ; providerId
-     tag                                ; name
+     (options :provider-id (options :id tag))
+     (options :name tag)                ; name
      (options :id tag)                   ; id
      (options :location)
      (java.net.URI. tag)                ; uri
@@ -45,9 +45,9 @@
         meta (dissoc options :location :user-metadata :state :public-ips
                      :private-ips :extra :credentials)]
     (NodeMetadataImpl.
-     tag                                ; providerId
-     tag                                ; name
-     tag                                ; id
+     (options :provider-id (options :id tag))
+     (options :name tag)
+     (options :id tag)
      (options :location)
      (java.net.URI. tag)                ; uri
      (merge (get options :user-metadata {}) meta)

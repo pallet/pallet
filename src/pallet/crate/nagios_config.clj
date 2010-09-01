@@ -5,6 +5,7 @@
    [pallet.resource.file :as file]
    [pallet.resource.package :as package]
    [pallet.crate.iptables :as iptables]
+   [pallet.crate.nagios :as nagios]
    [pallet.target :as target]
    [pallet.parameter :as parameter]
    [clojure.string :as string]))
@@ -15,7 +16,7 @@
     :as options}]
   (parameter/update-default!
    [:default :nagios :host-services
-    (keyword (or host_name (.getName (target/node))))]
+    (keyword (or host_name (nagios/nagios-hostname (target/node))))]
    (fn [x]
      (distinct
       (conj
