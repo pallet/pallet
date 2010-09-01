@@ -101,12 +101,18 @@ When passing a username the following options can be specified:
 
 (defn produce-init-script
   [target]
-  (let [cmds
-        (resource/with-target [nil target]
-          (resource/produce-phase :bootstrap (:phases target)))]
-    (if-not (every? string? cmds)
-      (condition/raise :message "Bootstrap can not contain local resources"))
-    (string/join "" cmds)))
+  (resource/with-target [nil target]
+    (let [cmds
+          (resource/produce-phase :bootstrap (:phases target))]
+      (if-not (and (every? #(= :remote (first %)) cmds) (>= 1 (count cmds)))
+        (condition/raise
+         :type :booststrap-contains-local-resources
+         :message (format
+                   "Bootstrap can not contain local resources %s"
+                   (pr-str cmds))))
+      (if-let [f (second (first cmds))]
+        (f)
+        ""))))
 
 (defn build-node-template-impl
   "Build a template for passing to jclouds run-nodes."

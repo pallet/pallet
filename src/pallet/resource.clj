@@ -6,7 +6,6 @@
    [pallet.compute :as compute]
    [pallet.parameter :as parameter]
    [pallet.utils :as utils]
-   [pallet.stevedore :as stevedore]
    [clojure.contrib.seq :as seq]
    [clojure.contrib.string :as string]
    [clojure.contrib.logging :as logging])
@@ -128,7 +127,7 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
 
 (defmethod invocations->resource-fns :in-sequence
   [_ invocations]
-  (for [[invoke-fn args location] (map distinct invocations)]
+  (for [[invoke-fn args location] (distinct invocations)]
     [location (partial apply-evaluated invoke-fn args)]))
 
 (defmethod invocations->resource-fns :aggregated
@@ -141,7 +140,12 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
   (for [[invoke-fn args*] (group-pairs-by-key invocations)]
     [:remote (partial apply-aggregated-evaluated invoke-fn args*)]))
 
-(defvar- execution-ordering {:aggregated 10, :in-sequence 20 :collected 30})
+(defvar- execution-ordering [:aggregated :in-sequence :collected])
+
+(defn- execution-invocations
+  "Sort by execution-ordering"
+  [invocations]
+  (map #(vector % (invocations %)) execution-ordering))
 
 (defn configured-resources
   "Configured resources for executions, binding args to methods."
@@ -150,8 +154,7 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
     (for [[phase invocations] required-resources]
       [phase (apply
               concat
-              (for [[execution invocations] (sort-by
-                                             (comp execution-ordering key)
+              (for [[execution invocations] (execution-invocations
                                              invocations)]
                 (invocations->resource-fns execution invocations)))])))
 
@@ -195,17 +198,26 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
   [name & args]
   `(defresource ~name ~@(concat args [:execution :local-in-sequence])))
 
+(defn script-join
+  "Concatenate multiple scripts, removing blank lines"
+  [scripts]
+  (str
+   (string/join \newline
+     (filter (complement utils/blank?) (map #(when % (string/trim %)) scripts)))
+   \newline))
+
 (defn output-resources
   "Build an execution list for the passed resources.  The result is a sequence
-   of [location fn] pairs, where location is either :local or :remote, and fn is
-   a string for remote execution, or a no argument function for local
+   of [location fn] pairs, where location is either :local or :remote, and fn
+   returns a string for remote execution, or is a no argument function for local
    execution."
   [phase resources]
   ;; TODO wasteful to run configured-resources on all phases and then pick one
   (for [s (partition-by first ((configured-resources resources) phase))]
     (if (= :remote (ffirst s))
-      (stevedore/do-script* (map #((second %)) s))
-      (reduce #(conj %1 (second %2)) [] s))))
+      [:remote (fn []
+                 (script-join (map #((second %)) s)))]
+      [:local (fn [] (reduce #(conj %1 ((second %2))) [] s))])))
 
 (defn phase-list* [phases]
   (lazy-seq
@@ -282,10 +294,10 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
   (let [string-or-call (fn [phase]
                          (string/join
                           ""
-                          (for [cmds (produce-phase phase phase-map)]
-                            (if (string? cmds)
-                              cmds
-                              (doseq [cmd cmds] (cmd))))))]
+                          (for [[loc cmds] (produce-phase phase phase-map)]
+                            (if (= :remote loc)
+                              (cmds)
+                              (do (cmds) nil)))))]
     (string/join "" (map string-or-call (phase-list phases)))))
 
 (defmacro build-resources

@@ -81,20 +81,6 @@
           [[1 (range 3)] [3 (seq "foo")] [2 (range 3)] [2 ["bar baz"]]
            [1 [:a :b]]]))))
 
-(with-private-vars [pallet.resource [execution-ordering]]
-  (deftest execution-ordering-test
-    (is (= '([:aggregated 1] [:aggregated 2]
-               [:in-sequence 2 :remote] [:in-sequence 3 :local]
-                 [:collected 1] [:collected 2])
-           (sort-by
-            (comp execution-ordering first)
-            [[:in-sequence 2 :remote]
-             [:aggregated 1]
-             [:collected 1]
-             [:aggregated 2]
-             [:collected 2]
-             [:in-sequence 3 :local]])))))
-
 (deftest configured-resources-test
   (letfn [(combiner [args] (string/join "" (map #(apply str %) args)))]
     (testing "aggregation"
@@ -128,6 +114,13 @@
       (with-init-resources nil
         (invoke-resource combiner [:a] :aggregated)
         (invoke-resource combiner ["b" :c] :aggregated)
+        (let [m (produce-phase :configure *required-resources*)]
+          (is (seq? m))
+          (is (= 1 (count m)) "phase, location should be aggregated")
+          (is (vector? (first m)))
+          (is (= :remote (ffirst m)))
+          (is (fn? (second (first m))))
+          (is (= ":ab:c\n" ((second (first m))))))
         (let [fs (produce-phases [:configure] *required-resources*)]
           (is (= ":ab:c\n" fs))))
       (with-init-resources nil
@@ -183,26 +176,33 @@
 (deftest output-resources-test
   (with-init-resources nil
     (testing "concatenate remote phases"
-      (is (= ["abc\nd\n"]
-               (output-resources :a {:a {:in-sequence
-                                         [[identity ["abc"] :remote]
-                                          [identity ["d"]  :remote]]}}))))
+      (let [[loc f] (first
+                     (output-resources
+                      :a {:a {:in-sequence
+                              [[identity ["abc"] :remote]
+                               [identity ["d"]  :remote]]}}))]
+        (is (= :remote loc))
+        (is (= "abc\nd\n" (f)))))
     (testing "split local/remote phases"
-      (let [f (fn [])
+      (let [f (fn [] :ff)
             r (output-resources :a {:a {:in-sequence
-                                           [[identity ["abc"] :remote]
-                                            [f [] :local]
-                                            [identity ["d"] :remote]]}})]
-        (is (= "abc\n" (first r)))
-        (is (= nil  ((first (second r)))))
-        (is (= "d\n" (last r)))))
+                                        [[identity ["abc"] :remote]
+                                         [f [] :local]
+                                         [identity ["d"] :remote]]}})]
+        (is (= :remote (ffirst r)))
+        (is (= "abc\n" ((second (first r)))))
+        (is (= :local (first (second r))))
+        (is (= [:ff]  ((second (second r)))))
+        (is (= "d\n" ((second (last r)))))))
 
     (testing "sequence local phases"
       (let [f identity g identity]
         (is (= [2 3]
-                 (map #(%) (first (output-resources :a {:a {:in-sequence
-                                                   [[f [2] :local]
-                                                    [g [3] :local]]}})))))))
+                 ((second
+                   (first
+                    (output-resources :a {:a {:in-sequence
+                                              [[f [2] :local]
+                                               [g [3] :local]]}}))))))))
     (testing "Undefined phase"
       (is (= '()
              (output-resources :b {:a {:in-sequence
@@ -239,8 +239,8 @@
               :pb [(test-component :b)])]
       (is (map? p))
       (is (= [:pa :pb] (keys p)))
-      (is (= [":a\n"] (output-resources :pa p)))
-      (is (= [":b\n"] (output-resources :pb p))))))
+      (is (= ":a\n" ((second (first (output-resources :pa p))))))
+      (is (= ":b\n" ((second (first (output-resources :pb p)))))))))
 
 (deftest phase-test
   (with-init-resources nil
@@ -249,7 +249,8 @@
       (is (keyword? (first p)))
       (is (map? (second p)))
       (is (= [(first p)] (keys (second p))))
-      (is (= [":a\n"] (output-resources (first p) (second p)))))))
+      (is (= ":a\n"
+             ((second (first (output-resources (first p) (second p))))))))))
 
 
 (defn lookup-test-fn

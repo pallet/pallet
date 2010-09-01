@@ -335,22 +335,26 @@
               sftp-channel (ssh-sftp session)]
           (with-connection sftp-channel
             (assert (zero? (mktemp-result :exit)))
-            (doseq [[file remote-name] *file-transfers*]
-              (logging/info
-               (format "Transferring file %s to node @ %s" file remote-name))
-              (sftp sftp-channel
-                    :put (-> file java.io.FileInputStream.
-                             java.io.BufferedInputStream.)
-                    remote-name)
-              (sftp sftp-channel :chmod 0600 remote-name))
-
             (logging/info (format "commands %s" (pr-str commands)))
-            (let [execute (fn [cmd]
-                            (logging/info (format "Cmd %s" (pr-str cmd)))
-                            (if (string? cmd)
-                              (remote-sudo-cmd
-                               server session sftp-channel user tmpfile cmd)
-                              (reduce #(conj %1 (%2)) [] cmd)))
+            (let [execute (fn [[location cmd]]
+                            (logging/info
+                             (format "Cmd %s %s" location (pr-str cmd)))
+                            (if (= :remote location)
+                              (let [cmdstring (cmd)]
+                                (doseq [[file remote-name] *file-transfers*]
+                                  (logging/info
+                                   (format
+                                    "Transferring file %s to node @ %s"
+                                    file remote-name))
+                                  (sftp sftp-channel
+                                        :put (-> file java.io.FileInputStream.
+                                                 java.io.BufferedInputStream.)
+                                        remote-name)
+                                  (sftp sftp-channel :chmod 0600 remote-name))
+                                (remote-sudo-cmd
+                                 server session sftp-channel user tmpfile
+                                 cmdstring))
+                              (cmd)))
                   rv (doall (map execute commands))]
               (doseq [[file remote-name] *file-transfers*]
                 (ssh session (str "rm " remote-name)))
@@ -359,8 +363,8 @@
 (defn local-cmds
   "Run local cmds on a target."
   [#^String commands]
-  (let [execute (fn [cmd] (reduce #(conj %1 (%2)) [] cmd))
-        rv (doall (map execute (filter (complement string?) commands)))]
+  (let [execute (fn [cmd] ((second cmd)))
+        rv (doall (map execute (filter #(= :local (first %)) commands)))]
     rv))
 
 
