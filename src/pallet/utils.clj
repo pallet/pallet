@@ -340,20 +340,21 @@
                             (logging/info
                              (format "Cmd %s %s" location (pr-str cmd)))
                             (if (= :remote location)
-                              (let [cmdstring (cmd)]
-                                (doseq [[file remote-name] *file-transfers*]
-                                  (logging/info
-                                   (format
-                                    "Transferring file %s to node @ %s"
-                                    file remote-name))
-                                  (sftp sftp-channel
-                                        :put (-> file java.io.FileInputStream.
-                                                 java.io.BufferedInputStream.)
-                                        remote-name)
-                                  (sftp sftp-channel :chmod 0600 remote-name))
-                                (remote-sudo-cmd
-                                 server session sftp-channel user tmpfile
-                                 cmdstring))
+                              (binding [*file-transfers* {}]
+                                (let [cmdstring (cmd)]
+                                  (doseq [[file remote-name] *file-transfers*]
+                                    (logging/info
+                                     (format
+                                      "Transferring file %s to node @ %s"
+                                      file remote-name))
+                                    (sftp sftp-channel
+                                          :put (-> file java.io.FileInputStream.
+                                                   java.io.BufferedInputStream.)
+                                          remote-name)
+                                    (sftp sftp-channel :chmod 0600 remote-name))
+                                  (remote-sudo-cmd
+                                   server session sftp-channel user tmpfile
+                                   cmdstring)))
                               (cmd)))
                   rv (doall (map execute commands))]
               (doseq [[file remote-name] *file-transfers*]

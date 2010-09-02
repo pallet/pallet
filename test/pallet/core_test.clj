@@ -122,19 +122,19 @@
   (let [a-node (compute/make-node "a")
         b-node (compute/make-node "b")]
     (is (= {a #{a-node}}
-           (nodes-in-set {a a-node} nil nil nil)))
+           (nodes-in-set {a a-node} nil nil)))
     (is (= {a #{a-node b-node}}
-           (nodes-in-set {a #{a-node b-node}} nil nil nil)))
+           (nodes-in-set {a #{a-node b-node}} nil nil)))
     (is (= {a #{a-node} b #{b-node}}
-           (nodes-in-set {a #{a-node} b #{b-node}} nil nil nil))))
+           (nodes-in-set {a #{a-node} b #{b-node}} nil nil))))
   (let [a-node (compute/make-node "a")
         b-node (compute/make-node "b")]
     (is (= {pa #{a-node}}
-           (nodes-in-set {a a-node} "p" nil nil)))
+           (nodes-in-set {a a-node} "p" nil)))
     (is (= {pa #{a-node b-node}}
-           (nodes-in-set {a #{a-node b-node}} "p" nil nil)))
+           (nodes-in-set {a #{a-node b-node}} "p" nil)))
     (is (= {pa #{a-node} pb #{b-node}}
-           (nodes-in-set {a #{a-node} b #{b-node}} "p" nil nil)))))
+           (nodes-in-set {a #{a-node} b #{b-node}} "p" nil)))))
 
 (deftest node-in-types?-test
   (defnode a [])
@@ -240,16 +240,16 @@
         nb (compute/make-node "b")
         nc (compute/make-node "c" :state NodeState/TERMINATED)]
     (mock/expects [(apply-phase
-                    [& _]
+                    [compute all-nodes target-nodes & _]
                     (do
-                      (is (= #{na nb} (set (target/all-nodes))))
-                      (is (= #{na nb} (set (target/target-nodes))))))]
+                      (is (= #{na nb} (set all-nodes)))
+                      (is (= #{na nb} (set target-nodes)))))]
                   (lift* nil "" {a #{na nb nc}} [:configure]))
     (mock/expects [(apply-phase
-                    [& _]
+                    [compute all-nodes target-nodes & _]
                     (do
-                      (is (= #{na nb} (set (target/all-nodes))))
-                      (is (= #{na nb} (set (target/target-nodes))))))]
+                      (is (= #{na nb} (set all-nodes)))
+                      (is (= #{na nb} (set target-nodes)))))]
                   (lift* nil "" {a #{na} b #{nb}} [:configure]))))
 
 (deftest lift-multiple-test
@@ -260,10 +260,10 @@
         nc (compute/make-node "c")]
     (mock/expects [(org.jclouds.compute/nodes-with-details [_] [na nb nc])
                    (apply-phase
-                    [& _]
+                    [compute all-nodes target-nodes & _]
                     (do
-                      (is (= #{na nb nc} (set (target/all-nodes))))
-                      (is (= #{na nb} (set (target/target-nodes))))))]
+                      (is (= #{na nb nc} (set all-nodes)))
+                      (is (= #{na nb} (set target-nodes)))))]
                   (binding [jclouds/*compute* :dummy]
                     (lift [a b] :configure)))))
 
@@ -274,10 +274,10 @@
         nb (compute/make-node "b")
         nc (compute/make-node "b" :state NodeState/TERMINATED)]
     (mock/expects [(apply-phase
-                    [& _]
+                    [compute all-nodes target-nodes & _]
                     (do
-                      (is (= #{na nb} (set (target/all-nodes))))
-                      (is (= #{na nb} (set (target/target-nodes))))))
+                      (is (= #{na nb} (set all-nodes)))
+                      (is (= #{na nb} (set target-nodes)))))
                    (org.jclouds.compute/nodes-with-details [& _] [na nb nc])]
                   (converge* nil "" {a 1 b 1} [:configure]))))
 

@@ -22,9 +22,6 @@ chef-repository you specify with `with-chef-repository`.
 tag as a configuration target.
 "
   (:use
-   [pallet.utils
-    :only [remote-sudo make-user *admin-user* default-public-key-path
-           as-string *file-transfers*]]
    [pallet.compute
     :only [node-has-tag? node-counts-by-tag boot-if-down compute-node?
            execute-script ssh-port]]
@@ -54,9 +51,9 @@ tag as a configuration target.
    convenience fn) or as an argument list that will be passed to make-user."
   [user & exprs]
   `(let [user# ~user]
-     (binding [*admin-user* (if (utils/is-user? user#)
-                              user#
-                              (apply make-user user#))]
+     (binding [utils/*admin-user* (if (utils/is-user? user#)
+                                    user#
+                                    (apply utils/make-user user#))]
        ~@exprs)))
 
 (defn admin-user
@@ -68,9 +65,11 @@ When passing a username the following options can be specified:
   :public-key-path"
   [user & options]
   (alter-var-root
-   #'*admin-user* #(identity %2) (if (string? user)
-                                   (apply make-user user options)
-                                   user)))
+   #'utils/*admin-user*
+   #(identity %2)
+   (if (string? user)
+     (apply utils/make-user user options)
+     user)))
 
 (defmacro with-no-compute-service
   "Bind a null provider, for use when accessing local vms."
@@ -117,7 +116,8 @@ When passing a username the following options can be specified:
 (defn build-node-template-impl
   "Build a template for passing to jclouds run-nodes."
   ([compute options]
-     (build-node-template-impl compute options (default-public-key-path) nil))
+     (build-node-template-impl
+      compute options (utils/default-public-key-path) nil))
   ([compute options public-key-path init-script]
      (logging/info (str "Options " options))
      (logging/info (str "Init script\n" init-script))
@@ -152,7 +152,7 @@ When passing a username the following options can be specified:
   ([node-type] (start-node node-type *compute*))
   ([node-type compute]
      (run-nodes
-      (as-string (node-type :tag))
+      (name (node-type :tag))
       1
       (build-node-template-impl compute (node-type :image))
       compute)))
@@ -223,20 +223,19 @@ script that is run with root privileges immediatly after first boot."
 
 (defn apply-phase-to-node
   "Apply a phase to a node"
-  [compute node-type node phase user wrapper-fn]
+  [compute all-nodes target-nodes node-type node phase user wrapper-fn]
   (logging/info (format "apply-phase-to-node %s %s" (tag node) phase))
   (logging/trace (str "  node-type " node-type))
   (let [port (ssh-port node)
         options (if port [:port port] [])]
     (if node-type
-      (execute-with-wrapper wrapper-fn [node user]
-        (resource/with-init-resources nil
-          (binding [*file-transfers* {}]
-            (resource/with-target [node node-type]
-              (when-let [phase-cmds (resource/produce-phase
-                                     phase (node-type :phases))]
-                (logging/info (format "phase-cmds %s" (pr-str phase-cmds)))
-                (compute/execute-cmds phase-cmds node user options))))))
+      (target/with-nodes all-nodes target-nodes
+        (resource/with-target [node node-type]
+          (when-let [phase-cmds (resource/produce-phase
+                                 phase (node-type :phases))]
+            (logging/info (format "phase-cmds %s" (pr-str phase-cmds)))
+            (execute-with-wrapper wrapper-fn [node user]
+              (compute/execute-cmds phase-cmds node user options)))))
       (logging/error (str "Could not find node type for node " (tag node))))))
 
 (defmacro with-local-exec
@@ -245,6 +244,7 @@ script that is run with root privileges immediatly after first boot."
   `(binding [compute/execute-cmds (fn [commands# & _#]
                                     (utils/local-cmds commands#))]
      ~@body))
+
 
 (defn no-exec
   [commands node user options]
@@ -261,33 +261,34 @@ script that is run with root privileges immediatly after first boot."
   `(binding [compute/execute-cmds no-exec]
      ~@body))
 
+
 (defn execute-with-user-credentials
   [_ user f]
   (pallet.utils/possibly-add-identity
    (pallet.utils/default-agent) (:private-key-path user) (:passphrase user))
   (f))
 
-(def node-execution-wrapper execute-with-user-credentials)
+(def *node-execution-wrapper* execute-with-user-credentials)
 
 (defmacro with-node-execution-wrapper
   "Wrap node execution in the given function, wich must take an argument list of
    [node user function-to-wrap]"
   [f & body]
-  `(binding [node-execution-wrapper ~f]
+  `(binding [*node-execution-wrapper* ~f]
      ~@body))
 
 (defn apply-phase
   "Apply a list of phases to a sequence of nodes"
-  ([compute node-type nodes phase]
-     (apply-phase compute node-type nodes phase *admin-user*))
-  ([compute node-type nodes phase user]
-     (logging/trace
-      (format
-       "apply-phase %s for %s with %d nodes"
-       phase (node-type :tag) (count nodes)))
-     (doseq [node nodes]
-       (apply-phase-to-node
-        compute node-type node phase user node-execution-wrapper))))
+  [compute all-nodes target-nodes node-type nodes phase user
+   node-execution-wrapper]
+  (logging/trace
+   (format
+    "apply-phase %s for %s with %d nodes"
+    phase (node-type :tag) (count nodes)))
+  (doseq [node nodes]
+    (apply-phase-to-node
+     compute all-nodes target-nodes node-type node phase user
+     node-execution-wrapper)))
 
 (defn nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"
@@ -315,25 +316,6 @@ script that is run with root privileges immediatly after first boot."
     phases
     (concat [:configure] phases)))
 
-(defn converge*
-  [compute prefix node-map phases]
-  {:pre [(map? node-map)]}
-  (logging/trace (str "converge*  " node-map))
-  (binding [org.jclouds.compute/*compute* compute]
-    (let [node-map (add-prefix-to-node-map prefix node-map)]
-      (converge-node-counts compute node-map)
-      (let [nodes (filter running? (nodes-with-details compute))
-            target-nodes (nodes-in-map node-map nodes)
-            phases (ensure-configure-phase phases)]
-        (target/with-nodes nodes target-nodes
-          (doseq [phase (resource/phase-list (if (seq phases) phases [:configure]))
-                  node-type (keys node-map)]
-            (apply-phase
-             compute
-             node-type
-             (filter-nodes-with-tag nodes (node-type :tag))
-             phase)))))))
-
 (defn node-in-types?
   "Predicate for matching a node belonging to a set of node types"
   [node-types node]
@@ -351,46 +333,68 @@ script that is run with root privileges immediatly after first boot."
   (and (map? x) (x :tag) (x :image) true))
 
 (defn nodes-in-set
-  "Build a map of nodes for the given node-set. A node set can be a node
-  type, a sequence of node types, a node node-typ vector, or a sequence of nodes.
-  e.g
-     [node-type1 node-type2 {node-type #{node1 node2}}]
+  "Build a map of nodes for the given node-set. A node set can be a node type, a
+   sequence of node types, a node node-typ vector, or a sequence of nodes.
+     e.g [node-type1 node-type2 {node-type #{node1 node2}}]
 
   The return value is a map of node-type -> node sequence."
-  ([node-set prefix] (nodes-in-set node-set prefix *compute*))
-  ([node-set prefix compute]
-     (nodes-in-set
-      node-set prefix compute (if compute (nodes-with-details compute))))
-  ([node-set prefix compute nodes]
-     (letfn [(ensure-set [x] (if (set? x) x #{x}))
-             (ensure-set-values
-              [m]
-              (zipmap (keys m) (map ensure-set (vals m))))]
-       (cond
-        (and (map? node-set) (not (node-type? node-set)))
-        (ensure-set-values (add-prefix-to-node-map prefix node-set))
-        (node-type? node-set)
-        (let [node-type (add-prefix-to-node-type prefix node-set )]
-          {node-type (set (nodes-for-type nodes node-type))})
-        :else (reduce
-               #(merge-with concat %1 %2) {}
-               (map #(nodes-in-set % prefix compute nodes) node-set))))))
+  [node-set prefix nodes]
+  (letfn [(ensure-set [x] (if (set? x) x #{x}))
+          (ensure-set-values
+           [m]
+           (zipmap (keys m) (map ensure-set (vals m))))]
+    (cond
+     (and (map? node-set) (not (node-type? node-set)))
+     (ensure-set-values (add-prefix-to-node-map prefix node-set))
+     (node-type? node-set)
+     (let [node-type (add-prefix-to-node-type prefix node-set )]
+       {node-type (set (nodes-for-type nodes node-type))})
+     :else (reduce
+            #(merge-with concat %1 %2) {}
+            (map #(nodes-in-set % prefix nodes) node-set)))))
+
+
+(defn lift-nodes
+  "Lift a nodes in target-node-map for the specified phases"
+  [compute nodes target-node-map phases user execution-wrapper]
+  (let [target-nodes (filter running? (apply concat (vals target-node-map)))]
+    (doseq [phase (resource/phase-list phases)
+            [node-type tag-nodes] target-node-map]
+      (apply-phase
+       compute
+       (or nodes target-nodes)      ; Target node map may contain unmanged nodes
+       target-nodes
+       node-type
+       tag-nodes
+       phase
+       user
+       execution-wrapper))))
 
 (defn lift*
   [compute prefix node-set phases]
-  (binding [org.jclouds.compute/*compute* compute]
-    (let [nodes (if compute (filter running? (nodes-with-details compute)))
-          target-node-map (nodes-in-set node-set prefix compute nodes)
-          target-nodes (filter running? (apply concat (vals target-node-map)))
-          nodes (or nodes target-nodes)]
-      (target/with-nodes nodes target-nodes
-        (doseq [phase (resource/phase-list phases)
-                [node-type nodes] target-node-map]
-          (apply-phase
-           compute
-           node-type
-           (filter running? nodes)
-           phase))))))
+  (let [nodes (if compute (filter running? (nodes-with-details compute)))
+        target-node-map (nodes-in-set node-set prefix nodes)]
+    (lift-nodes
+     compute nodes target-node-map phases
+     utils/*admin-user* *node-execution-wrapper*)
+    nodes))
+
+(defn converge*
+  [compute prefix node-map phases]
+  {:pre [(map? node-map)]}
+  (logging/trace (str "converge*  " node-map))
+  (let [node-map (add-prefix-to-node-map prefix node-map)]
+    (converge-node-counts compute node-map)
+
+    (let [nodes (filter running? (nodes-with-details compute))
+          target-node-map (select-keys
+                           (group-by #(keyword (.getTag %)) nodes)
+                           (keys node-map))
+          phases (ensure-configure-phase phases)]
+      (lift-nodes
+       compute nodes target-node-map phases
+       utils/*admin-user* *node-execution-wrapper*)
+      nodes)))
 
 (defn compute-service-and-options
   "Extract the compute service form a vector of options, returning the bound
