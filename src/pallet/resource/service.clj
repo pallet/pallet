@@ -7,7 +7,6 @@
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource :as resource]))
 
-
 (script/defscript configure-service
   [name action options])
 
@@ -44,38 +43,36 @@
                      "."))))
 
 
-(defn service*
-  [service-name & options]
-  (let [opts (apply hash-map options)
-        opts (merge {:action :start} opts)
-        action (opts :action)]
-    (if (#{:enable :disable :start-stop} action)
-      (stevedore/checked-script
-       (format "Confgure service %s" service-name)
-       (configure-service ~service-name ~action ~opts))
-      (stevedore/script ( ~(str "/etc/init.d/" service-name) ~(name action))))))
-
 (resource/defresource service
   "Control serives"
-  service* [service-name & options])
+  (service*
+   [request service-name & {:keys [action]
+                            :or {action :start}
+                            :as options}]
+   (if (#{:enable :disable :start-stop} action)
+     (stevedore/checked-script
+      (format "Confgure service %s" service-name)
+      (configure-service ~service-name ~action ~options))
+     (stevedore/script ( ~(str "/etc/init.d/" service-name) ~(name action))))))
 
 (defmacro with-restart
   "Stop the given service, execute the body, and then restart."
-  [service-name & body]
+  [request service-name & body]
   `(let [service# ~service-name]
-     (service service# :action :stop)
-     ~@body
-     (service service# :action :start)))
+     (-> ~request
+         (service service# :action :stop)
+         ~@body
+         (service service# :action :start))))
 
-(defn init-script*
+(defn init-script
   "Install an init script.  Sources as for remote-file."
-  [name & options]
-  (let [filename (str "/etc/init.d/" name)]
-    (apply remote-file/remote-file*
-           filename :owner "root" :group "root" :mode "0755"
-           options)))
-
-(resource/defresource init-script
-  "Install an init script.  Sources as for remote-file."
-  init-script* [name & options])
-
+  [request name & {:keys [action url local-file remote-file link
+                          content literal template values md5 md5-url force]
+                   :or {action :create}
+                   :as options}]
+  (apply
+   remote-file/remote-file
+   request
+   (str "/etc/init.d/" name)
+   :action action :owner "root" :group "root" :mode "0755"
+   (apply concat options)))

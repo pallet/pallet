@@ -4,6 +4,7 @@
 
 (defn bzr
   "Install bzr"
-  []
-  (package/package "bzr")
-  (package/package "bzrtools"))
+  [request]
+  (-> request
+      (package/package "bzr")
+      (package/package "bzrtools")))

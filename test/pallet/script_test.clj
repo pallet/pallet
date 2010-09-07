@@ -6,11 +6,11 @@
 
 (with-private-vars [pallet.script [matches? more-explicit?]]
   (deftest matches?-test
-    (target/with-target nil {:image [:ubuntu]}
+    (with-template [:ubuntu]
       (is (matches? [:ubuntu]))
       (is (not (matches? [:fedora])))
       (is (not (matches? [:ubuntu :smallest]))))
-    (target/with-target nil {:image [:ubuntu :smallest]}
+    (with-template [:ubuntu :smallest]
       (is (matches? [:ubuntu]))
       (is (matches? [:smallest]))
       (is (not (matches? [:fedora])))

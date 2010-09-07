@@ -1,7 +1,10 @@
 (ns pallet.crate.syslog-ng-test
   (:use pallet.crate.syslog-ng)
   (:use clojure.test
-        pallet.test-utils))
+        pallet.test-utils)
+  (:require
+   [pallet.resource :as resource]
+   [pallet.compute :as compute]))
 
 (deftest property-fmt-test
   (testing "single property"
@@ -37,3 +40,10 @@
 
 (deftest configure-block-test
   (is (= "a {\nb(c);\n};\n" (configure-block "a" {:b "c"}))))
+
+(deftest invoke-test
+  (is (resource/build-resources
+       [:target-node (compute/make-node "tag" :id "id" :ip "1.2.3.4")]
+       (install)
+       (set-server-ip)
+       (iptables-accept))))

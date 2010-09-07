@@ -4,13 +4,15 @@
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.hostinfo :as hostinfo]
    [pallet.stevedore :as stevedore]
+   [pallet.request-map :as request-map]
    [pallet.script :as script]
    [pallet.utils :as utils]
+   [pallet.target :as target]
    [clojure.contrib.string :as string])
   (:use
    [pallet.resource :only [defaggregate defresource]]
    [clojure.contrib.logging]
-   [pallet.target :only [packager]]))
+   [clojure.contrib.core :only [-?>]]))
 
 (script/defscript update-package-list [& options])
 (script/defscript install-package [name & options])
@@ -41,7 +43,6 @@
 (stevedore/defimpl purge-package [#{:centos :rhel}] [package & options]
   (yum purge ~(stevedore/option-args options) ~package))
 
-
 (script/defscript debconf-set-selections [& selections])
 (stevedore/defimpl debconf-set-selections :default [& selections]
   ("{ debconf-set-selections"
@@ -55,56 +56,50 @@
 
 (defn package*
   "Package management"
-  [package-name & options]
-  (let [opts (if options (apply assoc {} options) {})
-        opts (merge {:action :install} opts)
-        action (opts :action)]
-    (condp = action
-      :install
-      (stevedore/script
-       (apply install-package
-              ~package-name
-              ~(apply concat (select-keys opts [:y :force]))))
-      :remove
-      (if (opts :purge)
-        (stevedore/script (purge-package ~package-name))
-        (stevedore/script (remove-package ~package-name)))
-      :upgrade
-      (stevedore/script (purge-package ~package-name))
-      :update-package-list
-      (stevedore/script (update-package-list))
-      (throw (IllegalArgumentException.
-              (str action " is not a valid action for package resource"))))))
+  [request package-name & {:keys [action y force purge]
+                           :or {action :install y true}
+                           :as options}]
+  (case action
+    :install (stevedore/script
+              (install-package ~package-name :force ~force))
+    :remove (if purge
+              (stevedore/script (purge-package ~package-name))
+              (stevedore/script (remove-package ~package-name)))
+    :upgrade (stevedore/script (purge-package ~package-name))
+    :update-package-list (stevedore/script (update-package-list))
+    (throw (IllegalArgumentException.
+            (str action " is not a valid action for package resource")))))
 
-(defn- apply-packages [package-args]
-  (stevedore/checked-commands*
-   "Packages"
-   (cons
-    (stevedore/script (package-manager-non-interactive))
-    (map #(apply package* %) package-args))))
-
-(defaggregate package "Package management."
-  apply-packages [packagename & options])
+(defaggregate package
+  "Package management."
+  {:copy-arglist pallet.resource.package/package*}
+  (package-combiner [request package-args]
+   (stevedore/checked-commands*
+    "Packages"
+    (cons
+     (stevedore/script (package-manager-non-interactive))
+     (map #(apply package* request %) package-args)))))
 
 (def source-location
-     {:aptitude "/etc/apt/sources.list.d/%s.list"
-      :yum "/etc/yum.repos.d/%s.repo"})
+  {:aptitude "/etc/apt/sources.list.d/%s.list"
+   :yum "/etc/yum.repos.d/%s.repo"})
 
 (def source-template "resource/package/source")
 
 (defn package-source*
   "Add a packager source."
-  [name & options]
-  (let [options (apply hash-map options)]
+  [request name & {:as options}]
+  (let [packager (request-map/packager request)]
     (stevedore/checked-commands
      "Package source"
      (let [key-url (-> options :aptitude :url)]
        (if (.startsWith key-url "ppa:")
          (stevedore/chain-commands
-          (package* "python-software-properties")
+          (package* request "python-software-properties")
           (stevedore/script (add-apt-repository ~key-url)))
          (remote-file/remote-file*
-          (format (source-location (packager)) name)
+          request
+          (format (source-location packager) name)
           :template source-template
           :values (merge
                    {:source-type "deb"
@@ -112,24 +107,21 @@
                     :scopes ["main"]
                     :gpgkey 0
                     :name name}
-                   (options (packager))))))
+                   (options packager)))))
      (if (and (-> options :aptitude :key-id)
-              (= (packager) :aptitude))
+              (= packager :aptitude))
        (stevedore/script
         (apt-key adv
                  "--keyserver subkeys.pgp.net --recv-keys"
                  ~(-> options :aptitude :key-id))))
      (if (and (-> options :aptitude :key-url)
-              (= (packager) :aptitude))
+              (= packager :aptitude))
        (stevedore/chain-commands
         (remote-file/remote-file*
+         request
          "aptkey.tmp"
          :url (-> options :aptitude :key-url))
         (stevedore/script (apt-key add aptkey.tmp)))))))
-
-(defn package-source-aggregate
-  [args]
-  (stevedore/do-script* (map (fn [x] (apply package-source* x)) args)))
 
 (defaggregate package-source
   "Control package sources.
@@ -146,8 +138,11 @@
    :yum
      :url url              - repository url
      :gpgkey keystring     - pgp key string for repository"
-  package-source-aggregate
-  [name packager-map & options])
+  {:copy-arglist pallet.resource.package/package-source*}
+  (package-source-aggregate
+   [request args]
+   (stevedore/do-script*
+    (map (fn [x] (apply package-source* request x)) args))))
 
 (defn add-scope
   "Add a scope to all the existing package sources"
@@ -161,44 +156,44 @@
 
 (defn package-manager*
   "Package management."
-  [action & options]
-  (stevedore/checked-commands
-   "package-manager"
-   (condp = action
-       :update
-     (stevedore/script (update-package-list))
-     :multiverse
-     (let [opts (apply hash-map options)]
-       (add-scope (or (opts :type) "deb.*")
-                  "multiverse"
-                  (or (opts :file) "/etc/apt/sources.list")))
-     :universe
-     (let [opts (apply hash-map options)]
-       (add-scope (or (opts :type) "deb.*")
-                  "universe"
-                  (or (opts :file) "/etc/apt/sources.list")))
-     :debconf
-     (if (= :aptitude (packager))
-       (stevedore/script (apply debconf-set-selections ~options)))
-     (throw (IllegalArgumentException.
-             (str action
-                  " is not a valid action for package-manager resource"))))))
-
-(defn- apply-package-manager [package-manager-args]
-  (stevedore/do-script*
-   (map #(apply package-manager* %) package-manager-args)))
+  [request action & options]
+  (let [packager (target/packager (-?> request :node-type :image))]
+    (stevedore/checked-commands
+     "package-manager"
+     (condp = action
+         :update
+       (stevedore/script (update-package-list))
+       :multiverse
+       (let [opts (apply hash-map options)]
+         (add-scope (or (opts :type) "deb.*")
+                    "multiverse"
+                    (or (opts :file) "/etc/apt/sources.list")))
+       :universe
+       (let [opts (apply hash-map options)]
+         (add-scope (or (opts :type) "deb.*")
+                    "universe"
+                    (or (opts :file) "/etc/apt/sources.list")))
+       :debconf
+       (if (= :aptitude packager)
+         (stevedore/script (apply debconf-set-selections ~options)))
+       (throw (IllegalArgumentException.
+               (str action
+                    " is not a valid action for package-manager resource")))))))
 
 (defaggregate package-manager
   "Package manager controls.
-:multiverse        - enable multiverse
-:update            - update the package manager"
-  apply-package-manager [action & options])
-
-(defn packages*
-  [& options]
-  (let [opts (apply array-map options)]
-    (apply-packages (map vector (opts (packager))))))
+     :multiverse        - enable multiverse
+     :update            - update the package manager"
+  {:copy-arglist pallet.resource.package/package-manager*}
+  (apply-package-manager
+   [request package-manager-args]
+   (stevedore/do-script*
+    (map #(apply package-manager* request %) package-manager-args))))
 
 (defresource packages
   "Install a list of packages keyed on packager"
-  packages* [& options])
+  (packages-combiner
+   [request & {:as options}]
+   (package-combiner
+    request
+    (map vector (options (target/packager (-?> request :node-type :image)))))))

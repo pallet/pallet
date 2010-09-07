@@ -1,9 +1,10 @@
 (ns pallet.crate.splunk
   "Install and configure splunk"
   (:require
-   [pallet.arguments :as arguments]
+   [pallet.argument :as argument]
    [pallet.compute :as compute]
    [pallet.target :as target]
+   [pallet.request-map :as request-map]
    [pallet.resource :as resource]
    [pallet.stevedore :as stevedore]
    [pallet.resource.remote-file :as remote-file]
@@ -67,13 +68,13 @@
    "2.1.3" 14652
    "2.1.2" 14524})
 
-(defn debfile [version]
-  (if (compute/is-64bit? (target/node))
+(defn debfile [request version]
+  (if (compute/is-64bit? (:target-node request))
     (format "splunk-%s-%d-linux-2.6-amd64.deb" version (build version))
     (format "splunk-%s-%d-linux-2.6-intel.deb" version (build version))))
 
-(defn rpmfile [version]
-  (if (compute/is-64bit? (target/node))
+(defn rpmfile [request version]
+  (if (compute/is-64bit? (:target-node request))
     (format "splunk-%s-%d-linux-2.6-x86_64.rpm" version (build version))
     (format "splunk-%s-%d-i386.rpm" version (build version))))
 
@@ -89,43 +90,37 @@
    "http://www.splunk.com/index.php/download_track?file=%s/linux/%s.md5&ac=&wget=true&name=wget&typed=releases"
    version file))
 
-(defn install* [& {:keys [version]}]
-  (case (target/packager)
-        :aptitude
-        (let [f (debfile version)
-              deb (str (stevedore/script (tmp-dir)) "/" f)]
-          (stevedore/checked-commands
-           "Install splunk"
-           (remote-file/remote-file*
-            deb
-            :url (url version f))
-           (stevedore/script
-            (if-not (file-exists? "/opt/splunk/bin/splunk")
-              (do
-                (dpkg -i (quoted ~deb))
-                ("/opt/splunk/bin/splunk" start "--accept-license")
-                ("/opt/splunk/bin/splunk" enable boot-start))))))
-        :yum
-        (let [f (rpmfile version)
-              rpm (str (stevedore/script (tmp-dir)) "/" f)]
-          (stevedore/checked-commands
-           "Install splunk"
-           (remote-file/remote-file*
-            rpm
-            :url (url version f))
-           (stevedore/script
-            (rpm -i (quoted ~rpm))
-            ("/opt/splunk/bin/splunk" start "--accept-license")
-            ("/opt/splunk/bin/splunk" enable boot-start))))))
 
 (resource/defresource install
-  install* [& options])
+  (install*
+   [request & {:keys [version]}]
+   (case (request-map/packager request-map/packager)
+     :aptitude
+     (let [f (debfile request version)
+           deb (str (stevedore/script (tmp-dir)) "/" f)]
+       (stevedore/checked-commands
+        "Install splunk"
+        (remote-file/remote-file* request deb :url (url version f))
+        (stevedore/script
+         (if-not (file-exists? "/opt/splunk/bin/splunk")
+           (do
+             (dpkg -i (quoted ~deb))
+             ("/opt/splunk/bin/splunk" start "--accept-license")
+             ("/opt/splunk/bin/splunk" enable boot-start))))))
+     :yum
+     (let [f (rpmfile request version)
+           rpm (str (stevedore/script (tmp-dir)) "/" f)]
+       (stevedore/checked-commands
+        "Install splunk"
+        (remote-file/remote-file* request rpm :url (url version f))
+        (stevedore/script
+         (rpm -i (quoted ~rpm))
+         ("/opt/splunk/bin/splunk" start "--accept-license")
+         ("/opt/splunk/bin/splunk" enable boot-start)))))))
 
 (defn splunk
-  [& {:keys [version ]
-      :or {version "4.1.4"}}]
-  (install :version version))
-
+  [request & {:keys [version ] :or {version "4.1.4"}}]
+  (install request :version version))
 
 (defn format-section
   [m]
@@ -145,13 +140,12 @@
   {(format "fifo://%s" path) options})
 
 (defn configure
-  [& {:keys [inputs host]
-      :or {inputs {}}}]
+  [request & {:keys [inputs host] :or {inputs {}}}]
   (remote-file/remote-file
+   request
    "/opt/splunk/etc/system/local/inputs.conf"
-   :content (arguments/delayed
-             (format-conf
-              (merge
-               inputs
-               {:default {:host (or host (.getName (target/node)))}})))
+   :content (format-conf
+             (merge
+              inputs
+              {:default {:host (or host (.getName (:target-node request)))}}))
    :owner "splunk" :group "splunk"))

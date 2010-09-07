@@ -65,7 +65,7 @@ EOF
 
 (deftest interpolate-template-test
   (core/defnode n [:ubuntu])
-  (target/with-target nil n
-    (let [a 1]
-      (is (= "a 1\n"
-             (interpolate-template "template/strint" (strint/capture-values a)))))))
+  (let [a 1]
+    (is (= "a 1\n"
+           (interpolate-template
+            "template/strint" (strint/capture-values a) n)))))

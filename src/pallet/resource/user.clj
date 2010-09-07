@@ -73,12 +73,12 @@
 
 (defn user*
   "Require a user"
-  [username & options]
-  (let [opts (if options (apply assoc {} options))
-        opts (merge {:action :manage} opts)
-        opts (merge opts {:shell (get shell-names (opts :shell) (opts :shell))})
-        action (get opts :action)]
-    (condp = action
+  [request username & {:keys [action shell base-dir home system create-home
+                              password shell comment groups remove force]
+                       :or {action :manage}
+                       :as options}]
+  (let [opts (merge options {:shell (get shell-names shell shell)})]
+    (case action
       :create
       (script
        (if-not (user-exists? ~username)
@@ -109,38 +109,37 @@
       (throw (IllegalArgumentException.
               (str action " is not a valid action for user resource"))))))
 
-(defn- apply-users [user-args]
-  (string/join \newline (map #(apply user* %) user-args)))
 
-(defaggregate user "User management."
-  apply-users [username & options])
+(defaggregate user
+  "User management."
+  {:copy-arglist pallet.resource.user/user*}
+  (user-combiner
+   [request user-args]
+   (string/join \newline (map #(apply user* request %) user-args))))
 
 
-(defn group*
-  "Require a group"
-  [groupname & options]
-  (let [opts (if options (apply assoc {} options))
-        opts (merge {:action :manage} opts)
-        action (:action opts)]
-    (condp = action
-      :create
-      (script
-       (if-not (group-exists? ~groupname)
-         (create-group
-          ~groupname ~(select-keys opts [:system :gid :password]))))
-      :manage
-      (script
-       (if (group-exists? ~groupname)
-         (modify-group
-          ~groupname ~(select-keys opts [:gid :password]))
-         (create-group
-          ~groupname ~(select-keys opts [:system :gid :password]))))
-      :remove
-      (script
-       (if (group-exists? ~groupname)
-         (remove-group ~groupname {})))
-      (throw (IllegalArgumentException.
-              (str action " is not a valid action for group resource"))))))
-
-(defresource group "User Group Management."
-  group* [name & options])
+(defresource group
+  "User Group Management."
+  (group*
+   [request groupname & {:keys [action system gid password]
+                         :or {action :manage}
+                         :as options}]
+   (case action
+     :create
+     (script
+      (if-not (group-exists? ~groupname)
+        (create-group
+         ~groupname ~(select-keys options [:system :gid :password]))))
+     :manage
+     (script
+      (if (group-exists? ~groupname)
+        (modify-group
+         ~groupname ~(select-keys options [:gid :password]))
+        (create-group
+         ~groupname ~(select-keys options [:system :gid :password]))))
+     :remove
+     (script
+      (if (group-exists? ~groupname)
+        (remove-group ~groupname {})))
+     (throw (IllegalArgumentException.
+             (str action " is not a valid action for group resource"))))))

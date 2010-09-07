@@ -60,10 +60,10 @@
 
 (defn interpolate-template
   "Interpolate the given template."
-  [path values]
+  [path values node-type]
   (strint/<<!
    (utils/load-resource-url
-    (find-template path (target/node-type)))
+    (find-template path node-type))
    (utils/map-with-keys-as-symbols values)))
 
 ;;; programatic templates - umm not really templates at all

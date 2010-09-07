@@ -4,20 +4,23 @@
   (:use
    [pallet.stevedore :only [script]]
    [pallet.resource :only [defresource]]
-   [pallet.resource.file :only [heredoc file]]
+   [pallet.resource.file :only [heredoc file rm]]
    [pallet.resource.remote-file :only [remote-file remote-file*]]
    [pallet.resource.exec-script :only [exec-script]]
    [pallet.resource.package :only [package]]
    [pallet.template :only [find-template]]
    [pallet.enlive :only [xml-template xml-emit transform-if deffragment elt]]
-   [clojure.contrib.prxml :only [prxml]])
+   [clojure.contrib.prxml :only [prxml]]
+   pallet.thread-expr)
   (:require
    [pallet.resource :as resource]
    [pallet.core :as core]
    [pallet.parameter :as parameter]
    [pallet.resource.file :as file]
+   [pallet.resource.remote-file :as remote-file]
    [pallet.resource.directory :as directory]
    [pallet.resource.service :as service]
+   [pallet.resource.exec-script :as exec-script]
    [pallet.target :as target]
    [net.cgrand.enlive-html :as enlive]
    [clojure.contrib.string :as string]))
@@ -29,44 +32,37 @@
 
 (defn tomcat
   "Install tomcat"
-  [& options]
-  (apply package "tomcat6" options)
-  (let [options (apply hash-map options)]
-    (when (options :purge)
-      (directory/directory
-       tomcat-base :action :delete :recursive true :force true))
-    (when (= :install (get options :action :install))
-      (resource/parameters
-       [:tomcat :base] tomcat-base
-       [:tomcat :owner] tomcat-user
-       [:tomcat :group] tomcat-group))))
-
-(defmacro with-restart
-  [& body]
-  ;; restart fails to regenerate security policy cache
-  `(do
-     (service/service "tomcat6" :action :stop)
-     ~@body
-     (service/service "tomcat6" :action :start)))
+  [request & {:as options}]
+  (-> request
+      (apply-> package "tomcat6" (apply concat options))
+      (when-> (:purge options)
+       (directory/directory
+         tomcat-base :action :delete :recursive true :force true))
+      (when-> (= :install (:action options :install))
+        (parameter/parameters
+         [:tomcat :base] tomcat-base
+         [:tomcat :owner] tomcat-user
+         [:tomcat :group] tomcat-group))))
 
 (defn undeploy
-  "Removes the named webapp directories, and any war files with the same base names."
-  [& app-names]
-  (doseq [app-name app-names
-          :let [app-name (or app-name "ROOT")
-                app-name (if (string? app-name) app-name (name app-name))]]
-    (let [exploded-app-dir (str tomcat-base "webapps/" app-name)]
-      (exec-script
-        (script
-          (rm ~exploded-app-dir ~{:r true :f true})
-          (rm ~(str exploded-app-dir ".war") ~{:f true}))))))
+  "Removes the named webapp directories, and any war files with the same base
+   names."
+  [request & app-names]
+  (-> request
+      (for-> [app-name app-names
+              :let [app-name (or app-name "ROOT")
+                    app-name (if (string? app-name) app-name (name app-name))
+                    exploded-app-dir (str tomcat-base "webapps/" app-name)]]
+        (exec-script/exec-script
+         (rm ~exploded-app-dir ~{:r true :f true})
+         (rm ~(str exploded-app-dir ".war") ~{:f true})))))
 
 (defn undeploy-all
   "Removes all deployed war file and exploded webapp directories."
-  []
-  (exec-script
-    (script
-      (rm ~(str tomcat-base "webapps/*") ~{:r true :f true}))))
+  [request]
+  (exec-script/exec-script
+   request
+   (rm ~(str tomcat-base "webapps/*") ~{:r true :f true})))
 
 (defn deploy
   "Copies a .war file to the tomcat server under webapps/${app-name}.war.  An
@@ -76,72 +72,64 @@
 
    Other Options:
      :clear-existing true -- removes the existing exploded ${app-name} directory"
-  [app-name & opts]
-  (let [opts (apply hash-map opts)
-        exploded-app-dir (str tomcat-base "webapps/" (or app-name "ROOT"))
+  [request app-name & {:as opts}]
+  (let [exploded-app-dir (str tomcat-base "webapps/" (or app-name "ROOT"))
         deployed-warfile (str exploded-app-dir ".war")
         options (merge
                  {:owner tomcat-user :group tomcat-group :mode 600}
-                 (select-keys opts [:url :local-file :remote-file :owner :group
-                                    :mode :md5]))]
-    (when-not (:clear-existing opts)
+                 (select-keys opts remote-file/all-options))]
+    (->
+     request
+     (when-not-> (:clear-existing opts)
       ;; if we're not removing an existing, try at least to make sure
       ;; that tomcat has the permissions to explode the war
-      (apply
+      (apply->
        directory/directory
        exploded-app-dir
        (apply concat
               (merge {:owner tomcat-user :group tomcat-group :recursive true}
                      (select-keys options [:owner :group :recursive])))))
-    (apply
-     remote-file
-     deployed-warfile
-     (apply concat options))
-    (when (:clear-existing opts)
-      (exec-script
-        (script (rm ~exploded-app-dir ~{:r true :f true}))))))
+     (apply->
+      remote-file
+      deployed-warfile
+      (apply concat options))
+     (when-> (:clear-existing opts)
+             (exec-script/exec-script
+              (rm ~exploded-app-dir ~{:r true :f true}))))))
 
 (defn output-grants [[code-base permissions]]
   (let [code-base (when code-base
                     (format "codeBase \"%s\"" code-base))]
   (format
-    "grant %s {\n  %s;\n};" (or code-base "") (string/join ";\n  " permissions))))
+    "grant %s {\n  %s;\n};"
+    (or code-base "")
+    (string/join ";\n  " permissions))))
 
-(defn policy*
-  [number name grants & options]
-  (let [policy-file (str tomcat-config-root "policy.d/" number name ".policy")
-        options (merge {:action :create} (apply hash-map options))]
-    (condp = (options :action)
-      :create (remote-file*
+(defn policy
+  "Configure tomcat policies.
+     number - determines sequence i which policies are applied
+     name - a name for the policy
+     grants - a map from codebase to sequence of permissions"
+  [request number name grants
+   & {:keys [action] :or {action :create} :as options}]
+  (let [policy-file (str tomcat-config-root "policy.d/" number name ".policy")]
+    (case action
+      :create (remote-file
+               request
                policy-file
                :content (string/join \newline (map output-grants grants))
                :literal true)
-      :remove (file/file* policy-file :action :delete))))
+      :remove (file/file request policy-file :action :delete))))
 
-(resource/defresource policy
-  "Configure tomcat policies.
-number - determines sequence i which policies are applied
-name - a name for the policy
-grants - a map from codebase to sequence of permissions"
-  policy* [number name grants & options])
-
-(defn application-conf*
-  [name content & options]
-  (let [app-file (str tomcat-config-root "Catalina/localhost/" name ".xml")
-        options (merge {:action :create} (apply hash-map options))]
-    (condp = (options :action)
-      :create (remote-file*
-               app-file
-               :content content
-               :literal true)
-      :remove (file/file* app-file :action :delete))))
-
-(resource/defresource application-conf
+(defn application-conf
   "Configure tomcat applications.
-name - a name for the policy
-content - an xml application context"
-  application-conf* [name content & options])
-
+   name - a name for the policy
+   content - an xml application context"
+  [request name content & {:keys [action] :or {action :create} :as options}]
+  (let [app-file (str tomcat-config-root "Catalina/localhost/" name ".xml")]
+    (case action
+      :create (remote-file request app-file :content content :literal true)
+      :remove (file/file request app-file :action :delete))))
 
 (defn users*
   [roles users]
@@ -165,17 +153,15 @@ content - an xml application context"
         (recur (nnext args) (merge users {(first args) (fnext args)}) roles))
       [roles users])))
 
-(defn apply-tomcat-user [args]
-  (let [[roles users] (merge-tomcat-users (apply concat args))]
-    (users* roles users)))
-
 (resource/defaggregate user
-  "Configure tomcat users.
-   options are:
-
-   :role rolename
-   username {:password \"pw\" :roles [\"role1\" \"role 2\"]}"
-  apply-tomcat-user [& options])
+  "Configure tomcat users. Options are:
+     :role rolename
+     username {:password \"pw\" :roles [\"role1\" \"role 2\"]}"
+  {:use-arglist [request & {:keys [role] :as options}]}
+  (apply-tomcat-user
+   [request args]
+   (let [[roles users] (merge-tomcat-users (apply concat args))]
+     (users* roles users))))
 
 (def listener-classnames
      {:apr-lifecycle
@@ -421,11 +407,6 @@ content - an xml application context"
                :type (classname-for resource-type resource-classnames)
                options))
 
-;; (defmacro defresource
-;;   "Define a tomcat JNDI resource"
-;;   [name name-string resource-type & options]
-;;   `(def ~name (apply jndi-resource ~name-string ~resource-type ~@options)))
-
 (defn transaction
   "Define tomcat transaction factory."
   [factory-classname]
@@ -558,24 +539,23 @@ content - an xml application context"
    :collections [::listener ::service]
    options))
 
-(defn server-configuration*
+(resource/defresource server-configuration
   "Define a tomcat server.  When a key is not specified, the relevant section
    of the template is output, unmodified.
    Options include:
      :class-name       imlementation class - org.apache.catalina.Server
      :port             shutdown listen port - 8005
      :shutdown         shutdown command string - SHUTDOWN
-     ::listeners        vector of listeners, each described as an attribute/value map.
-                       The listener can be specified using the ::listener key and
-                       one of the listener-classname values, or as a :className key.
+     ::listeners       vector of listeners, each described as an attribute/value
+                       map. The listener can be specified using the ::listener
+                       key and one of the listener-classname values, or as
+                       a :className key.
      ::services         vector of services
      ::global-resources vector of resources."
-  [server]
-  (remote-file*
-   (str tomcat-base "conf/server.xml")
-   :content (apply
-             str (tomcat-server-xml (target/node-type) server))))
-
-(resource/defresource server-configuration
-  "Configure tomcat. Accepts a server definition."
-  server-configuration* [server])
+  (server-configuration*
+   [request server]
+   (remote-file*
+    request
+    (str tomcat-base "conf/server.xml")
+    :content (apply
+              str (tomcat-server-xml (:node-type request) server)))))

@@ -22,17 +22,19 @@
    e.g. (write \"tomcat6\"
           :JAVA_OPTS \"-Xmx1024m\"
           \"JSP_COMPILER\" \"javac\")"
-  [filename & key-value-pairs]
+  [request filename & key-value-pairs]
   (let [file (str default-dir "/" filename)
         original (str default-dir "/" filename ".orig")]
-    (exec-script/exec-script
-      (script/script
-        (if (not (file-exists? ~original))
-          (cp ~file ~original))))
-    (remote-file/remote-file file
-      :owner "root:root"
-      :mode 644
-      :content (string/join \newline (for [[k v] (partition 2 key-value-pairs)
-                                           :let [k (if (string? k) k (name k))]]
-                                       (str k "=" (quoted v)))))))
-
+    (-> request
+        (exec-script/exec-script
+         (if (not (file-exists? ~original))
+           (cp ~file ~original)))
+        (remote-file/remote-file
+         file
+         :owner "root:root"
+         :mode 644
+         :content (string/join
+                   \newline
+                   (for [[k v] (partition 2 key-value-pairs)
+                         :let [k (if (string? k) k (name k))]]
+                     (str k "=" (quoted v))))))))

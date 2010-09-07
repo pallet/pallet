@@ -3,16 +3,28 @@
   (:use [pallet.stevedore :only [script]]
         [pallet.resource :only [build-resources]]
         clojure.test
-        pallet.test-utils))
-
-(use-fixtures :each with-null-target)
+        pallet.test-utils)
+  (:require
+   [pallet.resource.remote-file :as remote-file]))
 
 (deftest service-test
   (is (= "/etc/init.d/tomcat start\n"
-         (build-resources [] (service "tomcat"))))
+         (first (build-resources [] (service "tomcat")))))
   (is (= "/etc/init.d/tomcat stop\n"
-         (build-resources [] (service "tomcat" :action :stop)))))
+         (first (build-resources [] (service "tomcat" :action :stop))))))
 
 (deftest with-restart-test
   (is (= "/etc/init.d/tomcat stop\n/etc/init.d/tomcat start\n"
-         (build-resources [] (with-restart "tomcat")))))
+         (first (build-resources [] (with-restart "tomcat"))))))
+
+(deftest init-script-test
+  (is (= (first (build-resources
+                 []
+                 (remote-file/remote-file
+                  "/etc/init.d/tomcat"
+                  :action :create
+                  :content "c"
+                  :owner "root"
+                  :group "root"
+                  :mode "0755")))
+         (first (build-resources [] (init-script "tomcat" :content "c"))))))

@@ -43,12 +43,12 @@
     (remote-file/remote-file
      tarpath :url (ftp-path version) :md5 (get iozone-md5s version "x"))
     (directory/directory iozone-install-dir :owner "root")
-    (exec-script/exec-script
-     (stevedore/checked-script "Build iozone"
-      (cd ~iozone-install-dir)
-      (tar x --strip-components=1 -f ~tarpath)
-      (cd ~(str iozone-install-dir "/src/current"))
-      (make "linux")))  ; cludge
+    (exec-script/exec-checked-script
+     "Build iozone"
+     (cd ~iozone-install-dir)
+     (tar x --strip-components=1 -f ~tarpath)
+     (cd ~(str iozone-install-dir "/src/current"))
+     (make "linux"))                    ; cludge
     (remote-file/remote-file
      "/usr/local/bin/iozone"
      :remote-file (str iozone-install-dir "/src/current/iozone")

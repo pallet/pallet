@@ -21,7 +21,8 @@
   (is (jclouds/running? (make-node "a" :state NodeState/RUNNING))))
 
 (deftest print-method-test
-  (is (= "             a\t  null\n\t\t null\n\t\t RUNNING\n\t\t public:   private: " (with-out-str (print (make-node "a"))))))
+  (is (= "             a\t  null\n\t\t ubuntu Some arch Ubuntu Desc\n\t\t RUNNING\n\t\t public:   private: "
+         (with-out-str (print (make-node "a"))))))
 
 (deftest node-os-family-test
   (is (= :ubuntu

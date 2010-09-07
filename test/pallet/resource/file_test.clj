@@ -4,9 +4,9 @@
         [pallet.resource :only [build-resources]]
         clojure.test
         pallet.test-utils)
-  (:require [pallet.stevedore :as stevedore]))
-
-(use-fixtures :each with-null-target)
+  (:require
+   [pallet.resource :as resource]
+   [pallet.stevedore :as stevedore]))
 
 (deftest rm-test
   (is (= "rm --force file1"
@@ -42,15 +42,15 @@
 
 (deftest file-test
   (is (= "echo \"file file1...\"\n{ touch  file1; } || { echo file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
-         (build-resources [] (file "file1"))))
+         (first (build-resources [] (file "file1")))))
   (is (= "echo \"file file1...\"\n{ touch  file1 && chown  user1 file1; } || { echo file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
-         (build-resources [] (file "file1" :owner "user1"))))
+         (first (build-resources [] (file "file1" :owner "user1")))))
   (is (= "echo \"file file1...\"\n{ touch  file1 && chown  user1 file1; } || { echo file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
-         (build-resources [] (file "file1" :owner "user1" :action :create))))
+         (first (build-resources [] (file "file1" :owner "user1" :action :create)))))
   (is (= "echo \"file file1...\"\n{ touch  file1 && chgrp  group1 file1; } || { echo file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
-         (build-resources [] (file "file1" :group "group1" :action :touch))))
+         (first (build-resources [] (file "file1" :group "group1" :action :touch)))))
   (is (= "echo \"file file1...\"\n{ rm --force file1; } || { echo file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
-         (build-resources [] (file "file1" :action :delete :force true)))))
+         (first (build-resources [] (file "file1" :action :delete :force true))))))
 
 (deftest sed-file-test
   (is (= "sed -i -e \"s|a|b|\" path"
@@ -60,4 +60,8 @@
   (is (= (stevedore/checked-commands
           "sed file path"
           "sed -i -e \"s|a|b|\" path")
-         (sed* "path" {"a" "b"} {:seperator "|"}))))
+         (sed* {} "path" {"a" "b"} :seperator "|")))
+  (is
+   (resource/build-resources
+    []
+    (sed "path" {"a" "b"} :seperator "|"))))

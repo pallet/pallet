@@ -5,38 +5,48 @@
    [pallet.resource.directory :as directory]
    [pallet.resource.remote-file :as remote-file]))
 
-(defn remote-directory*
-  [path & options]
-  (let [options (apply hash-map options)]
-    (condp = (get options :action :create)
-      (let [url (options :url)
-            unpack (options :unpack :tar)]
-        (when (and url unpack)
-          (let [filename (.getName (java.io.File. (.getFile (java.net.URL. url))))
-                tarpath (str (stevedore/script (tmp-dir)) "/" filename)]
-            (stevedore/checked-commands
-             "remote-directory"
-             (apply directory/directory*
-                    path (apply concat (select-keys options [:owner :group])))
-             (remote-file/remote-file*
-              tarpath :url url :md5 (options :md5) :md5-url (:md5-url options))
-             (condp = unpack
-               :tar (stevedore/script
-                     (cd ~path)
-                     (tar ~(get options :tar-options "xz")
-                         ~(str "--strip-components="
-                               (get options :strip-components 1))
-                         -f ~tarpath)))
-             (if (:recursive options)
-               (apply
-                directory/directory*
-                path (apply concat
-                            (select-keys options [:owner :group :recursive])))))))))))
-
 (resource/defresource remote-directory
   "Specify the contents of remote directory.
    Options:
-     :url         - a url to download content from
-     :unpack      - how download should be extracts (default :tar)
-     :tar-options - options to pass to tar (default \"xz\")"
-  remote-directory* [path & options])
+     :url              - a url to download content from
+     :unpack           - how download should be extracts (default :tar)
+     :tar-options      - options to pass to tar (default \"xz\")
+     :strip-components - number of pathc ompnents to remove when unpacking
+     :md5              - md5 of file to unpack
+     :md5-url          - url of md5 file for file to unpack
+     :owner            - owner of files
+     :group            - group of files
+     :recursive        - flag to recursively set owner and group"
+  (remote-directory*
+   [request path & {:keys [action url unpack tar-options strip-components
+                           md5 md5-url owner group recursive]
+                    :or {action :create
+                         tar-options "xz"
+                         strip-components 1}
+                    :as options}]
+
+   (case action
+     :create (let [url (options :url)
+                   unpack (options :unpack :tar)]
+               (when (and url unpack)
+                 (let [filename (.getName
+                                 (java.io.File. (.getFile (java.net.URL. url))))
+                       tarpath (str (stevedore/script (tmp-dir)) "/" filename)]
+                   (stevedore/checked-commands
+                    "remote-directory"
+                    (directory/directory*
+                     request path :owner owner :group group)
+                    (remote-file/remote-file*
+                     request tarpath :url url :md5 md5 :md5-url md5-url)
+                    (condp = unpack
+                        :tar (stevedore/script
+                              (cd ~path)
+                              (tar ~tar-options
+                                   ~(str "--strip-components=" strip-components)
+                                   -f ~tarpath)))
+                    (if recursive
+                      (directory/directory*
+                       request path
+                       :owner owner
+                       :group group
+                       :recursive recursive)))))))))

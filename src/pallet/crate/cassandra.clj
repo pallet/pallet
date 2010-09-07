@@ -1,6 +1,7 @@
 (ns pallet.crate.cassandra
   (:require
-   [pallet.arguments :as arguments]
+   [pallet.argument :as argument]
+   [pallet.parameter :as pallet.parameter]
    [pallet.resource :as resource]
    [pallet.resource.package :as package]
    [pallet.parameter :as parameter]
@@ -21,12 +22,13 @@
 (def cassandra-group "cassandra")
 
 (defn from-package
-  []
-  (package/package-source
-   "cassandra"
-   :aptitude {:url "ppa:cassandra-ubuntu/stable"})
-  (package/package-manager :update)
-  (package/package "cassandra"))
+  [request]
+  (-> request
+   (package/package-source
+    "cassandra"
+    :aptitude {:url "ppa:cassandra-ubuntu/stable"})
+   (package/package-manager :update)
+   (package/package "cassandra")))
 
 (defn url "Download url"
   [version]
@@ -36,67 +38,45 @@
 
 (defn install
   "Install Cassandra"
-  [& options]
-  (let [options (apply hash-map options)
-        version (options :version "0.6.3")
-        url (url version)]
-    (resource/parameters
-     [:cassandra :home] (format "%s-%s" install-path version)
-     [:cassandra :owner] (:user options cassandra-user)
-     [:cassandra :group] (:group options cassandra-group))
-    (remote-directory/remote-directory
-     (parameter/lookup :cassandra :home)
-     :url url
-     :md5-url (str url ".md5")
-     :unpack :tar
-     :tar-options "xz"
-     :owner (parameter/lookup :cassandra :user)
-     :group (parameter/lookup :cassandra :group))
-    (directory/directory
-     log-path
-     :owner (parameter/lookup :cassandra :user)
-     :group (parameter/lookup :cassandra :group)
-     :mode "0755")
-    (directory/directory
-     config-path
-     :owner (parameter/lookup :cassandra :user)
-     :group (parameter/lookup :cassandra :group)
-     :mode "0755")
-    (directory/directory
-     data-path
-     :owner (parameter/lookup :cassandra :user)
-     :group (parameter/lookup :cassandra :group)
-     :mode "0755")
-    (remote-file/remote-file
-     (format "%s/log4j.properties" config-path)
-     :remote-file (arguments/delayed
-                   (format "%s/conf/log4j.properties"
-                           (parameter/get-for [:cassandra :home])))
-     :owner (parameter/lookup :cassandra :user)
-     :group (parameter/lookup :cassandra :group)
-     :mode "0644")
-    (remote-file/remote-file
-     (format "%s/storage-conf.xml" config-path)
-     :remote-file (arguments/delayed
-                   (format "%s/conf/storage-conf.xml"
-                           (parameter/get-for [:cassandra :home])))
-     :owner (parameter/lookup :cassandra :user)
-     :group (parameter/lookup :cassandra :group)
-     :mode "0644")
-    (remote-file/remote-file
-     (format "%s/storage-conf.xml" config-path)
-     :remote-file (arguments/delayed
-                   (format "%s/cassandra.in.sh"
-                           (parameter/get-for [:cassandra :home])))
-     :owner (parameter/lookup :cassandra :user)
-     :group (parameter/lookup :cassandra :group)
-     :mode "0644")
-    (file/sed
-     (format "%s/log4j.properties" config-path)
-     {"log4j.rootLogger=INFO, CONSOLE"
-      "log4j.rootLogger=INFO, ROLLINGFILE"
-      "log4j.appender.ROLLINGFILE.File=cassandra.log"
-      (format "log4j.appender.ROLLINGFILE.File=%s/cassandra.log" log-path)}
-     {:seperator "|"})))
-
-
+  [request & {:keys [version user group]
+              :or {version "0.6.3"}
+              :as options}]
+  (let [url (url version)
+        owner (or user cassandra-user)
+        group (or group cassandra-group)
+        home (format "%s-%s" install-path version)]
+    (->
+     request
+     (parameter/parameters
+      [:cassandra :home] home
+      [:cassandra :owner] owner
+      [:cassandra :group] group)
+     (remote-directory/remote-directory
+      home
+      :url url :md5-url (str url ".md5")
+      :unpack :tar :tar-options "xz" :owner owner :group group)
+     (directory/directory
+      log-path :owner owner :group group :mode "0755")
+     (directory/directory
+      config-path :owner owner :group group :mode "0755")
+     (directory/directory
+      data-path :owner owner :group group :mode "0755")
+     (remote-file/remote-file
+      (format "%s/log4j.properties" config-path)
+      :remote-file (format "%s/conf/log4j.properties" home)
+      :owner owner :group group :mode "0644")
+     (remote-file/remote-file
+      (format "%s/storage-conf.xml" config-path)
+      :remote-file (format "%s/conf/storage-conf.xml" home)
+      :owner owner :group group :mode "0644")
+     (remote-file/remote-file
+      (format "%s/storage-conf.xml" config-path)
+      :remote-file (format "%s/cassandra.in.sh" home)
+      :owner owner :group group :mode "0644")
+     (file/sed
+      (format "%s/log4j.properties" config-path)
+      {"log4j.rootLogger=INFO, CONSOLE"
+       "log4j.rootLogger=INFO, ROLLINGFILE"
+       "log4j.appender.ROLLINGFILE.File=cassandra.log"
+       (format "log4j.appender.ROLLINGFILE.File=%s/cassandra.log" log-path)}
+      :seperator "|"))))

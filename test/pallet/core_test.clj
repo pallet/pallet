@@ -73,26 +73,32 @@
   (defnode a [:ubuntu])
   (defnode b [])
   (let [n1 (compute/make-node "n1")]
-    (is (= {:tag :a :image [:ubuntu] :phases {}}
-           (augment-template-from-node n1 a))))
+    (is (= {:tag :a :image [:ubuntu :ubuntu] :phases nil}
+           (:node-type
+            ((augment-template-from-node identity)
+             {:target-node n1 :node-type a})))))
   (let [n1 (compute/make-node
             "n1"
             :operating-system (OperatingSystem.
-                              OsFamily/UBUNTU
-                              "Ubuntu"
-                              "Some version"
-                              "Some arch"
-                              "Desc"
-                              true))]
-    (is (= {:tag :a :image [:ubuntu :ubuntu] :phases {}}
-           (augment-template-from-node n1 a)))
-    (is (= {:tag :b :image [:ubuntu] :phases {}}
-           (augment-template-from-node n1 b)))))
+                               OsFamily/UBUNTU
+                               "Ubuntu"
+                               "Some version"
+                               "Some arch"
+                               "Desc"
+                               true))]
+    (is (= {:tag :a :image [:ubuntu :ubuntu] :phases nil}
+           (:node-type
+            ((augment-template-from-node identity)
+             {:target-node n1 :node-type a}))))
+    (is (= {:tag :b :image [:ubuntu] :phases nil}
+           (:node-type
+            ((augment-template-from-node identity)
+             {:target-node n1 :node-type b}))))))
 
 (deftest converge-node-counts-test
   (defnode a [:ubuntu])
   (let [a-node (compute/make-node "a" :state NodeState/RUNNING)]
-    (converge-node-counts nil {a 1} [a-node]))
+    (converge-node-counts nil {a 1} [a-node] {}))
   (mock/expects [(org.jclouds.compute/run-nodes
                   [tag n template compute]
                   (mock/once
@@ -101,7 +107,7 @@
                   [compute & options]
                   (mock/once :template))]
     (let [a-node (compute/make-node "a" :state NodeState/TERMINATED)]
-      (converge-node-counts nil {a 1} [a-node]))))
+      (converge-node-counts nil {a 1} [a-node] {}))))
 
 (deftest nodes-in-map-test
   (defnode a [:ubuntu])
@@ -162,76 +168,101 @@
 
 (deftest compute-service-and-options-test
   (binding [org.jclouds.compute/*compute* :compute]
-    (is (= [:compute nil 'a '()]
-           (compute-service-and-options 'a [])))
-        (is (= [:compute "prefix" 'a '()]
-           (compute-service-and-options "prefix" ['a])))))
+    (testing "defaults"
+      (is (= [:compute nil 'a nil '() {:user utils/*admin-user*}]
+               (compute-service-and-options 'a []))))
+    (testing "passing a prefix"
+      (is (= [:compute "prefix" 'a nil '() {:user utils/*admin-user*}]
+               (compute-service-and-options "prefix" ['a]))))
+    (testing "passing a user"
+      (let [user (utils/make-user "fred")]
+        (is (= [:compute "prefix" 'a nil '() {:user user}]
+                 (compute-service-and-options "prefix" ['a user])))))
+    (testing "passing a node map"
+      (let [user (utils/make-user "fred")]
+        (is (= [:compute "prefix" 'a {'a 'b} '() {:user user}]
+                 (compute-service-and-options "prefix" ['a {'a 'b} user])))))))
 
-(defn- test-component-fn [arg]
-  (str arg))
-
-(resource/defresource test-component test-component-fn [arg & options])
+(resource/defresource test-component
+  (test-component-fn
+   [request arg & options]
+   (str arg)))
 
 (deftest make-node-test
-  (is (= {:tag :fred :image [:ubuntu] :phases {}}
+  (is (= {:tag :fred :image [:ubuntu] :phases nil}
          (make-node "fred" [:ubuntu])))
-  (is (= {:tag :tom :image [:centos] :phases {}}
+  (is (= {:tag :tom :image [:centos] :phases nil}
          (make-node "tom" [:centos]))))
 
 (deftest defnode-test
   (defnode fred [:ubuntu])
-  (is (= {:tag :fred :image [:ubuntu] :phases {}} fred))
-  (defnode tom [:centos])
-  (is (= {:tag :tom :image [:centos] :phases {}} tom))
+  (is (= {:tag :fred :image [:ubuntu] :phases nil} fred))
+  (defnode tom "This is tom" [:centos])
+  (is (= {:tag :tom :image [:centos] :phases nil} tom))
+  (is (= "This is tom" (:doc (meta #'tom))))
   (defnode harry (tom :image))
-  (is (= {:tag :harry :image [:centos] :phases {}} harry))
+  (is (= {:tag :harry :image [:centos] :phases nil} harry))
   (defnode with-phases (tom :image)
-    :bootstrap [(test-component :a)]
-    :configure [(test-component :b)])
-  (is (= [:bootstrap :configure] (keys (with-phases :phases))))
-  (resource/with-target [(compute/make-node "tag") {}]
+    :bootstrap (resource/phase (test-component :a))
+    :configure (resource/phase (test-component :b)))
+  (is (= #{:bootstrap :configure} (set (keys (with-phases :phases)))))
+  (let [request {:target-node (compute/make-node "tag" :id "id")
+                 :target-id :id
+                 :node-type with-phases}]
     (is (= ":a\n"
-           (resource/produce-phases
-            [:bootstrap] (with-phases :phases))))
+           (first
+            (resource/produce-phases
+             [:bootstrap]
+             (resource-invocations (assoc request :phase :bootstrap))))))
     (is (= ":b\n"
-           (resource/produce-phases
-            [:configure] (with-phases :phases))))))
+           (first
+            (resource/produce-phases
+             [:configure]
+             (resource-invocations (assoc request :phase :configure))))))))
+
+(defresource identity-resource
+  (identity-resource* [request x] x))
+
+(deflocal identity-local-resource
+  (identity-local-resource* [request] request))
 
 (deftest produce-init-script-test
   (is (= "a\n"
          (produce-init-script
-          {:image [] :phases {:bootstrap {:in-sequence
-                                          [[identity ["a"] :remote]]}}})))
-  (is (thrown? clojure.contrib.condition.Condition
+          {:node-type {:image []
+                       :phases {:bootstrap (phase (identity-resource "a"))}}
+           :target-id :id})))
+  (testing "rejects local resources"
+    (is (thrown?
+         clojure.contrib.condition.Condition
          (produce-init-script
-          {:image [] :phases {:bootstrap {:in-sequence
-                                          [[identity ["a"] :local]]}}}))))
+          {:node-type
+           {:image []
+            :phases {:bootstrap (phase (identity-local-resource))}}
+           :target-id :id})))))
 
 
 (let [seen (atom nil)]
   (defn seen? [] @seen)
-  (defn localf*
-    []
-    (reset! seen true)
-    (is (target/node))
-    (is (target/node-type))))
+  (deflocal localf
+    (localf*
+     [request]
+     (reset! seen true)
+     (is (:target-node request))
+     (is (:node-type request))
+     request))
 
-(deftest lift-test
-  (defnode x [])
-  (deflocal localf localf* [])
-  (is (.contains
-       "bin"
-       (with-no-compute-service
-         (with-admin-user (assoc utils/*admin-user* :no-sudo true)
-           (with-out-str
-             (lift {x (compute/make-unmanaged-node "x" "localhost")}
-                   (phase
-                    (exec-script/exec-script
-                     (stevedore/script
-                      (ls "/"))))
-                   (phase
-                    (localf))))))))
-  (is (seen?)))
+  (deftest lift-test
+    (defnode x [])
+    (is (.contains
+         "bin"
+         (with-no-compute-service
+           (with-admin-user (assoc utils/*admin-user* :no-sudo true)
+             (with-out-str
+               (lift {x (compute/make-unmanaged-node "x" "localhost")}
+                     (phase (exec-script/exec-script (ls "/")))
+                     (phase (localf))))))))
+    (is (seen?))))
 
 (deftest lift*-nodes-binding-test
   (defnode a [])
@@ -240,17 +271,19 @@
         nb (compute/make-node "b")
         nc (compute/make-node "c" :state NodeState/TERMINATED)]
     (mock/expects [(apply-phase
-                    [compute all-nodes target-nodes & _]
+                    [compute wrapper nodes request]
                     (do
-                      (is (= #{na nb} (set all-nodes)))
-                      (is (= #{na nb} (set target-nodes)))))]
-                  (lift* nil "" {a #{na nb nc}} [:configure]))
+                      (is (= #{na nb} (set (:all-nodes request))))
+                      (is (= #{na nb} (set (:target-nodes request))))))]
+                  (lift* nil "" {a #{na nb nc}} nil [:configure]
+                         {:user utils/*admin-user*}))
     (mock/expects [(apply-phase
-                    [compute all-nodes target-nodes & _]
+                    [compute wrapper nodes request]
                     (do
-                      (is (= #{na nb} (set all-nodes)))
-                      (is (= #{na nb} (set target-nodes)))))]
-                  (lift* nil "" {a #{na} b #{nb}} [:configure]))))
+                      (is (= #{na nb} (set (:all-nodes request))))
+                      (is (= #{na nb} (set (:target-nodes request))))))]
+                  (lift* nil "" {a #{na} b #{nb}} nil [:configure]
+                         {:user utils/*admin-user*}))))
 
 (deftest lift-multiple-test
   (defnode a [])
@@ -260,10 +293,10 @@
         nc (compute/make-node "c")]
     (mock/expects [(org.jclouds.compute/nodes-with-details [_] [na nb nc])
                    (apply-phase
-                    [compute all-nodes target-nodes & _]
+                    [compute wrapper nodes request]
                     (do
-                      (is (= #{na nb nc} (set all-nodes)))
-                      (is (= #{na nb} (set target-nodes)))))]
+                      (is (= #{na nb nc} (set (:all-nodes request))))
+                      (is (= #{na nb} (set (:target-nodes request))))))]
                   (binding [jclouds/*compute* :dummy]
                     (lift [a b] :configure)))))
 
@@ -274,12 +307,12 @@
         nb (compute/make-node "b")
         nc (compute/make-node "b" :state NodeState/TERMINATED)]
     (mock/expects [(apply-phase
-                    [compute all-nodes target-nodes & _]
+                    [compute wrapper nodes request]
                     (do
-                      (is (= #{na nb} (set all-nodes)))
-                      (is (= #{na nb} (set target-nodes)))))
+                      (is (= #{na nb} (set (:all-nodes request))))
+                      (is (= #{na nb} (set (:target-nodes request))))))
                    (org.jclouds.compute/nodes-with-details [& _] [na nb nc])]
-                  (converge* nil "" {a 1 b 1} [:configure]))))
+                  (converge* nil "" {a 1 b 1} nil [:configure] {}))))
 
 (deftest converge-test
   (pallet.compute-test-utils/purge-compute-service)

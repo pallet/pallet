@@ -24,14 +24,15 @@
                    target-dir (tmpdir)]
     ;; this is convoluted to get around the "t" sticky bit on temp dirs
     (let [user (assoc utils/*admin-user*
-                 :username (test-username) :no-sudo true)]
+                 :username (test-username) :no-sudo true)
+          node (compute/make-unmanaged-node "tag" "localhost")]
       (io/copy "text" tmp)
       (core/defnode tag [])
-      (core/apply-phase-to-node
-       nil tag (compute/make-unmanaged-node "tag" "localhost")
-       (resource/phase (rsync (.getPath dir) (.getPath target-dir) {}))
-       user
-       core/execute-with-user-credentials)
+
+      (core/lift*
+       nil "" {tag node} nil
+       [(resource/phase (rsync (.getPath dir) (.getPath target-dir) {}))]
+       {:user user})
       (let [target-tmp (java.io.File.
                         (str (.getPath target-dir)
                              "/" (.getName dir)

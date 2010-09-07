@@ -1,7 +1,10 @@
 (ns pallet.crate.ganglia-test
   (:use pallet.crate.ganglia)
   (:use clojure.test
-        pallet.test-utils))
+        pallet.test-utils)
+  (:require
+   [pallet.resource :as resource]
+   [pallet.compute :as compute]))
 
 (deftest format-value-test
   (testing "basic map"
@@ -16,3 +19,14 @@
   (testing "include"
     (is (= "include (\"/a/b/c\")\n"
            (format-value {:include "/a/b/c"})))))
+
+(testing "invoke"
+  (is (resource/build-resources
+       [:target-node (compute/make-node "tag" :id "id")
+        :node-type {:image [:ubuntu] :tag :tag}]
+       (install)
+       (monitor)
+       (configure)
+       (metrics {})
+       (check-ganglia-script)
+       (nagios-monitor-metric "m" 90 100))))

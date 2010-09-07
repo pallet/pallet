@@ -1,10 +1,9 @@
 (ns pallet.crate.resolv-test
   (:use pallet.crate.resolv)
-  (:require [pallet.resource :only [reset-resources build-resources]])
+  (:require
+   [pallet.resource :as resource :only [reset-resources build-resources]])
   (:use clojure.test
         pallet.test-utils))
-
-(use-fixtures :each with-null-target)
 
 (with-private-vars [pallet.crate.resolv
                     [write-key-value write-option write-options write
@@ -20,7 +19,8 @@
     (is (= "key:value" (write-option [:key :value]))))
 
   (deftest write-options-test
-    (is (= "options key1 key2:value\n" (write-options {:key1 true :key2 "value"}))))
+    (is (= "options key1 key2:value\n"
+           (write-options {:key1 true :key2 "value"}))))
 
   (deftest write-test
     (is (= "domain domainname.somewhere.com
@@ -68,7 +68,9 @@ EOF
 chmod 0644 ${file}
 chown root ${file}
 "
-       (pallet.resource/build-resources []
-        (resolv "domain" ["123.123.123.123" "123.123.123.123"]
-                :search "some.domain" :sort "123.12.32.12"
-                :rotate true :attempts 2)))))
+       (first
+        (resource/build-resources
+         []
+         (resolv "domain" ["123.123.123.123" "123.123.123.123"]
+                 :search "some.domain" :sort "123.12.32.12"
+                 :rotate true :attempts 2))))))

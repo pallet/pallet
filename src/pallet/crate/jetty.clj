@@ -1,6 +1,7 @@
 (ns pallet.crate.jetty
   "Installation of jetty."
   (:require
+   [pallet.parameter :as pallet.parameter]
    [pallet.resource.directory :as directory]
    [pallet.resource.remote-directory :as remote-directory]
    [pallet.resource.remote-file :as remote-file]
@@ -33,7 +34,7 @@
   [& options]
   (let [options (apply hash-map options)
         path (download-path (:version options default-version))]
-    (resource/parameters
+    (parameter/parameters
        [:jetty :base] install-path
        [:jetty :owner] jetty-user
        [:jetty :group] jetty-group)
@@ -152,4 +153,4 @@
      (apply concat options))
     (when (:clear-existing opts)
       (exec-script/exec-script
-        (stevedore/script (rm ~exploded-app-dir ~{:r true :f true}))))))
+       (rm ~exploded-app-dir ~{:r true :f true})))))

@@ -2,12 +2,16 @@
   (:use pallet.crate.zookeeper)
   (:use
    clojure.test
-   pallet.test-utils))
-
-(use-fixtures :each with-null-target)
+   pallet.test-utils)
+  (:require
+   [pallet.compute :as compute]
+   [pallet.resource :as resource]))
 
 (deftest zookeeper-test
   (is ; just check for compile errors for now
-   (test-resource-build
-    [nil {:image [:ubuntu]}]
-    (install))))
+   (resource/build-resources
+    [:target-node (compute/make-node "tag")
+     :node-type {:tag "tag" :image [:ubuntu]}]
+    (install)
+    (configure)
+    (init))))

@@ -6,29 +6,26 @@
    [pallet.resource.package :as package]
    [pallet.stevedore :as stevedore]
    [pallet.target :as target]
+   [pallet.execute :as execute]
    [pallet.utils :as utils]
    [clojure.contrib.logging :as logging]))
 
 (def cmd "/usr/bin/rsync -e '%s' -rP --delete --copy-links -F -F %s %s@%s:%s")
 
-(defn rsync*
-  [from to options]
-  (logging/info (format "rsync %s to %s" from to))
-  (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
-                 (if-let [port (:port options)] (format "-p %s" port)))
-        cmd (format
-             cmd ssh from (:username utils/*admin-user*)
-             (compute/primary-ip (target/node)) to)]
-    (utils/sh-script cmd)))
-
 (resource/deflocal rsync
-  rsync* [from to options])
+  (rsync*
+   [request from to {:keys [port]}]
+   (logging/info (format "rsync %s to %s" from to))
+   (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
+                  (if port (format "-p %s" port)))
+         cmd (format
+              cmd ssh from (:username utils/*admin-user*)
+              (compute/primary-ip (:target-node request)) to)]
+     (execute/sh-script cmd))))
 
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
-  [from to & options]
-  (let [options (apply hash-map options)]
-    (package/package "rsync")
-    (apply directory/directory to
-           (apply concat (select-keys options [:owner :group :mode])))
-    (rsync from to options)))
+  [from to & {:keys [owner group mode port] :as options}]
+  (package/package "rsync")
+  (directory/directory to :owner owner :group group :mode mode)
+  (rsync from to options))

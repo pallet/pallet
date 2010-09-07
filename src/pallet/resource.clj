@@ -1,40 +1,15 @@
 (ns pallet.resource
-  "Resource definition interface."
+  "Resource definition."
   (:require
-   pallet.arguments
-   [pallet.target :as target]
-   [pallet.compute :as compute]
-   [pallet.parameter :as parameter]
+   [pallet.argument :as argument]
    [pallet.utils :as utils]
+   [pallet.script :as script]
    [clojure.contrib.seq :as seq]
    [clojure.contrib.string :as string]
    [clojure.contrib.logging :as logging])
   (:use
-   (clojure.contrib core
-                    [def :only [defvar defvar- name-with-attributes]])))
-
-(defvar *required-resources* {}
-  "Resources for each phase. This is a map from phase -> map, where
-each map entry is an execution type -> seq of [invoke-fn args location].")
-
-(defvar *phase* :configure "Execution phase for resources")
-
-(defn reset-resources
-  "Reset the list of resources that should be applied to a target"
-  [] (set! *required-resources* {}))
-
-(defmacro with-init-resources
-  "Invokes ~@body within a context where the required resources are initially
-   bound to the value of ~resources."
-  [resources & body]
-  `(binding [*required-resources* (or ~resources {})]
-     ~@body))
-
-(defmacro in-phase
-  "Specify the phase for excution of resources."
-  [phase & body]
-  `(binding [*phase* ~phase]
-     ~@body))
+   [clojure.contrib.def :only [defunbound defvar defvar- name-with-attributes]]
+   clojure.contrib.core))
 
 (defn pre-phase
   "Calculate the name for the pre-phase"
@@ -48,15 +23,23 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
 
 (defmacro execute-pre-phase
   "Specify the pre phase for execution of resources."
-  [& body]
-  `(binding [*phase* (pre-phase *phase*)]
-     ~@body))
+  [request & body]
+  `(let [request# ~request
+         phase# (:phase request#)]
+     (->
+      (assoc request# :phase (pre-phase phase#))
+      ~@body
+      (assoc :phase phase#))))
 
 (defmacro execute-after-phase
   "Specify the after phase for execution of resources."
-  [& body]
-  `(binding [*phase* (after-phase *phase*)]
-     ~@body))
+  [request & body]
+  `(let [request# ~request
+         phase# (:phase request#)]
+     (->
+      (assoc request# :phase (after-phase phase#))
+      ~@body
+      (assoc :phase phase#))))
 
 (defn invoke-resource
   "Registers a resource whose generation is defined by the specified
@@ -82,43 +65,63 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
         resources. Note that all of the arguments to any given
         invocation fn are gathered such that there is only ever one
         invocation of each fn within each phase."
-  ([invoke-fn args] (invoke-resource invoke-fn args :in-sequence))
-  ([invoke-fn args execution]
+  ([request invoke-fn args]
+     (invoke-resource request invoke-fn args :in-sequence :script/bash))
+  ([request invoke-fn args execution]
+     (invoke-resource request invoke-fn args execution :script/bash))
+  ([request invoke-fn args execution resource-type]
+     {:pre [(keyword? (:phase request))
+            (keyword? (:target-id request))]}
      (let [[execution location] (if (= execution :local-in-sequence)
                                   [:in-sequence :local]
                                   [execution :remote])]
-       (set! *required-resources*
-             (update-in *required-resources*
-                        [*phase* execution]
-                        #(conj (or % []) [invoke-fn args location]))))))
+       (update-in
+        request
+        [:invocations (:phase request) (:target-id request) execution]
+        #(conj
+          (or % [])
+          {:f invoke-fn
+           :args args
+           :location location
+           :type resource-type})))))
 
-(defn- group-pairs-by-key
-  "Transforms a seq of key-value pairs, generally some with identical keys
-   into a seq of pairs (one per unique key in the input seq) where values
-   are the concatenation of all of the values of associated with each key
-   in the original seq.  Key order from the original seq is retained.
+(defn- group-by-function
+  "Transforms a seq of invocations, generally some with identical :f values
+   into a sequence of invocations where the :args are the concatenation of all
+   of the :args of associated with each :f in the original seq.  Sequence order
+   from the original seq is retained. Keys over than :f and :args are assumed
+   identical for a given :f value.
 
-   e.g. (group-pairs-by-key [[:a [1 2]] [:b [3 4]] [:a [5 6]] [:c [7 8]]]) =>
-        =>  ([:a ([1 2] [5 6])]
-              [:c ([7 8])]
-              [:b ([3 4])])"
+   e.g. (group-by-function
+           [{:f :a :args [1 2]}
+            {:f :b :args [3 4]}
+            {:f :a :args [5 6]}
+            {:f :c :args [7 8]]])
+        => ({:f :a :args ([1 2] [5 6])}
+            {:f :c :args ([7 8])}
+            {:f :b :args ([3 4])})"
   [invocations]
   (loop [groups []
-         [[invoke-fn] & pairs :as all] invocations]
-    (if-not invoke-fn
+         [{:keys [f] :as invocation} & more :as all] invocations]
+    (if-not invocation
       (for [invocations groups]
-        [(ffirst invocations) (map second invocations)])
-      (let [[matching rest] (seq/separate #(= (first %) invoke-fn) all)]
+        (assoc (first invocations)
+          :args (map :args invocations)))
+      (let [[matching rest] (seq/separate #(= (:f %) f) all)]
         (recur (conj groups matching) rest)))))
 
 
 (defn apply-evaluated
-  [f args]
-  (apply f (map #(when % (pallet.arguments/evaluate %)) args)))
+  [f args request]
+  (apply f request (map #(when % (argument/evaluate % request)) args)))
 
 (defn apply-aggregated-evaluated
-  [f args]
-  (f (map #(map (fn [x] (when x (pallet.arguments/evaluate x))) %) args)))
+  [f args request]
+  (f
+   request
+   (map
+    #(map (fn [x] (when x (argument/evaluate x request))) %)
+    args)))
 
 (defmulti invocations->resource-fns
   "Given an execution's invocations, will return a seq of
@@ -127,76 +130,114 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
 
 (defmethod invocations->resource-fns :in-sequence
   [_ invocations]
-  (for [[invoke-fn args location] (distinct invocations)]
-    [location (partial apply-evaluated invoke-fn args)]))
+  (for [{:keys [f args location type]} (distinct invocations)]
+    {:location location
+     :f (partial apply-evaluated f args)
+     :type type}))
 
 (defmethod invocations->resource-fns :aggregated
   [_ invocations]
-  (for [[invoke-fn args*] (group-pairs-by-key invocations)]
-    [:remote (partial apply-aggregated-evaluated invoke-fn args*)]))
+  (for [{:keys [f args location type]} (group-by-function invocations)]
+    {:location location
+     :f (partial apply-aggregated-evaluated f args)
+     :type type}))
 
 (defmethod invocations->resource-fns :collected
   [_ invocations]
-  (for [[invoke-fn args*] (group-pairs-by-key invocations)]
-    [:remote (partial apply-aggregated-evaluated invoke-fn args*)]))
+  (for [{:keys [f args location type]} (group-by-function invocations)]
+    {:location location
+     :f (partial apply-aggregated-evaluated f args)
+     :type type}))
 
 (defvar- execution-ordering [:aggregated :in-sequence :collected])
 
 (defn- execution-invocations
   "Sort by execution-ordering"
   [invocations]
-  (map #(vector % (invocations %)) execution-ordering))
+  (map #(vector % (% invocations)) execution-ordering))
 
-(defn configured-resources
+(defn bound-invocations
   "Configured resources for executions, binding args to methods."
-  [required-resources]
-  (into {}
-    (for [[phase invocations] required-resources]
-      [phase (apply
-              concat
-              (for [[execution invocations] (execution-invocations
-                                             invocations)]
-                (invocations->resource-fns execution invocations)))])))
+  [invocations]
+  (apply
+   concat
+   (for [[execution invocations] (execution-invocations invocations)]
+     (invocations->resource-fns execution invocations))))
+
+(defn arglist-finder [v]
+  (or (-?> (:copy-arglist v) resolve meta :arglists first)
+      (:use-arglist v)))
 
 (defmacro defresource
-  "Defines a resource-producing functions.  Takes a name, the
-   \"backing function\" that will actually produce the resource, the
-   argument signature that the function exposes, and optional arguments.
+  "Defines a resource-producing functions.  Takes a name, a vector specifying
+   the symbol to bind the request to and an optional execution phase and backing
+   function arguments, the argument signature that the function exposes and the
+   body of the resource.
 
-   Options:
-
-   :execution - the execution that the specified resource will be applied
-        within (see 'invoke-resource' for details).  The default is
-        :in-sequence"
-  [facility & args]
-  (let [[facility args] (name-with-attributes facility args)
-        [apply-fn args & options] args
-        options (apply hash-map options)]
-    `(defn ~facility [~@args]
-       (invoke-resource
-        #'~apply-fn
-        ~(if (some #{'&} args)
-           `(apply vector ~@(filter #(not (= '& %)) args))
-           `[~@args])
-        ~(:execution options :in-sequence)))))
-
-(defmacro defaggregate
-  "Shortcut for defining a resource-producing function with an
-   :execution of :aggregate."
+   A \"backing function\" that will actually produce the resource is defined
+   with name*."
   [name & args]
-  `(defresource ~name ~@(concat args [:execution :aggregated])))
-
-(defmacro defcollect
-  "Shortcut for defining a resource-producing function with an
-   :execution of :aggregate."
-  [name & args]
-  `(defresource ~name ~@(concat args [:execution :collected])))
+  (let [[name args] (name-with-attributes name args)
+        [body] args
+        apply-fn (first body)       ;(symbol (str (clojure.core/name name) "*"))
+        argv (second body)
+        execution (::execution (meta name) :in-sequence)
+        type (::type (meta name) :script/bash)
+        arglist (or (arglist-finder (meta name)) argv)
+        ;; remove so not used in an evaluated context
+        name (with-meta name
+               (dissoc (meta name) :use-arglist :copy-arglist))]
+    (assert (pos? (count argv)))        ; mandatory result argument
+    `(do
+       (defn ~@body)
+       (defn ~name
+         {:arglists '(~arglist)}
+         [& [~@arglist :as argv#]]
+         (invoke-resource
+          ~(first arglist)
+          #'~apply-fn
+          (rest argv#)
+          ~execution
+          ~type)))))
 
 (defmacro deflocal
   "Shortcut for defining a resource-producing function with an
-   :execution of :local."
+   :execution of :local-in-sequence."
   [name & args]
-  `(defresource ~name ~@(concat args [:execution :local-in-sequence])))
+    (let [[name args] (name-with-attributes name args)]
+    `(defresource
+       ~name
+       {::execution :local-in-sequence ::type :fn/clojure}
+       ~@args)))
+
+(defmacro defaggregate
+  "Shortcut for defining a resource-producing function with an
+    :execution of :aggregate. The option vector specifes the
+    backing function arguments."
+  [name & args]
+  (let [[name args] (name-with-attributes name args)
+        attr (merge (or (meta name) {})
+                    {::execution :aggregated ::type :script/bash})]
+    `(defresource ~name ~attr ~@args)))
+
+(defmacro defcollect
+  "Shortcut for defining a resource-producing function with an
+    :execution of :collect. The option vector specifes the
+    backing function arguments."
+  [name & args]
+    (let [[name args] (name-with-attributes name args)
+          attr (merge (or (meta name) {})
+                      {::execution :collected ::type :script/bash})]
+    `(defresource ~name ~attr ~@args)))
+
+;; (defn- with-request-arg
+;;   [request-sym arg]
+;;   `(argument/delayed [~request-sym] ~arg))
+
+;; (defmacro with-request
+;;   "Enable use of the request in the arguments of the specified form."
+;;   [[request-sym] form]
+;;   `(~(first form) ~@(map #(with-request-arg request-sym %) (rest form))))
 
 (defn script-join
   "Concatenate multiple scripts, removing blank lines"
@@ -206,20 +247,95 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
      (filter (complement utils/blank?) (map #(when % (string/trim %)) scripts)))
    \newline))
 
+(defmulti resource-evaluate-fn
+  "Create a resource evaluation function that combines the evaluation"
+  (fn [type & _] type))
+
+(defmethod resource-evaluate-fn :script/bash
+  [type location s]
+  (fn [request]
+    {:type type
+     :location location
+     :cmds (script-join (map #((:f %) request) s))
+     :request request}))
+
+(defmethod resource-evaluate-fn :fn/clojure
+  [type location s]
+  (fn [request]
+    {:type type
+     :location location
+     :request (reduce #((:f %2) %1) request s)}))
+
 (defn output-resources
   "Build an execution list for the passed resources.  The result is a sequence
-   of [location fn] pairs, where location is either :local or :remote, and fn
+   of [location type f] maps, where location is either :local or :remote, and f
    returns a string for remote execution, or is a no argument function for local
    execution."
-  [phase resources]
-  ;; TODO wasteful to run configured-resources on all phases and then pick one
-  (for [s (partition-by first ((configured-resources resources) phase))]
-    (if (= :remote (ffirst s))
-      [:remote (fn []
-                 (script-join (map #((second %)) s)))]
-      [:local (fn [] (reduce #(conj %1 ((second %2))) [] s))])))
+  [resources]
+  {:pre [(or (map? resources) (nil? resources))
+         (every?
+          #{:in-sequence :local-in-sequence :aggregated :collected}
+          (keys resources))
+         (every? vector? (vals resources))]}
+  (for [s (partition-by
+           (juxt :location :type) (bound-invocations resources))]
+    {:location (:location (first s))
+     :type (:type (first s))
+     :f (resource-evaluate-fn
+         (:type (first s)) (:location (first s)) s)}))
 
-(defn phase-list* [phases]
+(defn produce-phase
+  "Produce the :phase phase from the :invocations"
+  [request]
+  {:pre [(keyword? (:phase request))
+         (keyword? (:target-id request))]}
+  (let [phase (:phase request)
+        target-id (:target-id request)]
+    (seq (output-resources
+          (-> request :invocations phase target-id)))))
+
+(defunbound *file-transfers*)
+
+(defn register-file-transfer!
+  [local-file]
+  (let [f (clojure.contrib.io/file local-file)]
+    (when-not (and (.exists f) (.isFile f) (.canRead f))
+      (throw (IllegalArgumentException.
+               (format "'%s' does not exist, is a directory, or is unreadable; cannot register it for transfer" local-file))))
+    ;; need to eagerly determine a destination for the file, as crates will need
+    ;; to know where to find the transferred file
+    (let [remote-name (format "pallet-transfer-%s-%s"
+                        (java.util.UUID/randomUUID)
+                        (.length f))] ; silly UUID collision paranoia
+      (set! *file-transfers* (assoc *file-transfers* f remote-name))
+      remote-name)))
+
+(defn execute-commands
+  "Execute commands by passing the evaluated resources to f."
+  [request execute-fn]
+  (loop [[{:keys [location type f] :as command}
+          & rest :as commands] (:commands request)
+         request request
+         result []]
+    (if command
+      (if (= :remote location)
+        (script/with-template (:image (:node-type request))
+          (binding [*file-transfers* {}]
+            (let [{:keys [cmds request location type]} (f request)]
+              (recur
+               rest
+               request
+               (conj
+                result
+                (execute-fn cmds))))))
+        (recur rest (:request (f request)) result))
+      [result request])))
+
+
+
+(defn phase-list*
+  "Add pre and after phases"
+  [phases]
   (lazy-seq
    (when (seq phases)
      (let [phase (first phases)]
@@ -233,97 +349,64 @@ each map entry is an execution type -> seq of [invoke-fn args location].")
                      (cons [(after-phase (first phase)) (second phase)]
                            (phase-list* (rest phases))))))))))
 
-(defn phase-list [phases]
+(defn phase-list
+  "Add default phases, pre and after phases."
+  [phases]
   (phase-list* (or (seq phases) (seq [:configure]))))
 
-(defmacro resource-phases
-  "Returns the required resources map for given resources."
-  [& body]
-  `(do
-     (with-init-resources nil
-       ~@body
-       *required-resources*)))
-
 (defmacro phase
-  "Inline phase definition for use in arguments to the lift method. Uses gensym
-   to provide a unique phase id."
+  "Create a phase function from a sequence of crate invocations with
+   an ommited request parameter.
+
+   eg. (phase
+         (file \"/some-file\")
+         (file \"/other-file\"))
+
+   which generates a function with a request argument, that is thread
+   through the function calls. The example is thus equivalent to:
+
+   (fn [request] (-> request
+                   (file \"/some-file\")
+                   (file \"/other-file\"))) "
   [& body]
-  (let [s (keyword (name (gensym "phase")))]
-    `(vector ~s (resource-phases (in-phase ~s ~@body)))))
-
-(defmacro defphases
-  "Define phases.  A phase is a keyword/[crates] pair.
-   Returns a map of phase to (fn [tag template])."
-  [& options]
-  (let [options (apply hash-map options)]
-    `(resource-phases
-      ~@(mapcat #(vector `(in-phase ~(first %) ~@(second %))) options))))
-
-(defn augment-template-from-node [node node-type]
-  (if-let [os-family (and node (compute/node-os-family node))]
-    (update-in node-type [:image] conj os-family)
-    node-type))
-
-(defn parameter-keys [node node-type]
-  [:default
-   (target/packager (node-type :image))
-   (target/os-family (node-type :image))])
-
-(defmacro with-target
-  "Binds the target tag and template, setting the relevant parameters"
-  [[node node-type] & body]
-  `(let [node# ~node]
-     (target/with-target node# (augment-template-from-node node# ~node-type)
-       (parameter/with-parameters
-         (parameter-keys (target/node) (target/node-type))
-         ~@body))))
-
-(defn produce-phase
-  "For the target tag and template, output the resources specified in the body
-   for the given phase."
-  [phase phase-map]
-  (seq
-   (if (keyword? phase)
-     (output-resources phase phase-map)
-     (output-resources (first phase) (second phase)))))
+  `(fn [request#] (-> request# ~@body)))
 
 (defn produce-phases
   "Join the result of produce-phase, executing local resources.
    Useful for testing."
-  [phases phase-map]
-  (let [string-or-call (fn [phase]
-                         (string/join
-                          ""
-                          (for [[loc cmds] (produce-phase phase phase-map)]
-                            (if (= :remote loc)
-                              (cmds)
-                              (do (cmds) nil)))))]
-    (string/join "" (map string-or-call (phase-list phases)))))
+  [phases request]
+  (clojure.contrib.logging/trace
+   (format "produce-phases %s %s" phases request))
+  (let [execute
+        (fn [request]
+          (let [commands (produce-phase request)
+                [result request] (if commands
+                                   (execute-commands
+                                    (assoc request :commands commands)
+                                    (fn [cmds] cmds))
+                                   [nil request])]
+            [(string/join "" result) request]))]
+    (reduce
+     #(let [[result request] (execute (assoc (second %1) :phase %2))]
+        [(str (first %1) result) request])
+     ["" request]
+     (phase-list phases))))
 
 (defmacro build-resources
   "Outputs the remote resources specified in the body for the specified phases.
    This is useful in testing."
-  [[& phases] & body]
-  `(binding [utils/*file-transfers* {}
-             *required-resources* {}]
-     (with-target [(target/node) (target/node-type)]
-       (produce-phases ~(vec phases) (resource-phases ~@body)))))
-
-(defn parameters*
-  [& options]
-  (let [options (apply hash-map options)]
-    (doseq [[keys value] options]
-      (parameter/assoc! keys value))))
-
-(defresource parameters
-  "Set parameters"
-  parameters* [& options])
-
-(defn default-parameters*
-  [& {:as options}]
-  (doseq [[keys f] options]
-    (parameter/update-default! keys f)))
-
-(defresource default-parameters
-  "Set default parameters"
-  default-parameters* [& options])
+  [[& {:as request-map}] & body]
+  `(script/with-template (or (-> ~request-map :node-type :image) [:ubuntu])
+     (let [f# (phase ~@body)
+           request# (or ~request-map {})
+           request# (update-in request# [:phase] #(or % :configure))
+           request# (update-in request# [:target-id]
+                               #(or %
+                                    (and (:target-node request#)
+                                         (keyword
+                                          (.getId (:target-node request#))))
+                                    :id))
+           request# (f# request#)]
+       (produce-phases
+        [(:phase request#)]
+        request#))))

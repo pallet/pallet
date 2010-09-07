@@ -3,6 +3,7 @@
   (:require
    [pallet.resource :as resource]
    [pallet.stevedore :as stevedore]
+   [pallet.resource.package :as package]
    [clojure.string :as string])
   (:use
    [pallet.resource.package :only [package package* package-manager]]
@@ -10,7 +11,8 @@
    [pallet.resource.remote-file :only [remote-file]]
    [pallet.resource.file]
    [pallet.script :only [defscript]]
-   [pallet.target :only [packager]]))
+   [pallet.target :only [packager]]
+   pallet.thread-expr))
 
 (defscript ruby-version [])
 (stevedore/defimpl ruby-version :default []
@@ -38,17 +40,18 @@
 
 (defn ruby
   "Install ruby from source"
-  ([] (ruby "1.8.7-p72"))
-  ([version]
+  ([request] (ruby request "1.8.7-p72"))
+  ([request version]
      (let [basename (str "ruby-" version)
            tarfile (str basename ".tar.gz")
            tarpath (str (stevedore/script (tmp-dir)) "/" tarfile)]
-       (doseq [p src-packages]
-         (package p))
-       (remote-file
-        tarpath :url (ftp-path tarfile) :md5 (version-md5 version))
-       (exec-script
-        (stevedore/script
+       (->
+        request
+        (for-> [p src-packages]
+          (package p))
+        (remote-file
+         tarpath :url (ftp-path tarfile) :md5 (version-md5 version))
+        (exec-script
          (if-not (pipe ("ruby" "--version")
                        (grep (quoted ~(string/replace version "-p" ".*"))))
            (do
@@ -82,19 +85,12 @@
                (make)
                (make install)))))))))
 
-
-(def ruby-package-names
-     {:aptitude
-      ["ruby" "ruby-dev" "rdoc" "ri" "irb" "libopenssl-ruby" "libzlib-ruby"]
-      :yum
-      ["ruby" "ruby-devel" "ruby-docs" "ruby-ri" "ruby-rdoc" "ruby-irb"]})
-
-
-(defn ruby-packages*
-  []
-  (doseq [p (ruby-package-names (packager))]
-    (package* p)))
-
-(resource/defresource ruby-packages
+(defn ruby-packages
   "Install ruby from packages"
-  ruby-packages* [])
+  [request]
+  (package/packages
+   request
+   :aptitude
+   ["ruby" "ruby-dev" "rdoc" "ri" "irb" "libopenssl-ruby" "libzlib-ruby"]
+   :yum
+   ["ruby" "ruby-devel" "ruby-docs" "ruby-ri" "ruby-rdoc" "ruby-irb"]))

@@ -12,23 +12,26 @@
 
 (deftest cloudkick-test
   (core/defnode a [:ubuntu])
-  (target/with-target nil {:tag :a :image [:ubuntu]}
+  (let [request {:node-type a}]
     (is (= (str
             (package/package-source*
+             request
              "cloudkick"
              :aptitude
              {:url "http://packages.cloudkick.com/ubuntu"
               :key-url "http://packages.cloudkick.com/cloudkick.packages.key"}
-             :yum
-             { :url (str "http://packages.cloudkick.com/redhat/"
-                         (hostinfo/architecture))})
-            (package/package-manager* :update)
+             :yum { :url (str "http://packages.cloudkick.com/redhat/"
+                              (hostinfo/architecture))})
+            (package/package-manager* request :update)
             (stevedore/checked-commands
              "Packages"
              (stevedore/script (package/package-manager-non-interactive))
-             (package/package* "cloudkick-agent"))
+             (package/package* request "cloudkick-agent"))
             (remote-file/remote-file*
+             request
              "/etc/cloudkick.conf"
              :content
              "oauth_key key\noauth_secret secret\ntags any\nname node\n\n\n\n"))
-           (resource/build-resources [] (cloudkick "node" "key" "secret"))))))
+           (first
+            (resource/build-resources
+             [:node-type a] (cloudkick "node" "key" "secret")))))))

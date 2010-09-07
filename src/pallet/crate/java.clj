@@ -1,4 +1,5 @@
 (ns pallet.crate.java
+  "Crates for java installation and configuration"
   (:require
    [pallet.resource :as resource]
    [pallet.resource.package :as package]
@@ -27,44 +28,42 @@
 
 (def sun-rpm-path "http://cds.sun.com/is-bin/INTERSHOP.enfinity/WFS/CDS-CDS_Developer-Site/en_US/-/USD/VerifyItem-Start/jdk-6u18-linux-i586-rpm.bin?BundledLineItemUUID=wb5IBe.lDHsAAAEn5u8ZJpvu&OrderID=yJxIBe.lc7wAAAEn2.8ZJpvu&ProductID=6XdIBe.pudAAAAElYStRSbJV&FileName=/jdk-6u18-linux-i586-rpm.bin")
 
-(defn java*
-  "Install java.  Options can be :sun, :openjdk, :jdk, :jre.
-By default sun jdk will be installed."
-  [& options]
-  (let [vendors (or (seq (filter vendor-keywords options))
-                    [:sun])
-        components (or (seq (filter #{:jdk :jre :bin} options))
-                       [:bin :jdk])
-        packager (target/packager)]
-    (stevedore/checked-commands "Install java"
-     (if (some #(= :sun %) vendors)
-       (condp = packager
-         :aptitude
-         (stevedore/chain-commands
-          (package/package-manager* :universe)
-          (package/package-manager* :multiverse)
-          (package/package-manager* :update))
-         :yum
-         (package/package* :install "jpackage-utils")))
-
-     (let [vc (fn [vendor component]
-                (let [p (java-package-name packager vendor component)]
-                  (stevedore/chain-commands
-                   (when (and (= packager :aptitude) (= vendor :sun))
-                     (package/package-manager*
-                      :debconf
-                      (str p " shared/present-sun-dlj-v1-1 note")
-                      (str p " shared/accepted-sun-dlj-v1-1 boolean true")))
-                   (package/package* p))))]
-       (stevedore/chain-commands*
-        (map #(stevedore/chain-commands*
-               (map (partial vc %) components))
-             vendors))))))
-
 (resource/defresource java
   "Install java.  Options can be :sun, :openjdk, :jdk, :jre.
-By default sun jdk will be installed."
-  java* [& options])
+   By default openjdk will be installed."
+  (java*
+   [request & options]
+   (let [vendors (or (seq (filter vendor-keywords options))
+                     [:sun])
+         components (or (seq (filter #{:jdk :jre :bin} options))
+                        [:bin :jdk])
+         packager (target/packager (:image (:node-type request)))]
+     (stevedore/checked-commands
+      "Install java"
+      (if (some #(= :sun %) vendors)
+        (condp = packager
+            :aptitude
+          (stevedore/chain-commands
+           (package/package-manager* request :universe)
+           (package/package-manager* request :multiverse)
+           (package/package-manager* request :update))
+          :yum
+          (package/package* :install "jpackage-utils")))
+
+      (let [vc (fn [request vendor component]
+                 (let [p (java-package-name packager vendor component)]
+                   (stevedore/chain-commands
+                    (when (and (= packager :aptitude) (= vendor :sun))
+                      (package/package-manager*
+                       request
+                       :debconf
+                       (str p " shared/present-sun-dlj-v1-1 note")
+                       (str p " shared/accepted-sun-dlj-v1-1 boolean true")))
+                    (package/package* request p))))]
+        (stevedore/chain-commands*
+         (map #(stevedore/chain-commands*
+                (map (partial vc request %) components))
+              vendors)))))))
 
 (script/defscript jre-lib-security [])
 (stevedore/defimpl jre-lib-security :default []
@@ -72,17 +71,17 @@ By default sun jdk will be installed."
        "/jre/lib/security/"))
 
 (defn jce-policy-file
-  "Installs a local JCE policy jar at the given path in the remote
-   JAVA_HOME's lib/security directory, enabling the use of \"unlimited strength\"
-   crypto implementations. Options are as for remote-file.
+  "Installs a local JCE policy jar at the given path in the remote JAVA_HOME's
+   lib/security directory, enabling the use of \"unlimited strength\" crypto
+   implementations. Options are as for remote-file.
 
-   e.g. (jce-policy-file \"local_policy.jar\" :local-file \"path/to/local_policy.jar\")
+   e.g. (jce-policy-file
+          \"local_policy.jar\" :local-file \"path/to/local_policy.jar\")
 
-   Note this only intended to work for ubuntu/aptitude-managed systems and Sun JDKs right now."
-  [filename & options]
-  (apply remote-file/remote-file
+   Note this only intended to work for ubuntu/aptitude-managed systems and Sun
+   JDKs right now."
+  [request filename & {:as options}]
+  (apply remote-file/remote-file request
     (stevedore/script (str (jre-lib-security) ~filename))
-    (concat [:owner "root"
-             :group "root"
-             :mode 644]
-      options)))
+    (apply
+     concat (merge {:owner "root" :group "root" :mode 644} options))))

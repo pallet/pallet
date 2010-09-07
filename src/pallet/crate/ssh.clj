@@ -1,7 +1,9 @@
 (ns pallet.crate.ssh
   "Crate for managing ssh"
   (:require
-   pallet.target
+   [pallet.target :as target]
+   [pallet.argument :as argument]
+   [pallet.request-map :as request-map]
    pallet.crate.iptables
    pallet.resource.package
    pallet.resource.service
@@ -9,51 +11,54 @@
 
 (defn openssh
   "Install OpenSSH"
-  []
+  [request]
   (pallet.resource.package/packages
+   request
    :yum ["openssh-clients" "openssh"]
    :aptitude ["openssh-client" "openssh-server"]))
 
 (defn service-name
   "SSH service name"
-  ([] (service-name (pallet.target/packager)))
-  ([packager]
-     (condp = packager
-         :aptitude "ssh"
-         :yum "sshd")))
+  [packager]
+  (condp = packager
+      :aptitude "ssh"
+      :yum "sshd"))
 
 (defn sshd-config
   "Take an sshd config string, and write to sshd_conf."
-  [config]
-  (pallet.resource.remote-file/remote-file
-   "/etc/ssh/sshd_config"
-   :mode "0644"
-   :owner "root"
-   :content config)
-  (pallet.resource.service/service
-   (pallet.arguments/computed
-    (fn [] (service-name)))
-   :action :reload))
+  [request config]
+  (->
+   request
+   (pallet.resource.remote-file/remote-file
+    "/etc/ssh/sshd_config"
+    :mode "0644"
+    :owner "root"
+    :content config)
+   (pallet.resource.service/service
+    (service-name (request-map/packager request))
+    :action :reload)))
 
 
 (defn iptables-accept
   "Accept ssh, by default on port 22"
-  ([] (iptables-accept 22))
-  ([port]
-     (pallet.crate.iptables/iptables-accept-port port)))
+  ([request] (iptables-accept request 22))
+  ([request port]
+     (pallet.crate.iptables/iptables-accept-port request port)))
 
 (defn iptables-throttle
   "Throttle ssh connection attempts, by default on port 22"
-  ([] (iptables-throttle 22))
-  ([port] (iptables-throttle port 60 6))
-  ([port time-period hitcount]
+  ([request] (iptables-throttle request 22))
+  ([request port] (iptables-throttle request port 60 6))
+  ([request port time-period hitcount]
      (pallet.crate.iptables/iptables-throttle
+      request
       "SSH_CHECK" port "tcp" time-period hitcount)))
 
 (defn nagios-monitor
   "Configure nagios monitoring for ssh"
-  [& {:keys [command] :as options}]
+  [request & {:keys [command] :as options}]
   (nagios-config/service
+   request
    (merge
     {:servicegroups [:ssh-services]
      :service_description "SSH"

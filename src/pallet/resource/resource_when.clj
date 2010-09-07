@@ -1,31 +1,34 @@
 (ns pallet.resource.resource-when
   "Conditional resource execution."
   (:require
-   [pallet.stevedore :as stevedore])
+   [pallet.stevedore :as stevedore]
+   [pallet.argument :as argument]
+   [pallet.resource :as resource]
+   [pallet.resource.exec-script :as exec-script])
   (:use
-   [pallet.resource :only [invoke-resource build-resources]]
    clojure.contrib.logging))
 
-(defn exec-when*
-  [script]
-  (script))
-
-(defmacro resource-when [condition & resources]
-  `(invoke-resource
-    exec-when*
-    [(fn []
-       (stevedore/script
-        (if ~condition
-          (do (unquote (build-resources [] ~@resources))))))]))
+(defmacro resource-when
+  [request condition & resources]
+  `(exec-script/exec-script
+    ~request
+    (if ~condition
+      (do (unquote (->
+                    (resource/produce-phases
+                      [(:phase ~request)]
+                      ((resource/phase ~@resources) ~request))
+                    first))))))
 
 ;; This is a macro, so that the condition can be wrapped in a function
 ;; preventing capture of its literal value, and ensuring that it is
 ;; specialised on target node
 (defmacro resource-when-not
-  [condition & resources]
-  `(invoke-resource
-    exec-when*
-    [(fn []
-       (stevedore/script
-        (if-not ~condition
-          (do (unquote (build-resources [] ~@resources))))))]))
+  [request condition & resources]
+  `(exec-script/exec-script
+    ~request
+    (if-not ~condition
+      (do (unquote (->
+                    (resource/produce-phases
+                      [(:phase ~request)]
+                      ((resource/phase ~@resources) ~request))
+                    first))))))

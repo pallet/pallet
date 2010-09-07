@@ -1,20 +1,16 @@
 (ns pallet.resource.test-resource
   (:use
-   [pallet.target :only [admin-group tag template]]
-   [pallet.stevedore :only [script]]
-   [pallet.template]
-   [pallet.resource :only [defresource defaggregate]]
-   [pallet.resource.user :only [user-home]]
-   [clojure.contrib.logging]))
-
-(defn- apply-test-resources [args]
-  (str "test-resource:" (tag) (template)))
+   [pallet.resource :only [defresource defaggregate]]))
 
 (defaggregate test-resource
-  apply-test-resources [])
-
-(defn- test-component-fn [arg]
-  (str arg))
+  (apply-test-resources
+   [request]
+   (str
+    "test-resource:"
+    (:tag (:node-type request))
+    (:image (:node-type request)))))
 
 (defresource test-component
-  test-component-fn [arg])
+  (test-component-fn
+   [request arg]
+   (str arg)))

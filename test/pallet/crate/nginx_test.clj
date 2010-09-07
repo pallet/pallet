@@ -13,15 +13,18 @@
 (deftest site-test
   []
   (is (= (stevedore/do-script
-          (directory/directory* "/etc/nginx/sites-available")
-          (directory/directory* "/etc/nginx/sites-enabled")
+          (directory/directory* {}  "/etc/nginx/sites-available")
+          (directory/directory* {}  "/etc/nginx/sites-enabled")
           (remote-file/remote-file*
+           {}
            "/etc/nginx/sites-enabled/mysite"
            :content "server {\n  listen       80;\n  server_name  localhost;\n\n  access_log  /var/log/nginx/access.log;\n\nlocation / {\n  root /some/path;\n  index  index.html index.htm;\n  \n  \n  \n}\n\nlocation /a {\n  \n  index  index.html index.htm;\n  proxy_pass localhost:8080;\n  \n  \n}\n\n}\n")
-          (file/file* "/etc/nginx/sites-available/mysite"
-                      :action :delete :force true))
-         (target/with-target nil {:tag :n :image [:ubuntu]}
-           (resource/build-resources
-            [] (site "mysite"
-                     :locations [{:location "/" :root "/some/path"}
-                                 {:location "/a" :proxy_pass "localhost:8080"}]))))))
+          (file/file*
+           {} "/etc/nginx/sites-available/mysite" :action :delete :force true))
+         (first
+          (resource/build-resources
+           [:node-type {:tag :n :image [:ubuntu]}]
+           (site "mysite"
+                 :locations [{:location "/" :root "/some/path"}
+                             {:location "/a"
+                              :proxy_pass "localhost:8080"}]))))))

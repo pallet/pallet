@@ -38,30 +38,23 @@
     (mkdir ~path ~(select-keys opts [:p :v :m])))
    (adjust-directory path opts)))
 
-(defn directory*
-  [path & options]
-  (let [opts (apply hash-map options)
-        opts (merge {:action :create} opts)]
-    (condp = (opts :action)
-      :delete
-      (stevedore/checked-script
-       (str "directory " path)
-       (rm ~path ~{:r (get opts :recursive true)
-                   :f (get opts :force true)}))
-      :create
-      (make-directory path (merge {:p true} opts))
-      :touch
-      (make-directory path (merge {:p true} opts)))))
+(defresource directory
+  "Directory management."
+  (directory*
+   [request path & {:keys [action] :or {action :create} :as options}]
+   (case action
+     :delete (stevedore/checked-script
+              (str "directory " path)
+              (rm ~path ~{:r (get options :recursive true)
+                          :f (get options :force true)}))
+     :create (make-directory path (merge {:p true} options))
+     :touch (make-directory path (merge {:p true} options)))))
 
-(defresource directory "Directory management."
-  directory* [path & options])
 
-(defn directories*
-  "Create directories and set permisions"
-  [paths & options]
-  (stevedore/chain-commands*
-   (map #(apply directory* % options) paths)))
-
-(defresource directories "Directory management of multiple directories."
-  directories* [paths & options])
-
+(defresource directories
+  "Directory management of multiple directories with the same
+  owner/group/permissions."
+  (directories*
+   [request paths & options]
+   (stevedore/chain-commands*
+    (map #(apply directory* request % options) paths))))

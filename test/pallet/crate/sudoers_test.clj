@@ -3,8 +3,6 @@
   (:use clojure.test
         pallet.test-utils))
 
-(use-fixtures :each with-null-target)
-
 (with-private-vars [pallet.crate.sudoers
                     [default-specs
                      param-string
@@ -15,7 +13,7 @@
                      sudoer-merge merge-user-spec]]
 
   (deftest default-specs-test
-    (is (instance? clojure.lang.PersistentArrayMap (default-specs))))
+    (is (instance? clojure.lang.PersistentArrayMap (default-specs {}))))
 
   (deftest merge-user-spec-test
     (is (= {:a 1 :b 2} (merge-user-spec {:a 1} {:b 2})))
@@ -24,39 +22,43 @@
 
 
   (deftest sudoer-merge
-    (is (= [{} {} (default-specs)]
-           (sudoer-merge [{} {} (default-specs)] [])))
+    (is (= [{} {} (default-specs {})]
+             (sudoer-merge [{} {} (default-specs {})] [])))
     (is (= [{} {} {"user" {:ALL {}}}]
-           (sudoer-merge [{} {} {}] [[{} {} {"user" {:ALL {}}}]])))
+             (sudoer-merge [{} {} {}] [[{} {} {"user" {:ALL {}}}]])))
     (is (= [{} {} {"user" {["/bin/ls"] {} :ALL {:run-as :ALL}}}]
-           (sudoer-merge [{} {} {"user" {["/bin/ls"] {}}}]
-                         [[{} {} {"user" {:ALL {:run-as :ALL}}}]])))
+             (sudoer-merge [{} {} {"user" {["/bin/ls"] {}}}]
+                           [[{} {} {"user" {:ALL {:run-as :ALL}}}]])))
     (is (= [{} {} (array-map "user1" {} "user2" {})]
-           (sudoer-merge [{} {} (array-map "user1" {})]
-                         [[{} {} (array-map "user2" {})]])))
+             (sudoer-merge [{} {} (array-map "user1" {})]
+                           [[{} {} (array-map "user2" {})]])))
     (is (= [{} {} (array-map "user2" {} "user1" {} "user3" {} "user4" {} "user5" {} "user6" {} "user7" {} "user8" {} "user0" {})]
-           (sudoer-merge [{} {} (array-map "user2" {})]
-                         [[{} {} (array-map "user1" {})]
-                          [{} {} (array-map "user3" {})]
-                          [{} {} (array-map "user4" {})]
-                          [{} {} (array-map "user5" {})]
-                          [{} {} (array-map "user6" {})]
-                          [{} {} (array-map "user7" {})]
-                          [{} {} (array-map "user8" {})]
-                          [{} {} (array-map "user0" {})]]))))
+             (sudoer-merge [{} {} (array-map "user2" {})]
+                           [[{} {} (array-map "user1" {})]
+                            [{} {} (array-map "user3" {})]
+                            [{} {} (array-map "user4" {})]
+                            [{} {} (array-map "user5" {})]
+                            [{} {} (array-map "user6" {})]
+                            [{} {} (array-map "user7" {})]
+                            [{} {} (array-map "user8" {})]
+                            [{} {} (array-map "user0" {})]]))))
 
   (deftest merge-test
-    (pallet.resource/with-init-resources nil
-      (sudoers {} {} (array-map "user1" [{:host "h1" :ALL {}}]))
-      (sudoers {} {} (array-map "user2" {:host "h2" :ALL {}}))
+    (let [request
+          (-> {:phase :configure :target-id :id}
+              (sudoers {} {} (array-map "user1" [{:host "h1" :ALL {}}]))
+              (sudoers {} {} (array-map "user2" {:host "h2" :ALL {}})))]
       (is (= [{} {} (array-map "root" {:ALL {:run-as-user :ALL}}
-                      "%wheel" {:ALL {:run-as-user :ALL}}
-                      "user1" [{:host "h1" :ALL {}}]
-                      "user2" {:host "h2" :ALL {}})]
-            (sudoer-merge [{} {} (default-specs)] (->> pallet.resource/*required-resources*
-                                                    :configure
-                                                    :aggregated
-                                                    (map second)))))))
+                               "%adm" {:ALL {:run-as-user :ALL}}
+                               "user1" [{:host "h1" :ALL {}}]
+                               "user2" {:host "h2" :ALL {}})]
+               (sudoer-merge
+                [{} {} (default-specs {})]
+                (->> request :invocations
+                     :configure
+                     :id
+                     :aggregated
+                     (map :args)))))))
 
   (deftest test-param-string
     (is (= "fqdn" (param-string [:fqdn true])))
@@ -153,26 +155,26 @@ Cmnd_Alias SHELLS = /usr/bin/sh,/usr/bin/csh,/usr/bin/ksh
 
   (deftest specs-test-simple
     (is (= "root ALL = (ALL) ALL
-%wheel ALL = (ALL) ALL"
+%adm ALL = (ALL) ALL"
            (specs (array-map
                    "root" {:ALL {:run-as-user :ALL}}
-                   "%wheel" {:ALL {:run-as-user :ALL}})))))
+                   "%adm" {:ALL {:run-as-user :ALL}})))))
 
   (deftest specs-test-with-array
     (is (= "root ALL = (ALL) ALL
-%wheel ALL = (ALL) ALL
+%adm ALL = (ALL) ALL
 bob SPARC = (OP) ALL : SGI = (OP) ALL
 jim +biglab = ALL"
            (specs (array-map
                    "root" {:ALL {:run-as-user :ALL}}
-                   "%wheel" {:ALL {:run-as-user :ALL}}
+                   "%adm" {:ALL {:run-as-user :ALL}}
                    "bob" [{:host :SPARC :ALL {:run-as-user :OP} }
                           {:host :SGI :ALL {:run-as-user :OP} }]
                    "jim"  {:host "+biglab" :ALL {}})))))
 
   (deftest test-specs
     (is (= "root ALL = (ALL) ALL
-%wheel ALL = (ALL) ALL
+%adm ALL = (ALL) ALL
 FULLTIMERS ALL = NOPASSWD: ALL
 PARTTIMERS ALL = ALL
 jack CSNETS = ALL
@@ -193,7 +195,7 @@ WEBMASTERS www = (www) ALL,(root) /usr/bin/su www
 ALL CDROM = NOPASSWD: /sbin/umount /CDROM,/sbin/mount -o nosuid\\,nodev /dev/cd0a /CDROM"
            (specs (array-map
                    "root" {:ALL {:run-as-user :ALL}}
-                   "%wheel" {:ALL {:run-as-user :ALL}}
+                   "%adm" {:ALL {:run-as-user :ALL}}
                    :FULLTIMERS {:ALL {:tags :NOPASSWD}}
                    :PARTTIMERS {:ALL {}}
                    "jack" { :host :CSNETS :ALL {}}
@@ -247,7 +249,7 @@ Defaults:FULLTIMERS !lecture
 Defaults:millert !authenticate
 Defaults@SERVERS log_year,logfile=/var/log/sudo.log
 root ALL = (ALL) ALL
-%wheel ALL = (ALL) ALL
+%adm ALL = (ALL) ALL
 FULLTIMERS ALL = NOPASSWD: ALL
 PARTTIMERS ALL = ALL
 jack CSNETS = ALL
@@ -270,53 +272,55 @@ EOF
 chmod 0440 ${file}
 chown root ${file}
 "
-       (pallet.resource/build-resources []
-        (sudoers {:user {:FULLTIMERS ["millert" "mikef" "dowdy"]
-                         :PARTTIMERS ["bostley" "jwfox" "crawl"]
-                         :WEBMASTERS ["will" "wendy" "wim"]}
-                  :host {:SPARC ["bigtime" "eclipse" "moet" "anchor"]
-                         :SGI ["grolsch" "dandelion" "black"]
-                         :ALPHA  ["widget" "thalamus" "foobar"]
-                         :HPPA  ["boa" "nag" "python"]
-                         :CUNETS  ["128.138.0.0/255.255.0.0"]
-                         :CSNETS  ["128.138.243.0" "128.138.204.0/24" "128.138.242.0"]
-                         :SERVERS  ["master" "mail" "www" "ns"]
-                         :CDROM  ["orion" "perseus" "hercules"]}
-                  :run-as-user {:OP ["root" "operator"]
-                                :DB ["oracle" "sybase"]}
-                  :cmnd {:DUMPS ["/usr/bin/mt" "/usr/sbin/dump" "/usr/sbin/rdump" "/usr/sbin/restore" "/usr/sbin/rrestore"]
-                         :KILL  ["/usr/bin/kill"]
-                         :PRINTING  ["/usr/sbin/lpc" "/usr/bin/lprm"]
-                         :SHUTDOWN  ["/usr/sbin/shutdown"]
-                         :HALT  ["/usr/sbin/halt"]
-                         :REBOOT  ["/usr/sbin/reboot"]
-                         :SHELLS  ["/usr/bin/sh" "/usr/bin/csh" "/usr/bin/ksh" "/usr/local/bin/tcsh" "/usr/bin/rsh" "/usr/local/bin/zsh"]
-                         :SU  ["/usr/bin/su"] }}
-                 {:default { :syslog :auth }
-                  :user {:FULLTIMERS { :lecture false }
-                         "millert" {:authenticate false}}
-                  :host { :SERVERS { :log_year true :logfile "/var/log/sudo.log" } }
-                  :run-as-user { "root" { :set_logname false } } }
-                 (array-map
-                  "root" {:ALL {:run-as-user :ALL}}
-                  "%wheel" {:ALL {:run-as-user :ALL}}
-                  :FULLTIMERS {:ALL {:tags :NOPASSWD}}
-                  :PARTTIMERS {:ALL {}}
-                  "jack" { :host :CSNETS :ALL {}}
-                  "lisa" { :host :CUNETS :ALL {}}
-                  "operator" {[:DUMPS :KILL :SHUTDOWN :HALT :REBOOT :PRINTING "sudoedit /etc/printcap" "/usr/oper/bin/"] {}}
-                  "joe"  {["/usr/bin/su operator"] {}}
-                  "pete" {:host :HPPA  ["/usr/bin/passwd [A-z]*" "!/usr/bin/passwd root"] {}}
-                  "bob" [{:host :SPARC :ALL {:run-as-user :OP} }
-                         {:host :SGI :ALL {:run-as-user :OP} }]
-                  "jim"  {:host "+biglab" :ALL {}}
-                  "+secretaries" { [:PRINTING "/usr/bin/adduser" "/usr/bin/rmuser"] {}}
-                  "fred" { :ALL { :run-as-user :DB :tags :NOPASSWD}}
-                  "john" { :host :ALPHA ["/usr/bin/su [!-]*" "!/usr/bin/su *root*"] {}}
-                  "jen" { :host [:ALL "!SERVERS"] :ALL {}}
-                  "jill" {:host :SERVERS ["/usr/bin/" "!SU" "!SHELLS"] {}}
-                  "steve" {:host :CSNETS  "/usr/local/op_commands/" {:run-as-user "operator"}}
-                  "matt" {:host :valkyrie :KILL {}}
-                  :WEBMASTERS {:host :www  :ALL {:run-as-user :www}  "/usr/bin/su www" {:run-as-user :root}}
-                  :ALL {:host :CDROM  [ "/sbin/umount /CDROM" "/sbin/mount -o nosuid\\,nodev /dev/cd0a /CDROM"] {:tags :NOPASSWD}}
-                  ))))))
+       (first
+        (pallet.resource/build-resources
+         []
+         (sudoers {:user {:FULLTIMERS ["millert" "mikef" "dowdy"]
+                          :PARTTIMERS ["bostley" "jwfox" "crawl"]
+                          :WEBMASTERS ["will" "wendy" "wim"]}
+                   :host {:SPARC ["bigtime" "eclipse" "moet" "anchor"]
+                          :SGI ["grolsch" "dandelion" "black"]
+                          :ALPHA  ["widget" "thalamus" "foobar"]
+                          :HPPA  ["boa" "nag" "python"]
+                          :CUNETS  ["128.138.0.0/255.255.0.0"]
+                          :CSNETS  ["128.138.243.0" "128.138.204.0/24" "128.138.242.0"]
+                          :SERVERS  ["master" "mail" "www" "ns"]
+                          :CDROM  ["orion" "perseus" "hercules"]}
+                   :run-as-user {:OP ["root" "operator"]
+                                 :DB ["oracle" "sybase"]}
+                   :cmnd {:DUMPS ["/usr/bin/mt" "/usr/sbin/dump" "/usr/sbin/rdump" "/usr/sbin/restore" "/usr/sbin/rrestore"]
+                          :KILL  ["/usr/bin/kill"]
+                          :PRINTING  ["/usr/sbin/lpc" "/usr/bin/lprm"]
+                          :SHUTDOWN  ["/usr/sbin/shutdown"]
+                          :HALT  ["/usr/sbin/halt"]
+                          :REBOOT  ["/usr/sbin/reboot"]
+                          :SHELLS  ["/usr/bin/sh" "/usr/bin/csh" "/usr/bin/ksh" "/usr/local/bin/tcsh" "/usr/bin/rsh" "/usr/local/bin/zsh"]
+                          :SU  ["/usr/bin/su"] }}
+                  {:default { :syslog :auth }
+                   :user {:FULLTIMERS { :lecture false }
+                          "millert" {:authenticate false}}
+                   :host { :SERVERS { :log_year true :logfile "/var/log/sudo.log" } }
+                   :run-as-user { "root" { :set_logname false } } }
+                  (array-map
+                   "root" {:ALL {:run-as-user :ALL}}
+                   "%adm" {:ALL {:run-as-user :ALL}}
+                   :FULLTIMERS {:ALL {:tags :NOPASSWD}}
+                   :PARTTIMERS {:ALL {}}
+                   "jack" { :host :CSNETS :ALL {}}
+                   "lisa" { :host :CUNETS :ALL {}}
+                   "operator" {[:DUMPS :KILL :SHUTDOWN :HALT :REBOOT :PRINTING "sudoedit /etc/printcap" "/usr/oper/bin/"] {}}
+                   "joe"  {["/usr/bin/su operator"] {}}
+                   "pete" {:host :HPPA  ["/usr/bin/passwd [A-z]*" "!/usr/bin/passwd root"] {}}
+                   "bob" [{:host :SPARC :ALL {:run-as-user :OP} }
+                          {:host :SGI :ALL {:run-as-user :OP} }]
+                   "jim"  {:host "+biglab" :ALL {}}
+                   "+secretaries" { [:PRINTING "/usr/bin/adduser" "/usr/bin/rmuser"] {}}
+                   "fred" { :ALL { :run-as-user :DB :tags :NOPASSWD}}
+                   "john" { :host :ALPHA ["/usr/bin/su [!-]*" "!/usr/bin/su *root*"] {}}
+                   "jen" { :host [:ALL "!SERVERS"] :ALL {}}
+                   "jill" {:host :SERVERS ["/usr/bin/" "!SU" "!SHELLS"] {}}
+                   "steve" {:host :CSNETS  "/usr/local/op_commands/" {:run-as-user "operator"}}
+                   "matt" {:host :valkyrie :KILL {}}
+                   :WEBMASTERS {:host :www  :ALL {:run-as-user :www}  "/usr/bin/su www" {:run-as-user :root}}
+                   :ALL {:host :CDROM  [ "/sbin/umount /CDROM" "/sbin/mount -o nosuid\\,nodev /dev/cd0a /CDROM"] {:tags :NOPASSWD}}
+                   )))))))

@@ -29,22 +29,22 @@
 
 (defn rubygems
   "Install rubygems from source"
-  ([] (rubygems "1.3.6"))
-  ([version]
-     ;;(resource-when-not (file-exists? "/usr/bin/ruby"))
-     (ruby-packages)
-     (resource-when (< @(ruby-version) "1.8.6")
-                    (ruby))
+  ([request] (rubygems request "1.3.6"))
+  ([request version]
      (let [info (rubygems-downloads version)
            basename (str "rubygems-" version)
            tarfile (str basename ".tgz")
            tarpath (str (stevedore/script (tmp-dir)) "/" tarfile)]
-       (remote-file
-        tarpath
-        :url (first info)
-        :md5 (second info))
-       (exec-script/exec-script
-        (stevedore/script
+       (->
+        request
+        (ruby-packages)
+        (resource-when (< @(ruby-version) "1.8.6")
+                       (ruby))
+        (remote-file
+         tarpath
+         :url (first info)
+         :md5 (second info))
+        (exec-script/exec-script
          (if-not (pipe ("gem" "--version") (grep (quoted ~version)))
            (do
              ~(stevedore/checked-script
@@ -68,51 +68,52 @@
                    (ln "-sfv" "/usr/locl/bin/gem1.8" "/usr/local/bin/gem")))))))))))
 
 (defn rubygems-update
-  [] (exec-script/exec-script (script ("gem" "update" "--system"))))
-
-(defn gem* [name & options]
-  (let [opts (apply hash-map options)
-        opts (merge {:action :install} opts)]
-    (condp = (opts :action)
-      :install
-      (stevedore/checked-script
-       (format "Install gem %s" name)
-       (gem "install" ~name ~(select-keys opts [:version :no-ri :no-rdoc])))
-      :delete
-      (stevedore/checked-script
-       (format "Uninstall gem %s" name)
-       (gem "uninstall" ~name ~(select-keys opts [:version :no-ri :no-rdoc]))))))
+  [request]
+  (exec-script/exec-script
+   request
+   ("gem" "update" "--system")))
 
 (defresource gem "Gem management."
-  gem* [name & options])
+  (gem*
+   [request name & {:keys [action version no-ri no-rdoc]
+                    :or {action :install}
+                    :as options}]
+   (case action
+     :install (stevedore/checked-script
+               (format "Install gem %s" name)
+               (gem
+                "install" ~name
+                ~(select-keys options [:version :no-ri :no-rdoc])))
+     :delete (stevedore/checked-script
+              (format "Uninstall gem %s" name)
+              (gem
+               "uninstall" ~name
+               ~(select-keys options [:version :no-ri :no-rdoc]))))))
 
-(defn gem-source* [source & options]
-(let [opts (apply hash-map options)
-      opts (merge {:action :create} opts)]
-    (condp = (opts :action)
-      :create
-      (stevedore/script
-       (if-not ("gem" "sources" "--list" "|" "grep" ~source)
-         (gem "sources" ~source ~{:add true})))
-      :delete
-      (stevedore/script (gem "sources" ~source ~{:remove true})))))
 
 (defresource gem-source "Gem source management."
-  gem-source* [source & options])
-
-(defn gemrc* [m & user?]
-  (let [user (or (first user?) (*admin-user* :username))]
-    (remote-file* (str (stevedore/script (user-home ~user)) "/.gemrc")
-                  :content (.replaceAll (json/json-str m) "[{}]" "")
-                  :owner user)))
+  (gem-source*
+   [request source & {:keys [action] :or {action :create} :as options}]
+   (case action
+     :create (stevedore/script
+              (if-not ("gem" "sources" "--list" "|" "grep" ~source)
+                (gem "sources" ~source ~{:add true})))
+     :delete (stevedore/script (gem "sources" ~source ~{:remove true})))))
 
 (defresource gemrc "rubygems configuration"
-  gemrc* [m & user?])
+  (gemrc*
+   [request m & user?]
+   (let [user (or (first user?) (*admin-user* :username))]
+     (remote-file*
+      request
+      (str (stevedore/script (user-home ~user)) "/.gemrc")
+      :content (.replaceAll (json/json-str m) "[{}]" "")
+      :owner user))))
 
-(defn require-rubygems []
+(defn require-rubygems
   "Ensure that a version of rubygems is installed"
-  (exec-script/exec-script
-   (stevedore/checked-script
+   [request]
+   (exec-script/exec-checked-script
+    request
     "Checking for rubygems"
-    ("gem" "--version"))))
-
+    ("gem" "--version")))

@@ -9,19 +9,19 @@
    clojure.test
    pallet.test-utils))
 
-(use-fixtures :each reset-default-parameters)
-
 (deftest service*-test
-  (let [cfg {:service-group "g" :service-description "d" :command "c"}]
-    (target/with-target (compute/make-node "tag" :id "id") {}
-      (service* cfg)
-      (parameter/with-parameters [:default]
-        (is (= [cfg]
-                 (parameter/get-for [:nagios :host-services :host-tag-id])))))))
+  (let [cfg {:service-group "g" :service-description "d" :command "c"}
+        node (compute/make-node "tag" :id "id")
+        request {:target-node node}]
+    (is (= [cfg]
+             (-> (service request cfg)
+                 :parameters :nagios :host-services :host-tag-id)))))
 
-(deftest command*-test
-  (let [cfg {:command_name "n" :command_line "c"}]
-    (target/with-target (compute/make-node "tag") {}
-      (apply command* (apply concat cfg))
-      (parameter/with-parameters [:default]
-        (is (= {:n "c"} (parameter/get-for [:nagios :commands])))))))
+(deftest command-test
+  (let [cfg {:command_name "n" :command_line "c"}
+        node (compute/make-node "tag")
+        request {:target-node node}]
+
+    (is (= {:n "c"}
+           (-> (apply command request (apply concat cfg))
+               :parameters :nagios :commands)))))

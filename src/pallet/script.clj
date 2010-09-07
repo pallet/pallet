@@ -1,7 +1,8 @@
 (ns pallet.script
   "Base infrastructure for script generation"
-  (:use [pallet.target :only [template]]
-        clojure.contrib.logging))
+  (:use clojure.contrib.logging)
+  (:require
+   [clojure.contrib.def :as def]))
 
 ;; map from script name to implementations
 ;; where implementations is a map from keywords to function
@@ -9,6 +10,15 @@
 
 (def *script-line* nil)
 (def *script-file* nil)
+
+(def/defunbound *template*
+  "Determine the target to generate script for.")
+
+(defmacro with-template
+  "Specify the target for script generation"
+  [template & body]
+  `(binding [*template* ~template]
+     ~@body))
 
 (defmacro with-line-number
   "Record the source line number"
@@ -19,11 +29,12 @@
          (ns-unmap *ns* 'ln#)
          ~@body));)
 
+
 (defn print-args [args]
   (str "(" (apply str (interpose " " args)) ")"))
 
 (defn- match-fn [fn-key]
-  (some #(if (set? fn-key) (fn-key %) (= fn-key %)) (template)))
+  (some #(if (set? fn-key) (fn-key %) (= fn-key %)) *template*))
 
 (defn- matches?
   "Return the keys that match the template, or nil if any of the keys are not in

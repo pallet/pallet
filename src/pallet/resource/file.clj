@@ -65,16 +65,16 @@
              ~(str (if (options :literal) "<<'EOFpallet'\n" "<<EOFpallet\n")
                    content "\nEOFpallet\n }")))))
 
-(defn adjust-file [path opts]
+(defn adjust-file [path options]
   (stevedore/chain-commands*
    (filter
-    (complement nil?)
-    [(when (opts :owner)
-       (stevedore/script (chown ~(opts :owner) ~path)))
-     (when (opts :group)
-       (stevedore/script (chgrp ~(opts :group) ~path)))
-     (when (opts :mode)
-       (stevedore/script (chmod ~(opts :mode) ~path)))])))
+    identity
+    [(when (:owner options)
+       (stevedore/script (chown ~(options :owner) ~path)))
+     (when (:group options)
+       (stevedore/script (chgrp ~(options :group) ~path)))
+     (when (:mode options)
+       (stevedore/script (chmod ~(options :mode) ~path)))])))
 
 (defn touch-file [path opts]
   (stevedore/chain-commands
@@ -82,64 +82,57 @@
     (touch ~path ~(select-keys opts [:force])))
    (adjust-file path opts)))
 
-(defn file*
-  [path & options]
-  (let [opts (apply hash-map options)
-        opts (merge {:action :create} opts)]
-
-    (condp = (opts :action)
-      :delete
-      (stevedore/checked-script
-       (str "file " path)
-       (rm ~path ~(select-keys opts [:force])))
-      :create
-      (stevedore/checked-commands
-       (str "file " path)
-       (touch-file path opts))
-      :touch
-      (stevedore/checked-commands
-       (str "file " path)
-       (touch-file path opts)))))
-
-(defresource file "File management."
-  file* [filename & options])
-
-(defn symbolic-link*
-  [from name & {:keys [force] :or {force true} :as options}]
-  (stevedore/checked-script
-   (format "Link %s as %s" from name)
-   (ln -s
-       ~(stevedore/map-to-arg-string {:force force})
-       ~from ~name)))
+(defresource file
+  "File management."
+  (file*
+   [request path & {:keys [action owner group mode force]
+                    :or {action :create}
+                    :as options}]
+   (case action
+     :delete (stevedore/checked-script
+              (str "file " path)
+              (rm ~path ~(select-keys options [:force])))
+     :create (stevedore/checked-commands
+              (str "file " path)
+              (touch-file path options))
+     :touch (stevedore/checked-commands
+             (str "file " path)
+             (touch-file path options)))))
 
 (defresource symbolic-link
-  symbolic-link* [from name & options])
+  "Symbolic link management."
+  (symbolic-link*
+   [request from name & {:keys [action owner group mode force]
+                                        :or {action :create force true}}]
+   (case action
+     :delete (stevedore/checked-script
+              (str "Link %s " name)
+              (rm ~name ~{:force force}))
+     :create (stevedore/checked-script
+              (format "Link %s as %s" from name)
+              (ln -s
+                  ~(stevedore/map-to-arg-string {:force force})
+                  ~from ~name)))))
 
-(defn fifo*
-  [path & options]
-  (let [opts (apply hash-map options)
-        opts (merge {:action :create} opts)]
-
-    (condp = (opts :action)
-      :delete
-      (stevedore/checked-script
-       (str "fifo " path)
-       (rm ~path ~(select-keys opts [:force])))
-      :create
-      (stevedore/checked-commands
-       (str "fifo " path)
-       (stevedore/script
-        (if-not (file-exists? ~path)
-          (mkfifo ~path)))
-       (adjust-file path opts)))))
-
-(defresource fifo "FIFO pipe management."
-  fifo* [filename & options])
-
-(defn sed* [path exprs options]
-  (stevedore/checked-script
-   (format "sed file %s" path)
-   (sed-file ~path ~exprs ~options)))
+(defresource fifo
+  "FIFO pipe management."
+  (fifo*
+   [request path & {:keys [action] :or {action :create} :as options}]
+   (case action
+     :delete (stevedore/checked-script
+              (str "fifo " path)
+              (rm ~path ~{:force force}))
+     :create (stevedore/checked-commands
+              (str "fifo " path)
+              (stevedore/script
+               (if-not (file-exists? ~path)
+                 (mkfifo ~path)))
+              (adjust-file path options)))))
 
 (defresource sed
-  sed* [path exprs options])
+  "Execute sed on a file.  Takes a path and a map for expr to replacement."
+  (sed*
+   [request path exprs-map & {:keys [seperator] :as options}]
+   (stevedore/checked-script
+    (format "sed file %s" path)
+    (sed-file ~path ~exprs-map ~options))))

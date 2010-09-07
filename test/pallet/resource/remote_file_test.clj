@@ -14,8 +14,6 @@
    [pallet.utils :as utils]
    [clojure.contrib.io :as io]))
 
-(use-fixtures :each with-null-target)
-
 (defn test-username
   "Function to get test username. This is a function to avoid issues with AOT."
   [] (or (. System getProperty "ssh.username")
@@ -25,7 +23,7 @@
   (is (= (stevedore/checked-commands
           "remote-file path"
           (file/heredoc "path" "xxx"))
-         (remote-file* "path" :content "xxx")))
+         (remote-file* {} "path" :content "xxx")))
 
   (is (= (stevedore/checked-commands
           "remote-file path"
@@ -33,52 +31,54 @@
           (stevedore/script (chown "o" "path"))
           (stevedore/script (chgrp "g" "path"))
           (stevedore/script (chmod "m" "path")))
-         (remote-file* "path" :content "xxx" :owner "o" :group "g" :mode "m")))
+         (remote-file*
+          {} "path" :content "xxx" :owner "o" :group "g" :mode "m")))
 
   (testing "delete"
     (is (= (stevedore/checked-script
             "delete remote-file path"
             ("rm" "--force" "path"))
-           (remote-file* "path" :action :delete :force true))))
+           (remote-file* {} "path" :action :delete :force true))))
 
   (with-temporary [tmp (tmpfile)]
-    (is (= (str "remote-file " (.getPath tmp) "...\n"
-                "...done\n")
-           (bash-out (remote-file* (.getPath tmp) :content "xxx"))))
+    (is (= (str "remote-file " (.getPath tmp) "...\n" "...done\n")
+           (bash-out (remote-file* {} (.getPath tmp) :content "xxx"))))
     (is (= "xxx\n" (slurp (.getPath tmp)))))
 
   (with-temporary [tmp (tmpfile)]
     (is (= (str "remote-file " (.getPath tmp) "...\n"
                 "...done\n")
            (bash-out
-            (remote-file* (.getPath tmp) :content "xxx" :chmod "0666"))))
+            (remote-file* {} (.getPath tmp) :content "xxx" :chmod "0666"))))
     (is (= "xxx\n" (slurp (.getPath tmp)))))
 
-  (target/with-target nil {:tag :n :image [:ubuntu]}
-    (is (= (stevedore/checked-commands
-            "remote-file path"
-            (file/heredoc "path" "a 1\n"))
-           (remote-file* "path" :template "template/strint" :values {'a 1})))))
+  (is (= (stevedore/checked-commands
+          "remote-file path"
+          (file/heredoc "path" "a 1\n"))
+         (remote-file*
+          {:node-type {:tag :n :image [:ubuntu]}}
+          "path" :template "template/strint" :values {'a 1}))))
 
 (deftest remote-file-test
   (is (= (stevedore/checked-commands
-            "remote-file file1"
-            (file/heredoc "file1" "somecontent"))
-         (build-resources
-          [] (remote-file "file1" :content "somecontent"))))
+          "remote-file file1"
+          (file/heredoc "file1" "somecontent"))
+         (first (build-resources
+                 [] (remote-file "file1" :content "somecontent")))))
   (is (= (stevedore/checked-commands
-            "remote-file file1"
-            (file/heredoc "file1" "somecontent" :literal true))
-         (build-resources
-          [] (remote-file "file1" :content "somecontent" :literal true))))
+          "remote-file file1"
+          (file/heredoc "file1" "somecontent" :literal true))
+         (first
+          (build-resources
+           [] (remote-file "file1" :content "somecontent" :literal true)))))
   (is (= (stevedore/checked-script
           "remote-file file1"
           (var tmpfile @(mktemp prfXXXXX))
           (download-file "http://xx.com/abc" @tmpfile)
           (mv @tmpfile "file1")
-          (echo "MD5 sum is" @(md5sum "file1"))))
-         (build-resources
-          [] (remote-file "file1" :url "http://xx.com/abc")))
+          (echo "MD5 sum is" @(md5sum "file1")))
+         (first (build-resources
+                 [] (remote-file "file1" :url "http://xx.com/abc")))))
   (is (= (stevedore/checked-script
           "remote-file file1"
           (var tmpfile @(mktemp prfXXXXX))
@@ -86,8 +86,9 @@
           (mv @tmpfile "file1")
           (echo "MD5 sum is" @(md5sum "file1"))
           (chown "user1" "file1"))
-         (build-resources
-          [] (remote-file "file1" :url "http://xx.com/abc" :owner "user1"))))
+         (first
+          (build-resources
+           [] (remote-file "file1" :url "http://xx.com/abc" :owner "user1")))))
   (is (= (stevedore/checked-script
           "remote-file file1"
           (if (|| (not (file-exists? "file1"))
@@ -98,14 +99,15 @@
               (mv @tmpfile "file1")))
           (echo "MD5 sum is" @(md5sum "file1"))
           (chown "user1" "file1"))
-         (build-resources
-          [] (remote-file
-              "file1" :url "http://xx.com/abc" :md5 "abcd" :owner "user1"))))
+         (first
+          (build-resources
+           [] (remote-file
+               "file1" :url "http://xx.com/abc" :md5 "abcd" :owner "user1")))))
 
   (is (= "echo \"remote-file file1...\"\n{ cp file2 file1 && chown  user1 file1; } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
-         (build-resources
-          [] (remote-file
-              "file1" :remote-file "file2" :owner "user1"))))
+         (first (build-resources
+                 [] (remote-file
+                     "file1" :remote-file "file2" :owner "user1")))))
 
   (is (thrown-with-msg? RuntimeException
         #".*/some/non-existing/file.*does not exist, is a directory, or is unreadable.*"
@@ -120,9 +122,10 @@
 
   (with-temporary [tmp (tmpfile)]
     (is (re-find #"mv ~/pallet-transfer-[a-f0-9-]+ file1"
-                 (build-resources
-                  [] (remote-file
-                      "file1" :local-file (.getPath tmp))))))
+                 (first
+                  (build-resources
+                   [] (remote-file
+                       "file1" :local-file (.getPath tmp)))))))
 
   (with-temporary [tmp (tmpfile)
                    target-tmp (tmpfile)]
@@ -132,18 +135,25 @@
       (.delete target-tmp)
       (io/copy "text" tmp)
       (core/defnode tag [])
-      (core/apply-phase-to-node
-       nil tag (compute/make-unmanaged-node "tag" "localhost")
-       (phase
-        (remote-file
-         (.getPath target-tmp) :local-file (.getPath tmp) :mode "0666"))
-       user
-       core/execute-with-user-credentials)
-      (is (.canRead target-tmp))
-      (is (= "text" (slurp (.getPath target-tmp))))
-      (core/apply-phase-to-node
-       nil tag (compute/make-unmanaged-node "tag" "localhost")
-       (phase (exec-script/exec-script (script (rm ~(.getPath target-tmp)))))
-       user
-       core/execute-with-user-credentials)
+      (let [node (compute/make-unmanaged-node "tag" "localhost")
+            request {:all-nodes [node]
+                     :target-nodes [node]
+                     :target-node node
+                     :node-type tag
+                     :user user}]
+        (core/lift*
+         nil "" {tag node} nil
+         [(phase
+           (remote-file
+            (.getPath target-tmp)
+            :local-file (.getPath tmp) :mode "0666"))]
+         request)
+        (is (.canRead target-tmp))
+        (is (= "text" (slurp (.getPath target-tmp))))
+        (core/lift*
+         nil "" {tag node} nil
+         [(phase
+           (exec-script/exec-script
+            (rm ~(.getPath target-tmp))))]
+         request))
       (is (not (.exists target-tmp))))))

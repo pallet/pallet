@@ -303,23 +303,23 @@
 (defmethod emit-special 'defn [type [fn & expr]]
   (if (symbol? (first expr))
     (let [name (first expr)
-	  signature (second expr)
-	  body (rest (rest expr))]
+          signature (second expr)
+          body (rest (rest expr))]
       (emit-function name signature body))
     (let [signature (first expr)
-	  body (rest expr)]
+          body (rest expr)]
       (emit-function nil signature body))))
 
 (defn emit-s-expr [expr]
   (if (symbol? (first expr))
     (let [head (symbol (name (first expr)))  ; remove any ns resolution
-	  expr (conj (rest expr) head)]
+          expr (conj (rest expr) head)]
       (cond
-	(and (= (string/get (str head) 0) \.)
+        (and (= (string/get (str head) 0) \.)
              (> (count (str head)) 1)) (emit-special 'dot-method expr)
-	(special-form? head) (emit-special head expr)
-	(infix-operator? head) (emit-infix head expr)
-	:else (emit-special 'invoke expr)))
+        (special-form? head) (emit-special head expr)
+        (infix-operator? head) (emit-infix head expr)
+        :else (emit-special 'invoke expr)))
     (string/join " " (map emit expr))))
 
 (defmethod emit clojure.lang.IPersistentList [expr]
@@ -351,19 +351,23 @@
 ;  (emit (into [] expr)))
 
 (defmethod emit clojure.lang.IPersistentMap [expr]
-  (letfn [(subscript-assign [pair] (str "["(emit (key pair)) "]=" (emit (val pair))))]
+  (letfn [(subscript-assign
+           [pair]
+           (str "["(emit (key pair)) "]=" (emit (val pair))))]
     (str "(" (string/join " " (map subscript-assign (seq expr))) ")")))
 
 (defn _script [forms]
   (let [code (if (> (count forms) 1)
-	       (emit-do forms)
-	       (emit (first forms)))]
+               (emit-do forms)
+               (emit (first forms)))]
     code))
 
 (defn- unquote?
   "Tests whether the form is (clj ...)."
   [form]
-  (or (and (seq? form) (symbol? (first form)) (= (symbol (name (first form))) 'clj))
+  (or (and (seq? form)
+           (symbol? (first form))
+           (= (symbol (name (first form))) 'clj))
       (and (seq? form) (= (first form) `unquote))))
 
 (defn handle-unquote [form]

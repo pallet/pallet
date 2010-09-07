@@ -5,6 +5,7 @@
    [pallet.compute :as compute]
    [pallet.parameter :as parameter]
    [pallet.stevedore :as stevedore]
+   [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.file :as file]
    [clojure.string :as string])
@@ -12,14 +13,14 @@
    clojure.test
    pallet.test-utils))
 
-(use-fixtures :each reset-default-parameters)
-
 (deftest host-service-test
   (testing "config"
     (is (= (str
             (remote-file/remote-file*
+             {}
              "/etc/nagios3/conf.d/pallet-host-*.cfg" :action :delete :force true)
             (remote-file/remote-file*
+             {}
              "/etc/nagios3/conf.d/pallet-host-host-tag-id.cfg"
              :content
              (str
@@ -31,23 +32,26 @@
                                :notification_interval 0
                                :use "generic-service"}))
              :owner "root"))
-           (str
-            (test-resource-build
-             [(compute/make-node "tag" :id "id" :public-ips ["1.2.3.4"])
-              {:image [:ubuntu]}]
-             (nagios-config/service
-              {:check_command "check_cmd"
-               :service_description "Service Name"}))
-            (test-resource-build
-             [(compute/make-node "tag" :id "id" :public-ips ["1.2.3.4"])
-              {:image [:ubuntu]}]
-             (hosts))))))
+           (let [node (compute/make-node
+                       "tag" :id "id" :public-ips ["1.2.3.4"])]
+             (first
+              (resource/build-resources
+               [:target-node node
+                :all-nodes [node]
+                :target-nodes [node]
+                :node-type {:image [:ubuntu]}]
+               (nagios-config/service
+                {:check_command "check_cmd"
+                 :service_description "Service Name"})
+               (hosts)))))))
   (testing "unmanaged host config"
-    (parameter/reset-defaults)
     (is (= (str
             (remote-file/remote-file*
-             "/etc/nagios3/conf.d/pallet-host-*.cfg" :action :delete :force true)
+             {}
+             "/etc/nagios3/conf.d/pallet-host-*.cfg"
+             :action :delete :force true)
             (remote-file/remote-file*
+             {}
              "/etc/nagios3/conf.d/pallet-host-tag.cfg"
              :content
              (str
@@ -59,16 +63,20 @@
                                :use "generic-service"}))
              :owner "root"))
            (str
-            (test-resource-build
-             [nil {:image []}]
-             (and (unmanaged-host "1.2.3.4" "tag") nil)
-             (nagios-config/service
-              {:host_name "tag"
-               :check_command "check_cmd"
-               :service_description "Service Name"}))
-            (test-resource-build
-             [nil {:image []}]
-             (hosts)))))))
+            (let [node (compute/make-node
+                        "tag" :id "id" :public-ips ["1.2.3.4"])]
+              (first
+               (resource/build-resources
+                [:target-node node
+                 :all-nodes [node]
+                 :target-nodes [node]
+                 :node-type {:image [:ubuntu]}]
+                (unmanaged-host "1.2.3.4" "tag")
+                (nagios-config/service
+                 {:host_name "tag"
+                  :check_command "check_cmd"
+                  :service_description "Service Name"})
+                (hosts)))))))))
 
 (deftest define-contact-test
   (is (= "define contact{\n email email\n contact_name name\n}\n"
@@ -77,9 +85,11 @@
 (deftest contact-test
   (is (= (stevedore/do-script
           (remote-file/remote-file*
+           {}
            "/etc/nagios3/conf.d/pallet-contacts.cfg"
            :action :delete :force true)
           (remote-file/remote-file*
+           {}
            "/etc/nagios3/conf.d/pallet-contacts.cfg"
            :owner "root"
            :content (str
@@ -94,10 +104,11 @@
                      (define-contactgroup {:contactgroup_name "admin"})
                      \newline
                      (define-contactgroup {:contactgroup_name "ops"}))))
-         (test-resource-build
-          [nil {}]
-          (contact {:contact_name "name"
-                    :email "email"
-                    :contactgroups ["admin" "ops"]})
-          (contact {:contact_name "name2" :email "email2"
-                    :contactgroups [:admin]})))))
+         (first
+          (resource/build-resources
+           []
+           (contact {:contact_name "name"
+                     :email "email"
+                     :contactgroups ["admin" "ops"]})
+           (contact {:contact_name "name2" :email "email2"
+                     :contactgroups [:admin]}))))))

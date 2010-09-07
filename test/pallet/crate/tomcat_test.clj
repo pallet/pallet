@@ -4,6 +4,7 @@
   (:require
     [pallet.crate.tomcat :as tc]
     [pallet.target :as target]
+    [pallet.resource :as resource]
     [pallet.resource.directory :as directory]
     [pallet.resource.remote-file :as remote-file]
     [pallet.resource.package :as package]
@@ -11,7 +12,8 @@
     [pallet.template :as template]
     [pallet.stevedore :as stevedore]
     [net.cgrand.enlive-html :as enlive-html]
-    [pallet.enlive :as enlive])
+    [pallet.enlive :as enlive]
+    [pallet.parameter-test :as parameter-test])
   (:use
    clojure.test
    pallet.test-utils
@@ -20,19 +22,17 @@
    [pallet.stevedore :only [script]]
    [pallet.core :only [defnode]]))
 
-(use-fixtures :each with-null-target)
-
 (deftest tomcat-test
-  (is (= (target/with-target nil {:image [:ubuntu]}
-           (parameter/with-parameters [:default]
-             (stevedore/checked-commands
-              "Packages"
-              (stevedore/script (package-manager-non-interactive))
-              (package/package* "tomcat6"))))
-         (test-resource-build
-          [nil {:image [:ubuntu]}]
-          (tomcat)
-          (parameters-test [:tomcat :base] "/var/lib/tomcat6/")))))
+  (is (= (stevedore/checked-commands
+          "Packages"
+          (stevedore/script (package-manager-non-interactive))
+          (package/package* {:node-type {:image [:ubuntu]}} "tomcat6"))
+         (first
+          (resource/build-resources
+           [:node-type {:image [:ubuntu]}]
+           (tomcat)
+           (parameter-test/parameters-test
+            [:tomcat :base] "/var/lib/tomcat6/"))))))
 
 (deftest classname-for-test
   (let [m {:a "a" :b "b"}]
@@ -43,62 +43,73 @@
 (deftest tomcat-deploy-test
   (is (= (stevedore/do-script
           (directory/directory*
-           "/var/lib/tomcat6/webapps/ROOT"
+           {} "/var/lib/tomcat6/webapps/ROOT"
            :owner "tomcat6" :group "tomcat6" :recursive true)
           (remote-file/remote-file*
-           "/var/lib/tomcat6/webapps/ROOT.war"
+           {} "/var/lib/tomcat6/webapps/ROOT.war"
            :remote-file "file.war"
            :owner "tomcat6" :group "tomcat6" :mode "600"))
-         (build-resources [] (deploy nil :remote-file "file.war")))))
+         (first (build-resources [] (deploy nil :remote-file "file.war"))))))
 
 (deftest tomcat-undeploy-all-test
   (is (= "rm -r -f /var/lib/tomcat6/webapps/*\n"
-        (build-resources [] (undeploy-all)))))
+         (first (build-resources [] (undeploy-all))))))
 
 (deftest tomcat-undeploy-test
   (is (= "rm -r -f /var/lib/tomcat6/webapps/ROOT\nrm -f /var/lib/tomcat6/webapps/ROOT.war\nrm -r -f /var/lib/tomcat6/webapps/app\nrm -f /var/lib/tomcat6/webapps/app.war\nrm -r -f /var/lib/tomcat6/webapps/foo\nrm -f /var/lib/tomcat6/webapps/foo.war\n"
-        (build-resources [] (undeploy nil :app "foo"))))
-  (is (= "" (build-resources [] (undeploy)))))
+         (first (build-resources [] (undeploy nil :app "foo")))))
+  (is (= "" (first (build-resources [] (undeploy))))))
 
 (deftest tomcat-policy-test
   (is (= (remote-file/remote-file*
+          {}
           "/etc/tomcat6/policy.d/100hudson.policy"
           :content "grant codeBase \"file:${catalina.base}/webapps/hudson/-\" {\n  permission java.lang.RuntimePermission \"getAttribute\";\n};"
           :literal true)
-         (build-resources []
-          (policy
-           100 "hudson"
-           {"file:${catalina.base}/webapps/hudson/-"
-            ["permission java.lang.RuntimePermission \"getAttribute\""]})))))
+         (first
+          (build-resources
+           []
+           (policy
+            100 "hudson"
+            {"file:${catalina.base}/webapps/hudson/-"
+             ["permission java.lang.RuntimePermission \"getAttribute\""]}))))))
 
 (deftest tomcat-blanket-policy-test
   (is (= (remote-file/remote-file*
+          {}
           "/etc/tomcat6/policy.d/100hudson.policy"
           :content "grant  {\n  permission java.lang.RuntimePermission \"getAttribute\";\n};"
           :literal true)
-         (build-resources []
-          (policy
-           100 "hudson"
-           {nil ["permission java.lang.RuntimePermission \"getAttribute\""]})))))
+         (first
+          (build-resources
+           []
+           (policy
+            100 "hudson"
+            {nil ["permission java.lang.RuntimePermission \"getAttribute\""]}))))))
 
 (deftest tomcat-application-conf-test
   (is (= (remote-file/remote-file*
+          {}
           "/etc/tomcat6/Catalina/localhost/hudson.xml"
           :content "<?xml version='1.0' encoding='utf-8'?>\n<Context docBase=\"/srv/hudson/hudson.war\">\n<Environment name=\"HUDSON_HOME\"/>\n</Context>"
           :literal true)
-         (build-resources []
-          (application-conf
-           "hudson"
-           "<?xml version='1.0' encoding='utf-8'?>
+         (first
+          (build-resources
+           []
+           (application-conf
+            "hudson"
+            "<?xml version='1.0' encoding='utf-8'?>
 <Context docBase=\"/srv/hudson/hudson.war\">
 <Environment name=\"HUDSON_HOME\"/>
-</Context>")))))
+</Context>"))))))
 
 (deftest tomcat-user-test
   (is (= "<decl version=\"1.1\"/><tomcat-users><role rolename=\"r1\"/><role rolename=\"r2\"/><user username=\"u2\" password=\"p2\" roles=\"r1,r2\"/><user username=\"u1\" password=\"p1\" roles=\"r1\"/></tomcat-users>\n"
-         (build-resources []
-          (user :role "r1" "u1" {:password "p1" :roles ["r1"]})
-          (user :role "r2" "u2" {:password "p2" :roles ["r1","r2"]})))))
+         (first
+          (build-resources
+           []
+           (user :role "r1" "u1" {:password "p1" :roles ["r1"]})
+           (user :role "r2" "u2" {:password "p2" :roles ["r1","r2"]}))))))
 
 (deftest extract-member-keys-test
   (are [#{:m} #{:c} [:m 1 :c 2 :c 3 :d 1]] =
@@ -251,26 +262,42 @@
 
 (deftest server-configuration-test
   (defnode a [])
-  (target/with-target nil {:tag :a :image [:ubuntu]}
-    (is (= (remote-file/remote-file*
-            "/var/lib/tomcat6/conf/server.xml"
-            :content "<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWNx\" port=\"123\"><GlobalNamingResources></GlobalNamingResources><Listener className=\"\"></Listener>\n  \n  \n  \n  \n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"80\"></Connector>\n    <Engine defaultHost=\"host\" name=\"catalina\"><Valve className=\"org.apache.catalina.valves.RequestDumperValve\"></Valve>\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t\n      </Host>\n    </Engine>\n  </Service>\n</Server>")
-           (build-resources []
-                            (server-configuration
-                             (server
-                              :port "123" :shutdown "SHUTDOWNx"
-                              (listener :global-resources-lifecycle)
-                              (global-resources)
-                              (service
-                               (engine "catalina" "host"
-                                       (valve :request-dumper))
-                               (connector :port "80" :protocol "HTTP/1.1"
-                                          :connectionTimeout "20000"
-                                          :redirectPort "8443")))))))
-    (is (= (remote-file/remote-file*
-            "/var/lib/tomcat6/conf/server.xml"
-            :content "<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWN\" port=\"8005\">\n  <Listener className=\"org.apache.catalina.core.JasperListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.ServerLifecycleListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\"></Listener>\n  <GlobalNamingResources>\n    <Resource pathname=\"conf/tomcat-users.xml\" factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\" description=\"User database that can be updated and saved\" type=\"org.apache.catalina.UserDatabase\" auth=\"Container\" name=\"UserDatabase\"></Resource>\n  </GlobalNamingResources>\n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"8080\"></Connector>\n    <Engine defaultHost=\"localhost\" name=\"Catalina\">\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t<Valve resolveHosts=\"false\" pattern=\"common\" suffix=\".log\" prefix=\"localhost_access.\" directory=\"logs\" className=\"org.apache.catalina.valves.AccessLogValve\"></Valve>\n      </Host>\n    </Engine>\n  </Service>\n</Server>")
-           (build-resources []
-                            (server-configuration
-                             (server)))))))
+  (is (= (remote-file/remote-file*
+          {:node-type {:tag :a :image [:ubuntu]}}
+          "/var/lib/tomcat6/conf/server.xml"
+          :content "<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWNx\" port=\"123\"><GlobalNamingResources></GlobalNamingResources><Listener className=\"\"></Listener>\n  \n  \n  \n  \n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"80\"></Connector>\n    <Engine defaultHost=\"host\" name=\"catalina\"><Valve className=\"org.apache.catalina.valves.RequestDumperValve\"></Valve>\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t\n      </Host>\n    </Engine>\n  </Service>\n</Server>")
+         (first
+          (build-resources
+           [:node-type {:tag :a :image [:ubuntu]}]
+           (server-configuration
+            (server
+             :port "123" :shutdown "SHUTDOWNx"
+             (listener :global-resources-lifecycle)
+             (global-resources)
+             (service
+              (engine "catalina" "host"
+                      (valve :request-dumper))
+              (connector :port "80" :protocol "HTTP/1.1"
+                         :connectionTimeout "20000"
+                         :redirectPort "8443"))))))))
+  (is (= (remote-file/remote-file*
+          {:node-type {:tag :a :image [:ubuntu]}}
+          "/var/lib/tomcat6/conf/server.xml"
+          :content "<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWN\" port=\"8005\">\n  <Listener className=\"org.apache.catalina.core.JasperListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.ServerLifecycleListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\"></Listener>\n  <GlobalNamingResources>\n    <Resource pathname=\"conf/tomcat-users.xml\" factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\" description=\"User database that can be updated and saved\" type=\"org.apache.catalina.UserDatabase\" auth=\"Container\" name=\"UserDatabase\"></Resource>\n  </GlobalNamingResources>\n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"8080\"></Connector>\n    <Engine defaultHost=\"localhost\" name=\"Catalina\">\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t<Valve resolveHosts=\"false\" pattern=\"common\" suffix=\".log\" prefix=\"localhost_access.\" directory=\"logs\" className=\"org.apache.catalina.valves.AccessLogValve\"></Valve>\n      </Host>\n    </Engine>\n  </Service>\n</Server>")
+         (first
+          (build-resources
+           [:node-type {:tag :a :image [:ubuntu]}]
+           (server-configuration
+            (server)))))))
 
+(deftest invoke-test
+  (is (resource/build-resources
+       [:node-type {:image [:ubuntu]}]
+       (tomcat)
+       (undeploy "app")
+       (undeploy-all)
+       (deploy "app" :content "")
+       (policy 1 "name" {})
+       (application-conf "name" "content")
+       (user "name" {:password "pwd"})
+       (server-configuration (server)))))

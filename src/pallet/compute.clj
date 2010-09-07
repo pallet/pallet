@@ -1,15 +1,14 @@
 (ns pallet.compute
   "Additions to the jclouds compute interface"
-  (:use
-   [pallet.utils
-    :only [*admin-user* remote-sudo remote-sudo-script resource-properties]])
   (:require
    [org.jclouds.compute :as jclouds]
-   [pallet.utils :as utils])
+   [pallet.utils :as utils]
+   [pallet.execute :as execute])
   (:import
    [org.jclouds.compute.domain.internal NodeMetadataImpl ImageImpl]
    org.jclouds.compute.util.ComputeServiceUtils
-   [org.jclouds.compute.domain NodeState NodeMetadata Image OperatingSystem]
+   [org.jclouds.compute.domain
+    NodeState NodeMetadata Image OperatingSystem OsFamily]
    org.jclouds.domain.Location))
 
 
@@ -18,6 +17,17 @@
   (ComputeServiceUtils/getSupportedProviders))
 
 ;;; Node utilities
+
+(defn make-operating-system
+  [{:keys [family name version arch description is-64bit]
+    :or {family OsFamily/UBUNTU
+         name "Ubuntu"
+         version "Some version"
+         arch "Some arch"
+         description "Desc"
+         is-64bit true}}]
+  (OperatingSystem. family name version arch description is-64bit))
+
 (defn make-node [tag & options]
   (let [options (apply hash-map options)]
     (NodeMetadataImpl.
@@ -29,7 +39,9 @@
      (options :user-metadata {})
      tag
      (options :image)
-     (options :operating-system)
+     (if-let [os (options :operating-system)]
+       (if (map? os) (make-operating-system os) os)
+       (make-operating-system {}))
      (options :state NodeState/RUNNING)
      (options :public-ips [])
      (options :private-ips [])
@@ -86,7 +98,7 @@
   "Extract the port from the node's userMetadata"
   [node]
   (let [md (into {} (.getUserMetadata node))
-        port (md :ssh-port)]
+        port (:ssh-port md)]
     (if port (Integer. port))))
 
 (defn primary-ip
@@ -127,16 +139,16 @@
 
 (defn shutdown-node
   "Shutdown a node."
-  ([node] (shutdown-node node *admin-user* jclouds/*compute*))
+  ([node] (shutdown-node node utils/*admin-user* jclouds/*compute*))
   ([node user] (shutdown-node node user jclouds/*compute*))
   ([node user compute]
      (let [ip (primary-ip node)]
        (if ip
-         (remote-sudo ip "shutdown -h 0" user)))))
+         (execute/remote-sudo ip "shutdown -h 0" user)))))
 
 (defn shutdown
   "Shutdown specified nodes"
-  ([nodes] (shutdown nodes *admin-user* jclouds/*compute*))
+  ([nodes] (shutdown nodes utils/*admin-user* jclouds/*compute*))
   ([nodes user] (shutdown nodes user jclouds/*compute*))
   ([nodes user compute]
      (dorun (map #(shutdown-node % compute) nodes))))
@@ -152,20 +164,6 @@
   [#^NodeMetadata node]
   (when-let [operating-system (.getOperatingSystem node)]
     (keyword (str (.getFamily operating-system)))))
-
-(defn execute-script
-  "Execute a script on a specified node. Also accepts an IP or hostname as a
-node."
-  ([script node] (execute-script script node *admin-user*))
-  ([script node user & options]
-     (apply remote-sudo-script (node-address node) script user options)))
-
-(defn execute-cmds
-  "Execute cmds on a specified node. Also accepts an IP or hostname as a
-node."
-  ([script node] (execute-cmds script node *admin-user*) [])
-  ([script node user options]
-     (utils/remote-sudo-cmds (node-address node) script user options)))
 
 (defn node-locations
   "Return locations of a node as a seq."
@@ -222,3 +220,15 @@ node."
      str (interpose ", " (.getPublicAddresses node)))
     (apply
      str (interpose ", " (.getPrivateAddresses node))))))
+
+(def jvm-os-map
+     { "Mac OS X" :os-x })
+
+(defn local-request
+  "Create a request map for localhost"
+  []
+  (let [node (make-node "localhost")]
+    {:target-node node
+     :all-nodes [node]
+     :target-nodes [node]
+     :node-type {:image [(get jvm-os-map (System/getProperty "os.name"))]}}))

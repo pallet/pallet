@@ -5,6 +5,7 @@
 
 (defn git
   "Install git"
-  []
-  (packages :yum ["git" "git-email"]
+  [request]
+  (packages request
+            :yum ["git" "git-email"]
             :aptitude ["git-core" "git-email"]))

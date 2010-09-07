@@ -9,7 +9,8 @@
    [pallet.resource.package :as package]
    [pallet.resource.user :as user]
    [pallet.crate.iptables :as iptables]
-   [clojure.string :as string]))
+   [clojure.string :as string])
+  (:use pallet.thread-expr))
 
 (defn default-group "adm")
 (defn default-mode "0640")
@@ -242,15 +243,17 @@
    block-type
    (string/trim (property-fmt properties))))
 
-(defn config*
-  [& {:keys [options sources destinations filters logs]
-      :or {options default-options
-           sources default-sources
-           destinations default-destinations
-           filters default-filters
-           logs default-logs}
-      :as args}]
-  (remote-file/remote-file*
+
+(defn config
+  [request & {:keys [options sources destinations filters logs]
+              :or {options default-options
+                   sources default-sources
+                   destinations default-destinations
+                   filters default-filters
+                   logs default-logs}
+              :as args}]
+  (remote-file/remote-file
+   request
    "/etc/syslog-ng/syslog-ng.conf"
    :content (str
              (configure-block "options" options)
@@ -274,35 +277,35 @@
               (map #(configure-block "log" %) logs)))
    :literal true))
 
-(resource/defresource config
-  config* [& options])
-
 (defn install
   "Install from package. keys correspond to sections of the syslog-ng.conf file"
-  [& {:keys [options sources destinations filters logs]
-      :as args}]
-  (package/package "syslog-ng")
-  (when-let [group (:group options)]
-    (user/group group :system true))
-  (when-let [dir_group (:dir_group options)]
-    (when (not (= dir_group (:group options)))
-      (user/group dir_group :system true)))
-  (apply
-   config
-   (apply concat
-          (select-keys args [:options :sources :destinations :filters :logs]))))
+  [request & {:keys [options sources destinations filters logs]
+              :as args}]
+  (->
+   request
+   (package/package "syslog-ng")
+   (when-let-> [group (:group options)]
+     (user/group group :system true))
+   (when-let-> [dir_group (:dir_group options)]
+     (when-> (not (= dir_group (:group options)))
+       (user/group dir_group :system true)))
+   (apply->
+    config
+    (apply concat
+           (select-keys args [:options :sources :destinations :filters :logs])))))
 
 (defn set-server-ip
   "Set the syslog-ng server ip, so that it may be picked up by clients. This
    should probably be run in the pre-configure phase."
-  []
-  (resource/default-parameters
-    [:default :syslog-ng :server :ip]
-    (fn [_] (compute/primary-ip (target/node)))))
+  [request]
+  (parameter/update-for
+   request
+   [:syslog-ng :server :ip]
+   (fn [_] (compute/primary-ip (:target-node request)))))
 
 (defn iptables-accept
   "Accept connections, by default on port 514, with tcp."
-  ([] (iptables-accept 514 "tcp"))
-  ([port] (iptables-accept port "tcp"))
-  ([port protocol]
-     (pallet.crate.iptables/iptables-accept-port port)))
+  ([request] (iptables-accept request 514 "tcp"))
+  ([request port] (iptables-accept request port "tcp"))
+  ([request port protocol]
+     (pallet.crate.iptables/iptables-accept-port request port protocol)))

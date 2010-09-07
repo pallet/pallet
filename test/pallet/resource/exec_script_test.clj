@@ -1,12 +1,30 @@
 (ns pallet.resource.exec-script-test
   (:use pallet.resource.exec-script)
-  (:use [pallet.stevedore :only [script]]
-        [pallet.resource :only [build-resources]]
-        clojure.test
-        pallet.test-utils))
+  (:use clojure.test )
+  (:require
+   [pallet.stevedore :as stevedore]
+   [pallet.resource :as resource]))
 
-(use-fixtures :each with-null-target)
+(deftest exec-script*-test
+  (is (= "ls file1\n"
+         (first (resource/build-resources
+                 []
+                 (exec-script* (stevedore/script (ls "file1"))))))))
 
 (deftest exec-script-test
   (is (= "ls file1\n"
-         (build-resources [] (exec-script (script (ls "file1")))))))
+         (first (resource/build-resources
+                 []
+                 (exec-script (ls "file1"))))))
+    (is (= "ls file1\nls file2\n"
+           (first (resource/build-resources
+                   []
+                   (exec-script (ls "file1") (ls "file2")))))))
+
+(deftest exec-checked-script-test
+  (is (= (stevedore/checked-commands
+          "check"
+          "ls file1\n")
+         (first (resource/build-resources
+                 []
+                 (exec-checked-script "check" (ls "file1")))))))

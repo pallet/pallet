@@ -3,20 +3,20 @@
    [pallet.target :only [admin-group]]
    [pallet.stevedore :only [script]]
    [pallet.template]
-   [pallet.resource :only [defresource defaggregate]]
-   [pallet.resource.hostinfo :only [dnsdomainname]]
-   [pallet.utils :only [as-string]]
-   [clojure.contrib.logging])
+   [pallet.resource :only [defaggregate]]
+   [pallet.resource.hostinfo :only [dnsdomainname]])
  (:require
-  [clojure.contrib.string :as string]))
+  [pallet.utils :as utils]
+  [clojure.contrib.string :as string]
+  [clojure.contrib.logging :as logging]))
 
 (defn- write-key-value [key value]
-  (str (as-string key) " " (as-string value) \newline))
+  (str (name key) " " (utils/as-string value) \newline))
 
 (defn- write-option [[key value]]
-  (str (as-string key)
+  (str (name key)
        (if (and value (not (instance? Boolean value)))
-         (str ":" (as-string value)))))
+         (str ":" (utils/as-string value)))))
 
 (defn- write-options [options]
   (write-key-value "options" (string/join " " (map write-option options))))
@@ -53,15 +53,8 @@
            (concat r1 (ensure-vector (:sortlist opt2)))
            (merge opt1 (dissoc (dissoc opt2 :search) :sortlist))]]
     (if-not (or (nil? d1) (nil? d2) (= d1 d2))
-      (warn (str "Trying to set domain name to two distinct values")))
+      (logging/warn (str "Trying to set domain name to two distinct values")))
     r))
-
-
-(defn- apply-resolv [args]
-  (trace "apply-resolv")
-  (apply-templates
-   resolv-templates
-   (reduce merge-resolve-spec [nil [] [] [] {}] args)))
 
 (defaggregate resolv
   "Resolv configuration. Generates a resolv.conf file.
@@ -71,7 +64,10 @@ options are:
 :sortlist  sortlist
 
 or one of the resolv.conf options"
-  apply-resolv [domainname nameservers & options])
-
-
-
+  {:use-arglist [request domainname nameservers & {:keys [search sortlist]}]}
+  (apply-resolv
+   [request args]
+   (logging/trace "apply-resolv")
+   (apply-templates
+    resolv-templates
+    (reduce merge-resolve-spec [nil [] [] [] {}] args))))

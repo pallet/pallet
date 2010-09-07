@@ -2,7 +2,9 @@
   (:use pallet.resource.user)
   (:use [pallet.stevedore :only [script]]
         clojure.test
-        pallet.test-utils))
+        pallet.test-utils)
+  (:require
+   [pallet.resource :as resource]))
 
 (deftest create-user-test
   (is (= "useradd --create-home user1"
@@ -15,20 +17,26 @@
 
 (deftest user*-create-test
   (is (= "if ! getent passwd user1; then useradd --shell /bin/bash user1;fi"
-         (user* "user1" :action :create :shell :bash))))
+         (user* {} "user1" :action :create :shell :bash))))
 
 (deftest user*-modify-test
   (is (= "if getent passwd user1; then usermod  user1;else useradd  user1;fi"
-         (user* "user1" :action :manage))))
+         (user* {} "user1" :action :manage))))
 
 (deftest user*-lock-test
   (is (= "if getent passwd user1; then usermod --lock user1;fi"
-         (user* "user1" :action :lock))))
+         (user* {} "user1" :action :lock))))
 
 (deftest user*-unlock-test
   (is (= "if getent passwd user1; then usermod --unlock user1;fi"
-         (user* "user1" :action :unlock))))
+         (user* {} "user1" :action :unlock))))
 
 (deftest user*-remove-test
   (is (= "if getent passwd user1; then userdel  user1;fi"
-         (user* "user1" :action :remove))))
+         (user* {} "user1" :action :remove))))
+
+(deftest group-create-test
+  (is (= "if ! getent group group11; then groupadd  group11;fi\n"
+         (first (resource/build-resources
+                 []
+                 (group "group11" :action :create))))))

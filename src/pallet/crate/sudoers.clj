@@ -5,16 +5,18 @@
    [pallet.utils :only [underscore as-string]]
    [pallet.target :only [admin-group]]
    [pallet.template]
-   [pallet.resource :only [defresource defaggregate]]
+   [pallet.resource :only [defaggregate]]
    [clojure.contrib.logging]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
 ;; TODO - dsl for sudoers, eg. (alias "user1" "user2" :as :ADMINS)
 
-(defn- default-specs []
-  (array-map "root" {:ALL {:run-as-user :ALL}}
-             (str "%" (admin-group)) {:ALL {:run-as-user :ALL}}))
+(defn- default-specs [request]
+  (array-map
+   "root" {:ALL {:run-as-user :ALL}}
+   (str "%" (admin-group (:image (:node-type request))))
+   {:ALL {:run-as-user :ALL}}))
 
 (defn- param-string [[key value]]
   (cond
@@ -29,7 +31,11 @@
        "\n"))
 
 (defn- defaults-for [defaults key type]
-  (apply str (map #(write-defaults type (as-string (first %)) (second %)) (defaults key))))
+  (apply
+   str
+   (map
+    #(write-defaults type (as-string (first %)) (second %))
+    (defaults key))))
 
 (defn- defaults [defaults]
   (str
@@ -116,11 +122,6 @@
                    v1 v2))
             initial args)))
 
-(defn- apply-sudoers [args]
-  (trace "apply-sudoers")
-  (apply-templates
-   sudoer-templates
-   (sudoer-merge [(array-map) (array-map) (default-specs)] args)))
 
 (defaggregate sudoers
   "Sudo configuration. Generates a sudoers file.
@@ -140,6 +141,14 @@ default-map { :default { :fqdn true }
 specs [ { [\"user1\" \"user2\"]
           { :host :TRUSTED
             :KILL { :run-as-user \"operator\" :tags :NOPASSWORD }
-            [\"/usr/bin/*\" \"/usr/local/bin/*\"] { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }"
-  apply-sudoers [aliases defaults specs])
-
+            [\"/usr/bin/*\" \"/usr/local/bin/*\"]
+            { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }"
+  {:use-arglist [aliases defaults specs]}
+  (apply-sudoers
+   [request args]
+   (trace "apply-sudoers")
+   (apply-templates
+    sudoer-templates
+    (sudoer-merge
+     [(array-map) (array-map) (default-specs (:image (:node-type request)))]
+     args))))

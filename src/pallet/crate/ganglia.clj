@@ -1,9 +1,10 @@
 (ns pallet.crate.ganglia
   "Install and configure ganglia."
   (:require
-   [pallet.arguments :as arguments]
+   [pallet.argument :as argument]
    [pallet.compute :as compute]
    [pallet.target :as target]
+   [pallet.request-map :as request-map]
    [pallet.resource :as resource]
    [pallet.stevedore :as stevedore]
    [pallet.resource.remote-file :as remote-file]
@@ -13,21 +14,20 @@
    [clojure.string :as string]))
 
 (defn install
-  []
-  (package/packages
-   :aptitude ["rrdtool" "librrds-perl" "librrd2-dev" "php5-gd"
-              "ganglia-monitor" "ganglia-webfrontend" "gmetad"])
-  (file/symbolic-link
-   "/usr/share/ganglia-webfrontend" "/var/www/ganglia"))
+  [request]
+  (-> request
+      (package/packages
+       :aptitude ["rrdtool" "librrds-perl" "librrd2-dev" "php5-gd"
+                  "ganglia-monitor" "ganglia-webfrontend" "gmetad"])
+      (file/symbolic-link
+       "/usr/share/ganglia-webfrontend" "/var/www/ganglia")))
 
 (defn monitor
-  []
-  (package/packages
-   :aptitude ["ganglia-monitor"]))
+  [request]
+  (package/packages request :aptitude ["ganglia-monitor"]))
 
 (defn data-source
-  [[id {:keys [interval hosts]
-        :or {interval 15}}]]
+  [request [id {:keys [interval hosts] :or {interval 15}}]]
   (format
    "data_source \"%s\" %d %s\n"
    id interval
@@ -35,12 +35,13 @@
                       hosts
                       (map
                        compute/primary-ip
-                       (target/nodes-in-tag hosts))))))
+                       (request-map/nodes-in-tag request hosts))))))
+
 (defn configure*
-  [{:keys [data_sources rras trusted_hosts]
-      :as options}]
+  [request {:keys [data_sources rras trusted_hosts]
+            :as options}]
   (str
-   (reduce #(str %1 (data-source %2)) "" data_sources)
+   (reduce #(str %1 (data-source request %2)) "" data_sources)
    (when rras
      (reduce #(str %1 (format " \"%s\"" %2)) "RRAs" rras))
    (when trusted_hosts
@@ -58,12 +59,12 @@
   "Each data source is a map, keyed by data source name.
      :interval   (15s)
      :hosts      list of hosts, or tag name"
-  [& {:keys [data_sources]
-      :as options}]
+  [request & {:keys [data_sources] :as options}]
   (remote-file/remote-file
+   request
    "/etc/ganglia/gmetad.conf"
-   :content (arguments/delayed
-             (configure* options))
+   :content (argument/delayed [request]
+             (configure* request options))
    :mode 644))
 
 
@@ -92,8 +93,9 @@
 
 (defn metrics
   "Configure metrics"
-  [{:as options}]
+  [request {:as options}]
   (remote-file/remote-file
+   request
    "/etc/ganglia/gmond.conf"
    :content (format-value options)
    :mode 644))
@@ -323,29 +325,32 @@
 
 (defn nagios-monitor
   "Monitor ganglia web frontent using nagios."
-  [& {:keys [url service_description]
+  [request & {:keys [url service_description]
       :or {service_description "Ganglia Web Frontend"}
       :as options}]
   (nagios-config/monitor-http
+   request
    :url "/ganglia"
    :service_description service_description))
 
 (defn check-ganglia-script
-  []
-  (remote-file/remote-file
-   "/usr/lib/nagios/plugins/check_ganglia.py"
-   :template "crate/ganglia/check_ganglia.py"
-   :mode "0755")
-  (nagios-config/command
-   :command_name "check_ganglia"
-   :command_line
-   "$USER1$/check_ganglia.py -h $HOSTNAME$ -m $ARG1$ -w $ARG2$ -c $ARG3$"))
+  [request]
+  (-> request
+      (remote-file/remote-file
+       "/usr/lib/nagios/plugins/check_ganglia.py"
+       :template "crate/ganglia/check_ganglia.py"
+       :mode "0755")
+      (nagios-config/command
+       :command_name "check_ganglia"
+       :command_line
+       "$USER1$/check_ganglia.py -h $HOSTNAME$ -m $ARG1$ -w $ARG2$ -c $ARG3$")))
 
 (defn nagios-monitor-metric
-  [metric warn critical
+  [request metric warn critical
    & {:keys [service_description servicegroups]
       :or {servicegroups [:ganglia-metrics]}}]
   (nagios-config/service
+   request
    {:service_description (or service_description (format "%s" metric))
     :servicegroups servicegroups
     :check_command (format "check_ganglia!%s!%s!%s" metric warn critical)}))

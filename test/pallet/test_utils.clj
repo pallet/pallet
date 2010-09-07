@@ -1,6 +1,8 @@
 (ns pallet.test-utils
   (:require
+   [pallet.execute :as execute]
    [pallet.target :as target]
+   [pallet.script :as script]
    [pallet.resource :as resource]
    [pallet.parameter :as parameter]
    [pallet.utils :as utils])
@@ -43,46 +45,44 @@ list, Alan Dipert and MeikelBrandmeyer."
   "Check output of bash. Macro so that errors appear on the correct line."
   ([str] `(bash-out ~str 0 ""))
   ([str exit err-msg]
-     `(target/with-local-target
-        (let [r# (utils/bash ~str)]
-          (is (= ~err-msg (:err r#)))
-          (is (= ~exit (:exit r#)))
-          (:out r#)))))
+     `(let [r# (execute/bash ~str)]
+       (is (= ~err-msg (:err r#)))
+       (is (= ~exit (:exit r#)))
+       (:out r#))))
 
-(defn with-null-target
-  "Bind target to null values"
+(defn with-ubuntu-script-template
   [f]
-  (target/with-target nil {}
+  (script/with-template [:ubuntu]
     (f)))
 
-(defn reset-default-parameters
-  [f]
-  (reset! parameter/default-parameters {})
-  (f))
+;; (defn reset-default-parameters
+;;   [f]
+;;   (parameter/reset-defaults)
+;;   (f))
 
-(defmacro test-resource-build
-  "Test build a resource for :configure phase. Ensures binding at correct times.
-  This assumes no local resources."
-  [[node node-type & parameters] & body]
-  `(let [resources# (binding [utils/*file-transfers* {}
-                              resource/*required-resources* {}]
-                      (resource/resource-phases ~@body))]
-     (parameter/default ~@parameters)
-     (target/with-nodes (filter identity [~node]) (filter identity [~node])
-       (resource/with-target [~node ~node-type]
-         (resource/produce-phases [:configure] resources#)))))
+;; (defn test-resource-build*
+;;   "Test build a resource for :configure phase. Ensures binding at correct times.
+;;   This assumes no local resources."
+;;   [resources node node-type parameters]
+;;   (let [{:keys [no-reset-defaults]} parameters]
+;;     (when-not no-reset-defaults
+;;       (parameter/reset-defaults)))
+;;   (apply parameter/default parameters)
+;;   (resource/produce-phases
+;;    [:configure]
+;;    resources
+;;    {:all-nodes (filter identity [node])
+;;     :target-nodes (filter identity [node])
+;;     :target-node node
+;;     :node-type node-type
+;;     :parameters (parameter/from-default
+;;                  [:default
+;;                   (target/packager (:image node-type))
+;;                   (target/os-family (:image node-type))])}))
 
-(defn parameters-test*
-  [& options]
-  (let [options (apply hash-map options)]
-    (doseq [[[key & keys] value] options]
-      (is (= value
-             (let [params (get parameter/*parameters* key ::not-set)]
-               (is (not (= ::not-set params)))
-               (if keys
-                 (apply params keys)
-                 params)))))
-    ""))
-
-(resource/defresource parameters-test
-  parameters-test* [& options])
+;; (defmacro test-resource-build
+;;   "Test build a resource for :configure phase.
+;;    Ensures binding at correct times."
+;;   [[node node-type & parameters] & body]
+;;   `(test-resource-build*
+;;     (resource/resource-phases ~@body) ~node ~node-type '~parameters))

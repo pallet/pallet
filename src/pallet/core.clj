@@ -24,15 +24,18 @@ tag as a configuration target.
   (:use
    [pallet.compute
     :only [node-has-tag? node-counts-by-tag boot-if-down compute-node?
-           execute-script ssh-port]]
+           ssh-port]]
    [org.jclouds.compute
     :only [run-nodes destroy-node nodes-with-details tag running?
            compute-service? *compute*]]
    clojure.contrib.def)
   (:require
    [pallet.compute :as compute]
+   [pallet.execute :as execute]
    [pallet.utils :as utils]
+   [pallet.script :as script]
    [pallet.target :as target]
+   [pallet.parameter :as parameter]
    [pallet.resource :as resource]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.string :as string]
@@ -51,7 +54,7 @@ tag as a configuration target.
    convenience fn) or as an argument list that will be passed to make-user."
   [user & exprs]
   `(let [user# ~user]
-     (binding [utils/*admin-user* (if (utils/is-user? user#)
+     (binding [utils/*admin-user* (if (utils/user? user#)
                                     user#
                                     (apply utils/make-user user#))]
        ~@exprs)))
@@ -77,13 +80,12 @@ When passing a username the following options can be specified:
   `(binding [*compute* nil]
      ~@body))
 
-(defmacro make-node
+(defn make-node
   "Create a node definition.  See defnode."
-  [name image & options]
-  `(apply hash-map
-          (vector :tag (keyword ~name)
-                  :image ~image
-                  :phases (resource/defphases ~@options))))
+  [name image & {:as phase-map}]
+  {:tag (keyword name)
+   :image image
+   :phases phase-map})
 
 (defmacro defnode
   "Define a node type.  The name is used for the node tag.
@@ -94,24 +96,35 @@ When passing a username the following options can be specified:
    Options are used to define phases. Standard phases are:
      :bootstrap    run on first boot
      :configure    defines the configuration of the node."
-  [tag image & options]
+  {:arglists ['(tag doc-str? attr-map? image & phasekw-phasefn-pairs)]}
+  [tag & options]
   (let [[tag options] (name-with-attributes tag options)]
-    `(def ~tag (make-node (name '~tag) ~image ~@options))))
+    `(def ~tag (make-node '~(name tag) ~@options))))
+
+(defn resource-invocations [request]
+  (if-let [f (some
+              (:phase request)
+              [(:phases (:node-type request)) (:phases request)])]
+    (script/with-template (:image (:node-type request))
+      (f request))
+    request))
 
 (defn produce-init-script
-  [target]
-  (resource/with-target [nil target]
-    (let [cmds
-          (resource/produce-phase :bootstrap (:phases target))]
-      (if-not (and (every? #(= :remote (first %)) cmds) (>= 1 (count cmds)))
-        (condition/raise
-         :type :booststrap-contains-local-resources
-         :message (format
-                   "Bootstrap can not contain local resources %s"
-                   (pr-str cmds))))
-      (if-let [f (second (first cmds))]
-        (f)
-        ""))))
+  [request]
+  (let [cmds
+        (resource/produce-phase
+         (resource-invocations
+          (assoc request :phase :bootstrap :target-id :bootstrap-id)))]
+    (if-not (and (every? #(= :remote (:location %)) cmds) (>= 1 (count cmds)))
+      (condition/raise
+       :type :booststrap-contains-local-resources
+       :message (format
+                 "Bootstrap can not contain local resources %s"
+                 (pr-str cmds))))
+    (if-let [f (:f (first cmds))]
+      (script/with-template (:image (:node-type request))
+        (:cmds (f request)))
+      "")))
 
 (defn build-node-template-impl
   "Build a template for passing to jclouds run-nodes."
@@ -134,12 +147,13 @@ When passing a username the following options can be specified:
 
 (defn build-node-template
   "Build the template for specified target node and compute context"
-  [compute target public-key-path]
-  {:pre [(map? target)]}
-  (logging/info (str "building node template for " (target :tag)))
+  [compute public-key-path request]
+  {:pre [(map? (:node-type request))]}
+  (logging/info
+   (str "building node template for " (-> request :node-type :tag)))
   (when public-key-path (logging/info (str "  authorizing " public-key-path)))
-  (let [options (target :image)
-        init-script (produce-init-script target)]
+  (let [options (-> request :node-type :image)
+        init-script (produce-init-script request)]
     (when init-script (logging/info (str "  using init script")))
     (build-node-template-impl
      compute
@@ -162,13 +176,12 @@ When passing a username the following options can be specified:
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
 bootstrap-script value is expected tobe a function that produces a
 script that is run with root privileges immediatly after first boot."
-  [node count compute]
+  [node count compute request]
   {:pre [(map? node)]}
   (logging/info (str "Starting " count " nodes for " (node :tag)))
-  (run-nodes (->> node (:tag) (name)) count
+  (run-nodes (-> node :tag name) count
              (build-node-template
-              compute node
-              nil)
+              compute nil (assoc request :node-type node))
              compute))
 
 (defn destroy-nodes-with-count
@@ -190,53 +203,98 @@ script that is run with root privileges immediatly after first boot."
 
 (defn adjust-node-counts
   "Start or stop the specified number of nodes."
-  [compute delta-map nodes]
+  [compute delta-map nodes request]
   (logging/trace (str "adjust-node-counts" delta-map))
   (logging/info (str "destroying excess nodes"))
   (doseq [node-count (filter #(neg? (second %)) delta-map)]
     (destroy-nodes-with-count
       nodes ((first node-count) :tag) (- (second node-count)) compute))
   (logging/info (str "adjust-node-counts starting new nodes"))
-  (mapcat #(create-nodes (first %) (second %) compute)
+  (mapcat #(create-nodes (first %) (second %) compute request)
           (filter #(pos? (second %)) delta-map)))
 
 (defn converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
    instances."
-  ([compute node-map] (converge-node-counts
-                       compute node-map (nodes-with-details compute)))
-  ([compute node-map nodes]
-     (logging/info "converging nodes")
-     (logging/trace (str "  " node-map))
-     (boot-if-down compute nodes)       ; this needs improving
+  [compute node-map nodes request]
+  (logging/info "converging nodes")
+  (logging/trace (str "  " node-map))
+  (boot-if-down compute nodes)          ; this needs improving
                                         ; should only reboot if required
-     (let [nodes (filter running? nodes)]
-       (adjust-node-counts
-        compute
-        (node-count-difference node-map nodes)
-        nodes))))
+  (let [nodes (filter running? nodes)]
+    (adjust-node-counts
+     compute
+     (node-count-difference node-map nodes)
+     nodes
+     request)))
 
-(defmacro execute-with-wrapper
-  "Execute body inside node-execution-wrapper."
-  [f [node user] & body]
-  `(~f ~node ~user (fn [] ~@body)))
+
+(defn execute-with-ssh
+  [{:keys [target-node] :as request}]
+  (execute/ssh-cmds
+   (assoc request
+     :address (compute/node-address target-node)
+     :ssh-port (compute/ssh-port target-node))))
+
+(defn augment-template-from-node
+  "Add the os family to the node-type if available from node"
+  [handler]
+  (fn [request]
+    (handler
+     (let [node (:target-node request)
+           os-family (and node (compute/node-os-family node))]
+       (if os-family
+         (update-in request [:node-type :image] conj os-family)
+         request)))))
+
+(defn parameter-keys [node node-type]
+  [:default
+   (target/packager (node-type :image))
+   (target/os-family (node-type :image))])
+
+(defn with-target-parameters
+  "Middleware to set parameters based on a specified parameter map"
+  [handler parameters]
+  (fn [request]
+    (handler
+     (assoc
+         request :parameters
+         (parameter/from-map
+          parameters
+          (parameter-keys (:target-node request) (:node-type request)))))))
+
+(defn build-commands
+  [handler]
+  (fn [request]
+    (handler
+     (assoc request
+       :commands (script/with-template (:image (:node-type request))
+                   (resource/produce-phase request))))))
+
+(defmacro pipe
+  "Build a request processing pipeline from the specified forms"
+  [& forms]
+  (let [[middlewares etc] (split-with #(or (seq? %) (symbol? %)) forms)
+        middlewares (reverse middlewares)
+        [middlewares [x :as etc]]
+          (if (seq etc)
+            [middlewares etc]
+            [(rest middlewares) (list (first middlewares))])
+          handler x]
+    (if (seq middlewares)
+      `(-> ~handler ~@middlewares)
+      handler)))
+
 
 (defn apply-phase-to-node
-  "Apply a phase to a node"
-  [compute all-nodes target-nodes node-type node phase user wrapper-fn]
-  (logging/info (format "apply-phase-to-node %s %s" (tag node) phase))
-  (logging/trace (str "  node-type " node-type))
-  (let [port (ssh-port node)
-        options (if port [:port port] [])]
-    (if node-type
-      (target/with-nodes all-nodes target-nodes
-        (resource/with-target [node node-type]
-          (when-let [phase-cmds (resource/produce-phase
-                                 phase (node-type :phases))]
-            (logging/info (format "phase-cmds %s" (pr-str phase-cmds)))
-            (execute-with-wrapper wrapper-fn [node user]
-              (compute/execute-cmds phase-cmds node user options)))))
-      (logging/error (str "Could not find node type for node " (tag node))))))
+  "Apply a phase to a node request"
+  [compute wrapper-fn request]
+  ((pipe
+    augment-template-from-node
+    build-commands
+    wrapper-fn
+    execute-with-ssh)
+   request))
 
 (defmacro with-local-exec
   "Run only local commands"
@@ -261,14 +319,35 @@ script that is run with root privileges immediatly after first boot."
   `(binding [compute/execute-cmds no-exec]
      ~@body))
 
+(defn wrap-no-exec
+  "Middleware to report on the request, without executing"
+  [_]
+  (fn [request]
+    (logging/info
+     (format
+      "Commands on node %s as user %s"
+      (pr-str (:node request))
+      (pr-str (:user request))))
+    (letfn [(execute [cmd] (logging/info (format "Commands %s" cmd)))]
+      (resource/execute-commands execute))))
 
-(defn execute-with-user-credentials
-  [_ user f]
-  (pallet.utils/possibly-add-identity
-   (pallet.utils/default-agent) (:private-key-path user) (:passphrase user))
-  (f))
+(defn wrap-local-exec
+  "Middleware to execute only local functions"
+  [_]
+  (fn [request]
+    (letfn [(execute [cmd] nil)]
+      (resource/execute-commands execute))))
 
-(def *node-execution-wrapper* execute-with-user-credentials)
+(defn wrap-with-user-credentials
+  [handler]
+  (fn [request]
+    (execute/possibly-add-identity
+     (execute/default-agent)
+     (:private-key-path (:user request))
+     (:passphrase (:user request)))
+    (handler request)))
+
+(def *node-execution-wrapper* wrap-with-user-credentials)
 
 (defmacro with-node-execution-wrapper
   "Wrap node execution in the given function, wich must take an argument list of
@@ -278,17 +357,16 @@ script that is run with root privileges immediatly after first boot."
      ~@body))
 
 (defn apply-phase
-  "Apply a list of phases to a sequence of nodes"
-  [compute all-nodes target-nodes node-type nodes phase user
-   node-execution-wrapper]
-  (logging/trace
+  "Apply a phase to a sequence of nodes"
+  [compute node-execution-wrapper nodes request]
+  (logging/info
    (format
     "apply-phase %s for %s with %d nodes"
-    phase (node-type :tag) (count nodes)))
+    (:phase request) (:tag (:node-type request)) (count nodes)))
   (doseq [node nodes]
     (apply-phase-to-node
-     compute all-nodes target-nodes node-type node phase user
-     node-execution-wrapper)))
+     compute node-execution-wrapper
+     (assoc request :target-node node :target-id (keyword (.getId node))))))
 
 (defn nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"
@@ -353,58 +431,107 @@ script that is run with root privileges immediatly after first boot."
             #(merge-with concat %1 %2) {}
             (map #(nodes-in-set % prefix nodes) node-set)))))
 
+(defn identify-anonymous-phases
+  [request phases]
+  (reduce #(if (keyword? %2)
+             [(first %1)
+              (conj (second %1) %2)]
+             (let [phase (keyword (name (gensym "phase")))]
+               [(assoc-in (first %1) [:phases phase] %2)
+                (conj (second %1) phase)])) [request []] phases))
+
+(defn invoke-for-nodes
+  "Build an invocation map for specified nodes."
+  [request nodes]
+  (reduce
+   #(resource-invocations (assoc %1
+                            :target-node %2
+                            :target-id (keyword (.getId %2))))
+   request nodes))
+
+(defn invoke-for-node-type
+  "Build an invocation map for specified node-type map."
+  [request node-map]
+  (reduce
+   #(invoke-for-nodes (assoc %1 :node-type (first %2)) (second %2))
+   request node-map))
+
+(defn invoke-phases
+  "Build an invocation map for specified phases and nodes.
+   This allows configuration to be accumulated in the request parameters."
+  [request phases node-map]
+  (reduce #(invoke-for-node-type (assoc %1 :phase %2) node-map) request phases))
 
 (defn lift-nodes
-  "Lift a nodes in target-node-map for the specified phases"
-  [compute nodes target-node-map phases user execution-wrapper]
-  (let [target-nodes (filter running? (apply concat (vals target-node-map)))]
+  "Lift nodes in target-node-map for the specified phases."
+  [compute all-nodes target-node-map all-node-map
+   phases execution-wrapper request]
+  (let [target-nodes (filter running? (apply concat (vals target-node-map)))
+        all-nodes (or all-nodes target-nodes) ; Target node map may contain
+                                        ; unmanged nodes
+        [request phases] (identify-anonymous-phases request phases)
+        request (assoc request
+                  :all-nodes all-nodes
+                  :target-nodes target-nodes)
+        request (invoke-phases request phases all-node-map)]
     (doseq [phase (resource/phase-list phases)
             [node-type tag-nodes] target-node-map]
       (apply-phase
        compute
-       (or nodes target-nodes)      ; Target node map may contain unmanged nodes
-       target-nodes
-       node-type
+       execution-wrapper
        tag-nodes
-       phase
-       user
-       execution-wrapper))))
+       (assoc request :phase phase :node-type node-type)))))
 
 (defn lift*
-  [compute prefix node-set phases]
+  [compute prefix node-set all-node-set phases request]
   (let [nodes (if compute (filter running? (nodes-with-details compute)))
-        target-node-map (nodes-in-set node-set prefix nodes)]
+        target-node-map (nodes-in-set node-set prefix nodes)
+        all-node-map (or (and all-node-set
+                              (nodes-in-set all-node-set nil nodes))
+                         target-node-map)]
     (lift-nodes
-     compute nodes target-node-map phases
-     utils/*admin-user* *node-execution-wrapper*)
+     compute nodes target-node-map all-node-map
+     phases *node-execution-wrapper* request)
     nodes))
 
 (defn converge*
-  [compute prefix node-map phases]
+  [compute prefix node-map all-node-set phases request]
   {:pre [(map? node-map)]}
   (logging/trace (str "converge*  " node-map))
-  (let [node-map (add-prefix-to-node-map prefix node-map)]
-    (converge-node-counts compute node-map)
-
+  (let [node-map (add-prefix-to-node-map prefix node-map)
+        nodes (nodes-with-details compute)]
+    (converge-node-counts compute node-map nodes request)
     (let [nodes (filter running? (nodes-with-details compute))
-          target-node-map (select-keys
-                           (group-by #(keyword (.getTag %)) nodes)
-                           (keys node-map))
+          tag-groups (group-by #(keyword (.getTag %)) nodes)
+          target-node-map (into
+                           {}
+                           (map
+                            #(vector % ((:tag %) tag-groups))
+                            (keys node-map)))
+          all-node-map (or (and all-node-set
+                                (nodes-in-set all-node-set nil nodes))
+                           target-node-map)
           phases (ensure-configure-phase phases)]
       (lift-nodes
-       compute nodes target-node-map phases
-       utils/*admin-user* *node-execution-wrapper*)
+       compute nodes target-node-map all-node-map
+       phases *node-execution-wrapper* request)
       nodes)))
 
 (defn compute-service-and-options
   "Extract the compute service form a vector of options, returning the bound
   compute service if none specified."
   [arg options]
-  (let [prefix (if (string? arg) arg)
-        node-spec (if prefix (first options) arg)
-        options (if prefix (rest options) options)
-        compute (or (first (filter compute-service? options)) *compute*)]
-    [compute prefix node-spec (remove #{compute} options)]))
+  (let [[prefix options] (if (string? arg)
+                           [arg options]
+                           [nil (concat [arg] options)])
+        [node-spec options] [(first options) (rest options)]
+        compute (or (first (filter compute-service? options)) *compute*)
+        user (or (first (filter utils/user? options)) utils/*admin-user*)
+        options (remove #{compute user} options)
+        [node-map options] (if (map? (first options))
+                             [(first options) (rest options)]
+                             [nil options])]
+    [compute prefix node-spec node-map options {:user user}]))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in

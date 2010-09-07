@@ -4,6 +4,7 @@
         pallet.test-utils)
   (:require
    [pallet.stevedore :as stevedore]
+   [pallet.resource :as resource]
    [pallet.resource.directory :as directory]
    [pallet.resource.remote-file :as remote-file]
    [pallet.utils :as utils]))
@@ -11,33 +12,34 @@
 (deftest remote-directory-test
   (is (= (stevedore/checked-commands
           "remote-directory"
-          (directory/directory* "/path" :owner "fred")
-          (remote-file/remote-file*
+          (directory/directory* {} "/path" :owner "fred")
+          (remote-file/remote-file* {}
            "${TMPDIR-/tmp}/file.tgz" :url "http://site.com/a/file.tgz" :md5 nil)
           (stevedore/script
            (cd "/path")
            (tar xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz")))
-         (test-resource-build
-          [nil {}]
-          (remote-directory
-           "/path"
-           :url "http://site.com/a/file.tgz"
-           :unpack :tar
-           :owner "fred"))))
+         (first (resource/build-resources
+                 []
+                 (remote-directory
+                  "/path"
+                  :url "http://site.com/a/file.tgz"
+                  :unpack :tar
+                  :owner "fred")))))
   (is (= (stevedore/checked-commands
           "remote-directory"
-          (directory/directory* "/path" :owner "fred")
+          (directory/directory* {} "/path" :owner "fred")
           (remote-file/remote-file*
-           "${TMPDIR-/tmp}/file.tgz" :url "http://site.com/a/file.tgz" :md5 nil)
+           {} "${TMPDIR-/tmp}/file.tgz"
+           :url "http://site.com/a/file.tgz" :md5 nil)
           (stevedore/script
            (cd "/path")
            (tar xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz"))
-          (directory/directory* "/path" :owner "fred" :recursive true))
-         (test-resource-build
-          [nil {}]
-          (remote-directory
-           "/path"
-           :url "http://site.com/a/file.tgz"
-           :unpack :tar
-           :owner "fred"
-           :recursive true)))))
+          (directory/directory* {} "/path" :owner "fred" :recursive true))
+         (first (resource/build-resources
+                 []
+                 (remote-directory
+                  "/path"
+                  :url "http://site.com/a/file.tgz"
+                  :unpack :tar
+                  :owner "fred"
+                  :recursive true))))))
