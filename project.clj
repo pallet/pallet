@@ -24,7 +24,7 @@
                      [org.jclouds/jclouds-rimuhosting "1.0-SNAPSHOT"]
                      [org.jclouds/jclouds-gogrid "1.0-SNAPSHOT"]
                      [swank-clojure/swank-clojure "1.3.0-SNAPSHOT"]
-                     [autodoc "0.7.0"]]
+                     [autodoc "0.7.1"]]
   :repositories {"build.clojure.org" "http://build.clojure.org/releases/"
                  "clojars.org" "http://clojars.org/repo/"
                  "jclouds" "http://jclouds.googlecode.com/svn/repo"
