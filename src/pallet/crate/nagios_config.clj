@@ -8,7 +8,9 @@
    [pallet.crate.nagios :as nagios]
    [pallet.target :as target]
    [pallet.parameter :as parameter]
-   [clojure.string :as string]))
+   [clojure.string :as string])
+  (:use
+   pallet.thread-expr))
 
 (defn service
   "Configure nagios service monitoring.
@@ -37,23 +39,20 @@
 (defn nrpe-client
   "Configure nrpe on machine to be monitored"
   [request]
-  (->
-   request
-   (package/package "nagios-nrpe-server")
-   (file/sed
-    "/etc/nagios/nrpe.cfg"
-    (argument/delayed [request]
-                      {"allowed_hosts=127.0.0.1"
-                       (format
-                        "allowed_hosts=%s"
-                        (parameter/get-for request [:nagios :server :ip]))}))))
+  (-> request
+      (package/package "nagios-nrpe-server")
+      (when-let-> [server (parameter/get-for request [:nagios :server :ip] nil)]
+                  (file/sed
+                   "/etc/nagios/nrpe.cfg"
+                   {"allowed_hosts=127.0.0.1"
+                    (format "allowed_hosts=%s" server)}))))
 
 (defn nrpe-client-port
   "Open the nrpe client port to the nagios server ip"
   [request]
-  (iptables/iptables-accept-port
-   request
-   5666 "tcp" :source (parameter/lookup :nagios :server :ip)))
+  (-> request
+      (when-let-> [server (parameter/get-for request [:nagios :server :ip] nil)]
+        (iptables/iptables-accept-port request 5666 "tcp" :source server))))
 
 (defn nrpe-check-load
   [request]

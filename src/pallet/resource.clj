@@ -1,5 +1,6 @@
 (ns pallet.resource
-  "Resource definition."
+  "Resources implement the conversion of phase functions to script and other
+configuration code."
   (:require
    [pallet.argument :as argument]
    [pallet.utils :as utils]

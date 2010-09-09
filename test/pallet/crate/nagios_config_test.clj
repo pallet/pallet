@@ -4,7 +4,8 @@
    [pallet.compute :as compute]
    [pallet.parameter :as parameter]
    [pallet.target :as target]
-   [pallet.crate.nagios-config :as nagios-config])
+   [pallet.resource :as resource]
+   [pallet.crate.nagios :as nagios])
   (:use
    clojure.test
    pallet.test-utils))
@@ -25,3 +26,14 @@
     (is (= {:n "c"}
            (-> (apply command request (apply concat cfg))
                :parameters :nagios :commands)))))
+
+(deftest invoke-test
+  (is (resource/build-resources
+       [:target-node (compute/make-node "tag" :id "id")]
+       ;; without server
+       (nrpe-client)
+       (nrpe-client-port)
+       ;; with server
+       (nagios/nagios "pwd")
+       (nrpe-client)
+       (nrpe-client-port))))

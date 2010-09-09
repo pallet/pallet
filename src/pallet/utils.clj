@@ -42,7 +42,7 @@
 
 (defn load-resource-url
   [name]
-  (logging/info (format "load-resource-url %s" name))
+  (logging/trace (format "load-resource-url %s" name))
   (with-open [stream (.getContent name)
               r (new java.io.BufferedReader
                      (new java.io.InputStreamReader

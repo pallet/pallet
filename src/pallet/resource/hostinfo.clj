@@ -8,8 +8,11 @@
    clojure.contrib.logging))
 
 (script/defscript os-version-name [])
-(stevedore/defimpl os-version-name :default []
+(stevedore/defimpl os-version-name [#{:ubuntu :debian}] []
   @(lsb_release -c -s))
+
+(stevedore/defimpl os-version-name :default []
+  "")
 
 (script/defscript hostname [& options])
 (stevedore/defimpl hostname :default [& options]

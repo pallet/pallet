@@ -32,11 +32,12 @@
 
 
 (deftest test-install-example
-  (is (= (stevedore/checked-commands
-          "Packages"
-          (stevedore/script (package-manager-non-interactive))
-          "aptitude install -y  java"
-          "aptitude install -y  rubygems\n")
+  (is (= (script/with-template [:ubuntu]
+           (stevedore/checked-commands
+            "Packages"
+            (stevedore/script (package-manager-non-interactive))
+            "aptitude install -y  java"
+            "aptitude install -y  rubygems\n"))
          (first (resource/build-resources
                  []
                  (package "java" :action :install)

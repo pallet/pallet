@@ -12,20 +12,22 @@ different cloud providers.  While jclouds solves the issue of creating
 destroying and configuring cloud level access to nodes, it does not address the
 differences in images used across providers.  This is what Pallet adds.
 
-Pallet can be used in a declaritive or an imperative fashion. defnode is used to
-decalre node types, specifying the image template and possibly bootstrap and
-other configuration. The converge function can then be used to control the
-number of nodes of each type that are running in your cloud, and applies the
-declared configuration as required.  The lift function can also be used to apply
-configuration without adjusting node counts.  Both converge and lift both accept
-inline definiton of configuration actions that should be run.
+defnode is used to decalre node types, specifying the image template and
+possibly bootstrap and other configuration. The converge function can then be
+used to control the number of nodes of each type that are running in your cloud,
+and applies the declared configuration as required.  The lift function can
+also be used to apply configuration without adjusting node counts.  Both
+converge and lift accept inline definiton of configuration actions that should
+be run.
 
 In pallet, low level resources can be combined in clojure functions, known as
 crates, that are used to specify configuration.  Crates are clojure functions
-and can call other crates, with arguments, as required. Crates can be packaged
-and distributed as clojure jar files.
+that have an initial `request` argument, and can call other crates, with
+arguments, as required. The request argument is used to carry the configuration
+request state, and is updated, and returned by each reasource function.  The
+request map must be threaded through each resource or crate call.
 
-Pallet can also execute chef cookbooks using 'chef-solo'.
+Crates can be packaged and distributed as clojure jar files.
 
 API documentation (http://hugoduncan.github.com/pallet) is available.
 
@@ -44,4 +46,3 @@ Installation is with Leiningen (http://github.com/technomancy/leiningen).  Add
 `[pallet \"0.0.1-SNAPSHOT\"]` to your :dependencies in project.clj.
 
 ")
-

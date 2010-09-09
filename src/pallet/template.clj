@@ -26,8 +26,8 @@
      (if (neg? i) nil (.substring filename (inc i)))]))
 
 (defn pathname
-  "Build a pathname from a list of path and filename parts.  Last part is assumed
-   to be a file extension."
+  "Build a pathname from a list of path and filename parts.  Last part is
+   assumed to be a file extension."
   [& parts]
   (let [ext (last parts)]
     (str (apply str (interpose java.io.File/separator (butlast parts)))
@@ -45,18 +45,18 @@
                      [p (str "resources/" p)]))]
     (concat
      (variants tag)
-     (variants (name (target/os-family template)))
-     (variants (name (target/packager template)))
+     (variants (name (or (target/os-family template) "unknown")))
+     (variants (name (or (target/packager template) "unknown")))
      (variants nil))))
 
 (defn find-template
   "Find a template for the specified path, for application to the given node.
    Templates may be specialised."
   [path node-type]
-  {:pre [node-type]}
+  {:pre [(map? node-type) (:image node-type)]}
   (some
    get-resource
-   (candidate-templates path (node-type :tag) (node-type :image))))
+   (candidate-templates path (:tag node-type) (:image node-type))))
 
 (defn interpolate-template
   "Interpolate the given template."

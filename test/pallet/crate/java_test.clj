@@ -21,7 +21,9 @@
      (package/package-manager* {} :multiverse)
      (package/package-manager* {} :update))))
 
-(def noninteractive (stevedore/script (package-manager-non-interactive)))
+(def noninteractive
+  (script/with-template [:ubuntu]
+    (stevedore/script (package-manager-non-interactive))))
 
 (defn debconf [pkg]
   (script/with-template [:ubuntu]

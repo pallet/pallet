@@ -1,12 +1,13 @@
 (ns #^{:author "Hugo Duncan"}
   pallet.core
-"Pallet is used to provision configured compute nodes using jclouds and chef.
+"Pallet is a functional configuration management system, that can be used to
+provision and manage configured compute nodes.
 
 It uses a declaritive map for specifying the number of nodes with a given tag.
-Each tag is used to look up a machine image template specification (in
-jclouds), and to lookup configuration information (in chef).  The converge
-function then tries to bring you compute servers into alignment with your
-declared counts and configurations.
+Each tag is used to look up a machine image template specification (in jclouds),
+and to configuration information (in chef).  The converge function then
+tries to bring you compute servers into alignment with your declared counts and
+configurations.
 
 The bootstrap process for new compute nodes installs a user with sudo
 permissions, using the specified username and password. The installed user is
@@ -18,8 +19,6 @@ before chef is run, and this provides a :compute_nodes attribute.  The
 compute-nodes cookbook is expected to exist in the site-cookbooks of the
 chef-repository you specify with `with-chef-repository`.
 
-`chef-solo` is then run with chef repository you have specified using the node
-tag as a configuration target.
 "
   (:use
    [pallet.compute
@@ -350,9 +349,8 @@ script that is run with root privileges immediatly after first boot."
 (def *node-execution-wrapper* wrap-with-user-credentials)
 
 (defmacro with-node-execution-wrapper
-  "Wrap node execution in the given function, wich must take an argument list of
-   [node user function-to-wrap]"
-  [f & body]
+  "Wrap node execution in the given function, which must take an argument list
+   of [node user function-to-wrap]" [f & body]
   `(binding [*node-execution-wrapper* ~f]
      ~@body))
 
@@ -495,9 +493,12 @@ script that is run with root privileges immediatly after first boot."
     nodes))
 
 (defn converge*
+  "Converge the node counts of each tag in node-map, executing each of the
+   configuration phases on all the tags in node-map. Th phase-functions are
+   also executed, but not applied, for any other nodes in all-node-set"
   [compute prefix node-map all-node-set phases request]
   {:pre [(map? node-map)]}
-  (logging/trace (str "converge*  " node-map))
+  (logging/trace (str "converge* " node-map))
   (let [node-map (add-prefix-to-node-map prefix node-map)
         nodes (nodes-with-details compute)]
     (converge-node-counts compute node-map nodes request)
@@ -518,8 +519,8 @@ script that is run with root privileges immediatly after first boot."
       nodes)))
 
 (defn compute-service-and-options
-  "Extract the compute service form a vector of options, returning the bound
-  compute service if none specified."
+  "Extract the compute service and user form a vector of options, returning the
+   bound compute service if none specified."
   [arg options]
   (let [[prefix options] (if (string? arg)
                            [arg options]
@@ -556,7 +557,7 @@ script that is run with root privileges immediatly after first boot."
    unless other phases are specified.
 
    node-set can be a node type, a sequence of node types, or a map
-            of node type to nodes. Examples:
+   of node type to nodes. Examples:
               [node-type1 node-type2 {node-type #{node1 node2}}]
               node-type
               {node-type #{node1 node2}}

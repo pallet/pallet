@@ -34,19 +34,6 @@
        (-> arg# ~@body)
        arg#)))
 
-(defmacro when-let->
-  "A `when-let` form that can appear in a request thread.
-   eg.
-      (-> 1
-        (when-let-> [a 1]
-          (+ a)))
-   => 2"
-  [arg binding & body]
-  `(let [arg# ~arg]
-     (if-let ~binding
-       (-> arg# ~@body)
-       arg#)))
-
 (defmacro when-not->
   "A `when-not` form that can appear in a request thread.
    eg.
@@ -57,6 +44,19 @@
   [arg condition & body]
   `(let [arg# ~arg]
      (if-not ~condition
+       (-> arg# ~@body)
+       arg#)))
+
+(defmacro when-let->
+  "A `when-let` form that can appear in a request thread.
+   eg.
+      (-> 1
+        (when-let-> [a 1]
+          (+ a)))
+   => 2"
+  [arg binding & body]
+  `(let [arg# ~arg]
+     (if-let ~binding
        (-> arg# ~@body)
        arg#)))
 

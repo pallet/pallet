@@ -25,9 +25,11 @@
     ;; this is convoluted to get around the "t" sticky bit on temp dirs
     (let [user (assoc utils/*admin-user*
                  :username (test-username) :no-sudo true)
-          node (compute/make-unmanaged-node "tag" "localhost")]
+          node (compute/make-unmanaged-node
+                "tag" "localhost"
+                :operating-system (compute/local-operating-system))]
       (io/copy "text" tmp)
-      (core/defnode tag [])
+      (core/defnode tag [:no-packages])
 
       (core/lift*
        nil "" {tag node} nil
@@ -38,4 +40,17 @@
                              "/" (.getName dir)
                              "/" (.getName tmp)))]
         (is (.canRead target-tmp))
-        (is (= "text" (slurp (.getPath target-tmp))))))))
+        (is (= "text" (slurp (.getPath target-tmp))))
+        (.delete target-tmp))
+      (core/lift*
+       nil "" {tag node} nil
+       [(resource/phase
+         (rsync-directory (.getPath dir) (.getPath target-dir)))]
+       {:user user})
+            (let [target-tmp (java.io.File.
+                        (str (.getPath target-dir)
+                             "/" (.getName dir)
+                             "/" (.getName tmp)))]
+        (is (.canRead target-tmp))
+        (is (= "text" (slurp (.getPath target-tmp))))
+        (.delete target-tmp)))))

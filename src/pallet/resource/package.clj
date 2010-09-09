@@ -19,6 +19,18 @@
 (script/defscript remove-package [name & options])
 (script/defscript purge-package [name & options])
 
+;;; Implementation to do nothing
+;;; Repeating the selector makes it more explicit
+(stevedore/defimpl update-package-list [#{:no-packages} #{:no-packages}]
+  [& options] "")
+(stevedore/defimpl install-package [#{:no-packages} #{:no-packages}]
+  [package & options] "")
+(stevedore/defimpl remove-package [#{:no-packages} #{:no-packages}]
+  [package & options] "")
+(stevedore/defimpl purge-package [#{:no-packages} #{:no-packages}]
+  [package & options] "")
+
+;;; default to aptitude
 (stevedore/defimpl update-package-list :default [& options]
   (aptitude update ~(stevedore/option-args options)))
 
@@ -31,6 +43,7 @@
 (stevedore/defimpl purge-package :default [package & options]
   (aptitude purge -y  ~(stevedore/option-args options) ~package))
 
+;;; yum
 (stevedore/defimpl update-package-list [#{:centos :rhel}] [& options]
   (yum makecache ~(stevedore/option-args options)))
 
@@ -43,16 +56,34 @@
 (stevedore/defimpl purge-package [#{:centos :rhel}] [package & options]
   (yum purge ~(stevedore/option-args options) ~package))
 
+(stevedore/defimpl update-package-list [#{:darwin}] [& options]
+  (brew update ~(stevedore/option-args options)))
+
+(stevedore/defimpl install-package [#{:darwin}] [package & options]
+  (brew install -y ~(stevedore/option-args options) ~package))
+
+(stevedore/defimpl remove-package [#{:darwin}] [package & options]
+  (brew uninstall ~(stevedore/option-args options) ~package))
+
+(stevedore/defimpl purge-package [#{:darwin}] [package & options]
+  (brew uninstall ~(stevedore/option-args options) ~package))
+
 (script/defscript debconf-set-selections [& selections])
 (stevedore/defimpl debconf-set-selections :default [& selections]
   ("{ debconf-set-selections"
    ~(str "<<EOF\n" (string/join \newline selections) "\nEOF\n}")))
+
+(stevedore/defimpl debconf-set-selections [#{:darwin :centos}] [& selections]
+  "")
 
 (script/defscript package-manager-non-interactive [])
 (stevedore/defimpl package-manager-non-interactive :default []
   (debconf-set-selections
    "debconf debconf/frontend select noninteractive"
    "debconf debconf/frontend seen false"))
+
+(stevedore/defimpl package-manager-non-interactive [#{:darwin :centos}] []
+  "")
 
 (defn package*
   "Package management"
@@ -103,7 +134,7 @@
           :template source-template
           :values (merge
                    {:source-type "deb"
-                    :release (stevedore/script (hostinfo/os-version-name))
+                    :release (stevedore/script (os-version-name))
                     :scopes ["main"]
                     :gpgkey 0
                     :name name}

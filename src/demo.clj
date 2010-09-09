@@ -31,7 +31,8 @@
 
   ;; In order to create nodes, we need to define node types.
   ;; The second argument is a vector specifying features we want in our image.
-  (defnode webserver
+  (defnode webserver [])
+  (defnode balancer
      [:ubuntu :X86_64 :smallest :os-description-matches \"[^J]+9.10[^32]+\"])
 
   ;; At this point we can manage instance counts as a map.
@@ -48,9 +49,9 @@
   ;; We probably want an admin user. The default for automated-admin-user is to
   ;; use your current login name, with no password and your id_rsa ssh key.
   (defnode webserver
-    [:ubuntu :X86_64 :smallest :os-description-matches \"[^J]+9.10[^32]+\"]
-    :bootstrap [(public-dns-if-no-nameserver)
-                (automated-admin-user)])
+    []
+    :bootstrap (phase (public-dns-if-no-nameserver)
+                      (automated-admin-user)))
 
   ;; recreate a node with our admin-user
   (converge {webserver 1} service)
@@ -60,9 +61,9 @@
   (use 'pallet.crate.java)
   (defnode webserver
     [:ubuntu :X86_64 :smallest :os-description-matches \"[^J]+9.10[^32]+\"]
-    :bootstrap [(public-dns-if-no-nameserver)
-                (automated-admin-user)]
-    :configure [(java :openjdk)])
+    :bootstrap (phase (public-dns-if-no-nameserver)
+                      (automated-admin-user))
+    :configure (phase (java :openjdk)))
 
   (converge {webserver 1} service)
 

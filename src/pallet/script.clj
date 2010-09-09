@@ -53,7 +53,7 @@
     current))
 
 (defn best-match [script]
-  (trace (str "Looking up script " script))
+  (trace (format "Looking up script %s with template %s" script *template*))
   (when-let [impls (*scripts* script)]
     (trace "Found implementations")
     (second (reduce better-match?

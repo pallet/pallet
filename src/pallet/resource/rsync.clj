@@ -21,11 +21,14 @@
          cmd (format
               cmd ssh from (:username utils/*admin-user*)
               (compute/primary-ip (:target-node request)) to)]
-     (execute/sh-script cmd))))
+     (execute/sh-script cmd)
+     request)))
 
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
-  [from to & {:keys [owner group mode port] :as options}]
-  (package/package "rsync")
-  (directory/directory to :owner owner :group group :mode mode)
-  (rsync from to options))
+  [request from to & {:keys [owner group mode port] :as options}]
+  (->
+   request
+   (package/package "rsync")
+   (directory/directory to :owner owner :group group :mode mode)
+   (rsync from to options)))

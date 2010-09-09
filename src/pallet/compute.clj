@@ -28,6 +28,39 @@
          is-64bit true}}]
   (OperatingSystem. family name version arch description is-64bit))
 
+(def jvm-os-map
+  {"Mac OS X" :os-x})
+
+(def jvm-os-family-map
+  {"AIX" OsFamily/AIX
+   "ARCH" OsFamily/ARCH
+   "Mac OS" OsFamily/DARWIN
+   "Mac OS X" OsFamily/DARWIN
+   "FreeBSD" OsFamily/FREEBSD
+   "HP UX" OsFamily/HPUX
+   "Linux"   OsFamily/LINUX
+   "Solaris" OsFamily/SOLARIS
+   "Windows 2000" OsFamily/WINDOWS
+   "Windows 7" OsFamily/WINDOWS
+   "Windows 95" OsFamily/WINDOWS
+   "Windows 98" OsFamily/WINDOWS
+   "Windows NT" OsFamily/WINDOWS
+   "Windows Vista" OsFamily/WINDOWS
+   "Windows XP" OsFamily/WINDOWS})
+
+(defn local-operating-system
+  "Create an OperatingSystem object for the local host"
+  []
+  (let [os-name (System/getProperty "os.name")]
+    (make-operating-system
+     {:family (jvm-os-family-map os-name OsFamily/UNKNOWN)
+      :name os-name
+      :description os-name
+      :version (System/getProperty "os.version")
+      :arch (System/getProperty "os.arch")
+      :is-64bit (= "64" (System/getProperty "sun.arch.data.model"))})))
+
+
 (defn make-node [tag & options]
   (let [options (apply hash-map options)]
     (NodeMetadataImpl.
@@ -65,7 +98,9 @@
      (merge (get options :user-metadata {}) meta)
      tag
      (options :image)
-     (options :operating-system)
+     (if-let [os (options :operating-system)]
+       (if (map? os) (make-operating-system os) os)
+       (make-operating-system {}))
      (get options :state NodeState/RUNNING)
      (conj (get options :public-ips []) host-or-ip)
      (get options :private-ips [])
