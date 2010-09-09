@@ -109,24 +109,15 @@ checkout of the source and maven (see below).
 See also <a href="autodoc/demo-api.html">demo API code</a> until it gets migrated into these docs.
 </p>
 
-<div id="table-of-contents">
-<h2>Table of Contents</h2>
-<div id="text-table-of-contents">
-<ul>
-<li><a href="#sec-1">Install </a></li>
-<li><a href="#sec-2">Source </a></li>
-</ul>
-</div>
-</div>
-
 <div id="outline-container-1" class="outline-2">
 <h2 id="sec-1">Install </h2>
 <div class="outline-text-2" id="text-1">
 
 
 <p>
-Pallet can be used in projects as a jar file.  It is available at <a href="http://clojars.org/pallet">Clojars</a>, and
-can be used with <a href="http://maven.apache.org/">maven</a>, <a href="http://github.com/technomancy/leiningen">leiningen</a> or any maven repository aware tool.
+Pallet can be used as a jar file or from a source code checkout.  It is
+available at <a href="http://clojars.org/pallet">Clojars</a>, and can be used with <a href="http://maven.apache.org/">maven</a>, <a href="http://github.com/technomancy/leiningen">leiningen</a> or any
+maven repository aware tool.
 </p>
 </div>
 
@@ -136,7 +127,7 @@ can be used with <a href="http://maven.apache.org/">maven</a>, <a href="http://g
 <h2 id="sec-2">Source </h2>
 <div class="outline-text-2" id="text-2">
 
-<p>Pallet is available on <a href="http://github.com/hugoduncan/pallet">github</a>. Pallet requires <a href="http://clojure.org/">Clojure 1.2</a>, and uses <a href="http://github.com/jclouds/jclouds">JClouds</a>.
+<p>Pallet is available on <a href="http://github.com/hugoduncan/pallet">github</a>. Pallet requires <a href="http://clojure.org/">Clojure 1.2</a>, and uses <a href="http://jclouds.org">jclouds</a>.
 </p>
 
 
@@ -147,8 +138,7 @@ can be used with <a href="http://maven.apache.org/">maven</a>, <a href="http://g
 
 
 <p>
-You can start a REPL using <a href="http://maven.apache.org/">maven</a>.  At this time <a href="http://github.com/technomancy/leiningen">leiningen</a> can not be
-used to start a REPL.
+You can start a REPL using <a href="http://maven.apache.org/">maven</a>.
 </p>
 
 
@@ -158,8 +148,13 @@ used to start a REPL.
 
 
 
+<pre class="src src-sh">lein repl
+</pre>
+
+
+
 <p>
-Using <a href="http://github.com/technomancy/leiningen">leiningen</a> or {{{maven}} you can also start a swank session, and
+Using <a href="http://github.com/technomancy/leiningen">leiningen</a> or <a href="http://maven.apache.org/">maven</a> you can also start a swank session, and
 connect to it with Emacs, etc.
 </p>
 
