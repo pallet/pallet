@@ -1,26 +1,26 @@
 (ns server.pallet
   (:require
-   [pallet.resource.package :as package]
    [pallet.core :as core]
-   [pallet.stevedore :as stevedore]
    [pallet.crate.automated-admin-user :as automated-admin-user]
-
    [pallet.crate.git :as git]
    [pallet.crate.java :as java]
    [pallet.crate.ssh-key :as ssh-key]
-   [pallet.resource.user :as user]
-   [pallet.resource.remote-file :as remote-file]
+   [pallet.resource :as resource]
    [pallet.resource.directory :as directory]
-   [pallet.resource.hostinfo :as hostinfo]))
+   [pallet.resource.hostinfo :as hostinfo]
+   [pallet.resource.package :as package]
+   [pallet.resource.remote-file :as remote-file]
+   [pallet.resource.user :as user]
+   [pallet.stevedore :as stevedore]))
 
 
 (core/defnode devenv
-  [:ubuntu :X86_64 :smallest
-   :image-name-matches ".*"
-   :os-description-matches "[^J]+10.04[^32]+"]
-  :bootstrap [(automated-admin-user/automated-admin-user)
-              (package/package-manager :update)]
-  :configure [(git/git)
+  []
+  :bootstrap (resource/phase
+              (automated-admin-user/automated-admin-user)
+              (package/package-manager :update))
+  :configure (resource/phase
+              (git/git)
               (package/package "maven2")
               (java/java :sun :jdk)
               (ssh-key/generate-key (System/getProperty "user.name"))
@@ -29,5 +29,6 @@
                :owner (System/getProperty "user.name"))
               (remote-file/remote-file
                ".m2/settings.xml"
-               :local-file (str (System/getProperty "user.home") "/.m2/settings.xml")
-               :owner (System/getProperty "user.name"))])
+               :local-file (str (System/getProperty "user.home")
+                                "/.m2/settings.xml")
+               :owner (System/getProperty "user.name"))))
