@@ -15,7 +15,7 @@
 #+property: exports code
 #+property: results output
 #+property: cache true
-#+STYLE: <link rel="stylesheet" type="text/css" href="doc.css" />
+#+STYLE: <link rel="stylesheet" type="text/css" href="doc.css" /><link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Molengo"/>
 
 #+MACRO: clojure [[http://clojure.org][Clojure]]
 #+MACRO: jclouds [[http://jclouds.org][jclouds]]
