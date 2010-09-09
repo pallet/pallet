@@ -152,29 +152,34 @@ identity.  You can rebind this using =pallet.core/with-admin-user=.
 
 ** Other SSH Key Strategies
 While convenient, having all your nodes authorise the same SSH key is not the
-best security practice.  Pallet allows you to install a function to provide an
+best security practice.  Pallet allows you to install a middleware to provide an
 identity using you own strategy, =pallet.core/with-node-execution-wrapper=. A
 per node identity could be implemented using something like this:
 
 #+BEGIN_SRC clojure  :session s1
-  (require 'pallet.utils)
+  (require 'pallet.core)
+  (require 'pallet.execute)
   (require 'clj-ssh.ssh)
 
-  (defn lookup-identity [node]
+  (defn lookup-identity [request]
     ;; Implement this to
     ;; return [private-key public-key passphrase]
     )
 
   (defn node-based-identity
-    [node user f]
-    (binding [pallet.utils/default-agent-atom (atom nil)]
+   [handler]
+   (fn [request]
+    (binding [pallet.execute/default-agent-atom (atom nil)]
       (apply clj-ssh.ssh/add-identity
-       (pallet.utils/default-agent)
+       (pallet.execute/default-agent)
        (lookup-identity))
-      (f)))
+      (handler request))))
+
+  (pallet.core/with-node-execution-wrapper node-based-identity
+    ;; perform some configuration actions
+    ;; (lift ....)
+    )
 #+END_SRC
-
-
 
 * Node Types
 # <<node-types>>
@@ -203,6 +208,11 @@ Tags are used to select the nodes targeted by a =converge= or =lift= operation.
 
 The image used for a node can be specified by using JCloud's template
 mechanism.  The image template in =defnode= is exactly as for jclouds clojure API.
+
+#+BEGIN_SRC clojure  :session s1
+  (require 'pallet.core)
+  (pallet.core/defnode mytag [:centos :min-ram 512 :min-cores 4])
+#+END_SRC
 
 * Phases
 
@@ -243,9 +253,19 @@ This can be used to build job specific clusters.
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.core)
-  (pallet.core/defnode lb [] :configure [])
-  (pallet.core/defnode webapp [] :configure [])
-  (pallet.core/defnode db [] :configure [])
+  (require 'pallet.resource)
+  (require 'pallet.crate.automated-admin-user)
+
+  (defn my-bootstrap
+    [request]
+    (pallet.crate.automated-admin-user/automated-admin-user "user"))
+
+  (pallet.core/defnode lb []
+    :bootstrap (pallet.resource/phase my-bootstrap))
+  (pallet.core/defnode webapp []
+    :bootstrap (pallet.resource/phase my-bootstrap))
+  (pallet.core/defnode db []
+    :bootstrap (pallet.resource/phase my-bootstrap))
 
   (defn scale-cluster [prefix n]
     (pallet.core/converge prefix {lb 1 webapp n db (inc (/ n 2))}))
@@ -258,7 +278,9 @@ default only if no phases are explicitly specified.
 
 * Crates
 Crates are functions that encapsulate some unit of configuration or
-administration. Crates can take arguments.
+administration.  A crate must have a first =request= argument, and must
+return an request map. The request can be threaded using clojure's =->=
+macro. Crates can take other arguments as required.
 
 ** Composing existing crates
 The simplest way of creating a crate is to compose it from existing crates.
@@ -269,14 +291,15 @@ The simplest way of creating a crate is to compose it from existing crates.
   (require 'pallet.crate.tomcat)
 
   (defn my-simple-config
-    []
-    (pallet.resource.package/package "maven2")
-    (pallet.crate.git/git)
-    (pallet.crate.tomcat/tomcat))
+    [request]
+    (-> request
+      (pallet.resource.package/package "maven2")
+      (pallet.crate.git/git)
+      (pallet.crate.tomcat/tomcat)))
 #+END_SRC
 
 ** Creating resources
-=defresource= can be used to define crates that rely on node specific details.
+=defresource= can be used to define crates that generate custom script..
 
 ** Aggregate resource
 
@@ -286,5 +309,9 @@ This is used in the sudoers crate, for example, to emit /etc/sudoers.
 
 ** Local resources
 =deflocal= defines a crate that will be run on the local machine.
+
 ** Parameters
-** Delayed Arguments
+The request map contains a :parameters key, which is used by crates to communicate
+configuration to each other.
+
+

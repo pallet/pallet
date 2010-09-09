@@ -46,8 +46,9 @@ See also [[http:autodoc/demo-api.html][demo API code]] until it gets migrated in
 
 * Install
 
-Pallet can be used in projects as a jar file.  It is available at [[http://clojars.org/pallet][Clojars]], and
-can be used with {{{maven}}}, {{{leiningen}}} or any maven repository aware tool.
+Pallet can be used as a jar file or from a source code checkout.  It is
+available at [[http://clojars.org/pallet][Clojars]], and can be used with {{{maven}}}, {{{leiningen}}} or any
+maven repository aware tool.
 
 * Source
 Pallet is available on [[http://github.com/hugoduncan/pallet][github]]. Pallet requires [[http://clojure.org/][Clojure 1.2]], and uses {{{jclouds}}}.
@@ -56,11 +57,13 @@ Pallet is available on [[http://github.com/hugoduncan/pallet][github]]. Pallet r
   git clone git://github.com/hugoduncan/pallet.git
 #+END_SRC
 
-You can start a REPL using {{{maven}}}.  At this time {{{leiningen}}} can not be
-used to start a REPL.
+You can start a REPL using {{{maven}}}.
 
 #+BEGIN_SRC sh :dir tmp
   mvn clojure:repl
+#+END_SRC
+#+BEGIN_SRC sh :dir tmp
+  lein repl
 #+END_SRC
 
 Using {{{leiningen}}} or {{{maven}}} you can also start a swank session, and
