@@ -1,4 +1,4 @@
-# Pallet
+![pallet logo](http://github.com/downloads/hugoduncan/pallet/pallet-logo.png)
 
 Pallet is used to provision and maintain compute nodes, and aims to solve the
 problem of providing a consistently configured running image across a range of

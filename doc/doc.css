@@ -1,3 +1,22 @@
+body {
+  font-size: 1em;
+  font-family: "Sabon LT Std", "Hoefler Text", "Palatino Linotype", "Book Antiqua", serif;
+  color: #050505 inherit;
+  padding: 0px;
+  margin: 0;
+  line-height: 1.2;
+  background: url('http://github.com/downloads/hugoduncan/pallet/pallet-logo.png') top left no-repeat;
+}
+
+tt, code, kbd, samp {
+    font-family: "Molengo", sans-serif;
+}
+
+p + p {
+    text-indent: 1em;
+    margin-top:0;
+}
+
 #content {
     width: 40em;
     margin: 1em auto;
