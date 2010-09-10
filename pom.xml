@@ -206,7 +206,7 @@
     <repositories>
         <repository>
             <id>jclouds</id>
-            <url>http://jclouds.googlecode.com/svn/repo</url>
+            <url>https://oss.sonatype.org/content/repositories/releases</url>
         </repository>
         <repository>
             <id>jclouds-snapshot</id>

@@ -1,7 +1,6 @@
 (defproject pallet "0.2.0-SNAPSHOT"
   :description "Pallet - provisioning and configuration of compute nodes"
   :url "http://github.com/hugpduncan/pallet"
-  :main pallet.main
   :dependencies [[org.clojure/clojure "1.2.0"]
                  [org.clojure/clojure-contrib "1.2.0"]
                  [org.jclouds/jclouds-compute "1.0-SNAPSHOT"]
