@@ -124,18 +124,6 @@
         </dependency>
         <dependency>
             <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-hostingdotcom</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-ibmdev</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.jclouds</groupId>
             <artifactId>jclouds-rackspace</artifactId>
             <version>1.0-SNAPSHOT</version>
             <optional>true</optional>
@@ -222,7 +210,7 @@
         </repository>
         <repository>
             <id>jclouds-snapshot</id>
-            <url>http://jclouds.rimuhosting.com/maven2/snapshots</url>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </repository>
         <repository>
             <id>clojure</id>
