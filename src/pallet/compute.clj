@@ -3,6 +3,7 @@
   (:require
    [org.jclouds.compute :as jclouds]
    [pallet.utils :as utils]
+   [pallet.maven :as maven]
    [pallet.execute :as execute])
   (:import
    [org.jclouds.compute.domain.internal NodeMetadataImpl ImageImpl]
@@ -16,8 +17,17 @@
 (defn supported-clouds []
   (ComputeServiceUtils/getSupportedProviders))
 
-;;; Node utilities
+;;;; Compute service
+(defn compute-service-from-settings
+  "Create a jclouds compute service from maven ~/.m2/settings.xml.  If
+   extensions are listed they are used, otherwise :log4j, :enterprise and
+   :ssh are automatically added."
+  [& extensions]
+  (apply jclouds/compute-service
+         (concat (maven/credentials)
+                 (or (seq extensions) [:log4j :enterprise :ssh]))))
 
+;;; Node utilities
 (defn make-operating-system
   [{:keys [family name version arch description is-64bit]
     :or {family OsFamily/UBUNTU
