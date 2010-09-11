@@ -20,12 +20,12 @@
 ;;;; Compute service
 (defn compute-service-from-settings
   "Create a jclouds compute service from maven ~/.m2/settings.xml.  If
-   extensions are listed they are used, otherwise :log4j, :enterprise and
+   extensions are listed they are used, otherwise :log4j and
    :ssh are automatically added."
   [& extensions]
   (apply jclouds/compute-service
          (concat (maven/credentials)
-                 (or (seq extensions) [:log4j :enterprise :ssh]))))
+                 (or (seq extensions) [:log4j :ssh]))))
 
 ;;; Node utilities
 (defn make-operating-system
