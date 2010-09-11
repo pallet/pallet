@@ -55,8 +55,11 @@
          (println "  -user    login for cloud service API")
          (println "  -key     key or password for cloud service API")
          (println "If no options are given, the ~/.m2/settings.xml is checked for")
-         (println "an active maven profile with the pallet.service, pallet.user,")
-         (println "and pallet.key properties."))
+         (println "an active maven profile with the")
+         (println "   jclouds.compute.provider, ")
+         (println "   jclouds.compute.identity")
+         (println "   jclouds.compute.credential")
+         (println "properties."))
        (do
          (println "Run the new-project task to create a pallet project.\n")))
      (println "See http://github.com/hugoduncan/pallet as well.")))

@@ -9,14 +9,14 @@
 (defn make-settings []
   (.buildSettings (.lookup container MavenSettingsBuilder/ROLE)))
 
-(def service-key "pallet.service")
-(def user-key "pallet.user")
-(def key-key "pallet.key")
+(def provider-key "jclouds.compute.provider")
+(def identity-key "jclouds.compute.identity")
+(def credential-key "jclouds.compute.credential")
 
 (defn has-pallet-properties
   [profile]
   (let [properties (.getProperties profile)]
-    (and (.getProperty properties service-key)
+    (and (.getProperty properties provider-key)
          profile)))
 
 (defn get-property [profile key]
@@ -30,4 +30,4 @@
         profile (some has-pallet-properties (map profiles active-profiles))]
     (when profile
       (map (partial get-property (.getProperties profile))
-           [service-key user-key key-key]))))
+           [provider-key identity-key credential-key]))))

@@ -1,4 +1,4 @@
-#+TITLE:     Pallet Reference
+#+TITLE:     Reference
 #+AUTHOR:    Hugo Duncan
 #+EMAIL:     hugo_duncan@yahoo.com
 #+DATE:      2010-06-17 Thu
@@ -125,9 +125,9 @@ normally located at [[file:~/.m2/settings.xml][~/.m2/settings.xml]].
           <activeByDefault>true</activeByDefault>
         </activation>
         <properties>
-          <pallet.service>Your Cloud serivce name</pallet.service>
-          <pallet.user>Your Cloud API username or key</pallet.user>
-          <pallet.key>Your Cloud API secret or password</pallet.key>
+          <jclouds.compute.provider>Your Cloud serivce name</jclouds.compute.provider>
+          <jclouds.compute.identity>Your Cloud API username or key</jclouds.compute.identity>
+          <jclouds.compute.credential>Your Cloud API secret or password</jclouds.compute.credential>
         </properties>
       </profile>
     </profiles>
