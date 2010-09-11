@@ -14,6 +14,8 @@
    [pallet.utils :as utils]
    [clojure.contrib.io :as io]))
 
+(use-fixtures :once with-ubuntu-script-template)
+
 (defn test-username
   "Function to get test username. This is a function to avoid issues with AOT."
   [] (or (. System getProperty "ssh.username")
@@ -101,8 +103,9 @@
           (chown "user1" "file1"))
          (first
           (build-resources
-           [] (remote-file
-               "file1" :url "http://xx.com/abc" :md5 "abcd" :owner "user1")))))
+           [:node-type {:image [:ubuntu]}]
+           (remote-file
+            "file1" :url "http://xx.com/abc" :md5 "abcd" :owner "user1")))))
 
   (is (= "echo \"remote-file file1...\"\n{ cp file2 file1 && chown  user1 file1; } || { echo remote-file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (first (build-resources
@@ -147,7 +150,7 @@
            (remote-file
             (.getPath target-tmp)
             :local-file (.getPath tmp) :mode "0666"))]
-         request)
+         request core/*middleware*)
         (is (.canRead target-tmp))
         (is (= "text" (slurp (.getPath target-tmp))))
         (core/lift*
@@ -155,5 +158,5 @@
          [(phase
            (exec-script/exec-script
             (rm ~(.getPath target-tmp))))]
-         request))
+         request core/*middleware*))
       (is (not (.exists target-tmp))))))

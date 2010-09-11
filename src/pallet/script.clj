@@ -55,12 +55,10 @@
 (defn best-match [script]
   (trace (format "Looking up script %s with template %s" script *template*))
   (when-let [impls (*scripts* script)]
-    (trace "Found implementations")
+    (trace (format "Found implementations %s" (keys impls)))
     (second (reduce better-match?
                     [:default (impls :default)]
-                    (dissoc impls :default)))
-;;     (impls (first (keys impls)))
-    )) ;; TODO fix this
+                    (dissoc impls :default)))))
 
 (defn dispatch-target
   "Invoke target, raising if there is no implementation."

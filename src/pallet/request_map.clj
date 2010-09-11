@@ -1,7 +1,8 @@
 (ns pallet.request-map
   "Functions for querying and manipulating requests"
   (:require
-   [pallet.target :as target])
+   [pallet.target :as target]
+   [pallet.compute :as compute])
   (:use
    [clojure.contrib.core :only [-?>]]))
 
@@ -14,6 +15,12 @@
   "Id of the target-node (unique for provider)."
   [request]
   (.getId (:target-node request)))
+
+(defn target-ip
+  "IP of the target-node."
+  [request]
+  (compute/primary-ip (:target-node request)))
+
 
 (defn tag
   "Tag of the target-node."

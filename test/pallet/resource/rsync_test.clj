@@ -34,7 +34,8 @@
       (core/lift*
        nil "" {tag node} nil
        [(resource/phase (rsync (.getPath dir) (.getPath target-dir) {}))]
-       {:user user})
+       {:user user}
+       core/*middleware*)
       (let [target-tmp (java.io.File.
                         (str (.getPath target-dir)
                              "/" (.getName dir)
@@ -46,7 +47,8 @@
        nil "" {tag node} nil
        [(resource/phase
          (rsync-directory (.getPath dir) (.getPath target-dir)))]
-       {:user user})
+       {:user user}
+       core/*middleware*)
             (let [target-tmp (java.io.File.
                         (str (.getPath target-dir)
                              "/" (.getName dir)

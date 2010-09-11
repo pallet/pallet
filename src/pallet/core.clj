@@ -328,14 +328,14 @@ script that is run with root privileges immediatly after first boot."
       (pr-str (:node request))
       (pr-str (:user request))))
     (letfn [(execute [cmd] (logging/info (format "Commands %s" cmd)))]
-      (resource/execute-commands execute))))
+      (resource/execute-commands request execute))))
 
 (defn wrap-local-exec
   "Middleware to execute only local functions"
   [_]
   (fn [request]
     (letfn [(execute [cmd] nil)]
-      (resource/execute-commands execute))))
+      (resource/execute-commands request execute))))
 
 (defn wrap-with-user-credentials
   [handler]
@@ -346,12 +346,15 @@ script that is run with root privileges immediatly after first boot."
      (:passphrase (:user request)))
     (handler request)))
 
-(def *node-execution-wrapper* wrap-with-user-credentials)
+(def *middleware* wrap-with-user-credentials)
 
-(defmacro with-node-execution-wrapper
-  "Wrap node execution in the given function, which must take an argument list
-   of [node user function-to-wrap]" [f & body]
-  `(binding [*node-execution-wrapper* ~f]
+(defmacro with-middleware
+  "Wrap node execution in the given middleware. A middleware is a function of
+   one argument (a handler function, that is the next middleware to call) and
+   returns a dunction of one argument (the request map).  Middleware can be
+   composed with the pipe macro."
+  [f & body]
+  `(binding [*middleware* ~f]
      ~@body))
 
 (defn apply-phase
@@ -481,7 +484,7 @@ script that is run with root privileges immediatly after first boot."
        (assoc request :phase phase :node-type node-type)))))
 
 (defn lift*
-  [compute prefix node-set all-node-set phases request]
+  [compute prefix node-set all-node-set phases request middleware]
   (let [nodes (if compute (filter running? (nodes-with-details compute)))
         target-node-map (nodes-in-set node-set prefix nodes)
         all-node-map (or (and all-node-set
@@ -489,14 +492,14 @@ script that is run with root privileges immediatly after first boot."
                          target-node-map)]
     (lift-nodes
      compute nodes target-node-map all-node-map
-     phases *node-execution-wrapper* request)
+     phases middleware request)
     nodes))
 
 (defn converge*
   "Converge the node counts of each tag in node-map, executing each of the
    configuration phases on all the tags in node-map. Th phase-functions are
    also executed, but not applied, for any other nodes in all-node-set"
-  [compute prefix node-map all-node-set phases request]
+  [compute prefix node-map all-node-set phases request middleware]
   {:pre [(map? node-map)]}
   (logging/trace (str "converge* " node-map))
   (let [node-map (add-prefix-to-node-map prefix node-map)
@@ -515,7 +518,7 @@ script that is run with root privileges immediatly after first boot."
           phases (ensure-configure-phase phases)]
       (lift-nodes
        compute nodes target-node-map all-node-map
-       phases *node-execution-wrapper* request)
+       phases middleware request)
       nodes)))
 
 (defn compute-service-and-options
@@ -532,7 +535,7 @@ script that is run with root privileges immediatly after first boot."
         [node-map options] (if (map? (first options))
                              [(first options) (rest options)]
                              [nil options])]
-    [compute prefix node-spec node-map options {:user user}]))
+    [compute prefix node-spec node-map options {:user user} *middleware*]))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in

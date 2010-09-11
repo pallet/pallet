@@ -167,20 +167,22 @@
     (is (= [na] (nodes-in-map {a 1 c 1} [na nb])))))
 
 (deftest compute-service-and-options-test
-  (binding [org.jclouds.compute/*compute* :compute]
+  (binding [org.jclouds.compute/*compute* :compute
+            pallet.core/*middleware* :middleware]
     (testing "defaults"
-      (is (= [:compute nil 'a nil '() {:user utils/*admin-user*}]
+      (is (= [:compute nil 'a nil '() {:user utils/*admin-user*} :middleware]
                (compute-service-and-options 'a []))))
     (testing "passing a prefix"
-      (is (= [:compute "prefix" 'a nil '() {:user utils/*admin-user*}]
+      (is (= [:compute "prefix" 'a nil '() {:user utils/*admin-user*}
+              :middleware]
                (compute-service-and-options "prefix" ['a]))))
     (testing "passing a user"
       (let [user (utils/make-user "fred")]
-        (is (= [:compute "prefix" 'a nil '() {:user user}]
+        (is (= [:compute "prefix" 'a nil '() {:user user} :middleware]
                  (compute-service-and-options "prefix" ['a user])))))
     (testing "passing a node map"
       (let [user (utils/make-user "fred")]
-        (is (= [:compute "prefix" 'a {'a 'b} '() {:user user}]
+        (is (= [:compute "prefix" 'a {'a 'b} '() {:user user} :middleware]
                  (compute-service-and-options "prefix" ['a {'a 'b} user])))))))
 
 (resource/defresource test-component
@@ -276,14 +278,14 @@
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))))]
                   (lift* nil "" {a #{na nb nc}} nil [:configure]
-                         {:user utils/*admin-user*}))
+                         {:user utils/*admin-user*} *middleware*))
     (mock/expects [(apply-phase
                     [compute wrapper nodes request]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))))]
                   (lift* nil "" {a #{na} b #{nb}} nil [:configure]
-                         {:user utils/*admin-user*}))))
+                         {:user utils/*admin-user*} *middleware*))))
 
 (deftest lift-multiple-test
   (defnode a [])
@@ -312,7 +314,8 @@
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))))
                    (org.jclouds.compute/nodes-with-details [& _] [na nb nc])]
-                  (converge* nil "" {a 1 b 1} nil [:configure] {}))))
+                  (converge*
+                   nil "" {a 1 b 1} nil [:configure] {} *middleware*))))
 
 (deftest converge-test
   (pallet.compute-test-utils/purge-compute-service)
