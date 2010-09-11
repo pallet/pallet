@@ -209,14 +209,6 @@
             <url>https://oss.sonatype.org/content/repositories/releases</url>
         </repository>
         <repository>
-            <id>jclouds-snapshot</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
-        <repository>
-            <id>jclouds-old-snapshot</id>
-            <url>http://jclouds.rimuhosting.com/maven2/snapshots</url>
-        </repository>
-        <repository>
             <id>clojure</id>
             <url>http://build.clojure.org/releases</url>
         </repository>

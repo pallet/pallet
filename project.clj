@@ -25,7 +25,7 @@
                      [autodoc "0.7.1"]]
   :repositories {"build.clojure.org" "http://build.clojure.org/releases/"
                  "clojars.org" "http://clojars.org/repo/"
-                 "jclouds" "http://jclouds.googlecode.com/svn/repo"
+                 "jclouds" "https://oss.sonatype.org/content/repositories/releases"
                  "jclouds-snapshot" "https://oss.sonatype.org/content/repositories/snapshots"}
   :autodoc {:name "Pallet"
             :description "Pallet is used to start provision, configure and administer compute nodes. Reference documentation is at http://hugoduncan.github.com/pallet"
