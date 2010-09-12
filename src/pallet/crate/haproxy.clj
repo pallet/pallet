@@ -1,15 +1,17 @@
 (ns pallet.crate.haproxy
   "HA Proxy installation and configuration"
   (:require
+   [pallet.argument :as argument]
    [pallet.compute :as compute]
    [pallet.parameter :as parameter]
    [pallet.request-map :as request-map]
    [pallet.resource :as resource]
    [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]
+   [pallet.crate.etc-default :as etc-default]
    [clojure.string :as string]
    [clojure.contrib.logging :as logging]
-   [clojure.set :as set])
+   clojure.set)
   (:use
    [clojure.contrib.core :only [-?>]]))
 
@@ -98,8 +100,8 @@
         tag (keyword (request-map/tag request))
         srv-apps (-?> request :parameters :haproxy tag)
         app-keys (keys srv-apps)
-        unconfigured (set/difference (set app-keys) (set apps))
-        no-nodes (set/difference (set app-keys) (set apps))]
+        unconfigured (clojure.set/difference (set app-keys) (set apps))
+        no-nodes (clojure.set/difference (set app-keys) (set apps))]
     (when (seq unconfigured)
       (doseq [app unconfigured]
         (logging/warn
@@ -121,27 +123,29 @@
      options
      srv-apps)))
 
-(resource/defresource configure
+(defn configure
   "Configure HAProxy.
    :global and :defaults both take maps of keyword value pairs. :listen takes a
    map where the keys are of the form \"name\" and contain an :address key with
    a string containing ip:port, and other keyword/value. Servers for each listen
    section can be declared with the proxied-by function."
-  (configure*
-   [request & {:keys
-               [global defaults listen frontend backend]
-               :as options}]
-   (->
-    request
-    (remote-file/remote-file*
-     conf-path
-     :content (string/join
+  [request & {:keys
+              [global defaults listen frontend backend]
+              :as options}]
+  (->
+   request
+   (remote-file/remote-file
+    conf-path
+    :content (argument/delayed
+              [request]
+              (string/join
                (map
                 config-section
                 (merge
                  {:global default-global :defaults default-defaults}
-                 (merge-servers request options))))
-     :literal true))))
+                 (merge-servers request options)))))
+    :literal true)
+   (etc-default/write "haproxy" :ENABLED 1)))
 
 
 (defn proxied-by
