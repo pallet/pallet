@@ -9,10 +9,6 @@
 
 (def default-dir "/etc/default")
 
-(defn- quoted
-  [#^String s]
-  (str \" (.replace s "\"" "\\\"") \"))
-
 (defn write
   "Writes a KEY=value file to /etc/default/~{filename}, moving the original
    file to /etc/default/~{filename}.orig if it has not yet been moved.
@@ -36,4 +32,4 @@
          :content (string/join
                    \newline
                    (for [[k v] (partition 2 key-value-pairs)]
-                     (str (name k) "=" (quoted (pr-str v)))))))))
+                     (str (name k) "=" (pr-str v))))))))
