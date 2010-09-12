@@ -27,7 +27,7 @@
         original (str default-dir "/" filename ".orig")]
     (-> request
         (exec-script/exec-script
-         (if (not (file-exists? ~original))
+         (if-not (file-exists? ~original)
            (cp ~file ~original)))
         (remote-file/remote-file
          file
@@ -35,6 +35,5 @@
          :mode 644
          :content (string/join
                    \newline
-                   (for [[k v] (partition 2 key-value-pairs)
-                         :let [k (if (string? k) k (name k))]]
-                     (str k "=" (quoted v))))))))
+                   (for [[k v] (partition 2 key-value-pairs)]
+                     (str (name k) "=" (quoted (pr-str v)))))))))
