@@ -138,12 +138,16 @@
     conf-path
     :content (argument/delayed
               [request]
-              (string/join
-               (map
-                config-section
-                (merge
-                 {:global default-global :defaults default-defaults}
-                 (merge-servers request options)))))
+              (let [combined (merge
+                              {:global default-global
+                               :defaults default-defaults}
+                              (merge-servers request options))]
+                (string/join
+                 (map
+                  config-section
+                  (map
+                   (juxt identity combined)
+                   [:global :defaults :listen :frontend :backend])))))
     :literal true)
    (etc-default/write "haproxy" :ENABLED 1)))
 

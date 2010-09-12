@@ -2,7 +2,9 @@
   (:use pallet.crate.haproxy)
   (:require
    [pallet.compute :as compute]
-   [pallet.resource :as resource])
+   [pallet.resource :as resource]
+   [pallet.resource.remote-file :as remote-file]
+   [pallet.crate.etc-default :as etc-default])
   (:use
    clojure.test))
 
@@ -73,6 +75,28 @@
            {:listen {:app1 {:server ["tag 1.2.3.4 name tag "]
                             :server-address "0.0.0.0:80"
                             :balance "round-robin"}}})))))
+
+(deftest configure-test
+  (is (=
+       (first
+        (resource/build-resources
+         [:node-type {:image [:ubuntu] :tag :tag}
+          :target-node (compute/make-node "tag" :public-ips ["1.2.3.4"])]
+         (remote-file/remote-file
+          "/etc/haproxy/haproxy.cfg"
+          :content "global\nlog 127.0.0.1 local0\nlog 127.0.0.1 local1 notice\nmaxconn 4096\nuser haproxy\ngroup haproxy\ndaemon\ndefaults\nmode http\nlisten app 0.0.0.0:80\nserver h1 1.2.3.4:80 weight 1 maxconn 50 check\nserver h2 1.2.3.5:80 weight 1 maxconn 50 check\nfrontend\nbackend\n"
+          :literal true)
+         (etc-default/write "haproxy" :ENABLED 1)))
+       (first
+        (resource/build-resources
+         [:node-type {:image [:ubuntu] :tag :tag}
+          :target-node (compute/make-node "tag" :public-ips ["1.2.3.4"])]
+         (configure
+          :listen {:app
+                   {:server-address "0.0.0.0:80"
+                    :server ["h1 1.2.3.4:80 weight 1 maxconn 50 check"
+                             "h2 1.2.3.5:80 weight 1 maxconn 50 check"]}}
+          :defaults {:mode "http"}))))))
 
 (deftest invocation-test
   (is (resource/build-resources
