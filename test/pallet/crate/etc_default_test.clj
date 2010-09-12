@@ -9,6 +9,8 @@
   [pallet.resource.remote-file :as remote-file]
   [pallet.target :as target]))
 
+(use-fixtures :once with-ubuntu-script-template)
+
 (deftest test-tomcat-defaults
   (is (= (stevedore/do-script
           (stevedore/script
