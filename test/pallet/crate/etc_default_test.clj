@@ -28,7 +28,3 @@
            (default/write "tomcat6"
              :JAVA_OPTS "-Djava.awt.headless=true -Xmx1024m"
              "JSP_COMPILER" "javac"))))))
-
-(deftest test-quoting
-  (is (= "\"\\\"quoted value\\\"\""
-        (#'default/quoted "\"quoted value\""))))
