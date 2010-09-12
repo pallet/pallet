@@ -38,9 +38,11 @@
         (logging/debug (format "Running as      %s@%s" user service))
         (let [compute (apply jclouds/compute-service
                              (concat [service user key] default-service-opts))]
-
-          (jclouds/with-compute-service [compute]
-            (apply task params))))
+          (try
+            (jclouds/with-compute-service [compute]
+              (apply task params))
+            (finally ;; make sure we don't hang on exceptions
+             (.. compute getContext close)))))
       (do
         (println "Error: no credentials supplied\n\n")
         (apply (main/resolve-task "help") [])))))
