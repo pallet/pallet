@@ -32,8 +32,7 @@
   ;; In order to create nodes, we need to define node types.
   ;; The second argument is a vector specifying features we want in our image.
   (defnode webserver [])
-  (defnode balancer
-     [:ubuntu :X86_64 :smallest :os-description-matches \"[^J]+9.10[^32]+\"])
+  (defnode balancer [:ubuntu :smallest])
 
   ;; At this point we can manage instance counts as a map.
   ;; e.g ensure that we have two webserver nodes
@@ -60,7 +59,7 @@
   ;; to install java
   (use 'pallet.crate.java)
   (defnode webserver
-    [:ubuntu :X86_64 :smallest :os-description-matches \"[^J]+9.10[^32]+\"]
+    []
     :bootstrap (phase (public-dns-if-no-nameserver)
                       (automated-admin-user))
     :configure (phase (java :openjdk)))
