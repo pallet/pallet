@@ -25,7 +25,7 @@ chef-repository you specify with `with-chef-repository`.
     :only [node-has-tag? node-counts-by-tag boot-if-down compute-node?
            ssh-port]]
    [org.jclouds.compute
-    :only [run-nodes destroy-node nodes-with-details tag running?
+    :only [run-nodes destroy-node tag running?
            compute-service? *compute*]])
   (:require
    [pallet.compute :as compute]
@@ -514,7 +514,9 @@ script that is run with root privileges immediatly after first boot."
 
 (defn lift*
   [compute prefix node-set all-node-set phases request middleware]
-  (let [nodes (if compute (filter running? (nodes-with-details compute)))
+  (let [nodes (when compute
+                (logging/info "retrieving nodes")
+                (filter running? (jclouds/nodes-with-details compute)))
         target-node-map (nodes-in-set node-set prefix nodes)
         all-node-map (or (and all-node-set
                               (nodes-in-set all-node-set nil nodes))
@@ -531,10 +533,11 @@ script that is run with root privileges immediatly after first boot."
   [compute prefix node-map all-node-set phases request middleware]
   {:pre [(map? node-map)]}
   (logging/trace (str "converge* " node-map))
+  (logging/info "retrieving nodes")
   (let [node-map (add-prefix-to-node-map prefix node-map)
-        nodes (nodes-with-details compute)]
+        nodes (jclouds/nodes-with-details compute)]
     (converge-node-counts compute node-map nodes request)
-    (let [nodes (filter running? (nodes-with-details compute))
+    (let [nodes (filter running? (jclouds/nodes-with-details compute))
           tag-groups (group-by #(keyword (.getTag %)) nodes)
           target-node-map (into
                            {}
