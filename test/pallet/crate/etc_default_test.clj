@@ -24,7 +24,7 @@
            :content "JAVA_OPTS=\"-Djava.awt.headless=true -Xmx1024m\"\nJSP_COMPILER=\"javac\""))
          (first
           (resource/build-resources
-           [:node-type {:image [:ubuntu]}]
+           [:node-type {:image {:os-family :ubuntu}}]
            (default/write "tomcat6"
              :JAVA_OPTS "-Djava.awt.headless=true -Xmx1024m"
              "JSP_COMPILER" "javac"))))))
