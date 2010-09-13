@@ -32,3 +32,31 @@
     ("./configure")
     (make)
     (make install))))
+
+#_
+(pallet.core/defnode a {}
+  :bootstrap (pallet.resource/phase
+              (pallet.crate.automated-admin-user/automated-admin-user))
+  :configure (pallet.resource/phase
+              (pallet.crate.node-js/install)
+              (pallet.crate.upstart/package)
+              (pallet.resource.remote-file/remote-file
+               "/tmp/node.js"
+               :content "
+var sys = require(\"sys\"),
+    http = require(\"http\");
+
+http.createServer(function(request, response) {
+    response.sendHeader(200, {\"Content-Type\": \"text/html\"});
+    response.write(\"Hello World!\");
+    response.close();
+}).listen(8080);
+
+sys.puts(\"Server running at http://localhost:8080/\");"
+               :literal true)
+              (pallet.crate.upstart/job
+               "nodejs"
+               :script "export HOME=\"/home/duncan\"
+    exec sudo -u duncan /usr/local/bin/node /tmp/node.js 2>&1 >> /var/log/node.log"
+               :start-on "startup"
+               :stop-on "shutdown")))
