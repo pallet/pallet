@@ -26,6 +26,14 @@
   "A vector of the options accepted by remote-file.  Can be used for option
   forwarding when calling remote-file from other crates.")
 
+(defn get-request
+  [request]
+  (stevedore/script
+   (curl -s "--retry" 20
+         ~(apply str (map
+                      #(format "-H \"%s: %s\" " (first %) (second %))
+                      (.. request getHeaders entries)))
+         ~(.. request getEndpoint toASCIIString))))
 
 (defresource remote-file
   "Remote file with contents management.
@@ -40,6 +48,7 @@ Options for specifying the file's content are:
   :md5-url          - a url containing file's md5
   :template         - specify a template to be interpolated
   :values           - values for interpolation
+  :blob             - map of :container, :path
 Options for specifying the file's permissions are:
   :owner user-name
   :group group-name
@@ -104,6 +113,8 @@ Options for specifying the file's permissions are:
                        template (or values {}) (:node-type request))
                  (apply concat (seq (select-keys options [:literal]))))
        link (stevedore/script (ln -f -s ~link ~path))
+       ;; blob (get-request (.signRequestForBlob
+       ;;                    (:blobstore request) (:container blob) (:path blob)))
        :else (throw
               (IllegalArgumentException.
                (str "remote-file " path " specified without content."))))

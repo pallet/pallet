@@ -23,7 +23,7 @@
 (testing "invoke"
   (is (resource/build-resources
        [:target-node (compute/make-node "tag" :id "id")
-        :node-type {:image [:ubuntu] :tag :tag}]
+        :node-type {:image {:os-family :ubuntu} :tag :tag}]
        (install)
        (monitor)
        (configure)

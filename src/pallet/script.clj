@@ -52,7 +52,9 @@
     candidate
     current))
 
-(defn best-match [script]
+(defn best-match
+  [script]
+  {:pre [*template* (seq *template*)]}
   (trace (format "Looking up script %s with template %s" script *template*))
   (when-let [impls (*scripts* script)]
     (trace (format "Found implementations %s" (keys impls)))
@@ -91,7 +93,24 @@
           `(apply dispatch-target (keyword (name ~name)) ~@fwd-args)
           `(dispatch-target (keyword (name ~name)))))))
 
+
 (defn add-to-scripts [scripts script-name specialisers f]
   (assoc scripts script-name
-         (assoc (get *scripts* script-name {})
+         (assoc (*scripts* script-name {})
            specialisers f)))
+
+(defn implement
+  "Add an implementation of script-name"
+  [script-name specialisers f]
+  (alter-var-root
+   #'*scripts*
+   (fn add-implementation-fn [current]
+     (add-to-scripts current (keyword (name script-name)) specialisers f))))
+
+(defn remove-script
+  "Remove all implementations of a script."
+  [script-name]
+  (alter-var-root
+   #'*scripts*
+   (fn remove-script-fn [current]
+     (dissoc current (keyword (name script-name))))))

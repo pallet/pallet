@@ -25,7 +25,7 @@ for a tag and an empty image template specification.
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.core)
-  (pallet.core/defnode mytag [])
+  (pallet.core/defnode mytag {})
 #+END_SRC
 
 An empty template specification implies a default image will be used for the

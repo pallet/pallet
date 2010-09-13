@@ -21,7 +21,7 @@
      -s "2g" -i 0 -i 1 -i 2 -f "/mnt/testfile" -r "32k" -g "2G"))))
 
 (core/defnode small
-  []
+  {}
   :bootstrap (resource/phase
               (package/package-manager :update)
               (automated-admin-user/automated-admin-user))

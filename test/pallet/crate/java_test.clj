@@ -17,9 +17,9 @@
 (def pkg-config
   (script/with-template [:ubuntu]
     (stevedore/chain-commands
-     (package/package-manager* {} :universe)
-     (package/package-manager* {} :multiverse)
-     (package/package-manager* {} :update))))
+     (package/package-manager* ubuntu-request :universe)
+     (package/package-manager* ubuntu-request :multiverse)
+     (package/package-manager* ubuntu-request :update))))
 
 (def noninteractive
   (script/with-template [:ubuntu]
@@ -28,7 +28,7 @@
 (defn debconf [pkg]
   (script/with-template [:ubuntu]
     (package/package-manager*
-     {}
+     ubuntu-request
      :debconf
      (str pkg " shared/present-sun-dlj-v1-1 note")
      (str pkg " shared/accepted-sun-dlj-v1-1 boolean true"))))
@@ -38,12 +38,12 @@
           "Install java"
           pkg-config
           (debconf "sun-java6-bin")
-          (package/package* {}  "sun-java6-bin")
+          (package/package* ubuntu-request  "sun-java6-bin")
           (debconf "sun-java6-jdk")
-          (package/package* {}  "sun-java6-jdk"))
+          (package/package* ubuntu-request  "sun-java6-jdk"))
          (first
           (resource/build-resources
-           [:node-type {:image [:ubuntu]}]
+           [:node-type {:image {:os-family :ubuntu}}]
            (java))))))
 
 (deftest java-sun-test
@@ -51,9 +51,9 @@
           "Install java"
           pkg-config
           (debconf "sun-java6-bin")
-          (package/package* {} "sun-java6-bin")
+          (package/package* ubuntu-request "sun-java6-bin")
           (debconf "sun-java6-jdk")
-          (package/package* {} "sun-java6-jdk"))
+          (package/package* ubuntu-request "sun-java6-jdk"))
          (first
           (resource/build-resources
            []
@@ -62,17 +62,12 @@
 (deftest java-openjdk-test
   (is (= (stevedore/checked-commands
           "Install java"
-          (package/package* {} "openjdk-6-jre"))
+          (package/package* ubuntu-request "openjdk-6-jre"))
          (first
           (resource/build-resources
            []
            (java :openjdk :jre))))))
 
-
-; ensure java is properly delaying execution
-(core/defnode test-delayed-exec
-  [:ubuntu]
-  :bootstrap (resource/phase (java :sun)))
 
 (deftest invoke-test
   (is

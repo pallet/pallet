@@ -15,7 +15,7 @@
   (is (=
        (stevedore/do-script
         (package/package-manager*
-         {}
+         ubuntu-request
          :debconf
          (str "mysql-server-5.1 mysql-server/root_password password " "pwd")
          (str "mysql-server-5.1 mysql-server/root_password_again password " "pwd")
@@ -26,10 +26,10 @@
         (stevedore/checked-commands
          "Packages"
          (stevedore/script (package-manager-non-interactive))
-         (package/package* {} "mysql-server")))
+         (package/package* ubuntu-request "mysql-server")))
        (first
         (build-resources
-         [:node-type {:tag :n :image [:ubuntu]}]
+         [:node-type {:tag :n :image {:os-family :ubuntu}}]
          (mysql-server "pwd"))))))
 
 (deftest mysql-conf-test

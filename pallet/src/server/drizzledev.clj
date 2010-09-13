@@ -28,7 +28,7 @@
 
 
 (core/defnode drizzledev
-  []
+  {}
   :bootstrap (resource/phase
               (automated-admin-user/automated-admin-user)
               (package/package-manager :update))

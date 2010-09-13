@@ -70,10 +70,10 @@
          (node-count-difference { {:tag :a} 1 {:tag :b} 1} []))))
 
 (deftest augment-template-from-node-test
-  (defnode a [:ubuntu])
-  (defnode b [])
+  (defnode a {:os-family :ubuntu})
+  (defnode b {})
   (let [n1 (compute/make-node "n1")]
-    (is (= {:tag :a :image [:ubuntu :ubuntu] :phases nil}
+    (is (= {:tag :a :image {:os-family :ubuntu} :phases nil}
            (:node-type
             ((augment-template-from-node identity)
              {:target-node n1 :node-type a})))))
@@ -86,17 +86,17 @@
                                "Some arch"
                                "Desc"
                                true))]
-    (is (= {:tag :a :image [:ubuntu :ubuntu] :phases nil}
+    (is (= {:tag :a :image {:os-family :ubuntu} :phases nil}
            (:node-type
             ((augment-template-from-node identity)
              {:target-node n1 :node-type a}))))
-    (is (= {:tag :b :image [:ubuntu] :phases nil}
+    (is (= {:tag :b :image {:os-family :ubuntu} :phases nil}
            (:node-type
             ((augment-template-from-node identity)
              {:target-node n1 :node-type b}))))))
 
 (deftest converge-node-counts-test
-  (defnode a [:ubuntu])
+  (defnode a {:os-family :ubuntu})
   (let [a-node (compute/make-node "a" :state NodeState/RUNNING)]
     (converge-node-counts nil {a 1} [a-node] {}))
   (mock/expects [(org.jclouds.compute/run-nodes
@@ -110,8 +110,8 @@
       (converge-node-counts nil {a 1} [a-node] {}))))
 
 (deftest nodes-in-map-test
-  (defnode a [:ubuntu])
-  (defnode b [:ubuntu])
+  (defnode a {:os-family :ubuntu})
+  (defnode b {:os-family :ubuntu})
   (let [a-node (compute/make-node "a")
         b-node (compute/make-node "b")
         nodes [a-node b-node]]
@@ -121,10 +121,10 @@
            (nodes-in-map {a 1 b 2} nodes)))))
 
 (deftest nodes-in-set-test
-  (defnode a [:ubuntu])
-  (defnode b [:ubuntu])
-  (defnode pa [:ubuntu])
-  (defnode pb [:ubuntu])
+  (defnode a {:os-family :ubuntu})
+  (defnode b {:os-family :ubuntu})
+  (defnode pa {:os-family :ubuntu})
+  (defnode pb {:os-family :ubuntu})
   (let [a-node (compute/make-node "a")
         b-node (compute/make-node "b")]
     (is (= {a #{a-node}}
@@ -143,14 +143,14 @@
            (nodes-in-set {a #{a-node} b #{b-node}} "p" nil)))))
 
 (deftest node-in-types?-test
-  (defnode a [])
-  (defnode b [])
+  (defnode a {})
+  (defnode b {})
   (is (node-in-types? [a b] (compute/make-node "a")))
   (is (not (node-in-types? [a b] (compute/make-node "c")))))
 
 (deftest nodes-for-type-test
-  (defnode a [])
-  (defnode b [])
+  (defnode a {})
+  (defnode b {})
   (let [na (compute/make-node "a")
         nb (compute/make-node "b")
         nc (compute/make-node "c")]
@@ -158,9 +158,9 @@
     (is (= [na] (nodes-for-type [na nc] a)))))
 
 (deftest nodes-in-map-test
-  (defnode a [])
-  (defnode b [])
-  (defnode c [])
+  (defnode a {})
+  (defnode b {})
+  (defnode c {})
   (let [na (compute/make-node "a")
         nb (compute/make-node "b")]
     (is (= [na nb] (nodes-in-map {a 1 b 1 c 1} [na nb])))
@@ -191,19 +191,19 @@
    (str arg)))
 
 (deftest make-node-test
-  (is (= {:tag :fred :image [:ubuntu] :phases nil}
-         (make-node "fred" [:ubuntu])))
-  (is (= {:tag :tom :image [:centos] :phases nil}
-         (make-node "tom" [:centos]))))
+  (is (= {:tag :fred :image {:os-family :ubuntu} :phases nil}
+         (make-node "fred" {:os-family :ubuntu})))
+  (is (= {:tag :tom :image {:os-family :centos} :phases nil}
+         (make-node "tom" {:os-family :centos}))))
 
 (deftest defnode-test
-  (defnode fred [:ubuntu])
-  (is (= {:tag :fred :image [:ubuntu] :phases nil} fred))
-  (defnode tom "This is tom" [:centos])
-  (is (= {:tag :tom :image [:centos] :phases nil} tom))
+  (defnode fred {:os-family :ubuntu})
+  (is (= {:tag :fred :image {:os-family :ubuntu} :phases nil} fred))
+  (defnode tom "This is tom" {:os-family :centos})
+  (is (= {:tag :tom :image {:os-family :centos} :phases nil} tom))
   (is (= "This is tom" (:doc (meta #'tom))))
   (defnode harry (tom :image))
-  (is (= {:tag :harry :image [:centos] :phases nil} harry))
+  (is (= {:tag :harry :image {:os-family :centos} :phases nil} harry))
   (defnode with-phases (tom :image)
     :bootstrap (resource/phase (test-component :a))
     :configure (resource/phase (test-component :b)))
@@ -231,7 +231,7 @@
 (deftest produce-init-script-test
   (is (= "a\n"
          (produce-init-script
-          {:node-type {:image []
+          {:node-type {:image {}
                        :phases {:bootstrap (phase (identity-resource "a"))}}
            :target-id :id})))
   (testing "rejects local resources"
@@ -239,7 +239,7 @@
          clojure.contrib.condition.Condition
          (produce-init-script
           {:node-type
-           {:image []
+           {:image {}
             :phases {:bootstrap (phase (identity-local-resource))}}
            :target-id :id})))))
 
@@ -255,7 +255,7 @@
      request))
 
   (deftest lift-test
-    (defnode x [])
+    (defnode x {})
     (is (.contains
          "bin"
          (with-no-compute-service
@@ -267,8 +267,8 @@
     (is (seen?))))
 
 (deftest lift*-nodes-binding-test
-  (defnode a [])
-  (defnode b [])
+  (defnode a {})
+  (defnode b {})
   (let [na (compute/make-node "a")
         nb (compute/make-node "b")
         nc (compute/make-node "c" :state NodeState/TERMINATED)]
@@ -288,8 +288,8 @@
                          {:user utils/*admin-user*} *middleware*))))
 
 (deftest lift-multiple-test
-  (defnode a [])
-  (defnode b [])
+  (defnode a {})
+  (defnode b {})
   (let [na (compute/make-node "a")
         nb (compute/make-node "b")
         nc (compute/make-node "c")]
@@ -303,8 +303,8 @@
                     (lift [a b] :configure)))))
 
 (deftest converge*-nodes-binding-test
-  (defnode a [])
-  (defnode b [])
+  (defnode a {})
+  (defnode b {})
   (let [na (compute/make-node "a")
         nb (compute/make-node "b")
         nc (compute/make-node "b" :state NodeState/TERMINATED)]
@@ -319,5 +319,5 @@
 
 (deftest converge-test
   (pallet.compute-test-utils/purge-compute-service)
-  (converge {(make-node "a" []) 1})
+  (converge {(make-node "a" {}) 1})
   (is (= 1 (count (org.jclouds.compute/nodes)))))

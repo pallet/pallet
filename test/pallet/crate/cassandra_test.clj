@@ -9,7 +9,7 @@
 
 (deftest cassandra-test
   []
-  (let [a {:tag :n :image [:ubuntu]}]
+  (let [a {:tag :n :image {:os-family :ubuntu}}]
     (is (first
          (resource/build-resources
           [:node-type a]

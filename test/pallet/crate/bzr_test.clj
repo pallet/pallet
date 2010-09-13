@@ -9,7 +9,7 @@
 
 (deftest bzr-test
   []
-  (let [a {:tag :n :image [:ubuntu]}]
+  (let [a {:tag :n :image {:os-family :ubuntu}}]
     (is (= (stevedore/checked-commands
             "Packages"
             (stevedore/script (package-manager-non-interactive))

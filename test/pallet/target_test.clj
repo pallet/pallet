@@ -5,9 +5,9 @@
 
 
 (deftest os-family-test
-  (is (= :ubuntu (os-family [:ubuntu]))))
+  (is (= :ubuntu (os-family {:os-family :ubuntu}))))
 
 (deftest packager-test
-  (is (= :aptitude (packager [:ubuntu])))
-  (is (= :yum (packager [:centos])))
-  (is (= :portage (packager [:gentoo]))))
+  (is (= :aptitude (packager {:os-family :ubuntu})))
+  (is (= :yum (packager {:os-family :centos})))
+  (is (= :portage (packager {:os-family :gentoo}))))

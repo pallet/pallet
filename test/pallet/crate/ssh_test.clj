@@ -12,11 +12,11 @@
   []
   (is (= (first
           (resource/build-resources
-           [:node-type {:tag :n :image [:ubuntu]}]
+           [:node-type {:tag :n :image {:os-family :ubuntu}}]
            (iptables/iptables-accept-port 22 "tcp")))
          (first
           (resource/build-resources
-           [:node-type {:tag :n :image [:ubuntu]}]
+           [:node-type {:tag :n :image {:os-family :ubuntu}}]
            (iptables-accept))))))
 
 (deftest invoke-test

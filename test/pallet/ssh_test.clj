@@ -49,15 +49,17 @@ return a map with :out, :err and :exit keys"
     [_ ^IPSocket socket ^String username ^bytes password-or-key]
     (ctor socket username password-or-key))))
 
-(defn ssh-test-module [factory]
+(defn ssh-test-module
   "Create a module that specifies the factory for creating a test service"
+  [factory]
   (let [binder (atom nil)]
     (reify
      com.google.inject.Module
      (configure
       [this abinder]
       (reset! binder abinder)
-      (.. @binder (bind org.jclouds.ssh.SshClient$Factory) (toInstance factory))))))
+      (.. @binder (bind org.jclouds.ssh.SshClient$Factory)
+          (toInstance factory))))))
 
 (defn ssh-test-client
   "Create a module that can be passed to a compute-context, and which implements
@@ -65,4 +67,3 @@ an ssh client with the provided map of function implementations.  Keys are
 clojurefied versions of org.jclouds.ssh.SshClient's methods"
   [options]
   (ssh-test-module (ssh-client-factory (ssh-test-client* options))))
-

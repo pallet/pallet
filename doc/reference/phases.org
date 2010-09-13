@@ -48,7 +48,7 @@ nodes.
   (def service
        (apply org.jclouds.compute/compute-service
         (concat (pallet.maven/credentials) [:log4j :enterprise :ssh])))
-  (pallet.core/defnode mytag [])
+  (pallet.core/defnode mytag {})
   (pallet.core/lift mytag service
     (pallet.resource/phase (pallet.resource.package/package "curl")))
 #+END_SRC

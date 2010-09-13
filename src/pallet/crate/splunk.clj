@@ -94,7 +94,7 @@
 (resource/defresource install
   (install*
    [request & {:keys [version]}]
-   (case (request-map/packager request-map/packager)
+   (case (request-map/packager request)
      :aptitude
      (let [f (debfile request version)
            deb (str (stevedore/script (tmp-dir)) "/" f)]

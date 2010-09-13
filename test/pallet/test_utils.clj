@@ -50,6 +50,9 @@ list, Alan Dipert and MeikelBrandmeyer."
        (is (= ~exit (:exit r#)))
        (:out r#))))
 
+(def ubuntu-request {:node-type {:image {:os-family :ubuntu}}})
+(def centos-request {:node-type {:image {:os-family :centos}}})
+
 (defn with-ubuntu-script-template
   [f]
   (script/with-template [:ubuntu]

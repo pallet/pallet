@@ -159,7 +159,7 @@
 
 #_
 (pallet.core/defnode zk
-  []
+  {}
   :bootstrap (pallet.resource/phase
               (pallet.crate.automated-admin-user/automated-admin-user))
   :configure (pallet.resource/phase

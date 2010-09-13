@@ -82,11 +82,11 @@
   (is (= "<org.spearce.jgit.transport.RemoteConfig>\n  <string>origin</string>\n  <int>5</int>\n  <string>fetch</string>\n  <string>+refs/heads/*:refs/remotes/origin/*</string>\n  <string>receivepack</string>\n  <string>git-upload-pack</string>\n  <string>uploadpack</string>\n  <string>git-upload-pack</string>\n  <string>url</string>\n  <string>http://project.org/project.git</string>\n  <string>tagopt</string>\n  <string></string>\n</org.spearce.jgit.transport.RemoteConfig>"
          (apply str
           (xml/emit*
-           (output-scm-for :git {:tag :b :image [:ubuntu]}
+           (output-scm-for :git {:tag :b :image {:os-family :ubuntu}}
                            "http://project.org/project.git" {}))))))
 
 (deftest hudson-job-test
-  (core/defnode n [])
+  (core/defnode n {})
   (is (= (stevedore/do-script
           (directory/directory* {}  "/var/lib/hudson/jobs/project" :p true)
           (remote-file/remote-file*
@@ -101,7 +101,7 @@
            :recursive true))
          (first
           (resource/build-resources
-           [:node-type {:image [:ubuntu]}
+           [:node-type {:image {:os-family :ubuntu}}
             :parameters {:hudson {:user "tomcat6" :group "tomcat6"}}]
            (job
             :maven2 "project"
@@ -110,7 +110,7 @@
 
 
 (deftest hudson-maven-xml-test
-  (core/defnode test-node [:ubuntu])
+  (core/defnode test-node {:os-family :ubuntu})
   (is (= "<?xml version='1.0' encoding='utf-8'?>\n<hudson.tasks.Maven_-DescriptorImpl>\n  <installations>\n    <hudson.tasks.Maven_-MavenInstallation>\n      <name>name</name>\n      <home></home>\n      <properties>\n        <hudson.tools.InstallSourceProperty>\n          <installers>\n            <hudson.tasks.Maven_-MavenInstaller>\n              <id>2.2.0</id>\n            </hudson.tasks.Maven_-MavenInstaller>\n          </installers>\n        </hudson.tools.InstallSourceProperty>\n      </properties>\n    </hudson.tasks.Maven_-MavenInstallation>\n  </installations>\n</hudson.tasks.Maven_-DescriptorImpl>"
          (apply str (hudson-maven-xml
                       test-node
@@ -141,7 +141,7 @@
              :group "tomcat6"))))
          (first
           (resource/build-resources
-           [:node-type {:image [:ubuntu]}
+           [:node-type {:image {:os-family :ubuntu}}
             :parameters {:hudson {:user "tomcat6" :group "tomcat6"}}]
            (maven "default maven" "2.2.0"))))))
 
@@ -161,7 +161,7 @@
 
 (deftest invocation
   (is (resource/build-resources
-       [:node-type {:image [:ubuntu]}
+       [:node-type {:image {:os-family :ubuntu}}
         :parameters {:tomcat {:user "tomcat6" :group "tomcat6"}}]
        (tomcat-deploy)
        (parameter-test/parameters-test

@@ -31,8 +31,8 @@
 
   ;; In order to create nodes, we need to define node types.
   ;; The second argument is a vector specifying features we want in our image.
-  (defnode webserver [])
-  (defnode balancer [:ubuntu :smallest])
+  (defnode webserver {})
+  (defnode balancer {:os-family :ubuntu :smallest true})
 
   ;; At this point we can manage instance counts as a map.
   ;; e.g ensure that we have two webserver nodes
@@ -48,7 +48,7 @@
   ;; We probably want an admin user. The default for automated-admin-user is to
   ;; use your current login name, with no password and your id_rsa ssh key.
   (defnode webserver
-    []
+    {}
     :bootstrap (phase (public-dns-if-no-nameserver)
                       (automated-admin-user)))
 
@@ -59,7 +59,7 @@
   ;; to install java
   (use 'pallet.crate.java)
   (defnode webserver
-    []
+    {}
     :bootstrap (phase (public-dns-if-no-nameserver)
                       (automated-admin-user))
     :configure (phase (java :openjdk)))
@@ -87,7 +87,7 @@
   ;; local virtual machines.  For this to work you may have to specify
   ;; the :sudo-password option in the admin user, even if you can
   ;; log in without a password
-  (defnode vm [:ubuntu])
+  (defnode vm {:os-family :ubuntu})
   (def vm1 (make-unmanaged-node \"vm\" \"localhost\" :ssh-port 2223))
   (with-admin-user [\"myuser\" :sudo-password \"xxx\"]
     (lift {vm vm1} service (phase (package \"curl\"))))

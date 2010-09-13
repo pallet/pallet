@@ -5,8 +5,9 @@
    pallet.test-utils))
 
 (deftest read-maven-settings-test
-  (is (make-settings)))
+  (is (#'pallet.maven/make-settings)))
 
-;; (deftest credentials-test
-;;   (let [props (credentials)]
-;;     (is (= "cloudservers" (first props)))))
+;; test calling these, even if we haven't set up expected values
+(deftest credentials-test
+  (credentials)
+  (credentials :blobstore))

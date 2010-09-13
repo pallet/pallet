@@ -58,7 +58,7 @@
           "remote-file path"
           (file/heredoc "path" "a 1\n"))
          (remote-file*
-          {:node-type {:tag :n :image [:ubuntu]}}
+          {:node-type {:tag :n :image {:os-family :ubuntu}}}
           "path" :template "template/strint" :values {'a 1}))))
 
 (deftest remote-file-test
@@ -103,7 +103,7 @@
           (chown "user1" "file1"))
          (first
           (build-resources
-           [:node-type {:image [:ubuntu]}]
+           [:node-type {:image {:os-family :ubuntu}}]
            (remote-file
             "file1" :url "http://xx.com/abc" :md5 "abcd" :owner "user1")))))
 
@@ -137,7 +137,7 @@
                  :username (test-username) :no-sudo true)]
       (.delete target-tmp)
       (io/copy "text" tmp)
-      (core/defnode tag [])
+      (core/defnode tag {})
       (let [node (compute/make-unmanaged-node "tag" "localhost")
             request {:all-nodes [node]
                      :target-nodes [node]

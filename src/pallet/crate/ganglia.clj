@@ -357,7 +357,7 @@
 
 #_
 (pallet.core/defnode ganglia
-  []
+  {}
   :bootstrap [(pallet.crate.automated-admin-user/automated-admin-user)]
   :configure [(pallet.crate.ganglia/install)
               (pallet.crate.ganglia/configure
@@ -370,7 +370,7 @@
 
 #_
 (pallet.core/defnode gm1
-  []
+  {}
   :bootstrap [(pallet.crate.automated-admin-user/automated-admin-user)]
   :configure [(pallet.crate.ganglia/monitor)
               (pallet.crate.ganglia/metrics
@@ -378,7 +378,7 @@
 
 #_
 (pallet.core/defnode ganglia
-  []
+  {}
   :bootstrap [(pallet.crate.automated-admin-user/automated-admin-user)]
   :configure [(pallet.crate.nagios/nagios "nagiospwd")
               (pallet.crate.ssh/nagios-monitor)

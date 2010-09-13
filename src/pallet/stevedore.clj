@@ -457,11 +457,7 @@
   [script-name specialisers [& args]  & body]
   {:pre [(or (= :default specialisers)
              (vector? specialisers))]}
-  `(alter-var-root
-    (find-var 'pallet.script/*scripts*)
-    (fn [current#]
-      (add-to-scripts
-       current#
-       (keyword ~(name script-name))
-       ~specialisers
-       (fn [~@args] (script ~@body))))))
+  `(pallet.script/implement
+    ~(name script-name) ~specialisers
+    (fn ~(symbol (str "script-fn-for-" (name script-name))) [~@args]
+      (script ~@body))))

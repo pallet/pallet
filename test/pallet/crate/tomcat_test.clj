@@ -26,10 +26,10 @@
   (is (= (stevedore/checked-commands
           "Packages"
           (stevedore/script (package-manager-non-interactive))
-          (package/package* {:node-type {:image [:ubuntu]}} "tomcat6"))
+          (package/package* {:node-type {:image {:os-family :ubuntu}}} "tomcat6"))
          (first
           (resource/build-resources
-           [:node-type {:image [:ubuntu]}]
+           [:node-type {:image {:os-family :ubuntu}}]
            (tomcat)
            (parameter-test/parameters-test
             [:tomcat :base] "/var/lib/tomcat6/"))))))
@@ -231,7 +231,7 @@
 
 
 (deftest tomcat-server-xml-test
-  (defnode test-node [:ubuntu])
+  (defnode test-node {:os-family :ubuntu})
   (is (= "<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWNx\" port=\"123\">\n  <Listener className=\"org.apache.catalina.core.JasperListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.ServerLifecycleListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\"></Listener>\n  <GlobalNamingResources>\n    <Resource pathname=\"conf/tomcat-users.xml\" factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\" description=\"User database that can be updated and saved\" type=\"org.apache.catalina.UserDatabase\" auth=\"Container\" name=\"UserDatabase\"></Resource>\n  </GlobalNamingResources>\n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"8080\"></Connector>\n    <Engine defaultHost=\"localhost\" name=\"Catalina\">\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t<Valve resolveHosts=\"false\" pattern=\"common\" suffix=\".log\" prefix=\"localhost_access.\" directory=\"logs\" className=\"org.apache.catalina.valves.AccessLogValve\"></Valve>\n      </Host>\n    </Engine>\n  </Service>\n</Server>"
          (apply str (tomcat-server-xml
                       test-node
@@ -261,14 +261,14 @@
       "Listener, GlobalNamingResources and Service should be taken from args"))
 
 (deftest server-configuration-test
-  (defnode a [])
+  (defnode a {})
   (is (= (remote-file/remote-file*
-          {:node-type {:tag :a :image [:ubuntu]}}
+          {:node-type {:tag :a :image {:os-family :ubuntu}}}
           "/var/lib/tomcat6/conf/server.xml"
           :content "<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWNx\" port=\"123\"><GlobalNamingResources></GlobalNamingResources><Listener className=\"\"></Listener>\n  \n  \n  \n  \n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"80\"></Connector>\n    <Engine defaultHost=\"host\" name=\"catalina\"><Valve className=\"org.apache.catalina.valves.RequestDumperValve\"></Valve>\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t\n      </Host>\n    </Engine>\n  </Service>\n</Server>")
          (first
           (build-resources
-           [:node-type {:tag :a :image [:ubuntu]}]
+           [:node-type {:tag :a :image {:os-family :ubuntu}}]
            (server-configuration
             (server
              :port "123" :shutdown "SHUTDOWNx"
@@ -281,18 +281,18 @@
                          :connectionTimeout "20000"
                          :redirectPort "8443"))))))))
   (is (= (remote-file/remote-file*
-          {:node-type {:tag :a :image [:ubuntu]}}
+          {:node-type {:tag :a :image {:os-family :ubuntu}}}
           "/var/lib/tomcat6/conf/server.xml"
           :content "<?xml version='1.0' encoding='utf-8'?>\n<Server shutdown=\"SHUTDOWN\" port=\"8005\">\n  <Listener className=\"org.apache.catalina.core.JasperListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.ServerLifecycleListener\"></Listener>\n  <Listener className=\"org.apache.catalina.mbeans.GlobalResourcesLifecycleListener\"></Listener>\n  <GlobalNamingResources>\n    <Resource pathname=\"conf/tomcat-users.xml\" factory=\"org.apache.catalina.users.MemoryUserDatabaseFactory\" description=\"User database that can be updated and saved\" type=\"org.apache.catalina.UserDatabase\" auth=\"Container\" name=\"UserDatabase\"></Resource>\n  </GlobalNamingResources>\n\n  <Service name=\"Catalina\">\n    <Connector URIEncoding=\"UTF-8\" redirectPort=\"8443\" connectionTimeout=\"20000\" protocol=\"HTTP/1.1\" port=\"8080\"></Connector>\n    <Engine defaultHost=\"localhost\" name=\"Catalina\">\n      <Realm resourceName=\"UserDatabase\" className=\"org.apache.catalina.realm.UserDatabaseRealm\"></Realm>\n\n      <Host xmlNamespaceAware=\"false\" xmlValidation=\"false\" deployOnStartup=\"true\" autoDeploy=\"true\" unpackWARs=\"true\" appBase=\"webapps\" name=\"localhost\">\n\n\t<Valve resolveHosts=\"false\" pattern=\"common\" suffix=\".log\" prefix=\"localhost_access.\" directory=\"logs\" className=\"org.apache.catalina.valves.AccessLogValve\"></Valve>\n      </Host>\n    </Engine>\n  </Service>\n</Server>")
          (first
           (build-resources
-           [:node-type {:tag :a :image [:ubuntu]}]
+           [:node-type {:tag :a :image {:os-family :ubuntu}}]
            (server-configuration
             (server)))))))
 
 (deftest invoke-test
   (is (resource/build-resources
-       [:node-type {:image [:ubuntu]}]
+       [:node-type {:image {:os-family :ubuntu}}]
        (tomcat)
        (undeploy "app")
        (undeploy-all)

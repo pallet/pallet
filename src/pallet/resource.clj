@@ -320,7 +320,7 @@ configuration code."
          result []]
     (if command
       (if (= :remote location)
-        (script/with-template (:image (:node-type request))
+        (script/with-template [(-> request :node-type :image :os-family)]
           (binding [*file-transfers* {}]
             (let [{:keys [cmds request location type]} (f request)]
               (recur
@@ -397,17 +397,18 @@ configuration code."
   "Outputs the remote resources specified in the body for the specified phases.
    This is useful in testing."
   [[& {:as request-map}] & body]
-  `(script/with-template (or (-> ~request-map :node-type :image) [:ubuntu])
-     (let [f# (phase ~@body)
-           request# (or ~request-map {})
-           request# (update-in request# [:phase] #(or % :configure))
-           request# (update-in request# [:target-id]
-                               #(or %
-                                    (and (:target-node request#)
-                                         (keyword
-                                          (.getId (:target-node request#))))
-                                    :id))
-           request# (f# request#)]
-       (produce-phases
-        [(:phase request#)]
-        request#))))
+  `(let [f# (phase ~@body)
+         request# (or ~request-map {})
+         request# (update-in request# [:phase]
+                             #(or % :configure))
+         request# (update-in request# [:node-type :image :os-family]
+                             #(or % :ubuntu))
+         request# (update-in request# [:target-id]
+                             #(or %
+                                  (and (:target-node request#)
+                                       (keyword
+                                        (.getId (:target-node request#))))
+                                  :id))]
+     (script/with-template
+       [(-> request# :node-type :image :os-family)]
+       (produce-phases [(:phase request#)] (f# request#)))))

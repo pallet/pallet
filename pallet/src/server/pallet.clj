@@ -15,7 +15,7 @@
 
 
 (core/defnode devenv
-  []
+  {}
   :bootstrap (resource/phase
               (automated-admin-user/automated-admin-user)
               (package/package-manager :update))

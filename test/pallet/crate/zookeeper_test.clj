@@ -11,7 +11,7 @@
   (is ; just check for compile errors for now
    (resource/build-resources
     [:target-node (compute/make-node "tag")
-     :node-type {:tag "tag" :image [:ubuntu]}]
+     :node-type {:tag "tag" :image {:os-family :ubuntu}}]
     (install)
     (configure)
     (init))))

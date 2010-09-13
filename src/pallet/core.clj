@@ -26,8 +26,7 @@ chef-repository you specify with `with-chef-repository`.
            ssh-port]]
    [org.jclouds.compute
     :only [run-nodes destroy-node nodes-with-details tag running?
-           compute-service? *compute*]]
-   clojure.contrib.def)
+           compute-service? *compute*]])
   (:require
    [pallet.compute :as compute]
    [pallet.execute :as execute]
@@ -38,8 +37,10 @@ chef-repository you specify with `with-chef-repository`.
    [pallet.resource :as resource]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.string :as string]
+   ;[org.jclouds.blobstore :as blobstore]
    [org.jclouds.compute :as jclouds]
-   [clojure.contrib.logging :as logging])
+   [clojure.contrib.logging :as logging]
+   [clojure.contrib.def :only []])
   (:import org.jclouds.compute.domain.OsFamily
            org.jclouds.compute.options.TemplateOptions
            org.jclouds.compute.domain.NodeMetadata))
@@ -82,9 +83,28 @@ When passing a username the following options can be specified:
 (defn make-node
   "Create a node definition.  See defnode."
   [name image & {:as phase-map}]
+  {:pre [(or (nil? image) (map? image))]}
   {:tag (keyword name)
    :image image
    :phases phase-map})
+
+(defn name-with-attributes
+  "Modified version, of that found in contrib, to handle the image map."
+  [name macro-args]
+  (let [[docstring macro-args] (if (string? (first macro-args))
+                                 [(first macro-args) (next macro-args)]
+                                 [nil macro-args])
+        [attr macro-args] (if (and (map? (first macro-args))
+                                   (map? (first (next macro-args))))
+                            [(first macro-args) (next macro-args)]
+                            [{} macro-args])
+        attr (if docstring
+               (assoc attr :doc docstring)
+               attr)
+        attr (if (meta name)
+               (conj (meta name) attr)
+               attr)]
+    [(with-meta name attr) macro-args]))
 
 (defmacro defnode
   "Define a node type.  The name is used for the node tag.
@@ -104,7 +124,7 @@ When passing a username the following options can be specified:
   (if-let [f (some
               (:phase request)
               [(:phases (:node-type request)) (:phases request)])]
-    (script/with-template (:image (:node-type request))
+    (script/with-template [(-> request :node-type :image :os-family)]
       (f request))
     request))
 
@@ -121,28 +141,23 @@ When passing a username the following options can be specified:
                  "Bootstrap can not contain local resources %s"
                  (pr-str cmds))))
     (if-let [f (:f (first cmds))]
-      (script/with-template (:image (:node-type request))
+      (script/with-template [(-> request :node-type :image :os-family)]
         (:cmds (f request)))
       "")))
 
-(defn build-node-template-impl
-  "Build a template for passing to jclouds run-nodes."
-  ([compute options]
-     (build-node-template-impl
-      compute options (utils/default-public-key-path) nil))
-  ([compute options public-key-path init-script]
-     (logging/info (str "Options " options))
-     (logging/info (str "Init script\n" init-script))
-     (let [options
-           (if (and public-key-path (not (:authorize-public-key options)))
-             (apply
-              vector :authorize-public-key (slurp public-key-path) options)
-             options)
-           options
-           (if (and init-script (not (:run-script options)))
-             (apply vector :run-script (.getBytes init-script) options)
-             options)]
-    (apply org.jclouds.compute/build-template compute options))))
+(defn ensure-os-family
+  "Ensure that the request has an os-family.
+   Extract default operating system by building the jclouds template if no
+   os-family is specified."
+  [compute request]
+  (if (-> request :node-type :image :os-family)
+    request
+    (let [template (jclouds/build-template
+                    compute (-> request :node-type :image))
+          family (-> (.. template getImage getOperatingSystem getFamily)
+                     str keyword)]
+      (logging/info (format "Default OS is %s" (pr-str family)))
+      (assoc-in request [:node-type :image :os-family] family))))
 
 (defn build-node-template
   "Build the template for specified target node and compute context"
@@ -150,15 +165,26 @@ When passing a username the following options can be specified:
   {:pre [(map? (:node-type request))]}
   (logging/info
    (str "building node template for " (-> request :node-type :tag)))
-  (when public-key-path (logging/info (str "  authorizing " public-key-path)))
+  (when public-key-path
+    (logging/info (str "  authorizing " public-key-path)))
   (let [options (-> request :node-type :image)
-        init-script (produce-init-script request)]
-    (when init-script (logging/info (str "  using init script")))
-    (build-node-template-impl
-     compute
-     options
-     public-key-path
-     init-script)))
+        request (ensure-os-family compute request)]
+    (logging/info (str "Options " options))
+    (let [options (if (and public-key-path
+                           (not (:authorize-public-key options)))
+                    (assoc options
+                      :authorize-public-key (slurp public-key-path))
+                    options)
+          options (if (not (:run-script options))
+                    (if-let [init-script (produce-init-script request)]
+                      (do
+                        (logging/info (str "Init script\n" init-script))
+                        (assoc options :run-script (.getBytes init-script)))
+                      options)
+                    options)]
+      (jclouds/build-template compute options))))
+
+
 
 (defn start-node
   "Convenience function for explicitly starting nodes."
@@ -167,7 +193,8 @@ When passing a username the following options can be specified:
      (run-nodes
       (name (node-type :tag))
       1
-      (build-node-template-impl compute (node-type :image))
+      (build-node-template
+       compute utils/default-public-key-path {:node-type node-type})
       compute)))
 
 (defn create-nodes
@@ -242,8 +269,10 @@ script that is run with root privileges immediatly after first boot."
     (handler
      (let [node (:target-node request)
            os-family (and node (compute/node-os-family node))]
-       (if os-family
-         (update-in request [:node-type :image] conj os-family)
+       (if (and os-family (not (get-in request [:node-type :image :os-family])))
+         (update-in request [:node-type :image]
+                    (fn update-os-family [m]
+                      (assoc (or m {}) :os-family os-family)))
          request)))))
 
 (defn parameter-keys [node node-type]
@@ -267,7 +296,8 @@ script that is run with root privileges immediatly after first boot."
   (fn [request]
     (handler
      (assoc request
-       :commands (script/with-template (:image (:node-type request))
+       :commands (script/with-template
+                   [(-> request :node-type :image :os-family)]
                    (resource/produce-phase request))))))
 
 (defmacro pipe
@@ -445,9 +475,8 @@ script that is run with root privileges immediatly after first boot."
   "Build an invocation map for specified nodes."
   [request nodes]
   (reduce
-   #(resource-invocations (assoc %1
-                            :target-node %2
-                            :target-id (keyword (.getId %2))))
+   #(resource-invocations
+     (assoc %1 :target-node %2 :target-id (keyword (.getId %2))))
    request nodes))
 
 (defn invoke-for-node-type
@@ -535,7 +564,12 @@ script that is run with root privileges immediatly after first boot."
         [node-map options] (if (map? (first options))
                              [(first options) (rest options)]
                              [nil options])]
-    [compute prefix node-spec node-map options {:user user} *middleware*]))
+    [compute prefix node-spec node-map options
+     {:user user
+      ;; :blobstore (if (bound? blobstore/*blobstore*)
+      ;;              blobstore/*blobstore*)
+      }
+     *middleware*]))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in

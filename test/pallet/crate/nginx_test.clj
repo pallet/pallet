@@ -23,7 +23,7 @@
            {} "/etc/nginx/sites-available/mysite" :action :delete :force true))
          (first
           (resource/build-resources
-           [:node-type {:tag :n :image [:ubuntu]}]
+           [:node-type {:tag :n :image {:os-family :ubuntu}}]
            (site "mysite"
                  :locations [{:location "/" :root "/some/path"}
                              {:location "/a"

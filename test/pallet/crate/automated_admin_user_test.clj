@@ -18,7 +18,7 @@
           (pallet.crate.ssh-key/authorize-key*
            {} "fred" (slurp (pallet.utils/default-public-key-path))))
          (first (resource/build-resources
-                 [:node-type {:image [:ubuntu]}]
+                 [:node-type {:image {:os-family :ubuntu}}]
                  (automated-admin-user "fred"))))))
 
   (testing "with path"
@@ -32,7 +32,7 @@
            {} "fred" (slurp (pallet.utils/default-public-key-path))))
          (first
           (resource/build-resources
-           [:node-type {:image [:ubuntu]}]
+           [:node-type {:image {:os-family :ubuntu}}]
            (automated-admin-user
             "fred" (pallet.utils/default-public-key-path)))))))
 
@@ -46,5 +46,5 @@
           (pallet.crate.ssh-key/authorize-key* {} "fred" "abc"))
          (first
           (resource/build-resources
-           [:node-type {:image [:ubuntu]}]
+           [:node-type {:image {:os-family :ubuntu}}]
            (automated-admin-user "fred" (.getBytes "abc"))))))))

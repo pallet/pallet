@@ -9,6 +9,8 @@
   (:use clojure.test
         pallet.test-utils))
 
+(use-fixtures :once with-ubuntu-script-template)
+
 (deftest iptables-test
   []
   (testing "debian"
@@ -25,7 +27,7 @@
             (stevedore/script (rm @tmp)))
            (first
             (resource/build-resources
-             [:node-type {:tag :n :image [:ubuntu]}]
+             [:node-type {:tag :n :image {:os-family :ubuntu}}]
              (iptables-rule "filter" "f1")
              (iptables-rule "filter" "f2"))))))
   (testing "redhat"
@@ -38,7 +40,7 @@
              :mode "0755"))
            (first
             (resource/build-resources
-             [:node-type {:tag :n :image [:centos]}]
+             [:node-type {:tag :n :image {:os-family :centos}}]
              (iptables-rule "filter" "")))))))
 
 
@@ -46,54 +48,55 @@
   (testing "redirect with default protocol"
     (is (= (first
             (resource/build-resources
-             [:node-type {:tag :n :image [:centos]}]
+             [:node-type {:tag :n :image {:os-family :centos}}]
              (iptables-rule
               "nat"
               "-I PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8081")))
            (first
             (resource/build-resources
-             [:node-type {:tag :n :image [:centos]}]
+             [:node-type {:tag :n :image {:os-family :centos}}]
              (iptables-redirect-port 80 8081)))))))
 
 (deftest iptables-accept-port-test
   (testing "accept with default protocol"
     (is (= (first
             (resource/build-resources
-             [:node-type {:tag :n :image [:centos]}]
+             [:node-type {:tag :n :image {:os-family :centos}}]
              (iptables-rule
               "filter"
               "-A FWR -p tcp --dport 80 -j ACCEPT")))
          (first
           (resource/build-resources
-           [:node-type {:tag :n :image [:centos]}]
+           [:node-type {:tag :n :image {:os-family :centos}}]
            (iptables-accept-port 80))))))
   (testing "accept with source"
     (is (= (first
             (resource/build-resources
-             [:node-type {:tag :n :image [:centos]}]
+             [:node-type {:tag :n :image {:os-family :centos}}]
              (iptables-rule
               "filter"
               "-A FWR -p tcp -s 1.2.3.4 --dport 80 -j ACCEPT")))
            (first
             (resource/build-resources
-             [:node-type {:tag :n :image [:centos]}]
+             [:node-type {:tag :n :image {:os-family :centos}}]
              (iptables-accept-port 80 "tcp" :source "1.2.3.4"))))))
   (testing "accept with source range"
     (is (= (first
             (resource/build-resources
-             [:node-type {:tag :n :image [:centos]}]
+             [:node-type {:tag :n :image {:os-family :centos}}]
              (iptables-rule
               "filter"
-              "-A FWR -p tcp -src-range 11.22.33.10-11.22.33.50 --dport 80 -j ACCEPT")))
+              (str "-A FWR -p tcp -src-range 11.22.33.10-11.22.33.50"
+                   " --dport 80 -j ACCEPT"))))
            (first
             (resource/build-resources
-             [:node-type {:tag :n :image [:centos]}]
+             [:node-type {:tag :n :image {:os-family :centos}}]
              (iptables-accept-port
               80 "tcp" :source-range "11.22.33.10-11.22.33.50")))))))
 
 (deftest invocation-test
   (is (resource/build-resources
-       [:node-type {:image [:ubuntu]}]
+       [:node-type {:image {:os-family :ubuntu}}]
        (iptables-accept-established)
        (iptables-accept-icmp)
        (iptables-accept-port 80)

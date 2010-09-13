@@ -11,7 +11,7 @@
 
 (deftest git-test
   []
-  (let [a {:tag :n :image [:ubuntu]}]
+  (let [a {:tag :n :image {:os-family :ubuntu}}]
     (is (= (stevedore/checked-commands
             "Packages"
             (stevedore/script (package-manager-non-interactive))
@@ -21,8 +21,8 @@
             (resource/build-resources
              [:node-type a]
              (git))))))
-  (let [a {:tag :n :image [:centos]}]
-    (is (= (script/with-template (:image a)
+  (let [a {:tag :n :image {:os-family :centos}}]
+    (is (= (script/with-template [:centos]
              (stevedore/checked-commands
               "Packages"
               (stevedore/script (package-manager-non-interactive))

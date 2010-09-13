@@ -14,6 +14,8 @@
    [pallet.target :as target]
    [clojure.contrib.io :as io]))
 
+(use-fixtures :each with-ubuntu-script-template)
+
 (deftest update-package-list-test
   (is (= "aptitude update "
          (script/with-template [:ubuntu]
@@ -68,10 +70,10 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 
 (deftest package-manager*-test
   (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
-         (package-manager* {} :multiverse)))
+         (package-manager* ubuntu-request :multiverse)))
   (is (= "echo \"package-manager...\"\n{ aptitude update; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (script/with-template [:ubuntu]
-           (package-manager* {} :update)))))
+           (package-manager* ubuntu-request :update)))))
 
 (deftest add-multiverse-example-test
   (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"package-manager...\"\n{ aptitude update; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
@@ -81,8 +83,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                  (package-manager :update))))))
 
 (deftest package-source*-test
-  (core/defnode a [:ubuntu])
-  (core/defnode b [:centos])
+  (core/defnode a {:os-family :ubuntu})
+  (core/defnode b {:os-family :centos})
   (is (=
        (stevedore/checked-commands
         "Package source"
@@ -136,8 +138,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           :yum {:url "http://somewhere/yum"}))))
 
 (deftest package-source-test
-  (core/defnode a [:ubuntu])
-  (core/defnode b [:centos])
+  (core/defnode a {:os-family :ubuntu})
+  (core/defnode b {:os-family :centos})
   (is (= (stevedore/checked-commands
           "Package source"
           (remote-file/remote-file*
@@ -166,8 +168,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   :yum {:url "http://somewhere/yum"}))))))
 
 (deftest packages-test
-  (core/defnode a [:ubuntu])
-  (core/defnode b [:centos])
+  (core/defnode a {:os-family :ubuntu})
+  (core/defnode b {:os-family :centos})
   (is (= (stevedore/checked-commands
           "Packages"
           (stevedore/script (package-manager-non-interactive))
@@ -178,7 +180,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                  (packages
                   :aptitude ["git-apt" "git-apt2"]
                   :yum ["git-yum"])))))
-  (is (= (script/with-template (:image b)
+  (is (= (script/with-template [(:os-family (:image b))]
            (stevedore/checked-commands
             "Packages"
             (stevedore/script (package-manager-non-interactive))

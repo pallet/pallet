@@ -6,10 +6,10 @@
    [pallet.maven :as maven]
    [pallet.execute :as execute])
   (:import
-   [org.jclouds.compute.domain.internal NodeMetadataImpl ImageImpl]
+   [org.jclouds.compute.domain.internal NodeMetadataImpl ImageImpl HardwareImpl]
    org.jclouds.compute.util.ComputeServiceUtils
    [org.jclouds.compute.domain
-    NodeState NodeMetadata Image OperatingSystem OsFamily]
+    NodeState NodeMetadata Image OperatingSystem OsFamily Hardware]
    org.jclouds.domain.Location))
 
 
@@ -70,6 +70,28 @@
       :arch (System/getProperty "os.arch")
       :is-64bit (= "64" (System/getProperty "sun.arch.data.model"))})))
 
+(defn make-hardware
+  [{:keys [provider-id name id location uri user-metadata processors ram
+           volumes supports-image]
+    :or {provider-id "provider-hardware-id"
+         name "Some Hardware"
+         id "Some id"
+         user-metadata {}
+         processors []
+         ram 512
+         volumes []
+         supports-image (fn [&] true)}}]
+  (HardwareImpl.
+   provider-id name id location uri user-metadata processors ram volumes
+   (proxy [com.google.common.base.Predicate] []
+       (apply [i] (supports-image i)))))
+
+(defn local-hardware
+  "Create an Hardware object for the local host"
+  []
+  (let [os-name (System/getProperty "os.name")]
+    (make-hardware {})))
+
 
 (defn make-node [tag & options]
   (let [options (apply hash-map options)]
@@ -81,14 +103,16 @@
      (java.net.URI. tag)                ; uri
      (options :user-metadata {})
      tag
-     (options :image)
+     (if-let [hardware (options :hardware)]
+       (if (map? hardware) (make-hardware hardware) hardware)
+       (make-hardware {}))
+     (options :image-id)
      (if-let [os (options :operating-system)]
        (if (map? os) (make-operating-system os) os)
        (make-operating-system {}))
      (options :state NodeState/RUNNING)
      (options :public-ips [])
      (options :private-ips [])
-     (options :extra {})
      (options :credentials nil))))
 
 (defn make-unmanaged-node
@@ -107,14 +131,16 @@
      (java.net.URI. tag)                ; uri
      (merge (get options :user-metadata {}) meta)
      tag
-     (options :image)
+     (if-let [hardware (options :hardware)]
+       (if (map? hardware) (make-hardware hardware) hardware)
+       (make-hardware {}))
+     (options :image-id)
      (if-let [os (options :operating-system)]
        (if (map? os) (make-operating-system os) os)
        (make-operating-system {}))
      (get options :state NodeState/RUNNING)
      (conj (get options :public-ips []) host-or-ip)
      (get options :private-ips [])
-     (get options :extra {})
      (get options :credentials nil))))
 
 

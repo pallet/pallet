@@ -80,7 +80,7 @@
   (is (=
        (first
         (resource/build-resources
-         [:node-type {:image [:ubuntu] :tag :tag}
+         [:node-type {:image {:os-family :ubuntu} :tag :tag}
           :target-node (compute/make-node "tag" :public-ips ["1.2.3.4"])]
          (remote-file/remote-file
           "/etc/haproxy/haproxy.cfg"
@@ -89,7 +89,7 @@
          (etc-default/write "haproxy" :ENABLED 1)))
        (first
         (resource/build-resources
-         [:node-type {:image [:ubuntu] :tag :tag}
+         [:node-type {:image {:os-family :ubuntu} :tag :tag}
           :target-node (compute/make-node "tag" :public-ips ["1.2.3.4"])]
          (configure
           :listen {:app
@@ -100,7 +100,7 @@
 
 (deftest invocation-test
   (is (resource/build-resources
-       [:node-type {:image [:ubuntu] :tag :tag}
+       [:node-type {:image {:os-family :ubuntu} :tag :tag}
         :target-node (compute/make-node "tag" :public-ips ["1.2.3.4"])]
        (install-package)
        (configure

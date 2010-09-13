@@ -28,7 +28,6 @@
            [] (cruise-control-rb-job "name" "git://host/repo.git"))))))
 
 (deftest cruise-control-rb-init-test
-  (core/defnode n [])
   (is (= (first
           (resource/build-resources
            []
@@ -38,5 +37,5 @@
             :literal true)))
          (first
           (resource/build-resources
-           [:node-type {:tag :n :image [:ubuntu]}]
+           [:node-type {:tag :n :image {:os-family :ubuntu}}]
            (cruise-control-rb-init))))))

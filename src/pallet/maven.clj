@@ -4,30 +4,42 @@
    [org.apache.maven.settings Settings MavenSettingsBuilder]
    [org.codehaus.plexus.embed Embedder]))
 
+(defonce settings-keys
+  {:compute
+   ["jclouds.compute.provider"
+    "jclouds.compute.identity"
+    "jclouds.compute.credential"]
+   :blobstore
+   ["jclouds.blobstore.provider"
+    "jclouds.blobstore.identity"
+    "jclouds.blobstore.credential"]})
+
 (def container (.getContainer (doto (Embedder.) (.start))))
 
-(defn make-settings []
+(defn- make-settings []
   (.buildSettings (.lookup container MavenSettingsBuilder/ROLE)))
 
-(def provider-key "jclouds.compute.provider")
-(def identity-key "jclouds.compute.identity")
-(def credential-key "jclouds.compute.credential")
-
-(defn has-pallet-properties
-  [profile]
+(defn- profile-with-credentials
+  [facility-keys profile]
   (let [properties (.getProperties profile)]
-    (and (.getProperty properties provider-key)
+    (and (.getProperty properties (first facility-keys))
          profile)))
 
-(defn get-property [profile key]
+(defn- get-property [profile key]
   (.getProperty profile key))
 
 (defn credentials
-  []
-  (let [settings (make-settings)
-        active-profiles (.getActiveProfiles settings)
-        profiles (into {} (.getProfilesAsMap settings))
-        profile (some has-pallet-properties (map profiles active-profiles))]
-    (when profile
-      (map (partial get-property (.getProperties profile))
-           [provider-key identity-key credential-key]))))
+  "Read maven's settings.xml file, and extract credentials.  By default get
+   credentials for the compute service. The blobstore credentials may be
+   retrieved by passing :blobstore"
+  ([] (credentials :compute))
+  ([facility]
+     (let [settings (make-settings)
+           facility-keys (facility settings-keys)
+           active-profiles (.getActiveProfiles settings)
+           profiles (into {} (.getProfilesAsMap settings))
+           profile (some
+                    #(profile-with-credentials facility-keys %)
+                    (map profiles active-profiles))]
+       (when profile
+         (map (partial get-property (.getProperties profile)) facility-keys)))))

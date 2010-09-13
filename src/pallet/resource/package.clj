@@ -69,21 +69,18 @@
   (brew uninstall ~(stevedore/option-args options) ~package))
 
 (script/defscript debconf-set-selections [& selections])
-(stevedore/defimpl debconf-set-selections :default [& selections]
+(stevedore/defimpl debconf-set-selections :default [& selections] "")
+(stevedore/defimpl debconf-set-selections [#{:ubuntu :debian}] [& selections]
   ("{ debconf-set-selections"
    ~(str "<<EOF\n" (string/join \newline selections) "\nEOF\n}")))
 
-(stevedore/defimpl debconf-set-selections [#{:darwin :centos}] [& selections]
-  "")
-
 (script/defscript package-manager-non-interactive [])
-(stevedore/defimpl package-manager-non-interactive :default []
+(stevedore/defimpl package-manager-non-interactive [#{:ubuntu :debian}] []
   (debconf-set-selections
    "debconf debconf/frontend select noninteractive"
    "debconf debconf/frontend seen false"))
 
-(stevedore/defimpl package-manager-non-interactive [#{:darwin :centos}] []
-  "")
+(stevedore/defimpl package-manager-non-interactive :default [] "")
 
 (defn package*
   "Package management"

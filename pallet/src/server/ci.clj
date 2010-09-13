@@ -63,7 +63,7 @@
    (tomcat/tomcat :action :remove :purge true)))
 
 (core/defnode ci
-  []
+  {}
   :bootstrap (resource/phase
               (automated-admin-user/automated-admin-user)
               (package/package-manager :update))

@@ -39,7 +39,7 @@
                [:target-node node
                 :all-nodes [node]
                 :target-nodes [node]
-                :node-type {:image [:ubuntu]}]
+                :node-type {:image {:os-family :ubuntu}}]
                (nagios-config/service
                 {:check_command "check_cmd"
                  :service_description "Service Name"})
@@ -70,7 +70,7 @@
                 [:target-node node
                  :all-nodes [node]
                  :target-nodes [node]
-                 :node-type {:image [:ubuntu]}]
+                 :node-type {:image {:os-family :ubuntu}}]
                 (unmanaged-host "1.2.3.4" "tag")
                 (nagios-config/service
                  {:host_name "tag"

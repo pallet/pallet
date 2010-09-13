@@ -35,3 +35,14 @@
 (defn packager
   [request]
   (target/packager (-?> request :node-type :image)))
+
+(defn script-template-keys
+  "Find the script template keys for the request"
+  [request]
+  (let [node (:target-node request)]
+    (distinct
+     (filter
+      identity
+      [(-?> (.. node operatingSystem family) keyword str)
+       (-?> (.. node operatingSystem version) keyword str)
+       (-?> (.. node operatingSystem description) keyword str)]))))

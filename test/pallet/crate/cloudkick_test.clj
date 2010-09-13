@@ -11,7 +11,7 @@
    [pallet.target :as target]))
 
 (deftest cloudkick-test
-  (core/defnode a [:ubuntu])
+  (core/defnode a {:os-family :ubuntu})
   (let [request {:node-type a}]
     (is (= (str
             (package/package-source*
