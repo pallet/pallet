@@ -189,7 +189,7 @@ for a tag and an empty image template specification.
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.core)
-  (pallet.core/defnode mytag [])
+  (pallet.core/defnode mytag {})
 #+END_SRC
 
 An empty template specification implies a default image will be used for the
@@ -214,6 +214,13 @@ mechanism.  The image template in =defnode= is exactly as for jclouds clojure AP
   (pallet.core/defnode mytag [:centos :min-ram 512 :min-cores 4])
 #+END_SRC
 
+* Request Map
+# <<request-map>>
+The request map has some well defined keys:
+- :target-node :
+The jclouds node object for the current node
+- :node-type :
+The pallet defnode type for the current node
 * Phases
 
 A phase specifies a sequence of crates to be executed.  A phase can be defined
@@ -242,7 +249,7 @@ nodes).
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.core)
-  (pallet.core/defnode mytag [])
+  (pallet.core/defnode mytag {})
 
   (defn scale-cluster [n]
     (pallet.core/converge {mytag n}))
@@ -260,11 +267,11 @@ This can be used to build job specific clusters.
     [request]
     (pallet.crate.automated-admin-user/automated-admin-user "user"))
 
-  (pallet.core/defnode lb []
+  (pallet.core/defnode lb {}
     :bootstrap (pallet.resource/phase my-bootstrap))
-  (pallet.core/defnode webapp []
+  (pallet.core/defnode webapp {}
     :bootstrap (pallet.resource/phase my-bootstrap))
-  (pallet.core/defnode db []
+  (pallet.core/defnode db {}
     :bootstrap (pallet.resource/phase my-bootstrap))
 
   (defn scale-cluster [prefix n]

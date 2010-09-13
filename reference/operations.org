@@ -31,7 +31,7 @@ nodes).
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.core)
-  (pallet.core/defnode mytag [])
+  (pallet.core/defnode mytag {})
 
   (defn scale-cluster [n]
     (pallet.core/converge {mytag n}))
@@ -42,9 +42,9 @@ This can be used to build job specific clusters.
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.core)
-  (pallet.core/defnode lb [] :configure [])
-  (pallet.core/defnode webapp [] :configure [])
-  (pallet.core/defnode db [] :configure [])
+  (pallet.core/defnode lb {})
+  (pallet.core/defnode webapp {})
+  (pallet.core/defnode db {})
 
   (defn scale-cluster [prefix n]
     (pallet.core/converge prefix {lb 1 webapp n db (inc (/ n 2))}))
