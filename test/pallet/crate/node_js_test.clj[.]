@@ -1,0 +1,10 @@
+(ns pallet.crate.node-js-test
+  (:use pallet.crate.node-js
+        clojure.test)
+  (:require
+   [pallet.resource :as resource]))
+
+(deftest invoke-test
+  (is (resource/build-resources
+       []
+       (install))))
