@@ -318,8 +318,25 @@
                    nil "" {a 1 b 1} nil [:configure] {} *middleware*))))
 
 (deftest converge-test
-  (pallet.compute-test-utils/purge-compute-service)
-  (let [request (converge {(make-node "a" {}) 1})]
-    (is (map? request))
-    (is (= 1 (count (:all-nodes request))))
-    (is (= 1 (count (org.jclouds.compute/nodes))))))
+  (org.jclouds.compute/with-compute-service
+    [(org.jclouds.compute/compute-service
+      "stub" "" "" :extensions [(ssh-test/ssh-test-client {})])]
+    (pallet.compute-test-utils/purge-compute-service)
+    (let [id "a"
+          request (with-middleware
+                    wrap-no-exec
+                    (converge {(make-node
+                                "a" {}
+                                :configure (fn [request]
+                                             (resource/invoke-resource
+                                              request
+                                              (fn [request] "Hi")
+                                              [] :in-sequence :script/bash)))
+                               1}))]
+      (is (map? request))
+      (is (map? (-> request :results)))
+      (is (map? (-> request :results first second)))
+      (is (:configure (-> request :results first second)))
+      (is (some #(= "Hi\n" %) (:configure (-> request :results first second))))
+      (is (= 1 (count (:all-nodes request))))
+      (is (= 1 (count (org.jclouds.compute/nodes)))))))

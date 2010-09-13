@@ -325,29 +325,6 @@ script that is run with root privileges immediatly after first boot."
     execute-with-ssh)
    request))
 
-(defmacro with-local-exec
-  "Run only local commands"
-  [& body]
-  `(binding [compute/execute-cmds (fn [commands# & _#]
-                                    (utils/local-cmds commands#))]
-     ~@body))
-
-
-(defn no-exec
-  [commands node user options]
-  (logging/info
-   (format "Commands %s on node %s as user %s with options %s"
-           (pr-str commands)
-           (pr-str node)
-           (pr-str user)
-           (pr-str options))))
-
-(defmacro with-no-exec
-  "Log commands, but do not run anything"
-  [& body]
-  `(binding [compute/execute-cmds no-exec]
-     ~@body))
-
 (defn wrap-no-exec
   "Middleware to report on the request, without executing"
   [_]
@@ -357,7 +334,10 @@ script that is run with root privileges immediatly after first boot."
       "Commands on node %s as user %s"
       (pr-str (:node request))
       (pr-str (:user request))))
-    (letfn [(execute [cmd] (logging/info (format "Commands %s" cmd)))]
+    (letfn [(execute
+             [cmd]
+             (logging/info (format "Commands %s" cmd))
+             cmd)]
       (resource/execute-commands request execute))))
 
 (defn wrap-local-exec
@@ -394,10 +374,14 @@ script that is run with root privileges immediatly after first boot."
    (format
     "apply-phase %s for %s with %d nodes"
     (:phase request) (:tag (:node-type request)) (count nodes)))
-  (doseq [node nodes]
-    (apply-phase-to-node
-     compute node-execution-wrapper
-     (assoc request :target-node node :target-id (keyword (.getId node))))))
+  (reduce
+   (fn apply-phase-accumulate [request [result req :as arg]]
+     (assoc-in request [:results (:target-id req) (:phase req)] result))
+   request
+   (for [node nodes]
+     (apply-phase-to-node
+      compute node-execution-wrapper
+      (assoc request :target-node node :target-id (keyword (.getId node)))))))
 
 (defn nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"
@@ -504,15 +488,21 @@ script that is run with root privileges immediatly after first boot."
                   :all-nodes all-nodes
                   :target-nodes target-nodes)
         request (invoke-phases request phases all-node-map)]
-    (doseq [phase (resource/phase-list phases)
+    (->
+     (reduce
+      (fn lift-nodes-reduce-result [request req]
+        (update-in request [:results]
+                   #(merge-with merge (or % {}) (:results req))))
+      request
+      (for [phase (resource/phase-list phases)
             [node-type tag-nodes] target-node-map]
-      (apply-phase
-       compute
-       execution-wrapper
-       tag-nodes
-       (assoc request :phase phase :node-type node-type)))
-    (dissoc request
-            :node-type :target-node :target-nodes :target-id :phase :user)))
+        (apply-phase
+         compute
+         execution-wrapper
+         tag-nodes
+         (assoc request :phase phase :node-type node-type))))
+     (dissoc :node-type :target-node :target-nodes :target-id :phase
+             :invocations :user))))
 
 (defn lift*
   [compute prefix node-set all-node-set phases request middleware]
