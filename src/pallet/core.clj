@@ -510,7 +510,9 @@ script that is run with root privileges immediatly after first boot."
        compute
        execution-wrapper
        tag-nodes
-       (assoc request :phase phase :node-type node-type)))))
+       (assoc request :phase phase :node-type node-type)))
+    (dissoc request
+            :node-type :target-node :target-nodes :target-id :phase :user)))
 
 (defn lift*
   [compute prefix node-set all-node-set phases request middleware]
@@ -523,8 +525,7 @@ script that is run with root privileges immediatly after first boot."
                          target-node-map)]
     (lift-nodes
      compute nodes target-node-map all-node-map
-     phases middleware request)
-    nodes))
+     phases middleware request)))
 
 (defn converge*
   "Converge the node counts of each tag in node-map, executing each of the
@@ -550,8 +551,7 @@ script that is run with root privileges immediatly after first boot."
           phases (ensure-configure-phase phases)]
       (lift-nodes
        compute nodes target-node-map all-node-map
-       phases middleware request)
-      nodes)))
+       phases middleware request))))
 
 (defn compute-service-and-options
   "Extract the compute service and user form a vector of options, returning the

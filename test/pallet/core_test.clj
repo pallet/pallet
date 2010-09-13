@@ -319,5 +319,7 @@
 
 (deftest converge-test
   (pallet.compute-test-utils/purge-compute-service)
-  (converge {(make-node "a" {}) 1})
-  (is (= 1 (count (org.jclouds.compute/nodes)))))
+  (let [request (converge {(make-node "a" {}) 1})]
+    (is (map? request))
+    (is (= 1 (count (:all-nodes request))))
+    (is (= 1 (count (org.jclouds.compute/nodes))))))
