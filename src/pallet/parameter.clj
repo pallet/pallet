@@ -24,16 +24,45 @@
   ([request keys default]
        (get-in (:parameters request) keys default)))
 
-(defn assoc-for
-  [request & {:as keys-value-pairs}]
+
+(defn- assoc-for-prefix
+  [request prefix {:as keys-value-pairs}]
   (reduce
-   #(assoc-in %1 (concat [:parameters] (first %2)) (second %2))
+   #(assoc-in
+     %1 (concat prefix (first %2)) (second %2))
    request
    keys-value-pairs))
 
+(defn assoc-for
+  [request & {:as keys-value-pairs}]
+  (assoc-for-prefix
+   request [:parameters] keys-value-pairs))
+
+(defn assoc-for-target
+  [request & {:as keys-value-pairs}]
+  (assoc-for-prefix
+   request [:parameters :host (:target-id request)] keys-value-pairs))
+
+(defn assoc-for-service
+  [request service & {:as keys-value-pairs}]
+  (assoc-for-prefix
+   request [:parameters :service service] keys-value-pairs))
+
+(defn- update-for-prefix
+  ([request prefix keys f]
+  (update-in request (concat prefix keys) f)))
+
 (defn update-for
+  ([request keys f]
+     (update-for-prefix request [:parameters] keys f)))
+
+(defn update-for-target
   [request keys f]
-  (update-in request (concat [:parameters] keys) f))
+  (update-for-prefix request [:parameters :host (:target-id request)] keys f))
+
+(defn update-for-service
+  [request keys f]
+  (update-for-prefix request [:parameters :service] keys f))
 
 (deftype ParameterLookup
   [keys]

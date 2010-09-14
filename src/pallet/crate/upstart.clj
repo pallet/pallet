@@ -1,6 +1,7 @@
 (ns pallet.crate.upstart
   "Create upstart daemon scripts"
   (:require
+   [pallet.parameter :as parameter]
    [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]
    [clojure.string :as string]))
@@ -97,4 +98,5 @@
    (remote-file/remote-file
     (format "/etc/init/%s.conf" name)
     :content (job-format options)
-    :literal true)))
+    :literal true)
+   (parameter/assoc-for-target [:upstart (keyword name)] options)))
