@@ -3,121 +3,105 @@
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
    [pallet.resource.directory :as directory]
+   [pallet.resource.exec-script :as exec-script]
    [pallet.resource.remote-file :as remote-file]
-   [clojure.contrib.string :as string])
+   [pallet.resource.file :as file]
+   [clojure.string :as string])
   (:use
    [pallet.target :only [admin-group]]
-   [pallet.template]
-   [pallet.resource :only [defresource defaggregate]]
    [pallet.resource.user :only [user-home]]
-   [pallet.resource.file :only [chmod chown file*]]
-   [clojure.contrib.logging]))
+   [pallet.resource.file :only [chmod chown]]
+   pallet.thread-expr))
 
 (defn user-ssh-dir [user]
   (str (stevedore/script (user-home ~user)) "/.ssh/"))
 
-(deftemplate authorized-keys-template
-  [user keys]
-  {{:path (str (user-ssh-dir user) "authorized_keys")
-    :mode "0644" :owner user}
-   (if (vector? keys)
-     (string/join "\n" (map string/rtrim keys))
-     keys)})
-
-(defresource authorize-key
+(defn authorize-key
   "Authorize a public key on the specified user."
-  (authorize-key*
-   [request user public-key-string & {:keys [authorize-for-user] :as options}]
-   (let [target-user (or authorize-for-user user)]
-     (stevedore/do-script
-      (stevedore/script
-       (var auth_file ~(str (user-ssh-dir target-user) "authorized_keys")))
-      (directory/directory*
-       request (user-ssh-dir target-user) :owner target-user :mode "755")
-      (file*
-       request "${auth_file}" :owner target-user :mode "644")
-      (stevedore/script
-       (if-not (fgrep (quoted ~(string/trim public-key-string)) @auth_file)
-         (echo (quoted ~public-key-string) ">>" @auth_file)))))))
+  [request user public-key-string & {:keys [authorize-for-user] :as options}]
+  (let [target-user (or authorize-for-user user)
+        dir (user-ssh-dir target-user)
+        auth-file (str dir "authorized_keys")]
+    (->
+     request
+     (directory/directory dir :owner target-user :mode "755")
+     (file/file auth-file :owner target-user :mode "644")
+     (exec-script/exec-checked-script
+      "authorize-key"
+      (var auth_file ~auth-file)
+      (if-not (fgrep (quoted ~(string/trim public-key-string)) @auth_file)
+        (echo (quoted ~public-key-string) ">>" @auth_file))))))
 
-(defresource authorize-key-for-localhost
+(defn authorize-key-for-localhost
   "Authorize a user's public key on the specified user, for ssh access to
   localhost.  The :authorize-for-user option can be used to specify the
   user to who's authorized_keys file is modified."
-  (authorize-key-for-localhost*
-   [request user public-key-filename & {:keys [authorize-for-user] :as options}]
-   (let [target-user (or authorize-for-user user)]
-     (stevedore/do-script
-      (stevedore/script
-       (var key_file ~(str (user-ssh-dir user) public-key-filename))
-       (var auth_file ~(str (user-ssh-dir target-user) "authorized_keys")))
-      (directory/directory*
-       request
-       (user-ssh-dir target-user) :owner target-user :mode "755")
-      (file*
-       request
-       (str (user-ssh-dir target-user) "authorized_keys")
-       :owner target-user :mode "644")
-      (stevedore/checked-script
-       "authorize-key"
-       (if-not (grep @(cat @key_file) @auth_file)
-         (cat @key_file ">>" @auth_file)))))))
+  [request user public-key-filename & {:keys [authorize-for-user] :as options}]
+  (let [target-user (or authorize-for-user user)
+        key-file (str (user-ssh-dir user) public-key-filename)
+        auth-file (str (user-ssh-dir target-user) "authorized_keys")]
+    (->
+     request
+     (directory/directory
+      (user-ssh-dir target-user) :owner target-user :mode "755")
+     (file/file auth-file :owner target-user :mode "644")
+     (exec-script/exec-checked-script
+      "authorize-key"
+      (var key_file ~key-file)
+      (var auth_file ~auth-file)
+      (if-not (grep @(cat @key_file) @auth_file)
+        (cat @key_file ">>" @auth_file))))))
 
-(defresource install-key
-  "Install a ssh private key"
-  (install-key*
-   [request user key-name private-key-string public-key-string]
-   (let [ssh-dir (user-ssh-dir user)]
-     (stevedore/do-script
-      (directory/directory* request ssh-dir :owner user :mode "755")
-      (remote-file/remote-file*
-       request (str ssh-dir key-name) :owner user :mode "600"
-       :content private-key-string)
-      (remote-file/remote-file*
-       request (str ssh-dir key-name ".pub") :owner user :mode "644"
-       :content public-key-string)))))
+(defn install-key
+  "Install a ssh private key."
+  [request user key-name private-key-string public-key-string]
+  (let [ssh-dir (user-ssh-dir user)]
+    (->
+     request
+     (directory/directory ssh-dir :owner user :mode "755")
+     (remote-file/remote-file
+      (str ssh-dir key-name)
+      :owner user :mode "600"
+      :content private-key-string)
+     (remote-file/remote-file
+      (str ssh-dir key-name ".pub")
+      :owner user :mode "644"
+      :content public-key-string))))
 
-(def ssh-default-filenames
+(def ^:private ssh-default-filenames
      {"rsa1" "identity"
       "rsa" "id_rsa"
       "dsa" "id_dsa"})
 
-
-(defresource generate-key
+(defn generate-key
   "Generate an ssh key pair for the given user, unless one already
    exists. Options are:
      :file path     -- output file name
      :type key-type -- key type selection"
-  (generate-key*
-   [request user & {:keys [type file passphrase]
-                    :or {type "rsa" passphrase ""}
-                    :as  options}]
-   (let [key-type type
-         path (or file
-                  (stevedore/script
-                   ~(str (user-ssh-dir user)
-                         (ssh-default-filenames key-type))))
-         ssh-dir (.getParent (java.io.File. path))]
-     (stevedore/do-script
-      (when-not (:no-dir options)
-        (directory/directory* request ssh-dir :owner user :mode "755"))
-      (stevedore/checked-script
-       "ssh-keygen"
-       (var key_path ~path)
-       (if-not (file-exists? @key_path)
-         (ssh-keygen ~(stevedore/map-to-arg-string
-                       {:f (stevedore/script @key_path)
-                        :t key-type
-                        :N (str \" passphrase \")
-                        :C (str
-                            \"
-                            (or (:comment options "generated by pallet"))
-                            \")}))))
-      (file*
-       request
-       (stevedore/script @key_path)
-       :owner user :mode "0600")
-      (file*
-       request
-       (str (stevedore/script @key_path) ".pub")
-       :owner user :mode "0644")))))
+  [request user & {:keys [type file passphrase]
+                   :or {type "rsa" passphrase ""}
+                   :as  options}]
+  (let [key-type type
+        path (or file
+                 (stevedore/script
+                  ~(str (user-ssh-dir user)
+                        (ssh-default-filenames key-type))))
+        ssh-dir (.getParent (java.io.File. path))]
+    (->
+     request
+     (when-not-> (:no-dir options)
+       (directory/directory ssh-dir :owner user :mode "755"))
+     (exec-script/exec-checked-script
+      "ssh-keygen"
+      (var key_path ~path)
+      (if-not (file-exists? @key_path)
+        (ssh-keygen ~(stevedore/map-to-arg-string
+                      {:f (stevedore/script @key_path)
+                       :t key-type
+                       :N (str \" passphrase \")
+                       :C (str
+                           \"
+                           (or (:comment options "generated by pallet"))
+                           \")}))))
+     (file/file path :owner user :mode "0600")
+     (file/file (str path ".pub") :owner user :mode "0644"))))
