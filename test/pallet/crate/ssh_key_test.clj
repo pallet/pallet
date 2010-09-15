@@ -5,199 +5,198 @@
             [pallet.stevedore :as stevedore]
             [pallet.utils :as utils]
             [pallet.resource.directory :as directory]
+            [pallet.resource.exec-script :as exec-script]
             [pallet.resource.file :as file]
-            [pallet.resource.remote-file :as remote-file])
+            [pallet.resource.remote-file :as remote-file]
+            [clojure.string :as string])
   (:use clojure.test
         pallet.test-utils))
 
-(deftest authorized-keys-template-test
-  (is (= "file=$(getent passwd userx | cut -d: -f6)/.ssh/authorized_keys
-cat > ${file} <<EOF\nkey1\nkey2\nEOF
-chmod 0644 ${file}
-chown userx ${file}
-"
-         (pallet.template/apply-templates authorized-keys-template ["userx" ["key1" "key2"]] ))))
+(use-fixtures :once with-ubuntu-script-template)
 
-(with-private-vars [pallet.crate.ssh-key
-                    [authorize-key*]]
-  (deftest authorize-key*-test
-    (is (= (stevedore/do-script
-            (stevedore/script
-             (var auth_file
-                  "$(getent passwd userx | cut -d: -f6)/.ssh/authorized_keys"))
-            (directory/directory*
-             {}
-             "$(getent passwd userx | cut -d: -f6)/.ssh/"
-             :owner "userx" :mode "755")
-            (file/file* {} "${auth_file}" :owner "userx" :mode "644")
-            (stevedore/script
-             (if-not (fgrep (quoted "key1") @auth_file)
-               (echo (quoted "key1") ">>" @auth_file))))
-           (do
-             (authorize-key* {} "userx" "key1"))))))
 
 (deftest authorize-key-test
-  (is (= (stevedore/do-script
-          (authorize-key* {} "user" "key1")
-          (authorize-key* {} "user" "key2")
-          (authorize-key* {} "user2" "key3"))
+  (is (= (first
+          (resource/build-resources
+           []
+           (directory/directory
+            "$(getent passwd fred | cut -d: -f6)/.ssh/"
+            :owner "fred" :mode "755")
+           (file/file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
+            :owner "fred" :mode "644")
+           (exec-script/exec-checked-script
+            "authorize-key"
+            (var auth_file
+                 "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
+            (if-not (fgrep (quoted "key1") @auth_file)
+              (echo (quoted "key1") ">>" @auth_file)))))
          (first
           (resource/build-resources
            []
-           (authorize-key "user" "key1")
-           (authorize-key "user" "key2")
-           (authorize-key "user2" "key3"))))))
-
-(deftest install-key*-test
-  (is (= (str
-          (directory/directory*
-           {}
-           "$(getent passwd fred | cut -d: -f6)/.ssh/"
-           :owner "fred" :mode "755")
-          (remote-file/remote-file*
-           {}
-           "$(getent passwd fred | cut -d: -f6)/.ssh/id"
-           :content "private"
-           :owner "fred" :mode "600")
-          (remote-file/remote-file*
-           {}
-           "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
-           :content "public"
-           :owner "fred" :mode "644"))
-         (install-key* {} "fred" "id" "private" "public"))))
+           (authorize-key "fred" "key1"))))))
 
 (deftest install-key-test
-  (is (= (str
-          (directory/directory*
-           {}
-           "$(getent passwd fred | cut -d: -f6)/.ssh/"
-           :owner "fred" :mode "755")
-          (remote-file/remote-file*
-           {}
-           "$(getent passwd fred | cut -d: -f6)/.ssh/id"
-           :content "private"
-           :owner "fred" :mode "600")
-          (remote-file/remote-file*
-           {}
-           "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
-           :content "public"
-           :owner "fred" :mode "644"))
+  (is (= (first
+          (resource/build-resources
+           []
+           (directory/directory
+            "$(getent passwd fred | cut -d: -f6)/.ssh/"
+            :owner "fred" :mode "755")
+           (remote-file/remote-file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id"
+            :content "private" :owner "fred" :mode "600")
+           (remote-file/remote-file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
+            :content "public" :owner "fred" :mode "644")))
+         (first
+          (resource/build-resources
+           [] (install-key "fred" "id" "private" "public")))))
+  (is (= (first
+          (resource/build-resources
+           []
+           (directory/directory
+            "$(getent passwd fred | cut -d: -f6)/.ssh/"
+            :owner "fred" :mode "755")
+           (remote-file/remote-file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id"
+            :content "private" :owner "fred" :mode "600")
+           (remote-file/remote-file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
+            :content "public" :owner "fred" :mode "644")))
          (first
           (resource/build-resources
            []
            (install-key "fred" "id" "private" "public"))))))
 
-(deftest generate-key*-test
-  (is (= (stevedore/do-script
-          (directory/directory*
-           {}
-           "$(getent passwd fred | cut -d: -f6)/.ssh"
-           :owner "fred" :mode "755")
-          (stevedore/checked-script "ssh-keygen"
-           (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa")
-           (if-not (file-exists? @key_path)
-             (ssh-keygen
-              -f @key_path -t rsa -N "\"\"" -C "\"generated by pallet\"")))
-          (file/file*
-           {} (stevedore/script @key_path) :owner "fred" :mode "0600")
-          (file/file*
-           {} (str (stevedore/script @key_path) ".pub")
-           :owner "fred" :mode "0644"))
-         (generate-key* {} "fred")))
+(deftest generate-key-test
+  (is (= (first
+          (resource/build-resources
+           []
+           (directory/directory
+            "$(getent passwd fred | cut -d: -f6)/.ssh"
+            :owner "fred" :mode "755")
+           (exec-script/exec-checked-script
+            "ssh-keygen"
+            (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa")
+            (if-not (file-exists? @key_path)
+              (ssh-keygen
+               -f @key_path -t rsa -N "\"\"" -C "\"generated by pallet\"")))
+           (file/file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa"
+            :owner "fred" :mode "0600")
+           (file/file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa.pub"
+            :owner "fred" :mode "0644")))
+         (first
+          (resource/build-resources
+           []
+           (generate-key "fred")))))
 
-  (is (= (stevedore/do-script
-          (directory/directory*
-           {}
-           "$(getent passwd fred | cut -d: -f6)/.ssh"
-           :owner "fred" :mode "755")
-          (stevedore/checked-script "ssh-keygen"
-           (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa")
-           (if-not (file-exists? @key_path)
-             (ssh-keygen -f @key_path -t dsa -N "\"\"" -C "\"generated by pallet\"")))
-          (file/file*
-           {} (stevedore/script @key_path) :owner "fred" :mode "0600")
-          (file/file*
-           {} (str (stevedore/script @key_path) ".pub")
-           :owner "fred" :mode "0644"))
-         (generate-key* {} "fred" :type "dsa")))
+  (is (= (first
+          (resource/build-resources
+           []
+           (directory/directory
+            "$(getent passwd fred | cut -d: -f6)/.ssh"
+            :owner "fred" :mode "755")
+           (exec-script/exec-checked-script
+            "ssh-keygen"
+            (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa")
+            (if-not (file-exists? @key_path)
+              (ssh-keygen -f @key_path -t dsa -N "\"\"" -C "\"generated by pallet\"")))
+           (file/file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa"
+            :owner "fred" :mode "0600")
+           (file/file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub"
+            :owner "fred" :mode "0644")))
+         (first
+          (resource/build-resources
+           [] (generate-key "fred" :type "dsa")))))
 
-  (is (= (stevedore/do-script
-          (directory/directory*
-           {}
-           "$(getent passwd fred | cut -d: -f6)/.ssh"
-           :owner "fred" :mode "755")
-          (stevedore/checked-script "ssh-keygen"
-           (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/identity")
-           (if-not (file-exists? @key_path)
-             (ssh-keygen
-              -f @key_path -t rsa1 -N "\"\"" -C "\"generated by pallet\"")))
-          (file/file*
-           {}
-           (stevedore/script @key_path)
-           :owner "fred" :mode "0600")
-          (file/file*
-           {}
-           (str (stevedore/script @key_path) ".pub")
-           :owner "fred" :mode "0644"))
-         (generate-key* {} "fred" :type "rsa1")))
+  (is (= (first
+          (resource/build-resources
+           []
+           (directory/directory
+            "$(getent passwd fred | cut -d: -f6)/.ssh"
+            :owner "fred" :mode "755")
+           (exec-script/exec-checked-script
+            "ssh-keygen"
+            (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/identity")
+            (if-not (file-exists? @key_path)
+              (ssh-keygen
+               -f @key_path -t rsa1 -N "\"\"" -C "\"generated by pallet\"")))
+           (file/file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/identity"
+            :owner "fred" :mode "0600")
+           (file/file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/identity.pub"
+            :owner "fred" :mode "0644")))
+         (first
+          (resource/build-resources
+           [] (generate-key "fred" :type "rsa1")))))
 
-  (is (= (stevedore/do-script
-          (stevedore/checked-script "ssh-keygen"
-           (var key_path "/a/b/c")
-           (if-not (file-exists? @key_path)
-             (ssh-keygen
-              -f @key_path -t rsa1 -N "\"abc\""  -C "\"my comment\"")))
-          (file/file*
-           {}
-           (stevedore/script @key_path)
-           :owner "fred" :mode "0600")
-          (file/file*
-           {}
-           (str (stevedore/script @key_path) ".pub")
-           :owner "fred" :mode "0644"))
-         (generate-key*
-          {}
-          "fred" :type "rsa1" :file "/a/b/c" :no-dir true
-          :comment "my comment" :passphrase "abc"))))
+  (is (= (first
+          (resource/build-resources
+           []
+           (exec-script/exec-checked-script
+            "ssh-keygen"
+            (var key_path "/a/b/c")
+            (if-not (file-exists? @key_path)
+              (ssh-keygen
+               -f @key_path -t rsa1 -N "\"abc\""  -C "\"my comment\"")))
+           (file/file "/a/b/c" :owner "fred" :mode "0600")
+           (file/file "/a/b/c.pub" :owner "fred" :mode "0644")))
+         (first
+          (resource/build-resources
+           []
+           (generate-key
+            "fred" :type "rsa1" :file "/a/b/c" :no-dir true
+            :comment "my comment" :passphrase "abc"))))))
 
-(deftest authorize-key-for-localhost*-test
-  (is (= (stevedore/do-script
-          (stevedore/script
-           (var key_file "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
-           (var auth_file "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"))
-          (directory/directory*
-           {}
-           "$(getent passwd fred | cut -d: -f6)/.ssh/"
-           :owner "fred" :mode "755")
-          (file/file*
-           {}
-           "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
-           :owner "fred" :mode "644")
-          (stevedore/checked-script
-           "authorize-key"
-           (if-not (grep @(cat @key_file) @auth_file)
-             (cat @key_file ">>" @auth_file))))
-         (authorize-key-for-localhost* {} "fred" "id_dsa.pub")))
+(deftest authorize-key-for-localhost-test
+  (is (= (first
+          (resource/build-resources
+           []
+           (directory/directory
+            "$(getent passwd fred | cut -d: -f6)/.ssh/"
+            :owner "fred" :mode "755")
+           (file/file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
+            :owner "fred" :mode "644")
+           (exec-script/exec-checked-script
+            "authorize-key"
+            (var key_file "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
+            (var auth_file
+                 "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
+            (if-not (grep @(cat @key_file) @auth_file)
+              (cat @key_file ">>" @auth_file)))))
+         (first
+          (resource/build-resources
+           []
+           (authorize-key-for-localhost "fred" "id_dsa.pub")))))
 
-  (is (= (stevedore/do-script
-          (stevedore/script
-           (var key_file "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
-           (var auth_file
-                "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys"))
-          (directory/directory*
-           {}
-           "$(getent passwd tom | cut -d: -f6)/.ssh/"
-           :owner "tom" :mode "755")
-          (file/file*
-           {}
-           "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys"
-           :owner "tom" :mode "644")
-          (stevedore/checked-script
-           "authorize-key"
-           (if-not (grep @(cat @key_file) @auth_file)
-             (cat @key_file ">>" @auth_file))))
-         (authorize-key-for-localhost*
-          {} "fred" "id_dsa.pub" :authorize-for-user "tom"))))
+  (is (= (first
+          (resource/build-resources
+           []
+           (directory/directory
+            "$(getent passwd tom | cut -d: -f6)/.ssh/"
+            :owner "tom" :mode "755")
+           (file/file
+            "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys"
+            :owner "tom" :mode "644")
+           (exec-script/exec-checked-script
+            "authorize-key"
+            (var key_file "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
+            (var auth_file
+                 "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys")
+            (if-not (grep @(cat @key_file) @auth_file)
+              (cat @key_file ">>" @auth_file)))))
+         (first
+          (resource/build-resources
+           []
+           (authorize-key-for-localhost
+            "fred" "id_dsa.pub" :authorize-for-user "tom"))))))
 
 (deftest invoke-test
   (is (resource/build-resources
