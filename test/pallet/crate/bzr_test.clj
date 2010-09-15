@@ -9,13 +9,12 @@
 
 (deftest bzr-test
   []
-  (let [a {:tag :n :image {:os-family :ubuntu}}]
-    (is (= (stevedore/checked-commands
-            "Packages"
-            (stevedore/script (package-manager-non-interactive))
-            (package/package* {:node-type a} "bzr")
-            (package/package* {:node-type a} "bzrtools"))
-           (first
-            (resource/build-resources
-             [:node-type a]
-             (bzr)))))))
+  (is (= (first
+          (resource/build-resources
+           []
+           (package/package "bzr")
+           (package/package "bzrtools")))
+         (first
+          (resource/build-resources
+           []
+           (bzr))))))
