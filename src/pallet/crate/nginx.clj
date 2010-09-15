@@ -211,46 +211,43 @@
    (if-not-> (:no-enable options)
      (service/service "nginx" :action :enable))))
 
-(resource/defresource site
+(defn site
   "Enable or disable a site.  Options:
 :listen        -- address to listen on
 :server_name   -- name
 :locations     -- locations (a seq of maps, with keys :location, :root
                   :index, :proxy_pass :passenger-enabled :rails-env)"
-  (site*
-   [request name & {:keys [locations action] :or {action :enable} :as options}]
-   (let [available (format "%s/sites-available/%s" nginx-conf-dir name)
-         enabled (format "%s/sites-enabled/%s" nginx-conf-dir name)
-         site (fn [filename]
-                (let [locations (string/join
-                                 \newline
-                                 (map
-                                  #(template/interpolate-template
-                                    nginx-location
-                                    (merge nginx-default-location %)
-                                    (:node-type request))
-                                  locations))]
-                  (remote-file/remote-file*
-                   request
-                   filename
-                   :template nginx-site
-                   :values (utils/map-with-keys-as-symbols
-                             (reduce
-                              merge {:locations locations}
-                              [nginx-default-site
-                               (dissoc options :locations)])))))]
-     (stevedore/do-script
-      (directory/directory*
-       request (format "%s/sites-available" nginx-conf-dir))
-      (directory/directory*
-       request (format "%s/sites-enabled" nginx-conf-dir))
-      (case action
-        :enable (stevedore/do-script
-                 (site enabled)
-                 (file/file* request available :action :delete :force true))
-        :disable (stevedore/do-script
-                  (site available)
-                  (file/file* request enabled :action :delete :force true))
-        :remove (stevedore/do-script
-                 (file/file* request available :action :delete :force true)
-                 (file/file* request enabled :action :delete :force true)))))))
+  [request name & {:keys [locations action] :or {action :enable} :as options}]
+  (let [available (format "%s/sites-available/%s" nginx-conf-dir name)
+        enabled (format "%s/sites-enabled/%s" nginx-conf-dir name)
+        site (fn [request filename]
+               (let [locations (string/join
+                                \newline
+                                (map
+                                 #(template/interpolate-template
+                                   nginx-location
+                                   (merge nginx-default-location %)
+                                   (:node-type request))
+                                 locations))]
+                 (remote-file/remote-file
+                  request
+                  filename
+                  :template nginx-site
+                  :values (utils/map-with-keys-as-symbols
+                            (reduce
+                             merge {:locations locations}
+                             [nginx-default-site
+                              (dissoc options :locations)])))))]
+    (->
+     request
+     (directory/directory (format "%s/sites-available" nginx-conf-dir))
+     (directory/directory (format "%s/sites-enabled" nginx-conf-dir))
+     (when-> (= action :enable)
+             (site enabled)
+             (file/file available :action :delete :force true))
+     (when-> (= action :disable)
+             (site available)
+             (file/file enabled :action :delete :force true))
+     (when-> (= action :remove)
+             (file/file available :action :delete :force true)
+             (file/file enabled :action :delete :force true)))))
