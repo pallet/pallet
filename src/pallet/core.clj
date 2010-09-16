@@ -343,6 +343,7 @@ script that is run with root privileges immediatly after first boot."
 (defn apply-phase-to-node
   "Apply a phase to a node request"
   [compute wrapper-fn request]
+  {:pre [(:target-node request)]}
   ((pipe
     build-commands
     wrapper-fn
@@ -404,7 +405,8 @@ script that is run with root privileges immediatly after first boot."
    request
    (for [node nodes]
      (apply-phase-to-node
-      compute node-execution-wrapper request))))
+      compute node-execution-wrapper
+      (assoc request :target-node node)))))
 
 (defn nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"
@@ -510,7 +512,8 @@ script that is run with root privileges immediatly after first boot."
         request (assoc request
                   :all-nodes all-nodes
                   :target-nodes target-nodes)
-        request (invoke-phases request phases all-node-map)]
+        request (invoke-phases
+                 request (ensure-configure-phase phases) all-node-map)]
     (->
      (reduce
       (fn lift-nodes-reduce-result [request req]
