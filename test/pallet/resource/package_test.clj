@@ -17,7 +17,7 @@
 (use-fixtures :each with-ubuntu-script-template)
 
 (deftest update-package-list-test
-  (is (= "aptitude update "
+  (is (= "aptitude update -q "
          (script/with-template [:ubuntu]
            (stevedore/script (update-package-list)))))
   (is (= "yum makecache "
@@ -25,7 +25,7 @@
            (stevedore/script (update-package-list))))))
 
 (deftest install-package-test
-  (is (= "aptitude install -y  java"
+  (is (= "aptitude install -q -y  java && aptitude show java"
          (script/with-template [:ubuntu]
            (stevedore/script (install-package "java")))))
   (is (= "yum install -y  java"
@@ -38,8 +38,8 @@
            (stevedore/checked-commands
             "Packages"
             (stevedore/script (package-manager-non-interactive))
-            "aptitude install -y  java"
-            "aptitude install -y  rubygems\n"))
+            "aptitude install -q -y  java && aptitude show java"
+            "aptitude install -q -y  rubygems && aptitude show rubygems\n"))
          (first (resource/build-resources
                  []
                  (package "java" :action :install)
@@ -71,12 +71,12 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 (deftest package-manager*-test
   (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (package-manager* ubuntu-request :multiverse)))
-  (is (= "echo \"package-manager...\"\n{ aptitude update; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= "echo \"package-manager...\"\n{ aptitude update -q; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (script/with-template [:ubuntu]
            (package-manager* ubuntu-request :update)))))
 
 (deftest add-multiverse-example-test
-  (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"package-manager...\"\n{ aptitude update; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"package-manager...\"\n{ aptitude update -q; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (first (resource/build-resources
                  []
                  (package-manager :multiverse)

@@ -88,11 +88,11 @@
                                true))]
     (is (= {:tag :a :image {:os-family :ubuntu} :phases nil}
            (:node-type
-            ((augment-template-from-node identity)
+            (augment-template-from-node
              {:target-node n1 :node-type a}))))
     (is (= {:tag :b :image {:os-family :ubuntu} :phases nil}
            (:node-type
-            ((augment-template-from-node identity)
+            (augment-template-from-node
              {:target-node n1 :node-type b}))))))
 
 (deftest converge-node-counts-test

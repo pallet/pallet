@@ -25,4 +25,6 @@
      (#{:gentoo} os-family) :portage
      :else (condition/raise
             :type :unknown-packager
-            :message (format "Unknown packager for %s" os-family)))))
+            :message (format
+                      "Unknown packager for %s : :image %s"
+                      os-family target)))))
