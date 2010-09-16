@@ -18,23 +18,29 @@
 
 (deftest update-package-list-test
   (is (= "aptitude update -q "
-         (script/with-template [:ubuntu]
+         (script/with-template [:aptitude]
            (stevedore/script (update-package-list)))))
   (is (= "yum makecache "
-         (script/with-template [:centos]
+         (script/with-template [:yum]
+           (stevedore/script (update-package-list)))))
+  (is (= "zypper refresh "
+         (script/with-template [:zypper]
+           (stevedore/script (update-package-list)))))
+  (is (= "pacman -S --noconfirm --noprogressbar "
+         (script/with-template [:pacman]
            (stevedore/script (update-package-list))))))
 
 (deftest install-package-test
   (is (= "aptitude install -q -y  java && aptitude show java"
-         (script/with-template [:ubuntu]
+         (script/with-template [:aptitude]
            (stevedore/script (install-package "java")))))
   (is (= "yum install -y  java"
-         (script/with-template [:centos]
+         (script/with-template [:yum]
            (stevedore/script (install-package "java"))))))
 
 
 (deftest test-install-example
-  (is (= (script/with-template [:ubuntu]
+  (is (= (script/with-template [:aptitude]
            (stevedore/checked-commands
             "Packages"
             (stevedore/script (package-manager-non-interactive))
@@ -51,7 +57,8 @@ debconf debconf/frontend select noninteractive
 debconf debconf/frontend seen false
 EOF
 }"
-         (stevedore/script (package-manager-non-interactive)))))
+         (script/with-template [:aptitude]
+           (stevedore/script (package-manager-non-interactive))))))
 
 (deftest add-scope-test
   (is (= "tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list\n"
@@ -72,7 +79,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (package-manager* ubuntu-request :multiverse)))
   (is (= "echo \"package-manager...\"\n{ aptitude update -q; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
-         (script/with-template [:ubuntu]
+         (script/with-template [:aptitude]
            (package-manager* ubuntu-request :update)))))
 
 (deftest add-multiverse-example-test
@@ -83,8 +90,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                  (package-manager :update))))))
 
 (deftest package-source*-test
-  (core/defnode a {:os-family :ubuntu})
-  (core/defnode b {:os-family :centos})
+  (core/defnode a {:packager :aptitude})
+  (core/defnode b {:packager :yum})
   (is (=
        (stevedore/checked-commands
         "Package source"
@@ -138,8 +145,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           :yum {:url "http://somewhere/yum"}))))
 
 (deftest package-source-test
-  (core/defnode a {:os-family :ubuntu})
-  (core/defnode b {:os-family :centos})
+  (core/defnode a {:packager :aptitude})
+  (core/defnode b {:packager :yum})
   (is (= (stevedore/checked-commands
           "Package source"
           (remote-file/remote-file*
@@ -168,19 +175,20 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   :yum {:url "http://somewhere/yum"}))))))
 
 (deftest packages-test
-  (core/defnode a {:os-family :ubuntu})
-  (core/defnode b {:os-family :centos})
-  (is (= (stevedore/checked-commands
-          "Packages"
-          (stevedore/script (package-manager-non-interactive))
-          (package* {:node-type a} "git-apt")
-          (package* {:node-type a} "git-apt2"))
+  (core/defnode a {:packager :aptitude})
+  (core/defnode b {:packager :yum})
+  (is (= (script/with-template [:aptitude]
+           (stevedore/checked-commands
+            "Packages"
+            (stevedore/script (package-manager-non-interactive))
+            (package* {:node-type a} "git-apt")
+            (package* {:node-type a} "git-apt2")))
          (first (resource/build-resources
                  []
                  (packages
                   :aptitude ["git-apt" "git-apt2"]
                   :yum ["git-yum"])))))
-  (is (= (script/with-template [(:os-family (:image b))]
+  (is (= (script/with-template [(get-in b [:image :packager])]
            (stevedore/checked-commands
             "Packages"
             (stevedore/script (package-manager-non-interactive))

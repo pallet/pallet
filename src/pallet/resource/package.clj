@@ -31,59 +31,86 @@
   [package & options] "")
 
 ;;; default to aptitude
-(stevedore/defimpl update-package-list :default [& options]
+(stevedore/defimpl update-package-list [#{:aptitude}] [& options]
   (aptitude update -q ~(stevedore/option-args options)))
 
-(stevedore/defimpl install-package :default [package & options]
+(stevedore/defimpl install-package [#{:aptitude}] [package & options]
   (aptitude install -q -y ~(stevedore/option-args options) ~package
             ;; show returns an error code if no package found, while install
             ;; does not.  There should be a better way than this...
             "&&" aptitude show ~package))
 
-(stevedore/defimpl remove-package :default [package & options]
+(stevedore/defimpl remove-package [#{:aptitude}] [package & options]
   (aptitude remove -y ~(stevedore/option-args options) ~package))
 
-(stevedore/defimpl purge-package :default [package & options]
+(stevedore/defimpl purge-package [#{:aptitude}] [package & options]
   (aptitude purge -y  ~(stevedore/option-args options) ~package))
 
 ;;; yum
-(stevedore/defimpl update-package-list [#{:centos :rhel}] [& options]
+(stevedore/defimpl update-package-list [#{:yum}] [& options]
   (yum makecache ~(stevedore/option-args options)))
 
-(stevedore/defimpl install-package [#{:centos :rhel}] [package & options]
+(stevedore/defimpl install-package [#{:yum}] [package & options]
   (yum install -y ~(stevedore/option-args options) ~package))
 
-(stevedore/defimpl remove-package [#{:centos :rhel}] [package & options]
+(stevedore/defimpl remove-package [#{:yum}] [package & options]
   (yum remove ~(stevedore/option-args options) ~package))
 
-(stevedore/defimpl purge-package [#{:centos :rhel}] [package & options]
+(stevedore/defimpl purge-package [#{:yum}] [package & options]
   (yum purge ~(stevedore/option-args options) ~package))
 
-(stevedore/defimpl update-package-list [#{:darwin}] [& options]
+;;; zypper
+(stevedore/defimpl update-package-list [#{:zypper}] [& options]
+  (zypper refresh ~(stevedore/option-args options)))
+
+(stevedore/defimpl install-package [#{:zypper}] [package & options]
+  (zypper install -y ~(stevedore/option-args options) ~package))
+
+(stevedore/defimpl remove-package [#{:zypper}] [package & options]
+  (zypper remove ~(stevedore/option-args options) ~package))
+
+(stevedore/defimpl purge-package [#{:zypper}] [package & options]
+  (zypper remove ~(stevedore/option-args options) ~package))
+
+;;; pacman
+(stevedore/defimpl update-package-list [#{:pacman}] [& options]
+  (pacman -S "--noconfirm" "--noprogressbar" ~(stevedore/option-args options)))
+
+(stevedore/defimpl install-package [#{:pacman}] [package & options]
+  (pacman -U "--noconfirm" "--noprogressbar"
+          ~(stevedore/option-args options) ~package))
+
+(stevedore/defimpl remove-package [#{:pacman}] [package & options]
+  (pacman -R "--noconfirm" ~(stevedore/option-args options) ~package))
+
+(stevedore/defimpl purge-package [#{:pacman}] [package & options]
+  (pacman -R "--noconfirm" ~(stevedore/option-args options) ~package))
+
+;; brew
+(stevedore/defimpl update-package-list [#{:brew}] [& options]
   (brew update ~(stevedore/option-args options)))
 
-(stevedore/defimpl install-package [#{:darwin}] [package & options]
+(stevedore/defimpl install-package [#{:brew}] [package & options]
   (brew install -y ~(stevedore/option-args options) ~package))
 
-(stevedore/defimpl remove-package [#{:darwin}] [package & options]
+(stevedore/defimpl remove-package [#{:brew}] [package & options]
   (brew uninstall ~(stevedore/option-args options) ~package))
 
-(stevedore/defimpl purge-package [#{:darwin}] [package & options]
+(stevedore/defimpl purge-package [#{:brew}] [package & options]
   (brew uninstall ~(stevedore/option-args options) ~package))
 
 (script/defscript debconf-set-selections [& selections])
 (stevedore/defimpl debconf-set-selections :default [& selections] "")
-(stevedore/defimpl debconf-set-selections [#{:ubuntu :debian}] [& selections]
+(stevedore/defimpl debconf-set-selections [#{:aptitude}] [& selections]
   ("{ debconf-set-selections"
    ~(str "<<EOF\n" (string/join \newline selections) "\nEOF\n}")))
 
 (script/defscript package-manager-non-interactive [])
-(stevedore/defimpl package-manager-non-interactive [#{:ubuntu :debian}] []
+(stevedore/defimpl package-manager-non-interactive :default [] "")
+(stevedore/defimpl package-manager-non-interactive [#{:aptitude}] []
   (debconf-set-selections
    "debconf debconf/frontend select noninteractive"
    "debconf debconf/frontend seen false"))
-
-(stevedore/defimpl package-manager-non-interactive :default [] "")
 
 (defn package*
   "Package management"

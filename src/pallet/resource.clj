@@ -414,6 +414,7 @@ configuration code."
                    request# [:target-packager]
                    #(or
                      %
+                     (get-in request# [:node-type :image :packager])
                      (let [os-family# (get-in
                                        request#
                                        [:node-type :image :os-family])]
