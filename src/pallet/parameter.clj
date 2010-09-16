@@ -18,12 +18,20 @@
          (condition/raise
           :type :parameter-not-found
           :message (format
-                    "Could not find keys %s in request :parameters" keys)
+                    "Could not find keys %s in request :parameters"
+                    (if (sequential? keys) (vec keys) keys))
           :key-not-set keys))
        result))
   ([request keys default]
        (get-in (:parameters request) keys default)))
 
+(defn get-for-target
+  ([request keys]
+     (get-for
+      request (concat [:host (:target-id request)] keys)))
+  ([request keys default]
+     (get-for
+      request (concat [:host (:target-id request)] keys default))))
 
 (defn- assoc-for-prefix
   [request prefix {:as keys-value-pairs}]

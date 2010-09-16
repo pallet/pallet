@@ -8,6 +8,8 @@
    [pallet.resource :as resource]
    [pallet.stevedore :as stevedore]))
 
+(use-fixtures :once with-ubuntu-script-template)
+
 (deftest rm-test
   (is (= "rm --force file1"
          (script (rm "file1" ~{:force true})))))
@@ -49,7 +51,7 @@
          (first (build-resources [] (file "file1" :owner "user1" :action :create)))))
   (is (= "echo \"file file1...\"\n{ touch  file1 && chgrp  group1 file1; } || { echo file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (first (build-resources [] (file "file1" :group "group1" :action :touch)))))
-  (is (= "echo \"file file1...\"\n{ rm --force file1; } || { echo file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= "echo \"delete file file1...\"\n{ rm --force file1; } || { echo delete file file1 failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (first (build-resources [] (file "file1" :action :delete :force true))))))
 
 (deftest sed-file-test

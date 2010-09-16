@@ -34,35 +34,37 @@
   "Install tomcat"
   [request & {:as options}]
   (-> request
+      (when-> (= :install (:action options :install))
+        (parameter/assoc-for-target
+         [:tomcat :base] tomcat-base
+         [:tomcat :config-path] tomcat-config-root
+         [:tomcat :owner] tomcat-user
+         [:tomcat :group] tomcat-group))
       (apply-> package "tomcat6" (apply concat options))
       (when-> (:purge options)
        (directory/directory
-         tomcat-base :action :delete :recursive true :force true))
-      (when-> (= :install (:action options :install))
-        (parameter/parameters
-         [:tomcat :base] tomcat-base
-         [:tomcat :owner] tomcat-user
-         [:tomcat :group] tomcat-group))))
+         tomcat-base :action :delete :recursive true :force true))))
 
 (defn undeploy
   "Removes the named webapp directories, and any war files with the same base
    names."
   [request & app-names]
-  (-> request
-      (for-> [app-name app-names
-              :let [app-name (or app-name "ROOT")
-                    app-name (if (string? app-name) app-name (name app-name))
-                    exploded-app-dir (str tomcat-base "webapps/" app-name)]]
-        (exec-script/exec-script
-         (rm ~exploded-app-dir ~{:r true :f true})
-         (rm ~(str exploded-app-dir ".war") ~{:f true})))))
+  (let [tomcat-base (parameter/get-for-target request [:tomcat :base])]
+    (-> request
+        (for-> [app-name app-names
+                :let [app-name (or app-name "ROOT")
+                      app-name (if (string? app-name) app-name (name app-name))
+                      exploded-app-dir (str tomcat-base "webapps/" app-name)]]
+               (directory/directory exploded-app-dir :action :delete)
+               (file/file (str exploded-app-dir ".war") :action :delete)))))
 
 (defn undeploy-all
   "Removes all deployed war file and exploded webapp directories."
   [request]
-  (exec-script/exec-script
-   request
-   (rm ~(str tomcat-base "webapps/*") ~{:r true :f true})))
+  (let [tomcat-base (parameter/get-for-target request [:tomcat :base])]
+    (exec-script/exec-script
+     request
+     (rm ~(str tomcat-base "webapps/*") ~{:r true :f true}))))
 
 (defn deploy
   "Copies a .war file to the tomcat server under webapps/${app-name}.war.  An
@@ -73,7 +75,10 @@
    Other Options:
      :clear-existing true -- removes the existing exploded ${app-name} directory"
   [request app-name & {:as opts}]
-  (let [exploded-app-dir (str tomcat-base "webapps/" (or app-name "ROOT"))
+  (let [tomcat-base (parameter/get-for-target request [:tomcat :base])
+        tomcat-user (parameter/get-for-target request [:tomcat :owner])
+        tomcat-group (parameter/get-for-target request [:tomcat :group])
+        exploded-app-dir (str tomcat-base "webapps/" (or app-name "ROOT"))
         deployed-warfile (str exploded-app-dir ".war")
         options (merge
                  {:owner tomcat-user :group tomcat-group :mode 600}
@@ -94,8 +99,7 @@
       deployed-warfile
       (apply concat options))
      (when-> (:clear-existing opts)
-             (exec-script/exec-script
-              (rm ~exploded-app-dir ~{:r true :f true}))))))
+             (directory/directory exploded-app-dir :action :delete)))))
 
 (defn output-grants [[code-base permissions]]
   (let [code-base (when code-base
@@ -112,7 +116,9 @@
      grants - a map from codebase to sequence of permissions"
   [request number name grants
    & {:keys [action] :or {action :create} :as options}]
-  (let [policy-file (str tomcat-config-root "policy.d/" number name ".policy")]
+  (let [tomcat-config-root (parameter/get-for-target
+                            request [:tomcat :config-path])
+        policy-file (str tomcat-config-root "policy.d/" number name ".policy")]
     (case action
       :create (remote-file
                request
@@ -126,7 +132,9 @@
    name - a name for the policy
    content - an xml application context"
   [request name content & {:keys [action] :or {action :create} :as options}]
-  (let [app-file (str tomcat-config-root "Catalina/localhost/" name ".xml")]
+  (let [tomcat-config-root (parameter/get-for-target
+                            request [:tomcat :config-path])
+        app-file (str tomcat-config-root "Catalina/localhost/" name ".xml")]
     (case action
       :create (remote-file request app-file :content content :literal true)
       :remove (file/file request app-file :action :delete))))
@@ -539,7 +547,7 @@
    :collections [::listener ::service]
    options))
 
-(resource/defresource server-configuration
+(defn server-configuration
   "Define a tomcat server.  When a key is not specified, the relevant section
    of the template is output, unmodified.
    Options include:
@@ -552,10 +560,9 @@
                        a :className key.
      ::services         vector of services
      ::global-resources vector of resources."
-  (server-configuration*
-   [request server]
-   (remote-file*
-    request
-    (str tomcat-base "conf/server.xml")
-    :content (apply
-              str (tomcat-server-xml (:node-type request) server)))))
+  [request server]
+  (remote-file
+   request
+   (str (parameter/get-for-target request [:tomcat :base]) "conf/server.xml")
+   :content (apply
+             str (tomcat-server-xml (:node-type request) server))))

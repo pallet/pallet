@@ -90,8 +90,8 @@
                     :as options}]
    (case action
      :delete (stevedore/checked-script
-              (str "file " path)
-              (rm ~path ~(select-keys options [:force])))
+              (str "delete file " path)
+              (rm ~path ~{:force (:force options true)}))
      :create (stevedore/checked-commands
               (str "file " path)
               (touch-file path options))

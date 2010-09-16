@@ -63,8 +63,8 @@
        (is (= value
               (let [param-value (get parameters key ::not-set)]
                 (is (not= ::not-set param-value))
-                (if keys
-                  (apply param-value keys)
+                (if (seq keys)
+                  (get-in param-value keys)
                   param-value))))))
    request))
 

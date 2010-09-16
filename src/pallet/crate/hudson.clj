@@ -6,7 +6,8 @@
    [pallet.resource.remote-file :only [remote-file remote-file*]]
    [clojure.contrib.prxml :only [prxml]]
    [clojure.contrib.logging]
-   [clojure.contrib.def])
+   [clojure.contrib.def]
+   pallet.thread-expr)
   (:require
    [net.cgrand.enlive-html :as xml]
    [pallet.crate.maven :as maven]
@@ -16,7 +17,8 @@
    [pallet.resource :as resource]
    [pallet.resource.user :as user]
    [pallet.stevedore :as stevedore]
-   [pallet.utils :as utils]))
+   [pallet.utils :as utils]
+   [clojure.string :as string]))
 
 (def hudson-data-path "/var/lib/hudson")
 (def hudson-owner "root")
@@ -46,15 +48,16 @@
      :version version-string   - specify version, eg 1.355, or :latest"
   [request & options]
   (trace (str "Hudson - install on tomcat"))
-
   (let [options (apply hash-map options)
         version (get options :version :latest)
-        file (str hudson-data-path "/hudson.war")
-        user (parameter/get-for request [:tomcat :user])
-        group (parameter/get-for request [:tomcat :group])]
+        user (parameter/get-for-target request [:tomcat :owner])
+        group (parameter/get-for-target request [:tomcat :group])
+        file (str hudson-data-path "/hudson.war")]
     (->
      request
-     (parameter/parameters
+     (parameter/assoc-for-target
+      [:hudson :data-path] hudson-data-path
+      [:hudson :owner] hudson-owner
       [:hudson :user] user
       [:hudson :group] group)
      (directory
@@ -88,12 +91,12 @@
   "Remove hudson on tomcat"
   [request]
   (trace (str "Hudson - uninistall from tomcat"))
-  (let [file (str hudson-data-path "/hudson.war")]
+  (let [hudson-data-path (parameter/get-for-target
+                           request [:hudson :data-path])
+        file (str hudson-data-path "/hudson.war")]
     (->
      request
-     (parameter/parameters
-      [:hudson :user] nil
-      [:hudson :group] nil)
+     (parameter/assoc-for-target [:hudson] nil)
      (tomcat/undeploy "hudson")
      (tomcat/policy 99 "hudson" nil :action :remove)
      (tomcat/application-conf "hudson" nil :action :remove)
@@ -105,9 +108,9 @@
 
 (defmethod plugin-config :git
   [request plugin]
-  (user/user*
+  (user/user
    request
-   (parameter/get-for request [:hudson :user])
+   (parameter/get-for-target request [:hudson :user])
    :action :manage :comment "hudson"))
 
 
@@ -116,22 +119,22 @@
             :md5 "98db63b28bdf9ab0e475c2ec5ba209f1"}})
 
 
-(resource/defresource plugin
+(defn plugin
   "Install a hudson plugin.  The plugin should be a keyword.
   :url can be used to specify a string containing the download url"
-  (plugin*
-   [request plugin & {:keys [url md5] :as options}]
-   (info (str "Hudson - add plugin " plugin))
-   (let [src (merge (get hudson-plugins plugin {})
-                    (select-keys options [:url :md5]))]
-     (stevedore/do-script
-      (directory* request (str hudson-data-path "/plugins"))
-      (apply
-       remote-file*
-       request
-       (str hudson-data-path "/plugins/" (name plugin) ".hpi")
-       (apply concat src))
-      (plugin-config request plugin)))))
+  [request plugin & {:keys [url md5] :as options}]
+  (info (str "Hudson - add plugin " plugin))
+  (let [src (merge (get hudson-plugins plugin {})
+                   (select-keys options [:url :md5]))
+        hudson-data-path (parameter/get-for-target
+                          request [:hudson :data-path])]
+    (-> request
+     (directory (str hudson-data-path "/plugins"))
+     (apply->
+      remote-file
+      (str hudson-data-path "/plugins/" (name plugin) ".hpi")
+      (apply concat src))
+     (plugin-config plugin))))
 
 (defn determine-scm-type
   "determine the scm type"
@@ -242,7 +245,7 @@
     (maven2-job-xml node-type scm-type scms options)))
 
 
-(resource/defresource job
+(defn job
   "Configure a hudson job.
 build-type - :maven2
 name - name to be used in links
@@ -252,31 +255,33 @@ options are:
      If a sequence, options are
         :name, :refspec, :receivepack, :uploadpack and :tagopt
 :description \"a descriptive string\"
-:branches [\"branch1\" \"branch2\"]
-"
-  (job*
-   [request build-type job-name & {:keys [refspec receivepack uploadpack
-                                      tagopt description branches scm scm-type]
-                               :as options}]
-   (trace (str "Hudson - configure job " job-name))
-   (stevedore/do-script
-    (directory* request (str hudson-data-path "/jobs/" job-name) :p true)
-    (remote-file*
+:branches [\"branch1\" \"branch2\"]"
+  [request build-type job-name & {:keys [refspec receivepack uploadpack
+                                         tagopt description branches scm
+                                         scm-type]
+                                  :as options}]
+  (let [hudson-owner (parameter/get-for-target request [:hudson :owner])
+        hudson-group (parameter/get-for-target request [:hudson :group])
+        hudson-data-path (parameter/get-for-target
+                          request [:hudson :data-path])]
+    (trace (str "Hudson - configure job " job-name))
+    (->
      request
-     (str hudson-data-path "/jobs/" job-name "/config.xml" )
-     :content
-     (output-build-for
-      build-type
-      (:node-type request)
-      (:scm-type options)
-      (normalise-scms (:scm options))
-      (dissoc options :scm :scm-type)))
-    (directory*
-     request
-     hudson-data-path
-     :owner hudson-owner :group (parameter/get-for request [:hudson :group])
-     :mode "g+w"
-     :recursive true))))
+     (directory (str hudson-data-path "/jobs/" job-name) :p true)
+     (remote-file
+      (str hudson-data-path "/jobs/" job-name "/config.xml" )
+      :content
+      (output-build-for
+       build-type
+       (:node-type request)
+       (:scm-type options)
+       (normalise-scms (:scm options))
+       (dissoc options :scm :scm-type)))
+     (directory
+      hudson-data-path
+      :owner hudson-owner :group hudson-group
+      :mode "g+w"
+      :recursive true))))
 
 
 
@@ -302,12 +307,15 @@ options are:
 
 
 
-(resource/defcollect maven
+(resource/defcollect maven-config
   "Configure a maven instance for hudson."
   {:use-arglist [request name version]}
   (hudson-maven*
    [request args]
-   (let [group (parameter/get-for request [:hudson :group])]
+   (let [group (parameter/get-for-target request [:hudson :group])
+         hudson-owner (parameter/get-for-target request [:hudson :owner])
+         hudson-data-path (parameter/get-for-target
+                           request [:hudson :data-path])]
      (stevedore/do-script
       (directory* request "/usr/share/tomcat6/.m2" :group group :mode "g+w")
       (directory*
@@ -318,13 +326,18 @@ options are:
        :content (apply
                  str (hudson-maven-xml
                       (:node-type request) args))
-       :owner hudson-owner :group group)
-      (stevedore/chain-commands*
-       (map
-        #(maven/download*
-          request
-          :maven-home (str
-                       hudson-data-path "/tools/" (.replace (first %) " " "_"))
-          :version (second %)
-          :owner hudson-owner :group group)
-        args))))))
+       :owner hudson-owner :group group)))))
+
+(defn maven
+  [request name version]
+  (let [group (parameter/get-for-target request [:hudson :group])
+        hudson-owner (parameter/get-for-target request [:hudson :owner])
+        hudson-data-path (parameter/get-for-target
+                          request [:hudson :data-path])]
+    (->
+     request
+     (maven/download
+      :maven-home (str
+                   hudson-data-path "/tools/" (string/replace name #" " "_"))
+      :version version :owner hudson-owner :group group)
+     (maven-config name version))))
