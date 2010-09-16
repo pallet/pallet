@@ -3,7 +3,6 @@
   (:refer-clojure :exclude [alias])
   (:use
    [pallet.stevedore :only [script]]
-   [pallet.resource :only [defresource]]
    [pallet.resource.file :only [heredoc file rm]]
    [pallet.resource.remote-file :only [remote-file remote-file*]]
    [pallet.resource.exec-script :only [exec-script]]

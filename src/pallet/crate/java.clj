@@ -6,7 +6,8 @@
    [pallet.resource.remote-file :as remote-file]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
-   [pallet.target :as target]))
+   [pallet.target :as target])
+  (:use pallet.thread-expr))
 
 (defmulti java-package-name "lookup package name"
   (fn [mgr vendor component] mgr))
@@ -28,42 +29,38 @@
 
 (def sun-rpm-path "http://cds.sun.com/is-bin/INTERSHOP.enfinity/WFS/CDS-CDS_Developer-Site/en_US/-/USD/VerifyItem-Start/jdk-6u18-linux-i586-rpm.bin?BundledLineItemUUID=wb5IBe.lDHsAAAEn5u8ZJpvu&OrderID=yJxIBe.lc7wAAAEn2.8ZJpvu&ProductID=6XdIBe.pudAAAAElYStRSbJV&FileName=/jdk-6u18-linux-i586-rpm.bin")
 
-(resource/defresource java
-  "Install java.  Options can be :sun, :openjdk, :jdk, :jre.
+(defn java
+  "Install java. Options can be :sun, :openjdk, :jdk, :jre.
    By default openjdk will be installed."
-  (java*
-   [request & options]
-   (let [vendors (or (seq (filter vendor-keywords options))
-                     [:sun])
-         components (or (seq (filter #{:jdk :jre :bin} options))
-                        [:bin :jdk])
-         packager (target/packager (:image (:node-type request)))]
-     (stevedore/checked-commands
-      "Install java"
-      (if (some #(= :sun %) vendors)
-        (condp = packager
-            :aptitude
-          (stevedore/chain-commands
-           (package/package-manager* request :universe)
-           (package/package-manager* request :multiverse)
-           (package/package-manager* request :update))
-          :yum
-          (package/package* :install "jpackage-utils")))
+  [request & options]
+  (let [vendors (or (seq (filter vendor-keywords options))
+                    [:sun])
+        components (or (seq (filter #{:jdk :jre :bin} options))
+                       [:bin :jdk])
+        packager (target/packager (:image (:node-type request)))]
 
-      (let [vc (fn [request vendor component]
-                 (let [p (java-package-name packager vendor component)]
-                   (stevedore/chain-commands
-                    (when (and (= packager :aptitude) (= vendor :sun))
-                      (package/package-manager*
-                       request
-                       :debconf
-                       (str p " shared/present-sun-dlj-v1-1 note")
-                       (str p " shared/accepted-sun-dlj-v1-1 boolean true")))
-                    (package/package* request p))))]
-        (stevedore/chain-commands*
-         (map #(stevedore/chain-commands*
-                (map (partial vc request %) components))
-              vendors)))))))
+    (let [vc (fn [request vendor component]
+               (let [p (java-package-name packager vendor component)]
+                 (->
+                  request
+                  (when-> (and (= packager :aptitude) (= vendor :sun))
+                    (package/package-manager
+                     :debconf
+                     (str p " shared/present-sun-dlj-v1-1 note")
+                     (str p " shared/accepted-sun-dlj-v1-1 boolean true")))
+                  (package/package p))))]
+      (->
+       request
+       (when-> (some #(= :sun %) vendors)
+               (when-> (= packager :aptitude)
+                       (package/package-manager :universe)
+                       (package/package-manager :multiverse)
+                       (package/package-manager :update))
+               (when-> (= packager :yum)
+                       (package/package :install "jpackage-utils")))
+       (for-> [vendor vendors]
+              (for-> [component components]
+                     (vc vendor component)))))))
 
 (script/defscript jre-lib-security [])
 (stevedore/defimpl jre-lib-security :default []
