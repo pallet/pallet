@@ -120,12 +120,22 @@ When passing a username the following options can be specified:
   (let [[tag options] (name-with-attributes tag options)]
     `(def ~tag (make-node '~(name tag) ~@options))))
 
+(defn augment-template-from-node
+  "Add the os family to the node-type if available from node"
+  [request]
+  (let [node (:target-node request)
+        os-family (and node (compute/node-os-family node))]
+    (if (and os-family (not (get-in request [:node-type :image :os-family])))
+      (assoc-in request [:node-type :image :os-family] os-family)
+      request)))
+
 (defn resource-invocations [request]
   (if-let [f (some
               (:phase request)
               [(:phases (:node-type request)) (:phases request)])]
-    (script/with-template [(-> request :node-type :image :os-family)]
-      (f request))
+    (let [request (augment-template-from-node request)]
+      (script/with-template [(-> request :node-type :image :os-family)]
+        (f request)))
     request))
 
 (defn produce-init-script
@@ -262,19 +272,6 @@ script that is run with root privileges immediatly after first boot."
      :address (compute/node-address target-node)
      :ssh-port (compute/ssh-port target-node))))
 
-(defn augment-template-from-node
-  "Add the os family to the node-type if available from node"
-  [handler]
-  (fn [request]
-    (handler
-     (let [node (:target-node request)
-           os-family (and node (compute/node-os-family node))]
-       (if (and os-family (not (get-in request [:node-type :image :os-family])))
-         (update-in request [:node-type :image]
-                    (fn update-os-family [m]
-                      (assoc (or m {}) :os-family os-family)))
-         request)))))
-
 (defn parameter-keys [node node-type]
   [:default
    (target/packager (node-type :image))
@@ -319,11 +316,10 @@ script that is run with root privileges immediatly after first boot."
   "Apply a phase to a node request"
   [compute wrapper-fn request]
   ((pipe
-    augment-template-from-node
     build-commands
     wrapper-fn
     execute-with-ssh)
-   request))
+   (augment-template-from-node request)))
 
 (defn wrap-no-exec
   "Middleware to report on the request, without executing"
