@@ -32,10 +32,13 @@
 
 ;;; default to aptitude
 (stevedore/defimpl update-package-list :default [& options]
-  (aptitude update ~(stevedore/option-args options)))
+  (aptitude update -q ~(stevedore/option-args options)))
 
 (stevedore/defimpl install-package :default [package & options]
-  (aptitude install -y ~(stevedore/option-args options) ~package))
+  (aptitude install -q -y ~(stevedore/option-args options) ~package
+            ;; show returns an error code if no package found, while install
+            ;; does not.  There should be a better way than this...
+            "&& " aptitude show ~package))
 
 (stevedore/defimpl remove-package :default [package & options]
   (aptitude remove -y ~(stevedore/option-args options) ~package))
