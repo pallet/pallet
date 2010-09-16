@@ -83,8 +83,9 @@
          supports-image (fn [&] true)}}]
   (HardwareImpl.
    provider-id name id location uri user-metadata processors ram volumes
-   (proxy [com.google.common.base.Predicate] []
-       (apply [i] (supports-image i)))))
+   (reify com.google.common.base.Predicate
+     (apply [_ i] (supports-image i))
+     (equals [_ i] (= supports-image i)))))
 
 (defn local-hardware
   "Create an Hardware object for the local host"
