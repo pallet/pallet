@@ -23,7 +23,7 @@
    (let [os-family (:os-family target)]
      (cond
       (#{:ubuntu :debian :jeos :fedora} os-family) :aptitude
-      (#{:centos :rhel} os-family) :yum
+      (#{:centos :rhel :amzn-linux} os-family) :yum
       (#{:arch} os-family) :pacman
       (#{:suse} os-family) :zypper
       (#{:gentoo} os-family) :portage
