@@ -9,23 +9,34 @@
    [pallet.target :as target])
   (:use pallet.thread-expr))
 
-(defmulti java-package-name "lookup package name"
-  (fn [mgr vendor component] mgr))
-
 (def vendor-keywords #{:openjdk :sun})
 
 (def deb-package-names
      {:openjdk "openjdk-6-"
       :sun "sun-java6-"})
 
-(defmethod java-package-name :aptitude [mgr vendor component]
-  (str (deb-package-names vendor) (name component)))
-
 (def yum-package-names
      {:openjdk "java"})
 
+(def pacman-package-names
+  {:openjdk "openjdk6"})
+
+(defmulti java-package-name "lookup package name"
+  (fn [mgr vendor component] mgr))
+
+(defmethod java-package-name :aptitude [mgr vendor component]
+  (if (= vendor :sun)
+    [(str (deb-package-names vendor) "bin")
+     (str (deb-package-names vendor) (name component))]
+    [(str (deb-package-names vendor) (name component))]))
+
 (defmethod java-package-name :yum [mgr vendor component]
-  (yum-package-names vendor))
+  [(yum-package-names vendor)])
+
+(defmethod java-package-name :pacman [mgr vendor component]
+  (if (= :sun vendor)
+    [component]
+    [(pacman-package-names vendor)]))
 
 (def sun-rpm-path "http://cds.sun.com/is-bin/INTERSHOP.enfinity/WFS/CDS-CDS_Developer-Site/en_US/-/USD/VerifyItem-Start/jdk-6u18-linux-i586-rpm.bin?BundledLineItemUUID=wb5IBe.lDHsAAAEn5u8ZJpvu&OrderID=yJxIBe.lc7wAAAEn2.8ZJpvu&ProductID=6XdIBe.pudAAAAElYStRSbJV&FileName=/jdk-6u18-linux-i586-rpm.bin")
 
@@ -35,20 +46,24 @@
   [request & options]
   (let [vendors (or (seq (filter vendor-keywords options))
                     [:sun])
-        components (or (seq (filter #{:jdk :jre :bin} options))
-                       [:bin :jdk])
-        packager (target/packager (:image (:node-type request)))]
+        components (or (seq (filter #{:jdk :jre} options))
+                       [:jdk])
+        packager (:target-packager request)]
 
     (let [vc (fn [request vendor component]
-               (let [p (java-package-name packager vendor component)]
+               (let [pkgs (java-package-name packager vendor component)]
                  (->
                   request
-                  (when-> (and (= packager :aptitude) (= vendor :sun))
-                    (package/package-manager
-                     :debconf
-                     (str p " shared/present-sun-dlj-v1-1 note")
-                     (str p " shared/accepted-sun-dlj-v1-1 boolean true")))
-                  (package/package p))))]
+                  (for->
+                   [p pkgs]
+                   (when-> (and (= packager :aptitude) (= vendor :sun))
+                           (package/package-manager
+                            :debconf
+                            (str
+                             p " shared/present-sun-dlj-v1-1 note")
+                            (str
+                             p " shared/accepted-sun-dlj-v1-1 boolean true")))
+                   (package/package p)))))]
       (->
        request
        (when-> (some #(= :sun %) vendors)

@@ -26,7 +26,7 @@
   (is (= "zypper refresh "
          (script/with-template [:zypper]
            (stevedore/script (update-package-list)))))
-  (is (= "pacman -S --noconfirm --noprogressbar "
+  (is (= "pacman -Sy --noconfirm --noprogressbar "
          (script/with-template [:pacman]
            (stevedore/script (update-package-list))))))
 

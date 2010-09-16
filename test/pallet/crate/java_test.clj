@@ -62,11 +62,19 @@
 (deftest java-openjdk-test
   (is (= (first
           (resource/build-resources
-           "Install java"
+           []
            (package/package "openjdk-6-jre")))
          (first
           (resource/build-resources
            []
+           (java :openjdk :jre)))))
+  (is (= (first
+          (resource/build-resources
+           [:node-type {:image {:packager :pacman}}]
+           (package/package "openjdk6")))
+         (first
+          (resource/build-resources
+           [:node-type {:image {:packager :pacman}}]
            (java :openjdk :jre))))))
 
 

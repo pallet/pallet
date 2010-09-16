@@ -74,10 +74,10 @@
 
 ;;; pacman
 (stevedore/defimpl update-package-list [#{:pacman}] [& options]
-  (pacman -S "--noconfirm" "--noprogressbar" ~(stevedore/option-args options)))
+  (pacman -Sy "--noconfirm" "--noprogressbar" ~(stevedore/option-args options)))
 
 (stevedore/defimpl install-package [#{:pacman}] [package & options]
-  (pacman -U "--noconfirm" "--noprogressbar"
+  (pacman -S "--noconfirm" "--noprogressbar"
           ~(stevedore/option-args options) ~package))
 
 (stevedore/defimpl remove-package [#{:pacman}] [package & options]
