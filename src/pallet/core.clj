@@ -120,30 +120,56 @@ When passing a username the following options can be specified:
   (let [[tag options] (name-with-attributes tag options)]
     `(def ~tag (make-node '~(name tag) ~@options))))
 
-(defn augment-template-from-node
+(defn add-os-family
+  "Add the os family to the node-type if available from node."
+  [request]
+  (update-in
+   request [:node-type :image :os-family]
+   (fn ensure-os-family [f]
+     (or f (compute/node-os-family (:target-node request))))))
+
+(defn add-target-id
   "Add the os family to the node-type if available from node"
   [request]
-  (let [node (:target-node request)
-        os-family (and node (compute/node-os-family node))]
-    (if (and os-family (not (get-in request [:node-type :image :os-family])))
-      (assoc-in request [:node-type :image :os-family] os-family)
-      request)))
+  (update-in
+   request [:target-id]
+   (fn ensure-target-id [id]
+     (or id (keyword (.getId (:target-node request)))))))
+
+(defn add-target-packager
+  "Add the os family to the node-type if available from node"
+  [request]
+  (update-in
+   request [:target-packager]
+   (fn ensure-target-packager [p]
+     (or p (target/packager (get-in request [:node-type :image]))))))
+
+(defn add-target-keys
+  [request]
+  (-> request
+      add-os-family
+      add-target-packager
+      add-target-id))
+
 
 (defn resource-invocations [request]
   (if-let [f (some
               (:phase request)
               [(:phases (:node-type request)) (:phases request)])]
-    (let [request (augment-template-from-node request)]
-      (script/with-template [(-> request :node-type :image :os-family)]
+    (let [request (add-target-keys request)]
+      (script/with-template [(-> request :node-type :image :os-family)
+                             (-> request :target-packager)]
         (f request)))
     request))
 
 (defn produce-init-script
   [request]
+  {:pre [(get-in request [:node-type :image :os-family])]}
   (let [cmds
         (resource/produce-phase
          (resource-invocations
-          (assoc request :phase :bootstrap :target-id :bootstrap-id)))]
+          (add-target-keys
+           (assoc request :phase :bootstrap :target-id :bootstrap-id))))]
     (if-not (and (every? #(= :remote (:location %)) cmds) (>= 1 (count cmds)))
       (condition/raise
        :type :booststrap-contains-local-resources
@@ -151,7 +177,8 @@ When passing a username the following options can be specified:
                  "Bootstrap can not contain local resources %s"
                  (pr-str cmds))))
     (if-let [f (:f (first cmds))]
-      (script/with-template [(-> request :node-type :image :os-family)]
+      (script/with-template [(-> request :node-type :image :os-family)
+                             (-> request :target-packager)]
         (:cmds (f request)))
       "")))
 
@@ -294,7 +321,8 @@ script that is run with root privileges immediatly after first boot."
     (handler
      (assoc request
        :commands (script/with-template
-                   [(-> request :node-type :image :os-family)]
+                   [(-> request :node-type :image :os-family)
+                    (-> request :target-packager)]
                    (resource/produce-phase request))))))
 
 (defmacro pipe
@@ -319,7 +347,7 @@ script that is run with root privileges immediatly after first boot."
     build-commands
     wrapper-fn
     execute-with-ssh)
-   (augment-template-from-node request)))
+   (add-target-keys request)))
 
 (defn wrap-no-exec
   "Middleware to report on the request, without executing"
@@ -376,8 +404,7 @@ script that is run with root privileges immediatly after first boot."
    request
    (for [node nodes]
      (apply-phase-to-node
-      compute node-execution-wrapper
-      (assoc request :target-node node :target-id (keyword (.getId node)))))))
+      compute node-execution-wrapper request))))
 
 (defn nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"

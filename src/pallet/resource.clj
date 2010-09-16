@@ -320,7 +320,8 @@ configuration code."
          result []]
     (if command
       (if (= :remote location)
-        (script/with-template [(-> request :node-type :image :os-family)]
+        (script/with-template [(-> request :node-type :image :os-family)
+                               (-> request :target-packager)]
           (binding [*file-transfers* {}]
             (let [{:keys [cmds request location type]} (f request)]
               (recur
@@ -408,7 +409,21 @@ configuration code."
                                   (and (:target-node request#)
                                        (keyword
                                         (.getId (:target-node request#))))
-                                  :id))]
+                                  :id))
+         request# (update-in
+                   request# [:target-packager]
+                   #(or
+                     %
+                     (let [os-family# (get-in
+                                       request#
+                                       [:node-type :image :os-family])]
+                       (cond
+                        (#{:ubuntu :debian :jeos :fedora} os-family#) :aptitude
+                        (#{:centos :rhel} os-family#) :yum
+                        (#{:arch} os-family#) :pacman
+                        (#{:suse} os-family#) :zypper
+                        (#{:gentoo} os-family#) :portage))))]
      (script/with-template
-       [(-> request# :node-type :image :os-family)]
+       [(-> request# :node-type :image :os-family)
+        (-> request# :target-packager)]
        (produce-phases [(:phase request#)] (f# request#)))))

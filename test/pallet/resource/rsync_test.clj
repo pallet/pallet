@@ -29,8 +29,7 @@
                 "tag" "localhost"
                 :operating-system (compute/local-operating-system))]
       (io/copy "text" tmp)
-      (core/defnode tag {:os-family :no-packages})
-
+      (core/defnode tag {:packager :no-packages})
       (core/lift*
        nil "" {tag node} nil
        [(resource/phase (rsync (.getPath dir) (.getPath target-dir) {}))]

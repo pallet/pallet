@@ -16,15 +16,20 @@
     "adm"))
 
 (defn packager
-  "Default package manager"
+  "Package manager"
   [target]
-  (let [os-family (:os-family target)]
-    (cond
-     (#{:ubuntu :debian :jeos} os-family) :aptitude
-     (#{:centos :rhel} os-family) :yum
-     (#{:gentoo} os-family) :portage
-     :else (condition/raise
-            :type :unknown-packager
-            :message (format
-                      "Unknown packager for %s : :image %s"
-                      os-family target)))))
+  (or
+   (:packager target)
+   (let [os-family (:os-family target)]
+     (cond
+      (#{:ubuntu :debian :jeos :fedora} os-family) :aptitude
+      (#{:centos :rhel} os-family) :yum
+      (#{:arch} os-family) :pacman
+      (#{:suse} os-family) :zypper
+      (#{:gentoo} os-family) :portage
+      (#{:darwin} os-family) :brew
+      :else (condition/raise
+             :type :unknown-packager
+             :message (format
+                       "Unknown packager for %s : :image %s"
+                       os-family target))))))

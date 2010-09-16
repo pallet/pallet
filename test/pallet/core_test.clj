@@ -69,13 +69,13 @@
   (is (= { {:tag :a} 1 {:tag :b} 1}
          (node-count-difference { {:tag :a} 1 {:tag :b} 1} []))))
 
-(deftest augment-template-from-node-test
+(deftest add-os-family-test
   (defnode a {:os-family :ubuntu})
   (defnode b {})
   (let [n1 (compute/make-node "n1")]
     (is (= {:tag :a :image {:os-family :ubuntu} :phases nil}
            (:node-type
-            ((augment-template-from-node identity)
+            (add-os-family
              {:target-node n1 :node-type a})))))
   (let [n1 (compute/make-node
             "n1"
@@ -88,12 +88,17 @@
                                true))]
     (is (= {:tag :a :image {:os-family :ubuntu} :phases nil}
            (:node-type
-            (augment-template-from-node
+            (add-os-family
              {:target-node n1 :node-type a}))))
     (is (= {:tag :b :image {:os-family :ubuntu} :phases nil}
            (:node-type
-            (augment-template-from-node
+            (add-os-family
              {:target-node n1 :node-type b}))))))
+
+(deftest add-target-packager-test
+  (is (= {:node-type {:image {:os-family :ubuntu}} :target-packager :aptitude}
+         (add-target-packager
+          {:node-type {:image {:os-family :ubuntu}}}))))
 
 (deftest converge-node-counts-test
   (defnode a {:os-family :ubuntu})
@@ -231,7 +236,7 @@
 (deftest produce-init-script-test
   (is (= "a\n"
          (produce-init-script
-          {:node-type {:image {}
+          {:node-type {:image {:os-family :ubuntu}
                        :phases {:bootstrap (phase (identity-resource "a"))}}
            :target-id :id})))
   (testing "rejects local resources"
@@ -239,7 +244,7 @@
          clojure.contrib.condition.Condition
          (produce-init-script
           {:node-type
-           {:image {}
+           {:image {:os-family :ubuntu}
             :phases {:bootstrap (phase (identity-local-resource))}}
            :target-id :id})))))
 
