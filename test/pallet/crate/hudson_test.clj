@@ -156,8 +156,8 @@
            (remote-file/remote-file
             "/var/lib/hudson/plugins/git.hpi"
             :group "tomcat6" :mode "0664"
-            :md5 "98db63b28bdf9ab0e475c2ec5ba209f1"
-            :url "http://hudson-ci.org/latest/git.hpi")))
+            :md5 (-> hudson-plugins :git :md5)
+            :url (-> hudson-plugins :git :url))))
          (first
           (resource/build-resources
            [:parameters (assoc-in parameters
