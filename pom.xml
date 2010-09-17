@@ -4,9 +4,44 @@
     <groupId>pallet</groupId>
     <artifactId>pallet</artifactId>
     <version>0.2.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
     <name>pallet</name>
     <description>Pallet - provisioning and configuration of compute nodes</description>
     <url>http://github.com/hugoduncan/pallet</url>
+    <inceptionYear>2010</inceptionYear>
+
+    <licenses>
+      <license>
+        <name>Eclipse Public License</name>
+        <url>http://www.eclipse.org/legal/epl-v10.html</url>
+      </license>
+    </licenses>
+
+    <mailingLists>
+      <mailingList>
+        <name>pallet-clj</name>
+        <subscribe>http://groups.google.com/group/pallet-clj</subscribe>
+        <unsubscribe>http://groups.google.com/group/pallet-clj</unsubscribe>
+        <post>palle-clj@googlegroups.com</post>
+        <archive>http://groups.google.com/group/pallet-clj</archive>
+      </mailingList>
+    </mailingLists>
+
+    <scm>
+      <connection>scm:git:git://github.com/hugoduncan/pallet.git</connection>
+      <developerConnection>scm:git:git@github.com:hugoduncan/pallet.git</developerConnection>
+      <url>http://github.com/hugoduncan/pallet</url>
+    </scm>
+
+    <distributionManagement>
+      <repository>
+        <uniqueVersion>false</uniqueVersion>
+        <id>clojars</id>
+        <name>Clojars Repository</name>
+        <url>scpexe://clojars.org</url>
+      </repository>
+    </distributionManagement>
+
     <build>
         <sourceDirectory>src</sourceDirectory>
         <resources>
@@ -73,6 +108,14 @@
                 </configuration>
             </plugin>
         </plugins>
+        <extensions>
+          <!-- Enabling the use of SSH -->
+          <extension>
+            <groupId>org.apache.maven.wagon</groupId>
+            <artifactId>wagon-ssh-external</artifactId>
+            <version>1.0-beta-6</version>
+          </extension>
+        </extensions>
     </build>
     <dependencies>
         <dependency>
@@ -247,7 +290,43 @@
         </build>
       </profile>
     </profiles>
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
+
+    <developers>
+      <developer>
+        <name>Hugo Duncan</name>
+        <id>hugoduncan</id>
+        <email>hugo -at- hugoduncan -dot- org</email>
+        <roles>
+          <role>PMC</role>
+          <role>Developer</role>
+        </roles>
+        <timezone>-8</timezone>
+      </developer>
+      <developer>
+        <name>Adrian Cole</name>
+        <id>ferncam1</id>
+        <email>adrian -at- jclouds -dot- org</email>
+        <organization>jclouds</organization>
+        <roles>
+          <role>Developer</role>
+        </roles>
+        <url>http://www.jclouds.org</url>
+        <timezone>-5</timezone>
+      </developer>
+    </developers>
+
+    <contributors>
+      <contributor>
+	<name>Chas Emerick</name>
+	<email>cemerick -at- snowtide -dot- com</email>
+	<organization>Snowtide Informatics</organization>
+	<organizationUrl>http://snowtide.com</organizationUrl>
+	<timezone>-5</timezone>
+	<url>http://cemerick.com</url>
+      </contributor>
+    </contributors>
+
+    <properties>
+      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 </project>
