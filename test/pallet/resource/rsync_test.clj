@@ -31,6 +31,7 @@
                   :operating-system (compute/local-operating-system))]
         (io/copy "text" tmp)
         (core/defnode tag {:packager :no-packages})
+        (.delete target-dir)
         (core/lift*
          nil "" {tag node} nil
          [(resource/phase (rsync (.getPath dir) (.getPath target-dir) {}))]
@@ -43,6 +44,7 @@
           (is (.canRead target-tmp))
           (is (= "text" (slurp (.getPath target-tmp))))
           (.delete target-tmp))
+        (.delete target-dir)
         (core/lift*
          nil "" {tag node} nil
          [(resource/phase
