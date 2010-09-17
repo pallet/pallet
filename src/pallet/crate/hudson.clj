@@ -174,9 +174,13 @@
    (parameter/get-for-target request [:hudson :user])
    :action :manage :comment "hudson"))
 
+(defmethod plugin-config :default [request plugin]
+  request)
+
 (def hudson-plugins
   {:git {:url "http://hudson-ci.org/latest/git.hpi"
-         :md5 "98db63b28bdf9ab0e475c2ec5ba209f1"}})
+         :md5 "423afd697acdb2b7728f80573131c15f"}
+   :github {:url "http://hudson-ci.org/latest/github.hpi"}})
 
  (defn plugin
    "Install a hudson plugin.  The plugin should be a keyword.

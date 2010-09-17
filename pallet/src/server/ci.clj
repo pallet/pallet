@@ -19,6 +19,7 @@
   (let [user (parameter/get-for-target request [:hudson :user])]
     (->
      request
+     (user/user user :comment "\"hudson,,,\"")
      (ssh-key/generate-key user :comment "pallet test key")
      (ssh-key/generate-key user :file "clj_ssh" :comment "clj-ssh test key")
      (ssh-key/generate-key user :file "clj_ssh_pp" :passphrase "clj-ssh"
@@ -41,11 +42,9 @@
    (service/with-restart "tomcat6"
      (tomcat/server-configuration (tomcat/server))
      (hudson/tomcat-deploy :version "1.355")
-     (user/user
-      (parameter/lookup-for-target :hudson :user)
-      :comment "\"hudson,,,\"")
      (generate-ssh-keys)
      (hudson/plugin :git)
+     (hudson/plugin :github)
      (hudson/maven "default maven" "2.2.1")
      (hudson/job :maven2 "pallet"
                  :maven-name "default maven"
