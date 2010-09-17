@@ -206,7 +206,11 @@
     <repositories>
         <repository>
             <id>jclouds</id>
-            <url>https://oss.sonatype.org/content/repositories/releases</url>
+            <url>http://oss.sonatype.org/content/repositories/releases</url>
+        </repository>
+        <repository>
+            <id>jclouds-snapshots</id>
+            <url>http://oss.sonatype.org/content/repositories/snapshots</url>
         </repository>
         <repository>
             <id>clojure</id>
