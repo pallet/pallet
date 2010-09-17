@@ -206,7 +206,7 @@
   "Add a scope to all the existing package sources"
   [type scope file]
   (stevedore/script
-   (var tmpfile @(mktemp addscopeXXXX))
+   (var tmpfile @(mktemp -t addscopeXXXX))
    (cp "-p" ~file @tmpfile)
    (awk "'{if ($1 ~" ~(str "/^" type "/") "&& !" ~(str "/" scope "/")
         " ) print $0 \" \" \"" ~scope  "\" ; else print; }' "
