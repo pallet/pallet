@@ -31,6 +31,9 @@
     (with-admin-user [x]
       (is (= x (:username pallet.utils/*admin-user*))))))
 
+;; this test doesn't work too well if the test are run in more than
+;; one thread...
+#_
 (deftest admin-user-test
   (let [username "userfred"
         old pallet.utils/*admin-user*]
