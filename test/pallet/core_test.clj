@@ -20,7 +20,7 @@
 (def *compute-service* ["stub" "" "" ])
 
 (use-fixtures
-  :once
+  :each
   (pallet.compute-test-utils/compute-service-fixture
    *compute-service*
    :extensions
@@ -345,6 +345,8 @@
       (is (map? (-> request :results)))
       (is (map? (-> request :results first second)))
       (is (:configure (-> request :results first second)))
-      (is (some #(= "Hi\n" %) (:configure (-> request :results first second))))
+      (is (some
+           #(= "Hi\n" %)
+           (:configure (-> request :results first second))))
       (is (= 1 (count (:all-nodes request))))
       (is (= 1 (count (org.jclouds.compute/nodes)))))))
