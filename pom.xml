@@ -164,6 +164,11 @@
         </dependency>
 
         <dependency>
+            <groupId>clj-http</groupId>
+            <artifactId>clj-http</artifactId>
+            <version>0.1.1</version>
+        </dependency>
+        <dependency>
             <groupId>clj-ssh</groupId>
             <artifactId>clj-ssh</artifactId>
             <version>0.2.0-SNAPSHOT</version>

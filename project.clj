@@ -8,6 +8,7 @@
                  [org.jclouds/jclouds-log4j "1.0-SNAPSHOT"]
                  [org.jclouds/jclouds-enterprise "1.0-SNAPSHOT"]
                  [org.apache.maven/maven-settings "2.0.10"]
+                 [clj-http "0.1.1"]
                  [enlive "1.0.0-SNAPSHOT"]
                  [clj-ssh "0.2.0-SNAPSHOT"]
                  [log4j/log4j "1.2.14"]
