@@ -267,7 +267,9 @@
     (is (.contains
          "bin"
          (with-no-compute-service
-           (with-admin-user (assoc utils/*admin-user* :no-sudo true)
+           (with-admin-user (assoc utils/*admin-user*
+                              :username (test-username)
+                              :no-sudo true)
              (with-out-str
                (lift {x (compute/make-unmanaged-node "x" "localhost")}
                      (phase (exec-script/exec-script (ls "/")))
