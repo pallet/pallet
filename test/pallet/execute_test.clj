@@ -31,7 +31,7 @@
 
 (deftest sh-script-test
   (let [res (sh-script
-             "file=$(mktemp utilXXXX);echo fred > $file ;cat $file ;rm $file")]
+             "file=$(mktemp ~/utilXXXX);echo fred > $file;cat $file;rm $file")]
     (is (= {:exit 0 :err "" :out "fred\n"} res))))
 
 
