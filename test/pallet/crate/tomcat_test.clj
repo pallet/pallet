@@ -45,8 +45,6 @@
   (is (= (first
           (resource/build-resources
            []
-           (directory/directory
-            "/p/webapps/ROOT" :owner "o" :group "g" :recursive true)
            (remote-file/remote-file "/p/webapps/ROOT.war"
             :remote-file "file.war" :owner "o" :group "g" :mode "600")))
          (first

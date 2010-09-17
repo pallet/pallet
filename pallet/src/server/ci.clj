@@ -2,6 +2,7 @@
   (:require
    [pallet.resource.package :as package]
    [pallet.core :as core]
+   [pallet.stevedore :as stevedore]
    [pallet.crate.git :as git]
    [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.parameter :as parameter]
@@ -11,6 +12,23 @@
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.crate.tomcat :as tomcat]
    [pallet.crate.hudson :as hudson]))
+
+(defn generate-ssh-keys
+  "Generate key for testing clj-ssh and pallet"
+  [request]
+  (let [user (parameter/get-for-target request [:hudson :user])]
+    (->
+     request
+     (ssh-key/generate-key user :comment "pallet test key")
+     (ssh-key/generate-key user :file "clj_ssh" :comment "clj-ssh test key")
+     (ssh-key/generate-key user :file "clj_ssh_pp" :passphrase "clj-ssh"
+                           :comment "clj-ssh test key with passphrase")
+     (ssh-key/authorize-key-for-localhost
+      user "id_rsa.pub" :authorize-for-user "testuser")
+     (ssh-key/authorize-key-for-localhost
+      user "clj_ssh.pub" :authorize-for-user "testuser")
+     (ssh-key/authorize-key-for-localhost
+      user "clj_ssh_pp.pub" :authorize-for-user "testuser"))))
 
 (defn ci-config
   [request]
@@ -22,24 +40,16 @@
    (user/user "testuser" :create-home true :shell :bash)
    (service/with-restart "tomcat6"
      (tomcat/server-configuration (tomcat/server))
-     (user/user (parameter/lookup :hudson :user) :comment "\"hudson,,,\"")
-     (ssh-key/generate-key (parameter/lookup :hudson :user))
-     (ssh-key/authorize-key-for-localhost
-      (parameter/lookup :hudson :user) "id_rsa.pub"
-      :authorize-for-user "testuser")
      (hudson/tomcat-deploy :version "1.355")
+     (user/user
+      (parameter/lookup-for-target :hudson :user)
+      :comment "\"hudson,,,\"")
+     (generate-ssh-keys)
      (hudson/plugin :git)
      (hudson/maven "default maven" "2.2.1")
      (hudson/job :maven2 "pallet"
                  :maven-name "default maven"
                  :goals "-Ptestuser clean test"
-                 :group-id "pallet"
-                 :artifact-id "pallet"
-                 :maven-opts ""
-                 :scm ["git://github.com/hugoduncan/pallet.git"])
-     (hudson/job :maven2 "pallet-clojure-1.2"
-                 :maven-name "default maven"
-                 :goals "-Ptestuser -Pclojure-1.2 clean test"
                  :group-id "pallet"
                  :artifact-id "pallet"
                  :maven-opts ""
@@ -65,7 +75,12 @@
 (core/defnode ci
   {}
   :bootstrap (resource/phase
-              (automated-admin-user/automated-admin-user)
-              (package/package-manager :update))
+              (automated-admin-user/automated-admin-user))
   :configure (resource/phase
-              (ci-config)))
+              (ci-config))
+  :restart-tomcat (resource/phase
+                   (service/service "tomcat6" :action :restart))
+  :reload-configuration (resource/phase
+                         (hudson/reload-configuration))
+  :build-clj-ssh (resource/phase (hudson/build "clj-ssh"))
+  :build-pallet (resource/phase (hudson/build "pallet")))

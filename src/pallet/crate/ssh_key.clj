@@ -49,8 +49,10 @@
       "authorize-key"
       (var key_file ~key-file)
       (var auth_file ~auth-file)
-      (if-not (grep @(cat @key_file) @auth_file)
-        (cat @key_file ">>" @auth_file))))))
+      (if-not (grep (quoted @(cat @key_file)) @auth_file)
+        (do
+          (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
+          (cat @key_file ">>" @auth_file)))))))
 
 (defn install-key
   "Install a ssh private key."
@@ -76,21 +78,23 @@
 (defn generate-key
   "Generate an ssh key pair for the given user, unless one already
    exists. Options are:
-     :file path     -- output file name
-     :type key-type -- key type selection"
-  [request user & {:keys [type file passphrase]
+     :file path     -- output file name (within ~user/.ssh directory)
+     :type key-type -- key type selection
+     :no-dir true   -- do note ensure directory exists
+     :passphrase    -- new passphrase for encrypring the private key
+     :comment       -- comment for new key"
+  [request user & {:keys [type file passphrase no-dir comment]
                    :or {type "rsa" passphrase ""}
                    :as  options}]
   (let [key-type type
-        path (or file
-                 (stevedore/script
-                  ~(str (user-ssh-dir user)
-                        (ssh-default-filenames key-type))))
+        path
+        (stevedore/script ~(str (user-ssh-dir user)
+                                (or file (ssh-default-filenames key-type))))
         ssh-dir (.getParent (java.io.File. path))]
     (->
      request
-     (when-not-> (:no-dir options)
-       (directory/directory ssh-dir :owner user :mode "755"))
+     (when-not-> (or (:no-dir options))
+                 (directory/directory ssh-dir :owner user :mode "755"))
      (exec-script/exec-checked-script
       "ssh-keygen"
       (var key_path ~path)

@@ -84,19 +84,19 @@
                  (select-keys opts remote-file/all-options))]
     (->
      request
-     (when-not-> (:clear-existing opts)
-      ;; if we're not removing an existing, try at least to make sure
-      ;; that tomcat has the permissions to explode the war
-      (apply->
-       directory/directory
-       exploded-app-dir
-       (apply concat
-              (merge {:owner tomcat-user :group tomcat-group :recursive true}
-                     (select-keys options [:owner :group :recursive])))))
      (apply->
       remote-file
       deployed-warfile
       (apply concat options))
+     ;; (when-not-> (:clear-existing opts)
+     ;;  ;; if we're not removing an existing, try at least to make sure
+     ;;  ;; that tomcat has the permissions to explode the war
+     ;;  (apply->
+     ;;   directory/directory
+     ;;   exploded-app-dir
+     ;;   (apply concat
+     ;;          (merge {:owner tomcat-user :group tomcat-group :recursive true}
+     ;;                 (select-keys options [:owner :group :recursive])))))
      (when-> (:clear-existing opts)
              (directory/directory exploded-app-dir :action :delete)))))
 

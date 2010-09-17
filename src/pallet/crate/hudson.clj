@@ -15,6 +15,8 @@
    [pallet.enlive :as enlive]
    [pallet.parameter :as parameter]
    [pallet.resource :as resource]
+   [pallet.resource.exec-script :as exec-script]
+   [pallet.resource.remote-file :as remote-file]
    [pallet.resource.user :as user]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
@@ -61,7 +63,7 @@
       [:hudson :user] user
       [:hudson :group] group)
      (directory
-      hudson-data-path :owner hudson-owner :group group :mode "775")
+      hudson-data-path :owner hudson-owner :group group :mode "0775")
      (remote-file file :url (hudson-url version) :md5 (hudson-md5 version))
      (tomcat/policy
       99 "hudson"
@@ -102,6 +104,65 @@
      (tomcat/application-conf "hudson" nil :action :remove)
      (directory hudson-data-path :action :delete :force true :recursive true))))
 
+
+(defn download-cli [request]
+  (remote-file/remote-file
+   request
+   "hudson-cli.jar"
+   :url "http://localhost:8080/hudson/jnlpJars/hudson-cli.jar"))
+
+(defn cli []
+  "java -jar ~/hudson-cli.jar -s http://localhost:8080/hudson/")
+
+(defn hudson-cli
+  "Install a hudson cli."
+  [request]
+  (download-cli request))
+
+(def hudson-plugin-urls
+  {:git "http://hudson-ci.org/latest/git.hpi"})
+
+(defn install-plugin [url]
+  (str (cli) " install-plugin " (utils/quoted url)))
+
+(defn plugin-via-cli
+  "Install a hudson plugin.  The plugin should be a keyword.
+  :url can be used to specify a string containing the download url"
+  [request plugin & {:keys [url] :as options}]
+  {:pre [(keyword? plugin)]}
+  (info (str "Hudson - add plugin " plugin))
+  (let [src (or url (plugin hudson-plugin-urls))]
+    (-> request
+        (hudson-cli)
+        (exec-script/exec-checked-script
+         (format "installing %s plugin" plugin)
+         ~(install-plugin src)))))
+
+
+(defn cli-command
+  "Execute a maven cli command"
+  [request message command]
+  (-> request
+      (hudson-cli)
+      (exec-script/exec-checked-script
+       message
+       ~(str (cli) " " command))))
+
+(defn version
+  "Show running version"
+  [request]
+  (cli-command request "Hudson Version: " "version"))
+
+(defn reload-configuration
+  "Show running version"
+  [request]
+  (cli-command request "Hudson reload-configuration: " "reload-configuration"))
+
+(defn build
+  "Build a job"
+  [request job]
+  (cli-command request (format "build %s: " job) (format "build %s" job)))
+
 (defmulti plugin-config
   "Plugin configuration"
   (fn [request plugin] plugin))
@@ -113,28 +174,31 @@
    (parameter/get-for-target request [:hudson :user])
    :action :manage :comment "hudson"))
 
-
 (def hudson-plugins
-     {:git {:url "https://hudson.dev.java.net/files/documents/2402/135478/git.hpi"
-            :md5 "98db63b28bdf9ab0e475c2ec5ba209f1"}})
+  {:git {:url "http://hudson-ci.org/latest/git.hpi"
+         :md5 "98db63b28bdf9ab0e475c2ec5ba209f1"}})
 
-
-(defn plugin
-  "Install a hudson plugin.  The plugin should be a keyword.
-  :url can be used to specify a string containing the download url"
+ (defn plugin
+   "Install a hudson plugin.  The plugin should be a keyword.
+   :url can be used to specify a string containing the download url"
   [request plugin & {:keys [url md5] :as options}]
+  {:pre [(keyword? plugin)]}
   (info (str "Hudson - add plugin " plugin))
-  (let [src (merge (get hudson-plugins plugin {})
+  (let [src (merge (plugin hudson-plugins)
                    (select-keys options [:url :md5]))
         hudson-data-path (parameter/get-for-target
-                          request [:hudson :data-path])]
+                          request [:hudson :data-path])
+        hudson-group (parameter/get-for-target
+                      request [:hudson :group])]
     (-> request
      (directory (str hudson-data-path "/plugins"))
      (apply->
       remote-file
       (str hudson-data-path "/plugins/" (name plugin) ".hpi")
+      :group hudson-group :mode "0664"
       (apply concat src))
      (plugin-config plugin))))
+
 
 (defn determine-scm-type
   "determine the scm type"
@@ -223,7 +287,8 @@
                              (xml/content maven-name))
     [:mavenOpts]
     (enlive/transform-if-let [maven-opts (:maven-opts options)]
-                             (xml/content maven-opts))
+                             (xml/content
+                              maven-opts))
     [:goals]
     (enlive/transform-if-let [goals (:goals options)]
                              (xml/content goals))
@@ -267,16 +332,18 @@ options are:
     (trace (str "Hudson - configure job " job-name))
     (->
      request
-     (directory (str hudson-data-path "/jobs/" job-name) :p true)
+     (directory (str hudson-data-path "/jobs/" job-name) :p true
+                :owner hudson-owner :group hudson-group :mode  "0775")
      (remote-file
-      (str hudson-data-path "/jobs/" job-name "/config.xml" )
+      (str hudson-data-path "/jobs/" job-name "/config.xml")
       :content
       (output-build-for
        build-type
        (:node-type request)
        (:scm-type options)
        (normalise-scms (:scm options))
-       (dissoc options :scm :scm-type)))
+       (dissoc options :scm :scm-type))
+      :owner hudson-owner :group hudson-group :mode "0664")
      (directory
       hudson-data-path
       :owner hudson-owner :group hudson-group
@@ -292,17 +359,24 @@ options are:
   [:id]
   (xml/content version))
 
+
+(defn- hudson-tool-path
+  [hudson-data-path name]
+  (str hudson-data-path "/tools/" (string/replace name #" " "_")))
+
 (defn hudson-maven-xml
   "Generate hudson.task.Maven.xml content"
-  [node-type maven-tasks]
+  [node-type hudson-data-path maven-tasks]
   (enlive/xml-emit
    (enlive/xml-template
     (path-for *maven-file*) node-type
     [tasks]
-    [:installations :* xml/first-child]
-    (enlive/transform-if (seq tasks)
-                         (xml/clone-for [task tasks]
-                                        (apply hudson-task-transform task))))
+    [:installations xml/first-child]
+    (xml/clone-for [task tasks]
+                   [:name] (xml/content (first task))
+                   [:home] (xml/content
+                            (hudson-tool-path hudson-data-path (first task)))
+                   [:properties] nil))
    maven-tasks))
 
 
@@ -325,7 +399,7 @@ options are:
        (str hudson-data-path "/" *maven-file*)
        :content (apply
                  str (hudson-maven-xml
-                      (:node-type request) args))
+                      (:node-type request) hudson-data-path args))
        :owner hudson-owner :group group)))))
 
 (defn maven
@@ -337,7 +411,6 @@ options are:
     (->
      request
      (maven/download
-      :maven-home (str
-                   hudson-data-path "/tools/" (string/replace name #" " "_"))
+      :maven-home (hudson-tool-path hudson-data-path name)
       :version version :owner hudson-owner :group group)
      (maven-config name version))))

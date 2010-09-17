@@ -32,7 +32,7 @@
            [:parameters (assoc-in parameters [:host :id :hudson]
                                   {:data-path "/var/lib/hudson"})]
            (directory/directory
-            "/var/lib/hudson" :owner "root" :group "tomcat6" :mode "775")
+            "/var/lib/hudson" :owner "root" :group "tomcat6" :mode "0775")
            (remote-file/remote-file
             "/var/lib/hudson/hudson.war"
             :url "http://hudson-ci.org/latest/hudson.war"
@@ -58,13 +58,7 @@
  type=\"java.lang.String\"
  override=\"false\"/>
  </Context>")
-           (directory/directory
-            "/var/lib/tomcat6/webapps/hudson"
-            :owner "tomcat6" :group "tomcat6" :recursive true)
-           (remote-file/remote-file
-            "/var/lib/tomcat6/webapps/hudson.war"
-            :remote-file "/var/lib/hudson/hudson.war"
-            :owner "tomcat6" :group "tomcat6" :mode "600")))
+           (tomcat/deploy "hudson" :remote-file "/var/lib/hudson/hudson.war")))
          (first
           (resource/build-resources
            [:parameters parameters]
@@ -93,10 +87,13 @@
   (is (= (first
           (resource/build-resources
            []
-           (directory/directory "/var/lib/hudson/jobs/project" :p true)
+           (directory/directory
+            "/var/lib/hudson/jobs/project" :p true
+            :owner "root" :group "tomcat6" :mode "0775")
            (remote-file/remote-file
             "/var/lib/hudson/jobs/project/config.xml"
-            :content "<?xml version='1.0' encoding='utf-8'?>\n<maven2-moduleset>\n  <actions></actions>\n  <description></description>\n  <logRotator>\n    <daysToKeep>-1</daysToKeep>\n    <numToKeep>-1</numToKeep>\n    <artifactDaysToKeep>-1</artifactDaysToKeep>\n    <artifactNumToKeep>-1</artifactNumToKeep>\n  </logRotator>\n  <keepDependencies>false</keepDependencies>\n  <properties></properties>\n  <scm class=\"hudson.plugins.git.GitSCM\">\n    <remoteRepositories><org.spearce.jgit.transport.RemoteConfig>\n  <string>origin</string>\n  <int>5</int>\n  <string>fetch</string>\n  <string>+refs/heads/*:refs/remotes/origin/*</string>\n  <string>receivepack</string>\n  <string>git-upload-pack</string>\n  <string>uploadpack</string>\n  <string>git-upload-pack</string>\n  <string>url</string>\n  <string>http://project.org/project.git</string>\n  <string>tagopt</string>\n  <string></string>\n</org.spearce.jgit.transport.RemoteConfig>\n      \n    </remoteRepositories>\n    <branches>\n      <hudson.plugins.git.BranchSpec>\n        <name>origin/master</name>\n      </hudson.plugins.git.BranchSpec>\n    </branches>\n    <mergeOptions></mergeOptions>\n    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>\n    <submoduleCfg class=\"list\"></submoduleCfg>\n  </scm>\n  <canRoam>true</canRoam>\n  <disabled>false</disabled>\n  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>\n  <triggers class=\"vector\">\n    <hudson.triggers.SCMTrigger>\n      <spec>*/15 * * * *</spec>\n    </hudson.triggers.SCMTrigger>\n  </triggers>\n  <concurrentBuild>false</concurrentBuild>\n  <rootModule>\n    <groupId>project</groupId>\n    <artifactId>artifact</artifactId>\n  </rootModule>\n  <goals>clojure:test</goals>\n  <mavenOpts>-Dx=y</mavenOpts>\n  <mavenName>base maven</mavenName>\n  <aggregatorStyleBuild>false</aggregatorStyleBuild>\n  <incrementalBuild>false</incrementalBuild>\n  <usePrivateRepository>false</usePrivateRepository>\n  <ignoreUpstremChanges>false</ignoreUpstremChanges>\n  <archivingDisabled>false</archivingDisabled>\n  <reporters></reporters>\n  <publishers></publishers>\n  <buildWrappers></buildWrappers>\n</maven2-moduleset>")
+            :content "<?xml version='1.0' encoding='utf-8'?>\n<maven2-moduleset>\n  <actions></actions>\n  <description></description>\n  <logRotator>\n    <daysToKeep>-1</daysToKeep>\n    <numToKeep>-1</numToKeep>\n    <artifactDaysToKeep>-1</artifactDaysToKeep>\n    <artifactNumToKeep>-1</artifactNumToKeep>\n  </logRotator>\n  <keepDependencies>false</keepDependencies>\n  <properties></properties>\n  <scm class=\"hudson.plugins.git.GitSCM\">\n    <remoteRepositories><org.spearce.jgit.transport.RemoteConfig>\n  <string>origin</string>\n  <int>5</int>\n  <string>fetch</string>\n  <string>+refs/heads/*:refs/remotes/origin/*</string>\n  <string>receivepack</string>\n  <string>git-upload-pack</string>\n  <string>uploadpack</string>\n  <string>git-upload-pack</string>\n  <string>url</string>\n  <string>http://project.org/project.git</string>\n  <string>tagopt</string>\n  <string></string>\n</org.spearce.jgit.transport.RemoteConfig>\n      \n    </remoteRepositories>\n    <branches>\n      <hudson.plugins.git.BranchSpec>\n        <name>origin/master</name>\n      </hudson.plugins.git.BranchSpec>\n    </branches>\n    <mergeOptions></mergeOptions>\n    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>\n    <submoduleCfg class=\"list\"></submoduleCfg>\n  </scm>\n  <canRoam>true</canRoam>\n  <disabled>false</disabled>\n  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>\n  <triggers class=\"vector\">\n    <hudson.triggers.SCMTrigger>\n      <spec>*/15 * * * *</spec>\n    </hudson.triggers.SCMTrigger>\n  </triggers>\n  <concurrentBuild>false</concurrentBuild>\n  <rootModule>\n    <groupId>project</groupId>\n    <artifactId>artifact</artifactId>\n  </rootModule>\n  <goals>clojure:test</goals>\n  <mavenOpts>-Dx=y</mavenOpts>\n  <mavenName>base maven</mavenName>\n  <aggregatorStyleBuild>false</aggregatorStyleBuild>\n  <incrementalBuild>false</incrementalBuild>\n  <usePrivateRepository>false</usePrivateRepository>\n  <ignoreUpstremChanges>false</ignoreUpstremChanges>\n  <archivingDisabled>false</archivingDisabled>\n  <reporters></reporters>\n  <publishers></publishers>\n  <buildWrappers></buildWrappers>\n</maven2-moduleset>"
+            :owner "root" :group "tomcat6" :mode "0664")
            (directory/directory
             "/var/lib/hudson"
             :owner "root" :group "tomcat6"
@@ -117,9 +114,10 @@
 
 (deftest hudson-maven-xml-test
   (core/defnode test-node {:os-family :ubuntu})
-  (is (= "<?xml version='1.0' encoding='utf-8'?>\n<hudson.tasks.Maven_-DescriptorImpl>\n  <installations>\n    <hudson.tasks.Maven_-MavenInstallation>\n      <name>name</name>\n      <home></home>\n      <properties>\n        <hudson.tools.InstallSourceProperty>\n          <installers>\n            <hudson.tasks.Maven_-MavenInstaller>\n              <id>2.2.0</id>\n            </hudson.tasks.Maven_-MavenInstaller>\n          </installers>\n        </hudson.tools.InstallSourceProperty>\n      </properties>\n    </hudson.tasks.Maven_-MavenInstallation>\n  </installations>\n</hudson.tasks.Maven_-DescriptorImpl>"
+  (is (= "<?xml version='1.0' encoding='utf-8'?>\n<hudson.tasks.Maven_-DescriptorImpl>\n  <installations>\n    <hudson.tasks.Maven_-MavenInstallation>\n      <name>name</name>\n      <home>/var/lib/hudson/tools/name</home>\n      \n    </hudson.tasks.Maven_-MavenInstallation>\n  </installations>\n</hudson.tasks.Maven_-DescriptorImpl>"
          (apply str (hudson-maven-xml
                       test-node
+                      "/var/lib/hudson"
                       [["name" "2.2.0"]])))))
 
 (deftest hudson-maven-test
@@ -137,10 +135,9 @@
             "/var/lib/hudson" :owner "root" :group "tomcat6" :mode "775")
            (remote-file/remote-file
             "/var/lib/hudson/hudson.tasks.Maven.xml"
-            :content "<?xml version='1.0' encoding='utf-8'?>\n<hudson.tasks.Maven_-DescriptorImpl>\n  <installations>\n    <hudson.tasks.Maven_-MavenInstallation>\n      <name>default maven</name>\n      <home></home>\n      <properties>\n        <hudson.tools.InstallSourceProperty>\n          <installers>\n            <hudson.tasks.Maven_-MavenInstaller>\n              <id>2.2.0</id>\n            </hudson.tasks.Maven_-MavenInstaller>\n          </installers>\n        </hudson.tools.InstallSourceProperty>\n      </properties>\n    </hudson.tasks.Maven_-MavenInstallation>\n  </installations>\n</hudson.tasks.Maven_-DescriptorImpl>"
+            :content "<?xml version='1.0' encoding='utf-8'?>\n<hudson.tasks.Maven_-DescriptorImpl>\n  <installations>\n    <hudson.tasks.Maven_-MavenInstallation>\n      <name>default maven</name>\n      <home>/var/lib/hudson/tools/default_maven</home>\n      \n    </hudson.tasks.Maven_-MavenInstallation>\n  </installations>\n</hudson.tasks.Maven_-DescriptorImpl>"
             :owner "root"
-            :group "tomcat6")
-))
+            :group "tomcat6")))
          (first
           (resource/build-resources
            [:node-type {:image {:os-family :ubuntu}}
@@ -158,13 +155,15 @@
            (user/user "tomcat6" :action :manage :comment "hudson")
            (remote-file/remote-file
             "/var/lib/hudson/plugins/git.hpi"
+            :group "tomcat6" :mode "0664"
             :md5 "98db63b28bdf9ab0e475c2ec5ba209f1"
-            :url "https://hudson.dev.java.net/files/documents/2402/135478/git.hpi")))
+            :url "http://hudson-ci.org/latest/git.hpi")))
          (first
           (resource/build-resources
            [:parameters (assoc-in parameters
                                   [:host :id :hudson]
                                   {:data-path "/var/lib/hudson"
+                                   :group "tomcat6"
                                    :user "tomcat6"})]
            (plugin :git))))))
 

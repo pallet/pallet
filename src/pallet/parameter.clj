@@ -79,11 +79,24 @@
    [_ request]
    (get-for request keys)))
 
+(deftype ParameterLookupTarget
+  [keys]
+  pallet.argument.DelayedArgument
+  (evaluate
+   [_ request]
+   (get-for request (concat [:host (:target-id request)] keys))))
+
 (defn lookup
   "Lookup a parameter in a delayed manner. This produces a function, which is
    executed by it's toString method."
   [& keys]
   (ParameterLookup. keys))
+
+(defn lookup-for-target
+  "Lookup a parameter for the target in a delayed manner. This produces a
+   function, which is executed by it's toString method."
+  [& keys]
+  (ParameterLookupTarget. keys))
 
 (resource/deflocal parameters
   "Set parameters"
