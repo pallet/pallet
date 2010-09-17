@@ -141,17 +141,19 @@
            []
            (exec-script/exec-checked-script
             "ssh-keygen"
-            (var key_path "/a/b/c")
+            (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/c")
             (if-not (file-exists? @key_path)
               (ssh-keygen
                -f @key_path -t rsa1 -N "\"abc\""  -C "\"my comment\"")))
-           (file/file "/a/b/c" :owner "fred" :mode "0600")
-           (file/file "/a/b/c.pub" :owner "fred" :mode "0644")))
+           (file/file "$(getent passwd fred | cut -d: -f6)/.ssh/c"
+                      :owner "fred" :mode "0600")
+           (file/file "$(getent passwd fred | cut -d: -f6)/.ssh/c.pub"
+                      :owner "fred" :mode "0644")))
          (first
           (resource/build-resources
            []
            (generate-key
-            "fred" :type "rsa1" :file "/a/b/c" :no-dir true
+            "fred" :type "rsa1" :file "c" :no-dir true
             :comment "my comment" :passphrase "abc"))))))
 
 (deftest authorize-key-for-localhost-test
@@ -169,8 +171,10 @@
             (var key_file "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
             (var auth_file
                  "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
-            (if-not (grep @(cat @key_file) @auth_file)
-              (cat @key_file ">>" @auth_file)))))
+            (if-not (grep (quoted @(cat @key_file)) @auth_file)
+              (do
+                (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
+                (cat @key_file ">>" @auth_file))))))
          (first
           (resource/build-resources
            []
@@ -190,8 +194,10 @@
             (var key_file "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
             (var auth_file
                  "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys")
-            (if-not (grep @(cat @key_file) @auth_file)
-              (cat @key_file ">>" @auth_file)))))
+            (if-not (grep (quoted @(cat @key_file)) @auth_file)
+              (do
+                (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
+                (cat @key_file ">>" @auth_file))))))
          (first
           (resource/build-resources
            []
