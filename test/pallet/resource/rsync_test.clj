@@ -13,11 +13,6 @@
    [pallet.target :as target]
    [clojure.contrib.io :as io]))
 
-(defn test-username
-  "Function to get test username. This is a function to avoid issues with AOT."
-  [] (or (. System getProperty "ssh.username")
-         (. System getProperty "user.name")))
-
 (deftest rsync-test
   (core/with-admin-user (assoc utils/*admin-user* :username (test-username))
     (with-temporary [dir (tmpdir)

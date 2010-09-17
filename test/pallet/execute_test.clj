@@ -1,6 +1,7 @@
 (ns pallet.execute-test
   (:use pallet.execute)
   (:use clojure.test
+        pallet.test-utils
         clojure.contrib.logging)
   (:require
    [pallet.utils :as utils]))
@@ -42,15 +43,16 @@
 
 
 (deftest execute-ssh-cmds-test
-  (let [user utils/*admin-user*]
-    (possibly-add-identity
-     (default-agent) (:private-key-path user) (:passphrase user))
-    (let [result (execute-ssh-cmds
-                  "localhost"
-                  {:commands [{:location :remote :f (fn [request] "ls /")
-                               :type :script/bash}]}
-                  (assoc user :no-sudo true)
-                  {})]
-      (is (= 2 (count result)))
-      (is (= 1 (count (first result))))
-      (is (= 0 (:exit (ffirst result)))))))
+  (let [user (assoc utils/*admin-user* :username (test-username))]
+    (binding [utils/*admin-user* user]
+      (possibly-add-identity
+       (default-agent) (:private-key-path user) (:passphrase user))
+      (let [result (execute-ssh-cmds
+                    "localhost"
+                    {:commands [{:location :remote :f (fn [request] "ls /")
+                                 :type :script/bash}]}
+                    (assoc user :no-sudo true)
+                    {})]
+        (is (= 2 (count result)))
+        (is (= 1 (count (first result))))
+        (is (= 0 (:exit (ffirst result))))))))

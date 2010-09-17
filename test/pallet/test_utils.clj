@@ -50,6 +50,11 @@ list, Alan Dipert and MeikelBrandmeyer."
        (is (= ~exit (:exit r#)))
        (:out r#))))
 
+(defn test-username
+  "Function to get test username. This is a function to avoid issues with AOT."
+  [] (or (. System getProperty "ssh.username")
+         (. System getProperty "user.name")))
+
 (def ubuntu-request {:node-type {:image {:os-family :ubuntu}}})
 (def centos-request {:node-type {:image {:os-family :centos}}})
 

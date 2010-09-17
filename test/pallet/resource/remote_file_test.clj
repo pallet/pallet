@@ -16,11 +16,6 @@
 
 (use-fixtures :once with-ubuntu-script-template)
 
-(defn test-username
-  "Function to get test username. This is a function to avoid issues with AOT."
-  [] (or (. System getProperty "ssh.username")
-         (. System getProperty "user.name")))
-
 (deftest remote-file*-test
   (is (= (stevedore/checked-commands
           "remote-file path"
