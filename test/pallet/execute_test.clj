@@ -5,6 +5,12 @@
   (:require
    [pallet.utils :as utils]))
 
+(use-fixtures
+ :each
+ (fn bind-default-agent [f]
+   (binding [default-agent-atom (atom nil)]
+     (f))))
+
 (deftest system-test
   (cond
    (.canRead (java.io.File. "/usr/bin/true")) (is (= {:exit 0 :out "" :err ""}
