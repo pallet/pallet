@@ -50,7 +50,7 @@
      (hudson/job :maven2 "pallet"
                  :maven-name "default maven"
                  :goals "-Ptestuser clean test"
-                 :group-id "pallet"
+                 :group-id "org.cloudhoist"
                  :artifact-id "pallet"
                  :maven-opts ""
                  :scm ["git://github.com/hugoduncan/pallet.git"])
