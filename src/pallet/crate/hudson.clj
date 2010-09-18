@@ -301,7 +301,10 @@
                              (xml/content group-id))
     [:artifactId]
     (enlive/transform-if-let [artifact-id (:artifact-id options)]
-                             (xml/content artifact-id)))
+                             (xml/content artifact-id))
+    [:properties :* :projectUrl]
+    (enlive/transform-if-let [github-url (-> options :github :projectUrl)]
+                             (xml/content github-url)))
    scm-type scms options))
 
 (defmulti output-build-for

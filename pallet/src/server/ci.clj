@@ -51,6 +51,7 @@
                  :goals "-Ptestuser clean test"
                  :group-id "org.cloudhoist"
                  :artifact-id "pallet"
+                 :github {:projectUrl "http://github.com/hugoduncan/pallet"}
                  :maven-opts ""
                  :scm ["git://github.com/hugoduncan/pallet.git"])
      (hudson/job :maven2 "clj-ssh"
