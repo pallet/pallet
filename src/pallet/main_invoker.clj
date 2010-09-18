@@ -9,7 +9,7 @@
    [pallet.maven :as maven]
    [pallet.main :as main]))
 
-(def default-service-opts [:log4j :enterprise :ssh])
+(def default-service-opts [:log4j :ssh])
 
 (defn log-info
   []
