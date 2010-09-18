@@ -98,7 +98,7 @@ nodes).
 
 
 <pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.core)
-(pallet.core/defnode mytag [])
+(pallet.core/defnode mytag {})
 
 (<span style="color: #4682b4;">defn</span> <span style="color: #0000ff;">scale-cluster</span> [n]
   (pallet.core/converge {mytag n}))
@@ -114,9 +114,9 @@ This can be used to build job specific clusters.
 
 
 <pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.core)
-(pallet.core/defnode lb [] <span style="color: #0000ff;">:configure</span> [])
-(pallet.core/defnode webapp [] <span style="color: #0000ff;">:configure</span> [])
-(pallet.core/defnode db [] <span style="color: #0000ff;">:configure</span> [])
+(pallet.core/defnode lb {})
+(pallet.core/defnode webapp {})
+(pallet.core/defnode db {})
 
 (<span style="color: #4682b4;">defn</span> <span style="color: #0000ff;">scale-cluster</span> [prefix n]
   (pallet.core/converge prefix {lb 1 webapp n db (<span style="color: #0000ff;">inc</span> (<span style="color: #0000ff;">/</span> n 2))}))

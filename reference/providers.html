@@ -4,7 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
 lang="en" xml:lang="en">
 <head>
-<title>Pallet Reference - Providers</title>
+<title>Reference - Providers</title>
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="generator" content="Org-mode"/>
 <meta name="generated" content="2010-06-17 Thu"/>
@@ -77,7 +77,7 @@ lang="en" xml:lang="en">
  <a accesskey="H" href="../index.html"> HOME </a>
 </div>
 
-<h1 class="title">Pallet Reference - Providers</h1>
+<h1 class="title">Reference - Providers</h1>
 
 
 <p>
@@ -153,9 +153,9 @@ normally located at <a href="/Users/duncan/.m2/settings.xml">~/.m2/settings.xml<
         <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">activeByDefault</span><span style="color: #00cd00;">&gt;</span>true<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">activeByDefault</span><span style="color: #00cd00;">&gt;</span>
       <span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">activation</span><span style="color: #00cd00;">&gt;</span>
       <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">properties</span><span style="color: #00cd00;">&gt;</span>
-        <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">pallet.service</span><span style="color: #00cd00;">&gt;</span>Your Cloud serivce name<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">pallet.service</span><span style="color: #00cd00;">&gt;</span>
-        <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">pallet.user</span><span style="color: #00cd00;">&gt;</span>Your Cloud API username or key<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">pallet.user</span><span style="color: #00cd00;">&gt;</span>
-        <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">pallet.key</span><span style="color: #00cd00;">&gt;</span>Your Cloud API secret or password<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">pallet.key</span><span style="color: #00cd00;">&gt;</span>
+        <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">jclouds.compute.provider</span><span style="color: #00cd00;">&gt;</span>Your Cloud serivce name<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">jclouds.compute.provider</span><span style="color: #00cd00;">&gt;</span>
+        <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">jclouds.compute.identity</span><span style="color: #00cd00;">&gt;</span>Your Cloud API username or key<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">jclouds.compute.identity</span><span style="color: #00cd00;">&gt;</span>
+        <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">jclouds.compute.credential</span><span style="color: #00cd00;">&gt;</span>Your Cloud API secret or password<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">jclouds.compute.credential</span><span style="color: #00cd00;">&gt;</span>
       <span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">properties</span><span style="color: #00cd00;">&gt;</span>
     <span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">profile</span><span style="color: #00cd00;">&gt;</span>
   <span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">profiles</span><span style="color: #00cd00;">&gt;</span>
@@ -170,11 +170,10 @@ You can then use this information with pallet:
 
 
 
-<pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.maven)
-(<span style="color: #4682b4;">def</span> <span style="color: #0000ff;">service</span>
-     (<span style="color: #0000ff;">apply</span> org.jclouds.compute/compute-service
-            (<span style="color: #0000ff;">concat</span> (pallet.maven/credentials) [<span style="color: #0000ff;">:log4j</span> <span style="color: #0000ff;">:enterprise</span> <span style="color: #0000ff;">:ssh</span>])))
+<pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.compute)
+(<span style="color: #4682b4;">def</span> <span style="color: #0000ff;">service</span> (pallet.compute/compute-service-from-settings))
 </pre>
+
 
 
 
