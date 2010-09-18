@@ -29,7 +29,7 @@
 
     <scm>
       <connection>scm:git:git://github.com/hugoduncan/pallet.git</connection>
-      <developerConnection>scm:git:git@github.com:hugoduncan/pallet.git</developerConnection>
+      <developerConnection>scm:git:ssh://git@github.com/hugoduncan/pallet.git</developerConnection>
       <url>http://github.com/hugoduncan/pallet</url>
     </scm>
 
