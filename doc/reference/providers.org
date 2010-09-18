@@ -73,9 +73,8 @@ normally located at [[file:~/.m2/settings.xml][~/.m2/settings.xml]].
 You can then use this information with pallet:
 
 #+BEGIN_SRC clojure  :session s1
-  (require 'pallet.maven)
-  (def service
-       (apply org.jclouds.compute/compute-service
-              (concat (pallet.maven/credentials) [:log4j :enterprise :ssh])))
+  (require 'pallet.compute)
+  (def service (pallet.compute/compute-service-from-settings))
 #+END_SRC
+
 

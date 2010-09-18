@@ -40,7 +40,7 @@ Crates can be packaged and distributed as clojure jar files.
 
 ## Installation
 
-Pallet is distributed as a jar, and is available in the [clojars repository](http://clojars.org/pallet).
+Pallet is distributed as a jar, and is available in the [clojars repository](http://clojars.org/org.cloudhoist/pallet).
 
 Installation is with [Leiningen](http://github.com/technomancy/leiningen),
 maven, or your favourite maven repository aware build tool.
