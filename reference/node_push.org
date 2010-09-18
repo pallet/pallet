@@ -32,11 +32,12 @@ identity.  You can rebind this using =pallet.core/with-admin-user=.
 * Other SSH Key Strategies
 While convenient, having all your nodes authorise the same SSH key is not the
 best security practice.  Pallet allows you to install a function to provide an
-identity using you own strategy, =pallet.core/with-node-execution-wrapper=. A
+identity using you own strategy, with =pallet.core/with-middleware=. A
 per node identity could be implemented using something like this:
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.utils)
+  (require 'pallet.execute)
   (require 'clj-ssh.ssh)
 
   (defn lookup-identity [node]
@@ -45,12 +46,13 @@ per node identity could be implemented using something like this:
     )
 
   (defn node-based-identity
-    [node user f]
-    (binding [pallet.utils/default-agent-atom (atom nil)]
-      (apply clj-ssh.ssh/add-identity
-       (pallet.utils/default-agent)
-       (lookup-identity))
-      (f)))
+    [handler]
+    (fn [request]
+      (binding [pallet.execute/default-agent-atom (atom nil)]
+        (apply clj-ssh.ssh/add-identity
+         (pallet.execute/default-agent)
+         (lookup-identity))
+        (handler request))))
 #+END_SRC
 
 

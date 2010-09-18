@@ -47,7 +47,7 @@ See also [[http:autodoc/demo-api.html][demo API code]] until it gets migrated in
 * Install
 
 Pallet can be used as a jar file or from a source code checkout.  It is
-available at [[http://clojars.org/pallet][Clojars]], and can be used with {{{maven}}}, {{{leiningen}}} or any
+available at [[http://clojars.org/org.cloudhoist/pallet][Clojars]], and can be used with {{{maven}}}, {{{leiningen}}} or any
 maven repository aware tool.
 
 * Source
