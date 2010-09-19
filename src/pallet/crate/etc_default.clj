@@ -1,13 +1,12 @@
 (ns pallet.crate.etc-default
   "Generation and installation of /etc/default-style files."
  (:require
-   [pallet.stevedore :as script]
+   [pallet.stevedore :as stevedore]
    [pallet.resource.file :as file]
+   [pallet.resource.filesystem-layout :as filesystem-layout]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.exec-script :as exec-script]
-   [clojure.contrib.string :as string]))
-
-(def default-dir "/etc/default")
+   [clojure.string :as string]))
 
 (defn write
   "Writes a KEY=value file to /etc/default/~{filename}, moving the original
@@ -19,7 +18,8 @@
           :JAVA_OPTS \"-Xmx1024m\"
           \"JSP_COMPILER\" \"javac\")"
   [request filename & key-value-pairs]
-  (let [file (str default-dir "/" filename)
+  (let [default-dir (stevedore/script (etc-default))
+        file (str default-dir "/" filename)
         original (str default-dir "/" filename ".orig")]
     (-> request
         (exec-script/exec-script
