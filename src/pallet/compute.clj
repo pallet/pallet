@@ -63,7 +63,7 @@
   []
   (let [os-name (System/getProperty "os.name")]
     (make-operating-system
-     {:family (jvm-os-family-map os-name OsFamily/UNKNOWN)
+     {:family (jvm-os-family-map os-name OsFamily/UNRECOGNIZED)
       :name os-name
       :description os-name
       :version (System/getProperty "os.version")
