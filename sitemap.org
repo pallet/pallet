@@ -9,7 +9,7 @@
      + [[file:reference/providers.org][Pallet Reference - Providers]]
      + [[file:reference/node_push.org][Pallet Reference - Push over SSH]]
      + [[file:reference/script.org][Pallet Reference - Script]]
-     + [[file:reference/request-map.org][Request Map]]
+     + [[file:reference/request_map.org][Request Map]]
    + [[file:overview.org][Overview]]
    + [[file:index.org][Pallet]]
    + [[file:first_steps.org][Pallet - First Steps]]

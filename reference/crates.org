@@ -22,7 +22,8 @@
 
 
 Crates are functions that encapsulate some unit of configuration or
-administration. Crates can take arguments.
+administration. Every crate must take a first argument as a request map, and
+must return an updated request map. Crates can take other arguments.
 
 * Composing existing crates
 The simplest way of creating a crate is to compose it from existing crates.
@@ -33,23 +34,27 @@ The simplest way of creating a crate is to compose it from existing crates.
   (require 'pallet.crate.tomcat)
 
   (defn my-simple-config
-    []
-    (pallet.resource.package/package "maven2")
-    (pallet.crate.git/git)
-    (pallet.crate.tomcat/tomcat))
+    [request]
+    (->
+      request
+      (pallet.resource.package/package "maven2")
+      (pallet.crate.git/git)
+      (pallet.crate.tomcat/tomcat)))
 #+END_SRC
 
 * Creating resources
-=defresource= can be used to define crates that rely on node specific details.
+=defresource= can be used to define script producing functions, that can then
+be called in crates.
 
 * Aggregate resource
 
-=defaggregate= can be used to define crates that collect parameters over
-multiple invocations and emit a resource based on the aggregated parameters.
+=defaggregate= can be used to define resources that collect arguments over
+multiple invocations and emit a resource based on the aggregated arguments.
 This is used in the sudoers crate, for example, to emit /etc/sudoers.
 
 * Local resources
-=deflocal= defines a crate that will be run on the local machine.
+=deflocal= defines a resource that will be run on the local machine.
+
 * Parameters
 * Delayed Arguments
 * Templates
