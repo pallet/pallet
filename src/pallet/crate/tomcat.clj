@@ -4,8 +4,6 @@
   (:use
    [pallet.stevedore :only [script]]
    [pallet.resource.file :only [heredoc file rm]]
-   [pallet.resource.remote-file :only [remote-file remote-file*]]
-   [pallet.resource.exec-script :only [exec-script]]
    [pallet.resource.package :only [package]]
    [pallet.template :only [find-template]]
    [pallet.enlive :only [xml-template xml-emit transform-if deffragment elt]]
@@ -85,7 +83,7 @@
     (->
      request
      (apply->
-      remote-file
+      remote-file/remote-file
       deployed-warfile
       (apply concat options))
      ;; (when-not-> (:clear-existing opts)
@@ -119,7 +117,7 @@
                             request [:tomcat :config-path])
         policy-file (str tomcat-config-root "policy.d/" number name ".policy")]
     (case action
-      :create (remote-file
+      :create (remote-file/remote-file
                request
                policy-file
                :content (string/join \newline (map output-grants grants))
@@ -135,7 +133,8 @@
                             request [:tomcat :config-path])
         app-file (str tomcat-config-root "Catalina/localhost/" name ".xml")]
     (case action
-      :create (remote-file request app-file :content content :literal true)
+      :create (remote-file/remote-file
+               request app-file :content content :literal true)
       :remove (file/file request app-file :action :delete))))
 
 (defn users*
@@ -560,7 +559,7 @@
      ::services         vector of services
      ::global-resources vector of resources."
   [request server]
-  (remote-file
+  (remote-file/remote-file
    request
    (str (parameter/get-for-target request [:tomcat :base]) "conf/server.xml")
    :content (apply
