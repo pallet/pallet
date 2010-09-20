@@ -147,7 +147,9 @@
                   config-section
                   (map
                    (juxt identity combined)
-                   [:global :defaults :listen :frontend :backend])))))
+                   (filter
+                    combined
+                    [:global :defaults :listen :frontend :backend]))))))
     :literal true)
    (etc-default/write "haproxy" :ENABLED 1)))
 
