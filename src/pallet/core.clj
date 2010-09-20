@@ -188,12 +188,10 @@ When passing a username the following options can be specified:
   (if-let [f (some
               (:phase request)
               [(:phases (:node-type request)) (:phases request)])]
-    (script/with-template [(-> request :node-type :image :os-family)
-                           (-> request :target-packager)]
-      (f ((pipe
-           add-target-keys
-           identity)
-          request)))
+    (let [request ((pipe add-target-keys identity) request)]
+      (script/with-template [(-> request :node-type :image :os-family)
+                             (-> request :target-packager)]
+        (f request)))
     request))
 
 (defn produce-init-script

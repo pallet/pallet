@@ -218,7 +218,8 @@
   (is (= #{:bootstrap :configure} (set (keys (with-phases :phases)))))
   (let [request {:target-node (compute/make-node "tag" :id "id")
                  :target-id :id
-                 :node-type with-phases}]
+                 :node-type with-phases
+                 :target-packager :yum}]
     (is (= ":a\n"
            (first
             (resource/produce-phases

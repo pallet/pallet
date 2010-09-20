@@ -17,7 +17,7 @@
 (defmacro with-template
   "Specify the target for script generation"
   [template & body]
-  `(binding [*template* ~template]
+  `(binding [*template* (filter identity ~template)]
      ~@body))
 
 (defmacro with-line-number
