@@ -45,7 +45,17 @@
 (script/defscript download-file [url path])
 
 (stevedore/defimpl download-file :default [url path]
-  ("curl" "-o" (quoted ~path) --retry 3 --silent --show-error --fail --location (quoted ~url)))
+  ("curl" "-o" (quoted ~path) --retry 3 --silent --show-error --fail --location
+   (quoted ~url)))
+
+(script/defscript download-request [path request])
+(stevedore/defimpl download-request :default [path request]
+  ("curl" "-o" (quoted ~path) --retry 3 --silent --show-error --fail --location
+   ~(string/join
+     " "
+     (map (fn dlr-fmt [e] (format "-H \"%s: %s\"" (key e) (val e)))
+          (.. request getHeaders entries)))
+   (quoted ~(.getEndpoint request))))
 
 (script/defscript tmp-dir [])
 (stevedore/defimpl tmp-dir :default []

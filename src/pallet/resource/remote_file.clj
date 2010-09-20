@@ -10,12 +10,13 @@
    [pallet.template :as templates]
    [pallet.resource.file :as file]
    [pallet.utils :as utils]
+   [org.jclouds.blobstore :as jclouds-blobstore]
    [clojure.contrib.def :as def]))
 
 (def/defvar
   content-options
   [:local-file :remote-file :url :md5 :content :literal :template :values
-   :action]
+   :action :blob :blobstore]
   "A vector of the options accepted by remote-file.  Can be used for option
   forwarding when calling remote-file from other crates.")
 
@@ -49,6 +50,7 @@ Options for specifying the file's content are:
   :template         - specify a template to be interpolated
   :values           - values for interpolation
   :blob             - map of :container, :path
+  :blobstore        - a jclouds blobstore object (override blobstore in request)
 Options for specifying the file's permissions are:
   :owner user-name
   :group group-name
@@ -58,7 +60,8 @@ Options for specifying the file's permissions are:
                            content literal
                            template values
                            md5 md5-url
-                           owner group mode force]
+                           owner group mode force
+                           blob blobstore]
                     :or {action :create}
                     :as options}]
 
@@ -113,8 +116,14 @@ Options for specifying the file's permissions are:
                        template (or values {}) (:node-type request))
                  (apply concat (seq (select-keys options [:literal]))))
        link (stevedore/script (ln -f -s ~link ~path))
-       ;; blob (get-request (.signRequestForBlob
-       ;;                    (:blobstore request) (:container blob) (:path blob)))
+       blob (stevedore/checked-script
+             "Download blob"
+             (download-request
+              ~path
+              ~(jclouds-blobstore/sign-blob-request
+                (:container blob) (:path blob)
+                {:method :get}
+                (or blobstore (:blobstore request)))))
        :else (throw
               (IllegalArgumentException.
                (str "remote-file " path " specified without content."))))
