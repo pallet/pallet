@@ -84,7 +84,7 @@
           :target-node (compute/make-node "tag" :public-ips ["1.2.3.4"])]
          (remote-file/remote-file
           "/etc/haproxy/haproxy.cfg"
-          :content "global\nlog 127.0.0.1 local0\nlog 127.0.0.1 local1 notice\nmaxconn 4096\nuser haproxy\ngroup haproxy\ndaemon\ndefaults\nmode http\nlisten app 0.0.0.0:80\nserver h1 1.2.3.4:80 weight 1 maxconn 50 check\nserver h2 1.2.3.5:80 weight 1 maxconn 50 check\nfrontend\nbackend\n"
+          :content "global\nlog 127.0.0.1 local0\nlog 127.0.0.1 local1 notice\nmaxconn 4096\nuser haproxy\ngroup haproxy\ndaemon\ndefaults\nmode http\nlisten app 0.0.0.0:80\nserver h1 1.2.3.4:80 weight 1 maxconn 50 check\nserver h2 1.2.3.5:80 weight 1 maxconn 50 check\n"
           :literal true)
          (etc-default/write "haproxy" :ENABLED 1)))
        (first
