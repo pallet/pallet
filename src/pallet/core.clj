@@ -37,8 +37,8 @@ chef-repository you specify with `with-chef-repository`.
    [pallet.resource :as resource]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.string :as string]
-   ;[org.jclouds.blobstore :as blobstore]
    [org.jclouds.compute :as jclouds]
+   [org.jclouds.blobstore :as jclouds-blobstore]
    [clojure.contrib.logging :as logging]
    [clojure.contrib.def :only []])
   (:import org.jclouds.compute.domain.OsFamily
@@ -239,13 +239,13 @@ When passing a username the following options can be specified:
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
 bootstrap-script value is expected tobe a function that produces a
 script that is run with root privileges immediatly after first boot."
-  [node count compute request]
+  [node count request]
   {:pre [(map? node)]}
   (logging/info (str "Starting " count " nodes for " (node :tag)))
   (run-nodes (-> node :tag name) count
              (build-node-template
-              compute nil (assoc request :node-type node))
-             compute))
+              (:compute request) nil (assoc request :node-type node))
+             (:compute request)))
 
 (defn destroy-nodes-with-count
   "Destroys the specified number of nodes with the given tag.  Nodes are
@@ -266,27 +266,27 @@ script that is run with root privileges immediatly after first boot."
 
 (defn adjust-node-counts
   "Start or stop the specified number of nodes."
-  [compute delta-map nodes request]
+  [delta-map nodes request]
   (logging/trace (str "adjust-node-counts" delta-map))
   (logging/info (str "destroying excess nodes"))
   (doseq [node-count (filter #(neg? (second %)) delta-map)]
     (destroy-nodes-with-count
-      nodes ((first node-count) :tag) (- (second node-count)) compute))
+      nodes ((first node-count) :tag) (- (second node-count))
+      (:compute request)))
   (logging/info (str "adjust-node-counts starting new nodes"))
-  (mapcat #(create-nodes (first %) (second %) compute request)
+  (mapcat #(create-nodes (first %) (second %) request)
           (filter #(pos? (second %)) delta-map)))
 
 (defn converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
    instances."
-  [compute node-map nodes request]
+  [node-map nodes request]
   (logging/info "converging nodes")
   (logging/trace (str "  " node-map))
-  (boot-if-down compute nodes)          ; this needs improving
+  (boot-if-down (:compute request) nodes)       ; this needs improving
                                         ; should only reboot if required
   (let [nodes (filter running? nodes)]
     (adjust-node-counts
-     compute
      (node-count-difference node-map nodes)
      nodes
      request)))
@@ -342,13 +342,14 @@ script that is run with root privileges immediatly after first boot."
 
 (defn apply-phase-to-node
   "Apply a phase to a node request"
-  [compute wrapper-fn request]
+  [request]
   {:pre [(:target-node request)]}
-  ((pipe
-    build-commands
-    wrapper-fn
-    execute-with-ssh)
-   (add-target-keys request)))
+  (let [middleware (:middleware request)]
+    ((pipe
+      build-commands
+      middleware
+      execute-with-ssh)
+     (add-target-keys request))))
 
 (defn wrap-no-exec
   "Middleware to report on the request, without executing"
@@ -394,7 +395,7 @@ script that is run with root privileges immediatly after first boot."
 
 (defn apply-phase
   "Apply a phase to a sequence of nodes"
-  [compute node-execution-wrapper nodes request]
+  [nodes request]
   (logging/info
    (format
     "apply-phase %s for %s with %d nodes"
@@ -405,7 +406,6 @@ script that is run with root privileges immediatly after first boot."
    request
    (for [node nodes]
      (apply-phase-to-node
-      compute node-execution-wrapper
       (assoc request :target-node node)))))
 
 (defn nodes-in-map
@@ -503,8 +503,7 @@ script that is run with root privileges immediatly after first boot."
 
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
-  [compute all-nodes target-node-map all-node-map
-   phases execution-wrapper request]
+  [all-nodes target-node-map all-node-map phases request]
   (let [target-nodes (filter running? (apply concat (vals target-node-map)))
         all-nodes (or all-nodes target-nodes) ; Target node map may contain
                                         ; unmanged nodes
@@ -523,38 +522,37 @@ script that is run with root privileges immediatly after first boot."
       (for [phase (resource/phase-list phases)
             [node-type tag-nodes] target-node-map]
         (apply-phase
-         compute
-         execution-wrapper
          tag-nodes
          (assoc request :phase phase :node-type node-type))))
      (dissoc :node-type :target-node :target-nodes :target-id :phase
              :invocations :user))))
 
 (defn lift*
-  [compute prefix node-set all-node-set phases request middleware]
-  (let [nodes (when compute
+  [node-set all-node-set phases request]
+  (let [nodes (when (:compute request)
                 (logging/info "retrieving nodes")
-                (filter running? (jclouds/nodes-with-details compute)))
-        target-node-map (nodes-in-set node-set prefix nodes)
+                (filter
+                 running?
+                 (jclouds/nodes-with-details (:compute request))))
+        target-node-map (nodes-in-set node-set (:prefix request) nodes)
         all-node-map (or (and all-node-set
                               (nodes-in-set all-node-set nil nodes))
                          target-node-map)]
-    (lift-nodes
-     compute nodes target-node-map all-node-map
-     phases middleware request)))
+    (lift-nodes nodes target-node-map all-node-map phases request)))
 
 (defn converge*
   "Converge the node counts of each tag in node-map, executing each of the
    configuration phases on all the tags in node-map. Th phase-functions are
    also executed, but not applied, for any other nodes in all-node-set"
-  [compute prefix node-map all-node-set phases request middleware]
+  [node-map all-node-set phases request]
   {:pre [(map? node-map)]}
-  (logging/trace (str "converge* " node-map))
+  (logging/trace (format "converge* %s %s" node-map phases))
   (logging/info "retrieving nodes")
-  (let [node-map (add-prefix-to-node-map prefix node-map)
-        nodes (jclouds/nodes-with-details compute)]
-    (converge-node-counts compute node-map nodes request)
-    (let [nodes (filter running? (jclouds/nodes-with-details compute))
+  (let [node-map (add-prefix-to-node-map (:prefix request) node-map)
+        nodes (jclouds/nodes-with-details (:compute request))]
+    (converge-node-counts node-map nodes request)
+    (let [nodes (filter
+                 running? (jclouds/nodes-with-details (:compute request)))
           tag-groups (group-by #(keyword (.getTag %)) nodes)
           target-node-map (into
                            {}
@@ -566,29 +564,46 @@ script that is run with root privileges immediatly after first boot."
                            target-node-map)
           phases (ensure-configure-phase phases)]
       (lift-nodes
-       compute nodes target-node-map all-node-map
-       phases middleware request))))
+       nodes target-node-map all-node-map phases request))))
 
-(defn compute-service-and-options
-  "Extract the compute service and user form a vector of options, returning the
-   bound compute service if none specified."
-  [arg options]
-  (let [[prefix options] (if (string? arg)
-                           [arg options]
-                           [nil (concat [arg] options)])
-        [node-spec options] [(first options) (rest options)]
-        compute (or (first (filter compute-service? options)) *compute*)
-        user (or (first (filter utils/user? options)) utils/*admin-user*)
-        options (remove #{compute user} options)
-        [node-map options] (if (map? (first options))
-                             [(first options) (rest options)]
-                             [nil options])]
-    [compute prefix node-spec node-map options
-     {:user user
-      ;; :blobstore (if (bound? blobstore/*blobstore*)
-      ;;              blobstore/*blobstore*)
-      }
-     *middleware*]))
+(defn- compute-from-options
+  [current-value {:keys [compute compute-service]}]
+  (or current-value
+      compute
+      (and compute-service
+           (jclouds/compute-service
+            (:provider compute-service)
+            (:identity compute-service)
+            (:credential compute-service)
+            :extensions (or (:extensions compute-service)
+                            (compute/default-jclouds-extensions))))
+      (if (bound? #'*compute*) *compute*)))
+
+(defn- blobstore-from-options
+  [current-value {:keys [blobstore blobstore-service]}]
+  (or current-value
+      blobstore
+      (and blobstore-service
+           (jclouds-blobstore/blobstore
+            (:provider blobstore-service)
+            (:identity blobstore-service)
+            (:credential blobstore-service)))
+      (if (bound? #'jclouds-blobstore/*blobstore*)
+        jclouds-blobstore/*blobstore*)))
+
+(defmacro or-fn [& args]
+  `(fn or-args [current#]
+     (or current# ~@args)))
+
+(defn- build-request-map
+  "Build a request map from the given options."
+  [{:as options}]
+  (->
+   options
+   (update-in [:compute] compute-from-options options)
+   (update-in [:blobstore] blobstore-from-options options)
+   (update-in [:user] (or-fn utils/*admin-user*))
+   (update-in [:middleware] (or-fn *middleware*))))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
@@ -603,8 +618,13 @@ script that is run with root privileges immediatly after first boot."
    explicitly listing them.
 
    An optional tag prefix may be specified before the node-map."
-  [node-map & options]
-  (apply converge* (compute-service-and-options node-map options)))
+  [node-map & {:keys [compute phase prefix middleware all-node-set]
+               :as options}]
+  (converge*
+   node-map all-node-set
+   (if (sequential? phase) phase [phase])
+   (build-request-map (dissoc options :all-node-set :phase))))
+
 
 (defn lift
   "Lift the running nodes in the specified node-set by applying the specified
@@ -622,6 +642,19 @@ script that is run with root privileges immediatly after first boot."
    phase specified with the phase macro, or a function that will be called with
    each matching node.
 
-   An optional tag prefix may be specified before the node-set."
-  [node-set & options]
-  (apply lift* (compute-service-and-options node-set options)))
+   Options:
+    :compute         a jclouds compute service
+    :compute-service a map of :provider, :identity, :credential, and
+                     optionally :extensions for constructing a jclouds compute
+                     service.
+    :phase           a phase keyword, phase function, or sequence of these
+    :middleware      the middleware to apply to the configuration pipeline
+    :prefix          a prefix for the tag names
+    :user            the admin-user on the nodes
+"
+  [node-set & {:keys [compute phase prefix middleware all-node-set]
+               :as options}]
+  (lift*
+   node-set all-node-set
+   (if (sequential? phase) phase [phase])
+   (build-request-map (dissoc options :all-node-set :phase))))

@@ -47,7 +47,7 @@ This can be used to build job specific clusters.
   (pallet.core/defnode db {})
 
   (defn scale-cluster [prefix n]
-    (pallet.core/converge prefix {lb 1 webapp n db (inc (/ n 2))}))
+    (pallet.core/converge {lb 1 webapp n db (inc (/ n 2))} :prefix prefix))
 #+END_SRC
 
 * Lift

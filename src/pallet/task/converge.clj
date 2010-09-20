@@ -22,7 +22,7 @@
                            (assoc (or m {}) a (fnext args))
                            phases)
        :else (recur (next args) prefix m (conj phases a)))
-      (concat (conj (if prefix [prefix] []) m) phases))))
+      (concat [m] (if prefix [:prefix prefix] []) [:phase phases]))))
 
 (defn converge
   "Adjust node counts.  Requires a map of node-type, count pairs.

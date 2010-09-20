@@ -5,11 +5,12 @@
   (:require
    [org.jclouds.compute :as jclouds]
    [clojure.contrib.logging :as logging]
+   [pallet.compute :as compute]
    [pallet.utils :as utils]
    [pallet.maven :as maven]
    [pallet.main :as main]))
 
-(def default-service-opts [:log4j :ssh])
+(def default-service-opts (compute/default-jclouds-extensions))
 
 (defn log-info
   []

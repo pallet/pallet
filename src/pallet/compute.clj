@@ -18,6 +18,22 @@
   (ComputeServiceUtils/getSupportedProviders))
 
 ;;;; Compute service
+(defn log4j?
+  "Predicate to test for log4j on the classpath."
+  []
+  (try
+    (import org.apache.log4j.Logger)
+    true
+    (catch java.lang.ClassNotFoundException _
+      false)))
+
+(defn default-jclouds-extensions
+  "Default extensions"
+  []
+  (if (log4j?)
+    [:ssh :log4j]
+    [:ssh]))
+
 (defn compute-service-from-settings
   "Create a jclouds compute service from maven ~/.m2/settings.xml.  If
    extensions are listed they are used, otherwise :log4j and
@@ -25,7 +41,7 @@
   [& extensions]
   (apply jclouds/compute-service
          (concat (maven/credentials)
-                 (or (seq extensions) [:log4j :ssh]))))
+                 (or (seq extensions) (default-jclouds-extensions)))))
 
 ;;; Node utilities
 (defn make-operating-system

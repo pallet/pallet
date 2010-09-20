@@ -29,6 +29,11 @@
   (with-compute-service [\"provider\" my-user my-password :log4j]
     (nodes))
 
+  ;; if you add the org.jclouds.provider, org.jclouds.identity and
+  ;; org.jclouds.credentials keys to an active profile in ~/.m2/settings.xml
+  ;; then pallet can read these
+  (def service (compute-service-from-settings))
+
   ;; In order to create nodes, we need to define node types.
   ;; The second argument is a vector specifying features we want in our image.
   (defnode webserver {})
@@ -36,10 +41,10 @@
 
   ;; At this point we can manage instance counts as a map.
   ;; e.g ensure that we have two webserver nodes
-  (converge {webserver 2} service)
+  (converge {webserver 2} :compute service)
 
   ;; ... and we can remove our nodes
-  (converge {webserver 0} service)
+  (converge {webserver 0} :compute service)
 
   ;; Images are configured differently between clouds and os's.
   ;; Pallet comes with some \"crates\" that can be used to normalise
@@ -53,7 +58,7 @@
                       (automated-admin-user)))
 
   ;; recreate a node with our admin-user
-  (converge {webserver 1} service)
+  (converge {webserver 1} :compute service)
 
   ;; Another example, that adds java to our node type, then converges
   ;; to install java
@@ -64,11 +69,11 @@
                       (automated-admin-user))
     :configure (phase (java :openjdk)))
 
-  (converge {webserver 1} service)
+  (converge {webserver 1} :compute service)
 
   ;; if you do not want to adjust the number of nodes, there is also
   ;; a lift function, which can be used to apply configuration
-  (lift webserver service)
+  (lift webserver :compute service)
 
   ;; :bootstrap and :configure are two phases.  These are used by default
   ;; by the converge method.  The :bootstrap phase applies to nodes on first
@@ -76,12 +81,14 @@
   ;; specify other phases, either as a keyword, in which case the
   ;; configuration is taken from the corresponding section of the
   ;; defnode, or as an inline definiton, with phase
-  (converge {webserver 1} service :remove-build-tools)
-  (converge {webserver 1} service (phase (package \"curl\")))
+  (converge {webserver 1} :compute service :phase :configure)
+  (converge {webserver 1}
+    :compute service
+    :phase [:configure (phase (package \"curl\"))])
 
   ;; :configure is also the default phase for lift, but unlike with
   ;; converge, the :configure phase is not added if not specified.
-  (lift [webserver balancer] service (phase (package \"curl\")))
+  (lift [webserver balancer] :compute service :phase (phase (package \"curl\")))
 
   ;; you can manage arbitrary machines that are ssh accesable, including
   ;; local virtual machines.  For this to work you may have to specify
@@ -90,11 +97,11 @@
   (defnode vm {:os-family :ubuntu})
   (def vm1 (make-unmanaged-node \"vm\" \"localhost\" :ssh-port 2223))
   (with-admin-user [\"myuser\" :sudo-password \"xxx\"]
-    (lift {vm vm1} service (phase (package \"curl\"))))
+    (lift {vm vm1} :compute service :phase (phase (package \"curl\"))))
 
   ;; We might also want to configure the machines with chef-solo.
   ;; This expects a webserver.json file in the cookbook repository's
   ;; config directory.
   (use 'pallet.chef)
-  (lift webserver service (phase (chef)))
+  (lift webserver :compute service :phase (phase (chef)))
   (cook webserver \"path_to_your_chef_repository\")")

@@ -106,7 +106,7 @@
 (deftest converge-node-counts-test
   (defnode a {:os-family :ubuntu})
   (let [a-node (compute/make-node "a" :state NodeState/RUNNING)]
-    (converge-node-counts nil {a 1} [a-node] {}))
+    (converge-node-counts {a 1} [a-node] {:compute nil}))
   (mock/expects [(org.jclouds.compute/run-nodes
                   [tag n template compute]
                   (mock/once
@@ -115,7 +115,7 @@
                   [compute & options]
                   (mock/once :template))]
     (let [a-node (compute/make-node "a" :state NodeState/TERMINATED)]
-      (converge-node-counts nil {a 1} [a-node] {}))))
+      (converge-node-counts {a 1} [a-node] {:compute nil}))))
 
 (deftest nodes-in-map-test
   (defnode a {:os-family :ubuntu})
@@ -174,24 +174,22 @@
     (is (= [na nb] (nodes-in-map {a 1 b 1 c 1} [na nb])))
     (is (= [na] (nodes-in-map {a 1 c 1} [na nb])))))
 
-(deftest compute-service-and-options-test
+(deftest build-request-map-test
   (binding [org.jclouds.compute/*compute* :compute
             pallet.core/*middleware* :middleware]
     (testing "defaults"
-      (is (= [:compute nil 'a nil '() {:user utils/*admin-user*} :middleware]
-               (compute-service-and-options 'a []))))
+      (is (= {:blobstore nil :compute :compute :user utils/*admin-user*
+              :middleware :middleware}
+             (#'pallet.core/build-request-map {}))))
     (testing "passing a prefix"
-      (is (= [:compute "prefix" 'a nil '() {:user utils/*admin-user*}
-              :middleware]
-               (compute-service-and-options "prefix" ['a]))))
+      (is (= {:blobstore nil :compute :compute :prefix "prefix"
+              :user utils/*admin-user* :middleware *middleware*}
+             (#'pallet.core/build-request-map {:prefix "prefix"}))))
     (testing "passing a user"
       (let [user (utils/make-user "fred")]
-        (is (= [:compute "prefix" 'a nil '() {:user user} :middleware]
-                 (compute-service-and-options "prefix" ['a user])))))
-    (testing "passing a node map"
-      (let [user (utils/make-user "fred")]
-        (is (= [:compute "prefix" 'a {'a 'b} '() {:user user} :middleware]
-                 (compute-service-and-options "prefix" ['a {'a 'b} user])))))))
+        (is (= {:blobstore nil :compute :compute  :user user
+                :middleware :middleware}
+               (#'pallet.core/build-request-map {:user user})))))))
 
 (resource/defresource test-component
   (test-component-fn
@@ -267,13 +265,13 @@
     (is (.contains
          "bin"
          (with-no-compute-service
-           (with-admin-user (assoc utils/*admin-user*
-                              :username (test-username)
-                              :no-sudo true)
-             (with-out-str
-               (lift {x (compute/make-unmanaged-node "x" "localhost")}
-                     (phase (exec-script/exec-script (ls "/")))
-                     (phase (localf))))))))
+           (with-out-str
+             (lift {x (compute/make-unmanaged-node "x" "localhost")}
+                   :phase [(phase (exec-script/exec-script (ls "/")))
+                           (phase (localf))]
+                   :user (assoc utils/*admin-user*
+                           :username (test-username)
+                           :no-sudo true))))))
     (is (seen?))))
 
 (deftest lift*-nodes-binding-test
@@ -283,19 +281,23 @@
         nb (compute/make-node "b")
         nc (compute/make-node "c" :state NodeState/TERMINATED)]
     (mock/expects [(apply-phase
-                    [compute wrapper nodes request]
+                    [nodes request]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))))]
-                  (lift* nil "" {a #{na nb nc}} nil [:configure]
-                         {:user utils/*admin-user*} *middleware*))
+                  (lift* {a #{na nb nc}} nil [:configure]
+                         {:compute nil
+                          :user utils/*admin-user*
+                          :middleware *middleware*}))
     (mock/expects [(apply-phase
-                    [compute wrapper nodes request]
+                    [nodes request]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))))]
-                  (lift* nil "" {a #{na} b #{nb}} nil [:configure]
-                         {:user utils/*admin-user*} *middleware*))))
+                  (lift* {a #{na} b #{nb}} nil [:configure]
+                         {:compute nil
+                          :user utils/*admin-user*
+                          :middleware *middleware*}))))
 
 (deftest lift-multiple-test
   (defnode a {})
@@ -305,12 +307,11 @@
         nc (compute/make-node "c")]
     (mock/expects [(org.jclouds.compute/nodes-with-details [_] [na nb nc])
                    (apply-phase
-                    [compute wrapper nodes request]
+                    [nodes request]
                     (do
                       (is (= #{na nb nc} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))))]
-                  (binding [jclouds/*compute* :dummy]
-                    (lift [a b] :configure)))))
+                  (lift [a b] :compute :dummy))))
 
 (deftest converge*-nodes-binding-test
   (defnode a {})
@@ -319,13 +320,14 @@
         nb (compute/make-node "b")
         nc (compute/make-node "b" :state NodeState/TERMINATED)]
     (mock/expects [(apply-phase
-                    [compute wrapper nodes request]
+                    [nodes request]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))))
                    (org.jclouds.compute/nodes-with-details [& _] [na nb nc])]
                   (converge*
-                   nil "" {a 1 b 1} nil [:configure] {} *middleware*))))
+                   {a 1 b 1} nil [:configure] {:compute nil
+                                               :middleware *middleware*}))))
 
 (deftest converge-test
   (org.jclouds.compute/with-compute-service

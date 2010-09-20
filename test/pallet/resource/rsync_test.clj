@@ -28,10 +28,10 @@
         (core/defnode tag {:packager :no-packages})
         (.delete target-dir)
         (core/lift*
-         nil "" {tag node} nil
+         {tag node} nil
          [(resource/phase (rsync (.getPath dir) (.getPath target-dir) {}))]
-         {:user user}
-         core/*middleware*)
+         {:user user
+          :middleware core/*middleware*})
         (let [target-tmp (java.io.File.
                           (str (.getPath target-dir)
                                "/" (.getName dir)
@@ -41,11 +41,11 @@
           (.delete target-tmp))
         (.delete target-dir)
         (core/lift*
-         nil "" {tag node} nil
+         {tag node} nil
          [(resource/phase
            (rsync-directory (.getPath dir) (.getPath target-dir)))]
-         {:user user}
-         core/*middleware*)
+         {:user user
+          :middleware core/*middleware*})
         (let [target-tmp (java.io.File.
                           (str (.getPath target-dir)
                                "/" (.getName dir)

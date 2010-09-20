@@ -139,20 +139,21 @@
                        :target-nodes [node]
                        :target-node node
                        :node-type tag
-                       :user user}]
+                       :user user
+                       :middleware core/*middleware*}]
           (core/lift*
-           nil "" {tag node} nil
+           {tag node} nil
            [(phase
              (remote-file
               (.getPath target-tmp)
               :local-file (.getPath tmp) :mode "0666"))]
-           request core/*middleware*)
+           request)
           (is (.canRead target-tmp))
           (is (= "text" (slurp (.getPath target-tmp))))
           (core/lift*
-           nil "" {tag node} nil
+           {tag node} nil
            [(phase
              (exec-script/exec-script
               (rm ~(.getPath target-tmp))))]
-           request core/*middleware*))
+           request))
         (is (not (.exists target-tmp)))))))

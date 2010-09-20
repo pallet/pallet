@@ -32,16 +32,32 @@ An empty template specification implies a default image will be used for the
 nodes, usually the latest Ubuntu version, or CentOS if no Ubuntu images are
 available.
 
+Node types can also specify phase functions, which can be invoked using
+=converge= or =lift=.
+
+#+BEGIN_SRC clojure  :session s1
+  (require 'pallet.core)
+  (require 'pallet.resource.package)
+  (pallet.core/defnode mytag {}
+    :configure (pallet.resource/phase
+                 (pallet.resource.package/package "wget")))
+#+END_SRC
+
+Node types are used to select the nodes targeted by a [[file:operations.org][=converge= or =lift= operation]].
+
 * Tags
 
 In pallet, tags are used to identify identically configured machines.  The
 =converge= command can be used to control the number of machines running with
 each tag, allowing simple cluster management. Tag names may not contain hyphens.
 
-Tags are used to select the nodes targeted by a [[file:operations.org][=converge= or =lift= operation]].
-
 * Image Templates
 
 The image used for a node can be specified by using JCloud's template
-mechanism.  The image template in =defnode= is exactly as for jclouds clojure API.
+mechanism.  The image template in =defnode= is exactly as for jclouds clojure API,
+and is a map of option/value pairs.
 
+#+BEGIN_SRC clojure  :session s1
+  (require 'pallet.core)
+  (pallet.core/defnode mytag {:os-family :ubuntu :min-ram 512 :min-cores 4})
+#+END_SRC
