@@ -22,7 +22,7 @@
                            (conj (or m []) a)
                            phases)
        :else (recur (next args) prefix m (conj phases a)))
-      (concat (if prefix [prefix] []) m phases))))
+      (concat (if prefix [prefix] []) m [:phase phases]))))
 
 (defn lift
   "Apply configuration.
