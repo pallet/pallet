@@ -148,7 +148,9 @@
     (is (= {pa #{a-node b-node}}
            (nodes-in-set {a #{a-node b-node}} "p" nil)))
     (is (= {pa #{a-node} pb #{b-node}}
-           (nodes-in-set {a #{a-node} b #{b-node}} "p" nil)))))
+           (nodes-in-set {a #{a-node} b #{b-node}} "p" nil)))
+    (is (= {pa #{a-node} pb #{b-node}}
+           (nodes-in-set {a a-node b b-node} "p" nil)))))
 
 (deftest node-in-types?-test
   (defnode a {})
@@ -250,18 +252,28 @@
            :target-id :id})))))
 
 
-(let [seen (atom nil)]
-  (defn seen? [] @seen)
-  (deflocal localf
-    (localf*
-     [request]
-     (reset! seen true)
-     (is (:target-node request))
-     (is (:node-type request))
-     request))
 
-  (deftest lift-test
-    (defnode x {})
+(defmacro seen-fn
+  "Generate a local function, which uses an atom to record when it is called."
+  []
+  (let [localf-sym (gensym "localf")
+        localf*-sym (gensym "localf*")]
+    `(let [seen# (atom nil)
+           seen?# (fn [] @seen#)]
+       (deflocal ~localf-sym
+         (~localf*-sym
+          [request#]
+          (clojure.contrib.logging/info "Seenfn")
+          (is (not @seen#))
+          (reset! seen# true)
+          (is (:target-node request#))
+          (is (:node-type request#))
+          request#))
+       [~localf-sym seen?#])))
+
+(deftest lift-test
+  (defnode x {})
+  (let [[localf seen?] (seen-fn)]
     (is (.contains
          "bin"
          (with-no-compute-service
@@ -273,6 +285,21 @@
                            :username (test-username)
                            :no-sudo true))))))
     (is (seen?))))
+
+(deftest lift2-test
+  (let [[localf seen?] (seen-fn)
+        [localfy seeny?] (seen-fn)]
+    (defnode x1 {} :configure (resource/phase localf))
+    (defnode y1 {} :configure (resource/phase localfy))
+    (binding [org.jclouds.compute/*compute* nil]
+      (is (map?
+           (lift {x1 (compute/make-unmanaged-node "x" "localhost")
+                  y1 (compute/make-unmanaged-node "y" "localhost")}
+                 :user (assoc utils/*admin-user*
+                         :username (test-username)
+                         :no-sudo true)))))
+    (is (seen?))
+    (is (seeny?))))
 
 (deftest lift*-nodes-binding-test
   (defnode a {})

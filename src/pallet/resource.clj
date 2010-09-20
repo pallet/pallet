@@ -371,7 +371,7 @@ configuration code."
                    (file \"/some-file\")
                    (file \"/other-file\"))) "
   [& body]
-  `(fn [request#] (-> request# ~@body)))
+  `(fn phase-fn [request#] (-> request# ~@body)))
 
 (defn produce-phases
   "Join the result of produce-phase, executing local resources.

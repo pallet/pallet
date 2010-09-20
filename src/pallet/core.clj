@@ -129,15 +129,17 @@ When passing a username the following options can be specified:
      (or f (compute/node-os-family (:target-node request))))))
 
 (defn add-target-id
-  "Add the os family to the node-type if available from node"
+  "Add the target-id to the request"
   [request]
   (update-in
    request [:target-id]
    (fn ensure-target-id [id]
-     (or id (keyword (.getId (:target-node request)))))))
+     (or
+      (when-let [node (:target-node request)] (keyword (.getId node)))
+      id))))
 
 (defn add-target-packager
-  "Add the os family to the node-type if available from node"
+  "Add the target packager to the request"
   [request]
   (update-in
    request [:target-packager]
@@ -145,21 +147,53 @@ When passing a username the following options can be specified:
      (or p (target/packager (get-in request [:node-type :image]))))))
 
 (defn add-target-keys
-  [request]
-  (-> request
-      add-os-family
-      add-target-packager
-      add-target-id))
+  "Add target keys on the way down"
+  [handler]
+  (fn [request]
+    (handler
+     (-> request
+         add-os-family
+         add-target-packager
+         add-target-id))))
 
+(defn show-target-keys
+  "Middleware that is useful in debugging."
+  [handler]
+  (fn [request]
+    (logging/info
+     (format
+      "TARGET KEYS :phase %s :target-id %s :tag %s :target-packager %s"
+      (:phase request)
+      (:target-id request)
+      (:tag (:node-type request))
+      (:target-packager request)))
+    (handler request)))
+
+(defmacro pipe
+  "Build a request processing pipeline from the specified forms"
+  [& forms]
+  (let [[middlewares etc] (split-with #(or (seq? %) (symbol? %)) forms)
+        middlewares (reverse middlewares)
+        [middlewares [x :as etc]]
+          (if (seq etc)
+            [middlewares etc]
+            [(rest middlewares) (list (first middlewares))])
+          handler x]
+    (if (seq middlewares)
+      `(-> ~handler ~@middlewares)
+      handler)))
 
 (defn resource-invocations [request]
+  {:pre [(:phase request)]}
   (if-let [f (some
               (:phase request)
               [(:phases (:node-type request)) (:phases request)])]
-    (let [request (add-target-keys request)]
-      (script/with-template [(-> request :node-type :image :os-family)
-                             (-> request :target-packager)]
-        (f request)))
+    (script/with-template [(-> request :node-type :image :os-family)
+                           (-> request :target-packager)]
+      (f ((pipe
+           add-target-keys
+           identity)
+          request)))
     request))
 
 (defn produce-init-script
@@ -168,8 +202,7 @@ When passing a username the following options can be specified:
   (let [cmds
         (resource/produce-phase
          (resource-invocations
-          (add-target-keys
-           (assoc request :phase :bootstrap :target-id :bootstrap-id))))]
+          (assoc request :phase :bootstrap :target-id :bootstrap-id)))]
     (if-not (and (every? #(= :remote (:location %)) cmds) (>= 1 (count cmds)))
       (condition/raise
        :type :booststrap-contains-local-resources
@@ -215,7 +248,7 @@ When passing a username the following options can be specified:
           options (if (not (:run-script options))
                     (if-let [init-script (produce-init-script request)]
                       (do
-                        (logging/info (str "Init script\n" init-script))
+                        (logging/debug (str "Init script\n" init-script))
                         (assoc options :run-script (.getBytes init-script)))
                       options)
                     options)]
@@ -325,31 +358,17 @@ script that is run with root privileges immediatly after first boot."
                     (-> request :target-packager)]
                    (resource/produce-phase request))))))
 
-(defmacro pipe
-  "Build a request processing pipeline from the specified forms"
-  [& forms]
-  (let [[middlewares etc] (split-with #(or (seq? %) (symbol? %)) forms)
-        middlewares (reverse middlewares)
-        [middlewares [x :as etc]]
-          (if (seq etc)
-            [middlewares etc]
-            [(rest middlewares) (list (first middlewares))])
-          handler x]
-    (if (seq middlewares)
-      `(-> ~handler ~@middlewares)
-      handler)))
-
-
 (defn apply-phase-to-node
   "Apply a phase to a node request"
   [request]
   {:pre [(:target-node request)]}
   (let [middleware (:middleware request)]
     ((pipe
+      add-target-keys
       build-commands
       middleware
       execute-with-ssh)
-     (add-target-keys request))))
+     request)))
 
 (defn wrap-no-exec
   "Middleware to report on the request, without executing"
@@ -504,6 +523,7 @@ script that is run with root privileges immediatly after first boot."
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
   [all-nodes target-node-map all-node-map phases request]
+  (logging/trace (format "lift-nodes phases %s" (vec phases)))
   (let [target-nodes (filter running? (apply concat (vals target-node-map)))
         all-nodes (or all-nodes target-nodes) ; Target node map may contain
                                         ; unmanged nodes
@@ -529,6 +549,7 @@ script that is run with root privileges immediatly after first boot."
 
 (defn lift*
   [node-set all-node-set phases request]
+  (logging/trace (format "lift* phases %s" (vec phases)))
   (let [nodes (when (:compute request)
                 (logging/info "retrieving nodes")
                 (filter
@@ -622,7 +643,7 @@ script that is run with root privileges immediatly after first boot."
                :as options}]
   (converge*
    node-map all-node-set
-   (if (sequential? phase) phase [phase])
+   (if (sequential? phase) phase (if phase [phase] nil))
    (build-request-map (dissoc options :all-node-set :phase))))
 
 
@@ -656,5 +677,5 @@ script that is run with root privileges immediatly after first boot."
                :as options}]
   (lift*
    node-set all-node-set
-   (if (sequential? phase) phase [phase])
+   (if (sequential? phase) phase (if phase [phase] nil))
    (build-request-map (dissoc options :all-node-set :phase))))

@@ -143,7 +143,7 @@
     (NodeMetadataImpl.
      (options :provider-id (options :id tag))
      (options :name tag)
-     (options :id tag)
+     (options :id (str tag (rand-int 65000)))
      (options :location)
      (java.net.URI. tag)                ; uri
      (merge (get options :user-metadata {}) meta)
