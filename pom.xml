@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project>
     <modelVersion>4.0.0</modelVersion>
+    <parent>
+      <groupId>org.sonatype.oss</groupId>
+      <artifactId>oss-parent</artifactId>
+      <version>5</version>
+    </parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet</artifactId>
     <version>0.2.0-SNAPSHOT</version>
@@ -35,11 +40,14 @@
 
     <distributionManagement>
       <repository>
+        <id>sonatype-nexus-staging</id>
+        <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
         <uniqueVersion>false</uniqueVersion>
-        <id>clojars</id>
-        <name>Clojars Repository</name>
-        <url>scpexe://clojars.org</url>
       </repository>
+      <snapshotRepository>
+        <id>sonatype-nexus-snapshots</id>
+        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+      </snapshotRepository>
     </distributionManagement>
 
     <build>
@@ -107,8 +115,61 @@
                     <descriptorSourceDirectory>${project.basedir}/assembly</descriptorSourceDirectory>
                 </configuration>
             </plugin>
-        </plugins>
-        <extensions>
+            <plugin>
+              <artifactId>maven-enforcer-plugin</artifactId>
+              <executions>
+                <execution>
+                  <id>enforce-banned-dependencies</id>
+                  <goals>
+                    <goal>enforce</goal>
+                  </goals>
+                  <configuration>
+                    <rules>
+                      <bannedDependencies>
+                        <excludes>
+                          <exclude>:maven-dependency-plugin</exclude>
+                        </excludes>
+                      </bannedDependencies>
+                    </rules>
+                  </configuration>
+                </execution>
+                <execution>
+                  <id>enforce-java</id>
+                  <goals>
+                    <goal>enforce</goal>
+                  </goals>
+                  <configuration>
+                    <rules>
+                      <requireJavaVersion>
+                        <version>[1.6,)</version>
+                      </requireJavaVersion>
+                      <requireMavenVersion>
+                        <version>[2.2.1,)</version>
+                      </requireMavenVersion>
+                    </rules>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-gpg-plugin</artifactId>
+              <configuration>
+                <keyName>${gpg.keyname}</keyName>
+                <passphrase>${gpg.passphrase}</passphrase>
+              </configuration>
+              <executions>
+                <execution>
+                  <id>sign-artifacts</id>
+                  <phase>verify</phase>
+                  <goals>
+                    <goal>sign</goal>
+                  </goals>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+          <extensions>
           <!-- Enabling the use of SSH -->
           <extension>
             <groupId>org.apache.maven.wagon</groupId>
@@ -254,7 +315,7 @@
     <repositories>
         <repository>
             <id>jclouds</id>
-            <url>http://oss.sonatype.org/content/repositories/releases</url>
+            <url>http://jclouds.googlecode.com/svn/repo</url>
         </repository>
         <repository>
             <id>jclouds-snapshots</id>
