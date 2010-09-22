@@ -25,8 +25,7 @@ chef-repository you specify with `with-chef-repository`.
     :only [node-has-tag? node-counts-by-tag boot-if-down compute-node?
            ssh-port]]
    [org.jclouds.compute
-    :only [run-nodes destroy-node tag running?
-           compute-service? *compute*]])
+    :only [run-nodes tag running? compute-service? *compute*]])
   (:require
    [pallet.compute :as compute]
    [pallet.execute :as execute]
@@ -283,10 +282,13 @@ script that is run with root privileges immediatly after first boot."
 (defn destroy-nodes-with-count
   "Destroys the specified number of nodes with the given tag.  Nodes are
    selected at random."
-  [nodes tag count compute]
-  (logging/info (str "destroying " count " nodes with tag " tag))
-  (dorun (map #(destroy-node (.getId %) compute)
-              (take count (filter (partial node-has-tag? tag) nodes)))))
+  [nodes tag destroy-count compute]
+  (logging/info (str "destroying " destroy-count " nodes with tag " tag))
+  (let [tag-nodes (filter (partial node-has-tag? tag) nodes)]
+    (if (= destroy-count (count tag-nodes))
+      (jclouds/destroy-nodes-with-tag (name tag) compute)
+      (doseq [node (take destroy-count tag-nodes)]
+        (jclouds/destroy-node (.getId node) compute)))))
 
 (defn node-count-difference
   "Find the difference between the required and actual node counts by tag."
