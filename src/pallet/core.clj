@@ -126,7 +126,9 @@ When passing a username the following options can be specified:
   (update-in
    request [:node-type :image :os-family]
    (fn ensure-os-family [f]
-     (or f (compute/node-os-family (:target-node request))))))
+     (or (when-let [node (:target-node request)]
+           (compute/node-os-family node))
+         f))))
 
 (defn add-target-id
   "Add the target-id to the request"
@@ -355,6 +357,9 @@ script that is run with root privileges immediatly after first boot."
 (defn build-commands
   [handler]
   (fn [request]
+    {:pre [handler
+           (-> request :node-type :image :os-family)
+           (-> request :target-packager)]}
     (handler
      (assoc request
        :commands (script/with-template
