@@ -22,7 +22,7 @@
                            (conj (or m []) a)
                            phases)
        :else (recur (next args) prefix m (conj phases a)))
-      (concat (if prefix [prefix] []) m [:phase phases]))))
+      (concat (if prefix [prefix] []) [(set m)] [:phase phases]))))
 
 (defn lift
   "Apply configuration.
@@ -30,6 +30,4 @@
    The node-types should be namespace qualified."
   [& args]
   (let [args (build-args args)]
-    (doseq [arg args]
-      (println arg (type arg)))
     (apply core/lift args)))
