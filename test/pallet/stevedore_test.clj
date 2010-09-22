@@ -63,8 +63,18 @@
 (deftest test-aget
   (is (= "${foo[2]}" (script (aget foo 2)))))
 
-(deftest test-aget
+(deftest test-aset
   (is (= "foo[2]=1" (script (aset foo 2 1)))))
+
+(deftest test-set!
+  (is (= "foo=1" (script (set! foo 1))))
+  (is (thrown? clojure.contrib.condition.Condition
+              (script (set! foo-bar 1)))))
+
+(deftest var-test
+  (is (= "foo=1" (script (var foo 1))))
+  (is (thrown? clojure.contrib.condition.Condition
+              (script (var foo-bar 1)))))
 
 (deftest test-array
   (is (= "(1 2 \"3\" foo)" (script [1 "2" "\"3\"" :foo]))))

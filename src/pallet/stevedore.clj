@@ -2,7 +2,8 @@
   "Embed shell script in clojure"
   (:require
    [pallet.utils :as utils]
-   [clojure.contrib.string :as string])
+   [clojure.contrib.string :as string]
+   [clojure.contrib.condition :as condition])
   (:use clojure.walk
         clojure.contrib.logging
         pallet.script))
@@ -152,8 +153,15 @@
 (defmethod emit-special 'local [type [local name expr]]
   (str "local " (emit name) "=" (emit expr)))
 
-(defmethod emit-special 'var [type [var name expr]]
-  (str (emit name) "=" (emit expr)))
+(defn check-symbol [var-name]
+  (when (re-matches #".*-.*" var-name)
+    (condition/raise
+     :type :invalid-bash-symbol
+     :message (format "Invalid bash symbol %s" var-name)))
+  var-name)
+
+(defmethod emit-special 'var [type [var var-name expr]]
+  (str (check-symbol (emit var-name)) "=" (emit expr)))
 
 (defmethod emit-special 'defvar [type [defvar name expr]]
   (str (emit name) "=" (emit expr)))
@@ -231,7 +239,7 @@
   (str "return " (emit expr)))
 
 (defmethod emit-special 'set! [type [set! var val]]
-  (str (emit var) "=" (emit val)))
+  (str (check-symbol (emit var)) "=" (emit val)))
 
 (defmethod emit-special 'new [type [new class & args]]
   (str "new " (emit class) (comma-list (map emit args))))
