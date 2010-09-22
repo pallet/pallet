@@ -330,6 +330,12 @@ script that is run with root privileges immediatly after first boot."
      :address (compute/node-address target-node)
      :ssh-port (compute/ssh-port target-node))))
 
+(defn execute-with-local-sh
+  "Middleware to execute on localhost with shell"
+  [handler]
+  (fn [{:as request}]
+    (execute/local-sh-cmds request)))
+
 (defn parameter-keys [node node-type]
   [:default
    (target/packager (node-type :image))

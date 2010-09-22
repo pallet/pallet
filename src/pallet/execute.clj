@@ -6,7 +6,7 @@
    [clj-ssh.ssh :as ssh]
    [clojure.string :as string]
    [clojure.contrib.condition :as condition]
-   [clojure.contrib.io :as io]
+   [clojure.java.io :as io]
    [clojure.contrib.shell :as shell]
    [clojure.contrib.logging :as logging]))
 
@@ -116,7 +116,9 @@
           (logging/error (str "Output       : " stdout))
           (logging/error (str "Error output : " stderr))
           (condition/raise
-           :message (str "Error executing script : " stdout)
+           :message (format
+                     "Error executing script :\n :cmd %s\n :out %s\n :err %s"
+                     command stdout stderr)
            :type :pallet-script-excution-error
            :script-exit (script-result :exit)
            :script-out stdout
@@ -182,14 +184,34 @@
 (defn sh-script
   "Run a script on local machine."
   [command]
+  (logging/trace
+   (format "sh-script %s" command))
   (let [tmp (java.io.File/createTempFile "pallet" "script")]
     (try
-     (io/copy command tmp)
-     (shell/sh "chmod" "+x" (.getPath tmp))
-     (let [result (shell/sh "bash" (.getPath tmp) :return-map true)]
-       (when-not (zero? (:exit result))
-         (logging/error
-          (format "Command failed: %s\n%s" command (:err result))))
-       (logging/info (:out result))
-       result)
-     (finally  (.delete tmp)))))
+      (io/copy (str prolog command) tmp)
+      (shell/sh "chmod" "+x" (.getPath tmp))
+      (let [result (shell/sh "bash" (.getPath tmp) :return-map true)]
+        (when-not (zero? (:exit result))
+          (logging/error
+           (format "Command failed: %s\n%s" command (:err result))))
+        (logging/info (:out result))
+        result)
+      (finally  (.delete tmp)))))
+
+(defn local-sh-cmds
+  "Execute cmds for the request.
+   Runs locally as the current user, so useful for testing."
+  [{:keys [commands root-path] :or {root-path "/tmp/"} :as request}]
+  (when commands
+    (letfn [(execute
+             [cmdstring]
+             (logging/info (format "Cmd %s" cmdstring))
+             (doseq [[file remote-name] resource/*file-transfers*]
+               (logging/info
+                (format "Transferring file %s to %s" file remote-name))
+               (io/copy (io/file file) (io/file remote-name)))
+             (let [rv (sh-script cmdstring)]
+               (doseq [[file remote-name] resource/*file-transfers*]
+                 (io/delete-file (file remote-name)))
+               rv))]
+      (resource/execute-commands request execute))))

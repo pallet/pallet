@@ -312,10 +312,17 @@
 (def jvm-os-map
      { "Mac OS X" :os-x })
 
+(defn make-localhost-node
+  "Make a node representing the local host"
+  []
+  (make-node "localhost"
+             :public-ips ["127.0.0.1"]
+             :operating-system (local-operating-system)))
+
 (defn local-request
   "Create a request map for localhost"
   []
-  (let [node (make-node "localhost")]
+  (let [node (make-localhost-node)]
     {:target-node node
      :all-nodes [node]
      :target-nodes [node]
