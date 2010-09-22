@@ -1,6 +1,7 @@
 (ns pallet.execute
   "Exectute commands.  At the moment the only available transport is ssh."
   (:require
+   [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
    [pallet.resource :as resource]
    [clj-ssh.ssh :as ssh]
@@ -25,7 +26,9 @@
     (system (str "/usr/bin/env bash " (.getPath file)))))
 
 
-(def prolog "#!/usr/bin/env bash\n")
+(def prolog
+  (str "#!/usr/bin/env bash\n"
+       stevedore/hashlib))
 
 (defn- normalise-eol
   "Convert eol into platform specific value"
