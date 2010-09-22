@@ -6,6 +6,8 @@
   (:require
    [pallet.utils :as utils]))
 
+(use-fixtures :once with-ubuntu-script-template)
+
 (defn strip-ws
   "strip extraneous whitespace so tests don't fail because of differences in
    whitespace" [s]
@@ -60,6 +62,9 @@
 
 (deftest test-aget
   (is (= "${foo[2]}" (script (aget foo 2)))))
+
+(deftest test-aget
+  (is (= "foo[2]=1" (script (aset foo 2 1)))))
 
 (deftest test-array
   (is (= "(1 2 \"3\" foo)" (script [1 "2" "\"3\"" :foo]))))

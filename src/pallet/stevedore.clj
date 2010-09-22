@@ -81,7 +81,7 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['if 'if-not 'when 'case 'aget 'defn 'return 'set! 'var 'defvar 'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists? 'symlink? 'readable? 'writeable? 'not 'println 'group 'pipe 'chain-or 'chain-and 'while 'doseq]))
+(def special-forms (set ['if 'if-not 'when 'case 'aget 'aset 'defn 'return 'set! 'var 'defvar 'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists? 'symlink? 'readable? 'writeable? 'not 'println 'group 'pipe 'chain-or 'chain-and 'while 'doseq]))
 
 (def infix-operators (set ['+ '- '/ '* '% '== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '|| 'and 'or]))
 (def logical-operators (set ['== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '|| 'file-exists? 'symlink? 'readable? 'writeable? 'not 'and 'or]))
@@ -238,6 +238,9 @@
 
 (defmethod emit-special 'aget [type [aget var idx]]
   (str "${" (emit var) "[" (emit idx) "]}"))
+
+(defmethod emit-special 'aset [type [aget var idx val]]
+  (str (emit var) "[" (emit idx) "]=" (emit val)))
 
 (defmethod emit-special 'deref
   [type [deref expr]]
