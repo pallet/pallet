@@ -6,6 +6,7 @@
         pallet.test-utils)
   (:require
    [pallet.core :as core]
+   [pallet.resource.lib :as lib]
    [pallet.resource :as resource]
    [pallet.resource.exec-script :as exec-script]
    [pallet.resource.file :as file]
@@ -24,7 +25,8 @@
           (file/heredoc "path.new" "xxx")
           (stevedore/chained-script
            (if (file-exists? "path.new")
-             (mv -f " path.new" "path"))
+             (do
+               (mv -f " path.new" "path")))
            ((md5sum "path") > "path.md5")
            (echo "MD5 sum is" @(cat "path.md5"))))
          (remote-file* {} "path" :content "xxx" :no-versioning true)))
@@ -34,7 +36,8 @@
           (file/heredoc "path.new" "xxx")
           (stevedore/chained-script
            (if (file-exists? "path.new")
-             (mv -f " path.new" "path"))
+             (do
+               (mv -f " path.new" "path")))
            (chown "o" "path")
            (chgrp "g" "path")
            (chmod "m" "path")
@@ -69,7 +72,8 @@
     (with-temporary [tmp (tmpfile)]
       (is  (re-matches
             (java.util.regex.Pattern/compile
-             "remote-file .*....*MD5 sum is 6de9439834c9147569741d3c9c9fc010 .*...done."
+             (str "remote-file .*....*MD5 sum is "
+                  "6de9439834c9147569741d3c9c9fc010 .*...done.")
              (bit-or java.util.regex.Pattern/MULTILINE
                      java.util.regex.Pattern/DOTALL))
             (->
@@ -134,10 +138,50 @@
              {tag node}
              :phase #(remote-file
                       % (.getPath target-tmp) :content "$(hostname)"
-                      :mode "0666")
+                      :mode "0666" :flag-on-changed :changed)
              :user user)
             (is (.canRead target-tmp))
             (is (= (:out (execute/sh-script "hostname"))
+                   (slurp (.getPath target-tmp)))))
+          (testing "content unchanged"
+            (is
+             (re-find
+              #"correctly unchanged"
+              (->
+               (core/lift
+                {tag node}
+                :phase (resource/phase
+                        (remote-file
+                         (.getPath target-tmp) :content "$(hostname)"
+                         :mode "0666" :flag-on-changed :changed)
+                        (exec-script/exec-script
+                         (if (== (flag? :changed) "1")
+                           (echo "incorrect!" (flag? :changed) "!")
+                           (echo "correctly unchanged"))))
+                        :user user)
+               :results :localhost first second first :out)))
+            (is (.canRead target-tmp))
+            (is (= (:out (execute/sh-script "hostname"))
+                   (slurp (.getPath target-tmp)))))
+          (testing "content changed"
+            (is
+             (re-find
+              #"correctly changed"
+              (->
+               (core/lift
+                {tag node}
+                :phase (resource/phase
+                        (remote-file
+                         (.getPath target-tmp) :content "abc"
+                         :mode "0666" :flag-on-changed :changed)
+                        (exec-script/exec-script
+                         (if (== (flag? :changed) "1")
+                           (echo "correctly changed")
+                           (echo "incorrect!" (flag? :changed) "!"))))
+                        :user user)
+               :results :localhost first second first :out)))
+            (is (.canRead target-tmp))
+            (is (= "abc\n"
                    (slurp (.getPath target-tmp)))))
           (testing "content"
             (core/lift

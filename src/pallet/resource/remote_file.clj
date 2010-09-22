@@ -2,6 +2,7 @@
   "File Contents."
   (:require
    [pallet.resource :as resource]
+   [pallet.resource.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.template :as templates]
    [pallet.resource.file :as file]
@@ -66,6 +67,7 @@ Options for specifying the file's content are:
   :overwrite-changes - flag to force overwriting of locally modified content
   :no-versioning    - do not version the file
   :max-versions     - specfy the number of versions to keep (default 5)
+  :flag-on-changed  - flag to set if file is changed
 Options for specifying the file's permissions are:
   :owner user-name
   :group group-name
@@ -77,7 +79,8 @@ Options for specifying the file's permissions are:
                            md5 md5-url
                            owner group mode force
                            blob blobstore
-                           overwrite-changes no-versioning max-versions]
+                           overwrite-changes no-versioning max-versions
+                           flag-on-changed]
                     :or {action :create max-versions 5}
                     :as options}]
    (let [new-path (str path ".new")
@@ -98,7 +101,8 @@ Options for specifying the file's permissions are:
          ;; Download md5 to temporary directory.
          (and url md5-url) (stevedore/chained-script
                             (var tmpdir (quoted (make-temp-dir "rf")))
-                            (var basefile (quoted (str @tmpdir "/" @(basename ~path))))
+                            (var basefile
+                                 (quoted (str @tmpdir "/" @(basename ~path))))
                             (var newmd5path (quoted (str @basefile ".md5")))
                             (download-file ~md5-url @newmd5path)
                             (if (|| (not (file-exists? ~md5-path))
@@ -149,7 +153,11 @@ Options for specifying the file's permissions are:
            (if (or overwrite-changes no-versioning force-overwrite)
              (stevedore/script
               (if (file-exists? ~new-path)
-                (mv -f ~versioning ~new-path ~path)))
+                (do
+                  ~(stevedore/chain-commands
+                    (stevedore/script (mv -f ~versioning ~new-path ~path))
+                    (if flag-on-changed
+                      (stevedore/script (set-flag ~flag-on-changed)))))))
              (stevedore/script
               (var md5diff "")
               (if (&& (file-exists? ~path) (file-exists? ~md5-path))
@@ -165,10 +173,18 @@ Options for specifying the file's permissions are:
                 (do
                   (echo "Existing content did not match md5:")
                   (exit 1)))
-              (if (!= @contentdiff "")
-                (mv -f ~versioning ~new-path ~path))
+              (if (!= @contentdiff "0")
+                (do
+                  ~(stevedore/chain-commands
+                    (stevedore/script (mv -f ~versioning ~new-path ~path))
+                    (if flag-on-changed
+                      (stevedore/script (set-flag ~flag-on-changed))))))
               (if-not (file-exists? ~path)
-                (mv ~new-path ~path))))
+                (do
+                  ~(stevedore/chain-commands
+                    (stevedore/script (mv ~new-path ~path))
+                    (if flag-on-changed
+                      (stevedore/script (set-flag ~flag-on-changed))))))))
            (file/adjust-file path options)
            (file/write-md5-for-file path md5-path)
            (stevedore/script (echo "MD5 sum is" @(cat ~md5-path)))))
