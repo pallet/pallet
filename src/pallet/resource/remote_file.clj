@@ -11,11 +11,18 @@
    [clojure.contrib.def :as def]))
 
 (def install-new-files true)
+(def force-overwrite false)
 
 (defn set-install-new-files
   "Set boolean flag to control installation of new files"
   [flag]
   (alter-var-root #'install-new-files (fn [_] flag)))
+
+(defn set-force-overwrite
+  "Globally force installation of new files, even if content on node has
+  changed."
+  [flag]
+  (alter-var-root #'force-overwrite (fn [_] flag)))
 
 (def/defvar
   content-options
@@ -139,7 +146,7 @@ Options for specifying the file's permissions are:
         ;; process the new file accordingly
         (when install-new-files
           (stevedore/chain-commands
-           (if (or overwrite-changes no-versioning)
+           (if (or overwrite-changes no-versioning force-overwrite)
              (stevedore/script
               (if (file-exists? ~new-path)
                 (mv -f ~versioning ~new-path ~path)))
