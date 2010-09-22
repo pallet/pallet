@@ -231,7 +231,7 @@
   (str "return " (emit expr)))
 
 (defmethod emit-special 'set! [type [set! var val]]
-  (str (emit var) " = " (emit val)))
+  (str (emit var) "=" (emit val)))
 
 (defmethod emit-special 'new [type [new class & args]]
   (str "new " (emit class) (comma-list (map emit args))))

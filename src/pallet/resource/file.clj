@@ -13,6 +13,10 @@
 (script/defscript rm [file & options])
 (stevedore/defimpl rm :default [file & options]
   ("rm" ~(stevedore/map-to-arg-string (first options)) ~file))
+(stevedore/defimpl rm [#{:darwin}] [file & options]
+  ("rm" ~(stevedore/map-to-arg-string
+          {:r (:recursive (first options))
+           :f (:force (first options))}) ~file))
 
 (script/defscript chown [owner file & options])
 (stevedore/defimpl chown :default [owner file & options]
@@ -29,6 +33,26 @@
 (script/defscript touch [file & options])
 (stevedore/defimpl touch :default [file & options]
   ("touch" ~(stevedore/map-to-arg-string (first options)) ~file))
+
+(script/defscript md5sum [file & {:as options}])
+(stevedore/defimpl md5sum :default [file & {:as options}]
+  ("md5sum" ~(stevedore/map-to-arg-string options) ~file))
+(stevedore/defimpl md5sum [#{:darwin}] [file & {:as options}]
+  ("/sbin/md5" -r ~file))
+
+(script/defscript md5sum-verify [file & {:as options}])
+(stevedore/defimpl md5sum-verify :default [file & {:as options}]
+  ("md5sum" ~(stevedore/map-to-arg-string options) ~file))
+(stevedore/defimpl md5sum-verify [#{:darwin}] [file & {:as options}]
+  (var testfile @(cut -d "' '" -f 2 ~file))
+  (var md5 @(cut -d "' '" -f 1 ~file))
+  (test (quoted @("/sbin/md5" -q @testfile)) == (quoted @md5)))
+
+(script/defscript backup-option [])
+(stevedore/defimpl backup-option :default []
+  "--backup=numbered")
+(stevedore/defimpl backup-option [#{:darwin}] []
+  "")
 
 (script/defscript sed-file [file expr-map options])
 
@@ -85,6 +109,12 @@
        (stevedore/script (chgrp ~(options :group) ~path)))
      (when (:mode options)
        (stevedore/script (chmod ~(options :mode) ~path)))])))
+
+(defn write-md5-for-file
+  "Create a .md5 file for the specified input file"
+  [path md5-path]
+  (stevedore/script
+   ((md5sum ~path) > ~md5-path)))
 
 (defn touch-file [path opts]
   (stevedore/chain-commands

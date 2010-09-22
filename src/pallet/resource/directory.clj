@@ -17,6 +17,12 @@
 (stevedore/defimpl mkdir :default [directory & options]
   ("mkdir" ~(stevedore/map-to-arg-string (first options)) ~directory))
 
+(script/defscript make-temp-dir [pattern & options])
+(stevedore/defimpl make-temp-dir :default [pattern & options]
+  @("mktemp" -d
+    ~(stevedore/map-to-arg-string (first options))
+    ~(str pattern "XXXXX")))
+
 (defn adjust-directory [path opts]
   (stevedore/chain-commands*
    (filter
