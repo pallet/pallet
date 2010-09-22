@@ -64,7 +64,7 @@
    "Mac OS X" OsFamily/DARWIN
    "FreeBSD" OsFamily/FREEBSD
    "HP UX" OsFamily/HPUX
-   "Linux"   OsFamily/LINUX
+   "Linux"   OsFamily/UBUNTU ;; guess for now
    "Solaris" OsFamily/SOLARIS
    "Windows 2000" OsFamily/WINDOWS
    "Windows 7" OsFamily/WINDOWS
