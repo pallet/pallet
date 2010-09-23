@@ -37,4 +37,5 @@ The request map has some well defined keys:
   :extensions for constructing a jclouds compute service
 - :blobstore : The blobstore service
 - :user : The admin user to use on the nodes
-
+- :invocations : the invocation list of resources to run on each node
+- :cmds : merged invocation functions
