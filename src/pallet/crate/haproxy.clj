@@ -173,7 +173,9 @@
        (merge
         options
         {:ip (request-map/target-ip request)
-         :name (request-map/target-name request)}))))))
+         ;; some providers don't allow for node names, only node ids
+         :name (or (request-map/target-name request)  
+                   (request-map/target-id request))}))))))
 
 #_
 (pallet.core/defnode haproxy
