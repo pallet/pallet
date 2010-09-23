@@ -142,12 +142,35 @@ fi"
 (deftest test-map
   (is (= "([packages]=(columnchart))"
          (strip-ws (script {:packages ["columnchart"]}))))
-  (is (= "x=([packages]=columnchart)\necho ${x[packages]}"
-         (strip-ws (script (do (var x {:packages "columnchart"})
-                               (echo (aget x :packages)))))))
-  (is (= "columnchart\n"
-         (bash-out (script (do (var x {:packages "columnchart"})
-                             (echo (aget x :packages))))))))
+  (is (= "{ hash_set x p c; hash_set x q d; }\necho ${x[p]}"
+         (strip-ws (script (do (var x {:p "c" :q "d"})
+                               (echo (aget x :p)))))))
+  (is (= "c\nd\n"
+         (bash-out (script
+                    ~hashlib
+                    (var x {:p "c" "/a/b/c-e" "d"})
+                    (echo (get x :p))
+                    (echo (get x "/a/b/c-e"))))))
+  (testing "assoc!"
+    (is (= "c\n1\n2\n"
+           (bash-out (script
+                      ~hashlib
+                      (var x {:p "c" :q "q"})
+                      (assoc! x :q 1)
+                      (assoc! x :r 2)
+                      (echo (get x :p))
+                      (echo (get x :q))
+                      (echo (get x :r)))))))
+  (testing "merge!"
+    (is (= "c\n1\n2\n"
+           (bash-out (script
+                      ~hashlib
+                      (var x {:p "c" :q "q"})
+                      (merge! x {:q 1 :r 2})
+                      (echo (get x :p))
+                      (echo (get x :q))
+                      (echo (get x :r))))))))
+
 
 (deftest test-do
   (is (= "let x=3\nlet y=4\nlet z=(x + y)"

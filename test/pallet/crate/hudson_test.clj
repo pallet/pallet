@@ -109,6 +109,7 @@
            (job
             :maven2 "project"
             :maven-opts "-Dx=y"
+            :branches ["origin/master"]
             :scm ["http://project.org/project.git"]))))))
 
 

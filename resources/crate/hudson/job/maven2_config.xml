@@ -36,7 +36,10 @@
         <name>origin/master</name>
       </hudson.plugins.git.BranchSpec>
     </branches>
-    <mergeOptions/>
+    <mergeOptions>
+      <mergeRemote reference="../../remoteRepositories/org.spearce.jgit.transport.RemoteConfig"/>
+      <mergeTarget>master</mergeTarget>
+    </mergeOptions>
     <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
     <submoduleCfg class="list"/>
   </scm>

@@ -42,16 +42,30 @@
    (service/with-restart "tomcat6"
      (tomcat/server-configuration (tomcat/server))
      (hudson/tomcat-deploy :version "1.355")
+     (hudson/config
+      :use-security true
+      :security-realm :hudson
+      :authorization-strategy :global-matrix
+      :permissions [{:user "hugo" :permissions hudson/all-permissions}
+                    {:user "anonymous" :permissions [:item-read]}])
      (generate-ssh-keys)
      (hudson/plugin :git)
      (hudson/plugin :github)
+     (hudson/user
+      "hugo"
+      {:full-name "Hugo Duncan"
+       :password-hash
+       "buAtLT:e08976acbffe578131c289a2f053b73bc1cbd337856559cbbc1bac8773c6c6cf"
+       :email "hugo_duncan@yahoo.com"})
      (hudson/maven "default maven" "2.2.1")
      (hudson/job :maven2 "pallet"
                  :maven-name "default maven"
                  :goals "-Ptestuser clean test"
                  :group-id "org.cloudhoist"
                  :artifact-id "pallet"
-                 :github {:projectUrl "http://github.com/hugoduncan/pallet"}
+                 :branches ["origin/*"]
+                 :merge-target "master"
+                 :github {:projectUrl "http://github.com/hugoduncan/pallet/"}
                  :maven-opts ""
                  :scm ["git://github.com/hugoduncan/pallet.git"])
      (hudson/job :maven2 "clj-ssh"
@@ -59,6 +73,7 @@
                  :goals "-Ptestuser clean test"
                  :group-id "clj-ssh"
                  :artifact-id "clj-ssh"
+                 :branches ["origin/master"]
                  :maven-opts ""
                  :scm ["git://github.com/hugoduncan/clj-ssh.git"]))))
 

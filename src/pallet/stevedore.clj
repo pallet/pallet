@@ -2,11 +2,26 @@
   "Embed shell script in clojure"
   (:require
    [pallet.utils :as utils]
-   [clojure.contrib.string :as string]
+   [clojure.string :as string]
    [clojure.contrib.condition :as condition])
   (:use clojure.walk
         clojure.contrib.logging
         pallet.script))
+
+(defonce hashlib (utils/slurp-resource "stevedore/hashlib.sh"))
+
+(defn ^String substring
+  "Drops first n characters from s.  Returns an empty string if n is
+  greater than the length of s."
+  [n ^String s]
+  (if (< (count s) n)
+    ""
+    (.substring s n)))
+
+(defn ^String char-at
+  "Gets the i'th character in string."
+  [^String s i]
+  (.charAt s i))
 
 (defn- add-quotes [s]
   (str "\"" s "\""))
@@ -71,7 +86,7 @@
   (str (float expr)))
 
 (defmethod emit clojure.lang.Keyword [expr]
-  (str (name expr)))
+  (name expr))
 
 (defmethod emit java.lang.String [expr]
   expr)
@@ -82,10 +97,22 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms (set ['if 'if-not 'when 'case 'aget 'aset 'defn 'return 'set! 'var 'defvar 'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists? 'symlink? 'readable? 'writeable? 'not 'println 'group 'pipe 'chain-or 'chain-and 'while 'doseq]))
+(def special-forms
+  (set
+   ['if 'if-not 'when 'case 'aget 'aset 'get 'defn 'return 'set! 'var 'defvar
+    'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists?
+    'symlink? 'readable? 'writeable? 'not 'println 'group 'pipe 'chain-or
+    'chain-and 'while 'doseq 'merge! 'assoc!]))
 
-(def infix-operators (set ['+ '- '/ '* '% '== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '|| 'and 'or]))
-(def logical-operators (set ['== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '|| 'file-exists? 'symlink? 'readable? 'writeable? 'not 'and 'or]))
+(def infix-operators
+  (set
+   ['+ '- '/ '* '% '== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '||
+    'and 'or]))
+
+(def logical-operators
+  (set
+   ['== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '|| 'file-exists?
+    'symlink? 'readable? 'writeable? 'not 'and 'or]))
 
 (def quoted-operators (disj logical-operators 'file-exists? 'symlink 'can-read))
 
@@ -153,15 +180,43 @@
 (defmethod emit-special 'local [type [local name expr]]
   (str "local " (emit name) "=" (emit expr)))
 
-(defn check-symbol [var-name]
+(defn- check-symbol [var-name]
   (when (re-matches #".*-.*" var-name)
     (condition/raise
      :type :invalid-bash-symbol
      :message (format "Invalid bash symbol %s" var-name)))
   var-name)
 
+(defn- munge-symbol [var-name]
+  (let [var-name (string/replace var-name "-" "__")
+        var-name (string/replace var-name "." "_DOT_")
+        var-name (string/replace var-name "/" "_SLASH_")]
+    var-name))
+
+(defn- set-map-values
+  [var-name m]
+  (str "{ "
+         (string/join ""
+          (map
+           #(format "hash_set %s %s %s; "
+                    (munge-symbol (emit var-name))
+                    (munge-symbol (emit (first %)))
+                    (emit (second %)))
+           m))
+         " }"))
+
+    ;; This requires bash 4
+    ;; (str
+    ;;  "{ "
+    ;;  "declare -a " (emit var-name) "; "
+    ;;  (check-symbol (emit var-name)) "=" (emit expr)
+    ;;  "; }")
+
 (defmethod emit-special 'var [type [var var-name expr]]
-  (str (check-symbol (emit var-name)) "=" (emit expr)))
+  (if (instance? clojure.lang.IPersistentMap expr)
+    (set-map-values var-name expr)
+    (str
+     (check-symbol (emit var-name)) "=" (emit expr))))
 
 (defmethod emit-special 'defvar [type [defvar name expr]]
   (str (emit name) "=" (emit expr)))
@@ -170,7 +225,7 @@
   (str "let " (emit name) "=" (emit expr)))
 
 (defmethod emit-special 'str [type [str & args]]
-  (string/map-str emit args))
+  (apply clojure.core/str (map emit args)))
 
 (defmethod emit-special 'quoted [type [quoted arg]]
   (add-quotes (emit arg)))
@@ -232,7 +287,7 @@
        ";;\nesac"))
 
 (defmethod emit-special 'dot-method [type [method obj & args]]
-  (let [method (symbol (string/drop (str method) 1))]
+  (let [method (symbol (substring (str method) 1))]
     (emit-method obj method args)))
 
 (defmethod emit-special 'return [type [return expr]]
@@ -247,8 +302,23 @@
 (defmethod emit-special 'aget [type [aget var idx]]
   (str "${" (emit var) "[" (emit idx) "]}"))
 
+(defmethod emit-special 'get [type [get var-name idx]]
+  (str "$(hash_echo "
+       (munge-symbol (emit var-name)) " "
+       (munge-symbol (emit idx))
+       " -n )"))
+
 (defmethod emit-special 'aset [type [aget var idx val]]
   (str (emit var) "[" (emit idx) "]=" (emit val)))
+
+(defmethod emit-special 'merge! [type [merge! var-name expr]]
+  (set-map-values var-name expr))
+
+(defmethod emit-special 'assoc! [type [merge! var-name idx val]]
+  (format "hash_set %s %s %s"
+       (munge-symbol (emit var-name))
+       (munge-symbol (emit idx))
+       (emit val)))
 
 (defmethod emit-special 'deref
   [type [deref expr]]
@@ -326,7 +396,7 @@
     (let [head (symbol (name (first expr)))  ; remove any ns resolution
           expr (conj (rest expr) head)]
       (cond
-        (and (= (string/get (str head) 0) \.)
+        (and (= (char-at (str head) 0) \.)
              (> (count (str head)) 1)) (emit-special 'dot-method expr)
         (special-form? head) (emit-special head expr)
         (infix-operator? head) (emit-infix head expr)
@@ -354,12 +424,6 @@
 
 (defmethod emit clojure.lang.IPersistentVector [expr]
   (str "(" (string/join " " (map emit expr)) ")"))
-
-;; (defmethod emit clojure.lang.IPersistentMap [expr]
-;;   (map-to-arg-string expr))
-
-;(defmethod emit clojure.lang.LazySeq [expr]
-;  (emit (into [] expr)))
 
 (defmethod emit clojure.lang.IPersistentMap [expr]
   (letfn [(subscript-assign
