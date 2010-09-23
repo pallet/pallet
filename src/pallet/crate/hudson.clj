@@ -2,7 +2,7 @@
  "Installation of hudson"
   (:use
    [pallet.resource.service :only [service]]
-   [pallet.resource.directory :only [directory directory*]]
+   [pallet.resource.directory :only [directory*]]
    [pallet.resource.remote-file :only [remote-file remote-file*]]
    [clojure.contrib.prxml :only [prxml]]
    [clojure.contrib.logging]
@@ -17,6 +17,7 @@
    [pallet.resource :as resource]
    [pallet.resource.exec-script :as exec-script]
    [pallet.resource.remote-file :as remote-file]
+   [pallet.resource.directory :as directory]
    [pallet.resource.user :as user]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
@@ -27,6 +28,8 @@
 (def hudson-user  "hudson")
 (def hudson-group  "hudson")
 
+(defvar- *config-file* "config.xml")
+(defvar- *user-config-file* "users/config.xml")
 (defvar- *maven-file* "hudson.tasks.Maven.xml")
 (defvar- *maven2-job-config-file* "job/maven2_config.xml")
 (defvar- *git-file* "scm/git.xml")
@@ -62,7 +65,7 @@
       [:hudson :owner] hudson-owner
       [:hudson :user] user
       [:hudson :group] group)
-     (directory
+     (directory/directory
       hudson-data-path :owner hudson-owner :group group :mode "0775")
      (remote-file file :url (hudson-url version) :md5 (hudson-md5 version))
      (tomcat/policy
@@ -102,8 +105,8 @@
      (tomcat/undeploy "hudson")
      (tomcat/policy 99 "hudson" nil :action :remove)
      (tomcat/application-conf "hudson" nil :action :remove)
-     (directory hudson-data-path :action :delete :force true :recursive true))))
-
+     (directory/directory
+      hudson-data-path :action :delete :force true :recursive true))))
 
 (defn download-cli [request]
   (remote-file/remote-file
@@ -195,7 +198,7 @@
         hudson-group (parameter/get-for-target
                       request [:hudson :group])]
     (-> request
-     (directory (str hudson-data-path "/plugins"))
+     (directory/directory (str hudson-data-path "/plugins"))
      (apply->
       remote-file
       (str hudson-data-path "/plugins/" (name plugin) ".hpi")
@@ -363,7 +366,7 @@ options are:
     (trace (str "Hudson - configure job " job-name))
     (->
      request
-     (directory (str hudson-data-path "/jobs/" job-name) :p true
+     (directory/directory (str hudson-data-path "/jobs/" job-name) :p true
                 :owner hudson-owner :group hudson-group :mode  "0775")
      (remote-file
       (str hudson-data-path "/jobs/" job-name "/config.xml")
@@ -375,7 +378,7 @@ options are:
        (normalise-scms (:scm options))
        (dissoc options :scm :scm-type))
       :owner hudson-owner :group hudson-group :mode "0664")
-     (directory
+     (directory/directory
       hudson-data-path
       :owner hudson-owner :group hudson-group
       :mode "g+w"
@@ -445,3 +448,108 @@ options are:
       :maven-home (hudson-tool-path hudson-data-path name)
       :version version :owner hudson-owner :group group)
      (maven-config name version))))
+
+(defn hudson-user-xml
+  "Generate user config.xml content"
+  [node-type user]
+  (enlive/xml-emit
+   (enlive/xml-template
+    (path-for *user-config-file*) node-type
+    [user]
+    [:fullName] (xml/content (:full-name user))
+    [(xml/tag= "hudson.security.HudsonPrivateSecurityRealm_-Details")
+     :passwordHash]
+    (:password-hash user)
+    [(xml/tag= "hudson.tasks.Mailer_-UserProperty") :emailAddress]
+    (:email user))
+   user))
+
+(defn user
+  "Add a hudson user, using hudson's user database."
+  [request username {:keys [full-name password-hash email] :as user}]
+  (let [group (parameter/get-for-target request [:hudson :group])
+        hudson-owner (parameter/get-for-target request [:hudson :owner])
+        hudson-data-path (parameter/get-for-target
+                          request [:hudson :data-path])]
+    (-> request
+        (directory/directory
+         (format "%s/users/%s" hudson-data-path username)
+         :owner hudson-owner :group group :mode "0775")
+        (remote-file/remote-file
+         (format "%s/users/%s/config.xml" hudson-data-path username)
+         :content (hudson-user-xml (:node-type request) user)
+         :owner hudson-owner :group group :mode "0664"))))
+
+(def security-realm-class
+  {:hudson "hudson.security.HudsonPrivateSecurityRealm"})
+
+(def authorization-strategy-class
+  {:global-matrix "hudson.security.GlobalMatrixAuthorizationStrategy"})
+
+(def permission-class
+  {:computer-configure "hudson.model.Computer.Configure"
+   :computer-delete "hudson.model.Computer.Delete"
+   :hudson-administer "hudson.model.Hudson.Administer"
+   :hudson-read "hudson.model.Hudson.Read"
+   :item-build "hudson.model.Item.Build"
+   :item-configure "hudson.model.Item.Configure"
+   :item-create "hudson.model.Item.Create"
+   :item-delete "hudson.model.Item.Delete"
+   :item-read "hudson.model.Item.Read"
+   :item-workspace "hudson.model.Item.Workspace"
+   :run-delete "hudson.model.Run.Delete"
+   :run-update "hudson.model.Run.Update"
+   :scm-tag "hudson.scm.SCM.Tag"
+   :view-configure "hudson.model.View.Configure"
+   :view-create "hudson.model.View.Create"
+   :view-delete "hudson.model.View.Delete"})
+
+(def all-permissions
+  [:computer-configure :computer-delete :hudson-administer :hudson-read
+   :item-build :item-configure :item-create :item-delete :item-read
+   :item-workspace :run-delete :run-update :scm-tag :view-configure
+   :view-create :view-delete])
+
+(defn config-xml
+  "Generate config.xml content"
+  [node-type options]
+  (enlive/xml-emit
+   (enlive/xml-template
+    (path-for *config-file*) node-type
+    [options]
+    [:useSecurity] (xml/content (if (:use-security options) "true" "false"))
+    [:securityRealm] (xml/set-attr
+                      :class (security-realm-class (:security-realm options)))
+    [:disableSignup] (xml/content
+                      (if (:disable-signup options) "true" "false"))
+    [:authorizationStrategy] (xml/set-attr
+                              :class (authorization-strategy-class
+                                      (:authorization-strategy options)))
+    [:permission] (xml/clone-for
+                   [permission (apply
+                                concat
+                                (map
+                                 (fn user-perm [user-permissions]
+                                   (map
+                                    #(hash-map
+                                      :user (:user user-permissions)
+                                      :permission (permission-class % %))
+                                    (:permissions user-permissions)))
+                                 (:permissions options)))]
+                   (xml/content
+                    (format "%s:%s"
+                            (:permission permission) (:user permission)))))
+   options))
+
+(defn config
+  "hudson config."
+  [request & {:keys [use-security security-realm disable-signup] :as options}]
+  (let [group (parameter/get-for-target request [:hudson :group])
+        hudson-owner (parameter/get-for-target request [:hudson :owner])
+        hudson-data-path (parameter/get-for-target
+                          request [:hudson :data-path])]
+    (-> request
+        (remote-file
+         (format "%s/config.xml" hudson-data-path)
+         :content (config-xml (:node-type request) options)
+         :owner hudson-owner :group group :mode "0664"))))
