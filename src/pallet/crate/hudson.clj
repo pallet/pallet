@@ -259,13 +259,26 @@
   (map #(if (string? %) [%] %) scms))
 
 (def class-for-scm
-     { :git "hudson.plugins.git.GitSCM"})
+  {:git "hudson.plugins.git.GitSCM"})
+
+(def class-for-scm-remote
+  {:git "org.spearce.jgit.transport.RemoteConfig"})
 
 (enlive/deffragment branch-transform
   [branch]
   [:name]
   (xml/content branch))
 
+;; todo
+;; -    <authorOrCommitter>false</authorOrCommitter>
+;; -    <clean>false</clean>
+;; -    <wipeOutWorkspace>false</wipeOutWorkspace>
+;; -    <buildChooser class="hudson.plugins.git.util.DefaultBuildChooser"/>
+;; -    <gitTool>Default</gitTool>
+;; -    <submoduleCfg class="list"/>
+;; -    <relativeTargetDir></relativeTargetDir>
+;; -    <excludedRegions></excludedRegions>
+;; -    <excludedUsers></excludedUsers>
 (defn maven2-job-xml
   "Generate maven2 job/config.xml content"
   [node-type scm-type scms options]
@@ -283,8 +296,9 @@
                (first %)
                (if (seq (next %)) (apply hash-map %) {}))
              scms))
-    [:hudson.plugins.git.BranchSpec]
-    (xml/clone-for [branch (get options :branches ["origin/master"])]
+
+    [:branches :> :*]
+    (xml/clone-for [branch (:branches options ["*"])]
                    (branch-transform branch))
     [:mavenName]
     (enlive/transform-if-let [maven-name (:maven-name options)]
@@ -304,7 +318,17 @@
                              (xml/content artifact-id))
     [:properties :* :projectUrl]
     (enlive/transform-if-let [github-url (-> options :github :projectUrl)]
-                             (xml/content github-url)))
+                             (xml/content github-url))
+    [:mergeOptions]
+    (let [target (:merge-target options)]
+      (if target
+        (xml/transformation
+         [:mergeTarget] (xml/content target)
+         [:mergeRemote] (xml/set-attr
+                         :reference (format
+                                     "../../remoteRepositories/%s"
+                                     (class-for-scm-remote scm-type))))
+        (xml/content ""))))
    scm-type scms options))
 
 (defmulti output-build-for
@@ -330,7 +354,7 @@ options are:
 :branches [\"branch1\" \"branch2\"]"
   [request build-type job-name & {:keys [refspec receivepack uploadpack
                                          tagopt description branches scm
-                                         scm-type]
+                                         scm-type merge-target]
                                   :as options}]
   (let [hudson-owner (parameter/get-for-target request [:hudson :owner])
         hudson-group (parameter/get-for-target request [:hudson :group])

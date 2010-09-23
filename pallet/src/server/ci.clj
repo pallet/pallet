@@ -51,7 +51,9 @@
                  :goals "-Ptestuser clean test"
                  :group-id "org.cloudhoist"
                  :artifact-id "pallet"
-                 :github {:projectUrl "http://github.com/hugoduncan/pallet"}
+                 :branches ["origin/*"]
+                 :merge-target "master"
+                 :github {:projectUrl "http://github.com/hugoduncan/pallet/"}
                  :maven-opts ""
                  :scm ["git://github.com/hugoduncan/pallet.git"])
      (hudson/job :maven2 "clj-ssh"
@@ -59,6 +61,7 @@
                  :goals "-Ptestuser clean test"
                  :group-id "clj-ssh"
                  :artifact-id "clj-ssh"
+                 :branches ["origin/master"]
                  :maven-opts ""
                  :scm ["git://github.com/hugoduncan/clj-ssh.git"]))))
 
