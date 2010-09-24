@@ -43,3 +43,14 @@
                     (map profiles active-profiles))]
        (when profile
          (map (partial get-property (.getProperties profile)) facility-keys)))))
+
+(defn properties
+  "Read maven's settings.xml file, and extract properties as a map."
+  []
+  (let [settings (make-settings)]
+    (apply
+     merge
+     (map #(into {} (.getProperties (val %)))
+          (select-keys
+           (into {} (.getProfilesAsMap settings))
+           (.getActiveProfiles settings))))))
