@@ -57,6 +57,7 @@
     <artifactId>artifact</artifactId>
   </rootModule>
   <goals>clojure:test</goals>
+  <authToken></authToken>
   <mavenOpts></mavenOpts>
   <mavenName>base maven</mavenName>
   <aggregatorStyleBuild>false</aggregatorStyleBuild>
