@@ -15,8 +15,6 @@
                  [com.jcraft/jsch "0.1.42"]
                  [jline "0.9.94"]]
   :dev-dependencies [[org.jclouds/jclouds-blobstore "1.0-beta-7"]
-                     [org.jclouds/jclouds-azure "1.0-beta-7"]
-                     [org.jclouds/jclouds-atmos "1.0-beta-7"]
                      [org.jclouds/jclouds-aws "1.0-beta-7"]
                      [org.jclouds/jclouds-rackspace "1.0-beta-7"]
                      [org.jclouds/jclouds-terremark "1.0-beta-7"]
