@@ -11,4 +11,4 @@
    (resource/build-resources
     []
     (gpg)
-    (import-key :local-file "/Users/pallet/pallet-signer" :user "fred"))))
+    (import-key :content "not ans export" :user "fred"))))
