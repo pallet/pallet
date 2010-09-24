@@ -168,22 +168,62 @@
 
 (defmulti plugin-config
   "Plugin configuration"
-  (fn [request plugin] plugin))
+  (fn [request plugin options] plugin))
 
 (defmethod plugin-config :git
-  [request plugin]
+  [request plugin _]
   (user/user
    request
    (parameter/get-for-target request [:hudson :user])
    :action :manage :comment "hudson"))
 
-(defmethod plugin-config :default [request plugin]
+(defn truefalse [value]
+  (if value "true" "false"))
+
+(defmethod plugin-config :ircbot
+  [request plugin options]
+  (let [hudson-data-path (parameter/get-for-target
+                          request [:hudson :data-path])
+        hudson-owner (parameter/get-for-target
+                      request [:hudson :owner])
+        hudson-group (parameter/get-for-target
+                      request [:hudson :group])]
+    (remote-file/remote-file
+     request
+     (format "%s/hudson.plugins.ircbot.IrcPublisher.xml" hudson-data-path)
+     :content (with-out-str
+                (prxml
+                 [:decl! {:version "1.0"}]
+                 [:hudson.plugins.ircbot.IrcPublisher_-DescriptorImpl {}
+                  [:enabled {} (truefalse (:enabled options))]
+                  [:hostname {} (:hostname options)]
+                  [:port {} (:port options 6674)]
+                  [:password {} (:password options)]
+                  [:nick {} (:nick options)]
+                  [:nickServPassword {} (:nick-serv-password options)]
+                  [:defaultTargets (if (seq (:default-targets options))
+                                     {}
+                                     {:class "java.util.Collections$EmptyList"})
+                   (map #(prxml [:hudson.plugins.im.GroupChatIMMessageTarget {}
+                                 [:name {} (:name %)]
+                                 [:password {} (:password %)]])
+                        (:default-targets options))]
+                  [:hudsonLogin {}  (:hudson-login options)]
+                  [:hudsonPassword {}  (:hudson-password options)]
+                  [:useNotice {}  (truefalse (:use-notice options))]]))
+     :literal true
+     :owner hudson-owner :group hudson-group :mode "664")))
+
+(defmethod plugin-config :default [request plugin options]
   request)
 
 (def hudson-plugins
   {:git {:url "http://hudson-ci.org/latest/git.hpi"
          :md5 "423afd697acdb2b7728f80573131c15f"}
-   :github {:url "http://hudson-ci.org/latest/github.hpi"}})
+   :github {:url "http://hudson-ci.org/latest/github.hpi"}
+   :instant-messaging {:url
+                       "http://hudson-ci.org/latest/instant-messaging.hpi"}
+   :ircbot {:url "http://hudson-ci.org/latest/ircbot.hpi"}})
 
  (defn plugin
    "Install a hudson plugin.  The plugin should be a keyword.
@@ -204,7 +244,7 @@
       (str hudson-data-path "/plugins/" (name plugin) ".hpi")
       :group hudson-group :mode "0664"
       (apply concat src))
-     (plugin-config plugin))))
+     (plugin-config plugin options))))
 
 
 (defn determine-scm-type
@@ -272,6 +312,36 @@
   [:name]
   (xml/content branch))
 
+(defmulti publisher-config
+  "Publisher configuration"
+  (fn [[publisher options]] publisher))
+
+(def imstrategy {:all "ALL"})
+
+(defmethod publisher-config :ircbot
+  [[_ options]]
+  (with-out-str
+    (prxml [:hudson.plugins.ircbot.IrcPublisher {}
+            [:targets {}
+             [:hudson.plugins.im.GroupChatIMMessageTarget {}
+              (map #(prxml
+                     [:name {} (:name %)]
+                     [:password {} (:password %)])
+                   (:targets options))]]
+            [:strategy {:class "hudson.plugins.im.NotificationStrategy"}
+             (imstrategy (:strategy options :all))]
+            [:notifyOnBuildStart {}
+             (if (:notify-on-build-start options) "true" false)]
+            [:notifySuspects {}
+             (if (:notify-suspects options) "true" false)]
+            [:notifyCulprits {}
+             (if (:notify-culprits options) "true" false)]
+            [:notifyFixers {}
+             (if (:notify-fixers options) "true" false)]
+            [:notifyUpstreamCommitters {}
+             (if (:notify-upstream-committers options) "true" false)]
+            [:channels {}]])))
+
 ;; todo
 ;; -    <authorOrCommitter>false</authorOrCommitter>
 ;; -    <clean>false</clean>
@@ -331,7 +401,11 @@
                          :reference (format
                                      "../../remoteRepositories/%s"
                                      (class-for-scm-remote scm-type))))
-        (xml/content ""))))
+        (xml/content "")))
+    [:authToken] (if-let [token (:auth-token options)]
+                   (xml/content token))
+    [:publishers]
+    (xml/content (string/join (map publisher-config (:publishers options)))))
    scm-type scms options))
 
 (defmulti output-build-for
