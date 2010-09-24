@@ -45,17 +45,15 @@
     (str "http://hudson-ci.org/download/war/" version "/hudson.war")))
 
 (def hudson-md5
-     {:latest "5d616c367d7a7888100ae6e98a5f2bd7"
+     {"1.377" "81b602c754fdd28cc4d57a9b82a7c1f0"
       "1.355" "5d616c367d7a7888100ae6e98a5f2bd7"})
 
 (defn tomcat-deploy
   "Install hudson on tomcat.
      :version version-string   - specify version, eg 1.355, or :latest"
-  [request & options]
+  [request & {:keys [version] :or {version :latest} :as options}]
   (trace (str "Hudson - install on tomcat"))
-  (let [options (apply hash-map options)
-        version (get options :version :latest)
-        user (parameter/get-for-target request [:tomcat :owner])
+  (let [user (parameter/get-for-target request [:tomcat :owner])
         group (parameter/get-for-target request [:tomcat :group])
         file (str hudson-data-path "/hudson.war")]
     (->
@@ -208,6 +206,7 @@
                                  [:name {} (:name %)]
                                  [:password {} (:password %)]])
                         (:default-targets options))]
+                  [:commandPrefix {}  (:command-prefix options)]
                   [:hudsonLogin {}  (:hudson-login options)]
                   [:hudsonPassword {}  (:hudson-password options)]
                   [:useNotice {}  (truefalse (:use-notice options))]]))
@@ -405,7 +404,8 @@
     [:authToken] (if-let [token (:auth-token options)]
                    (xml/content token))
     [:publishers]
-    (xml/content (string/join (map publisher-config (:publishers options)))))
+    (xml/html-content
+     (string/join (map publisher-config (:publishers options)))))
    scm-type scms options))
 
 (defmulti output-build-for
