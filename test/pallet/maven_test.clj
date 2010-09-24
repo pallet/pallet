@@ -11,3 +11,6 @@
 (deftest credentials-test
   (credentials)
   (credentials :blobstore))
+
+(deftest properties-test
+  (is (map? (properties))))
