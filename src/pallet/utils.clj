@@ -132,6 +132,31 @@
        (.delete ~varname)
        rv#)))
 
+(defn tmpfile
+  "Create a temporary file"
+  ([] (java.io.File/createTempFile "pallet_" "tmp"))
+  ([^java.io.File dir] (java.io.File/createTempFile "pallet_" "tmp" dir)))
+
+(defn tmpdir []
+  (doto (java.io.File/createTempFile "pallet_" "tmp")
+    (.delete)
+    (.mkdir)))
+
+(defmacro with-temporary
+  [bindings & body]
+  {:pre [(vector? bindings)
+         (even? (count bindings))]}
+  (cond
+   (= (count bindings) 0) `(do ~@body)
+   (symbol? (bindings 0)) `(let ~(subvec bindings 0 2)
+                             (try
+                              (with-temporary ~(subvec bindings 2) ~@body)
+                              (finally
+                               (. ~(bindings 0) delete))))
+   :else (throw (IllegalArgumentException.
+                 "with-temporary only allows Symbols in bindings"))))
+
+
 
 (defn map-with-keys-as-symbols
   [m]

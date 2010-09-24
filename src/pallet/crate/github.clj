@@ -70,6 +70,5 @@
   "Set a key"
   (deploy-key*
    [request project title key & {:keys [username password apikey] :as options}]
-   (pr request)
    (set-deploy-key project title key (credentials request options))
    request))

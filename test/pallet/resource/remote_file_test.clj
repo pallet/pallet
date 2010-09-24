@@ -53,7 +53,7 @@
             ("rm" "--force" "path"))
            (remote-file* {} "path" :action :delete :force true))))
 
-  (with-temporary [tmp (tmpfile)]
+  (utils/with-temporary [tmp (utils/tmpfile)]
     (.delete tmp)
     (is (= (str "remote-file " (.getPath tmp) "...\n"
                 "MD5 sum is 6de9439834c9147569741d3c9c9fc010 "
@@ -69,7 +69,7 @@
     (is (= "xxx\n" (slurp (.getPath tmp)))))
 
   (testing "overwrite on existing content and no md5"
-    (with-temporary [tmp (tmpfile)]
+    (utils/with-temporary [tmp (utils/tmpfile)]
       (is  (re-matches
             (java.util.regex.Pattern/compile
              (str "remote-file .*....*MD5 sum is "
@@ -108,15 +108,15 @@
           (build-resources
            [] (remote-file "file1" :owner "user1"))))
 
-    (with-temporary [tmp (tmpfile)]
+    (utils/with-temporary [tmp (utils/tmpfile)]
       (is (re-find #"mv -f ~/pallet-transfer-[a-f0-9-]+ file1"
                    (first
                     (build-resources
                      [] (remote-file
                          "file1" :local-file (.getPath tmp)))))))
 
-    (with-temporary [tmp (tmpfile)
-                     target-tmp (tmpfile)]
+    (utils/with-temporary [tmp (utils/tmpfile)
+                           target-tmp (utils/tmpfile)]
       ;; this is convoluted to get around the "t" sticky bit on temp dirs
       (let [user (assoc utils/*admin-user*
                    :username (test-username) :no-sudo true)]
@@ -158,7 +158,7 @@
                          (if (== (flag? :changed) "1")
                            (echo "incorrect!" (flag? :changed) "!")
                            (echo "correctly unchanged"))))
-                        :user user)
+                :user user)
                :results :localhost first second first :out)))
             (is (.canRead target-tmp))
             (is (= (:out (execute/sh-script "hostname"))
@@ -178,7 +178,7 @@
                          (if (== (flag? :changed) "1")
                            (echo "correctly changed")
                            (echo "incorrect!" (flag? :changed) "!"))))
-                        :user user)
+                :user user)
                :results :localhost first second first :out)))
             (is (.canRead target-tmp))
             (is (= "abc\n"
