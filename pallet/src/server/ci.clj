@@ -102,14 +102,15 @@
                    :goals "-Ptestuser clean deploy"
                    :group-id "org.cloudhoist"
                    :artifact-id "pallet"
-                   :branches ["origin/*"]
+                   :branches ["origin/master" "origin/integrate-*"]
                    :merge-target "master"
                    :github {:projectUrl "http://github.com/hugoduncan/pallet/"}
                    :maven-opts ""
                    :scm ["git://github.com/hugoduncan/pallet.git"]
                    :publishers {:ircbot
                                 {:targets [{:name "#pallet"}]
-                                 :strategy :all}})
+                                 :strategy :all}
+                                :git {:push-merge true :config-version 1}})
        (hudson/job :maven2 "clj-ssh"
                    :maven-name "default maven"
                    :goals "-Ptestuser clean test"

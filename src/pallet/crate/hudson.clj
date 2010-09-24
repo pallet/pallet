@@ -352,6 +352,13 @@
              (if (:notify-upstream-committers options) "true" false)]
             [:channels {}]])))
 
+(defmethod publisher-config :git
+  [[_ options]]
+  (with-out-str
+    (prxml [:<hudson.plugins.git.GitPublisher {}
+            [:configVersion {} (:config-version options)]
+            [:pushMerge {} (truefalse (:push-merge options))]])))
+
 ;; todo
 ;; -    <authorOrCommitter>false</authorOrCommitter>
 ;; -    <clean>false</clean>
