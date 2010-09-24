@@ -151,23 +151,6 @@
                 </execution>
               </executions>
             </plugin>
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-gpg-plugin</artifactId>
-              <configuration>
-                <keyName>${gpg.keyname}</keyName>
-                <passphrase>${gpg.passphrase}</passphrase>
-              </configuration>
-              <executions>
-                <execution>
-                  <id>sign-artifacts</id>
-                  <phase>verify</phase>
-                  <goals>
-                    <goal>sign</goal>
-                  </goals>
-                </execution>
-              </executions>
-            </plugin>
           </plugins>
           <extensions>
           <!-- Enabling the use of SSH -->
@@ -335,6 +318,35 @@
         </repository>
     </repositories>
     <profiles>
+      <profile>
+        <id>sonatype-release-profile-extension</id>
+        <activation>
+          <property>
+            <name>performRelease</name>
+            <value>true</value>
+          </property>
+        </activation>
+        <build>
+          <plugins>
+            <plugin>
+              <artifactId>maven-gpg-plugin</artifactId>
+              <configuration>
+                <keyName>${gpg.keyname}</keyName>
+                <passphrase>${gpg.passphrase}</passphrase>
+              </configuration>
+              <executions>
+                <execution>
+                  <id>sign-artifacts</id>
+                  <phase>verify</phase>
+                  <goals>
+                    <goal>sign</goal>
+                  </goals>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </build>
+      </profile>
       <profile>
         <id>testuser</id>
         <build>
