@@ -9,6 +9,7 @@
    [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]
    [pallet.crate.etc-default :as etc-default]
+   [pallet.target :as target]
    [clojure.string :as string]
    [clojure.contrib.logging :as logging]
    clojure.set)
@@ -175,7 +176,7 @@
         {:ip (request-map/target-ip request)
          ;; some providers don't allow for node names, only node ids
          :name (or (request-map/target-name request)  
-                   (request-map/target-id request))}))))))
+                   (target/safe-id (request-map/target-id request)))}))))))
 
 #_
 (pallet.core/defnode haproxy
