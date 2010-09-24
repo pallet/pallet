@@ -63,6 +63,7 @@
       :security-realm :hudson
       :authorization-strategy :global-matrix
       :permissions [{:user "hugo" :permissions hudson/all-permissions}
+                    {:user "tbatchelli" :permissions hudson/all-permissions}
                     {:user "anonymous" :permissions [:item-read]}])
      (generate-ssh-keys)
      (hudson/plugin :git)
@@ -70,8 +71,11 @@
      (hudson/plugin :instant-messaging)
      (hudson/plugin
       :ircbot
-      :enabled true :hostname "irc.freenode.net" :port 6674
-      :nick "palletci")
+      :enabled true :hostname "irc.freenode.net" :port 6667
+      :nick "palletci" :nick-serv-password "hudsonci"
+      :hudson-login "hugo" :hudson-password "hugo"
+      :default-targets [{:name "#pallet"}]
+      :command-prefix "!hudson")
      (hudson/user
       "hugo"
       {:full-name "Hugo Duncan"
@@ -90,7 +94,7 @@
                  :maven-opts ""
                  :scm ["git://github.com/hugoduncan/pallet.git"]
                  :publishers {:ircbot
-                              {:channel "#pallet"
+                              {:targets [{:name "#pallet"}]
                                :strategy :all}})
      (hudson/job :maven2 "clj-ssh"
                  :maven-name "default maven"
@@ -112,7 +116,7 @@
    (tomcat/tomcat :action :remove :purge true)))
 
 (core/defnode ci
-  {}
+  {:any true :min-ram 512}
   :bootstrap (resource/phase
               (automated-admin-user/automated-admin-user))
   :configure (resource/phase

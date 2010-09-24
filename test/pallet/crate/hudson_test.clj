@@ -36,7 +36,7 @@
            (remote-file/remote-file
             "/var/lib/hudson/hudson.war"
             :url "http://hudson-ci.org/latest/hudson.war"
-            :md5 "5d616c367d7a7888100ae6e98a5f2bd7")
+            :md5 nil)
            (tomcat/policy
             99 "hudson"
             {(str "file:${catalina.base}/webapps/hudson/-")
