@@ -107,13 +107,24 @@
       hudson-data-path :action :delete :force true :recursive true))))
 
 (defn download-cli [request]
-  (remote-file/remote-file
-   request
-   "hudson-cli.jar"
-   :url "http://localhost:8080/hudson/jnlpJars/hudson-cli.jar"))
+  (let [user (parameter/get-for-target request [:hudson :admin-user])
+        pwd (parameter/get-for-target request [:hudson :admin-password])]
+    (remote-file/remote-file
+     request
+     "hudson-cli.jar"
+     :url (if user
+            (format
+             "http://%s:%s@localhost:8080/hudson/jnlpJars/hudson-cli.jar"
+             user pwd)
+            "http://localhost:8080/hudson/jnlpJars/hudson-cli.jar"))))
 
-(defn cli []
-  "java -jar ~/hudson-cli.jar -s http://localhost:8080/hudson/")
+(defn cli [request command]
+  (let [user (parameter/get-for-target request [:hudson :admin-user])
+        pwd (parameter/get-for-target request [:hudson :admin-password])]
+    (format
+     "java -jar ~/hudson-cli.jar -s http://localhost:8080/hudson %s %s"
+     command
+     (if user (format "--username %s --password %s" user pwd) ""))))
 
 (defn hudson-cli
   "Install a hudson cli."
@@ -123,8 +134,8 @@
 (def hudson-plugin-urls
   {:git "http://hudson-ci.org/latest/git.hpi"})
 
-(defn install-plugin [url]
-  (str (cli) " install-plugin " (utils/quoted url)))
+(defn install-plugin [request url]
+  (str (cli request (str "install-plugin " (utils/quoted url)))))
 
 (defn plugin-via-cli
   "Install a hudson plugin.  The plugin should be a keyword.
@@ -147,7 +158,7 @@
       (hudson-cli)
       (exec-script/exec-checked-script
        message
-       ~(str (cli) " " command))))
+       ~(str (cli request command)))))
 
 (defn version
   "Show running version"
@@ -617,12 +628,16 @@ options are:
 
 (defn config
   "hudson config."
-  [request & {:keys [use-security security-realm disable-signup] :as options}]
+  [request & {:keys [use-security security-realm disable-signup
+                     admin-user admin-password] :as options}]
   (let [group (parameter/get-for-target request [:hudson :group])
         hudson-owner (parameter/get-for-target request [:hudson :owner])
         hudson-data-path (parameter/get-for-target
                           request [:hudson :data-path])]
     (-> request
+        (parameter/assoc-for-target
+         [:hudson :admin-user] admin-user
+         [:hudson :admin-password] admin-password)
         (remote-file
          (format "%s/config.xml" hudson-data-path)
          :content (config-xml (:node-type request) options)

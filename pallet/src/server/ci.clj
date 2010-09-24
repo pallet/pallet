@@ -9,6 +9,7 @@
    [pallet.crate.ssh :as ssh]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.crate.tomcat :as tomcat]
+   [pallet.maven :as maven]
    [pallet.parameter :as parameter]
    [pallet.resource :as resource]
    [pallet.resource.directory :as directory]
@@ -46,64 +47,77 @@
 
 (defn ci-config
   [request]
-  (->
-   request
-   (package/package "maven2")
-   (git/git)
-   (gpg/gpg)
-   (tomcat/tomcat)
-   (iptables/iptables-accept-port 8080)
-   (iptables/iptables-redirect-port 80 8080)
-   (user/user "testuser" :create-home true :shell :bash)
-   (service/with-restart "tomcat6"
-     (tomcat/server-configuration (tomcat/server))
-     (hudson/tomcat-deploy)
-     (hudson/config
-      :use-security true
-      :security-realm :hudson
-      :authorization-strategy :global-matrix
-      :permissions [{:user "hugo" :permissions hudson/all-permissions}
-                    {:user "tbatchelli" :permissions hudson/all-permissions}
-                    {:user "anonymous" :permissions [:item-read]}])
-     (generate-ssh-keys)
-     (hudson/plugin :git)
-     (hudson/plugin :github)
-     (hudson/plugin :instant-messaging)
-     (hudson/plugin
-      :ircbot
-      :enabled true :hostname "irc.freenode.net" :port 6667
-      :nick "palletci" :nick-serv-password "hudsonci"
-      :hudson-login "hugo" :hudson-password "hugo"
-      :default-targets [{:name "#pallet"}]
-      :command-prefix "!hudson")
-     (hudson/user
-      "hugo"
-      {:full-name "Hugo Duncan"
-       :password-hash
-       "buAtLT:e08976acbffe578131c289a2f053b73bc1cbd337856559cbbc1bac8773c6c6cf"
-       :email "hugo_duncan@yahoo.com"})
-     (hudson/maven "default maven" "2.2.1")
-     (hudson/job :maven2 "pallet"
-                 :maven-name "default maven"
-                 :goals "-Ptestuser clean deploy"
-                 :group-id "org.cloudhoist"
-                 :artifact-id "pallet"
-                 :branches ["origin/*"]
-                 :merge-target "master"
-                 :github {:projectUrl "http://github.com/hugoduncan/pallet/"}
-                 :maven-opts ""
-                 :scm ["git://github.com/hugoduncan/pallet.git"]
-                 :publishers {:ircbot
-                              {:targets [{:name "#pallet"}]
-                               :strategy :all}})
-     (hudson/job :maven2 "clj-ssh"
-                 :maven-name "default maven"
-                 :goals "-Ptestuser clean test"
-                 :group-id "clj-ssh"
-                 :artifact-id "clj-ssh"
-                 :branches ["origin/master"]
-                 :maven-opts ""
-                 :scm ["git://github.com/hugoduncan/clj-ssh.git"]))))
+  (let [properties (maven/properties)]
+    (->
+     request
+     (package/package "maven2")
+     (git/git)
+     (gpg/gpg)
+     (tomcat/tomcat)
+     (iptables/iptables-accept-port 8080)
+     (iptables/iptables-redirect-port 80 8080)
+     (user/user "testuser" :create-home true :shell :bash)
+     (service/with-restart "tomcat6"
+       (tomcat/server-configuration (tomcat/server))
+       (hudson/tomcat-deploy)
+       (hudson/config
+        :use-security true
+        :security-realm :hudson
+        :authorization-strategy :global-matrix
+        :permissions [{:user "hugo" :permissions hudson/all-permissions}
+                      {:user (properties :hudson.ircbot.user)
+                       :permissions #{:hudson-read
+                                      :item-build :item-read
+                                      :item-workspace :run-delete :run-update
+                                      :scm-tag}}
+                      {:user "tbatchelli" :permissions hudson/all-permissions}
+                      {:user "anonymous" :permissions [:item-read]}]
+        :admin-user (properties :hudson.hugo.user)
+        :admin-password (properties :hudson.hugo.password))
+       (generate-ssh-keys)
+       (hudson/plugin :git)
+       (hudson/plugin :github)
+       (hudson/plugin :instant-messaging)
+       (hudson/plugin
+        :ircbot
+        :enabled true :hostname "irc.freenode.net" :port 6667
+        :nick "palletci" :nick-serv-password "hudsonci"
+        :hudson-login (properties :hudson.ircbot.user)
+        :hudson-password (properties :hudson.ircbot.password)
+        :default-targets [{:name "#pallet"}]
+        :command-prefix "!hudson")
+       (hudson/user
+        (properties :hudson.hugo.user)
+        {:full-name "Hugo Duncan"
+         :password-hash (properties :hudson.hugo.hash)
+         :email "hugo_duncan@yahoo.com"})
+       (hudson/user
+        (properties :hudson.ircbot.user)
+        {:full-name "IRC bot"
+         :password-hash (properties :hudson.ircbot.hash)
+         :email "ircbot_duncan@yahoo.com"})
+       (hudson/maven "default maven" "2.2.1")
+       (hudson/job :maven2 "pallet"
+                   :maven-name "default maven"
+                   :goals "-Ptestuser clean deploy"
+                   :group-id "org.cloudhoist"
+                   :artifact-id "pallet"
+                   :branches ["origin/*"]
+                   :merge-target "master"
+                   :github {:projectUrl "http://github.com/hugoduncan/pallet/"}
+                   :maven-opts ""
+                   :scm ["git://github.com/hugoduncan/pallet.git"]
+                   :publishers {:ircbot
+                                {:targets [{:name "#pallet"}]
+                                 :strategy :all}})
+       (hudson/job :maven2 "clj-ssh"
+                   :maven-name "default maven"
+                   :goals "-Ptestuser clean test"
+                   :group-id "clj-ssh"
+                   :artifact-id "clj-ssh"
+                   :branches ["origin/master"]
+                   :maven-opts ""
+                   :scm ["git://github.com/hugoduncan/clj-ssh.git"])))))
 
 
 (defn remove-ci
