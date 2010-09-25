@@ -67,7 +67,7 @@
       [username password])))
 
 (resource/deflocal deploy-key
-  "Set a key"
+  "Set a deploy key"
   (deploy-key*
    [request project title key & {:keys [username password apikey] :as options}]
    (set-deploy-key project title key (credentials request options))
