@@ -145,6 +145,9 @@
         (let [mktemp-result (ssh/ssh
                              session "mktemp sudocmdXXXXX" :return-map true)
               tmpfile (string/trim (mktemp-result :out))
+              tmpcpy (string/trim
+                      (:out
+                       (ssh/ssh session "mktemp tferXXXXX" :return-map true)))
               sftp-channel (ssh/ssh-sftp session)]
           (ssh/with-connection sftp-channel
             (assert (zero? (mktemp-result :exit)))
@@ -159,13 +162,17 @@
                      (doseq [[file remote-name] transfers]
                        (logging/info
                         (format
-                         "Transferring file %s to node @ %s"
-                         file remote-name))
+                         "Transferring file %s to node @ %s via %s"
+                         file remote-name tmpcpy))
                        (ssh/sftp sftp-channel
                                  :put (-> file java.io.FileInputStream.
                                           java.io.BufferedInputStream.)
-                                 remote-name)
-                       (ssh/sftp sftp-channel :chmod 0600 remote-name)))
+                                 tmpcpy)
+                       (remote-sudo-cmd
+                        server session sftp-channel user tmpfile
+                        (stevedore/script
+                         (chmod "0600" ~tmpcpy)
+                         (mv -f ~tmpcpy ~remote-name)))))
                     (to-local
                      [transfers]
                      (doseq [[remote-file local-file] transfers]
@@ -173,8 +180,12 @@
                         (format
                          "Transferring file %s from node to %s"
                          remote-file local-file))
+                       (remote-sudo-cmd
+                        server session sftp-channel user tmpfile
+                        (stevedore/script
+                         (cp -f ~remote-file ~tmpcpy)))
                        (ssh/sftp sftp-channel
-                                 :get remote-file
+                                 :get tmpcpy
                                  (-> local-file java.io.FileOutputStream.
                                      java.io.BufferedOutputStream.))))]
               (resource/execute-commands

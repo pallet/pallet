@@ -116,7 +116,7 @@
   [request user & {:keys [filename type]
                    :or {type "rsa"} :as options}]
   (let [filename (or filename (ssh-default-filenames type))
-        path (str "../" user "/.ssh/" filename ".pub")]
+        path (str (user-ssh-dir user) filename ".pub")]
     (->
      request
      (remote-file/with-remote-file
