@@ -4,6 +4,7 @@
   (:require
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
+   [pallet.resource.lib :as lib]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource :as resource]))
 
@@ -44,16 +45,21 @@
 
 
 (resource/defresource service
-  "Control serives"
+  "Control serives."
   (service*
-   [request service-name & {:keys [action]
+   [request service-name & {:keys [action if-flag]
                             :or {action :start}
                             :as options}]
    (if (#{:enable :disable :start-stop} action)
      (stevedore/checked-script
       (format "Confgure service %s" service-name)
       (configure-service ~service-name ~action ~options))
-     (stevedore/script ( ~(str "/etc/init.d/" service-name) ~(name action))))))
+     (if if-flag
+       (stevedore/script
+        (if (== "1" (flag? ~if-flag))
+          ( ~(str "/etc/init.d/" service-name) ~(name action))))
+       (stevedore/script
+        ( ~(str "/etc/init.d/" service-name) ~(name action)))))))
 
 (defmacro with-restart
   "Stop the given service, execute the body, and then restart."
