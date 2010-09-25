@@ -65,7 +65,7 @@
              :phase #(remote-file % (.getPath tmp) :content "xxx")
              :compute nil
              :middleware pallet.core/execute-with-local-sh)
-            :results :localhost first second first :out)))
+            :results :localhost second second first :out)))
     (is (= "xxx\n" (slurp (.getPath tmp)))))
 
   (testing "overwrite on existing content and no md5"
@@ -83,7 +83,7 @@
                        % (.getPath tmp) :content "xxx")
               :compute nil
               :middleware pallet.core/execute-with-local-sh)
-             :results :localhost first second first :out)))
+             :results :localhost second second first :out)))
       (is (= "xxx\n" (slurp (.getPath tmp))))))
 
   (binding [install-new-files nil]
@@ -109,7 +109,7 @@
            [] (remote-file "file1" :owner "user1"))))
 
     (utils/with-temporary [tmp (utils/tmpfile)]
-      (is (re-find #"mv -f ~/pallet-transfer-[a-f0-9-]+ file1"
+      (is (re-find #"mv -f --backup=numbered file1.new file1"
                    (first
                     (build-resources
                      [] (remote-file
@@ -159,7 +159,7 @@
                            (echo "incorrect!" (flag? :changed) "!")
                            (echo "correctly unchanged"))))
                 :user user)
-               :results :localhost first second first :out)))
+               :results :localhost second second first :out)))
             (is (.canRead target-tmp))
             (is (= (:out (execute/sh-script "hostname"))
                    (slurp (.getPath target-tmp)))))
@@ -179,7 +179,7 @@
                            (echo "correctly changed")
                            (echo "incorrect!" (flag? :changed) "!"))))
                 :user user)
-               :results :localhost first second first :out)))
+               :results :localhost second second first :out)))
             (is (.canRead target-tmp))
             (is (= "abc\n"
                    (slurp (.getPath target-tmp)))))
@@ -248,3 +248,42 @@
              :phase #(remote-file % (.getPath target-tmp) :action :delete)
              :user user)
             (is (not (.exists target-tmp)))))))))
+
+(resource/deflocal check-content
+  (*check-content
+   [request path content path-atom]
+   (is (= content (slurp path)))
+   (reset! path-atom path)))
+
+(deftest with-remote-file-test
+  (core/with-admin-user (assoc utils/*admin-user* :username (test-username))
+    (utils/with-temporary [remote-file (utils/tmpfile)]
+      (let [user (assoc utils/*admin-user*
+                   :username (test-username) :no-sudo true)]
+        (io/copy "text" remote-file)
+        (core/defnode tag {:tag "localhost"})
+        (testing "with local ssh"
+          (let [node (compute/make-localhost-node)
+                path-atom (atom nil)]
+            (testing "with-remote-file"
+              (core/lift
+               {tag node}
+               :phase #(with-remote-file
+                         % check-content (.getPath remote-file)
+                         "text" path-atom)
+               :user user)
+              (is @path-atom)
+              (is (not= (.getPath remote-file) (.getPath @path-atom))))))
+        (testing "with local shell"
+          (let [node (compute/make-localhost-node)
+                path-atom (atom nil)]
+            (testing "with-remote-file"
+              (core/lift
+               {tag node}
+               :phase #(with-remote-file
+                         % check-content (.getPath remote-file)
+                         "text" path-atom)
+               :user user
+               :middleware pallet.core/execute-with-local-sh)
+              (is @path-atom)
+              (is (not= (.getPath remote-file) (.getPath @path-atom))))))))))

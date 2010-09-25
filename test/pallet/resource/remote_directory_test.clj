@@ -9,6 +9,8 @@
    [pallet.resource.remote-file :as remote-file]
    [pallet.utils :as utils]))
 
+(use-fixtures :once with-ubuntu-script-template)
+
 (deftest remote-directory-test
   (is (= (stevedore/checked-commands
           "remote-directory"

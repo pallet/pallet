@@ -11,6 +11,8 @@
    [pallet.resource.package :only [package package-manager]]
    [pallet.resource :only [build-resources]]))
 
+(use-fixtures :once with-ubuntu-script-template)
+
 (deftest gem-script-test
   (is (= "gem install  fred"
          (stevedore/script (gem install fred)))))

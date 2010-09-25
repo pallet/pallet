@@ -8,6 +8,8 @@
    clojure.test
    pallet.test-utils))
 
+(use-fixtures :once with-ubuntu-script-template)
+
 (deftest mkdir-test
   (is (= "mkdir -p dir"
          (stevedore/script (mkdir "dir" ~{:p true})))))

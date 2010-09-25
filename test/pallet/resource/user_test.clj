@@ -6,6 +6,8 @@
   (:require
    [pallet.resource :as resource]))
 
+(use-fixtures :once with-ubuntu-script-template)
+
 (deftest create-user-test
   (is (= "useradd --create-home user1"
          (script (create-user "user1"  ~{:create-home true})))))

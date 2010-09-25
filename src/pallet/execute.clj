@@ -151,7 +151,12 @@
             (letfn [(execute
                      [cmdstring]
                      (logging/info (format "Cmd %s" cmdstring))
-                     (doseq [[file remote-name] resource/*file-transfers*]
+                     (remote-sudo-cmd
+                      server session sftp-channel
+                      user tmpfile cmdstring))
+                    (from-local
+                     [transfers]
+                     (doseq [[file remote-name] transfers]
                        (logging/info
                         (format
                          "Transferring file %s to node @ %s"
@@ -160,22 +165,32 @@
                                  :put (-> file java.io.FileInputStream.
                                           java.io.BufferedInputStream.)
                                  remote-name)
-                       (ssh/sftp sftp-channel :chmod 0600 remote-name))
-                     (let [rv (remote-sudo-cmd
-                               server session sftp-channel
-                               user tmpfile cmdstring)]
-                       (doseq [[file remote-name] resource/*file-transfers*]
-                         (ssh/ssh session (str "rm " remote-name)))
-                       rv))]
-              (resource/execute-commands request execute))))))))
+                       (ssh/sftp sftp-channel :chmod 0600 remote-name)))
+                    (to-local
+                     [transfers]
+                     (doseq [[remote-file local-file] transfers]
+                       (logging/info
+                        (format
+                         "Transferring file %s from node to %s"
+                         remote-file local-file))
+                       (ssh/sftp sftp-channel
+                                 :get remote-file
+                                 (-> local-file java.io.FileOutputStream.
+                                     java.io.BufferedOutputStream.))))]
+              (resource/execute-commands
+               request
+               {:script/bash execute
+                :transfer/to-local to-local
+                :transfer/from-local from-local}))))))))
 
 (defn ssh-cmds
   "Execute cmds for the request.
    Also accepts an IP or hostname as anode."
   [{:keys [address commands user ssh-port] :as request}]
-  (when commands
+  (if commands
     (let [options (if ssh-port [:port ssh-port] [])]
-      (execute-ssh-cmds address request user options))))
+      (execute-ssh-cmds address request user options))
+    [nil request]))
 
 (defn local-cmds
   "Run local cmds on a target."
@@ -205,16 +220,19 @@
   "Execute cmds for the request.
    Runs locally as the current user, so useful for testing."
   [{:keys [commands root-path] :or {root-path "/tmp/"} :as request}]
-  (when commands
-    (letfn [(execute
+  (if commands
+    (letfn [(execute-bash
              [cmdstring]
              (logging/info (format "Cmd %s" cmdstring))
-             (doseq [[file remote-name] resource/*file-transfers*]
-               (logging/info
-                (format "Transferring file %s to %s" file remote-name))
-               (io/copy (io/file file) (io/file remote-name)))
-             (let [rv (sh-script cmdstring)]
-               (doseq [[file remote-name] resource/*file-transfers*]
-                 (io/delete-file (file remote-name)))
-               rv))]
-      (resource/execute-commands request execute))))
+             (sh-script cmdstring))
+            (transfer
+             [transfers]
+             (doseq [[from to] transfers]
+               (logging/info (format "Copying %s to %s" from to))
+               (io/copy (io/file from) (io/file to))))]
+      (resource/execute-commands
+       request
+       {:script/bash execute-bash
+        :transfer/to-local transfer
+        :transfer/from-local transfer}))
+    [nil request]))

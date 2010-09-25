@@ -11,22 +11,22 @@
    [pallet.parameter-test :as parameter-test]
    [pallet.resource.package :as package]))
 
+(use-fixtures :once with-ubuntu-script-template)
+
 (deftest mysql-server-test
   (is (=
-       (stevedore/do-script
-        (package/package-manager*
-         ubuntu-request
-         :debconf
-         (str "mysql-server-5.1 mysql-server/root_password password " "pwd")
-         (str "mysql-server-5.1 mysql-server/root_password_again password " "pwd")
-         (str "mysql-server-5.1 mysql-server/start_on_boot boolean " true)
-         (str "mysql-server-5.1 mysql-server-5.1/root_password password " "pwd")
-         (str "mysql-server-5.1 mysql-server-5.1/root_password_again password " "pwd")
-         (str "mysql-server-5.1 mysql-server/start_on_boot boolean " true))
-        (stevedore/checked-commands
-         "Packages"
-         (stevedore/script (package-manager-non-interactive))
-         (package/package* ubuntu-request "mysql-server")))
+       (first
+        (resource/build-resources
+         []
+         (package/package-manager
+          :debconf
+          (str "mysql-server-5.1 mysql-server/root_password password " "pwd")
+          (str "mysql-server-5.1 mysql-server/root_password_again password " "pwd")
+          (str "mysql-server-5.1 mysql-server/start_on_boot boolean " true)
+          (str "mysql-server-5.1 mysql-server-5.1/root_password password " "pwd")
+          (str "mysql-server-5.1 mysql-server-5.1/root_password_again password " "pwd")
+          (str "mysql-server-5.1 mysql-server/start_on_boot boolean " true))
+         (package/package  "mysql-server")))
        (first
         (build-resources
          [:node-type {:tag :n :image {:os-family :ubuntu}}]

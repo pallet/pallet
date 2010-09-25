@@ -39,7 +39,7 @@ chef-repository you specify with `with-chef-repository`.
    [org.jclouds.compute :as jclouds]
    [org.jclouds.blobstore :as jclouds-blobstore]
    [clojure.contrib.logging :as logging]
-   [clojure.contrib.def :only []])
+   [clojure.contrib.map-utils :as map-utils])
   (:import org.jclouds.compute.domain.OsFamily
            org.jclouds.compute.options.TemplateOptions
            org.jclouds.compute.domain.NodeMetadata))
@@ -394,14 +394,18 @@ script that is run with root privileges immediatly after first boot."
              [cmd]
              (logging/info (format "Commands %s" cmd))
              cmd)]
-      (resource/execute-commands request execute))))
+      (resource/execute-commands request {:script/bash execute
+                                          :transfer/to-local (fn [& _])
+                                          :transfer/from-local (fn [& _])}))))
 
 (defn wrap-local-exec
   "Middleware to execute only local functions"
   [_]
   (fn [request]
     (letfn [(execute [cmd] nil)]
-      (resource/execute-commands request execute))))
+      (resource/execute-commands request {:script/bash execute
+                                          :transfer/to-local (fn [& _])
+                                          :transfer/from-local (fn [& _])}))))
 
 (defn wrap-with-user-credentials
   [handler]
@@ -432,7 +436,15 @@ script that is run with root privileges immediatly after first boot."
     (:phase request) (:tag (:node-type request)) (count nodes)))
   (reduce
    (fn apply-phase-accumulate [request [result req :as arg]]
-     (assoc-in request [:results (:target-id req) (:phase req)] result))
+     (let [param-keys [:parameters :host (:target-id req)]]
+       (->
+        request
+        (assoc-in [:results (:target-id req) (:phase req)] result)
+        (update-in
+         param-keys
+         (fn [p]
+           (map-utils/deep-merge-with
+            (fn [x y] (or y x)) p (get-in req param-keys)))))))
    request
    (for [node nodes]
      (apply-phase-to-node
@@ -547,8 +559,16 @@ script that is run with root privileges immediatly after first boot."
     (->
      (reduce
       (fn lift-nodes-reduce-result [request req]
-        (update-in request [:results]
-                   #(merge-with merge (or % {}) (:results req))))
+        (->
+         request
+         (update-in
+          [:results]
+          #(map-utils/deep-merge-with
+            (fn [x y] (or y x)) (or % {}) (:results req)))
+         (update-in
+          [:parameters]
+          #(map-utils/deep-merge-with
+            (fn [x y] (or y x)) % (:parameters req)))))
       request
       (for [phase (resource/phase-list phases)
             [node-type tag-nodes] target-node-map]

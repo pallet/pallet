@@ -6,7 +6,7 @@ configuration code."
    [pallet.utils :as utils]
    [pallet.script :as script]
    [clojure.contrib.seq :as seq]
-   [clojure.contrib.string :as string]
+   [clojure.string :as string]
    [clojure.contrib.logging :as logging])
   (:use
    [clojure.contrib.def :only [defunbound defvar defvar- name-with-attributes]]
@@ -53,9 +53,6 @@ configuration code."
    :in-sequence - The generated resource will be applied to the node
         \"in order\", as it is defined lexically in the source crate.
         This is the default.
-   :local-in-sequence - The generated resource will be applied to the node
-        \"in order\", as it is defined lexically in the source crate.
-        The execution is on the local machine.
    :aggregated - All aggregated resources are applied to the node
         in the order they are defined, but before all :in-sequence
         resources. Note that all of the arguments to any given
@@ -65,7 +62,14 @@ configuration code."
         in the order they are defined, but after all :in-sequence
         resources. Note that all of the arguments to any given
         invocation fn are gathered such that there is only ever one
-        invocation of each fn within each phase."
+        invocation of each fn within each phase.
+
+   The resource-type determines how the invocation should be handled:
+
+   :script/bash - resource produce bash script for execution on remote machine
+   :fn/clojure  - resource is a function for local execution
+   :transfer/to-local - resource is a function specifying remote source
+        and local destination."
   ([request invoke-fn args]
      (invoke-resource request invoke-fn args :in-sequence :script/bash))
   ([request invoke-fn args execution]
@@ -73,7 +77,8 @@ configuration code."
   ([request invoke-fn args execution resource-type]
      {:pre [(keyword? (:phase request))
             (keyword? (:target-id request))]}
-     (let [[execution location] (if (= execution :local-in-sequence)
+     (let [[execution location] (if (#{:fn/clojure :transfer/to-local}
+                                     resource-type)
                                   [:in-sequence :local]
                                   [execution :remote])]
        (update-in
@@ -203,12 +208,12 @@ configuration code."
 
 (defmacro deflocal
   "Shortcut for defining a resource-producing function with an
-   :execution of :local-in-sequence."
+   :execution of :in-sequence. and ::type of :fn/clojure"
   [name & args]
     (let [[name args] (name-with-attributes name args)]
     `(defresource
        ~name
-       {::execution :local-in-sequence ::type :fn/clojure}
+       {::execution :in-sequence ::type :fn/clojure}
        ~@args)))
 
 (defmacro defaggregate
@@ -231,14 +236,11 @@ configuration code."
                       {::execution :collected ::type :script/bash})]
     `(defresource ~name ~attr ~@args)))
 
-;; (defn- with-request-arg
-;;   [request-sym arg]
-;;   `(argument/delayed [~request-sym] ~arg))
-
-;; (defmacro with-request
-;;   "Enable use of the request in the arguments of the specified form."
-;;   [[request-sym] form]
-;;   `(~(first form) ~@(map #(with-request-arg request-sym %) (rest form))))
+(deflocal as-local-resource
+  "An adaptor for using a normal function as a local resource function"
+  (as-local-resource*
+   [request f & args]
+   (apply f request args)))
 
 (defn script-join
   "Concatenate multiple scripts, removing blank lines"
@@ -251,6 +253,22 @@ configuration code."
 (defmulti resource-evaluate-fn
   "Create a resource evaluation function that combines the evaluation"
   (fn [type & _] type))
+
+(defn resource-evaluate-transfer-fn
+  [type location s]
+  (fn [request]
+    {:type type
+     :location location
+     :transfers (map #((:f %) request) s)
+     :request request}))
+
+(defmethod resource-evaluate-fn :transfer/from-local
+  [type location s]
+  (resource-evaluate-transfer-fn type location s))
+
+(defmethod resource-evaluate-fn :transfer/to-local
+  [type location s]
+  (resource-evaluate-transfer-fn type location s))
 
 (defmethod resource-evaluate-fn :script/bash
   [type location s]
@@ -275,7 +293,7 @@ configuration code."
   [resources]
   {:pre [(or (map? resources) (nil? resources))
          (every?
-          #{:in-sequence :local-in-sequence :aggregated :collected}
+          #{:in-sequence :aggregated :collected}
           (keys resources))
          (every? vector? (vals resources))]}
   (for [s (partition-by
@@ -295,45 +313,49 @@ configuration code."
     (seq (output-resources
           (-> request :invocations phase target-id)))))
 
-(defunbound *file-transfers*)
+(defmulti execute-resource
+  "Execute a resource of the given type.  Returns [request result]"
+  (fn [request resource-type & _] resource-type))
 
-(defn register-file-transfer!
-  [local-file]
-  (let [f (clojure.contrib.io/file local-file)]
-    (when-not (and (.exists f) (.isFile f) (.canRead f))
-      (throw (IllegalArgumentException.
-               (format "'%s' does not exist, is a directory, or is unreadable; cannot register it for transfer" local-file))))
-    ;; need to eagerly determine a destination for the file, as crates will need
-    ;; to know where to find the transferred file
-    (let [remote-name (format "pallet-transfer-%s-%s"
-                        (java.util.UUID/randomUUID)
-                        (.length f))] ; silly UUID collision paranoia
-      (set! *file-transfers* (assoc *file-transfers* f remote-name))
-      remote-name)))
+(defmethod execute-resource :script/bash
+  [request resource-type execute-fn f]
+  (script/with-template [(-> request :node-type :image :os-family)
+                         (-> request :target-packager)]
+    (let [{:keys [cmds request location resource-type]} (f request)]
+      [request (execute-fn cmds)])))
+
+(defmethod execute-resource :transfer/to-local
+  [request resource-type execute-fn f]
+  (script/with-template [(-> request :node-type :image :os-family)
+                         (-> request :target-packager)]
+    (let [{:keys [transfers request location resource-type]} (f request)]
+      [request (execute-fn transfers)])))
+
+(defmethod execute-resource :transfer/from-local
+  [request resource-type execute-fn f]
+  (script/with-template [(-> request :node-type :image :os-family)
+                         (-> request :target-packager)]
+    (let [{:keys [transfers request location resource-type]} (f request)]
+      [request (execute-fn transfers)])))
+
+(defmethod execute-resource :fn/clojure
+  [request resource-type execute-fn f]
+  [(:request (or (and execute-fn (execute-fn f request))
+                 (f request)))
+   nil])
 
 (defn execute-commands
-  "Execute commands by passing the evaluated resources to f."
-  [request execute-fn]
+  "Execute commands by passing the evaluated resources to the function of the
+   correct type in fn-map."
+  [request fn-map]
   (loop [[{:keys [location type f] :as command}
           & rest :as commands] (:commands request)
-         request request
-         result []]
+          request request
+          result []]
     (if command
-      (if (= :remote location)
-        (script/with-template [(-> request :node-type :image :os-family)
-                               (-> request :target-packager)]
-          (binding [*file-transfers* {}]
-            (let [{:keys [cmds request location type]} (f request)]
-              (recur
-               rest
-               request
-               (conj
-                result
-                (execute-fn cmds))))))
-        (recur rest (:request (f request)) result))
+      (let [[request fn-result] (execute-resource request type (type fn-map) f)]
+        (recur rest request (if fn-result (conj result fn-result) result)))
       [result request])))
-
-
 
 (defn phase-list*
   "Add pre and after phases"
@@ -385,7 +407,9 @@ configuration code."
                 [result request] (if commands
                                    (execute-commands
                                     (assoc request :commands commands)
-                                    (fn [cmds] cmds))
+                                    {:script/bash (fn [cmds] cmds)
+                                     :transfer/from-local (fn [& _])
+                                     :transfer/to-local (fn [& _])})
                                    [nil request])]
             [(string/join "" result) request]))]
     (reduce

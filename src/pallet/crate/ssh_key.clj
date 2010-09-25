@@ -2,6 +2,8 @@
   (:require
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
+   [pallet.parameter :as parameter]
+   [pallet.resource :as resource]
    [pallet.resource.directory :as directory]
    [pallet.resource.exec-script :as exec-script]
    [pallet.resource.remote-file :as remote-file]
@@ -70,7 +72,7 @@
       :owner user :mode "644"
       :content public-key-string))))
 
-(def ^:private ssh-default-filenames
+(def ssh-default-filenames
      {"rsa1" "identity"
       "rsa" "id_rsa"
       "dsa" "id_dsa"})
@@ -87,9 +89,9 @@
                    :or {type "rsa" passphrase ""}
                    :as  options}]
   (let [key-type type
-        path
-        (stevedore/script ~(str (user-ssh-dir user)
-                                (or file (ssh-default-filenames key-type))))
+        path (stevedore/script
+              ~(str (user-ssh-dir user)
+                    (or file (ssh-default-filenames key-type))))
         ssh-dir (.getParent (java.io.File. path))]
     (->
      request
@@ -109,3 +111,28 @@
                            \")}))))
      (file/file path :owner user :mode "0600")
      (file/file (str path ".pub") :owner user :mode "0644"))))
+
+(defn record-public-key
+  [request user & {:keys [filename type]
+                   :or {type "rsa"} :as options}]
+  (let [filename (or filename (ssh-default-filenames type))
+        path (str "../" user "/.ssh/" filename ".pub")]
+    (->
+     request
+     (remote-file/with-remote-file
+       (fn [request local-path]
+         (resource/as-local-resource
+          request
+          (fn [request]
+            (parameter/assoc-for-target
+             request [:user (keyword user) (keyword filename)]
+             (slurp local-path)))))
+       path))))
+
+#_
+(pallet.core/defnode a {}
+  :bootstrap (pallet.resource/phase
+              (pallet.crate.automated-admin-user/automated-admin-user))
+  :configure (pallet.resource/phase
+              (pallet.crate.ssh-key/generate-key "duncan")
+              (pallet.crate.ssh-key/record-public-key "duncan")))

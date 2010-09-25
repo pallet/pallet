@@ -90,7 +90,7 @@
   (testing "invoke local execution"
     (let [request (invoke-resource
                    {:phase :configure :target-id :id}
-                   identity :b :local-in-sequence)]
+                   identity :b :in-sequence :fn/clojure)]
       (is (= identity
              (-> request :invocations :configure :id :in-sequence first :f)))
       (is (= :b
@@ -132,8 +132,8 @@
       (let [request (-> {:phase :configure :target-id :id}
                         (invoke-resource combiner [:a] :aggregated)
                         (invoke-resource identity-resource [:b] :in-sequence)
-                        (invoke-resource identity-resource [:c]
-                                         :local-in-sequence))
+                        (invoke-resource
+                         identity-resource [:c] :in-sequence :fn/clojure))
             fs (bound-invocations (-> request :invocations :configure :id))]
         (is (not (.contains "lazy" (str fs))))
         (is (= ":a" ((:f (first fs)) {})))
@@ -316,13 +316,13 @@
                                                  :location :remote
                                                  :type :script/bash})}]}]
       (is (= [["abc"] request]
-               (execute-commands request (fn [cmds] cmds))))))
+               (execute-commands request {:script/bash (fn [cmds] cmds)})))))
   (testing "updating of request"
     (let [request {:commands [{:location :local :type :fn/clojure
                                :f (fn [request]
                                     {:request {assoc request :fred 1}})}]}]
       (is (= [[] {assoc request :fred 1}]
-               (execute-commands request (fn [cmds] cmds)))))))
+               (execute-commands request {:script/bash (fn [cmds] cmds)}))))))
 
 (deftest produce-phases-test
   (let [node (compute/make-node "tag")]

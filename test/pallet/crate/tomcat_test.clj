@@ -23,6 +23,8 @@
    [pallet.stevedore :only [script]]
    [pallet.core :only [defnode]]))
 
+(use-fixtures :once with-ubuntu-script-template)
+
 (deftest tomcat-test
   (is (= (first
           (resource/build-resources
