@@ -581,11 +581,13 @@ script that is run with root privileges immediatly after first boot."
 (defn lift*
   [node-set all-node-set phases request]
   (logging/trace (format "lift* phases %s" (vec phases)))
-  (let [nodes (when (:compute request)
-                (logging/info "retrieving nodes")
-                (filter
-                 running?
-                 (jclouds/nodes-with-details (:compute request))))
+  (let [nodes (or
+               (:all-nodes request)
+               (when (:compute request)
+                 (logging/info "retrieving nodes")
+                 (filter
+                  running?
+                  (jclouds/nodes-with-details (:compute request)))))
         target-node-map (nodes-in-set node-set (:prefix request) nodes)
         all-node-map (or (and all-node-set
                               (nodes-in-set all-node-set nil nodes))
