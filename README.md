@@ -27,11 +27,11 @@ request map must be threaded through each resource or crate call.
 
 Crates can be packaged and distributed as clojure jar files.
 
-[API documentation](http://hugoduncan.github.com/pallet) is available.
+Some basic [documentation](http://hugoduncan.github.com/pallet) is available.
 
 ## Usage
 
-[See demo documentation](http://hugoduncan.github.com/pallet/demo-api.html).
+[See demo documentation](http://hugoduncan.github.com/pallet/autodoc/demo-api.html).
 
 
 ## Support
