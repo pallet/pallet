@@ -4,7 +4,8 @@
    clojure.test
    pallet.test-utils)
   (:require
-   [clojure.contrib.io :as io]))
+   [pallet.utils :as utils]
+   [clojure.java.io :as io]))
 
 (defn reset-atoms
   [f]
@@ -24,7 +25,7 @@
    [user-preferences process-response]]
 
   (deftest user-prefs-test
-    (with-temporary [tmp (tmpfile)]
+    (utils/with-temporary [tmp (utils/tmpfile)]
       (.delete tmp)
       (reset! pallet.heynote/user-prefs nil)
       (binding [pallet.heynote/user-prefs-file (.getPath tmp)]
@@ -49,10 +50,9 @@
     (is (= {:project "p1" :user-id "user"} (message-map))))
 
   (deftest process-response-test
-    (with-temporary [tmp (tmpfile)]
+    (utils/with-temporary [tmp (utils/tmpfile)]
       (.delete tmp)
       (reset! pallet.heynote/user-prefs nil)
       (binding [pallet.heynote/user-prefs-file (.getPath tmp)]
         (process-response {:user-id "user"})
         (is (= "user" ((user-preferences) :id)))))))
-

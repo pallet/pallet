@@ -17,30 +17,6 @@ list, Alan Dipert and MeikelBrandmeyer."
   `(let ~(reduce #(conj %1 %2 `@(ns-resolve '~ns '~%2)) [] fns)
      ~@tests))
 
-(defn tmpfile
-  "Create a temporary file"
-  ([] (java.io.File/createTempFile "pallet_" "test"))
-  ([^java.io.File dir] (java.io.File/createTempFile "pallet_" "test" dir)))
-
-(defn tmpdir []
-  (doto (java.io.File/createTempFile "pallet_" "test")
-    (.delete)
-    (.mkdir)))
-
-(defmacro with-temporary
-  [bindings & body]
-  {:pre [(vector? bindings)
-         (even? (count bindings))]}
-  (cond
-   (= (count bindings) 0) `(do ~@body)
-   (symbol? (bindings 0)) `(let ~(subvec bindings 0 2)
-                             (try
-                              (with-temporary ~(subvec bindings 2) ~@body)
-                              (finally
-                               (. ~(bindings 0) delete))))
-   :else (throw (IllegalArgumentException.
-                 "with-temporary only allows Symbols in bindings"))))
-
 (defmacro bash-out
   "Check output of bash. Macro so that errors appear on the correct line."
   ([str] `(bash-out ~str 0 ""))

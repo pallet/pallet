@@ -9,7 +9,9 @@
    [pallet.resource.directory :as directory]
    [pallet.utils :as utils]
    [org.jclouds.blobstore :as jclouds-blobstore]
-   [clojure.contrib.def :as def]))
+   [clojure.contrib.def :as def]
+   [clojure.java.io :as io])
+  (:use pallet.thread-expr))
 
 (def install-new-files true)
 (def force-overwrite false)
@@ -48,30 +50,36 @@
                       (.. request getHeaders entries)))
          ~(.. request getEndpoint toASCIIString))))
 
+(defn- arg-vector
+  "Return the non-request arguments."
+  [_ & args]
+  args)
 
-(resource/defresource remote-file
-  "Remote file with contents management.
-Options for specifying the file's content are:
-  :url url          - download the specified url to the given filepath
-  :content string   - use the specified content directly
-  :local-file path  - use the file on the local machine at the given path
-  :remote-file path - use the file on the remote machine at the given path
-  :link             - file to link to:
-  :literal          - prevent shell expansion on content
-  :md5              - md5 for file
-  :md5-url          - a url containing file's md5
-  :template         - specify a template to be interpolated
-  :values           - values for interpolation
-  :blob             - map of :container, :path
-  :blobstore        - a jclouds blobstore object (override blobstore in request)
-  :overwrite-changes - flag to force overwriting of locally modified content
-  :no-versioning    - do not version the file
-  :max-versions     - specfy the number of versions to keep (default 5)
-  :flag-on-changed  - flag to set if file is changed
-Options for specifying the file's permissions are:
-  :owner user-name
-  :group group-name
-  :mode  file-mode"
+(defn with-remote-file
+  "Function to call f with a local copy of the requested remote path.
+   f should be a function taking [request local-path & _], where local-path will
+   be a File with a copy of the remote file (which will be unlinked after
+   calling f."
+  [request f path & args]
+  (let [local-path (utils/tmpfile)]
+    (->
+     request
+     (resource/invoke-resource arg-vector [path (.getPath local-path)]
+                               :in-sequence :transfer/to-local)
+     (apply-> f local-path args)
+     (resource/invoke-resource
+      (fn [request] (.delete local-path) request) []
+      :in-sequence :fn/clojure))))
+
+(defn transfer-file
+  "Function to transfer a local file."
+  [request local-path remote-path]
+  (resource/invoke-resource
+   request arg-vector [local-path remote-path]
+   :in-sequence :transfer/from-local))
+
+
+(resource/defresource remote-file-resource
   (remote-file*
    [request path & {:keys [action url local-file remote-file link
                            content literal
@@ -122,10 +130,11 @@ Options for specifying the file's permissions are:
          content (apply file/heredoc
                         new-path content
                         (apply concat (seq (select-keys options [:literal]))))
-         local-file (let [temp-path (resource/register-file-transfer!
-                                     local-file)]
-                      (stevedore/script
-                       (mv -f (str "~/" ~temp-path) ~new-path)))
+         local-file nil
+                   ;; (let [temp-path (resource/register-file-transfer!
+                   ;;                   local-file)]
+                   ;;    (stevedore/script
+                   ;;     (mv -f (str "~/" ~temp-path) ~new-path)))
          remote-file (stevedore/script
                       (cp -f ~remote-file ~new-path))
          template (apply
@@ -198,3 +207,48 @@ Options for specifying the file's permissions are:
        :delete (stevedore/checked-script
                 (str "delete remote-file " path)
                 (rm ~path ~(select-keys options [:force])))))))
+
+(defn remote-file
+  "Remote file with contents management.
+Options for specifying the file's content are:
+  :url url          - download the specified url to the given filepath
+  :content string   - use the specified content directly
+  :local-file path  - use the file on the local machine at the given path
+  :remote-file path - use the file on the remote machine at the given path
+  :link             - file to link to:
+  :literal          - prevent shell expansion on content
+  :md5              - md5 for file
+  :md5-url          - a url containing file's md5
+  :template         - specify a template to be interpolated
+  :values           - values for interpolation
+  :blob             - map of :container, :path
+  :blobstore        - a jclouds blobstore object (override blobstore in request)
+  :overwrite-changes - flag to force overwriting of locally modified content
+  :no-versioning    - do not version the file
+  :max-versions     - specfy the number of versions to keep (default 5)
+  :flag-on-changed  - flag to set if file is changed
+Options for specifying the file's permissions are:
+  :owner user-name
+  :group group-name
+  :mode  file-mode"
+  [request path & {:keys [action url local-file remote-file link
+                          content literal
+                          template values
+                          md5 md5-url
+                          owner group mode force
+                          blob blobstore
+                          overwrite-changes no-versioning max-versions
+                          flag-on-changed]
+                   :as options}]
+  (when-let [f (and local-file (io/file local-file))]
+    (when (not (and (.exists f) (.isFile f) (.canRead f)))
+      (throw (IllegalArgumentException.
+              (format
+               (str "'%s' does not exist, is a directory, or is unreadable; "
+                    "cannot register it for transfer.")
+               local-file)))))
+  (->
+   request
+   (when-> local-file
+           (transfer-file local-file (str path ".new")))
+   (apply-> remote-file-resource path (apply concat options))))

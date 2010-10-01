@@ -5,6 +5,8 @@
   (:use clojure.test
         pallet.test-utils))
 
+(use-fixtures :once with-ubuntu-script-template)
+
 (with-private-vars [pallet.crate.resolv
                     [write-key-value write-option write-options write
                      merge-resolve-spec]]

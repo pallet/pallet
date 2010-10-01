@@ -15,9 +15,9 @@
 
 (deftest rsync-test
   (core/with-admin-user (assoc utils/*admin-user* :username (test-username))
-    (with-temporary [dir (tmpdir)
-                     tmp (tmpfile dir)
-                     target-dir (tmpdir)]
+    (utils/with-temporary [dir (utils/tmpdir)
+                           tmp (utils/tmpfile dir)
+                           target-dir (utils/tmpdir)]
       ;; this is convoluted to get around the "t" sticky bit on temp dirs
       (let [user (assoc utils/*admin-user*
                    :username (test-username) :no-sudo true)

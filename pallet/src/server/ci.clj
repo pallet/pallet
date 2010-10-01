@@ -43,7 +43,8 @@
      (ssh-key/authorize-key-for-localhost
       user "clj_ssh.pub" :authorize-for-user "testuser")
      (ssh-key/authorize-key-for-localhost
-      user "clj_ssh_pp.pub" :authorize-for-user "testuser"))))
+      user "clj_ssh_pp.pub" :authorize-for-user "testuser")
+     (ssh-key/record-public-key user))))
 
 (defn ci-config
   [request]
@@ -105,6 +106,7 @@
                    :branches ["origin/*"]
                    :merge-target "master"
                    :github {:projectUrl "http://github.com/hugoduncan/pallet/"}
+                   :aggregator-style-build true
                    :maven-opts ""
                    :scm ["git://github.com/hugoduncan/pallet.git"]
                    :publishers {:ircbot

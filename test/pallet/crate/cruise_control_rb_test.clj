@@ -11,6 +11,8 @@
   (:use clojure.test
         pallet.test-utils))
 
+(use-fixtures :once with-ubuntu-script-template)
+
 (deftest cruise-control-rb-job-test
   (is (= (stevedore/checked-script
           "cruise-control-rb"

@@ -416,7 +416,10 @@
                    (xml/content token))
     [:publishers]
     (xml/html-content
-     (string/join (map publisher-config (:publishers options)))))
+     (string/join (map publisher-config (:publishers options))))
+    [:aggregatorStyleBuild] (xml/content
+                             (truefalse
+                              (:aggregator-style-build options true))))
    scm-type scms options))
 
 (defmulti output-build-for
