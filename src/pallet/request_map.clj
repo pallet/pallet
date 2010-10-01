@@ -21,6 +21,11 @@
   [request]
   (compute/primary-ip (:target-node request)))
 
+(defn target-private-ip
+  "Private IP of the target-node"
+  [request]
+  (compute/private-ip (:target-node request)))
+
 
 (defn tag
   "Tag of the target-node."

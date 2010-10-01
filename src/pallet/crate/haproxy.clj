@@ -173,7 +173,7 @@
        (or v [])
        (merge
         options
-        {:ip (request-map/target-ip request)
+        {:ip (request-map/target-private-ip request)
          ;; some providers don't allow for node names, only node ids
          :name (or (request-map/target-name request)  
                    (target/safe-id (request-map/target-id request)))}))))))

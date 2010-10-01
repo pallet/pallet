@@ -194,6 +194,11 @@
   [#^NodeMetadata node]
   (first (jclouds/public-ips node)))
 
+(defn private-ip
+  "Returns the first private IP for the node"
+  [#^NodeMetadata node]
+  (first (jclouds/private-ips node)))
+
 (defn is-64bit?
   [#^NodeMetadata node]
   (.. node getOperatingSystem is64Bit))
