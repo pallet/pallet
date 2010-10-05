@@ -9,7 +9,7 @@
                  [org.jclouds/jclouds-enterprise "1.0-beta-7"]
                  [org.apache.maven/maven-settings "2.0.10"]
                  [clj-http "0.1.1"]
-                 [enlive "1.0.0-SNAPSHOT"]
+                 [org.cloudhoist/enlive "1.0.0"]
                  [clj-ssh "0.2.0"]
                  [log4j/log4j "1.2.14"]
                  [com.jcraft/jsch "0.1.42"]
@@ -20,12 +20,12 @@
                      [org.jclouds/jclouds-terremark "1.0-beta-7"]
                      [org.jclouds/jclouds-rimuhosting "1.0-beta-7"]
                      [org.jclouds/jclouds-gogrid "1.0-beta-7"]
-                     [swank-clojure/swank-clojure "1.3.0-SNAPSHOT"]
+                     [swank-clojure/swank-clojure "1.2.1"]
                      [autodoc "0.7.1"]]
   :repositories {"build.clojure.org" "http://build.clojure.org/releases/"
                  "clojars.org" "http://clojars.org/repo/"
-                 "jclouds" "https://oss.sonatype.org/content/repositories/releases"
-                 "jclouds-snapshot" "https://oss.sonatype.org/content/repositories/snapshots"}
+                 "sonatype" "https://oss.sonatype.org/content/repositories/releases"
+                 "sonatype-snapshots" "https://oss.sonatype.org/content/repositories/snapshots"}
   :autodoc {:name "Pallet"
             :description "Pallet is used to start provision, configure and administer compute nodes. Reference documentation is at http://hugoduncan.github.com/pallet"
             :copyright "Copyright Hugo Duncan 2010. All rights reserved."

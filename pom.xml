@@ -278,9 +278,9 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>enlive</groupId>
+            <groupId>org.cloudhoist</groupId>
             <artifactId>enlive</artifactId>
-            <version>1.0.0-20100502.112537-18</version>
+            <version>1.0.0</version>
         </dependency>
         <dependency>
           <groupId>org.apache.maven</groupId>
@@ -301,8 +301,12 @@
             <url>http://jclouds.googlecode.com/svn/repo</url>
         </repository>
         <repository>
-            <id>jclouds-snapshots</id>
+            <id>sonatype-snapshots</id>
             <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+        </repository>
+        <repository>
+            <id>sonatype</id>
+            <url>http://oss.sonatype.org/content/repositories/releases</url>
         </repository>
         <repository>
             <id>clojure</id>
@@ -373,7 +377,7 @@
           <role>PMC</role>
           <role>Developer</role>
         </roles>
-        <timezone>-8</timezone>
+        <timezone>-5</timezone>
       </developer>
       <developer>
         <name>Adrian Cole</name>
@@ -384,7 +388,7 @@
           <role>Developer</role>
         </roles>
         <url>http://www.jclouds.org</url>
-        <timezone>-5</timezone>
+        <timezone>-8</timezone>
       </developer>
     </developers>
 
