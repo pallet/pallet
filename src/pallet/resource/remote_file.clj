@@ -150,7 +150,9 @@
                 ~(jclouds-blobstore/sign-blob-request
                   (:container blob) (:path blob)
                   {:method :get}
-                  (or blobstore (:blobstore request)))))
+                  (or blobstore (:blobstore request)
+                      (throw (IllegalArgumentException.
+                              "No :blobstore given for blob content.") )))))
          :else (throw
                 (IllegalArgumentException.
                  (str "remote-file " path " specified without content."))))
