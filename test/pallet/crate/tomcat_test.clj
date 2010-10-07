@@ -14,7 +14,8 @@
     [pallet.stevedore :as stevedore]
     [net.cgrand.enlive-html :as enlive-html]
     [pallet.enlive :as enlive]
-    [pallet.parameter-test :as parameter-test])
+    [pallet.parameter-test :as parameter-test]
+    [org.jclouds.blobstore :as blobstore])
   (:use
    clojure.test
    pallet.test-utils
@@ -316,11 +317,12 @@
 
 (deftest invoke-test
   (is (resource/build-resources
-       []
+       [:blobstore (blobstore/blobstore "transient" "" "")]
        (tomcat)
        (undeploy "app")
        (undeploy-all)
        (deploy "app" :content "")
+       (deploy "app" :blob {:container "c" :path "p"})
        (policy 1 "name" {})
        (application-conf "name" "content")
        (user "name" {:password "pwd"})
