@@ -101,7 +101,7 @@
   (set
    ['if 'if-not 'when 'case 'aget 'aset 'get 'defn 'return 'set! 'var 'defvar
     'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists?
-    'symlink? 'readable? 'writeable? 'not 'println 'group 'pipe 'chain-or
+    'symlink? 'readable? 'writeable? 'not 'println 'print 'group 'pipe 'chain-or
     'chain-and 'while 'doseq 'merge! 'assoc!]))
 
 (def infix-operators
@@ -232,6 +232,9 @@
 
 (defmethod emit-special 'println [type [println & args]]
   (str "echo " (emit args)))
+
+(defmethod emit-special 'print [type [println & args]]
+  (str "echo -n " (emit args)))
 
 (defmethod emit-special 'invoke
   [type [name & args]]
@@ -445,12 +448,24 @@
            (= (symbol (name (first form))) 'clj))
       (and (seq? form) (= (first form) `unquote))))
 
+(defn- unquote-splicing?
+  "Tests whether the form is ~@( ...)."
+  [form]
+  (and (seq? form) (= (first form) `unquote-splicing)))
+
 (defn handle-unquote [form]
   (second form))
+
+(defn splice [form]
+  (string/join " " (map emit form)))
+
+(defn handle-unquote-splicing [form]
+  (list splice (second form)))
 
 (defn- inner-walk [form]
   (cond
    (unquote? form) (handle-unquote form)
+   (unquote-splicing? form) (handle-unquote-splicing form)
    :else (walk inner-walk outer-walk form)))
 
 (defn- outer-walk [form]

@@ -11,6 +11,7 @@
      :url              - a url to download content from
      :unpack           - how download should be extracts (default :tar)
      :tar-options      - options to pass to tar (default \"xz\")
+     :unzip-options    - options to pass to unzip (default \"xz\")
      :strip-components - number of pathc ompnents to remove when unpacking
      :md5              - md5 of file to unpack
      :md5-url          - url of md5 file for file to unpack
@@ -18,10 +19,11 @@
      :group            - group of files
      :recursive        - flag to recursively set owner and group"
   (remote-directory*
-   [request path & {:keys [action url unpack tar-options strip-components
-                           md5 md5-url owner group recursive]
+   [request path & {:keys [action url unpack tar-options unzip-options
+                           strip-components md5 md5-url owner group recursive]
                     :or {action :create
                          tar-options "xz"
+                         unzip-options "-o"
                          strip-components 1}
                     :as options}]
 
@@ -43,7 +45,10 @@
                               (cd ~path)
                               (tar ~tar-options
                                    ~(str "--strip-components=" strip-components)
-                                   -f ~tarpath)))
+                                   -f ~tarpath))
+                        :unzip (stevedore/script
+                                (cd ~path)
+                                (unzip ~unzip-options ~tarpath)))
                     (if recursive
                       (directory/directory*
                        request path

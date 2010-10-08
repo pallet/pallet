@@ -67,3 +67,7 @@
    (resource/build-resources
     []
     (sed "path" {"a" "b"} :seperator "|"))))
+
+(deftest make-temp-file-test
+  (is (= "$(mktemp \"prefixXXXXX\")"
+         (stevedore/script (make-temp-file "prefix")))))

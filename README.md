@@ -33,6 +33,8 @@ Some basic [documentation](http://hugoduncan.github.com/pallet) is available.
 
 [See demo documentation](http://hugoduncan.github.com/pallet/autodoc/demo-api.html).
 
+There is an introductory [screencast](http://www.youtube.com/hugoduncan),
+showing a basic node configuration, and starting and stopping a node.
 
 ## Support
 

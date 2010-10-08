@@ -16,14 +16,14 @@
 
 
 (deftest directory*-test
-  (is (= (stevedore/checked-commands "directory file1" "mkdir -p file1")
+  (is (= (stevedore/checked-commands "Directory file1" "mkdir -p file1")
          (directory* {} "file1"))))
 
 (deftest directory-test
-  (is (= (stevedore/checked-commands "directory file1" "mkdir -p file1")
+  (is (= (stevedore/checked-commands "Directory file1" "mkdir -p file1")
          (first (resource/build-resources [] (directory "file1")))))
   (testing "delete"
-    (is (= (stevedore/checked-script "directory file1" "rm -r -f file1")
+    (is (= (stevedore/checked-script "Delete directory file1" "rm -r -f file1")
            (first (resource/build-resources
                    []
                    (directory "file1" :action :delete :recursive true)))))))

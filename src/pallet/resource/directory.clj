@@ -39,7 +39,7 @@
 
 (defn make-directory [path opts]
   (stevedore/checked-commands
-   (str "directory " path)
+   (str "Directory " path)
    (stevedore/script
     (mkdir ~path ~(select-keys opts [:p :v :m])))
    (adjust-directory path opts)))
@@ -50,12 +50,11 @@
    [request path & {:keys [action] :or {action :create} :as options}]
    (case action
      :delete (stevedore/checked-script
-              (str "directory " path)
+              (str "Delete directory " path)
               (rm ~path ~{:r (get options :recursive true)
                           :f (get options :force true)}))
      :create (make-directory path (merge {:p true} options))
      :touch (make-directory path (merge {:p true} options)))))
-
 
 (defresource directories
   "Directory management of multiple directories with the same

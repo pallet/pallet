@@ -36,8 +36,7 @@
 
 (def/defvar
   all-options
-  [:local-file :remote-file :url :md5 :content :literal :template :values
-   :action :owner :group :mode]
+  (concat content-options [:owner :group :mode])
   "A vector of the options accepted by remote-file.  Can be used for option
   forwarding when calling remote-file from other crates.")
 
@@ -151,7 +150,9 @@
                 ~(jclouds-blobstore/sign-blob-request
                   (:container blob) (:path blob)
                   {:method :get}
-                  (or blobstore (:blobstore request)))))
+                  (or blobstore (:blobstore request)
+                      (throw (IllegalArgumentException.
+                              "No :blobstore given for blob content.") )))))
          :else (throw
                 (IllegalArgumentException.
                  (str "remote-file " path " specified without content."))))

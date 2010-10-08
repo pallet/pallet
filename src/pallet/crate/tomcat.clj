@@ -27,6 +27,8 @@
 (def tomcat-user "tomcat6")
 (def tomcat-group "tomcat6")
 
+(def package-name {:aptitude "tomcat6" :pacman "tomcat"})
+
 (defn tomcat
   "Install tomcat"
   [request & {:as options}]
@@ -37,7 +39,9 @@
          [:tomcat :config-path] tomcat-config-root
          [:tomcat :owner] tomcat-user
          [:tomcat :group] tomcat-group))
-      (apply-> package "tomcat6" (apply concat options))
+      (apply->
+       package (package-name (request :target-packager))
+       (apply concat options))
       (when-> (:purge options)
        (directory/directory
          tomcat-base :action :delete :recursive true :force true))))

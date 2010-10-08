@@ -85,6 +85,10 @@
 (stevedore/defimpl tmp-dir :default []
   @TMPDIR-/tmp)
 
+(script/defscript make-temp-file [pattern])
+(stevedore/defimpl make-temp-file :default [pattern]
+  @(mktemp (quoted ~(str pattern "XXXXX"))))
+
 (script/defscript heredoc [path content])
 (stevedore/defimpl heredoc :default [path content]
   ("{ cat" ">" ~path ~(str "<<EOFpallet\n" content "\nEOFpallet\n }")))
