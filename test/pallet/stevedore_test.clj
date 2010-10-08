@@ -265,3 +265,10 @@ fi"
          (script (pipe (ls)))))
   (is (= "ls | ls"
          (script (pipe (ls) (ls))))))
+
+(deftest unquote-splicing-test
+  (is (= "a b c" (script ~@["a" "b" "c"])))
+  (let [x ["a" "b" "c"]]
+    (is (= "a b c" (script ~@x))))
+  (let [fx (fn [] ["a" "b" "c"])]
+    (is (= "a b c" (script ~@(fx))))))
