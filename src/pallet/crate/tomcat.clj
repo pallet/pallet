@@ -4,7 +4,6 @@
   (:use
    [pallet.stevedore :only [script]]
    [pallet.resource.file :only [heredoc file rm]]
-   [pallet.resource.package :only [package]]
    [pallet.template :only [find-template]]
    [pallet.enlive :only [xml-template xml-emit transform-if deffragment elt]]
    [clojure.contrib.prxml :only [prxml]]
@@ -13,38 +12,61 @@
    [pallet.resource :as resource]
    [pallet.core :as core]
    [pallet.parameter :as parameter]
+   [pallet.resource.package :as package]
    [pallet.resource.file :as file]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.directory :as directory]
    [pallet.resource.service :as service]
    [pallet.resource.exec-script :as exec-script]
+   [pallet.request-map :as request-map]
    [pallet.target :as target]
    [net.cgrand.enlive-html :as enlive]
    [clojure.contrib.string :as string]))
 
-(def tomcat-config-root "/etc/tomcat6/")
-(def tomcat-base "/var/lib/tomcat6/")
-(def tomcat-user "tomcat6")
-(def tomcat-group "tomcat6")
+(def tomcat-config-root "/etc/")
+(def tomcat-base "/var/lib/")
 
-(def package-name {:aptitude "tomcat6" :pacman "tomcat"})
+(def package-name
+  {:aptitude "tomcat6"
+   :pacman "tomcat"
+   :yum "tomcat5"
+   :amzn-linux "tomcat6"})
+
+(def tomcat-user-group-name
+  {:aptitude "tomcat6"
+   :pacman "tomcat"
+   :yum "tomcat"})
 
 (defn tomcat
   "Install tomcat"
-  [request & {:as options}]
-  (-> request
-      (when-> (= :install (:action options :install))
-        (parameter/assoc-for-target
-         [:tomcat :base] tomcat-base
-         [:tomcat :config-path] tomcat-config-root
-         [:tomcat :owner] tomcat-user
-         [:tomcat :group] tomcat-group))
-      (apply->
-       package (package-name (request :target-packager))
-       (apply concat options))
-      (when-> (:purge options)
-       (directory/directory
-         tomcat-base :action :delete :recursive true :force true))))
+  [request & {:keys [user group] :as options}]
+  (let [package (or
+                 (package-name (request-map/os-family request))
+                 (package-name (:target-packager request)))
+        tomcat-user (tomcat-user-group-name (:target-packager request))]
+    (-> request
+        (when-> (= :install (:action options :install))
+                (parameter/assoc-for-target
+                 [:tomcat :base] (str tomcat-base package "/")
+                 [:tomcat :config-path] (str tomcat-config-root package "/")
+                 [:tomcat :owner] (or user tomcat-user)
+                 [:tomcat :group] (or group tomcat-user)
+                 [:tomcat :service] package))
+        (apply->
+         package/package package
+         (apply concat options))
+        (when-> (:purge options)
+                (directory/directory
+                 tomcat-base :action :delete :recursive true :force true)))))
+
+(defn init-service
+  [request & args]
+  (->
+   request
+   (apply->
+    service/service
+    (parameter/get-for-target request [:tomcat :service])
+    args)))
 
 (defn undeploy
   "Removes the named webapp directories, and any war files with the same base
