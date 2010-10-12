@@ -3,6 +3,7 @@
   (:require
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.hostinfo :as hostinfo]
+   [pallet.resource.exec-script :as exec-script]
    [pallet.stevedore :as stevedore]
    [pallet.request-map :as request-map]
    [pallet.script :as script]
@@ -293,3 +294,15 @@
        :url centos-55-repo
        :gpgkey centos-55-repo-key
        :priority 50)))
+
+(defn add-epel
+  "Add the EPEL repository"
+  [request & {:keys [version] :or {version "5-5"}}]
+  (->
+   request
+   (exec-script/exec-script
+    (rpm
+     -Uvh
+     (format
+      "http://download.fedora.redhat.com/pub/epel/5/x86_64/epel-release-%s.noarch.rpm"
+      version)))))
