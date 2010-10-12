@@ -21,16 +21,20 @@
   [request]
   (compute/primary-ip (:target-node request)))
 
+(defn os-family
+  "OS-Family of the target-node."
+  [request]
+  (-> request :node-type :image :os-family))
 
 (defn tag
   "Tag of the target-node."
   [request]
-  (:tag (:node-type request)))
+  (-> request :node-type :tag))
 
 (defn nodes-in-tag
   "All nodes in the same tag as the target-node, or with the specified tag."
   ([request] (nodes-in-tag request (.getTag (:target-node request))))
-  ([request tag] (filter #(= tag (.getTag %)) (:target-nodes request))))
+  ([request tag] (filter #(= (name tag) (.getTag %)) (:target-nodes request))))
 
 (defn packager
   [request]
