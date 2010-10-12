@@ -9,6 +9,7 @@
    [pallet.execute :as execute]
    [pallet.stevedore :as stevedore]
    [pallet.resource :as resource]
+   [pallet.resource.exec-script :as exec-script]
    [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]
    [pallet.target :as target]
@@ -40,12 +41,17 @@
 
 
 (deftest test-install-example
-  (is (= (script/with-template [:aptitude]
-           (stevedore/checked-commands
-            "Packages"
-            (stevedore/script (package-manager-non-interactive))
-            "aptitude install -q -y  java && aptitude show java"
-            "aptitude install -q -y  rubygems && aptitude show rubygems\n"))
+  (is (= (first
+          (resource/build-resources
+           []
+           (exec-script/exec-checked-script
+            "Package java"
+            (package-manager-non-interactive)
+            "aptitude install -q -y  java && aptitude show java")
+           (exec-script/exec-checked-script
+            "Package rubygems"
+            (package-manager-non-interactive)
+            "aptitude install -q -y  rubygems && aptitude show rubygems\n")))
          (first (resource/build-resources
                  []
                  (package "java" :action :install)
@@ -177,22 +183,20 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 (deftest packages-test
   (core/defnode a {:packager :aptitude})
   (core/defnode b {:packager :yum})
-  (is (= (script/with-template [:aptitude]
-           (stevedore/checked-commands
-            "Packages"
-            (stevedore/script (package-manager-non-interactive))
-            (package* {:node-type a} "git-apt")
-            (package* {:node-type a} "git-apt2")))
+  (is (= (first
+           (resource/build-resources
+            [:node-type a]
+            (package "git-apt")
+            (package "git-apt2")))
          (first (resource/build-resources
                  []
                  (packages
                   :aptitude ["git-apt" "git-apt2"]
                   :yum ["git-yum"])))))
-  (is (= (script/with-template [(get-in b [:image :packager])]
-           (stevedore/checked-commands
-            "Packages"
-            (stevedore/script (package-manager-non-interactive))
-            (package* {:node-type b} "git-yum")))
+  (is (= (first
+           (resource/build-resources
+            [:node-type b]
+            (package "git-yum")))
          (first (resource/build-resources
                  [:node-type b]
                  (packages

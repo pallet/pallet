@@ -13,7 +13,8 @@
   (:use
    [pallet.resource :only [defaggregate defresource]]
    [clojure.contrib.logging]
-   [clojure.contrib.core :only [-?>]]))
+   [clojure.contrib.core :only [-?>]]
+   pallet.thread-expr))
 
 (script/defscript update-package-list [& options])
 (script/defscript install-package [name & options])
@@ -113,31 +114,25 @@
    "debconf debconf/frontend select noninteractive"
    "debconf debconf/frontend seen false"))
 
-(defn package*
+(defresource package
   "Package management"
-  [request package-name & {:keys [action y force purge]
-                           :or {action :install y true}
-                           :as options}]
-  (case action
-    :install (stevedore/script
-              (install-package ~package-name :force ~force))
-    :remove (if purge
-              (stevedore/script (purge-package ~package-name))
-              (stevedore/script (remove-package ~package-name)))
-    :upgrade (stevedore/script (purge-package ~package-name))
-    :update-package-list (stevedore/script (update-package-list))
-    (throw (IllegalArgumentException.
-            (str action " is not a valid action for package resource")))))
-
-(defaggregate package
-  "Package management."
-  {:copy-arglist pallet.resource.package/package*}
-  (package-combiner [request package-args]
-   (stevedore/checked-commands*
-    "Packages"
-    (cons
-     (stevedore/script (package-manager-non-interactive))
-     (map #(apply package* request %) package-args)))))
+  (package*
+   [request package-name & {:keys [action y force purge]
+                            :or {action :install y true}
+                            :as options}]
+   (stevedore/checked-commands
+    (format "Package %s" package-name)
+    (stevedore/script (package-manager-non-interactive))
+    (case action
+       :install (stevedore/script
+                 (install-package ~package-name :force ~force))
+       :remove (if purge
+                 (stevedore/script (purge-package ~package-name))
+                 (stevedore/script (remove-package ~package-name)))
+       :upgrade (stevedore/script (purge-package ~package-name))
+       :update-package-list (stevedore/script (update-package-list))
+       (throw (IllegalArgumentException.
+               (str action " is not a valid action for package resource")))))))
 
 (def source-location
   {:aptitude "/etc/apt/sources.list.d/%s.list"
@@ -271,13 +266,14 @@
    (stevedore/do-script*
     (map #(apply package-manager* request %) package-manager-args))))
 
-(defresource packages
+(defn packages
   "Install a list of packages keyed on packager"
-  (packages-combiner
-   [request & {:as options}]
-   (package-combiner
-    request
-    (map vector (options (target/packager (-?> request :node-type :image)))))))
+  [request & {:as options}]
+  (->
+   request
+   (for->
+    [package-name (options (target/packager (-?> request :node-type :image)))]
+    (package package-name))))
 
 (def ^{:private true} centos-55-repo
   "http://mirror.centos.org/centos/5.5/os/x86_64/repodata/repomd.xml")
