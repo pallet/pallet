@@ -72,7 +72,7 @@
                        (package/package-manager :multiverse)
                        (package/package-manager :update))
                (when-> (= packager :yum)
-                       (package/package :install "jpackage-utils")))
+                       (package/package "jpackage-utils")))
        (for-> [vendor vendors]
               (for-> [component components]
                      (vc vendor component)))))))
