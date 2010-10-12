@@ -24,11 +24,11 @@
               :yum { :url (str "http://packages.cloudkick.com/redhat/"
                                (hostinfo/architecture))})
              (package/package-manager :update)
-             (package/package "cloudkick-agent")
              (remote-file/remote-file
               "/etc/cloudkick.conf"
               :content
-              "oauth_key key\noauth_secret secret\ntags any\nname node\n\n\n\n")))
+              "oauth_key key\noauth_secret secret\ntags any\nname node\n\n\n\n")
+             (package/package "cloudkick-agent")))
            (first
             (resource/build-resources
              [:node-type a] (cloudkick "node" "key" "secret")))))))
