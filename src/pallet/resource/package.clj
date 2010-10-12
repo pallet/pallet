@@ -142,7 +142,32 @@
   {:aptitude "/etc/apt/sources.list.d/%s.list"
    :yum "/etc/yum.repos.d/%s.repo"})
 
-(def source-template "resource/package/source")
+(defmulti format-source
+  "Create a source definition"
+  (fn [packager & _] packager))
+
+(defmethod format-source :aptitude
+  [_ name options]
+  (format
+   "%s %s %s %s\n"
+   (:source-type options "deb")
+   (:url options)
+   (:release options (stevedore/script (os-version-name)))
+   (string/join " " (:scopes options ["main"]))))
+
+(defmethod format-source :yum
+  [_ name {:keys [url mirrorlist gpgcheck gpgkey priority] :as options}]
+  (string/join
+   "\n"
+   (filter
+    identity
+    [(format "[%s]\nname=%s" name name)
+     (when url (format "baseurl=%s" url))
+     (when mirrorlist (format "mirrorlist=%s" mirrorlist))
+     (format "gpgcheck=%s" (or gpgkey 0))
+     (when gpgkey (format "gpgkey=%s" gpgkey))
+     (when priority (format "priority=%s" priority))
+     ""])))
 
 (defn package-source*
   "Add a packager source."
@@ -158,14 +183,8 @@
          (remote-file/remote-file*
           request
           (format (source-location packager) name)
-          :template source-template
-          :values (merge
-                   {:source-type "deb"
-                    :release (stevedore/script (os-version-name))
-                    :scopes ["main"]
-                    :gpgkey 0
-                    :name name}
-                   (options packager)))))
+          :content (format-source packager name (packager options))
+          :literal false)))
      (if (and (-> options :aptitude :key-id)
               (= packager :aptitude))
        (stevedore/script
