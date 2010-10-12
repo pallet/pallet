@@ -303,6 +303,6 @@
    (exec-script/exec-script
     (rpm
      -Uvh
-     (format
-      "http://download.fedora.redhat.com/pub/epel/5/x86_64/epel-release-%s.noarch.rpm"
-      version)))))
+     ~(format
+       "http://download.fedora.redhat.com/pub/epel/5/x86_64/epel-release-%s.noarch.rpm"
+       version)))))
