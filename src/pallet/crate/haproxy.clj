@@ -14,7 +14,8 @@
    [clojure.contrib.logging :as logging]
    clojure.set)
   (:use
-   [clojure.contrib.core :only [-?>]]))
+   [clojure.contrib.core :only [-?>]]
+   pallet.thread-expr))
 
 (def conf-path "/etc/haproxy/haproxy.cfg")
 
@@ -42,6 +43,9 @@
   "Install HAProxy from packages"
   [request]
   (-> request
+      (when->
+       (= :amzn-linux (request-map/os-family request))
+       (package/add-centos55-to-amzn-linux request))
       (package/package "haproxy")))
 
 (defmulti format-kv (fn format-kv-dispatch [k v & _] (class v)))
@@ -175,7 +179,7 @@
         options
         {:ip (request-map/target-ip request)
          ;; some providers don't allow for node names, only node ids
-         :name (or (request-map/target-name request)  
+         :name (or (request-map/target-name request)
                    (target/safe-id (request-map/target-id request)))}))))))
 
 #_
