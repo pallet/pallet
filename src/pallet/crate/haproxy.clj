@@ -45,7 +45,7 @@
   (-> request
       (when->
        (= :amzn-linux (request-map/os-family request))
-       (package/add-centos55-to-amzn-linux request))
+       (package/add-epel request "5-5"))
       (package/package "haproxy")))
 
 (defmulti format-kv (fn format-kv-dispatch [k v & _] (class v)))

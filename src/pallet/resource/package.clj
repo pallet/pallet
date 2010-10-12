@@ -3,6 +3,7 @@
   (:require
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.hostinfo :as hostinfo]
+   [pallet.resource.exec-script :as exec-script]
    [pallet.stevedore :as stevedore]
    [pallet.request-map :as request-map]
    [pallet.script :as script]
@@ -142,7 +143,32 @@
   {:aptitude "/etc/apt/sources.list.d/%s.list"
    :yum "/etc/yum.repos.d/%s.repo"})
 
-(def source-template "resource/package/source")
+(defmulti format-source
+  "Create a source definition"
+  (fn [packager & _] packager))
+
+(defmethod format-source :aptitude
+  [_ name options]
+  (format
+   "%s %s %s %s\n"
+   (:source-type options "deb")
+   (:url options)
+   (:release options (stevedore/script (os-version-name)))
+   (string/join " " (:scopes options ["main"]))))
+
+(defmethod format-source :yum
+  [_ name {:keys [url mirrorlist gpgcheck gpgkey priority] :as options}]
+  (string/join
+   "\n"
+   (filter
+    identity
+    [(format "[%s]\nname=%s" name name)
+     (when url (format "baseurl=%s" url))
+     (when mirrorlist (format "mirrorlist=%s" mirrorlist))
+     (format "gpgcheck=%s" (or gpgkey 0))
+     (when gpgkey (format "gpgkey=%s" gpgkey))
+     (when priority (format "priority=%s" priority))
+     ""])))
 
 (defn package-source*
   "Add a packager source."
@@ -158,14 +184,8 @@
          (remote-file/remote-file*
           request
           (format (source-location packager) name)
-          :template source-template
-          :values (merge
-                   {:source-type "deb"
-                    :release (stevedore/script (os-version-name))
-                    :scopes ["main"]
-                    :gpgkey 0
-                    :name name}
-                   (options packager)))))
+          :content (format-source packager name (packager options))
+          :literal false)))
      (if (and (-> options :aptitude :key-id)
               (= packager :aptitude))
        (stevedore/script
@@ -274,3 +294,15 @@
        :url centos-55-repo
        :gpgkey centos-55-repo-key
        :priority 50)))
+
+(defn add-epel
+  "Add the EPEL repository"
+  [request & {:keys [version] :or {version "5-5"}}]
+  (->
+   request
+   (exec-script/exec-script
+    (rpm
+     -Uvh
+     (format
+      "http://download.fedora.redhat.com/pub/epel/5/x86_64/epel-release-%s.noarch.rpm"
+      version)))))
