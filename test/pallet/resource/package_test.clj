@@ -34,7 +34,7 @@
   (is (= "aptitude install -q -y  java && aptitude show java"
          (script/with-template [:aptitude]
            (stevedore/script (install-package "java")))))
-  (is (= "yum install -y  java"
+  (is (= "yum install -y -q  java"
          (script/with-template [:yum]
            (stevedore/script (install-package "java"))))))
 

@@ -51,7 +51,7 @@
   (yum makecache ~(stevedore/option-args options)))
 
 (stevedore/defimpl install-package [#{:yum}] [package & options]
-  (yum install -y ~(stevedore/option-args options) ~package))
+  (yum install -y -q ~(stevedore/option-args options) ~package))
 
 (stevedore/defimpl remove-package [#{:yum}] [package & options]
   (yum remove ~(stevedore/option-args options) ~package))
