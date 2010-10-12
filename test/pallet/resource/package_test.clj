@@ -198,3 +198,17 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                  (packages
                   :aptitude ["git-apt"]
                   :yum ["git-yum"]))))))
+
+(deftest add-centos55-to-amzn-linux-test
+  (core/defnode a {:packager :yum :image {:os-family :amzn-linux}})
+  (is (= (first (resource/build-resources
+                 [:node-type a]
+                 (package "yum-priorities")
+                 (package-source
+                  "Centos-5.5"
+                  :url #'pallet.resource.package/centos-55-repo
+                  :gpgkey #'pallet.resource.package/centos-55-repo-key
+                  :priority 50)))
+         (first (resource/build-resources
+                 [:node-type a]
+                 (add-centos55-to-amzn-linux))))))

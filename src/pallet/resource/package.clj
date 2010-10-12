@@ -151,7 +151,7 @@
     (stevedore/checked-commands
      "Package source"
      (let [key-url (-> options :aptitude :url)]
-       (if (.startsWith key-url "ppa:")
+       (if (and key-url (.startsWith key-url "ppa:"))
          (stevedore/chain-commands
           (package* request "python-software-properties")
           (stevedore/script (add-apt-repository ~key-url)))
@@ -179,7 +179,9 @@
          request
          "aptkey.tmp"
          :url (-> options :aptitude :key-url))
-        (stevedore/script (apt-key add aptkey.tmp)))))))
+        (stevedore/script (apt-key add aptkey.tmp))))
+     (when-let [key (and (= packager :yum) (-> options :yum :gpgkey))]
+       (stevedore/script (rpm "--import" ~key))))))
 
 (defaggregate package-source
   "Control package sources.
@@ -194,8 +196,9 @@
      :key-id id            - id for key to look it up from keyserver
 
    :yum
-     :url url              - repository url
-     :gpgkey keystring     - pgp key string for repository"
+     :name                 - repository name
+     :url url          - repository base url
+     :gpgkey url           - gpg key url for repository"
   {:copy-arglist pallet.resource.package/package-source*}
   (package-source-aggregate
    [request args]
@@ -255,3 +258,19 @@
    (package-combiner
     request
     (map vector (options (target/packager (-?> request :node-type :image)))))))
+
+(def ^{:private true} centos-55-repo
+  "http://mirror.centos.org/centos/5.5/os/x86_64/repodata/repomd.xml")
+(def ^{:private true} centos-55-repo-key
+  "http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-5")
+
+(defn add-centos55-to-amzn-linux
+  "Add the centos 5.5 repository to Amazon Linux. Ensure that it has a lower
+  priority"
+  [request]
+  (-> request
+      (package "yum-priorities")
+      (package-source "Centos-5.5"
+       :url centos-55-repo
+       :gpgkey centos-55-repo-key
+       :priority 50)))
