@@ -297,12 +297,12 @@
 
 (defn add-epel
   "Add the EPEL repository"
-  [request & {:keys [version] :or {version "5-5"}}]
+  [request & {:keys [version] :or {version "5-4"}}]
   (->
    request
    (exec-script/exec-script
     (rpm
-     -Uvh
+     -U
      ~(format
        "http://download.fedora.redhat.com/pub/epel/5/x86_64/epel-release-%s.noarch.rpm"
        version)))))
