@@ -185,7 +185,7 @@
         (recur (nnext args) (merge users {(first args) (fnext args)}) roles))
       [roles users])))
 
-(resource/defaggregate user
+(resource/defcollect user
   "Configure tomcat users. Options are:
      :role rolename
      username {:password \"pw\" :roles [\"role1\" \"role 2\"]}"
