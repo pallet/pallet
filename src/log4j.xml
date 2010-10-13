@@ -20,6 +20,27 @@
     </layout>
   </appender>
 
+  <appender name="WIREFILE" class="org.apache.log4j.DailyRollingFileAppender">
+    <param name="File" value="logs/jclouds-wire.log" />
+    <param name="Append" value="true" />
+
+    <!-- Rollover at midnight each day -->
+    <param name="DatePattern" value="'.'yyyy-MM-dd" />
+
+    <param name="Threshold" value="TRACE" />
+
+    <layout class="org.apache.log4j.PatternLayout">
+      <!-- The default pattern: Date Priority [Category] Message\n -->
+      <param name="ConversionPattern" value="%d %-5p [%c] (%t) %m%n" />
+
+      <!--
+          The full pattern: Date MS Priority [Category]
+          (Thread:NDC) Message\n <param name="ConversionPattern"
+          value="%d %-5r %-5p [%c] (%t:%x) %m%n"/>
+      -->
+    </layout>
+  </appender>
+
   <appender name="PALLETFILE" class="org.apache.log4j.DailyRollingFileAppender">
     <param name="File" value="logs/pallet.log" />
     <param name="Append" value="true" />
@@ -33,6 +54,20 @@
   <appender name="ASYNCCOMPUTE" class="org.apache.log4j.AsyncAppender">
     <appender-ref ref="COMPUTEFILE" />
   </appender>
+
+  <appender name="ASYNCWIRE" class="org.apache.log4j.AsyncAppender">
+    <appender-ref ref="WIREFILE" />
+  </appender>
+
+  <category name="jclouds.headers">
+    <priority value="DEBUG" />
+    <appender-ref ref="ASYNCWIRE" />
+  </category>
+
+  <category name="jclouds.wire">
+    <priority value="DEBUG" />
+    <appender-ref ref="ASYNCWIRE" />
+  </category>
 
   <category name="jclouds.compute">
     <priority value="TRACE" />
@@ -54,6 +89,7 @@
     <priority value ="info" />
     <appender-ref ref="console" />
   </root>
+
 
 
 </log4j:configuration>
