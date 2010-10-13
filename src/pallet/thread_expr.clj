@@ -106,3 +106,13 @@
   [request f & args]
   `(let [request# ~request]
      (apply ~f request# ~@args)))
+
+(defmacro apply-map->
+  "Apply in a threaded expression.
+   e.g.
+      (-> :a
+        (apply-map-> hash-map 1 {:b 2}))
+   => {:a 1 :b 2}"
+  [request f & args]
+  `(let [request# ~request]
+     (apply ~f request# ~@(butlast args) (apply concat ~(last args)))))

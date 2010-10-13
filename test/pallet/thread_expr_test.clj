@@ -28,3 +28,6 @@
 
 (deftest apply->test
   (is (= 7 (-> 1 (apply-> + [1 2 3])))))
+
+(deftest apply-map->test
+  (is (= {:a 1 :b 2} (-> :a (apply-map-> hash-map 1 {:b 2})))))
