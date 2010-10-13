@@ -28,6 +28,6 @@
   "Adjust node counts.  Requires a map of node-type, count pairs.
      eg. pallet converge mynodes/my-node 1
    The node-types should be namespace qualified."
-  [& args]
+  [request & args]
   (let [args (build-args args)]
-    (apply core/converge args)))
+    (apply core/converge (concat args :compute (:compute request)))))

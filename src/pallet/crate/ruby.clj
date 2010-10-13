@@ -11,7 +11,6 @@
    [pallet.resource.remote-file :only [remote-file]]
    [pallet.resource.file]
    [pallet.script :only [defscript]]
-   [pallet.target :only [packager]]
    pallet.thread-expr))
 
 (defscript ruby-version [])

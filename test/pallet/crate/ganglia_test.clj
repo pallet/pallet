@@ -3,8 +3,8 @@
   (:use clojure.test
         pallet.test-utils)
   (:require
-   [pallet.resource :as resource]
-   [pallet.compute :as compute]))
+   [pallet.compute.jclouds :as jclouds]
+   [pallet.resource :as resource]))
 
 (deftest format-value-test
   (testing "basic map"
@@ -22,8 +22,8 @@
 
 (testing "invoke"
   (is (resource/build-resources
-       [:target-node (compute/make-node "tag" :id "id")
-        :node-type {:image {:os-family :ubuntu} :tag :tag}]
+      [:target-node (jclouds/make-node "tag" :id "id")
+       :node-type {:image {:os-family :ubuntu} :tag :tag}]
        (install)
        (monitor)
        (configure)

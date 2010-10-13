@@ -4,13 +4,13 @@
    clojure.test
    pallet.test-utils)
   (:require
-   [pallet.compute :as compute]
+   [pallet.compute.jclouds :as jclouds]
    [pallet.resource :as resource]))
 
 (deftest zookeeper-test
   (is ; just check for compile errors for now
    (resource/build-resources
-    [:target-node (compute/make-node "tag")
+    [:target-node (jclouds/make-node "tag")
      :node-type {:tag "tag" :image {:os-family :ubuntu}}]
     (install)
     (configure)

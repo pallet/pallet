@@ -3,12 +3,11 @@
    pallet.crate.jetty
    clojure.test)
   (:require
-   [pallet.resource :as resource]
-   [pallet.compute :as compute]))
+   [pallet.resource :as resource]))
 
 (deftest invoke-test
   (is (resource/build-resources
-       [:target-node (compute/make-node "tag" :id "id")]
+       []
        (jetty)
        (configure "")
        (server "")

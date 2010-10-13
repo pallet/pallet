@@ -2,7 +2,7 @@
   (:use pallet.crate.nagios)
   (:require
    [pallet.crate.nagios-config :as nagios-config]
-   [pallet.compute :as compute]
+   [pallet.compute.jclouds :as jclouds]
    [pallet.parameter :as parameter]
    [pallet.stevedore :as stevedore]
    [pallet.resource :as resource]
@@ -34,7 +34,7 @@
                                :notification_interval 0
                                :use "generic-service"}))
              :owner "root"))
-           (let [node (compute/make-node
+           (let [node (jclouds/make-node
                        "tag" :id "id" :public-ips ["1.2.3.4"])]
              (first
               (resource/build-resources
@@ -65,7 +65,7 @@
                                :use "generic-service"}))
              :owner "root"))
            (str
-            (let [node (compute/make-node
+            (let [node (jclouds/make-node
                         "tag" :id "id" :public-ips ["1.2.3.4"])]
               (first
                (resource/build-resources

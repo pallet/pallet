@@ -1,7 +1,6 @@
 (ns pallet.request-map
   "Functions for querying and manipulating requests"
   (:require
-   [pallet.target :as target]
    [pallet.compute :as compute])
   (:use
    [clojure.contrib.core :only [-?>]]))
@@ -38,7 +37,7 @@
 
 (defn packager
   [request]
-  (target/packager (-?> request :node-type :image)))
+  (compute/packager (-?> request :node-type :image)))
 
 (defn script-template-keys
   "Find the script template keys for the request"

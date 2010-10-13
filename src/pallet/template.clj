@@ -3,6 +3,7 @@
   (:require
    [pallet.strint :as strint]
    [pallet.target :as target]
+   [pallet.compute :as compute]
    [pallet.utils :as utils]
    [clojure.contrib.string :as string]
    [pallet.stevedore :as stevedore])
@@ -46,7 +47,7 @@
     (concat
      (variants tag)
      (variants (name (or (target/os-family template) "unknown")))
-     (variants (name (or (target/packager template) "unknown")))
+     (variants (name (or (compute/packager template) "unknown")))
      (variants nil))))
 
 (defn find-template

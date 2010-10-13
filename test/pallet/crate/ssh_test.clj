@@ -2,7 +2,7 @@
   (:use pallet.crate.ssh)
   (:require
    [pallet.crate.iptables :as iptables]
-   [pallet.compute :as compute]
+   [pallet.compute.jclouds :as jclouds]
    [pallet.target :as target]
    [pallet.resource :as resource])
   (:use clojure.test
@@ -21,7 +21,7 @@
 
 (deftest invoke-test
   (is (resource/build-resources
-       [:target-node (compute/make-node "tag" :id "id")]
+       [:target-node (jclouds/make-node "tag" :id "id")]
        (openssh)
        (sshd-config "")
        (iptables-accept)

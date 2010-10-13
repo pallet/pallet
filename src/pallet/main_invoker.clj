@@ -40,8 +40,7 @@
         (let [compute (apply jclouds/compute-service
                              (concat [service user key] default-service-opts))]
           (try
-            (jclouds/with-compute-service [compute]
-              (apply task params))
+            (apply task {:compute compute} params)
             (finally ;; make sure we don't hang on exceptions
              (.. compute getContext close)))))
       (do

@@ -5,9 +5,9 @@
    [pallet.stevedore :as stevedore]
    [pallet.resource.exec-script :as exec-script]
    [pallet.compute :as compute]
+   [pallet.compute.jclouds :as jclouds]
    [pallet.target :as target]
    [pallet.mock :as mock]
-   [org.jclouds.compute :as jclouds]
    pallet.compute-test-utils
    [pallet.ssh-test :as ssh-test])
   (:use
@@ -68,19 +68,19 @@
   (is (= { {:tag :a} 1 {:tag :b} -1}
          (node-count-difference
           { {:tag :a} 2 {:tag :b} 0}
-          [(compute/make-node "a") (compute/make-node "b")])))
+          [(jclouds/make-node "a") (jclouds/make-node "b")])))
   (is (= { {:tag :a} 1 {:tag :b} 1}
          (node-count-difference { {:tag :a} 1 {:tag :b} 1} []))))
 
 (deftest add-os-family-test
   (defnode a {:os-family :ubuntu})
   (defnode b {})
-  (let [n1 (compute/make-node "n1")]
+  (let [n1 (jclouds/make-node "n1")]
     (is (= {:tag :a :image {:os-family :ubuntu} :phases nil}
            (:node-type
             (add-os-family
              {:target-node n1 :node-type a})))))
-  (let [n1 (compute/make-node
+  (let [n1 (jclouds/make-node
             "n1"
             :operating-system (OperatingSystem.
                                OsFamily/UBUNTU
@@ -105,7 +105,7 @@
 
 (deftest converge-node-counts-test
   (defnode a {:os-family :ubuntu})
-  (let [a-node (compute/make-node "a" :state NodeState/RUNNING)]
+  (let [a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
     (converge-node-counts {a 1} [a-node] {:compute nil}))
   (mock/expects [(org.jclouds.compute/run-nodes
                   [tag n template compute]
@@ -114,14 +114,14 @@
                  (org.jclouds.compute/build-template
                   [compute & options]
                   (mock/once :template))]
-    (let [a-node (compute/make-node "a" :state NodeState/TERMINATED)]
+    (let [a-node (jclouds/make-node "a" :state NodeState/TERMINATED)]
       (converge-node-counts {a 1} [a-node] {:compute nil}))))
 
 (deftest nodes-in-map-test
   (defnode a {:os-family :ubuntu})
   (defnode b {:os-family :ubuntu})
-  (let [a-node (compute/make-node "a")
-        b-node (compute/make-node "b")
+  (let [a-node (jclouds/make-node "a")
+        b-node (jclouds/make-node "b")
         nodes [a-node b-node]]
     (is (= [a-node]
            (nodes-in-map {a 1} nodes)))
@@ -133,16 +133,16 @@
   (defnode b {:os-family :ubuntu})
   (defnode pa {:os-family :ubuntu})
   (defnode pb {:os-family :ubuntu})
-  (let [a-node (compute/make-node "a")
-        b-node (compute/make-node "b")]
+  (let [a-node (jclouds/make-node "a")
+        b-node (jclouds/make-node "b")]
     (is (= {a #{a-node}}
            (nodes-in-set {a a-node} nil nil)))
     (is (= {a #{a-node b-node}}
            (nodes-in-set {a #{a-node b-node}} nil nil)))
     (is (= {a #{a-node} b #{b-node}}
            (nodes-in-set {a #{a-node} b #{b-node}} nil nil))))
-  (let [a-node (compute/make-node "a")
-        b-node (compute/make-node "b")]
+  (let [a-node (jclouds/make-node "a")
+        b-node (jclouds/make-node "b")]
     (is (= {pa #{a-node}}
            (nodes-in-set {a a-node} "p" nil)))
     (is (= {pa #{a-node b-node}}
@@ -155,15 +155,15 @@
 (deftest node-in-types?-test
   (defnode a {})
   (defnode b {})
-  (is (node-in-types? [a b] (compute/make-node "a")))
-  (is (not (node-in-types? [a b] (compute/make-node "c")))))
+  (is (node-in-types? [a b] (jclouds/make-node "a")))
+  (is (not (node-in-types? [a b] (jclouds/make-node "c")))))
 
 (deftest nodes-for-type-test
   (defnode a {})
   (defnode b {})
-  (let [na (compute/make-node "a")
-        nb (compute/make-node "b")
-        nc (compute/make-node "c")]
+  (let [na (jclouds/make-node "a")
+        nb (jclouds/make-node "b")
+        nc (jclouds/make-node "c")]
     (is (= [nb] (nodes-for-type [na nb nc] b)))
     (is (= [na] (nodes-for-type [na nc] a)))))
 
@@ -171,8 +171,8 @@
   (defnode a {})
   (defnode b {})
   (defnode c {})
-  (let [na (compute/make-node "a")
-        nb (compute/make-node "b")]
+  (let [na (jclouds/make-node "a")
+        nb (jclouds/make-node "b")]
     (is (= [na nb] (nodes-in-map {a 1 b 1 c 1} [na nb])))
     (is (= [na] (nodes-in-map {a 1 c 1} [na nb])))))
 
@@ -216,7 +216,7 @@
     :bootstrap (resource/phase (test-component :a))
     :configure (resource/phase (test-component :b)))
   (is (= #{:bootstrap :configure} (set (keys (with-phases :phases)))))
-  (let [request {:target-node (compute/make-node "tag" :id "id")
+  (let [request {:target-node (jclouds/make-node "tag" :id "id")
                  :target-id :id
                  :node-type with-phases
                  :target-packager :yum}]
@@ -277,14 +277,14 @@
   (let [[localf seen?] (seen-fn)]
     (is (.contains
          "bin"
-         (with-no-compute-service
-           (with-out-str
-             (lift {x (compute/make-unmanaged-node "x" "localhost")}
-                   :phase [(phase (exec-script/exec-script (ls "/")))
-                           (phase (localf))]
-                   :user (assoc utils/*admin-user*
-                           :username (test-username)
-                           :no-sudo true))))))
+         (with-out-str
+           (lift {x (jclouds/make-unmanaged-node "x" "localhost")}
+                 :phase [(phase (exec-script/exec-script (ls "/")))
+                         (phase (localf))]
+                 :user (assoc utils/*admin-user*
+                         :username (test-username)
+                         :no-sudo true)
+                 :compute nil))))
     (is (seen?))))
 
 (deftest lift2-test
@@ -294,8 +294,8 @@
     (defnode y1 {} :configure (resource/phase localfy))
     (binding [org.jclouds.compute/*compute* nil]
       (is (map?
-           (lift {x1 (compute/make-unmanaged-node "x" "localhost")
-                  y1 (compute/make-unmanaged-node "y" "localhost")}
+           (lift {x1 (jclouds/make-unmanaged-node "x" "localhost")
+                  y1 (jclouds/make-unmanaged-node "y" "localhost")}
                  :user (assoc utils/*admin-user*
                          :username (test-username)
                          :no-sudo true)))))
@@ -305,9 +305,9 @@
 (deftest lift*-nodes-binding-test
   (defnode a {})
   (defnode b {})
-  (let [na (compute/make-node "a")
-        nb (compute/make-node "b")
-        nc (compute/make-node "c" :state NodeState/TERMINATED)]
+  (let [na (jclouds/make-node "a")
+        nb (jclouds/make-node "b")
+        nc (jclouds/make-node "c" :state NodeState/TERMINATED)]
     (mock/expects [(apply-phase
                     [nodes request]
                     (do
@@ -330,9 +330,9 @@
 (deftest lift-multiple-test
   (defnode a {})
   (defnode b {})
-  (let [na (compute/make-node "a")
-        nb (compute/make-node "b")
-        nc (compute/make-node "c")]
+  (let [na (jclouds/make-node "a")
+        nb (jclouds/make-node "b")
+        nc (jclouds/make-node "c")]
     (mock/expects [(org.jclouds.compute/nodes-with-details [_] [na nb nc])
                    (apply-phase
                     [nodes request]
@@ -344,9 +344,9 @@
 (deftest converge*-nodes-binding-test
   (defnode a {})
   (defnode b {})
-  (let [na (compute/make-node "a")
-        nb (compute/make-node "b")
-        nc (compute/make-node "b" :state NodeState/TERMINATED)]
+  (let [na (jclouds/make-node "a")
+        nb (jclouds/make-node "b")
+        nc (jclouds/make-node "b" :state NodeState/TERMINATED)]
     (mock/expects [(apply-phase
                     [nodes request]
                     (do

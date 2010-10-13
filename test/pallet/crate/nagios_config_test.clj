@@ -1,7 +1,7 @@
 (ns pallet.crate.nagios-config-test
   (:use pallet.crate.nagios-config)
   (:require
-   [pallet.compute :as compute]
+   [pallet.compute.jclouds :as jclouds]
    [pallet.parameter :as parameter]
    [pallet.target :as target]
    [pallet.resource :as resource]
@@ -12,7 +12,7 @@
 
 (deftest service*-test
   (let [cfg {:service-group "g" :service-description "d" :command "c"}
-        node (compute/make-node "tag" :id "id")
+        node (jclouds/make-node "tag" :id "id")
         request {:target-node node}]
     (is (= [cfg]
              (-> (service request cfg)
@@ -20,7 +20,7 @@
 
 (deftest command-test
   (let [cfg {:command_name "n" :command_line "c"}
-        node (compute/make-node "tag")
+        node (jclouds/make-node "tag")
         request {:target-node node}]
 
     (is (= {:n "c"}
@@ -29,7 +29,7 @@
 
 (deftest invoke-test
   (is (resource/build-resources
-       [:target-node (compute/make-node "tag" :id "id")]
+       [:target-node (jclouds/make-node "tag" :id "id")]
        ;; without server
        (nrpe-client)
        (nrpe-client-port)

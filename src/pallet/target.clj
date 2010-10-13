@@ -20,25 +20,6 @@
     :yum "wheel"
     "adm"))
 
-(defn packager
-  "Package manager"
-  [target]
-  (or
-   (:packager target)
-   (let [os-family (:os-family target)]
-     (cond
-      (#{:ubuntu :debian :jeos :fedora} os-family) :aptitude
-      (#{:centos :rhel :amzn-linux} os-family) :yum
-      (#{:arch} os-family) :pacman
-      (#{:suse} os-family) :zypper
-      (#{:gentoo} os-family) :portage
-      (#{:darwin} os-family) :brew
-      :else (condition/raise
-             :type :unknown-packager
-             :message (format
-                       "Unknown packager for %s : :image %s"
-                       os-family target))))))
-
 (defn safe-id
   "Computes a configuration and filesystem safe identifier corresponding to a
   potentially unsafe ID"

@@ -1,7 +1,7 @@
 (ns pallet.resource-test
   (:use pallet.resource)
   (:require
-   [pallet.compute :as compute]
+   [pallet.compute.jclouds :as jclouds]
    [pallet.parameter :as parameter]
    pallet.resource.test-resource
    [clojure.contrib.string :as string]
@@ -325,7 +325,7 @@
                (execute-commands request {:script/bash (fn [cmds] cmds)}))))))
 
 (deftest produce-phases-test
-  (let [node (compute/make-node "tag")]
+  (let [node (jclouds/make-node "tag")]
     (testing "node with phase"
       (let [result (produce-phases
                     [:a]

@@ -11,7 +11,6 @@
    [pallet.stevedore :as stevedore]
    [pallet.script :only [defscript]]
    [pallet.utils :only [*admin-user*]]
-   [pallet.target :only [packager]]
    [clojure.contrib.json :as json])
   (:require
    [pallet.resource.file]

@@ -28,6 +28,6 @@
   "Apply configuration.
      eg. pallet lift mynodes/my-node
    The node-types should be namespace qualified."
-  [& args]
+  [request & args]
   (let [args (build-args args)]
-    (apply core/lift args)))
+    (apply core/lift (concat args [:compute (:compute request)]))))

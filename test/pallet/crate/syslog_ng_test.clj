@@ -4,7 +4,7 @@
         pallet.test-utils)
   (:require
    [pallet.resource :as resource]
-   [pallet.compute :as compute]))
+   [pallet.compute.jclouds :as jclouds]))
 
 (deftest property-fmt-test
   (testing "single property"
@@ -43,7 +43,7 @@
 
 (deftest invoke-test
   (is (resource/build-resources
-       [:target-node (compute/make-node "tag" :id "id" :ip "1.2.3.4")]
+       [:target-node (jclouds/make-node "tag" :id "id" :ip "1.2.3.4")]
        (install)
        (set-server-ip)
        (iptables-accept))))

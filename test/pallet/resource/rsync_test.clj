@@ -6,7 +6,7 @@
   (:require
    [pallet.core :as core]
    [pallet.utils :as utils]
-   [pallet.compute :as compute]
+   [pallet.compute.jclouds :as jclouds]
    [pallet.stevedore :as stevedore]
    [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
@@ -21,9 +21,9 @@
       ;; this is convoluted to get around the "t" sticky bit on temp dirs
       (let [user (assoc utils/*admin-user*
                    :username (test-username) :no-sudo true)
-            node (compute/make-unmanaged-node
+            node (jclouds/make-unmanaged-node
                   "tag" "localhost"
-                  :operating-system (compute/local-operating-system))]
+                  :operating-system (jclouds/local-operating-system))]
         (io/copy "text" tmp)
         (core/defnode tag {:packager :no-packages})
         (.delete target-dir)

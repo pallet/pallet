@@ -20,13 +20,8 @@ compute-nodes cookbook is expected to exist in the site-cookbooks of the
 chef-repository you specify with `with-chef-repository`.
 
 "
-  (:use
-   [pallet.compute
-    :only [node-has-tag? node-counts-by-tag boot-if-down compute-node?
-           ssh-port]]
-   [org.jclouds.compute
-    :only [run-nodes tag running? compute-service? *compute*]])
   (:require
+   [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
    [pallet.execute :as execute]
    [pallet.utils :as utils]
@@ -37,7 +32,6 @@ chef-repository you specify with `with-chef-repository`.
    [clojure.contrib.condition :as condition]
    [clojure.contrib.string :as string]
    [org.jclouds.compute :as jclouds]
-   [org.jclouds.blobstore :as jclouds-blobstore]
    [clojure.contrib.logging :as logging]
    [clojure.contrib.map-utils :as map-utils])
   (:import org.jclouds.compute.domain.OsFamily
@@ -72,12 +66,6 @@ When passing a username the following options can be specified:
    (if (string? user)
      (apply utils/make-user user options)
      user)))
-
-(defmacro with-no-compute-service
-  "Bind a null provider, for use when accessing local vms."
-  [& body]
-  `(binding [*compute* nil]
-     ~@body))
 
 (defn make-node
   "Create a node definition.  See defnode."
@@ -145,7 +133,7 @@ When passing a username the following options can be specified:
   (update-in
    request [:target-packager]
    (fn ensure-target-packager [p]
-     (or p (target/packager (get-in request [:node-type :image]))))))
+     (or p (compute/packager (get-in request [:node-type :image]))))))
 
 (defn add-target-keys
   "Add target keys on the way down"
@@ -170,26 +158,13 @@ When passing a username the following options can be specified:
       (:target-packager request)))
     (handler request)))
 
-(defmacro pipe
-  "Build a request processing pipeline from the specified forms"
-  [& forms]
-  (let [[middlewares etc] (split-with #(or (seq? %) (symbol? %)) forms)
-        middlewares (reverse middlewares)
-        [middlewares [x :as etc]]
-          (if (seq etc)
-            [middlewares etc]
-            [(rest middlewares) (list (first middlewares))])
-          handler x]
-    (if (seq middlewares)
-      `(-> ~handler ~@middlewares)
-      handler)))
 
 (defn resource-invocations [request]
   {:pre [(:phase request)]}
   (if-let [f (some
               (:phase request)
               [(:phases (:node-type request)) (:phases request)])]
-    (let [request ((pipe add-target-keys identity) request)]
+    (let [request ((utils/pipe add-target-keys identity) request)]
       (script/with-template [(-> request :node-type :image :os-family)
                              (-> request :target-packager)]
         (f request)))
@@ -214,77 +189,28 @@ When passing a username the following options can be specified:
         (:cmds (f request)))
       "")))
 
-(defn ensure-os-family
-  "Ensure that the request has an os-family.
-   Extract default operating system by building the jclouds template if no
-   os-family is specified."
-  [compute request]
-  (if (-> request :node-type :image :os-family)
-    request
-    (let [template (jclouds/build-template
-                    compute (-> request :node-type :image))
-          family (-> (.. template getImage getOperatingSystem getFamily)
-                     str keyword)]
-      (logging/info (format "Default OS is %s" (pr-str family)))
-      (assoc-in request [:node-type :image :os-family] family))))
-
-(defn build-node-template
-  "Build the template for specified target node and compute context"
-  [compute public-key-path request]
-  {:pre [(map? (:node-type request))]}
-  (logging/info
-   (str "building node template for " (-> request :node-type :tag)))
-  (when public-key-path
-    (logging/info (str "  authorizing " public-key-path)))
-  (let [options (-> request :node-type :image)
-        request (ensure-os-family compute request)]
-    (logging/info (str "Options " options))
-    (let [options (if (and public-key-path
-                           (not (:authorize-public-key options)))
-                    (assoc options
-                      :authorize-public-key (slurp public-key-path))
-                    options)
-          options (if (not (:run-script options))
-                    (if-let [init-script (produce-init-script request)]
-                      (do
-                        (logging/debug (str "Init script\n" init-script))
-                        (assoc options :run-script (.getBytes init-script)))
-                      options)
-                    options)]
-      (jclouds/build-template compute options))))
-
-
-
-(defn start-node
-  "Convenience function for explicitly starting nodes."
-  ([node-type] (start-node node-type *compute*))
-  ([node-type compute]
-     (run-nodes
-      (name (node-type :tag))
-      1
-      (build-node-template
-       compute utils/default-public-key-path {:node-type node-type})
-      compute)))
-
 (defn create-nodes
   "Create count nodes based on the template for tag. The boostrap argument
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
 bootstrap-script value is expected tobe a function that produces a
 script that is run with root privileges immediatly after first boot."
-  [node count request]
-  {:pre [(map? node)]}
-  (logging/info (str "Starting " count " nodes for " (node :tag)))
-  (run-nodes (-> node :tag name) count
-             (build-node-template
-              (:compute request) nil (assoc request :node-type node))
-             (:compute request)))
+  [node-type count request]
+  {:pre [(map? node-type)]}
+  (logging/info (str "Starting " count " nodes for " (node-type :tag)))
+  (let [request (compute/ensure-os-family (assoc request :node-type node-type))
+        init-script (produce-init-script request)]
+    (compute/run-nodes
+     node-type
+     count
+     request
+     init-script)))
 
 (defn destroy-nodes-with-count
   "Destroys the specified number of nodes with the given tag.  Nodes are
    selected at random."
   [nodes tag destroy-count compute]
   (logging/info (str "destroying " destroy-count " nodes with tag " tag))
-  (let [tag-nodes (filter (partial node-has-tag? tag) nodes)]
+  (let [tag-nodes (filter (partial compute/node-has-tag? tag) nodes)]
     (if (= destroy-count (count tag-nodes))
       (jclouds/destroy-nodes-with-tag (name tag) compute)
       (doseq [node (take destroy-count tag-nodes)]
@@ -293,7 +219,7 @@ script that is run with root privileges immediatly after first boot."
 (defn node-count-difference
   "Find the difference between the required and actual node counts by tag."
   [node-map nodes]
-  (let [node-counts (node-counts-by-tag nodes)]
+  (let [node-counts (compute/node-counts-by-tag nodes)]
     (merge-with
      - node-map
      (into {} (map #(vector (first %) (get node-counts ((first %) :tag) 0))
@@ -318,9 +244,9 @@ script that is run with root privileges immediatly after first boot."
   [node-map nodes request]
   (logging/info "converging nodes")
   (logging/trace (str "  " node-map))
-  (boot-if-down (:compute request) nodes)       ; this needs improving
+  (compute/boot-if-down (:compute request) nodes) ; this needs improving
                                         ; should only reboot if required
-  (let [nodes (filter running? nodes)]
+  (let [nodes (filter compute/running? nodes)]
     (adjust-node-counts
      (node-count-difference node-map nodes)
      nodes
@@ -342,7 +268,7 @@ script that is run with root privileges immediatly after first boot."
 
 (defn parameter-keys [node node-type]
   [:default
-   (target/packager (node-type :image))
+   (compute/packager (node-type :image))
    (target/os-family (node-type :image))])
 
 (defn with-target-parameters
@@ -374,7 +300,7 @@ script that is run with root privileges immediatly after first boot."
   [request]
   {:pre [(:target-node request)]}
   (let [middleware (:middleware request)]
-    ((pipe
+    ((utils/pipe
       add-target-keys
       build-commands
       middleware
@@ -454,12 +380,12 @@ script that is run with root privileges immediatly after first boot."
   "Return nodes with tags corresponding to the keys in node-map"
   [node-map nodes]
   (let [tags (->> node-map keys (map :tag) (map name) set)]
-    (->> nodes (filter running?) (filter #(-> % tag tags)))))
+    (->> nodes (filter compute/running?) (filter #(-> % compute/tag tags)))))
 
 (defn filter-nodes-with-tag
   "Return nodes with the given tag"
   [nodes with-tag]
-  (filter #(= (name with-tag) (tag %)) nodes))
+  (filter #(= (name with-tag) (compute/tag %)) nodes))
 
 (defn add-prefix-to-node-type
   [prefix node-type]
@@ -479,13 +405,13 @@ script that is run with root privileges immediatly after first boot."
 (defn node-in-types?
   "Predicate for matching a node belonging to a set of node types"
   [node-types node]
-  (some #(= (tag node) (name (% :tag))) node-types))
+  (some #(= (compute/tag node) (name (% :tag))) node-types))
 
 (defn nodes-for-type
   "Return the nodes that have a tag that matches one of the node types"
   [nodes node-type]
   (let [tag-string (name (node-type :tag))]
-    (filter #(= tag-string (tag %)) nodes)))
+    (filter #(= tag-string (compute/tag %)) nodes)))
 
 (defn node-type?
   "Prdicate for testing if argument is node-type."
@@ -547,7 +473,8 @@ script that is run with root privileges immediatly after first boot."
   "Lift nodes in target-node-map for the specified phases."
   [all-nodes target-node-map all-node-map phases request]
   (logging/trace (format "lift-nodes phases %s" (vec phases)))
-  (let [target-nodes (filter running? (apply concat (vals target-node-map)))
+  (let [target-nodes (filter compute/running?
+                             (apply concat (vals target-node-map)))
         all-nodes (or all-nodes target-nodes) ; Target node map may contain
                                         ; unmanged nodes
         [request phases] (identify-anonymous-phases request phases)
@@ -586,8 +513,8 @@ script that is run with root privileges immediatly after first boot."
                (when (:compute request)
                  (logging/info "retrieving nodes")
                  (filter
-                  running?
-                  (jclouds/nodes-with-details (:compute request)))))
+                  compute/running?
+                  (compute/nodes-with-details (:compute request)))))
         target-node-map (nodes-in-set node-set (:prefix request) nodes)
         all-node-map (or (and all-node-set
                               (nodes-in-set all-node-set nil nodes))
@@ -603,10 +530,11 @@ script that is run with root privileges immediatly after first boot."
   (logging/trace (format "converge* %s %s" node-map phases))
   (logging/info "retrieving nodes")
   (let [node-map (add-prefix-to-node-map (:prefix request) node-map)
-        nodes (jclouds/nodes-with-details (:compute request))]
+        nodes (compute/nodes-with-details (:compute request))]
     (converge-node-counts node-map nodes request)
     (let [nodes (filter
-                 running? (jclouds/nodes-with-details (:compute request)))
+                 compute/running?
+                 (compute/nodes-with-details (:compute request)))
           tag-groups (group-by #(keyword (.getTag %)) nodes)
           target-node-map (into
                            {}
@@ -620,31 +548,6 @@ script that is run with root privileges immediatly after first boot."
       (lift-nodes
        nodes target-node-map all-node-map phases request))))
 
-(defn- compute-from-options
-  [current-value {:keys [compute compute-service]}]
-  (or current-value
-      compute
-      (and compute-service
-           (jclouds/compute-service
-            (:provider compute-service)
-            (:identity compute-service)
-            (:credential compute-service)
-            :extensions (or (:extensions compute-service)
-                            (compute/default-jclouds-extensions))))
-      (if (bound? #'*compute*) *compute*)))
-
-(defn- blobstore-from-options
-  [current-value {:keys [blobstore blobstore-service]}]
-  (or current-value
-      blobstore
-      (and blobstore-service
-           (jclouds-blobstore/blobstore
-            (:provider blobstore-service)
-            (:identity blobstore-service)
-            (:credential blobstore-service)))
-      (if (bound? #'jclouds-blobstore/*blobstore*)
-        jclouds-blobstore/*blobstore*)))
-
 (defmacro or-fn [& args]
   `(fn or-args [current#]
      (or current# ~@args)))
@@ -654,8 +557,8 @@ script that is run with root privileges immediatly after first boot."
   [{:as options}]
   (->
    options
-   (update-in [:compute] compute-from-options options)
-   (update-in [:blobstore] blobstore-from-options options)
+   (update-in [:compute] compute/compute-from-options options)
+   (update-in [:blobstore] blobstore/blobstore-from-options options)
    (update-in [:user] (or-fn utils/*admin-user*))
    (update-in [:middleware] (or-fn *middleware*))))
 

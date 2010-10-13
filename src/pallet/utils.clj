@@ -166,3 +166,18 @@
                       (string? x) (symbol x)
                       (keyword? x) (symbol (name x))))]
     (zipmap (map to-symbol (keys m)) (vals m))))
+
+
+(defmacro pipe
+  "Build a request processing pipeline from the specified forms"
+  [& forms]
+  (let [[middlewares etc] (split-with #(or (seq? %) (symbol? %)) forms)
+        middlewares (reverse middlewares)
+        [middlewares [x :as etc]]
+          (if (seq etc)
+            [middlewares etc]
+            [(rest middlewares) (list (first middlewares))])
+          handler x]
+    (if (seq middlewares)
+      `(-> ~handler ~@middlewares)
+      handler)))
