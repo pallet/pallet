@@ -13,9 +13,6 @@
 
 (deftest test-tomcat-defaults
   (is (= (stevedore/do-script
-          (stevedore/script
-           (if (not (file-exists? "/etc/default/tomcat6.orig"))
-             (cp "/etc/default/tomcat6" "/etc/default/tomcat6.orig")))
           (remote-file/remote-file*
            {}
            "/etc/default/tomcat6"
@@ -27,4 +24,16 @@
            [:node-type {:image {:os-family :ubuntu}}]
            (default/write "tomcat6"
              :JAVA_OPTS "-Djava.awt.headless=true -Xmx1024m"
-             "JSP_COMPILER" "javac"))))))
+             "JSP_COMPILER" "javac")))))
+  (is (= (stevedore/do-script
+          (remote-file/remote-file*
+           {}
+           "/etc/tomcat/tomcat6"
+           :owner "root:root"
+           :mode 644
+           :content "JAVA_OPTS=\"-Djava.awt.headless=true\""))
+         (first
+          (resource/build-resources
+           [:node-type {:image {:os-family :ubuntu}}]
+           (default/write "/etc/tomcat/tomcat6"
+             :JAVA_OPTS "-Djava.awt.headless=true"))))))
