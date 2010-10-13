@@ -9,3 +9,7 @@
   "/etc/default")
 (stevedore/defimpl etc-default [#{:centos :rhel :amzn-linux}] []
   "/etc/sysconfig")
+
+(script/defscript etc-hosts [])
+(stevedore/defimpl etc-hosts :default []
+  "/etc/hosts")
