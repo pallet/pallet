@@ -4,10 +4,10 @@
    [org.jclouds.compute :as jclouds]
    [clojure.contrib.condition :as condition])
   (:import
-     (java.security 
-       NoSuchAlgorithmException
-       MessageDigest)
-     (org.apache.commons.codec.binary Base64)))
+   (java.security
+    NoSuchAlgorithmException
+    MessageDigest)
+   (org.apache.commons.codec.binary Base64)))
 
 (defn os-family
   "OS family"
@@ -40,7 +40,8 @@
                        os-family target))))))
 
 (defn safe-id
-  "Computes a configuration and filesystem safe identifier corresponding to a potentially unsafe ID"
+  "Computes a configuration and filesystem safe identifier corresponding to a
+  potentially unsafe ID"
   [#^String unsafe-id]
   (let [alg (doto (MessageDigest/getInstance "MD5")
               (.reset)
