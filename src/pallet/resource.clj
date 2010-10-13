@@ -428,12 +428,18 @@ configuration code."
                              #(or % :configure))
          request# (update-in request# [:node-type :image :os-family]
                              #(or % :ubuntu))
+         request# (update-in request# [:node-type :tag]
+                             #(or % :id))
          request# (update-in request# [:target-id]
                              #(or %
                                   (and (:target-node request#)
                                        (keyword
                                         (.getId (:target-node request#))))
                                   :id))
+         request# (update-in request# [:all-nodes]
+                             #(or % [(:target-node request#)]))
+         request# (update-in request# [:target-nodes]
+                             #(or % (:all-nodes request#)))
          request# (update-in
                    request# [:target-packager]
                    #(or
