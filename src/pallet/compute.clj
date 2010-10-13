@@ -194,6 +194,11 @@
   [#^NodeMetadata node]
   (first (jclouds/public-ips node)))
 
+(defn private-ip
+  "Returns the first private IP for the node."
+  [#^NodeMetadata node]
+  (first (jclouds/private-ips node)))
+
 (defn is-64bit?
   [#^NodeMetadata node]
   (.. node getOperatingSystem is64Bit))
@@ -327,3 +332,8 @@
      :all-nodes [node]
      :target-nodes [node]
      :node-type {:image [(get jvm-os-map (System/getProperty "os.name"))]}}))
+
+(defn hostname
+  "TODO make this work on ec2"
+  [node]
+  (or (.getName node)))
