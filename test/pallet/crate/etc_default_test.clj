@@ -20,7 +20,7 @@
            :mode 644
            :content "JAVA_OPTS=\"-Djava.awt.headless=true -Xmx1024m\"\nJSP_COMPILER=\"javac\""))
          (first
-          (resource/build-resources
+          (build-resources
            [:node-type {:image {:os-family :ubuntu}}]
            (default/write "tomcat6"
              :JAVA_OPTS "-Djava.awt.headless=true -Xmx1024m"
@@ -33,7 +33,7 @@
            :mode 644
            :content "JAVA_OPTS=\"-Djava.awt.headless=true\""))
          (first
-          (resource/build-resources
+          (build-resources
            [:node-type {:image {:os-family :ubuntu}}]
            (default/write "/etc/tomcat/tomcat6"
              :JAVA_OPTS "-Djava.awt.headless=true"))))))

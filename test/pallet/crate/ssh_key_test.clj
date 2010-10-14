@@ -17,7 +17,7 @@
 
 (deftest authorize-key-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh/"
@@ -32,13 +32,13 @@
             (if-not (fgrep (quoted "key1") @auth_file)
               (echo (quoted "key1") ">>" @auth_file)))))
          (first
-          (resource/build-resources
+          (build-resources
            []
            (authorize-key "fred" "key1"))))))
 
 (deftest install-key-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh/"
@@ -50,10 +50,10 @@
             "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
             :content "public" :owner "fred" :mode "644")))
          (first
-          (resource/build-resources
+          (build-resources
            [] (install-key "fred" "id" "private" "public")))))
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh/"
@@ -65,13 +65,13 @@
             "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
             :content "public" :owner "fred" :mode "644")))
          (first
-          (resource/build-resources
+          (build-resources
            []
            (install-key "fred" "id" "private" "public"))))))
 
 (deftest generate-key-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh"
@@ -89,12 +89,12 @@
             "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa.pub"
             :owner "fred" :mode "0644")))
          (first
-          (resource/build-resources
+          (build-resources
            []
            (generate-key "fred")))))
 
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh"
@@ -111,11 +111,11 @@
             "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub"
             :owner "fred" :mode "0644")))
          (first
-          (resource/build-resources
+          (build-resources
            [] (generate-key "fred" :type "dsa")))))
 
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh"
@@ -133,11 +133,11 @@
             "$(getent passwd fred | cut -d: -f6)/.ssh/identity.pub"
             :owner "fred" :mode "0644")))
          (first
-          (resource/build-resources
+          (build-resources
            [] (generate-key "fred" :type "rsa1")))))
 
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (exec-script/exec-checked-script
             "ssh-keygen"
@@ -150,7 +150,7 @@
            (file/file "$(getent passwd fred | cut -d: -f6)/.ssh/c.pub"
                       :owner "fred" :mode "0644")))
          (first
-          (resource/build-resources
+          (build-resources
            []
            (generate-key
             "fred" :type "rsa1" :file "c" :no-dir true
@@ -158,7 +158,7 @@
 
 (deftest authorize-key-for-localhost-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (directory/directory
             "$(getent passwd fred | cut -d: -f6)/.ssh/"
@@ -176,12 +176,12 @@
                 (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
                 (cat @key_file ">>" @auth_file))))))
          (first
-          (resource/build-resources
+          (build-resources
            []
            (authorize-key-for-localhost "fred" "id_dsa.pub")))))
 
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (directory/directory
             "$(getent passwd tom | cut -d: -f6)/.ssh/"
@@ -199,13 +199,13 @@
                 (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
                 (cat @key_file ">>" @auth_file))))))
          (first
-          (resource/build-resources
+          (build-resources
            []
            (authorize-key-for-localhost
             "fred" "id_dsa.pub" :authorize-for-user "tom"))))))
 
 (deftest invoke-test
-  (is (resource/build-resources
+  (is (build-resources
        []
        (authorize-key "user" "pk")
        (authorize-key-for-localhost "user" "pk")

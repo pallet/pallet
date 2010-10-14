@@ -13,7 +13,7 @@
 (deftest automated-admin-user-test
   (testing "with defaults"
     (is (= (first
-            (resource/build-resources
+            (build-resources
              []
              (user/user "fred" :create-home true :shell :bash)
              (susudoers/sudoers
@@ -21,13 +21,13 @@
              (ssh-key/authorize-key
               "fred" (slurp (pallet.utils/default-public-key-path)))))
            (first
-            (resource/build-resources
+            (build-resources
              []
              (automated-admin-user "fred"))))))
 
   (testing "with path"
     (is (= (first
-            (resource/build-resources
+            (build-resources
              []
              (user/user "fred" :create-home true :shell :bash)
              (susudoers/sudoers
@@ -35,20 +35,20 @@
              (ssh-key/authorize-key
               "fred" (slurp (pallet.utils/default-public-key-path)))))
            (first
-            (resource/build-resources
+            (build-resources
              []
              (automated-admin-user
               "fred" (pallet.utils/default-public-key-path)))))))
 
   (testing "with byte array"
     (is (= (first
-            (resource/build-resources
+            (build-resources
              []
              (user/user "fred" :create-home true :shell :bash)
              (susudoers/sudoers
               {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
              (ssh-key/authorize-key "fred" "abc")))
            (first
-            (resource/build-resources
+            (build-resources
              []
              (automated-admin-user "fred" (.getBytes "abc"))))))))
