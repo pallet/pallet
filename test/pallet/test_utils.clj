@@ -4,6 +4,7 @@
    [pallet.target :as target]
    [pallet.script :as script]
    [pallet.resource :as resource]
+   [pallet.resource-build :as resource-build]
    [pallet.parameter :as parameter]
    [pallet.utils :as utils])
   (:use clojure.test)
@@ -39,34 +40,7 @@ list, Alan Dipert and MeikelBrandmeyer."
   (script/with-template [:ubuntu]
     (f)))
 
-;; (defn reset-default-parameters
-;;   [f]
-;;   (parameter/reset-defaults)
-;;   (f))
-
-;; (defn test-resource-build*
-;;   "Test build a resource for :configure phase. Ensures binding at correct times.
-;;   This assumes no local resources."
-;;   [resources node node-type parameters]
-;;   (let [{:keys [no-reset-defaults]} parameters]
-;;     (when-not no-reset-defaults
-;;       (parameter/reset-defaults)))
-;;   (apply parameter/default parameters)
-;;   (resource/produce-phases
-;;    [:configure]
-;;    resources
-;;    {:all-nodes (filter identity [node])
-;;     :target-nodes (filter identity [node])
-;;     :target-node node
-;;     :node-type node-type
-;;     :parameters (parameter/from-default
-;;                  [:default
-;;                   (target/packager (:image node-type))
-;;                   (target/os-family (:image node-type))])}))
-
-;; (defmacro test-resource-build
-;;   "Test build a resource for :configure phase.
-;;    Ensures binding at correct times."
-;;   [[node node-type & parameters] & body]
-;;   `(test-resource-build*
-;;     (resource/resource-phases ~@body) ~node ~node-type '~parameters))
+(defmacro build-resources
+  "Forwarding definition, until resource-when is fixed"
+  [& args]
+  `(resource-build/build-resources ~@args))

@@ -2,38 +2,42 @@
   "A simple node list provider"
   (:require
    [pallet.compute :as compute]
-   [clojure.contrib.condition :as condition]))
+   [pallet.compute.jvm :as jvm]
+   [clojure.contrib.condition :as condition]
+   [clojure.string :as string]))
 
 (defrecord Node
-    [name tag ip os-family id ssh-port private-ip 64-bit running]
+    [name tag ip os-family id ssh-port private-ip is-64bit running]
   pallet.compute.Node
   (ssh-port [node] (:ssh-port node))
   (primary-ip [node] (:ip node))
   (private-ip [node] (:private-ip node))
-  (is-64bit? [node] (:64-bit node))
+  (is-64bit? [node] (:is-64bit node))
   (tag [node] (:tag node))
   (running? [node] (:running node))
-  (terminated? [node] (not (compute/running? node)))
+  (terminated? [node] (not (:running node)))
   (node-os-family [node] (:os-family node))
-  (hostname [node] (:name node)))
+  (hostname [node] (:name node))
+  (id [node] (:id node)))
 
 ;;; Node utilities
 (defn make-node [name tag ip os-family
-                 & {:keys [id ssh-port private-ip 64-bit running]
-                    :or {ssh-port 80 64-bit true running true}
+                 & {:keys [id ssh-port private-ip is-64bit running]
+                    :or {ssh-port 22 is-64bit true running true}
                     :as options}]
   (Node.
    name
    tag
    ip
    os-family
-   (or id (str name "-" (string/replace #"\." "-")))
+   (or id (str name "-" (string/replace ip #"\." "-")))
    ssh-port
    private-ip
-   64-bit
+   is-64bit
    running))
 
 (defrecord NodeList [node-list]
+  pallet.compute.ComputeService
   (nodes-with-details [compute-service]
     (:node-list compute-service))
   (ensure-os-family
@@ -47,9 +51,10 @@
   ;; (run-nodes [node-type node-count request init-script])
   ;; (reboot "Reboot the specified nodes")
   ;; (boot-if-down "Boot the specified nodes, if they are not running.")
-  ;; (defn shutdown-node "Shutdown a node.")
-  ;; (defn shutdown "Shutdown specified nodes")
+  ;; (shutdown-node "Shutdown a node.")
+  ;; (shutdown "Shutdown specified nodes")
   )
+
 
 
 (defmethod clojure.core/print-method Node
@@ -57,12 +62,12 @@
   (.write
    writer
    (format
-    "%14s\t %s %s\n\t\t %s\n\t\t %s\n\t\t public: %s  private: %s"
+    "%14s\t %s %s public: %s  private: %s"
     (:tag node)
     (:os-family node)
     (:running node)
     (:ip node)
-    (:private-ip))))
+    (:private-ip node))))
 
 (defn make-localhost-node
   "Make a node representing the local host"
@@ -78,6 +83,6 @@
 
 
 ;;;; Compute service
-(defn compute-service
-  [node-list-data]
-  (NodeList. node-list-data))
+(defmethod compute/service :node-list
+  [_ & {:keys [node-list]}]
+  (NodeList. node-list))

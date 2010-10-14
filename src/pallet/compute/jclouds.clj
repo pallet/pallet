@@ -237,7 +237,8 @@
     (when-let [operating-system (.getOperatingSystem node)]
       (keyword (str (.getFamily operating-system)))))
 
-  ( hostname [node] (.getName node))
+  (hostname [node] (.getName node))
+  (id [node] (.getId node))
   (running? [node] (jclouds/running? node))
   (terminated? [node] (jclouds/terminated? node)))
 

@@ -1,7 +1,5 @@
 (ns pallet.crate.resolv-test
   (:use pallet.crate.resolv)
-  (:require
-   [pallet.resource :as resource :only [reset-resources build-resources]])
   (:use clojure.test
         pallet.test-utils))
 
@@ -71,7 +69,7 @@ chmod 0644 ${file}
 chown root ${file}
 "
        (first
-        (resource/build-resources
+        (build-resources
          []
          (resolv "domain" ["123.123.123.123" "123.123.123.123"]
                  :search "some.domain" :sort "123.12.32.12"

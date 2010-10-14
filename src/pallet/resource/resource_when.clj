@@ -4,6 +4,7 @@
    [pallet.stevedore :as stevedore]
    [pallet.argument :as argument]
    [pallet.resource :as resource]
+   [pallet.resource-build :as resource-build]
    [pallet.resource.exec-script :as exec-script])
   (:use
    clojure.contrib.logging))
@@ -14,7 +15,7 @@
     ~request
     (if ~condition
       (do (unquote (->
-                    (resource/produce-phases
+                    (resource-build/produce-phases
                       [(:phase ~request)]
                       ((resource/phase ~@resources) ~request))
                     first))))))
@@ -28,7 +29,7 @@
     ~request
     (if-not ~condition
       (do (unquote (->
-                    (resource/produce-phases
+                    (resource-build/produce-phases
                       [(:phase ~request)]
                       ((resource/phase ~@resources) ~request))
                     first))))))

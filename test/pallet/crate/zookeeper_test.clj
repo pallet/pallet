@@ -9,7 +9,7 @@
 
 (deftest zookeeper-test
   (is ; just check for compile errors for now
-   (resource/build-resources
+   (build-resources
     [:target-node (jclouds/make-node "tag")
      :node-type {:tag "tag" :image {:os-family :ubuntu}}]
     (install)

@@ -14,6 +14,6 @@
 
 (deftest invoke-test
   (is
-   (resource/build-resources
+   (build-resources
     []
     (iozone))))

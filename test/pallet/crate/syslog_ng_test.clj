@@ -42,7 +42,7 @@
   (is (= "a {\nb(c);\n};\n" (configure-block "a" {:b "c"}))))
 
 (deftest invoke-test
-  (is (resource/build-resources
+  (is (build-resources
        [:target-node (jclouds/make-node "tag" :id "id" :ip "1.2.3.4")]
        (install)
        (set-server-ip)

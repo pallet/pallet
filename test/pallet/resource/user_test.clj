@@ -39,6 +39,6 @@
 
 (deftest group-create-test
   (is (= "if ! getent group group11; then groupadd  group11;fi\n"
-         (first (resource/build-resources
+         (first (build-resources
                  []
                  (group "group11" :action :create))))))

@@ -6,7 +6,8 @@
    [pallet.resource.remote-file :as remote-file]
    [pallet.crate.etc-default :as etc-default])
   (:use
-   clojure.test))
+   clojure.test
+   pallet.test-utils))
 
 (deftest format-k-v-test
   (is (= "a b "
@@ -79,7 +80,7 @@
 (deftest configure-test
   (is (=
        (first
-        (resource/build-resources
+        (build-resources
          [:node-type {:image {:os-family :ubuntu} :tag :tag}
           :target-node (jclouds/make-node "tag" :public-ips ["1.2.3.4"])]
          (remote-file/remote-file
@@ -88,7 +89,7 @@
           :literal true)
          (etc-default/write "haproxy" :ENABLED 1)))
        (first
-        (resource/build-resources
+        (build-resources
          [:node-type {:image {:os-family :ubuntu} :tag :tag}
           :target-node (jclouds/make-node "tag" :public-ips ["1.2.3.4"])]
          (configure
@@ -99,7 +100,7 @@
           :defaults {:mode "http"}))))))
 
 (deftest invocation-test
-  (is (resource/build-resources
+  (is (build-resources
        [:node-type {:image {:os-family :ubuntu} :tag :tag}
         :target-node (jclouds/make-node "tag" :public-ips ["1.2.3.4"])]
        (install-package)

@@ -124,7 +124,7 @@ When passing a username the following options can be specified:
    request [:target-id]
    (fn ensure-target-id [id]
      (or
-      (when-let [node (:target-node request)] (keyword (.getId node)))
+      (when-let [node (:target-node request)] (keyword (compute/id node)))
       id))))
 
 (defn add-target-packager
@@ -217,7 +217,7 @@ script that is run with root privileges immediatly after first boot."
     (if (= destroy-count (count tag-nodes))
       (jclouds/destroy-nodes-with-tag (name tag) compute)
       (doseq [node (take destroy-count tag-nodes)]
-        (jclouds/destroy-node (.getId node) compute)))))
+        (jclouds/destroy-node (compute/id node) compute)))))
 
 (defn node-count-difference
   "Find the difference between the required and actual node counts by tag."
@@ -414,10 +414,10 @@ script that is run with root privileges immediatly after first boot."
   "Return the nodes that have a tag that matches one of the node types"
   [nodes node-type]
   (let [tag-string (name (node-type :tag))]
-    (filter #(= tag-string (compute/tag %)) nodes)))
+    (filter #(compute/node-has-tag? tag-string %) nodes)))
 
 (defn node-type?
-  "Prdicate for testing if argument is node-type."
+  "Predicate for testing if argument is node-type."
   [x]
   (and (map? x) (x :tag) (x :image) true))
 
@@ -436,7 +436,7 @@ script that is run with root privileges immediatly after first boot."
      (and (map? node-set) (not (node-type? node-set)))
      (ensure-set-values (add-prefix-to-node-map prefix node-set))
      (node-type? node-set)
-     (let [node-type (add-prefix-to-node-type prefix node-set )]
+     (let [node-type (add-prefix-to-node-type prefix node-set)]
        {node-type (set (nodes-for-type nodes node-type))})
      :else (reduce
             #(merge-with concat %1 %2) {}
@@ -456,7 +456,7 @@ script that is run with root privileges immediatly after first boot."
   [request nodes]
   (reduce
    #(resource-invocations
-     (assoc %1 :target-node %2 :target-id (keyword (.getId %2))))
+     (assoc %1 :target-node %2 :target-id (keyword (compute/id %2))))
    request nodes))
 
 (defn invoke-for-node-type

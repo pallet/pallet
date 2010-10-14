@@ -6,14 +6,16 @@
    [pallet.resource.exec-script :as exec-script]
    [pallet.compute :as compute]
    [pallet.compute.jclouds :as jclouds]
+   [pallet.compute.node-list :as node-list]
    [pallet.target :as target]
    [pallet.mock :as mock]
    pallet.compute-test-utils
-   [pallet.ssh-test :as ssh-test])
+   [pallet.ssh-test :as ssh-test]
+   [pallet.resource :as resource]
+   [pallet.resource-build :as resource-build])
   (:use
    clojure.test
-   pallet.test-utils
-   [pallet.resource :as resource])
+   pallet.test-utils)
   (:import [org.jclouds.compute.domain NodeState OperatingSystem OsFamily]))
 
 ;; Allow running against other compute services if required
@@ -223,26 +225,27 @@
                  :target-packager :yum}]
     (is (= ":a\n"
            (first
-            (resource/produce-phases
+            (resource-build/produce-phases
              [:bootstrap]
              (resource-invocations (assoc request :phase :bootstrap))))))
     (is (= ":b\n"
            (first
-            (resource/produce-phases
+            (resource-build/produce-phases
              [:configure]
              (resource-invocations (assoc request :phase :configure))))))))
 
-(defresource identity-resource
+(resource/defresource identity-resource
   (identity-resource* [request x] x))
 
-(deflocal identity-local-resource
+(resource/deflocal identity-local-resource
   (identity-local-resource* [request] request))
 
 (deftest produce-init-script-test
   (is (= "a\n"
          (produce-init-script
           {:node-type {:image {:os-family :ubuntu}
-                       :phases {:bootstrap (phase (identity-resource "a"))}}
+                       :phases {:bootstrap (resource/phase
+                                            (identity-resource "a"))}}
            :target-id :id})))
   (testing "rejects local resources"
     (is (thrown?
@@ -250,7 +253,7 @@
          (produce-init-script
           {:node-type
            {:image {:os-family :ubuntu}
-            :phases {:bootstrap (phase (identity-local-resource))}}
+            :phases {:bootstrap (resource/phase (identity-local-resource))}}
            :target-id :id})))))
 
 
@@ -262,7 +265,7 @@
         localf*-sym (gensym "localf*")]
     `(let [seen# (atom nil)
            seen?# (fn [] @seen#)]
-       (deflocal ~localf-sym
+       (resource/deflocal ~localf-sym
          (~localf*-sym
           [request#]
           (clojure.contrib.logging/info "Seenfn")
@@ -274,19 +277,36 @@
        [~localf-sym seen?#])))
 
 (deftest lift-test
-  (defnode x {})
-  (let [[localf seen?] (seen-fn)]
-    (is (.contains
-         "bin"
-         (with-out-str
-           (lift {x (jclouds/make-unmanaged-node "x" "localhost")}
-                 :phase [(phase (exec-script/exec-script (ls "/")))
-                         (phase (localf))]
-                 :user (assoc utils/*admin-user*
-                         :username (test-username)
-                         :no-sudo true)
-                 :compute nil))))
-    (is (seen?))))
+  (defnode local {})
+  (testing "jclouds"
+    (let [[localf seen?] (seen-fn)]
+      (is (.contains
+           "bin"
+           (with-out-str
+             (lift {local (jclouds/make-unmanaged-node "local" "localhost")}
+                   :phase [(resource/phase (exec-script/exec-script (ls "/")))
+                           (resource/phase (localf))]
+                   :user (assoc utils/*admin-user*
+                           :username (test-username)
+                           :no-sudo true)
+                   :compute nil))))
+      (is (seen?))))
+  (testing "node-list"
+    (let [[localf seen?] (seen-fn)
+          service (compute/service
+                   "node-list"
+                   :node-list [(node-list/make-localhost-node :tag "local")])]
+      (is (.contains
+           "bin"
+           (with-out-str
+             (lift local
+                   :phase [(resource/phase (exec-script/exec-script (ls "/")))
+                           (resource/phase (localf))]
+                   :user (assoc utils/*admin-user*
+                           :username (test-username)
+                           :no-sudo true)
+                   :compute service))))
+      (is (seen?)))))
 
 (deftest lift2-test
   (let [[localf seen?] (seen-fn)

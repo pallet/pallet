@@ -37,7 +37,7 @@
            (let [node (jclouds/make-node
                        "tag" :id "id" :public-ips ["1.2.3.4"])]
              (first
-              (resource/build-resources
+              (build-resources
                [:target-node node
                 :all-nodes [node]
                 :target-nodes [node]
@@ -68,7 +68,7 @@
             (let [node (jclouds/make-node
                         "tag" :id "id" :public-ips ["1.2.3.4"])]
               (first
-               (resource/build-resources
+               (build-resources
                 [:target-node node
                  :all-nodes [node]
                  :target-nodes [node]
@@ -107,7 +107,7 @@
                      \newline
                      (define-contactgroup {:contactgroup_name "ops"}))))
          (first
-          (resource/build-resources
+          (build-resources
            []
            (contact {:contact_name "name"
                      :email "email"

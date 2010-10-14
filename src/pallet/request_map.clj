@@ -8,12 +8,12 @@
 (defn target-name
   "Name of the target-node."
   [request]
-  (.getName (:target-node request)))
+  (compute/hostname (:target-node request)))
 
 (defn target-id
   "Id of the target-node (unique for provider)."
   [request]
-  (.getId (:target-node request)))
+  (compute/id (:target-node request)))
 
 (defn target-ip
   "IP of the target-node."
@@ -32,8 +32,9 @@
 
 (defn nodes-in-tag
   "All nodes in the same tag as the target-node, or with the specified tag."
-  ([request] (nodes-in-tag request (.getTag (:target-node request))))
-  ([request tag] (filter #(= (name tag) (.getTag %)) (:target-nodes request))))
+  ([request] (nodes-in-tag request (compute/tag (:target-node request))))
+  ([request tag]
+     (filter #(= (name tag) (compute/tag %)) (:target-nodes request))))
 
 (defn packager
   [request]

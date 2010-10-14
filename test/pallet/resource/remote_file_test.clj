@@ -1,7 +1,6 @@
 (ns pallet.resource.remote-file-test
   (:use pallet.resource.remote-file)
   (:use [pallet.stevedore :only [script]]
-        [pallet.resource :only [build-resources phase]]
         clojure.test
         pallet.test-utils)
   (:require

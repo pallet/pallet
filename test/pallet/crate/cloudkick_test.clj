@@ -1,6 +1,8 @@
 (ns pallet.crate.cloudkick-test
   (:use pallet.crate.cloudkick)
-  (:use clojure.test)
+  (:use
+   clojure.test
+   pallet.test-utils)
   (:require
    [pallet.core :as core]
    [pallet.stevedore :as stevedore]
@@ -14,7 +16,7 @@
   (core/defnode a {:os-family :ubuntu})
   (let [request {:node-type a}]
     (is (= (first
-            (resource/build-resources
+            (build-resources
              [:node-type a]
              (package/package-source
               "cloudkick"
@@ -30,5 +32,5 @@
               "oauth_key key\noauth_secret secret\ntags any\nname node\n\n\n\n")
              (package/package "cloudkick-agent")))
            (first
-            (resource/build-resources
+            (build-resources
              [:node-type a] (cloudkick "node" "key" "secret")))))))

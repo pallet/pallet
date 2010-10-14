@@ -20,34 +20,34 @@
     (testing "no config file"
       (is (= ""
              (first
-              (resource/build-resources
+              (build-resources
                [:target-node node
                 :host {:id {:rabbitmq {:options {:node-count 1}}}}]
                (#'pallet.crate.rabbitmq/configure nil nil))))))
     (testing "pass through of config"
       (is (= (first
-              (resource/build-resources
+              (build-resources
                []
                (remote-file/remote-file
                 "cf"
                 :content "[{rabbit, []}]."
                 :literal true)))
              (first
-              (resource/build-resources
+              (build-resources
                [:target-node node
                 :parameters {:host {:id {:rabbitmq {:config-file "cf"}}}}]
                (#'pallet.crate.rabbitmq/configure nil {:rabbit {}}))))))
     (testing "default cluster"
       (is (=
            (first
-            (resource/build-resources
+            (build-resources
              []
              (remote-file/remote-file
               "cf"
               :content "[{rabbit, [{cluster_nodes, ['rabbit@id']}]}]."
               :literal true)))
            (first
-            (resource/build-resources
+            (build-resources
              [:target-node node
               :parameters {:host {:id {:rabbitmq {:config-file "cf"
                                                   :options {:node-count 2}}}}}]
@@ -55,7 +55,7 @@
     (testing "ram cluster"
       (is (=
            (first
-            (resource/build-resources
+            (build-resources
              []
              (remote-file/remote-file
               "cf"
@@ -64,7 +64,7 @@
            (let [tag-node (jclouds/make-node
                            "tag" :name "tagnode" :private-ips ["12.3.4.6"])]
              (first
-              (resource/build-resources
+              (build-resources
                [:target-node node
                 :all-nodes [tag-node node]
                 :target-nodes [tag-node node]
@@ -73,6 +73,6 @@
                (#'pallet.crate.rabbitmq/configure :tag {:rabbit {}})))))))))
 
 (deftest invocation
-  (is (resource/build-resources
+  (is (build-resources
        [:target-node (jclouds/make-node "id" :private-ips ["12.3.4.5"])]
        (rabbitmq :node-count 2))))

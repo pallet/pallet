@@ -1,7 +1,6 @@
 (ns pallet.crate.mysql-test
   (:use pallet.crate.mysql)
-  (:use [pallet.resource :only [build-resources]]
-        clojure.test
+  (:use clojure.test
         pallet.test-utils)
   (:require
    [pallet.stevedore :as stevedore]
@@ -16,7 +15,7 @@
 (deftest mysql-server-test
   (is (=
        (first
-        (resource/build-resources
+        (build-resources
          []
          (package/package-manager
           :debconf

@@ -28,7 +28,7 @@
                :parameters :nagios :commands)))))
 
 (deftest invoke-test
-  (is (resource/build-resources
+  (is (build-resources
        [:target-node (jclouds/make-node "tag" :id "id")]
        ;; without server
        (nrpe-client)

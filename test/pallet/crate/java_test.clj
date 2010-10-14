@@ -33,7 +33,7 @@
 
 (deftest java-default-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (pkg-config)
            (debconf "sun-java6-bin")
@@ -41,13 +41,13 @@
            (debconf "sun-java6-jdk")
            (package/package "sun-java6-jdk")))
          (first
-          (resource/build-resources
+          (build-resources
            []
            (java))))))
 
 (deftest java-sun-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (pkg-config)
            (debconf "sun-java6-bin")
@@ -55,32 +55,32 @@
            (debconf "sun-java6-jdk")
            (package/package "sun-java6-jdk")))
          (first
-          (resource/build-resources
+          (build-resources
            []
            (java :sun :bin :jdk))))))
 
 (deftest java-openjdk-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (package/package "openjdk-6-jre")))
          (first
-          (resource/build-resources
+          (build-resources
            []
            (java :openjdk :jre)))))
   (is (= (first
-          (resource/build-resources
+          (build-resources
            [:node-type {:image {:packager :pacman}}]
            (package/package "openjdk6")))
          (first
-          (resource/build-resources
+          (build-resources
            [:node-type {:image {:packager :pacman}}]
            (java :openjdk :jre))))))
 
 
 (deftest invoke-test
   (is
-   (resource/build-resources
+   (build-resources
     []
     (java :openjdk :jdk)
     (jce-policy-file "f" :content ""))))

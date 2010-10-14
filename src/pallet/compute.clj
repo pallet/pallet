@@ -35,10 +35,11 @@
   (hostname [node] "TODO make this work on ec2")
   (node-os-family [node] "Return a nodes os-family, or nil if not available.")
   (running? [node])
-  (terminated? [node]))
+  (terminated? [node])
+  (id [node]))
 
-(defn node-has-tag? [tag node]
-  (= (name tag) (tag node)))
+(defn node-has-tag? [tag-name node]
+  (= (clojure.core/name tag-name) (tag node)))
 
 (defn node-address
   [node]
@@ -87,9 +88,9 @@
       (#{:arch} os-family) :pacman
       (#{:suse} os-family) :zypper
       (#{:gentoo} os-family) :portage
-      (#{:darwin} os-family) :brew
+      (#{:darwin :os-x} os-family) :brew
       :else (condition/raise
              :type :unknown-packager
              :message (format
-                       "Unknown packager for %s : :image %s"
+                       "Unknown packager for %s - :image %s"
                        os-family target))))))

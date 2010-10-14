@@ -20,7 +20,7 @@
           (stevedore/script
            (cd "/path")
            (tar xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz")))
-         (first (resource/build-resources
+         (first (build-resources
                  []
                  (remote-directory
                   "/path"
@@ -37,7 +37,7 @@
            (cd "/path")
            (tar xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz"))
           (directory/directory* {} "/path" :owner "fred" :recursive true))
-         (first (resource/build-resources
+         (first (build-resources
                  []
                  (remote-directory
                   "/path"

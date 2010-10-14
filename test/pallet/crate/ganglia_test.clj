@@ -21,7 +21,7 @@
            (format-value {:include "/a/b/c"})))))
 
 (testing "invoke"
-  (is (resource/build-resources
+  (is (build-resources
       [:target-node (jclouds/make-node "tag" :id "id")
        :node-type {:image {:os-family :ubuntu} :tag :tag}]
        (install)

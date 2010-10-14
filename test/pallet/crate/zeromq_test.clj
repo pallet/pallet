@@ -6,6 +6,6 @@
         pallet.test-utils))
 
 (deftest invocation
-  (is (resource/build-resources
+  (is (build-resources
        []
        (install))))

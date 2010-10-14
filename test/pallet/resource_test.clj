@@ -2,11 +2,13 @@
   (:use pallet.resource)
   (:require
    [pallet.compute.jclouds :as jclouds]
+   [pallet.resource-build :as resource-build]
    [pallet.parameter :as parameter]
    pallet.resource.test-resource
-   [clojure.contrib.string :as string]
-   [pallet.test-utils :as test-utils])
-  (:use clojure.test))
+   [clojure.contrib.string :as string])
+  (:use
+   clojure.test
+   pallet.test-utils))
 
 
 ;; (deftest reset-resources-test
@@ -157,14 +159,14 @@
                 :cmds ":ab:c\n"
                 :request {}}
                ((:f (first m)) {})))
-        (let [fs (produce-phases [:configure] request)]
+        (let [fs (resource-build/produce-phases [:configure] request)]
           (is (= ":ab:c\n" (first fs)))))
       (let [request (-> {:phase :configure :target-id :id}
                         (invoke-resource combiner [:a] :aggregated)
                         (invoke-resource identity-resource ["x"]
                          :in-sequence)
                         (invoke-resource combiner ["b" :c] :aggregated))
-            fs (produce-phases [:configure] request)]
+            fs (resource-build/produce-phases [:configure] request)]
         (is (= ":ab:c\nx\n" (first fs)))))
     (testing "delayed parameters"
       (let [request (-> {:phase :configure :target-id :id}
@@ -172,7 +174,7 @@
                         (invoke-resource combiner [:b] :aggregated)
                         (invoke-resource combiner
                          [(pallet.parameter/lookup :p)] :aggregated))
-            fs (produce-phases
+            fs (resource-build/produce-phases
                 [:configure] (assoc request :parameters {:p "p"}))]
         (is (= ":a:bp\n" (first fs)))))))
 
@@ -327,7 +329,7 @@
 (deftest produce-phases-test
   (let [node (jclouds/make-node "tag")]
     (testing "node with phase"
-      (let [result (produce-phases
+      (let [result (resource-build/produce-phases
                     [:a]
                     {:target-id :id
                      :invocations {:a
@@ -347,7 +349,7 @@
     ;; TODO put this back
     ;; (testing "inline phase"
     ;;   (is (= ":a\n"
-    ;;          (first (produce-phases
+    ;;          (first (resource-build/produce-phases
     ;;                  [(phase (test-component {} :a))]
     ;;                  {}
     ;;                  {:target-node node})))))

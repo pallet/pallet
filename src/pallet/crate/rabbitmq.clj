@@ -80,7 +80,7 @@
     (cluster-nodes
      (parameter/get-for
       request
-      [:host (keyword (.getId (first nodes))) :rabbitmq :options :node-name]
+      [:host (keyword (compute/id (first nodes))) :rabbitmq :options :node-name]
       "rabbit")
      nodes)))
 

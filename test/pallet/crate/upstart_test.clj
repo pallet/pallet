@@ -1,11 +1,12 @@
 (ns pallet.crate.upstart-test
   (:use pallet.crate.upstart
-        clojure.test)
+        clojure.test
+        pallet.test-utils)
   (:require
    [pallet.resource :as resource]))
 
 (deftest invoke-test
-  (is (resource/build-resources
+  (is (build-resources
        []
        (package)
        (job "abc"

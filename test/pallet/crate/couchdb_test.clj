@@ -10,7 +10,7 @@
 (deftest couchdb-test
   []
   (testing "invocation"
-    (is (resource/build-resources
+    (is (build-resources
          []
          (install)
          (configure {})

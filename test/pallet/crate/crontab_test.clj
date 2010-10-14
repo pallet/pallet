@@ -13,7 +13,7 @@
 
 (deftest crontab-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (remote-file/remote-file
             "$(getent passwd user | cut -d: -f6)/crontab.in"
@@ -23,16 +23,16 @@
             ("crontab -u fred"
              "$(getent passwd user | cut -d: -f6)/crontab.in\n"))))
          (first
-          (resource/build-resources
+          (build-resources
            [] (crontab "fred" :content "contents"))))))
 
 (deftest system-crontab-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (remote-file/remote-file
             "/etc/cron.d/fred"
             :content "contents" :owner "root" :group "root" :mode "0644")))
          (first
-          (resource/build-resources
+          (build-resources
            [] (system-crontab "fred" :content "contents"))))))

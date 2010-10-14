@@ -11,16 +11,16 @@
 (deftest iptables-accept-test
   []
   (is (= (first
-          (resource/build-resources
+          (build-resources
            [:node-type {:tag :n :image {:os-family :ubuntu}}]
            (iptables/iptables-accept-port 22 "tcp")))
          (first
-          (resource/build-resources
+          (build-resources
            [:node-type {:tag :n :image {:os-family :ubuntu}}]
            (iptables-accept))))))
 
 (deftest invoke-test
-  (is (resource/build-resources
+  (is (build-resources
        [:target-node (jclouds/make-node "tag" :id "id")]
        (openssh)
        (sshd-config "")
