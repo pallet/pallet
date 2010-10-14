@@ -106,7 +106,8 @@
 (deftest converge-node-counts-test
   (defnode a {:os-family :ubuntu})
   (let [a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
-    (converge-node-counts {a 1} [a-node] {:compute nil}))
+    (converge-node-counts
+     {a 1} [a-node] {:compute org.jclouds.compute/*compute*}))
   (mock/expects [(org.jclouds.compute/run-nodes
                   [tag n template compute]
                   (mock/once
@@ -115,7 +116,8 @@
                   [compute & options]
                   (mock/once :template))]
     (let [a-node (jclouds/make-node "a" :state NodeState/TERMINATED)]
-      (converge-node-counts {a 1} [a-node] {:compute nil}))))
+      (converge-node-counts
+       {a 1} [a-node] {:compute org.jclouds.compute/*compute*}))))
 
 (deftest nodes-in-map-test
   (defnode a {:os-family :ubuntu})
@@ -177,19 +179,18 @@
     (is (= [na] (nodes-in-map {a 1 c 1} [na nb])))))
 
 (deftest build-request-map-test
-  (binding [org.jclouds.compute/*compute* :compute
-            pallet.core/*middleware* :middleware]
+  (binding [pallet.core/*middleware* :middleware]
     (testing "defaults"
-      (is (= {:blobstore nil :compute :compute :user utils/*admin-user*
+      (is (= {:blobstore nil :compute nil :user utils/*admin-user*
               :middleware :middleware}
              (#'pallet.core/build-request-map {}))))
     (testing "passing a prefix"
-      (is (= {:blobstore nil :compute :compute :prefix "prefix"
+      (is (= {:blobstore nil :compute nil :prefix "prefix"
               :user utils/*admin-user* :middleware *middleware*}
              (#'pallet.core/build-request-map {:prefix "prefix"}))))
     (testing "passing a user"
       (let [user (utils/make-user "fred")]
-        (is (= {:blobstore nil :compute :compute  :user user
+        (is (= {:blobstore nil :compute nil  :user user
                 :middleware :middleware}
                (#'pallet.core/build-request-map {:user user})))))))
 
@@ -339,7 +340,7 @@
                     (do
                       (is (= #{na nb nc} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))))]
-                  (lift [a b] :compute :dummy))))
+                  (lift [a b] :compute org.jclouds.compute/*compute*))))
 
 (deftest converge*-nodes-binding-test
   (defnode a {})
@@ -354,8 +355,9 @@
                       (is (= #{na nb} (set (:target-nodes request))))))
                    (org.jclouds.compute/nodes-with-details [& _] [na nb nc])]
                   (converge*
-                   {a 1 b 1} nil [:configure] {:compute nil
-                                               :middleware *middleware*}))))
+                   {a 1 b 1} nil [:configure]
+                   {:compute org.jclouds.compute/*compute*
+                    :middleware *middleware*}))))
 
 (deftest converge-test
   (org.jclouds.compute/with-compute-service
@@ -372,7 +374,7 @@
                                               request
                                               (fn [request] "Hi")
                                               [] :in-sequence :script/bash)))
-                               1}))]
+                               1} :compute org.jclouds.compute/*compute*))]
       (is (map? request))
       (is (map? (-> request :results)))
       (is (map? (-> request :results first second)))

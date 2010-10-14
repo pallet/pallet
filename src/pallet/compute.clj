@@ -1,7 +1,6 @@
 (ns pallet.compute
-  "Additions to the jclouds compute interface"
+  "Abstraction of the compute interface"
   (:require
-   [pallet.compute.jclouds :as jclouds] ; remove when we have protocols
    [pallet.compute.jvm :as jvm]
    [pallet.utils :as utils]
    [pallet.maven :as maven]
@@ -9,63 +8,61 @@
    [clojure.contrib.condition :as condition]))
 
 
-;;; Meta
-(defn supported-clouds []
-  (jclouds/supported-clouds))
-
-;;;; Compute service
-(defn compute-service-from-settings
-  "Create a jclouds compute service from maven ~/.m2/settings.xml.  If
-   extensions are listed they are used, otherwise :log4j and
-   :ssh are automatically added."
-  [& extensions]
-  (apply jclouds/compute-service-from-settings (maven/credentials) extensions))
+;;; Compute Service instantiation
+(defmulti service
+  "Instantiate a compute service based on the given arguments"
+  (fn [first & _] (keyword first)))
 
 (defn compute-from-options
-  [current-value {:keys [compute compute-service] :as options}]
-  (jclouds/compute-from-options current-value options))
-
-;;; Predicates
-(defn running? [node]
-  (jclouds/running? node))
-
-;;; Node utilities
-
-
-
-;;; Node properties
-(defn ssh-port
-  "Extract the port from the node's userMetadata"
-  [node]
-  (jclouds/ssh-port node))
-
-(defn primary-ip
-  "Returns the first public IP for the node."
-  [node]
-  (jclouds/primary-ip node))
-
-(defn private-ip
-  "Returns the first private IP for the node."
-  [node]
-  (jclouds/private-ip node))
-
-(defn is-64bit?
-  [node]
-  (jclouds/is-64bit? node))
-
-(defn node-has-tag? [tag node]
-  (= (name tag) (jclouds/tag node)))
-
-(defn tag
-  "Returns the tag for the node."
-  [node]
-  (jclouds/tag node))
+  [current-value {:keys [compute compute-service]}]
+  (or current-value
+      compute
+      (and compute-service
+           (service
+            (:provider compute-service)
+            :identity (:identity compute-service)
+            :credential (:credential compute-service)
+            :extensions (or (:extensions compute-service))))))
 
 
 ;;; Nodes
-(defn nodes-with-details
-  [compute-service]
-  (jclouds/nodes-with-details compute-service))
+(defprotocol Node
+  (ssh-port [node] "Extract the port from the node's userMetadata")
+  (primary-ip [node] "Returns the first public IP for the node.")
+  (private-ip [node] "Returns the first private IP for the node.")
+  (is-64bit? [node] "64 Bit OS predicate")
+  (tag [node] "Returns the tag for the node.")
+  (hostname [node] "TODO make this work on ec2")
+  (node-os-family [node] "Return a nodes os-family, or nil if not available.")
+  (running? [node])
+  (terminated? [node]))
+
+(defn node-has-tag? [tag node]
+  (= (name tag) (tag node)))
+
+(defn node-address
+  [node]
+  (if (string? node)
+    node
+    (primary-ip node)))
+
+
+
+;;; Actions
+(defprotocol ComputeService
+  (nodes-with-details [compute] "List nodes")
+  (run-nodes [compute node-type node-count request init-script])
+  (reboot [compute nodes] "Reboot the specified nodes")
+  (boot-if-down
+   [compute nodes]
+   "Boot the specified nodes, if they are not running.")
+  (shutdown-node [compute node user] "Shutdown a node.")
+  (shutdown [compute nodes user] "Shutdown specified nodes")
+  (ensure-os-family
+   [compute request]
+   "Called on startup of a new node to ensure request has an os-family attached
+   to it."))
+
 
 (defn nodes-by-tag [nodes]
   (reduce #(assoc %1
@@ -76,86 +73,6 @@
   (reduce #(assoc %1
              (keyword (tag %2))
              (inc (get %1 (keyword (tag %2)) 0))) {} nodes))
-
-
-
-;;; Actions
-(defn run-nodes
-  [node-type node-count request init-script]
-  (jclouds/run-nodes
-   node-type node-count request init-script))
-
-(defn reboot
-  "Reboot the specified nodes"
-  [nodes compute]
-  (jclouds/reboot nodes compute))
-
-(defn boot-if-down
-  "Boot the specified nodes, if they are not running."
-  [nodes compute]
-  (map #(reboot % compute)
-       (filter jclouds/terminated? nodes)))
-
-(defn shutdown-node
-  "Shutdown a node."
-  [node user compute]
-  (let [ip (primary-ip node)]
-    (if ip
-      (execute/remote-sudo ip "shutdown -h 0" user))))
-
-(defn shutdown
-  "Shutdown specified nodes"
-  [nodes user compute]
-  (dorun (map #(shutdown-node % compute) nodes)))
-
-(defn node-address
-  [node]
-  (if (string? node)
-    node
-    (primary-ip node)))
-
-(defn node-os-family
-  "Return a nodes os-family, or nil if not available."
-  [node]
-  (jclouds/node-os-family node))
-
-(defn node-locations
-  "Return locations of a node as a seq."
-  [node]
-  (jclouds/node-locations node))
-
-(defn image-string
-  [image]
-  (jclouds/image-string image))
-
-(defn os-string
-  [os]
-  (jclouds/os-string os))
-
-(defn location-string
-  [location]
-  (jclouds/location-string location))
-
-
-(defn make-localhost-node
-  "Make a node representing the local host"
-  []
-  (jclouds/make-localhost-node))
-
-(defn local-request
-  "Create a request map for localhost"
-  []
-  (let [node (jclouds/make-localhost-node)]
-    {:target-node node
-     :all-nodes [node]
-     :target-nodes [node]
-     :node-type {:image {:os-family (jvm/os-family)}}}))
-
-(defn hostname
-  "TODO make this work on ec2"
-  [node]
-  (jclouds/hostname node))
-
 
 ;;; target mapping
 (defn packager
@@ -176,6 +93,3 @@
              :message (format
                        "Unknown packager for %s : :image %s"
                        os-family target))))))
-
-(defn ensure-os-family [request]
-  (jclouds/ensure-os-family request))

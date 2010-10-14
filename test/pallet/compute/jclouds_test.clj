@@ -40,7 +40,7 @@
   (testing "basic tests"
     (let [n (jclouds/make-unmanaged-node "atag" "localhost")]
       (is n)
-      (is (jclouds/running? n))
+      (is (compute/running? n))
       (is (jclouds/compute-node? n))
       (is (= "localhost" (compute/primary-ip n)))))
   (testing "with ssh-port specification"

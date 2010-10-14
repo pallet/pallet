@@ -197,9 +197,12 @@ script that is run with root privileges immediatly after first boot."
   [node-type count request]
   {:pre [(map? node-type)]}
   (logging/info (str "Starting " count " nodes for " (node-type :tag)))
-  (let [request (compute/ensure-os-family (assoc request :node-type node-type))
+  (let [request (compute/ensure-os-family
+                 (:compute request)
+                 (assoc request :node-type node-type))
         init-script (produce-init-script request)]
     (compute/run-nodes
+     (:compute request)
      node-type
      count
      request

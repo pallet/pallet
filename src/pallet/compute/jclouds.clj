@@ -3,6 +3,7 @@
   (:require
    [org.jclouds.compute :as jclouds]
    [pallet.compute.jvm :as jvm]
+   [pallet.compute :as compute]
    [pallet.resource :as resource]
    [pallet.script :as script]
    [pallet.target :as target]
@@ -13,6 +14,7 @@
   (:import
    [org.jclouds.compute.domain.internal NodeMetadataImpl ImageImpl HardwareImpl]
    org.jclouds.compute.util.ComputeServiceUtils
+   org.jclouds.compute.ComputeService
    [org.jclouds.compute.domain
     NodeState NodeMetadata Image OperatingSystem OsFamily Hardware]
    org.jclouds.domain.Location))
@@ -67,9 +69,17 @@
                             (default-jclouds-extensions))))
       (if (bound? #'jclouds/*compute*) jclouds/*compute*)))
 
-;;; Predicates
-(defn running? [node]
-  (jclouds/running? node))
+(defn compute-from-options
+  [current-value {:keys [compute compute-service] :as options}]
+  (compute-from-options current-value options))
+
+(defmethod compute/service :default
+  [provider & {:keys [identity credentials extensions]
+               :or {extensions (default-jclouds-extensions)}}]
+  (jclouds/compute-service
+   provider identity credentials :extensions extensions))
+
+
 
 ;;; Node utilities
 (defn make-operating-system
@@ -208,72 +218,29 @@
   (instance? NodeMetadata object))
 
 
-;;; Node properties
-(defn ssh-port
-  "Extract the port from the node's userMetadata"
-  [node]
-  (let [md (into {} (.getUserMetadata node))
-        port (:ssh-port md)]
-    (if port (Integer. port))))
+(extend-type org.jclouds.compute.domain.NodeMetadata
+  pallet.compute/Node
 
-(defn primary-ip
-  "Returns the first public IP for the node."
-  [#^NodeMetadata node]
-  (first (jclouds/public-ips node)))
+  (ssh-port
+    [node]
+    (let [md (into {} (.getUserMetadata node))
+          port (:ssh-port md)]
+      (if port (Integer. port))))
 
-(defn private-ip
-  "Returns the first private IP for the node."
-  [#^NodeMetadata node]
-  (first (jclouds/private-ips node)))
+  (primary-ip [node] (first (jclouds/public-ips node)))
+  (private-ip [node] (first (jclouds/private-ips node)))
+  (is-64bit? [node] (.. node getOperatingSystem is64Bit))
+  (tag [node] (jclouds/tag node))
 
-(defn is-64bit?
-  [#^NodeMetadata node]
-  (.. node getOperatingSystem is64Bit))
+  (node-os-family
+    [node]
+    (when-let [operating-system (.getOperatingSystem node)]
+      (keyword (str (.getFamily operating-system)))))
 
-(defn node-has-tag? [tag node]
-  (= (name tag) (jclouds/node-tag node)))
+  ( hostname [node] (.getName node))
+  (running? [node] (jclouds/running? node))
+  (terminated? [node] (jclouds/terminated? node)))
 
-(defn tag
-  "Returns the tag for the node."
-  [#^NodeMetadata node]
-  (jclouds/tag node))
-
-(defn terminated? [node]
-  (jclouds/terminated? node))
-
-
-(defn node-address
-  [node]
-  (if (string? node)
-    node
-    (primary-ip node)))
-
-(defn node-os-family
-  "Return a nodes os-family, or nil if not available."
-  [#^NodeMetadata node]
-  (when-let [operating-system (.getOperatingSystem node)]
-    (keyword (str (.getFamily operating-system)))))
-
-;;; Nodes
-(defn nodes-with-details
-  [compute-service]
-  (jclouds/nodes-with-details compute-service))
-
-;;; Templates
-(defn ensure-os-family
-  "Ensure that the request has an os-family.
-   Extract default operating system by building the jclouds template if no
-   os-family is specified."
-  [request]
-  (if (-> request :node-type :image :os-family)
-    request
-    (let [template (jclouds/build-template
-                    (:compute request)
-                    (-> request :node-type :image))
-          family (-> (.. template getImage getOperatingSystem getFamily)
-                     str keyword)]
-      (logging/info (format "Default OS is %s" (pr-str family)))
-      (assoc-in request [:node-type :image :os-family] family))))
 
 
 (defn build-node-template
@@ -300,48 +267,56 @@
                     options)]
       (jclouds/build-template compute options))))
 
+(extend-type org.jclouds.compute.ComputeService
+  pallet.compute/ComputeService
+  (nodes-with-details
+    [compute]
+    (jclouds/nodes-with-details compute))
 
-;;; Actions
-(defn run-nodes
-  [node-type node-count request init-script]
-  (jclouds/run-nodes
-   (name (node-type :tag))
-   node-count
-   (build-node-template
-    (:compute request)
-    (-> request :user :public-key-path)
-    request
-    init-script)
-   (:compute request)))
+  (ensure-os-family
+    [compute request]
+    (if (-> request :node-type :image :os-family)
+      request
+      (let [template (jclouds/build-template
+                      (:compute request)
+                      (-> request :node-type :image))
+            family (-> (.. template getImage getOperatingSystem getFamily)
+                       str keyword)]
+        (logging/info (format "Default OS is %s" (pr-str family)))
+        (assoc-in request [:node-type :image :os-family] family))))
 
-(defn reboot
-  "Reboot the specified nodes"
-  ([nodes] (reboot nodes jclouds/*compute*))
-  ([nodes compute]
-     (dorun (map #(jclouds/reboot-node % compute) nodes))))
+  (run-nodes
+    [compute node-type node-count request init-script]
+    (jclouds/run-nodes
+     (name (node-type :tag))
+     node-count
+     (build-node-template
+      (:compute request)
+      (-> request :user :public-key-path)
+      request
+      init-script)
+     compute))
 
-(defn boot-if-down
-  "Boot the specified nodes, if they are not running."
-  ([nodes] (boot-if-down nodes jclouds/*compute*))
-  ([nodes compute]
-     (map #(jclouds/reboot-node % compute)
-          (filter jclouds/terminated? nodes))))
+  (reboot
+   [compute nodes]
+   (doseq [node nodes]
+     (jclouds/reboot-node node compute)))
 
-(defn shutdown-node
-  "Shutdown a node."
-  ([node] (shutdown-node node utils/*admin-user* jclouds/*compute*))
-  ([node user] (shutdown-node node user jclouds/*compute*))
-  ([node user compute]
-     (let [ip (primary-ip node)]
-       (if ip
-         (execute/remote-sudo ip "shutdown -h 0" user)))))
+  (boot-if-down
+   [compute nodes]
+   (map #(jclouds/reboot-node % compute)
+        (filter jclouds/terminated? nodes)))
 
-(defn shutdown
-  "Shutdown specified nodes"
-  ([nodes] (shutdown nodes utils/*admin-user* jclouds/*compute*))
-  ([nodes user] (shutdown nodes user jclouds/*compute*))
-  ([nodes user compute]
-     (dorun (map #(shutdown-node % compute) nodes))))
+  (shutdown-node
+   [compute node user]
+   (let [ip (compute/primary-ip node)]
+     (if ip
+       (execute/remote-sudo ip "shutdown -h 0" user))))
+
+  (shutdown
+    [compute nodes user]
+    (doseq [node nodes]
+      (compute/shutdown-node compute node user))))
 
 (defn node-locations
   "Return locations of a node as a seq."
@@ -417,8 +392,3 @@
      :all-nodes [node]
      :target-nodes [node]
      :node-type {:image [(get jvm-os-map (System/getProperty "os.name"))]}}))
-
-(defn hostname
-  "TODO make this work on ec2"
-  [node]
-  (or (.getName node)))

@@ -12,6 +12,7 @@
    [pallet.resource.file :as file]
    [pallet.stevedore :as stevedore]
    [pallet.compute :as compute]
+   [pallet.compute.jclouds :as jclouds]
    [pallet.execute :as execute]
    [pallet.target :as target]
    [pallet.utils :as utils]
@@ -61,7 +62,7 @@
                 "...done\n")
            (->
             (pallet.core/lift
-             {{:tag :tag} (pallet.compute/make-localhost-node)}
+             {{:tag :tag} (jclouds/make-localhost-node)}
              :phase #(remote-file % (.getPath tmp) :content "xxx")
              :compute nil
              :middleware pallet.core/execute-with-local-sh)
@@ -78,7 +79,7 @@
                      java.util.regex.Pattern/DOTALL))
             (->
              (pallet.core/lift
-              {{:tag :tag} (pallet.compute/make-localhost-node)}
+              {{:tag :tag} (jclouds/make-localhost-node)}
               :phase #(remote-file
                        % (.getPath tmp) :content "xxx")
               :compute nil
@@ -123,7 +124,7 @@
         (.delete target-tmp)
         (io/copy "text" tmp)
         (core/defnode tag {:tag "localhost"})
-        (let [node (compute/make-localhost-node)]
+        (let [node (jclouds/make-localhost-node)]
           (testing "local-file"
             (core/lift
              {tag node}
@@ -263,7 +264,7 @@
         (io/copy "text" remote-file)
         (core/defnode tag {:tag "localhost"})
         (testing "with local ssh"
-          (let [node (compute/make-localhost-node)
+          (let [node (jclouds/make-localhost-node)
                 path-atom (atom nil)]
             (testing "with-remote-file"
               (core/lift
@@ -275,7 +276,7 @@
               (is @path-atom)
               (is (not= (.getPath remote-file) (.getPath @path-atom))))))
         (testing "with local shell"
-          (let [node (compute/make-localhost-node)
+          (let [node (jclouds/make-localhost-node)
                 path-atom (atom nil)]
             (testing "with-remote-file"
               (core/lift
