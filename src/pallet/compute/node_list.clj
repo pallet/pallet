@@ -38,7 +38,7 @@
 
 (defrecord NodeList [node-list]
   pallet.compute.ComputeService
-  (nodes-with-details [compute-service]
+  (nodes [compute-service]
     (:node-list compute-service))
   (ensure-os-family
    [compute-service request]
@@ -50,7 +50,7 @@
   ;; (build-node-template)
   ;; (run-nodes [node-type node-count request init-script])
   ;; (reboot "Reboot the specified nodes")
-  ;; (boot-if-down "Boot the specified nodes, if they are not running.")
+  (boot-if-down [compute nodes] nil)
   ;; (shutdown-node "Shutdown a node.")
   ;; (shutdown "Shutdown specified nodes")
   )

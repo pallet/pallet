@@ -6,11 +6,9 @@
    [pallet.resource :as resource]
    [pallet.resource-build :as resource-build]
    [pallet.parameter :as parameter]
+   [pallet.compute.node-list :as node-list]
    [pallet.utils :as utils])
-  (:use clojure.test)
-  (:import
-   org.jclouds.compute.domain.internal.NodeMetadataImpl
-   org.jclouds.compute.domain.NodeState))
+  (:use clojure.test))
 
 (defmacro with-private-vars [[ns fns] & tests]
   "Refers private fns from ns and runs tests in context.  From users mailing
@@ -39,6 +37,13 @@ list, Alan Dipert and MeikelBrandmeyer."
   [f]
   (script/with-template [:ubuntu]
     (f)))
+
+(defn make-node
+  "Simple node for testing"
+  [tag & {:as options}]
+  (apply node-list/make-node
+   tag (:tag options tag) (:ip options "1.2.3.4") (:os-family options :ubuntu)
+   (apply concat options)))
 
 (defmacro build-resources
   "Forwarding definition, until resource-when is fixed"

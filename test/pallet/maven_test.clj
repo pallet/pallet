@@ -9,8 +9,7 @@
 
 ;; test calling these, even if we haven't set up expected values
 (deftest credentials-test
-  (credentials)
-  (credentials :blobstore))
+  (credentials))
 
 (deftest properties-test
   (is (map? (properties))))

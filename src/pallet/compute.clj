@@ -13,17 +13,15 @@
   "Instantiate a compute service based on the given arguments"
   (fn [first & _] (keyword first)))
 
-(defn compute-from-options
-  [current-value {:keys [compute compute-service]}]
-  (or current-value
-      compute
-      (and compute-service
-           (service
-            (:provider compute-service)
-            :identity (:identity compute-service)
-            :credential (:credential compute-service)
-            :extensions (or (:extensions compute-service))))))
-
+(defn compute-service-from-settings
+  "Create a compute service from propery settings."
+  []
+  (let [credentials (pallet.maven/credentials)]
+    (service
+     (:compute-provider credentials)
+     :identity (:compute-identity credentials)
+     :credential (:compute-credential credentials)
+     :node-list (:node-list credentials))))
 
 ;;; Nodes
 (defprotocol Node
@@ -51,7 +49,7 @@
 
 ;;; Actions
 (defprotocol ComputeService
-  (nodes-with-details [compute] "List nodes")
+  (nodes [compute] "List nodes")
   (run-nodes [compute node-type node-count request init-script])
   (reboot [compute nodes] "Reboot the specified nodes")
   (boot-if-down
@@ -62,7 +60,9 @@
   (ensure-os-family
    [compute request]
    "Called on startup of a new node to ensure request has an os-family attached
-   to it."))
+   to it.")
+  (destroy-nodes-with-tag [compute tag-name])
+  (destroy-node [compute node]))
 
 
 (defn nodes-by-tag [nodes]

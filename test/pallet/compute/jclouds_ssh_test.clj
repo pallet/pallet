@@ -1,4 +1,4 @@
-(ns pallet.ssh-test
+(ns pallet.compute.jclouds-ssh-test
   (:require
    [clojure.contrib.logging :as logging])
   (:import

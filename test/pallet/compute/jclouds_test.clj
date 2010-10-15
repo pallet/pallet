@@ -5,6 +5,11 @@
    [pallet.compute :as compute])
   (:import [org.jclouds.compute.domain NodeState OsFamily OperatingSystem]))
 
+(deftest node-counts-by-tag-test
+  (is (= {:a 2}
+         (compute/node-counts-by-tag
+          [(jclouds/make-node "a") (jclouds/make-node "a")]))))
+
 (deftest compute-node?-test
   (is (not (jclouds/compute-node? 1)))
   (is (jclouds/compute-node? (jclouds/make-node "a")))

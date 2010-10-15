@@ -16,18 +16,10 @@
   ;; and log in to the cloud using the credentials defined above.
   ;; provider is a string specifiying the provider, as returned
   ;; from (supported-clouds)
-  (def service (compute-service \"provider\" my-user my-password :log4j))
+  (def service (service \"provider\" :identity my-user :credential my-password))
 
   ;; nodes can be listed with the nodes function
   (nodes service)
-
-  ;; the compute service can also be bound
-  (with-compute-service [service]
-    (nodes))
-
-  ;; or even
-  (with-compute-service [\"provider\" my-user my-password :log4j]
-    (nodes))
 
   ;; if you add the org.jclouds.provider, org.jclouds.identity and
   ;; org.jclouds.credentials keys to an active profile in ~/.m2/settings.xml

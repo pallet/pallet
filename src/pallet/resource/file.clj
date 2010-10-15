@@ -78,8 +78,8 @@
    ~(string/join
      " "
      (map (fn dlr-fmt [e] (format "-H \"%s: %s\"" (key e) (val e)))
-          (.. request getHeaders entries)))
-   (quoted ~(.getEndpoint request))))
+          (:headers request)))
+   (quoted ~(:endpoint request))))
 
 (script/defscript tmp-dir [])
 (stevedore/defimpl tmp-dir :default []

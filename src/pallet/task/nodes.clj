@@ -7,6 +7,6 @@
 
 (defn nodes
   [request]
-  (let [ns (compute/nodes-with-details (:compute request))]
+  (let [ns (compute/nodes (:compute request))]
     (doseq [n ns]
       (println n))))

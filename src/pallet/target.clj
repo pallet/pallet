@@ -1,7 +1,6 @@
 (ns pallet.target
   "Provide information about the target image"
   (:require
-   [org.jclouds.compute :as jclouds]
    [clojure.contrib.condition :as condition])
   (:import
    (java.security

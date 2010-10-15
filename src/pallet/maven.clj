@@ -14,38 +14,25 @@
     "jclouds.blobstore.identity"
     "jclouds.blobstore.credential"]})
 
+(def key-map
+  {:pallet.compute.provider :compute-provider
+   :pallet.compute.identity :compute-identity
+   :pallet.compute.credential :compute-credential
+   :jclouds.compute.provider :compute-provider
+   :jclouds.compute.identity :compute-identity
+   :jclouds.compute.credential :compute-credential
+   :jclouds.blobstore.provider :blobstore-provider
+   :jclouds.blobstore.identity :blobstore-identity
+   :jclouds.blobstore.credential :blobstore-credential})
+
 (def container (.getContainer (doto (Embedder.) (.start))))
 
 (defn- make-settings []
   (.buildSettings (.lookup container MavenSettingsBuilder/ROLE)))
 
-(defn- profile-with-credentials
-  [facility-keys profile]
-  (let [properties (.getProperties profile)]
-    (and (.getProperty properties (first facility-keys))
-         profile)))
-
-(defn- get-property [profile key]
-  (.getProperty profile key))
-
-(defn credentials
-  "Read maven's settings.xml file, and extract credentials.  By default get
-   credentials for the compute service. The blobstore credentials may be
-   retrieved by passing :blobstore"
-  ([] (credentials :compute))
-  ([facility]
-     (let [settings (make-settings)
-           facility-keys (facility settings-keys)
-           active-profiles (.getActiveProfiles settings)
-           profiles (into {} (.getProfilesAsMap settings))
-           profile (some
-                    #(profile-with-credentials facility-keys %)
-                    (map profiles active-profiles))]
-       (when profile
-         (map (partial get-property (.getProperties profile)) facility-keys)))))
-
 (defn properties
-  "Read maven's settings.xml file, and extract properties as a map."
+  "Read maven's settings.xml file, and extract properties from active profiles
+   as a map."
   []
   (let [settings (make-settings)
         properties (apply
@@ -55,3 +42,12 @@
                           (into {} (.getProfilesAsMap settings))
                           (.getActiveProfiles settings))))]
     (zipmap (map keyword (keys properties)) (vals properties))))
+
+(defn credentials
+  "Read maven's settings.xml file, and extract credentials.  "
+  []
+  (into {}
+        (filter identity
+                (map
+                 #(if-let [k (key-map (key %))] [k (val %)])
+                 (properties)))))

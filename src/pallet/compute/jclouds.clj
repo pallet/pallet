@@ -25,19 +25,10 @@
   (ComputeServiceUtils/getSupportedProviders))
 
 ;;;; Compute service
-(defn log4j?
- "Predicate to test for log4j on the classpath."
-  []
-  (try
-    (import org.apache.log4j.Logger)
-    true
-    (catch java.lang.ClassNotFoundException _
-      false)))
-
 (defn default-jclouds-extensions
   "Default extensions"
   []
-  (if (log4j?)
+  (if (jvm/log4j?)
     [:ssh :log4j]
     [:ssh]))
 
@@ -50,35 +41,11 @@
          (concat credentials
                  (or (seq extensions) (default-jclouds-extensions)))))
 
-(defmacro with-no-compute-service
-  "Bind a null provider, for use when accessing local vms."
-  [& body]
-  `(binding [jclouds/*compute* nil]
-     ~@body))
-
-(defn compute-from-options
-  [current-value {:keys [compute compute-service]}]
-  (or current-value
-      compute
-      (and compute-service
-           (jclouds/compute-service
-            (:provider compute-service)
-            (:identity compute-service)
-            (:credential compute-service)
-            :extensions (or (:extensions compute-service)
-                            (default-jclouds-extensions))))
-      (if (bound? #'jclouds/*compute*) jclouds/*compute*)))
-
-(defn compute-from-options
-  [current-value {:keys [compute compute-service] :as options}]
-  (compute-from-options current-value options))
-
 (defmethod compute/service :default
-  [provider & {:keys [identity credentials extensions]
+  [provider & {:keys [identity credential extensions]
                :or {extensions (default-jclouds-extensions)}}]
   (jclouds/compute-service
-   provider identity credentials :extensions extensions))
-
+   provider identity credential :extensions extensions))
 
 
 ;;; Node utilities
@@ -270,33 +237,32 @@
 
 (extend-type org.jclouds.compute.ComputeService
   pallet.compute/ComputeService
-  (nodes-with-details
-    [compute]
-    (jclouds/nodes-with-details compute))
+
+  (nodes [compute] (jclouds/nodes-with-details compute))
 
   (ensure-os-family
-    [compute request]
-    (if (-> request :node-type :image :os-family)
-      request
-      (let [template (jclouds/build-template
-                      (:compute request)
-                      (-> request :node-type :image))
-            family (-> (.. template getImage getOperatingSystem getFamily)
-                       str keyword)]
-        (logging/info (format "Default OS is %s" (pr-str family)))
-        (assoc-in request [:node-type :image :os-family] family))))
+   [compute request]
+   (if (-> request :node-type :image :os-family)
+     request
+     (let [template (jclouds/build-template
+                     (:compute request)
+                     (-> request :node-type :image))
+           family (-> (.. template getImage getOperatingSystem getFamily)
+                      str keyword)]
+       (logging/info (format "Default OS is %s" (pr-str family)))
+       (assoc-in request [:node-type :image :os-family] family))))
 
   (run-nodes
-    [compute node-type node-count request init-script]
-    (jclouds/run-nodes
-     (name (node-type :tag))
-     node-count
-     (build-node-template
-      (:compute request)
-      (-> request :user :public-key-path)
-      request
-      init-script)
-     compute))
+   [compute node-type node-count request init-script]
+   (jclouds/run-nodes
+    (name (node-type :tag))
+    node-count
+    (build-node-template
+     (:compute request)
+     (-> request :user :public-key-path)
+     request
+     init-script)
+    compute))
 
   (reboot
    [compute nodes]
@@ -315,9 +281,17 @@
        (execute/remote-sudo ip "shutdown -h 0" user))))
 
   (shutdown
-    [compute nodes user]
-    (doseq [node nodes]
-      (compute/shutdown-node compute node user))))
+   [compute nodes user]
+   (doseq [node nodes]
+     (compute/shutdown-node compute node user)))
+
+  (destroy-nodes-with-tag
+    [compute tag-name]
+    (jclouds/destroy-nodes-with-tag (name tag-name) compute))
+
+  (compute/destroy-node
+   [compute node]
+   (jclouds/destroy-node (compute/id node) compute)))
 
 (defn node-locations
   "Return locations of a node as a seq."

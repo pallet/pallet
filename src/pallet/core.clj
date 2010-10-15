@@ -31,12 +31,8 @@ chef-repository you specify with `with-chef-repository`.
    [pallet.resource :as resource]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.string :as string]
-   [org.jclouds.compute :as jclouds]
    [clojure.contrib.logging :as logging]
-   [clojure.contrib.map-utils :as map-utils])
-  (:import org.jclouds.compute.domain.OsFamily
-           org.jclouds.compute.options.TemplateOptions
-           org.jclouds.compute.domain.NodeMetadata))
+   [clojure.contrib.map-utils :as map-utils]))
 
 (. System setProperty "http.agent"
    (str "Pallet " (System/getProperty "pallet.version")))
@@ -215,9 +211,9 @@ script that is run with root privileges immediatly after first boot."
   (logging/info (str "destroying " destroy-count " nodes with tag " tag))
   (let [tag-nodes (filter (partial compute/node-has-tag? tag) nodes)]
     (if (= destroy-count (count tag-nodes))
-      (jclouds/destroy-nodes-with-tag (name tag) compute)
+      (compute/destroy-nodes-with-tag compute (name tag))
       (doseq [node (take destroy-count tag-nodes)]
-        (jclouds/destroy-node (compute/id node) compute)))))
+        (compute/destroy-node compute (compute/id node))))))
 
 (defn node-count-difference
   "Find the difference between the required and actual node counts by tag."
@@ -517,7 +513,7 @@ script that is run with root privileges immediatly after first boot."
                  (logging/info "retrieving nodes")
                  (filter
                   compute/running?
-                  (compute/nodes-with-details (:compute request)))))
+                  (compute/nodes (:compute request)))))
         target-node-map (nodes-in-set node-set (:prefix request) nodes)
         all-node-map (or (and all-node-set
                               (nodes-in-set all-node-set nil nodes))
@@ -533,11 +529,11 @@ script that is run with root privileges immediatly after first boot."
   (logging/trace (format "converge* %s %s" node-map phases))
   (logging/info "retrieving nodes")
   (let [node-map (add-prefix-to-node-map (:prefix request) node-map)
-        nodes (compute/nodes-with-details (:compute request))]
+        nodes (compute/nodes (:compute request))]
     (converge-node-counts node-map nodes request)
     (let [nodes (filter
                  compute/running?
-                 (compute/nodes-with-details (:compute request)))
+                 (compute/nodes (:compute request)))
           tag-groups (group-by #(keyword (.getTag %)) nodes)
           target-node-map (into
                            {}
@@ -555,13 +551,36 @@ script that is run with root privileges immediatly after first boot."
   `(fn or-args [current#]
      (or current# ~@args)))
 
+(defn compute-from-options
+  [current-value {:keys [compute compute-service]}]
+  (or current-value
+      compute
+      (and compute-service
+           (compute/service
+            (:provider compute-service)
+            :identity (:identity compute-service)
+            :credential (:credential compute-service)
+            :extensions (:extensions compute-service)
+            :node-list (:node-list compute-service)))))
+
+(defn blobstore-from-options
+  [current-value {:keys [blobstore blobstore-service]}]
+  (or current-value
+      blobstore
+      (and blobstore-service
+           (blobstore/service
+            (:provider blobstore-service)
+            :identity (:identity blobstore-service)
+            :credential (:credential blobstore-service)
+            :extensions (:extensions blobstore-service)))))
+
 (defn- build-request-map
   "Build a request map from the given options."
   [{:as options}]
   (->
    options
-   (update-in [:compute] compute/compute-from-options options)
-   (update-in [:blobstore] blobstore/blobstore-from-options options)
+   (update-in [:compute] compute-from-options options)
+   (update-in [:blobstore] blobstore-from-options options)
    (update-in [:user] (or-fn utils/*admin-user*))
    (update-in [:middleware] (or-fn *middleware*))))
 
