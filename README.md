@@ -77,3 +77,5 @@ by typing the following at the repl.
 ## License
 
 Licensed under [EPL](http://www.eclipse.org/legal/epl-v10.html)
+
+[Contributors](https://www.ohloh.net/p/pallet-clj/contributors)
