@@ -8,7 +8,7 @@
   (System/getProperty "os.name"))
 
 (defn os-family []
-  (jvm-os-map (os-name)))
+  (or (jvm-os-map (os-name)) :ubuntu))
 
 (defn log4j?
  "Predicate to test for log4j on the classpath."
