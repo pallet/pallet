@@ -78,6 +78,7 @@
                (invoker service user key task params))))
          ;; In case tests or some other task started any:
          (flush)
-         (shutdown-agents)
-         (System/exit 0))))
+         (when-not (System/getProperty "cake.project")
+           (shutdown-agents)
+           (System/exit 0)))))
   ([] (apply -main *command-line-args*)))
