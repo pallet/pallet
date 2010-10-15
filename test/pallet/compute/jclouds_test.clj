@@ -28,9 +28,9 @@
   (is (compute/running?
        (jclouds/make-node "a" :state NodeState/RUNNING))))
 
-(deftest node-os-family-test
+(deftest os-family-test
   (is (= :ubuntu
-         (compute/node-os-family
+         (compute/os-family
           (jclouds/make-node
            "t"
            :operating-system (OperatingSystem.
@@ -55,7 +55,7 @@
              "atag" "localhost" :user-metadata {:ssh-port 2222})))))
   (testing "with image specification"
     (is (= :ubuntu
-           (compute/node-os-family
+           (compute/os-family
             (jclouds/make-unmanaged-node
              "atag" "localhost"
              :image "id"

@@ -41,9 +41,15 @@ list, Alan Dipert and MeikelBrandmeyer."
 (defn make-node
   "Simple node for testing"
   [tag & {:as options}]
-  (apply node-list/make-node
+  (apply
+   node-list/make-node
    tag (:tag options tag) (:ip options "1.2.3.4") (:os-family options :ubuntu)
    (apply concat options)))
+
+(defn make-localhost-node
+  "Simple localhost node for testing"
+  [& {:as options}]
+  (apply node-list/make-localhost-node (apply concat options)))
 
 (defmacro build-resources
   "Forwarding definition, until resource-when is fixed"

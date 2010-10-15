@@ -1,9 +1,8 @@
 (ns pallet.crate.ganglia-test
   (:use pallet.crate.ganglia)
-  (:use clojure.test
-        pallet.test-utils)
+  (:use clojure.test)
   (:require
-   [pallet.compute.jclouds :as jclouds]
+   [pallet.test-utils :as test-utils]
    [pallet.resource :as resource]))
 
 (deftest format-value-test
@@ -21,8 +20,8 @@
            (format-value {:include "/a/b/c"})))))
 
 (testing "invoke"
-  (is (build-resources
-      [:target-node (jclouds/make-node "tag" :id "id")
+  (is (test-utils/build-resources
+      [:target-node (test-utils/make-node "tag" :id "id")
        :node-type {:image {:os-family :ubuntu} :tag :tag}]
        (install)
        (monitor)

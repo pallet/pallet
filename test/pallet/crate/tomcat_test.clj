@@ -16,7 +16,7 @@
     [pallet.enlive :as enlive]
     [pallet.parameter-test :as parameter-test]
     [pallet.blobstore :as blobstore]
-    pallet.blobstore.jclouds)
+    pallet.blobstore.url-blobstore)
   (:use
    clojure.test
    pallet.test-utils
@@ -317,7 +317,7 @@
 
 (deftest invoke-test
   (is (build-resources
-       [:blobstore (blobstore/service "transient")]
+       [:blobstore (blobstore/service "url-blobstore")]
        (tomcat)
        (undeploy "app")
        (undeploy-all)

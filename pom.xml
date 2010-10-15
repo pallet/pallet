@@ -172,83 +172,6 @@
           <artifactId>clojure-contrib</artifactId>
           <version>1.2.0</version>
         </dependency>
-        <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-compute</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-blobstore</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-
-        <!-- You will need the jclouds provider specific jars for your project -->
-        <!-- An alternative to invidual provider jars is to pull in everything -->
-        <!-- <dependency> -->
-        <!--     <groupId>org.jclouds</groupId> -->
-        <!--     <artifactId>jclouds-all</artifactId> -->
-        <!--     <version>1.0-SNAPSHOT</version> -->
-        <!--     <optional>true</optional> -->
-        <!-- </dependency> -->
-        <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-aws</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-bluelock</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-gogrid</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-rackspace</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-rimuhosting</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-slicehost</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-terremark</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-jsch</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-log4j</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-enterprise</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
 
         <dependency>
             <groupId>clj-http</groupId>
@@ -296,10 +219,6 @@
     </dependencies>
 
     <repositories>
-        <repository>
-            <id>jclouds</id>
-            <url>http://jclouds.googlecode.com/svn/repo</url>
-        </repository>
         <repository>
             <id>sonatype-snapshots</id>
             <url>http://oss.sonatype.org/content/repositories/snapshots</url>
@@ -361,6 +280,113 @@
               <version>1.3.2</version>
               <configuration>
                 <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m -Dssh.username=testuser</clojureOptions>
+              </configuration>
+            </plugin>
+          </plugins>
+        </build>
+      </profile>
+
+      <profile>
+        <id>jclouds</id>
+        <activation>
+	  <activeByDefault>true</activeByDefault>
+        </activation>
+        <dependencies>
+          <dependency>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-compute</artifactId>
+            <version>1.0-SNAPSHOT</version>
+          </dependency>
+          <dependency>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-blobstore</artifactId>
+            <version>1.0-SNAPSHOT</version>
+          </dependency>
+
+          <!-- You will need the jclouds provider specific jars for your project -->
+          <!-- An alternative to invidual provider jars is to pull in everything -->
+          <!-- <dependency> -->
+          <!--     <groupId>org.jclouds</groupId> -->
+          <!--     <artifactId>jclouds-all</artifactId> -->
+          <!--     <version>1.0-SNAPSHOT</version> -->
+          <!--     <optional>true</optional> -->
+          <!-- </dependency> -->
+          <dependency>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-aws</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
+          </dependency>
+          <dependency>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-bluelock</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
+          </dependency>
+          <dependency>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-gogrid</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
+          </dependency>
+          <dependency>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-rackspace</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
+          </dependency>
+          <dependency>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-rimuhosting</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
+          </dependency>
+          <dependency>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-slicehost</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
+          </dependency>
+          <dependency>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-terremark</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <optional>true</optional>
+          </dependency>
+
+          <dependency>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-jsch</artifactId>
+            <version>1.0-SNAPSHOT</version>
+          </dependency>
+          <dependency>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-log4j</artifactId>
+            <version>1.0-SNAPSHOT</version>
+          </dependency>
+          <dependency>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-enterprise</artifactId>
+            <version>1.0-SNAPSHOT</version>
+          </dependency>
+        </dependencies>
+      </profile>
+
+      <profile>
+        <id>no-jclouds</id>
+        <build>
+          <plugins>
+            <plugin>
+              <groupId>com.theoryinpractise</groupId>
+              <artifactId>clojure-maven-plugin</artifactId>
+              <configuration>
+                <testDeclaredNamespaceOnly>true</testDeclaredNamespaceOnly>
+                <testNamespaces>
+                  <namespace>pallet\..*</namespace>
+                  <namespace>!pallet.compute.jclouds.*</namespace>
+                  <namespace>!pallet.blobstore.jclouds</namespace>
+                  <namespace>!pallet.core.jclouds.*</namespace>
+                </testNamespaces>
               </configuration>
             </plugin>
           </plugins>

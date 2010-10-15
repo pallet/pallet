@@ -1,13 +1,11 @@
 (ns pallet.crate.haproxy-test
   (:use pallet.crate.haproxy)
   (:require
-   [pallet.compute.jclouds :as jclouds]
    [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
-   [pallet.crate.etc-default :as etc-default])
-  (:use
-   clojure.test
-   pallet.test-utils))
+   [pallet.crate.etc-default :as etc-default]
+   [pallet.test-utils :as test-utils])
+  (:use clojure.test))
 
 (deftest format-k-v-test
   (is (= "a b "
@@ -23,7 +21,7 @@
           {:name :tag :ip "1.2.3.4" :server-port 80 :fall 3 :check true}))))
 
 (deftest proxied-by-test
-  (let [node (jclouds/make-node "tag" :public-ips ["1.2.3.4"])]
+  (let [node (test-utils/make-node "tag" :public-ips ["1.2.3.4"])]
     (is (= {:parameters
             {:haproxy
              {:tag1
@@ -37,7 +35,7 @@
 
 
 (deftest merge-servers-test
-  (let [node (jclouds/make-node "tag" :public-ips ["1.2.3.4"])]
+  (let [node (test-utils/make-node "tag" :public-ips ["1.2.3.4"])]
     (is (= {:listen {:app1 {:server ["tag 1.2.3.4 check "]
                             :balance "round-robin"
                             :server-address "0.0.0.0:80"}}}
@@ -80,18 +78,18 @@
 (deftest configure-test
   (is (=
        (first
-        (build-resources
+        (test-utils/build-resources
          [:node-type {:image {:os-family :ubuntu} :tag :tag}
-          :target-node (jclouds/make-node "tag" :public-ips ["1.2.3.4"])]
+          :target-node (test-utils/make-node "tag" :public-ips ["1.2.3.4"])]
          (remote-file/remote-file
           "/etc/haproxy/haproxy.cfg"
           :content "global\nlog 127.0.0.1 local0\nlog 127.0.0.1 local1 notice\nmaxconn 4096\nuser haproxy\ngroup haproxy\ndaemon\ndefaults\nmode http\nlisten app 0.0.0.0:80\nserver h1 1.2.3.4:80 weight 1 maxconn 50 check\nserver h2 1.2.3.5:80 weight 1 maxconn 50 check\n"
           :literal true)
          (etc-default/write "haproxy" :ENABLED 1)))
        (first
-        (build-resources
+        (test-utils/build-resources
          [:node-type {:image {:os-family :ubuntu} :tag :tag}
-          :target-node (jclouds/make-node "tag" :public-ips ["1.2.3.4"])]
+          :target-node (test-utils/make-node "tag" :public-ips ["1.2.3.4"])]
          (configure
           :listen {:app
                    {:server-address "0.0.0.0:80"
@@ -100,9 +98,9 @@
           :defaults {:mode "http"}))))))
 
 (deftest invocation-test
-  (is (build-resources
+  (is (test-utils/build-resources
        [:node-type {:image {:os-family :ubuntu} :tag :tag}
-        :target-node (jclouds/make-node "tag" :public-ips ["1.2.3.4"])]
+        :target-node (test-utils/make-node "tag" :public-ips ["1.2.3.4"])]
        (install-package)
        (configure
         :listen {:app

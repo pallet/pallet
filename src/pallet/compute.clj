@@ -31,7 +31,7 @@
   (is-64bit? [node] "64 Bit OS predicate")
   (tag [node] "Returns the tag for the node.")
   (hostname [node] "TODO make this work on ec2")
-  (node-os-family [node] "Return a nodes os-family, or nil if not available.")
+  (os-family [node] "Return a nodes os-family, or nil if not available.")
   (running? [node])
   (terminated? [node])
   (id [node]))

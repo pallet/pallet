@@ -110,7 +110,7 @@ When passing a username the following options can be specified:
    request [:node-type :image :os-family]
    (fn ensure-os-family [f]
      (or (when-let [node (:target-node request)]
-           (compute/node-os-family node))
+           (compute/os-family node))
          f))))
 
 (defn add-target-id

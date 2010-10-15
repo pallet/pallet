@@ -232,17 +232,18 @@
 
 (defmacro seen-fn
   "Generate a local function, which uses an atom to record when it is called."
-  []
+  [name]
   (let [localf-sym (gensym "localf")
-        localf*-sym (gensym "localf*")]
-    `(let [seen# (atom nil)
-           seen?# (fn [] @seen#)]
+        localf*-sym (gensym "localf*")
+        seen-sym (gensym "seen")]
+    `(let [~seen-sym (atom nil)
+           seen?# (fn [] @~seen-sym)]
        (resource/deflocal ~localf-sym
          (~localf*-sym
           [request#]
-          (clojure.contrib.logging/info "Seenfn")
-          (is (not @seen#))
-          (reset! seen# true)
+          (clojure.contrib.logging/info (format "Seenfn %s" ~name))
+          (is (not @~seen-sym))
+          (reset! ~seen-sym true)
           (is (:target-node request#))
           (is (:node-type request#))
           request#))
@@ -251,10 +252,11 @@
 (deftest lift-test
   (defnode local {})
   (testing "node-list"
-    (let [[localf seen?] (seen-fn)
+    (let [[localf seen?] (seen-fn "1")
           service (compute/service
                    "node-list"
-                   :node-list [(node-list/make-localhost-node :tag "local")])]
+                   :node-list [(node-list/make-localhost-node
+                                :tag "local" :os-family :ubuntu)])]
       (is (.contains
            "bin"
            (with-out-str
@@ -268,16 +270,18 @@
       (is (seen?)))))
 
 (deftest lift2-test
-  (let [[localf seen?] (seen-fn)
-        [localfy seeny?] (seen-fn)
+  (let [[localf seen?] (seen-fn "x")
+        [localfy seeny?] (seen-fn "y")
         compute (compute/service
                  "node-list"
                  :node-list [(node-list/make-localhost-node
-                              :tag "x1" :name "x1")
+                              :tag "x1" :name "x1" :id "x1"
+                              :os-family :ubuntu)
                              (node-list/make-localhost-node
-                              :tag "y1" :name "y1")])]
-    (defnode x1 {} :configure (resource/phase localf))
-    (defnode y1 {} :configure (resource/phase localfy))
+                              :tag "y1" :name "y1" :id "y1"
+                              :os-family :ubuntu)])
+        x1 (make-node "x1" {} :configure (resource/phase localf))
+        y1 (make-node "y1" {} :configure (resource/phase localfy))]
     (is (map?
          (lift [x1 y1]
                :user (assoc utils/*admin-user*

@@ -1,16 +1,14 @@
 (ns pallet.crate.zookeeper-test
   (:use pallet.crate.zookeeper)
-  (:use
-   clojure.test
-   pallet.test-utils)
+  (:use clojure.test)
   (:require
-   [pallet.compute.jclouds :as jclouds]
-   [pallet.resource :as resource]))
+   [pallet.resource :as resource]
+   [pallet.test-utils :as test-utils]))
 
 (deftest zookeeper-test
   (is ; just check for compile errors for now
-   (build-resources
-    [:target-node (jclouds/make-node "tag")
+   (test-utils/build-resources
+    [:target-node (test-utils/make-node "tag")
      :node-type {:tag "tag" :image {:os-family :ubuntu}}]
     (install)
     (configure)

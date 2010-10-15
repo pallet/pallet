@@ -290,22 +290,6 @@
                            :username (test-utils/test-username)
                            :no-sudo true)
                    :compute nil))))
-      (is (seen?))))
-  (testing "node-list"
-    (let [[localf seen?] (seen-fn)
-          service (compute/service
-                   "node-list"
-                   :node-list [(node-list/make-localhost-node :tag "local")])]
-      (is (.contains
-           "bin"
-           (with-out-str
-             (lift local
-                   :phase [(resource/phase (exec-script/exec-script (ls "/")))
-                           (resource/phase (localf))]
-                   :user (assoc utils/*admin-user*
-                           :username (test-utils/test-username)
-                           :no-sudo true)
-                   :compute service))))
       (is (seen?)))))
 
 (deftest lift2-test

@@ -1,13 +1,12 @@
 (ns pallet.crate.splunk-test
   (:use pallet.crate.splunk
-        clojure.test
-        pallet.test-utils)
+        clojure.test)
   (:require
    [pallet.resource :as resource]
-   [pallet.compute.jclouds :as jclouds]))
+   [pallet.test-utils :as test-utils]))
 
 (deftest invoke-test
-  (is (build-resources
-       [:target-node (jclouds/make-node "tag" :id "id")]
+  (is (test-utils/build-resources
+       [:target-node (test-utils/make-node "tag" :id "id")]
        (splunk)
        (configure))))

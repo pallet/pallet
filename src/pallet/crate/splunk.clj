@@ -147,5 +147,7 @@
    :content (format-conf
              (merge
               inputs
-              {:default {:host (or host (.getName (:target-node request)))}}))
+              {:default {:host (or host
+                                   (compute/hostname
+                                    (:target-node request)))}}))
    :owner "splunk" :group "splunk"))

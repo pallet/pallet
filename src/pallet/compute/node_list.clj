@@ -16,7 +16,7 @@
   (tag [node] (:tag node))
   (running? [node] (:running node))
   (terminated? [node] (not (:running node)))
-  (node-os-family [node] (:os-family node))
+  (os-family [node] (:os-family node))
   (hostname [node] (:name node))
   (id [node] (:id node)))
 
@@ -62,16 +62,17 @@
   (.write
    writer
    (format
-    "%14s\t %s %s public: %s  private: %s"
+    "%14s\t %s %s public: %s  private: %s  %s"
     (:tag node)
     (:os-family node)
     (:running node)
     (:ip node)
-    (:private-ip node))))
+    (:private-ip node)
+    (:id node))))
 
 (defn make-localhost-node
   "Make a node representing the local host"
-  [& {:keys [name tag ip os-family]
+  [& {:keys [name tag ip os-family id]
       :or {name "localhost"
            tag "local"
            ip "127.0.0.1"
@@ -79,7 +80,7 @@
       :as options}]
   (apply
    make-node name tag ip os-family
-   (apply concat options)))
+   (apply concat (merge {:id "localhost"} options))))
 
 
 ;;;; Compute service

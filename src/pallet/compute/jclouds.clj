@@ -199,7 +199,7 @@
   (is-64bit? [node] (.. node getOperatingSystem is64Bit))
   (tag [node] (jclouds/tag node))
 
-  (node-os-family
+  (os-family
     [node]
     (when-let [operating-system (.getOperatingSystem node)]
       (keyword (str (.getFamily operating-system)))))
