@@ -98,6 +98,25 @@ An empty template specification implies a default image will be used for the
 nodes, usually the latest Ubuntu version, or CentOS if no Ubuntu images are
 available.
 </p>
+<p>
+Node types can also specify phase functions, which can be invoked using
+<code>converge</code> or <code>lift</code>.
+</p>
+
+
+
+<pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.core)
+(<span style="color: #0000ff;">require</span> 'pallet.resource.package)
+(pallet.core/defnode mytag {}
+  <span style="color: #0000ff;">:configure</span> (pallet.resource/phase
+               (pallet.resource.package/package <span style="color: #f4a460;">"wget"</span>)))
+</pre>
+
+
+
+<p>
+Node types are used to select the nodes targeted by a <a href="operations.html"><code>converge</code> or <code>lift</code> operation</a>.
+</p>
 
 <div id="outline-container-1" class="outline-2">
 <h2 id="sec-1">Tags </h2>
@@ -108,9 +127,6 @@ available.
 In pallet, tags are used to identify identically configured machines.  The
 <code>converge</code> command can be used to control the number of machines running with
 each tag, allowing simple cluster management. Tag names may not contain hyphens.
-</p>
-<p>
-Tags are used to select the nodes targeted by a <a href="operations.html"><code>converge</code> or <code>lift</code> operation</a>.
 </p>
 </div>
 
@@ -123,8 +139,17 @@ Tags are used to select the nodes targeted by a <a href="operations.html"><code>
 
 <p>
 The image used for a node can be specified by using JCloud's template
-mechanism.  The image template in <code>defnode</code> is exactly as for jclouds clojure API.
+mechanism.  The image template in <code>defnode</code> is exactly as for jclouds clojure API,
+and is a map of option/value pairs.
 </p>
+
+
+
+<pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.core)
+(pallet.core/defnode mytag {<span style="color: #0000ff;">:os-family</span> <span style="color: #0000ff;">:ubuntu</span> <span style="color: #0000ff;">:min-ram</span> 512 <span style="color: #0000ff;">:min-cores</span> 4})
+</pre>
+
+
 </div>
 </div>
 <div id="postamble">

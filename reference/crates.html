@@ -83,7 +83,8 @@ lang="en" xml:lang="en">
 
 <p>
 Crates are functions that encapsulate some unit of configuration or
-administration. Crates can take arguments.
+administration. Every crate must take a first argument as a request map, and
+must return an updated request map. Crates can take other arguments.
 </p>
 
 <div id="outline-container-1" class="outline-2">
@@ -100,10 +101,12 @@ administration. Crates can take arguments.
 (<span style="color: #0000ff;">require</span> 'pallet.crate.tomcat)
 
 (<span style="color: #4682b4;">defn</span> <span style="color: #0000ff;">my-simple-config</span>
-  []
-  (pallet.resource.package/package <span style="color: #f4a460;">"maven2"</span>)
-  (pallet.crate.git/git)
-  (pallet.crate.tomcat/tomcat))
+  [request]
+  (<span style="color: #4682b4;">-&gt;</span>
+    request
+    (pallet.resource.package/package <span style="color: #f4a460;">"maven2"</span>)
+    (pallet.crate.git/git)
+    (pallet.crate.tomcat/tomcat)))
 </pre>
 
 
@@ -116,7 +119,8 @@ administration. Crates can take arguments.
 <h2 id="sec-2">Creating resources </h2>
 <div class="outline-text-2" id="text-2">
 
-<p><code>defresource</code> can be used to define crates that rely on node specific details.
+<p><code>defresource</code> can be used to define script producing functions, that can then
+be called in crates.
 </p>
 </div>
 
@@ -128,8 +132,8 @@ administration. Crates can take arguments.
 
 
 <p>
-<code>defaggregate</code> can be used to define crates that collect parameters over
-multiple invocations and emit a resource based on the aggregated parameters.
+<code>defaggregate</code> can be used to define resources that collect arguments over
+multiple invocations and emit a resource based on the aggregated arguments.
 This is used in the sudoers crate, for example, to emit /etc/sudoers.
 </p>
 </div>
@@ -140,8 +144,9 @@ This is used in the sudoers crate, for example, to emit /etc/sudoers.
 <h2 id="sec-4">Local resources </h2>
 <div class="outline-text-2" id="text-4">
 
-<p><code>deflocal</code> defines a crate that will be run on the local machine.
-</p></div>
+<p><code>deflocal</code> defines a resource that will be run on the local machine.
+</p>
+</div>
 
 </div>
 

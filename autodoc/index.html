@@ -82,18 +82,11 @@ namespace.
 ;; and log in to the cloud using the credentials defined above.
 ;; provider is a string specifiying the provider, as returned
 ;; from (supported-clouds)
-(def service (compute-service "provider" my-user my-password :log4j))
+(def service
+  (compute-service "provider" :identity my-user :credential my-password))
 
 ;; nodes can be listed with the nodes function
 (nodes service)
-
-;; the compute service can also be bound
-(with-compute-service [service]
-  (nodes))
-
-;; or even
-(with-compute-service ["provider" my-user my-password :log4j]
-  (nodes))
 
 ;; if you add the org.jclouds.provider, org.jclouds.identity and
 ;; org.jclouds.credentials keys to an active profile in ~/.m2/settings.xml
@@ -243,6 +236,26 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.blobstore</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.blobstore/blobstore-from-settings">blobstore-from-settings</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.blobstore/service">service</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.blobstore/sign-blob-request">sign-blob-request</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.blobstore.jclouds</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.blobstore.jclouds/default-jclouds-extensions">default-jclouds-extensions</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.blobstore.url-blobstore</span>:
+    
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.chef</span>:
     
     <br />
@@ -278,11 +291,157 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.compute</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/boot-if-down">boot-if-down</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/compute-service">compute-service</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/compute-service-from-settings">compute-service-from-settings</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/ensure-os-family">ensure-os-family</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/hostname">hostname</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/is-64bit?">is-64bit?</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/nodes">nodes</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/os-family">os-family</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/packager">packager</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/primary-ip">primary-ip</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/private-ip">private-ip</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/reboot">reboot</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/shutdown">shutdown</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/shutdown-node">shutdown-node</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/ssh-port">ssh-port</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/supported-providers">supported-providers</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute/tag">tag</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.compute.implementation</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute.implementation/load-providers">load-providers</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute.implementation/service">service</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute.implementation/supported-providers">supported-providers</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.compute.jclouds</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute.jclouds/build-node-template">build-node-template</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute.jclouds/default-jclouds-extensions">default-jclouds-extensions</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute.jclouds/local-hardware">local-hardware</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute.jclouds/local-operating-system">local-operating-system</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute.jclouds/local-request">local-request</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute.jclouds/make-localhost-node">make-localhost-node</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute.jclouds/make-unmanaged-node">make-unmanaged-node</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute.jclouds/node-locations">node-locations</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.compute.jvm</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute.jvm/log4j?">log4j?</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.compute.node-list</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.compute.node-list/make-localhost-node">make-localhost-node</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.core</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/add-os-family">add-os-family</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/add-target-id">add-target-id</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/add-target-keys">add-target-keys</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/add-target-packager">add-target-packager</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/adjust-node-counts">adjust-node-counts</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/admin-user">admin-user</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/apply-phase">apply-phase</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/apply-phase-to-node">apply-phase-to-node</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/converge">converge</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/converge*">converge*</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/converge-node-counts">converge-node-counts</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/create-nodes">create-nodes</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/defnode">defnode</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/destroy-nodes-with-count">destroy-nodes-with-count</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/execute-with-local-sh">execute-with-local-sh</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/filter-nodes-with-tag">filter-nodes-with-tag</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/invoke-for-node-type">invoke-for-node-type</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/invoke-for-nodes">invoke-for-nodes</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/invoke-phases">invoke-phases</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/lift">lift</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/lift-nodes">lift-nodes</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/make-node">make-node</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/name-with-attributes">name-with-attributes</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/node-count-difference">node-count-difference</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/node-in-types?">node-in-types?</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/node-type?">node-type?</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/nodes-for-type">nodes-for-type</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/nodes-in-map">nodes-in-map</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/nodes-in-set">nodes-in-set</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/show-target-keys">show-target-keys</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/with-admin-user">with-admin-user</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/with-middleware">with-middleware</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/with-target-parameters">with-target-parameters</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/wrap-local-exec">wrap-local-exec</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.core/wrap-no-exec">wrap-no-exec</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.automated-admin-user</span>:
@@ -291,12 +450,38 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.bzr</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.bzr/bzr">bzr</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.cassandra</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.cassandra/install">install</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.cassandra/url">url</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.chef</span>:
     
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.cloudkick</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.cloudkick/cloudkick">cloudkick</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.couchdb</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.couchdb/configure">configure</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.couchdb/couchdb">couchdb</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.couchdb/install">install</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.crontab</span>:
@@ -325,24 +510,112 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.etc-hosts</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.etc-hosts/host">host</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.etc-hosts/hosts">hosts</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.etc-hosts/hosts-for-tag">hosts-for-tag</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.ganglia</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ganglia/configure">configure</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ganglia/metrics">metrics</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ganglia/nagios-monitor">nagios-monitor</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.git</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.git/git">git</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.github</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.github/api">api</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.github/deploy-key">deploy-key</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.gpg</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.gpg/gpg">gpg</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.gpg/import-key">import-key</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.haproxy</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.haproxy/configure">configure</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.haproxy/install-package">install-package</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.haproxy/proxied-by">proxied-by</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.hudson</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/build">build</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/cli-command">cli-command</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/config">config</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/config-xml">config-xml</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/determine-scm-type">determine-scm-type</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/hudson-cli">hudson-cli</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/hudson-maven-xml">hudson-maven-xml</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/hudson-user-xml">hudson-user-xml</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/job">job</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/maven-config">maven-config</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/maven2-job-xml">maven2-job-xml</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/output-build-for">output-build-for</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/output-scm-for">output-scm-for</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/path-for">path-for</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/plugin">plugin</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/plugin-config">plugin-config</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/plugin-via-cli">plugin-via-cli</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/publisher-config">publisher-config</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/reload-configuration">reload-configuration</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/tomcat-deploy">tomcat-deploy</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/tomcat-undeploy">tomcat-undeploy</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/user">user</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.hudson/version">version</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.iozone</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.iozone/iozone">iozone</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.iptables</span>:
@@ -362,23 +635,113 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.java</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.java/java">java</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.java/java-package-name">java-package-name</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.java/jce-policy-file">jce-policy-file</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.jetty</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.jetty/configure">configure</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.jetty/context">context</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.jetty/deploy">deploy</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.jetty/jetty">jetty</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.jetty/server">server</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.jetty/ssl">ssl</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.monit</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.monit/monitor">monitor</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.monit/package">package</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.mysql</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.mysql/mysql-conf">mysql-conf</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.mysql/mysql-script">mysql-script</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.nagios</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/command">command</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/commands">commands</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/contact">contact</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/define">define</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/define-service">define-service</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/define-servicegroup">define-servicegroup</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/hostgroups">hostgroups</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/hosts">hosts</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/nagios">nagios</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/nagios-hostname">nagios-hostname</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/nrpe-command">nrpe-command</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/record-nagios-server">record-nagios-server</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/servicegroup">servicegroup</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios/unmanaged-host">unmanaged-host</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.nagios-config</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios-config/command">command</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios-config/monitor-http">monitor-http</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios-config/monitor-https-certificate">monitor-https-certificate</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios-config/nrpe-client">nrpe-client</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios-config/nrpe-client-port">nrpe-client-port</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nagios-config/service">service</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.nginx</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nginx/init">init</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nginx/nginx">nginx</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.nginx/site">site</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.node-js</span>:
     
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.php</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.php/php">php</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.postfix</span>:
@@ -391,6 +754,22 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.rabbitmq</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rabbitmq/conf-keys">conf-keys</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rabbitmq/etc-default-keys">etc-default-keys</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rabbitmq/iptables-accept">iptables-accept</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rabbitmq/iptables-accept-status">iptables-accept-status</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rabbitmq/password">password</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rabbitmq/rabbitmq">rabbitmq</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.resolv</span>:
     <span id="sub-var-link">
       <a href="pallet-api.html#pallet.crate.resolv/resolv">resolv</a>
@@ -398,11 +777,25 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.ruby</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ruby/ruby">ruby</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ruby/ruby-packages">ruby-packages</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.rubygems</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rubygems/gem">gem</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rubygems/gem-source">gem-source</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rubygems/gemrc">gemrc</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rubygems/require-rubygems">require-rubygems</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.rubygems/rubygems">rubygems</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.sphinx</span>:
@@ -412,11 +805,57 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.splunk</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.splunk/md5-url">md5-url</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.squeak</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/install-magma">install-magma</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/install-rfb">install-rfb</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/magma-server-image">magma-server-image</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/pharo">pharo</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/pharo-dir">pharo-dir</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/pharo-package">pharo-package</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/pharo-preferences">pharo-preferences</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/pharo-script">pharo-script</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/pharo-update">pharo-update</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/pharo-url">pharo-url</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/seaside-server-image">seaside-server-image</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/smalltalk">smalltalk</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/smalltalk-call">smalltalk-call</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.squeak/squeak-vm">squeak-vm</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.ssh</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ssh/iptables-accept">iptables-accept</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ssh/iptables-throttle">iptables-throttle</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ssh/nagios-monitor">nagios-monitor</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ssh/openssh">openssh</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ssh/service-name">service-name</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.ssh/sshd-config">sshd-config</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.ssh-key</span>:
@@ -438,19 +877,133 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.syslog-ng</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.syslog-ng/configure-block">configure-block</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.syslog-ng/default-group">default-group</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.syslog-ng/default-mode">default-mode</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.syslog-ng/install">install</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.syslog-ng/iptables-accept">iptables-accept</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.syslog-ng/receive-from">receive-from</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.syslog-ng/send-to">send-to</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.syslog-ng/set-server-ip">set-server-ip</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.tomcat</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/alias">alias</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/application-conf">application-conf</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/classname-for">classname-for</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/connector">connector</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/context">context</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/deploy">deploy</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/engine">engine</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/environment">environment</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/extract-nested-maps">extract-nested-maps</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/flatten-map">flatten-map</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/global-resources">global-resources</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/host">host</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/listener">listener</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/loader">loader</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/pallet-type">pallet-type</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/parameter">parameter</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/path-for">path-for</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/policy">policy</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/realm">realm</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/resource">resource</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/server">server</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/server-configuration">server-configuration</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/service">service</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/ssl-apr-connector">ssl-apr-connector</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/ssl-jsse-connector">ssl-jsse-connector</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/tomcat">tomcat</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/tomcat-server-xml">tomcat-server-xml</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/transaction">transaction</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/undeploy">undeploy</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/undeploy-all">undeploy-all</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/user">user</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/valve">valve</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.tomcat/watched-resource">watched-resource</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.upstart</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.upstart/format-stanza">format-stanza</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.upstart/job">job</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.upstart/package">package</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.crate.wordpress</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.wordpress/wordpress">wordpress</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.zeromq</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.zeromq/download-url">download-url</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.zeromq/install">install</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.zeromq/iptables-accept">iptables-accept</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.crate.zookeeper</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.zookeeper/config-files">config-files</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.zookeeper/configure">configure</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.zookeeper/install">install</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.zookeeper/store-configuration">store-configuration</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.crate.zookeeper/url">url</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.enlive</span>:
@@ -468,6 +1021,8 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
       <a href="pallet-api.html#pallet.execute/execute-ssh-cmds">execute-ssh-cmds</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.execute/local-cmds">local-cmds</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.execute/local-sh-cmds">local-sh-cmds</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.execute/remote-sudo">remote-sudo</a>
     </span><span id="sub-var-link">
@@ -514,6 +1069,8 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     <span id="name">pallet.maven</span>:
     <span id="sub-var-link">
       <a href="pallet-api.html#pallet.maven/credentials">credentials</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.maven/properties">properties</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
@@ -544,16 +1101,30 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.request-map</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.request-map/nodes-in-tag">nodes-in-tag</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.request-map/os-family">os-family</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.request-map/script-template-keys">script-template-keys</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.request-map/tag">tag</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.request-map/target-id">target-id</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.request-map/target-ip">target-ip</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.request-map/target-name">target-name</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.resource</span>:
     <span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/after-phase">after-phase</a>
     </span><span id="sub-var-link">
-      <a href="pallet-api.html#pallet.resource/bound-invocations">bound-invocations</a>
+      <a href="pallet-api.html#pallet.resource/as-local-resource">as-local-resource</a>
     </span><span id="sub-var-link">
-      <a href="pallet-api.html#pallet.resource/build-resources">build-resources</a>
+      <a href="pallet-api.html#pallet.resource/bound-invocations">bound-invocations</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/defaggregate">defaggregate</a>
     </span><span id="sub-var-link">
@@ -568,6 +1139,8 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
       <a href="pallet-api.html#pallet.resource/execute-commands">execute-commands</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/execute-pre-phase">execute-pre-phase</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource/execute-resource">execute-resource</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/invocations-&gt;resource-fns">invocations-&gt;resource-fns</a>
     </span><span id="sub-var-link">
@@ -585,11 +1158,17 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/produce-phase">produce-phase</a>
     </span><span id="sub-var-link">
-      <a href="pallet-api.html#pallet.resource/produce-phases">produce-phases</a>
-    </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/resource-evaluate-fn">resource-evaluate-fn</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource/script-join">script-join</a>
+    </span>
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource-build</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource-build/build-resources">build-resources</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource-build/produce-phases">produce-phases</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
@@ -616,6 +1195,8 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
       <a href="pallet-api.html#pallet.resource.file/sed">sed</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource.file/symbolic-link">symbolic-link</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.file/write-md5-for-file">write-md5-for-file</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
@@ -627,8 +1208,32 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     
     <br />
   </span><span id="subspace"><br />Variables and functions in
-    <span id="name">pallet.resource.package</span>:
+    <span id="name">pallet.resource.lib</span>:
     
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.package</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/add-centos55-to-amzn-linux">add-centos55-to-amzn-linux</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/add-epel">add-epel</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/add-scope">add-scope</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/format-source">format-source</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/package">package</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/package-manager">package-manager</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/package-manager*">package-manager*</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/package-source">package-source</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/package-source*">package-source*</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.package/packages">packages</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.resource.remote-directory</span>:
@@ -644,11 +1249,25 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
       <a href="pallet-api.html#pallet.resource.remote-file/content-options">content-options</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.resource.remote-file/remote-file">remote-file</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.remote-file/set-force-overwrite">set-force-overwrite</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.remote-file/set-install-new-files">set-install-new-files</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.remote-file/transfer-file">transfer-file</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.remote-file/with-remote-file">with-remote-file</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.resource.resource-when</span>:
     
+    <br />
+  </span><span id="subspace"><br />Variables and functions in
+    <span id="name">pallet.resource.rsync</span>:
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.resource.rsync/rsync-directory">rsync-directory</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.resource.service</span>:
@@ -699,6 +1318,8 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.stevedore/chained-script">chained-script</a>
     </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.stevedore/char-at">char-at</a>
+    </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.stevedore/checked-commands">checked-commands</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.stevedore/checked-commands*">checked-commands*</a>
@@ -716,6 +1337,8 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
       <a href="pallet-api.html#pallet.stevedore/option-args">option-args</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.stevedore/script">script</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.stevedore/substring">substring</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
@@ -733,16 +1356,20 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.target/os-family">os-family</a>
     </span><span id="sub-var-link">
-      <a href="pallet-api.html#pallet.target/packager">packager</a>
+      <a href="pallet-api.html#pallet.target/safe-id">safe-id</a>
     </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.task.converge</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.task.converge/converge">converge</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.task.describe-node</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.task.describe-node/describe-node">describe-node</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.task.feedback</span>:
@@ -758,7 +1385,9 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.task.lift</span>:
-    
+    <span id="sub-var-link">
+      <a href="pallet-api.html#pallet.task.lift/lift">lift</a>
+    </span>
     <br />
   </span><span id="subspace"><br />Variables and functions in
     <span id="name">pallet.task.new-project</span>:
@@ -805,6 +1434,8 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     <span id="sub-var-link">
       <a href="pallet-api.html#pallet.thread-expr/apply-&gt;">apply-&gt;</a>
     </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.thread-expr/apply-map-&gt;">apply-map-&gt;</a>
+    </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.thread-expr/for-&gt;">for-&gt;</a>
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.thread-expr/if-&gt;">if-&gt;</a>
@@ -825,7 +1456,13 @@ Installation is with Leiningen (<a href="http://github.com/technomancy/leiningen
     </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.utils/make-user">make-user</a>
     </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.utils/pipe">pipe</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.utils/resource-properties">resource-properties</a>
+    </span><span id="sub-var-link">
       <a href="pallet-api.html#pallet.utils/slurp-resource">slurp-resource</a>
+    </span><span id="sub-var-link">
+      <a href="pallet-api.html#pallet.utils/tmpfile">tmpfile</a>
     </span>
     <br />
   </span>

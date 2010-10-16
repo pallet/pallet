@@ -119,7 +119,7 @@ This can be used to build job specific clusters.
 (pallet.core/defnode db {})
 
 (<span style="color: #4682b4;">defn</span> <span style="color: #0000ff;">scale-cluster</span> [prefix n]
-  (pallet.core/converge prefix {lb 1 webapp n db (<span style="color: #0000ff;">inc</span> (<span style="color: #0000ff;">/</span> n 2))}))
+  (pallet.core/converge {lb 1 webapp n db (<span style="color: #0000ff;">inc</span> (<span style="color: #0000ff;">/</span> n 2))} <span style="color: #0000ff;">:prefix</span> prefix))
 </pre>
 
 
