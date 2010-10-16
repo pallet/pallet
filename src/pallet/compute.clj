@@ -1,26 +1,46 @@
 (ns pallet.compute
   "Abstraction of the compute interface"
   (:require
-   [pallet.compute.jvm :as jvm]
+   [pallet.compute.implementation :as implementation]
    [pallet.utils :as utils]
    [pallet.maven :as maven]
    [pallet.execute :as execute]
-   [clojure.contrib.condition :as condition]))
+   [clojure.contrib.condition :as condition]
+   [clojure.string :as string]))
 
+
+;;; Meta
+(defn supported-providers
+  "A list of supported provider names.  Each name is suitable to be passed
+   to compute-service."
+  []
+  (implementation/supported-providers))
 
 ;;; Compute Service instantiation
-(defmulti service
-  "Instantiate a compute service based on the given arguments"
-  (fn [first & _] (keyword first)))
+(defn compute-service
+  "Instantiate a compute service. The provider name should be a recognised
+   jclouds provider, or \"node-list\". The other arguments are keyword value
+   pairs.
+     :identity     username or key
+     :credential   password or secret
+     :extensions   extension modules for jclouds
+     :node-list    a list of nodes for the \"node-list\" provider."
+  [provider-name
+   & {:keys [identity credential extensions node-list] :as options}]
+  (implementation/load-providers)
+  (implementation/service provider-name options))
 
 (defn compute-service-from-settings
-  "Create a compute service from propery settings."
+  "Create a compute service from maven property settings."
   []
   (let [credentials (pallet.maven/credentials)]
-    (service
+    (compute-service
      (:compute-provider credentials)
      :identity (:compute-identity credentials)
      :credential (:compute-credential credentials)
+     :extensions (map
+                  read-string
+                  (string/split (:compute-extensions credentials) #" "))
      :node-list (:node-list credentials))))
 
 ;;; Nodes

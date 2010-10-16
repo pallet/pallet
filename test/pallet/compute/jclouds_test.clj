@@ -5,6 +5,9 @@
    [pallet.compute :as compute])
   (:import [org.jclouds.compute.domain NodeState OsFamily OperatingSystem]))
 
+(deftest supported-providers-test
+  (is (jclouds/supported-providers)))
+
 (deftest node-counts-by-tag-test
   (is (= {:a 2}
          (compute/node-counts-by-tag

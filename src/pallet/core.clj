@@ -556,7 +556,7 @@ script that is run with root privileges immediatly after first boot."
   (or current-value
       compute
       (and compute-service
-           (compute/service
+           (compute/compute-service
             (:provider compute-service)
             :identity (:identity compute-service)
             :credential (:credential compute-service)

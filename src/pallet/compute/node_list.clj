@@ -3,8 +3,13 @@
   (:require
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
+   [pallet.compute.implementation :as implementation]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]))
+
+
+(defn supported-providers []
+  ["node-list"])
 
 (defrecord Node
     [name tag ip os-family id ssh-port private-ip is-64bit running]
@@ -84,6 +89,6 @@
 
 
 ;;;; Compute service
-(defmethod compute/service :node-list
-  [_ & {:keys [node-list]}]
+(defmethod implementation/service :node-list
+  [_ {:keys [node-list]}]
   (NodeList. node-list))

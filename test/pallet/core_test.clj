@@ -89,7 +89,7 @@
 (deftest converge-node-counts-test
   (defnode a {:os-family :ubuntu})
   (let [a-node (test-utils/make-node "a" :running true)
-        compute (compute/service "node-list" :node-list [a-node])]
+        compute (compute/compute-service "node-list" :node-list [a-node])]
     (converge-node-counts
      {a 1} [a-node] {:compute compute})))
 
@@ -253,7 +253,7 @@
   (defnode local {})
   (testing "node-list"
     (let [[localf seen?] (seen-fn "1")
-          service (compute/service
+          service (compute/compute-service
                    "node-list"
                    :node-list [(node-list/make-localhost-node
                                 :tag "local" :os-family :ubuntu)])]
@@ -272,7 +272,7 @@
 (deftest lift2-test
   (let [[localf seen?] (seen-fn "x")
         [localfy seeny?] (seen-fn "y")
-        compute (compute/service
+        compute (compute/compute-service
                  "node-list"
                  :node-list [(node-list/make-localhost-node
                               :tag "x1" :name "x1" :id "x1"
@@ -322,7 +322,7 @@
   (let [na (test-utils/make-node "a")
         nb (test-utils/make-node "b")
         nc (test-utils/make-node "c")
-        compute (compute/service "node-list" :node-list [na nb nc])]
+        compute (compute/compute-service "node-list" :node-list [na nb nc])]
     (mock/expects [(compute/nodes [_] [na nb nc])
                    (apply-phase
                     [nodes request]
@@ -337,7 +337,7 @@
 ;;   (let [na (test-utils/make-node "a")
 ;;         nb (test-utils/make-node "b")
 ;;         nc (test-utils/make-node "b" :name "b1" :running false)
-;;         compute (compute/service "node-list" :node-list [na nb nc])]
+;;         compute (compute/compute-service "node-list" :node-list [na nb nc])]
 ;;     (mock/expects [(apply-phase
 ;;                     [nodes request]
 ;;                     (do

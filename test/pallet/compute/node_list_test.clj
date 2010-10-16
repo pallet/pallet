@@ -5,6 +5,9 @@
   (:use
    [clojure.test]))
 
+(deftest supported-providers-test
+  (is (node-list/supported-providers)))
+
 (deftest make-node-test
   (is (= (pallet.compute.node-list.Node.
           "n" "t" "1.2.3.4" :ubuntu "n-1-2-3-4" 22 "4.3.2.1" false true)
@@ -14,16 +17,16 @@
 (deftest service-test
   (is (instance?
        pallet.compute.ComputeService
-       (compute/service "node-list" :node-list [])))
+       (compute/compute-service "node-list" :node-list [])))
   (is (instance?
        pallet.compute.node-list.NodeList
-       (compute/service "node-list" :node-list []))))
+       (compute/compute-service "node-list" :node-list []))))
 
 (deftest nodes-test
   (let [node (node-list/make-node "n" "t" "1.2.3.4" :ubuntu)]
     (is (= [node]
              (compute/nodes
-               (compute/service "node-list" :node-list [node]))))))
+               (compute/compute-service "node-list" :node-list [node]))))))
 
 (deftest make-localhost-node-test
   (let [node (node-list/make-localhost-node)]

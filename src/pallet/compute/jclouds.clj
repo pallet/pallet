@@ -2,6 +2,7 @@
   "jclouds compute service implementation."
   (:require
    [org.jclouds.compute :as jclouds]
+   [pallet.compute.implementation :as implementation]
    [pallet.compute.jvm :as jvm]
    [pallet.compute :as compute]
    [pallet.resource :as resource]
@@ -21,7 +22,7 @@
 
 
 ;;; Meta
-(defn supported-clouds []
+(defn supported-providers []
   (ComputeServiceUtils/getSupportedProviders))
 
 ;;;; Compute service
@@ -41,9 +42,9 @@
          (concat credentials
                  (or (seq extensions) (default-jclouds-extensions)))))
 
-(defmethod compute/service :default
-  [provider & {:keys [identity credential extensions]
-               :or {extensions (default-jclouds-extensions)}}]
+(defmethod implementation/service :default
+  [provider {:keys [identity credential extensions]
+             :or {extensions (default-jclouds-extensions)}}]
   (jclouds/compute-service
    provider identity credential :extensions extensions))
 

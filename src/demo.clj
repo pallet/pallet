@@ -16,7 +16,8 @@
   ;; and log in to the cloud using the credentials defined above.
   ;; provider is a string specifiying the provider, as returned
   ;; from (supported-clouds)
-  (def service (service \"provider\" :identity my-user :credential my-password))
+  (def service
+    (compute-service \"provider\" :identity my-user :credential my-password))
 
   ;; nodes can be listed with the nodes function
   (nodes service)
