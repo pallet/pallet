@@ -33,16 +33,19 @@
 (defn compute-service-from-settings
   "Create a compute service from maven property settings."
   []
-  (let [credentials (pallet.maven/credentials)]
-    (compute-service
+  (let [credentials (pallet.maven/credentials)
+        options {:identity (:compute-identity credentials)
+                 :credential (:compute-credential credentials)
+                 :extensions (when-let [extensions (:compute-extensions
+                                                    credentials)]
+                               (map
+                                read-string
+                                (string/split extensions #" ")))
+                 :node-list (:node-list credentials)}]
+    (apply
+     compute-service
      (:compute-provider credentials)
-     :identity (:compute-identity credentials)
-     :credential (:compute-credential credentials)
-     :extensions (when-let [extensions (:compute-extensions credentials)]
-                   (map
-                    read-string
-                    (string/split extensions #" ")))
-     :node-list (:node-list credentials))))
+     (apply concat (filter second options)))))
 
 ;;; Nodes
 (defprotocol Node

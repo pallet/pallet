@@ -33,15 +33,6 @@
     [:ssh :log4j]
     [:ssh]))
 
-(defn compute-service-from-settings
-  "Create a jclouds compute service from propery settings.  If
-   extensions are listed they are used, otherwise :log4j and
-   :ssh are automatically added."
-  [credentials & extensions]
-  (apply jclouds/compute-service
-         (concat credentials
-                 (or (seq extensions) (default-jclouds-extensions)))))
-
 (defmethod implementation/service :default
   [provider {:keys [identity credential extensions]
              :or {extensions (default-jclouds-extensions)}}]
