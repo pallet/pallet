@@ -10,21 +10,21 @@
   []
   (let [a {:tag :n :image {:packager :aptitude}}]
     (is (= (first
-            (resource/build-resources
+            (build-resources
              [:node-type a]
              (package/package "git-core")
              (package/package "git-email")))
            (first
-            (resource/build-resources
+            (build-resources
              [:node-type a]
              (git))))))
   (let [a {:tag :n :image {:packager :yum}}]
     (is (= (first
-            (resource/build-resources
+            (build-resources
              [:node-type a]
              (package/package "git")
              (package/package "git-email")))
            (first
-            (resource/build-resources
+            (build-resources
              [:node-type a]
              (git)))))))

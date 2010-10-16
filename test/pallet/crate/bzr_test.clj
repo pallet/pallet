@@ -10,11 +10,11 @@
 (deftest bzr-test
   []
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (package/package "bzr")
            (package/package "bzrtools")))
          (first
-          (resource/build-resources
+          (build-resources
            []
            (bzr))))))

@@ -42,7 +42,7 @@
 
 (deftest test-install-example
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (exec-script/exec-checked-script
             "Package java"
@@ -52,7 +52,7 @@
             "Package rubygems"
             (package-manager-non-interactive)
             "aptitude install -q -y  rubygems && aptitude show rubygems\n")))
-         (first (resource/build-resources
+         (first (build-resources
                  []
                  (package "java" :action :install)
                  (package "rubygems"))))))
@@ -90,7 +90,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 
 (deftest add-multiverse-example-test
   (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp -t addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"package-manager...\"\n{ aptitude update -q; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
-         (first (resource/build-resources
+         (first (build-resources
                  []
                  (package-manager :multiverse)
                  (package-manager :update))))))
@@ -159,7 +159,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            {:node-type a}
            "/etc/apt/sources.list.d/source1.list"
            :content "deb http://somewhere/apt $(lsb_release -c -s) main\n"))
-         (first (resource/build-resources
+         (first (build-resources
                  [:node-type a]
                  (package-source
                   "source1"
@@ -172,7 +172,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            {:node-type b}
            "/etc/yum.repos.d/source1.repo"
            :content "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\n"))
-         (first (resource/build-resources
+         (first (build-resources
                  [:node-type b]
                  (package-source
                   "source1"
@@ -184,20 +184,20 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (core/defnode a {:packager :aptitude})
   (core/defnode b {:packager :yum})
   (is (= (first
-           (resource/build-resources
+           (build-resources
             [:node-type a]
             (package "git-apt")
             (package "git-apt2")))
-         (first (resource/build-resources
+         (first (build-resources
                  []
                  (packages
                   :aptitude ["git-apt" "git-apt2"]
                   :yum ["git-yum"])))))
   (is (= (first
-           (resource/build-resources
+           (build-resources
             [:node-type b]
             (package "git-yum")))
-         (first (resource/build-resources
+         (first (build-resources
                  [:node-type b]
                  (packages
                   :aptitude ["git-apt"]
@@ -205,7 +205,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 
 (deftest add-centos55-to-amzn-linux-test
   (core/defnode a {:packager :yum :image {:os-family :amzn-linux}})
-  (is (= (first (resource/build-resources
+  (is (= (first (build-resources
                  [:node-type a]
                  (package "yum-priorities")
                  (package-source
@@ -213,6 +213,6 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   :url #'pallet.resource.package/centos-55-repo
                   :gpgkey #'pallet.resource.package/centos-55-repo-key
                   :priority 50)))
-         (first (resource/build-resources
+         (first (build-resources
                  [:node-type a]
                  (add-centos55-to-amzn-linux))))))

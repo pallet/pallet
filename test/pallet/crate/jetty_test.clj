@@ -1,14 +1,14 @@
 (ns pallet.crate.jetty-test
   (:use
    pallet.crate.jetty
-   clojure.test)
+   clojure.test
+   pallet.test-utils)
   (:require
-   [pallet.resource :as resource]
-   [pallet.compute :as compute]))
+   [pallet.resource :as resource]))
 
 (deftest invoke-test
-  (is (resource/build-resources
-       [:target-node (compute/make-node "tag" :id "id")]
+  (is (build-resources
+       []
        (jetty)
        (configure "")
        (server "")

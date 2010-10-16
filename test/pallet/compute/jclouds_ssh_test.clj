@@ -1,6 +1,9 @@
-(ns pallet.ssh-test
+(ns pallet.compute.jclouds-ssh-test
+  (:require
+   [clojure.contrib.logging :as logging])
   (:import
    [org.jclouds.ssh SshClient ExecResponse]
+   org.jclouds.io.Payload
    org.jclouds.net.IPSocket
    com.google.inject.Module))
 
@@ -16,7 +19,7 @@
   (merge
    {:exit 0 :err "stderr" :out "stdout"}
    (condp = cmd
-       "./runscript status" {:exit 1 :out "[]"}
+       "./bootstrap status" {:exit 1 :out "[]"}
        {})))
 
 (defn ssh-test-client*
@@ -26,17 +29,22 @@ return a map with :out, :err and :exit keys"
   [options]
   (fn [socket username password-or-key]
     (reify
-     org.jclouds.ssh.SshClient
-     (connect [this] (maybe-invoke (:connect options)))
-     (disconnect [this] (maybe-invoke (:disconnect options)))
-     (exec [this cmd] (let [f (:exec options default-exec)
-                            response (f cmd)]
-                        (ExecResponse.
-                         (:out response) (:err response) (:exit response))))
-     (get [this path] (maybe-invoke (:get options) path))
-     (put [this path content] (maybe-invoke (:put options) path content))
-     (getUsername [this] username)
-     (getHostAddress [this] (.getAddress socket)))))
+      org.jclouds.ssh.SshClient
+      (connect [this] (maybe-invoke (:connect options)))
+      (disconnect [this] (maybe-invoke (:disconnect options)))
+      (exec [this cmd]
+            (logging/info (format "ssh cmd: %s" cmd))
+            (let [f (:exec options default-exec)
+                             response (f cmd)]
+                         (ExecResponse.
+                          (:out response) (:err response) (:exit response))))
+      (get [this path] (maybe-invoke (:get options) path))
+      (^void put [this ^String path ^String content]
+             (maybe-invoke (:put options) path content))
+      ;; (^void put [this ^String path ^org.jclouds.io.Payload content]
+      ;;      (maybe-invoke (:put options) path content))
+      (getUsername [this] username)
+      (getHostAddress [this] (.getAddress socket)))))
 
 (defn ssh-client-factory
   [ctor]

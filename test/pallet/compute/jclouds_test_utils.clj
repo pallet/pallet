@@ -1,4 +1,4 @@
-(ns pallet.compute-test-utils
+(ns pallet.compute.jclouds-test-utils
   "Test utils for jclouds"
   (:require
    org.jclouds.compute))

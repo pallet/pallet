@@ -11,7 +11,7 @@
   []
   (let [a {:tag :n :image {:os-family :ubuntu}}]
     (is (first
-         (resource/build-resources
+         (build-resources
           [:node-type a]
           (from-package)
           (install))))))

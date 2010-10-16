@@ -1,10 +1,11 @@
 (ns pallet.crate.sphinx-test
   (:use pallet.crate.sphinx
-        clojure.test)
+        clojure.test
+        pallet.test-utils)
   (:require
    [pallet.resource :as resource]))
 
 (deftest invoke-test
-  (is (resource/build-resources
+  (is (build-resources
        []
        (sphinx))))

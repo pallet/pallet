@@ -1,13 +1,14 @@
 (ns pallet.crate.wordpress-test
   (:use
    pallet.crate.wordpress
-   clojure.test)
+   clojure.test
+   pallet.test-utils)
   (:require
    [pallet.crate.mysql :as mysql]
    [pallet.resource :as resource]))
 
 (deftest invoke-test
-  (is (resource/build-resources
+  (is (build-resources
        []
        (mysql/mysql-server "pw")
        (wordpress

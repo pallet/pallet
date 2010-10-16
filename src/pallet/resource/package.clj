@@ -233,7 +233,7 @@
 (defn package-manager*
   "Package management."
   [request action & options]
-  (let [packager (target/packager (-?> request :node-type :image))]
+  (let [packager (:target-packager request)]
     (stevedore/checked-commands
      "package-manager"
      (condp = action
@@ -272,7 +272,7 @@
   (->
    request
    (for->
-    [package-name (options (target/packager (-?> request :node-type :image)))]
+    [package-name (options (:target-packager request))]
     (package package-name))))
 
 (def ^{:private true} centos-55-repo

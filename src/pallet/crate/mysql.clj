@@ -7,7 +7,6 @@
    [pallet.stevedore :as stevedore]
    [clojure.string :as string])
   (:use
-   [pallet.target :only [packager]]
    [pallet.resource :only [defresource]]
    [pallet.stevedore :only [script]]
    [pallet.template :only [deftemplate apply-templates]]))
@@ -41,7 +40,7 @@
 
 (deftemplate my-cnf-template
   [request string]
-  {{:path (mysql-my-cnf (packager (:image (:node-type request))))
+  {{:path (mysql-my-cnf (:target-packager request))
     :owner "root" :mode "0440"}
    string})
 

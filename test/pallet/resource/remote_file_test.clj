@@ -1,9 +1,7 @@
 (ns pallet.resource.remote-file-test
   (:use pallet.resource.remote-file)
   (:use [pallet.stevedore :only [script]]
-        [pallet.resource :only [build-resources phase]]
-        clojure.test
-        pallet.test-utils)
+        clojure.test)
   (:require
    [pallet.core :as core]
    [pallet.resource.lib :as lib]
@@ -15,9 +13,10 @@
    [pallet.execute :as execute]
    [pallet.target :as target]
    [pallet.utils :as utils]
-   [clojure.contrib.io :as io]))
+   [clojure.contrib.io :as io]
+   [pallet.test-utils :as test-utils]))
 
-(use-fixtures :once with-ubuntu-script-template)
+(use-fixtures :once test-utils/with-ubuntu-script-template)
 
 (deftest remote-file*-test
   (is (= (stevedore/checked-commands
@@ -53,20 +52,21 @@
             ("rm" "--force" "path"))
            (remote-file* {} "path" :action :delete :force true))))
 
-  (utils/with-temporary [tmp (utils/tmpfile)]
-    (.delete tmp)
-    (is (= (str "remote-file " (.getPath tmp) "...\n"
-                "MD5 sum is 6de9439834c9147569741d3c9c9fc010 "
-                (.getPath tmp) "\n"
-                "...done\n")
-           (->
-            (pallet.core/lift
-             {{:tag :tag} (pallet.compute/make-localhost-node)}
-             :phase #(remote-file % (.getPath tmp) :content "xxx")
-             :compute nil
-             :middleware pallet.core/execute-with-local-sh)
-            :results :localhost second second first :out)))
-    (is (= "xxx\n" (slurp (.getPath tmp)))))
+  (testing "content"
+    (utils/with-temporary [tmp (utils/tmpfile)]
+      (.delete tmp)
+      (is (= (str "remote-file " (.getPath tmp) "...\n"
+                  "MD5 sum is 6de9439834c9147569741d3c9c9fc010 "
+                  (.getPath tmp) "\n"
+                  "...done\n")
+             (->
+              (pallet.core/lift
+               {{:tag :local} (test-utils/make-localhost-node)}
+               :phase #(remote-file % (.getPath tmp) :content "xxx")
+               :compute nil
+               :middleware pallet.core/execute-with-local-sh)
+              :results :localhost second second first :out)))
+      (is (= "xxx\n" (slurp (.getPath tmp))))))
 
   (testing "overwrite on existing content and no md5"
     (utils/with-temporary [tmp (utils/tmpfile)]
@@ -78,7 +78,7 @@
                      java.util.regex.Pattern/DOTALL))
             (->
              (pallet.core/lift
-              {{:tag :tag} (pallet.compute/make-localhost-node)}
+              {{:tag :local} (test-utils/make-localhost-node)}
               :phase #(remote-file
                        % (.getPath tmp) :content "xxx")
               :compute nil
@@ -96,22 +96,22 @@
             :no-versioning true)))))
 
 (deftest remote-file-test
-  (core/with-admin-user (assoc utils/*admin-user* :username (test-username))
+  (core/with-admin-user (assoc utils/*admin-user* :username (test-utils/test-username))
     (is (thrown-with-msg? RuntimeException
           #".*/some/non-existing/file.*does not exist, is a directory, or is unreadable.*"
-          (build-resources
+          (test-utils/build-resources
            [] (remote-file
                "file1" :local-file "/some/non-existing/file" :owner "user1"))))
 
     (is (thrown-with-msg? RuntimeException
           #".*file1.*without content.*"
-          (build-resources
+          (test-utils/build-resources
            [] (remote-file "file1" :owner "user1"))))
 
     (utils/with-temporary [tmp (utils/tmpfile)]
       (is (re-find #"mv -f --backup=numbered file1.new file1"
                    (first
-                    (build-resources
+                    (test-utils/build-resources
                      [] (remote-file
                          "file1" :local-file (.getPath tmp)))))))
 
@@ -119,14 +119,14 @@
                            target-tmp (utils/tmpfile)]
       ;; this is convoluted to get around the "t" sticky bit on temp dirs
       (let [user (assoc utils/*admin-user*
-                   :username (test-username) :no-sudo true)]
+                   :username (test-utils/test-username) :no-sudo true)]
         (.delete target-tmp)
         (io/copy "text" tmp)
-        (core/defnode tag {:tag "localhost"})
-        (let [node (compute/make-localhost-node)]
+        (let [local (core/make-node "local" {})
+              node (test-utils/make-localhost-node :tag "local")]
           (testing "local-file"
             (core/lift
-             {tag node}
+             {local node}
              :phase #(remote-file
                       % (.getPath target-tmp) :local-file (.getPath tmp)
                       :mode "0666")
@@ -135,7 +135,7 @@
             (is (= "text" (slurp (.getPath target-tmp)))))
           (testing "content"
             (core/lift
-             {tag node}
+             {local node}
              :phase #(remote-file
                       % (.getPath target-tmp) :content "$(hostname)"
                       :mode "0666" :flag-on-changed :changed)
@@ -149,7 +149,7 @@
               #"correctly unchanged"
               (->
                (core/lift
-                {tag node}
+                {local node}
                 :phase (resource/phase
                         (remote-file
                          (.getPath target-tmp) :content "$(hostname)"
@@ -169,7 +169,7 @@
               #"correctly changed"
               (->
                (core/lift
-                {tag node}
+                {local node}
                 :phase (resource/phase
                         (remote-file
                          (.getPath target-tmp) :content "abc"
@@ -185,7 +185,7 @@
                    (slurp (.getPath target-tmp)))))
           (testing "content"
             (core/lift
-             {tag node}
+             {local node}
              :phase #(remote-file
                       % (.getPath target-tmp) :content "$text123" :literal true
                       :mode "0666")
@@ -195,7 +195,7 @@
           (testing "remote-file"
             (io/copy "text" tmp)
             (core/lift
-             {tag node}
+             {local node}
              :phase #(remote-file
                       % (.getPath target-tmp) :remote-file (.getPath tmp)
                       :mode "0666")
@@ -205,7 +205,7 @@
           (testing "url"
             (io/copy "urltext" tmp)
             (core/lift
-             {tag node}
+             {local node}
              :phase #(remote-file
                       % (.getPath target-tmp)
                       :url (str "file://" (.getPath tmp))
@@ -216,7 +216,7 @@
           (testing "url with md5"
             (io/copy "urlmd5text" tmp)
             (core/lift
-             {tag node}
+             {local node}
              :phase #(remote-file
                       % (.getPath target-tmp)
                       :url (str "file://" (.getPath tmp))
@@ -230,7 +230,7 @@
             (io/copy "urlmd5urltext" tmp)
             (let [md5path (str (.getPath tmp) ".md5")]
               (core/lift
-               {tag node}
+               {local node}
                :phase (resource/phase
                        (exec-script/exec-script
                         ((md5sum ~(.getPath tmp)) > ~md5path))
@@ -244,7 +244,7 @@
             (is (= "urlmd5urltext" (slurp (.getPath target-tmp)))))
           (testing "delete action"
             (core/lift
-             {tag node}
+             {local node}
              :phase #(remote-file % (.getPath target-tmp) :action :delete)
              :user user)
             (is (not (.exists target-tmp)))))))))
@@ -256,18 +256,19 @@
    (reset! path-atom path)))
 
 (deftest with-remote-file-test
-  (core/with-admin-user (assoc utils/*admin-user* :username (test-username))
+  (core/with-admin-user (assoc utils/*admin-user*
+                          :username (test-utils/test-username))
     (utils/with-temporary [remote-file (utils/tmpfile)]
       (let [user (assoc utils/*admin-user*
-                   :username (test-username) :no-sudo true)]
+                   :username (test-utils/test-username) :no-sudo true)]
         (io/copy "text" remote-file)
-        (core/defnode tag {:tag "localhost"})
+        (core/defnode local {})
         (testing "with local ssh"
-          (let [node (compute/make-localhost-node)
+          (let [node (test-utils/make-localhost-node)
                 path-atom (atom nil)]
             (testing "with-remote-file"
               (core/lift
-               {tag node}
+               {local node}
                :phase #(with-remote-file
                          % check-content (.getPath remote-file)
                          "text" path-atom)
@@ -275,11 +276,11 @@
               (is @path-atom)
               (is (not= (.getPath remote-file) (.getPath @path-atom))))))
         (testing "with local shell"
-          (let [node (compute/make-localhost-node)
+          (let [node (test-utils/make-localhost-node)
                 path-atom (atom nil)]
             (testing "with-remote-file"
               (core/lift
-               {tag node}
+               {local node}
                :phase #(with-remote-file
                          % check-content (.getPath remote-file)
                          "text" path-atom)

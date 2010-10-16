@@ -8,7 +8,7 @@
 
 (deftest invoke-test
   (is
-   (resource/build-resources
+   (build-resources
     []
     (gpg)
     (import-key :content "not ans export" :user "fred"))))

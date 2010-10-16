@@ -5,25 +5,23 @@
         pallet.test-utils)
   (:require
    [pallet.core :as core]
-   [pallet.utils :as utils]
-   [pallet.compute :as compute]
-   [pallet.stevedore :as stevedore]
+   [pallet.utils :as utils] [pallet.stevedore :as stevedore]
    [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
    [pallet.target :as target]
-   [clojure.contrib.io :as io]))
+   [clojure.contrib.io :as io]
+   [pallet.test-utils :as test-utils]))
 
 (deftest rsync-test
-  (core/with-admin-user (assoc utils/*admin-user* :username (test-username))
+  (core/with-admin-user (assoc utils/*admin-user*
+                          :username (test-utils/test-username))
     (utils/with-temporary [dir (utils/tmpdir)
                            tmp (utils/tmpfile dir)
                            target-dir (utils/tmpdir)]
       ;; this is convoluted to get around the "t" sticky bit on temp dirs
       (let [user (assoc utils/*admin-user*
-                   :username (test-username) :no-sudo true)
-            node (compute/make-unmanaged-node
-                  "tag" "localhost"
-                  :operating-system (compute/local-operating-system))]
+                   :username (test-utils/test-username) :no-sudo true)
+            node (test-utils/make-localhost-node :tag "tag")]
         (io/copy "text" tmp)
         (core/defnode tag {:packager :no-packages})
         (.delete target-dir)

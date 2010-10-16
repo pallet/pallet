@@ -13,7 +13,7 @@
 (deftest site-test
   []
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (directory/directory "/etc/nginx/sites-available")
            (directory/directory "/etc/nginx/sites-enabled")
@@ -23,7 +23,7 @@
            (file/file
             "/etc/nginx/sites-available/mysite" :action :delete :force true)))
          (first
-          (resource/build-resources
+          (build-resources
            [:node-type {:tag :n :image {:os-family :ubuntu}}]
            (site "mysite"
                  :locations [{:location "/" :root "/some/path"}

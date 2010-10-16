@@ -97,7 +97,7 @@
    across invocations."
   [request]
   (let [target-name (request-map/target-name request)
-        nodes (sort-by #(.getName %) (request-map/nodes-in-tag request))
+        nodes (sort-by compute/hostname (request-map/nodes-in-tag request))
         configs (parameter/get-for
                  request
                  [:zookeper (keyword (request-map/tag request))])
@@ -118,7 +118,8 @@
                     (when (> (count nodes) 1)
                       (string/join
                        \newline
-                       (map #(let [config (configs (keyword (.getName %1)))]
+                       (map #(let [config (configs
+                                           (keyword (compute/hostname %1)))]
                                (format "server.%s=%s:%s:%s"
                                        %2
                                        (compute/primary-ip %1)
@@ -131,7 +132,7 @@
      (remote-file/remote-file
       (format "%s/myid" data-path)
       :content (str (some #(and (= target-name (second %)) (first %))
-                          (map #(vector %1 (.getName %2))
+                          (map #(vector %1 (compute/hostname %2))
                                (range 1 (inc (count nodes)))
                                nodes)))
       :owner owner :group group :mode "0644"))))

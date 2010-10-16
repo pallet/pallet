@@ -8,7 +8,7 @@
    [pallet.resource.file :as file]
    [pallet.resource.directory :as directory]
    [pallet.utils :as utils]
-   [org.jclouds.blobstore :as jclouds-blobstore]
+   [pallet.blobstore :as blobstore]
    [clojure.contrib.def :as def]
    [clojure.java.io :as io])
   (:use pallet.thread-expr))
@@ -147,12 +147,12 @@
                "Download blob"
                (download-request
                 ~new-path
-                ~(jclouds-blobstore/sign-blob-request
-                  (:container blob) (:path blob)
-                  {:method :get}
+                ~(blobstore/sign-blob-request
                   (or blobstore (:blobstore request)
                       (throw (IllegalArgumentException.
-                              "No :blobstore given for blob content.") )))))
+                              "No :blobstore given for blob content.") ))
+                  (:container blob) (:path blob)
+                  {:method :get})))
          :else (throw
                 (IllegalArgumentException.
                  (str "remote-file " path " specified without content."))))

@@ -3,10 +3,10 @@
         clojure.test)
   (:require
    [pallet.resource :as resource]
-   [pallet.compute :as compute]))
+   [pallet.test-utils :as test-utils]))
 
 (deftest invoke-test
-  (is (resource/build-resources
-       [:target-node (compute/make-node "tag" :id "id")]
+  (is (test-utils/build-resources
+       [:target-node (test-utils/make-node "tag" :id "id")]
        (splunk)
        (configure))))

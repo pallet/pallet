@@ -52,7 +52,7 @@
   [request]
   (-> request
       (when-let-> [server (parameter/get-for request [:nagios :server :ip] nil)]
-        (iptables/iptables-accept-port request 5666 "tcp" :source server))))
+        (iptables/iptables-accept-port 5666 "tcp" :source server))))
 
 (defn nrpe-check-load
   [request]

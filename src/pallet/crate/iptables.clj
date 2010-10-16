@@ -64,7 +64,7 @@ iptables configuration line (cf. arguments to an iptables invocation)"
                                   \newline
                                   (map second (second %)))
                                  (suffix (first %) "COMMIT\n")])))) args))
-         packager (target/packager (:image (:node-type request)))]
+         packager (:target-packager request)]
      (case packager
        :aptitude (stevedore/do-script*
                   (map #(restore-iptables request %) tables))

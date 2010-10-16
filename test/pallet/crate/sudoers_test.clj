@@ -273,7 +273,7 @@ chmod 0440 ${file}
 chown root ${file}
 "
        (first
-        (pallet.resource/build-resources
+        (build-resources
          []
          (sudoers {:user {:FULLTIMERS ["millert" "mikef" "dowdy"]
                           :PARTTIMERS ["bostley" "jwfox" "crawl"]

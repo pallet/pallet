@@ -34,7 +34,7 @@
   (->
    request
    (directory/directories
-    (install-dirs (target/packager (:image (:node-type request))))
+    (install-dirs (:target-packager request))
     :mode "0770" :owner "couchdb" :group "couchdb")
    (package/package "couchdb")
    ;; the package seems to start couch in some way that the init script

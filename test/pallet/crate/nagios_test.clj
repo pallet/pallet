@@ -2,18 +2,16 @@
   (:use pallet.crate.nagios)
   (:require
    [pallet.crate.nagios-config :as nagios-config]
-   [pallet.compute :as compute]
    [pallet.parameter :as parameter]
    [pallet.stevedore :as stevedore]
    [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.file :as file]
-   [clojure.string :as string])
-  (:use
-   clojure.test
-   pallet.test-utils))
+   [clojure.string :as string]
+   [pallet.test-utils :as test-utils])
+  (:use clojure.test))
 
-(use-fixtures :once with-ubuntu-script-template)
+(use-fixtures :once test-utils/with-ubuntu-script-template)
 
 (deftest host-service-test
   (testing "config"
@@ -34,10 +32,10 @@
                                :notification_interval 0
                                :use "generic-service"}))
              :owner "root"))
-           (let [node (compute/make-node
+           (let [node (test-utils/make-node
                        "tag" :id "id" :public-ips ["1.2.3.4"])]
              (first
-              (resource/build-resources
+              (test-utils/build-resources
                [:target-node node
                 :all-nodes [node]
                 :target-nodes [node]
@@ -65,10 +63,10 @@
                                :use "generic-service"}))
              :owner "root"))
            (str
-            (let [node (compute/make-node
+            (let [node (test-utils/make-node
                         "tag" :id "id" :public-ips ["1.2.3.4"])]
               (first
-               (resource/build-resources
+               (test-utils/build-resources
                 [:target-node node
                  :all-nodes [node]
                  :target-nodes [node]
@@ -107,7 +105,7 @@
                      \newline
                      (define-contactgroup {:contactgroup_name "ops"}))))
          (first
-          (resource/build-resources
+          (test-utils/build-resources
            []
            (contact {:contact_name "name"
                      :email "email"

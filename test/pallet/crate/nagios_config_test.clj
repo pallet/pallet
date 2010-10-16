@@ -1,18 +1,16 @@
 (ns pallet.crate.nagios-config-test
   (:use pallet.crate.nagios-config)
   (:require
-   [pallet.compute :as compute]
    [pallet.parameter :as parameter]
    [pallet.target :as target]
    [pallet.resource :as resource]
-   [pallet.crate.nagios :as nagios])
-  (:use
-   clojure.test
-   pallet.test-utils))
+   [pallet.crate.nagios :as nagios]
+   [pallet.test-utils :as test-utils])
+  (:use clojure.test))
 
 (deftest service*-test
   (let [cfg {:service-group "g" :service-description "d" :command "c"}
-        node (compute/make-node "tag" :id "id")
+        node (test-utils/make-node "tag" :id "id")
         request {:target-node node}]
     (is (= [cfg]
              (-> (service request cfg)
@@ -20,7 +18,7 @@
 
 (deftest command-test
   (let [cfg {:command_name "n" :command_line "c"}
-        node (compute/make-node "tag")
+        node (test-utils/make-node "tag")
         request {:target-node node}]
 
     (is (= {:n "c"}
@@ -28,8 +26,8 @@
                :parameters :nagios :commands)))))
 
 (deftest invoke-test
-  (is (resource/build-resources
-       [:target-node (compute/make-node "tag" :id "id")]
+  (is (test-utils/build-resources
+       [:target-node (test-utils/make-node "tag" :id "id")]
        ;; without server
        (nrpe-client)
        (nrpe-client-port)

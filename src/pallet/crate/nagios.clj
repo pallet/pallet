@@ -13,7 +13,7 @@
 (defn nagios-hostname
   "Return the nagios hostname for a node"
   [node]
-  (format "host-%s-%s" (.getTag node) (.getId node)))
+  (format "host-%s-%s" (compute/tag node) (compute/id node)))
 
 (def hostgroup-fmt "
 define hostgroup {

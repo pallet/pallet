@@ -17,7 +17,6 @@
   (:use clojure.test
         pallet.test-utils
         [pallet.resource.package :only [package package-manager]]
-        [pallet.resource :only [build-resources]]
         [pallet.stevedore :only [script]]))
 
 (def parameters {:host
@@ -28,7 +27,7 @@
                             :base "/var/lib/tomcat6/"}}}})
 (deftest hudson-tomcat-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            [:parameters (assoc-in parameters [:host :id :hudson]
                                   {:data-path "/var/lib/hudson"})]
            (directory/directory
@@ -60,7 +59,7 @@
  </Context>")
            (tomcat/deploy "hudson" :remote-file "/var/lib/hudson/hudson.war")))
          (first
-          (resource/build-resources
+          (build-resources
            [:parameters parameters]
            (tomcat-deploy)
            (parameter-test/parameters-test
@@ -85,7 +84,7 @@
 (deftest hudson-job-test
   (core/defnode n {})
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (directory/directory
             "/var/lib/hudson/jobs/project" :p true
@@ -100,7 +99,7 @@
             :mode "g+w"
             :recursive true)))
          (first
-          (resource/build-resources
+          (build-resources
            [:node-type {:image {:os-family :ubuntu}}
             :parameters {:host {:id {:hudson {:data-path "/var/lib/hudson"
                                               :user "tomcat6"
@@ -123,7 +122,7 @@
 
 (deftest hudson-maven-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (maven/download
             :maven-home "/var/lib/hudson/tools/default_maven"
@@ -140,7 +139,7 @@
             :owner "root"
             :group "tomcat6")))
          (first
-          (resource/build-resources
+          (build-resources
            [:node-type {:image {:os-family :ubuntu}}
             :parameters {:host
                          {:id {:hudson {:user "tomcat6" :group "tomcat6"
@@ -150,7 +149,7 @@
 
 (deftest plugin-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (directory/directory "/var/lib/hudson/plugins")
            (user/user "tomcat6" :action :manage :comment "hudson")
@@ -160,7 +159,7 @@
             :md5 (-> hudson-plugins :git :md5)
             :url (-> hudson-plugins :git :url))))
          (first
-          (resource/build-resources
+          (build-resources
            [:parameters (assoc-in parameters
                                   [:host :id :hudson]
                                   {:data-path "/var/lib/hudson"
@@ -169,7 +168,7 @@
            (plugin :git))))))
 
 (deftest invocation
-  (is (resource/build-resources
+  (is (build-resources
        [:parameters parameters]
        (tomcat-deploy)
        (parameter-test/parameters-test
@@ -178,7 +177,7 @@
        (maven "name" "2.2.1")
        (job :maven2 "job")
        (plugin :git)))
-  (is (resource/build-resources
+  (is (build-resources
        [:parameters parameters]
        (tomcat-deploy)
        (tomcat-undeploy))))

@@ -8,8 +8,7 @@
   (:use
    clojure.test
    pallet.test-utils
-   [pallet.resource.package :only [package package-manager]]
-   [pallet.resource :only [build-resources]]))
+   [pallet.resource.package :only [package package-manager]]))
 
 (use-fixtures :once with-ubuntu-script-template)
 
@@ -19,7 +18,7 @@
 
 (deftest gem-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (exec-script/exec-checked-script
              "Install gem fred"
@@ -28,7 +27,7 @@
 
 (deftest gem-source-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (exec-script/exec-script
             "if ! gem sources --list | grep http://rubygems.org; then gem sources --add http://rubygems.org;fi\n")))
@@ -36,7 +35,7 @@
 
 (deftest gemrc-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (remote-file/remote-file
             "$(getent passwd fred | cut -d: -f6)/.gemrc"
@@ -46,7 +45,7 @@
           (build-resources [] (gemrc {:gem "--no-rdoc --no-ri"} "fred"))))))
 
 (deftest invoke-test
-  (is (resource/build-resources
+  (is (build-resources
        []
        (rubygems)
        (rubygems-update)

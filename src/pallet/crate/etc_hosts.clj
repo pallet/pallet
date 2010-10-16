@@ -33,7 +33,7 @@
       merge
       (into
        {}
-       (map #(vector (ip %) (.getName %))
+       (map #(vector (ip %) (compute/hostname %))
             (request-map/nodes-in-tag request tag)))))))
 
 (def ^{:private true} localhost

@@ -74,14 +74,18 @@
                    (.append sb (char c))
                    (recur (.read r)))))))))))
 
-(defn resource-properties [name]
-  (let [loader (.getContextClassLoader (Thread/currentThread))]
-    (with-open [stream (.getResourceAsStream loader name)]
-      (let [properties (new java.util.Properties)]
-        (.load properties stream)
-        (let [keysseq (enumeration-seq (. properties propertyNames))]
-          (reduce (fn [a b] (assoc a b (. properties getProperty b)))
-                  {} keysseq))))))
+(defn resource-properties
+  "Returns nil if resource not found."
+  [name]
+  (let [loader (.getContextClassLoader (Thread/currentThread))
+        stream (.getResourceAsStream loader name)]
+    (when stream
+      (with-open [stream stream]
+        (let [properties (new java.util.Properties)]
+          (.load properties stream)
+          (let [keysseq (enumeration-seq (. properties propertyNames))]
+            (reduce (fn [a b] (assoc a b (. properties getProperty b)))
+                    {} keysseq)))))))
 
 (defn slurp-as-byte-array
   [#^java.io.File file]
@@ -166,3 +170,18 @@
                       (string? x) (symbol x)
                       (keyword? x) (symbol (name x))))]
     (zipmap (map to-symbol (keys m)) (vals m))))
+
+
+(defmacro pipe
+  "Build a request processing pipeline from the specified forms"
+  [& forms]
+  (let [[middlewares etc] (split-with #(or (seq? %) (symbol? %)) forms)
+        middlewares (reverse middlewares)
+        [middlewares [x :as etc]]
+          (if (seq etc)
+            [middlewares etc]
+            [(rest middlewares) (list (first middlewares))])
+          handler x]
+    (if (seq middlewares)
+      `(-> ~handler ~@middlewares)
+      handler)))

@@ -4,7 +4,7 @@
         pallet.test-utils)
   (:require
    [pallet.resource :as resource]
-   [pallet.compute :as compute]))
+   [pallet.test-utils :as test-utils]))
 
 (deftest property-fmt-test
   (testing "single property"
@@ -42,8 +42,8 @@
   (is (= "a {\nb(c);\n};\n" (configure-block "a" {:b "c"}))))
 
 (deftest invoke-test
-  (is (resource/build-resources
-       [:target-node (compute/make-node "tag" :id "id" :ip "1.2.3.4")]
+  (is (test-utils/build-resources
+       [:target-node (test-utils/make-node "tag" :id "id" :ip "1.2.3.4")]
        (install)
        (set-server-ip)
        (iptables-accept))))

@@ -13,7 +13,7 @@
 (script/defscript rm [file & options])
 (stevedore/defimpl rm :default [file & options]
   ("rm" ~(stevedore/map-to-arg-string (first options)) ~file))
-(stevedore/defimpl rm [#{:darwin}] [file & options]
+(stevedore/defimpl rm [#{:darwin :os-x}] [file & options]
   ("rm" ~(stevedore/map-to-arg-string
           {:r (:recursive (first options))
            :f (:force (first options))}) ~file))
@@ -37,13 +37,13 @@
 (script/defscript md5sum [file & {:as options}])
 (stevedore/defimpl md5sum :default [file & {:as options}]
   ("md5sum" ~(stevedore/map-to-arg-string options) ~file))
-(stevedore/defimpl md5sum [#{:darwin}] [file & {:as options}]
+(stevedore/defimpl md5sum [#{:darwin :os-x}] [file & {:as options}]
   ("/sbin/md5" -r ~file))
 
 (script/defscript md5sum-verify [file & {:as options}])
 (stevedore/defimpl md5sum-verify :default [file & {:as options}]
   ("md5sum" ~(stevedore/map-to-arg-string options) ~file))
-(stevedore/defimpl md5sum-verify [#{:darwin}] [file & {:as options}]
+(stevedore/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
   (var testfile @(cut -d "' '" -f 2 ~file))
   (var md5 @(cut -d "' '" -f 1 ~file))
   (test (quoted @("/sbin/md5" -q @testfile)) == (quoted @md5)))
@@ -51,7 +51,7 @@
 (script/defscript backup-option [])
 (stevedore/defimpl backup-option :default []
   "--backup=numbered")
-(stevedore/defimpl backup-option [#{:darwin}] []
+(stevedore/defimpl backup-option [#{:darwin :os-x}] []
   "")
 
 (script/defscript sed-file [file expr-map options])
@@ -78,8 +78,8 @@
    ~(string/join
      " "
      (map (fn dlr-fmt [e] (format "-H \"%s: %s\"" (key e) (val e)))
-          (.. request getHeaders entries)))
-   (quoted ~(.getEndpoint request))))
+          (:headers request)))
+   (quoted ~(:endpoint request))))
 
 (script/defscript tmp-dir [])
 (stevedore/defimpl tmp-dir :default []

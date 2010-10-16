@@ -15,12 +15,12 @@
     [net.cgrand.enlive-html :as enlive-html]
     [pallet.enlive :as enlive]
     [pallet.parameter-test :as parameter-test]
-    [org.jclouds.blobstore :as blobstore])
+    [pallet.blobstore :as blobstore]
+    pallet.blobstore.url-blobstore)
   (:use
    clojure.test
    pallet.test-utils
    [pallet.resource.package :only [package package-manager]]
-   [pallet.resource :only [build-resources]]
    [pallet.stevedore :only [script]]
    [pallet.core :only [defnode]]))
 
@@ -28,11 +28,11 @@
 
 (deftest tomcat-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (package/package "tomcat6")))
          (first
-          (resource/build-resources
+          (build-resources
            []
            (tomcat)
            (parameter-test/parameters-test
@@ -46,7 +46,7 @@
 
 (deftest tomcat-deploy-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (remote-file/remote-file "/p/webapps/ROOT.war"
             :remote-file "file.war" :owner "o" :group "g" :mode "600")))
@@ -65,7 +65,7 @@
 
 (deftest tomcat-undeploy-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (directory/directory "/p/webapps/ROOT" :action :delete)
            (file/file "/p/webapps/ROOT.war" :action :delete)
@@ -85,7 +85,7 @@
 
 (deftest tomcat-policy-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (remote-file/remote-file
             "/p/policy.d/100hudson.policy"
@@ -284,7 +284,7 @@
 
 (deftest server-configuration-test
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (remote-file/remote-file
             "/var/lib/tomcat6/conf/server.xml"
@@ -304,7 +304,7 @@
                          :connectionTimeout "20000"
                          :redirectPort "8443"))))))))
   (is (= (first
-          (resource/build-resources
+          (build-resources
            []
            (remote-file/remote-file
             "/var/lib/tomcat6/conf/server.xml"
@@ -316,8 +316,8 @@
             (server)))))))
 
 (deftest invoke-test
-  (is (resource/build-resources
-       [:blobstore (blobstore/blobstore "transient" "" "")]
+  (is (build-resources
+       [:blobstore (blobstore/service "url-blobstore")]
        (tomcat)
        (undeploy "app")
        (undeploy-all)

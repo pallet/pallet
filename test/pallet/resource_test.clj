@@ -1,12 +1,14 @@
 (ns pallet.resource-test
   (:use pallet.resource)
   (:require
-   [pallet.compute :as compute]
+   [pallet.compute.node-list :as node-list]
+   [pallet.resource-build :as resource-build]
    [pallet.parameter :as parameter]
    pallet.resource.test-resource
    [clojure.contrib.string :as string]
    [pallet.test-utils :as test-utils])
-  (:use clojure.test))
+  (:use
+   clojure.test))
 
 
 ;; (deftest reset-resources-test
@@ -157,14 +159,14 @@
                 :cmds ":ab:c\n"
                 :request {}}
                ((:f (first m)) {})))
-        (let [fs (produce-phases [:configure] request)]
+        (let [fs (resource-build/produce-phases [:configure] request)]
           (is (= ":ab:c\n" (first fs)))))
       (let [request (-> {:phase :configure :target-id :id}
                         (invoke-resource combiner [:a] :aggregated)
                         (invoke-resource identity-resource ["x"]
                          :in-sequence)
                         (invoke-resource combiner ["b" :c] :aggregated))
-            fs (produce-phases [:configure] request)]
+            fs (resource-build/produce-phases [:configure] request)]
         (is (= ":ab:c\nx\n" (first fs)))))
     (testing "delayed parameters"
       (let [request (-> {:phase :configure :target-id :id}
@@ -172,7 +174,7 @@
                         (invoke-resource combiner [:b] :aggregated)
                         (invoke-resource combiner
                          [(pallet.parameter/lookup :p)] :aggregated))
-            fs (produce-phases
+            fs (resource-build/produce-phases
                 [:configure] (assoc request :parameters {:p "p"}))]
         (is (= ":a:bp\n" (first fs)))))))
 
@@ -200,7 +202,7 @@
 (deftest defresource-test
   (testing "resource"
     (defresource test-resource (f [request arg] (name arg)))
-    (is (= "a\n" (first (build-resources
+    (is (= "a\n" (first (test-utils/build-resources
                          [:target-id :id]
                          (test-resource :a)))))
     (is (= '([request arg]) (:arglists (meta #'test-resource)))))
@@ -214,11 +216,11 @@
     (defaggregate test-resource
       {:use-arglist [arg-name]}
       (f [request arg] (string/join "" (map (comp name first) arg))))
-    (is (= "a\n" (first (build-resources [] (test-resource :a)))))
+    (is (= "a\n" (first (test-utils/build-resources [] (test-resource :a)))))
     (is (= '([arg-name]) (:arglists (meta #'test-resource)))))
   (testing "aggregate with :copy-arglist"
     (is (= '([request arg-name]) (:arglists (meta #'af))))
-    (is (= "a\n" (first (build-resources [] (test-resource1 :a)))))
+    (is (= "a\n" (first (test-utils/build-resources [] (test-resource1 :a)))))
     (is (= '([request arg-name]) (:arglists (meta #'test-resource1)))))
   (testing "collect"
     (defcollect test-resource (f [request arg] arg))
@@ -325,9 +327,9 @@
                (execute-commands request {:script/bash (fn [cmds] cmds)}))))))
 
 (deftest produce-phases-test
-  (let [node (compute/make-node "tag")]
+  (let [node (test-utils/make-node "tag")]
     (testing "node with phase"
-      (let [result (produce-phases
+      (let [result (resource-build/produce-phases
                     [:a]
                     {:target-id :id
                      :invocations {:a
@@ -347,14 +349,14 @@
     ;; TODO put this back
     ;; (testing "inline phase"
     ;;   (is (= ":a\n"
-    ;;          (first (produce-phases
+    ;;          (first (resource-build/produce-phases
     ;;                  [(phase (test-component {} :a))]
     ;;                  {}
     ;;                  {:target-node node})))))
     ))
 
 (deftest build-resources-test
-  (let [[result request] (build-resources
+  (let [[result request] (test-utils/build-resources
                           [:parameters {:a 1}]
                           (test-component "a")
                           (test-local-component :b 2)
@@ -366,7 +368,7 @@
 
 (deftest defcomponent-test
   (is (= ":a\n"
-         (first (build-resources [] (test-component :a))))))
+         (first (test-utils/build-resources [] (test-component :a))))))
 
 ;; TODO put these back
 ;; (deftest defphases-test
