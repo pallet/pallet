@@ -3,14 +3,11 @@
    pallet, jclouds or maven specific, and ensures compiling main doesn't compile
    the world."
   (:require
-   [org.jclouds.compute :as jclouds]
    [clojure.contrib.logging :as logging]
    [pallet.compute :as compute]
    [pallet.utils :as utils]
    [pallet.maven :as maven]
    [pallet.main :as main]))
-
-(def default-service-opts (compute/default-jclouds-extensions))
 
 (defn log-info
   []
@@ -31,18 +28,17 @@
 (defn invoke
   [service user key task params]
   (log-info)
-  (let [[service user key] (if service
-                             [service user key]
-                             (maven/credentials))]
-    (if service
+  (let [compute (if service
+                  (compute/compute-service
+                   service :identity user :credential key)
+                  (compute/compute-service-from-settings))]
+    (if compute
       (do
         (logging/debug (format "Running as      %s@%s" user service))
-        (let [compute (apply jclouds/compute-service
-                             (concat [service user key] default-service-opts))]
-          (try
-            (apply task {:compute compute} params)
-            (finally ;; make sure we don't hang on exceptions
-             (.. compute getContext close)))))
+        (try
+          (apply task {:compute compute} params)
+          (finally ;; make sure we don't hang on exceptions
+           (.. compute getContext close))))
       (do
         (println "Error: no credentials supplied\n\n")
         (apply (main/resolve-task "help") [])))))

@@ -38,9 +38,10 @@
      (:compute-provider credentials)
      :identity (:compute-identity credentials)
      :credential (:compute-credential credentials)
-     :extensions (map
-                  read-string
-                  (string/split (:compute-extensions credentials) #" "))
+     :extensions (when-let [extensions (:compute-extensions credentials)]
+                   (map
+                    read-string
+                    (string/split extensions #" ")))
      :node-list (:node-list credentials))))
 
 ;;; Nodes

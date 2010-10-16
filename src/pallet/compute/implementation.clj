@@ -35,11 +35,12 @@
     (reset! provider-list (providers))
     (let [loaded (filter
                   identity
-                  (for [provider @provider-list]
-                    (try
-                      (require provider)
-                      provider
-                      (catch Throwable _))))]
+                  (doall
+                   (for [provider @provider-list]
+                     (try
+                       (require provider)
+                       provider
+                       (catch Throwable _)))))]
       (reset! provider-list loaded)))
   @provider-list)
 
@@ -47,9 +48,10 @@
   "Create a list of supported providers"
   []
   (->>
-   (for [provider (load-providers)]
-     (when-let [providers (ns-resolve provider 'supported-providers)]
-       (println "providers " providers)
-       (@providers)))
+   (doall
+    (for [provider (load-providers)]
+      (when-let [providers (ns-resolve provider 'supported-providers)]
+        (println "providers " providers)
+        (@providers))))
    (filter identity)
    (apply concat)))

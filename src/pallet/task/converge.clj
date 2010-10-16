@@ -30,4 +30,4 @@
    The node-types should be namespace qualified."
   [request & args]
   (let [args (build-args args)]
-    (apply core/converge (concat args :compute (:compute request)))))
+    (apply core/converge (concat args [:compute (:compute request)]))))
