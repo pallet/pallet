@@ -373,6 +373,20 @@
       </profile>
 
       <profile>
+        <id>vmfest</id>
+        <activation>
+	  <activeByDefault>true</activeByDefault>
+        </activation>
+        <dependencies>
+          <dependency>
+            <groupId>vmfest</groupId>
+            <artifactId>vmfest</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+          </dependency>
+        </dependencies>
+      </profile>
+
+      <profile>
         <id>no-jclouds</id>
         <build>
           <plugins>
