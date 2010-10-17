@@ -31,7 +31,10 @@
   (implementation/service provider-name options))
 
 (defn compute-service-from-settings
-  "Create a compute service from maven property settings."
+  "Create a compute service from maven property settings.
+   In Maven's settings.xml you can define a profile, that contains
+   pallet.compute.provider, pallet.compute.identity and
+   provider.compute.credential values."
   []
   (let [credentials (pallet.maven/credentials)
         options {:identity (:compute-identity credentials)
@@ -41,11 +44,39 @@
                                (map
                                 read-string
                                 (string/split extensions #" ")))
-                 :node-list (:node-list credentials)}]
-    (apply
-     compute-service
-     (:compute-provider credentials)
-     (apply concat (filter second options)))))
+                 :node-list (when-let [node-list (:node-list credentials)]
+                              (read-string node-list))}]
+    (when-let [provider (:compute-provider credentials)]
+      (apply
+       compute-service
+       provider
+       (apply concat (filter second options))))))
+
+(defn- compute-service-from-var
+  [ns sym]
+  (try
+    (when-not (find-ns ns)
+      (require ns))
+    (when-let [v (ns-resolve ns sym)]
+      (var-get v))
+    ;; (catch Throwable _)
+    ))
+
+(defn compute-service-from-config
+  "Checks to see if pallet.config/service is a var, and if so returns its
+  value."
+  []
+  (compute-service-from-var 'pallet.config 'service))
+
+(defn compute-service-from-property
+  "If the pallet.config.service property is defined, and refers to a var, then
+   return its value."
+  []
+  (when-let [property (System/getProperty "pallet.config.service")]
+    (when-let [sym-names (and (re-find #"/" property)
+                              (string/split property #"/"))]
+      (compute-service-from-var
+       (symbol (first sym-names)) (symbol (second sym-names))))))
 
 ;;; Nodes
 (defprotocol Node

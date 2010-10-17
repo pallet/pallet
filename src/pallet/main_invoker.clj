@@ -25,13 +25,26 @@
      (format "public-key-path %s %s" public-key-path
              (.canRead (java.io.File. public-key-path))))))
 
+(defn find-compute-service
+  "Look for a compute service in the following sequence:
+     Check pallet.config.service property,
+     check maven settings,
+     check pallet.config/service var.
+   This sequence allows you to specify an overridable default in
+   pallet.config/service."
+  []
+  (or
+   (compute/compute-service-from-property)
+   (compute/compute-service-from-settings)
+   (compute/compute-service-from-config)))
+
 (defn invoke
   [service user key task params]
   (log-info)
   (let [compute (if service
                   (compute/compute-service
                    service :identity user :credential key)
-                  (compute/compute-service-from-settings))]
+                  (find-compute-service))]
     (if compute
       (do
         (logging/debug (format "Running as      %s@%s" user service))

@@ -49,17 +49,24 @@
 
      (if @task-list
        (do
-         (println "\nYou can write project specific tasks in a pallet directory.")
+         (println "\nYou can write project specific tasks under the\n"
+                  "pallet.task namespace.")
+         (println "")
          (println "\nOptions:")
          (println "  -service name-of-cloud-service")
          (println "  -user    login for cloud service API")
          (println "  -key     key or password for cloud service API")
-         (println "If no options are given, the ~/.m2/settings.xml is checked for")
-         (println "an active maven profile with the")
-         (println "   jclouds.compute.provider, ")
-         (println "   jclouds.compute.identity")
-         (println "   jclouds.compute.credential")
-         (println "properties."))
+         (println "")
+         (println "If no options are given, the following sequence is used to")
+         (println "find a service to use.")
+         (println "  the pallet.config.service property is checked for the")
+         (println "    name of a var to use for the service,")
+         (println "  the ~/.m2/settings.xml is checked for an active profile")
+         (println "    with the following properties:")
+         (println "      pallet.compute.provider")
+         (println "      pallet.compute.identity")
+         (println "      pallet.compute.credential,")
+         (println "  the pallet.config/service is used if it exists."))
        (do
          (println "Run the new-project task to create a pallet project.\n")))
-     (println "See http://github.com/hugoduncan/pallet as well.")))
+     (println "See http://github.com/hugoduncan/pallet.")))
