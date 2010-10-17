@@ -26,7 +26,7 @@
   (jclouds-test-utils/compute-service-fixture
    *compute-service*
    :extensions
-   [(ssh-test/ssh-test-client {})]))
+   [(ssh-test/ssh-test-client ssh-test/no-op-ssh-client)]))
 
 (deftest with-admin-user-test
   (let [x (rand)]
@@ -366,7 +366,8 @@
 (deftest converge-test
   (org.jclouds.compute/with-compute-service
     [(org.jclouds.compute/compute-service
-      "stub" "" "" :extensions [(ssh-test/ssh-test-client {})])]
+      "stub" "" "" :extensions [(ssh-test/ssh-test-client
+                                 ssh-test/no-op-ssh-client)])]
     (jclouds-test-utils/purge-compute-service)
     (let [id "a"
           request (with-middleware
