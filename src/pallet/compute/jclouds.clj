@@ -281,9 +281,11 @@
     [compute tag-name]
     (jclouds/destroy-nodes-with-tag (name tag-name) compute))
 
-  (compute/destroy-node
+  (destroy-node
    [compute node]
-   (jclouds/destroy-node (compute/id node) compute)))
+   (jclouds/destroy-node (compute/id node) compute))
+
+  (close [compute] (.. compute getContext close)))
 
 (defn node-locations
   "Return locations of a node as a seq."

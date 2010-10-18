@@ -117,7 +117,8 @@
    "Called on startup of a new node to ensure request has an os-family attached
    to it.")
   (destroy-nodes-with-tag [compute tag-name])
-  (destroy-node [compute node]))
+  (destroy-node [compute node])
+  (close [compute]))
 
 
 (defn nodes-by-tag [nodes]

@@ -14,16 +14,16 @@
 (defrecord Node
     [name tag ip os-family id ssh-port private-ip is-64bit running]
   pallet.compute.Node
-  (ssh-port [node] (:ssh-port node))
-  (primary-ip [node] (:ip node))
-  (private-ip [node] (:private-ip node))
+  (ssh-port [node] ssh-port)
+  (primary-ip [node] ip)
+  (private-ip [node] private-ip)
   (is-64bit? [node] (:is-64bit node))
-  (tag [node] (:tag node))
-  (running? [node] (:running node))
-  (terminated? [node] (not (:running node)))
-  (os-family [node] (:os-family node))
-  (hostname [node] (:name node))
-  (id [node] (:id node)))
+  (tag [node] tag)
+  (running? [node] running)
+  (terminated? [node] (not running))
+  (os-family [node] os-family)
+  (hostname [node] name)
+  (id [node] id))
 
 ;;; Node utilities
 (defn make-node [name tag ip os-family
@@ -43,8 +43,7 @@
 
 (defrecord NodeList [node-list]
   pallet.compute.ComputeService
-  (nodes [compute-service]
-    (:node-list compute-service))
+  (nodes [compute-service] node-list)
   (ensure-os-family
    [compute-service request]
    (when (not (-> request :node-type :image :os-family))
@@ -58,7 +57,7 @@
   (boot-if-down [compute nodes] nil)
   ;; (shutdown-node "Shutdown a node.")
   ;; (shutdown "Shutdown specified nodes")
-  )
+  (close [compute]))
 
 
 

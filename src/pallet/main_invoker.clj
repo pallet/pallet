@@ -51,7 +51,7 @@
         (try
           (apply task {:compute compute} params)
           (finally ;; make sure we don't hang on exceptions
-           (.. compute getContext close))))
+           (compute/close compute))))
       (do
         (println "Error: no credentials supplied\n\n")
         (apply (main/resolve-task "help") [])))))

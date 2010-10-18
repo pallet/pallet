@@ -28,6 +28,10 @@
              (compute/nodes
                (compute/compute-service "node-list" :node-list [node]))))))
 
+(deftest close-test
+  (is (nil? (compute/close
+             (compute/compute-service "node-list" :node-list [])))))
+
 (deftest make-localhost-node-test
   (let [node (node-list/make-localhost-node)]
     (is (= "127.0.0.1" (compute/primary-ip node)))))
