@@ -606,13 +606,14 @@ options are:
     (path-for *config-file*) node-type
     [options]
     [:useSecurity] (xml/content (if (:use-security options) "true" "false"))
-    [:securityRealm] (xml/set-attr
-                      :class (security-realm-class (:security-realm options)))
+    [:securityRealm] (when-let [realm (:security-realm options)]
+                       (xml/set-attr :class (security-realm-class realm)))
     [:disableSignup] (xml/content
                       (if (:disable-signup options) "true" "false"))
-    [:authorizationStrategy] (xml/set-attr
-                              :class (authorization-strategy-class
-                                      (:authorization-strategy options)))
+    [:authorizationStrategy] (when-let [strategy (:authorization-strategy
+                                                  options)]
+                               (xml/set-attr
+                                :class (authorization-strategy-class strategy)))
     [:permission] (xml/clone-for
                    [permission (apply
                                 concat
