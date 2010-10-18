@@ -41,12 +41,18 @@
   ("/sbin/md5" -r ~file))
 
 (script/defscript md5sum-verify [file & {:as options}])
-(stevedore/defimpl md5sum-verify :default [file & {:as options}]
-  ("md5sum" ~(stevedore/map-to-arg-string options) ~file))
+(stevedore/defimpl md5sum-verify :default
+  [file & {:keys [quiet check] :or {quiet true check true} :as options}]
+  ("md5sum" ~(stevedore/map-to-arg-string {:quiet quiet :check check}) ~file))
+(stevedore/defimpl md5sum-verify [#{:centos :amzn-linux :rhel}]
+  [file & {:keys [quiet check] :or {quiet true check true} :as options}]
+  ("md5sum"
+   ~(stevedore/map-to-arg-string {:status quiet :check check}) ~file))
 (stevedore/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
-  (var testfile @(cut -d "' '" -f 2 ~file))
-  (var md5 @(cut -d "' '" -f 1 ~file))
-  (test (quoted @("/sbin/md5" -q @testfile)) == (quoted @md5)))
+  (chain-and
+   (var testfile @(cut -d "' '" -f 2 ~file))
+   (var md5 @(cut -d "' '" -f 1 ~file))
+   (test (quoted @("/sbin/md5" -q @testfile)) == (quoted @md5))))
 
 (script/defscript backup-option [])
 (stevedore/defimpl backup-option :default []

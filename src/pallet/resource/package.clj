@@ -152,7 +152,10 @@
    (string/join " " (:scopes options ["main"]))))
 
 (defmethod format-source :yum
-  [_ name {:keys [url mirrorlist gpgcheck gpgkey priority] :as options}]
+  [_ name {:keys [url mirrorlist gpgcheck gpgkey priority failovermethod
+                  enabled]
+           :or {enabled 1}
+           :as options}]
   (string/join
    "\n"
    (filter
@@ -160,9 +163,11 @@
     [(format "[%s]\nname=%s" name name)
      (when url (format "baseurl=%s" url))
      (when mirrorlist (format "mirrorlist=%s" mirrorlist))
-     (format "gpgcheck=%s" (or gpgkey 0))
+     (format "gpgcheck=%s" (or (and gpgkey 1) 0))
      (when gpgkey (format "gpgkey=%s" gpgkey))
      (when priority (format "priority=%s" priority))
+     (when failovermethod (format "failovermethod=%s" failovermethod))
+     (format "enabled=%s" enabled)
      ""])))
 
 (defn package-source*
@@ -180,7 +185,7 @@
           request
           (format (source-location packager) name)
           :content (format-source packager name (packager options))
-          :literal false)))
+          :literal (= packager :yum))))
      (if (and (-> options :aptitude :key-id)
               (= packager :aptitude))
        (stevedore/script
@@ -286,10 +291,11 @@
   [request]
   (-> request
       (package "yum-priorities")
-      (package-source "Centos-5.5"
-       :url centos-55-repo
-       :gpgkey centos-55-repo-key
-       :priority 50)))
+      (package-source
+       "Centos-5.5"
+       :yum {:url centos-55-repo
+             :gpgkey centos-55-repo-key
+             :priority 50})))
 
 (defn add-epel
   "Add the EPEL repository"
@@ -302,3 +308,46 @@
      ~(format
        "http://download.fedora.redhat.com/pub/epel/5/x86_64/epel-release-%s.noarch.rpm"
        version)))))
+
+(def jpackage-mirror-fmt
+  "http://www.jpackage.org/mirrorlist.php?dist=%s&type=free&release=%s")
+
+(defn add-jpackage
+  "Add the jpackage repository.  component should be one of:
+     fedora
+     redhat-el"
+  [request & {:keys [version component releasever]
+              :or {component "redhat-el"
+                   releasever "$releasever"
+                   version "5.0"}}]
+  (->
+   request
+   (package-source
+    "jpackage-generic"
+    :yum {:mirrorlist (format jpackage-mirror-fmt "generic" version)
+          :failovermethod "priority"
+          ;;gpgkey "http://www.jpackage.org/jpackage.asc"
+          :enabled 1})
+   (package-source
+    (format "jpackage-%s" component)
+    :yum {:mirrorlist (format
+                       jpackage-mirror-fmt
+                       (str component "-" releasever) version)
+          :failovermethod "priority"
+          ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+          :enabled 1})
+   (package-source
+    "jpackage-generic-updates"
+    :yum {:mirrorlist (format
+                       jpackage-mirror-fmt "generic" (str version "-updates"))
+          :failovermethod "priority"
+          ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+          :enabled 1})
+   (package-source
+    (format "jpackage-%s" component)
+    :yum {:mirrorlist (format
+                       jpackage-mirror-fmt
+                       (str component "-" releasever) (str version "-updates"))
+          :failovermethod "priority"
+          ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+          :enabled 1})))

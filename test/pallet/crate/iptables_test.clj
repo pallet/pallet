@@ -31,13 +31,14 @@
              (iptables-rule "filter" "f1")
              (iptables-rule "filter" "f2"))))))
   (testing "redhat"
-    (is (= (stevedore/do-script
-            (pallet.resource.remote-file/remote-file*
-             {}
-             "/etc/sysconfig/iptables"
-             :content
-             "*filter\n:INPUT ACCEPT\n:FORWARD ACCEPT\n:OUTPUT ACCEPT\n:FWR -\n-A INPUT -j FWR\n-A FWR -i lo -j ACCEPT\n\n# Rejects all remaining connections with port-unreachable errors.\n-A FWR -p tcp -m tcp --tcp-flags SYN,RST,ACK SYN -j REJECT --reject-with icmp-port-unreachable\n-A FWR -p udp -j REJECT --reject-with icmp-port-unreachable\nCOMMIT\n"
-             :mode "0755"))
+    (is (= (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :centos}}]
+             (pallet.resource.remote-file/remote-file
+              "/etc/sysconfig/iptables"
+              :content
+              "*filter\n:INPUT ACCEPT\n:FORWARD ACCEPT\n:OUTPUT ACCEPT\n:FWR -\n-A INPUT -j FWR\n-A FWR -i lo -j ACCEPT\n\n# Rejects all remaining connections with port-unreachable errors.\n-A FWR -p tcp -m tcp --tcp-flags SYN,RST,ACK SYN -j REJECT --reject-with icmp-port-unreachable\n-A FWR -p udp -j REJECT --reject-with icmp-port-unreachable\nCOMMIT\n"
+              :mode "0755")))
            (first
             (build-resources
              [:node-type {:tag :n :image {:os-family :centos}}]

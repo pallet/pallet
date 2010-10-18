@@ -143,11 +143,14 @@
                             request [:tomcat :config-path])
         policy-file (str tomcat-config-root "policy.d/" number name ".policy")]
     (case action
-      :create (remote-file/remote-file
+      :create (->
                request
-               policy-file
-               :content (string/join \newline (map output-grants grants))
-               :literal true)
+               (directory/directory
+                (str tomcat-config-root "policy.d"))
+               (remote-file/remote-file
+                policy-file
+                :content (string/join \newline (map output-grants grants))
+                :literal true))
       :remove (file/file request policy-file :action :delete))))
 
 (defn application-conf
@@ -585,8 +588,12 @@
      ::services         vector of services
      ::global-resources vector of resources."
   [request server]
-  (remote-file/remote-file
-   request
-   (str (parameter/get-for-target request [:tomcat :base]) "conf/server.xml")
-   :content (apply
-             str (tomcat-server-xml (:node-type request) server))))
+  (let [base (parameter/get-for-target request [:tomcat :base])]
+    (->
+     request
+     (directory/directory
+      (str base "conf"))
+     (remote-file/remote-file
+      (str base "conf/server.xml")
+      :content (apply
+                str (tomcat-server-xml (:node-type request) server))))))

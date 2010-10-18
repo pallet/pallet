@@ -117,8 +117,7 @@
                               (do
                                 (download-file ~url ~new-path)
                                 (ln -s ~new-path @basefile)
-                                (if-not (md5sum
-                                         @newmd5path :quiet true :check true)
+                                (if-not (md5sum-verify @newmd5path)
                                   (do
                                     (echo ~(str "Download of " url
                                                 " failed to match md5"))
@@ -172,7 +171,7 @@
               (var md5diff "")
               (if (&& (file-exists? ~path) (file-exists? ~md5-path))
                 (do
-                  (md5sum ~md5-path :quiet true :check true)
+                  (md5sum-verify ~md5-path)
                   (set! md5diff "$?")))
               (var contentdiff "")
               (if (&& (file-exists? ~path) (file-exists? ~new-path))

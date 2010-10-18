@@ -28,19 +28,19 @@
   (getent passwd ~username))
 
 (defimpl create-user :default [username options]
-  (useradd ~(map-to-arg-string options) ~username))
+  ("/usr/sbin/useradd" ~(map-to-arg-string options) ~username))
 
 (defimpl modify-user :default [username options]
-  (usermod ~(map-to-arg-string options) ~username))
+  ("/usr/sbin/usermod" ~(map-to-arg-string options) ~username))
 
 (defimpl remove-user :default [username options]
-  (userdel ~(map-to-arg-string options) ~username))
+  ("/usr/sbin/userdel" ~(map-to-arg-string options) ~username))
 
 (defimpl lock-user :default [username]
-  (usermod --lock ~username))
+  ("/usr/sbin/usermod" --lock ~username))
 
 (defimpl unlock-user :default [username]
-  (usermod --unlock ~username))
+  ("/usr/sbin/usermod" --unlock ~username))
 
 (defimpl user-home :default [username]
   @(getent passwd ~username | cut "-d:" "-f6"))
@@ -58,13 +58,13 @@
   (getent group ~name))
 
 (defimpl create-group :default [groupname options]
-  (groupadd ~(map-to-arg-string options) ~groupname))
+  ("/usr/sbin/groupadd" ~(map-to-arg-string options) ~groupname))
 
 (defimpl modify-group :default [groupname options]
-  (groupmod ~(map-to-arg-string options) ~groupname))
+  ("/usr/sbin/groupmod" ~(map-to-arg-string options) ~groupname))
 
 (defimpl remove-group :default [groupname options]
-  (groupdel ~(map-to-arg-string options) ~groupname))
+  ("/usr/sbin/groupdel" ~(map-to-arg-string options) ~groupname))
 
 (defvar- shell-names
   {:bash "/bin/bash" :csh "/bin/csh" :ksh "/bin/ksh" :rsh "/bin/rsh"

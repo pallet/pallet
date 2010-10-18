@@ -1,7 +1,11 @@
 (ns pallet.crate.maven
   (:require
+   [pallet.request-map :as request-map]
    [pallet.resource :as resource]
-   [pallet.resource.remote-directory :as remote-directory]))
+   [pallet.resource.package :as package]
+   [pallet.resource.remote-directory :as remote-directory])
+  (:use
+   pallet.thread-expr))
 
 (def maven-parameters
  {:maven-home "/opt/maven2"
@@ -26,3 +30,12 @@
    :url (maven-download-url version)
    :md5 (maven-download-md5 version)
    :unpack :tar :tar-options "xj"))
+
+(defn package
+  [request]
+  (->
+   request
+   (when->
+    (= :amzn-linux (request-map/os-family request))
+    (package/add-jpackage :releasever "5.0"))
+   (package/package "maven2")))
