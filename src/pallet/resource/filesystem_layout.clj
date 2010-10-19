@@ -14,11 +14,13 @@
 (stevedore/defimpl log-root :default []
   "/var/log")
 
+(script/defscript pid-root [])
+(stevedore/defimpl pid-root :default []
+  "/var/run")
+
 (script/defscript config-root [])
 (stevedore/defimpl config-root :default []
   "/etc")
-
-
 
 (script/defscript etc-hosts [])
 (stevedore/defimpl etc-hosts :default []
