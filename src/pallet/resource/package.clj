@@ -211,14 +211,17 @@
    :aptitude
      :source-type string   - source type (deb)
      :url url              - repository url
-     :scope seq            - scopes to enable for repository
+     :scopes seq           - scopes to enable for repository
      :key-url url          - url for key
      :key-id id            - id for key to look it up from keyserver
 
    :yum
      :name                 - repository name
      :url url          - repository base url
-     :gpgkey url           - gpg key url for repository"
+     :gpgkey url           - gpg key url for repository
+
+   Example: (package-source \"Partner\" :aptitude {:url \"http://archive.canonical.com/\"
+                                                   :scopes [\"partner\"]})"
   {:copy-arglist pallet.resource.package/package-source*}
   (package-source-aggregate
    [request args]
