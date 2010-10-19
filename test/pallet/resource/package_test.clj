@@ -39,18 +39,23 @@
          (script/with-template [:yum]
            (stevedore/script (install-package "java"))))))
 
+(deftest list-installed-packages-test
+  (is (= "aptitude search \"~i\""
+         (script/with-template [:aptitude]
+           (stevedore/script (list-installed-packages)))))
+  (is (= "yum list installed"
+         (script/with-template [:yum]
+           (stevedore/script (list-installed-packages))))))
+
 
 (deftest test-install-example
   (is (= (first
           (build-resources
            []
            (exec-script/exec-checked-script
-            "Package java"
+            "Packages"
             (package-manager-non-interactive)
-            "aptitude install -q -y  java && aptitude show java")
-           (exec-script/exec-checked-script
-            "Package rubygems"
-            (package-manager-non-interactive)
+            "aptitude install -q -y  java && aptitude show java"
             "aptitude install -q -y  rubygems && aptitude show rubygems\n")))
          (first (build-resources
                  []
@@ -126,15 +131,20 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
      :aptitude {:url "http://somewhere/apt"
                 :scopes ["main"]}
      :yum {:url "http://somewhere/yum"})))
-  (is (= (stevedore/checked-commands
-          "Package source"
-          (package/package* {:node-type a} "python-software-properties")
-          (stevedore/script (add-apt-repository "ppa:abc")))
-         (package-source*
-          {:node-type a}
-          "source1"
-          :aptitude {:url "ppa:abc"}
-          :yum {:url "http://somewhere/yum"})))
+  (is (= (first
+          (build-resources
+           []
+           (exec-script/exec-checked-script
+            "Package source"
+            (install-package "python-software-properties")
+            (add-apt-repository "ppa:abc"))))
+         (first
+          (build-resources
+           []
+           (package-source
+            "source1"
+            :aptitude {:url "ppa:abc"}
+            :yum {:url "http://somewhere/yum"})))))
   (is (= (stevedore/checked-commands
           "Package source"
           (remote-file/remote-file*
@@ -205,3 +215,15 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   :aptitude ["git-apt"]
                   :yum ["git-yum"]))))))
 
+(deftest package-package-sorce-test
+  (testing "package-source alway precedes packages"
+    (is (= (first
+            (build-resources
+             []
+             (package-source "s" :aptitude {:url "http://somewhere/apt"})
+             (package "p")))
+           (first
+            (build-resources
+             []
+             (package "p")
+             (package-source "s" :aptitude {:url "http://somewhere/apt"})))))))

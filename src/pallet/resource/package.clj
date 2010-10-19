@@ -9,10 +9,10 @@
    [pallet.script :as script]
    [pallet.utils :as utils]
    [pallet.target :as target]
-   [clojure.contrib.string :as string])
+   [clojure.contrib.string :as string]
+   [clojure.contrib.logging :as logging])
   (:use
    [pallet.resource :only [defaggregate defresource]]
-   [clojure.contrib.logging]
    [clojure.contrib.core :only [-?>]]
    pallet.thread-expr))
 
@@ -20,6 +20,7 @@
 (script/defscript install-package [name & options])
 (script/defscript remove-package [name & options])
 (script/defscript purge-package [name & options])
+(script/defscript list-installed-packages [& options])
 
 ;;; Implementation to do nothing
 ;;; Repeating the selector makes it more explicit
@@ -31,6 +32,8 @@
   [package & options] "")
 (stevedore/defimpl purge-package [#{:no-packages} #{:no-packages}]
   [package & options] "")
+(stevedore/defimpl list-installed-packages [#{:no-packages} #{:no-packages}]
+  [& options] "")
 
 ;;; default to aptitude
 (stevedore/defimpl update-package-list [#{:aptitude}] [& options]
@@ -48,6 +51,9 @@
 (stevedore/defimpl purge-package [#{:aptitude}] [package & options]
   (aptitude purge -y  ~(stevedore/option-args options) ~package))
 
+(stevedore/defimpl list-installed-packages [#{:aptitude}] [& options]
+  (aptitude search (quoted "~i")))
+
 ;;; yum
 (stevedore/defimpl update-package-list [#{:yum}] [& options]
   (yum makecache ~(stevedore/option-args options)))
@@ -60,6 +66,9 @@
 
 (stevedore/defimpl purge-package [#{:yum}] [package & options]
   (yum purge ~(stevedore/option-args options) ~package))
+
+(stevedore/defimpl list-installed-packages [#{:yum}] [& options]
+  (yum list installed))
 
 ;;; zypper
 (stevedore/defimpl update-package-list [#{:zypper}] [& options]
@@ -114,25 +123,54 @@
    "debconf debconf/frontend select noninteractive"
    "debconf debconf/frontend seen false"))
 
-(defresource package
-  "Package management"
+(defmulti adjust-packages
+  (fn [request & _]
+    (:target-packager request)))
+
+(defmethod adjust-packages :default
+  [request action-packages]
+  (stevedore/checked-commands
+   "Packages"
+   (stevedore/chain-commands*
+    (list*
+     (stevedore/script (package-manager-non-interactive))
+     (for [[action packages] action-packages
+           {:keys [package force purge]} packages]
+       (case action
+         :install (stevedore/script
+                   (install-package ~package :force ~force))
+         :remove (if purge
+                   (stevedore/script (purge-package ~package))
+                   (stevedore/script (remove-package ~package)))
+         :upgrade (stevedore/script (purge-package ~package))
+         (throw
+          (IllegalArgumentException.
+           (str action " is not a valid action for package resource")))))))))
+
+(defn- package-map
+  "Convert the args into a single map"
+  [request package-name
+                  & {:keys [action y force purge]
+                     :or {action :install y true}
+                     :as options}]
+  (assoc options :package package-name :action action :y y))
+
+(defaggregate package
+  "Package management.
+    :action [:install | :remove | :upgrade]
+    :version version
+    :purge [true|false]  - when removing, whether to remove all config, etc
+   Package management occurs in one shot, so that the package manager can
+   maintain a consistent view."
+  {:use-arglist  [request package-name
+                  & {:keys [action y force purge]
+                     :or {action :install y true}
+                     :as options}]}
   (package*
-   [request package-name & {:keys [action y force purge]
-                            :or {action :install y true}
-                            :as options}]
-   (stevedore/checked-commands
-    (format "Package %s" package-name)
-    (stevedore/script (package-manager-non-interactive))
-    (case action
-       :install (stevedore/script
-                 (install-package ~package-name :force ~force))
-       :remove (if purge
-                 (stevedore/script (purge-package ~package-name))
-                 (stevedore/script (remove-package ~package-name)))
-       :upgrade (stevedore/script (purge-package ~package-name))
-       :update-package-list (stevedore/script (update-package-list))
-       (throw (IllegalArgumentException.
-               (str action " is not a valid action for package resource")))))))
+   [request args]
+   (adjust-packages
+    request
+    (group-by :action (map #(apply package-map request %) args)))))
 
 (def source-location
   {:aptitude "/etc/apt/sources.list.d/%s.list"
@@ -179,7 +217,7 @@
      (let [key-url (-> options :aptitude :url)]
        (if (and key-url (.startsWith key-url "ppa:"))
          (stevedore/chain-commands
-          (package* request "python-software-properties")
+          (stevedore/script (install-package "python-software-properties"))
           (stevedore/script (add-apt-repository ~key-url)))
          (remote-file/remote-file*
           request
@@ -203,7 +241,7 @@
      (when-let [key (and (= packager :yum) (-> options :yum :gpgkey))]
        (stevedore/script (rpm "--import" ~key))))))
 
-(defaggregate package-source
+(defaggregate ^{:always-before `package} package-source
   "Control package sources.
    Options are the package manager keywords, each specifying a map of
    packager specific options.
@@ -244,21 +282,18 @@
   (let [packager (:target-packager request)]
     (stevedore/checked-commands
      "package-manager"
-     (condp = action
-         :update
-       (stevedore/script (update-package-list))
-       :multiverse
-       (let [opts (apply hash-map options)]
-         (add-scope (or (opts :type) "deb.*")
-                    "multiverse"
-                    (or (opts :file) "/etc/apt/sources.list")))
-       :universe
-       (let [opts (apply hash-map options)]
-         (add-scope (or (opts :type) "deb.*")
-                    "universe"
-                    (or (opts :file) "/etc/apt/sources.list")))
-       :debconf
-       (if (= :aptitude packager)
+     (case action
+       :update (stevedore/script (update-package-list))
+       :list-installed (stevedore/script (list-installed-packages))
+       :multiverse (let [opts (apply hash-map options)]
+                     (add-scope (or (opts :type) "deb.*")
+                                "multiverse"
+                                (or (opts :file) "/etc/apt/sources.list")))
+       :universe (let [opts (apply hash-map options)]
+                   (add-scope (or (opts :type) "deb.*")
+                              "universe"
+                              (or (opts :file) "/etc/apt/sources.list")))
+       :debconf (if (= :aptitude packager)
          (stevedore/script (apply debconf-set-selections ~options)))
        (throw (IllegalArgumentException.
                (str action
