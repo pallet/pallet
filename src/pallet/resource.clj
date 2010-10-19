@@ -157,10 +157,25 @@ configuration code."
 
 (defvar- execution-ordering [:aggregated :in-sequence :collected])
 
+(defn- compare-resource-sequence
+  [x y]
+  (let [before-fn (fn [f]
+                    (let [before (:always-before (meta f))
+                          before (and before (find-var before))]
+                      (and before (:resource-fn (meta before)))))
+        fx (:f x)
+        fy (:f y)]
+    (cond
+     (= (before-fn fx) (var-get fy)) -1
+     (= (before-fn fy) (var-get fx)) 1
+     :else 0)))
+
 (defn- execution-invocations
   "Sort by execution-ordering"
   [invocations]
-  (map #(vector % (% invocations)) execution-ordering))
+  (map
+   #(vector % (sort compare-resource-sequence (% invocations)))
+   execution-ordering))
 
 (defn bound-invocations
   "Configured resources for executions, binding args to methods."
@@ -192,10 +207,14 @@ configuration code."
         arglist (or (arglist-finder (meta name)) argv)
         ;; remove so not used in an evaluated context
         name (with-meta name
-               (dissoc (meta name) :use-arglist :copy-arglist))]
+               (->
+                (meta name)
+                (dissoc :use-arglist :copy-arglist)
+                (assoc :resource-fn (first body))))]
     (assert (pos? (count argv)))        ; mandatory result argument
     `(do
-       (defn ~@body)
+       (defn ~(with-meta (first body) (dissoc (meta name) :resource-fn))
+         ~@(rest body))
        (defn ~name
          {:arglists '(~arglist)}
          [& [~@arglist :as argv#]]

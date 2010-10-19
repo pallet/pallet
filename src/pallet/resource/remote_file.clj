@@ -54,6 +54,11 @@
   [_ & args]
   args)
 
+(defn- delete-local-path
+  [request local-path]
+  (.delete local-path)
+  request)
+
 (defn with-remote-file
   "Function to call f with a local copy of the requested remote path.
    f should be a function taking [request local-path & _], where local-path will
@@ -63,18 +68,18 @@
   (let [local-path (utils/tmpfile)]
     (->
      request
-     (resource/invoke-resource arg-vector [path (.getPath local-path)]
+     (resource/invoke-resource #'arg-vector [path (.getPath local-path)]
                                :in-sequence :transfer/to-local)
      (apply-> f local-path args)
      (resource/invoke-resource
-      (fn [request] (.delete local-path) request) []
+      #'delete-local-path [local-path]
       :in-sequence :fn/clojure))))
 
 (defn transfer-file
   "Function to transfer a local file."
   [request local-path remote-path]
   (resource/invoke-resource
-   request arg-vector [local-path remote-path]
+   request #'arg-vector [local-path remote-path]
    :in-sequence :transfer/from-local))
 
 

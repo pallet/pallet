@@ -112,71 +112,73 @@
            {:f 2 :args ["bar baz"] :other :b}
            {:f 1 :args [:a :b] :other :a}]))))
 
+(defn combiner [request args] (string/join "" (map #(apply str %) args)))
+
 (deftest bound-invocations-test
-  (letfn [(combiner [request args] (string/join "" (map #(apply str %) args)))]
-    (testing "aggregation"
 
-      (let [request (-> {:phase :configure :target-id :id}
-                        (invoke-resource combiner [:a] :aggregated)
-                        (invoke-resource combiner [:b] :aggregated))
-            fs (bound-invocations (-> request :invocations :configure :id))]
-        (is (= :remote (:location (first fs))))
-        (is (= ":a:b" ((:f (first fs)) {})))))
-    (testing "collection"
+  (testing "aggregation"
 
-      (let [request (-> {:phase :configure :target-id :id}
-                        (invoke-resource combiner [:a] :collected)
-                        (invoke-resource combiner [:b] :collected))
-            fs (bound-invocations (-> request :invocations :configure :id))]
-        (is (= :remote (:location (first fs))))
-        (is (= ":a:b" ((:f (first fs)) {})))))
-    (testing "with-local-sequence"
-      (let [request (-> {:phase :configure :target-id :id}
-                        (invoke-resource combiner [:a] :aggregated)
-                        (invoke-resource identity-resource [:b] :in-sequence)
-                        (invoke-resource
-                         identity-resource [:c] :in-sequence :fn/clojure))
-            fs (bound-invocations (-> request :invocations :configure :id))]
-        (is (not (.contains "lazy" (str fs))))
-        (is (= ":a" ((:f (first fs)) {})))
-        (is (= :b ((:f (second fs)) {})))
-        (is (= :c ((:f (last fs)) {})))
-        (is (= :remote (:location (first fs))))
-        (is (= :remote (:location (second fs))))
-        (is (= :local (:location (last fs))))))
-    (testing "aggregated parameters"
-      (let [request (-> {:phase :configure :target-id :id}
-                        (invoke-resource combiner [:a] :aggregated)
-                        (invoke-resource combiner ["b" :c] :aggregated))
-            m (produce-phase request)]
-        (is (seq? m))
-        (is (= 1 (count m)) "phase, location should be aggregated")
-        (is (map? (first m)))
-        (is (= :remote (:location (first m))))
-        (is (fn? (:f (first m))))
-        (is (= {:location :remote
-                :type :script/bash
-                :cmds ":ab:c\n"
-                :request {}}
-               ((:f (first m)) {})))
-        (let [fs (resource-build/produce-phases [:configure] request)]
-          (is (= ":ab:c\n" (first fs)))))
-      (let [request (-> {:phase :configure :target-id :id}
-                        (invoke-resource combiner [:a] :aggregated)
-                        (invoke-resource identity-resource ["x"]
-                         :in-sequence)
-                        (invoke-resource combiner ["b" :c] :aggregated))
-            fs (resource-build/produce-phases [:configure] request)]
-        (is (= ":ab:c\nx\n" (first fs)))))
-    (testing "delayed parameters"
-      (let [request (-> {:phase :configure :target-id :id}
-                        (invoke-resource combiner [:a] :aggregated)
-                        (invoke-resource combiner [:b] :aggregated)
-                        (invoke-resource combiner
-                         [(pallet.parameter/lookup :p)] :aggregated))
-            fs (resource-build/produce-phases
-                [:configure] (assoc request :parameters {:p "p"}))]
-        (is (= ":a:bp\n" (first fs)))))))
+    (let [request (-> {:phase :configure :target-id :id}
+                      (invoke-resource #'combiner [:a] :aggregated)
+                      (invoke-resource #'combiner [:b] :aggregated))
+          fs (bound-invocations (-> request :invocations :configure :id))]
+      (is (= :remote (:location (first fs))))
+      (is (= ":a:b" ((:f (first fs)) {})))))
+  (testing "collection"
+
+    (let [request (-> {:phase :configure :target-id :id}
+                      (invoke-resource #'combiner [:a] :collected)
+                      (invoke-resource #'combiner [:b] :collected))
+          fs (bound-invocations (-> request :invocations :configure :id))]
+      (is (= :remote (:location (first fs))))
+      (is (= ":a:b" ((:f (first fs)) {})))))
+  (testing "with-local-sequence"
+    (let [request (-> {:phase :configure :target-id :id}
+                      (invoke-resource #'combiner [:a] :aggregated)
+                      (invoke-resource #'identity-resource [:b] :in-sequence)
+                      (invoke-resource
+                       #'identity-resource [:c] :in-sequence :fn/clojure))
+          fs (bound-invocations (-> request :invocations :configure :id))]
+      (is (not (.contains "lazy" (str fs))))
+      (is (= ":a" ((:f (first fs)) {})))
+      (is (= :b ((:f (second fs)) {})))
+      (is (= :c ((:f (last fs)) {})))
+      (is (= :remote (:location (first fs))))
+      (is (= :remote (:location (second fs))))
+      (is (= :local (:location (last fs))))))
+  (testing "aggregated parameters"
+    (let [request (-> {:phase :configure :target-id :id}
+                      (invoke-resource #'combiner [:a] :aggregated)
+                      (invoke-resource #'combiner ["b" :c] :aggregated))
+          m (produce-phase request)]
+      (is (seq? m))
+      (is (= 1 (count m)) "phase, location should be aggregated")
+      (is (map? (first m)))
+      (is (= :remote (:location (first m))))
+      (is (fn? (:f (first m))))
+      (is (= {:location :remote
+              :type :script/bash
+              :cmds ":ab:c\n"
+              :request {}}
+             ((:f (first m)) {})))
+      (let [fs (resource-build/produce-phases [:configure] request)]
+        (is (= ":ab:c\n" (first fs)))))
+    (let [request (-> {:phase :configure :target-id :id}
+                      (invoke-resource #'combiner [:a] :aggregated)
+                      (invoke-resource #'identity-resource ["x"]
+                                       :in-sequence)
+                      (invoke-resource #'combiner ["b" :c] :aggregated))
+          fs (resource-build/produce-phases [:configure] request)]
+      (is (= ":ab:c\nx\n" (first fs)))))
+  (testing "delayed parameters"
+    (let [request (-> {:phase :configure :target-id :id}
+                      (invoke-resource #'combiner [:a] :aggregated)
+                      (invoke-resource #'combiner [:b] :aggregated)
+                      (invoke-resource
+                       #'combiner [(pallet.parameter/lookup :p)] :aggregated))
+          fs (resource-build/produce-phases
+              [:configure] (assoc request :parameters {:p "p"}))]
+      (is (= ":a:bp\n" (first fs))))))
 
 ;; (test-utils/with-private-vars [pallet.resource [with-request-arg]]
 ;;   (deftest with-request-arg-test
@@ -205,7 +207,8 @@
     (is (= "a\n" (first (test-utils/build-resources
                          [:target-id :id]
                          (test-resource :a)))))
-    (is (= '([request arg]) (:arglists (meta #'test-resource)))))
+    (is (= '([request arg]) (:arglists (meta #'test-resource))))
+    (is (= f (:resource-fn (meta test-resource)))))
   (testing "aggregate"
     (defaggregate test-resource (f [request arg] (string/join "" arg)))
 
@@ -250,6 +253,7 @@
 ;;     (is (= :remote (:location v)))))
 
 (defn kv-local-resource [request k v] (assoc request k v))
+(defn ff [request] (assoc request :ff 1))
 
 (deftest output-resources-test
   (testing "concatenate remote phases"
@@ -257,10 +261,10 @@
           (first
            (output-resources
             {:in-sequence
-             [{:f identity-resource :args ["abc"]
+             [{:f #'identity-resource :args ["abc"]
                :location :remote
                :type :script/bash}
-              {:f identity-resource :args ["d"]
+              {:f #'identity-resource :args ["d"]
                :location :remote
                :type :script/bash}]}))]
       (is (= :remote location))
@@ -269,15 +273,14 @@
               :cmds "abc\nd\n" :request {}}
              (f {})))))
   (testing "split local/remote phases"
-    (let [f (fn [request] (assoc request :ff 1))
-          r (output-resources {:in-sequence
-                               [{:f identity-resource :args ["abc"]
+    (let [r (output-resources {:in-sequence
+                               [{:f #'identity-resource :args ["abc"]
                                  :location :remote
                                  :type :script/bash}
-                                {:f f :args []
+                                {:f #'ff :args []
                                  :location :local
                                  :type :fn/clojure}
-                                {:f identity-resource :args ["d"]
+                                {:f #'identity-resource :args ["d"]
                                  :location :remote
                                  :type :script/bash}]})]
       (let [{:keys [location type f]} (first r)]
@@ -302,10 +305,10 @@
            ((:f
              (first
               (output-resources {:in-sequence
-                                 [{:f kv-local-resource :args [:a 2]
+                                 [{:f #'kv-local-resource :args [:a 2]
                                    :location :local
                                    :type :fn/clojure}
-                                  {:f kv-local-resource :args [:b 3]
+                                  {:f #'kv-local-resource :args [:b 3]
                                    :location :local
                                    :type :fn/clojure}]})))
             {})))))
@@ -326,6 +329,8 @@
       (is (= [[] {assoc request :fred 1}]
                (execute-commands request {:script/bash (fn [cmds] cmds)}))))))
 
+(defn abc-string [request] "abc")
+(defn d-string [request] "d")
 (deftest produce-phases-test
   (let [node (test-utils/make-node "tag")]
     (testing "node with phase"
@@ -335,10 +340,10 @@
                      :invocations {:a
                                    {:id
                                     {:in-sequence
-                                     [{:f (fn [request] "abc")
+                                     [{:f #'abc-string
                                        :args []
                                        :location :remote :type :script/bash}
-                                      {:f (fn [request] "d")
+                                      {:f #'d-string
                                        :args []
                                        :location :remote :type :script/bash}]}}}
                      :fred 1})]
@@ -390,3 +395,21 @@
 ;;     (is (= [(first p)] (keys (second p))))
 ;;     (is (= {:type :script/bash, :location :remote, :cmds ":a\n", :request {}}
 ;;            ((:f (first (output-resources (first p) (second p)))) {})))))
+
+
+(defresource post-component
+  (post-component*
+   [request arg & options]
+   (str arg)))
+
+(defresource ^{:always-before `post-component} prior-component
+  (prior-component*
+   [request arg & options]
+   (str arg)))
+
+
+(deftest always-before-test
+  (is (= "a\nb\n"
+         (first (test-utils/build-resources
+                 []
+                 (post-component "b") (prior-component "a"))))))
