@@ -52,7 +52,7 @@
         components (or (seq (filter #{:jdk :jre} options))
                        [:jdk])
         packager (:target-packager request)
-	os-family (request-map/os-family request)]
+        os-family (request-map/os-family request)]
 
     (let [vc (fn [request vendor component]
                (let [pkgs (java-package-name packager vendor component)]
@@ -72,10 +72,11 @@
        request
        (when-> (some #(= :sun %) vendors)
                (when-> (= packager :aptitude)
-		       (when-> (= os-family :ubuntu)
-			       (package/package-source "Partner"
-						       :aptitude {:url ubuntu-partner-url
-								  :scopes ["partners"]}))
+                       (when-> (= os-family :ubuntu)
+                               (package/package-source
+                                "Partner"
+                                :aptitude {:url ubuntu-partner-url
+                                           :scopes ["partners"]}))
                        (package/package-manager :universe)
                        (package/package-manager :multiverse)
                        (package/package-manager :update))
