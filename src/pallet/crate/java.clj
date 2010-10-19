@@ -1,6 +1,7 @@
 (ns pallet.crate.java
   "Crates for java installation and configuration"
   (:require
+   [pallet.request-map :as request-map]
    [pallet.resource :as resource]
    [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]
@@ -40,6 +41,8 @@
 
 (def sun-rpm-path "http://cds.sun.com/is-bin/INTERSHOP.enfinity/WFS/CDS-CDS_Developer-Site/en_US/-/USD/VerifyItem-Start/jdk-6u18-linux-i586-rpm.bin?BundledLineItemUUID=wb5IBe.lDHsAAAEn5u8ZJpvu&OrderID=yJxIBe.lc7wAAAEn2.8ZJpvu&ProductID=6XdIBe.pudAAAAElYStRSbJV&FileName=/jdk-6u18-linux-i586-rpm.bin")
 
+(def ubuntu-partner-url "http://archive.canonical.com/ubuntu")
+
 (defn java
   "Install java. Options can be :sun, :openjdk, :jdk, :jre.
    By default openjdk will be installed."
@@ -48,7 +51,8 @@
                     [:sun])
         components (or (seq (filter #{:jdk :jre} options))
                        [:jdk])
-        packager (:target-packager request)]
+        packager (:target-packager request)
+	os-family (request-map/os-family request)]
 
     (let [vc (fn [request vendor component]
                (let [pkgs (java-package-name packager vendor component)]
@@ -68,6 +72,10 @@
        request
        (when-> (some #(= :sun %) vendors)
                (when-> (= packager :aptitude)
+		       (when-> (= os-family :ubuntu)
+			       (package/package-source "Partner"
+						       :aptitude {:url ubuntu-partner-url
+								  :scopes ["partners"]}))
                        (package/package-manager :universe)
                        (package/package-manager :multiverse)
                        (package/package-manager :update))
