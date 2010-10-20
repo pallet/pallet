@@ -90,17 +90,19 @@ checkout of the source and maven (see below).
 <div class="org-src-container"><label class="org-src-name">def-service()</label><pre class="src src-clojure">
 (<span style="color: #0000ff;">require</span> 'pallet.maven)
 (<span style="color: #0000ff;">require</span> 'pallet.compute)
-(<span style="color: #0000ff;">require</span> 'org.jclouds.compute)
 
-(pallet.compute/supported-clouds) <span style="color: #8b0000;">; </span><span style="color: #cd5c5c;">show supported clouds
+(pallet.compute/supported-providers) <span style="color: #8b0000;">; </span><span style="color: #cd5c5c;">show supported clouds
 </span>
-<span style="color: #8b0000;">;; </span><span style="color: #cd5c5c;">Open a connection to the cloud api specified in ~/.m2/settings.xml
-</span>(<span style="color: #4682b4;">def</span> <span style="color: #0000ff;">service</span>
-     (<span style="color: #0000ff;">apply</span> org.jclouds.compute/compute-service
-      (<span style="color: #0000ff;">concat</span> (pallet.maven/credentials) [<span style="color: #0000ff;">:log4j</span> <span style="color: #0000ff;">:enterprise</span> <span style="color: #0000ff;">:ssh</span>])))
+<span style="color: #8b0000;">;; </span><span style="color: #cd5c5c;">Open a connection to the cloud api, filling in the correct
+</span><span style="color: #8b0000;">;; </span><span style="color: #cd5c5c;">provider and the identity and credential from your cloud account
+</span><span style="color: #8b0000;">;; </span><span style="color: #cd5c5c;">(def service
+</span><span style="color: #8b0000;">;;     </span><span style="color: #cd5c5c;">(pallet.compute/compute-service "provider" "identity" "credential"))
+</span>
+<span style="color: #8b0000;">;; </span><span style="color: #cd5c5c;">or, open a connection to the cloud api specified in ~/.m2/settings.xml
+</span>(<span style="color: #4682b4;">def</span> <span style="color: #0000ff;">service</span> (pallet.compute/compute-service-from-settings))
 
 <span style="color: #8b0000;">;; </span><span style="color: #cd5c5c;">List all the nodes
-</span>(org.jclouds.compute/nodes service)
+</span>(pallet.compute/nodes service)
 </pre></div>
 
 
@@ -115,8 +117,8 @@ See also <a href="autodoc/demo-api.html">demo API code</a> until it gets migrate
 
 
 <p>
-Pallet can be used as a jar file or from a source code checkout.  It is
-available at <a href="http://clojars.org/org.cloudhoist/pallet">Clojars</a>, and can be used with <a href="http://maven.apache.org/">maven</a>, <a href="http://github.com/technomancy/leiningen">leiningen</a> or any
+Pallet can be used as a jar file or from a source code checkout.  Release versions
+are available at <a href="http://clojars.org/org.cloudhoist/pallet">Clojars</a>, and can be used with <a href="http://maven.apache.org/">maven</a>, <a href="http://github.com/technomancy/leiningen">leiningen</a> or any
 maven repository aware tool.
 </p>
 </div>
