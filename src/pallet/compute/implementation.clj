@@ -51,7 +51,6 @@
    (doall
     (for [provider (load-providers)]
       (when-let [providers (ns-resolve provider 'supported-providers)]
-        (println "providers " providers)
         (@providers))))
    (filter identity)
    (apply concat)))
