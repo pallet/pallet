@@ -31,7 +31,7 @@ your cloud.  The names pallet recognises can be displayed with the following:
 
 #+BEGIN_SRC clojure  :session s1
    (require 'pallet.compute)
-   (pallet.compute/supported-clouds)
+   (pallet.compute/supported-providers)
 #+END_SRC
 
 * Explicit credentials

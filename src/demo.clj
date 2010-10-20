@@ -7,7 +7,7 @@
   (pallet.repl/use-pallet)
 
   ;; Supported providers can be found with
-  (supported-clouds)
+  (supported-providers)
 
   ;; We provide some credentials
   (def my-user \"your user\")
@@ -15,7 +15,7 @@
 
   ;; and log in to the cloud using the credentials defined above.
   ;; provider is a string specifiying the provider, as returned
-  ;; from (supported-clouds)
+  ;; from (supported-providers)
   (def service
     (compute-service \"provider\" :identity my-user :credential my-password))
 
