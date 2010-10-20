@@ -28,6 +28,8 @@
   [& options] "")
 (stevedore/defimpl install-package [#{:no-packages} #{:no-packages}]
   [package & options] "")
+(stevedore/defimpl upgrade-package [#{:no-packages} #{:no-packages}]
+  [package & options] "")
 (stevedore/defimpl remove-package [#{:no-packages} #{:no-packages}]
   [package & options] "")
 (stevedore/defimpl purge-package [#{:no-packages} #{:no-packages}]
@@ -40,6 +42,12 @@
   (aptitude update -q ~(stevedore/option-args options)))
 
 (stevedore/defimpl install-package [#{:aptitude}] [package & options]
+  (aptitude install -q -y ~(stevedore/option-args options) ~package
+            ;; show returns an error code if no package found, while install
+            ;; does not.  There should be a better way than this...
+            "&&" aptitude show ~package))
+
+(stevedore/defimpl upgrade-package [#{:aptitude}] [package & options]
   (aptitude install -q -y ~(stevedore/option-args options) ~package
             ;; show returns an error code if no package found, while install
             ;; does not.  There should be a better way than this...
@@ -60,6 +68,9 @@
 
 (stevedore/defimpl install-package [#{:yum}] [package & options]
   (yum install -y -q ~(stevedore/option-args options) ~package))
+
+(stevedore/defimpl upgrade-package [#{:yum}] [package & options]
+  (yum upgrade -y -q ~(stevedore/option-args options) ~package))
 
 (stevedore/defimpl remove-package [#{:yum}] [package & options]
   (yum remove ~(stevedore/option-args options) ~package))
@@ -88,6 +99,10 @@
   (pacman -Sy "--noconfirm" "--noprogressbar" ~(stevedore/option-args options)))
 
 (stevedore/defimpl install-package [#{:pacman}] [package & options]
+  (pacman -S "--noconfirm" "--noprogressbar"
+          ~(stevedore/option-args options) ~package))
+
+(stevedore/defimpl upgrade-package [#{:pacman}] [package & options]
   (pacman -S "--noconfirm" "--noprogressbar"
           ~(stevedore/option-args options) ~package))
 
@@ -151,6 +166,20 @@
               (str
                action " is not a valid action for package resource")))))))))))
 
+(defmethod adjust-packages :yum
+  [request action-packages]
+  (stevedore/checked-commands
+   "Packages"
+   (stevedore/chain-commands*
+    (for [[action packages] action-packages]
+      (stevedore/script
+       (yum
+        ~(name action) -q -y
+        ~(string/join
+          " "
+          (for [{:keys [package force purge]} packages]
+            package))))))))
+
 (defmethod adjust-packages :default
   [request action-packages]
   (stevedore/checked-commands
@@ -166,7 +195,7 @@
          :remove (if purge
                    (stevedore/script (purge-package ~package))
                    (stevedore/script (remove-package ~package)))
-         :upgrade (stevedore/script (purge-package ~package))
+         :upgrade (stevedore/script (upgrade-package ~package))
          (throw
           (IllegalArgumentException.
            (str action " is not a valid action for package resource")))))))))

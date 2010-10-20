@@ -70,13 +70,36 @@
              [:node-type {:tag :n :image {:os-family :centos}}]
              (exec-script/exec-checked-script
               "Packages"
-              "yum install -y -q  java"
-              "yum install -y -q  rubygems")))
+              "yum install -q -y java rubygems"
+              "yum upgrade -q -y maven2"
+              "yum remove -q -y git ruby")))
            (first
             (build-resources
              [:node-type {:tag :n :image {:os-family :centos}}]
              (package "java" :action :install)
-             (package "rubygems")))))))
+             (package "rubygems")
+             (package "maven2" :action :upgrade)
+             (package "git" :action :remove)
+             (package "ruby" :action :remove :purge true))))))
+  (testing "pacman"
+    (is (= (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :arch}}]
+             (exec-script/exec-checked-script
+              "Packages"
+              "pacman -S --noconfirm --noprogressbar  java"
+              "pacman -S --noconfirm --noprogressbar  rubygems"
+              "pacman -S --noconfirm --noprogressbar  maven2"
+              "pacman -R --noconfirm  git"
+              "pacman -R --noconfirm  ruby")))
+           (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :arch}}]
+             (package "java" :action :install)
+             (package "rubygems")
+             (package "maven2" :action :upgrade)
+             (package "git" :action :remove)
+             (package "ruby" :action :remove :purge true)))))))
 
 (deftest package-manager-non-interactive-test
   (is (= "{ debconf-set-selections <<EOF
