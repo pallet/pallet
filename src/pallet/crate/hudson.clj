@@ -233,7 +233,8 @@
    :github {:url "http://hudson-ci.org/latest/github.hpi"}
    :instant-messaging {:url
                        "http://hudson-ci.org/latest/instant-messaging.hpi"}
-   :ircbot {:url "http://hudson-ci.org/latest/ircbot.hpi"}})
+   :ircbot {:url "http://hudson-ci.org/latest/ircbot.hpi"}
+   :greenballs {:url "http://hudson-ci.org/latest/greenballs.hpi"}})
 
  (defn plugin
    "Install a hudson plugin.  The plugin should be a keyword.
