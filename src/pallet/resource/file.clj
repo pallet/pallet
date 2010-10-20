@@ -75,7 +75,7 @@
 (script/defscript download-file [url path])
 
 (stevedore/defimpl download-file :default [url path]
-  ("curl" "-o" (quoted ~path) --retry 3 --silent --show-error --fail --location
+  ("curl" "-o" (quoted ~path) --retry 4 --silent --show-error --fail --location
    (quoted ~url)))
 
 (script/defscript download-request [path request])
