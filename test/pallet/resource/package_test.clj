@@ -49,18 +49,34 @@
 
 
 (deftest test-install-example
-  (is (= (first
-          (build-resources
-           []
-           (exec-script/exec-checked-script
-            "Packages"
-            (package-manager-non-interactive)
-            "aptitude install -q -y  java && aptitude show java"
-            "aptitude install -q -y  rubygems && aptitude show rubygems\n")))
-         (first (build-resources
-                 []
-                 (package "java" :action :install)
-                 (package "rubygems"))))))
+  (testing "aptitude"
+    (is (= (first
+            (build-resources
+             []
+             (exec-script/exec-checked-script
+              "Packages"
+              (package-manager-non-interactive)
+              "aptitude install -q -y java+ rubygems+ git- ruby_")))
+           (first
+            (build-resources
+             []
+             (package "java" :action :install)
+             (package "rubygems")
+             (package "git" :action :remove)
+             (package "ruby" :action :remove :purge true))))))
+  (testing "yum"
+    (is (= (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :centos}}]
+             (exec-script/exec-checked-script
+              "Packages"
+              "yum install -y -q  java"
+              "yum install -y -q  rubygems")))
+           (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :centos}}]
+             (package "java" :action :install)
+             (package "rubygems")))))))
 
 (deftest package-manager-non-interactive-test
   (is (= "{ debconf-set-selections <<EOF

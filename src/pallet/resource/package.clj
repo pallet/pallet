@@ -35,7 +35,7 @@
 (stevedore/defimpl list-installed-packages [#{:no-packages} #{:no-packages}]
   [& options] "")
 
-;;; default to aptitude
+;;; aptitude
 (stevedore/defimpl update-package-list [#{:aptitude}] [& options]
   (aptitude update -q ~(stevedore/option-args options)))
 
@@ -126,6 +126,30 @@
 (defmulti adjust-packages
   (fn [request & _]
     (:target-packager request)))
+
+(defmethod adjust-packages :aptitude
+  [request action-packages]
+  (stevedore/checked-commands
+   "Packages"
+   (stevedore/chain-commands
+    (stevedore/script (package-manager-non-interactive))
+    (stevedore/script
+     (aptitude
+      install -q -y
+      ~(string/join
+        " "
+        (for [[action packages] action-packages
+              {:keys [package force purge]} packages]
+          (case action
+            :install (format "%s+" package)
+            :remove (if purge
+                      (format "%s_" package)
+                      (format "%s-" package))
+            :upgrade (format "%s+" package)
+            (throw
+             (IllegalArgumentException.
+              (str
+               action " is not a valid action for package resource")))))))))))
 
 (defmethod adjust-packages :default
   [request action-packages]
