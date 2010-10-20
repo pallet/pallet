@@ -4,13 +4,20 @@
         clojure.test
         pallet.test-utils)
   (:require
-   [pallet.resource :as resource]))
+   [pallet.resource :as resource]
+   [pallet.script :as script]))
 
 (use-fixtures :once with-ubuntu-script-template)
 
 (deftest create-user-test
   (is (= "/usr/sbin/useradd --create-home user1"
-         (script (create-user "user1"  ~{:create-home true})))))
+         (script (create-user "user1"  ~{:create-home true}))))
+  (is (= "/usr/sbin/useradd --system user1"
+         (script (create-user "user1"  ~{:system true}))))
+  (testing "system on rh"
+    (binding [script/*template* [:centos]]
+      (is (= "/usr/sbin/useradd -r user1"
+             (script (create-user "user1"  ~{:system true})))))))
 
 (deftest modify-user-test
   (is (= "/usr/sbin/usermod --home /home2/user1 --shell /bin/bash user1"
@@ -41,4 +48,9 @@
   (is (= "if ! getent group group11; then /usr/sbin/groupadd  group11;fi\n"
          (first (build-resources
                  []
-                 (group "group11" :action :create))))))
+                 (group "group11" :action :create)))))
+  (testing "system on rh"
+    (is (= "if ! getent group group11; then /usr/sbin/groupadd -r group11;fi\n"
+           (first (build-resources
+                   [:node-type {:image {:os-family :centos}}]
+                   (group "group11" :action :create :system true)))))))

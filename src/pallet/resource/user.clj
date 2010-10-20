@@ -30,6 +30,14 @@
 (defimpl create-user :default [username options]
   ("/usr/sbin/useradd" ~(map-to-arg-string options) ~username))
 
+(defimpl create-user [#{:rhel :centos :amzn-linux}] [username options]
+  ("/usr/sbin/useradd"
+   ~(-> options
+        (assoc :r (:system options))
+        (dissoc :system)
+        map-to-arg-string)
+   ~username))
+
 (defimpl modify-user :default [username options]
   ("/usr/sbin/usermod" ~(map-to-arg-string options) ~username))
 
@@ -59,6 +67,14 @@
 
 (defimpl create-group :default [groupname options]
   ("/usr/sbin/groupadd" ~(map-to-arg-string options) ~groupname))
+
+(defimpl create-group [#{:rhel :centos :amzn-linux}] [groupname options]
+  ("/usr/sbin/groupadd"
+   ~(-> options
+        (assoc :r (:system options))
+        (dissoc :system)
+        map-to-arg-string)
+   ~groupname))
 
 (defimpl modify-group :default [groupname options]
   ("/usr/sbin/groupmod" ~(map-to-arg-string options) ~groupname))
