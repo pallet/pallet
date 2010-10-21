@@ -29,25 +29,27 @@ checkout of the source and maven (see below).
 #+begin_src clojure :results silent :session s1
   (require 'pallet.maven)
   (require 'pallet.compute)
-  (require 'org.jclouds.compute)
 
-  (pallet.compute/supported-clouds) ; show supported clouds
+  (pallet.compute/supported-providers) ; show supported clouds
 
-  ;; Open a connection to the cloud api specified in ~/.m2/settings.xml
-  (def service
-       (apply org.jclouds.compute/compute-service
-        (concat (pallet.maven/credentials) [:log4j :enterprise :ssh])))
+  ;; Open a connection to the cloud api, filling in the correct
+  ;; provider and the identity and credential from your cloud account
+  ;; (def service
+  ;;     (pallet.compute/compute-service "provider" "identity" "credential"))
+
+  ;; or, open a connection to the cloud api specified in ~/.m2/settings.xml
+  (def service (pallet.compute/compute-service-from-settings))
 
   ;; List all the nodes
-  (org.jclouds.compute/nodes service)
+  (pallet.compute/nodes service)
 #+end_src
 
 See also [[http:autodoc/demo-api.html][demo API code]] until it gets migrated into these docs.
 
 * Install
 
-Pallet can be used as a jar file or from a source code checkout.  It is
-available at [[http://clojars.org/org.cloudhoist/pallet][Clojars]], and can be used with {{{maven}}}, {{{leiningen}}} or any
+Pallet can be used as a jar file or from a source code checkout.  Release versions
+are available at [[http://clojars.org/org.cloudhoist/pallet][Clojars]], and can be used with {{{maven}}}, {{{leiningen}}} or any
 maven repository aware tool.
 
 * Source
