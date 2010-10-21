@@ -4,6 +4,7 @@
    [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.crate.git :as git]
    [pallet.crate.gpg :as gpg]
+   [pallet.crate.java :as java]
    [pallet.crate.hudson :as hudson]
    [pallet.crate.iptables :as iptables]
    [pallet.crate.ssh :as ssh]
@@ -54,6 +55,7 @@
      (package/package "maven2")
      (git/git)
      (gpg/gpg)
+     (java/java)
      (tomcat/tomcat)
      (iptables/iptables-accept-port 8080)
      (iptables/iptables-redirect-port 80 8080)
