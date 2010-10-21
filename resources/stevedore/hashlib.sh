@@ -3,6 +3,8 @@
 # Author: Mariusz Gniazdowski <mariusz.gn-at-gmail.com>
 # Date: 2005-04-07
 
+#  updated by Charles Duffy http://gist.github.com/636900
+
 # Functions making emulating hashes in Bash a little less painful.
 
 
@@ -32,7 +34,7 @@ Hash_config_varname_prefix=__hash__
 # 2 - key
 # 3 - value
 function hash_set {
-	eval "${Hash_config_varname_prefix}${1}_${2}=\"${3}\""
+        read -r "${Hash_config_varname_prefix}${1}_${2}" <<<"$3"
 }
 
 
@@ -43,7 +45,8 @@ function hash_set {
 # 2 - key
 # 3 - value (name of global variable to set)
 function hash_get_into {
-	eval "$3=\"\$${Hash_config_varname_prefix}${1}_${2}\""
+        local name="${Hash_config_varname_prefix}${1}_${2}"
+        read -r "$3" <<<"${!name}"
 }
 
 
@@ -54,7 +57,8 @@ function hash_get_into {
 # 2 - key
 # 3 - echo params (like -n, for example)
 function hash_echo {
-	eval "echo $3 \"\$${Hash_config_varname_prefix}${1}_${2}\""
+        local name="${Hash_config_varname_prefix}${1}_${2}"
+        echo "${!name}"
 }
 
 
@@ -66,8 +70,9 @@ function hash_echo {
 # 3 - hash2
 # 4 - key2
 function hash_copy {
-eval "${Hash_config_varname_prefix}${1}_${2}\
-=\"\$${Hash_config_varname_prefix}${3}_${4}\""
+        local w_name="${Hash_config_varname_prefix}${1}_${2}"
+        local r_name="${Hash_config_varname_prefix}${3}_${4}"
+        read -r "${w_name}" <<<"${!r_name}"
 }
 
 
@@ -82,13 +87,16 @@ eval "${Hash_config_varname_prefix}${1}_${2}\
 # . . .
 # N - keyN
 function hash_dup {
-  local hashName="$1" keyName="$2"
+  local hash_name key_to_copy val_to_copy
+  hash_name="$1"
+  key_to_copy="$2"
+  hash_get_into "$hash_name" "$key_to_copy" val_to_copy
   shift 2
-  until [ ${#} -le 0 ]; do
-    eval "${Hash_config_varname_prefix}${hashName}_${1}\
-=\"\$${Hash_config_varname_prefix}${hashName}_${keyName}\""
-  shift;
-  done;
+
+  while (( $# > 0 )) ; do
+    hash_set "$hash_name" "$1" "$val_to_copy"
+    shift
+  done
 }
 
 
@@ -111,7 +119,7 @@ function hash_unset {
 # 2 - key
 # 3 - ref - Name of global variable to set.
 function hash_get_ref_into {
-	eval "$3=\"${Hash_config_varname_prefix}${1}_${2}\""
+        read -r "$3" <<<"${Hash_config_varname_prefix}${1}_${2}"
 }
 
 
@@ -124,7 +132,7 @@ function hash_get_ref_into {
 # 2 - key
 # 3 - echo params (like -n for example)
 function hash_echo_ref {
-	eval "echo $3 \"${Hash_config_varname_prefix}${1}_${2}\""
+        echo $3 "${Hash_config_varname_prefix}${1}_${2}"
 }
 
 
@@ -136,11 +144,10 @@ function hash_echo_ref {
 # 2 - key
 # 3,4, ... - Function parameters
 function hash_call {
-  local hash key
-  hash=$1
-  key=$2
+  local varname
+  varname="${Hash_config_varname_prefix}${1}_${2}"
   shift 2
-  eval "eval \"\$${Hash_config_varname_prefix}${hash}_${key} \\\"\\\$@\\\"\""
+  "${!varname}" "$@"
 }
 
 
@@ -153,9 +160,8 @@ function hash_call {
 # 0 - there is such key
 # 1 - there is no such key
 function hash_is_set {
-  eval "if [[ \"\${${Hash_config_varname_prefix}${1}_${2}-a}\" = \"a\" &&
-  \"\${${Hash_config_varname_prefix}${1}_${2}-b}\" = \"b\" ]]
-    then return 1; else return 0; fi"
+  local varname="${Hash_config_varname_prefix}${1}_${2}"
+  declare -p "${varname}" >/dev/null 2>&1
 }
 
 
@@ -169,13 +175,15 @@ function hash_is_set {
 # 1 - hash
 # 2 - function name
 function hash_foreach {
-  local keyname oldIFS="$IFS"
-  IFS=' '
-  for i in $(eval "echo \${!${Hash_config_varname_prefix}${1}_*}"); do
-    keyname=$(eval "echo \${i##${Hash_config_varname_prefix}${1}_}")
-    eval "$2 $keyname \"\$$i\""
+  local keyname_prefix keyname_full keyname value oldIFS="$IFS"
+  IFS=$'\n'
+  keyname_prefix="${Hash_config_varname_prefix}${1}_"
+  for keyname_full in $(compgen -A variable "${keyname_prefix}"); do
+    keyname="${keyname_full:${#keyname_prefix}}"
+    value="${!keyname_full}"
+    "$2" "${keyname}" "${value}"
   done
-IFS="$oldIFS"
+  IFS="$oldIFS"
 }
 
 #  NOTE: In lines 103 and 116, ampersand changed.
