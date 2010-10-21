@@ -39,7 +39,8 @@
 
 ;;; aptitude
 (stevedore/defimpl update-package-list [#{:aptitude}] [& options]
-  (aptitude update -q ~(stevedore/option-args options)))
+  (chain-or
+   (aptitude update ~(stevedore/option-args options)) true))
 
 (stevedore/defimpl install-package [#{:aptitude}] [package & options]
   (aptitude install -q -y ~(stevedore/option-args options) ~package
@@ -352,7 +353,7 @@
                (str action
                     " is not a valid action for package-manager resource")))))))
 
-(defaggregate package-manager
+(defaggregate ^{:always-before `package} package-manager
   "Package manager controls.
      :multiverse        - enable multiverse
      :update            - update the package manager"

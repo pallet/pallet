@@ -18,7 +18,7 @@
 (use-fixtures :each with-ubuntu-script-template)
 
 (deftest update-package-list-test
-  (is (= "aptitude update -q "
+  (is (= "aptitude update  || true"
          (script/with-template [:aptitude]
            (stevedore/script (update-package-list)))))
   (is (= "yum makecache "
@@ -128,12 +128,12 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 (deftest package-manager*-test
   (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp -t addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (package-manager* ubuntu-request :multiverse)))
-  (is (= "echo \"package-manager...\"\n{ aptitude update -q; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= "echo \"package-manager...\"\n{ aptitude update  || true; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (script/with-template [:aptitude]
            (package-manager* ubuntu-request :update)))))
 
 (deftest add-multiverse-example-test
-  (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp -t addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"package-manager...\"\n{ aptitude update -q; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp -t addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"package-manager...\"\n{ aptitude update  || true; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
          (first (build-resources
                  []
                  (package-manager :multiverse)
