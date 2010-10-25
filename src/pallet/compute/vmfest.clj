@@ -70,7 +70,7 @@
    [node]
    (vbox/with-local-or-remote-session node
      (machine/execute-task
-      node (machine-task #(.getExtraData % "pallet/tag")))))
+      node (machine-task #(.getExtraData % "/pallet/tag")))))
   (hostname
    [node]
    (vbox/with-local-or-remote-session node
@@ -384,13 +384,13 @@
            env "DISPLAY:0.0"
            progress (.openRemoteSession
                      virtual-box session uuid session-type env)]
-                                        ;(with-open [session session])
-       (println "Session for VM" uuid "is opening...")
-       (.waitForCompletion progress 10000)
-       (let [result-code (.getResultCode progress)]
-         (if (zero? result-code)
-           nil
-           true)))))
+       (with-open [session session]
+         (println "Session for VM" uuid "is opening...")
+         (.waitForCompletion progress 10000)
+         (let [result-code (.getResultCode progress)]
+           (if (zero? result-code)
+             nil
+             true))))))
 
   (shutdown-node
    [compute node _]
@@ -403,8 +403,8 @@
           (when (#{org.virtualbox_3_2.MachineState/RUNNING
                    org.virtualbox_3_2.MachineState/PAUSED
                    org.virtualbox_3_2.MachineState/STUCK} (.getState machine))
-            (let [ progress (.powerDown console)]
-              (.waitForCompletion progress 10000))))))))
+            (let [progress (.powerDown console)]
+              (.waitForCompletion progress 15000))))))))
 
   (shutdown
    [compute nodes user]
