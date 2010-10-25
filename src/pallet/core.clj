@@ -534,7 +534,7 @@ script that is run with root privileges immediatly after first boot."
     (let [nodes (filter
                  compute/running?
                  (compute/nodes (:compute request)))
-          tag-groups (group-by #(keyword (.getTag %)) nodes)
+          tag-groups (group-by #(keyword (compute/tag %)) nodes)
           target-node-map (into
                            {}
                            (map

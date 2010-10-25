@@ -376,7 +376,7 @@ define command {
           (first %2) (first %2)
           (map (fn [n] (nagios-hostname n)) (second %2))))
        ""
-       (group-by (fn [n] (.getTag n)) nodes))))))
+       (group-by (fn [n] (compute/tag n)) nodes))))))
 
 
 (defn nagios
