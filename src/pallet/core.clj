@@ -243,7 +243,7 @@ script that is run with root privileges immediatly after first boot."
   [node-map nodes request]
   (logging/info "converging nodes")
   (logging/trace (str "  " node-map))
-  (compute/boot-if-down (:compute request) nodes) ; this needs improving
+  ;;(compute/boot-if-down (:compute request) nodes) ; this needs improving
                                         ; should only reboot if required
   (let [nodes (filter compute/running? nodes)]
     (adjust-node-counts
