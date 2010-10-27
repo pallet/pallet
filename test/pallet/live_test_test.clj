@@ -10,8 +10,9 @@
 (def nodes {:repo {:phases {}}})
 
 (deftest live-test-test
-  (doseq [os-family [:centos :ubuntu]]
+  (doseq [os-family [:centos]]
     (live-test/with-nodes
-      [compute node-map nodes {:repo {:image {:os-family os-family} :count 1}}]
+      [compute node-map node-types
+       nodes {:repo {:image {:os-family os-family} :count 1}}]
       (let [node-list (compute/nodes compute)]
         (is (= 1 (count ((group-by compute/tag node-list) "repo"))))))))
