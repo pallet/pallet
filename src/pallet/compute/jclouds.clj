@@ -122,6 +122,7 @@
        (if (map? os) (make-operating-system os) os)
        (make-operating-system {}))
      (options :state NodeState/RUNNING)
+     (options :login-port 22)
      (options :public-ips [])
      (options :private-ips [])
      (options :credentials nil))))
@@ -132,8 +133,8 @@
    ssh, including virtual machines."
   [tag host-or-ip & options]
   (let [options (apply hash-map options)
-        meta (dissoc options :location :user-metadata :state :public-ips
-                     :private-ips :extra :credentials)]
+        meta (dissoc options :location :user-metadata :state :login-port
+                     :public-ips :private-ips :extra :credentials)]
     (NodeMetadataImpl.
      (options :provider-id (options :id tag))
      (options :name tag)
@@ -150,9 +151,10 @@
        (if (map? os) (make-operating-system os) os)
        (make-operating-system {}))
      (get options :state NodeState/RUNNING)
+     (options :login-port 22)
      (conj (get options :public-ips []) host-or-ip)
-     (get options :private-ips [])
-     (get options :credentials nil))))
+     (options :private-ips [])
+     (options :credentials nil))))
 
 
 (defn make-image
