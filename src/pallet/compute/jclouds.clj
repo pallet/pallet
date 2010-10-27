@@ -122,8 +122,10 @@
        (if (map? os) (make-operating-system os) os)
        (make-operating-system {}))
      (options :state NodeState/RUNNING)
+     (options :login-port 22)
      (options :public-ips [])
      (options :private-ips [])
+     (options :admin-password)
      (options :credentials nil))))
 
 (defn make-unmanaged-node
@@ -132,8 +134,9 @@
    ssh, including virtual machines."
   [tag host-or-ip & options]
   (let [options (apply hash-map options)
-        meta (dissoc options :location :user-metadata :state :public-ips
-                     :private-ips :extra :credentials)]
+        meta (dissoc options :location :user-metadata :state :login-port
+                     :public-ips :private-ips :extra :admin-password
+                     :credentials)]
     (NodeMetadataImpl.
      (options :provider-id (options :id tag))
      (options :name tag)
@@ -150,9 +153,11 @@
        (if (map? os) (make-operating-system os) os)
        (make-operating-system {}))
      (get options :state NodeState/RUNNING)
+     (options :login-port 22)
      (conj (get options :public-ips []) host-or-ip)
-     (get options :private-ips [])
-     (get options :credentials nil))))
+     (options :private-ips [])
+     (options :admin-password)
+     (options :credentials nil))))
 
 
 (defn make-image
@@ -168,9 +173,10 @@
      (options :location)
      (options :uri)
      (merge (get options :user-metadata {}) meta)
-     (get options :operating-system)
-     (get options :description "image description")
-     (get options :version "image version")
+     (options :operating-system)
+     (options :description "image description")
+     (options :version "image version")
+     (options :admin-password)
      (options :default-credentials))))
 
 (defn compute-node? [object]

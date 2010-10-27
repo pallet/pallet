@@ -9,7 +9,7 @@
 
 ;; test calling these, even if we haven't set up expected values
 (deftest credentials-test
-  (credentials))
+  (credentials ["p1"]))
 
 (deftest properties-test
-  (is (map? (properties))))
+  (is (map? (properties ["p1"]))))

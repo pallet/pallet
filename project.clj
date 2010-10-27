@@ -1,4 +1,4 @@
-(defproject org.cloudhoist/pallet "0.2.0"
+(defproject org.cloudhoist/pallet "0.3.0-SNAPSHOT"
   :description "Pallet - provisioning and configuration of compute nodes"
   :url "http://github.com/hugpduncan/pallet"
   :dependencies [[org.clojure/clojure "1.2.0"]

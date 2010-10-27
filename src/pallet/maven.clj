@@ -25,21 +25,23 @@
 (defn properties
   "Read maven's settings.xml file, and extract properties from active profiles
    as a map."
-  []
+  [profiles]
   (let [settings (make-settings)
         properties (apply
                     merge
                     (map #(into {} (.getProperties (val %)))
                          (select-keys
                           (into {} (.getProfilesAsMap settings))
-                          (.getActiveProfiles settings))))]
+                          (if (seq profiles)
+                            profiles
+                            (.getActiveProfiles settings)))))]
     (zipmap (map keyword (keys properties)) (vals properties))))
 
 (defn credentials
   "Read maven's settings.xml file, and extract credentials.  "
-  []
+  [profiles]
   (into {}
         (filter identity
                 (map
                  #(if-let [k (key-map (key %))] [k (val %)])
-                 (properties)))))
+                 (properties profiles)))))

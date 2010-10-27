@@ -8,6 +8,26 @@
    [pallet.resource :as resource]
    [pallet.crate.automated-admin-user :as automated-admin-user]))
 
+(def *live-tests* (System/getProperty "pallet.test.live"))
+
+(defn set-live-tests!
+  "Globally switch live-test on or off."
+  [flag]
+  (alter-var-root #'*live-tests* (constantly flag)))
+
+(def service (atom nil))
+
+(defn set-service!
+  "Set the compute service to use with live-test."
+  [compute]
+  (reset! service compute))
+
+(defn find-service
+  []
+  (or
+   @service
+   (set-service! (pallet.compute/compute-service-from-settings))))
+
 (defn node-types
   [phases specs]
   (into
@@ -32,11 +52,9 @@
 
 
 (defn build-nodes
-  "Build nodes using the phase and specs"
-  [phases specs]
-  (let [service (pallet.compute/compute-service-from-settings)
-        node-types (node-types phases specs)
-        counts (counts node-types specs)]
+  "Build nodes using the node-types specs"
+  [service node-types specs]
+  (let [counts (counts node-types specs)]
     [(select-keys
       (->>
        (core/converge counts :compute service)
@@ -45,19 +63,21 @@
        (map #(vector (keyword (first %)) (second %)))
        (into {}))
       (keys node-types))
-     service]))
+     node-types]))
 
 (defn destroy-nodes
   "Build nodes using the phase and specs"
-  [service node-map]
-  (doseq [[tag nodes] node-map]
+  [service tags]
+  (doseq [tag tags]
     (compute/destroy-nodes-with-tag service (name tag))))
 
-(def *live-tests* (System/getProperty "pallet.test.live"))
-
 (defmacro with-nodes
-  [[compute name phases specs] & body]
+  [[compute node-map node-types phases specs] & body]
   `(when *live-tests*
-     (let [[~name ~compute] (build-nodes ~phases ~specs)]
-       ~@body
-       (destroy-nodes ~'compute ~'name))))
+     (let [~compute (find-service)
+           ~node-types (node-types ~phases ~specs)]
+       (try
+         (let [~node-map (build-nodes ~compute ~node-types ~specs)]
+           ~@body)
+         (finally
+          (destroy-nodes ~'compute (keys ~'node-types)))))))
