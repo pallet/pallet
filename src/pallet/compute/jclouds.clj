@@ -125,6 +125,7 @@
      (options :login-port 22)
      (options :public-ips [])
      (options :private-ips [])
+     (options :admin-password)
      (options :credentials nil))))
 
 (defn make-unmanaged-node
@@ -134,7 +135,8 @@
   [tag host-or-ip & options]
   (let [options (apply hash-map options)
         meta (dissoc options :location :user-metadata :state :login-port
-                     :public-ips :private-ips :extra :credentials)]
+                     :public-ips :private-ips :extra :admin-password
+                     :credentials)]
     (NodeMetadataImpl.
      (options :provider-id (options :id tag))
      (options :name tag)
@@ -154,6 +156,7 @@
      (options :login-port 22)
      (conj (get options :public-ips []) host-or-ip)
      (options :private-ips [])
+     (options :admin-password)
      (options :credentials nil))))
 
 
@@ -170,9 +173,10 @@
      (options :location)
      (options :uri)
      (merge (get options :user-metadata {}) meta)
-     (get options :operating-system)
-     (get options :description "image description")
-     (get options :version "image version")
+     (options :operating-system)
+     (options :description "image description")
+     (options :version "image version")
+     (options :admin-password)
      (options :default-credentials))))
 
 (defn compute-node? [object]

@@ -3,6 +3,7 @@
    [clojure.contrib.logging :as logging])
   (:import
    [org.jclouds.ssh SshClient ExecResponse]
+   org.jclouds.domain.Credentials
    org.jclouds.io.Payload
    org.jclouds.net.IPSocket))
 
@@ -62,7 +63,11 @@
   (^org.jclouds.ssh.SshClient
    create
    [_ ^IPSocket socket ^String username ^bytes password-or-key]
-   (factory-fn socket username password-or-key)))
+   (factory-fn socket username password-or-key))
+    (^org.jclouds.ssh.SshClient
+   create
+   [_ ^IPSocket socket ^Credentials credentials]
+   (factory-fn socket (.identity credentials) (.credential credentials))))
 
 (deftype Module
     [factory binder]
