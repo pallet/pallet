@@ -35,8 +35,8 @@
    In Maven's settings.xml you can define a profile, that contains
    pallet.compute.provider, pallet.compute.identity and
    provider.compute.credential values."
-  []
-  (let [credentials (pallet.maven/credentials)
+  [& profiles]
+  (let [credentials (pallet.maven/credentials profiles)
         options {:identity (:compute-identity credentials)
                  :credential (:compute-credential credentials)
                  :extensions (when-let [extensions (:compute-extensions
