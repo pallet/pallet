@@ -1,4 +1,4 @@
-(ns pallet.crate.live-test-test
+(ns pallet.live-test-test
   (:use clojure.test)
   (:require
    [pallet.live-test :as live-test]
