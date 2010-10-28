@@ -58,7 +58,8 @@
 
 (defn profiles
   [profiles-string]
-  (string/split profiles-string #","))
+  (when profiles-string
+    (string/split profiles-string #",")))
 
 (defn -main
   "Command line runner."
