@@ -32,19 +32,19 @@
      check pallet.config/service var.
    This sequence allows you to specify an overridable default in
    pallet.config/service."
-  []
+  [profiles]
   (or
    (compute/compute-service-from-property)
-   (compute/compute-service-from-settings)
+   (apply compute/compute-service-from-settings profiles)
    (compute/compute-service-from-config)))
 
 (defn invoke
-  [service user key task params]
+  [service user key profiles task params]
   (log-info)
   (let [compute (if service
                   (compute/compute-service
                    service :identity user :credential key)
-                  (find-compute-service))]
+                  (find-compute-service profiles))]
     (if compute
       (do
         (logging/debug (format "Running as      %s@%s" user service))
