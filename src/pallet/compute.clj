@@ -54,12 +54,7 @@
 
 (defn- compute-service-from-var
   [ns sym]
-  (try
-    (when-not (find-ns ns)
-      (require ns))
-    (when-let [v (ns-resolve ns sym)]
-      (var-get v))
-    (catch Throwable _)))
+  (utils/find-var-with-require ns sym))
 
 (defn compute-service-from-config
   "Checks to see if pallet.config/service is a var, and if so returns its

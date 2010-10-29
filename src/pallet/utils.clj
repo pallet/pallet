@@ -94,6 +94,15 @@
         stream (new java.io.FileInputStream file)]
     bytes))
 
+(defn find-var-with-require
+  [ns sym]
+  (try
+    (when-not (find-ns ns)
+      (require ns))
+    (when-let [v (ns-resolve ns sym)]
+      (var-get v))
+    (catch Throwable _)))
+
 
 (defn default-private-key-path []
   (str (System/getProperty "user.home") "/.ssh/id_rsa"))
@@ -128,6 +137,12 @@
   "The admin user is used for running remote admin commands that require root
    permissions.  The default admin user is taken from the pallet.admin.username
    property.  If not specified then the user.name property is used.")
+
+(defn admin-user-from-config
+  "Set the admin user based on pallet.config setup"
+  []
+  (when-let [user (find-var-with-require 'pallet.config 'admin-user)]
+    (alter-var-root #'*admin-user* (constantly user))))
 
 (defmacro with-temp-file [[varname content] & body]
   `(let [~varname (java.io.File/createTempFile "stevedore", ".tmp")]

@@ -39,7 +39,8 @@
    (compute/compute-service-from-config)))
 
 (defn invoke
-  [service user key profiles task params]
+  [service user key profiles task params project-options]
+  (utils/admin-user-from-config)
   (log-info)
   (let [compute (if service
                   (compute/compute-service

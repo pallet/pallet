@@ -69,6 +69,7 @@
        [[service "Cloud service name."]
         [user "Cloud user name."]
         [key "Cloud key or password."]
+        [project-options "Project options (usually picked up from project.clj."]
         [P "profiles to use for key lookup"]
         args]
        (let [[task & args] args
@@ -82,7 +83,8 @@
              (apply task params)
              (let [_ (require 'pallet.main-invoker)
                    invoker (find-var 'pallet.main-invoker/invoke)]
-               (invoker service user key (profiles P) task params))))
+               (invoker
+                service user key (profiles P) task params project-options))))
          ;; In case tests or some other task started any:
          (flush)
          (when-not (System/getProperty "cake.project")
