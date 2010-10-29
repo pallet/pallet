@@ -196,6 +196,7 @@ script that is run with root privileges immediatly after first boot."
   (let [request (compute/ensure-os-family
                  (:compute request)
                  (assoc request :node-type node-type))
+        request (add-target-packager request)
         init-script (produce-init-script request)]
     (compute/run-nodes
      (:compute request)
