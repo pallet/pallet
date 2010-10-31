@@ -73,7 +73,8 @@
         [P "profiles to use for key lookup"]
         args]
        (let [[task & args] args
-             task (or (aliases task) task "help")]
+             task (or (aliases task) task "help")
+             project-options (read-string project-options)]
          (let [symbol-map (reduce map-and-resolve-symbols {} args)
                arg-line (str "[ " (apply str (interpose " " args)) " ]")
                params (read-string arg-line)

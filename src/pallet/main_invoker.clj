@@ -25,6 +25,30 @@
      (format "public-key-path %s %s" public-key-path
              (.canRead (java.io.File. public-key-path))))))
 
+(defn compute-service-from-project
+  [project profiles]
+  (let [pallet-options (:pallet project)
+        provider (first profiles)
+        default-provider (map pallet-options [:provider :identity :credential])
+        providers (:providers pallet-options)]
+    (cond
+     (every? identity default-provider) (compute/compute-service
+                                         (:provider pallet-options)
+                                         :identity (:identity pallet-options)
+                                         :credential (:credential
+                                                      pallet-options))
+
+     (map? providers) (if-let [creds (or
+                                      (and provider
+                                           (providers provider)
+                                           [provider (providers provider)])
+                                      (-> providers first))]
+                        (compute/compute-service
+                         (first creds)
+                         :identity (:identity (second creds))
+                         :credential (:credential (second creds))))
+     :else nil)))
+
 (defn find-compute-service
   "Look for a compute service in the following sequence:
      Check pallet.config.service property,
@@ -32,8 +56,9 @@
      check pallet.config/service var.
    This sequence allows you to specify an overridable default in
    pallet.config/service."
-  [profiles]
+  [project profiles]
   (or
+   (compute-service-from-project project profiles)
    (compute/compute-service-from-property)
    (apply compute/compute-service-from-settings profiles)
    (compute/compute-service-from-config)))
@@ -45,15 +70,12 @@
   (let [compute (if service
                   (compute/compute-service
                    service :identity user :credential key)
-                  (find-compute-service profiles))]
+                  (find-compute-service project-options profiles))]
     (if compute
       (do
         (logging/debug (format "Running as      %s@%s" user service))
         (try
-          (apply task
-                 {:compute compute
-                  :project (read-string project-options)}
-                 params)
+          (apply task {:compute compute :project project-options} params)
           (finally ;; make sure we don't hang on exceptions
            (compute/close compute))))
       (do
