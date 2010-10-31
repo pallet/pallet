@@ -50,7 +50,10 @@
       (do
         (logging/debug (format "Running as      %s@%s" user service))
         (try
-          (apply task {:compute compute} params)
+          (apply task
+                 {:compute compute
+                  :project (read-string project-options)}
+                 params)
           (finally ;; make sure we don't hang on exceptions
            (compute/close compute))))
       (do
