@@ -27,27 +27,28 @@
 
 (defn compute-service-from-project
   [project profiles]
-  (let [pallet-options (:pallet project)
-        provider (first profiles)
-        default-provider (map pallet-options [:provider :identity :credential])
-        providers (:providers pallet-options)]
-    (cond
-     (every? identity default-provider) (compute/compute-service
-                                         (:provider pallet-options)
-                                         :identity (:identity pallet-options)
-                                         :credential (:credential
-                                                      pallet-options))
+  (when-let [pallet-options (:pallet project)]
+    (let [provider (first profiles)
+          default-provider (map pallet-options
+                                [:provider :identity :credential])
+          providers (:providers pallet-options)]
+      (cond
+       (every? identity default-provider) (compute/compute-service
+                                           (:provider pallet-options)
+                                           :identity (:identity pallet-options)
+                                           :credential (:credential
+                                                        pallet-options))
 
-     (map? providers) (if-let [creds (or
-                                      (and provider
-                                           (providers provider)
-                                           [provider (providers provider)])
-                                      (-> providers first))]
-                        (compute/compute-service
-                         (first creds)
-                         :identity (:identity (second creds))
-                         :credential (:credential (second creds))))
-     :else nil)))
+       (map? providers) (if-let [creds (or
+                                        (and provider
+                                             (providers provider)
+                                             [provider (providers provider)])
+                                        (-> providers first))]
+                          (compute/compute-service
+                           (first creds)
+                           :identity (:identity (second creds))
+                           :credential (:credential (second creds))))
+       :else nil))))
 
 (defn find-compute-service
   "Look for a compute service in the following sequence:
