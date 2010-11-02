@@ -5,8 +5,7 @@
    [pallet.resource.directory :only [directory]]
    [pallet.stevedore :only [script]]
    [pallet.utils :only [*admin-user*]]
-   [pallet.crate.rubygems :only [gem gem-source rubygems]]
-   [pallet.target :only [packager]]))
+   [pallet.crate.rubygems :only [gem gem-source rubygems]]))
 
 (defn chef
   "Install chef"

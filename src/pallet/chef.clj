@@ -6,8 +6,9 @@
     :only [hostname public-ips private-ips tag nodes *compute*]]
    [pallet.compute :only [primary-ip nodes-by-tag ssh-port]]
    [pallet.core :only [nodes-in-set]]
+   [pallet.execute :only [remote-sudo sh-script]]
    [pallet.utils
-    :only [*admin-user* remote-sudo system pprint-lines quoted sh-script]])
+    :only [*admin-user* pprint-lines quoted]])
   (:require
    [clojure.contrib.io :as io]
    [clojure.contrib.java-utils :as java-utils]
