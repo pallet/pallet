@@ -353,13 +353,9 @@ script that is run with root privileges immediatly after first boot."
   `(binding [*middleware* ~f]
      ~@body))
 
-(defn apply-phase
-  "Apply a phase to a sequence of nodes"
-  [nodes request]
-  (logging/info
-   (format
-    "apply-phase %s for %s with %d nodes"
-    (:phase request) (:tag (:node-type request)) (count nodes)))
+(defn reduce-phase-results
+  "Combine the execution results."
+  [request results]
   (reduce
    (fn apply-phase-accumulate [request [result req :as arg]]
      (let [param-keys [:parameters :host (:target-id req)]]
@@ -372,9 +368,37 @@ script that is run with root privileges immediatly after first boot."
            (map-utils/deep-merge-with
             (fn [x y] (or y x)) p (get-in req param-keys)))))))
    request
-   (for [node nodes]
-     (apply-phase-to-node
-      (assoc request :target-node node)))))
+   results))
+
+(defn reduce-results
+  "Reduce across all phase results"
+  [request results]
+  (reduce
+   (fn lift-nodes-reduce-result [request req]
+     (let [req (reduce-phase-results request req)]
+       (->
+        request
+        (update-in
+         [:results]
+         #(map-utils/deep-merge-with
+           (fn [x y] (or y x)) (or % {}) (:results req)))
+        (update-in
+         [:parameters]
+         #(map-utils/deep-merge-with
+           (fn [x y] (or y x)) % (:parameters req))))))
+   request
+   results))
+
+(defn apply-phase
+  "Apply a phase to a sequence of nodes"
+  [nodes request]
+  (logging/info
+   (format
+    "apply-phase %s for %s with %d nodes"
+    (:phase request) (:tag (:node-type request)) (count nodes)))
+  (for [node nodes]
+    (apply-phase-to-node
+     (assoc request :target-node node))))
 
 (defn nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"
@@ -484,18 +508,7 @@ script that is run with root privileges immediatly after first boot."
         request (invoke-phases
                  request (ensure-configure-phase phases) all-node-map)]
     (->
-     (reduce
-      (fn lift-nodes-reduce-result [request req]
-        (->
-         request
-         (update-in
-          [:results]
-          #(map-utils/deep-merge-with
-            (fn [x y] (or y x)) (or % {}) (:results req)))
-         (update-in
-          [:parameters]
-          #(map-utils/deep-merge-with
-            (fn [x y] (or y x)) % (:parameters req)))))
+     (reduce-results
       request
       (for [phase (resource/phase-list phases)
             [node-type tag-nodes] target-node-map]

@@ -301,7 +301,8 @@
                     [nodes request]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
-                      (is (= #{na nb} (set (:target-nodes request))))))]
+                      (is (= #{na nb} (set (:target-nodes request))))
+                      []))]
                   (lift* {a #{na nb nc}} nil [:configure]
                          {:compute nil
                           :user utils/*admin-user*
@@ -310,7 +311,8 @@
                     [nodes request]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
-                      (is (= #{na nb} (set (:target-nodes request))))))]
+                      (is (= #{na nb} (set (:target-nodes request))))
+                      []))]
                   (lift* {a #{na} b #{nb}} nil [:configure]
                          {:compute nil
                           :user utils/*admin-user*
@@ -328,7 +330,8 @@
                     [nodes request]
                     (do
                       (is (= #{na nb nc} (set (:all-nodes request))))
-                      (is (= #{na nb} (set (:target-nodes request))))))]
+                      (is (= #{na nb} (set (:target-nodes request))))
+                      []))]
                   (lift [a b] :compute compute))))
 
 ;; (deftest converge*-nodes-binding-test
