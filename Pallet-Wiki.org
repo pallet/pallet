@@ -1,0 +1,6 @@
+* Source Code Format
+
+Source code should follow the following rules:
+- No Tabs
+- 80 character maximum line length
+
