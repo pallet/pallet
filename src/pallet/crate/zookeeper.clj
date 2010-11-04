@@ -58,7 +58,7 @@
      (user/group group :system true)
      (remote-directory/remote-directory
       home
-      :url url :md5-url (str url ".md5")
+      :url url
       :unpack :tar :tar-options "xz"
       :owner user :group group)
      (directory/directory log-path :owner user :group group :mode "0755")
@@ -86,17 +86,14 @@
     :link (format
            "%s/bin/zkServer.sh"
            (parameter/get-for request [:zookeeper :home])))
-   (if-not-> (:no-enable options)
-             (service/service
-              "zookeeper" :action :start-stop
-              :sequence-start "20 2 3 4 5"
-              :sequence-stop "20 0 1 6"))))
+   (service/service "zookeeper" :action :restart)))
 
 (defn config-files
   "Create a zookeeper configuration file.  We sort by name to preserve sequence
    across invocations."
   [request]
   (let [target-name (request-map/target-name request)
+        target-ip (request-map/target-ip request)
         nodes (sort-by compute/hostname (request-map/nodes-in-tag request))
         configs (parameter/get-for
                  request
@@ -122,7 +119,7 @@
                                            (keyword (compute/hostname %1)))]
                                (format "server.%s=%s:%s:%s"
                                        %2
-                                       (compute/primary-ip %1)
+                                       (compute/private-ip %1)
                                        (:quorumPort config 2888)
                                        (:electionPort config 3888)))
                             nodes
@@ -131,8 +128,8 @@
 
      (remote-file/remote-file
       (format "%s/myid" data-path)
-      :content (str (some #(and (= target-name (second %)) (first %))
-                          (map #(vector %1 (compute/hostname %2))
+      :content (str (some #(and (= target-ip (second %)) (first %))
+                          (map #(vector %1 (compute/primary-ip %2))
                                (range 1 (inc (count nodes)))
                                nodes)))
       :owner owner :group group :mode "0644"))))
