@@ -3,7 +3,6 @@
   (:require
    [pallet.compute.implementation :as implementation]
    [pallet.utils :as utils]
-   [pallet.maven :as maven]
    [pallet.execute :as execute]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]))
@@ -36,21 +35,26 @@
    pallet.compute.provider, pallet.compute.identity and
    provider.compute.credential values."
   [& profiles]
-  (let [credentials (pallet.maven/credentials profiles)
-        options {:identity (:compute-identity credentials)
-                 :credential (:compute-credential credentials)
-                 :extensions (when-let [extensions (:compute-extensions
-                                                    credentials)]
-                               (map
-                                read-string
-                                (string/split extensions #" ")))
-                 :node-list (when-let [node-list (:node-list credentials)]
-                              (read-string node-list))}]
-    (when-let [provider (:compute-provider credentials)]
-      (apply
-       compute-service
-       provider
-       (apply concat (filter second options))))))
+  (try
+    (require 'pallet.maven) ; allow running without maven jars
+    (let [f (ns-resolve 'pallet.maven 'credentials)
+          credentials (f profiles)
+          options {:identity (:compute-identity credentials)
+                   :credential (:compute-credential credentials)
+                   :extensions (when-let [extensions (:compute-extensions
+                                                      credentials)]
+                                 (map
+                                  read-string
+                                  (string/split extensions #" ")))
+                   :node-list (when-let [node-list (:node-list credentials)]
+                                (read-string node-list))}]
+      (when-let [provider (:compute-provider credentials)]
+        (apply
+         compute-service
+         provider
+         (apply concat (filter second options)))))
+    (catch ClassNotFoundException _)
+    (catch clojure.lang.Compiler$CompilerException _)))
 
 (defn- compute-service-from-var
   [ns sym]

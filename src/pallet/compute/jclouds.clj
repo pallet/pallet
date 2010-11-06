@@ -256,7 +256,7 @@
     (name (node-type :tag))
     node-count
     (build-node-template
-     (:compute request)
+     compute
      (-> request :user :public-key-path)
      request
      init-script)
