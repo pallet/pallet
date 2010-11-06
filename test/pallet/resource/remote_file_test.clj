@@ -19,32 +19,30 @@
 (use-fixtures :once test-utils/with-ubuntu-script-template)
 
 (deftest remote-file*-test
-  (is (= (stevedore/checked-commands
-          "remote-file path"
-          (file/heredoc "path.new" "xxx")
-          (stevedore/chained-script
-           (if (file-exists? "path.new")
-             (do
-               (mv -f " path.new" "path")))
-           ((md5sum "path") > "path.md5")
-           (echo "MD5 sum is" @(cat "path.md5"))))
-         (remote-file* {} "path" :content "xxx" :no-versioning true)))
+  (testing "no-versioning"
+    (is (= (stevedore/checked-commands
+            "remote-file path"
+            (file/heredoc "path.new" "xxx")
+            (stevedore/chained-script
+             (if (file-exists? "path.new")
+               (do
+                 (mv -f " path.new" "path")))))
+           (remote-file* {} "path" :content "xxx" :no-versioning true))))
 
-  (is (= (stevedore/checked-commands
-          "remote-file path"
-          (file/heredoc "path.new" "xxx")
-          (stevedore/chained-script
-           (if (file-exists? "path.new")
-             (do
-               (mv -f " path.new" "path")))
-           (chown "o" "path")
-           (chgrp "g" "path")
-           (chmod "m" "path")
-           ((md5sum "path") > "path.md5")
-           (echo "MD5 sum is" @(cat "path.md5"))))
-         (remote-file*
-          {} "path" :content "xxx" :owner "o" :group "g" :mode "m"
-          :no-versioning true)))
+  (testing "no-versioning with owner, group and mode"
+    (is (= (stevedore/checked-commands
+            "remote-file path"
+            (file/heredoc "path.new" "xxx")
+            (stevedore/chained-script
+             (if (file-exists? "path.new")
+               (do
+                 (mv -f " path.new" "path")))
+             (chown "o" "path")
+             (chgrp "g" "path")
+             (chmod "m" "path")))
+           (remote-file*
+            {} "path" :content "xxx" :owner "o" :group "g" :mode "m"
+            :no-versioning true))))
 
   (testing "delete"
     (is (= (stevedore/checked-script
@@ -72,8 +70,7 @@
     (utils/with-temporary [tmp (utils/tmpfile)]
       (is  (re-matches
             (java.util.regex.Pattern/compile
-             (str "remote-file .*....*MD5 sum is "
-                  "6de9439834c9147569741d3c9c9fc010 .*...done.")
+             (str "remote-file .*...done.")
              (bit-or java.util.regex.Pattern/MULTILINE
                      java.util.regex.Pattern/DOTALL))
             (->

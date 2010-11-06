@@ -201,8 +201,9 @@
                       (stevedore/script (set-flag ~flag-on-changed))))))))
            (file/adjust-file path options)
            (when-not no-versioning
-             (file/write-md5-for-file path md5-path)
-             (stevedore/script (echo "MD5 sum is" @(cat ~md5-path))))))
+             (stevedore/chain-commands
+              (file/write-md5-for-file path md5-path)
+              (stevedore/script (echo "MD5 sum is" @(cat ~md5-path)))))))
         ;; cleanup
         (if (and (not no-versioning) (pos? max-versions))
           (stevedore/script
