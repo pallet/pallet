@@ -313,8 +313,8 @@
   (let [na (jclouds/make-node "a")
         nb (jclouds/make-node "b")
         nc (jclouds/make-node "c" :state NodeState/TERMINATED)]
-    (mock/expects [(apply-phase
-                    [nodes request]
+    (mock/expects [(sequential-apply-phase
+                    [request nodes]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
@@ -323,8 +323,8 @@
                          {:compute nil
                           :user utils/*admin-user*
                           :middleware *middleware*}))
-    (mock/expects [(apply-phase
-                    [nodes request]
+    (mock/expects [(sequential-apply-phase
+                    [request nodes]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
@@ -341,8 +341,8 @@
         nb (jclouds/make-node "b")
         nc (jclouds/make-node "c")]
     (mock/expects [(org.jclouds.compute/nodes-with-details [_] [na nb nc])
-                   (apply-phase
-                    [nodes request]
+                   (sequential-apply-phase
+                    [request nodes]
                     (do
                       (is (= #{na nb nc} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
@@ -355,8 +355,8 @@
   (let [na (jclouds/make-node "a")
         nb (jclouds/make-node "b")
         nc (jclouds/make-node "b" :state NodeState/TERMINATED)]
-    (mock/expects [(apply-phase
-                    [nodes request]
+    (mock/expects [(sequential-apply-phase
+                    [request nodes]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))

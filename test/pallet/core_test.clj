@@ -297,8 +297,8 @@
   (let [na (test-utils/make-node "a")
         nb (test-utils/make-node "b")
         nc (test-utils/make-node "c" :running false)]
-    (mock/expects [(apply-phase
-                    [nodes request]
+    (mock/expects [(sequential-apply-phase
+                    [request nodes]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
@@ -307,8 +307,8 @@
                          {:compute nil
                           :user utils/*admin-user*
                           :middleware *middleware*}))
-    (mock/expects [(apply-phase
-                    [nodes request]
+    (mock/expects [(sequential-apply-phase
+                    [request nodes]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
@@ -326,8 +326,8 @@
         nc (test-utils/make-node "c")
         compute (compute/compute-service "node-list" :node-list [na nb nc])]
     (mock/expects [(compute/nodes [_] [na nb nc])
-                   (apply-phase
-                    [nodes request]
+                   (sequential-apply-phase
+                    [request nodes]
                     (do
                       (is (= #{na nb nc} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
@@ -341,8 +341,8 @@
 ;;         nb (test-utils/make-node "b")
 ;;         nc (test-utils/make-node "b" :name "b1" :running false)
 ;;         compute (compute/compute-service "node-list" :node-list [na nb nc])]
-;;     (mock/expects [(apply-phase
-;;                     [nodes request]
+;;     (mock/expects [(sequential-apply-phase
+;;                     [request nodes]
 ;;                     (do
 ;;                       (is (= #{na nb} (set (:all-nodes request))))
 ;;                       (is (= #{na nb} (set (:target-nodes request))))))

@@ -336,6 +336,10 @@ script that is run with root privileges immediatly after first boot."
 (defn wrap-with-user-credentials
   [handler]
   (fn [request]
+    (logging/info
+     (format
+      "Using identity at %s"
+      (:private-key-path (:user request))))
     (execute/possibly-add-identity
      (execute/default-agent)
      (:private-key-path (:user request))
@@ -389,9 +393,9 @@ script that is run with root privileges immediatly after first boot."
    request
    results))
 
-(defn apply-phase
+(defn sequential-apply-phase
   "Apply a phase to a sequence of nodes"
-  [nodes request]
+  [request nodes]
   (logging/info
    (format
     "apply-phase %s for %s with %d nodes"
@@ -493,6 +497,15 @@ script that is run with root privileges immediatly after first boot."
   [request phases node-map]
   (reduce #(invoke-for-node-type (assoc %1 :phase %2) node-map) request phases))
 
+(defn sequential-lift
+  "Sequential apply the phases."
+  [request phases target-node-map]
+  (for [phase (resource/phase-list phases)
+        [node-type tag-nodes] target-node-map]
+    (sequential-apply-phase
+     (assoc request :phase phase :node-type node-type)
+     tag-nodes)))
+
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
   [all-nodes target-node-map all-node-map phases request]
@@ -502,21 +515,13 @@ script that is run with root privileges immediatly after first boot."
         all-nodes (or all-nodes target-nodes) ; Target node map may contain
                                         ; unmanged nodes
         [request phases] (identify-anonymous-phases request phases)
-        request (assoc request
-                  :all-nodes all-nodes
-                  :target-nodes target-nodes)
-        request (invoke-phases
-                 request (ensure-configure-phase phases) all-node-map)]
-    (->
-     (reduce-results
+        request (assoc request :all-nodes all-nodes :target-nodes target-nodes)]
+    (reduce-results
+     request
+     (->
       request
-      (for [phase (resource/phase-list phases)
-            [node-type tag-nodes] target-node-map]
-        (apply-phase
-         tag-nodes
-         (assoc request :phase phase :node-type node-type))))
-     (dissoc :node-type :target-node :target-nodes :target-id :phase
-             :invocations :user))))
+      (invoke-phases (ensure-configure-phase phases) all-node-map)
+      (sequential-lift phases target-node-map)))))
 
 (defn lift*
   [node-set all-node-set phases request]
