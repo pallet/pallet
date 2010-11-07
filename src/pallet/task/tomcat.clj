@@ -44,7 +44,7 @@
 
 (defn tomcat
   "Deploy war file to tomcat.
-   This will create a node based on your cloud credaentials.  By default the
+   This will create a node based on your cloud credentials.  By default the
    node will have a webapp tag."
   [request & args]
   (let [war (find-war (:project request))

@@ -2,6 +2,7 @@
   (:use pallet.crate.nagios-config)
   (:require
    [pallet.parameter :as parameter]
+   [pallet.request-map :as request-map]
    [pallet.target :as target]
    [pallet.resource :as resource]
    [pallet.crate.nagios :as nagios]
@@ -11,10 +12,11 @@
 (deftest service*-test
   (let [cfg {:service-group "g" :service-description "d" :command "c"}
         node (test-utils/make-node "tag" :id "id")
-        request {:target-node node}]
+        request {:target-node node}
+        host-id (keyword (format "tag%s" (request-map/safe-id "id")))]
     (is (= [cfg]
              (-> (service request cfg)
-                 :parameters :nagios :host-services :host-tag-id)))))
+                 :parameters :nagios :host-services host-id)))))
 
 (deftest command-test
   (let [cfg {:command_name "n" :command_line "c"}

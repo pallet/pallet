@@ -4,6 +4,7 @@
    [pallet.crate.nagios-config :as nagios-config]
    [pallet.parameter :as parameter]
    [pallet.stevedore :as stevedore]
+   [pallet.request-map :as request-map]
    [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.file :as file]
@@ -15,35 +16,39 @@
 
 (deftest host-service-test
   (testing "config"
-    (is (= (str
-            (remote-file/remote-file*
-             {}
-             "/etc/nagios3/conf.d/pallet-host-*.cfg" :action :delete :force true)
-            (remote-file/remote-file*
-             {}
-             "/etc/nagios3/conf.d/pallet-host-host-tag-id.cfg"
-             :content
-             (str
-              "\ndefine host "
-              "{\n use generic-host\n host_name host-tag-id\n alias host-tag-id\n address 1.2.3.4\n}\n"
-              (define-service {:check_command "check_cmd"
-                               :service_description "Service Name"
-                               :host_name "host-tag-id"
-                               :notification_interval 0
-                               :use "generic-service"}))
-             :owner "root"))
-           (let [node (test-utils/make-node
-                       "tag" :id "id" :public-ips ["1.2.3.4"])]
-             (first
-              (test-utils/build-resources
-               [:target-node node
-                :all-nodes [node]
-                :target-nodes [node]
-                :node-type {:image {:os-family :ubuntu}}]
-               (nagios-config/service
-                {:check_command "check_cmd"
-                 :service_description "Service Name"})
-               (hosts)))))))
+    (let [safe-name (format "tag%s" (request-map/safe-id "id"))]
+      (is (= (str
+              (remote-file/remote-file*
+               {}
+               "/etc/nagios3/conf.d/pallet-host-*.cfg"
+               :action :delete :force true)
+              (remote-file/remote-file*
+               {}
+               (format "/etc/nagios3/conf.d/pallet-host-%s.cfg" safe-name)
+               :content
+               (str
+                "\ndefine host "
+                "{\n use generic-host\n host_name " safe-name
+                "\n alias " safe-name
+                "\n address 1.2.3.4\n}\n"
+                (define-service {:check_command "check_cmd"
+                                 :service_description "Service Name"
+                                 :host_name safe-name
+                                 :notification_interval 0
+                                 :use "generic-service"}))
+               :owner "root"))
+             (let [node (test-utils/make-node
+                         "tag" :id "id" :public-ips ["1.2.3.4"])]
+               (first
+                (test-utils/build-resources
+                 [:target-node node
+                  :all-nodes [node]
+                  :target-nodes [node]
+                  :node-type {:image {:os-family :ubuntu}}]
+                 (nagios-config/service
+                  {:check_command "check_cmd"
+                   :service_description "Service Name"})
+                 (hosts))))))))
   (testing "unmanaged host config"
     (is (= (str
             (remote-file/remote-file*
