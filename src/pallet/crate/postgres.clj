@@ -15,8 +15,7 @@
    [clojure.string :as str])
   (:use
    pallet.thread-expr
-   [pallet.script :only [defscript]]
-   [clojure.contrib.string :only [as-str]]))
+   [pallet.script :only [defscript]]))
 
 (defn postgres
   "version should be a string identifying the major.minor version number desired
@@ -53,16 +52,16 @@
    record."
   [{:keys [connection-type database user auth-method address ip-mask]
     :as record-map}]
-  (and (#{"local" "host" "hostssl" "hostnossl"} (as-str connection-type))
+  (and (#{"local" "host" "hostssl" "hostnossl"} (name connection-type))
        (every? #(not (nil? %)) [database user auth-method])
-       (auth-methods (as-str auth-method))))
+       (auth-methods (name auth-method))))
 
 (defn- record-to-map
   "Takes a record given as a map or vector, and turns it into the map version."
   [record]
   (cond
    (map? record) record
-   (vector? record) (case (as-str (first record))
+   (vector? record) (case (name (first record))
                       "local" (apply
                                hash-map
                                (interleave
@@ -85,7 +84,7 @@
                                           record))
                                         ;; Otherwise, it may be an auth-method.
                                         (if (auth-methods
-                                             (as-str (first remainder)))
+                                             (name (first remainder)))
                                           (apply
                                            hash-map
                                            (interleave
@@ -98,16 +97,16 @@
                                            :message
                                            (format
                                             "The fifth item in %s does not appear to be an IP mask or auth method."
-                                            (as-str record))))))
+                                            (name record))))))
                        (condition/raise
                         :type :postgres-invalid-hba-record
                         :message (format
                                   "The first item in %s is not a valid connection type."
-                                  (as-str record))))
+                                  (name record))))
    :else
    (condition/raise :type :postgres-invalid-hba-record
                     :message (format "The record %s must be a vector or map."
-                                     (as-str record)))))
+                                     (name record)))))
 
 (defn- format-auth-options
   "Given the auth-options map, returns a string suitable for inserting into the
@@ -123,7 +122,7 @@
         ordered-fields (map record-map
                             [:connection-type :database :user :address :ip-mask
                              :auth-method :auth-options])
-        ordered-fields (map as-str ordered-fields)]
+        ordered-fields (map name ordered-fields)]
     (if (valid-hba-record? record-map)
       (str (str/join "\t" ordered-fields) "\n"))))
 
@@ -171,7 +170,7 @@
         (string? value)
         (str "'" value "'")
         (vector? value)
-        (str "'" (str/join "," (map as-str value)) "'")
+        (str "'" (str/join "," (map name value)) "'")
         :else
         (condition/raise
          :type :postgres-invalid-parameter
@@ -182,7 +181,7 @@
    postgresql.conf file.
    The value should be either a number, a string, or a vector of such."
   [[key value]]
-  (let [key-str (as-str key)
+  (let [key-str (name key)
         parameter-str (format-parameter-value value)]
     (str key-str " = " parameter-str "\n")))
 
@@ -254,7 +253,7 @@
               \"my-database\" :db-parameters [:encoding \"'LATIN1'\"])"
   [request db-name & rest]
   (let [{:keys [db-parameters] :as options} rest
-        db-parameters-str (str/join " " (map as-str db-parameters))]
+        db-parameters-str (str/join " " (map name db-parameters))]
     ;; Postgres simply has no way to check if a database exists and issue a
     ;; "CREATE DATABASE" only in the case that it doesn't. That would require a
     ;; function, but create database can't be done within a transaction, so
@@ -292,7 +291,7 @@
              \"myuser\" :user-parameters [:encrypted :password \"'mypasswd'\"])"
   [request username & rest]
   (let [{:keys [user-parameters] :as options} rest
-        user-parameters-str (str/join " " (map as-str user-parameters))]
+        user-parameters-str (str/join " " (map name user-parameters))]
     (apply postgresql-script
            request
            (format create-role-pgsql username user-parameters-str)
