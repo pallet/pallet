@@ -21,12 +21,13 @@
   {:no-service-required true}
   [& _]
   (println "Pallet uses jcloud's providers.\n")
-  (doseq [supported (provider-properties)
+  (doseq [supported (sort #(compare (first %1) (first %2))
+                          (provider-properties))
           :let [key (first supported)
                 name (.substring key 0 (.indexOf key "."))]]
     (println
      (format
-      "\t%15s\t %s"
+      "\t%20s  %s"
       name
       (if (enabled? (second supported)) "Enabled" "Disabled"))))
   (println "\nProviders can be enabled by copying the corresponding jclouds jar")
