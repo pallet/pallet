@@ -219,7 +219,11 @@
     (logging/info (str "  authorizing " public-key-path)))
   (when init-script
     (logging/debug (str "  init script\n" init-script)))
-  (let [options (-> request :node-type :image)]
+  (let [options (-> request :node-type :image)
+        options (if (-> request :node-type :default-os-family)
+                  (dissoc options :os-family) ; remove if we added in
+                                              ; ensure-os-family
+                  options)]
     (logging/info (str "  options " options))
     (let [options (if (and public-key-path
                            (not (:authorize-public-key options)))
@@ -248,7 +252,10 @@
            family (-> (.. template getImage getOperatingSystem getFamily)
                       str keyword)]
        (logging/info (format "Default OS is %s" (pr-str family)))
-       (assoc-in request [:node-type :image :os-family] family))))
+       (->
+        request
+        (assoc-in [:node-type :image :os-family] family)
+        (assoc-in [:node-type :default-os-family] true)))))
 
   (run-nodes
    [compute node-type node-count request init-script]
