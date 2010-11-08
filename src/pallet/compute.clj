@@ -34,7 +34,7 @@
   "Create a compute service from maven property settings.
    In Maven's settings.xml you can define a profile, that contains
    pallet.compute.provider, pallet.compute.identity and
-   provider.compute.credential values."
+   pallet.compute.credential values."
   [& profiles]
   (try
     (require 'pallet.maven) ; allow running without maven jars
