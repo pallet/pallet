@@ -1,7 +1,8 @@
 (ns pallet.blobstore
   "Blobstore abstraction"
   (:require
-   [pallet.blobstore.implementation :as implementation]))
+   [pallet.blobstore.implementation :as implementation]
+   [pallet.configure :as configure]))
 
 ;;; Compute Service instantiation
 (defn service
@@ -25,6 +26,15 @@
          :credential (:blobstore-credential credentials))))
     (catch ClassNotFoundException _)
     (catch clojure.lang.Compiler$CompilerException _)))
+
+(defn blobstore-from-config
+  [config profiles]
+  (let [config (configure/compute-service-properties config profiles)
+        {:keys [provider identity credential]} (merge config
+                                                      (:blobstore config))]
+    (when provider
+      (service provider identity credential))))
+
 
 (defprotocol Blobstore
   (sign-blob-request

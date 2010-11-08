@@ -2,6 +2,7 @@
   "Abstraction of the compute interface"
   (:require
    [pallet.compute.implementation :as implementation]
+   [pallet.configure :as configure]
    [pallet.utils :as utils]
    [pallet.execute :as execute]
    [clojure.contrib.condition :as condition]
@@ -60,7 +61,7 @@
   [ns sym]
   (utils/find-var-with-require ns sym))
 
-(defn compute-service-from-config
+(defn compute-service-from-config-var
   "Checks to see if pallet.config/service is a var, and if so returns its
   value."
   []
@@ -75,6 +76,15 @@
                               (string/split property #"/"))]
       (compute-service-from-var
        (symbol (first sym-names)) (symbol (second sym-names))))))
+
+(defn compute-service-from-config
+  "Compute service from ~/.pallet/config.clj"
+  [config profiles]
+  (let [{:keys [provider identity credential]}
+        (configure/compute-service-properties config profiles)]
+    (when provider
+      (compute-service provider :identity identity :credential credential))))
+
 
 ;;; Nodes
 (defprotocol Node

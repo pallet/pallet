@@ -4,9 +4,8 @@
    the world."
   (:require
    [clojure.contrib.logging :as logging]
-   [clojure.java.io :as java-io]
-   [clojure.walk :as walk]
    [pallet.compute :as compute]
+   [pallet.configure :as configure]
    [pallet.blobstore :as blobstore]
    [pallet.utils :as utils]
    [pallet.main :as main]))
@@ -27,43 +26,6 @@
      (format "public-key-path %s %s" public-key-path
              (.canRead (java.io.File. public-key-path))))))
 
-(defn compute-service-properties
-  [config profiles]
-  (when config
-    (let [provider (first profiles)
-          default-provider (map config [:provider :identity :credential])
-          providers (:providers config)]
-      (cond
-       (every? identity default-provider) {:provider (:provider config)
-                                           :identity (:identity config)
-                                           :credential (:credential config)
-                                           :blobstore (:blobstore config)}
-       (map? providers) (or
-                         (and provider (or
-                                        (providers (keyword provider))
-                                        (providers provider)))
-                         (and (not provider) ; use default if no profile
-                                             ; requested
-                              (first providers)
-                              (-> providers first val)))
-       :else nil))))
-
-(defn compute-service-from-config
-  [config profiles]
-  (let [{:keys [provider identity credential]} (compute-service-properties
-                                                config profiles)]
-    (when provider
-      (compute/compute-service
-       provider :identity identity :credential credential))))
-
-(defn blobstore-from-config
-  [config profiles]
-  (let [config (compute-service-properties config profiles)
-        {:keys [provider identity credential]} (merge config
-                                                      (:blobstore config))]
-    (when provider
-      (blobstore/service provider identity credential))))
-
 (defn find-compute-service
   "Look for a compute service in the following sequence:
      Check pallet.config.service property,
@@ -73,10 +35,11 @@
    pallet.config/service."
   [defaults project profiles]
   (or
-   (compute-service-from-config (:pallet project) profiles)
-   (compute-service-from-config defaults profiles)
+   (compute/compute-service-from-config (:pallet project) profiles)
+   (compute/compute-service-from-config defaults profiles)
    (compute/compute-service-from-property)
-   (apply compute/compute-service-from-settings profiles)))
+   (apply compute/compute-service-from-settings profiles)
+   (compute/compute-service-from-config-var)))
 
 
 (defn find-blobstore
@@ -88,59 +51,15 @@
    pallet.config/service."
   [defaults project profiles]
   (or
-   (blobstore-from-config (:pallet project) profiles)
-   (blobstore-from-config defaults profiles)
+   (blobstore/blobstore-from-config (:pallet project) profiles)
+   (blobstore/blobstore-from-config defaults profiles)
    (apply blobstore/blobstore-from-settings profiles)))
-
-
-(def ^{:private true} config nil)
-
-(defn- unquote-vals [args]
-  (walk/walk
-   (fn [item]
-     (cond (and (seq? item) (= `unquote (first item))) (second item)
-           ;; needed if we want fn literals to be usable by eval-in-project
-           (and (seq? item) (= 'fn (first item))) (list 'quote item)
-           (symbol? item) (list 'quote item)
-           :else (unquote-vals item)))
-   identity
-   args))
-
-(defmacro defpallet
-  [& {:keys [provider identity credential providers admin-user]
-      :as config-options}]
-  `(let [m# (zipmap
-             ~(cons 'list (keys config-options))
-             ~(cons 'list (unquote-vals (vals config-options))))]
-    (alter-var-root
-     #'config
-     (fn [_#] m#))))
-
-(defn- read-config
-  [file]
-  (try
-    (load-file file)
-    config
-    (catch java.io.FileNotFoundException _)))
-
-(defn- home-dir
-  "Returns full path to Pallet home dir ($PALLET_HOME or $HOME/.pallet)"
-  []
-  (.getAbsolutePath
-   (doto (if-let [pallet-home (System/getenv "PALLET_HOME")]
-           (java.io.File. pallet-home)
-           (java.io.File. (System/getProperty "user.home") ".pallet"))
-     .mkdirs)))
-
-(defn pallet-config
-  []
-  (read-config (.getAbsolutePath (java-io/file (home-dir) "config.clj"))))
 
 (defn invoke
   [service user key profiles task params project-options]
   (utils/admin-user-from-config)
   (log-info)
-  (let [default-config (pallet-config)
+  (let [default-config (configure/pallet-config)
         compute (if service
                   (compute/compute-service
                    service :identity user :credential key)
