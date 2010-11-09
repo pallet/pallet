@@ -9,6 +9,10 @@
    :pallet.compute.identity :compute-identity
    :pallet.compute.credential :compute-credential
    :pallet.compute.extensions :compute-extensions
+   :pallet.blobstore.provider :blobstore-provider
+   :pallet.blobstore.identity :blobstore-identity
+   :pallet.blobstore.credential :blobstore-credential
+   :pallet.blobstore.extensions :blobstore-extensions
    :jclouds.compute.provider :compute-provider
    :jclouds.compute.identity :compute-identity
    :jclouds.compute.credential :compute-credential
