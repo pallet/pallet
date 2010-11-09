@@ -35,4 +35,5 @@
      (jclouds-blobstore/create-container container nil blobstore))
    (jclouds-blobstore/upload-blob
     container path (java.io.File. file) blobstore))
+  (containers [blobstore] (jclouds-blobstore/containers blobstore))
   (close [blobstore] (.. blobstore getContext close)))

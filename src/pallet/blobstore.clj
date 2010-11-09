@@ -43,6 +43,9 @@
   (put-file
    [blobstore container path file]
    "Upload a file")
+  (containers
+   [blobstore]
+   "List containers")
   (close
    [blobstore]
    "Close the blobstore"))
