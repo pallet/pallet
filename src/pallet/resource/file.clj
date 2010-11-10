@@ -185,7 +185,9 @@
 (defresource sed
   "Execute sed on a file.  Takes a path and a map for expr to replacement."
   (sed*
-   [request path exprs-map & {:keys [seperator] :as options}]
+   [request path exprs-map & {:keys [seperator no-md5] :as options}]
    (stevedore/checked-script
     (format "sed file %s" path)
-    (sed-file ~path ~exprs-map ~options))))
+    (sed-file ~path ~exprs-map ~options)
+    ~(when-not no-md5
+       (write-md5-for-file path (str path ".md5"))))))
