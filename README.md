@@ -2,8 +2,8 @@
 
 Pallet is used to provision and maintain compute nodes, and aims to solve the
 problem of providing a consistently configured running image across a range of
-clouds.  It is designed for use from the [Clojure](http://clojure.org) REPL, and
-from clojure scripts.
+clouds.  It is designed for use from the [Clojure](http://clojure.org) REPL, from
+clojure code, and from the command line.
 
 It uses [jclouds](http://github.com/jclouds/jclouds) to gain portable access to
 different cloud providers.  While jclouds solves the issue of creating,
@@ -79,3 +79,5 @@ by typing the following at the repl.
 Licensed under [EPL](http://www.eclipse.org/legal/epl-v10.html)
 
 [Contributors](https://www.ohloh.net/p/pallet-clj/contributors)
+
+Copyright 2010 Hugo Duncan.

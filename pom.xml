@@ -101,6 +101,13 @@
                         <exclude>log4j.xml</exclude>
                     </excludes>
                 </configuration>
+                <executions>
+                  <execution>
+                    <goals>
+                      <goal>test-jar</goal>
+                    </goals>
+                  </execution>
+                </executions>
             </plugin>
             <plugin>
                 <!-- NOTE: We don't need a groupId specification because the group is
@@ -277,7 +284,7 @@
             <plugin>
               <groupId>com.theoryinpractise</groupId>
               <artifactId>clojure-maven-plugin</artifactId>
-              <version>1.3.2</version>
+              <version>1.3.5</version>
               <configuration>
                 <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m -Dssh.username=testuser</clojureOptions>
               </configuration>

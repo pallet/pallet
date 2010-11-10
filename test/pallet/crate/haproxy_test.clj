@@ -1,6 +1,8 @@
 (ns pallet.crate.haproxy-test
   (:use pallet.crate.haproxy)
   (:require
+   [pallet.compute :as compute]
+   [pallet.request-map :as request-map]
    [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
    [pallet.crate.etc-default :as etc-default]
@@ -25,7 +27,9 @@
     (is (= {:parameters
             {:haproxy
              {:tag1
-              {:app1 [{:name "tag", :ip "1.2.3.4"}]}}},
+              {:app1 [{:name (format "tag%s" (request-map/safe-id
+                                              (compute/id node)))
+                       :ip "1.2.3.4"}]}}},
             :node-type {:tag :tag},
             :target-node node}
            (proxied-by

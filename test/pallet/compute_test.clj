@@ -12,11 +12,16 @@
 (def service :service)
 (in-ns 'pallet.compute-test)
 
-(deftest compute-service-from-config-test
-  (is (= :service (compute-service-from-config))))
+(deftest compute-service-from-config-var-test
+  (is (= :service (compute-service-from-config-var))))
 
 (def property-service :property-service)
 (deftest compute-service-from-property-test
   (System/setProperty
    "pallet.config.service" "pallet.compute-test/property-service")
   (is (= :property-service (compute-service-from-property))))
+
+(deftest compute-service-from-var-test
+  (testing "catch"
+    (is (nil? (#'pallet.compute/compute-service-from-var
+               'this.does.not 'exist)))))

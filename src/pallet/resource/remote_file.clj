@@ -1,14 +1,14 @@
 (ns pallet.resource.remote-file
   "File Contents."
   (:require
+   [pallet.blobstore :as blobstore]
    [pallet.resource :as resource]
+   [pallet.resource.directory :as directory]
+   [pallet.resource.file :as file]
    [pallet.resource.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.template :as templates]
-   [pallet.resource.file :as file]
-   [pallet.resource.directory :as directory]
    [pallet.utils :as utils]
-   [pallet.blobstore :as blobstore]
    [clojure.contrib.def :as def]
    [clojure.java.io :as io])
   (:use pallet.thread-expr))
@@ -200,8 +200,10 @@
                     (if flag-on-changed
                       (stevedore/script (set-flag ~flag-on-changed))))))))
            (file/adjust-file path options)
-           (file/write-md5-for-file path md5-path)
-           (stevedore/script (echo "MD5 sum is" @(cat ~md5-path)))))
+           (when-not no-versioning
+             (stevedore/chain-commands
+              (file/write-md5-for-file path md5-path)
+              (stevedore/script (echo "MD5 sum is" @(cat ~md5-path)))))))
         ;; cleanup
         (if (and (not no-versioning) (pos? max-versions))
           (stevedore/script

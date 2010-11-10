@@ -2,7 +2,8 @@
   (:gen-class)
   (:require
    clojure.walk
-   [pallet.command-line :as command-line]))
+   [pallet.command-line :as command-line]
+   [clojure.string :as string]))
 
 (defn abort [msg]
   (println msg)
@@ -55,6 +56,11 @@
         symbol-map))
     symbol-map))
 
+(defn profiles
+  [profiles-string]
+  (when profiles-string
+    (string/split profiles-string #",")))
+
 (defn -main
   "Command line runner."
   ([& args]
@@ -63,9 +69,13 @@
        [[service "Cloud service name."]
         [user "Cloud user name."]
         [key "Cloud key or password."]
+        [project-options "Project options (usually picked up from project.clj."]
+        [P "profiles to use for key lookup"]
         args]
        (let [[task & args] args
-             task (or (aliases task) task "help")]
+             task (or (aliases task) task "help")
+             project-options (when project-options
+                               (read-string project-options))]
          (let [symbol-map (reduce map-and-resolve-symbols {} args)
                arg-line (str "[ " (apply str (interpose " " args)) " ]")
                params (read-string arg-line)
@@ -75,7 +85,8 @@
              (apply task params)
              (let [_ (require 'pallet.main-invoker)
                    invoker (find-var 'pallet.main-invoker/invoke)]
-               (invoker service user key task params))))
+               (invoker
+                service user key (profiles P) task params project-options))))
          ;; In case tests or some other task started any:
          (flush)
          (when-not (System/getProperty "cake.project")

@@ -2,6 +2,7 @@
   (:require
    [pallet.compute :as compute]
    [pallet.resource :as resource]
+   [pallet.request-map :as request-map]
    [pallet.argument :as argument]
    [pallet.parameter :as parameter]
    [pallet.resource.package :as package]
@@ -13,7 +14,9 @@
 (defn nagios-hostname
   "Return the nagios hostname for a node"
   [node]
-  (format "host-%s-%s" (compute/tag node) (compute/id node)))
+  ;; this should match (request-map/safe-name request)
+  ;; for things to work well
+  (format "%s%s" (compute/tag node) (request-map/safe-id (compute/id node))))
 
 (def hostgroup-fmt "
 define hostgroup {
@@ -357,26 +360,25 @@ define command {
    (fn [x]
      (compute/primary-ip (:target-node request)))))
 
-(resource/defresource hostgroups
+(defn hostgroups
   "Create host groups for each tag, and one for all managed machines."
-  (hostgroups*
-   [request]
-   (let [nodes (filter #(config-for-node request %) (:all-nodes request))]
-     (str
-      (hostgroup "all-managed" "Managed Servers" (map nagios-hostname nodes))
-      (when-let  [unmanaged (parameter/get-for
-                             request [:nagios :hosts] nil)]
+  [request]
+  (let [nodes (filter #(config-for-node request %) (:all-nodes request))]
+    (str
+     (hostgroup "all-managed" "Managed Servers" (map nagios-hostname nodes))
+     (when-let  [unmanaged (parameter/get-for
+                            request [:nagios :hosts] nil)]
+       (hostgroup
+        "all-unmanaged" "Unmanaged Servers"
+        (map :name unmanaged)))
+     (reduce
+      #(str
+        %1 " "
         (hostgroup
-         "all-unmanaged" "Unmanaged Servers"
-         (map :name unmanaged)))
-      (reduce
-       #(str
-         %1 " "
-         (hostgroup
-          (first %2) (first %2)
-          (map (fn [n] (nagios-hostname n)) (second %2))))
-       ""
-       (group-by (fn [n] (compute/tag n)) nodes))))))
+         (first %2) (first %2)
+         (map (fn [n] (nagios-hostname n)) (second %2))))
+      ""
+      (group-by (fn [n] (compute/tag n)) nodes)))))
 
 
 (defn nagios

@@ -396,10 +396,25 @@
    request
    (exec-script/exec-script
     (rpm
-     -U
+     -U --quiet
      ~(format
        "http://download.fedora.redhat.com/pub/epel/5/x86_64/epel-release-%s.noarch.rpm"
        version)))))
+
+(defn add-rpmforge
+  "Add the rpmforge repository"
+  [request & {:keys [version distro arch]
+              :or {version "0.5.1-1" distro "el5" arch "i386"}}]
+  (->
+   request
+   (exec-script/exec-script
+    (rpm
+     -U --quiet
+     ~(format
+       "http://packages.sw.be/rpmforge-release/rpmforge-release-%s.%s.rf.%s.rpm"
+       version
+       distro
+       arch)))))
 
 (def jpackage-mirror-fmt
   "http://www.jpackage.org/mirrorlist.php?dist=%s&type=free&release=%s")

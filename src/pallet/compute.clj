@@ -2,8 +2,8 @@
   "Abstraction of the compute interface"
   (:require
    [pallet.compute.implementation :as implementation]
+   [pallet.configure :as configure]
    [pallet.utils :as utils]
-   [pallet.maven :as maven]
    [pallet.execute :as execute]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]))
@@ -34,35 +34,34 @@
   "Create a compute service from maven property settings.
    In Maven's settings.xml you can define a profile, that contains
    pallet.compute.provider, pallet.compute.identity and
-   provider.compute.credential values."
+   pallet.compute.credential values."
   [& profiles]
-  (let [credentials (pallet.maven/credentials profiles)
-        options {:identity (:compute-identity credentials)
-                 :credential (:compute-credential credentials)
-                 :extensions (when-let [extensions (:compute-extensions
-                                                    credentials)]
-                               (map
-                                read-string
-                                (string/split extensions #" ")))
-                 :node-list (when-let [node-list (:node-list credentials)]
-                              (read-string node-list))}]
-    (when-let [provider (:compute-provider credentials)]
-      (apply
-       compute-service
-       provider
-       (apply concat (filter second options))))))
+  (try
+    (require 'pallet.maven) ; allow running without maven jars
+    (let [f (ns-resolve 'pallet.maven 'credentials)
+          credentials (f profiles)
+          options {:identity (:compute-identity credentials)
+                   :credential (:compute-credential credentials)
+                   :extensions (when-let [extensions (:compute-extensions
+                                                      credentials)]
+                                 (map
+                                  read-string
+                                  (string/split extensions #" ")))
+                   :node-list (when-let [node-list (:node-list credentials)]
+                                (read-string node-list))}]
+      (when-let [provider (:compute-provider credentials)]
+        (apply
+         compute-service
+         provider
+         (apply concat (filter second options)))))
+    (catch ClassNotFoundException _)
+    (catch clojure.lang.Compiler$CompilerException _)))
 
 (defn- compute-service-from-var
   [ns sym]
-  (try
-    (when-not (find-ns ns)
-      (require ns))
-    (when-let [v (ns-resolve ns sym)]
-      (var-get v))
-    ;; (catch Throwable _)
-    ))
+  (utils/find-var-with-require ns sym))
 
-(defn compute-service-from-config
+(defn compute-service-from-config-var
   "Checks to see if pallet.config/service is a var, and if so returns its
   value."
   []
@@ -77,6 +76,15 @@
                               (string/split property #"/"))]
       (compute-service-from-var
        (symbol (first sym-names)) (symbol (second sym-names))))))
+
+(defn compute-service-from-config
+  "Compute service from ~/.pallet/config.clj"
+  [config profiles]
+  (let [{:keys [provider identity credential]}
+        (configure/compute-service-properties config profiles)]
+    (when provider
+      (compute-service provider :identity identity :credential credential))))
+
 
 ;;; Nodes
 (defprotocol Node

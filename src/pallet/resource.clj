@@ -136,7 +136,7 @@ configuration code."
 
 (defmethod invocations->resource-fns :in-sequence
   [_ invocations]
-  (for [{:keys [f args location type]} (distinct invocations)]
+  (for [{:keys [f args location type]} invocations]
     {:location location
      :f (partial apply-evaluated f args)
      :type type}))

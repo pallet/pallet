@@ -313,20 +313,22 @@
   (let [na (jclouds/make-node "a")
         nb (jclouds/make-node "b")
         nc (jclouds/make-node "c" :state NodeState/TERMINATED)]
-    (mock/expects [(apply-phase
-                    [nodes request]
+    (mock/expects [(sequential-apply-phase
+                    [request nodes]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
-                      (is (= #{na nb} (set (:target-nodes request))))))]
+                      (is (= #{na nb} (set (:target-nodes request))))
+                      []))]
                   (lift* {a #{na nb nc}} nil [:configure]
                          {:compute nil
                           :user utils/*admin-user*
                           :middleware *middleware*}))
-    (mock/expects [(apply-phase
-                    [nodes request]
+    (mock/expects [(sequential-apply-phase
+                    [request nodes]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
-                      (is (= #{na nb} (set (:target-nodes request))))))]
+                      (is (= #{na nb} (set (:target-nodes request))))
+                      []))]
                   (lift* {a #{na} b #{nb}} nil [:configure]
                          {:compute nil
                           :user utils/*admin-user*
@@ -339,11 +341,12 @@
         nb (jclouds/make-node "b")
         nc (jclouds/make-node "c")]
     (mock/expects [(org.jclouds.compute/nodes-with-details [_] [na nb nc])
-                   (apply-phase
-                    [nodes request]
+                   (sequential-apply-phase
+                    [request nodes]
                     (do
                       (is (= #{na nb nc} (set (:all-nodes request))))
-                      (is (= #{na nb} (set (:target-nodes request))))))]
+                      (is (= #{na nb} (set (:target-nodes request))))
+                      []))]
                   (lift [a b] :compute org.jclouds.compute/*compute*))))
 
 (deftest converge*-nodes-binding-test
@@ -352,11 +355,12 @@
   (let [na (jclouds/make-node "a")
         nb (jclouds/make-node "b")
         nc (jclouds/make-node "b" :state NodeState/TERMINATED)]
-    (mock/expects [(apply-phase
-                    [nodes request]
+    (mock/expects [(sequential-apply-phase
+                    [request nodes]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
-                      (is (= #{na nb} (set (:target-nodes request))))))
+                      (is (= #{na nb} (set (:target-nodes request))))
+                      []))
                    (org.jclouds.compute/nodes-with-details [& _] [na nb nc])]
                   (converge*
                    {a 1 b 1} nil [:configure]

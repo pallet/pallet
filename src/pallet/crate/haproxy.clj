@@ -42,10 +42,12 @@
 (defn install-package
   "Install HAProxy from packages"
   [request]
+  (logging/info (format "INSTALL-HAPROXY %s" (request-map/os-family request)))
   (-> request
       (when->
        (= :amzn-linux (request-map/os-family request))
-       (package/add-epel request "5-4"))
+       (resource/execute-pre-phase
+        (package/add-epel :version "5-4")))
       (package/package "haproxy")))
 
 (defmulti format-kv (fn format-kv-dispatch [k v & _] (class v)))
@@ -101,7 +103,11 @@
 
 (defn merge-servers
   [request options]
-  (let [apps (map keyword (keys (:listen options)))
+  (let [options (update-in
+                 options [:listen]
+                 (fn [m]
+                   (zipmap (map keyword (keys m)) (vals m))))
+        apps (map keyword (keys (:listen options)))
         tag (keyword (request-map/tag request))
         srv-apps (-?> request :parameters :haproxy tag)
         app-keys (keys srv-apps)
@@ -120,7 +126,7 @@
           "Configured proxy %s %s with no servers"
           tag app))))
     (reduce
-     #(update-in %1 [:listen (first %2) :server]
+     #(update-in %1 [:listen (keyword (first %2)) :server]
                  (fn [servers]
                    (concat
                     (or servers [])
@@ -131,11 +137,11 @@
 (defn configure
   "Configure HAProxy.
    :global and :defaults both take maps of keyword value pairs. :listen takes a
-   map where the keys are of the form \"name\" and contain an :address key with
-   a string containing ip:port, and other keyword/value. Servers for each listen
-   section can be declared with the proxied-by function."
-  [request & {:keys
-              [global defaults listen frontend backend]
+   map where the keys are of the form \"name\" and contain an :server-address
+   key with a string containing ip:port, and other keyword/value. Servers for
+   each listen section can be declared with the proxied-by function."
+  [request
+   & {:keys [global defaults listen frontend backend]
               :as options}]
   (->
    request
@@ -178,9 +184,7 @@
        (merge
         options
         {:ip (request-map/target-ip request)
-         ;; some providers don't allow for node names, only node ids
-         :name (or (request-map/target-name request)
-                   (target/safe-id (request-map/target-id request)))}))))))
+         :name (request-map/safe-name request)}))))))
 
 #_
 (pallet.core/defnode haproxy

@@ -5,8 +5,9 @@
   (:require
    [clojure.contrib.logging :as logging]
    [pallet.compute :as compute]
+   [pallet.configure :as configure]
+   [pallet.blobstore :as blobstore]
    [pallet.utils :as utils]
-   [pallet.maven :as maven]
    [pallet.main :as main]))
 
 (defn log-info
@@ -32,26 +33,54 @@
      check pallet.config/service var.
    This sequence allows you to specify an overridable default in
    pallet.config/service."
-  []
+  [defaults project profiles]
   (or
+   (compute/compute-service-from-config (:pallet project) profiles)
+   (compute/compute-service-from-config defaults profiles)
    (compute/compute-service-from-property)
-   (compute/compute-service-from-settings)
-   (compute/compute-service-from-config)))
+   (apply compute/compute-service-from-settings profiles)
+   (compute/compute-service-from-config-var)))
+
+
+(defn find-blobstore
+  "Look for a compute service in the following sequence:
+     Check pallet.config.service property,
+     check maven settings,
+     check pallet.config/service var.
+   This sequence allows you to specify an overridable default in
+   pallet.config/service."
+  [defaults project profiles]
+  (or
+   (blobstore/blobstore-from-config (:pallet project) profiles)
+   (blobstore/blobstore-from-config defaults profiles)
+   (apply blobstore/blobstore-from-settings profiles)))
 
 (defn invoke
-  [service user key task params]
+  [service user key profiles task params project-options]
+  (utils/admin-user-from-config)
   (log-info)
-  (let [compute (if service
+  (let [default-config (configure/pallet-config)
+        compute (if service
                   (compute/compute-service
                    service :identity user :credential key)
-                  (find-compute-service))]
+                  (find-compute-service
+                   default-config project-options profiles))
+        blobstore (if service
+                    (blobstore/service
+                     service :identity user :credential key)
+                    (find-blobstore
+                     default-config project-options profiles))]
     (if compute
       (do
         (logging/debug (format "Running as      %s@%s" user service))
         (try
-          (apply task {:compute compute} params)
+          (apply task {:compute compute
+                       :blobstore blobstore
+                       :project project-options} params)
           (finally ;; make sure we don't hang on exceptions
-           (compute/close compute))))
+           (compute/close compute)
+           (when blobstore
+             (blobstore/close blobstore)))))
       (do
         (println "Error: no credentials supplied\n\n")
         (apply (main/resolve-task "help") [])))))
