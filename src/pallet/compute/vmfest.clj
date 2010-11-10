@@ -1,14 +1,17 @@
 (ns pallet.compute.vmfest
   "A vmfest provider"
   (:require
+   [vmfest.virtualbox.virtualbox :as virtualbox]
+   [vmfest.virtualbox.vbox :as vbox]
+   [vmfest.virtualbox.machine :as machine]
+   [vmfest.virtualbox.model :as model]
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
    [pallet.core :as core]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]
-   [vmfest.virtualbox.vbox :as vbox]
-   [vmfest.machine :as machine])
+   [clojure.contrib.logging :as logging])
   (:import
    com.sun.xml.ws.commons.virtualbox_3_2.IMedium
    com.sun.xml.ws.commons.virtualbox_3_2.IMachine
@@ -16,27 +19,6 @@
 
 (defn supported-providers []
   ["virtualbox"])
-
-(defn machine-task [f]
-  "Create a task that will be invoked with a machine"
-  (fn [session]
-    (let [mutable-machine (.getMachine session)]
-      (f mutable-machine))))
-
-(defn execute-task-with-return-value
-  "Execute a task, capturing the return value."
-  [machine task]
-  (let [return-value (atom nil)
-        latch (java.util.concurrent.CountDownLatch. 1)]
-    (machine/execute-task
-     machine
-     #(do
-        (try
-          (reset! return-value (task %))
-          (finally
-           (.countDown latch)))))
-     (.await latch)
-     @return-value))
 
 (def os-family-name
   {:ubuntu "Ubuntu"
@@ -46,53 +28,44 @@
 (def os-family-from-name
   (zipmap (vals os-family-name) (keys os-family-name)))
 
-(extend-type vmfest.virtualbox.vbox.vbox-machine
+(extend-type vmfest.virtualbox.model.machine
   pallet.compute/Node
   (ssh-port [node] 22)
   (primary-ip
    [node]
-   (vbox/with-local-or-remote-session node
-     (machine/execute-task
-      node
-      (machine-task
-       #(.getGuestPropertyValue
-         %
-         "/VirtualBox/GuestInfo/Net/0/V4/IP")))))
+   (virtualbox/with-remote-session node [session machine]
+     (.getGuestPropertyValue
+       machine
+       "/VirtualBox/GuestInfo/Net/0/V4/IP")))
   (private-ip [node] "")
   (is-64bit?
    [node]
-   (vbox/with-local-or-remote-session node
-     (re-find
-      #"64 bit"
-      (machine/execute-task
-       node (machine-task #(.getOSTypeId %))))))
+   (virtualbox/with-no-session node [machine]
+     (re-find #"64 bit" (.getOSTypeId machine))))
   (tag
    [node]
-   (vbox/with-local-or-remote-session node
-     (machine/execute-task
-      node (machine-task #(.getExtraData % "/pallet/tag")))))
+   (virtualbox/with-no-session node [machine]
+     (.getExtraData machine "/pallet/tag")))
   (hostname
    [node]
-   (vbox/with-local-or-remote-session node
-     (machine/execute-task
-      node (machine-task #(.getName %)))))
+   (virtualbox/with-no-session node [machine]
+     (.getName machine)))
   (os-family
    [node]
-   (vbox/with-local-or-remote-session node
-     (let [os-name (machine/execute-task
-                    node (machine-task #(.getOSTypeId %)))]
+   (virtualbox/with-no-session node [machine]
+     (let [os-name (.getOSTypeId machine)]
        (os-family-from-name os-name os-name))))
   (running? [node] true)
   (terminated? [node] false)
   (id [node] ""))
 
 
-(defn connection
-  [host port identity credential]
-  (let [manager (#'vmfest.virtualbox.vbox/create-session-manager host port)
-        virtual-box (#'vmfest.virtualbox.vbox/create-vbox
-                     manager identity credential)]
-    [manager virtual-box]))
+;; (defn connection
+;;   [host port identity credential]
+;;   (let [manager (#'vmfest.virtualbox.vbox/create-session-manager host port)
+;;         virtual-box (#'vmfest.virtualbox.vbox/create-vbox
+;;                      manager identity credential)]
+;;     [manager virtual-box]))
 
 (defn find-matching-os [node-type os-types]
   (let [os-family (or (-> node-type :image :os-family) :ubuntu)
@@ -180,6 +153,7 @@
 (defn copy-medium-attachments
   "Copy the template machine's devices to the new machine."
   [virtual-box template-machine vmfest-machine filename-fn]
+  {:pre [virtual-box template-machine vmfest-machine filename-fn]}
   (doseq [attachment (.getMediumAttachments template-machine)]
     (let [medium (.getMedium attachment)
           medium (if (not= org.virtualbox_3_2.DeviceType/HARD_DISK
@@ -195,19 +169,15 @@
                       (.getPort attachment)
                       (.getDevice attachment)))))]
       (when medium
-        (vbox/with-local-or-remote-session vmfest-machine
-          (machine/execute-task
-           vmfest-machine
-           (machine-task
-            #(do
-               (.attachDevice
-                %
-                (.getController attachment)
-                (.getPort attachment)
-                (.getDevice attachment)
-                (.getType attachment)
-                (.getId medium))
-               (.saveSettings %)))))))))
+        (virtualbox/with-direct-session vmfest-machine [session machine]
+          (.attachDevice
+           machine
+           (.getController attachment)
+           (.getPort attachment)
+           (.getDevice attachment)
+           (.getType attachment)
+           (.getId medium))
+          (.saveSettings machine))))))
 
 (defn nil-if-blank [x]
   (if (string/blank? x) nil x))
@@ -248,18 +218,15 @@
 (defn wait-for-ip
   "Wait for the machines IP to become available."
   [machine]
-  (vbox/with-local-or-remote-session machine
+  (virtualbox/with-remote-session machine [session machine]
     (loop []
-      (let [ip (machine/execute-task
-                machine
-                (machine-task
-                 #(.getGuestPropertyValue
-                   % "/VirtualBox/GuestInfo/Net/0/V4/IP")))]
+      (let [ip (.getGuestPropertyValue
+                machine "/VirtualBox/GuestInfo/Net/0/V4/IP")]
         (when (string/blank? ip)
           (Thread/sleep 500)
           (recur))))))
 
-(defn remove-media [session virtual-box]
+(defn remove-media [session]
   (let [machine (.getMachine session)
         attachments (.getMediumAttachments machine)]
     (doseq [medium-attachment attachments
@@ -284,31 +251,24 @@
   (os-families [compute] "Return supported os-families")
   (medium-formats [compute] "Return supported medium-formats"))
 
-(deftype VirtualBox [host port identity credential]
-  VirtualBoxService
-  (os-families
-   [compute]
-   (let [[manager virtual-box] (connection host port identity credential)]
-     (try
-       (.getGuestOSTypes virtual-box)
-       (finally
-        (.logoff manager virtual-box)))))
-  (medium-formats
-   [compute]
-   (let [[manager virtual-box] (connection host port identity credential)]
-     (.. virtual-box getSystemProperties getMediumFormats)))
+(extend-type vmfest.virtualbox.model.server
+  ;; VirtualBoxService
+  ;; (os-families
+  ;;  [compute]
+  ;;  (let [[manager virtual-box] (connection host port identity credential)]
+  ;;    (try
+  ;;      (.getGuestOSTypes virtual-box)
+  ;;      (finally
+  ;;       (.logoff manager virtual-box)))))
+  ;; (medium-formats
+  ;;  [compute]
+  ;;  (let [[manager virtual-box] (connection host port identity credential)]
+  ;;    (.. virtual-box getSystemProperties getMediumFormats)))
 
-  pallet.compute.ComputeService
+  pallet.compute/ComputeService
   (nodes
    [compute-service]
-   (let [[manager virtual-box] (connection host port identity credential)]
-     (try
-       (doall
-        (map
-         #(vbox/build-vbox-machine host port identity credential (.getId %))
-         (.getMachines virtual-box)))
-       (finally
-        (.logoff manager virtual-box)))))
+   (vbox/machines compute-service))
 
   (ensure-os-family
    [compute-service request]
@@ -323,7 +283,7 @@
   ;; (can not diff an attached medium)
   (run-nodes
    [compute node-type node-count request init-script]
-   (let [[manager virtual-box] (connection host port identity credential)]
+   (vbox/with-vbox compute virtual-box
      (try
        (let [os-type-id (find-matching-os
                          node-type (.getGuestOSTypes virtual-box))
@@ -355,18 +315,15 @@
           template-machine machine (.getSystemProperties virtual-box))
          (.saveSettings machine)
          (.registerMachine virtual-box machine)
-         (try
-           (let [machine (vbox/build-vbox-machine
-                          host port identity credential
-                          (.getId machine))]
-             (copy-medium-attachments
-              virtual-box template-machine machine filename-fn)
-             (compute/boot-if-down compute [machine])
-             (wait-for-ip machine)
-             (pallet.core/lift node-type :phase :bootstrap)
-             machine)
-           (finally
-            (.logoff manager virtual-box)))))))
+         (let [machine (model/dry machine compute) ;; (virtualbox/find-machine
+                                           ;; virtual-box (.getId machine))
+               ]
+           (copy-medium-attachments
+            virtual-box template-machine machine filename-fn)
+           (compute/boot-if-down compute [machine])
+           (wait-for-ip machine)
+           (pallet.core/lift node-type :phase :bootstrap)
+           machine)))))
 
   (reboot
    [compute nodes]
@@ -376,35 +333,35 @@
   (boot-if-down
    [compute nodes]
    (doseq [node nodes]
-     (let [^com.sun.xml.ws.commons.virtualbox_3_2.ISession
-           session (#'vmfest.virtualbox.vbox/get-session node)
-           virtual-box (#'vmfest.virtualbox.vbox/get-vbox node)
-           uuid (:machine-id node)
-           session-type "vrdp"
-           env "DISPLAY:0.0"
-           progress (.openRemoteSession
-                     virtual-box session uuid session-type env)]
-       (with-open [session session]
-         (println "Session for VM" uuid "is opening...")
-         (.waitForCompletion progress 10000)
-         (let [result-code (.getResultCode progress)]
-           (if (zero? result-code)
-             nil
-             true))))))
+     (virtualbox/start node)
+     ;; (let [^com.sun.xml.ws.commons.virtualbox_3_2.ISession
+     ;;       session (#'vmfest.virtualbox.vbox/get-session node)
+     ;;       virtual-box (#'vmfest.virtualbox.vbox/get-vbox node)
+     ;;       uuid (:machine-id node)
+     ;;       session-type "vrdp"
+     ;;       env "DISPLAY:0.0"
+     ;;       progress (.openRemoteSession
+     ;;                 virtual-box session uuid session-type env)]
+     ;;   (with-open [session session]
+     ;;     (println "Session for VM" uuid "is opening...")
+     ;;     (.waitForCompletion progress 10000)
+     ;;     (let [result-code (.getResultCode progress)]
+     ;;       (if (zero? result-code)
+     ;;         nil
+     ;;         true))))
+     ))
 
   (shutdown-node
    [compute node _]
-   (vbox/with-local-or-remote-session node
-     (machine/execute-task
-      node
-      (fn [session]
-        (let [machine (.getMachine session)
-              console (.getConsole session)]
-          (when (#{org.virtualbox_3_2.MachineState/RUNNING
-                   org.virtualbox_3_2.MachineState/PAUSED
-                   org.virtualbox_3_2.MachineState/STUCK} (.getState machine))
-            (let [progress (.powerDown console)]
-              (.waitForCompletion progress 15000))))))))
+   (logging/info (format "Shutting down %s" (pr-str node)))
+   (virtualbox/with-no-session node [machine]
+     (when (#{org.virtualbox_3_2.MachineState/RUNNING
+              org.virtualbox_3_2.MachineState/PAUSED
+              org.virtualbox_3_2.MachineState/STUCK} (.getState machine))
+       (virtualbox/with-remote-session node [session machine]
+         (let [console (.getConsole session)
+               progress (.powerDown console)]
+           (.waitForCompletion progress 15000))))))
 
   (shutdown
    [compute nodes user]
@@ -413,40 +370,33 @@
 
   (destroy-nodes-with-tag
     [compute tag-name]
-    (let [[manager virtual-box] (connection host port identity credential)]
-      (try
-        (doseq [machine (filter
-                        #(= tag-name (.getExtraData % "/pallet/tag"))
-                        (.getMachines virtual-box))]
-          (compute/destroy-node
-           compute
-           (vbox/build-vbox-machine
-            host port identity credential (.getId machine))))
-        (finally
-         (.logoff manager virtual-box)))))
+    (doseq [machine
+            (filter
+             #(virtualbox/with-no-session % [machine]
+                (= tag-name (.getExtraData machine "/pallet/tag")))
+             (vbox/machines compute))]
+      (compute/destroy-node compute machine)))
 
   (destroy-node
    [compute node]
+   {:pre [node]}
    (compute/shutdown-node compute node nil)
-   (vbox/with-local-or-remote-session node
-     (let [session (#'vmfest.virtualbox.vbox/get-session node)
-           virtual-box (#'vmfest.virtualbox.vbox/get-vbox node)
-           uuid (:machine-id node)
-           machine (.getMachine session)
-           settings-file (.getSettingsFilePath machine)]
-       (remove-media session virtual-box)
-       (.saveSettings machine)
-       (.close session)
-       (.unregisterMachine virtual-box uuid)
+   (let [settings-file (virtualbox/with-direct-session node [session machine]
+                         (remove-media session)
+                         (logging/info (format "state %s" (.getState machine)))
+                         ;;(.saveSettings machine)
+                         (.getSettingsFilePath machine))]
+     (vbox/with-vbox compute virtual-box
+       (logging/info (format "id %s" (.getId (model/soak node))))
+       (.unregisterMachine virtual-box (.getId (model/soak node)))
        (.delete (java.io.File. settings-file)))))
   (close [compute]))
 
 ;;;; Compute service
 (defmethod implementation/service :virtualbox
-  [_ {:keys [host port identity credential]
-      :or {host "localhost"
-           port "18083"
+  [_ {:keys [url identity credential]
+      :or {url "http://localhost:18083/"
            username "test"
            password "test"}
       :as options}]
-  (VirtualBox. host port identity credential))
+  (vmfest.virtualbox.model.server. url identity credential))
