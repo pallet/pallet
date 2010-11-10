@@ -284,7 +284,7 @@
             <plugin>
               <groupId>com.theoryinpractise</groupId>
               <artifactId>clojure-maven-plugin</artifactId>
-              <version>1.3.2</version>
+              <version>1.3.5</version>
               <configuration>
                 <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m -Dssh.username=testuser</clojureOptions>
               </configuration>
