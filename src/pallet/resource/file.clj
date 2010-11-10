@@ -46,8 +46,11 @@
   ("md5sum" ~(stevedore/map-to-arg-string {:quiet quiet :check check}) ~file))
 (stevedore/defimpl md5sum-verify [#{:centos :amzn-linux :rhel}]
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
-  ("md5sum"
-   ~(stevedore/map-to-arg-string {:status quiet :check check}) ~file))
+  (chain-and
+   (cd @(dirname ~file))
+   ("md5sum"
+    ~(stevedore/map-to-arg-string {:status quiet :check check})
+    @(basename ~file))))
 (stevedore/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
   (chain-and
    (var testfile @(cut -d "' '" -f 2 ~file))
