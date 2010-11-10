@@ -21,8 +21,9 @@
          "/usr/local/var/lib/couchdb" "/usr/local/etc/couchdb"]})
 
 (defn install
-  "Installs couchdb, leaving all default configuration as-is.  Use the `couchdb`
-   fn to install and configure."
+  "Installs couchdb, leaving all default configuration as-is.  Use of the
+   `couchdb function is preferred, as it contains a workaround that makes
+   it install cleanly in ubuntu."
   [request]
   ;; this fixes this problem
   ;; https://bugs.launchpad.net/ubuntu/karmic/+source/couchdb/+bug/448682
@@ -73,18 +74,16 @@
    the configuraiton is modified."
   [request & {:as option-keyvals}]
   (let [request (install request)]
-    (if (seq option-keyvals)
-      (-> request
-          (package/package "curl")
-          (service/service "couchdb" :action :restart)
-          ;; the sleeps are here because couchdb doesn't actually start taking
-          ;; requests for a little bit -- it appears that the real process that's
-          ;; forked off is beam which ramps up couchdb *after* it's forked.
-          (exec-script/exec-script (sleep 2))
-          (configure option-keyvals)
-          (service/service "couchdb" :action :restart)
-          (exec-script/exec-script
-           (sleep 2)
-           (echo "Checking that couchdb is alive...")
-           (curl "http://localhost:5984")))
-      request)))
+    (-> request
+        (package/package "curl")
+        (service/service "couchdb" :action :restart)
+        ;; the sleeps are here because couchdb doesn't actually start taking
+        ;; requests for a little bit -- it appears that the real process that's
+        ;; forked off is beam which ramps up couchdb *after* it's forked.
+        (exec-script/exec-script (sleep 2))
+        (configure option-keyvals)
+        (service/service "couchdb" :action :restart)
+        (exec-script/exec-script
+         (sleep 2)
+         (echo "Checking that couchdb is alive...")
+         (curl "http://localhost:5984")))))
