@@ -1,0 +1,107 @@
+* 0.3.0 provisional!
+
+** General
+
+Now using jclouds beta 8.
+
+The project.clj file has been removed to prevent mismatch with pom.xml
+
+There is now a node-list provider. Useful when working with a fixed set of pre-existing
+nodes.
+
+[[https://github.com/davidsantiago/cake-pallet][Cake plugin for pallet]] from David Santiago.
+
+The provider credentials can now be configured in ~/.pallet/config.clj, or
+by defining pallet.config/service or by setting the java system property
+pallet.config.service to the qualified name of a clojure var.
+
+The admin-user can now be configured in config.clj or project.clj, or by defining
+pallet.config/admin-user.
+
+** Lein and Cake tasks
+
+The pallet-lein plugin for lein is now released to version 0.2.0.  It includes
+passing of project.clj to the tasks
+
+The task interface has changed, and now takes a first argument which is a request
+map, containing :compute, :blobstore and :user keys, which are set by
+pallet.main-invoker.
+
+The `-P provider` switch can be used to select the provider credentials to be used.
+
+Added blobstore credentials.
+
+Added containers task, to list blobstore (eg S3, CloudFiles) containers.
+
+Added tomcat task to do simple tomcat deploy without any configuration.
+
+Added to-blob task to enable upload of files to a blobstore.
+
+
+** New Crates
+
+squeak, etc-hosts, postgresql (thanks David Santiago)
+
+** Enhancements
+
+pallet.compute
+  Added compute/private-ip, compute/hostname
+  Abstracted jclouds usage to a protocol for improved testing
+
+pallet.core
+  ensure :target-packager is set on bootstrap
+
+pallet.resource
+  added :always-before metadata to allow resource dependencies.
+
+pallet.resource.package
+  packages now installed in single command.
+
+pallet.resource.remote-file
+  :unpack :unzip option added
+
+pallet.resource.file
+  defines make-temp-file script function.
+
+pallet.stevedore
+  now does unquote splicing.
+
+pallet.thread-expr
+  new apply-map->
+
+pallet.crate.etc-default
+  a path can now be specified, allowing use elsewhere in the filesystem
+
+** Fixes
+
+pallet.resource.file
+  sed will regenerate the file md5, unless :no-md5 is specified
+
+pallet.resource.remote-file
+  prevent md5 file generation when :no-versioning supplied
+
+pallet.resource.service
+  Installing init scripts with init now works on rhel based machines.
+
+pallet.resource.stevedore
+  Improved hashlib from Charles Duff
+
+pallet.resource.user
+  Fix translation of :user true to -r for rhel based distros.
+
+Java crate
+  for sun java, add partner repository for ubuntu
+
+tomcat crate
+  runs on centos and amzn-linux
+  fixed users database
+
+haproxy crate
+  runs on centos and amzn-linux
+
+hudson crate
+  runs on centos and amzn-linux
+  fixed for case of security disabled
+
+zookeeper crate
+  now runs on centos and amzn-linux, on ec2
