@@ -8,7 +8,7 @@
         clojure.contrib.logging
         pallet.script))
 
-(defonce hashlib (utils/slurp-resource "stevedore/hashlib.sh"))
+(defonce hashlib (utils/slurp-resource "stevedore/hashlib.bash"))
 
 (defn ^String substring
   "Drops first n characters from s.  Returns an empty string if n is

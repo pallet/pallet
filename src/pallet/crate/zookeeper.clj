@@ -86,6 +86,14 @@
     :link (format
            "%s/bin/zkServer.sh"
            (parameter/get-for request [:zookeeper :home])))
+   (file/sed
+    (format
+     "%s/bin/zkServer.sh"
+     (parameter/get-for request [:zookeeper :home]))
+    {"# chkconfig:.*" ""
+     "# description:.*" ""
+     "# by default we allow local JMX connections"
+     "# by default we allow local JMX connections\\n# chkconfig: 2345 20 80\\n# description: zookeeper"})
    (if-not-> (:no-enable options)
              (service/service
               "zookeeper" :action :start-stop
@@ -97,6 +105,7 @@
    across invocations."
   [request]
   (let [target-name (request-map/target-name request)
+        target-ip (request-map/target-ip request)
         nodes (sort-by compute/hostname (request-map/nodes-in-tag request))
         configs (parameter/get-for
                  request
@@ -122,7 +131,7 @@
                                            (keyword (compute/hostname %1)))]
                                (format "server.%s=%s:%s:%s"
                                        %2
-                                       (compute/primary-ip %1)
+                                       (compute/private-ip %1)
                                        (:quorumPort config 2888)
                                        (:electionPort config 3888)))
                             nodes
@@ -131,8 +140,8 @@
 
      (remote-file/remote-file
       (format "%s/myid" data-path)
-      :content (str (some #(and (= target-name (second %)) (first %))
-                          (map #(vector %1 (compute/hostname %2))
+      :content (str (some #(and (= target-ip (second %)) (first %))
+                          (map #(vector %1 (compute/primary-ip %2))
                                (range 1 (inc (count nodes)))
                                nodes)))
       :owner owner :group group :mode "0644"))))

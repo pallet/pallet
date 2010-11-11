@@ -25,3 +25,7 @@
 (script/defscript etc-hosts [])
 (stevedore/defimpl etc-hosts :default []
   "/etc/hosts")
+
+(script/defscript etc-init [])
+(stevedore/defimpl etc-init :default []
+  "/etc/init.d")

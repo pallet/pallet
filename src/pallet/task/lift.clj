@@ -30,4 +30,4 @@
    The node-types should be namespace qualified."
   [request & args]
   (let [args (build-args args)]
-    (apply core/lift (concat args [:compute (:compute request)]))))
+    (apply core/lift (concat args (apply concat request)))))

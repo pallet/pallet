@@ -46,8 +46,11 @@
   ("md5sum" ~(stevedore/map-to-arg-string {:quiet quiet :check check}) ~file))
 (stevedore/defimpl md5sum-verify [#{:centos :amzn-linux :rhel}]
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
-  ("md5sum"
-   ~(stevedore/map-to-arg-string {:status quiet :check check}) ~file))
+  (chain-and
+   (cd @(dirname ~file))
+   ("md5sum"
+    ~(stevedore/map-to-arg-string {:status quiet :check check})
+    @(basename ~file))))
 (stevedore/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
   (chain-and
    (var testfile @(cut -d "' '" -f 2 ~file))
@@ -182,7 +185,9 @@
 (defresource sed
   "Execute sed on a file.  Takes a path and a map for expr to replacement."
   (sed*
-   [request path exprs-map & {:keys [seperator] :as options}]
+   [request path exprs-map & {:keys [seperator no-md5] :as options}]
    (stevedore/checked-script
     (format "sed file %s" path)
-    (sed-file ~path ~exprs-map ~options))))
+    (sed-file ~path ~exprs-map ~options)
+    ~(when-not no-md5
+       (write-md5-for-file path (str path ".md5"))))))

@@ -54,16 +54,13 @@
   (is (not (blank? 'a))))
 
 (in-ns 'pallet.config)
-(def admin-user nil)
-
+(def admin-user (pallet.utils/make-user "fred"))
 (in-ns 'pallet.utils-test)
+
+(deftest admin-user-from-config-var-test
+  (let [admin-user (admin-user-from-config-var)]
+    (is (= "fred" (:username admin-user)))))
+
 (deftest admin-user-from-config-test
-  (let [u *admin-user*]
-    (try
-      (admin-user-from-config)
-      (is (= u *admin-user*))
-      (alter-var-root #'pallet.config/admin-user (constantly :user))
-      (admin-user-from-config)
-      (is (= :user *admin-user*))
-      (finally
-       (alter-var-root #'*admin-user* (constantly u))))))
+  (let [admin-user (admin-user-from-config {:admin-user {:username "fred"}})]
+    (is (= "fred" (:username admin-user)))))

@@ -4,6 +4,7 @@
   (:require
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
+   [pallet.resource.filesystem-layout :as filesystem-layout]
    [pallet.resource.lib :as lib]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource :as resource]))
@@ -43,6 +44,18 @@
                      stop ~(:sequence-stop options (:sequence-start options 20))
                      "."))))
 
+(stevedore/defimpl configure-service [#{:yum}] [name action options]
+  ~(condp = action
+       :disable (stevedore/script ("/sbin/chkconfig" ~name off))
+       :enable (stevedore/script
+                ("/sbin/chkconfig"
+                 ~name on
+                 "--level" ~@(drop 1 (:sequence-start options 20))))
+       :start-stop (stevedore/script ;; start/stop
+                    ("/sbin/chkconfig"
+                     ~name on
+                     "--level" ~@(drop 1 (:sequence-start options 20))))))
+
 
 (resource/defresource service
   "Control serives."
@@ -79,6 +92,6 @@
   (apply
    remote-file/remote-file
    request
-   (str "/etc/init.d/" name)
+   (str (stevedore/script (etc-init)) "/" name)
    :action action :owner "root" :group "root" :mode "0755"
    (apply concat options)))
