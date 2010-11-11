@@ -5,18 +5,18 @@
    [org.codehaus.plexus.embed Embedder]))
 
 (def key-map
-  {:pallet.compute.provider :compute-provider
-   :pallet.compute.identity :compute-identity
-   :pallet.compute.credential :compute-credential
-   :pallet.compute.extensions :compute-extensions
+  {:pallet.compute.provider :provider
+   :pallet.compute.identity :identity
+   :pallet.compute.credential :credential
+   :pallet.compute.extensions :extensions
    :pallet.blobstore.provider :blobstore-provider
    :pallet.blobstore.identity :blobstore-identity
    :pallet.blobstore.credential :blobstore-credential
    :pallet.blobstore.extensions :blobstore-extensions
-   :jclouds.compute.provider :compute-provider
-   :jclouds.compute.identity :compute-identity
-   :jclouds.compute.credential :compute-credential
-   :jclouds.compute.extensions :compute-extensions
+   :jclouds.compute.provider :provider
+   :jclouds.compute.identity :identity
+   :jclouds.compute.credential :credential
+   :jclouds.compute.extensions :extensions
    :jclouds.blobstore.provider :blobstore-provider
    :jclouds.blobstore.identity :blobstore-identity
    :jclouds.blobstore.credential :blobstore-credential})
