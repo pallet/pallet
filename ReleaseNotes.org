@@ -1,15 +1,15 @@
 * 0.3.0 provisional!
 
+** Install
+
+The release is on [[http://clojars.org/org.cloudhoist/pallet][clojars]].
+
 ** General
 
-Now using jclouds beta 8.
-
-The project.clj file has been removed to prevent mismatch with pom.xml
+Now using [[http://jclouds.org/][jclouds]] beta 8.
 
 There is now a node-list provider. Useful when working with a fixed set of pre-existing
 nodes.
-
-[[https://github.com/davidsantiago/cake-pallet][Cake plugin for pallet]] from David Santiago.
 
 The provider credentials can now be configured in ~/.pallet/config.clj, or
 by defining pallet.config/service or by setting the java system property
@@ -17,6 +17,13 @@ pallet.config.service to the qualified name of a clojure var.
 
 The admin-user can now be configured in config.clj or project.clj, or by defining
 pallet.config/admin-user.
+
+[[https://github.com/davidsantiago/cake-pallet][Cake plugin for pallet]] from David Santiago.
+
+The project.clj file has been removed to prevent mismatch with pom.xml
+
+In general, support for RHEL based distros (centos, amzn-linux) should now be
+much better.
 
 ** Lein and Cake tasks
 
@@ -58,7 +65,7 @@ pallet.resource.package
   packages now installed in single command.
 
 pallet.resource.remote-file
-  :unpack :unzip option added
+  An :unpack :unzip option added
 
 pallet.resource.file
   defines make-temp-file script function.
@@ -84,7 +91,7 @@ pallet.resource.service
   Installing init scripts with init now works on rhel based machines.
 
 pallet.resource.stevedore
-  Improved hashlib from Charles Duff
+  Improved hashlib from [[https://github.com/charles-dyfis-net/pallet/commit/8e5e1df53476aedd9d32f525cf0241f8a3763269][Charles Duffy]]
 
 pallet.resource.user
   Fix translation of :user true to -r for rhel based distros.
