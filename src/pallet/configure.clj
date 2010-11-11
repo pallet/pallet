@@ -30,7 +30,7 @@
 (defn- read-config
   [file]
   (try
-    (use '[pallet.config :only [defpallet]])
+    (use '[pallet.configure :only [defpallet]])
     (load-file file)
     config
     (catch java.io.FileNotFoundException _)))
