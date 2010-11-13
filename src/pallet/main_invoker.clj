@@ -42,8 +42,9 @@
      check pallet.config/service var.
    This sequence allows you to specify an overridable default in
    pallet.config/service."
-  [defaults project profiles]
+  [options defaults project profiles]
   (or
+   (compute/compute-service-from-map options)
    (compute/compute-service-from-config (:pallet project) profiles)
    (compute/compute-service-from-config defaults profiles)
    (compute/compute-service-from-property)
@@ -58,39 +59,37 @@
      check pallet.config/service var.
    This sequence allows you to specify an overridable default in
    pallet.config/service."
-  [defaults project profiles]
+  [options defaults project profiles]
   (or
+   (blobstore/blobstore-from-map options)
    (blobstore/blobstore-from-config (:pallet project) profiles)
    (blobstore/blobstore-from-config defaults profiles)
    (apply blobstore/blobstore-from-settings profiles)))
 
 (defn invoke
-  [service user key profiles task params project-options]
+  [options task params]
   (let [default-config (configure/pallet-config)
-        admin-user (find-admin-user default-config project-options profiles)
-        compute (if service
-                  (compute/compute-service
-                   service :identity user :credential key)
-                  (find-compute-service
-                   default-config project-options profiles))
-        blobstore (if service
-                    (blobstore/service
-                     service :identity user :credential key)
-                    (find-blobstore
-                     default-config project-options profiles))]
-    (log-info admin-user)
+        admin-user (find-admin-user
+                    default-config (:project options) (:profiles options))
+        compute (find-compute-service
+                 options default-config
+                 (:project options) (:profiles options))]
     (if compute
-      (do
-        (logging/debug (format "Running as      %s@%s" user service))
-        (try
-          (apply task {:compute compute
-                       :blobstore blobstore
-                       :project project-options
-                       :user admin-user} params)
-          (finally ;; make sure we don't hang on exceptions
-           (compute/close compute)
-           (when blobstore
-             (blobstore/close blobstore)))))
+      (try
+        (let [blobstore (find-blobstore
+                         options default-config
+                         (:project options) (:profiles options))]
+          (try
+            (log-info admin-user)
+            (apply task {:compute compute
+                         :blobstore blobstore
+                         :project (:project options)
+                         :user admin-user} params)
+            (finally ;; make sure we don't hang on exceptions
+             (when blobstore
+               (blobstore/close blobstore)))))
+        (finally ;; make sure we don't hang on exceptions
+         (compute/close compute)))
       (do
         (println "Error: no credentials supplied\n\n")
         (apply (main/resolve-task "help") [])))))

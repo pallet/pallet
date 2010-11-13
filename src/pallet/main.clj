@@ -66,11 +66,14 @@
   ([& args]
      (command-line/with-command-line args
        "Pallet command line"
-       [[service "Cloud service name."]
-        [user "Cloud user name."]
-        [key "Cloud key or password."]
-        [project-options "Project options (usually picked up from project.clj."]
-        [P "profiles to use for key lookup"]
+       [[provider "Cloud provider name."]
+        [identity "Cloud user name or key."]
+        [credential "Cloud password or secret."]
+        [blobstore-provider "Blobstore provider name."]
+        [blobstore-identity "Blobstore user name or key."]
+        [blobstore-credential "Blobstore password or secret."]
+        [P "Profiles to use for key lookup in config.clj or settings.xml"]
+        [project-options "Project options (usually picked up from project.clj)."]
         args]
        (let [[task & args] args
              task (or (aliases task) task "help")
@@ -86,7 +89,16 @@
              (let [_ (require 'pallet.main-invoker)
                    invoker (find-var 'pallet.main-invoker/invoke)]
                (invoker
-                service user key (profiles P) task params project-options))))
+                {:provider provider
+                 :identity identity
+                 :credential credential
+                 :blobstore-provider blobstore-provider
+                 :blobstore-identity blobstore-identity
+                 :blobstore-credential blobstore-credential
+                 :profiles (profiles P)
+                 :project project-options}
+                task
+                params))))
          ;; In case tests or some other task started any:
          (flush)
          (when-not (System/getProperty "cake.project")

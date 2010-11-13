@@ -12,28 +12,48 @@
   (implementation/load-providers)
   (implementation/service provider-name options))
 
+(def ^{:doc "Translate compute provider to associated blobstore provider"}
+  blobstore-lookup
+  {"cloudservers" "cloudfiles"
+   "ec2" "s3"})
+
+(defn blobstore-from-map
+  "Create a blobstore service from a credentials map.
+   Uses :provider, :identity, :credential and
+   :blobstore-provider, :blobstore-identity and :blobstore-credential.
+   Blobstore keys fall back to the compute keys"
+  [credentials]
+  (when-let [provider (or (:blobstore-provider credentials)
+                          (blobstore-lookup (:provider credentials)))]
+    (service
+     provider
+     :identity (or (:blobstore-identity credentials)
+                   (:identity credentials))
+     :credential (or (:blobstore-credential credentials)
+                     (:credential credentials)))))
+
 (defn blobstore-from-settings
-  "Create a blobstore service from propery settings."
+  "Create a blobstore service from ~/.m2/settings.xml propery settings."
   [& profiles]
   (try
     (require 'pallet.maven) ; allow running without maven jars
-    (let [f (ns-resolve 'pallet.maven 'credentials)
-          credentials (f profiles)]
-      (when-let [provider (:blobstore-provider credentials)]
-        (service
-         provider
-         :identity (:blobstore-identity credentials)
-         :credential (:blobstore-credential credentials))))
+    (when-let [f (ns-resolve 'pallet.maven 'credentials)]
+      (blobstore-from-map (f profiles)))
     (catch ClassNotFoundException _)
     (catch clojure.lang.Compiler$CompilerException _)))
 
 (defn blobstore-from-config
+  "Create a blobstore service form a configuration map."
   [config profiles]
   (let [config (configure/compute-service-properties config profiles)
-        {:keys [provider identity credential]} (merge config
-                                                      (:blobstore config))]
+        {:keys [provider identity credential]} (merge
+                                                (update-in
+                                                 config [:provider]
+                                                 (fn [p]
+                                                   (blobstore-lookup p p)))
+                                                (:blobstore config))]
     (when provider
-      (service provider identity credential))))
+      (service provider :identity identity :credential credential))))
 
 
 (defprotocol Blobstore

@@ -30,6 +30,24 @@
   (implementation/load-providers)
   (implementation/service provider-name options))
 
+(defn compute-service-from-map
+  "Create a compute service from a credentials map.
+   Uses the :provider, :identity, :credential, :extensions and :node-list keys."
+  [credentials]
+  (let [options {:identity (:identity credentials)
+                 :credential (:credential credentials)
+                 :extensions (when-let [extensions (:extensions credentials)]
+                               (map
+                                read-string
+                                (string/split extensions #" ")))
+                 :node-list (when-let [node-list (:node-list credentials)]
+                              (read-string node-list))}]
+    (when-let [provider (:provider credentials)]
+      (apply
+       compute-service
+       provider
+       (apply concat (filter second options))))))
+
 (defn compute-service-from-settings
   "Create a compute service from maven property settings.
    In Maven's settings.xml you can define a profile, that contains
@@ -38,22 +56,8 @@
   [& profiles]
   (try
     (require 'pallet.maven) ; allow running without maven jars
-    (let [f (ns-resolve 'pallet.maven 'credentials)
-          credentials (f profiles)
-          options {:identity (:compute-identity credentials)
-                   :credential (:compute-credential credentials)
-                   :extensions (when-let [extensions (:compute-extensions
-                                                      credentials)]
-                                 (map
-                                  read-string
-                                  (string/split extensions #" ")))
-                   :node-list (when-let [node-list (:node-list credentials)]
-                                (read-string node-list))}]
-      (when-let [provider (:compute-provider credentials)]
-        (apply
-         compute-service
-         provider
-         (apply concat (filter second options)))))
+    (when-let [f (ns-resolve 'pallet.maven 'credentials)]
+      (compute-service-from-map (f profiles)))
     (catch ClassNotFoundException _)
     (catch clojure.lang.Compiler$CompilerException _)))
 
