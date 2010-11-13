@@ -44,7 +44,7 @@
      (re-find #"64 bit" (.getOSTypeId machine))))
   (tag
    [node]
-   (session/with-no-session node [machine]
+   (session/with-direct-session node [_ machine]
      (.getExtraData machine "/pallet/tag")))
   (hostname
    [node]
