@@ -68,7 +68,7 @@
 
 (defn invoke
   [options task params]
-  (let [default-config (configure/pallet-config)
+  (let [default-config (or (:defaults options) (configure/pallet-config))
         admin-user (find-admin-user
                     default-config (:project options) (:profiles options))
         compute (find-compute-service
