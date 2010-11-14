@@ -8,7 +8,7 @@
     </parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet</artifactId>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>0.3.0</version>
     <packaging>jar</packaging>
     <name>pallet</name>
     <description>Pallet - provisioning and configuration of compute nodes</description>
