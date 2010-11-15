@@ -1,6 +1,8 @@
-The latest release is 0.2.0.
+Release Notes
 
-* 0.3.0 provisional!
+The latest release is 0.3.0.
+
+* 0.3.0
 
 ** Install
 
@@ -32,11 +34,17 @@ much better.
 The pallet-lein plugin for lein is now released to version 0.2.0.  It includes
 passing of project.clj to the tasks
 
+The command line options have changed to use the same terminology as elsewhere;
+povider, identity and credential. Added blobstore-provider, blobstore-identity
+and blobstore-credential options.
+
+The `-P provider` option can be used to select the provider credentials to be used
+from settings.xml or config.clj.
+
 The task interface has changed, and now takes a first argument which is a request
 map, containing :compute, :blobstore and :user keys, which are set by
 pallet.main-invoker.
 
-The `-P provider` switch can be used to select the provider credentials to be used.
 
 Added blobstore credentials.
 
