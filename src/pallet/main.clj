@@ -64,7 +64,7 @@
 (defn -main
   "Command line runner."
   ([& args]
-     (command-line/with-command-line args
+     (command-line/with-command-line (or args *command-line-args*)
        "Pallet command line"
        [[provider "Cloud provider name."]
         [identity "Cloud user name or key."]
@@ -107,5 +107,4 @@
          (flush)
          (when-not (System/getProperty "cake.project")
            (shutdown-agents)
-           (System/exit 0)))))
-  ([] (apply -main *command-line-args*)))
+           (System/exit 0))))))
