@@ -44,8 +44,7 @@ showing a basic node configuration, and starting and stopping a node.
 
 Pallet is distributed as a jar, and is available in the [clojars repository](http://clojars.org/org.cloudhoist/pallet).
 
-Installation is with [Leiningen](http://github.com/technomancy/leiningen),
-maven, or your favourite maven repository aware build tool.
+Installation is with maven or your favourite maven repository aware build tool.
 
 ### Quickstart
 
@@ -54,12 +53,11 @@ If you just want to try out pallet, then you can follow these instructions:
 - Download [the tarfile](http://github.com/hugoduncan/pallet/tarball/master)
   or [zipfile](http://github.com/hugoduncan/pallet/zipball/master), and unpack.
 
-- Install [Leiningen](http://github.com/technomancy/leiningen).
+- Install [Maven](http://maven.apache.org/).
 
 - In a shell, go to the directory containing the pallet source code and enter
 
-        $ lein deps
-        $ lein repl
+        $ mvn clojure:repl
 
 You should now have a working repl, which you can use to explore pallet.  You
 might want to make the basic pallet commands available without namespace prefix
