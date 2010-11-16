@@ -84,6 +84,7 @@
             (apply task {:compute compute
                          :blobstore blobstore
                          :project (:project options)
+                         :config default-config
                          :user admin-user} params)
             (finally ;; make sure we don't hang on exceptions
              (when blobstore
