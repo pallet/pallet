@@ -20,7 +20,8 @@
 
 (deftest if->test
   (is (= 2 (-> 1 (if-> true  (+ 1) (+ 2)))))
-  (is (= 3 (-> 1 (if-> false (+ 1) (+ 2))))))
+  (is (= 3 (-> 1 (if-> false (+ 1) (+ 2)))))
+  (is (= 1 (-> 1 (if-> false (+ 1))))))
 
 (deftest if-not->test
   (is (= 3 (-> 1 (if-not-> true  (+ 1) (+ 2)))))
