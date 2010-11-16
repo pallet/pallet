@@ -8,6 +8,12 @@ The latest release is 0.3.0.
 
 The release is on [[http://clojars.org/org.cloudhoist/pallet][clojars]].
 
+** Known Issues
+
+pallet.thread-expr/if-> incorrectly returns nil if there is no else expression.
+
+pallet.main/-main goes into an infinite recursion if called without arguments.
+
 ** General
 
 Now using [[http://jclouds.org/][jclouds]] beta 8.
