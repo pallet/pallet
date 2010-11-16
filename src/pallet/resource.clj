@@ -75,7 +75,8 @@ configuration code."
   ([request invoke-fn args execution]
      (invoke-resource request invoke-fn args execution :script/bash))
   ([request invoke-fn args execution resource-type]
-     {:pre [(keyword? (:phase request))
+     {:pre [request
+            (keyword? (:phase request))
             (keyword? (:target-id request))]}
      (let [[execution location] (if (#{:fn/clojure :transfer/to-local}
                                      resource-type)
