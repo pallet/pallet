@@ -1,11 +1,11 @@
-![pallet logo](http://github.com/downloads/hugoduncan/pallet/pallet-logo.png)
+![pallet logo](https://github.com/downloads/hugoduncan/pallet/pallet-logo.png)
 
 Pallet is used to provision and maintain compute nodes, and aims to solve the
 problem of providing a consistently configured running image across a range of
 clouds.  It is designed for use from the [Clojure](http://clojure.org) REPL, from
 clojure code, and from the command line.
 
-It uses [jclouds](http://github.com/jclouds/jclouds) to gain portable access to
+It uses [jclouds](https://github.com/jclouds/jclouds) to gain portable access to
 different cloud providers.  While jclouds solves the issue of creating,
 destroying and configuring cloud level access to nodes, it does not address the
 differences in images used across providers.  This is what Pallet adds.
@@ -50,8 +50,8 @@ Installation is with maven or your favourite maven repository aware build tool.
 
 If you just want to try out pallet, then you can follow these instructions:
 
-- Download [the tarfile](http://github.com/hugoduncan/pallet/tarball/master)
-  or [zipfile](http://github.com/hugoduncan/pallet/zipball/master), and unpack.
+- Download [the tarfile](https://github.com/hugoduncan/pallet/tarball/master)
+  or [zipfile](https://github.com/hugoduncan/pallet/zipball/master), and unpack.
 
 - Install [Maven](http://maven.apache.org/).
 
@@ -68,9 +68,9 @@ by typing the following at the repl.
 
 
 ## See also
-[jclouds](http://github.com/jclouds/jclouds),
+[jclouds](https://github.com/jclouds/jclouds),
 [chef](http://wiki.opscode.com/display/chef/Home),
-[crane](http://github.com/bradford/crane)
+[crane](https://github.com/bradford/crane)
 
 ## License
 
