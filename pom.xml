@@ -11,8 +11,8 @@
     <version>0.4.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>pallet</name>
-    <description>Pallet - provisioning and configuration of compute nodes</description>
-    <url>http://github.com/hugoduncan/pallet</url>
+    <description>Pallet - agile provisioning and configuration of compute nodes. A devops tool.</description>
+    <url>http://palletops.com</url>
     <inceptionYear>2010</inceptionYear>
 
     <licenses>
@@ -85,30 +85,31 @@
                     <outputDirectory>${project.build.directory}/clojure-classes</outputDirectory>
                 </configuration>
                 <executions>
-                    <execution>
-                        <id>test-clojure</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>test</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>2.3.1</version>
-                <configuration>
-                    <excludes>
-                        <exclude>log4j.xml</exclude>
-                    </excludes>
-                </configuration>
-                <executions>
                   <execution>
+                    <id>test-clojure</id>
+                    <phase>test</phase>
                     <goals>
-                      <goal>test-jar</goal>
+                      <goal>test</goal>
                     </goals>
                   </execution>
                 </executions>
+            </plugin>
+            <plugin>
+              <artifactId>maven-jar-plugin</artifactId>
+              <version>2.3.1</version>
+              <configuration>
+                <excludes>
+                  <exclude>log4j.xml</exclude>
+                </excludes>
+              </configuration>
+              <executions>
+                <execution>
+                  <id>test-jar</id>
+                  <goals>
+                    <goal>test-jar</goal>
+                  </goals>
+                </execution>
+              </executions>
             </plugin>
             <plugin>
                 <!-- NOTE: We don't need a groupId specification because the group is
@@ -299,16 +300,19 @@
         <activation>
 	  <activeByDefault>true</activeByDefault>
         </activation>
+        <properties>
+          <jclouds.version>1.0-beta-8</jclouds.version>
+        </properties>
         <dependencies>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-compute</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-blobstore</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
           </dependency>
 
           <!-- You will need the jclouds provider specific jars for your project -->
@@ -316,68 +320,78 @@
           <!-- <dependency> -->
           <!--     <groupId>org.jclouds</groupId> -->
           <!--     <artifactId>jclouds-all</artifactId> -->
-          <!--     <version>1.0-beta-8</version> -->
+          <!--     <version>${jclouds.version}</version> -->
           <!--     <optional>true</optional> -->
           <!-- </dependency> -->
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-aws</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-bluelock</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-gogrid</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-rackspace</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-rimuhosting</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-slicehost</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-terremark</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
 
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-jsch</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-log4j</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-enterprise</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
           </dependency>
         </dependencies>
+      </profile>
+
+      <profile>
+        <id>jclouds-snapshot</id>
+        <activation>
+	  <activeByDefault>false</activeByDefault>
+        </activation>
+        <properties>
+          <jclouds.version>1.0-SNAPSHOT</jclouds.version>
+        </properties>
       </profile>
 
       <profile>
