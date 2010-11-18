@@ -1,9 +1,10 @@
 ![pallet logo](https://github.com/downloads/hugoduncan/pallet/pallet-logo.png)
 
-Pallet is used to provision and maintain compute nodes, and aims to solve the
-problem of providing a consistently configured running image across a range of
-clouds.  It is designed for use from the [Clojure](http://clojure.org) REPL, from
-clojure code, and from the command line.
+[Pallet](http://palletops.com) is used to provision and maintain compute nodes,
+and aims to solve the problem of providing a consistently configured running
+image across a range of clouds.  It is designed for use from the
+[Clojure](http://clojure.org) REPL, from clojure code, and from the command
+line.
 
 It uses [jclouds](https://github.com/jclouds/jclouds) to gain portable access to
 different cloud providers.  While jclouds solves the issue of creating,
@@ -31,8 +32,6 @@ Some basic [documentation](http://hugoduncan.github.com/pallet) is available.
 
 ## Usage
 
-[See demo documentation](http://hugoduncan.github.com/pallet/autodoc/demo-api.html).
-
 There is an introductory [screencast](http://www.youtube.com/hugoduncan),
 showing a basic node configuration, and starting and stopping a node.
 
@@ -40,31 +39,52 @@ showing a basic node configuration, and starting and stopping a node.
 
 [On the group](http://groups.google.com/group/pallet-clj), or #pallet on freenode irc.
 
+## Quickstart
+
+See the [basic usage](https://github/com/pallet-examples/basic) example in the
+[pallet-examples](https://github/com/pallet-examples) project.
+
 ## Installation
 
-Pallet is distributed as a jar, and is available in the [clojars repository](http://clojars.org/org.cloudhoist/pallet).
+Pallet is distributed as a jar, and is available in the [sonatype repository](http://oss.sonatype.org/content/repositories/releases/org/cloudhoist).
 
 Installation is with maven or your favourite maven repository aware build tool.
 
-### Quickstart
+### lein/cake project.clj
 
-If you just want to try out pallet, then you can follow these instructions:
+    :dependencies [[org.cloudhoist/pallet "0.3.0"]
+                   [org.cloudhoist/pallet-crates-complete "0.3.0"]]
+    :repositories {"sonatype"
+                   "http://oss.sonatype.org/content/repositories/releases"
+                   "sonatype-snapshots"
+                   "http://oss.sonatype.org/content/repositories/snapshots"}
 
-- Download [the tarfile](https://github.com/hugoduncan/pallet/tarball/master)
-  or [zipfile](https://github.com/hugoduncan/pallet/zipball/master), and unpack.
+### maven pom.xml
 
-- Install [Maven](http://maven.apache.org/).
+    <dependencies>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>pallet</artifactId>
+        <version>0.3.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>pallet</artifactId>
+        <version>0.3.0</version>
+      </dependency>
+    <dependencies>
 
-- In a shell, go to the directory containing the pallet source code and enter
+    <repositories>
+      <repository>
+        <id>sonatype</id>
+        <url>http://oss.sonatype.org/content/repositories/releases</url>
+      </repository>
+      <repository>
+        <id>sonatype-snapshots</id>
+        <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+      </repository>
+    </repositories>
 
-        $ mvn clojure:repl
-
-You should now have a working repl, which you can use to explore pallet.  You
-might want to make the basic pallet commands available without namespace prefix
-by typing the following at the repl.
-
-        user> (use 'pallet.repl)
-	user> (use-pallet)
 
 
 ## See also
