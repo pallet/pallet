@@ -41,8 +41,9 @@ showing a basic node configuration, and starting and stopping a node.
 
 ## Quickstart
 
-See the [basic usage](https://github/com/pallet-examples/basic) example in the
-[pallet-examples](https://github/com/pallet-examples) project.
+See the [basic usage](https://github.com/hugoduncan/pallet-examples/tree/master/basic/)
+example in the [pallet-examples](https://github.com/hugoduncan/pallet-examples)
+project.
 
 ## Installation
 
