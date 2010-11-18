@@ -52,8 +52,8 @@ Installation is with maven or your favourite maven repository aware build tool.
 
 ### lein/cake project.clj
 
-    :dependencies [[org.cloudhoist/pallet "0.3.0"]
-                   [org.cloudhoist/pallet-crates-complete "0.3.0"]]
+    :dependencies [[org.cloudhoist/pallet "0.4.0-SNAPSHOT"]
+                   [org.cloudhoist/pallet-crates-complete "0.4.0-SNAPSHOT"]]
     :repositories {"sonatype"
                    "http://oss.sonatype.org/content/repositories/releases"
                    "sonatype-snapshots"
@@ -65,12 +65,12 @@ Installation is with maven or your favourite maven repository aware build tool.
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>pallet</artifactId>
-        <version>0.3.0</version>
+        <version>0.4.0-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>pallet</artifactId>
-        <version>0.3.0</version>
+        <version>0.4.0-SNAPSHOT</version>
       </dependency>
     <dependencies>
 
