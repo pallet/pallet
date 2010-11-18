@@ -81,34 +81,7 @@ lang="en" xml:lang="en">
 
 
 <p>
-The simplest way to start pallet (but definitely not the nicest) is with a git
-checkout of the source and maven (see below).
-</p>
-
-
-
-<div class="org-src-container"><label class="org-src-name">def-service()</label><pre class="src src-clojure">
-(<span style="color: #0000ff;">require</span> 'pallet.maven)
-(<span style="color: #0000ff;">require</span> 'pallet.compute)
-
-(pallet.compute/supported-providers) <span style="color: #8b0000;">; </span><span style="color: #cd5c5c;">show supported clouds
-</span>
-<span style="color: #8b0000;">;; </span><span style="color: #cd5c5c;">Open a connection to the cloud api, filling in the correct
-</span><span style="color: #8b0000;">;; </span><span style="color: #cd5c5c;">provider and the identity and credential from your cloud account
-</span><span style="color: #8b0000;">;; </span><span style="color: #cd5c5c;">(def service
-</span><span style="color: #8b0000;">;;     </span><span style="color: #cd5c5c;">(pallet.compute/compute-service "provider" "identity" "credential"))
-</span>
-<span style="color: #8b0000;">;; </span><span style="color: #cd5c5c;">or, open a connection to the cloud api specified in ~/.m2/settings.xml
-</span>(<span style="color: #4682b4;">def</span> <span style="color: #0000ff;">service</span> (pallet.compute/compute-service-from-settings))
-
-<span style="color: #8b0000;">;; </span><span style="color: #cd5c5c;">List all the nodes
-</span>(pallet.compute/nodes service)
-</pre></div>
-
-
-
-<p>
-See also <a href="autodoc/demo-api.html">demo API code</a> until it gets migrated into these docs.
+The simplest way to start pallet is with a git checkout of the <a href="https://github.com/hugoduncan/pallet-examples">pallet-examples project</a>.
 </p>
 
 <div id="outline-container-1" class="outline-2">
@@ -118,9 +91,75 @@ See also <a href="autodoc/demo-api.html">demo API code</a> until it gets migrate
 
 <p>
 Pallet can be used as a jar file or from a source code checkout.  Release versions
-are available at <a href="http://clojars.org/org.cloudhoist/pallet">Clojars</a>, and can be used with <a href="http://maven.apache.org/">maven</a>, <a href="http://github.com/technomancy/leiningen">leiningen</a> or any
+are available at <a href="http://oss.sonatype.org/content/repositories/releases/org/cloudhoist">Sonatype</a>, and can be used with <a href="http://maven.apache.org/">maven</a>, <a href="http://github.com/technomancy/leiningen">leiningen</a> or any
 maven repository aware tool.
 </p>
+
+</div>
+
+<div id="outline-container-1_1" class="outline-3">
+<h3 id="sec-1_1">Lein/Cake </h3>
+<div class="outline-text-3" id="text-1_1">
+
+
+<p>
+Include the following in your project.clj
+</p>
+
+
+
+<pre class="src src-clojure"><span style="color: #0000ff;">:dependencies</span> [[org.cloudhoist/pallet <span style="color: #f4a460;">"0.3.0"</span>]
+               [org.cloudhoist/pallet-crates-complete <span style="color: #f4a460;">"0.3.0"</span>]]
+<span style="color: #0000ff;">:repositories</span> {<span style="color: #f4a460;">"sonatype"</span>
+               <span style="color: #f4a460;">"http://oss.sonatype.org/content/repositories/releases"</span>
+               <span style="color: #f4a460;">"sonatype-snapshots"</span>
+               <span style="color: #f4a460;">"http://oss.sonatype.org/content/repositories/snapshots"</span>}
+</pre>
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1_2" class="outline-3">
+<h3 id="sec-1_2">Maven </h3>
+<div class="outline-text-3" id="text-1_2">
+
+<p>Include the following in your pom.xml.
+</p>
+
+
+
+<pre class="src src-xml"><span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">dependencies</span><span style="color: #00cd00;">&gt;</span>
+  <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">dependency</span><span style="color: #00cd00;">&gt;</span>
+    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">groupId</span><span style="color: #00cd00;">&gt;</span>org.cloudhoist<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">groupId</span><span style="color: #00cd00;">&gt;</span>
+    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">artifactId</span><span style="color: #00cd00;">&gt;</span>pallet<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">artifactId</span><span style="color: #00cd00;">&gt;</span>
+    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">version</span><span style="color: #00cd00;">&gt;</span>0.4.0-SNAPSHOT<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">version</span><span style="color: #00cd00;">&gt;</span>
+  <span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">dependency</span><span style="color: #00cd00;">&gt;</span>
+  <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">dependency</span><span style="color: #00cd00;">&gt;</span>
+    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">groupId</span><span style="color: #00cd00;">&gt;</span>org.cloudhoist<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">groupId</span><span style="color: #00cd00;">&gt;</span>
+    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">artifactId</span><span style="color: #00cd00;">&gt;</span>pallet<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">artifactId</span><span style="color: #00cd00;">&gt;</span>
+    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">version</span><span style="color: #00cd00;">&gt;</span>0.4.0-SNAPSHOT<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">version</span><span style="color: #00cd00;">&gt;</span>
+  <span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">dependency</span><span style="color: #00cd00;">&gt;</span>
+<span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">dependencies</span><span style="color: #00cd00;">&gt;</span>
+
+<span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">repositories</span><span style="color: #00cd00;">&gt;</span>
+  <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">repository</span><span style="color: #00cd00;">&gt;</span>
+    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">id</span><span style="color: #00cd00;">&gt;</span>sonatype<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">id</span><span style="color: #00cd00;">&gt;</span>
+    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">url</span><span style="color: #00cd00;">&gt;</span>http://oss.sonatype.org/content/repositories/releases<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">url</span><span style="color: #00cd00;">&gt;</span>
+  <span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">repository</span><span style="color: #00cd00;">&gt;</span>
+  <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">repository</span><span style="color: #00cd00;">&gt;</span>
+    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">id</span><span style="color: #00cd00;">&gt;</span>sonatype-snapshots<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">id</span><span style="color: #00cd00;">&gt;</span>
+    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">url</span><span style="color: #00cd00;">&gt;</span>http://oss.sonatype.org/content/repositories/snapshots<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">url</span><span style="color: #00cd00;">&gt;</span>
+  <span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">repository</span><span style="color: #00cd00;">&gt;</span>
+<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">repositories</span><span style="color: #00cd00;">&gt;</span>
+</pre>
+
+
+
+
+</div>
 </div>
 
 </div>
@@ -135,40 +174,7 @@ maven repository aware tool.
 
 
 <pre class="src src-sh">git clone git://github.com/hugoduncan/pallet.git
-</pre>
-
-
-
-<p>
-You can start a REPL using <a href="http://maven.apache.org/">maven</a>.
-</p>
-
-
-
-<pre class="src src-sh">mvn clojure:repl
-</pre>
-
-
-
-<pre class="src src-sh">lein repl
-</pre>
-
-
-
-<p>
-Using <a href="http://github.com/technomancy/leiningen">leiningen</a> or <a href="http://maven.apache.org/">maven</a> you can also start a swank session, and
-connect to it with Emacs, etc.
-</p>
-
-
-
-<pre class="src src-sh">mvn clojure:swank -Dmaven.test.skip=true
-</pre>
-
-
-
-
-<pre class="src src-sh">lein swank
+git clone git://github.com/hugoduncan/pallet-crates.git
 </pre>
 
 
