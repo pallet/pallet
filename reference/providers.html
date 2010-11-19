@@ -93,13 +93,25 @@ different terminology for the username/key and password/secret.
 
 <p>
 In order to sign in to your cloud API, you will need to tell pallet the name of
-your cloud.  The names pallet recognises can be displayed with the following:
+your provider.  The names pallet recognises can be displayed with the following
+from the REPL:
 </p>
 
 
 
 <pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.compute)
 (pallet.compute/supported-providers)
+</pre>
+
+
+
+<p>
+From the command line, you can use the lein plugin to list providers:
+</p>
+
+
+
+<pre class="src src-sh">lein pallet providers
 </pre>
 
 
@@ -114,31 +126,90 @@ your cloud.  The names pallet recognises can be displayed with the following:
 
 
 <p>
-You can log in to the cloud explicitly
+You can log in to the cloud explicitly, using the provider name, and your
+credentials.
 </p>
 
 
 
-<div class="org-src-container"><label class="org-src-name">explicit-credentials()</label><pre class="src src-clojure">
-(<span style="color: #0000ff;">require</span> 'org.jclouds.compute)
-(<span style="color: #4682b4;">defn</span> <span style="color: #0000ff;">service</span> []
-  (org.jclouds.compute/compute-service
-   <span style="color: #f4a460;">"provider"</span> <span style="color: #f4a460;">"username"</span> <span style="color: #f4a460;">"password"</span> <span style="color: #0000ff;">:log4j</span> <span style="color: #0000ff;">:enterprise</span> <span style="color: #0000ff;">:ssh</span>))
-</pre></div>
+<pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.compute)
+(<span style="color: #4682b4;">def</span> <span style="color: #0000ff;">service</span>
+  (pallet.compute/compute-service
+   <span style="color: #f4a460;">"provider"</span> <span style="color: #0000ff;">:identity</span> <span style="color: #f4a460;">"username"</span> <span style="color: #0000ff;">:credential</span> <span style="color: #f4a460;">"password"</span>))
+</pre>
 
 
 
+<p>
+Pallet uses <a href="http://jclouds.org">jclouds</a>' terminology, <code>identity</code> and <code>credential</code>, but your
+cloud provider will probably use different terms for these.
+</p>
 </div>
 
 </div>
 
 <div id="outline-container-3" class="outline-2">
-<h2 id="sec-3">Credentials in settings.xml </h2>
+<h2 id="sec-3">Credentials in config.clj </h2>
 <div class="outline-text-2" id="text-3">
 
 
 <p>
-Settings.xml is a maven file, often used to hold user specific configuration for
+You can use the pallet configuration file <a href="/Users/duncan/.pallet/config.clj">~/.pallet/config.clj</a> to specify
+credentials.
+</p>
+
+
+
+<pre class="src src-clojure">(defpallet
+  <span style="color: #0000ff;">:providers</span>
+    {<span style="color: #0000ff;">:aws</span> {<span style="color: #0000ff;">:provider</span> <span style="color: #f4a460;">"ec2"</span> <span style="color: #0000ff;">:identity</span> <span style="color: #f4a460;">"key"</span> <span style="color: #0000ff;">:credential</span> <span style="color: #f4a460;">"secret-key"</span>}
+     <span style="color: #0000ff;">:rs</span>  {<span style="color: #0000ff;">:provider</span> <span style="color: #f4a460;">"cloudservers"</span> <span style="color: #0000ff;">:identity</span> <span style="color: #f4a460;">"username"</span> <span style="color: #0000ff;">:credential</span> <span style="color: #f4a460;">"key"</span>}})
+</pre>
+
+
+
+<p>
+The provider key, <code>:aws</code> and <code>:rs</code> above, has to be unqiue, but you can have
+multiple accounts for the same provider.
+</p>
+<p>
+To create a compute service object from this file, that you can pass to <code>lift</code>
+or <code>converge</code>, you use <code>pallet.compute/compute-service-from-config</code>. By default,
+the first provider entry will be used, and you can specify an alternative
+provider by passing the key to the function.
+</p>
+
+
+
+<pre class="src src-clojure">(pallet.compute/compute-service-from-config <span style="color: #f4a460;">"rs"</span>)
+</pre>
+
+
+
+<p>
+The <a href="/Users/duncan/.pallet/config.clj">config.clj</a> file is read automatically by the <code>lein</code> and <code>cake</code> plugins, and
+in <code>lein</code>, you can switch between providers using the `-P` command line option.
+</p>
+
+
+
+<pre class="src src-sh">lein pallet -P rs nodes
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-4" class="outline-2">
+<h2 id="sec-4">Credentials in settings.xml </h2>
+<div class="outline-text-2" id="text-4">
+
+
+<p>
+The maven settings.xml file is often used to hold user specific configuration for
 maven.  You can add your cloud provider information to this file, which is
 normally located at <a href="/Users/duncan/.m2/settings.xml">~/.m2/settings.xml</a>.
 </p>
@@ -165,13 +236,16 @@ normally located at <a href="/Users/duncan/.m2/settings.xml">~/.m2/settings.xml<
 
 
 <p>
-You can then use this information with pallet:
+To create a compute service object from settings.xml, you use
+<code>pallet.compute/compute-service-from-settings</code>. The default is determined by the
+active profile. You can specify a different profile by passing the profile's id
+to the function.
 </p>
 
 
 
 <pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.compute)
-(<span style="color: #4682b4;">def</span> <span style="color: #0000ff;">service</span> (pallet.compute/compute-service-from-settings))
+(<span style="color: #4682b4;">def</span> <span style="color: #0000ff;">service</span> (pallet.compute/compute-service-from-settings <span style="color: #f4a460;">"terremark"</span>))
 </pre>
 
 
