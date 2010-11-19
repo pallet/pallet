@@ -95,6 +95,23 @@ To SSH to a node, pallet requires a username and an SSH key.  These are read
 from <code>pallet.utils/*admin-user*</code>, which defaults to your username, and <code>id_rsa</code>
 identity.  You can rebind this using <code>pallet.core/with-admin-user</code>.
 </p>
+<p>
+You can also configure the admin-user that is used by the lein plugin, in the
+<a href="/Users/duncan/.pallet/config.clj">~/.pallet/config.clj</a> file.
+</p>
+
+
+
+<pre class="src src-clojure">(defpallet
+  <span style="color: #0000ff;">:admin-user</span>
+    {<span style="color: #0000ff;">:username</span> <span style="color: #f4a460;">"admin"</span>
+     <span style="color: #0000ff;">:private-key-path</span> <span style="color: #f4a460;">"/path/to/private-key"</span>
+     <span style="color: #0000ff;">:public-key-path</span> <span style="color: #f4a460;">"/path/to/public-key"</span>})
+</pre>
+
+
+
+
 </div>
 
 </div>
