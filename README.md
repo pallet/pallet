@@ -30,8 +30,10 @@ showing a basic node configuration, and starting and stopping a node.
 
 ## Quickstart
 
-See the [basic usage](https://github.com/hugoduncan/pallet-examples/tree/master/basic/)
-example in the [pallet-examples](https://github.com/hugoduncan/pallet-examples)
+See the
+[basic usage](https://github.com/hugoduncan/pallet-examples/blob/master/basic/src/demo.clj)
+example in the
+[pallet-examples basic](https://github.com/hugoduncan/pallet-examples/tree/master/basic/)
 project.
 
 For general help getting started with Clojure, see this
