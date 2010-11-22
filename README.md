@@ -1,49 +1,41 @@
 ![pallet logo](https://github.com/downloads/hugoduncan/pallet/pallet-logo.png)
 
-[Pallet](http://palletops.com) is used to provision and maintain compute nodes,
-and aims to solve the problem of providing a consistently configured running
-image across a range of clouds.  It is designed for use from the
-[Clojure](http://clojure.org) REPL, from clojure code, and from the command
-line.
+[Pallet](http://palletops.com) is used to provision and maintain servers on
+cloud and virtual machine infrastructure, and aims to solve the problem of
+providing a consistently configured running image across a range of clouds.  It
+is designed for use from the [Clojure](http://clojure.org) REPL, from clojure
+code, and from the command line.
+
+- reuse configuration in development, testing and production.
+- store all your configuration in a source code management system (eg. git),
+  including role assignments.
+- configuration is re-used by compostion; just create new functions that call
+  existing crates with new arguments. No copy and modify required.
+- enable use of configuration crates (recipes) from versioned jar files.
 
 It uses [jclouds](https://github.com/jclouds/jclouds) to gain portable access to
-different cloud providers.  While jclouds solves the issue of creating,
-destroying and configuring cloud level access to nodes, it does not address the
-differences in images used across providers.  This is what Pallet adds.
-
-`defnode` is used to decalre node types, specifying the image template and
-possibly bootstrap and other configuration. The `converge` function can then be
-used to control the number of nodes of each type that are running in your cloud,
-and applies the declared configuration as required.  The `lift` function can
-also be used to apply configuration without adjusting node counts.  Both
-converge and lift accept inline definiton of configuration actions that should
-be run.
-
-In pallet, low level resources can be combined in clojure functions, known as
-crates, that are used to specify configuration.  Crates are clojure functions
-that have an initial `request` argument, and can call other crates, with
-arguments, as required. The request argument is used to carry the configuration
-request state, and is updated, and returned by each reasource function.  The
-request map must be threaded through each resource or crate call.
-
-Crates can be packaged and distributed as clojure jar files.
+different cloud providers.
 
 Some basic [documentation](http://hugoduncan.github.com/pallet) is available.
+
+## Support
+
+On the [mailing list](http://groups.google.com/group/pallet-clj), or #pallet on
+freenode irc.
 
 ## Usage
 
 There is an introductory [screencast](http://www.youtube.com/hugoduncan),
 showing a basic node configuration, and starting and stopping a node.
 
-## Support
-
-[On the group](http://groups.google.com/group/pallet-clj), or #pallet on freenode irc.
-
 ## Quickstart
 
 See the [basic usage](https://github.com/hugoduncan/pallet-examples/tree/master/basic/)
 example in the [pallet-examples](https://github.com/hugoduncan/pallet-examples)
 project.
+
+For general help getting started with Clojure, see this
+[guide](http://www.assembla.com/wiki/show/clojure/Getting_Started).
 
 ## Installation
 
@@ -70,7 +62,7 @@ Installation is with maven or your favourite maven repository aware build tool.
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>
-        <artifactId>pallet</artifactId>
+        <artifactId>pallet-crates-all</artifactId>
         <version>0.4.0-SNAPSHOT</version>
       </dependency>
     <dependencies>
@@ -89,9 +81,10 @@ Installation is with maven or your favourite maven repository aware build tool.
 
 
 ## See also
-[jclouds](https://github.com/jclouds/jclouds),
-[chef](http://wiki.opscode.com/display/chef/Home),
-[crane](https://github.com/bradford/crane)
+[jclouds](http://jclouds.org/),
+[chef](http://opscode.com/),
+[puppet](http://www.puppetlabs.com/),
+[crane](https://github.com/clj-sys/crane)
 
 ## License
 
