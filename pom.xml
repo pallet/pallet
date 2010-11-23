@@ -125,12 +125,18 @@
          <version>1.2.1</version>
          <optional>true</optional>
         </dependency>
-        <!-- <dependency> -->
-        <!--   <groupId>autodoc</groupId> -->
-        <!--   <artifactId>autodoc</artifactId> -->
-        <!--   <version>0.7.1</version> -->
-        <!--   <optional>true</optional> -->
-        <!-- </dependency> -->
+        <dependency>
+          <groupId>autodoc</groupId>
+          <artifactId>autodoc</artifactId>
+          <version>0.7.1</version>
+          <optional>true</optional>
+          <exclusions>
+            <exclusion>
+              <groupId>org.clojure</groupId>
+              <artifactId>clojure</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
     </dependencies>
 
     <repositories>
