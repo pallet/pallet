@@ -4,7 +4,8 @@
         pallet.test-utils
         clojure.contrib.logging)
   (:require
-   [pallet.utils :as utils]))
+   [pallet.utils :as utils]
+   [pallet.script :as script]))
 
 (use-fixtures
  :each
@@ -24,17 +25,30 @@
   (is (= {:exit 0 :out "fred\n" :err ""} (bash "echo fred"))))
 
 (deftest sudo-cmd-for-test
-  (let [no-pw "/usr/bin/sudo -n"
-        pw "echo \"fred\" | /usr/bin/sudo -S"
-        no-sudo ""]
-    (is (= no-pw (sudo-cmd-for (utils/make-user "fred"))))
-    (is (= pw (sudo-cmd-for (utils/make-user "fred" :password "fred"))))
-    (is (= pw (sudo-cmd-for (utils/make-user "fred" :sudo-password "fred"))))
-    (is (= no-pw
-           (sudo-cmd-for
-            (utils/make-user "fred" :password "fred" :sudo-password false))))
-    (is (= no-sudo (sudo-cmd-for (utils/make-user "root"))))
-    (is (= no-sudo (sudo-cmd-for (utils/make-user "fred" :no-sudo true))))))
+  (script/with-template [:ubuntu]
+    (let [no-pw "/usr/bin/sudo -n"
+          pw "echo \"fred\" | /usr/bin/sudo -S"
+          no-sudo ""]
+      (is (= no-pw (sudo-cmd-for (utils/make-user "fred"))))
+      (is (= pw (sudo-cmd-for (utils/make-user "fred" :password "fred"))))
+      (is (= pw (sudo-cmd-for (utils/make-user "fred" :sudo-password "fred"))))
+      (is (= no-pw
+             (sudo-cmd-for
+              (utils/make-user "fred" :password "fred" :sudo-password false))))
+      (is (= no-sudo (sudo-cmd-for (utils/make-user "root"))))
+      (is (= no-sudo (sudo-cmd-for (utils/make-user "fred" :no-sudo true))))))
+  (script/with-template [:centos-5.3]
+    (let [no-pw "/usr/bin/sudo"
+          pw "echo \"fred\" | /usr/bin/sudo -S"
+          no-sudo ""]
+      (is (= no-pw (sudo-cmd-for (utils/make-user "fred"))))
+      (is (= pw (sudo-cmd-for (utils/make-user "fred" :password "fred"))))
+      (is (= pw (sudo-cmd-for (utils/make-user "fred" :sudo-password "fred"))))
+      (is (= no-pw
+             (sudo-cmd-for
+              (utils/make-user "fred" :password "fred" :sudo-password false))))
+      (is (= no-sudo (sudo-cmd-for (utils/make-user "root"))))
+      (is (= no-sudo (sudo-cmd-for (utils/make-user "fred" :no-sudo true)))))))
 
 (deftest sh-script-test
   (let [res (sh-script

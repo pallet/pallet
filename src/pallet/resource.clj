@@ -339,7 +339,7 @@ configuration code."
             [family
              (-> request :target-packager)
              (if-let [version (-> request :node-type :image :os-version)]
-               (format "%s-%s" (name family) version))])))
+               (keyword (format "%s-%s" (name family) version)))])))
 
 (defmulti execute-resource
   "Execute a resource of the given type.  Returns [request result]"
