@@ -31,6 +31,19 @@
   (is (compute/running?
        (jclouds/make-node "a" :state NodeState/RUNNING))))
 
+(deftest os-version-test
+  (is (= "Some version"
+         (compute/os-version
+          (jclouds/make-node
+           "t"
+           :operating-system (OperatingSystem.
+                              OsFamily/UBUNTU
+                              "Ubuntu"
+                              "Some version"
+                              "Some arch"
+                              "Desc"
+                              true))))))
+
 (deftest os-family-test
   (is (= :ubuntu
          (compute/os-family

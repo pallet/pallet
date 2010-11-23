@@ -77,8 +77,8 @@
 (deftest add-os-family-test
   (defnode a {:os-family :ubuntu})
   (defnode b {})
-  (let [n1 (jclouds/make-node "n1")]
-    (is (= {:tag :a :image {:os-family :ubuntu} :phases nil}
+  (let [n1 (jclouds/make-node "n1" :operating-system {:version nil})]
+    (is (= {:tag :a :image {:os-family :ubuntu :os-version nil} :phases nil}
            (:node-type
             (add-os-family
              {:target-node n1 :node-type a})))))
@@ -87,15 +87,15 @@
             :operating-system (OperatingSystem.
                                OsFamily/UBUNTU
                                "Ubuntu"
-                               "Some version"
+                               nil
                                "Some arch"
                                "Desc"
                                true))]
-    (is (= {:tag :a :image {:os-family :ubuntu} :phases nil}
+    (is (= {:tag :a :image {:os-family :ubuntu :os-version nil} :phases nil}
            (:node-type
             (add-os-family
              {:target-node n1 :node-type a}))))
-    (is (= {:tag :b :image {:os-family :ubuntu} :phases nil}
+    (is (= {:tag :b :image {:os-family :ubuntu :os-version nil} :phases nil}
            (:node-type
             (add-os-family
              {:target-node n1 :node-type b}))))))

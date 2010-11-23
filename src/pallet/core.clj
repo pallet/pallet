@@ -106,12 +106,19 @@ When passing a username the following options can be specified:
 (defn add-os-family
   "Add the os family to the node-type if available from node."
   [request]
-  (update-in
-   request [:node-type :image :os-family]
-   (fn ensure-os-family [f]
-     (or (when-let [node (:target-node request)]
-           (compute/os-family node))
-         f))))
+  (let [node (:target-node request)
+        family (and node (compute/os-family node))
+        version (and node (compute/os-version node))]
+    (->
+     request
+     (update-in
+      [:node-type :image :os-family]
+      (fn ensure-os-family [f]
+        (or family f)))
+     (update-in
+      [:node-type :image :os-version]
+      (fn ensure-os-family-version [f]
+        (or version f))))))
 
 (defn add-target-id
   "Add the target-id to the request"

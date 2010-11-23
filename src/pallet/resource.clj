@@ -334,8 +334,12 @@ configuration code."
           (-> request :invocations phase target-id)))))
 
 (defn script-template [request]
-  [(-> request :node-type :image :os-family)
-   (-> request :target-packager)])
+  (let [family (-> request :node-type :image :os-family)]
+    (filter identity
+            [family
+             (-> request :target-packager)
+             (if-let [version (-> request :node-type :image :os-version)]
+               (format "%s-%s" (name family) version))])))
 
 (defmulti execute-resource
   "Execute a resource of the given type.  Returns [request result]"

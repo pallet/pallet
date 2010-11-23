@@ -202,6 +202,11 @@
     (when-let [operating-system (.getOperatingSystem node)]
       (keyword (str (.getFamily operating-system)))))
 
+  (os-version
+    [node]
+    (when-let [operating-system (.getOperatingSystem node)]
+      (.getVersion operating-system)))
+
   (hostname [node] (.getName node))
   (id [node] (.getId node))
   (running? [node] (jclouds/running? node))
