@@ -4,6 +4,7 @@
    [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.crate.git :as git]
    [pallet.crate.gpg :as gpg]
+   [pallet.crate.java :as java]
    [pallet.crate.hudson :as hudson]
    [pallet.crate.iptables :as iptables]
    [pallet.crate.ssh :as ssh]
@@ -54,6 +55,7 @@
      (package/package "maven2")
      (git/git)
      (gpg/gpg)
+     (java/java)
      (tomcat/tomcat)
      (iptables/iptables-accept-port 8080)
      (iptables/iptables-redirect-port 80 8080)
@@ -79,6 +81,7 @@
        (hudson/plugin :git)
        (hudson/plugin :github)
        (hudson/plugin :instant-messaging)
+       (hudson/plugin :greenballs)
        (hudson/plugin
         :ircbot
         :enabled true :hostname "irc.freenode.net" :port 6667
@@ -86,7 +89,7 @@
         :hudson-login (properties :hudson.ircbot.user)
         :hudson-password (properties :hudson.ircbot.password)
         :default-targets [{:name "#pallet"}]
-        :command-prefix "!hudson")
+        :command-prefix "palletci:")
        (hudson/user
         (properties :hudson.hugo.user)
         {:full-name "Hugo Duncan"
@@ -100,10 +103,10 @@
        (hudson/maven "default maven" "2.2.1")
        (hudson/job :maven2 "pallet"
                    :maven-name "default maven"
-                   :goals "-Ptestuser clean deploy"
+                   :goals "-P testuser,jclouds clean deploy"
                    :group-id "org.cloudhoist"
                    :artifact-id "pallet"
-                   :branches ["origin/*"]
+                   :branches ["origin/master" "origin/integrate-*"]
                    :merge-target "master"
                    :github {:projectUrl "http://github.com/hugoduncan/pallet/"}
                    :aggregator-style-build true
@@ -132,7 +135,8 @@
    (tomcat/tomcat :action :remove :purge true)))
 
 (core/defnode ci
-  {:any true :min-ram 512}
+  {:any true :min-ram 512 :os-family :ubuntu
+   :os-description-matches ".*10.10.*"}
   :bootstrap (resource/phase
               (automated-admin-user/automated-admin-user))
   :configure (resource/phase

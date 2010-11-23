@@ -74,14 +74,18 @@
                    (.append sb (char c))
                    (recur (.read r)))))))))))
 
-(defn resource-properties [name]
-  (let [loader (.getContextClassLoader (Thread/currentThread))]
-    (with-open [stream (.getResourceAsStream loader name)]
-      (let [properties (new java.util.Properties)]
-        (.load properties stream)
-        (let [keysseq (enumeration-seq (. properties propertyNames))]
-          (reduce (fn [a b] (assoc a b (. properties getProperty b)))
-                  {} keysseq))))))
+(defn resource-properties
+  "Returns nil if resource not found."
+  [name]
+  (let [loader (.getContextClassLoader (Thread/currentThread))
+        stream (.getResourceAsStream loader name)]
+    (when stream
+      (with-open [stream stream]
+        (let [properties (new java.util.Properties)]
+          (.load properties stream)
+          (let [keysseq (enumeration-seq (. properties propertyNames))]
+            (reduce (fn [a b] (assoc a b (. properties getProperty b)))
+                    {} keysseq)))))))
 
 (defn slurp-as-byte-array
   [#^java.io.File file]
@@ -89,6 +93,15 @@
         bytes #^bytes (byte-array size)
         stream (new java.io.FileInputStream file)]
     bytes))
+
+(defn find-var-with-require
+  [ns sym]
+  (try
+    (when-not (find-ns ns)
+      (require ns))
+    (when-let [v (ns-resolve ns sym)]
+      (var-get v))
+    (catch Throwable _)))
 
 
 (defn default-private-key-path []
@@ -124,6 +137,17 @@
   "The admin user is used for running remote admin commands that require root
    permissions.  The default admin user is taken from the pallet.admin.username
    property.  If not specified then the user.name property is used.")
+
+(defn admin-user-from-config-var
+  "Set the admin user based on pallet.config setup"
+  []
+  (find-var-with-require 'pallet.config 'admin-user))
+
+(defn admin-user-from-config
+  "Set the admin user based on config map"
+  [config]
+  (when-let [admin-user (:admin-user config)]
+    (apply make-user (:username admin-user) (apply concat admin-user))))
 
 (defmacro with-temp-file [[varname content] & body]
   `(let [~varname (java.io.File/createTempFile "stevedore", ".tmp")]
@@ -166,3 +190,18 @@
                       (string? x) (symbol x)
                       (keyword? x) (symbol (name x))))]
     (zipmap (map to-symbol (keys m)) (vals m))))
+
+
+(defmacro pipe
+  "Build a request processing pipeline from the specified forms"
+  [& forms]
+  (let [[middlewares etc] (split-with #(or (seq? %) (symbol? %)) forms)
+        middlewares (reverse middlewares)
+        [middlewares [x :as etc]]
+          (if (seq etc)
+            [middlewares etc]
+            [(rest middlewares) (list (first middlewares))])
+          handler x]
+    (if (seq middlewares)
+      `(-> ~handler ~@middlewares)
+      handler)))

@@ -1,8 +1,0 @@
-server {
-  listen       ~{listen};
-  server_name  ~{server_name};
-
-  access_log  ~{access_log};
-
-~{locations}
-}

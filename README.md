@@ -1,79 +1,97 @@
-![pallet logo](http://github.com/downloads/hugoduncan/pallet/pallet-logo.png)
+![pallet logo](https://github.com/downloads/hugoduncan/pallet/pallet-logo.png)
 
-Pallet is used to provision and maintain compute nodes, and aims to solve the
-problem of providing a consistently configured running image across a range of
-clouds.  It is designed for use from the [Clojure](http://clojure.org) REPL, and
-from clojure scripts.
+[Pallet](http://palletops.com) is used to provision and maintain servers on
+cloud and virtual machine infrastructure, and aims to solve the problem of
+providing a consistently configured running image across a range of clouds.  It
+is designed for use from the [Clojure](http://clojure.org) REPL, from clojure
+code, and from the command line.
 
-It uses [jclouds](http://github.com/jclouds/jclouds) to gain portable access to
-different cloud providers.  While jclouds solves the issue of creating,
-destroying and configuring cloud level access to nodes, it does not address the
-differences in images used across providers.  This is what Pallet adds.
+- reuse configuration in development, testing and production.
+- store all your configuration in a source code management system (eg. git),
+  including role assignments.
+- configuration is re-used by compostion; just create new functions that call
+  existing crates with new arguments. No copy and modify required.
+- enable use of configuration crates (recipes) from versioned jar files.
 
-`defnode` is used to decalre node types, specifying the image template and
-possibly bootstrap and other configuration. The `converge` function can then be
-used to control the number of nodes of each type that are running in your cloud,
-and applies the declared configuration as required.  The `lift` function can
-also be used to apply configuration without adjusting node counts.  Both
-converge and lift accept inline definiton of configuration actions that should
-be run.
-
-In pallet, low level resources can be combined in clojure functions, known as
-crates, that are used to specify configuration.  Crates are clojure functions
-that have an initial `request` argument, and can call other crates, with
-arguments, as required. The request argument is used to carry the configuration
-request state, and is updated, and returned by each reasource function.  The
-request map must be threaded through each resource or crate call.
-
-Crates can be packaged and distributed as clojure jar files.
+It uses [jclouds](https://github.com/jclouds/jclouds) to gain portable access to
+different cloud providers.
 
 Some basic [documentation](http://hugoduncan.github.com/pallet) is available.
 
-## Usage
+## Support
 
-[See demo documentation](http://hugoduncan.github.com/pallet/autodoc/demo-api.html).
+On the [mailing list](http://groups.google.com/group/pallet-clj), or #pallet on
+freenode irc.
+
+## Usage
 
 There is an introductory [screencast](http://www.youtube.com/hugoduncan),
 showing a basic node configuration, and starting and stopping a node.
 
-## Support
+## Quickstart
 
-[On the group](http://groups.google.com/group/pallet-clj), or #pallet on freenode irc.
+See the
+[basic usage](https://github.com/hugoduncan/pallet-examples/blob/master/basic/src/demo.clj)
+example in the
+[pallet-examples basic](https://github.com/hugoduncan/pallet-examples/tree/master/basic/)
+project.
+
+For general help getting started with Clojure, see this
+[guide](http://www.assembla.com/wiki/show/clojure/Getting_Started).
 
 ## Installation
 
-Pallet is distributed as a jar, and is available in the [clojars repository](http://clojars.org/org.cloudhoist/pallet).
+Pallet is distributed as a jar, and is available in the [sonatype repository](http://oss.sonatype.org/content/repositories/releases/org/cloudhoist).
 
-Installation is with [Leiningen](http://github.com/technomancy/leiningen),
-maven, or your favourite maven repository aware build tool.
+Installation is with maven or your favourite maven repository aware build tool.
 
-### Quickstart
+### lein/cake project.clj
 
-If you just want to try out pallet, then you can follow these instructions:
+    :dependencies [[org.cloudhoist/pallet "0.4.0-SNAPSHOT"]
+                   [org.cloudhoist/pallet-crates-all "0.4.0-SNAPSHOT"]]
+    :repositories {"sonatype"
+                   "http://oss.sonatype.org/content/repositories/releases"
+                   "sonatype-snapshots"
+                   "http://oss.sonatype.org/content/repositories/snapshots"}
 
-- Download [the tarfile](http://github.com/hugoduncan/pallet/tarball/master)
-  or [zipfile](http://github.com/hugoduncan/pallet/zipball/master), and unpack.
+### maven pom.xml
 
-- Install [Leiningen](http://github.com/technomancy/leiningen).
+    <dependencies>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>pallet</artifactId>
+        <version>0.4.0-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.cloudhoist</groupId>
+        <artifactId>pallet-crates-all</artifactId>
+        <version>0.4.0-SNAPSHOT</version>
+      </dependency>
+    <dependencies>
 
-- In a shell, go to the directory containing the pallet source code and enter
+    <repositories>
+      <repository>
+        <id>sonatype</id>
+        <url>http://oss.sonatype.org/content/repositories/releases</url>
+      </repository>
+      <repository>
+        <id>sonatype-snapshots</id>
+        <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+      </repository>
+    </repositories>
 
-        $ lein deps
-        $ lein repl
-
-You should now have a working repl, which you can use to explore pallet.  You
-might want to make the basic pallet commands available without namespace prefix
-by typing the following at the repl.
-
-        user> (use 'pallet.repl)
-	user> (use-pallet)
 
 
 ## See also
-[jclouds](http://github.com/jclouds/jclouds),
-[chef](http://wiki.opscode.com/display/chef/Home),
-[crane](http://github.com/bradford/crane)
+[jclouds](http://jclouds.org/),
+[chef](http://opscode.com/),
+[puppet](http://www.puppetlabs.com/),
+[crane](https://github.com/clj-sys/crane)
 
 ## License
 
 Licensed under [EPL](http://www.eclipse.org/legal/epl-v10.html)
+
+[Contributors](https://www.ohloh.net/p/pallet-clj/contributors)
+
+Copyright 2010 Hugo Duncan.

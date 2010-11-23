@@ -20,7 +20,8 @@
 
 (deftest if->test
   (is (= 2 (-> 1 (if-> true  (+ 1) (+ 2)))))
-  (is (= 3 (-> 1 (if-> false (+ 1) (+ 2))))))
+  (is (= 3 (-> 1 (if-> false (+ 1) (+ 2)))))
+  (is (= 1 (-> 1 (if-> false (+ 1))))))
 
 (deftest if-not->test
   (is (= 3 (-> 1 (if-not-> true  (+ 1) (+ 2)))))
@@ -28,3 +29,6 @@
 
 (deftest apply->test
   (is (= 7 (-> 1 (apply-> + [1 2 3])))))
+
+(deftest apply-map->test
+  (is (= {:a 1 :b 2} (-> :a (apply-map-> hash-map 1 {:b 2})))))

@@ -13,7 +13,7 @@
 (script/defscript rm [file & options])
 (stevedore/defimpl rm :default [file & options]
   ("rm" ~(stevedore/map-to-arg-string (first options)) ~file))
-(stevedore/defimpl rm [#{:darwin}] [file & options]
+(stevedore/defimpl rm [#{:darwin :os-x}] [file & options]
   ("rm" ~(stevedore/map-to-arg-string
           {:r (:recursive (first options))
            :f (:force (first options))}) ~file))
@@ -37,21 +37,30 @@
 (script/defscript md5sum [file & {:as options}])
 (stevedore/defimpl md5sum :default [file & {:as options}]
   ("md5sum" ~(stevedore/map-to-arg-string options) ~file))
-(stevedore/defimpl md5sum [#{:darwin}] [file & {:as options}]
+(stevedore/defimpl md5sum [#{:darwin :os-x}] [file & {:as options}]
   ("/sbin/md5" -r ~file))
 
 (script/defscript md5sum-verify [file & {:as options}])
-(stevedore/defimpl md5sum-verify :default [file & {:as options}]
-  ("md5sum" ~(stevedore/map-to-arg-string options) ~file))
-(stevedore/defimpl md5sum-verify [#{:darwin}] [file & {:as options}]
-  (var testfile @(cut -d "' '" -f 2 ~file))
-  (var md5 @(cut -d "' '" -f 1 ~file))
-  (test (quoted @("/sbin/md5" -q @testfile)) == (quoted @md5)))
+(stevedore/defimpl md5sum-verify :default
+  [file & {:keys [quiet check] :or {quiet true check true} :as options}]
+  ("md5sum" ~(stevedore/map-to-arg-string {:quiet quiet :check check}) ~file))
+(stevedore/defimpl md5sum-verify [#{:centos :amzn-linux :rhel}]
+  [file & {:keys [quiet check] :or {quiet true check true} :as options}]
+  (chain-and
+   (cd @(dirname ~file))
+   ("md5sum"
+    ~(stevedore/map-to-arg-string {:status quiet :check check})
+    @(basename ~file))))
+(stevedore/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
+  (chain-and
+   (var testfile @(cut -d "' '" -f 2 ~file))
+   (var md5 @(cut -d "' '" -f 1 ~file))
+   (test (quoted @("/sbin/md5" -q @testfile)) == (quoted @md5))))
 
 (script/defscript backup-option [])
 (stevedore/defimpl backup-option :default []
   "--backup=numbered")
-(stevedore/defimpl backup-option [#{:darwin}] []
+(stevedore/defimpl backup-option [#{:darwin :os-x}] []
   "")
 
 (script/defscript sed-file [file expr-map options])
@@ -69,7 +78,7 @@
 (script/defscript download-file [url path])
 
 (stevedore/defimpl download-file :default [url path]
-  ("curl" "-o" (quoted ~path) --retry 3 --silent --show-error --fail --location
+  ("curl" "-o" (quoted ~path) --retry 5 --silent --show-error --fail --location
    (quoted ~url)))
 
 (script/defscript download-request [path request])
@@ -78,8 +87,8 @@
    ~(string/join
      " "
      (map (fn dlr-fmt [e] (format "-H \"%s: %s\"" (key e) (val e)))
-          (.. request getHeaders entries)))
-   (quoted ~(.getEndpoint request))))
+          (:headers request)))
+   (quoted ~(:endpoint request))))
 
 (script/defscript tmp-dir [])
 (stevedore/defimpl tmp-dir :default []
@@ -176,7 +185,9 @@
 (defresource sed
   "Execute sed on a file.  Takes a path and a map for expr to replacement."
   (sed*
-   [request path exprs-map & {:keys [seperator] :as options}]
+   [request path exprs-map & {:keys [seperator no-md5] :as options}]
    (stevedore/checked-script
     (format "sed file %s" path)
-    (sed-file ~path ~exprs-map ~options))))
+    (sed-file ~path ~exprs-map ~options)
+    ~(when-not no-md5
+       (write-md5-for-file path (str path ".md5"))))))

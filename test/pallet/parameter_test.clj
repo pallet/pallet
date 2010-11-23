@@ -49,7 +49,7 @@
 
 (deftest lookup-test
   (is (= "9\n"
-         (first (resource/build-resources
+         (first (build-resources
                  [:parameters {:a 1 :b 9}]
                  (lookup-test-resource (lookup :b)))))))
 
@@ -69,7 +69,7 @@
    request))
 
 (deftest set-parameters-test
-  (let [[res request] (resource/build-resources
+  (let [[res request] (build-resources
                        []
                        (parameters [:a] 33)
                        (parameters [:b] 43)

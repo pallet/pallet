@@ -1,7 +1,6 @@
 (ns pallet.resource.resource-when-test
   (:use pallet.resource.resource-when)
   (:use [pallet.stevedore :only [script]]
-        [pallet.resource :only [build-resources]]
         [pallet.resource.test-resource :only [test-component]]
         clojure.test
         pallet.test-utils))

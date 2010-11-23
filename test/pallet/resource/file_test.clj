@@ -1,7 +1,6 @@
 (ns pallet.resource.file-test
   (:use pallet.resource.file)
   (:use [pallet.stevedore :only [script]]
-        [pallet.resource :only [build-resources]]
         clojure.test
         pallet.test-utils)
   (:require
@@ -61,10 +60,11 @@
 (deftest sed-test
   (is (= (stevedore/checked-commands
           "sed file path"
-          "sed -i -e \"s|a|b|\" path")
+          "sed -i -e \"s|a|b|\" path"
+          "md5sum  path > path.md5")
          (sed* {} "path" {"a" "b"} :seperator "|")))
   (is
-   (resource/build-resources
+   (build-resources
     []
     (sed "path" {"a" "b"} :seperator "|"))))
 

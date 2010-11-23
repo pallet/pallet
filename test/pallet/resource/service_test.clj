@@ -1,7 +1,6 @@
 (ns pallet.resource.service-test
   (:use pallet.resource.service)
   (:use [pallet.stevedore :only [script]]
-        [pallet.resource :only [build-resources]]
         clojure.test
         pallet.test-utils)
   (:require

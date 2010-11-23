@@ -1,14 +1,14 @@
 (ns pallet.resource.remote-file
   "File Contents."
   (:require
+   [pallet.blobstore :as blobstore]
    [pallet.resource :as resource]
+   [pallet.resource.directory :as directory]
+   [pallet.resource.file :as file]
    [pallet.resource.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.template :as templates]
-   [pallet.resource.file :as file]
-   [pallet.resource.directory :as directory]
    [pallet.utils :as utils]
-   [org.jclouds.blobstore :as jclouds-blobstore]
    [clojure.contrib.def :as def]
    [clojure.java.io :as io])
   (:use pallet.thread-expr))
@@ -54,6 +54,11 @@
   [_ & args]
   args)
 
+(defn- delete-local-path
+  [request local-path]
+  (.delete local-path)
+  request)
+
 (defn with-remote-file
   "Function to call f with a local copy of the requested remote path.
    f should be a function taking [request local-path & _], where local-path will
@@ -63,18 +68,18 @@
   (let [local-path (utils/tmpfile)]
     (->
      request
-     (resource/invoke-resource arg-vector [path (.getPath local-path)]
+     (resource/invoke-resource #'arg-vector [path (.getPath local-path)]
                                :in-sequence :transfer/to-local)
      (apply-> f local-path args)
      (resource/invoke-resource
-      (fn [request] (.delete local-path) request) []
+      #'delete-local-path [local-path]
       :in-sequence :fn/clojure))))
 
 (defn transfer-file
   "Function to transfer a local file."
   [request local-path remote-path]
   (resource/invoke-resource
-   request arg-vector [local-path remote-path]
+   request #'arg-vector [local-path remote-path]
    :in-sequence :transfer/from-local))
 
 
@@ -117,8 +122,7 @@
                               (do
                                 (download-file ~url ~new-path)
                                 (ln -s ~new-path @basefile)
-                                (if-not (md5sum
-                                         @newmd5path :quiet true :check true)
+                                (if-not (md5sum-verify @newmd5path)
                                   (do
                                     (echo ~(str "Download of " url
                                                 " failed to match md5"))
@@ -147,12 +151,12 @@
                "Download blob"
                (download-request
                 ~new-path
-                ~(jclouds-blobstore/sign-blob-request
-                  (:container blob) (:path blob)
-                  {:method :get}
+                ~(blobstore/sign-blob-request
                   (or blobstore (:blobstore request)
                       (throw (IllegalArgumentException.
-                              "No :blobstore given for blob content.") )))))
+                              "No :blobstore given for blob content.") ))
+                  (:container blob) (:path blob)
+                  {:method :get})))
          :else (throw
                 (IllegalArgumentException.
                  (str "remote-file " path " specified without content."))))
@@ -172,7 +176,7 @@
               (var md5diff "")
               (if (&& (file-exists? ~path) (file-exists? ~md5-path))
                 (do
-                  (md5sum ~md5-path :quiet true :check true)
+                  (md5sum-verify ~md5-path)
                   (set! md5diff "$?")))
               (var contentdiff "")
               (if (&& (file-exists? ~path) (file-exists? ~new-path))
@@ -196,8 +200,10 @@
                     (if flag-on-changed
                       (stevedore/script (set-flag ~flag-on-changed))))))))
            (file/adjust-file path options)
-           (file/write-md5-for-file path md5-path)
-           (stevedore/script (echo "MD5 sum is" @(cat ~md5-path)))))
+           (when-not no-versioning
+             (stevedore/chain-commands
+              (file/write-md5-for-file path md5-path)
+              (stevedore/script (echo "MD5 sum is" @(cat ~md5-path)))))))
         ;; cleanup
         (if (and (not no-versioning) (pos? max-versions))
           (stevedore/script

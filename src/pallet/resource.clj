@@ -75,7 +75,8 @@ configuration code."
   ([request invoke-fn args execution]
      (invoke-resource request invoke-fn args execution :script/bash))
   ([request invoke-fn args execution resource-type]
-     {:pre [(keyword? (:phase request))
+     {:pre [request
+            (keyword? (:phase request))
             (keyword? (:target-id request))]}
      (let [[execution location] (if (#{:fn/clojure :transfer/to-local}
                                      resource-type)
@@ -136,7 +137,7 @@ configuration code."
 
 (defmethod invocations->resource-fns :in-sequence
   [_ invocations]
-  (for [{:keys [f args location type]} (distinct invocations)]
+  (for [{:keys [f args location type]} invocations]
     {:location location
      :f (partial apply-evaluated f args)
      :type type}))
@@ -157,10 +158,25 @@ configuration code."
 
 (defvar- execution-ordering [:aggregated :in-sequence :collected])
 
+(defn- compare-resource-sequence
+  [x y]
+  (let [before-fn (fn [f]
+                    (let [before (:always-before (meta f))
+                          before (and before (find-var before))]
+                      (and before (:resource-fn (meta before)))))
+        fx (:f x)
+        fy (:f y)]
+    (cond
+     (= (before-fn fx) (var-get fy)) -1
+     (= (before-fn fy) (var-get fx)) 1
+     :else 0)))
+
 (defn- execution-invocations
   "Sort by execution-ordering"
   [invocations]
-  (map #(vector % (% invocations)) execution-ordering))
+  (map
+   #(vector % (sort compare-resource-sequence (% invocations)))
+   execution-ordering))
 
 (defn bound-invocations
   "Configured resources for executions, binding args to methods."
@@ -192,10 +208,14 @@ configuration code."
         arglist (or (arglist-finder (meta name)) argv)
         ;; remove so not used in an evaluated context
         name (with-meta name
-               (dissoc (meta name) :use-arglist :copy-arglist))]
+               (->
+                (meta name)
+                (dissoc :use-arglist :copy-arglist)
+                (assoc :resource-fn (first body))))]
     (assert (pos? (count argv)))        ; mandatory result argument
     `(do
-       (defn ~@body)
+       (defn ~(with-meta (first body) (dissoc (meta name) :resource-fn))
+         ~@(rest body))
        (defn ~name
          {:arglists '(~arglist)}
          [& [~@arglist :as argv#]]
@@ -313,28 +333,33 @@ configuration code."
     (seq (output-resources
           (-> request :invocations phase target-id)))))
 
+(defn script-template [request]
+  (let [family (-> request :node-type :image :os-family)]
+    (filter identity
+            [family
+             (-> request :target-packager)
+             (if-let [version (-> request :node-type :image :os-version)]
+               (format "%s-%s" (name family) version))])))
+
 (defmulti execute-resource
   "Execute a resource of the given type.  Returns [request result]"
   (fn [request resource-type & _] resource-type))
 
 (defmethod execute-resource :script/bash
   [request resource-type execute-fn f]
-  (script/with-template [(-> request :node-type :image :os-family)
-                         (-> request :target-packager)]
+  (script/with-template (script-template request)
     (let [{:keys [cmds request location resource-type]} (f request)]
       [request (execute-fn cmds)])))
 
 (defmethod execute-resource :transfer/to-local
   [request resource-type execute-fn f]
-  (script/with-template [(-> request :node-type :image :os-family)
-                         (-> request :target-packager)]
+  (script/with-template (script-template request)
     (let [{:keys [transfers request location resource-type]} (f request)]
       [request (execute-fn transfers)])))
 
 (defmethod execute-resource :transfer/from-local
   [request resource-type execute-fn f]
-  (script/with-template [(-> request :node-type :image :os-family)
-                         (-> request :target-packager)]
+  (script/with-template (script-template request)
     (let [{:keys [transfers request location resource-type]} (f request)]
       [request (execute-fn transfers)])))
 
@@ -395,60 +420,4 @@ configuration code."
   [& body]
   `(fn [request#] (-> request# ~@body)))
 
-(defn produce-phases
-  "Join the result of produce-phase, executing local resources.
-   Useful for testing."
-  [phases request]
-  (clojure.contrib.logging/trace
-   (format "produce-phases %s %s" phases request))
-  (let [execute
-        (fn [request]
-          (let [commands (produce-phase request)
-                [result request] (if commands
-                                   (execute-commands
-                                    (assoc request :commands commands)
-                                    {:script/bash (fn [cmds] cmds)
-                                     :transfer/from-local (fn [& _])
-                                     :transfer/to-local (fn [& _])})
-                                   [nil request])]
-            [(string/join "" result) request]))]
-    (reduce
-     #(let [[result request] (execute (assoc (second %1) :phase %2))]
-        [(str (first %1) result) request])
-     ["" request]
-     (phase-list phases))))
 
-(defmacro build-resources
-  "Outputs the remote resources specified in the body for the specified phases.
-   This is useful in testing."
-  [[& {:as request-map}] & body]
-  `(let [f# (phase ~@body)
-         request# (or ~request-map {})
-         request# (update-in request# [:phase]
-                             #(or % :configure))
-         request# (update-in request# [:node-type :image :os-family]
-                             #(or % :ubuntu))
-         request# (update-in request# [:target-id]
-                             #(or %
-                                  (and (:target-node request#)
-                                       (keyword
-                                        (.getId (:target-node request#))))
-                                  :id))
-         request# (update-in
-                   request# [:target-packager]
-                   #(or
-                     %
-                     (get-in request# [:node-type :image :packager])
-                     (let [os-family# (get-in
-                                       request#
-                                       [:node-type :image :os-family])]
-                       (cond
-                        (#{:ubuntu :debian :jeos :fedora} os-family#) :aptitude
-                        (#{:centos :rhel} os-family#) :yum
-                        (#{:arch} os-family#) :pacman
-                        (#{:suse} os-family#) :zypper
-                        (#{:gentoo} os-family#) :portage))))]
-     (script/with-template
-       [(-> request# :node-type :image :os-family)
-        (-> request# :target-packager)]
-       (produce-phases [(:phase request#)] (f# request#)))))

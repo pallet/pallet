@@ -52,3 +52,15 @@
   (is (blank? ""))
   (is (not (blank? "a")))
   (is (not (blank? 'a))))
+
+(in-ns 'pallet.config)
+(def admin-user (pallet.utils/make-user "fred"))
+(in-ns 'pallet.utils-test)
+
+(deftest admin-user-from-config-var-test
+  (let [admin-user (admin-user-from-config-var)]
+    (is (= "fred" (:username admin-user)))))
+
+(deftest admin-user-from-config-test
+  (let [admin-user (admin-user-from-config {:admin-user {:username "fred"}})]
+    (is (= "fred" (:username admin-user)))))
