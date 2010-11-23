@@ -66,20 +66,25 @@
 (deftest add-os-family-test
   (defnode a {:os-family :ubuntu})
   (defnode b {})
-  (let [n1 (test-utils/make-node "n1")]
-    (is (= {:tag :a :image {:os-family :ubuntu} :phases nil}
+  (let [n1 (test-utils/make-node "n1" )]
+    (is (= {:tag :a :image {:os-family :ubuntu :os-version nil} :phases nil}
            (:node-type
             (add-os-family
              {:target-node n1 :node-type a})))))
   (let [n1 (test-utils/make-node "n1")]
-    (is (= {:tag :a :image {:os-family :ubuntu} :phases nil}
+    (is (= {:tag :a :image {:os-family :ubuntu :os-version nil} :phases nil}
            (:node-type
             (add-os-family
              {:target-node n1 :node-type a}))))
-    (is (= {:tag :b :image {:os-family :ubuntu} :phases nil}
+    (is (= {:tag :b :image {:os-family :ubuntu :os-version nil} :phases nil}
            (:node-type
             (add-os-family
-             {:target-node n1 :node-type b}))))))
+             {:target-node n1 :node-type b})))))
+  (let [n1 (test-utils/make-node "n1" :os-version "10.1")]
+    (is (= {:tag :a :image {:os-family :ubuntu :os-version "10.1"} :phases nil}
+           (:node-type
+            (add-os-family
+             {:target-node n1 :node-type a}))))))
 
 (deftest add-target-packager-test
   (is (= {:node-type {:image {:os-family :ubuntu}} :target-packager :aptitude}
