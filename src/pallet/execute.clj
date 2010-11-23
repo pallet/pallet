@@ -1,6 +1,7 @@
 (ns pallet.execute
   "Exectute commands.  At the moment the only available transport is ssh."
   (:require
+   [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
    [pallet.resource :as resource]
@@ -41,12 +42,18 @@
   (string/replace
    s (format "\"%s\"" (or (:password user) (:sudo-password user))) "XXXXXXX"))
 
+(script/defscript sudo-no-password [])
+(stevedore/defimpl sudo-no-password :default []
+  ("/usr/bin/sudo" -n))
+(stevedore/defimpl sudo-no-password [#{:centos-5.3}] []
+  ("/usr/bin/sudo"))
+
 (defn sudo-cmd-for [user]
   (if (or (= (:username user) "root") (:no-sudo user))
     ""
     (if-let [pw (:sudo-password user)]
       (str "echo \"" (or (:password user) pw) "\" | /usr/bin/sudo -S")
-      "/usr/bin/sudo -n")))
+      (stevedore/script (sudo-no-password)))))
 
 
 (defonce default-agent-atom (atom nil))
@@ -168,11 +175,12 @@
                                  :put (-> file java.io.FileInputStream.
                                           java.io.BufferedInputStream.)
                                  tmpcpy)
-                       (remote-sudo-cmd
-                        server session sftp-channel user tmpfile
-                        (stevedore/script
-                         (chmod "0600" ~tmpcpy)
-                         (mv -f ~tmpcpy ~remote-name)))))
+                       (script/with-template (resource/script-template request)
+                         (remote-sudo-cmd
+                          server session sftp-channel user tmpfile
+                          (stevedore/script
+                           (chmod "0600" ~tmpcpy)
+                           (mv -f ~tmpcpy ~remote-name))))))
                     (to-local
                      [transfers]
                      (doseq [[remote-file local-file] transfers]
