@@ -154,15 +154,13 @@ When passing a username the following options can be specified:
       (:target-packager request)))
     (handler request)))
 
-
 (defn resource-invocations [request]
   {:pre [(:phase request)]}
   (if-let [f (some
               (:phase request)
               [(:phases (:node-type request)) (:phases request)])]
     (let [request ((utils/pipe add-target-keys identity) request)]
-      (script/with-template [(-> request :node-type :image :os-family)
-                             (-> request :target-packager)]
+      (script/with-template (resource/script-template request)
         (f request)))
     request))
 
@@ -180,8 +178,7 @@ When passing a username the following options can be specified:
                  "Bootstrap can not contain local resources %s"
                  (pr-str cmds))))
     (if-let [f (:f (first cmds))]
-      (script/with-template [(-> request :node-type :image :os-family)
-                             (-> request :target-packager)]
+      (script/with-template (resource/script-template request)
         (:cmds (f request)))
       "")))
 
@@ -290,9 +287,7 @@ script that is run with root privileges immediatly after first boot."
            (-> request :target-packager)]}
     (handler
      (assoc request
-       :commands (script/with-template
-                   [(-> request :node-type :image :os-family)
-                    (-> request :target-packager)]
+       :commands (script/with-template (resource/script-template request)
                    (resource/produce-phase request))))))
 
 (defn apply-phase-to-node

@@ -332,28 +332,29 @@ configuration code."
     (seq (output-resources
           (-> request :invocations phase target-id)))))
 
+(defn script-template [request]
+  [(-> request :node-type :image :os-family)
+   (-> request :target-packager)])
+
 (defmulti execute-resource
   "Execute a resource of the given type.  Returns [request result]"
   (fn [request resource-type & _] resource-type))
 
 (defmethod execute-resource :script/bash
   [request resource-type execute-fn f]
-  (script/with-template [(-> request :node-type :image :os-family)
-                         (-> request :target-packager)]
+  (script/with-template (script-template request)
     (let [{:keys [cmds request location resource-type]} (f request)]
       [request (execute-fn cmds)])))
 
 (defmethod execute-resource :transfer/to-local
   [request resource-type execute-fn f]
-  (script/with-template [(-> request :node-type :image :os-family)
-                         (-> request :target-packager)]
+  (script/with-template (script-template request)
     (let [{:keys [transfers request location resource-type]} (f request)]
       [request (execute-fn transfers)])))
 
 (defmethod execute-resource :transfer/from-local
   [request resource-type execute-fn f]
-  (script/with-template [(-> request :node-type :image :os-family)
-                         (-> request :target-packager)]
+  (script/with-template (script-template request)
     (let [{:keys [transfers request location resource-type]} (f request)]
       [request (execute-fn transfers)])))
 
