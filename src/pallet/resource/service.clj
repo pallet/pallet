@@ -7,7 +7,8 @@
    [pallet.resource.filesystem-layout :as filesystem-layout]
    [pallet.resource.lib :as lib]
    [pallet.resource.remote-file :as remote-file]
-   [pallet.resource :as resource]))
+   [pallet.resource :as resource]
+   [clojure.string :as string]))
 
 (script/defscript configure-service
   [name action options])
@@ -44,17 +45,28 @@
                      stop ~(:sequence-stop options (:sequence-start options 20))
                      "."))))
 
+(def ^{:private true} chkconfig-default-options
+  [20 2 3 4 5])
+
+(defn- chkconfig-levels
+  [options]
+  (->> options (drop 1 ) (map str) string/join))
+
 (stevedore/defimpl configure-service [#{:yum}] [name action options]
   ~(condp = action
        :disable (stevedore/script ("/sbin/chkconfig" ~name off))
        :enable (stevedore/script
                 ("/sbin/chkconfig"
                  ~name on
-                 "--level" ~@(drop 1 (:sequence-start options 20))))
+                 "--level" ~(chkconfig-levels
+                             (:sequence-start
+                              options chkconfig-default-options))))
        :start-stop (stevedore/script ;; start/stop
                     ("/sbin/chkconfig"
                      ~name on
-                     "--level" ~@(drop 1 (:sequence-start options 20))))))
+                     "--level" ~(chkconfig-levels
+                                 (:sequence-start
+                                  options chkconfig-default-options))))))
 
 
 (resource/defresource service
