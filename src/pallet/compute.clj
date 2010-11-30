@@ -26,7 +26,7 @@
      :extensions   extension modules for jclouds
      :node-list    a list of nodes for the \"node-list\" provider."
   [provider-name
-   & {:keys [identity credential extensions node-list] :as options}]
+   & {:keys [identity credential extensions node-list endpoint] :as options}]
   (implementation/load-providers)
   (implementation/service provider-name options))
 
@@ -89,6 +89,11 @@
     (when provider
       (compute-service provider :identity identity :credential credential))))
 
+(defn compute-service-from-config-file
+  [& profiles]
+  (compute-service-from-config
+   (configure/pallet-config)
+   profiles))
 
 ;;; Nodes
 (defprotocol Node
