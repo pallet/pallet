@@ -13,13 +13,15 @@
    :pallet.blobstore.identity :blobstore-identity
    :pallet.blobstore.credential :blobstore-credential
    :pallet.blobstore.extensions :blobstore-extensions
+   :pallet.endpoint :endpoint
    :jclouds.compute.provider :provider
    :jclouds.compute.identity :identity
    :jclouds.compute.credential :credential
    :jclouds.compute.extensions :extensions
    :jclouds.blobstore.provider :blobstore-provider
    :jclouds.blobstore.identity :blobstore-identity
-   :jclouds.blobstore.credential :blobstore-credential})
+   :jclouds.blobstore.credential :blobstore-credential
+   :jclouds.endpoint :endpoint})
 
 (def container (.getContainer (doto (Embedder.) (.start))))
 

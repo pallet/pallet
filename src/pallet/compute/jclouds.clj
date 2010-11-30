@@ -33,11 +33,20 @@
     [:ssh :log4j]
     [:ssh]))
 
+(def ^{:private true :doc "translate option names"}
+  option-keys
+  {:endpoint :jclouds.endpoint})
+
 (defmethod implementation/service :default
-  [provider {:keys [identity credential extensions]
-             :or {extensions (default-jclouds-extensions)}}]
-  (jclouds/compute-service
-   provider identity credential :extensions extensions))
+  [provider {:keys [identity credential extensions endpoint]
+             :or {extensions (default-jclouds-extensions)}
+             :as options}]
+  (let [options (dissoc options :identity :credential :extensions)]
+    (apply
+     jclouds/compute-service
+     provider identity credential
+     :extensions extensions
+     (interleave (map #(option-keys % %) (keys options)) (vals options)))))
 
 
 ;;; Node utilities
