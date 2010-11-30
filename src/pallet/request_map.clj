@@ -47,6 +47,11 @@
   [request]
   (-> request :node-type :image :os-family))
 
+(defn os-version
+  "OS-Family of the target-node."
+  [request]
+  (-> request :node-type :image :os-version))
+
 (defn tag
   "Tag of the target-node."
   [request]
