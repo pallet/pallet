@@ -16,40 +16,11 @@
     <url>http://palletops.com</url>
     <inceptionYear>2010</inceptionYear>
 
-    <licenses>
-      <license>
-        <name>Eclipse Public License</name>
-        <url>http://www.eclipse.org/legal/epl-v10.html</url>
-      </license>
-    </licenses>
-
-    <mailingLists>
-      <mailingList>
-        <name>pallet-clj</name>
-        <subscribe>http://groups.google.com/group/pallet-clj</subscribe>
-        <unsubscribe>http://groups.google.com/group/pallet-clj</unsubscribe>
-        <post>palle-clj@googlegroups.com</post>
-        <archive>http://groups.google.com/group/pallet-clj</archive>
-      </mailingList>
-    </mailingLists>
-
     <scm>
-      <connection>scm:git:git://github.com/hugoduncan/pallet.git</connection>
-      <developerConnection>scm:git:ssh://git@github.com/hugoduncan/pallet.git</developerConnection>
-      <url>http://github.com/hugoduncan/pallet</url>
+      <connection>scm:git:git://github.com/pallet/pallet.git</connection>
+      <developerConnection>scm:git:ssh://git@github.com/pallet/pallet.git</developerConnection>
+      <url>http://github.com/pallet/pallet</url>
     </scm>
-
-    <distributionManagement>
-      <repository>
-        <id>sonatype-nexus-staging</id>
-        <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-        <uniqueVersion>false</uniqueVersion>
-      </repository>
-      <snapshotRepository>
-        <id>sonatype-nexus-snapshots</id>
-        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-      </snapshotRepository>
-    </distributionManagement>
 
     <build>
         <sourceDirectory>src</sourceDirectory>
@@ -198,7 +169,7 @@
             <plugin>
               <groupId>com.theoryinpractise</groupId>
               <artifactId>clojure-maven-plugin</artifactId>
-              <version>1.3.5</version>
+              <version>1.3.6</version>
               <configuration>
                 <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m -Dssh.username=testuser</clojureOptions>
               </configuration>
