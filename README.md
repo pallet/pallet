@@ -1,4 +1,4 @@
-![pallet logo](https://github.com/downloads/hugoduncan/pallet/pallet-logo.png)
+![pallet logo](https://github.com/downloads/pallet/pallet/pallet-logo.png)
 
 [Pallet](http://palletops.com) is used to provision and maintain servers on
 cloud and virtual machine infrastructure, and aims to solve the problem of
@@ -16,7 +16,7 @@ code, and from the command line.
 It uses [jclouds](https://github.com/jclouds/jclouds) to gain portable access to
 different cloud providers.
 
-Some basic [documentation](http://hugoduncan.github.com/pallet) is available.
+Some basic [documentation](http://pallet.github.com/pallet) is available.
 
 ## Support
 
@@ -31,9 +31,9 @@ showing a basic node configuration, and starting and stopping a node.
 ## Quickstart
 
 See the
-[basic usage](https://github.com/hugoduncan/pallet-examples/blob/master/basic/src/demo.clj)
+[basic usage](https://github.com/pallet/pallet-examples/blob/master/basic/src/demo.clj)
 example in the
-[pallet-examples basic](https://github.com/hugoduncan/pallet-examples/tree/master/basic/)
+[pallet-examples basic](https://github.com/pallet/pallet-examples/tree/master/basic/)
 project.
 
 For general help getting started with Clojure, see this
