@@ -37,6 +37,12 @@
   option-keys
   {:endpoint :jclouds.endpoint})
 
+(defn option-key
+  [provider key]
+  (case key
+    :endpoint (keyword (format (str provider ".endpoint")))
+    (option-keys key key)))
+
 (defmethod implementation/service :default
   [provider {:keys [identity credential extensions endpoint]
              :or {extensions (default-jclouds-extensions)}
@@ -46,8 +52,9 @@
      jclouds/compute-service
      provider identity credential
      :extensions extensions
-     (interleave (map #(option-keys % %) (keys options)) (vals options)))))
-
+     (interleave
+      (map #(option-key provider %) (keys options))
+      (vals options)))))
 
 ;;; Node utilities
 (defn make-operating-system
