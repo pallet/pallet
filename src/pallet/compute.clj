@@ -84,10 +84,13 @@
 (defn compute-service-from-config
   "Compute service from ~/.pallet/config.clj"
   [config profiles]
-  (let [{:keys [provider identity credential]}
+  (let [{:keys [provider identity credential]
+         :as options}
         (configure/compute-service-properties config profiles)]
     (when provider
-      (compute-service provider :identity identity :credential credential))))
+      (apply compute-service
+       provider :identity identity :credential credential
+       (apply concat (dissoc options :provider :identity :credential))))))
 
 (defn compute-service-from-config-file
   [& profiles]
