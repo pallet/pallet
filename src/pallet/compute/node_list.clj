@@ -92,4 +92,10 @@
 ;;;; Compute service
 (defmethod implementation/service :node-list
   [_ {:keys [node-list]}]
-  (NodeList. node-list))
+  (NodeList.
+   (vec
+    (map
+     #(if (vector? %)
+        (apply make-node %)
+        %)
+     node-list))))
