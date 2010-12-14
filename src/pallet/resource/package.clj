@@ -453,17 +453,20 @@
              :priority 50})))
 
 ;; this is an aggregate so that it can come before the aggragate package-manager
-(defn add-epel
+(defaggregate ^{:always-before `package-manager} add-epel
   "Add the EPEL repository"
-  [request & {:keys [version] :or {version "5-4"}}]
-  (->
-   request
-   (exec-script/exec-script
-    (rpm
-     -U --quiet
-     ~(format
-       "http://download.fedora.redhat.com/pub/epel/5/x86_64/epel-release-%s.noarch.rpm"
-       version)))))
+  {:use-arglist [request & {:keys [version] :or {version "5-4"}}]}
+  (add-epel*
+   [request args]
+   (let [{:keys [version] :or {version "5-4"}} (apply merge {} args)]
+     (stevedore/script
+      ;; "Add EPEL package repository"
+      (rpm
+       -U --quiet
+       ~(format
+         "http://download.fedora.redhat.com/pub/epel/5/%s/epel-release-%s.noarch.rpm"
+         "$(uname -i)"
+         version))))))
 
 (def ^{:private true}
   rpmforge-url-pattern
