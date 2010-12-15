@@ -37,14 +37,19 @@
      (re-find #"64 bit" os-type-id)))
   (tag
    [node]
-   (manager/get-extra-data "/pallet/tag"))
+   (manager/get-extra-data node "/pallet/tag"))
   (hostname
    [node]
    (:name (manager/as-map node)))
   (os-family
    [node]
    (let [os-name (:os-type-id (manager/as-map node))]
-     (os-family-from-name os-name os-name)))
+     (os-family-from-name os-name os-name)
+     :centos  ;; hack!
+     ))
+  (os-version
+   [node]
+   "5.5")
   (running? [node] true)
   (terminated? [node] false)
   (id [node] ""))
@@ -94,7 +99,7 @@
                              (map #(machine-name tag-name %))
                              (some (fn [n]
                                      (when (every?
-                                            #(not= n (.getName %))
+                                            #(not= n (:name (manager/as-map %)))
                                             all-machines)
                                        n))))
            machine (manager/instance compute machine-name image-id :micro )]
