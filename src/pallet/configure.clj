@@ -57,10 +57,10 @@
           default-provider (map config [:provider :identity :credential])
           providers (:providers config)]
       (cond
-       (every? identity default-provider) {:provider (:provider config)
-                                           :identity (:identity config)
-                                           :credential (:credential config)
-                                           :blobstore (:blobstore config)}
+       (every? identity default-provider) (select-keys
+                                           config
+                                           [:provider :identity :credential
+                                            :blobstore :endpoint])
        (map? providers) (or
                          (and provider (or
                                         (providers (keyword provider))

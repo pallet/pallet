@@ -50,11 +50,10 @@
                                                 (update-in
                                                  config [:provider]
                                                  (fn [p]
-                                                   (blobstore-lookup p p)))
+                                                   (blobstore-lookup p)))
                                                 (:blobstore config))]
     (when provider
       (service provider :identity identity :credential credential))))
-
 
 (defprotocol Blobstore
   (sign-blob-request
