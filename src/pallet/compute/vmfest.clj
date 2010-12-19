@@ -61,10 +61,17 @@
   "Wait for the machines IP to become available."
   [machine]
   (loop []
-    (let [ip (manager/get-ip machine)]
-      (when (string/blank? ip)
-        (Thread/sleep 500)
-        (recur)))))
+    (try
+      (let [ip (try (manager/get-ip machine)
+                    (catch org.virtualbox_3_2.RuntimeFaultMsg e
+                      (logging/warn
+                       (format "wait-for-ip: Machine %s not started yet..." machine)))
+                    (catch clojure.contrib.condition.Condition e
+                      (logging/warn
+                       (format "wait-for-ip: Machine %s is not accessible yet..." machine))))]
+        (when (string/blank? ip)
+          (Thread/sleep 500)
+          (recur))))))
 
 
 (defn machine-name
@@ -76,11 +83,24 @@
   (os-families [compute] "Return supported os-families")
   (medium-formats [compute] "Return supported medium-formats"))
 
+(defn node-data [m]
+  (let [node-map (manager/as-map m)
+        attributes (select-keys node-map [:name :description :session-state])
+        open? (= :open (:session-state node-map))
+        ip (when open? (manager/get-ip m))
+        tag (when open? (manager/get-extra-data m "/pallet/tag"))]
+    (into attributes {:ip ip :tag tag}) ))
+
+(defn node-infos [compute-service]
+  (let [nodes (manager/machines compute-service)]
+    (map node-data nodes)))
+
 (extend-type vmfest.virtualbox.model.Server
   pallet.compute/ComputeService
   (nodes
    [compute-service]
-   (manager/machines compute-service))
+   (manager/machines compute-service)
+   #_(node-infos compute-service))
 
   (ensure-os-family
    [compute-service request]
@@ -104,7 +124,7 @@
                                        n))))
            machine (manager/instance compute machine-name image-id :micro )]
        (manager/set-extra-data machine "/pallet/tag" tag-name)
-       (manager/start machine)
+       (manager/start machine :session-type "vrdp")
        (wait-for-ip machine)
        (pallet.core/lift node-type :phase :bootstrap)
        machine)))
