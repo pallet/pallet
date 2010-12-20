@@ -35,19 +35,19 @@ maven repository aware tool.
 
 Include the following in your project.clj
 
-#+begin_src clojure
+#+BEGIN_SRC clojure
 :dependencies [[org.cloudhoist/pallet "0.3.0"]
                [org.cloudhoist/pallet-crates-complete "0.3.0"]]
 :repositories {"sonatype"
                "http://oss.sonatype.org/content/repositories/releases"
                "sonatype-snapshots"
                "http://oss.sonatype.org/content/repositories/snapshots"}
-#+end_src
+#+END_SRC
 
 ** Maven
 Include the following in your pom.xml.
 
-#+begin_src xml :results silent :session s1
+#+BEGIN_SRC xml :results silent :session s1
     <dependencies>
       <dependency>
         <groupId>org.cloudhoist</groupId>
@@ -71,7 +71,7 @@ Include the following in your pom.xml.
         <url>http://oss.sonatype.org/content/repositories/snapshots</url>
       </repository>
     </repositories>
-#+end_src
+#+END_SRC
 
 
 * Source
