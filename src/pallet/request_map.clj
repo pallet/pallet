@@ -61,7 +61,7 @@
 
 (defn nodes-in-tag
   "All nodes in the same tag as the target-node, or with the specified tag."
-  ([request] (nodes-in-tag request (compute/tag (:target-node request))))
+  ([request] (nodes-in-tag request (tag request)))
   ([request tag]
      (filter #(= (name tag) (compute/tag %)) (:target-nodes request))))
 
