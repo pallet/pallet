@@ -95,6 +95,13 @@
   (let [nodes (manager/machines compute-service)]
     (map node-data nodes)))
 
+(defn create-node [compute node-type machine-name image-id tag-name]
+  (let [machine (manager/instance compute machine-name image-id :micro)]
+    (manager/set-extra-data machine "/pallet/tag" tag-name)
+       (manager/start machine :session-type "vrdp")
+       (wait-for-ip machine)
+       (pallet.core/lift node-type :phase :bootstrap)))
+
 (extend-type vmfest.virtualbox.model.Server
   pallet.compute/ComputeService
   (nodes
@@ -113,21 +120,25 @@
    [compute node-type node-count request init-script]
    (try
      (let [image-id (-> node-type :image :image-id)
-           all-machines (manager/machines compute)
            tag-name (name (:tag node-type))
-           machine-name (->> (range)
-                             (map #(machine-name tag-name %))
-                             (some (fn [n]
-                                     (when (every?
-                                            #(not= n (:name (manager/as-map %)))
-                                            all-machines)
-                                       n))))
-           machine (manager/instance compute machine-name image-id :micro )]
-       (manager/set-extra-data machine "/pallet/tag" tag-name)
-       (manager/start machine :session-type "vrdp")
-       (wait-for-ip machine)
-       (pallet.core/lift node-type :phase :bootstrap)
-       machine)))
+           current-machines-in-tag (filter
+                                    #(= tag-name (manager/get-extra-data % "/pallet/tag")) 
+                                    (manager/machines compute))
+           current-machine-names (into #{} (map #(:name (manager/as-map %)) current-machines-in-tag))
+           target-indices (range (+ node-count (count current-machines-in-tag)))
+           target-machine-names (into #{} (map #(machine-name tag-name %) target-indices))
+           target-machines-already-existing (clojure.set/intersection
+                                             current-machine-names
+                                             target-machine-names)
+           target-machines-to-create (clojure.set/difference
+                                      target-machine-names
+                                      target-machines-already-existing)]
+       (logging/debug (str "current-machine-names " current-machine-names))
+       (logging/debug (str "target-machine-names " target-machine-names))
+       (logging/debug (str "target-machines-already-existing " target-machines-already-existing))
+       (logging/debug (str "target-machines-to-create" target-machines-to-create))
+       (doall
+        (map #(create-node compute node-type % image-id tag-name) target-machines-to-create)))))
 
   (reboot
    [compute nodes]
