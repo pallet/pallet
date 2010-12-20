@@ -91,6 +91,11 @@
           <version>2.0.10</version>
         </dependency>
         <dependency>
+          <groupId>vmfest</groupId>
+          <artifactId>vmfest</artifactId>
+          <version>0.1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
          <groupId>swank-clojure</groupId>
          <artifactId>swank-clojure</artifactId>
          <version>1.2.1</version>
@@ -267,19 +272,6 @@
         </dependencies>
       </profile>
 
-      <profile>
-        <id>vmfest</id>
-        <activation>
-	  <activeByDefault>true</activeByDefault>
-        </activation>
-        <dependencies>
-          <dependency>
-            <groupId>vmfest</groupId>
-            <artifactId>vmfest</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
-          </dependency>
-        </dependencies>
-      </profile>
       <profile>
         <id>jclouds-snapshot</id>
         <activation>
