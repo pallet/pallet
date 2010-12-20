@@ -22,6 +22,6 @@ designed to make small to midsize deployments simple.
 
   * [[file:overview.org][Overview]]
   * [[file:first_steps.org][First Steps]]
-  * [[file:reference/index.org][Reference Documentation]]
+  * [[file:reference/reference_index.org][Reference Documentation]]
   * [[http:autodoc/index.html][API Documentation]]
 

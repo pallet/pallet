@@ -41,13 +41,12 @@ nodes.
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.core)
-  (require 'pallet.maven)
+  (require 'pallet.compute)
   (require 'pallet.resource)
   (require 'pallet.resource.package)
 
   (def service
-       (apply org.jclouds.compute/compute-service
-        (concat (pallet.maven/credentials) [:log4j :enterprise :ssh])))
+       (pallet.compute/compute-service-from-settings))
   (pallet.core/defnode mytag {})
   (pallet.core/lift mytag service
     (pallet.resource/phase (pallet.resource.package/package "curl")))

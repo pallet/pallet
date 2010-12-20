@@ -10,7 +10,7 @@
   (list
    "pallet"
    :base-directory base-dir
-   :publishing-directory (expand-file-name (concat base-dir "../autodoc/"))
+   :publishing-directory (expand-file-name (concat base-dir "../pallet-master/autodoc/"))
    :base-extension "org"
    :recursive t
    :publishing-function 'org-publish-org-to-html
@@ -20,7 +20,7 @@
   (list "static"
    :base-directory base-dir
    :base-extension "css\\|js\\|png\\|jpeg\\|gif\\|pdf\\|mp3"
-   :publishing-directory (expand-file-name (concat base-dir "../autodoc/"))
+   :publishing-directory (expand-file-name (concat base-dir "../pallet-master/autodoc/"))
    :recursive t
    :publishing-function 'org-publish-attachment
    )
