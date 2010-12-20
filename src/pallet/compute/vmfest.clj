@@ -143,7 +143,8 @@
    [compute node _]
    ;; todo: wait for completion
    (logging/info (format "Shutting down %s" (pr-str node)))
-   (manager/power-down node))
+   (manager/power-down node)
+   (manager/wait-for-machine-state node [:powered-off] 10000))
 
   (shutdown
    [compute nodes user]
