@@ -18,6 +18,7 @@
 
 (def os-family-name
   {:ubuntu "Ubuntu"
+   :centos "RedHat"
    ;:rhel "RedHat"
    :rhel "RedHat_64"})
 
@@ -102,12 +103,13 @@
        (wait-for-ip machine)
        (pallet.core/lift node-type :phase :bootstrap)))
 
-(extend-type vmfest.virtualbox.model.Server
+
+(deftype VmfestService
+    [server images locations]
   pallet.compute/ComputeService
   (nodes
    [compute-service]
-   (manager/machines compute-service)
-   #_(node-infos compute-service))
+   (manager/machines server))
 
   (ensure-os-family
    [compute-service request]
@@ -117,33 +119,46 @@
   ;; (build-node-template)
 
   (run-nodes
-   [compute node-type node-count request init-script]
+   [compute-service node-type node-count request init-script]
    (try
-     (let [image-id (-> node-type :image :image-id)
-           tag-name (name (:tag node-type))
-           current-machines-in-tag (filter
-                                    #(= tag-name (manager/get-extra-data % "/pallet/tag")) 
-                                    (manager/machines compute))
-           current-machine-names (into #{} (map #(:name (manager/as-map %)) current-machines-in-tag))
-           target-indices (range (+ node-count (count current-machines-in-tag)))
-           target-machine-names (into #{} (map #(machine-name tag-name %) target-indices))
-           target-machines-already-existing (clojure.set/intersection
-                                             current-machine-names
-                                             target-machine-names)
-           target-machines-to-create (clojure.set/difference
-                                      target-machine-names
-                                      target-machines-already-existing)]
-       (logging/debug (str "current-machine-names " current-machine-names))
-       (logging/debug (str "target-machine-names " target-machine-names))
-       (logging/debug (str "target-machines-already-existing " target-machines-already-existing))
-       (logging/debug (str "target-machines-to-create" target-machines-to-create))
-       (doall
-        (map #(create-node compute node-type % image-id tag-name) target-machines-to-create)))))
+     (binding [manager/*location* locations
+               manager/*images* images]
+       (let [image-id (-> node-type :image :image-id)
+             tag-name (name (:tag node-type))
+             current-machines-in-tag (filter
+                                      #(= tag-name
+                                          (manager/get-extra-data
+                                           % "/pallet/tag"))
+                                      (manager/machines server))
+             current-machine-names (into #{}
+                                    (map
+                                     #(:name (manager/as-map %))
+                                     current-machines-in-tag))
+             target-indices (range (+ node-count
+                                      (count current-machines-in-tag)))
+             target-machine-names (into #{}
+                                   (map
+                                    #(machine-name tag-name %)
+                                    target-indices))
+             target-machines-already-existing (clojure.set/intersection
+                                               current-machine-names
+                                               target-machine-names)
+             target-machines-to-create (clojure.set/difference
+                                        target-machine-names
+                                        target-machines-already-existing)]
+         (logging/debug (str "current-machine-names " current-machine-names))
+         (logging/debug (str "target-machine-names " target-machine-names))
+         (logging/debug (str "target-machines-already-existing "
+                             target-machines-already-existing))
+         (logging/debug (str "target-machines-to-create"
+                             target-machines-to-create))
+         (doseq [name target-machines-to-create]
+           (create-node server node-type name image-id tag-name))))))
 
   (reboot
    [compute nodes]
-   (compute/shutdown compute nodes nil)
-   (compute/boot-if-down compute nodes))
+   (compute/shutdown server nodes nil)
+   (compute/boot-if-down server nodes))
 
   (boot-if-down
    [compute nodes]
@@ -160,28 +175,32 @@
   (shutdown
    [compute nodes user]
    (doseq [node nodes]
-     (compute/shutdown-node compute node user)))
+     (compute/shutdown-node server node user)))
 
   (destroy-nodes-with-tag
     [compute tag-name]
     (doseq [machine
             (filter
-             #(= tag-name (manager/get-extra-data % "/pallet/tag")) 
-             (manager/machines compute))]
-      (compute/destroy-node compute machine)))
+             #(= tag-name (manager/get-extra-data % "/pallet/tag"))
+             (manager/machines server))]
+      (compute/destroy-node server machine)))
 
   (destroy-node
    [compute node]
    {:pre [node]}
-   (compute/shutdown-node compute node nil)
+   (compute/shutdown-node server node nil)
    (manager/destroy node))
+
   (close [compute]))
 
 ;;;; Compute service
 (defmethod implementation/service :virtualbox
-  [_ {:keys [url identity credential]
+  [_ {:keys [url identity credential images locations]
       :or {url "http://localhost:18083/"
            identity "test"
            credential "test"}
       :as options}]
-  (vmfest.virtualbox.model.Server. url identity credential))
+  (VmfestService.
+   (vmfest.virtualbox.model.Server. url identity credential)
+   images
+   locations))
