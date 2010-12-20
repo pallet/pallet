@@ -68,7 +68,7 @@
 
 (defn invoke
   [options task params]
-  (let [default-config (configure/pallet-config)
+  (let [default-config (or (:defaults options) (configure/pallet-config))
         admin-user (find-admin-user
                     default-config (:project options) (:profiles options))
         compute (find-compute-service
@@ -84,6 +84,7 @@
             (apply task {:compute compute
                          :blobstore blobstore
                          :project (:project options)
+                         :config default-config
                          :user admin-user} params)
             (finally ;; make sure we don't hang on exceptions
              (when blobstore

@@ -75,7 +75,8 @@ configuration code."
   ([request invoke-fn args execution]
      (invoke-resource request invoke-fn args execution :script/bash))
   ([request invoke-fn args execution resource-type]
-     {:pre [(keyword? (:phase request))
+     {:pre [request
+            (keyword? (:phase request))
             (keyword? (:target-id request))]}
      (let [[execution location] (if (#{:fn/clojure :transfer/to-local}
                                      resource-type)
@@ -332,28 +333,33 @@ configuration code."
     (seq (output-resources
           (-> request :invocations phase target-id)))))
 
+(defn script-template [request]
+  (let [family (-> request :node-type :image :os-family)]
+    (filter identity
+            [family
+             (-> request :target-packager)
+             (if-let [version (-> request :node-type :image :os-version)]
+               (keyword (format "%s-%s" (name family) version)))])))
+
 (defmulti execute-resource
   "Execute a resource of the given type.  Returns [request result]"
   (fn [request resource-type & _] resource-type))
 
 (defmethod execute-resource :script/bash
   [request resource-type execute-fn f]
-  (script/with-template [(-> request :node-type :image :os-family)
-                         (-> request :target-packager)]
+  (script/with-template (script-template request)
     (let [{:keys [cmds request location resource-type]} (f request)]
       [request (execute-fn cmds)])))
 
 (defmethod execute-resource :transfer/to-local
   [request resource-type execute-fn f]
-  (script/with-template [(-> request :node-type :image :os-family)
-                         (-> request :target-packager)]
+  (script/with-template (script-template request)
     (let [{:keys [transfers request location resource-type]} (f request)]
       [request (execute-fn transfers)])))
 
 (defmethod execute-resource :transfer/from-local
   [request resource-type execute-fn f]
-  (script/with-template [(-> request :node-type :image :os-family)
-                         (-> request :target-packager)]
+  (script/with-template (script-template request)
     (let [{:keys [transfers request location resource-type]} (f request)]
       [request (execute-fn transfers)])))
 

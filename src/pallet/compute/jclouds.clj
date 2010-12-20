@@ -33,12 +33,28 @@
     [:ssh :log4j]
     [:ssh]))
 
-(defmethod implementation/service :default
-  [provider {:keys [identity credential extensions]
-             :or {extensions (default-jclouds-extensions)}}]
-  (jclouds/compute-service
-   provider identity credential :extensions extensions))
+(def ^{:private true :doc "translate option names"}
+  option-keys
+  {:endpoint :jclouds.endpoint})
 
+(defn option-key
+  [provider key]
+  (case key
+    :endpoint (keyword (format (str provider ".endpoint")))
+    (option-keys key key)))
+
+(defmethod implementation/service :default
+  [provider {:keys [identity credential extensions endpoint]
+             :or {extensions (default-jclouds-extensions)}
+             :as options}]
+  (let [options (dissoc options :identity :credential :extensions)]
+    (apply
+     jclouds/compute-service
+     provider identity credential
+     :extensions extensions
+     (interleave
+      (map #(option-key provider %) (keys options))
+      (vals options)))))
 
 ;;; Node utilities
 (defn make-operating-system
@@ -201,6 +217,11 @@
     [node]
     (when-let [operating-system (.getOperatingSystem node)]
       (keyword (str (.getFamily operating-system)))))
+
+  (os-version
+    [node]
+    (when-let [operating-system (.getOperatingSystem node)]
+      (.getVersion operating-system)))
 
   (hostname [node] (.getName node))
   (id [node] (.getId node))

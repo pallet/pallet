@@ -42,6 +42,11 @@
   [request]
   (-> request :node-type :image :os-family))
 
+(defn os-version
+  "OS-Family of the target-node."
+  [request]
+  (-> request :node-type :image :os-version))
+
 (defn tag
   "Tag of the target-node."
   [request]
@@ -56,7 +61,7 @@
 
 (defn nodes-in-tag
   "All nodes in the same tag as the target-node, or with the specified tag."
-  ([request] (nodes-in-tag request (compute/tag (:target-node request))))
+  ([request] (nodes-in-tag request (tag request)))
   ([request tag]
      (filter #(= (name tag) (compute/tag %)) (:target-nodes request))))
 

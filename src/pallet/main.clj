@@ -64,7 +64,7 @@
 (defn -main
   "Command line runner."
   ([& args]
-     (command-line/with-command-line args
+     (command-line/with-command-line (or args *command-line-args*)
        "Pallet command line"
        [[provider "Cloud provider name."]
         [identity "Cloud user name or key."]
@@ -74,11 +74,14 @@
         [blobstore-credential "Blobstore password or secret."]
         [P "Profiles to use for key lookup in config.clj or settings.xml"]
         [project-options "Project options (usually picked up from project.clj)."]
+        [defaults "Default options (usually picked up from config.clj)."]
         args]
        (let [[task & args] args
              task (or (aliases task) task "help")
              project-options (when project-options
-                               (read-string project-options))]
+                               (read-string project-options))
+             defaults (when defaults
+                        (read-string defaults))]
          (let [symbol-map (reduce map-and-resolve-symbols {} args)
                arg-line (str "[ " (apply str (interpose " " args)) " ]")
                params (read-string arg-line)
@@ -96,12 +99,12 @@
                  :blobstore-identity blobstore-identity
                  :blobstore-credential blobstore-credential
                  :profiles (profiles P)
-                 :project project-options}
+                 :project project-options
+                 :defaults defaults}
                 task
                 params))))
          ;; In case tests or some other task started any:
          (flush)
          (when-not (System/getProperty "cake.project")
            (shutdown-agents)
-           (System/exit 0)))))
-  ([] (apply -main *command-line-args*)))
+           (System/exit 0))))))

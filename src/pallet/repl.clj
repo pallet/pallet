@@ -10,8 +10,6 @@
    pallet.core
    pallet.resource
    pallet.resource.package
-   pallet.crate.automated-admin-user
-   pallet.crate.public-dns-if-no-nameserver
    pallet.task.feedback
    clj-ssh.ssh))
 
@@ -29,7 +27,5 @@
       'pallet.maven
       'pallet.resource
       'pallet.resource.package
-      'pallet.crate.automated-admin-user
-      'pallet.crate.public-dns-if-no-nameserver
       'pallet.task.feedback
       'clj-ssh.ssh)))

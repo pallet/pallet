@@ -26,7 +26,7 @@
      :extensions   extension modules for jclouds
      :node-list    a list of nodes for the \"node-list\" provider."
   [provider-name
-   & {:keys [identity credential extensions node-list] :as options}]
+   & {:keys [identity credential extensions node-list endpoint] :as options}]
   (implementation/load-providers)
   (implementation/service provider-name options))
 
@@ -84,11 +84,19 @@
 (defn compute-service-from-config
   "Compute service from ~/.pallet/config.clj"
   [config profiles]
-  (let [{:keys [provider identity credential]}
+  (let [{:keys [provider identity credential]
+         :as options}
         (configure/compute-service-properties config profiles)]
     (when provider
-      (compute-service provider :identity identity :credential credential))))
+      (apply compute-service
+       provider :identity identity :credential credential
+       (apply concat (dissoc options :provider :identity :credential))))))
 
+(defn compute-service-from-config-file
+  [& profiles]
+  (compute-service-from-config
+   (configure/pallet-config)
+   profiles))
 
 ;;; Nodes
 (defprotocol Node
@@ -98,7 +106,8 @@
   (is-64bit? [node] "64 Bit OS predicate")
   (tag [node] "Returns the tag for the node.")
   (hostname [node] "TODO make this work on ec2")
-  (os-family [node] "Return a nodes os-family, or nil if not available.")
+  (os-family [node] "Return a node's os-family, or nil if not available.")
+  (os-version [node] "Return a node's os-version, or nil if not available.")
   (running? [node])
   (terminated? [node])
   (id [node]))

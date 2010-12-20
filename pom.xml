@@ -2,53 +2,25 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-      <groupId>org.sonatype.oss</groupId>
-      <artifactId>oss-parent</artifactId>
-      <version>5</version>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>pallet-pom</artifactId>
+      <version>0.4.0-SNAPSHOT</version>
+      <relativePath>../pallet-pom</relativePath>
     </parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet</artifactId>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>pallet</name>
-    <description>Pallet - provisioning and configuration of compute nodes</description>
-    <url>http://github.com/hugoduncan/pallet</url>
+    <description>Pallet - agile provisioning and configuration of compute nodes. A devops tool.</description>
+    <url>http://palletops.com</url>
     <inceptionYear>2010</inceptionYear>
 
-    <licenses>
-      <license>
-        <name>Eclipse Public License</name>
-        <url>http://www.eclipse.org/legal/epl-v10.html</url>
-      </license>
-    </licenses>
-
-    <mailingLists>
-      <mailingList>
-        <name>pallet-clj</name>
-        <subscribe>http://groups.google.com/group/pallet-clj</subscribe>
-        <unsubscribe>http://groups.google.com/group/pallet-clj</unsubscribe>
-        <post>palle-clj@googlegroups.com</post>
-        <archive>http://groups.google.com/group/pallet-clj</archive>
-      </mailingList>
-    </mailingLists>
-
     <scm>
-      <connection>scm:git:git://github.com/hugoduncan/pallet.git</connection>
-      <developerConnection>scm:git:ssh://git@github.com/hugoduncan/pallet.git</developerConnection>
-      <url>http://github.com/hugoduncan/pallet</url>
+      <connection>scm:git:git://github.com/pallet/pallet.git</connection>
+      <developerConnection>scm:git:ssh://git@github.com/pallet/pallet.git</developerConnection>
+      <url>http://github.com/pallet/pallet</url>
     </scm>
-
-    <distributionManagement>
-      <repository>
-        <id>sonatype-nexus-staging</id>
-        <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-        <uniqueVersion>false</uniqueVersion>
-      </repository>
-      <snapshotRepository>
-        <id>sonatype-nexus-snapshots</id>
-        <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-      </snapshotRepository>
-    </distributionManagement>
 
     <build>
         <sourceDirectory>src</sourceDirectory>
@@ -66,120 +38,21 @@
             </testResource>
         </testResources>
         <plugins>
-            <plugin>
-                <groupId>com.theoryinpractise</groupId>
-                <artifactId>clojure-maven-plugin</artifactId>
-                <version>1.3.4</version>
-                <configuration>
-                    <sourceDirectories>
-                        <sourceDirectory>src</sourceDirectory>
-                    </sourceDirectories>
-                    <testSourceDirectories>
-                        <testSourceDirectory>test</testSourceDirectory>
-                    </testSourceDirectories>
-                    <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m</clojureOptions>
-                    <warnOnReflection>true</warnOnReflection>
-                    <testDeclaredNamespaceOnly>false</testDeclaredNamespaceOnly>
-                    <compileDeclaredNamespaceOnly>true</compileDeclaredNamespaceOnly>
-                    <!-- we want the AOT compile sanity check, but still only ship source -->
-                    <outputDirectory>${project.build.directory}/clojure-classes</outputDirectory>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>test-clojure</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>test</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>log4j.xml</exclude>
-                    </excludes>
-                </configuration>
-                <executions>
-                  <execution>
-                    <goals>
-                      <goal>test-jar</goal>
-                    </goals>
-                  </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <!-- NOTE: We don't need a groupId specification because the group is
-           org.apache.maven.plugins ...which is assumed by default.
-          -->
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.2-beta-5</version>
-                <configuration>
-                    <outputDirectory>${project.basedir}</outputDirectory>
-                    <appendAssemblyId>false</appendAssemblyId>
-                    <finalName>lib</finalName>
-                    <descriptorSourceDirectory>${project.basedir}/assembly</descriptorSourceDirectory>
-                </configuration>
-            </plugin>
-            <plugin>
-              <artifactId>maven-enforcer-plugin</artifactId>
-              <executions>
-                <execution>
-                  <id>enforce-banned-dependencies</id>
-                  <goals>
-                    <goal>enforce</goal>
-                  </goals>
-                  <configuration>
-                    <rules>
-                      <bannedDependencies>
-                        <excludes>
-                          <exclude>:maven-dependency-plugin</exclude>
-                        </excludes>
-                      </bannedDependencies>
-                    </rules>
-                  </configuration>
-                </execution>
-                <execution>
-                  <id>enforce-java</id>
-                  <goals>
-                    <goal>enforce</goal>
-                  </goals>
-                  <configuration>
-                    <rules>
-                      <requireJavaVersion>
-                        <version>[1.6,)</version>
-                      </requireJavaVersion>
-                      <requireMavenVersion>
-                        <version>[2.2.1,)</version>
-                      </requireMavenVersion>
-                    </rules>
-                  </configuration>
-                </execution>
-              </executions>
-            </plugin>
-          </plugins>
-          <extensions>
-          <!-- Enabling the use of SSH -->
-          <extension>
-            <groupId>org.apache.maven.wagon</groupId>
-            <artifactId>wagon-ssh-external</artifactId>
-            <version>1.0-beta-6</version>
-          </extension>
-        </extensions>
+          <plugin>
+            <artifactId>maven-jar-plugin</artifactId>
+            <version>2.3.1</version>
+            <executions>
+              <execution>
+                <id>test-jar</id>
+                <goals>
+                  <goal>test-jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
     </build>
     <dependencies>
-        <dependency>
-          <groupId>org.clojure</groupId>
-          <artifactId>clojure</artifactId>
-          <version>1.2.0</version>
-        </dependency>
-        <dependency>
-          <groupId>org.clojure</groupId>
-          <artifactId>clojure-contrib</artifactId>
-          <version>1.2.0</version>
-        </dependency>
-
         <dependency>
             <groupId>clj-http</groupId>
             <artifactId>clj-http</artifactId>
@@ -222,6 +95,18 @@
          <artifactId>swank-clojure</artifactId>
          <version>1.2.1</version>
          <optional>true</optional>
+        </dependency>
+        <dependency>
+          <groupId>autodoc</groupId>
+          <artifactId>autodoc</artifactId>
+          <version>0.7.1</version>
+          <optional>true</optional>
+          <exclusions>
+            <exclusion>
+              <groupId>org.clojure</groupId>
+              <artifactId>clojure</artifactId>
+            </exclusion>
+          </exclusions>
         </dependency>
     </dependencies>
 
@@ -284,7 +169,7 @@
             <plugin>
               <groupId>com.theoryinpractise</groupId>
               <artifactId>clojure-maven-plugin</artifactId>
-              <version>1.3.5</version>
+              <version>1.3.6</version>
               <configuration>
                 <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m -Dssh.username=testuser</clojureOptions>
               </configuration>
@@ -298,16 +183,19 @@
         <activation>
 	  <activeByDefault>true</activeByDefault>
         </activation>
+        <properties>
+          <jclouds.version>1.0-beta-8</jclouds.version>
+        </properties>
         <dependencies>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-compute</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-blobstore</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
           </dependency>
 
           <!-- You will need the jclouds provider specific jars for your project -->
@@ -315,66 +203,66 @@
           <!-- <dependency> -->
           <!--     <groupId>org.jclouds</groupId> -->
           <!--     <artifactId>jclouds-all</artifactId> -->
-          <!--     <version>1.0-beta-8</version> -->
+          <!--     <version>${jclouds.version}</version> -->
           <!--     <optional>true</optional> -->
           <!-- </dependency> -->
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-aws</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-bluelock</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-gogrid</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-rackspace</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-rimuhosting</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-slicehost</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-terremark</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
             <optional>true</optional>
           </dependency>
 
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-jsch</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-log4j</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
           </dependency>
           <dependency>
             <groupId>org.jclouds</groupId>
             <artifactId>jclouds-enterprise</artifactId>
-            <version>1.0-beta-8</version>
+            <version>${jclouds.version}</version>
           </dependency>
         </dependencies>
       </profile>
@@ -391,6 +279,15 @@
             <version>0.0.1-SNAPSHOT</version>
           </dependency>
         </dependencies>
+      </profile>
+      <profile>
+        <id>jclouds-snapshot</id>
+        <activation>
+	  <activeByDefault>false</activeByDefault>
+        </activation>
+        <properties>
+          <jclouds.version>1.0-SNAPSHOT</jclouds.version>
+        </properties>
       </profile>
 
       <profile>
@@ -409,6 +306,32 @@
                   <namespace>!pallet.core.jclouds.*</namespace>
                 </testNamespaces>
               </configuration>
+            </plugin>
+          </plugins>
+        </build>
+      </profile>
+
+      <profile>
+        <id>distribution</id>
+        <build>
+          <plugins>
+            <plugin>
+              <artifactId>maven-assembly-plugin</artifactId>
+              <executions>
+                <!-- override the default execution inherited from project -->
+                <execution>
+                  <id>jar-with-dependencies</id>
+                  <phase>package</phase>
+                  <goals>
+                    <goal>single</goal>
+                  </goals>
+                  <configuration>
+                    <descriptors>
+                      <descriptor>core-jar-with-dependencies-descriptor.xml</descriptor>
+                    </descriptors>
+                  </configuration>
+                </execution>
+              </executions>
             </plugin>
           </plugins>
         </build>

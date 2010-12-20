@@ -71,7 +71,8 @@
   ([arg condition form]
      `(let [arg# ~arg]
         (if ~condition
-          (-> arg# ~form))))
+          (-> arg# ~form)
+          arg#)))
   ([arg condition form else-form ]
      `(let [arg# ~arg]
         (if ~condition

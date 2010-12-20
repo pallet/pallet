@@ -12,7 +12,7 @@
   ["node-list"])
 
 (defrecord Node
-    [name tag ip os-family id ssh-port private-ip is-64bit running]
+    [name tag ip os-family os-version id ssh-port private-ip is-64bit running]
   pallet.compute.Node
   (ssh-port [node] ssh-port)
   (primary-ip [node] ip)
@@ -22,12 +22,13 @@
   (running? [node] running)
   (terminated? [node] (not running))
   (os-family [node] os-family)
+  (os-version [node] os-version)
   (hostname [node] name)
   (id [node] id))
 
 ;;; Node utilities
 (defn make-node [name tag ip os-family
-                 & {:keys [id ssh-port private-ip is-64bit running]
+                 & {:keys [id ssh-port private-ip is-64bit running os-version]
                     :or {ssh-port 22 is-64bit true running true}
                     :as options}]
   (Node.
@@ -35,6 +36,7 @@
    tag
    ip
    os-family
+   os-version
    (or id (str name "-" (string/replace ip #"\." "-")))
    ssh-port
    private-ip
@@ -90,4 +92,10 @@
 ;;;; Compute service
 (defmethod implementation/service :node-list
   [_ {:keys [node-list]}]
-  (NodeList. node-list))
+  (NodeList.
+   (vec
+    (map
+     #(if (vector? %)
+        (apply make-node %)
+        %)
+     node-list))))

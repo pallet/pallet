@@ -106,12 +106,19 @@ When passing a username the following options can be specified:
 (defn add-os-family
   "Add the os family to the node-type if available from node."
   [request]
-  (update-in
-   request [:node-type :image :os-family]
-   (fn ensure-os-family [f]
-     (or (when-let [node (:target-node request)]
-           (compute/os-family node))
-         f))))
+  (let [node (:target-node request)
+        family (and node (compute/os-family node))
+        version (and node (compute/os-version node))]
+    (->
+     request
+     (update-in
+      [:node-type :image :os-family]
+      (fn ensure-os-family [f]
+        (or family f)))
+     (update-in
+      [:node-type :image :os-version]
+      (fn ensure-os-family-version [f]
+        (or version f))))))
 
 (defn add-target-id
   "Add the target-id to the request"
@@ -154,15 +161,13 @@ When passing a username the following options can be specified:
       (:target-packager request)))
     (handler request)))
 
-
 (defn resource-invocations [request]
   {:pre [(:phase request)]}
   (if-let [f (some
               (:phase request)
               [(:phases (:node-type request)) (:phases request)])]
     (let [request ((utils/pipe add-target-keys identity) request)]
-      (script/with-template [(-> request :node-type :image :os-family)
-                             (-> request :target-packager)]
+      (script/with-template (resource/script-template request)
         (f request)))
     request))
 
@@ -180,8 +185,7 @@ When passing a username the following options can be specified:
                  "Bootstrap can not contain local resources %s"
                  (pr-str cmds))))
     (if-let [f (:f (first cmds))]
-      (script/with-template [(-> request :node-type :image :os-family)
-                             (-> request :target-packager)]
+      (script/with-template (resource/script-template request)
         (:cmds (f request)))
       "")))
 
@@ -290,9 +294,7 @@ script that is run with root privileges immediatly after first boot."
            (-> request :target-packager)]}
     (handler
      (assoc request
-       :commands (script/with-template
-                   [(-> request :node-type :image :os-family)
-                    (-> request :target-packager)]
+       :commands (script/with-template (resource/script-template request)
                    (resource/produce-phase request))))))
 
 (defn apply-phase-to-node
