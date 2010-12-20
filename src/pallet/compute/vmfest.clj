@@ -96,8 +96,8 @@
   (let [nodes (manager/machines compute-service)]
     (map node-data nodes)))
 
-(defn create-node [compute node-type machine-name image-id tag-name]
-  (let [machine (manager/instance compute machine-name image-id :micro)]
+(defn create-node [compute node-path node-type machine-name image-id tag-name]
+  (let [machine (manager/instance compute machine-name image-id :micro node-path)]
     (manager/set-extra-data machine "/pallet/tag" tag-name)
        (manager/start machine :session-type "vrdp")
        (wait-for-ip machine)
@@ -121,39 +121,39 @@
   (run-nodes
    [compute-service node-type node-count request init-script]
    (try
-     (binding [manager/*location* locations
-               manager/*images* images]
-       (let [image-id (-> node-type :image :image-id)
-             tag-name (name (:tag node-type))
-             current-machines-in-tag (filter
-                                      #(= tag-name
-                                          (manager/get-extra-data
-                                           % "/pallet/tag"))
-                                      (manager/machines server))
-             current-machine-names (into #{}
-                                    (map
-                                     #(:name (manager/as-map %))
-                                     current-machines-in-tag))
-             target-indices (range (+ node-count
-                                      (count current-machines-in-tag)))
-             target-machine-names (into #{}
-                                   (map
-                                    #(machine-name tag-name %)
-                                    target-indices))
-             target-machines-already-existing (clojure.set/intersection
-                                               current-machine-names
-                                               target-machine-names)
-             target-machines-to-create (clojure.set/difference
-                                        target-machine-names
-                                        target-machines-already-existing)]
-         (logging/debug (str "current-machine-names " current-machine-names))
-         (logging/debug (str "target-machine-names " target-machine-names))
-         (logging/debug (str "target-machines-already-existing "
-                             target-machines-already-existing))
-         (logging/debug (str "target-machines-to-create"
-                             target-machines-to-create))
+     (let [image-id (-> node-type :image :image-id)
+           tag-name (name (:tag node-type))
+           current-machines-in-tag (filter
+                                    #(= tag-name
+                                        (manager/get-extra-data
+                                         % "/pallet/tag"))
+                                    (manager/machines server))
+           current-machine-names (into #{}
+                                       (map
+                                        #(:name (manager/as-map %))
+                                        current-machines-in-tag))
+           target-indices (range (+ node-count
+                                    (count current-machines-in-tag)))
+           target-machine-names (into #{}
+                                      (map
+                                       #(machine-name tag-name %)
+                                       target-indices))
+           target-machines-already-existing (clojure.set/intersection
+                                             current-machine-names
+                                             target-machine-names)
+           target-machines-to-create (clojure.set/difference
+                                      target-machine-names
+                                      target-machines-already-existing)]
+       (logging/debug (str "current-machine-names " current-machine-names))
+       (logging/debug (str "target-machine-names " target-machine-names))
+       (logging/debug (str "target-machines-already-existing "
+                           target-machines-already-existing))
+       (logging/debug (str "target-machines-to-create"
+                           target-machines-to-create))
+       (binding [manager/*images* images]
          (doseq [name target-machines-to-create]
-           (create-node server node-type name image-id tag-name))))))
+           (create-node
+            server (:node-path locations) node-type name image-id tag-name))))))
 
   (reboot
    [compute nodes]
@@ -183,24 +183,26 @@
             (filter
              #(= tag-name (manager/get-extra-data % "/pallet/tag"))
              (manager/machines server))]
-      (compute/destroy-node server machine)))
+      (compute/destroy-node compute machine)))
 
   (destroy-node
    [compute node]
    {:pre [node]}
-   (compute/shutdown-node server node nil)
+   (compute/shutdown-node compute node nil)
    (manager/destroy node))
 
   (close [compute]))
 
 ;;;; Compute service
 (defmethod implementation/service :virtualbox
-  [_ {:keys [url identity credential images locations]
+  [_ {:keys [url identity credential images node-path model-path locations]
       :or {url "http://localhost:18083/"
            identity "test"
            credential "test"}
       :as options}]
-  (VmfestService.
-   (vmfest.virtualbox.model.Server. url identity credential)
-   images
-   locations))
+  (let [locations (or locations
+                      {:local (select-keys options [:node-path :model-path])})]
+    (VmfestService.
+     (vmfest.virtualbox.model.Server. url identity credential)
+     images
+     (val (first locations)))))
