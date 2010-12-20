@@ -1,0 +1,25 @@
+#+TITLE:     Pallet Reference - Script
+#+AUTHOR:    Hugo Duncan
+#+EMAIL:     hugo_duncan@yahoo.com
+#+DATE:      2010-06-17 Thu
+#+DESCRIPTION: Pallet reference documentation for pushing over SSH
+#+KEYWORDS: pallet ssh push keys identity
+#+LANGUAGE:  en
+#+OPTIONS:   H:3 num:nil toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
+#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+LINK_UP: index.html
+#+LINK_HOME: ../index.html
+#+property: exports code
+#+property: results output
+#+property: cache true
+#+STYLE: <link rel="stylesheet" type="text/css" href="../doc.css" />
+
+#+MACRO: clojure [[http://clojure.org][Clojure]]
+#+MACRO: jclouds [[http://jclouds.org][jclouds]]
+
+Pallet scripts are written using an embedding of shell script in {{{clojure}}}.
+
+See [[http://hugoduncan.org/post/2010/shell_scripting_in_clojure_with_pallet.xhtml][this blog post]] for an introduction.
