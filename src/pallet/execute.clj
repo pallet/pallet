@@ -48,7 +48,9 @@
 (stevedore/defimpl sudo-no-password [#{:centos-5.3}] []
   ("/usr/bin/sudo"))
 
-(defn sudo-cmd-for [user]
+(defn sudo-cmd-for
+  "Construct a sudo command prefix for the specified user."
+  [user]
   (if (or (= (:username user) "root") (:no-sudo user))
     ""
     (if-let [pw (:sudo-password user)]
@@ -80,11 +82,10 @@
      ssh/*ssh-agent* (:private-key-path user) (:passphrase user))
     (let [session (ssh/session server
                                :username (:username user)
+                               :password (:password user)
                                :strict-host-key-checking :no)]
       (ssh/with-connection session
-        (let [prefix (if (:password user)
-                       (str "echo \"" (:password user) "\" | sudo -S ")
-                       "sudo ")
+        (let [prefix (sudo-cmd-for user)
               cmd (str prefix command)
               result (ssh/ssh session cmd :return-map true)]
           (logging/info (result :out))
