@@ -50,7 +50,7 @@
      ))
   (os-version
    [node]
-   "5.5")
+   "5.3")
   (running? [node] true)
   (terminated? [node] false)
   (id [node] ""))
@@ -96,12 +96,20 @@
   (let [nodes (manager/machines compute-service)]
     (map node-data nodes)))
 
-(defn create-node [compute node-path node-type machine-name image-id tag-name]
+
+(defn create-node [compute node-path node-type machine-name image-id tag-name init-script]
   (let [machine (manager/instance compute machine-name image-id :micro node-path)]
     (manager/set-extra-data machine "/pallet/tag" tag-name)
-       (manager/start machine :session-type "vrdp")
-       (wait-for-ip machine)
-       (pallet.core/lift node-type :phase :bootstrap)))
+   ; (manager/add-startup-command machine 1 init-script )
+    (manager/start machine :session-type "vrdp")
+    (wait-for-ip machine)
+    (println "Attempting to bootstrap machine at " (manager/get-ip machine))
+    (Thread/sleep 4000)
+    (pallet.execute/remote-sudo  (manager/get-ip machine)
+                                 init-script
+                                 (pallet.utils/make-user "root" :password "superduper"))
+    ;;(pallet.core/lift node-type :phase :bootstrap)
+    ))
 
 
 (deftype VmfestService
@@ -110,7 +118,7 @@
   (nodes
    [compute-service]
    (manager/machines server))
-
+  
   (ensure-os-family
    [compute-service request]
    request)
@@ -153,7 +161,7 @@
        (binding [manager/*images* images]
          (doseq [name target-machines-to-create]
            (create-node
-            server (:node-path locations) node-type name image-id tag-name))))))
+            server (:node-path locations) node-type name image-id tag-name init-script))))))
 
   (reboot
    [compute nodes]
