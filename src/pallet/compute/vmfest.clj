@@ -97,19 +97,24 @@
     (map node-data nodes)))
 
 
-(defn create-node [compute node-path node-type machine-name image-id tag-name init-script]
-  (let [machine (manager/instance compute machine-name image-id :micro node-path)]
+(defn create-node
+  [compute node-path node-type machine-name images image-id tag-name
+   init-script user]
+  (let [machine (manager/instance
+                 compute machine-name image-id :micro node-path)
+        image (image-id images)]
     (manager/set-extra-data machine "/pallet/tag" tag-name)
-   ; (manager/add-startup-command machine 1 init-script )
+    ;; (manager/add-startup-command machine 1 init-script )
     (manager/start machine :session-type "vrdp")
     (wait-for-ip machine)
     (println "Attempting to bootstrap machine at " (manager/get-ip machine))
     (Thread/sleep 4000)
-    (pallet.execute/remote-sudo  (manager/get-ip machine)
-                                 init-script
-                                 (pallet.utils/make-user "root" :password "superduper"))
-    ;;(pallet.core/lift node-type :phase :bootstrap)
-    ))
+    (pallet.execute/remote-sudo
+     (manager/get-ip machine)
+     init-script
+     (if (:username image)
+       (pallet.utils/make-user (:username image) :password (:password image))
+       user))))
 
 
 (defn image-from-template
@@ -173,7 +178,10 @@
        (binding [manager/*images* images]
          (doseq [name target-machines-to-create]
            (create-node
-            server (:node-path locations) node-type name image-id tag-name init-script))))))
+            server (:node-path locations) node-type name
+            images image-id tag-name
+            init-script
+            (:user request)))))))
 
   (reboot
    [compute nodes]
