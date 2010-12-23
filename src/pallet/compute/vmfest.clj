@@ -122,13 +122,18 @@
 
 
 (defn image-from-template
+  "Use the template to select an image from the image map."
   [images template]
-  (->
-   (filter
-    (fn image-matches? [[image-name image-properties]]
-      (every? #(= (image-properties (first %)) (second %)) template))
-    images)
-   ffirst))
+  (if-let [image-id (:image-id template)]
+    (image-id images)
+    (->
+     (filter
+      (fn image-matches? [[image-name image-properties]]
+        (every?
+         #(= (image-properties (first %)) (second %))
+         (dissoc template :image-id)))
+      images)
+     ffirst)))
 
 (deftype VmfestService
     [server images locations]
