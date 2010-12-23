@@ -31,7 +31,7 @@
   (primary-ip
    [node]
    (manager/get-ip node))
-  (private-ip [node] "")
+  (private-ip [node] nil)
   (is-64bit?
    [node]
    (let [os-type-id (:os-type-id (manager/as-map node))]
@@ -53,7 +53,7 @@
    "5.3")
   (running? [node] true)
   (terminated? [node] false)
-  (id [node] ""))
+  (id [node] (:id node)))
 
 (defn nil-if-blank [x]
   (if (string/blank? x) nil x))
