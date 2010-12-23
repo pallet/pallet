@@ -9,6 +9,8 @@
    [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
    [pallet.core :as core]
+   [pallet.script :as script]
+   [pallet.resource :as resource]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]
    [clojure.contrib.logging :as logging]))
@@ -109,12 +111,14 @@
     (wait-for-ip machine)
     (println "Attempting to bootstrap machine at " (manager/get-ip machine))
     (Thread/sleep 4000)
-    (pallet.execute/remote-sudo
-     (manager/get-ip machine)
-     init-script
-     (if (:username image)
-       (pallet.utils/make-user (:username image) :password (:password image))
-       user))))
+    (script/with-template
+      (resource/script-template {:node-type {:image image}})
+      (pallet.execute/remote-sudo
+       (manager/get-ip machine)
+       init-script
+       (if (:username image)
+         (pallet.utils/make-user (:username image) :password (:password image))
+         user)))))
 
 
 (defn image-from-template
