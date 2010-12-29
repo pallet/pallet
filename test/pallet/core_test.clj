@@ -254,6 +254,17 @@
           request#))
        [~localf-sym seen?#])))
 
+(deftest warn-on-undefined-phase-test
+  (binding [clojure.contrib.logging/impl-write! (fn [_ _ msg _] (println msg))]
+    (is (= "Undefined phases: a, b\n"
+           (with-out-str (warn-on-undefined-phase {} [:a :b])))))
+  (binding [clojure.contrib.logging/impl-write! (fn [_ _ msg _] (println msg))]
+    (is (= "Undefined phases: b\n"
+           (with-out-str
+             (warn-on-undefined-phase
+              {(make-node "fred" {} :a (fn [_] _)) 1}
+              [:a :b]))))))
+
 (deftest lift-test
   (defnode local {})
   (testing "node-list"

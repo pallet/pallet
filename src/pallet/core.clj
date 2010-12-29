@@ -525,6 +525,27 @@ script that is run with root privileges immediatly after first boot."
       (invoke-phases (ensure-configure-phase phases) all-node-map)
       (sequential-lift phases target-node-map)))))
 
+(def
+  ^{:doc "Flag to control output of warnings about undefined phases in calls to lift and converge."}
+  *warn-on-undefined-phase* true)
+
+(defn warn-on-undefined-phase
+  [all-node-map phases]
+  (when *warn-on-undefined-phase*
+    (when-let [undefined (seq (filter
+                               (fn [phase]
+                                 (if (keyword? phase)
+                                   (not (some
+                                         (fn [[{:keys [phases]} _]]
+                                           (phase phases))
+                                         all-node-map))
+                                   false))
+                               phases))]
+      (logging/warn
+       (format
+        "Undefined phases: %s"
+        (string/join ", " (map name undefined)))))))
+
 (defn lift*
   [node-set all-node-set phases request]
   (logging/trace (format "lift* phases %s" (vec phases)))
@@ -539,6 +560,7 @@ script that is run with root privileges immediatly after first boot."
         all-node-map (or (and all-node-set
                               (nodes-in-set all-node-set nil nodes))
                          target-node-map)]
+    (warn-on-undefined-phase all-node-map phases)
     (lift-nodes nodes target-node-map all-node-map phases request)))
 
 (defn converge*
@@ -565,6 +587,7 @@ script that is run with root privileges immediatly after first boot."
                                 (nodes-in-set all-node-set nil nodes))
                            target-node-map)
           phases (ensure-configure-phase phases)]
+      (warn-on-undefined-phase all-node-map phases)
       (lift-nodes
        nodes target-node-map all-node-map phases request))))
 
