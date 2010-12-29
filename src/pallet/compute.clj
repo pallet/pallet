@@ -82,7 +82,8 @@
        (symbol (first sym-names)) (symbol (second sym-names))))))
 
 (defn compute-service-from-config
-  "Compute service from ~/.pallet/config.clj"
+  "Compute service from a configuration map and a list of active profiles
+   (provider keys)."
   [config profiles]
   (let [{:keys [provider identity credential]
          :as options}
@@ -93,6 +94,8 @@
        (apply concat (dissoc options :provider :identity :credential))))))
 
 (defn compute-service-from-config-file
+  "Compute service from ~/.pallet/config.clj. Profiles is a sequence of provider
+   keys to use from the :providers map."
   [& profiles]
   (compute-service-from-config
    (configure/pallet-config)
