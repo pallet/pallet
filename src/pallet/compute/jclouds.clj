@@ -47,10 +47,10 @@
   [provider {:keys [identity credential extensions endpoint]
              :or {extensions (default-jclouds-extensions)}
              :as options}]
-  (let [options (dissoc options :identity :credential :extensions)]
+  (let [options (dissoc options :identity :credential :extensions :blobstore)]
     (apply
      jclouds/compute-service
-     provider identity credential
+     (name provider) identity credential
      :extensions extensions
      (interleave
       (map #(option-key provider %) (keys options))
