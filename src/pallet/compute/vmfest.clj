@@ -120,6 +120,17 @@
          (pallet.utils/make-user (:username image) :password (:password image))
          user)))))
 
+(defn- equality-match
+  [image-properties kw arg]
+  (= (image-properties kw) arg))
+
+(defn- regexp-match
+  [image-properties kw arg]
+  (re-matches (re-pattern arg) (image-properties kw)))
+
+(def template-matchers
+  {:os-version-matches (fn [image-properties kw arg]
+                         (regexp-match image-properties :os-version arg))})
 
 (defn image-from-template
   "Use the template to select an image from the image map."
@@ -130,7 +141,8 @@
      (filter
       (fn image-matches? [[image-name image-properties]]
         (every?
-         #(= (image-properties (first %)) (second %))
+         #(((first %) template-matchers equality-match)
+           image-properties (first %) (second %))
          (dissoc template :image-id)))
       images)
      ffirst)))
