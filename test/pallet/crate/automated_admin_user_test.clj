@@ -51,4 +51,19 @@
            (first
             (build-resources
              []
-             (automated-admin-user "fred" (.getBytes "abc"))))))))
+             (automated-admin-user "fred" (.getBytes "abc")))))))
+
+  (testing "with default username"
+    (let [user-name (. System getProperty "user.name")]
+      (is (= (first
+              (build-resources
+               []
+               (user/user user-name :create-home true :shell :bash)
+               (susudoers/sudoers
+                {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+               (ssh-key/authorize-key
+                user-name (slurp (pallet.utils/default-public-key-path)))))
+             (first
+              (build-resources
+               []
+               (automated-admin-user))))))))

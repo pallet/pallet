@@ -2,7 +2,7 @@
   (:use [pallet.resource.user :only [user]]
         [pallet.crate.sudoers]
         [pallet.crate.ssh-key :only [authorize-key]]
-        [pallet.utils :only [default-public-key-path]]
+        [pallet.utils :only [default-public-key-path *admin-user*]]
         pallet.thread-expr)
   (:require
    [pallet.resource :as resource]))
@@ -13,7 +13,7 @@
   in scripts, etc."
   ([request]
      (automated-admin-user
-      request (. System getProperty "user.name") (default-public-key-path)))
+      request (:username *admin-user*) (default-public-key-path)))
   ([request username]
      (automated-admin-user request username (default-public-key-path)))
   ([request username & public-key-paths]
