@@ -33,6 +33,14 @@
      (get-for
       request (concat [:host (:target-id request)] keys) default)))
 
+(defn get-for-service
+  ([request keys]
+     (get-for
+      request (concat [:service] keys)))
+  ([request keys default]
+     (get-for
+      request (concat [:service] keys) default)))
+
 (defn- assoc-for-prefix
   [request prefix {:as keys-value-pairs}]
   (reduce
