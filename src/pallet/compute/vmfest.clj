@@ -32,7 +32,11 @@
   (ssh-port [node] 22)
   (primary-ip
    [node]
-   (manager/get-ip node))
+   (condition/handler-case
+    :type
+    (manager/get-ip node)
+    (handle :vbox-runtime
+      (manager/get-extra-data node "/pallet/ip"))))
   (private-ip [node] nil)
   (is-64bit?
    [node]
@@ -47,12 +51,16 @@
   (os-family
    [node]
    (let [os-name (:os-type-id (manager/as-map node))]
-     (os-family-from-name os-name os-name)
-     :centos  ;; hack!
+     (or
+      (keyword (manager/get-extra-data node "/pallet/os-family"))
+      (os-family-from-name os-name os-name)
+      :centos) ;; hack!
      ))
   (os-version
    [node]
-   "5.3")
+   (or
+      (manager/get-extra-data node "/pallet/os-version")
+      "5.3"))
   (running? [node] true)
   (terminated? [node] false)
   (id [node] (:id node)))
@@ -106,11 +114,13 @@
                  compute machine-name image-id :micro node-path)
         image (image-id images)]
     (manager/set-extra-data machine "/pallet/tag" tag-name)
+    (manager/set-extra-data machine "/pallet/os-family" (name (:os-family image)))
+    (manager/set-extra-data machine "/pallet/os-version" (:os-version image))
     ;; (manager/add-startup-command machine 1 init-script )
     (manager/start machine :session-type "vrdp")
     (wait-for-ip machine)
-    (println "Attempting to bootstrap machine at " (manager/get-ip machine))
     (Thread/sleep 4000)
+    (println "Attempting to bootstrap machine at " (manager/get-ip machine))
     (script/with-template
       (resource/script-template {:node-type {:image image}})
       (pallet.execute/remote-sudo
@@ -255,3 +265,13 @@
      (vmfest.virtualbox.model.Server. url identity credential)
      images
      (val (first locations)))))
+
+(defmethod clojure.core/print-method vmfest.virtualbox.model.Machine
+  [node writer]
+  (.write
+   writer
+   (format
+    "%14s\t %14s\t public: %s"
+    (compute/hostname node)
+    (compute/tag node)
+    (compute/primary-ip node))))
