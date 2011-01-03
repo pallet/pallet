@@ -218,7 +218,7 @@
         (if (and (not no-versioning) (pos? max-versions))
           (stevedore/script
            (pipe
-            (ls -t (str ~path ".~[0-9]*~"))
+            (ls -t (str ~path ".~[0-9]*~") "2>" "/dev/null")
             (tail -n ~(str "+" (inc max-versions)))
             (xargs rm -f)))))
        :delete (stevedore/checked-script
