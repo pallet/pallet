@@ -5,6 +5,7 @@
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
    [pallet.resource :as resource]
+   [pallet.compute.jvm :as jvm]
    [clj-ssh.ssh :as ssh]
    [clojure.string :as string]
    [clojure.contrib.condition :as condition]
@@ -234,6 +235,16 @@
         (logging/info (:out result))
         result)
       (finally  (.delete tmp)))))
+
+(defmacro local-script
+  "Run a script on the local machine, setting up stevedore to produce the
+   correct target specific code"
+  [& body]
+  `(script/with-template
+     [(jvm/os-family)]
+     (sh-script
+      (stevedore/script
+       ~@body))))
 
 (defn local-sh-cmds
   "Execute cmds for the request.
