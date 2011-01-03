@@ -43,11 +43,21 @@
 (defn get-request
   [request]
   (stevedore/script
-   (curl -s "--retry" 20
-         ~(apply str (map
-                      #(format "-H \"%s: %s\" " (first %) (second %))
-                      (.. request getHeaders entries)))
-         ~(.. request getEndpoint toASCIIString))))
+   (if (test @(which curl))
+     (curl -s "--retry" 20
+           ~(apply str (map
+                        #(format "-H \"%s: %s\" " (first %) (second %))
+                        (.. request getHeaders entries)))
+           ~(.. request getEndpoint toASCIIString))
+     (if (test @(which wget))
+       (wget -nv "--tries" 20
+             ~(apply str (map
+                          #(format "--header \"%s: %s\" " (first %) (second %))
+                          (.. request getHeaders entries)))
+             ~(.. request getEndpoint toASCIIString))
+       (do
+         (println "No download utility available")
+         (exit 1))))))
 
 (defn- arg-vector
   "Return the non-request arguments."
