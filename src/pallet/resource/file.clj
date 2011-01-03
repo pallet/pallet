@@ -78,8 +78,15 @@
 (script/defscript download-file [url path])
 
 (stevedore/defimpl download-file :default [url path]
-  ("curl" "-o" (quoted ~path) --retry 5 --silent --show-error --fail --location
-   (quoted ~url)))
+  (if (test @(which curl))
+    ("curl" "-o" (quoted ~path)
+     --retry 5 --silent --show-error --fail --location
+     (quoted ~url))
+    (if (test @(which wget))
+      ("wget" "-O" (quoted ~path) --tries 5 --no-verbose (quoted ~url))
+     (do
+         (println "No download utility available")
+         (exit 1)))))
 
 (script/defscript download-request [path request])
 (stevedore/defimpl download-request :default [path request]
