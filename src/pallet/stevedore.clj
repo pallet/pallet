@@ -103,8 +103,9 @@
 (def special-forms
   (set
    ['if 'if-not 'when 'case 'aget 'aset 'get 'defn 'return 'set! 'var 'defvar
-    'let 'local 'literally 'deref 'do 'str 'quoted 'apply 'file-exists?
-    'symlink? 'readable? 'writeable? 'not 'println 'print 'group 'pipe 'chain-or
+    'let 'local 'literally 'deref 'do 'str 'quoted 'apply
+    'file-exists? 'directory? 'symlink? 'readable? 'writeable?
+    'not 'println 'print 'group 'pipe 'chain-or
     'chain-and 'while 'doseq 'merge! 'assoc!]))
 
 (def infix-operators
@@ -114,10 +115,11 @@
 
 (def logical-operators
   (set
-   ['== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '|| 'file-exists?
-    'symlink? 'readable? 'writeable? 'not 'and 'or]))
+   ['== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '||
+    'file-exists? 'directory? 'symlink? 'readable? 'writeable? 'not 'and 'or]))
 
-(def quoted-operators (disj logical-operators 'file-exists? 'symlink 'can-read))
+(def quoted-operators (disj logical-operators 'file-exists? 'directory?
+                            'symlink 'can-read))
 
 (def infix-conversions
      {'&& "-a"
@@ -164,6 +166,9 @@
 
 (defmethod emit-special 'file-exists? [type [file-exists? path]]
   (str "-e " (emit path)))
+
+(defmethod emit-special 'directory? [type [directory? path]]
+  (str "-d " (emit path)))
 
 (defmethod emit-special 'symlink?
   [type [symlink? path]]
