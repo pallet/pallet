@@ -72,12 +72,12 @@ The provider key, =:aws= and =:rs= above, has to be unqiue, but you can have
 multiple accounts for the same provider.
 
 To create a compute service object from this file, that you can pass to =lift=
-or =converge=, you use =pallet.compute/compute-service-from-config=. By default,
+or =converge=, you use =pallet.compute/compute-service-from-config-file=. By default,
 the first provider entry will be used, and you can specify an alternative
 provider by passing the key to the function.
 
 #+BEGIN_SRC clojure
-  (pallet.compute/compute-service-from-config "rs")
+  (pallet.compute/compute-service-from-config-file "rs")
 #+END_SRC
 
 The [[file:~/.pallet/config.clj][config.clj]] file is read automatically by the =lein= and =cake= plugins, and
