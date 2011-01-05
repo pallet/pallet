@@ -17,3 +17,15 @@
             "[%s]\n%s\n" (name section-name)
             (string/join (map format-kv kv-map))))]
     (string/join (map format-section m))))
+
+(defn name-values
+  "A property file.
+   The properties are written \"key value\", one per line.
+     m                   a key-value map
+     :seperator chars    seperator to use between key and value
+                         (default is a single space)"
+  [m & {:keys [separator] :or {separator " "}}]
+  (string/join
+   (map
+    (fn [[key-name value]] (format "%s%s%s\n" (name key-name) separator value))
+    m)))
