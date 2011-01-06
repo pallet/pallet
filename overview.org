@@ -62,12 +62,12 @@ that way.
 Pallet is written in {{{clojure}}}, and so runs in a JVM.  You can embed it in any JVM
 based project, or use it directly at the REPL.
 
-Pallet [[file:reference/providers.org][talks to a cloud provider]], in order to start up new nodes, etc.  It does
+Pallet [[file:reference_providers.org][talks to a cloud provider]], in order to start up new nodes, etc.  It does
 this using the excellent {{{jclouds}}} library.  Once the nodes are running,
-Pallet uses SSH to [[file:reference/node_push.org][communicate with the nodes]].
+Pallet uses SSH to [[file:reference_node_push.org][communicate with the nodes]].
 
 To execute actions on the nodes, pallet executes shell scripts.  These scripts
-are generated in {{{clojure}}}.  At the lowest level, Pallet [[file:reference/script.org][embeds shell script]]
+are generated in {{{clojure}}}.  At the lowest level, Pallet [[file:reference_script.org][embeds shell script]]
 in {{{clojure}}}, and wraps shell script fragments into {{{clojure}}} functions,
 creating reusable resources.
 
@@ -75,16 +75,16 @@ Of course, no two operating systems are identical, so Pallet allows dispatching
 of the functions based on packager, etc, enabling abstraction of a node's
 operating system.
 
-Higher level [[file:reference/crates.org][crates]] are then put together, that use the resources to install
+Higher level [[file:reference_crates.org][crates]] are then put together, that use the resources to install
 packages, etc. Crates can also be implemented using the same machinery as
 resource functions.
 
-[[file:reference/node_types.org][Node types]] are defined that specify a tag and the sequence of crates to apply
+[[file:reference_node_types.org][Node types]] are defined that specify a tag and the sequence of crates to apply
 for each of a number of phases. By default, pallet defines =:bootstrap= and
 =:configure= phases, but you can add as many phases as you like
 (e.g. =:backup=).
 
-[[file:reference/phases.org][Phases]] are executed using either the [[file:reference/operations.org][=converge= or =lift= commands]], with
+[[file:reference_phases.org][Phases]] are executed using either the [[file:reference/operations.org][=converge= or =lift= commands]], with
 =converge= also adjusting the number of nodes running for each tag.
 
 
