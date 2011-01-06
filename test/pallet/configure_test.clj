@@ -20,11 +20,23 @@
             {:providers
              {:a {:provider "pa" :identity "ia" :credential "ca"}
               :b {:provider "pb" :identity "ib" :credential "cb"}}}
+            [:b])))
+    (is (= {:provider "pb" :identity "ib" :credential "cb"}
+           (compute-service-properties
+            {:services
+             {:a {:provider "pa" :identity "ia" :credential "ca"}
+              :b {:provider "pb" :identity "ib" :credential "cb"}}}
             [:b]))))
-    (testing "specified with endpoint"
+  (testing "specified with endpoint"
     (is (= {:provider "pa" :identity "ia" :credential "ca" :endpoint "ea"}
            (compute-service-properties
             {:providers
+             {:a {:provider "pa" :identity "ia" :credential "ca" :endpoint "ea"}
+              :b {:provider "pb" :identity "ib" :credential "cb"}}}
+            [:a])))
+    (is (= {:provider "pa" :identity "ia" :credential "ca" :endpoint "ea"}
+           (compute-service-properties
+            {:services
              {:a {:provider "pa" :identity "ia" :credential "ca" :endpoint "ea"}
               :b {:provider "pb" :identity "ib" :credential "cb"}}}
             [:a])))))
