@@ -131,18 +131,8 @@
    The value is set to the value return by calling f with the current
    value and the given args.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
        (update-for-prefix {:p {:a {:b 1}}} [:p] [:a :b] + 2)
          => {:p {:a {:b 3}}}"
-=======
-      (update-for-prefix {:p {:a {:b 1}}} [:p] [:a :b] + 2)
-        => {:p {:a {:b 3}}}"
->>>>>>> 21a49bb... Improve pallet.parameter documentation
-=======
-      (update-for-prefix {:p {:a {:b 1}}} [:p] [:a :b] + 2)
-        => {:p {:a {:b 3}}}"
->>>>>>> 21a49bb... Improve pallet.parameter documentation
   ([request prefix keys f args]
   (apply update-in request (concat prefix keys) f args)))
 
@@ -151,18 +141,8 @@
    The value is set to the value return by calling f with the current
    value and the given args.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
        (update-for {:parameters {:a {:b 1}}} [:a :b] + 2)
          => {:parameters {:a {:b 3}}}"
-=======
-      (update-for {:parameters {:a {:b 1}}} [:a :b] + 2)
-        => {:parameters {:a {:b 3}}}"
->>>>>>> 21a49bb... Improve pallet.parameter documentation
-=======
-      (update-for {:parameters {:a {:b 1}}} [:a :b] + 2)
-        => {:parameters {:a {:b 3}}}"
->>>>>>> 21a49bb... Improve pallet.parameter documentation
   ([request keys f & args]
      (update-for-prefix request [:parameters] keys f args)))
 
@@ -171,25 +151,11 @@
    The value is set to the value return by calling f with the current
    value and the given args.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
        (update-for-target
           {:parameters {:host {:id1 {:a {:b 1}}}}
            :target-id :id1}
           [:a :b] + 2)
          => {:parameters {:host {:id1 {:a {:b 3}}}}}"
-=======
-=======
->>>>>>> 21a49bb... Improve pallet.parameter documentation
-      (update-for-target
-         {:parameters {:host {:id1 {:a {:b 1}}}}
-          :target-id :id1}
-         [:a :b] + 2)
-        => {:parameters {:host {:id1 {:a {:b 3}}}}}"
-<<<<<<< HEAD
->>>>>>> 21a49bb... Improve pallet.parameter documentation
-=======
->>>>>>> 21a49bb... Improve pallet.parameter documentation
   [request keys f & args]
   (update-for-prefix
    request [:parameters :host (:target-id request)] keys f args))
@@ -199,23 +165,10 @@
    The value is set to the value return by calling f with the current
    value and the given args.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
        (update-for-service
           {:parameters {:service {:proxy {:a {:b 1}}}}}
           [:proxy :a :b] + 2)
          => {:parameters {:service {:proxy {:a {:b 3}}}}}"
-=======
-=======
->>>>>>> 21a49bb... Improve pallet.parameter documentation
-      (update-for-service
-         {:parameters {:service {:proxy {:a {:b 1}}}}}
-         [:proxy :a :b] + 2)
-        => {:parameters {:service {:proxy {:a {:b 3}}}}}"
-<<<<<<< HEAD
->>>>>>> 21a49bb... Improve pallet.parameter documentation
-=======
->>>>>>> 21a49bb... Improve pallet.parameter documentation
   [request keys f & args]
   (update-for-prefix request [:parameters :service] keys f args))
 
