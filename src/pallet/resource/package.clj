@@ -111,7 +111,7 @@
   (pacman -R "--noconfirm" ~(stevedore/option-args options) ~package))
 
 (stevedore/defimpl purge-package [#{:pacman}] [package & options]
-  (pacman -R "--noconfirm" ~(stevedore/option-args options) ~package))
+  (pacman -R "--noconfirm" "--nosave" ~(stevedore/option-args options) ~package))
 
 ;; brew
 (stevedore/defimpl update-package-list [#{:brew}] [& options]
