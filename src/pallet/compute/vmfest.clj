@@ -1,5 +1,29 @@
 (ns pallet.compute.vmfest
-  "A vmfest provider"
+  "A vmfest provider.
+
+   An example service configuration in ~/.pallet/config.clj
+
+       :vb {:provider \"virtualbox\"
+            :images {:centos-5-3 {:description \"CentOS 5.3 32bit\"
+                                  :uuid \"4697bdf7-7acf-4a20-8c28-e20b6bb58e25\"
+                                  :os-family :centos
+                                  :os-version \"5.3\"
+                                  :os-type-id \"RedHat\"}
+                     :ubuntu-10-04 {:description \"Ubuntu 10.04 32bit\"
+                                    :uuid \"8a31e3aa-0d46-41a5-936d-25130dcb16b7\"
+                                    :os-family :ubuntu
+                                    :os-version \"10.04\"
+                                    :os-type-id \"Ubuntu\"
+                                    :username
+                                    :password}}
+            :model-path \"/Volumes/My Book/vms/disks\"
+            :node-path \"/Volumes/My Book/vms/nodes\"}
+
+   The uuid's can be found using vboxmanage
+       vboxmanage list hdds
+
+   The images are disks that are immutable.  The virtualbox extensions need
+   to be installed on the image."
   (:require
    [vmfest.virtualbox.virtualbox :as virtualbox]
    [vmfest.virtualbox.machine :as machine]
