@@ -66,9 +66,12 @@
 (def statement-separator "\n")
 
 (defn statement [expr]
-  (if (not (= statement-separator (.substring expr (- (count expr) (count statement-separator)))))
-    (str expr statement-separator)
-    expr))
+  ;; check the substring count, as it can be negative if there is a syntax issue
+  ;; in a stevedore expression, and generates a cryptic error message otherwise
+  (let [n (- (count expr) (count statement-separator))]
+    (if (and (pos? n) (not (= statement-separator (.substring expr n))))
+      (str expr statement-separator)
+      expr)))
 
 (defn comma-list [coll]
   (str "(" (string/join ", " coll) ")"))

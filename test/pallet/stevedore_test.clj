@@ -270,5 +270,9 @@ fi"
   (is (= "a b c" (script ~@["a" "b" "c"])))
   (let [x ["a" "b" "c"]]
     (is (= "a b c" (script ~@x))))
+  (let [x nil]
+    (is (= "" (script ~@x))))
+  (let [x []]
+    (is (= "" (script ~@x))))
   (let [fx (fn [] ["a" "b" "c"])]
     (is (= "a b c" (script ~@(fx))))))

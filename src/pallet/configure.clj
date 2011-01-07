@@ -2,7 +2,8 @@
   "Pallet configuration"
   (:require
    [clojure.java.io :as java-io]
-   [clojure.walk :as walk]))
+   [clojure.walk :as walk]
+   [clojure.contrib.logging :as logging]))
 
 (def ^{:private true} config nil)
 
@@ -53,20 +54,24 @@
   "Helper to read compute service properties"
   [config profiles]
   (when config
-    (let [provider (first profiles)
-          default-provider (map config [:provider :identity :credential])
-          providers (:providers config)]
+    (when (:providers config)
+      (logging/warn
+       "DEPRECATED: use of :providers key in ~/.pallet/config.clj
+      is deprecated. Please change to use :services."))
+    (let [service (first profiles)
+          default-service (map config [:provider :identity :credential])
+          services (:services config (:providers config))]
       (cond
-       (every? identity default-provider) (select-keys
-                                           config
-                                           [:provider :identity :credential
-                                            :blobstore :endpoint])
-       (map? providers) (or
-                         (and provider (or
-                                        (providers (keyword provider))
-                                        (providers provider)))
-                         (and (not provider) ; use default if no profile
-                                             ; requested
-                              (first providers)
-                              (-> providers first val)))
+       (every? identity default-service) (select-keys
+                                          config
+                                          [:provider :identity :credential
+                                           :blobstore :endpoint])
+       (map? services) (or
+                        (and service (or
+                                      (services (keyword service))
+                                      (services service)))
+                        (and (not service) ; use default if no profile
+                                        ; requested
+                             (first services)
+                             (-> services first val)))
        :else nil))))
