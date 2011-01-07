@@ -55,7 +55,7 @@
 (defn best-match
   [script]
   {:pre [*template* (seq *template*)]}
-  (trace (format "Looking up script %s with template %s" script *template*))
+  (trace (format "Looking up script %s with template %s" script (seq *template*)))
   (when-let [impls (*scripts* script)]
     (trace (format "Found implementations %s" (keys impls)))
     (second (reduce better-match?
