@@ -80,14 +80,6 @@
   ([request keys default]
      (get-for request (concat [:service] keys) default)))
 
-(defn get-for-service
-  ([request keys]
-     (get-for
-      request (concat [:service] keys)))
-  ([request keys default]
-     (get-for
-      request (concat [:service] keys) default)))
-
 (defn- assoc-for-prefix
   "Set the values in a map at the paths specified with prefix prepended to each
    path.
