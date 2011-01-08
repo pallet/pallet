@@ -91,7 +91,7 @@
               "pacman -S --noconfirm --noprogressbar  rubygems"
               "pacman -S --noconfirm --noprogressbar  maven2"
               "pacman -R --noconfirm  git"
-              "pacman -R --noconfirm  ruby")))
+              "pacman -R --noconfirm --nosave  ruby")))
            (first
             (build-resources
              [:node-type {:tag :n :image {:os-family :arch}}]
