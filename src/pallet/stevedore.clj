@@ -1,14 +1,20 @@
 (ns pallet.stevedore
-  "Embed shell script in clojure"
+  "Embed shell script in clojure.
+
+   Shell script is embedded by wrapping in the `script` macro.
+       (script (ls)) => \"ls\"
+
+   The result of a `script` form is a string.
+
+   Script functions (defined with `pallet.script/defscript`) can be implemented
+   using `defimpl`."
   (:require
    [pallet.utils :as utils]
+   [pallet.script :as script]
    [clojure.string :as string]
-   [clojure.contrib.condition :as condition])
-  (:use clojure.walk
-        clojure.contrib.logging
-        pallet.script))
-
-(defonce hashlib (utils/slurp-resource "stevedore/hashlib.bash"))
+   [clojure.contrib.condition :as condition]
+   [clojure.walk :as walk]
+   [clojure.contrib.logging :as logging]))
 
 (defn ^String substring
   "Drops first n characters from s.  Returns an empty string if n is
@@ -18,54 +24,22 @@
     ""
     (.substring s n)))
 
-(defn ^String char-at
-  "Gets the i'th character in string."
-  [^String s i]
-  (.charAt s i))
-
-(defn- add-quotes [s]
+(defn- ^String add-quotes
+  "Add quotes to the argument s as a string"
+  [s]
   (str "\"" s "\""))
 
-(defn arg-string [option argument do-underscore do-assign dash]
-  (let [opt (if do-underscore (utils/underscore (name option)) (name option))]
-    (if argument
-      (if (> (.length opt) 1)
-        (str dash opt (if-not (= argument true)
-                        (str (if do-assign "=" " ") argument)))
-        (str "-" opt (if-not (= argument true) (str " " argument)))))))
-
-(defn map-to-arg-string
-  "Output a set of command line switches from a map"
-  [m & options]
-  (let [opts (apply hash-map options)]
-    (apply
-     str (interpose
-          " "
-          (map #(arg-string
-                 (first %) (second %) (opts :underscore) (:opts :assign)
-                 (get opts :dash "--"))
-               m)))))
-
-(defn option-args
-  "Output a set of command line switches from a sequence of options"
-  [options]
-  (let [m (if (first options) (apply hash-map options) {})
-        assign (m :assign)
-        underscore (m :underscore)]
-    (map-to-arg-string
-     (dissoc m :assign :underscore) :assign assign :underscore underscore)))
-
-(declare inner-walk outer-walk)
-
-(defmulti emit
-  (fn [ expr ] (do (type expr))))
-
-(defmulti emit-special
-  (fn [ & args] (identity (first args))))
+(defonce
+  ^{:doc
+    "bash library for associative arrays in bash 3. You need to include this in
+     your script if you use associative arrays, e.g. with `assoc!`."}
+  hashlib (utils/slurp-resource "stevedore/hashlib.bash"))
 
 (def statement-separator "\n")
 
-(defn statement [expr]
+(defn statement
+  "Emit an expression as a valid shell statement, with separator."
+  [expr]
   ;; check the substring count, as it can be negative if there is a syntax issue
   ;; in a stevedore expression, and generates a cryptic error message otherwise
   (let [n (- (count expr) (count statement-separator))]
@@ -73,11 +47,10 @@
       (str expr statement-separator)
       expr)))
 
-(defn comma-list [coll]
-  (str "(" (string/join ", " coll) ")"))
-
-(defn splice-list [coll]
-  (string/join " " coll))
+(defmulti emit
+  "Emit a shell expression as a string. Dispatched on the :type of the
+   expression."
+  (fn [ expr ] (type expr)))
 
 (defmethod emit nil [expr]
   "null")
@@ -100,28 +73,54 @@
 (defmethod emit :default [expr]
   (str expr))
 
-(def special-forms
-  (set
-   ['if 'if-not 'when 'case 'aget 'aset 'get 'defn 'return 'set! 'var 'defvar
+(defn comma-list
+  "Emit a collection as a parentesised, comma separated list.
+       (comma-list [a b c]) => \"(a, b, c)\""
+  [coll]
+  (str "(" (string/join ", " coll) ")"))
+
+(defn splice-list
+  "Emit a collection as a space separated list.
+       (splice-list [a b c]) => \"a b c\""
+  [coll]
+  (string/join " " coll))
+
+
+;;; * Keyword and Operator Classes
+(def
+  ^{:doc
+    "Special forms are handled explcitly by an implementation of
+     `emit-special`."
+    :private true}
+  special-forms
+  #{'if 'if-not 'when 'case 'aget 'aset 'get 'defn 'return 'set! 'var 'defvar
     'let 'local 'literally 'deref 'do 'str 'quoted 'apply
     'file-exists? 'directory? 'symlink? 'readable? 'writeable?
     'not 'println 'print 'group 'pipe 'chain-or
-    'chain-and 'while 'doseq 'merge! 'assoc!]))
+    'chain-and 'while 'doseq 'merge! 'assoc!})
 
 (def infix-operators
-  (set
-   ['+ '- '/ '* '% '== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '||
-    'and 'or]))
+  ^{:doc "Operators that should be converted to infix in expressions."
+    :private true}
+  #{'+ '- '/ '* '% '== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '||
+    'and 'or})
 
 (def logical-operators
-  (set
-   ['== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '||
-    'file-exists? 'directory? 'symlink? 'readable? 'writeable? 'not 'and 'or]))
+  ^{:doc "Logical operators for test expressions."
+    :private true}
+  #{'== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '||
+    'file-exists? 'directory? 'symlink? 'readable? 'writeable? 'not 'and 'or})
 
-(def quoted-operators (disj logical-operators 'file-exists? 'directory?
-                            'symlink 'can-read))
+(def
+  ^{:doc "Operators that should quote their arguments."
+    :private true}
+  quoted-operators
+  (disj logical-operators 'file-exists? 'directory? 'symlink 'can-read))
 
-(def infix-conversions
+(def
+  ^{:doc "Conversion from clojure operators to shell infix operators."
+    :private true}
+  infix-conversions
      {'&& "-a"
       'and "-a"
       '|| "-o"
@@ -130,22 +129,40 @@
       '> "\\>"
       '= "=="})
 
-(defn special-form? [expr]
+;;; Predicates for keyword/operator classes
+(defn- special-form?
+  "Predicate to check if expr is a special form"
+  [expr]
   (contains? special-forms expr))
 
-(defn compound-form? [expr]
+(defn- compound-form?
+  "Predicate to check if expr is a compound form"
+  [expr]
   (= 'do  (first expr)))
 
-(defn infix-operator? [expr]
+(defn- infix-operator?
+  "Predicate to check if expr is an infix operator"
+  [expr]
   (contains? infix-operators expr))
 
-(defn logical-operator? [expr]
+(defn- logical-operator?
+  "Predicate to check if expr is a logical operator"
+  [expr]
   (contains? logical-operators expr))
 
-(defn quoted-operator? [expr]
+(defn- quoted-operator?
+  "Predicate to check if expr is a quoted operator"
+  [expr]
   (contains? quoted-operators expr))
 
-(defn emit-quoted-if-not-subexpr [f expr]
+(defn- logical-test? [test]
+  (and (sequential? test)
+       (or (infix-operator? (first test))
+           (logical-operator? (first test)))))
+
+;;; Emit special forms
+
+(defn- emit-quoted-if-not-subexpr [f expr]
   (let [s (emit expr)]
     (if (or (.startsWith s "\\(")
             (.startsWith s "!")
@@ -154,7 +171,7 @@
       s
       (f s))))
 
-(defn emit-infix [type [operator & args]]
+(defn- emit-infix [type [operator & args]]
   (when (< (count args) 2)
     (throw (Exception. "not supported yet")))
   (let [open (if (logical-operator? operator) "\\( " "(")
@@ -163,6 +180,10 @@
     (str open (emit-quoted-if-not-subexpr quoting (first args)) " "
          (get infix-conversions operator operator)
          " " (emit-quoted-if-not-subexpr quoting (second args)) close)))
+
+(defmulti emit-special
+  "Emit a shell form as a string. Dispatched on the first element of the form."
+  (fn [ & args] (identity (first args))))
 
 (defmethod emit-special 'file-exists? [type [file-exists? path]]
   (str "-e " (emit path)))
@@ -246,9 +267,9 @@
 
 (defmethod emit-special 'invoke
   [type [name & args]]
-  (trace (str "INVOKE " name args))
+  (logging/trace (str "INVOKE " name args))
   (or (try
-        (invoke-target name args)
+        (script/invoke-target name args)
         (catch java.lang.IllegalArgumentException e
           (throw (java.lang.IllegalArgumentException.
                   (str "Invalid arguments for " name) e))))
@@ -257,11 +278,6 @@
 
 (defn emit-method [obj method args]
   (str (emit obj) "." (emit method) (comma-list (map emit args))))
-
-(defn- logical-test? [test]
-  (and (sequential? test)
-       (or (infix-operator? (first test))
-           (logical-operator? (first test)))))
 
 (defn- emit-body-for-if [form]
   (if (or (compound-form? form)
@@ -326,10 +342,11 @@
   (set-map-values var-name expr))
 
 (defmethod emit-special 'assoc! [type [merge! var-name idx val]]
-  (format "hash_set %s %s %s"
-       (munge-symbol (emit var-name))
-       (munge-symbol (emit idx))
-       (emit val)))
+  (format
+   "hash_set %s %s %s"
+   (munge-symbol (emit var-name))
+   (munge-symbol (emit idx))
+   (emit val)))
 
 (defmethod emit-special 'deref
   [type [deref expr]]
@@ -337,7 +354,7 @@
     (str "$(" (emit expr) ")")
     (str "${" (emit expr) "}")))
 
-(defn emit-do [exprs]
+(defn- emit-do [exprs]
   (string/join "" (map (comp statement emit) exprs)))
 
 (defmethod emit-special 'do [type [ do & exprs]]
@@ -381,7 +398,7 @@
   [type [chain-and & exprs]]
   (string/join " && " (map emit exprs)))
 
-(defn emit-function [name sig body]
+(defn- emit-function [name sig body]
   (assert (or (symbol? name) (nil? name)))
   (assert (vector? sig))
   (str "function " name "() {\n"
@@ -407,7 +424,7 @@
     (let [head (symbol (name (first expr)))  ; remove any ns resolution
           expr (conj (rest expr) head)]
       (cond
-        (and (= (char-at (str head) 0) \.)
+        (and (= (first (str head)) \.)
              (> (count (str head)) 1)) (emit-special 'dot-method expr)
         (special-form? head) (emit-special head expr)
         (infix-operator? head) (emit-infix head expr)
@@ -442,14 +459,14 @@
            (str "["(emit (key pair)) "]=" (emit (val pair))))]
     (str "(" (string/join " " (map subscript-assign (seq expr))) ")")))
 
-(defn _script [forms]
+(defn script* [forms]
   (let [code (if (> (count forms) 1)
                (emit-do forms)
                (emit (first forms)))]
     code))
 
 (defn- unquote?
-  "Tests whether the form is (clj ...)."
+  "Tests whether the form is (clj ...) or (unquote ...) or ~expr."
   [form]
   (or (and (seq? form)
            (symbol? (first form))
@@ -457,24 +474,26 @@
       (and (seq? form) (= (first form) `unquote))))
 
 (defn- unquote-splicing?
-  "Tests whether the form is ~@( ...)."
+  "Tests whether the form is ~@( ...) or (unqote-splicing ...)."
   [form]
   (and (seq? form) (= (first form) `unquote-splicing)))
 
-(defn handle-unquote [form]
+(defn- handle-unquote [form]
   (second form))
 
-(defn splice [form]
+(defn- splice [form]
   (string/join " " (map emit form)))
 
-(defn handle-unquote-splicing [form]
+(defn- handle-unquote-splicing [form]
   (list splice (second form)))
+
+(declare inner-walk outer-walk)
 
 (defn- inner-walk [form]
   (cond
    (unquote? form) (handle-unquote form)
    (unquote-splicing? form) (handle-unquote-splicing form)
-   :else (walk inner-walk outer-walk form)))
+   :else (walk/walk inner-walk outer-walk form)))
 
 (defn- outer-walk [form]
   (cond
@@ -482,23 +501,53 @@
    (seq? form) (list* 'list form)
    :else form))
 
-(defmacro quasiquote [form]
-  (let [post-form (walk inner-walk outer-walk form)]
+(defmacro quasiquote
+  [form]
+  (let [post-form (walk/walk inner-walk outer-walk form)]
     post-form))
 
 (defmacro script
   "Takes one or more forms. Returns a string of the forms translated into
-  javascript."
+   shell script.
+       (script
+         (println \"hello\")
+         (ls -l \"*.sh\"))"
   [& forms]
-  `(with-line-number
-     (_script (quasiquote ~forms))))
+  `(script/with-line-number [~*file* ~(:line (meta &form))]
+     (script* (quasiquote ~forms))))
 
+(defmacro defimpl
+  "Define a script function implementation for the given `specialisers`.
+
+   `specialisers` should be the :default keyword, or a vector.  The
+   `specialisers` vector may contain keywords, a set of keywords that provide an
+   inclusive `or` match, or functions that return a truth value indication
+   whether the implementation is a match for the script template passed as the
+   function's first argument.
+
+   `body` is wrapped in an implicit `script` form.
+
+       (pallet.script/defscript ls [& args])
+       (defimpl ls :default [& args] (ls ~@args))
+       (defimpl ls [:windows] [& args] (dir ~@args))"
+  [script-name specialisers [& args] & body]
+  {:pre [(or (= :default specialisers)
+             (vector? specialisers))]}
+  `(pallet.script/implement
+    ~(name script-name) ~specialisers
+    (fn ~(symbol (str "script-fn-for-" (name script-name))) [~@args]
+      (script ~@body))))
+
+
+;;; Script combiners
 (defn do-script*
   "Concatenate multiple scripts."
   [scripts]
   (str
    (string/join \newline
-     (filter (complement utils/blank?) (map #(when % (string/trim %)) scripts)))
+     (filter
+      (complement string/blank?)
+      (map #(when % (string/trim %)) scripts)))
    \newline))
 
 (defn do-script
@@ -510,7 +559,9 @@
   "Chain commands together with &&."
   [scripts]
   (string/join " && "
-    (filter (complement utils/blank?) (map #(when % (string/trim %)) scripts))))
+    (filter
+     (complement string/blank?)
+     (map #(when % (string/trim %)) scripts))))
 
 (defn chain-commands
   "Chain commands together with &&."
@@ -522,7 +573,7 @@
   messages is added before the command."
   [message cmds]
   (let [chained-cmds (chain-commands* cmds)]
-    (if (utils/blank? chained-cmds)
+    (if (string/blank? chained-cmds)
       ""
       (str
         "echo \"" message "...\"" \newline
@@ -550,12 +601,33 @@
   `(checked-commands ~message
     ~@(map (fn [f] (list `script f)) forms)))
 
-(defmacro defimpl
-  "Define a script fragment implementation for a given set of specialisers"
-  [script-name specialisers [& args]  & body]
-  {:pre [(or (= :default specialisers)
-             (vector? specialisers))]}
-  `(pallet.script/implement
-    ~(name script-name) ~specialisers
-    (fn ~(symbol (str "script-fn-for-" (name script-name))) [~@args]
-      (script ~@body))))
+;;; script argument helpers
+(defn arg-string
+  [option argument do-underscore do-assign dash]
+  (let [opt (if do-underscore (utils/underscore (name option)) (name option))]
+    (if argument
+      (if (> (.length opt) 1)
+        (str dash opt (if-not (= argument true)
+                        (str (if do-assign "=" " ") argument)))
+        (str "-" opt (if-not (= argument true) (str " " argument)))))))
+
+(defn map-to-arg-string
+  "Output a set of command line switches from a map"
+  [m & options]
+  (let [opts (apply hash-map options)]
+    (apply
+     str (interpose
+          " "
+          (map #(arg-string
+                 (first %) (second %) (opts :underscore) (:opts :assign)
+                 (get opts :dash "--"))
+               m)))))
+
+(defn option-args
+  "Output a set of command line switches from a sequence of options"
+  [options]
+  (let [m (if (first options) (apply hash-map options) {})
+        assign (m :assign)
+        underscore (m :underscore)]
+    (map-to-arg-string
+     (dissoc m :assign :underscore) :assign assign :underscore underscore)))
