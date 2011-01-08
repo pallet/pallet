@@ -1,5 +1,12 @@
 (ns pallet.resource.remote-file
-  "File Contents."
+  "Resource to specify remote file content.
+
+   `remote-file` has many options for the content of remote files.  Ownership
+   and mode can of course be specified. By default the remote file is versioned,
+   and multiple versions are kept.
+
+   Modification of remote files outside of pallet cause an error to be raised
+   by default."
   (:require
    [pallet.blobstore :as blobstore]
    [pallet.resource :as resource]
@@ -35,12 +42,25 @@
   forwarding when calling remote-file from other crates.")
 
 (def/defvar
+  version-options
+  [:overwrite-changes :no-versioning :max-versions :flag-on-changed]
+  "A vector of options for controlling versions. Can be used for option
+  forwarding when calling remote-file from other crates.")
+
+(def/defvar
+  ownership-options
+  [:owner :group :mode]
+  "A vector of options for controlling ownership. Can be used for option
+  forwarding when calling remote-file from other crates.")
+
+(def/defvar
   all-options
-  (concat content-options [:owner :group :mode])
+  (concat content-options version-options ownership-options)
   "A vector of the options accepted by remote-file.  Can be used for option
   forwarding when calling remote-file from other crates.")
 
-(defn get-request
+(defn- get-request
+  "Build a curl or wget command from the specified request object."
   [request]
   (stevedore/script
    (if (test @(which curl))
@@ -226,13 +246,25 @@
                 (rm ~path ~(select-keys options [:force])))))))
 
 (defn remote-file
-  "Remote file with contents management.
+  "Remote file content management.
+
+The `remote-file` resource can specify the content of a remote file in a number
+different ways.
+
+By default, the remote-file is versioned, and 5 versions are kept.
+
+The remote content is also verified against it's md5 hash.  If the contents
+of the remote file have changed (e.g. have been edited on the remote machine)
+then by default the file will not be overwritten, and an error will be raised.
+To force overwrite, call `set-force-overwrite` before running `converge` or
+`lift`.
+
 Options for specifying the file's content are:
   :url url          - download the specified url to the given filepath
   :content string   - use the specified content directly
   :local-file path  - use the file on the local machine at the given path
   :remote-file path - use the file on the remote machine at the given path
-  :link             - file to link to:
+  :link             - file to link to
   :literal          - prevent shell expansion on content
   :md5              - md5 for file
   :md5-url          - a url containing file's md5
@@ -240,14 +272,45 @@ Options for specifying the file's content are:
   :values           - values for interpolation
   :blob             - map of :container, :path
   :blobstore        - a jclouds blobstore object (override blobstore in request)
+
+Options for version control are:
   :overwrite-changes - flag to force overwriting of locally modified content
   :no-versioning    - do not version the file
   :max-versions     - specfy the number of versions to keep (default 5)
   :flag-on-changed  - flag to set if file is changed
+
 Options for specifying the file's permissions are:
   :owner user-name
   :group group-name
-  :mode  file-mode"
+  :mode  file-mode
+
+To copy the content of a local file to a remote file:
+    (remote-file request \"remote/path\" :local-file \"local/path\")
+
+To copy the content of one remote file to another remote file:
+    (remote-file request \"remote/path\" :remote-file \"remote/source/path\")
+
+To link one remote file to another remote file:
+    (remote-file request \"remote/path\" :link \"remote/source/path\")
+
+To download a url to a remote file:
+    (remote-file request \"remote/path\" :url \"http://a.com/path\")
+
+If a url to a md5 file is also available, then it can be specified to prevent
+unnecessary downloads and to verify the download.
+    (remote-file request \"remote/path\"
+      :url \"http://a.com/path\"
+      :md5-url \"http://a.com/path.md5\")
+
+If the md5 of the file to download, it can be specified to prevent unnecessary
+downloads and to verify the download.
+    (remote-file request \"remote/path\"
+      :url \"http://a.com/path\"
+      :md5 \"6de9439834c9147569741d3c9c9fc010\")
+
+Content can also be copied from a blobstore.
+    (remote-file request \"remote/path\"
+      :blob {:container \"container\" :path \"blob\"})"
   [request path & {:keys [action url local-file remote-file link
                           content literal
                           template values
@@ -267,5 +330,6 @@ Options for specifying the file's permissions are:
   (->
    request
    (when-> local-file
+           ;; transfer local file to remote system if required
            (transfer-file local-file (str path ".new")))
-   (apply-> remote-file-resource path (apply concat options))))
+   (apply-map-> remote-file-resource path options)))
