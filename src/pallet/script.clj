@@ -17,10 +17,10 @@
    Mutiple implementations may match the `*template*` vector, and the
    best fit is determined by the highest number of matching specialiser
    functions, with ties decided by the earliest defined implementation."
-  (:use clojure.contrib.logging)
   (:require
    [clojure.contrib.def :as def]
-   [clojure.contrib.condition :as condition]))
+   [clojure.contrib.condition :as condition]
+   [clojure.contrib.logging :as logging]))
 
 ;; map from script name to implementations
 ;; where implementations is a map from keywords to function
@@ -43,13 +43,12 @@
      ~@body))
 
 (defmacro with-line-number
-  "Record the source line number"
-  [& body]
-  `(do ;(defvar- ln# nil)
-       ;(binding [*script-line* (:line (meta (var ln#)))
-       ; *script-file* (:file (meta (var ln#)))]
-         (ns-unmap *ns* 'ln#)
-         ~@body));)
+  "Provide the source file and line number for use in reporting."
+  [[file line] & body]
+  `(do
+     (binding [*script-line* ~line
+               *script-file* ~file]
+       ~@body)))
 
 (defn- print-args
   "Utitlity function to print arguments for logging"
@@ -98,10 +97,10 @@
    `*template*`"
   [script]
   {:pre [*template* (seq *template*)]}
-  (trace
+  (logging/trace
    (format "Looking up script %s with template %s" script (seq *template*)))
   (when-let [impls (*scripts* script)]
-    (trace (format "Found implementations %s" (keys impls)))
+    (logging/trace (format "Found implementations %s" (keys impls)))
     (second (reduce better-match?
                     [:default (impls :default)]
                     (dissoc impls :default)))))
@@ -112,13 +111,15 @@
    implementation is found, then a :no-script-implementation condition
    is raised."
   [script & args]
-  (trace (str "dispatch-target " script " " (print-args ~@args)))
+  (logging/trace (str "dispatch-target " script " " (print-args ~@args)))
   (let [f (best-match script)]
     (if f
       (apply f args)
       (condition/raise
        :type :no-script-implementation
        :template *template*
+       :file *script-file*
+       :line *script-line*
        :message (format
                  "No implementation for %s with template %s"
                  (name script)
@@ -129,12 +130,12 @@
    found based on the current `*template*` value.  If no matching
    implementation is found, then nil is returned."
   [script args]
-  (trace
+  (logging/trace
    (format
     "invoke-target [%s:%s] %s %s"
     *script-file* *script-line* script (print-args args)))
   (when-let [f (best-match (keyword (name script)))]
-    (trace
+    (logging/trace
      (format "Found implementation for %s - %s invoking with %s empty? %s"
              script f (print-args args) (empty? args)))
     (apply f args)))
@@ -165,8 +166,8 @@
    `specialisers` argument. `specialisers` should be the :default keyword, or a
    vector.  The `specialisers` vector may contain keywords, a set of keywords
    that provide an inclusive `or` match, or functions that return a truth value
-   indication whether the implementation is a match for the template passed as
-   the function's first argument."
+   indication whether the implementation is a match for the `*template*` passed
+   as the function's first argument."
   [script-name specialisers f]
   (alter-var-root
    #'*scripts*
