@@ -10,16 +10,210 @@
 #+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
 #+EXPORT_SELECT_TAGS: export
 #+EXPORT_EXCLUDE_TAGS: noexport
-#+LINK_UP: index.html
-#+LINK_HOME: ../index.html
-#+property: exports code
+#+LINK_UP: reference_index.html
+#+LINK_HOME: index.html
+#+property: exports both
 #+property: results output
+#+property: tangle src/stevedore.clj
 #+property: cache true
-#+STYLE: <link rel="stylesheet" type="text/css" href="../doc.css" />
+#+STYLE: <link rel="stylesheet" type="text/css" href="doc.css" />
 
-#+MACRO: clojure [[http://clojure.org][Clojure]]
-#+MACRO: jclouds [[http://jclouds.org][jclouds]]
+Pallet scripts are written using an embedding of shell script in [[http://clojure.org][Clojure]], and
+allows for abstraction of operating system variations.
 
-Pallet scripts are written using an embedding of shell script in {{{clojure}}}.
+At it's simplest, the =script= macro takes one or more forms and converts them
+to shell script.
 
-See [[http://hugoduncan.org/post/2010/shell_scripting_in_clojure_with_pallet.xhtml][this blog post]] for an introduction.
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (require
+    '[pallet.stevedore :as stevedore])
+
+  (stevedore/script
+    (ls))
+#+END_SRC
+
+* Variables
+There is an obvious mismatch between Clojure's immutable data approach, and
+shell script's mutable variables.
+
+** Substitution
+For accessing the value of a script variable, stevedore uses `deref` or `@`, which
+are also used for command substitution.
+
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (stevedore/script
+   (deref TMPDIR))
+#+END_SRC
+
+#+results:
+: ${TMPDIR}
+
+If the variable isn't set, a default can be supplied.
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (stevedore/script
+   @TMPDIR-/tmp)
+#+END_SRC
+
+#+results:
+: ${TMPDIR-/tmp}
+
+** Assignment
+Values can be defined with `set!`.
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (stevedore/script
+   (set! x 1))
+#+END_SRC
+
+#+results:
+: x=1
+
+* Command Substitution
+
+Similar to variable substitution, command substitution uses `deref`.
+
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (stevedore/script
+   (set! R @(cat "/etc/redhat-release")))
+#+END_SRC
+
+#+results:
+: R=$(cat /etc/redhat-release)
+
+* Loops
+Shell script `for` loops are mapped to clojure`s `doseq`.
+
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (stevedore/script
+   (doseq [x ["a" "b" "c"]]
+     (println @x)))
+#+END_SRC
+
+#+results:
+: for x in a b c; do
+: echo ${x}
+: done
+
+* Functions
+
+Calling a function follows clojure's normal syntax.
+
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (stevedore/script
+   (foo x y))
+#+END_SRC
+
+#+results:
+: foo x y
+
+Defining a function follows a simplified version of clojure's `defn`, and does
+not allow for destructuring. Arguments are named and automatically mapped to the
+shell function's numbered arguments.
+
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (stevedore/script
+   (script (defn foo [x y] (bar x))))
+#+END_SRC
+
+#+results:
+: script function foo() {
+: x=$1
+: y=$2
+: bar x
+:  }
+
+* Arrays
+
+Array literals are generated from clojure's `vector` notation.
+
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (stevedore/script
+   [1 "2" (quoted 3) :four])
+#+END_SRC
+
+#+results:
+: (1 2 "3" four)
+
+Array access uses `aget` and `aset`.
+
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (stevedore/script
+   (aget foo 1))
+#+END_SRC
+
+#+results:
+: ${foo[1]}
+
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (stevedore/script
+   (aset foo 1 :foo))
+#+END_SRC
+
+#+results:
+: foo[1]=foo
+
+
+* Unquoting
+
+One advantage of embedding script in clojure is that we can escape back to
+clojure to substitute in values.
+
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (let [tmp "/tmp"]
+    (stevedore/script
+      (ls ~tmp)))
+#+END_SRC
+
+#+results:
+: ls /tmp
+
+** Expressions
+We can also unquote arbitrary clojure expressions.
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (stevedore/script
+   (ls ~(str "/" "tmp")))
+#+END_SRC
+
+#+results:
+: ls /tmp
+
+** Splicing
+Sometimes we want to add the contents of a collection into a script, without
+demarking the boundaries of the collection.
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (let [files ["a" "b" "c"]]
+    (stevedore/script
+      (ls ~@files)))
+#+END_SRC
+
+#+results:
+: ls a b c
+
+
+* Script functions
+
+Script functions are defined with `pallet.script/defscript` and provide multimethods
+for shell script generation.  In pallet this is used to abstract away script
+differences between operating systems.
+
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (require
+    '[pallet.stevedore :as stevedore]
+    '[pallet.script :as script])
+
+  (script/defscript ls [& args])
+  (stevedore/defimpl ls :default [& args]
+    (ls ~@args))
+  (stevedore/defimpl ls [:windows] [& args]
+    (dir ~@args))
+
+  (script/with-template [:windows]
+    (stevedore/script
+      (ls a b c)))
+#+END_SRC
+#+results:
+: dir a b c
+
+
+* Scripting Guide
+
+An excellent reference on shell scripting is available at http://tldp.org/LDP/abs/html/.
