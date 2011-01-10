@@ -140,6 +140,8 @@ namespace.
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.compute/compute-service-from-config">compute-service-from-config</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.compute/compute-service-from-config-file">compute-service-from-config-file</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.compute/compute-service-from-config-var">compute-service-from-config-var</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.compute/compute-service-from-map">compute-service-from-map</a>
@@ -222,6 +224,20 @@ namespace.
     </div>
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.compute.vmfest">pallet.compute.vmfest</a>
+    <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.compute.vmfest/image-from-template">image-from-template</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.compute.vmfest/machine-name">machine-name</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.compute.vmfest/medium-formats">medium-formats</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.compute.vmfest/os-families">os-families</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.compute.vmfest/wait-for-ip">wait-for-ip</a>
+    </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.configure">pallet.configure</a>
     <div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.configure/compute-service-properties">compute-service-properties</a>
@@ -232,6 +248,8 @@ namespace.
   </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.core">pallet.core</a>
     <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.core/*warn-on-undefined-phase*">*warn-on-undefined-phase*</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.core/add-os-family">add-os-family</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.core/add-target-id">add-target-id</a>
@@ -326,6 +344,8 @@ namespace.
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.execute/local-cmds">local-cmds</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.execute/local-script">local-script</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.execute/local-sh-cmds">local-sh-cmds</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.execute/remote-sudo">remote-sudo</a>
@@ -333,6 +353,8 @@ namespace.
       <a href="#pallet.execute/sh-script">sh-script</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.execute/ssh-cmds">ssh-cmds</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.execute/sudo-cmd-for">sudo-cmd-for</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.execute/system">system</a>
     </div>
@@ -396,7 +418,19 @@ namespace.
   </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.parameter">pallet.parameter</a>
     <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.parameter/assoc-for">assoc-for</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.parameter/assoc-for-service">assoc-for-service</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.parameter/assoc-for-target">assoc-for-target</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.parameter/from-map">from-map</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.parameter/get-for">get-for</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.parameter/get-for-service">get-for-service</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.parameter/get-for-target">get-for-target</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.parameter/lookup">lookup</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
@@ -405,6 +439,12 @@ namespace.
       <a href="#pallet.parameter/parameters">parameters</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.parameter/parameters*">parameters*</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.parameter/update-for">update-for</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.parameter/update-for-service">update-for-service</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.parameter/update-for-target">update-for-target</a>
     </div>
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
@@ -419,6 +459,8 @@ namespace.
       <a href="#pallet.request-map/nodes-in-tag">nodes-in-tag</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.request-map/os-family">os-family</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.request-map/os-version">os-version</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.request-map/safe-id">safe-id</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
@@ -546,6 +588,8 @@ namespace.
   </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.resource.format">pallet.resource.format</a>
     <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.format/name-values">name-values</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.format/sectioned-properties">sectioned-properties</a>
     </div>
     <br />
@@ -563,6 +607,8 @@ namespace.
       <a href="#pallet.resource.package/add-centos55-to-amzn-linux">add-centos55-to-amzn-linux</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.package/add-epel">add-epel</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.package/add-epel*">add-epel*</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.package/add-jpackage">add-jpackage</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
@@ -606,6 +652,8 @@ namespace.
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.remote-file/content-options">content-options</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.remote-file/ownership-options">ownership-options</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.remote-file/remote-file">remote-file</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.remote-file/set-force-overwrite">set-force-overwrite</a>
@@ -613,6 +661,8 @@ namespace.
       <a href="#pallet.resource.remote-file/set-install-new-files">set-install-new-files</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.remote-file/transfer-file">transfer-file</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.remote-file/version-options">version-options</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.remote-file/with-remote-file">with-remote-file</a>
     </div>
@@ -682,13 +732,13 @@ namespace.
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.stevedore/chained-script">chained-script</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.stevedore/char-at">char-at</a>
-    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.stevedore/checked-commands">checked-commands</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.stevedore/checked-commands*">checked-commands*</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.stevedore/checked-script">checked-script</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.stevedore/comma-list">comma-list</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.stevedore/defimpl">defimpl</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
@@ -696,11 +746,21 @@ namespace.
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.stevedore/do-script*">do-script*</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.stevedore/emit">emit</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.stevedore/emit-special">emit-special</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.stevedore/hashlib">hashlib</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.stevedore/map-to-arg-string">map-to-arg-string</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.stevedore/option-args">option-args</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.stevedore/script">script</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.stevedore/splice-list">splice-list</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.stevedore/statement">statement</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.stevedore/substring">substring</a>
     </div>
@@ -1171,7 +1231,7 @@ separator.  Like Perl's join.</pre>
   <hr />
   <h2 id="pallet.compute/compute-service">compute-service</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (compute-service provider-name &amp; {:keys [identity credential extensions node-list], :as options})
+  <pre id="var-usage">Usage: (compute-service provider-name &amp; {:keys [identity credential extensions node-list endpoint], :as options})
 </pre>
   <pre id="var-docstr">Instantiate a compute service. The provider name should be a recognised
 jclouds provider, or "node-list". The other arguments are keyword value
@@ -1187,7 +1247,17 @@ pairs.
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (compute-service-from-config config profiles)
 </pre>
-  <pre id="var-docstr">Compute service from ~/.pallet/config.clj</pre>
+  <pre id="var-docstr">Compute service from a configuration map and a list of active profiles
+(provider keys).</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.compute/compute-service-from-config-file">compute-service-from-config-file</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (compute-service-from-config-file &amp; profiles)
+</pre>
+  <pre id="var-docstr">Compute service from ~/.pallet/config.clj. Profiles is a sequence of provider
+keys to use from the :providers map.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -1473,6 +1543,74 @@ ssh, including virtual machines.</pre>
   <pre id="var-docstr">Make a node representing the local host</pre>
   
 </div>
+<h2 id="namespace-name">pallet.compute.vmfest</h2>
+<pre id="namespace-docstr">A vmfest provider.
+
+An example service configuration in ~/.pallet/config.clj
+
+    :vb {:provider "virtualbox"
+         :images {:centos-5-3 {:description "CentOS 5.3 32bit"
+                               :uuid "4697bdf7-7acf-4a20-8c28-e20b6bb58e25"
+                               :os-family :centos
+                               :os-version "5.3"
+                               :os-type-id "RedHat"}
+                  :ubuntu-10-04 {:description "Ubuntu 10.04 32bit"
+                                 :uuid "8a31e3aa-0d46-41a5-936d-25130dcb16b7"
+                                 :os-family :ubuntu
+                                 :os-version "10.04"
+                                 :os-type-id "Ubuntu"
+                                 :username
+                                 :password}}
+         :model-path "/Volumes/My Book/vms/disks"
+         :node-path "/Volumes/My Book/vms/nodes"}
+
+The uuid's can be found using vboxmanage
+    vboxmanage list hdds
+
+The images are disks that are immutable.  The virtualbox extensions need
+to be installed on the image.</pre>
+<br />
+<div id="var-entry">
+  <hr />
+  <h2 id="pallet.compute.vmfest/image-from-template">image-from-template</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (image-from-template images template)
+</pre>
+  <pre id="var-docstr">Use the template to select an image from the image map.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.compute.vmfest/machine-name">machine-name</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (machine-name tag n)
+</pre>
+  <pre id="var-docstr">Generate a machine name</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.compute.vmfest/medium-formats">medium-formats</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (medium-formats compute)
+</pre>
+  <pre id="var-docstr">Return supported medium-formats</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.compute.vmfest/os-families">os-families</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (os-families compute)
+</pre>
+  <pre id="var-docstr">Return supported os-families</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.compute.vmfest/wait-for-ip">wait-for-ip</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (wait-for-ip machine)
+</pre>
+  <pre id="var-docstr">Wait for the machines IP to become available.</pre>
+  
+</div>
 <h2 id="namespace-name">pallet.configure</h2>
 <pre id="namespace-docstr">Pallet configuration</pre>
 <br />
@@ -1514,6 +1652,13 @@ compute-nodes cookbook is expected to exist in the site-cookbooks of the
 chef-repository you specify with `with-chef-repository`.</pre>
 <br />
 <div id="var-entry">
+  <hr />
+  <h2 id="pallet.core/*warn-on-undefined-phase*">*warn-on-undefined-phase*</h2>
+  <span id="var-type">var</span><br />
+  <pre id="var-usage"></pre>
+  <pre id="var-docstr">Flag to control output of warnings about undefined phases in calls to lift and converge.</pre>
+  
+</div><div id="var-entry">
   <hr />
   <h2 id="pallet.core/add-os-family">add-os-family</h2>
   <span id="var-type">function</span><br />
@@ -1932,6 +2077,15 @@ to enable specialisation on node-type</pre>
   
 </div><div id="var-entry">
   <hr />
+  <h2 id="pallet.execute/local-script">local-script</h2>
+  <span id="var-type">macro</span><br />
+  <pre id="var-usage">Usage: (local-script &amp; body)
+</pre>
+  <pre id="var-docstr">Run a script on the local machine, setting up stevedore to produce the
+correct target specific code</pre>
+  
+</div><div id="var-entry">
+  <hr />
   <h2 id="pallet.execute/local-sh-cmds">local-sh-cmds</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (local-sh-cmds {:keys [commands root-path], :or {root-path /tmp/}, :as request})
@@ -1963,6 +2117,14 @@ Runs locally as the current user, so useful for testing.</pre>
 </pre>
   <pre id="var-docstr">Execute cmds for the request.
 Also accepts an IP or hostname as anode.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.execute/sudo-cmd-for">sudo-cmd-for</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (sudo-cmd-for user)
+</pre>
+  <pre id="var-docstr">Construct a sudo command prefix for the specified user.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -2155,9 +2317,63 @@ as a map.</pre>
   
 </div>
 <h2 id="namespace-name">pallet.parameter</h2>
-<pre id="namespace-docstr">Provides parameters for use across crates.</pre>
+<pre id="namespace-docstr">Provides functions for working with parameters.
+
+Parameters are data maps that allow propogation of information between the
+functions of a crate, and between crates. There are two conventions for using
+parameters in crates that are directly supported here.
+
+Host specific parameters are specified under
+    [:parameters :host (keyword target-id)]
+These functions are `get-for-target`, `assoc-for-target`, and
+`update-for-target`.
+
+Service specific paramters, used across hosts, are specified under
+   [:parameters :service (keyword service-name)]
+These functions are `get-for-service`, `assoc-for-service`, and
+`update-for-service`.
+
+The `get-for` functions have slightly different semantics compared with
+clojure.core/get, in that they throw an exception if the key is undefined
+and no default value is specified.
+
+Delayed evaluation of parameters specified as arguments to resource functions
+are also implemented here. `lookup` and `lookup-for-target`.</pre>
 <br />
 <div id="var-entry">
+  <hr />
+  <h2 id="pallet.parameter/assoc-for">assoc-for</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (assoc-for request &amp; {:as keys-value-pairs})
+</pre>
+  <pre id="var-docstr">Set the :parameters values at the paths specified.
+
+(assoc-for {} [:a :b] 1 [:a :d] 2)
+  =&gt; {:parameters {:a {:b 1} {:d 2}}}</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.parameter/assoc-for-service">assoc-for-service</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (assoc-for-service request service &amp; {:as keys-value-pairs})
+</pre>
+  <pre id="var-docstr">Set the service parameter values at the paths specified.
+
+(assoc-for-service {} :proxy [:a :b] 1 [:a :d] 2)
+  =&gt; {:parameters {:srvice {:proxy {:a {:b 1} {:d 2}}}}}</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.parameter/assoc-for-target">assoc-for-target</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (assoc-for-target request &amp; {:as keys-value-pairs})
+</pre>
+  <pre id="var-docstr">Set the host parameter values at the paths specified.
+
+(assoc-for-target {:target-id :id1} [:a :b] 1 [:a :d] 2)
+  =&gt; {:parameters {:host {:id1 {:a {:b 1} {:d 2}}}}}</pre>
+  
+</div><div id="var-entry">
   <hr />
   <h2 id="pallet.parameter/from-map">from-map</h2>
   <span id="var-type">function</span><br />
@@ -2168,12 +2384,61 @@ from m.</pre>
   
 </div><div id="var-entry">
   <hr />
+  <h2 id="pallet.parameter/get-for">get-for</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (get-for request keys)
+       (get-for request keys default)
+</pre>
+  <pre id="var-docstr">Retrieve the parameter at the path specified by keys.
+When no default value is specified, then raise a :parameter-not-found if no
+parameter is set.
+
+    (get-for {:p {:a {:b 1} {:d 2}}} [:p :a :d])
+      =&gt; 2</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.parameter/get-for-service">get-for-service</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (get-for-service request keys)
+       (get-for-service request keys default)
+</pre>
+  <pre id="var-docstr">Retrieve the service parameter for the service and path specified by
+keys.  When no default value is specified, then raise a :parameter-not-found
+if no parameter is set.
+
+    (get-for-service
+      {:parameters {:service {:proxy {:a {:b 1} {:d 2}}}}} [:proxy :a :b])
+      =&gt; 1</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.parameter/get-for-target">get-for-target</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (get-for-target request keys)
+       (get-for-target request keys default)
+</pre>
+  <pre id="var-docstr">Retrieve the host parameter for the current target at the path specified by
+keys.  When no default value is specified, then raise a :parameter-not-found
+if no parameter is set.
+
+    (get-for-target
+      {:parameters {:host {:id1 {:a {:b 1} {:d 2}}}}
+       :target-id :id1} [:a :b])
+      =&gt; 1</pre>
+  
+</div><div id="var-entry">
+  <hr />
   <h2 id="pallet.parameter/lookup">lookup</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (lookup &amp; keys)
 </pre>
-  <pre id="var-docstr">Lookup a parameter in a delayed manner. This produces a function, which is
-executed by it's toString method.</pre>
+  <pre id="var-docstr">Lookup a parameter in a delayed manner. Use a call to this function as the
+argument of a resource.
+This function produces an object, which causes parameter lookup when it's
+toString method is called.
+
+See also `pallet.argument`.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -2181,8 +2446,11 @@ executed by it's toString method.</pre>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (lookup-for-target &amp; keys)
 </pre>
-  <pre id="var-docstr">Lookup a parameter for the target in a delayed manner. This produces a
-function, which is executed by it's toString method.</pre>
+  <pre id="var-docstr">Lookup a parameter for the target in a delayed manner. Use a call to this
+function as the argument of a resource.  This function produces an object,
+which causes parameter lookup when it's toString method is called.
+
+See also `pallet.argument`.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -2190,7 +2458,7 @@ function, which is executed by it's toString method.</pre>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (parameters request &amp; {:as keyvector-value-pairs})
 </pre>
-  <pre id="var-docstr">Set parameters</pre>
+  <pre id="var-docstr">A resource to set parameters</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -2198,7 +2466,51 @@ function, which is executed by it's toString method.</pre>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (parameters* request &amp; {:as keyvector-value-pairs})
 </pre>
-  <pre id="var-docstr">Set parameters</pre>
+  <pre id="var-docstr">A resource to set parameters</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.parameter/update-for">update-for</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (update-for request keys f &amp; args)
+</pre>
+  <pre id="var-docstr">Update parameters at the path given by keys.
+The value is set to the value return by calling f with the current
+value and the given args.
+
+    (update-for {:parameters {:a {:b 1}}} [:a :b] + 2)
+      =&gt; {:parameters {:a {:b 3}}}</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.parameter/update-for-service">update-for-service</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (update-for-service request keys f &amp; args)
+</pre>
+  <pre id="var-docstr">Update serivce parameters for the pecified service at the path given by keys.
+The value is set to the value return by calling f with the current
+value and the given args.
+
+    (update-for-service
+       {:parameters {:service {:proxy {:a {:b 1}}}}}
+       [:proxy :a :b] + 2)
+      =&gt; {:parameters {:service {:proxy {:a {:b 3}}}}}</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.parameter/update-for-target">update-for-target</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (update-for-target request keys f &amp; args)
+</pre>
+  <pre id="var-docstr">Update host parameters for the current target at the path given by keys.
+The value is set to the value return by calling f with the current
+value and the given args.
+
+    (update-for-target
+       {:parameters {:host {:id1 {:a {:b 1}}}}
+        :target-id :id1}
+       [:a :b] + 2)
+      =&gt; {:parameters {:host {:id1 {:a {:b 3}}}}}</pre>
   
 </div>
 <h2 id="namespace-name">pallet.repl</h2>
@@ -2231,6 +2543,14 @@ when working at the clojure REPL.</pre>
   <h2 id="pallet.request-map/os-family">os-family</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (os-family request)
+</pre>
+  <pre id="var-docstr">OS-Family of the target-node.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.request-map/os-version">os-version</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (os-version request)
 </pre>
   <pre id="var-docstr">OS-Family of the target-node.</pre>
   
@@ -2707,6 +3027,18 @@ time, so that it occurs wirh the correct target.</pre>
 <br />
 <div id="var-entry">
   <hr />
+  <h2 id="pallet.resource.format/name-values">name-values</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (name-values m &amp; {:keys [separator], :or {separator  }})
+</pre>
+  <pre id="var-docstr">A property file.
+The properties are written "key value", one per line.
+  m                   a key-value map
+  :seperator chars    seperator to use between key and value
+                      (default is a single space)</pre>
+  
+</div><div id="var-entry">
+  <hr />
   <h2 id="pallet.resource.format/sectioned-properties">sectioned-properties</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (sectioned-properties m)
@@ -2741,6 +3073,14 @@ priority</pre>
   <h2 id="pallet.resource.package/add-epel">add-epel</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (add-epel request &amp; {:keys [version], :or {version 5-4}})
+</pre>
+  <pre id="var-docstr">Add the EPEL repository</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.package/add-epel*">add-epel*</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (add-epel* request args)
 </pre>
   <pre id="var-docstr">Add the EPEL repository</pre>
   
@@ -2941,7 +3281,14 @@ Options:
   
 </div>
 <h2 id="namespace-name">pallet.resource.remote-file</h2>
-<pre id="namespace-docstr">File Contents.</pre>
+<pre id="namespace-docstr">Resource to specify remote file content.
+
+`remote-file` has many options for the content of remote files.  Ownership
+and mode can of course be specified. By default the remote file is versioned,
+and multiple versions are kept.
+
+Modification of remote files outside of pallet cause an error to be raised
+by default.</pre>
 <br />
 <div id="var-entry">
   <hr />
@@ -2961,17 +3308,37 @@ forwarding when calling remote-file from other crates.</pre>
   
 </div><div id="var-entry">
   <hr />
+  <h2 id="pallet.resource.remote-file/ownership-options">ownership-options</h2>
+  <span id="var-type">var</span><br />
+  <pre id="var-usage"></pre>
+  <pre id="var-docstr">A vector of options for controlling ownership. Can be used for option
+forwarding when calling remote-file from other crates.</pre>
+  
+</div><div id="var-entry">
+  <hr />
   <h2 id="pallet.resource.remote-file/remote-file">remote-file</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (remote-file request path &amp; {:keys [action url local-file remote-file link content literal template values md5 md5-url owner group mode force blob blobstore overwrite-changes no-versioning max-versions flag-on-changed], :as options})
 </pre>
-  <pre id="var-docstr">Remote file with contents management.
+  <pre id="var-docstr">Remote file content management.
+
+The `remote-file` resource can specify the content of a remote file in a number
+different ways.
+
+By default, the remote-file is versioned, and 5 versions are kept.
+
+The remote content is also verified against it's md5 hash.  If the contents
+of the remote file have changed (e.g. have been edited on the remote machine)
+then by default the file will not be overwritten, and an error will be raised.
+To force overwrite, call `set-force-overwrite` before running `converge` or
+`lift`.
+
 Options for specifying the file's content are:
   :url url          - download the specified url to the given filepath
   :content string   - use the specified content directly
   :local-file path  - use the file on the local machine at the given path
   :remote-file path - use the file on the remote machine at the given path
-  :link             - file to link to:
+  :link             - file to link to
   :literal          - prevent shell expansion on content
   :md5              - md5 for file
   :md5-url          - a url containing file's md5
@@ -2979,14 +3346,45 @@ Options for specifying the file's content are:
   :values           - values for interpolation
   :blob             - map of :container, :path
   :blobstore        - a jclouds blobstore object (override blobstore in request)
+
+Options for version control are:
   :overwrite-changes - flag to force overwriting of locally modified content
   :no-versioning    - do not version the file
   :max-versions     - specfy the number of versions to keep (default 5)
   :flag-on-changed  - flag to set if file is changed
+
 Options for specifying the file's permissions are:
   :owner user-name
   :group group-name
-  :mode  file-mode</pre>
+  :mode  file-mode
+
+To copy the content of a local file to a remote file:
+    (remote-file request "remote/path" :local-file "local/path")
+
+To copy the content of one remote file to another remote file:
+    (remote-file request "remote/path" :remote-file "remote/source/path")
+
+To link one remote file to another remote file:
+    (remote-file request "remote/path" :link "remote/source/path")
+
+To download a url to a remote file:
+    (remote-file request "remote/path" :url "http://a.com/path")
+
+If a url to a md5 file is also available, then it can be specified to prevent
+unnecessary downloads and to verify the download.
+    (remote-file request "remote/path"
+      :url "http://a.com/path"
+      :md5-url "http://a.com/path.md5")
+
+If the md5 of the file to download, it can be specified to prevent unnecessary
+downloads and to verify the download.
+    (remote-file request "remote/path"
+      :url "http://a.com/path"
+      :md5 "6de9439834c9147569741d3c9c9fc010")
+
+Content can also be copied from a blobstore.
+    (remote-file request "remote/path"
+      :blob {:container "container" :path "blob"})</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3012,6 +3410,14 @@ changed.</pre>
   <pre id="var-usage">Usage: (transfer-file request local-path remote-path)
 </pre>
   <pre id="var-docstr">Function to transfer a local file.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.remote-file/version-options">version-options</h2>
+  <span id="var-type">var</span><br />
+  <pre id="var-usage"></pre>
+  <pre id="var-docstr">A vector of options for controlling versions. Can be used for option
+forwarding when calling remote-file from other crates.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3122,14 +3528,34 @@ calling f.</pre>
   
 </div>
 <h2 id="namespace-name">pallet.script</h2>
-<pre id="namespace-docstr">Base infrastructure for script generation</pre>
+<pre id="namespace-docstr">Base infrastructure for script generation, and operating system abstraction.
+
+`defscript` defines an abstract script function, that can be implemented
+for different operating system (and version) targets.
+
+`implement` is used to add an implementation to a function defined with
+`defscript`.
+
+Dispatch of `defscript` is based on an implementation's specialisers vector.
+All elements of the specialisers vector must match `*template*`.  The
+specialisers vector may contain keywords that match if the are in
+`*template*`, sets of keywords that match if any of the set values are in
+`*template*`, or functions that will be passed `*template*` as an argument
+and should return a truth value indicating whether a match occured.
+
+Mutiple implementations may match the `*template*` vector, and the
+best fit is determined by the highest number of matching specialiser
+functions, with ties decided by the earliest defined implementation.</pre>
 <br />
 <div id="var-entry">
   <hr />
   <h2 id="pallet.script/*template*">*template*</h2>
   <span id="var-type">var</span><br />
   <pre id="var-usage"></pre>
-  <pre id="var-docstr">Determine the target to generate script for.</pre>
+  <pre id="var-docstr">Determine the target to generate script for.
+`defscript` implementations are dispatched on this.  The value should
+be a vector, containing os-family values (e.g. `:ubuntu`), os-family and
+os-version values (e.g. `:centos-5.3`), or other keywords.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3137,7 +3563,10 @@ calling f.</pre>
   <span id="var-type">macro</span><br />
   <pre id="var-usage">Usage: (defscript name [&amp; args])
 </pre>
-  <pre id="var-docstr">Define a script fragment</pre>
+  <pre id="var-docstr">Define an abstract script function, that can be implemented differently for
+different operating systems.
+Calls to functions defined by `defscript` are dispatched based on the
+`*template*` vector.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3145,7 +3574,10 @@ calling f.</pre>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (dispatch-target script &amp; args)
 </pre>
-  <pre id="var-docstr">Invoke target, raising if there is no implementation.</pre>
+  <pre id="var-docstr">Invoke `script` with the given `args`.  The implementations of `script` is
+found based on the current `*template*` value.  If no matching
+implementation is found, then a :no-script-implementation condition
+is raised.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3153,7 +3585,13 @@ calling f.</pre>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (implement script-name specialisers f)
 </pre>
-  <pre id="var-docstr">Add an implementation of script-name</pre>
+  <pre id="var-docstr">Add an implementation of script-name for the given specialisers.
+The default implementation can be set by passing :default as the
+`specialisers` argument. `specialisers` should be the :default keyword, or a
+vector.  The `specialisers` vector may contain keywords, a set of keywords
+that provide an inclusive `or` match, or functions that return a truth value
+indication whether the implementation is a match for the `*template*` passed
+as the function's first argument.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3161,7 +3599,9 @@ calling f.</pre>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (invoke-target script args)
 </pre>
-  <pre id="var-docstr">Invoke target when possible, otherwise return nil</pre>
+  <pre id="var-docstr">Invoke `script` with the given `args`.  The implementations of `script` is
+found based on the current `*template*` value.  If no matching
+implementation is found, then nil is returned.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3175,9 +3615,9 @@ calling f.</pre>
   <hr />
   <h2 id="pallet.script/with-line-number">with-line-number</h2>
   <span id="var-type">macro</span><br />
-  <pre id="var-usage">Usage: (with-line-number &amp; body)
+  <pre id="var-usage">Usage: (with-line-number [file line] &amp; body)
 </pre>
-  <pre id="var-docstr">Record the source line number</pre>
+  <pre id="var-docstr">Provide the source file and line number for use in reporting.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3185,11 +3625,20 @@ calling f.</pre>
   <span id="var-type">macro</span><br />
   <pre id="var-usage">Usage: (with-template template &amp; body)
 </pre>
-  <pre id="var-docstr">Specify the target for script generation</pre>
+  <pre id="var-docstr">Specify the target for script generation. `template` should be a vector of
+os-family, os-family and os-version, or other keywords. </pre>
   
 </div>
 <h2 id="namespace-name">pallet.stevedore</h2>
-<pre id="namespace-docstr">Embed shell script in clojure</pre>
+<pre id="namespace-docstr">Embed shell script in clojure.
+
+Shell script is embedded by wrapping in the `script` macro.
+    (script (ls)) =&gt; "ls"
+
+The result of a `script` form is a string.
+
+Script functions (defined with `pallet.script/defscript`) can be implemented
+using `defimpl`.</pre>
 <br />
 <div id="var-entry">
   <hr />
@@ -3215,14 +3664,6 @@ calling f.</pre>
 </pre>
   <pre id="var-docstr">Takes one or more forms. Returns a string of the forms translated into a
 chained shell script command.</pre>
-  
-</div><div id="var-entry">
-  <hr />
-  <h2 id="pallet.stevedore/char-at">char-at</h2>
-  <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (char-at s i)
-</pre>
-  <pre id="var-docstr">Gets the i'th character in string.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3253,11 +3694,32 @@ shell scrip.  Wraps the expression in a test for the result status.</pre>
   
 </div><div id="var-entry">
   <hr />
+  <h2 id="pallet.stevedore/comma-list">comma-list</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (comma-list coll)
+</pre>
+  <pre id="var-docstr">Emit a collection as a parentesised, comma separated list.
+(comma-list [a b c]) =&gt; "(a, b, c)"</pre>
+  
+</div><div id="var-entry">
+  <hr />
   <h2 id="pallet.stevedore/defimpl">defimpl</h2>
   <span id="var-type">macro</span><br />
   <pre id="var-usage">Usage: (defimpl script-name specialisers [&amp; args] &amp; body)
 </pre>
-  <pre id="var-docstr">Define a script fragment implementation for a given set of specialisers</pre>
+  <pre id="var-docstr">Define a script function implementation for the given `specialisers`.
+
+`specialisers` should be the :default keyword, or a vector.  The
+`specialisers` vector may contain keywords, a set of keywords that provide an
+inclusive `or` match, or functions that return a truth value indication
+whether the implementation is a match for the script template passed as the
+function's first argument.
+
+`body` is wrapped in an implicit `script` form.
+
+    (pallet.script/defscript ls [&amp; args])
+    (defimpl ls :default [&amp; args] (ls ~@args))
+    (defimpl ls [:windows] [&amp; args] (dir ~@args))</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3274,6 +3736,29 @@ shell scrip.  Wraps the expression in a test for the result status.</pre>
   <pre id="var-usage">Usage: (do-script* scripts)
 </pre>
   <pre id="var-docstr">Concatenate multiple scripts.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.stevedore/emit">emit</h2>
+  <span id="var-type">multimethod</span><br />
+  <pre id="var-usage">No usage documentation available</pre>
+  <pre id="var-docstr">Emit a shell expression as a string. Dispatched on the :type of the
+expression.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.stevedore/emit-special">emit-special</h2>
+  <span id="var-type">multimethod</span><br />
+  <pre id="var-usage">No usage documentation available</pre>
+  <pre id="var-docstr">Emit a shell form as a string. Dispatched on the first element of the form.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.stevedore/hashlib">hashlib</h2>
+  <span id="var-type">var</span><br />
+  <pre id="var-usage"></pre>
+  <pre id="var-docstr">bash library for associative arrays in bash 3. You need to include this in
+your script if you use associative arrays, e.g. with `assoc!`.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3298,7 +3783,27 @@ shell scrip.  Wraps the expression in a test for the result status.</pre>
   <pre id="var-usage">Usage: (script &amp; forms)
 </pre>
   <pre id="var-docstr">Takes one or more forms. Returns a string of the forms translated into
-javascript.</pre>
+shell script.
+    (script
+      (println "hello")
+      (ls -l "*.sh"))</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.stevedore/splice-list">splice-list</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (splice-list coll)
+</pre>
+  <pre id="var-docstr">Emit a collection as a space separated list.
+(splice-list [a b c]) =&gt; "a b c"</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.stevedore/statement">statement</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (statement expr)
+</pre>
+  <pre id="var-docstr">Emit an expression as a valid shell statement, with separator.</pre>
   
 </div><div id="var-entry">
   <hr />
