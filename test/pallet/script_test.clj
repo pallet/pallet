@@ -20,3 +20,9 @@
     (is (more-explicit? :default [:anything]))
     (is (more-explicit? [:something] [:anything :longer]))
     (is (not (more-explicit? [:something :longer] [:anything])))))
+
+(deftest defscript-test
+  (defscript script1 [a b])
+  (is (nil? (:doc (meta script1))))
+  (defscript script2 "doc" [a b])
+  (is (= "doc" (:doc (meta script2)))))
