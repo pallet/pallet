@@ -1,26 +1,7 @@
+#+SETUPFILE: org-templates/level-0.org
 #+TITLE:     Overview
-#+AUTHOR:    Hugo Duncan
-#+EMAIL:     hugo_duncan@yahoo.com
-#+DATE:      2010-06-17 Thu
 #+DESCRIPTION: Overview of Pallet
 #+KEYWORDS: pallet clojure provisioning configuration automation
-#+LANGUAGE:  en
-#+OPTIONS:   H:3 num:nil toc:2 \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
-#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
-#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
-#+EXPORT_SELECT_TAGS: export
-#+EXPORT_EXCLUDE_TAGS: noexport
-#+LINK_UP: index.html
-#+LINK_HOME: index.html
-#+property: exports code
-#+property: results output
-#+property: cache true
-#+LINK_UP: index.html
-#+LINK_HOME: index.html
-#+STYLE: <link rel="stylesheet" type="text/css" href="doc.css" /><link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Molengo"/>
-
-#+MACRO: clojure [[http://clojure.org][Clojure]]
-#+MACRO: jclouds [[http://jclouds.org][jclouds]]
 
 What makes pallet different to some of the other tools out there?
 
