@@ -30,12 +30,19 @@ chef-repository you specify with `with-chef-repository`.
    [pallet.parameter :as parameter]
    [pallet.resource :as resource]
    [clojure.contrib.condition :as condition]
-   [clojure.contrib.string :as string]
+   [clojure.string :as string]
    [clojure.contrib.logging :as logging]
    [clojure.contrib.map-utils :as map-utils]))
 
+(defn version
+  "Read the pallet version"
+  []
+  (or
+   (System/getProperty "pallet.version")
+   (string/trim (utils/slurp-resource "pallet-version"))))
+
 (. System setProperty "http.agent"
-   (str "Pallet " (System/getProperty "pallet.version")))
+   (str "Pallet " (version)))
 
 (defmacro with-admin-user
   "Specify the admin user for running remote commands.  The user is specified
