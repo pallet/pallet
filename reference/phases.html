@@ -125,13 +125,12 @@ nodes.
 
 
 <pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.core)
-(<span style="color: #0000ff;">require</span> 'pallet.maven)
+(<span style="color: #0000ff;">require</span> 'pallet.compute)
 (<span style="color: #0000ff;">require</span> 'pallet.resource)
 (<span style="color: #0000ff;">require</span> 'pallet.resource.package)
 
 (<span style="color: #4682b4;">def</span> <span style="color: #0000ff;">service</span>
-     (<span style="color: #0000ff;">apply</span> org.jclouds.compute/compute-service
-      (<span style="color: #0000ff;">concat</span> (pallet.maven/credentials) [<span style="color: #0000ff;">:log4j</span> <span style="color: #0000ff;">:enterprise</span> <span style="color: #0000ff;">:ssh</span>])))
+     (pallet.compute/compute-service-from-settings))
 (pallet.core/defnode mytag {})
 (pallet.core/lift mytag service
   (pallet.resource/phase (pallet.resource.package/package <span style="color: #f4a460;">"curl"</span>)))
