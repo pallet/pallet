@@ -30,6 +30,13 @@
             </resource>
             <resource>
                 <directory>resources</directory>
+                <excludes>
+                  <exclude>filtered/*</exclude>
+                </excludes>
+            </resource>
+            <resource>
+              <directory>resources/filtered</directory>
+              <filtering>true</filtering>
             </resource>
         </resources>
         <testResources>
