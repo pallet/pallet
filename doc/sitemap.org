@@ -1,5 +1,8 @@
 #+TITLE: Sitemap
 
+   + org-templates
+     + [[file:org-templates/level-0.org][level-0]]
+     + [[file:org-templates/level-1.org][level-1]]
    + reference
      + [[file:reference/node_types.org][Pallet - Node Types]]
      + [[file:reference/phases.org][Pallet - Phases]]
