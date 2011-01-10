@@ -12,3 +12,4 @@
  * [[file:crates.org][Crates]]
  * [[file:request_map.org][Request Map]]
  * [[file:script.org][Shell Script]]
+ * [[file:logging.org][Logging]]
