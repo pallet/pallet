@@ -1,4 +1,6 @@
 (ns pallet.resource.remote-directory
+  "Resource to specify the content of a remote directory.  At present the
+   content can come from a downloaded tar or zip file."
   (:require
    [pallet.resource :as resource]
    [pallet.stevedore :as stevedore]
@@ -7,17 +9,37 @@
 
 (resource/defresource remote-directory
   "Specify the contents of remote directory.
+
    Options:
-     :url              - a url to download content from
-     :unpack           - how download should be extracts (default :tar)
-     :tar-options      - options to pass to tar (default \"xz\")
-     :unzip-options    - options to pass to unzip (default \"xz\")
-     :strip-components - number of pathc ompnents to remove when unpacking
-     :md5              - md5 of file to unpack
-     :md5-url          - url of md5 file for file to unpack
-     :owner            - owner of files
-     :group            - group of files
-     :recursive        - flag to recursively set owner and group"
+    - :url              - a url to download content from
+    - :unpack           - how download should be extracts (default :tar)
+    - :tar-options      - options to pass to tar (default \"xz\")
+    - :unzip-options    - options to pass to unzip (default \"-o\")
+    - :strip-components - number of path compnents to remove when unpacking
+    - :md5              - md5 of file to unpack
+    - :md5-url          - url of md5 file for file to unpack
+
+   Ownership options:
+    - :owner            - owner of files
+    - :group            - group of files
+    - :recursive        - flag to recursively set owner and group
+
+   To install the content of an url pointing at a tar file, specify the :url
+   option.
+       (remote-directory request path
+          :url \"http://a.com/path/file.tgz\")
+
+   If there is an md5 url with the tar file's md5, you can specify that as well,
+   to prevent unecessary downloads and verify the content.
+       (remote-directory request path
+          :url \"http://a.com/path/file.tgz\"
+          :md5-url \"http://a.com/path/file.md5\")
+
+   To install the content of an url pointing at a zip file, specify the :url
+   option and :unpack :unzip.
+       (remote-directory request path
+          :url \"http://a.com/path/file.\"
+          :unpack :unzip)"
   (remote-directory*
    [request path & {:keys [action url unpack tar-options unzip-options
                            strip-components md5 md5-url owner group recursive]
