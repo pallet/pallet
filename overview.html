@@ -7,7 +7,7 @@ lang="en" xml:lang="en">
 <title>Overview</title>
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2010-06-17 Thu"/>
+<meta name="generated" content="2011-01-10 12:19:07 EST"/>
 <meta name="author" content="Hugo Duncan"/>
 <meta name="description" content="Overview of Pallet"/>
 <meta name="keywords" content="pallet clojure provisioning configuration automation"/>
@@ -21,6 +21,9 @@ lang="en" xml:lang="en">
   .target { }
   .timestamp { color: #bebebe; }
   .timestamp-kwd { color: #5f9ea0; }
+  .right  {margin-left:auto; margin-right:0px;  text-align:right;}
+  .left   {margin-left:0px;  margin-right:auto; text-align:left;}
+  .center {margin-left:auto; margin-right:auto; text-align:center;}
   p.verse { margin-left: 3% }
   pre {
 	border: 1pt solid #AEBDCC;
@@ -31,7 +34,13 @@ lang="en" xml:lang="en">
         overflow:auto;
   }
   table { border-collapse: collapse; }
-  td, th { vertical-align: top; }
+  td, th { vertical-align: top;  }
+  th.right  { text-align:center;  }
+  th.left   { text-align:center;   }
+  th.center { text-align:center; }
+  td.right  { text-align:right;  }
+  td.left   { text-align:left;   }
+  td.center { text-align:center; }
   dt { font-weight: bold; }
   div.figure { padding: 0.5em; }
   div.figure p { text-align: center; }
@@ -68,6 +77,7 @@ lang="en" xml:lang="en">
  }
 /*]]>*///-->
 </script>
+
 </head>
 <body>
 <div id="content">
@@ -79,29 +89,8 @@ lang="en" xml:lang="en">
 
 <h1 class="title">Overview</h1>
 
-
-<p>
-What makes pallet different to some of the other tools out there?
+<p>What makes pallet different to some of the other tools out there?
 </p>
-
-<div id="table-of-contents">
-<h2>Table of Contents</h2>
-<div id="text-table-of-contents">
-<ul>
-<li><a href="#sec-1">Features </a>
-<ul>
-<li><a href="#sec-1_1">No Dependencies </a></li>
-<li><a href="#sec-1_2">No Server </a></li>
-<li><a href="#sec-1_3">Everything in Version Control </a></li>
-<li><a href="#sec-1_4">Jar File Distribution of Crates </a></li>
-<li><a href="#sec-1_5">Provisioning, Configuration and Administration </a></li>
-</ul>
-</li>
-<li><a href="#sec-2">How it works </a></li>
-<li><a href="#sec-3">Related Projects </a></li>
-</ul>
-</div>
-</div>
 
 <div id="outline-container-1" class="outline-2">
 <h2 id="sec-1">Features </h2>
@@ -242,15 +231,15 @@ for each of a number of phases. By default, pallet defines <code>:bootstrap</cod
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 <caption></caption>
-<colgroup><col align="left" /><col align="left" />
+<colgroup><col class="left" /><col class="left" />
 </colgroup>
 <thead>
-<tr><th scope="col">Project Name</th><th scope="col">Link</th></tr>
+<tr><th scope="col" class="left">Project Name</th><th scope="col" class="left">Link</th></tr>
 </thead>
 <tbody>
-<tr><td>Chef</td><td><a href="http://wiki.opscode.com/display/chef/Home">http://wiki.opscode.com/display/chef/Home</a></td></tr>
-<tr><td>Puppet</td><td><a href="http://www.puppetlabs.com/">http://www.puppetlabs.com/</a></td></tr>
-<tr><td>cfengine</td><td><a href="http://www.cfengine.org">http://www.cfengine.org</a></td></tr>
+<tr><td class="left">Chef</td><td class="left"><a href="http://wiki.opscode.com/display/chef/Home">http://wiki.opscode.com/display/chef/Home</a></td></tr>
+<tr><td class="left">Puppet</td><td class="left"><a href="http://www.puppetlabs.com/">http://www.puppetlabs.com/</a></td></tr>
+<tr><td class="left">cfengine</td><td class="left"><a href="http://www.cfengine.org">http://www.cfengine.org</a></td></tr>
 </tbody>
 </table>
 
@@ -265,14 +254,14 @@ for each of a number of phases. By default, pallet defines <code>:bootstrap</cod
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 <caption></caption>
-<colgroup><col align="left" /><col align="left" />
+<colgroup><col class="left" /><col class="left" />
 </colgroup>
 <thead>
-<tr><th scope="col">Project Name</th><th scope="col">Link</th></tr>
+<tr><th scope="col" class="left">Project Name</th><th scope="col" class="left">Link</th></tr>
 </thead>
 <tbody>
-<tr><td>jClouds</td><td><a href="http://www.jclouds.org/ ">http://www.jclouds.org/ </a></td></tr>
-<tr><td>fog</td><td><a href="http://github.com/geemus/fog">http://github.com/geemus/fog</a></td></tr>
+<tr><td class="left">jClouds</td><td class="left"><a href="http://www.jclouds.org/ ">http://www.jclouds.org/ </a></td></tr>
+<tr><td class="left">fog</td><td class="left"><a href="http://github.com/geemus/fog">http://github.com/geemus/fog</a></td></tr>
 </tbody>
 </table>
 
@@ -287,15 +276,15 @@ for each of a number of phases. By default, pallet defines <code>:bootstrap</cod
 
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 <caption></caption>
-<colgroup><col align="left" /><col align="left" />
+<colgroup><col class="left" /><col class="left" />
 </colgroup>
 <thead>
-<tr><th scope="col">Project Name</th><th scope="col">Link</th></tr>
+<tr><th scope="col" class="left">Project Name</th><th scope="col" class="left">Link</th></tr>
 </thead>
 <tbody>
-<tr><td>Capistrano</td><td></td></tr>
-<tr><td>Fabric</td><td></td></tr>
-<tr><td>Func</td><td></td></tr>
+<tr><td class="left">Capistrano</td><td class="left"></td></tr>
+<tr><td class="left">Fabric</td><td class="left"></td></tr>
+<tr><td class="left">Func</td><td class="left"></td></tr>
 </tbody>
 </table>
 
@@ -309,8 +298,8 @@ If you have a project that you would like included above, I'll be happy to add i
 <div id="postamble">
 <p class="author"> Author: Hugo Duncan
 </p>
-<p class="date"> Date: 2010-06-17 Thu</p>
-<p class="creator">HTML generated by org-mode 6.36trans in emacs 24</p>
+<p class="date"> Date: 2011-01-10 12:19:07 EST</p>
+<p class="creator">HTML generated by org-mode 7.4 in emacs 24</p>
 </div>
 </div>
 </body>
