@@ -1,5 +1,9 @@
 (ns pallet.resource.package
-  "Package management resource."
+  "Package management resource.
+
+   `package` is used to install or remove a package.
+
+   `package-source` is used to specify a non-standard source for packages."
   (:require
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.hostinfo :as hostinfo]
@@ -16,11 +20,30 @@
    [clojure.contrib.core :only [-?>]]
    pallet.thread-expr))
 
-(script/defscript update-package-list [& options])
-(script/defscript install-package [name & options])
-(script/defscript remove-package [name & options])
-(script/defscript purge-package [name & options])
-(script/defscript list-installed-packages [& options])
+;;; the package management commands vary for each distribution, so we
+;;; use a script multimethod to describe these
+(script/defscript update-package-list
+  "Update the list of packages available to the package manager from the
+   declared package sources."
+  [& options])
+
+(script/defscript install-package
+  "Install the specified package."
+  [name & options])
+
+(script/defscript remove-package
+  "Uninstall the specified package, leaving the configuration files if
+   possible."
+  [name & options])
+
+(script/defscript purge-package
+  "Uninstall the specified package, removing the configuration files if
+   possible."
+  [name & options])
+
+(script/defscript list-installed-packages
+  "List the installed packages"
+  [& options])
 
 ;;; Implementation to do nothing
 ;;; Repeating the selector makes it more explicit
@@ -126,6 +149,7 @@
 (stevedore/defimpl purge-package [#{:brew}] [package & options]
   (brew uninstall ~(stevedore/option-args options) ~package))
 
+
 (script/defscript debconf-set-selections [& selections])
 (stevedore/defimpl debconf-set-selections :default [& selections] "")
 (stevedore/defimpl debconf-set-selections [#{:aptitude}] [& selections]
@@ -210,10 +234,12 @@
   (assoc options :package package-name :action action :y y))
 
 (defaggregate package
-  "Package management.
-    :action [:install | :remove | :upgrade]
-    :version version
-    :purge [true|false]  - when removing, whether to remove all config, etc
+  "Install or remove a package.
+
+   Options
+    - :action [:install | :remove | :upgrade]
+    - :purge [true|false]  - when removing, whether to remove all config, etc
+
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
   {:use-arglist  [request package-name
@@ -226,12 +252,25 @@
     request
     (group-by :action (map #(apply package-map request %) args)))))
 
+
+(defn packages
+  "Install a list of packages keyed on packager.
+       (packages request
+         :yum [\"git\" \"git-email\"]
+         :aptitude [\"git-core\" \"git-email\"])"
+  [request & {:keys [yum aptitude pacman brew] :as options}]
+  (->
+   request
+   (for->
+    [package-name (options (:target-packager request))]
+    (package package-name))))
+
 (def source-location
   {:aptitude "/etc/apt/sources.list.d/%s.list"
    :yum "/etc/yum.repos.d/%s.repo"})
 
 (defmulti format-source
-  "Create a source definition"
+  "Format a package source definition"
   (fn [packager & _] packager))
 
 (defmethod format-source :aptitude
@@ -301,19 +340,21 @@
    packager specific options.
 
    :aptitude
-     :source-type string   - source type (deb)
-     :url url              - repository url
-     :scopes seq           - scopes to enable for repository
-     :key-url url          - url for key
-     :key-id id            - id for key to look it up from keyserver
+     - :source-type string   - source type (deb)
+     - :url url              - repository url
+     - :scopes seq           - scopes to enable for repository
+     - :key-url url          - url for key
+     - :key-id id            - id for key to look it up from keyserver
 
    :yum
-     :name                 - repository name
-     :url url          - repository base url
-     :gpgkey url           - gpg key url for repository
+     - :name                 - repository name
+     - :url url          - repository base url
+     - :gpgkey url           - gpg key url for repository
 
-   Example: (package-source \"Partner\" :aptitude {:url \"http://archive.canonical.com/\"
-                                                   :scopes [\"partner\"]})"
+   Example
+       (package-source \"Partner\"
+         :aptitude {:url \"http://archive.canonical.com/\"
+                    :scopes [\"partner\"]})"
   {:copy-arglist pallet.resource.package/package-source*}
   (package-source-aggregate
    [request args]
@@ -321,7 +362,7 @@
     (map (fn [x] (apply package-source* request x)) args))))
 
 (defn add-scope
-  "Add a scope to all the existing package sources"
+  "Add a scope to all the existing package sources. Aptitude specific."
   [type scope file]
   (stevedore/script
    (var tmpfile @(mktemp -t addscopeXXXX))
@@ -355,6 +396,10 @@
 
 (defaggregate ^{:always-before `package} package-manager
   "Package manager controls.
+
+   `action` is one of the following:
+     :update            - update the list of available packages
+     :list-installed    - output a list of the installed packages
      :multiverse        - enable multiverse
      :update            - update the package manager"
   {:copy-arglist pallet.resource.package/package-manager*}
@@ -363,15 +408,6 @@
    (stevedore/do-script*
     (map #(apply package-manager* request %) package-manager-args))))
 
-(defn packages
-  "Install a list of packages keyed on packager"
-  [request & {:as options}]
-  (->
-   request
-   (for->
-    [package-name (options (:target-packager request))]
-    (package package-name))))
-
 (def ^{:private true} centos-55-repo
   "http://mirror.centos.org/centos/5.5/os/x86_64/repodata/repomd.xml")
 (def ^{:private true} centos-55-repo-key
@@ -379,7 +415,7 @@
 
 (defn add-centos55-to-amzn-linux
   "Add the centos 5.5 repository to Amazon Linux. Ensure that it has a lower
-  priority"
+   than default priority."
   [request]
   (-> request
       (package "yum-priorities")
