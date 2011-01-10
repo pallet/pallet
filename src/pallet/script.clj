@@ -147,8 +147,9 @@
    different operating systems.
    Calls to functions defined by `defscript` are dispatched based on the
    `*template*` vector."
-  [name [& args]]
-  (let [fwd-args (filter #(not (= '& %)) args)]
+  [name & args]
+  (let [[name [args]] (def/name-with-attributes name args)
+        fwd-args (filter #(not (= '& %)) args)]
     `(defn ~name [~@args]
        ~(if (seq fwd-args)
           `(apply dispatch-target (keyword (name ~name)) ~@fwd-args)
