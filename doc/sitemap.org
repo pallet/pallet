@@ -8,6 +8,7 @@
      + [[file:reference/phases.org][Pallet - Phases]]
      + [[file:reference/index.org][Pallet - Reference]]
      + [[file:reference/crates.org][Pallet Reference - Crates]]
+     + [[file:reference/logging.org][Pallet Reference - Logging Configuration]]
      + [[file:reference/operations.org][Pallet Reference - Operations]]
      + [[file:reference/providers.org][Pallet Reference - Providers]]
      + [[file:reference/node_push.org][Pallet Reference - Push over SSH]]
