@@ -64,6 +64,7 @@
      - A function specialiser matches if it returns true when passed
       `*template*`"
   [specialiser]
+  {:pre [*template* (seq *template*)]}
   (cond
    (keyword? specialiser) (some #(= specialiser %) *template*)
    (set? specialiser) (some #(specialiser %) *template*)
@@ -96,11 +97,11 @@
   "Determine the best matching implementation of `script` for the current
    `*template*`"
   [script]
-  {:pre [*template* (seq *template*)]}
   (logging/trace
-   (format "Looking up script %s with template %s" script (seq *template*)))
+   (format "Looking up script %s" script))
   (when-let [impls (*scripts* script)]
-    (logging/trace (format "Found implementations %s" (keys impls)))
+    (logging/trace
+     (format "Found implementations %s - template" (keys impls) (seq *template*)))
     (second (reduce better-match?
                     [:default (impls :default)]
                     (dissoc impls :default)))))
