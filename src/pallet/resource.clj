@@ -3,7 +3,6 @@
 configuration code."
   (:require
    [pallet.argument :as argument]
-   [pallet.utils :as utils]
    [pallet.script :as script]
    [clojure.contrib.seq :as seq]
    [clojure.string :as string]
@@ -266,7 +265,7 @@ configuration code."
   [scripts]
   (str
    (string/join \newline
-     (filter (complement utils/blank?) (map #(when % (string/trim %)) scripts)))
+     (filter (complement string/blank?) (map #(when % (string/trim %)) scripts)))
    \newline))
 
 (defmulti resource-evaluate-fn
