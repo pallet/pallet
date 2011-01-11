@@ -39,7 +39,8 @@ chef-repository you specify with `with-chef-repository`.
   []
   (or
    (System/getProperty "pallet.version")
-   (string/trim (utils/slurp-resource "pallet-version"))))
+   (if-let [version (utils/slurp-resource "pallet-version")]
+     (string/trim version))))
 
 (. System setProperty "http.agent"
    (str "Pallet " (version)))
