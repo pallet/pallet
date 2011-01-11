@@ -1,5 +1,6 @@
 (ns pallet.resource.directory
-  "Directory manipulation."
+  "A directory manipulation resource, to create and remove directories
+   with given ownership and mode."
   (:require
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
@@ -9,21 +10,30 @@
    [pallet.resource.file :only [chown chgrp chmod]]
    clojure.contrib.logging))
 
-(script/defscript rmdir [directory & options])
+(script/defscript rmdir
+  "Remove the specified directory"
+  [directory & options])
+
 (stevedore/defimpl rmdir :default [directory & options]
   ("rmdir" ~(stevedore/map-to-arg-string (first options)) ~directory))
 
-(script/defscript mkdir [directory & options])
+(script/defscript mkdir
+  "Create the specified directory"
+  [directory & options])
 (stevedore/defimpl mkdir :default [directory & options]
   ("mkdir" ~(stevedore/map-to-arg-string (first options)) ~directory))
 
-(script/defscript make-temp-dir [pattern & options])
+(script/defscript make-temp-dir
+  "Create a temporary directory"
+  [pattern & options])
 (stevedore/defimpl make-temp-dir :default [pattern & options]
   @("mktemp" -d
     ~(stevedore/map-to-arg-string (first options))
     ~(str pattern "XXXXX")))
 
-(defn adjust-directory [path opts]
+(defn adjust-directory
+  "Script to set the ownership and mode of a directory."
+  [path opts]
   (stevedore/chain-commands*
    (filter
     (complement nil?)
@@ -37,7 +47,9 @@
        (stevedore/script
         (chmod ~(opts :mode) ~path  ~(select-keys opts [:recursive]))))])))
 
-(defn make-directory [path opts]
+(defn make-directory
+  "Script to create a directory."
+  [path opts]
   (stevedore/checked-commands
    (str "Directory " path)
    (stevedore/script
@@ -45,7 +57,14 @@
    (adjust-directory path opts)))
 
 (defresource directory
-  "Directory management."
+  "Directory management.
+
+   For :create and :touch, all components of path are effected.
+
+   Options are:
+    - :action     One of :create, :touch, :delete
+    - :recursive  Flag for recursive delete
+    - :force      Flag for forced delete"
   (directory*
    [request path & {:keys [action] :or {action :create} :as options}]
    (case action
@@ -58,7 +77,10 @@
 
 (defresource directories
   "Directory management of multiple directories with the same
-  owner/group/permissions."
+   owner/group/permissions.
+
+   `options` are as for `directory` and are applied to each directory in
+   `paths`"
   (directories*
    [request paths & options]
    (stevedore/chain-commands*
