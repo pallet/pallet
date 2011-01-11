@@ -47,12 +47,6 @@
             :no-sudo true}
            (into {} (make-user username :no-sudo true))))))
 
-(deftest blank?-test
-  (is (blank? nil))
-  (is (blank? ""))
-  (is (not (blank? "a")))
-  (is (not (blank? 'a))))
-
 (in-ns 'pallet.config)
 (def admin-user (pallet.utils/make-user "fred"))
 (in-ns 'pallet.utils-test)
