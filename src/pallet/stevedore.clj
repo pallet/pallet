@@ -281,7 +281,8 @@
 
 (defn- emit-body-for-if [form]
   (if (or (compound-form? form)
-          (= 'if (first form)))
+          (= 'if (first form))
+          (.contains (emit form) "\n"))
     (str \newline (string/trim (emit form)) \newline)
     (str " " (emit form) ";")))
 
