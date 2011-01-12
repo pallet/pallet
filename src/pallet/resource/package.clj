@@ -364,12 +364,13 @@
 (defn add-scope
   "Add a scope to all the existing package sources. Aptitude specific."
   [type scope file]
-  (stevedore/script
+  (stevedore/chained-script
    (var tmpfile @(mktemp -t addscopeXXXX))
-   (cp "-p" ~file @tmpfile)
+   (cp -p ~file @tmpfile)
    (awk "'{if ($1 ~" ~(str "/^" type "/") "&& !" ~(str "/" scope "/")
-        " ) print $0 \" \" \"" ~scope  "\" ; else print; }' "
-        ~file " > " @tmpfile " && mv -f" @tmpfile ~file )))
+        " ) print $0 \" \" \"" ~scope  "\" ; else print; }'"
+        ~file > @tmpfile)
+   (mv -f @tmpfile ~file)))
 
 (defn package-manager*
   "Package management."

@@ -111,7 +111,11 @@ EOF
            (stevedore/script (package-manager-non-interactive))))))
 
 (deftest add-scope-test
-  (is (= "tmpfile=$(mktemp -t addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list\n"
+  (is (= (stevedore/chained-script
+          (set! tmpfile @(mktemp -t addscopeXXXX))
+          (cp -p "/etc/apt/sources.list" @tmpfile)
+          (awk "'{if ($1 ~ /^deb/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
+          (mv -f @tmpfile "/etc/apt/sources.list"))
          (add-scope "deb" "multiverse" "/etc/apt/sources.list")))
 
   (testing "with sources.list"
@@ -126,18 +130,38 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
       (.delete tmp))))
 
 (deftest package-manager*-test
-  (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp -t addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= (stevedore/checked-script
+          "package-manager"
+          (set! tmpfile @(mktemp -t addscopeXXXX))
+          (cp -p "/etc/apt/sources.list" @tmpfile)
+          (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
+          (mv -f @tmpfile "/etc/apt/sources.list"))
          (package-manager* ubuntu-request :multiverse)))
-  (is (= "echo \"package-manager...\"\n{ aptitude update  || true; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= (stevedore/checked-script
+          "package-manager"
+          (chain-or
+           (aptitude update "")
+           true))
          (script/with-template [:aptitude]
            (package-manager* ubuntu-request :update)))))
 
 (deftest add-multiverse-example-test
-  (is (= "echo \"package-manager...\"\n{ tmpfile=$(mktemp -t addscopeXXXX)\ncp -p /etc/apt/sources.list ${tmpfile}\nawk '{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'  /etc/apt/sources.list  >  ${tmpfile}  && mv -f ${tmpfile} /etc/apt/sources.list; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\necho \"package-manager...\"\n{ aptitude update  || true; } || { echo package-manager failed ; exit 1 ; } >&2 \necho \"...done\"\n"
-         (first (build-resources
-                 []
-                 (package-manager :multiverse)
-                 (package-manager :update))))))
+  (is (=  (str
+           (stevedore/checked-script
+            "package-manager"
+            (set! tmpfile @(mktemp -t addscopeXXXX))
+            (cp -p "/etc/apt/sources.list" @tmpfile)
+            (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
+            (mv -f @tmpfile "/etc/apt/sources.list"))
+           (stevedore/checked-script
+            "package-manager"
+            (chain-or
+             (aptitude update "")
+             true)))
+          (first (build-resources
+                  []
+                  (package-manager :multiverse)
+                  (package-manager :update))))))
 
 (deftest package-source*-test
   (core/defnode a {:packager :aptitude})

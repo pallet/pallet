@@ -577,7 +577,7 @@
       ""
       (str
         "echo \"" message "...\"" \newline
-        "{ " chained-cmds "; } || { echo " message " failed ; exit 1 ; } >&2 "
+        "{ " chained-cmds "; } || { echo \"" message "\" failed; exit 1; } >&2 "
         \newline
         "echo \"...done\"\n"))))
 
