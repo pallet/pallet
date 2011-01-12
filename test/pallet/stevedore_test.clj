@@ -235,7 +235,7 @@ fi"
   (is (= "fred && blogs" (chained-script (fred) (blogs)))))
 
 (deftest checked-commands-test
-  (is (= "echo \"test...\"\n{ echo fred && echo tom; } || { echo test failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= "echo \"test...\"\n{ echo fred && echo tom; } || { echo \"test\" failed; exit 1; } >&2 \necho \"...done\"\n"
          (checked-commands "test" "echo fred" "echo tom")))
   (is (= "test...\ntom\n...done\n"
          (bash-out (checked-commands "test" "echo tom"))))
@@ -245,7 +245,7 @@ fi"
          (bash-out (checked-commands "test" "test 1 = 2") 1 "test failed\n"))))
 
 (deftest checked-script-test
-  (is (= "echo \"test...\"\n{ echo fred && echo tom; } || { echo test failed ; exit 1 ; } >&2 \necho \"...done\"\n"
+  (is (= "echo \"test...\"\n{ echo fred && echo tom; } || { echo \"test\" failed; exit 1; } >&2 \necho \"...done\"\n"
          (checked-script "test" (echo fred) (echo tom))))
   (is (= "test...\ntom\n...done\n"
          (bash-out (checked-script "test" (echo tom)))))
