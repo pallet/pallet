@@ -236,6 +236,39 @@
         result)
       (finally  (.delete tmp)))))
 
+(defmacro local-script
+  "Run a script on the local machine, setting up stevedore to produce the
+   correct target specific code"
+  [& body]
+  `(script/with-template
+     [(jvm/os-family)]
+     (sh-script
+      (stevedore/script
+       ~@body))))
+
+(defn verify-sh-return
+  "Verify the return code of a sh execution"
+  [msg cmd result]
+  (when-not (zero? (:exit result))
+    (condition/raise
+     :message (format
+               "Error executing script %s\n :cmd %s :out %s\n :err %s"
+               msg cmd (:out result) (:err result))
+     :type :pallet-script-excution-error
+     :script-exit (:exit result)
+     :script-out  (:out result)
+     :script-err (:err result)
+     :server "localhost")))
+
+(defmacro local-checked-script
+  "Run a script on the local machine, setting up stevedore to produce the
+   correct target specific code.  The return code is checked."
+  [msg & body]
+  `(script/with-template
+     [(jvm/os-family)]
+     (let [cmd# (stevedore/checked-script ~msg ~@body)]
+       (verify-sh-return ~msg cmd# (sh-script cmd#)))))
+
 (defn local-sh-cmds
   "Execute cmds for the request.
    Runs locally as the current user, so useful for testing."
