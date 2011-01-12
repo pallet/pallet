@@ -98,7 +98,10 @@
          (script (if (not (file-exists? "file1")) (echo "foo")))))
   (is (= "if [ \\( ! -e file1 -o \\( \"a\" == \"b\" \\) \\) ]; then echo foo;fi"
            (script (if (|| (not (file-exists? "file1")) (== "a" "b"))
-                     (echo "foo"))))))
+                     (echo "foo")))))
+  (testing "if block as string with newline is treated as compound"
+    (is (= "if [ -e f ]; then\nls\nls\nfi"
+           (script (if (file-exists? "f") "ls\nls"))))))
 
 (deftest if-nested-test
   (is (= "if [ \\( \"foo\" == \"bar\" \\) ]; then
