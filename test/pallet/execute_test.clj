@@ -70,3 +70,9 @@
         (is (= 2 (count result)))
         (is (= 1 (count (first result))))
         (is (= 0 (:exit (ffirst result))))))))
+
+(deftest local-script-test
+  (local-script "ls"))
+
+(deftest local-checked-script-test
+  (local-checked-script "ls should work" "ls"))
