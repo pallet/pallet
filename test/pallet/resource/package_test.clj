@@ -322,4 +322,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (adjust-packages
             {:target-packager :yum}
             [{:package "p1" :action :install :priority 50}
-             {:package "p2" :action :install :disable ["r1"] :priority 25}])))))
+             {:package "p2" :action :install :disable ["r1"] :priority 25}])))
+    (is (= (stevedore/checked-script
+            "Packages"
+            (yum install -q -y "--disablerepo=r1" p2)
+            (yum install -q -y p1))
+           (first
+            (build-resources
+             [:target-packager :yum]
+             (package "p1")
+             (package "p2" :disable ["r1"] :priority 25)))))))
