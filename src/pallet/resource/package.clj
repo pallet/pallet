@@ -167,8 +167,10 @@
   (fn [request & _]
     (:target-packager request)))
 
+;; aptitude can install, remove and purge all in one command, so we just need to
+;; split by enable/disable options.
 (defmethod adjust-packages :aptitude
-  [request action-packages]
+  [request packages]
   (stevedore/checked-commands
    "Packages"
    (stevedore/chain-commands
@@ -178,7 +180,7 @@
       install -q -y
       ~(string/join
         " "
-        (for [[action packages] action-packages
+        (for [[action packages] (group-by :action packages)
               {:keys [package force purge]} packages]
           (case action
             :install (format "%s+" package)
@@ -191,28 +193,42 @@
               (str
                action " is not a valid action for package resource")))))))))))
 
+(def ^{:private true :doc "Define the order of actions"}
+  action-order {:install 10 :remove 20 :upgrade 30})
+
+;; `yum` has separate install, remove and purge commands, so we just need to
+;; split by enable/disable options and by command.  We install before removing.
 (defmethod adjust-packages :yum
-  [request action-packages]
+  [request packages]
   (stevedore/checked-commands
    "Packages"
    (stevedore/chain-commands*
-    (for [[action packages] action-packages]
+    (for [[action packages] (->> packages
+                                 (sort-by #(action-order (:action %)))
+                                 (group-by :action))
+          [opts packages] (->>
+                           packages
+                           (group-by #(select-keys % [:enable :disable]))
+                           (sort-by #(apply min (map :priority (second %)))))]
       (stevedore/script
        (yum
         ~(name action) -q -y
+        ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
+        ~(string/join " " (map #(str "--disablerepo=" %) (:disable opts)))
         ~(string/join
           " "
           (for [{:keys [package force purge]} packages]
             package))))))))
 
+
 (defmethod adjust-packages :default
-  [request action-packages]
+  [request packages]
   (stevedore/checked-commands
    "Packages"
    (stevedore/chain-commands*
     (list*
      (stevedore/script (package-manager-non-interactive))
-     (for [[action packages] action-packages
+     (for [[action packages] (group-by :action packages)
            {:keys [package force purge]} packages]
        (case action
          :install (stevedore/script
@@ -228,29 +244,39 @@
 (defn- package-map
   "Convert the args into a single map"
   [request package-name
-                  & {:keys [action y force purge]
-                     :or {action :install y true}
-                     :as options}]
-  (assoc options :package package-name :action action :y y))
+   & {:keys [action y force purge priority enable disable] :as options}]
+  (letfn [(as-seq [x] (if (or (string? x) (symbol? x) (keyword? x))
+                        [(name x)] x))]
+    (->
+     {:action :install :y true :priority 50}
+     (merge options)
+     (assoc :package package-name)
+     (update-in [:enable] as-seq)
+     (update-in [:disable] as-seq))))
 
 (defaggregate package
   "Install or remove a package.
 
    Options
     - :action [:install | :remove | :upgrade]
-    - :purge [true|false]  - when removing, whether to remove all config, etc
+    - :purge [true|false]         when removing, whether to remove all config
+    - :enable [repo|(seq repo)]   enable specific repository
+    - :disable [repo|(seq repo)]  disable specific repository
+    - :priority n                 priority (0-100, default 50)
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
   {:use-arglist  [request package-name
-                  & {:keys [action y force purge]
-                     :or {action :install y true}
+                  & {:keys [action y force purge enable disable priority]
+                     :or {action :install
+                          y true
+                          priority 50}
                      :as options}]}
   (package*
    [request args]
    (adjust-packages
     request
-    (group-by :action (map #(apply package-map request %) args)))))
+    (map #(apply package-map request %) args))))
 
 
 (defn packages
@@ -491,10 +517,16 @@
           ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
           :enabled 1})
    (package-source
-    (format "jpackage-%s" component)
+    (format "jpackage-%s-updates" component)
     :yum {:mirrorlist (format
                        jpackage-mirror-fmt
                        (str component "-" releasever) (str version "-updates"))
           :failovermethod "priority"
           ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
-          :enabled 1})))
+          :enabled 1})
+   (package
+    "jpackage-utils"
+    :disable ["jpackage-generic"
+              "jpackage-generic-updates"
+              (format "jpackage-%s" component)
+              (format "jpackage-%s-updates" component) ])))

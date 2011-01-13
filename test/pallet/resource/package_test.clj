@@ -71,8 +71,8 @@
              (exec-script/exec-checked-script
               "Packages"
               "yum install -q -y java rubygems"
-              "yum upgrade -q -y maven2"
-              "yum remove -q -y git ruby")))
+              "yum remove -q -y git ruby"
+              "yum upgrade -q -y maven2")))
            (first
             (build-resources
              [:node-type {:tag :n :image {:os-family :centos}}]
@@ -290,3 +290,36 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              []
              (package "p")
              (package-source "s" :aptitude {:url "http://somewhere/apt"})))))))
+
+(deftest adjust-packages-test
+  (testing "aptitude"
+    (is (= (stevedore/checked-script
+            "Packages"
+            (aptitude install -q -y p1- p4_ p2+ p3+))
+           (adjust-packages
+            {:target-packager :aptitude}
+            [{:package "p1" :action :remove}
+             {:package "p2" :action :install}
+             {:package "p3" :action :upgrade}
+             {:package "p4" :action :remove :purge true}]))))
+  (testing "yum"
+    (is (= (stevedore/checked-script
+            "Packages"
+            (yum install -q -y p2)
+            (yum remove -q -y p1 p4)
+            (yum upgrade -q -y p3))
+           (adjust-packages
+            {:target-packager :yum}
+            [{:package "p1" :action :remove}
+             {:package "p2" :action :install}
+             {:package "p3" :action :upgrade}
+             {:package "p4" :action :remove :purge true}]))))
+  (testing "yum with disable and priority"
+    (is (= (stevedore/checked-script
+            "Packages"
+            (yum install -q -y "--disablerepo=r1" p2)
+            (yum install -q -y p1))
+           (adjust-packages
+            {:target-packager :yum}
+            [{:package "p1" :action :install :priority 50}
+             {:package "p2" :action :install :disable ["r1"] :priority 25}])))))
