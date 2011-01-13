@@ -177,7 +177,7 @@
         (every?
          #(((first %) template-matchers equality-match)
            image-properties (first %) (second %))
-         (dissoc template :image-id)))
+         (dissoc template :image-id :inbound-ports)))
       images)
      ffirst)))
 
