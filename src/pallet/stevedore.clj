@@ -273,8 +273,9 @@
         (catch java.lang.IllegalArgumentException e
           (throw (java.lang.IllegalArgumentException.
                   (str "Invalid arguments for " name) e))))
-      (apply str (emit name) (if (empty? args) "" " ")
-             (interpose " " (map emit args)))))
+      (let [argseq (interpose " "
+                     (filter (complement string/blank?) (map emit args)))]
+        (apply str (emit name) (if (seq argseq) " " "") argseq))))
 
 (defn emit-method [obj method args]
   (str (emit obj) "." (emit method) (comma-list (map emit args))))
