@@ -27,7 +27,7 @@
            (directory/directory "/mnt/a")
            (exec-script/exec-checked-script
             "Mount /dev/a at /mnt/a"
-            ("mount " "/dev/a" (quoted "/mnt/a")))))
+            (mount "/dev/a" (quoted "/mnt/a")))))
          (first
           (test-utils/build-resources
            []

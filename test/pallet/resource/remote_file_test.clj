@@ -26,7 +26,7 @@
             (stevedore/chained-script
              (if (file-exists? "path.new")
                (do
-                 (mv -f " path.new" "path")))))
+                 (mv -f "path.new" path)))))
            (remote-file* {} "path" :content "xxx" :no-versioning true))))
 
   (testing "no-versioning with owner, group and mode"
@@ -36,7 +36,7 @@
             (stevedore/chained-script
              (if (file-exists? "path.new")
                (do
-                 (mv -f " path.new" "path")))
+                 (mv -f "path.new" "path")))
              (chown "o" "path")
              (chgrp "g" "path")
              (chmod "m" "path")))

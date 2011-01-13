@@ -18,24 +18,24 @@
 (use-fixtures :each with-ubuntu-script-template)
 
 (deftest update-package-list-test
-  (is (= "aptitude update  || true"
+  (is (= "aptitude update || true"
          (script/with-template [:aptitude]
            (stevedore/script (update-package-list)))))
-  (is (= "yum makecache "
+  (is (= "yum makecache"
          (script/with-template [:yum]
            (stevedore/script (update-package-list)))))
-  (is (= "zypper refresh "
+  (is (= "zypper refresh"
          (script/with-template [:zypper]
            (stevedore/script (update-package-list)))))
-  (is (= "pacman -Sy --noconfirm --noprogressbar "
+  (is (= "pacman -Sy --noconfirm --noprogressbar"
          (script/with-template [:pacman]
            (stevedore/script (update-package-list))))))
 
 (deftest install-package-test
-  (is (= "aptitude install -q -y  java && aptitude show java"
+  (is (= "aptitude install -q -y java && aptitude show java"
          (script/with-template [:aptitude]
            (stevedore/script (install-package "java")))))
-  (is (= "yum install -y -q  java"
+  (is (= "yum install -y -q java"
          (script/with-template [:yum]
            (stevedore/script (install-package "java"))))))
 
@@ -87,11 +87,11 @@
              [:node-type {:tag :n :image {:os-family :arch}}]
              (exec-script/exec-checked-script
               "Packages"
-              "pacman -S --noconfirm --noprogressbar  java"
-              "pacman -S --noconfirm --noprogressbar  rubygems"
-              "pacman -S --noconfirm --noprogressbar  maven2"
-              "pacman -R --noconfirm  git"
-              "pacman -R --noconfirm --nosave  ruby")))
+              "pacman -S --noconfirm --noprogressbar java"
+              "pacman -S --noconfirm --noprogressbar rubygems"
+              "pacman -S --noconfirm --noprogressbar maven2"
+              "pacman -R --noconfirm git"
+              "pacman -R --noconfirm --nosave ruby")))
            (first
             (build-resources
              [:node-type {:tag :n :image {:os-family :arch}}]
