@@ -47,7 +47,8 @@
                  :node-list (when-let [node-list (:node-list credentials)]
                               (if (string? node-list)
                                 (read-string node-list)
-                                node-list))}]
+                                node-list))
+                 :endpoint (:endpoint credentials)}]
     (when-let [provider (:provider credentials)]
       (apply
        compute-service
