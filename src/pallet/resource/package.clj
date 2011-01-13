@@ -217,8 +217,7 @@
         ~(string/join " " (map #(str "--disablerepo=" %) (:disable opts)))
         ~(string/join
           " "
-          (for [{:keys [package force purge]} packages]
-            package))))))))
+          (distinct (map :package packages)))))))))
 
 
 (defmethod adjust-packages :default
@@ -488,7 +487,10 @@
 (defn add-jpackage
   "Add the jpackage repository.  component should be one of:
      fedora
-     redhat-el"
+     redhat-el
+
+   Installs the jpackage-utils package from the base repos at a
+   pritority of 25."
   [request & {:keys [version component releasever]
               :or {component "redhat-el"
                    releasever "$releasever"
@@ -526,7 +528,8 @@
           :enabled 1})
    (package
     "jpackage-utils"
+    :priority 25
     :disable ["jpackage-generic"
               "jpackage-generic-updates"
               (format "jpackage-%s" component)
-              (format "jpackage-%s-updates" component) ])))
+              (format "jpackage-%s-updates" component)])))
