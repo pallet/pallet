@@ -97,6 +97,18 @@
           (-> arg# ~form)
           (-> arg# ~else-form)))))
 
+(defmacro let-with-arg->
+  "A `let` form that can appear in a request thread, and assign the value of the
+   threaded arg.
+   eg.
+      (-> 1
+        (let-with-arg-> val [a 1]
+          (+ a val)))
+   => 3"
+  [arg arg-symbol binding & body]
+  `(let [~arg-symbol ~arg]
+     (let ~binding
+       (-> ~arg-symbol ~@body))))
 
 (defmacro apply->
   "Apply in a threaded expression.

@@ -27,6 +27,9 @@
   (is (= 3 (-> 1 (if-not-> true  (+ 1) (+ 2)))))
   (is (= 2 (-> 1 (if-not-> false (+ 1) (+ 2))))))
 
+(deftest let-with-arg->test
+  (is (= 3 (-> 1 (let-with-arg-> arg [a 1] (+ a arg))))))
+
 (deftest apply->test
   (is (= 7 (-> 1 (apply-> + [1 2 3])))))
 
