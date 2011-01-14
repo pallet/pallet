@@ -1,16 +1,24 @@
 (ns pallet.resource.filesystem-layout
   "Functions to return distribution specific paths.
 
-   These script functions are meant to help build distribution agnostic crates."
+   These script functions are meant to help build distribution agnostic crates.
+
+
+   * Links
+    - man 7 hier
+    - http://www.pathname.com/fhs/
+    - http://wiki.apache.org/httpd/DistrosDefaultLayout"
   (:require
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]))
 
 (script/defscript etc-default [])
-(stevedore/defimpl etc-default [#{:ubuntu :debian :jeos :fedora :darwin}] []
-  "/etc/defaults")
-(stevedore/defimpl etc-default [#{:centos :rhel :amzn-linux}] []
+(stevedore/defimpl etc-default [#{:ubuntu :debian :jeos}] []
+  "/etc/default")
+(stevedore/defimpl etc-default [#{:centos :rhel :amzn-linux :fedora}] []
   "/etc/sysconfig")
+(stevedore/defimpl etc-default [#{:os-x :darwin}] []
+  "/etc/defaults")
 
 (script/defscript log-root [])
 (stevedore/defimpl log-root :default []
