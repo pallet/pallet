@@ -5,6 +5,7 @@
 
    `package-source` is used to specify a non-standard source for packages."
   (:require
+   [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.hostinfo :as hostinfo]
    [pallet.resource.exec-script :as exec-script]
@@ -451,6 +452,7 @@
              :gpgkey centos-55-repo-key
              :priority 50})))
 
+;; this is an aggregate so that it can come before the aggragate package-manager
 (defn add-epel
   "Add the EPEL repository"
   [request & {:keys [version] :or {version "5-4"}}]
@@ -463,20 +465,32 @@
        "http://download.fedora.redhat.com/pub/epel/5/x86_64/epel-release-%s.noarch.rpm"
        version)))))
 
-(defn add-rpmforge
+(def ^{:private true}
+  rpmforge-url-pattern
+  "http://packages.sw.be/rpmforge-release/rpmforge-release-%s.%s.rf.%s.rpm")
+
+
+;; this is an aggregate so that it can come before the aggragate package-manager
+(defaggregate ^{:always-before `package-manager} add-rpmforge
   "Add the rpmforge repository"
-  [request & {:keys [version distro arch]
-              :or {version "0.5.1-1" distro "el5" arch "i386"}}]
-  (->
-   request
-   (exec-script/exec-script
-    (rpm
-     -U --quiet
-     ~(format
-       "http://packages.sw.be/rpmforge-release/rpmforge-release-%s.%s.rf.%s.rpm"
-       version
-       distro
-       arch)))))
+  {:use-arglist [request & {:keys [version distro arch]
+                            :or {version "0.5.2-2" distro "el5" arch "i386"}}]}
+  (add-rpmforge*
+   [request args]
+   (let [{:keys [version distro arch]
+          :or {version "0.5.2-2"
+               distro "el5"
+               arch "i386"}} (apply hash-map (first args))]
+     (stevedore/checked-script
+      "Add rpmforge repositories"
+      (chain-or
+       (if (= "0" @(pipe (rpm -qa) (grep rpmforge) (wc -l)))
+         (do
+           ~(remote-file/remote-file*
+             request
+             "rpmforge.rpm"
+             :url (format rpmforge-url-pattern version distro arch))
+           (rpm -U --quiet "rpmforge.rpm"))))))))
 
 (def jpackage-mirror-fmt
   "http://www.jpackage.org/mirrorlist.php?dist=%s&type=free&release=%s")
