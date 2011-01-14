@@ -46,7 +46,7 @@
 (script/defscript sudo-no-password [])
 (stevedore/defimpl sudo-no-password :default []
   ("/usr/bin/sudo" -n))
-(stevedore/defimpl sudo-no-password [#{:centos-5.3}] []
+(stevedore/defimpl sudo-no-password [#{:centos-5.3 :os-x :darwin}] []
   ("/usr/bin/sudo"))
 
 (defn sudo-cmd-for
