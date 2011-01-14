@@ -93,4 +93,5 @@
          (compute/close compute)))
       (do
         (println "Error: no credentials supplied\n\n")
-        (apply (main/resolve-task "help") [])))))
+        ((main/resolve-task "help"))
+        1))))
