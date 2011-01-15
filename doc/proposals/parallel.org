@@ -1,0 +1,81 @@
+#+SETUPFILE: ../org-templates/level-1.org
+#+TITLE:     Pallet Proposal - Parallel Converge and Lift
+#+DESCRIPTION: Pallet parallel converge and lift proposal
+#+KEYWORDS: pallet parallel sequential converge lift
+
+* Parallel Execution
+
+- Execution of the phases list on a given node has to be sequential, ie. the
+  phases listed are executed in the order supplied.
+- Execution of a phase across all nodes of a tag can be parallel.
+- Execution of a phase across all nodes of all tags can be parallel.
+
+The type of parallel execution should be under the user's control.
+
+Parallel execution of a phase for a tag could be have several possible implementations:
+- First node, then all remaining nodes
+- All nodes in parallel
+- Serial
+
+There could be some error handling strategies:
+- All nodes successful
+- At least n nodes successful
+- Some way of marking errored nodes so they can be excluded for subsequent
+  phases of the same request
+
+There could be some retry strategies:
+- N retries
+- no retries
+
+
+There needs to be some synchronisation at the completion of execution of each phase.
+
+
+** Tag Execution Function
+
+An execute-phase-on-tag function would be invoked as:
+TODO: add error handling strategy
+
+#+BEGIN_SRC clojure
+  (execute-phase-on-tag
+    request  ; should include [:commands :hostid] with commands for each node
+    )
+#+END_SRC
+
+Returns updated :result in request. The maps from function invocation shoud be
+able to be merged to reduce the separate results to an overall result.
+
+Possible Implementations:
+- execute-phase-on-tag-serial execute all nodes in series
+- execute-phase-on-tag-first-n-serial execute the first n nodes in series, then
+  the others in parallel
+- execute-phase-on-tag-first-n execute the first n nodes in parallel, then the
+  others in parallel
+- execute-phase-on-tag-parallel execute all nodes in parallel
+
+* Parallel Converge
+
+- jclouds doesn't have an async compute service.
+- Requires synchronisation on node creation completion
+
+There could also be some error handling strategies, that are essentially
+the same as for parallel execution.
+
+An adjust-node-counts function would be invoked as:
+
+TODO: add error handling strategy
+#+BEGIN_SRC clojure
+  (adjust-node-counts
+   node-count-difference-map
+   nodes
+   request)
+#+END_SRC
+
+
+
+
+Possible Implementations
+
+- adjust-node-counts-serial each tag is converged before the next
+- adjust-node-counts-parallel all tags are converged in parallel
+
