@@ -1,0 +1,12 @@
+Proposals
+
+Proposals are functionality that is not yet in pallet, but is being considered.
+
+If you have major functionality that you would like to see in Pallet, please add
+a page with a description of a use case, and maybe how you see the interface for
+the functionality.
+
+* Current Proposals
+
+- [[file:environment_proposal.org][Environments]]
+- [[file:parallel_proposal.org][Parallel Execution]]

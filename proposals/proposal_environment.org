@@ -1,0 +1,58 @@
+#+SETUPFILE: ../org-templates/level-1.org
+#+TITLE:     Pallet Proposal - Environment
+#+DESCRIPTION: Pallet environment proposal
+#+KEYWORDS: pallet environment parameters
+
+WARNING: This is a proposal
+
+When switching environments (i.e. from development to test to stage to
+production) you do not want to update the node definitions, etc.
+
+Environment specific values can be accessed using the environment concept.  The
+environment concept is impemented is a parameter used in converge/lift, for
+example: (converge ..... :environment dev-env), and propogated as
+the :environment key in the request map.
+
+The effective environment is made available to crates through the standard keys.
+
+
+* :environment
+
+ :templates
+   node templates for each tag, keyed by tag.  If not specified for
+   a given tag, then falls back to the definition in the defnode for
+   the tag.
+
+ :admin-user
+   a default admin user for the environment. If not specified, then
+   falss back on the :user passed to converge/lift.
+
+ :admin-users
+   admin-user for each tag.  If not specified for a given tag, then
+   falls back on the :admin-user for the environment.
+
+ :compute-services
+   compute services to use for each tag, keyed by tag. If not specified
+   for a given tag, then uses the :compute value passed to converge/lift
+
+ :blobstore-services
+   blobstore services to use for each tag, keyed by tag. If not specified
+   for a given tag, then uses the :blobstore value passed to converge/lift
+
+ :userdata
+   arbitrary data to be used by crates and node definitions. Not
+   interpreted by pallet.core.
+
+* effective keys
+
+** converge and other phases
+:user
+:compute
+:blobstore
+
+** bootstrap
+:target-count
+:node-template
+:user
+:compute
+:blobstore

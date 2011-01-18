@@ -10,3 +10,4 @@ designed to make small to midsize deployments simple.
 - [[Reference Documentation|reference_index]]
 - [[API Documentation|http://pallet.github.com/pallet/autodoc/index.html]]
 
+- [[file:proposals/environment_proposal.org][Proposals]]
