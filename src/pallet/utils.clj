@@ -101,21 +101,25 @@
     bytes))
 
 (defn find-var-with-require
-  "Find the var for the given namespace and unqualified symbol.
-       (find-var-with-require 'my.ns 'a-symbol)"
-  [ns sym]
-  (try
-    (when-not (find-ns ns)
-      (require ns))
-    (when-let [v (ns-resolve ns sym)]
-      (var-get v))
-    (catch Throwable _)))
-
+  "Find the var for the given namespace and symbol. If the namespace does
+   not exist, then it will be required.
+       (find-var-with-require 'my.ns 'a-symbol)
+       (find-var-with-require 'my.ns/a-symbol)"
+  ([sym]
+     (find-var-with-require (symbol (namespace sym)) (symbol (name sym))))
+  ([ns sym]
+     (try
+       (when-not (find-ns ns)
+         (require ns))
+       (when-let [v (ns-resolve ns sym)]
+         (var-get v))
+       (catch Exception _))))
 
 (defn default-private-key-path
   "Return the default private key path."
   []
   (str (System/getProperty "user.home") "/.ssh/id_rsa"))
+
 (defn default-public-key-path
   "Return the default public key path"
   []

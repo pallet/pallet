@@ -4,6 +4,31 @@
         clojure.contrib.logging
         pallet.test-utils))
 
+(defn- unload-ns
+  "Hack to unload a namespace - remove-ns does not remove it from *loaded-libs*"
+  [sym]
+  (remove-ns sym)
+  (sync []
+   (alter (var-get #'clojure.core/*loaded-libs*) disj sym)))
+
+(deftest find-var-with-require-test
+  (testing "symbol with namespace"
+    (unload-ns 'pallet.utils-test-ns)
+    (Thread/sleep 1000)
+    (is (= 1 (find-var-with-require 'pallet.utils-test-ns/sym-1)))
+    (is (= 1 @(find-var-with-require 'pallet.utils-test-ns/sym-atom)))
+    (testing "no reload of existing ns"
+      (swap! (find-var-with-require 'pallet.utils-test-ns/sym-atom) inc)
+      (is (= 2 @(find-var-with-require 'pallet.utils-test-ns/sym-atom)))))
+  (testing "symbol and namespace"
+    (unload-ns 'pallet.utils-test-ns)
+    (Thread/sleep 1000)
+    (is (= 1 (find-var-with-require 'pallet.utils-test-ns 'sym-1)))
+    (is (= 1 @(find-var-with-require 'pallet.utils-test-ns 'sym-atom)))
+    (testing "no reload of existing ns"
+      (swap! (find-var-with-require 'pallet.utils-test-ns 'sym-atom) inc)
+      (is (= 2 @(find-var-with-require 'pallet.utils-test-ns 'sym-atom))))))
+
 (deftest make-user-test
   (let [username "userfred"
         password "pw"
