@@ -28,10 +28,17 @@
 ;;;; Compute service
 (defn default-jclouds-extensions
   "Default extensions"
-  []
-  (if (jvm/log4j?)
-    [:ssh :log4j]
-    [:ssh]))
+  [provider]
+  (concat
+   (if (jvm/log4j?) [:log4j] [])
+   (if (= (name provider) "stub")
+     (try
+       (require 'pallet.compute.jclouds-ssh-test)
+       (when-let [f (ns-resolve
+                     'pallet.compute.jclouds-ssh-test 'ssh-test-client)]
+         [(f (ns-resolve 'pallet.compute.jclouds-ssh-test 'no-op-ssh-client))])
+       (catch java.io.FileNotFoundException _))
+     [:ssh])))
 
 (def ^{:private true :doc "translate option names"}
   option-keys
@@ -45,8 +52,9 @@
 
 (defmethod implementation/service :default
   [provider {:keys [identity credential extensions endpoint]
-             :or {extensions (default-jclouds-extensions)}
+             :or {extensions (default-jclouds-extensions provider)}
              :as options}]
+  (logging/info (format "extensions %s" (pr-str extensions)))
   (let [options (dissoc options :identity :credential :extensions :blobstore)]
     (apply
      jclouds/compute-service
