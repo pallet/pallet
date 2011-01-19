@@ -32,16 +32,22 @@
 
 (defn compute-service-from-map
   "Create a compute service from a credentials map.
-   Uses the :provider, :identity, :credential, :extensions and :node-list keys."
+   Uses the :provider, :identity, :credential, :extensions and :node-list keys.
+   The :extensions and :node-list keys will be read with read-string if they
+   are strings."
   [credentials]
   (let [options {:identity (:identity credentials)
                  :credential (:credential credentials)
                  :extensions (when-let [extensions (:extensions credentials)]
-                               (map
-                                read-string
-                                (string/split extensions #" ")))
+                               (if (string? extensions)
+                                 (map
+                                  read-string
+                                  (string/split extensions #" "))
+                                 extensions))
                  :node-list (when-let [node-list (:node-list credentials)]
-                              (read-string node-list))}]
+                              (if (string? node-list)
+                                (read-string node-list)
+                                node-list))}]
     (when-let [provider (:provider credentials)]
       (apply
        compute-service
