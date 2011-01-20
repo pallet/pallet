@@ -374,16 +374,15 @@
                                  ssh-test/no-op-ssh-client)])]
     (jclouds-test-utils/purge-compute-service)
     (let [id "a"
+          node (make-node "a" {}
+                          :configure (fn [request]
+                                       (resource/invoke-resource
+                                        request
+                                        (fn [request] "Hi")
+                                        [] :in-sequence :script/bash)))
           request (with-middleware
                     wrap-no-exec
-                    (converge {(make-node
-                                "a" {}
-                                :configure (fn [request]
-                                             (resource/invoke-resource
-                                              request
-                                              (fn [request] "Hi")
-                                              [] :in-sequence :script/bash)))
-                               1} :compute org.jclouds.compute/*compute*))]
+                    (converge {node 2} :compute org.jclouds.compute/*compute*))]
       (is (map? request))
       (is (map? (-> request :results)))
       (is (map? (-> request :results first second)))
@@ -391,5 +390,20 @@
       (is (some
            #(= "Hi\n" %)
            (:configure (-> request :results first second))))
-      (is (= 1 (count (:all-nodes request))))
-      (is (= 1 (count (org.jclouds.compute/nodes)))))))
+      (is (= 2 (count (:all-nodes request))))
+      (is (= 2 (count (org.jclouds.compute/nodes))))
+      (testing "remove some instances"
+        (let [reqeust (with-middleware
+                        wrap-no-exec
+                        (converge {node 1}
+                                  :compute org.jclouds.compute/*compute*))]
+          (Thread/sleep 300) ;; stub destroyNode is asynchronous ?
+          (is (= 1 (count (compute/nodes org.jclouds.compute/*compute*))))))
+      (testing "remove all instances"
+        (let [request (with-middleware
+                        wrap-no-exec
+                        (converge {node 0}
+                                  :compute org.jclouds.compute/*compute*))]
+          (is (= 0 (count (filter
+                           (complement compute/terminated?)
+                           (:all-nodes request))))))))))

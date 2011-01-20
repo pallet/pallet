@@ -226,7 +226,7 @@ script that is run with root privileges immediatly after first boot."
     (if (= destroy-count (count tag-nodes))
       (compute/destroy-nodes-with-tag compute (name tag))
       (doseq [node (take destroy-count tag-nodes)]
-        (compute/destroy-node compute (compute/id node))))))
+        (compute/destroy-node compute node)))))
 
 (defn node-count-difference
   "Find the difference between the required and actual node counts by tag."
