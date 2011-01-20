@@ -24,7 +24,6 @@
       'pallet.utils
       '[pallet.compute :exclude [make-node]]
       'pallet.core
-      'pallet.maven
       'pallet.resource
       'pallet.resource.package
       'pallet.task.feedback
