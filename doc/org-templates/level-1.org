@@ -1,0 +1,4 @@
+#+SETUPFILE: ../org-templates/level-0.org
+#+LINK_UP: index.html
+#+LINK_HOME: ../index.html
+#+STYLE: <link rel="stylesheet" type="text/css" href="../doc.css" /><link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Molengo"/>

@@ -1,1 +1,1 @@
-[[index.org][Index]]
+[[file:index.org][Index]]

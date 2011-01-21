@@ -1,26 +1,7 @@
+#+SETUPFILE: org-templates/level-0.org
 #+TITLE:     Overview
-#+AUTHOR:    Hugo Duncan
-#+EMAIL:     hugo_duncan@yahoo.com
-#+DATE:      2010-06-17 Thu
 #+DESCRIPTION: Overview of Pallet
 #+KEYWORDS: pallet clojure provisioning configuration automation
-#+LANGUAGE:  en
-#+OPTIONS:   H:3 num:nil toc:2 \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
-#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
-#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
-#+EXPORT_SELECT_TAGS: export
-#+EXPORT_EXCLUDE_TAGS: noexport
-#+LINK_UP: index.html
-#+LINK_HOME: index.html
-#+property: exports code
-#+property: results output
-#+property: cache true
-#+LINK_UP: index.html
-#+LINK_HOME: index.html
-#+STYLE: <link rel="stylesheet" type="text/css" href="doc.css" /><link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Molengo"/>
-
-#+MACRO: clojure [[http://clojure.org][Clojure]]
-#+MACRO: jclouds [[http://jclouds.org][jclouds]]
 
 What makes pallet different to some of the other tools out there?
 
@@ -62,12 +43,12 @@ that way.
 Pallet is written in {{{clojure}}}, and so runs in a JVM.  You can embed it in any JVM
 based project, or use it directly at the REPL.
 
-Pallet [[file:reference_providers.org][talks to a cloud provider]], in order to start up new nodes, etc.  It does
+Pallet [[file:reference/reference_providers.org][talks to a cloud provider]], in order to start up new nodes, etc.  It does
 this using the excellent {{{jclouds}}} library.  Once the nodes are running,
-Pallet uses SSH to [[file:reference_node_push.org][communicate with the nodes]].
+Pallet uses SSH to [[file:reference/reference_node_push.org][communicate with the nodes]].
 
 To execute actions on the nodes, pallet executes shell scripts.  These scripts
-are generated in {{{clojure}}}.  At the lowest level, Pallet [[file:reference_script.org][embeds shell script]]
+are generated in {{{clojure}}}.  At the lowest level, Pallet [[file:reference/reference_script.org][embeds shell script]]
 in {{{clojure}}}, and wraps shell script fragments into {{{clojure}}} functions,
 creating reusable resources.
 
@@ -75,16 +56,17 @@ Of course, no two operating systems are identical, so Pallet allows dispatching
 of the functions based on packager, etc, enabling abstraction of a node's
 operating system.
 
-Higher level [[file:reference_crates.org][crates]] are then put together, that use the resources to install
+Higher level [[file:reference/reference_crates.org][crates]] are then put together, that use the resources to install
 packages, etc. Crates can also be implemented using the same machinery as
 resource functions.
 
-[[file:reference_node_types.org][Node types]] are defined that specify a tag and the sequence of crates to apply
+[[file:reference/reference_node_types.org][Node types]] are defined that specify a tag and the sequence of crates to apply
 for each of a number of phases. By default, pallet defines =:bootstrap= and
 =:configure= phases, but you can add as many phases as you like
 (e.g. =:backup=).
 
-[[file:reference_phases.org][Phases]] are executed using either the [[file:reference/operations.org][=converge= or =lift= commands]], with
+
+[[file:reference/reference_phases.org][Phases]] are executed using either the [[file:reference/reference_operations.org][=converge= or =lift= commands]], with
 =converge= also adjusting the number of nodes running for each tag.
 
 

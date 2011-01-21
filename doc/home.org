@@ -1,13 +1,13 @@
 # This is a version of index.org for github, using github link syntax
 #
-Pallet
+#+TITLE:     Pallet
 
 Pallet is a node provisioning, configuration and administration tool.  It is
 designed to make small to midsize deployments simple.
 
-- [[Overview]]
-- [[First Steps|first_steps]]
-- [[Reference Documentation|reference_index]]
-- [[API Documentation|http://pallet.github.com/pallet/autodoc/index.html]]
+- [[file:overview.org][Overview]]
+- [[file:first_steps][First Steps]]
+- [[file:reference/reference_index.org][Reference Documentation]]
+- [[http://pallet.github.com/pallet/autodoc/index.html][API Documentation]]
 
-- [[file:proposals/environment_proposal.org][Proposals]]
+- [[file:proposals/proposal_environment.org][Proposals]]
