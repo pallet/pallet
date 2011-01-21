@@ -6,8 +6,8 @@
 Pallet is a node provisioning, configuration and administration tool.  It is
 designed to make small to midsize deployments simple.
 
-  * [[file:overview.org][Overview]]
-  * [[file:first_steps.org][First Steps]]
-  * [[file:reference/index.org][Reference Documentation]]
-  * [[http:autodoc/index.html][API Documentation]]
-  * [[file:marginalia/uberdoc.html][Annotated Source]]
+- [[file:overview.org][Overview]]
+- [[file:first_steps.org][First Steps]]
+- [[file:reference/index.org][Reference Documentation]]
+- [[http:autodoc/index.html][API Documentation]]
+- [[http://pallet.github.com/pallet/marginalia/uberdoc.html][Annotated Source]]
