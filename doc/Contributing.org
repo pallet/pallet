@@ -1,0 +1,8 @@
+* Tests
+ Please make sure tests pass, and test cases are added to cover new code.
+
+* Source Code Format
+ Source code should follow the following rules:
+ - No Tabs
+ - 80 character maximum line length
+
