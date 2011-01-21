@@ -1,0 +1,81 @@
+#+SETUPFILE: org-templates/level-0.org
+#+TITLE:     Documentation
+#+DESCRIPTION: Pallet documentation and wiki layout
+#+KEYWORDS: pallet documentation wiki update
+
+Pallet documentation is maintained as =org-mode= files, which are exposed
+through the [[https://github.com/pallet/pallet/wiki][GitHub wiki]].
+
+Documentation updates should be made through the wiki or directly in the wiki
+repository.
+
+* Updating the wiki locally
+
+You can clone the wiki to work on it locally.
+
+#+begin_src sh
+git clone git@github.com:pallet/pallet.wiki.git
+#+end_src
+
+If you want to view committed changes locally before pushing, then run you can
+run a local [[http://github.com/github/gollum][gollum]] server. This requires that you have a working ruby and
+rubygems installation.
+
+#+begin_src sh
+gem install gollum
+gollum
+#+end_src
+
+* Update the documentation site
+
+To generate the documentation site, we pull the changes from the wiki repo, run
+autodoc, marginalia and publish the org project.
+
+** Merge wiki changes
+
+The first time you do this, you will need to add a remote for the wiki in your
+clone of the pallet repository.
+
+#+begin_src sh
+git remote add wiki git@github.com:pallet/pallet.wiki.git
+#+end_src
+
+You can then pull in changes from the wiki.
+
+#+begin_src sh
+git pull wiki master
+#+end_src
+
+** Publishing the org-mode project
+
+The `org-mode` project is defined in =doc/project.el=. Open this file in emacs
+and run =M-x eval-buffer=. You will also need an open clojure repl, which can be
+set up correctly by connecting to a slime session started with =mvn
+clojure:swank= in the =pallet-all= project. With this repl running, you can run
+=M-x org-publish= to publish the html files.
+
+** Run autodoc
+
+Autodoc is generated using:
+#+begin_src sh
+mvn clojure:autodoc
+#+end_src
+
+** Run Marginalia
+
+Marginalia documentation is generated using:
+#+begin_src sh
+mvn clojure:marginalia
+#+end_src
+
+** Commit the generated documentation
+
+In order to get the generated documentation onto the GitHub Pages site, the
+documentation needs to be committed and pushed.
+
+#+begin_src sh
+cd autodoc
+git add -A
+git commit -m "Updated documentation"
+git push origin gn-pages
+#+end_src
