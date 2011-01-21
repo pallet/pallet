@@ -9,5 +9,7 @@ designed to make small to midsize deployments simple.
 - [[file:first_steps][First Steps]]
 - [[file:reference/reference_index.org][Reference Documentation]]
 - [[http://pallet.github.com/pallet/autodoc/index.html][API Documentation]]
+- [[http://pallet.github.com/pallet/marginalia/uberdoc.html][Annotated Source]]
 
 - [[file:proposals/proposal_environment.org][Proposals]]
+
