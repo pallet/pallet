@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+lang="en" xml:lang="en">
+<head>
+<title>Pallet Proposal - Parallel Converge and Lift</title>
+<meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2011-01-21 12:57:28 EST"/>
+<meta name="author" content="Hugo Duncan"/>
+<meta name="description" content="Pallet parallel converge and lift proposal"/>
+<meta name="keywords" content="pallet parallel sequential converge lift"/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #add8e6; font-weight:normal }
+  .target { }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  {margin-left:auto; margin-right:0px;  text-align:right;}
+  .left   {margin-left:0px;  margin-right:auto; text-align:left;}
+  .center {margin-left:auto; margin-right:auto; text-align:center;}
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top;  }
+  th.right  { text-align:center;  }
+  th.left   { text-align:center;   }
+  th.center { text-align:center; }
+  td.right  { text-align:right;  }
+  td.left   { text-align:left;   }
+  td.center { text-align:center; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style>
+<link rel="stylesheet" type="text/css" href="doc.css" /><link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Molengo"/>
+<link rel="stylesheet" type="text/css" href="../doc.css" /><link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Molengo"/>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+
+</head>
+<body>
+<div id="content">
+<div id="org-div-home-and-up" style="text-align:right;font-size:70%;white-space:nowrap;">
+ <a accesskey="h" href="index.html"> UP </a>
+ |
+ <a accesskey="H" href="../index.html"> HOME </a>
+</div>
+
+<h1 class="title">Pallet Proposal - Parallel Converge and Lift</h1>
+
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">Parallel Execution </h2>
+<div class="outline-text-2" id="text-1">
+
+
+<ul>
+<li>
+Execution of the phases list on a given node has to be sequential, ie. the
+phases listed are executed in the order supplied.
+</li>
+<li>
+Execution of a phase across all nodes of a tag can be parallel.
+</li>
+<li>
+Execution of a phase across all nodes of all tags can be parallel.
+</li>
+</ul>
+
+
+<p>
+The type of parallel execution should be under the user's control.
+</p>
+<p>
+Parallel execution of a phase for a tag could be have several possible implementations:
+</p><ul>
+<li>
+First node, then all remaining nodes
+</li>
+<li>
+All nodes in parallel
+</li>
+<li>
+Serial
+</li>
+</ul>
+
+
+<p>
+There could be some error handling strategies:
+</p><ul>
+<li>
+All nodes successful
+</li>
+<li>
+At least n nodes successful
+</li>
+<li>
+Some way of marking errored nodes so they can be excluded for subsequent
+phases of the same request
+</li>
+</ul>
+
+
+<p>
+There could be some retry strategies:
+</p><ul>
+<li>
+N retries
+</li>
+<li>
+no retries
+
+</li>
+</ul>
+
+
+<p>
+There needs to be some synchronisation at the completion of execution of each phase.
+</p>
+
+
+</div>
+
+<div id="outline-container-1_1" class="outline-3">
+<h3 id="sec-1_1">Tag Execution Function </h3>
+<div class="outline-text-3" id="text-1_1">
+
+
+<p>
+An execute-phase-on-tag function would be invoked as:
+TODO: add error handling strategy
+</p>
+
+
+
+<pre class="src src-clojure">(execute-phase-on-tag
+  request  <span style="color: #8b0000;">; </span><span style="color: #cd5c5c;">should include [:commands :hostid] with commands for each node
+</span>  )
+</pre>
+
+
+
+<p>
+Returns updated :result in request. The maps from function invocation shoud be
+able to be merged to reduce the separate results to an overall result.
+</p>
+<p>
+Possible Implementations:
+</p><ul>
+<li>
+execute-phase-on-tag-serial execute all nodes in series
+</li>
+<li>
+execute-phase-on-tag-first-n-serial execute the first n nodes in series, then
+the others in parallel
+</li>
+<li>
+execute-phase-on-tag-first-n execute the first n nodes in parallel, then the
+others in parallel
+</li>
+<li>
+execute-phase-on-tag-parallel execute all nodes in parallel
+</li>
+</ul>
+
+
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2">Parallel Converge </h2>
+<div class="outline-text-2" id="text-2">
+
+
+<ul>
+<li>
+jclouds doesn't have an async compute service.
+</li>
+<li>
+Requires synchronisation on node creation completion
+</li>
+</ul>
+
+
+<p>
+There could also be some error handling strategies, that are essentially
+the same as for parallel execution.
+</p>
+<p>
+An adjust-node-counts function would be invoked as:
+</p>
+<p>
+TODO: add error handling strategy
+</p>
+
+
+<pre class="src src-clojure">(adjust-node-counts
+ node-count-difference-map
+ nodes
+ request)
+</pre>
+
+
+
+
+
+
+<p>
+Possible Implementations
+</p>
+<ul>
+<li>
+adjust-node-counts-serial each tag is converged before the next
+</li>
+<li>
+adjust-node-counts-parallel all tags are converged in parallel
+</li>
+</ul>
+
+
+</div>
+</div>
+<div id="postamble">
+<p class="author"> Author: Hugo Duncan
+</p>
+<p class="date"> Date: 2011-01-21 12:57:28 EST</p>
+<p class="creator">HTML generated by org-mode 7.4 in emacs 24</p>
+</div>
+</div>
+</body>
+</html>

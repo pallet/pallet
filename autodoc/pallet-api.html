@@ -316,6 +316,8 @@ namespace.
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.core/show-target-keys">show-target-keys</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.core/version">version</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.core/with-admin-user">with-admin-user</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.core/with-middleware">with-middleware</a>
@@ -342,6 +344,8 @@ namespace.
     <div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.execute/execute-ssh-cmds">execute-ssh-cmds</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.execute/local-checked-script">local-checked-script</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.execute/local-cmds">local-cmds</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.execute/local-script">local-script</a>
@@ -357,6 +361,8 @@ namespace.
       <a href="#pallet.execute/sudo-cmd-for">sudo-cmd-for</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.execute/system">system</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.execute/verify-sh-return">verify-sh-return</a>
     </div>
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
@@ -382,9 +388,17 @@ namespace.
     <div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.main/-main">-main</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.main/abort">abort</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.main/exit-task-exception">exit-task-exception</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.main/map-and-resolve-symbols">map-and-resolve-symbols</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.main/pallet-task">pallet-task</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.main/parse-as-qualified-symbol">parse-as-qualified-symbol</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.main/report-error">report-error</a>
     </div>
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
@@ -536,6 +550,8 @@ namespace.
   </div><div style="margin-left: 1em;" class="toc-section">
     <a href="#pallet.resource.directory">pallet.resource.directory</a>
     <div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.directory/adjust-directory">adjust-directory</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.directory/directories">directories</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.directory/directories*">directories*</a>
@@ -543,6 +559,14 @@ namespace.
       <a href="#pallet.resource.directory/directory">directory</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.directory/directory*">directory*</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.directory/make-directory">make-directory</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.directory/make-temp-dir">make-temp-dir</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.directory/mkdir">mkdir</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.directory/rmdir">rmdir</a>
     </div>
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
@@ -614,11 +638,17 @@ namespace.
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.package/add-rpmforge">add-rpmforge</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.package/add-rpmforge*">add-rpmforge*</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.package/add-scope">add-scope</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.package/apply-package-manager">apply-package-manager</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.package/format-source">format-source</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.package/install-package">install-package</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.package/list-installed-packages">list-installed-packages</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.package/package">package</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
@@ -635,6 +665,12 @@ namespace.
       <a href="#pallet.resource.package/package-source-aggregate">package-source-aggregate</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.resource.package/packages">packages</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.package/purge-package">purge-package</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.package/remove-package">remove-package</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.resource.package/update-package-list">update-package-list</a>
     </div>
     <br />
   </div><div style="margin-left: 1em;" class="toc-section">
@@ -876,6 +912,8 @@ namespace.
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.thread-expr/if-not-&gt;">if-not-&gt;</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.thread-expr/let-with-arg-&gt;">let-with-arg-&gt;</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.thread-expr/when-&gt;">when-&gt;</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.thread-expr/when-let-&gt;">when-let-&gt;</a>
@@ -892,15 +930,37 @@ namespace.
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.utils/admin-user-from-config-var">admin-user-from-config-var</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/as-string">as-string</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/default-private-key-path">default-private-key-path</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/default-public-key-path">default-public-key-path</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/find-var-with-require">find-var-with-require</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.utils/make-user">make-user</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/map-with-keys-as-symbols">map-with-keys-as-symbols</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.utils/pipe">pipe</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/pprint-lines">pprint-lines</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/quoted">quoted</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.utils/resource-properties">resource-properties</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/slurp-as-byte-array">slurp-as-byte-array</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.utils/slurp-resource">slurp-resource</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/tmpdir">tmpdir</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
       <a href="#pallet.utils/tmpfile">tmpfile</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/with-temp-file">with-temp-file</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.utils/with-temporary">with-temporary</a>
     </div>
     <br />
   </div>
@@ -1275,7 +1335,9 @@ value.</pre>
   <pre id="var-usage">Usage: (compute-service-from-map credentials)
 </pre>
   <pre id="var-docstr">Create a compute service from a credentials map.
-Uses the :provider, :identity, :credential, :extensions and :node-list keys.</pre>
+Uses the :provider, :identity, :credential, :extensions and :node-list keys.
+The :extensions and :node-list keys will be read with read-string if they
+are strings.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -1464,7 +1526,7 @@ See pallet.compute/compute-service.</pre>
   <hr />
   <h2 id="pallet.compute.jclouds/default-jclouds-extensions">default-jclouds-extensions</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (default-jclouds-extensions)
+  <pre id="var-usage">Usage: (default-jclouds-extensions provider)
 </pre>
   <pre id="var-docstr">Default extensions</pre>
   
@@ -1982,6 +2044,14 @@ The return value is a map of node-type -&gt; node sequence.</pre>
   
 </div><div id="var-entry">
   <hr />
+  <h2 id="pallet.core/version">version</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (version)
+</pre>
+  <pre id="var-docstr">Read the pallet version</pre>
+  
+</div><div id="var-entry">
+  <hr />
   <h2 id="pallet.core/with-admin-user">with-admin-user</h2>
   <span id="var-type">macro</span><br />
   <pre id="var-usage">Usage: (with-admin-user user &amp; exprs)
@@ -2069,6 +2139,15 @@ to enable specialisation on node-type</pre>
   
 </div><div id="var-entry">
   <hr />
+  <h2 id="pallet.execute/local-checked-script">local-checked-script</h2>
+  <span id="var-type">macro</span><br />
+  <pre id="var-usage">Usage: (local-checked-script msg &amp; body)
+</pre>
+  <pre id="var-docstr">Run a script on the local machine, setting up stevedore to produce the
+correct target specific code.  The return code is checked.</pre>
+  
+</div><div id="var-entry">
+  <hr />
   <h2 id="pallet.execute/local-cmds">local-cmds</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (local-cmds commands)
@@ -2134,6 +2213,14 @@ Also accepts an IP or hostname as anode.</pre>
 </pre>
   <pre id="var-docstr">Launch a system process, return a map containing the exit code, standard
 output and standard error of the process.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.execute/verify-sh-return">verify-sh-return</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (verify-sh-return msg cmd result)
+</pre>
+  <pre id="var-docstr">Verify the return code of a sh execution</pre>
   
 </div>
 <h2 id="namespace-name">pallet.heynote</h2>
@@ -2204,8 +2291,25 @@ output and standard error of the process.</pre>
   <h2 id="pallet.main/-main">-main</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (-main &amp; args)
+       (-main)
 </pre>
   <pre id="var-docstr">Command line runner.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.main/abort">abort</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (abort msg)
+</pre>
+  <pre id="var-docstr">Abort a task, with the specified error message, and no stack trace.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.main/exit-task-exception">exit-task-exception</h2>
+  <span id="var-type">var</span><br />
+  <pre id="var-usage"></pre>
+  <pre id="var-docstr">An exception instance to use for terminating the task, without
+a stack trace</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -2217,12 +2321,30 @@ output and standard error of the process.</pre>
   
 </div><div id="var-entry">
   <hr />
+  <h2 id="pallet.main/pallet-task">pallet-task</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (pallet-task args)
+</pre>
+  <pre id="var-docstr">A pallet task.
+
+Returns an integer exit status suitable for System/exit.</pre>
+  
+</div><div id="var-entry">
+  <hr />
   <h2 id="pallet.main/parse-as-qualified-symbol">parse-as-qualified-symbol</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (parse-as-qualified-symbol arg)
 </pre>
   <pre id="var-docstr">Convert the given string into a namespace qualified symbol.
 Returns a vector of ns and symbol</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.main/report-error">report-error</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (report-error msg)
+</pre>
+  <pre id="var-docstr">Report a message to *err*.</pre>
   
 </div>
 <h2 id="namespace-name">pallet.main-invoker</h2>
@@ -2871,16 +2993,28 @@ Useful for testing.</pre>
   
 </div>
 <h2 id="namespace-name">pallet.resource.directory</h2>
-<pre id="namespace-docstr">Directory manipulation.</pre>
+<pre id="namespace-docstr">A directory manipulation resource, to create and remove directories
+with given ownership and mode.</pre>
 <br />
 <div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.directory/adjust-directory">adjust-directory</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (adjust-directory path opts)
+</pre>
+  <pre id="var-docstr">Script to set the ownership and mode of a directory.</pre>
+  
+</div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource.directory/directories">directories</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (directories request paths &amp; options)
 </pre>
   <pre id="var-docstr">Directory management of multiple directories with the same
-owner/group/permissions.</pre>
+owner/group/permissions.
+
+`options` are as for `directory` and are applied to each directory in
+`paths`</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -2889,7 +3023,10 @@ owner/group/permissions.</pre>
   <pre id="var-usage">Usage: (directories* request paths &amp; options)
 </pre>
   <pre id="var-docstr">Directory management of multiple directories with the same
-owner/group/permissions.</pre>
+owner/group/permissions.
+
+`options` are as for `directory` and are applied to each directory in
+`paths`</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -2897,7 +3034,14 @@ owner/group/permissions.</pre>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (directory request path &amp; {:keys [action], :or {action :create}, :as options})
 </pre>
-  <pre id="var-docstr">Directory management.</pre>
+  <pre id="var-docstr">Directory management.
+
+For :create and :touch, all components of path are effected.
+
+Options are:
+ - :action     One of :create, :touch, :delete
+ - :recursive  Flag for recursive delete
+ - :force      Flag for forced delete</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -2905,7 +3049,46 @@ owner/group/permissions.</pre>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (directory* request path &amp; {:keys [action], :or {action :create}, :as options})
 </pre>
-  <pre id="var-docstr">Directory management.</pre>
+  <pre id="var-docstr">Directory management.
+
+For :create and :touch, all components of path are effected.
+
+Options are:
+ - :action     One of :create, :touch, :delete
+ - :recursive  Flag for recursive delete
+ - :force      Flag for forced delete</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.directory/make-directory">make-directory</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (make-directory path opts)
+</pre>
+  <pre id="var-docstr">Script to create a directory.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.directory/make-temp-dir">make-temp-dir</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (make-temp-dir pattern &amp; options)
+</pre>
+  <pre id="var-docstr">Create a temporary directory</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.directory/mkdir">mkdir</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (mkdir directory &amp; options)
+</pre>
+  <pre id="var-docstr">Create the specified directory</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.directory/rmdir">rmdir</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (rmdir directory &amp; options)
+</pre>
+  <pre id="var-docstr">Remove the specified directory</pre>
   
 </div>
 <h2 id="namespace-name">pallet.resource.exec-script</h2>
@@ -3019,7 +3202,15 @@ time, so that it occurs wirh the correct target.</pre>
   
 </div>
 <h2 id="namespace-name">pallet.resource.filesystem-layout</h2>
-<pre id="namespace-docstr">Functions to return distribution specific paths</pre>
+<pre id="namespace-docstr">Functions to return distribution specific paths.
+
+These script functions are meant to help build distribution agnostic crates.
+
+
+* Links
+ - man 7 hier
+ - http://www.pathname.com/fhs/
+ - <a href="http://wiki.apache.org/httpd/DistrosDefaultLayout">http://wiki.apache.org/httpd/DistrosDefaultLayout</a></pre>
 <br />
 
 <h2 id="namespace-name">pallet.resource.format</h2>
@@ -3057,7 +3248,11 @@ names.  The inner maps are keyword value maps.</pre>
 <br />
 
 <h2 id="namespace-name">pallet.resource.package</h2>
-<pre id="namespace-docstr">Package management resource.</pre>
+<pre id="namespace-docstr">Package management resource.
+
+`package` is used to install or remove a package.
+
+`package-source` is used to specify a non-standard source for packages.</pre>
 <br />
 <div id="var-entry">
   <hr />
@@ -3066,7 +3261,7 @@ names.  The inner maps are keyword value maps.</pre>
   <pre id="var-usage">Usage: (add-centos55-to-amzn-linux request)
 </pre>
   <pre id="var-docstr">Add the centos 5.5 repository to Amazon Linux. Ensure that it has a lower
-priority</pre>
+than default priority.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3091,14 +3286,25 @@ priority</pre>
   <pre id="var-usage">Usage: (add-jpackage request &amp; {:keys [version component releasever], :or {component redhat-el, releasever $releasever, version 5.0}})
 </pre>
   <pre id="var-docstr">Add the jpackage repository.  component should be one of:
-fedora
-redhat-el</pre>
+  fedora
+  redhat-el
+
+Installs the jpackage-utils package from the base repos at a
+pritority of 25.</pre>
   
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource.package/add-rpmforge">add-rpmforge</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (add-rpmforge request &amp; {:keys [version distro arch], :or {version 0.5.1-1, distro el5, arch i386}})
+  <pre id="var-usage">Usage: (add-rpmforge request &amp; {:keys [version distro arch], :or {version 0.5.2-2, distro el5, arch i386}})
+</pre>
+  <pre id="var-docstr">Add the rpmforge repository</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.package/add-rpmforge*">add-rpmforge*</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (add-rpmforge* request args)
 </pre>
   <pre id="var-docstr">Add the rpmforge repository</pre>
   
@@ -3108,7 +3314,7 @@ redhat-el</pre>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (add-scope type scope file)
 </pre>
-  <pre id="var-docstr">Add a scope to all the existing package sources</pre>
+  <pre id="var-docstr">Add a scope to all the existing package sources. Aptitude specific.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3117,26 +3323,51 @@ redhat-el</pre>
   <pre id="var-usage">Usage: (apply-package-manager request package-manager-args)
 </pre>
   <pre id="var-docstr">Package manager controls.
-:multiverse        - enable multiverse
-:update            - update the package manager</pre>
+
+`action` is one of the following:
+  :update            - update the list of available packages
+  :list-installed    - output a list of the installed packages
+  :multiverse        - enable multiverse
+  :update            - update the package manager</pre>
   
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource.package/format-source">format-source</h2>
   <span id="var-type">multimethod</span><br />
   <pre id="var-usage">No usage documentation available</pre>
-  <pre id="var-docstr">Create a source definition</pre>
+  <pre id="var-docstr">Format a package source definition</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.package/install-package">install-package</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (install-package name &amp; options)
+</pre>
+  <pre id="var-docstr">Install the specified package.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.package/list-installed-packages">list-installed-packages</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (list-installed-packages &amp; options)
+</pre>
+  <pre id="var-docstr">List the installed packages</pre>
   
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource.package/package">package</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (package request package-name &amp; {:keys [action y force purge], :or {action :install, y true}, :as options})
+  <pre id="var-usage">Usage: (package request package-name &amp; {:keys [action y force purge enable disable priority], :or {action :install, y true, priority 50}, :as options})
 </pre>
-  <pre id="var-docstr">Package management.
- :action [:install | :remove | :upgrade]
- :version version
- :purge [true|false]  - when removing, whether to remove all config, etc
+  <pre id="var-docstr">Install or remove a package.
+
+Options
+ - :action [:install | :remove | :upgrade]
+ - :purge [true|false]         when removing, whether to remove all config
+ - :enable [repo|(seq repo)]   enable specific repository
+ - :disable [repo|(seq repo)]  disable specific repository
+ - :priority n                 priority (0-100, default 50)
+
 Package management occurs in one shot, so that the package manager can
 maintain a consistent view.</pre>
   
@@ -3146,10 +3377,15 @@ maintain a consistent view.</pre>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (package* request args)
 </pre>
-  <pre id="var-docstr">Package management.
- :action [:install | :remove | :upgrade]
- :version version
- :purge [true|false]  - when removing, whether to remove all config, etc
+  <pre id="var-docstr">Install or remove a package.
+
+Options
+ - :action [:install | :remove | :upgrade]
+ - :purge [true|false]         when removing, whether to remove all config
+ - :enable [repo|(seq repo)]   enable specific repository
+ - :disable [repo|(seq repo)]  disable specific repository
+ - :priority n                 priority (0-100, default 50)
+
 Package management occurs in one shot, so that the package manager can
 maintain a consistent view.</pre>
   
@@ -3160,8 +3396,12 @@ maintain a consistent view.</pre>
   <pre id="var-usage">Usage: (package-manager request action &amp; options)
 </pre>
   <pre id="var-docstr">Package manager controls.
-:multiverse        - enable multiverse
-:update            - update the package manager</pre>
+
+`action` is one of the following:
+  :update            - update the list of available packages
+  :list-installed    - output a list of the installed packages
+  :multiverse        - enable multiverse
+  :update            - update the package manager</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3182,19 +3422,21 @@ Options are the package manager keywords, each specifying a map of
 packager specific options.
 
 :aptitude
-  :source-type string   - source type (deb)
-  :url url              - repository url
-  :scopes seq           - scopes to enable for repository
-  :key-url url          - url for key
-  :key-id id            - id for key to look it up from keyserver
+  - :source-type string   - source type (deb)
+  - :url url              - repository url
+  - :scopes seq           - scopes to enable for repository
+  - :key-url url          - url for key
+  - :key-id id            - id for key to look it up from keyserver
 
 :yum
-  :name                 - repository name
-  :url url          - repository base url
-  :gpgkey url           - gpg key url for repository
+  - :name                 - repository name
+  - :url url          - repository base url
+  - :gpgkey url           - gpg key url for repository
 
-Example: (package-source "Partner" :aptitude {:url "http://archive.canonical.com/"
-                                                :scopes ["partner"]})</pre>
+Example
+    (package-source "Partner"
+      :aptitude {:url "http://archive.canonical.com/"
+                 :scopes ["partner"]})</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3215,31 +3457,64 @@ Options are the package manager keywords, each specifying a map of
 packager specific options.
 
 :aptitude
-  :source-type string   - source type (deb)
-  :url url              - repository url
-  :scopes seq           - scopes to enable for repository
-  :key-url url          - url for key
-  :key-id id            - id for key to look it up from keyserver
+  - :source-type string   - source type (deb)
+  - :url url              - repository url
+  - :scopes seq           - scopes to enable for repository
+  - :key-url url          - url for key
+  - :key-id id            - id for key to look it up from keyserver
 
 :yum
-  :name                 - repository name
-  :url url          - repository base url
-  :gpgkey url           - gpg key url for repository
+  - :name                 - repository name
+  - :url url          - repository base url
+  - :gpgkey url           - gpg key url for repository
 
-Example: (package-source "Partner" :aptitude {:url "http://archive.canonical.com/"
-                                                :scopes ["partner"]})</pre>
+Example
+    (package-source "Partner"
+      :aptitude {:url "http://archive.canonical.com/"
+                 :scopes ["partner"]})</pre>
   
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.resource.package/packages">packages</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (packages request &amp; {:as options})
+  <pre id="var-usage">Usage: (packages request &amp; {:keys [yum aptitude pacman brew], :as options})
 </pre>
-  <pre id="var-docstr">Install a list of packages keyed on packager</pre>
+  <pre id="var-docstr">Install a list of packages keyed on packager.
+(packages request
+  :yum ["git" "git-email"]
+  :aptitude ["git-core" "git-email"])</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.package/purge-package">purge-package</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (purge-package name &amp; options)
+</pre>
+  <pre id="var-docstr">Uninstall the specified package, removing the configuration files if
+possible.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.package/remove-package">remove-package</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (remove-package name &amp; options)
+</pre>
+  <pre id="var-docstr">Uninstall the specified package, leaving the configuration files if
+possible.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.resource.package/update-package-list">update-package-list</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (update-package-list &amp; options)
+</pre>
+  <pre id="var-docstr">Update the list of packages available to the package manager from the
+declared package sources.</pre>
   
 </div>
 <h2 id="namespace-name">pallet.resource.remote-directory</h2>
-<pre id="namespace-docstr"></pre>
+<pre id="namespace-docstr">Resource to specify the content of a remote directory.  At present the
+content can come from a downloaded tar or zip file.</pre>
 <br />
 <div id="var-entry">
   <hr />
@@ -3248,17 +3523,37 @@ Example: (package-source "Partner" :aptitude {:url "http://archive.canonical.com
   <pre id="var-usage">Usage: (remote-directory request path &amp; {:keys [action url unpack tar-options unzip-options strip-components md5 md5-url owner group recursive], :or {action :create, tar-options xz, unzip-options -o, strip-components 1}, :as options})
 </pre>
   <pre id="var-docstr">Specify the contents of remote directory.
+
 Options:
-  :url              - a url to download content from
-  :unpack           - how download should be extracts (default :tar)
-  :tar-options      - options to pass to tar (default "xz")
-  :unzip-options    - options to pass to unzip (default "xz")
-  :strip-components - number of pathc ompnents to remove when unpacking
-  :md5              - md5 of file to unpack
-  :md5-url          - url of md5 file for file to unpack
-  :owner            - owner of files
-  :group            - group of files
-  :recursive        - flag to recursively set owner and group</pre>
+ - :url              - a url to download content from
+ - :unpack           - how download should be extracts (default :tar)
+ - :tar-options      - options to pass to tar (default "xz")
+ - :unzip-options    - options to pass to unzip (default "-o")
+ - :strip-components - number of path compnents to remove when unpacking
+ - :md5              - md5 of file to unpack
+ - :md5-url          - url of md5 file for file to unpack
+
+Ownership options:
+ - :owner            - owner of files
+ - :group            - group of files
+ - :recursive        - flag to recursively set owner and group
+
+To install the content of an url pointing at a tar file, specify the :url
+option.
+    (remote-directory request path
+       :url "http://a.com/path/file.tgz")
+
+If there is an md5 url with the tar file's md5, you can specify that as well,
+to prevent unecessary downloads and verify the content.
+    (remote-directory request path
+       :url "http://a.com/path/file.tgz"
+       :md5-url "http://a.com/path/file.md5")
+
+To install the content of an url pointing at a zip file, specify the :url
+option and :unpack :unzip.
+    (remote-directory request path
+       :url "http://a.com/path/file."
+       :unpack :unzip)</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -3267,17 +3562,37 @@ Options:
   <pre id="var-usage">Usage: (remote-directory* request path &amp; {:keys [action url unpack tar-options unzip-options strip-components md5 md5-url owner group recursive], :or {action :create, tar-options xz, unzip-options -o, strip-components 1}, :as options})
 </pre>
   <pre id="var-docstr">Specify the contents of remote directory.
+
 Options:
-  :url              - a url to download content from
-  :unpack           - how download should be extracts (default :tar)
-  :tar-options      - options to pass to tar (default "xz")
-  :unzip-options    - options to pass to unzip (default "xz")
-  :strip-components - number of pathc ompnents to remove when unpacking
-  :md5              - md5 of file to unpack
-  :md5-url          - url of md5 file for file to unpack
-  :owner            - owner of files
-  :group            - group of files
-  :recursive        - flag to recursively set owner and group</pre>
+ - :url              - a url to download content from
+ - :unpack           - how download should be extracts (default :tar)
+ - :tar-options      - options to pass to tar (default "xz")
+ - :unzip-options    - options to pass to unzip (default "-o")
+ - :strip-components - number of path compnents to remove when unpacking
+ - :md5              - md5 of file to unpack
+ - :md5-url          - url of md5 file for file to unpack
+
+Ownership options:
+ - :owner            - owner of files
+ - :group            - group of files
+ - :recursive        - flag to recursively set owner and group
+
+To install the content of an url pointing at a tar file, specify the :url
+option.
+    (remote-directory request path
+       :url "http://a.com/path/file.tgz")
+
+If there is an md5 url with the tar file's md5, you can specify that as well,
+to prevent unecessary downloads and verify the content.
+    (remote-directory request path
+       :url "http://a.com/path/file.tgz"
+       :md5-url "http://a.com/path/file.md5")
+
+To install the content of an url pointing at a zip file, specify the :url
+option and :unpack :unzip.
+    (remote-directory request path
+       :url "http://a.com/path/file."
+       :unpack :unzip)</pre>
   
 </div>
 <h2 id="namespace-name">pallet.resource.remote-file</h2>
@@ -3561,7 +3876,7 @@ os-version values (e.g. `:centos-5.3`), or other keywords.</pre>
   <hr />
   <h2 id="pallet.script/defscript">defscript</h2>
   <span id="var-type">macro</span><br />
-  <pre id="var-usage">Usage: (defscript name [&amp; args])
+  <pre id="var-usage">Usage: (defscript name &amp; args)
 </pre>
   <pre id="var-docstr">Define an abstract script function, that can be implemented differently for
 different operating systems.
@@ -4111,6 +4426,20 @@ eg.
   
 </div><div id="var-entry">
   <hr />
+  <h2 id="pallet.thread-expr/let-with-arg-&gt;">let-with-arg-&gt;</h2>
+  <span id="var-type">macro</span><br />
+  <pre id="var-usage">Usage: (let-with-arg-&gt; arg arg-symbol binding &amp; body)
+</pre>
+  <pre id="var-docstr">A `let` form that can appear in a request thread, and assign the value of the
+threaded arg.
+eg.
+   (-&gt; 1
+     (let-with-arg-&gt; val [a 1]
+       (+ a val)))
+=&gt; 3</pre>
+  
+</div><div id="var-entry">
+  <hr />
   <h2 id="pallet.thread-expr/when-&gt;">when-&gt;</h2>
   <span id="var-type">macro</span><br />
   <pre id="var-usage">Usage: (when-&gt; arg condition &amp; body)
@@ -4150,7 +4479,7 @@ eg.
   
 </div>
 <h2 id="namespace-name">pallet.utils</h2>
-<pre id="namespace-docstr"></pre>
+<pre id="namespace-docstr">Utilities used across pallet.</pre>
 <br />
 <div id="var-entry">
   <hr />
@@ -4159,7 +4488,9 @@ eg.
   <pre id="var-usage"></pre>
   <pre id="var-docstr">The admin user is used for running remote admin commands that require root
 permissions.  The default admin user is taken from the pallet.admin.username
-property.  If not specified then the user.name property is used.</pre>
+property.  If not specified then the user.name property is used.
+The admin user can also be specified in config.clj when running tasks
+from the command line.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -4167,7 +4498,7 @@ property.  If not specified then the user.name property is used.</pre>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (admin-user-from-config config)
 </pre>
-  <pre id="var-docstr">Set the admin user based on config map</pre>
+  <pre id="var-docstr">Set the admin user based on a config map</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -4175,7 +4506,43 @@ property.  If not specified then the user.name property is used.</pre>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (admin-user-from-config-var)
 </pre>
-  <pre id="var-docstr">Set the admin user based on pallet.config setup</pre>
+  <pre id="var-docstr">Set the admin user based on pallet.config setup.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.utils/as-string">as-string</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (as-string arg)
+</pre>
+  <pre id="var-docstr">Return the string value of the argument.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.utils/default-private-key-path">default-private-key-path</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (default-private-key-path)
+</pre>
+  <pre id="var-docstr">Return the default private key path.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.utils/default-public-key-path">default-public-key-path</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (default-public-key-path)
+</pre>
+  <pre id="var-docstr">Return the default public key path</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.utils/find-var-with-require">find-var-with-require</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (find-var-with-require sym)
+       (find-var-with-require ns sym)
+</pre>
+  <pre id="var-docstr">Find the var for the given namespace and symbol. If the namespace does
+not exist, then it will be required.
+    (find-var-with-require 'my.ns 'a-symbol)
+    (find-var-with-require 'my.ns/a-symbol)</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -4184,12 +4551,25 @@ property.  If not specified then the user.name property is used.</pre>
   <pre id="var-usage">Usage: (make-user username &amp; {:as options})
 </pre>
   <pre id="var-docstr">Creates a User record with the given username and options. Generally used
-in conjunction with *admin-user* and pallet.core/with-admin-user.
-Some options have default values:
+in conjunction with *admin-user* and pallet.core/with-admin-user, or passed
+to `lift` or `converge` as the named :user argument.
 
-:public-key-path (defaults to ~/.ssh/id_rsa.pub)
-:private-key-path (defaults to ~/.ssh/id_rsa)
-:sudo-password (defaults to :password)</pre>
+Options:
+ - :public-key-path (defaults to ~/.ssh/id_rsa.pub)
+ - :private-key-path (defaults to ~/.ssh/id_rsa)
+ - :passphrase
+ - :password
+ - :sudo-password (defaults to :password)
+ - :no-sudo</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.utils/map-with-keys-as-symbols">map-with-keys-as-symbols</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (map-with-keys-as-symbols m)
+</pre>
+  <pre id="var-docstr">Produce a map that is the same as m, but with all keys are converted to
+symbols.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -4197,15 +4577,40 @@ Some options have default values:
   <span id="var-type">macro</span><br />
   <pre id="var-usage">Usage: (pipe &amp; forms)
 </pre>
-  <pre id="var-docstr">Build a request processing pipeline from the specified forms</pre>
+  <pre id="var-docstr">Build a request processing pipeline from the specified forms.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.utils/pprint-lines">pprint-lines</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (pprint-lines s)
+</pre>
+  <pre id="var-docstr">Pretty print a multiline string</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.utils/quoted">quoted</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (quoted s)
+</pre>
+  <pre id="var-docstr">Return the string value of the argument in quotes.</pre>
   
 </div><div id="var-entry">
   <hr />
   <h2 id="pallet.utils/resource-properties">resource-properties</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (resource-properties name)
+  <pre id="var-usage">Usage: (resource-properties path)
 </pre>
-  <pre id="var-docstr">Returns nil if resource not found.</pre>
+  <pre id="var-docstr">Given a resource `path`, load it as a java properties file.
+Returns nil if resource not found.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.utils/slurp-as-byte-array">slurp-as-byte-array</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (slurp-as-byte-array file)
+</pre>
+  <pre id="var-docstr">Read the given file as a byte array.</pre>
   
 </div><div id="var-entry">
   <hr />
@@ -4219,12 +4624,37 @@ and returns it.</pre>
   
 </div><div id="var-entry">
   <hr />
+  <h2 id="pallet.utils/tmpdir">tmpdir</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (tmpdir)
+</pre>
+  <pre id="var-docstr">Create a temporary directory.</pre>
+  
+</div><div id="var-entry">
+  <hr />
   <h2 id="pallet.utils/tmpfile">tmpfile</h2>
   <span id="var-type">function</span><br />
   <pre id="var-usage">Usage: (tmpfile)
        (tmpfile dir)
 </pre>
   <pre id="var-docstr">Create a temporary file</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.utils/with-temp-file">with-temp-file</h2>
+  <span id="var-type">macro</span><br />
+  <pre id="var-usage">Usage: (with-temp-file [varname content] &amp; body)
+</pre>
+  <pre id="var-docstr">Create a block where `varname` is a temporary `File` containing `content`.</pre>
+  
+</div><div id="var-entry">
+  <hr />
+  <h2 id="pallet.utils/with-temporary">with-temporary</h2>
+  <span id="var-type">macro</span><br />
+  <pre id="var-usage">Usage: (with-temporary bindings &amp; body)
+</pre>
+  <pre id="var-docstr">A block scope allowing multiple bindings to expressions.  Each binding will
+have the member function `delete` called on it.</pre>
   
 </div>
 

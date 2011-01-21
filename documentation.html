@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+lang="en" xml:lang="en">
+<head>
+<title>Documentation</title>
+<meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2011-01-21 13:25:33 EST"/>
+<meta name="author" content="Hugo Duncan"/>
+<meta name="description" content="Pallet documentation and wiki layout"/>
+<meta name="keywords" content="pallet documentation wiki update"/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #add8e6; font-weight:normal }
+  .target { }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  {margin-left:auto; margin-right:0px;  text-align:right;}
+  .left   {margin-left:0px;  margin-right:auto; text-align:left;}
+  .center {margin-left:auto; margin-right:auto; text-align:center;}
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top;  }
+  th.right  { text-align:center;  }
+  th.left   { text-align:center;   }
+  th.center { text-align:center; }
+  td.right  { text-align:right;  }
+  td.left   { text-align:left;   }
+  td.center { text-align:center; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style>
+<link rel="stylesheet" type="text/css" href="doc.css" /><link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Molengo"/>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+
+</head>
+<body>
+<div id="content">
+<div id="org-div-home-and-up" style="text-align:right;font-size:70%;white-space:nowrap;">
+ <a accesskey="h" href="index.html"> UP </a>
+ |
+ <a accesskey="H" href="index.html"> HOME </a>
+</div>
+
+<h1 class="title">Documentation</h1>
+
+<p>Pallet documentation is maintained as <code>org-mode</code> files, which are exposed
+through the <a href="https://github.com/pallet/pallet/wiki">GitHub wiki</a>.
+</p>
+<p>
+Documentation updates should be made through the wiki or directly in the wiki
+repository.
+</p>
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1">Updating the wiki locally </h2>
+<div class="outline-text-2" id="text-1">
+
+
+<p>
+You can clone the wiki to work on it locally.
+</p>
+
+
+
+<pre class="src src-sh">git clone git@github.com:pallet/pallet.wiki.git
+</pre>
+
+
+
+<p>
+If you want to view committed changes locally before pushing, then run you can
+run a local <a href="http://github.com/github/gollum">gollum</a> server. This requires that you have a working ruby and
+rubygems installation.
+</p>
+
+
+
+<pre class="src src-sh">gem install gollum
+gollum
+</pre>
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2">Update the documentation site </h2>
+<div class="outline-text-2" id="text-2">
+
+
+<p>
+To generate the documentation site, we pull the changes from the wiki repo, run
+autodoc, marginalia and publish the org project.
+</p>
+
+</div>
+
+<div id="outline-container-2_1" class="outline-3">
+<h3 id="sec-2_1">Merge wiki changes </h3>
+<div class="outline-text-3" id="text-2_1">
+
+
+<p>
+The first time you do this, you will need to add a remote for the wiki in your
+clone of the pallet repository.
+</p>
+
+
+
+<pre class="src src-sh">git remote add wiki git@github.com:pallet/pallet.wiki.git
+</pre>
+
+
+
+<p>
+You can then pull in changes from the wiki.
+</p>
+
+
+
+<pre class="src src-sh">git pull wiki master
+</pre>
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2_2" class="outline-3">
+<h3 id="sec-2_2">Publishing the org-mode project </h3>
+<div class="outline-text-3" id="text-2_2">
+
+
+<p>
+The `org-mode` project is defined in <code>doc/project.el</code>. Open this file in emacs
+and run <code>M-x eval-buffer</code>. You will also need an open clojure repl, which can be
+set up correctly by connecting to a slime session started with <code>mvn clojure:swank</code> in the <code>pallet-all</code> project. With this repl running, you can run
+<code>M-x org-publish</code> to publish the html files.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2_3" class="outline-3">
+<h3 id="sec-2_3">Run autodoc </h3>
+<div class="outline-text-3" id="text-2_3">
+
+
+<p>
+Autodoc is generated using:
+</p>
+
+
+<pre class="src src-sh">mvn clojure:autodoc
+</pre>
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2_4" class="outline-3">
+<h3 id="sec-2_4">Run Marginalia </h3>
+<div class="outline-text-3" id="text-2_4">
+
+
+<p>
+Marginalia documentation is generated using:
+</p>
+
+
+<pre class="src src-sh">mvn clojure:marginalia
+</pre>
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-2_5" class="outline-3">
+<h3 id="sec-2_5">Commit the generated documentation </h3>
+<div class="outline-text-3" id="text-2_5">
+
+
+<p>
+In order to get the generated documentation onto the GitHub Pages site, the
+documentation needs to be committed and pushed.
+</p>
+
+
+
+<pre class="src src-sh">cd autodoc
+git add -A
+git commit -m <span style="color: #f4a460;">"Updated documentation"</span>
+git push origin gn-pages
+</pre>
+
+
+</div>
+</div>
+</div>
+<div id="postamble">
+<p class="author"> Author: Hugo Duncan
+</p>
+<p class="date"> Date: 2011-01-21 13:25:33 EST</p>
+<p class="creator">HTML generated by org-mode 7.4 in emacs 24</p>
+</div>
+</div>
+</body>
+</html>

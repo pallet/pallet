@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+lang="en" xml:lang="en">
+<head>
+<title>Release Notes</title>
+<meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
+<meta name="generator" content="Org-mode"/>
+<meta name="generated" content="2011-01-21 12:56:51 EST"/>
+<meta name="author" content="Hugo Duncan"/>
+<meta name="description" content=""/>
+<meta name="keywords" content=""/>
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  html { font-family: Times, serif; font-size: 12pt; }
+  .title  { text-align: center; }
+  .todo   { color: red; }
+  .done   { color: green; }
+  .tag    { background-color: #add8e6; font-weight:normal }
+  .target { }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .right  {margin-left:auto; margin-right:0px;  text-align:right;}
+  .left   {margin-left:0px;  margin-right:auto; text-align:left;}
+  .center {margin-left:auto; margin-right:auto; text-align:center;}
+  p.verse { margin-left: 3% }
+  pre {
+	border: 1pt solid #AEBDCC;
+	background-color: #F3F5F7;
+	padding: 5pt;
+	font-family: courier, monospace;
+        font-size: 90%;
+        overflow:auto;
+  }
+  table { border-collapse: collapse; }
+  td, th { vertical-align: top;  }
+  th.right  { text-align:center;  }
+  th.left   { text-align:center;   }
+  th.center { text-align:center; }
+  td.right  { text-align:right;  }
+  td.left   { text-align:left;   }
+  td.center { text-align:center; }
+  dt { font-weight: bold; }
+  div.figure { padding: 0.5em; }
+  div.figure p { text-align: center; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size:smaller }
+  .code-highlighted {background-color:#ffff00;}
+  .org-info-js_info-navigation { border-style:none; }
+  #org-info-js_console-label { font-size:10px; font-weight:bold;
+                               white-space:nowrap; }
+  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
+                                 font-weight:bold; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+
+</head>
+<body>
+<div id="content">
+
+<h1 class="title">Release Notes</h1>
+
+<p>The latest release is 0.3.0.
+</p>
+
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1 0.3.0 </a>
+<ul>
+<li><a href="#sec-1_1">1.1 Install </a></li>
+<li><a href="#sec-1_2">1.2 Known Issues </a></li>
+<li><a href="#sec-1_3">1.3 General </a></li>
+<li><a href="#sec-1_4">1.4 Lein and Cake tasks </a></li>
+<li><a href="#sec-1_5">1.5 New Crates </a></li>
+<li><a href="#sec-1_6">1.6 Enhancements </a></li>
+<li><a href="#sec-1_7">1.7 Fixes </a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> 0.3.0 </h2>
+<div class="outline-text-2" id="text-1">
+
+
+
+</div>
+
+<div id="outline-container-1_1" class="outline-3">
+<h3 id="sec-1_1"><span class="section-number-3">1.1</span> Install </h3>
+<div class="outline-text-3" id="text-1_1">
+
+
+<p>
+The release is on <a href="http://clojars.org/org.cloudhoist/pallet">clojars</a>.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-1_2" class="outline-3">
+<h3 id="sec-1_2"><span class="section-number-3">1.2</span> Known Issues </h3>
+<div class="outline-text-3" id="text-1_2">
+
+
+<p>
+pallet.thread-expr/if-&gt; incorrectly returns nil if there is no else expression.
+</p>
+<p>
+pallet.main/-main goes into an infinite recursion if called without arguments.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-1_3" class="outline-3">
+<h3 id="sec-1_3"><span class="section-number-3">1.3</span> General </h3>
+<div class="outline-text-3" id="text-1_3">
+
+
+<p>
+Now using <a href="http://jclouds.org/">jclouds</a> beta 8.
+</p>
+<p>
+There is now a node-list provider. Useful when working with a fixed set of pre-existing
+nodes.
+</p>
+<p>
+The provider credentials can now be configured in ~/.pallet/config.clj, or
+by defining pallet.config/service or by setting the java system property
+pallet.config.service to the qualified name of a clojure var.
+</p>
+<p>
+The admin-user can now be configured in config.clj or project.clj, or by defining
+pallet.config/admin-user.
+</p>
+<p>
+<a href="https://github.com/davidsantiago/cake-pallet">Cake plugin for pallet</a> from David Santiago.
+</p>
+<p>
+The project.clj file has been removed to prevent mismatch with pom.xml
+</p>
+<p>
+In general, support for RHEL based distros (centos, amzn-linux) should now be
+much better.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-1_4" class="outline-3">
+<h3 id="sec-1_4"><span class="section-number-3">1.4</span> Lein and Cake tasks </h3>
+<div class="outline-text-3" id="text-1_4">
+
+
+<p>
+The pallet-lein plugin for lein is now released to version 0.2.0.  It includes
+passing of project.clj to the tasks
+</p>
+<p>
+The command line options have changed to use the same terminology as elsewhere;
+povider, identity and credential. Added blobstore-provider, blobstore-identity
+and blobstore-credential options.
+</p>
+<p>
+The `-P provider` option can be used to select the provider credentials to be used
+from settings.xml or config.clj.
+</p>
+<p>
+The task interface has changed, and now takes a first argument which is a request
+map, containing :compute, :blobstore and :user keys, which are set by
+pallet.main-invoker.
+</p>
+
+<p>
+Added blobstore credentials.
+</p>
+<p>
+Added containers task, to list blobstore (eg S3, CloudFiles) containers.
+</p>
+<p>
+Added tomcat task to do simple tomcat deploy without any configuration.
+</p>
+<p>
+Added to-blob task to enable upload of files to a blobstore.
+</p>
+
+</div>
+
+</div>
+
+<div id="outline-container-1_5" class="outline-3">
+<h3 id="sec-1_5"><span class="section-number-3">1.5</span> New Crates </h3>
+<div class="outline-text-3" id="text-1_5">
+
+
+<p>
+squeak, etc-hosts, postgresql (thanks David Santiago)
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-1_6" class="outline-3">
+<h3 id="sec-1_6"><span class="section-number-3">1.6</span> Enhancements </h3>
+<div class="outline-text-3" id="text-1_6">
+
+
+<p>
+pallet.compute
+Added compute/private-ip, compute/hostname
+Abstracted jclouds usage to a protocol for improved testing
+</p>
+<p>
+pallet.core
+ensure :target-packager is set on bootstrap
+</p>
+<p>
+pallet.resource
+added :always-before metadata to allow resource dependencies.
+</p>
+<p>
+pallet.resource.package
+packages now installed in single command.
+</p>
+<p>
+pallet.resource.remote-file
+An :unpack :unzip option added
+</p>
+<p>
+pallet.resource.file
+defines make-temp-file script function.
+</p>
+<p>
+pallet.stevedore
+now does unquote splicing.
+</p>
+<p>
+pallet.thread-expr
+new apply-map-&gt;
+</p>
+<p>
+pallet.crate.etc-default
+a path can now be specified, allowing use elsewhere in the filesystem
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-1_7" class="outline-3">
+<h3 id="sec-1_7"><span class="section-number-3">1.7</span> Fixes </h3>
+<div class="outline-text-3" id="text-1_7">
+
+
+<p>
+pallet.resource.file
+sed will regenerate the file md5, unless :no-md5 is specified
+</p>
+<p>
+pallet.resource.remote-file
+prevent md5 file generation when :no-versioning supplied
+</p>
+<p>
+pallet.resource.service
+Installing init scripts with init now works on rhel based machines.
+</p>
+<p>
+pallet.resource.stevedore
+Improved hashlib from <a href="https://github.com/charles-dyfis-net/pallet/commit/8e5e1df53476aedd9d32f525cf0241f8a3763269">Charles Duffy</a>
+</p>
+<p>
+pallet.resource.user
+Fix translation of :user true to -r for rhel based distros.
+</p>
+<p>
+Java crate
+for sun java, add partner repository for ubuntu
+</p>
+<p>
+tomcat crate
+runs on centos and amzn-linux
+fixed users database
+</p>
+<p>
+haproxy crate
+runs on centos and amzn-linux
+</p>
+<p>
+hudson crate
+runs on centos and amzn-linux
+fixed for case of security disabled
+</p>
+<p>
+zookeeper crate
+now runs on centos and amzn-linux, on ec2
+</p></div>
+</div>
+</div>
+<div id="postamble">
+<p class="author"> Author: Hugo Duncan
+</p>
+<p class="date"> Date: 2011-01-21 12:56:51 EST</p>
+<p class="creator">HTML generated by org-mode 7.4 in emacs 24</p>
+</div>
+</div>
+</body>
+</html>

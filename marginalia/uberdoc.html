@@ -6879,7 +6879,8 @@ does not.  There should be a better way than this...</p>
                        jpackage-mirror-fmt
                        (str component &quot;-&quot; releasever) (str version &quot;-updates&quot;))</pre></td></tr><tr><td class="docs"><p>:gpgkey "http://www.jpackage.org/jpackage.asc"</p>
 </td><td class="codes"><pre class="brush: clojure">          :failovermethod &quot;priority&quot;
-          :enabled 1})))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.resource.remote-directory" name="pallet.resource.remote-directory"><h1 class="project-name">pallet.resource.remote-directory</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+          :enabled 1})))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.resource.remote-directory" name="pallet.resource.remote-directory"><h1 class="project-name">pallet.resource.remote-directory</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Resource to specify the content of a remote directory.  At present the
+content can come from a downloaded tar or zip file.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns pallet.resource.remote-directory
   (:require
    [pallet.resource :as resource]
@@ -6889,17 +6890,37 @@ does not.  There should be a better way than this...</p>
 
 (resource/defresource remote-directory
   &quot;Specify the contents of remote directory.
+
    Options:
-     :url              - a url to download content from
-     :unpack           - how download should be extracts (default :tar)
-     :tar-options      - options to pass to tar (default \&quot;xz\&quot;)
-     :unzip-options    - options to pass to unzip (default \&quot;xz\&quot;)
-     :strip-components - number of pathc ompnents to remove when unpacking
-     :md5              - md5 of file to unpack
-     :md5-url          - url of md5 file for file to unpack
-     :owner            - owner of files
-     :group            - group of files
-     :recursive        - flag to recursively set owner and group&quot;
+    - :url              - a url to download content from
+    - :unpack           - how download should be extracts (default :tar)
+    - :tar-options      - options to pass to tar (default \&quot;xz\&quot;)
+    - :unzip-options    - options to pass to unzip (default \&quot;-o\&quot;)
+    - :strip-components - number of path compnents to remove when unpacking
+    - :md5              - md5 of file to unpack
+    - :md5-url          - url of md5 file for file to unpack
+
+   Ownership options:
+    - :owner            - owner of files
+    - :group            - group of files
+    - :recursive        - flag to recursively set owner and group
+
+   To install the content of an url pointing at a tar file, specify the :url
+   option.
+       (remote-directory request path
+          :url \&quot;http://a.com/path/file.tgz\&quot;)
+
+   If there is an md5 url with the tar file's md5, you can specify that as well,
+   to prevent unecessary downloads and verify the content.
+       (remote-directory request path
+          :url \&quot;http://a.com/path/file.tgz\&quot;
+          :md5-url \&quot;http://a.com/path/file.md5\&quot;)
+
+   To install the content of an url pointing at a zip file, specify the :url
+   option and :unpack :unzip.
+       (remote-directory request path
+          :url \&quot;http://a.com/path/file.\&quot;
+          :unpack :unzip)&quot;
   (remote-directory*
    [request path &amp; {:keys [action url unpack tar-options unzip-options
                            strip-components md5 md5-url owner group recursive]
