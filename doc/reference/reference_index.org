@@ -1,30 +1,15 @@
+#+SETUPFILE: ../org-templates/level-1.org
 #+TITLE:     Pallet - Reference
-#+AUTHOR:    Hugo Duncan
-#+EMAIL:     hugo_duncan@yahoo.com
-#+DATE:      2010-06-17 Thu
 #+DESCRIPTION: Pallet Reference
 #+KEYWORDS: pallet reference documentation
-#+LANGUAGE:  en
-#+OPTIONS:   H:3 num:nil toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
-#+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc
-#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js
-#+EXPORT_SELECT_TAGS: export
-#+EXPORT_EXCLUDE_TAGS: noexport
 #+LINK_UP: ../index.html
-#+LINK_HOME: ../index.html
-#+property: exports code
-#+property: results output
-#+property: cache true
-#+STYLE: <link rel="stylesheet" type="text/css" href="../doc.css" />
 
-#+MACRO: clojure [[http://clojure.org][Clojure]]
-#+MACRO: jclouds [[http://jclouds.org][jclouds]]
-
-- [[file:reference_providers.org][Talking to the cloud]]
-- [[file:reference_node_push.org][Talking to nodes]]
-- [[file:reference_node_types.org][Node Types]]
-- [[file:reference_phases.org][Phases]]
-- [[file:reference_operations.org][Operations]]
-- [[file:reference_crates.org][Crates]]
-- [[file:reference_request_map.org][Request Map]]
-- [[file:reference_script.org][Shell Script]]
+ * [[file:providers.org][Talking to the cloud]]
+ * [[file:node_push.org][Talking to nodes]]
+ * [[file:node_types.org][Node Types]]
+ * [[file:phases.org][Phases]]
+ * [[file:operations.org][Operations]]
+ * [[file:crates.org][Crates]]
+ * [[file:request_map.org][Request Map]]
+ * [[file:script.org][Shell Script]]
+ * [[file:logging.org][Logging]]
