@@ -1,5 +1,5 @@
 #+SETUPFILE: ../org-templates/level-1.org
-#+TITLE:     Pallet Proposal - Environment
+#+TITLE:     Pallet Proposal -- Environment
 #+DESCRIPTION: Pallet environment proposal
 #+KEYWORDS: pallet environment parameters
 

@@ -5,7 +5,7 @@ body {
   padding: 0px;
   margin: 0;
   line-height: 1.2;
-  background: url('http://github.com/downloads/hugoduncan/pallet/pallet-logo.png') top left no-repeat;
+  background: url('http://github.com/downloads/pallet/pallet/pallet-logo.png') top left no-repeat;
 }
 
 tt, code, kbd, samp {
@@ -24,4 +24,10 @@ p + p {
 
 #postamble, label.org-src-name {
     display: none;
+}
+
+.example {
+    margin: 1em 1em;
+    background-color: #F7F5F3;
+    border: 0pt none;
 }
