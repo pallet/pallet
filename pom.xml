@@ -1,395 +1,334 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <parent>
-      <groupId>org.cloudhoist</groupId>
-      <artifactId>pallet-pom</artifactId>
-      <version>0.4.0-SNAPSHOT</version>
-      <relativePath>../pallet-pom</relativePath>
-    </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
     <groupId>org.cloudhoist</groupId>
-    <artifactId>pallet</artifactId>
+    <artifactId>pallet-pom</artifactId>
     <version>0.4.0-SNAPSHOT</version>
-    <packaging>jar</packaging>
-    <name>pallet</name>
-    <description>Pallet - agile provisioning and configuration of compute nodes. A devops tool.</description>
-    <url>http://palletops.com</url>
-    <inceptionYear>2010</inceptionYear>
+    <relativePath>../pallet-pom</relativePath>
+  </parent>
+  <groupId>org.cloudhoist</groupId>
+  <artifactId>pallet</artifactId>
+  <version>0.4.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+  <name>pallet</name>
+  <description>
+    Pallet - agile provisioning and configuration of compute nodes. A devops tool.
+  </description>
+  <url>http://palletops.com</url>
+  <inceptionYear>2010</inceptionYear>
 
-    <scm>
-      <connection>scm:git:git://github.com/pallet/pallet.git</connection>
-      <developerConnection>scm:git:ssh://git@github.com/pallet/pallet.git</developerConnection>
-      <url>http://github.com/pallet/pallet</url>
-    </scm>
+  <scm>
+    <connection>scm:git:git://github.com/pallet/pallet.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/pallet/pallet.git</developerConnection>
+    <url>http://github.com/pallet/pallet</url>
+  </scm>
 
-    <build>
-        <sourceDirectory>src</sourceDirectory>
-        <resources>
-            <resource>
-                <directory>src</directory>
-            </resource>
-            <resource>
-                <directory>resources</directory>
-                <excludes>
-                  <exclude>filtered/*</exclude>
-                </excludes>
-            </resource>
-            <resource>
-              <directory>resources/filtered</directory>
-              <filtering>true</filtering>
-            </resource>
-        </resources>
-        <testResources>
-            <testResource>
-                <directory>test</directory>
-            </testResource>
-        </testResources>
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+    <resources>
+      <resource>
+        <directory>src</directory>
+      </resource>
+      <resource>
+        <directory>resources</directory>
+        <excludes>
+          <exclude>filtered/*</exclude>
+        </excludes>
+      </resource>
+      <resource>
+        <directory>resources/filtered</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
+    <testResources>
+      <testResource>
+        <directory>test</directory>
+      </testResource>
+    </testResources>
+    <plugins>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>test-jar</id>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.theoryinpractise</groupId>
+        <artifactId>clojure-maven-plugin</artifactId>
+        <configuration>
+          <autodocTargetDirectory>autodoc/autodoc</autodocTargetDirectory>
+          <marginaliaTargetDirectory>autodoc/marginalia</marginaliaTargetDirectory>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure-contrib</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>clj-http</groupId>
+      <artifactId>clj-http</artifactId>
+      <version>0.1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>clj-ssh</groupId>
+      <artifactId>clj-ssh</artifactId>
+      <version>0.2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>jline</groupId>
+      <artifactId>jline</artifactId>
+      <version>0.9.94</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>enlive</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-settings</artifactId>
+      <version>2.0.10</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>vmfest</groupId>
+      <artifactId>vmfest</artifactId>
+      <version>0.1.0-SNAPSHOT</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>swank-clojure</groupId>
+      <artifactId>swank-clojure</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>autodoc</groupId>
+      <artifactId>autodoc</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>marginalia</groupId>
+      <artifactId>marginalia</artifactId>
+      <optional>true</optional>
+    </dependency>
+  </dependencies>
+
+  <profiles>
+    <profile>
+      <id>testuser</id>
+      <build>
         <plugins>
-          <plugin>
-            <artifactId>maven-jar-plugin</artifactId>
-            <version>2.3.1</version>
-            <executions>
-              <execution>
-                <id>test-jar</id>
-                <goals>
-                  <goal>test-jar</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
           <plugin>
             <groupId>com.theoryinpractise</groupId>
             <artifactId>clojure-maven-plugin</artifactId>
             <configuration>
               <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m -Dssh.username=testuser</clojureOptions>
-
-              <autodocTargetDirectory>autodoc/autodoc</autodocTargetDirectory>
-              <marginaliaTargetDirectory>autodoc/marginalia</marginaliaTargetDirectory>
             </configuration>
           </plugin>
         </plugins>
-    </build>
-    <dependencies>
+      </build>
+    </profile>
+
+    <profile>
+      <id>jclouds</id>
+      <activation>
+	<activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <jclouds.version>1.0-beta-8</jclouds.version>
+      </properties>
+      <dependencies>
         <dependency>
-            <groupId>clj-http</groupId>
-            <artifactId>clj-http</artifactId>
-            <version>0.1.1</version>
+          <groupId>org.jclouds</groupId>
+          <artifactId>jclouds-compute</artifactId>
+          <version>${jclouds.version}</version>
         </dependency>
         <dependency>
-            <groupId>clj-ssh</groupId>
-            <artifactId>clj-ssh</artifactId>
-            <version>0.2.0</version>
+          <groupId>org.jclouds</groupId>
+          <artifactId>jclouds-blobstore</artifactId>
+          <version>${jclouds.version}</version>
         </dependency>
+
+        <!-- You will need the jclouds provider specific jars for your project -->
+        <!-- An alternative to invidual provider jars is to pull in everything -->
+        <!-- <dependency> -->
+        <!--     <groupId>org.jclouds</groupId> -->
+        <!--     <artifactId>jclouds-all</artifactId> -->
+        <!--     <version>${jclouds.version}</version> -->
+        <!--     <optional>true</optional> -->
+        <!-- </dependency> -->
         <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>1.2.14</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>com.jcraft</groupId>
-            <artifactId>jsch</artifactId>
-            <version>0.1.42</version>
-        </dependency>
-        <dependency>
-            <groupId>jline</groupId>
-            <artifactId>jline</artifactId>
-            <version>0.9.94</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.cloudhoist</groupId>
-            <artifactId>enlive</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.maven</groupId>
-          <artifactId>maven-settings</artifactId>
-          <version>2.0.10</version>
+          <groupId>org.jclouds</groupId>
+          <artifactId>jclouds-aws</artifactId>
+          <version>${jclouds.version}</version>
           <optional>true</optional>
         </dependency>
         <dependency>
-          <groupId>vmfest</groupId>
-          <artifactId>vmfest</artifactId>
-          <version>0.1.0-SNAPSHOT</version>
+          <groupId>org.jclouds</groupId>
+          <artifactId>jclouds-bluelock</artifactId>
+          <version>${jclouds.version}</version>
           <optional>true</optional>
         </dependency>
         <dependency>
-         <groupId>swank-clojure</groupId>
-         <artifactId>swank-clojure</artifactId>
-         <version>1.2.1</version>
-         <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>autodoc</groupId>
-          <artifactId>autodoc</artifactId>
-          <version>0.7.1</version>
-          <optional>true</optional>
-          <exclusions>
-            <exclusion>
-              <groupId>org.clojure</groupId>
-              <artifactId>clojure</artifactId>
-            </exclusion>
-          </exclusions>
-        </dependency>
-        <dependency>
-          <groupId>marginalia</groupId>
-          <artifactId>marginalia</artifactId>
-          <version>0.5.0-alpha</version>
+          <groupId>org.jclouds</groupId>
+          <artifactId>jclouds-gogrid</artifactId>
+          <version>${jclouds.version}</version>
           <optional>true</optional>
         </dependency>
-    </dependencies>
+        <dependency>
+          <groupId>org.jclouds</groupId>
+          <artifactId>jclouds-rackspace</artifactId>
+          <version>${jclouds.version}</version>
+          <optional>true</optional>
+        </dependency>
+        <dependency>
+          <groupId>org.jclouds</groupId>
+          <artifactId>jclouds-rimuhosting</artifactId>
+          <version>${jclouds.version}</version>
+          <optional>true</optional>
+        </dependency>
+        <dependency>
+          <groupId>org.jclouds</groupId>
+          <artifactId>jclouds-slicehost</artifactId>
+          <version>${jclouds.version}</version>
+          <optional>true</optional>
+        </dependency>
+        <dependency>
+          <groupId>org.jclouds</groupId>
+          <artifactId>jclouds-terremark</artifactId>
+          <version>${jclouds.version}</version>
+          <optional>true</optional>
+        </dependency>
 
-    <repositories>
-        <repository>
-            <id>sonatype-snapshots</id>
-            <url>http://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
-        <repository>
-            <id>sonatype</id>
-            <url>http://oss.sonatype.org/content/repositories/releases</url>
-        </repository>
-        <repository>
-            <id>clojure</id>
-            <url>http://build.clojure.org/releases</url>
-        </repository>
-        <repository>
-            <id>clojure-snapshots</id>
-            <url>http://build.clojure.org/snapshots</url>
-        </repository>
-        <repository>
-            <id>clojars</id>
-            <url>http://clojars.org/repo</url>
-        </repository>
-    </repositories>
-    <profiles>
-      <profile>
-        <id>sonatype-release-profile-extension</id>
-        <activation>
-          <property>
-            <name>performRelease</name>
-            <value>true</value>
-          </property>
-        </activation>
-        <build>
-          <plugins>
-            <plugin>
-              <artifactId>maven-gpg-plugin</artifactId>
-              <configuration>
-                <keyName>${gpg.keyname}</keyName>
-                <passphrase>${gpg.passphrase}</passphrase>
-              </configuration>
-              <executions>
-                <execution>
-                  <id>sign-artifacts</id>
-                  <phase>verify</phase>
-                  <goals>
-                    <goal>sign</goal>
-                  </goals>
-                </execution>
-              </executions>
-            </plugin>
-          </plugins>
-        </build>
-      </profile>
-      <profile>
-        <id>testuser</id>
-        <build>
-          <plugins>
-            <plugin>
-              <groupId>com.theoryinpractise</groupId>
-              <artifactId>clojure-maven-plugin</artifactId>
-              <configuration>
-                <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m -Dssh.username=testuser</clojureOptions>
-              </configuration>
-            </plugin>
-          </plugins>
-        </build>
-      </profile>
+        <dependency>
+          <groupId>org.jclouds</groupId>
+          <artifactId>jclouds-jsch</artifactId>
+          <version>${jclouds.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.jclouds</groupId>
+          <artifactId>jclouds-log4j</artifactId>
+          <version>${jclouds.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.jclouds</groupId>
+          <artifactId>jclouds-enterprise</artifactId>
+          <version>${jclouds.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
 
-      <profile>
-        <id>jclouds</id>
-        <activation>
-	  <activeByDefault>true</activeByDefault>
-        </activation>
-        <properties>
-          <jclouds.version>1.0-beta-8</jclouds.version>
-        </properties>
-        <dependencies>
-          <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-compute</artifactId>
-            <version>${jclouds.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-blobstore</artifactId>
-            <version>${jclouds.version}</version>
-          </dependency>
+    <profile>
+      <id>jclouds-snapshot</id>
+      <activation>
+	<activeByDefault>false</activeByDefault>
+      </activation>
+      <properties>
+        <jclouds.version>1.0-SNAPSHOT</jclouds.version>
+      </properties>
+    </profile>
 
-          <!-- You will need the jclouds provider specific jars for your project -->
-          <!-- An alternative to invidual provider jars is to pull in everything -->
-          <!-- <dependency> -->
-          <!--     <groupId>org.jclouds</groupId> -->
-          <!--     <artifactId>jclouds-all</artifactId> -->
-          <!--     <version>${jclouds.version}</version> -->
-          <!--     <optional>true</optional> -->
-          <!-- </dependency> -->
-          <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-aws</artifactId>
-            <version>${jclouds.version}</version>
-            <optional>true</optional>
-          </dependency>
-          <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-bluelock</artifactId>
-            <version>${jclouds.version}</version>
-            <optional>true</optional>
-          </dependency>
-          <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-gogrid</artifactId>
-            <version>${jclouds.version}</version>
-            <optional>true</optional>
-          </dependency>
-          <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-rackspace</artifactId>
-            <version>${jclouds.version}</version>
-            <optional>true</optional>
-          </dependency>
-          <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-rimuhosting</artifactId>
-            <version>${jclouds.version}</version>
-            <optional>true</optional>
-          </dependency>
-          <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-slicehost</artifactId>
-            <version>${jclouds.version}</version>
-            <optional>true</optional>
-          </dependency>
-          <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-terremark</artifactId>
-            <version>${jclouds.version}</version>
-            <optional>true</optional>
-          </dependency>
+    <profile>
+      <id>no-jclouds</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.theoryinpractise</groupId>
+            <artifactId>clojure-maven-plugin</artifactId>
+            <configuration>
+              <testDeclaredNamespaceOnly>true</testDeclaredNamespaceOnly>
+              <testNamespaces>
+                <namespace>pallet\..*</namespace>
+                <namespace>!pallet.compute.jclouds.*</namespace>
+                <namespace>!pallet.blobstore.jclouds</namespace>
+                <namespace>!pallet.core.jclouds.*</namespace>
+              </testNamespaces>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
 
-          <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-jsch</artifactId>
-            <version>${jclouds.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-log4j</artifactId>
-            <version>${jclouds.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.jclouds</groupId>
-            <artifactId>jclouds-enterprise</artifactId>
-            <version>${jclouds.version}</version>
-          </dependency>
-        </dependencies>
-      </profile>
+    <profile>
+      <id>distribution</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <!-- override the default execution inherited from project -->
+              <execution>
+                <id>jar-with-dependencies</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <configuration>
+                  <descriptors>
+                    <descriptor>core-jar-with-dependencies-descriptor.xml</descriptor>
+                  </descriptors>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
-      <profile>
-        <id>jclouds-snapshot</id>
-        <activation>
-	  <activeByDefault>false</activeByDefault>
-        </activation>
-        <properties>
-          <jclouds.version>1.0-SNAPSHOT</jclouds.version>
-        </properties>
-      </profile>
+  <developers>
+    <developer>
+      <name>Hugo Duncan</name>
+      <id>hugoduncan</id>
+      <email>hugo -at- hugoduncan -dot- org</email>
+      <roles>
+        <role>PMC</role>
+        <role>Developer</role>
+      </roles>
+      <timezone>-5</timezone>
+    </developer>
+    <developer>
+      <name>Adrian Cole</name>
+      <id>ferncam1</id>
+      <email>adrian -at- jclouds -dot- org</email>
+      <organization>jclouds</organization>
+      <roles>
+        <role>Developer</role>
+      </roles>
+      <url>http://www.jclouds.org</url>
+      <timezone>-8</timezone>
+    </developer>
+  </developers>
 
-      <profile>
-        <id>no-jclouds</id>
-        <build>
-          <plugins>
-            <plugin>
-              <groupId>com.theoryinpractise</groupId>
-              <artifactId>clojure-maven-plugin</artifactId>
-              <configuration>
-                <testDeclaredNamespaceOnly>true</testDeclaredNamespaceOnly>
-                <testNamespaces>
-                  <namespace>pallet\..*</namespace>
-                  <namespace>!pallet.compute.jclouds.*</namespace>
-                  <namespace>!pallet.blobstore.jclouds</namespace>
-                  <namespace>!pallet.core.jclouds.*</namespace>
-                </testNamespaces>
-              </configuration>
-            </plugin>
-          </plugins>
-        </build>
-      </profile>
+  <contributors>
+    <contributor>
+      <name>Chas Emerick</name>
+      <email>cemerick -at- snowtide -dot- com</email>
+      <organization>Snowtide Informatics</organization>
+      <organizationUrl>http://snowtide.com</organizationUrl>
+      <timezone>-5</timezone>
+      <url>http://cemerick.com</url>
+    </contributor>
+  </contributors>
 
-      <profile>
-        <id>distribution</id>
-        <build>
-          <plugins>
-            <plugin>
-              <artifactId>maven-assembly-plugin</artifactId>
-              <executions>
-                <!-- override the default execution inherited from project -->
-                <execution>
-                  <id>jar-with-dependencies</id>
-                  <phase>package</phase>
-                  <goals>
-                    <goal>single</goal>
-                  </goals>
-                  <configuration>
-                    <descriptors>
-                      <descriptor>core-jar-with-dependencies-descriptor.xml</descriptor>
-                    </descriptors>
-                  </configuration>
-                </execution>
-              </executions>
-            </plugin>
-          </plugins>
-        </build>
-      </profile>
-    </profiles>
-
-    <developers>
-      <developer>
-        <name>Hugo Duncan</name>
-        <id>hugoduncan</id>
-        <email>hugo -at- hugoduncan -dot- org</email>
-        <roles>
-          <role>PMC</role>
-          <role>Developer</role>
-        </roles>
-        <timezone>-5</timezone>
-      </developer>
-      <developer>
-        <name>Adrian Cole</name>
-        <id>ferncam1</id>
-        <email>adrian -at- jclouds -dot- org</email>
-        <organization>jclouds</organization>
-        <roles>
-          <role>Developer</role>
-        </roles>
-        <url>http://www.jclouds.org</url>
-        <timezone>-8</timezone>
-      </developer>
-    </developers>
-
-    <contributors>
-      <contributor>
-	<name>Chas Emerick</name>
-	<email>cemerick -at- snowtide -dot- com</email>
-	<organization>Snowtide Informatics</organization>
-	<organizationUrl>http://snowtide.com</organizationUrl>
-	<timezone>-5</timezone>
-	<url>http://cemerick.com</url>
-      </contributor>
-    </contributors>
-
-    <properties>
-      <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
 </project>
