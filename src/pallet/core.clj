@@ -1,25 +1,6 @@
-(ns #^{:author "Hugo Duncan"}
+(ns ^{:author "Hugo Duncan"}
   pallet.core
-"Pallet is a functional configuration management system, that can be used to
-provision and manage configured compute nodes.
-
-It uses a declaritive map for specifying the number of nodes with a given tag.
-Each tag is used to look up a machine image template specification (in jclouds),
-and to configuration information (in chef).  The converge function then
-tries to bring you compute servers into alignment with your declared counts and
-configurations.
-
-The bootstrap process for new compute nodes installs a user with sudo
-permissions, using the specified username and password. The installed user is
-used to execute the chef cookbooks.
-
-Once the nodes are bootstrapped, and fall all existing nodes
-the configured node information is written to the \"compute-nodes\" cookbook
-before chef is run, and this provides a :compute_nodes attribute.  The
-compute-nodes cookbook is expected to exist in the site-cookbooks of the
-chef-repository you specify with `with-chef-repository`.
-
-"
+"Core functionality is provided in `lift` and `converge`."
   (:require
    [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
@@ -35,13 +16,14 @@ chef-repository you specify with `with-chef-repository`.
    [clojure.contrib.map-utils :as map-utils]))
 
 (defn version
-  "Read the pallet version"
+  "Returns the pallet version."
   []
   (or
    (System/getProperty "pallet.version")
    (if-let [version (utils/slurp-resource "pallet-version")]
      (string/trim version))))
 
+;; Set the agent string for http requests.
 (. System setProperty "http.agent"
    (str "Pallet " (version)))
 
@@ -49,6 +31,11 @@ chef-repository you specify with `with-chef-repository`.
   "Specify the admin user for running remote commands.  The user is specified
    either as pallet.utils.User record (see the pallet.utils/make-user
    convenience fn) or as an argument list that will be passed to make-user."
+  {:arglists
+   '([user & body]
+     [[username & {:keys [public-key-path private-key-path passphrase
+                          password sudo-password no-sudo] :as options}]
+      & body])}
   [user & exprs]
   `(let [user# ~user]
      (binding [utils/*admin-user* (if (utils/user? user#)
@@ -58,11 +45,12 @@ chef-repository you specify with `with-chef-repository`.
 
 (defn admin-user
   "Set the root binding for the admin user.
-The user arg is a map as returned by make-user, or a username.
-When passing a username the following options can be specified:
-  :password
-  :private-key-path
-  :public-key-path"
+  The user arg is a map as returned by make-user, or a username.  When passing a
+  username the options can be specified as in `pallet.utils/make-user`."
+  {:arglists
+   '([user]
+     [username & {:keys [public-key-path private-key-path passphrase
+                         password sudo-password no-sudo] :as options}])}
   [user & options]
   (alter-var-root
    #'utils/*admin-user*
@@ -111,7 +99,7 @@ When passing a username the following options can be specified:
   (let [[tag options] (name-with-attributes tag options)]
     `(def ~tag (make-node '~(name tag) ~@options))))
 
-(defn add-os-family
+(defn- add-os-family
   "Add the os family to the node-type if available from node."
   [request]
   (let [node (:target-node request)
@@ -128,7 +116,7 @@ When passing a username the following options can be specified:
       (fn ensure-os-family-version [f]
         (or version f))))))
 
-(defn add-target-id
+(defn- add-target-id
   "Add the target-id to the request"
   [request]
   (update-in
@@ -138,7 +126,7 @@ When passing a username the following options can be specified:
       (when-let [node (:target-node request)] (keyword (compute/id node)))
       id))))
 
-(defn add-target-packager
+(defn- add-target-packager
   "Add the target packager to the request"
   [request]
   (update-in
@@ -146,7 +134,7 @@ When passing a username the following options can be specified:
    (fn ensure-target-packager [p]
      (or p (compute/packager (get-in request [:node-type :image]))))))
 
-(defn add-target-keys
+(defn- add-target-keys
   "Add target keys on the way down"
   [handler]
   (fn [request]
@@ -169,7 +157,7 @@ When passing a username the following options can be specified:
       (:target-packager request)))
     (handler request)))
 
-(defn resource-invocations [request]
+(defn- resource-invocations [request]
   {:pre [(:phase request)]}
   (if-let [f (some
               (:phase request)
@@ -179,7 +167,7 @@ When passing a username the following options can be specified:
         (f request)))
     request))
 
-(defn produce-init-script
+(defn- produce-init-script
   [request]
   {:pre [(get-in request [:node-type :image :os-family])]}
   (let [cmds
@@ -197,7 +185,7 @@ When passing a username the following options can be specified:
         (:cmds (f request)))
       "")))
 
-(defn create-nodes
+(defn- create-nodes
   "Create count nodes based on the template for tag. The boostrap argument
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
 bootstrap-script value is expected tobe a function that produces a
@@ -217,7 +205,7 @@ script that is run with root privileges immediatly after first boot."
      request
      init-script)))
 
-(defn destroy-nodes-with-count
+(defn- destroy-nodes-with-count
   "Destroys the specified number of nodes with the given tag.  Nodes are
    selected at random."
   [nodes tag destroy-count compute]
@@ -228,7 +216,7 @@ script that is run with root privileges immediatly after first boot."
       (doseq [node (take destroy-count tag-nodes)]
         (compute/destroy-node compute node)))))
 
-(defn node-count-difference
+(defn- node-count-difference
   "Find the difference between the required and actual node counts by tag."
   [node-map nodes]
   (let [node-counts (compute/node-counts-by-tag nodes)]
@@ -237,7 +225,7 @@ script that is run with root privileges immediatly after first boot."
      (into {} (map #(vector (first %) (get node-counts ((first %) :tag) 0))
                    node-map)))))
 
-(defn adjust-node-counts
+(defn- adjust-node-counts
   "Start or stop the specified number of nodes."
   [delta-map nodes request]
   (logging/trace (str "adjust-node-counts" delta-map))
@@ -250,7 +238,7 @@ script that is run with root privileges immediatly after first boot."
   (mapcat #(create-nodes (first %) (second %) request)
           (filter #(pos? (second %)) delta-map)))
 
-(defn converge-node-counts
+(defn- converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
    instances."
   [node-map nodes request]
@@ -294,7 +282,7 @@ script that is run with root privileges immediatly after first boot."
           parameters
           (parameter-keys (:target-node request) (:node-type request)))))))
 
-(defn build-commands
+(defn- build-commands
   [handler]
   (fn [request]
     {:pre [handler
@@ -305,7 +293,7 @@ script that is run with root privileges immediatly after first boot."
        :commands (script/with-template (resource/script-template request)
                    (resource/produce-phase request))))))
 
-(defn apply-phase-to-node
+(defn- apply-phase-to-node
   "Apply a phase to a node request"
   [request]
   {:pre [(:target-node request)]}
@@ -344,6 +332,7 @@ script that is run with root privileges immediatly after first boot."
                                           :transfer/from-local (fn [& _])}))))
 
 (defn wrap-with-user-credentials
+  "Middleware to user the request :user credentials for SSH authentication."
   [handler]
   (fn [request]
     (logging/info
@@ -367,7 +356,7 @@ script that is run with root privileges immediatly after first boot."
   `(binding [*middleware* ~f]
      ~@body))
 
-(defn reduce-phase-results
+(defn- reduce-phase-results
   "Combine the execution results."
   [request results]
   (reduce
@@ -384,7 +373,7 @@ script that is run with root privileges immediatly after first boot."
    request
    results))
 
-(defn reduce-results
+(defn- reduce-results
   "Reduce across all phase results"
   [request results]
   (reduce
@@ -414,49 +403,49 @@ script that is run with root privileges immediatly after first boot."
     (apply-phase-to-node
      (assoc request :target-node node))))
 
-(defn nodes-in-map
+(defn- nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"
   [node-map nodes]
   (let [tags (->> node-map keys (map :tag) (map name) set)]
     (->> nodes (filter compute/running?) (filter #(-> % compute/tag tags)))))
 
-(defn filter-nodes-with-tag
+(defn- filter-nodes-with-tag
   "Return nodes with the given tag"
   [nodes with-tag]
   (filter #(= (name with-tag) (compute/tag %)) nodes))
 
-(defn add-prefix-to-node-type
+(defn- add-prefix-to-node-type
   [prefix node-type]
   (update-in node-type [:tag]
              (fn [tag] (keyword (str prefix (name tag))))))
 
-(defn add-prefix-to-node-map [prefix node-map]
+(defn- add-prefix-to-node-map [prefix node-map]
   (zipmap
    (map (partial add-prefix-to-node-type prefix) (keys node-map))
    (vals node-map)))
 
-(defn ensure-configure-phase [phases]
+(defn- ensure-configure-phase [phases]
   (if (some #{:configure} phases)
     phases
     (concat [:configure] phases)))
 
-(defn node-in-types?
+(defn- node-in-types?
   "Predicate for matching a node belonging to a set of node types"
   [node-types node]
   (some #(= (compute/tag node) (name (% :tag))) node-types))
 
-(defn nodes-for-type
+(defn- nodes-for-type
   "Return the nodes that have a tag that matches one of the node types"
   [nodes node-type]
   (let [tag-string (name (node-type :tag))]
     (filter #(compute/node-has-tag? tag-string %) nodes)))
 
-(defn node-type?
+(defn- node-type?
   "Predicate for testing if argument is node-type."
   [x]
   (and (map? x) (x :tag) (x :image) true))
 
-(defn nodes-in-set
+(defn- nodes-in-set
   "Build a map of nodes for the given node-set. A node set can be a node type, a
    sequence of node types, a node node-typ vector, or a sequence of nodes.
      e.g [node-type1 node-type2 {node-type #{node1 node2}}]
@@ -477,7 +466,7 @@ script that is run with root privileges immediatly after first boot."
             #(merge-with concat %1 %2) {}
             (map #(nodes-in-set % prefix nodes) node-set)))))
 
-(defn identify-anonymous-phases
+(defn- identify-anonymous-phases
   [request phases]
   (reduce #(if (keyword? %2)
              [(first %1)
@@ -486,7 +475,7 @@ script that is run with root privileges immediatly after first boot."
                [(assoc-in (first %1) [:phases phase] %2)
                 (conj (second %1) phase)])) [request []] phases))
 
-(defn invoke-for-nodes
+(defn- invoke-for-nodes
   "Build an invocation map for specified nodes."
   [request nodes]
   (reduce
@@ -494,14 +483,14 @@ script that is run with root privileges immediatly after first boot."
      (assoc %1 :target-node %2 :target-id (keyword (compute/id %2))))
    request nodes))
 
-(defn invoke-for-node-type
+(defn- invoke-for-node-type
   "Build an invocation map for specified node-type map."
   [request node-map]
   (reduce
    #(invoke-for-nodes (assoc %1 :node-type (first %2)) (second %2))
    request node-map))
 
-(defn invoke-phases
+(defn- invoke-phases
   "Build an invocation map for specified phases and nodes.
    This allows configuration to be accumulated in the request parameters."
   [request phases node-map]
@@ -534,10 +523,12 @@ script that is run with root privileges immediatly after first boot."
       (sequential-lift phases target-node-map)))))
 
 (def
-  ^{:doc "Flag to control output of warnings about undefined phases in calls to lift and converge."}
+  ^{:doc
+    "Flag to control output of warnings about undefined phases in calls to lift
+     and converge."}
   *warn-on-undefined-phase* true)
 
-(defn warn-on-undefined-phase
+(defn- warn-on-undefined-phase
   [all-node-map phases]
   (when *warn-on-undefined-phase*
     (when-let [undefined (seq (filter
@@ -603,7 +594,7 @@ script that is run with root privileges immediatly after first boot."
   `(fn or-args [current#]
      (or current# ~@args)))
 
-(defn compute-from-options
+(defn- compute-from-options
   [current-value {:keys [compute compute-service]}]
   (or current-value
       compute
@@ -615,7 +606,7 @@ script that is run with root privileges immediatly after first boot."
             :extensions (:extensions compute-service)
             :node-list (:node-list compute-service)))))
 
-(defn blobstore-from-options
+(defn- blobstore-from-options
   [current-value {:keys [blobstore blobstore-service]}]
   (or current-value
       blobstore

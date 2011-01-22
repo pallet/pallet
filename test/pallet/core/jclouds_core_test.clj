@@ -1,6 +1,7 @@
 (ns pallet.core.jclouds-core-test
   (:use pallet.core)
   (require
+   [pallet.core :as core]
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
    [pallet.resource.exec-script :as exec-script]
@@ -61,18 +62,18 @@
 
 
 (deftest add-prefix-to-node-type-test
-  (is (= {:tag :pa} (add-prefix-to-node-type "p" {:tag :a}))))
+  (is (= {:tag :pa} (#'core/add-prefix-to-node-type "p" {:tag :a}))))
 
 (deftest add-prefix-to-node-map-test
-  (is (= {{:tag :pa} 1} (add-prefix-to-node-map "p" {{:tag :a} 1}))))
+  (is (= {{:tag :pa} 1} (#'core/add-prefix-to-node-map "p" {{:tag :a} 1}))))
 
 (deftest node-count-difference-test
   (is (= { {:tag :a} 1 {:tag :b} -1}
-         (node-count-difference
+         (#'core/node-count-difference
           { {:tag :a} 2 {:tag :b} 0}
           [(jclouds/make-node "a") (jclouds/make-node "b")])))
   (is (= { {:tag :a} 1 {:tag :b} 1}
-         (node-count-difference { {:tag :a} 1 {:tag :b} 1} []))))
+         (#'core/node-count-difference { {:tag :a} 1 {:tag :b} 1} []))))
 
 (deftest add-os-family-test
   (defnode a {:os-family :ubuntu})
@@ -80,8 +81,7 @@
   (let [n1 (jclouds/make-node "n1" :operating-system {:version nil})]
     (is (= {:tag :a :image {:os-family :ubuntu :os-version nil} :phases nil}
            (:node-type
-            (add-os-family
-             {:target-node n1 :node-type a})))))
+            (#'core/add-os-family {:target-node n1 :node-type a})))))
   (let [n1 (jclouds/make-node
             "n1"
             :operating-system (OperatingSystem.
@@ -93,22 +93,20 @@
                                true))]
     (is (= {:tag :a :image {:os-family :ubuntu :os-version nil} :phases nil}
            (:node-type
-            (add-os-family
-             {:target-node n1 :node-type a}))))
+            (#'core/add-os-family {:target-node n1 :node-type a}))))
     (is (= {:tag :b :image {:os-family :ubuntu :os-version nil} :phases nil}
            (:node-type
-            (add-os-family
-             {:target-node n1 :node-type b}))))))
+            (#'core/add-os-family {:target-node n1 :node-type b}))))))
 
 (deftest add-target-packager-test
   (is (= {:node-type {:image {:os-family :ubuntu}} :target-packager :aptitude}
-         (add-target-packager
+         (#'core/add-target-packager
           {:node-type {:image {:os-family :ubuntu}}}))))
 
 (deftest converge-node-counts-test
   (defnode a {:os-family :ubuntu})
   (let [a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
-    (converge-node-counts
+    (#'core/converge-node-counts
      {a 1} [a-node] {:compute org.jclouds.compute/*compute*}))
   (mock/expects [(org.jclouds.compute/run-nodes
                   [tag n template compute]
@@ -118,7 +116,7 @@
                   [compute & options]
                   (mock/once :template))]
     (let [a-node (jclouds/make-node "a" :state NodeState/TERMINATED)]
-      (converge-node-counts
+      (#'core/converge-node-counts
        {a 1} [a-node] {:compute org.jclouds.compute/*compute*}))))
 
 (deftest nodes-in-map-test
@@ -128,9 +126,9 @@
         b-node (jclouds/make-node "b")
         nodes [a-node b-node]]
     (is (= [a-node]
-           (nodes-in-map {a 1} nodes)))
+           (#'core/nodes-in-map {a 1} nodes)))
     (is (= [a-node b-node]
-           (nodes-in-map {a 1 b 2} nodes)))))
+           (#'core/nodes-in-map {a 1 b 2} nodes)))))
 
 (deftest nodes-in-set-test
   (defnode a {:os-family :ubuntu})
@@ -140,27 +138,27 @@
   (let [a-node (jclouds/make-node "a")
         b-node (jclouds/make-node "b")]
     (is (= {a #{a-node}}
-           (nodes-in-set {a a-node} nil nil)))
+           (#'core/nodes-in-set {a a-node} nil nil)))
     (is (= {a #{a-node b-node}}
-           (nodes-in-set {a #{a-node b-node}} nil nil)))
+           (#'core/nodes-in-set {a #{a-node b-node}} nil nil)))
     (is (= {a #{a-node} b #{b-node}}
-           (nodes-in-set {a #{a-node} b #{b-node}} nil nil))))
+           (#'core/nodes-in-set {a #{a-node} b #{b-node}} nil nil))))
   (let [a-node (jclouds/make-node "a")
         b-node (jclouds/make-node "b")]
     (is (= {pa #{a-node}}
-           (nodes-in-set {a a-node} "p" nil)))
+           (#'core/nodes-in-set {a a-node} "p" nil)))
     (is (= {pa #{a-node b-node}}
-           (nodes-in-set {a #{a-node b-node}} "p" nil)))
+           (#'core/nodes-in-set {a #{a-node b-node}} "p" nil)))
     (is (= {pa #{a-node} pb #{b-node}}
-           (nodes-in-set {a #{a-node} b #{b-node}} "p" nil)))
+           (#'core/nodes-in-set {a #{a-node} b #{b-node}} "p" nil)))
     (is (= {pa #{a-node} pb #{b-node}}
-           (nodes-in-set {a a-node b b-node} "p" nil)))))
+           (#'core/nodes-in-set {a a-node b b-node} "p" nil)))))
 
 (deftest node-in-types?-test
   (defnode a {})
   (defnode b {})
-  (is (node-in-types? [a b] (jclouds/make-node "a")))
-  (is (not (node-in-types? [a b] (jclouds/make-node "c")))))
+  (is (#'core/node-in-types? [a b] (jclouds/make-node "a")))
+  (is (not (#'core/node-in-types? [a b] (jclouds/make-node "c")))))
 
 (deftest nodes-for-type-test
   (defnode a {})
@@ -168,8 +166,8 @@
   (let [na (jclouds/make-node "a")
         nb (jclouds/make-node "b")
         nc (jclouds/make-node "c")]
-    (is (= [nb] (nodes-for-type [na nb nc] b)))
-    (is (= [na] (nodes-for-type [na nc] a)))))
+    (is (= [nb] (#'core/nodes-for-type [na nb nc] b)))
+    (is (= [na] (#'core/nodes-for-type [na nc] a)))))
 
 (deftest nodes-in-map-test
   (defnode a {})
@@ -177,8 +175,8 @@
   (defnode c {})
   (let [na (jclouds/make-node "a")
         nb (jclouds/make-node "b")]
-    (is (= [na nb] (nodes-in-map {a 1 b 1 c 1} [na nb])))
-    (is (= [na] (nodes-in-map {a 1 c 1} [na nb])))))
+    (is (= [na nb] (#'core/nodes-in-map {a 1 b 1 c 1} [na nb])))
+    (is (= [na] (#'core/nodes-in-map {a 1 c 1} [na nb])))))
 
 (deftest build-request-map-test
   (binding [pallet.core/*middleware* :middleware]
@@ -227,12 +225,13 @@
            (first
             (resource-build/produce-phases
              [:bootstrap]
-             (resource-invocations (assoc request :phase :bootstrap))))))
+             (#'core/resource-invocations (assoc request :phase :bootstrap))))))
     (is (= ":b\n"
            (first
             (resource-build/produce-phases
              [:configure]
-             (resource-invocations (assoc request :phase :configure))))))))
+             (#'core/resource-invocations
+              (assoc request :phase :configure))))))))
 
 (resource/defresource identity-resource
   (identity-resource* [request x] x))
@@ -242,7 +241,7 @@
 
 (deftest produce-init-script-test
   (is (= "a\n"
-         (produce-init-script
+         (#'core/produce-init-script
           {:node-type {:image {:os-family :ubuntu}
                        :phases {:bootstrap (resource/phase
                                             (identity-resource "a"))}}
@@ -250,7 +249,7 @@
   (testing "rejects local resources"
     (is (thrown?
          clojure.contrib.condition.Condition
-         (produce-init-script
+         (#'core/produce-init-script
           {:node-type
            {:image {:os-family :ubuntu}
             :phases {:bootstrap (resource/phase (identity-local-resource))}}
