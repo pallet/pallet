@@ -4,6 +4,7 @@
         pallet.test-utils
         clojure.contrib.logging)
   (:require
+   [pallet.compute.jvm :as jvm]
    [pallet.utils :as utils]
    [pallet.script :as script]))
 
@@ -55,6 +56,18 @@
              "file=$(mktemp -t utilXXXX);echo fred > \"$file\";cat \"$file\";rm \"$file\"")]
     (is (= {:exit 0 :err "" :out "fred\n"} res))))
 
+
+(deftest remote-sudo-test
+  (let [user (assoc utils/*admin-user* :username (test-username))]
+    (binding [utils/*admin-user* user]
+      (possibly-add-identity
+       (default-agent) (:private-key-path user) (:passphrase user))
+      (script/with-template [(jvm/os-family)]
+        (let [result (remote-sudo
+                      "localhost"
+                      "ls"
+                      (assoc user :no-sudo true))]
+          (is (zero? (:exit result))))))))
 
 (deftest execute-ssh-cmds-test
   (let [user (assoc utils/*admin-user* :username (test-username))]

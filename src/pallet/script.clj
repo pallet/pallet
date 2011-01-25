@@ -101,7 +101,8 @@
    (format "Looking up script %s" script))
   (when-let [impls (*scripts* script)]
     (logging/trace
-     (format "Found implementations %s - template" (keys impls) (seq *template*)))
+     (format
+      "Found implementations %s - template %s" (keys impls) (seq *template*)))
     (second (reduce better-match?
                     [:default (impls :default)]
                     (dissoc impls :default)))))

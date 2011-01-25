@@ -34,6 +34,7 @@
    [pallet.compute.implementation :as implementation]
    [pallet.core :as core]
    [pallet.script :as script]
+   [pallet.execute :as execute]
    [pallet.resource :as resource]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]
@@ -134,6 +135,8 @@
 (defn create-node
   [compute node-path node-type machine-name images image-id tag-name
    init-script user]
+  {:pre [image-id]}
+  (logging/trace (format "Creating node from image-id: %s" image-id))
   (let [machine (manager/instance
                  compute machine-name image-id :micro node-path)
         image (image-id images)]
@@ -142,12 +145,13 @@
     (manager/set-extra-data machine "/pallet/os-version" (:os-version image))
     ;; (manager/add-startup-command machine 1 init-script )
     (manager/start machine :session-type "vrdp")
+    (logging/trace "Waiting for ip")
     (wait-for-ip machine)
     (Thread/sleep 4000)
-    (println "Attempting to bootstrap machine at " (manager/get-ip machine))
+    (logging/trace (format "Bootstrapping %s" (manager/get-ip machine)))
     (script/with-template
       (resource/script-template {:node-type {:image image}})
-      (pallet.execute/remote-sudo
+      (execute/remote-sudo
        (manager/get-ip machine)
        init-script
        (if (:username image)

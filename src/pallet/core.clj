@@ -198,6 +198,7 @@ script that is run with root privileges immediatly after first boot."
                  (assoc request :node-type node-type))
         request (add-target-packager request)
         init-script (produce-init-script request)]
+    (logging/trace (format "Bootstrap script:\n%s" init-script))
     (compute/run-nodes
      (:compute request)
      node-type

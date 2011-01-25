@@ -5,6 +5,7 @@
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
    [pallet.resource :as resource]
+   [pallet.resource.file :as file]
    [pallet.compute.jvm :as jvm]
    [clj-ssh.ssh :as ssh]
    [clojure.string :as string]
@@ -75,28 +76,28 @@
     (ssh/add-identity agent private-key-path passphrase)
     (ssh/add-identity-with-keychain agent private-key-path)))
 
-(defn remote-sudo
-  "Run a sudo command on a server."
-  [#^String server #^String command user]
-  (ssh/with-ssh-agent [(default-agent)]
-    (possibly-add-identity
-     ssh/*ssh-agent* (:private-key-path user) (:passphrase user))
-    (let [session (ssh/session server
-                               :username (:username user)
-                               :password (:password user)
-                               :strict-host-key-checking :no)]
-      (ssh/with-connection session
-        (let [prefix (sudo-cmd-for user)
-              cmd (str prefix command)
-              result (ssh/ssh session cmd :return-map true)]
-          (logging/info (result :out))
-          (when (not (zero? (result :exit)))
-            (logging/error (str "Exit status " (result :exit)))
-            (logging/error (result :err)))
-          result)))))
-
+(defn- mktemp
+  "Create a temporary remote file using the ssh `session` and the filename
+  `prefix`"
+  [session prefix]
+  (let [result (ssh/ssh
+                session
+                (stevedore/script (println (make-temp-file prefix)))
+                :return-map true)]
+    (if (zero? (:exit result))
+      (string/trim (result :out))
+      (condition/raise
+       :type :remote-execution-failure
+       :message (format
+                 "Failed to generate remote temporary file %s" (:err result))
+       :exit (:exit result)
+       :err (:err result)
+       :out (:out result)))))
 
 (defn remote-sudo-cmd
+  "Execute remote command.
+   Copies `command` to `tmpfile` on the remote node using the `sftp-channel`
+   and executes the `tmpfile` as the specified `user`."
   [server session sftp-channel user tmpfile command]
   (let [response (ssh/sftp sftp-channel
                            :put (java.io.ByteArrayInputStream.
@@ -139,6 +140,23 @@
       (ssh/ssh session (str "rm " tmpfile))
       {:out stdout :err stderr :exit (:exit script-result)})))
 
+(defn remote-sudo
+  "Run a sudo command on a server."
+  [#^String server #^String command user]
+  (ssh/with-ssh-agent [(default-agent)]
+    (possibly-add-identity
+     ssh/*ssh-agent* (:private-key-path user) (:passphrase user))
+    (let [session (ssh/session server
+                               :username (:username user)
+                               :password (:password user)
+                               :strict-host-key-checking :no)]
+      (ssh/with-connection session
+        (let [tmpfile (mktemp session "remotesudo")
+              sftp-channel (ssh/ssh-sftp session)]
+          (logging/info (format "Cmd %s" command))
+          (ssh/with-connection sftp-channel
+            (remote-sudo-cmd
+             server session sftp-channel user tmpfile command)))))))
 
 (defn execute-ssh-cmds
   "Run cmds on a target."
@@ -150,59 +168,54 @@
                                :strict-host-key-checking :no
                                :port (or (options :port) 22)
                                :password (:password user))]
-      (ssh/with-connection session
-        (let [mktemp-result (ssh/ssh
-                             session "mktemp sudocmdXXXXX" :return-map true)
-              tmpfile (string/trim (mktemp-result :out))
-              tmpcpy (string/trim
-                      (:out
-                       (ssh/ssh session "mktemp tferXXXXX" :return-map true)))
-              sftp-channel (ssh/ssh-sftp session)]
-          (ssh/with-connection sftp-channel
-            (assert (zero? (mktemp-result :exit)))
-            (letfn [(execute
-                     [cmdstring]
-                     (logging/info (format "Cmd %s" cmdstring))
-                     (remote-sudo-cmd
-                      server session sftp-channel
-                      user tmpfile cmdstring))
-                    (from-local
-                     [transfers]
-                     (doseq [[file remote-name] transfers]
-                       (logging/info
-                        (format
-                         "Transferring file %s to node @ %s via %s"
-                         file remote-name tmpcpy))
-                       (ssh/sftp sftp-channel
-                                 :put (-> file java.io.FileInputStream.
-                                          java.io.BufferedInputStream.)
-                                 tmpcpy)
-                       (script/with-template (resource/script-template request)
+      (script/with-template (resource/script-template request)
+        (ssh/with-connection session
+          (let [tmpfile (mktemp session "sudocmd")
+                tmpcpy (mktemp session "tfer")
+                sftp-channel (ssh/ssh-sftp session)]
+            (ssh/with-connection sftp-channel
+              (letfn [(execute
+                       [cmdstring]
+                       (logging/info (format "Cmd %s" cmdstring))
+                       (remote-sudo-cmd
+                        server session sftp-channel user tmpfile cmdstring))
+                      (from-local
+                       [transfers]
+                       (doseq [[file remote-name] transfers]
+                         (logging/info
+                          (format
+                           "Transferring file %s to node @ %s via %s"
+                           file remote-name tmpcpy))
+                         (ssh/sftp sftp-channel
+                                   :put (-> file java.io.FileInputStream.
+                                            java.io.BufferedInputStream.)
+                                   tmpcpy)
+
                          (remote-sudo-cmd
                           server session sftp-channel user tmpfile
                           (stevedore/script
                            (chmod "0600" ~tmpcpy)
-                           (mv -f ~tmpcpy ~remote-name))))))
-                    (to-local
-                     [transfers]
-                     (doseq [[remote-file local-file] transfers]
-                       (logging/info
-                        (format
-                         "Transferring file %s from node to %s"
-                         remote-file local-file))
-                       (remote-sudo-cmd
-                        server session sftp-channel user tmpfile
-                        (stevedore/script
-                         (cp -f ~remote-file ~tmpcpy)))
-                       (ssh/sftp sftp-channel
-                                 :get tmpcpy
-                                 (-> local-file java.io.FileOutputStream.
-                                     java.io.BufferedOutputStream.))))]
-              (resource/execute-commands
-               request
-               {:script/bash execute
-                :transfer/to-local to-local
-                :transfer/from-local from-local}))))))))
+                           (mv -f ~tmpcpy ~remote-name)))))
+                      (to-local
+                       [transfers]
+                       (doseq [[remote-file local-file] transfers]
+                         (logging/info
+                          (format
+                           "Transferring file %s from node to %s"
+                           remote-file local-file))
+                         (remote-sudo-cmd
+                          server session sftp-channel user tmpfile
+                          (stevedore/script
+                           (cp -f ~remote-file ~tmpcpy)))
+                         (ssh/sftp sftp-channel
+                                   :get tmpcpy
+                                   (-> local-file java.io.FileOutputStream.
+                                       java.io.BufferedOutputStream.))))]
+                (resource/execute-commands
+                 request
+                 {:script/bash execute
+                  :transfer/to-local to-local
+                  :transfer/from-local from-local})))))))))
 
 (defn ssh-cmds
   "Execute cmds for the request.
