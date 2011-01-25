@@ -278,6 +278,7 @@
                 <namespace>!pallet.compute.jclouds.*</namespace>
                 <namespace>!pallet.blobstore.jclouds</namespace>
                 <namespace>!pallet.core.jclouds.*</namespace>
+                <namespace>!pallet.live-test.jclouds.*</namespace>
               </testNamespaces>
             </configuration>
           </plugin>
