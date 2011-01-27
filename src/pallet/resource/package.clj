@@ -387,7 +387,7 @@
    (stevedore/do-script*
     (map (fn [x] (apply package-source* request x)) args))))
 
-(defn add-scope
+(defn add-scope*
   "Add a scope to all the existing package sources. Aptitude specific."
   [type scope file]
   (stevedore/chained-script
@@ -398,6 +398,14 @@
         ~file > @tmpfile)
    (mv -f @tmpfile ~file)))
 
+(defn add-scope
+  "Add a scope to an apt source"
+  [opts]
+  (add-scope*
+   (or (opts :type) "deb.*")
+   (:scope opts)
+   (or (opts :file) "/etc/apt/sources.list")))
+
 (defn package-manager*
   "Package management."
   [request action & options]
@@ -407,16 +415,11 @@
      (case action
        :update (stevedore/script (update-package-list))
        :list-installed (stevedore/script (list-installed-packages))
-       :multiverse (let [opts (apply hash-map options)]
-                     (add-scope (or (opts :type) "deb.*")
-                                "multiverse"
-                                (or (opts :file) "/etc/apt/sources.list")))
-       :universe (let [opts (apply hash-map options)]
-                   (add-scope (or (opts :type) "deb.*")
-                              "universe"
-                              (or (opts :file) "/etc/apt/sources.list")))
+       :add-scope (add-scope (apply hash-map options))
+       :multiverse (add-scope (apply hash-map :scope "multiverse" options))
+       :universe (add-scope (apply hash-map :scope "universe" options))
        :debconf (if (= :aptitude packager)
-         (stevedore/script (apply debconf-set-selections ~options)))
+                  (stevedore/script (apply debconf-set-selections ~options)))
        (throw (IllegalArgumentException.
                (str action
                     " is not a valid action for package-manager resource")))))))
@@ -425,10 +428,18 @@
   "Package manager controls.
 
    `action` is one of the following:
-     :update            - update the list of available packages
-     :list-installed    - output a list of the installed packages
-     :multiverse        - enable multiverse
-     :update            - update the package manager"
+   - :update          - update the list of available packages
+   - :list-installed  - output a list of the installed packages
+   - :add-scope       - enable a scope (eg. multiverse, non-free)
+
+   To refresh the list of packages known to the pakage manager:
+       (package-manager request :update)
+
+   To enable multiverse on ubuntu:
+       (package-manager request :add-scope :scope :multiverse)
+
+   To enable non-free on debian:
+       (package-manager request :add-scope :scope :non-free)"
   {:copy-arglist pallet.resource.package/package-manager*}
   (apply-package-manager
    [request package-manager-args]

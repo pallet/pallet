@@ -116,7 +116,7 @@ EOF
           (cp -p "/etc/apt/sources.list" @tmpfile)
           (awk "'{if ($1 ~ /^deb/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
           (mv -f @tmpfile "/etc/apt/sources.list"))
-         (add-scope "deb" "multiverse" "/etc/apt/sources.list")))
+         (add-scope* "deb" "multiverse" "/etc/apt/sources.list")))
 
   (testing "with sources.list"
     (let [tmp (java.io.File/createTempFile "package_test" "test")]
@@ -124,7 +124,8 @@ EOF
 deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             tmp)
       (is (= {:exit 0, :out "", :err ""}
-             (execute/sh-script (add-scope "deb" "multiverse" (.getPath tmp)))))
+             (execute/sh-script
+              (add-scope* "deb" "multiverse" (.getPath tmp)))))
       (is (= "deb http://archive.ubuntu.com/ubuntu/ karmic main restricted  multiverse \ndeb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted  multiverse \n"
              (slurp (.getPath tmp))))
       (.delete tmp))))
