@@ -349,8 +349,9 @@
                     (do
                       (is (= #{na nb nc} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
+                      (is (= 1 (-> request :parameters :x)))
                       []))]
-                  (lift [a b] :compute compute))))
+                  (lift [a b] :compute compute :parameters {:x 1}))))
 
 ;; (deftest converge*-nodes-binding-test
 ;;   (defnode a {})
