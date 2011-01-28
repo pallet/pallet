@@ -12,16 +12,22 @@
 (use-fixtures :once with-ubuntu-script-template)
 
 (deftest path-components-test
-  (are ["a/b/c" "d" "e"] (= path-components "a/b/c/d.e"))
-  (are ["a/b/c" "d" nil] (= path-components "a/b/c/d")))
+  (is (= ["a/b/c" "d" "e"] (path-components "a/b/c/d.e")))
+  (is (= ["a/b/c" "d" nil] (path-components "a/b/c/d"))))
 
 (deftest pathname-test
   (is (= "a/b/c/d.e" (pathname "a/b/c" "d" "e")))
   (is (= "a/b/c/d" (pathname "a/b/c" "d" nil))))
 
 (deftest candidate-templates-test
-  (is (= ["a/b/c_t.d" "resources/a/b/c_t.d" "a/b/c_ubuntu.d" "resources/a/b/c_ubuntu.d"  "a/b/c_aptitude.d" "resources/a/b/c_aptitude.d" "a/b/c.d" "resources/a/b/c.d"]
-         (candidate-templates "a/b/c.d" "t" {:os-family :ubuntu}))))
+  (is (= ["a/b/c_t.d" "resources/a/b/c_t.d"
+          "a/b/c_ubuntu.d" "resources/a/b/c_ubuntu.d"
+          "a/b/c_aptitude.d" "resources/a/b/c_aptitude.d"
+          "a/b/c.d" "resources/a/b/c.d"]
+         (candidate-templates "a/b/c.d" "t" {:os-family :ubuntu})))
+  (is (= ["c_t.d" "resources/c_t.d" "c_ubuntu.d" "resources/c_ubuntu.d"
+          "c_aptitude.d" "resources/c_aptitude.d" "c.d" "resources/c.d"]
+         (candidate-templates "c.d" "t" {:os-family :ubuntu}))))
 
 (with-private-vars [pallet.template [apply-template-file]]
   (deftest apply-template-file-test
@@ -39,7 +45,8 @@ EOF
 chmod 0666 ${file}
 chgrp grp ${file}
 chown user ${file}"
-           (apply-template-file [{:path "/etc/file" :owner "user" :mode "0666" :group "grp"}
+           (apply-template-file [{:path "/etc/file" :owner "user" :mode "0666"
+                                  :group "grp"}
                                  "some content"])))))
 
 (deftest apply-template-file-test

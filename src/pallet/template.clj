@@ -5,7 +5,7 @@
    [pallet.target :as target]
    [pallet.compute :as compute]
    [pallet.utils :as utils]
-   [clojure.contrib.string :as string]
+   [clojure.string :as string]
    [pallet.stevedore :as stevedore])
   (:use
    [pallet.resource.file]
@@ -17,22 +17,22 @@
   (-> (clojure.lang.RT/baseLoader) (.getResource path)))
 
 (defn path-components
-  "Split a path into directory, basename and extension components"
+  "Split a resource path into path, basename and extension components."
   [path]
-  (let [f (java.io.File. path)
-        filename (.getName f)
-        i (.lastIndexOf filename "." )]
-    [(.getParent f)
-     (if (neg? i) filename (.substring filename 0 i))
-     (if (neg? i) nil (.substring filename (inc i)))]))
+  (let [p (inc (.lastIndexOf path "/"))
+        i (.lastIndexOf path ".")]
+    [(when (pos? p) (subs path 0 (dec p)))
+     (if (neg? i) (subs path p) (subs path p i))
+     (if (neg? i) nil (subs path (inc i)))]))
 
 (defn pathname
   "Build a pathname from a list of path and filename parts.  Last part is
-   assumed to be a file extension."
-  [& parts]
-  (let [ext (last parts)]
-    (str (apply str (interpose java.io.File/separator (butlast parts)))
-         (if ext (str "." ext)))))
+   assumed to be a file extension.
+
+   'The name of a resource is a '/'-separated path name that identifies the
+   resource.'"
+  [path file ext]
+  (str (when path (str path "/")) file (when ext (str "." ext))))
 
 (defn candidate-templates
   "Generate a prioritised list of possible template paths."
