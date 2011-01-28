@@ -106,7 +106,7 @@
                       (logging/warn
                        (format "wait-for-ip: Machine %s is not accessible yet..." machine))))]
         (when (string/blank? ip)
-          (Thread/sleep 500)
+          (Thread/sleep 2000)
           (recur))))))
 
 
@@ -145,6 +145,8 @@
     (manager/set-extra-data machine "/pallet/os-version" (:os-version image))
     ;; (manager/add-startup-command machine 1 init-script )
     (manager/start machine :session-type "vrdp")
+    (logging/trace "Wait to allow boot")
+    (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
     (wait-for-ip machine)
     (Thread/sleep 4000)
@@ -155,7 +157,10 @@
        (manager/get-ip machine)
        init-script
        (if (:username image)
-         (pallet.utils/make-user (:username image) :password (:password image))
+         (pallet.utils/make-user
+          (:username image)
+          :password (:password image)
+          :no-sudo (:no-sudo image))
          user)))))
 
 (defn- equality-match
