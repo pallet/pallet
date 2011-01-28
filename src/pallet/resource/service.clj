@@ -70,7 +70,7 @@
 
 
 (resource/defresource service
-  "Control serives."
+  "Control services. The action keyword accepts either start, stop, restart, enable or disable keywords."
   (service*
    [request service-name & {:keys [action if-flag]
                             :or {action :start}
