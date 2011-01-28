@@ -6,6 +6,7 @@ configuration code."
    [pallet.script :as script]
    [clojure.contrib.seq :as seq]
    [clojure.string :as string]
+   [clojure.contrib.condition :as condition]
    [clojure.contrib.logging :as logging])
   (:use
    [clojure.contrib.def :only [defunbound defvar defvar- name-with-attributes]]
@@ -402,6 +403,29 @@ configuration code."
   [phases]
   (phase-list* (or (seq phases) (seq [:configure]))))
 
+(defn check-request-map
+  "Function that can check a request map to ensure it is a valid part of
+   phase definiton. It returns the request map.
+
+   If this fails, then it is likely that you have an incorrect crate function,
+   which is failing to return its request map properly, or you have a non crate
+   function in the phase defintion."
+  [request]
+  ;; we do not use a precondition in order to improve the error message
+  (when-not (and request (map? request))
+    (condition/raise
+     :type :invalid-request-map
+     :message
+     "Invalid request map in phase definition. Check for non crate functions,
+      improper crate functions, or problems in threading the request map
+      in your phase definition.
+
+      A crate function is a function that takes a request map and other
+      arguments, and returns a modified request map. Calls to crate functions
+      are often wrapped in a threading macro, -> or pallet.resource/phase,
+      to simplify chaining of the request map argument."))
+  request)
+
 (defmacro phase
   "Create a phase function from a sequence of crate invocations with
    an ommited request parameter.
@@ -417,6 +441,5 @@ configuration code."
                    (file \"/some-file\")
                    (file \"/other-file\"))) "
   [& body]
-  `(fn [request#] (-> request# ~@body)))
-
-
+  `(fn [request#]
+     (-> request# ~@(interpose `check-request-map body) check-request-map)))
