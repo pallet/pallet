@@ -70,7 +70,14 @@
 
 
 (resource/defresource service
-  "Control services. The action keyword accepts either start, stop, restart, enable or disable keywords."
+  "Control services.
+
+   - :action  accepts either startstop, restart, enable or disable keywords.
+   - :if-flag  makes start, stop, and restart confitional on the specified flag
+               as set, for example, by remote-file :flag-on-changed
+   - :sequence-start  a sequence of [sequence-number level level ...], where
+                      sequence number determines the order in which services
+                      are started within a level."
   (service*
    [request service-name & {:keys [action if-flag]
                             :or {action :start}
@@ -82,7 +89,7 @@
      (if if-flag
        (stevedore/script
         (if (== "1" (flag? ~if-flag))
-          ( ~(str "/etc/init.d/" service-name) ~(name action))))
+          (~(str "/etc/init.d/" service-name) ~(name action))))
        (stevedore/script
         ( ~(str "/etc/init.d/" service-name) ~(name action)))))))
 
