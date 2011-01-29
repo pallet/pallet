@@ -17,9 +17,17 @@
    [pallet.compute :as compute]
    [pallet.resource :as resource]))
 
+(defn- read-property
+  "Read a system property as a clojure value."
+  [property-name]
+  (when-let [property (System/getProperty property-name)]
+    (if (string? property)
+      (read-string property)
+      property)))
+
 (def ^{:doc "Guard execution of the live tests. Used to enable the tests."}
   *live-tests*
-  (System/getProperty "pallet.test.live"))
+  (read-property "pallet.test.live"))
 
 (def ^{:doc "Name used to find the service in config.clj or settings.xml."}
   service-name
@@ -29,7 +37,7 @@
 
 (def ^{:doc "Flag to control cleanup of generated nodes"}
   *cleanup-nodes*
-  (let [cleanup (System/getProperty "pallet.test.cleanup-nodes")]
+  (let [cleanup (read-property "pallet.test.cleanup-nodes")]
     (if (nil? cleanup) true cleanup)))
 
 (defn set-live-tests!
