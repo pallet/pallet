@@ -89,7 +89,7 @@
 
 ;;; yum
 (stevedore/defimpl update-package-list [#{:yum}] [& options]
-  (yum makecache ~(stevedore/option-args options)))
+  (yum makecache -q ~(stevedore/option-args options)))
 
 (stevedore/defimpl install-package [#{:yum}] [package & options]
   (yum install -y -q ~(stevedore/option-args options) ~package))
@@ -192,7 +192,8 @@
             (throw
              (IllegalArgumentException.
               (str
-               action " is not a valid action for package resource")))))))))))
+               action " is not a valid action for package resource"))))))))
+    (stevedore/script (list-installed-packages)))))
 
 (def ^{:private true :doc "Define the order of actions"}
   action-order {:install 10 :remove 20 :upgrade 30})
@@ -204,21 +205,24 @@
   (stevedore/checked-commands
    "Packages"
    (stevedore/chain-commands*
-    (for [[action packages] (->> packages
-                                 (sort-by #(action-order (:action %)))
-                                 (group-by :action))
-          [opts packages] (->>
-                           packages
-                           (group-by #(select-keys % [:enable :disable]))
-                           (sort-by #(apply min (map :priority (second %)))))]
-      (stevedore/script
-       (yum
-        ~(name action) -q -y
-        ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
-        ~(string/join " " (map #(str "--disablerepo=" %) (:disable opts)))
-        ~(string/join
-          " "
-          (distinct (map :package packages)))))))))
+    (conj
+     (vec
+      (for [[action packages] (->> packages
+                                   (sort-by #(action-order (:action %)))
+                                   (group-by :action))
+            [opts packages] (->>
+                             packages
+                             (group-by #(select-keys % [:enable :disable]))
+                             (sort-by #(apply min (map :priority (second %)))))]
+        (stevedore/script
+         (yum
+          ~(name action) -q -y
+          ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
+          ~(string/join " " (map #(str "--disablerepo=" %) (:disable opts)))
+          ~(string/join
+            " "
+            (distinct (map :package packages)))))))
+     (stevedore/script (list-installed-packages))))))
 
 
 (defmethod adjust-packages :default
@@ -274,10 +278,7 @@
                      :as options}]}
   (package*
    [request args]
-   (adjust-packages
-    request
-    (map #(apply package-map request %) args))))
-
+   (adjust-packages request (map #(apply package-map request %) args))))
 
 (defn packages
   "Install a list of packages keyed on packager.

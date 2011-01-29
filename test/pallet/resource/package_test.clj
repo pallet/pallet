@@ -21,7 +21,7 @@
   (is (= "aptitude update || true"
          (script/with-template [:aptitude]
            (stevedore/script (update-package-list)))))
-  (is (= "yum makecache"
+  (is (= "yum makecache -q"
          (script/with-template [:yum]
            (stevedore/script (update-package-list)))))
   (is (= "zypper refresh"
@@ -56,7 +56,8 @@
              (exec-script/exec-checked-script
               "Packages"
               (package-manager-non-interactive)
-              "aptitude install -q -y java+ rubygems+ git- ruby_")))
+              "aptitude install -q -y java+ rubygems+ git- ruby_"
+              (aptitude search (quoted "~i")))))
            (first
             (build-resources
              []
@@ -72,7 +73,8 @@
               "Packages"
               "yum install -q -y java rubygems"
               "yum remove -q -y git ruby"
-              "yum upgrade -q -y maven2")))
+              "yum upgrade -q -y maven2"
+              (yum list installed))))
            (first
             (build-resources
              [:node-type {:tag :n :image {:os-family :centos}}]
@@ -294,40 +296,49 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 
 (deftest adjust-packages-test
   (testing "aptitude"
-    (is (= (stevedore/checked-script
-            "Packages"
-            (aptitude install -q -y p1- p4_ p2+ p3+))
-           (adjust-packages
-            {:target-packager :aptitude}
-            [{:package "p1" :action :remove}
-             {:package "p2" :action :install}
-             {:package "p3" :action :upgrade}
-             {:package "p4" :action :remove :purge true}]))))
+    (script/with-template [:aptitude]
+      (is (= (stevedore/checked-script
+              "Packages"
+              (package-manager-non-interactive)
+              (aptitude install -q -y p1- p4_ p2+ p3+)
+              (aptitude search (quoted "~i")))
+             (adjust-packages
+              {:target-packager :aptitude}
+              [{:package "p1" :action :remove}
+               {:package "p2" :action :install}
+               {:package "p3" :action :upgrade}
+               {:package "p4" :action :remove :purge true}])))))
   (testing "yum"
     (is (= (stevedore/checked-script
             "Packages"
             (yum install -q -y p2)
             (yum remove -q -y p1 p4)
-            (yum upgrade -q -y p3))
-           (adjust-packages
-            {:target-packager :yum}
-            [{:package "p1" :action :remove}
-             {:package "p2" :action :install}
-             {:package "p3" :action :upgrade}
-             {:package "p4" :action :remove :purge true}]))))
+            (yum upgrade -q -y p3)
+            (yum list installed))
+           (script/with-template [:yum]
+             (adjust-packages
+              {:target-packager :yum}
+              [{:package "p1" :action :remove}
+               {:package "p2" :action :install}
+               {:package "p3" :action :upgrade}
+               {:package "p4" :action :remove :purge true}])))))
   (testing "yum with disable and priority"
     (is (= (stevedore/checked-script
             "Packages"
             (yum install -q -y "--disablerepo=r1" p2)
-            (yum install -q -y p1))
-           (adjust-packages
-            {:target-packager :yum}
-            [{:package "p1" :action :install :priority 50}
-             {:package "p2" :action :install :disable ["r1"] :priority 25}])))
+            (yum install -q -y p1)
+            (yum list installed))
+           (script/with-template [:yum]
+             (adjust-packages
+              {:target-packager :yum}
+              [{:package "p1" :action :install :priority 50}
+               {:package "p2" :action :install :disable ["r1"]
+                :priority 25}]))))
     (is (= (stevedore/checked-script
             "Packages"
             (yum install -q -y "--disablerepo=r1" p2)
-            (yum install -q -y p1))
+            (yum install -q -y p1)
+            (yum list installed))
            (first
             (build-resources
              [:target-packager :yum]
