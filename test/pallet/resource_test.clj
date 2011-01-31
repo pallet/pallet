@@ -419,17 +419,26 @@
     (let [m {:a 1}]
       (is (= m (check-request-map m)))))
   (testing "thrown on invalid request"
-    (is (thrown? clojure.contrib.condition.Condition (check-request-map nil)))))
+    (is (thrown? clojure.contrib.condition.Condition (check-request-map nil))))
+  (testing "thrown on invalid request with form"
+    (is (thrown? clojure.contrib.condition.Condition
+                 (check-request-map nil `(some "form"))))))
 
 (deftest phase-test
   (testing "identity return on valid phase"
     (let [m {:a 1}]
       (is (= m ((phase identity identity) m)))))
+  (testing "raise on invalid entry map"
+    (is (thrown-with-msg?
+          clojure.contrib.condition.Condition
+          #"The request passed to the pipeline"
+          ((phase identity) nil))))
   (testing "raise on invalid phase"
-    (let [f (fn [request-map] nil)]
+    (let [invalid-f (fn [request-map] nil)]
       (is (thrown?
            clojure.contrib.condition.Condition
-           ((phase f identity) {})))))
+           #"invalid-f"
+           ((phase invalid-f identity) {})))))
   (testing "raise on invalid final phase"
     (let [f (fn [request-map] nil)]
       (is (thrown?

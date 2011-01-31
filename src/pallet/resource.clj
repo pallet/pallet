@@ -410,13 +410,13 @@ configuration code."
    If this fails, then it is likely that you have an incorrect crate function,
    which is failing to return its request map properly, or you have a non crate
    function in the phase defintion."
-  [request]
-  ;; we do not use a precondition in order to improve the error message
-  (when-not (and request (map? request))
-    (condition/raise
-     :type :invalid-request-map
-     :message
-     "Invalid request map in phase definition. Check for non crate functions,
+  ([request]
+     ;; we do not use a precondition in order to improve the error message
+     (when-not (and request (map? request))
+       (condition/raise
+        :type :invalid-request-map
+        :message
+        "Invalid request map in phase. Check for non crate functions,
       improper crate functions, or problems in threading the request map
       in your phase definition.
 
@@ -424,7 +424,19 @@ configuration code."
       arguments, and returns a modified request map. Calls to crate functions
       are often wrapped in a threading macro, -> or pallet.resource/phase,
       to simplify chaining of the request map argument."))
-  request)
+     request)
+  ([request form]
+     ;; we do not use a precondition in order to improve the error message
+     (when-not (and request (map? request))
+       (condition/raise
+        :type :invalid-request-map
+        :message
+        (format
+         (str
+          "Invalid request map in phase request.\n"
+          "Problem probably caused in:\n  %s ")
+         form)))
+     request))
 
 (defmacro phase
   "Create a phase function from a sequence of crate invocations with
@@ -442,4 +454,7 @@ configuration code."
                    (file \"/other-file\"))) "
   [& body]
   `(fn [request#]
-     (-> request# ~@(interpose `check-request-map body) check-request-map)))
+     (->
+      request#
+      (check-request-map "The request passed to the pipeline")
+      ~@(mapcat (fn [form] [form `(check-request-map '~form)]) body))))
