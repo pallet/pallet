@@ -3,7 +3,8 @@
    time, so that it occurs wirh the correct target."
   (:require
    [pallet.resource :as resource]
-   [pallet.stevedore :as stevedore]))
+   [pallet.stevedore :as stevedore]
+   pallet.resource.script))
 
 (resource/defresource exec-script*
   (exec-script-fn**

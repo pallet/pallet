@@ -84,24 +84,24 @@
 
 (deftest test-if
   (is (= "if [ \\( \"foo\" == \"bar\" \\) ]; then echo fred;fi"
-         (script (if (= foo bar) (echo fred)))))
+         (script (if (= foo bar) (println fred)))))
   (is (= "if [ \\( \\( \"foo\" == \"bar\" \\) -a \\( \"foo\" != \"baz\" \\) \\) ]; then echo fred;fi"
-         (script (if (&& (== foo bar) (!= foo baz)) (echo fred)))))
+         (script (if (&& (== foo bar) (!= foo baz)) (println fred)))))
   (is (= "fred\n"
-         (bash-out (script (if (&& (== foo foo) (!= foo baz)) (echo "fred"))))))
+         (bash-out (script (if (&& (== foo foo) (!= foo baz)) (println "fred"))))))
   (is (= "if foo; then\nx=3\nfoo x\nelse\ny=4\nbar y\nfi"
          (script (if foo (do (var x 3) (foo x)) (do (var y 4) (bar y))))))
   (is (= "not foo\n"
          (bash-out (script (if (== foo bar)
-                             (do (echo "foo"))
-                             (do (echo "not foo")))))))
+                             (do (println "foo"))
+                             (do (println "not foo")))))))
   (is (= "if [ -e file1 ]; then echo foo;fi"
-         (script (if (file-exists? "file1") (echo "foo")))))
+         (script (if (file-exists? "file1") (println "foo")))))
   (is (= "if [ ! -e file1 ]; then echo foo;fi"
-         (script (if (not (file-exists? "file1")) (echo "foo")))))
+         (script (if (not (file-exists? "file1")) (println "foo")))))
   (is (= "if [ \\( ! -e file1 -o \\( \"a\" == \"b\" \\) \\) ]; then echo foo;fi"
            (script (if (|| (not (file-exists? "file1")) (== "a" "b"))
-                     (echo "foo")))))
+                     (println "foo")))))
   (testing "if block as string with newline is treated as compound"
     (is (= "if [ -e f ]; then\nls\nls\nfi"
            (script (if (file-exists? "f") "ls\nls"))))))
@@ -112,25 +112,25 @@ if [ \\( \"foo\" != \"baz\" \\) ]; then echo fred;fi
 fi"
          (script (if (== foo bar)
                    (if (!= foo baz)
-                     (echo fred))))))
+                     (println fred))))))
   (is (= "" (bash-out (script (if (== foo bar)
                                 (if (!= foo baz)
-                                  (echo fred))))))))
+                                  (println fred))))))))
 
 (deftest test-if-not
   (is (= "if [ ! -e bar ]; then echo fred;fi"
-         (script (if-not (file-exists? bar) (echo fred)))))
+         (script (if-not (file-exists? bar) (println fred)))))
   (is (= "if [ ! \\( -e bar -a \\( \"foo\" == \"bar\" \\) \\) ]; then echo fred;fi"
-         (script (if-not (&& (file-exists? bar) (== foo bar)) (echo fred)))))
+         (script (if-not (&& (file-exists? bar) (== foo bar)) (println fred)))))
   (is (= "if [ ! \\( \\( \"foo\" == \"bar\" \\) -a \\( \"foo\" == \"baz\" \\) \\) ]; then echo fred;fi"
-         (script (if-not (&& (== foo bar) (== foo baz)) (echo fred)))))
+         (script (if-not (&& (== foo bar) (== foo baz)) (println fred)))))
   (is (= "fred\n"
          (bash-out (script (if-not (&& (== foo foo) (== foo baz))
-                             (echo "fred")))))))
+                             (println "fred")))))))
 
 (deftest test-when
   (is (= "if [ \\( \"foo\" == \"bar\" \\) ]; then\necho fred\nfi"
-         (script (when (= foo bar) (echo fred)))))
+         (script (when (= foo bar) (println fred)))))
   (is (= "if foo; then\nx=3\nfoo x\nfi"
          (script (when foo (var x 3) (foo x))))))
 
@@ -150,13 +150,13 @@ fi"
          (strip-ws (script {:packages ["columnchart"]}))))
   (is (= "{ hash_set x p c; hash_set x q d; }\necho ${x[p]}"
          (strip-ws (script (do (var x {:p "c" :q "d"})
-                               (echo (aget x :p)))))))
+                               (println (aget x :p)))))))
   (is (= "c\nd\n"
          (bash-out (script
                     ~hashlib
                     (var x {:p "c" "/a/b/c-e" "d"})
-                    (echo (get x :p))
-                    (echo (get x "/a/b/c-e"))))))
+                    (println (get x :p))
+                    (println (get x "/a/b/c-e"))))))
   (testing "assoc!"
     (is (= "c\n1\n2\n"
            (bash-out (script
@@ -164,18 +164,18 @@ fi"
                       (var x {:p "c" :q "q"})
                       (assoc! x :q 1)
                       (assoc! x :r 2)
-                      (echo (get x :p))
-                      (echo (get x :q))
-                      (echo (get x :r)))))))
+                      (println (get x :p))
+                      (println (get x :q))
+                      (println (get x :r)))))))
   (testing "merge!"
     (is (= "c\n1\n2\n"
            (bash-out (script
                       ~hashlib
                       (var x {:p "c" :q "q"})
                       (merge! x {:q 1 :r 2})
-                      (echo (get x :p))
-                      (echo (get x :q))
-                      (echo (get x :r))))))))
+                      (println (get x :p))
+                      (println (get x :q))
+                      (println (get x :r))))))))
 
 
 (deftest test-do
@@ -191,7 +191,7 @@ fi"
            (let x 3)
            (let y 4)
            (let z (+ x y))
-           (echo @z))))))
+           (println @z))))))
 
 (deftest deref-test
   (is (= "${TMPDIR-/tmp}" (script @TMPDIR-/tmp)))
@@ -203,10 +203,6 @@ fi"
                        (local y 4)))]
     (is (= "function foo() {\nx=$1\nlocal x=3\nlocal y=4\n }"
            (strip-ws (script (defn foo [x] ~stuff)))))))
-
-(deftest checked-script-test
-  (is (= (checked-commands "msg" (script ls) (script ls))
-         (checked-script "msg" (ls) (ls)))))
 
 (deftest defvar-test
   (is (= "x=1"
@@ -248,17 +244,20 @@ fi"
   (is (= "test...\nfred\ntom\n...done\n"
          (bash-out (checked-commands "test" "echo fred" "echo tom"))))
   (is (= "test...\n"
-         (bash-out (checked-commands "test" "test 1 = 2") 1 "test failed\n"))))
+         (bash-out
+          (checked-commands "test" "test 1 = 2") 1 "test failed\n"))))
 
 (deftest checked-script-test
+  (is (= (checked-commands "msg" (script ls) (script ls))
+         (checked-script "msg" (ls) (ls))))
   (is (= "echo \"test...\"\n{ echo fred && echo tom; } || { echo \"test\" failed; exit 1; } >&2 \necho \"...done\"\n"
-         (checked-script "test" (echo fred) (echo tom))))
+         (checked-script "test" (println fred) (println tom))))
   (is (= "test...\ntom\n...done\n"
-         (bash-out (checked-script "test" (echo tom)))))
+         (bash-out (checked-script "test" (println tom)))))
   (is (= "test...\nfred\ntom\n...done\n"
-         (bash-out (checked-script "test" (echo fred) (echo tom)))))
+         (bash-out (checked-script "test" (println fred) (println tom)))))
   (is (= "test...\n"
-         (bash-out (checked-script "test" (test 1 = 2)) 1 "test failed\n"))))
+         (bash-out (checked-script "test" ("test" 1 = 2)) 1 "test failed\n"))))
 
 (deftest group-test
   (is (= "{ ls; }"

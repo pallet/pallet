@@ -4,6 +4,7 @@ configuration code."
   (:require
    [pallet.argument :as argument]
    [pallet.script :as script]
+   [pallet.stevedore :as stevedore]
    [clojure.contrib.seq :as seq]
    [clojure.string :as string]
    [clojure.contrib.condition :as condition]
@@ -11,6 +12,7 @@ configuration code."
   (:use
    [clojure.contrib.def :only [defunbound defvar defvar- name-with-attributes]]
    clojure.contrib.core))
+
 
 (defn pre-phase
   "Calculate the name for the pre-phase"

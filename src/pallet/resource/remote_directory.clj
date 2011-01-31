@@ -4,8 +4,10 @@
   (:require
    [pallet.resource :as resource]
    [pallet.stevedore :as stevedore]
+   [pallet.resource.file :as file]
    [pallet.resource.directory :as directory]
-   [pallet.resource.remote-file :as remote-file]))
+   [pallet.resource.remote-file :as remote-file]
+   pallet.resource.script))
 
 (resource/defresource remote-directory
   "Specify the contents of remote directory.
@@ -55,7 +57,7 @@
                (when (and url unpack)
                  (let [filename (.getName
                                  (java.io.File. (.getFile (java.net.URL. url))))
-                       tarpath (str (stevedore/script (tmp-dir)) "/" filename)]
+                       tarpath (str (stevedore/script (file/tmp-dir)) "/" filename)]
                    (stevedore/checked-commands
                     "remote-directory"
                     (directory/directory*

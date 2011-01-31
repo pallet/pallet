@@ -1,7 +1,6 @@
 (ns pallet.resource.resource-when
   "Conditional resource execution."
   (:require
-   [pallet.stevedore :as stevedore]
    [pallet.argument :as argument]
    [pallet.resource :as resource]
    [pallet.resource-build :as resource-build]

@@ -3,6 +3,7 @@
   (:require
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
+   [pallet.stevedore.script :as script-impl]
    [pallet.utils :as utils]
    [pallet.resource :as resource]
    [pallet.resource.file :as file]
@@ -45,9 +46,9 @@
    s (format "\"%s\"" (or (:password user) (:sudo-password user))) "XXXXXXX"))
 
 (script/defscript sudo-no-password [])
-(stevedore/defimpl sudo-no-password :default []
+(script-impl/defimpl sudo-no-password :default []
   ("/usr/bin/sudo" -n))
-(stevedore/defimpl sudo-no-password [#{:centos-5.3 :os-x :darwin :debian}] []
+(script-impl/defimpl sudo-no-password [#{:centos-5.3 :os-x :darwin :debian}] []
   ("/usr/bin/sudo"))
 
 (defn sudo-cmd-for
@@ -82,7 +83,7 @@
   [session prefix]
   (let [result (ssh/ssh
                 session
-                (stevedore/script (println (make-temp-file prefix)))
+                (stevedore/script (println (file/make-temp-file ~prefix)))
                 :return-map true)]
     (if (zero? (:exit result))
       (string/trim (result :out))
@@ -107,7 +108,7 @@
   (let [chmod-result (ssh/ssh
                       session (str "chmod 755 " tmpfile) :return-map true)]
     (if (pos? (chmod-result :exit))
-      (logging/error (str "Couldn't chmod script : " ) (chmod-result :err))))
+      (logging/error (str "Couldn't chmod script : "  (chmod-result :err)))))
   (let [script-result (ssh/ssh
                        session
                        ;; using :in forces a shell session, rather than
@@ -194,8 +195,8 @@
                          (remote-sudo-cmd
                           server session sftp-channel user tmpfile
                           (stevedore/script
-                           (chmod "0600" ~tmpcpy)
-                           (mv -f ~tmpcpy ~remote-name)))))
+                           (file/chmod "0600" ~tmpcpy)
+                           (file/mv ~tmpcpy ~remote-name :force true)))))
                       (to-local
                        [transfers]
                        (doseq [[remote-file local-file] transfers]
@@ -206,7 +207,7 @@
                          (remote-sudo-cmd
                           server session sftp-channel user tmpfile
                           (stevedore/script
-                           (cp -f ~remote-file ~tmpcpy)))
+                           (file/cp ~remote-file ~tmpcpy :force true)))
                          (ssh/sftp sftp-channel
                                    :get tmpcpy
                                    (-> local-file java.io.FileOutputStream.

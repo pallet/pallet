@@ -185,10 +185,11 @@
       (script/with-template (resource/script-template request)
         (logging/info
          (format
-          "Generating init script - :os-family %s, :packager %s, *template* %s"
+          (str "Generating init script - :os-family %s, :packager %s, "
+               "*script-context* %s")
           (-> request :node-type :image :os-family)
           (-> request :target-packager)
-          (vec script/*template*)))
+          (vec script/*script-context*)))
         (:cmds (f request)))
       "")))
 

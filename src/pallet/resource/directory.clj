@@ -4,29 +4,31 @@
   (:require
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
+   [pallet.stevedore.script :as script-impl]
+   [pallet.resource.file :as file]
    [pallet.script :as script])
   (:use
    [pallet.resource :only [defresource]]
-   [pallet.resource.file :only [chown chgrp chmod]]
+   [pallet.resource.file :only [chown chgrp chmod rm]]
    clojure.contrib.logging))
 
 (script/defscript rmdir
   "Remove the specified directory"
   [directory & options])
 
-(stevedore/defimpl rmdir :default [directory & options]
+(script-impl/defimpl rmdir :default [directory & options]
   ("rmdir" ~(stevedore/map-to-arg-string (first options)) ~directory))
 
 (script/defscript mkdir
   "Create the specified directory"
   [directory & options])
-(stevedore/defimpl mkdir :default [directory & options]
+(script-impl/defimpl mkdir :default [directory & options]
   ("mkdir" ~(stevedore/map-to-arg-string (first options)) ~directory))
 
 (script/defscript make-temp-dir
   "Create a temporary directory"
   [pattern & options])
-(stevedore/defimpl make-temp-dir :default [pattern & options]
+(script-impl/defimpl make-temp-dir :default [pattern & options]
   @("mktemp" -d
     ~(stevedore/map-to-arg-string (first options))
     ~(str pattern "XXXXX")))
@@ -66,12 +68,13 @@
     - :recursive  Flag for recursive delete
     - :force      Flag for forced delete"
   (directory*
-   [request path & {:keys [action] :or {action :create} :as options}]
+   [request path & {:keys [action recursive force]
+                    :or {action :create recursive true force true}
+                    :as options}]
    (case action
      :delete (stevedore/checked-script
               (str "Delete directory " path)
-              (rm ~path ~{:r (get options :recursive true)
-                          :f (get options :force true)}))
+              (file/rm ~path :recursive ~recursive :force ~force))
      :create (make-directory path (merge {:p true} options))
      :touch (make-directory path (merge {:p true} options)))))
 

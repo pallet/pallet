@@ -8,10 +8,10 @@
 
 (defmacro mktest
   [os-family f path]
-  `(is (= (script/with-template [~os-family]
+  `(is (= ~path
+          (script/with-template [~os-family]
             (stevedore/script
-             (~(symbol "pallet.resource.filesystem-layout" (name f)))))
-          ~path)))
+             (~(symbol "pallet.resource.filesystem-layout" (name f))))))))
 
 (deftest etc-default-test
   (mktest :ubuntu etc-default "/etc/default")
