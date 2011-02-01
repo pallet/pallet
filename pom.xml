@@ -348,4 +348,16 @@
     </contributor>
   </contributors>
 
+  <!-- make sure we can find the parent pom -->
+  <repositories>
+    <repository>
+      <id>sonatype-snapshots</id>
+      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
+    </repository>
+    <repository>
+      <id>sonatype</id>
+      <url>http://oss.sonatype.org/content/repositories/releases</url>
+    </repository>
+  </repositories>
+
 </project>
