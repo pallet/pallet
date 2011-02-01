@@ -76,6 +76,9 @@
   (is (thrown? clojure.contrib.condition.Condition
               (script (var foo-bar 1)))))
 
+(deftest alias-test
+  (is (= "alias foo='ls -l'" (script (alias foo (ls -l))))))
+
 (deftest test-array
   (is (= "(1 2 \"3\" foo)" (script [1 "2" "\"3\"" :foo]))))
 

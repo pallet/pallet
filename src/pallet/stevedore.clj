@@ -97,7 +97,7 @@
     'let 'local 'literally 'deref 'do 'str 'quoted 'apply
     'file-exists? 'directory? 'symlink? 'readable? 'writeable?
     'not 'println 'print 'group 'pipe 'chain-or
-    'chain-and 'while 'doseq 'merge! 'assoc!})
+    'chain-and 'while 'doseq 'merge! 'assoc! 'alias})
 
 (def infix-operators
   ^{:doc "Operators that should be converted to infix in expressions."
@@ -252,6 +252,9 @@
 
 (defmethod emit-special 'let [type [let name expr]]
   (str "let " (emit name) "=" (emit expr)))
+
+(defmethod emit-special 'alias [type [alias name expr]]
+  (str "alias " (emit name) "='" (emit expr) "'"))
 
 (defmethod emit-special 'str [type [str & args]]
   (apply clojure.core/str (map emit args)))
