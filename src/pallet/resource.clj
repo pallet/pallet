@@ -4,7 +4,6 @@ configuration code."
   (:require
    [pallet.argument :as argument]
    [pallet.script :as script]
-   [pallet.stevedore :as stevedore]
    [clojure.contrib.seq :as seq]
    [clojure.string :as string]
    [clojure.contrib.condition :as condition]

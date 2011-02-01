@@ -39,11 +39,11 @@
 (defn script-fn-optional-dispatch
   "Optional dispatching of script functions"
   [name args ns file line]
-  (when-let [script (resolve-script-fn ns name)]
-    (script/invoke script args file line)))
+  (when-let [script-fn (resolve-script-fn ns name)]
+    (script/invoke script-fn args file line)))
 
 (defn script-fn-mandatory-dispatch
   "Mandatory dispatching of script functions"
   [name args ns file line]
-  (when-let [script (resolve-script-fn ns name)]
-    (script/dispatch script args file line)))
+  (when-let [script-fn (resolve-script-fn ns name)]
+    (script/dispatch script-fn args file line)))

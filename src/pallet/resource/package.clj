@@ -434,7 +434,7 @@
    ("awk" "'{if ($1 ~" ~(str "/^" type "/") "&& !" ~(str "/" scope "/")
         " ) print $0 \" \" \"" ~scope  "\" ; else print; }'"
         ~file > @tmpfile)
-   (file/mv @tmpfile ~file :force true)))
+   (file/mv @tmpfile ~file :force ~true)))
 
 (defn add-scope
   "Add a scope to an apt source"

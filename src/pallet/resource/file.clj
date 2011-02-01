@@ -97,21 +97,21 @@
    ~(stevedore/map-to-arg-string {:f fields :d (utils/quoted delimiter)})
    ~file))
 
-(script/defscript chown [owner file & options])
-(script-impl/defimpl chown :default [owner file & options]
-  ("chown" ~(stevedore/map-to-arg-string (first options)) ~owner ~file))
+(script/defscript chown [owner file & {:as options}])
+(script-impl/defimpl chown :default [owner file & {:as options}]
+  ("chown" ~(stevedore/map-to-arg-string options) ~owner ~file))
 
-(script/defscript chgrp [group file & options])
-(script-impl/defimpl chgrp :default [group file & options]
-  ("chgrp" ~(stevedore/map-to-arg-string (first options)) ~group ~file))
+(script/defscript chgrp [group file & {:as options}])
+(script-impl/defimpl chgrp :default [group file & {:as options}]
+  ("chgrp" ~(stevedore/map-to-arg-string options) ~group ~file))
 
-(script/defscript chmod [mode file & options])
-(script-impl/defimpl chmod :default [mode file & options]
-  ("chmod" ~(stevedore/map-to-arg-string (first options)) ~mode ~file))
+(script/defscript chmod [mode file & {:as options}])
+(script-impl/defimpl chmod :default [mode file & {:as options}]
+  ("chmod" ~(stevedore/map-to-arg-string options) ~mode ~file))
 
-(script/defscript touch [file & options])
-(script-impl/defimpl touch :default [file & options]
-  ("touch" ~(stevedore/map-to-arg-string (first options)) ~file))
+(script/defscript touch [file & {:as options}])
+(script-impl/defimpl touch :default [file & {:as options}]
+  ("touch" ~(stevedore/map-to-arg-string options) ~file))
 
 (script/defscript md5sum [file & {:as options}])
 (script-impl/defimpl md5sum :default [file & {:as options}]
@@ -251,22 +251,22 @@
   (stevedore/script
    ((md5sum ~path) > ~md5-path)))
 
-(defn touch-file [path opts]
+(defn touch-file [path {:keys [force] :as options}]
   (stevedore/chain-commands
    (stevedore/script
-    (touch ~path ~(select-keys opts [:force])))
-   (adjust-file path opts)))
+    (touch ~path :force ~force))
+   (adjust-file path options)))
 
 (defresource file
   "File management."
   (file*
    [request path & {:keys [action owner group mode force]
-                    :or {action :create}
+                    :or {action :create force true}
                     :as options}]
    (case action
      :delete (stevedore/checked-script
               (str "delete file " path)
-              (rm ~path :force ~(:force options true)))
+              (rm ~path :force ~force))
      :create (stevedore/checked-commands
               (str "file " path)
               (touch-file path options))
@@ -285,7 +285,7 @@
               (rm ~name :force ~force))
      :create (stevedore/checked-script
               (format "Link %s as %s" from name)
-              (ln ~from ~name :force ~force :symbolic true)))))
+              (ln ~from ~name :force ~force :symbolic ~true)))))
 
 (defresource fifo
   "FIFO pipe management."

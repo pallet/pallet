@@ -25,19 +25,19 @@
 (script-impl/defimpl configure-service :default [name action options]
   ~(condp = action
        :disable (stevedore/script
-                 (update-rc.d
+                 ("update-rc.d"
                   ~(stevedore/map-to-arg-string
                     (select-keys [:f :n] (debian-options options)))
                   ~name remove))
        :enable (stevedore/script
-                (update-rc.d
+                ("update-rc.d"
                  ~(stevedore/map-to-arg-string
                    (select-keys [:n] (debian-options options)))
                  ~name defaults
                  ~(:sequence-start options 20)
                  ~(:sequence-stop options (:sequence-start options 20))))
        :start-stop (stevedore/script ;; start/stop
-                    (update-rc.d
+                    ("update-rc.d"
                      ~(stevedore/map-to-arg-string
                        (select-keys [:n] (debian-options options)))
                      ~name

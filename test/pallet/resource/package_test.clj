@@ -298,7 +298,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            "/etc/apt/sources.list.d/source1.list"
            :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
           (stevedore/script
-           (apt-key adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
+           ("apt-key" adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
          (package-source*
           {:node-type a}
           "source1"

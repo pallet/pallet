@@ -12,7 +12,7 @@
 
 (deftest mkdir-test
   (is (= "mkdir -p dir"
-         (stevedore/script (mkdir "dir" ~{:p true})))))
+         (stevedore/script (mkdir "dir" :path ~true)))))
 
 
 (deftest directory*-test

@@ -162,7 +162,7 @@
                                     (println ~(str "Download of " url
                                                    " failed to match md5"))
                                     (shell/exit 1)))))
-                            (file/rm @tmpdir :force true :recursive true))
+                            (file/rm @tmpdir :force ~true :recursive ~true))
          url (stevedore/chained-script
               (file/download-file ~url ~new-path))
          content (stevedore/script
@@ -174,7 +174,7 @@
          ;;    (stevedore/script
          ;;     (mv -f (str "~/" ~temp-path) ~new-path)))
          remote-file (stevedore/script
-                      (file/cp ~remote-file ~new-path :force true))
+                      (file/cp ~remote-file ~new-path :force ~true))
          template (stevedore/script
                    (file/heredoc
                     ~new-path
@@ -182,7 +182,7 @@
                       template (or values {}) (:node-type request))
                     ~(select-keys options [:literal])))
          link (stevedore/script
-               (file/ln ~link ~path :force true :symbolic true))
+               (file/ln ~link ~path :force ~true :symbolic ~true))
          blob (stevedore/checked-script
                "Download blob"
                (download-request
@@ -206,7 +206,7 @@
                 (do
                   ~(stevedore/chain-commands
                     (stevedore/script
-                     (file/mv ~new-path ~path :backup ~versioning :force true))
+                     (file/mv ~new-path ~path :backup ~versioning :force ~true))
                     (if flag-on-changed
                       (stevedore/script (lib/set-flag ~flag-on-changed)))))))
              (stevedore/script
@@ -228,7 +228,7 @@
                 (do
                   ~(stevedore/chain-commands
                     (stevedore/script
-                     (file/mv ~new-path ~path :force true :backup ~versioning))
+                     (file/mv ~new-path ~path :force ~true :backup ~versioning))
                     (if flag-on-changed
                       (stevedore/script (lib/set-flag ~flag-on-changed))))))
               (if-not (file-exists? ~path)
@@ -247,10 +247,10 @@
         (if (and (not no-versioning) (pos? max-versions))
           (stevedore/script
            (pipe
-            ((file/ls (str ~path ".~[0-9]*~") :sort-by-time true)
+            ((file/ls (str ~path ".~[0-9]*~") :sort-by-time ~true)
              "2>" "/dev/null")
             (file/tail "" :max-lines ~(str "+" (inc max-versions)))
-            (shell/xargs (file/rm "" :force true))))))
+            (shell/xargs (file/rm "" :force ~true))))))
        :delete (stevedore/checked-script
                 (str "delete remote-file " path)
                 (file/rm ~path :force ~force))))))
