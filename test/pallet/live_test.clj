@@ -82,23 +82,23 @@
   "Takes two maps, and returns the first map with all entries removed that match
    one of the reject-images-list."
   [image-list reject-images-list]
-  (into {} (remove
-            (fn [image]
-              (some
-               (fn [reject] #(every (= (% image) (% reject)) (keys reject)))
-               reject-images-list))
-            image-list)))
+  (remove
+   (fn [image]
+     (some
+      (fn [reject] (every? #(= ((key %) image) (val %)) reject))
+      reject-images-list))
+   image-list))
 
 (defn filter-images
   "Takes two maps, and returns the first map with only the entries that match
    one of the accept-images-list."
   [image-list accept-images-list]
-  (into {} (filter
-            (fn [image]
-              (some
-               (fn [accept] #(every (= (% image) (% reject)) (keys reject)))
-               accept-images-list-images-list))
-            image-list)))
+  (filter
+   (fn [image]
+     (some
+      (fn [accept] (every? #(= ((key %) image) (val %)) accept))
+      accept-images-list))
+   image-list))
 
 (defn set-live-tests!
   "Globally switch live-test on or off."
