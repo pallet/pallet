@@ -11,11 +11,42 @@
    `pallet.test.service-name` property. The default is :live-test.
 
    Cleanup of nodes can be suppressed with the `pallet.test.cleanup-nodes`
-   property or `*cleanup-nodes*`."
+   property or `*cleanup-nodes*`.
+
+   The image list to be used can be selected using `pallet.test.image-list`
+   and should specify one of the keys in `image-lists`."
   (:require
    [pallet.core :as core]
    [pallet.compute :as compute]
-   [pallet.resource :as resource]))
+   [pallet.resource :as resource]
+   [clojure.string :as string]))
+
+(def
+  ^{:doc "The default images for testing"}
+  default-images
+  [{:os-family :ubuntu :os-version-matches "10.04" :os-64-bit false}
+   {:os-family :ubuntu :os-version-matches "10.10" :os-64-bit true}
+   {:os-family :debian :os-version-matches "5.0.7" :os-64-bit false}
+   {:os-family :centos :os-version-matches "5.5" :os-64-bit true}
+   {:os-family :centos :os-version-matches "5.3" :os-64-bit false}
+   {:os-family :arch :os-version-matches "2010.05" :os-64-bit true}])
+
+(def
+  ^{:doc "Selectable image lists"}
+  image-lists
+  {:amzn-linux [{:os-family :amzn-linux :os-64-bit true}]
+   :aws-ubuntu-10-10 [{:os-family :ubuntu :image-id "ami-08f40561"}]
+   ;; individual images from default-images
+   :ubuntu-lucid {:os-family :ubuntu :os-version-matches "10.04"
+                  :os-64-bit false}
+   :ubuntu-maverick {:os-family :ubuntu :os-version-matches "10.10"
+                     :os-64-bit true}
+   :debian-lenny {:os-family :debian :os-version-matches "5.0.7"
+                  :os-64-bit false}
+   :centos-5-3 [{:os-family :centos :os-version-matches "5.3"
+                 :os-64-bit false}]
+   :centos-5-5 [{:os-family :centos :os-version-matches "5.5"
+                 :os-64-bit true}]})
 
 (defn- read-property
   "Read a system property as a clojure value."
@@ -39,6 +70,35 @@
   *cleanup-nodes*
   (let [cleanup (read-property "pallet.test.cleanup-nodes")]
     (if (nil? cleanup) true cleanup)))
+
+(def ^{:doc "List of images to test with"}
+  *images*
+  (let [image-list (System/getProperty "pallet.test.image-list")]
+    (if (string/blank? image-list)
+      default-images
+      ((keyword image-list) image-lists))))
+
+(defn exclude-images
+  "Takes two maps, and returns the first map with all entries removed that match
+   one of the reject-images-list."
+  [image-list reject-images-list]
+  (into {} (remove
+            (fn [image]
+              (some
+               (fn [reject] #(every (= (% image) (% reject)) (keys reject)))
+               reject-images-list))
+            image-list)))
+
+(defn filter-images
+  "Takes two maps, and returns the first map with only the entries that match
+   one of the accept-images-list."
+  [image-list accept-images-list]
+  (into {} (filter
+            (fn [image]
+              (some
+               (fn [accept] #(every (= (% image) (% reject)) (keys reject)))
+               accept-images-list-images-list))
+            image-list)))
 
 (defn set-live-tests!
   "Globally switch live-test on or off."
