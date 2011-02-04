@@ -472,7 +472,9 @@
   {:use-arglist [request & {:keys [version] :or {version "5-4"}}]}
   (add-epel*
    [request args]
-   (let [{:keys [version] :or {version "5-4"}} (apply merge {} args)]
+   (let [{:keys [version] :or {version "5-4"}} (apply
+                                                merge {}
+                                                (map #(apply hash-map %) args))]
      (stevedore/script
       ;; "Add EPEL package repository"
       (rpm
