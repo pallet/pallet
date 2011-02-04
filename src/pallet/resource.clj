@@ -162,13 +162,16 @@ configuration code."
   [x y]
   (let [before-fn (fn [f]
                     (let [before (:always-before (meta f))
-                          before (and before (find-var before))]
-                      (and before (:resource-fn (meta before)))))
+                          before (if (or (set? before) (nil? before))
+                                   before
+                                   #{before})
+                          before (seq (filter identity (map find-var before)))]
+                      (into #{} (map (comp :resource-fn meta) before))))
         fx (:f x)
         fy (:f y)]
     (cond
-     (= (before-fn fx) (var-get fy)) -1
-     (= (before-fn fy) (var-get fx)) 1
+     ((before-fn fx) (var-get fy)) -1
+     ((before-fn fy) (var-get fx)) 1
      :else 0)))
 
 (defn- execution-invocations

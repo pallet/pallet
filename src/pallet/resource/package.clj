@@ -361,7 +361,9 @@
      (when-let [key (and (= packager :yum) (-> options :yum :gpgkey))]
        (stevedore/script (rpm "--import" ~key))))))
 
-(defaggregate ^{:always-before `package} package-source
+(declare package-manager)
+
+(defaggregate ^{:always-before #{`package-manager `package}} package-source
   "Control package sources.
    Options are the package manager keywords, each specifying a map of
    packager specific options.

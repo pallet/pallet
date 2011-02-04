@@ -281,7 +281,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   :aptitude ["git-apt"]
                   :yum ["git-yum"]))))))
 
-(deftest package-package-sorce-test
+(deftest ordering-test
   (testing "package-source alway precedes packages"
     (is (= (first
             (build-resources
@@ -292,6 +292,32 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (build-resources
              []
              (package "p")
+             (package-source "s" :aptitude {:url "http://somewhere/apt"}))))))
+
+  (testing "package-manager alway precedes packages"
+    (is (= (first
+            (build-resources
+             []
+             (package-manager :update)
+             (package "p")))
+           (first
+            (build-resources
+             []
+             (package "p")
+             (package-manager :update))))))
+
+  (testing "package-source alway precedes packages and package-manager"
+    (is (= (first
+            (build-resources
+             []
+             (package-source "s" :aptitude {:url "http://somewhere/apt"})
+             (package-manager :update)
+             (package "p")))
+           (first
+            (build-resources
+             []
+             (package "p")
+             (package-manager :update)
              (package-source "s" :aptitude {:url "http://somewhere/apt"})))))))
 
 (deftest adjust-packages-test
