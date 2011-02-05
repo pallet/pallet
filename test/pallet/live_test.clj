@@ -46,7 +46,9 @@
    :centos-5-3 [{:os-family :centos :os-version-matches "5.3"
                  :os-64-bit false}]
    :centos-5-5 [{:os-family :centos :os-version-matches "5.5"
-                 :os-64-bit true}]})
+                 :os-64-bit true}]
+   :arch-2010-05 [{:os-family :arch :os-version-matches "2010.05"
+                   :os-64-bit true}]})
 
 (defn- read-property
   "Read a system property as a clojure value."
