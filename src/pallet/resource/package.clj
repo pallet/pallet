@@ -6,6 +6,7 @@
    `package-source` is used to specify a non-standard source for packages."
   (:require
    [pallet.resource :as resource]
+   [pallet.resource.file :as file]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.hostinfo :as hostinfo]
    [pallet.resource.exec-script :as exec-script]
@@ -435,6 +436,88 @@
    (:scope opts)
    (or (opts :file) "/etc/apt/sources.list")))
 
+(defmulti configure-package-manager
+  "Configure the package manager"
+  (fn [request packager options] packager))
+
+(defmulti package-manager-option
+  "Provide packager specific options"
+  (fn [request packager option value] [packager option]))
+
+(defmethod package-manager-option [:aptitude :proxy]
+  [request packager proxy proxy-url]
+  (format "ACQUIRE::http::proxy \"%s\";" proxy-url))
+
+(defmethod package-manager-option [:yum :proxy]
+  [request packager proxy proxy-url]
+  (format "proxy=%s" proxy-url))
+
+(defmethod package-manager-option [:pacman :proxy]
+  [request packager proxy proxy-url]
+  (format
+   (str "XferCommand = /usr/bin/wget "
+        "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\" "
+        "--passive-ftp --no-verbose -c -O %%o %%u")
+   proxy-url proxy-url))
+
+(defmethod configure-package-manager :aptitude
+  [request packager {:keys [priority prox] :or {priority 50} :as options}]
+  (remote-file/remote-file*
+   request
+   (format "/etc/apt/apt.conf.d/%spallet" priority)
+   :content (string/join
+             \newline
+             (map
+              #(package-manager-option request packager (key %) (val %))
+              (dissoc options :priority)))
+   :literal true))
+
+(defmethod configure-package-manager :yum
+  [request packager {:keys [proxy] :as options}]
+  (stevedore/chain-commands
+   (remote-file/remote-file*
+    request
+    "/etc/yum.pallet.conf"
+    :content (string/join
+              \newline
+              (map
+               #(package-manager-option request packager (key %) (val %))
+               (dissoc options :priority)))
+    :literal true)
+   ;; include yum.pallet.conf from yum.conf
+   (stevedore/script
+    (if (not @("fgrep" "yum.pallet.conf" "/etc/yum.conf"))
+      (do
+        ("cat" ">>" "/etc/yum.conf" " <<'EOFpallet'")
+        "include=file:///etc/yum.pallet.conf"
+        "EOFpallet")))))
+
+(defmethod configure-package-manager :pacman
+  [request packager {:keys [proxy] :as options}]
+  (stevedore/chain-commands
+   (remote-file/remote-file*
+    request
+    "/etc/pacman.pallet.conf"
+    :content (string/join
+              \newline
+              (map
+               #(package-manager-option request packager (key %) (val %))
+               (dissoc options :priority)))
+    :literal true)
+   ;; include pacman.pallet.conf from pacman.conf
+   (stevedore/script
+    (if (not @("fgrep" "pacman.pallet.conf" "/etc/pacman.conf"))
+      (do
+        ~(file/sed*
+          request
+          "/etc/pacman.conf"
+          "a Include = /etc/pacman.pallet.conf"
+          :restriction "/\\[options\\]/"))))))
+
+(defmethod configure-package-manager :default
+  [request packager {:as options}]
+  (comment "do nothing"))
+
 (defn package-manager*
   "Package management."
   [request action & options]
@@ -450,6 +533,7 @@
        :universe (add-scope (apply hash-map :scope "universe" options))
        :debconf (if (= :aptitude packager)
                   (stevedore/script (apply debconf-set-selections ~options)))
+       :configure (configure-package-manager request packager options)
        (throw (IllegalArgumentException.
                (str action
                     " is not a valid action for package-manager resource")))))))

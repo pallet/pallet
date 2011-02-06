@@ -68,8 +68,27 @@
                  [] (file "file1" :action :delete :force true))))))
 
 (deftest sed-file-test
-  (is (= "sed -i -e \"s|a|b|\" path"
-         (stevedore/script (sed-file "path" {"a" "b"} {:seperator "|"})))))
+  (testing "explicit separator"
+    (is (= "sed -i -e \"s|a|b|\" path"
+           (stevedore/script (sed-file "path" {"a" "b"} {:seperator "|"})))))
+  (testing "computed separator"
+    (is (= "sed -i -e \"s/a/b/\" path"
+           (stevedore/script (sed-file "path" {"a" "b"} {}))))
+    (is (= "sed -i -e \"s_a/_b_\" path"
+           (stevedore/script (sed-file "path" {"a/" "b"} {}))))
+    (is (= "sed -i -e \"s_a_b/_\" path"
+           (stevedore/script (sed-file "path" {"a" "b/"} {}))))
+    (is (= "sed -i -e \"s*/_|:%!@*b*\" path"
+           (stevedore/script (sed-file "path" {"/_|:%!@" "b"} {})))))
+  (testing "restrictions"
+    (is (= "sed -i -e \"1 s/a/b/\" path"
+           (stevedore/script (sed-file "path" {"a" "b"} {:restriction "1"}))))
+    (is (= "sed -i -e \"/a/ s/a/b/\" path"
+           (stevedore/script
+            (sed-file "path" {"a" "b"} {:restriction "/a/"})))))
+  (testing "other commands"
+    (is (= "sed -i -e \"1 a\" path"
+           (stevedore/script (sed-file "path" "a" {:restriction "1"}))))))
 
 (deftest sed-test
   (is (= (stevedore/checked-commands

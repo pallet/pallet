@@ -10,6 +10,7 @@
    [pallet.stevedore :as stevedore]
    [pallet.resource :as resource]
    [pallet.resource.exec-script :as exec-script]
+   [pallet.resource.file :as file]
    [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]
    [pallet.target :as target]
@@ -161,6 +162,71 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            true))
          (script/with-template [:aptitude]
            (package-manager* ubuntu-request :update)))))
+
+(deftest package-manager-configure-test
+  (testing "aptitude"
+    (is (= (first
+            (build-resources
+             []
+             (exec-script/exec-checked-script
+              "package-manager"
+              ~(remote-file/remote-file*
+                {}
+                "/etc/apt/apt.conf.d/50pallet"
+                :content "ACQUIRE::http::proxy \"http://192.168.2.37:3182\";"
+                :literal true))))
+           (first
+            (build-resources
+             []
+             (package-manager
+              :configure :proxy "http://192.168.2.37:3182"))))))
+  (testing "yum"
+    (is (= (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :centos}}]
+             (exec-script/exec-checked-script
+              "package-manager"
+              ~(remote-file/remote-file*
+                {}
+                "/etc/yum.pallet.conf"
+                :content "proxy=http://192.168.2.37:3182"
+                :literal true)
+              (if (not @("fgrep" "yum.pallet.conf" "/etc/yum.conf"))
+                (do
+                  ("cat" ">>" "/etc/yum.conf" " <<'EOFpallet'")
+                  "include=file:///etc/yum.pallet.conf"
+                  "EOFpallet")))))
+           (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :centos}}]
+             (package-manager
+              :configure :proxy "http://192.168.2.37:3182"))))))
+  (testing "pacman"
+    (is (= (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :arch}}]
+             (exec-script/exec-checked-script
+              "package-manager"
+              ~(remote-file/remote-file*
+                {}
+                "/etc/pacman.pallet.conf"
+                :content (str "XferCommand = /usr/bin/wget "
+                              "-e \"http_proxy = http://192.168.2.37:3182\" "
+                              "-e \"ftp_proxy = http://192.168.2.37:3182\" "
+                              "--passive-ftp --no-verbose -c -O %o %u")
+                :literal true)
+              (if (not @("fgrep" "pacman.pallet.conf" "/etc/pacman.conf"))
+                (do
+                  ~(file/sed*
+                    {}
+                    "/etc/pacman.conf"
+                    "a Include = /etc/pacman.pallet.conf"
+                    :restriction "/\\[options\\]/"))))))
+           (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :arch}}]
+             (package-manager
+              :configure :proxy "http://192.168.2.37:3182")))))))
 
 (deftest add-multiverse-example-test
   (is (=  (str

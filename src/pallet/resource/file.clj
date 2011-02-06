@@ -65,14 +65,28 @@
 
 (script/defscript sed-file [file expr-map options])
 
-(stevedore/defimpl sed-file :default [file expr-map options]
+(def ^{:doc "Possible sed separators" :private true}
+  sed-separators
+  (concat [\/ \_ \| \: \% \! \@] (map char (range 42 127))))
+
+(stevedore/defimpl sed-file :default
+  [file expr-map {:keys [seperator restriction] :as options}]
   ("sed" "-i"
-   ~(let [sep (:seperator options "/")]
+   ~(if (map? expr-map)
       (string/join
        " "
        (map
-        #(format "-e \"s%s%s%s%s%s\"" sep (first %) sep (second %) sep)
-        expr-map)))
+        (fn [[key value]]
+          (let [used (fn [c]
+                       (or (>= (.indexOf key (int c)) 0)
+                           (>= (.indexOf value (int c)) 0)))
+                seperator (or seperator (first (remove used sed-separators)))]
+            (format
+             "-e \"%ss%s%s%s%s%s\""
+             (if restriction (str restriction " ") "")
+             seperator key seperator value seperator)))
+        expr-map))
+      (format "-e \"%s%s\"" (when restriction (str restriction " ")) expr-map))
    ~file))
 
 (script/defscript download-file [url path])
@@ -192,7 +206,7 @@
 (defresource sed
   "Execute sed on a file.  Takes a path and a map for expr to replacement."
   (sed*
-   [request path exprs-map & {:keys [seperator no-md5] :as options}]
+   [request path exprs-map & {:keys [seperator no-md5 restriction] :as options}]
    (stevedore/checked-script
     (format "sed file %s" path)
     (sed-file ~path ~exprs-map ~options)
