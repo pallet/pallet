@@ -28,8 +28,16 @@
    declared package sources."
   [& options])
 
+(script/defscript upgrade-all-packages
+  "Upgrade the all installed package."
+  [& options])
+
 (script/defscript install-package
   "Install the specified package."
+  [name & options])
+
+(script/defscript upgrade-package
+  "Upgrade the specified package."
   [name & options])
 
 (script/defscript remove-package
@@ -50,6 +58,8 @@
 ;;; Repeating the selector makes it more explicit
 (stevedore/defimpl update-package-list [#{:no-packages} #{:no-packages}]
   [& options] "")
+(stevedore/defimpl upgrade-all-packages [#{:no-packages} #{:no-packages}]
+  [& options] "")
 (stevedore/defimpl install-package [#{:no-packages} #{:no-packages}]
   [package & options] "")
 (stevedore/defimpl upgrade-package [#{:no-packages} #{:no-packages}]
@@ -65,6 +75,9 @@
 (stevedore/defimpl update-package-list [#{:aptitude}] [& options]
   (chain-or
    (aptitude update ~(stevedore/option-args options)) true))
+
+(stevedore/defimpl upgrade-all-packages [#{:aptitude}] [& options]
+  (aptitude upgrade -q -y ~(stevedore/option-args options)))
 
 (stevedore/defimpl install-package [#{:aptitude}] [package & options]
   (aptitude install -q -y ~(stevedore/option-args options) ~package
@@ -91,6 +104,9 @@
 (stevedore/defimpl update-package-list [#{:yum}] [& options]
   (yum makecache -q ~(stevedore/option-args options)))
 
+(stevedore/defimpl upgrade-all-packages [#{:yum}] [& options]
+  (yum update -y -q ~(stevedore/option-args options)))
+
 (stevedore/defimpl install-package [#{:yum}] [package & options]
   (yum install -y -q ~(stevedore/option-args options) ~package))
 
@@ -110,6 +126,9 @@
 (stevedore/defimpl update-package-list [#{:zypper}] [& options]
   (zypper refresh ~(stevedore/option-args options)))
 
+(stevedore/defimpl upgrade-all-packages [#{:zypper}] [& options]
+  (zypper update -y ~(stevedore/option-args options)))
+
 (stevedore/defimpl install-package [#{:zypper}] [package & options]
   (zypper install -y ~(stevedore/option-args options) ~package))
 
@@ -123,6 +142,9 @@
 (stevedore/defimpl update-package-list [#{:pacman}] [& options]
   (pacman -Sy "--noconfirm" "--noprogressbar" ~(stevedore/option-args options)))
 
+(stevedore/defimpl upgrade-all-packages [#{:pacman}] [& options]
+  (pacman -Su "--noconfirm" "--noprogressbar" ~(stevedore/option-args options)))
+
 (stevedore/defimpl install-package [#{:pacman}] [package & options]
   (pacman -S "--noconfirm" "--noprogressbar"
           ~(stevedore/option-args options) ~package))
@@ -135,11 +157,15 @@
   (pacman -R "--noconfirm" ~(stevedore/option-args options) ~package))
 
 (stevedore/defimpl purge-package [#{:pacman}] [package & options]
-  (pacman -R "--noconfirm" "--nosave" ~(stevedore/option-args options) ~package))
+  (pacman -R "--noconfirm" "--nosave"
+          ~(stevedore/option-args options) ~package))
 
 ;; brew
 (stevedore/defimpl update-package-list [#{:brew}] [& options]
   (brew update ~(stevedore/option-args options)))
+
+(stevedore/defimpl upgrade-all-packages [#{:brew}] [& options]
+  (comment "No command to do this"))
 
 (stevedore/defimpl install-package [#{:brew}] [package & options]
   (brew install -y ~(stevedore/option-args options) ~package))
@@ -417,6 +443,7 @@
      "package-manager"
      (case action
        :update (stevedore/script (update-package-list))
+       :upgrade (stevedore/script (upgrade-all-packages))
        :list-installed (stevedore/script (list-installed-packages))
        :add-scope (add-scope (apply hash-map options))
        :multiverse (add-scope (apply hash-map :scope "multiverse" options))

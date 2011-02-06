@@ -31,6 +31,20 @@
          (script/with-template [:pacman]
            (stevedore/script (update-package-list))))))
 
+(deftest upgrade-all-packages-test
+  (is (= "aptitude upgrade -q -y"
+         (script/with-template [:aptitude]
+           (stevedore/script (upgrade-all-packages)))))
+  (is (= "yum update -y -q"
+         (script/with-template [:yum]
+           (stevedore/script (upgrade-all-packages)))))
+  (is (= "zypper update -y"
+         (script/with-template [:zypper]
+           (stevedore/script (upgrade-all-packages)))))
+  (is (= "pacman -Su --noconfirm --noprogressbar"
+         (script/with-template [:pacman]
+           (stevedore/script (upgrade-all-packages))))))
+
 (deftest install-package-test
   (is (= "aptitude install -q -y java && aptitude show java"
          (script/with-template [:aptitude]
