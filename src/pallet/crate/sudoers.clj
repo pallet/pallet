@@ -1,5 +1,6 @@
 (ns pallet.crate.sudoers
   (:require
+   [pallet.resource.package :as package]
    [clojure.contrib.string :as string])
   (:use
    [pallet.utils :only [underscore as-string]]
@@ -11,6 +12,11 @@
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
 ;; TODO - dsl for sudoers, eg. (alias "user1" "user2" :as :ADMINS)
+
+(defn install
+  [request & {:keys [package-name action]
+              :or {package-name "sudo" action :install}}]
+  (package/package request package-name :action action))
 
 (defn- default-specs [request]
   (array-map
