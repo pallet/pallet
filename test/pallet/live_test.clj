@@ -37,12 +37,12 @@
   {:amzn-linux [{:os-family :amzn-linux :os-64-bit true}]
    :aws-ubuntu-10-10 [{:os-family :ubuntu :image-id "ami-08f40561"}]
    ;; individual images from default-images
-   :ubuntu-lucid {:os-family :ubuntu :os-version-matches "10.04"
-                  :os-64-bit false}
-   :ubuntu-maverick {:os-family :ubuntu :os-version-matches "10.10"
-                     :os-64-bit true}
-   :debian-lenny {:os-family :debian :os-version-matches "5.0.7"
-                  :os-64-bit false}
+   :ubuntu-lucid [{:os-family :ubuntu :os-version-matches "10.04"
+                   :os-64-bit false}]
+   :ubuntu-maverick [{:os-family :ubuntu :os-version-matches "10.10"
+                      :os-64-bit true}]
+   :debian-lenny [{:os-family :debian :os-version-matches "5.0.7"
+                   :os-64-bit false}]
    :centos-5-3 [{:os-family :centos :os-version-matches "5.3"
                  :os-64-bit false}]
    :centos-5-5 [{:os-family :centos :os-version-matches "5.5"
