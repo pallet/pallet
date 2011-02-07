@@ -1,11 +1,11 @@
 (ns pallet.crate.automated-admin-user
   (:use [pallet.resource.user :only [user]]
-        [pallet.crate.sudoers]
         [pallet.crate.ssh-key :only [authorize-key]]
         [pallet.utils :only [default-public-key-path *admin-user*]]
         pallet.thread-expr)
   (:require
-   [pallet.resource :as resource]))
+   [pallet.resource :as resource]
+   [pallet.crate.sudoers :as sudoers]))
 
 (defn automated-admin-user
   "Builds a user for use in remote-admin automation. The user is given
@@ -13,15 +13,17 @@
   in scripts, etc."
   ([request]
      (automated-admin-user
-      request (:username *admin-user*) (default-public-key-path)))
+      request (:username *admin-user*) (:public-key-path *admin-user*)))
   ([request username]
-     (automated-admin-user request username (default-public-key-path)))
+     (automated-admin-user request username (:public-key-path *admin-user*)))
   ([request username & public-key-paths]
      (->
       request
+      (sudoers/install)
       (user username :create-home true :shell :bash)
       (for-> [path-or-bytes public-key-paths]
              (if-> (string? path-or-bytes)
                    (authorize-key username (slurp path-or-bytes))
                    (authorize-key username (String. path-or-bytes))))
-      (sudoers {} {} {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}}))))
+      (sudoers/sudoers
+       {} {} {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}}))))
