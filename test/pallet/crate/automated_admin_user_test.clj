@@ -4,7 +4,7 @@
    [pallet.resource :as resource]
    [pallet.resource.user :as user]
    [pallet.crate.ssh-key :as ssh-key]
-   [pallet.crate.sudoers :as susudoers]
+   [pallet.crate.sudoers :as sudoers]
    pallet.utils)
   (:use
    clojure.test
@@ -15,8 +15,9 @@
     (is (= (first
             (build-resources
              []
+             (sudoers/install)
              (user/user "fred" :create-home true :shell :bash)
-             (susudoers/sudoers
+             (sudoers/sudoers
               {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
              (ssh-key/authorize-key
               "fred" (slurp (pallet.utils/default-public-key-path)))))
@@ -29,8 +30,9 @@
     (is (= (first
             (build-resources
              []
+             (sudoers/install)
              (user/user "fred" :create-home true :shell :bash)
-             (susudoers/sudoers
+             (sudoers/sudoers
               {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
              (ssh-key/authorize-key
               "fred" (slurp (pallet.utils/default-public-key-path)))))
@@ -44,8 +46,9 @@
     (is (= (first
             (build-resources
              []
+             (sudoers/install)
              (user/user "fred" :create-home true :shell :bash)
-             (susudoers/sudoers
+             (sudoers/sudoers
               {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
              (ssh-key/authorize-key "fred" "abc")))
            (first
@@ -58,8 +61,9 @@
       (is (= (first
               (build-resources
                []
+               (sudoers/install)
                (user/user user-name :create-home true :shell :bash)
-               (susudoers/sudoers
+               (sudoers/sudoers
                 {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
                (ssh-key/authorize-key
                 user-name (slurp (pallet.utils/default-public-key-path)))))

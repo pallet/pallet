@@ -16,7 +16,10 @@
 (defn install
   [request & {:keys [package-name action]
               :or {package-name "sudo" action :install}}]
-  (package/package request package-name :action action))
+  (->
+   request
+   (package/package-manager :update)
+   (package/package package-name :action action)))
 
 (defn- default-specs [request]
   (array-map
