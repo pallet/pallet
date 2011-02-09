@@ -50,3 +50,10 @@
   (testing "invalid task"
     (is (with-output [no-out #"(?s)some-non-existing-task is not a task.*"]
           (is (= 1 (pallet-task ["some-non-existing-task"])))))))
+
+(deftest report-unexpected-exception-test
+  (is (re-find #"hello"
+               (with-out-str
+                 (binding [*err* *out*]
+                   (#'pallet.main/report-unexpected-exception
+                    (Exception. "hello")))))))
