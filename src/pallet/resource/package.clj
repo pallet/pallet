@@ -702,8 +702,9 @@
       (= :debian os-family) (stevedore/checked-script
                              "Add minimal packages"
                              (update-package-list)
-                             (adjust-packages request ["coreutils" "sudo"]))
+                             (install-package "coreutils")
+                             (install-package "sudo"))
       (= :arch os-family) (stevedore/checked-script
                            "Add minimal packages"
                            (update-package-list)
-                           (adjust-packages request ["sudo"]))))))
+                           (install-package "sudo"))))))
