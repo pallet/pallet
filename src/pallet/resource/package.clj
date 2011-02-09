@@ -201,26 +201,31 @@
   [request packages]
   (stevedore/checked-commands
    "Packages"
-   (stevedore/chain-commands
-    (stevedore/script (package-manager-non-interactive))
-    (stevedore/script
-     (aptitude
-      install -q -y
-      ~(string/join
-        " "
-        (for [[action packages] (group-by :action packages)
-              {:keys [package force purge]} packages]
-          (case action
-            :install (format "%s+" package)
-            :remove (if purge
-                      (format "%s_" package)
-                      (format "%s-" package))
-            :upgrade (format "%s+" package)
-            (throw
-             (IllegalArgumentException.
-              (str
-               action " is not a valid action for package resource"))))))))
-    (stevedore/script (list-installed-packages)))))
+   (stevedore/script (package-manager-non-interactive))
+   (stevedore/chain-commands*
+    (for [[opts packages] (->>
+                           packages
+                           (group-by #(select-keys % [:enable]))
+                           (sort-by #(apply min (map :priority (second %)))))]
+      (stevedore/script
+       (aptitude
+        install -q -y
+        ~(string/join " " (map #(str "-t " %) (:enable opts)))
+        ~(string/join
+          " "
+          (for [[action packages] (group-by :action packages)
+                {:keys [package force purge]} packages]
+            (case action
+              :install (format "%s+" package)
+              :remove (if purge
+                        (format "%s_" package)
+                        (format "%s-" package))
+              :upgrade (format "%s+" package)
+              (throw
+               (IllegalArgumentException.
+                (str
+                 action " is not a valid action for package resource"))))))))))
+   (stevedore/script (list-installed-packages))))
 
 (def ^{:private true :doc "Define the order of actions"}
   action-order {:install 10 :remove 20 :upgrade 30})
@@ -558,7 +563,7 @@
   (apply-package-manager
    [request package-manager-args]
    (stevedore/do-script*
-    (map #(apply package-manager* request %) package-manager-args))))
+    (map #(apply package-manager* request %) (distinct package-manager-args)))))
 
 (def ^{:private true} centos-55-repo
   "http://mirror.centos.org/centos/5.5/os/x86_64/repodata/repomd.xml")
@@ -577,8 +582,18 @@
              :gpgkey centos-55-repo-key
              :priority 50})))
 
+(defn add-debian-backports
+  "Add debian backport source"
+  [request]
+  (package-source
+   request
+   "debian-backports"
+   :aptitude {:url "http://backports.debian.org/debian-backports"
+              :release (str (stevedore/script (os-version-name)) "-backports")
+              :scopes ["main"]}))
+
 ;; this is an aggregate so that it can come before the aggragate package-manager
-(defaggregate ^{:always-before `package-manager} add-epel
+(defaggregate ^{:always-before #{`package-manager `package}} add-epel
   "Add the EPEL repository"
   {:use-arglist [request & {:keys [version] :or {version "5-4"}}]}
   (add-epel*
@@ -601,7 +616,7 @@
 
 
 ;; this is an aggregate so that it can come before the aggragate package-manager
-(defaggregate ^{:always-before `package-manager} add-rpmforge
+(defaggregate ^{:always-before #{`package-manager `package}} add-rpmforge
   "Add the rpmforge repository"
   {:use-arglist [request & {:keys [version distro arch]
                             :or {version "0.5.2-2" distro "el5" arch "i386"}}]}
@@ -674,3 +689,21 @@
               "jpackage-generic-updates"
               (format "jpackage-%s" component)
               (format "jpackage-%s-updates" component)])))
+
+(defaggregate
+  ^{:always-before `package-manager `package-source `package}
+  minimal-packages
+  "Add minimal packages for pallet to function"
+  {:use-arglist [request]}
+  (minimal-packages*
+   [request args]
+   (let [os-family (request-map/os-family request)]
+     (cond
+      (= :debian os-family) (stevedore/checked-script
+                             "Add minimal packages"
+                             (update-package-list)
+                             (adjust-packages request ["coreutils" "sudo"]))
+      (= :arch os-family) (stevedore/checked-script
+                           "Add minimal packages"
+                           (update-package-list)
+                           (adjust-packages request ["sudo"]))))))

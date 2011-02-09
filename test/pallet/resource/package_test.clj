@@ -338,6 +338,21 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                              :scopes ["main"]}
                   :yum {:url "http://somewhere/yum"}))))))
 
+(deftest add-debian-backports-test
+  (core/defnode debian {:packager :aptitude :os-family :debian})
+  (is (= (script/with-template [:debian]
+           (stevedore/checked-commands
+            "Package source"
+            (remote-file/remote-file*
+             {:node-type debian}
+             "/etc/apt/sources.list.d/debian-backports.list"
+             :content (str
+                       "deb http://backports.debian.org/debian-backports "
+                       "$(lsb_release -c -s)-backports main\n"))))
+         (first (build-resources
+                 [:node-type debian]
+                 (add-debian-backports))))))
+
 (deftest packages-test
   (core/defnode a {:packager :aptitude})
   (core/defnode b {:packager :yum})
@@ -414,6 +429,18 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                {:package "p2" :action :install}
                {:package "p3" :action :upgrade}
                {:package "p4" :action :remove :purge true}])))))
+  (testing "aptitude with enable"
+    (script/with-template [:aptitude]
+      (is (= (stevedore/checked-script
+              "Packages"
+              (package-manager-non-interactive)
+              (aptitude install -q -y -t r1 p2+)
+              (aptitude install -q -y p1+)
+              (aptitude search (quoted "~i")))
+             (adjust-packages
+              {:target-packager :aptitude}
+              [{:package "p1" :action :install :priority 20}
+               {:package "p2" :action :install :enable ["r1"] :priority 2}])))))
   (testing "yum"
     (is (= (stevedore/checked-script
             "Packages"
