@@ -49,7 +49,7 @@
     ~(stevedore/map-to-arg-string {:quiet quiet :check check})
     @(basename ~file))
    (cd -)))
-(stevedore/defimpl md5sum-verify [#{:centos :amzn-linux :rhel}]
+(stevedore/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel}]
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
   (chain-and
    (cd @(dirname ~file))
