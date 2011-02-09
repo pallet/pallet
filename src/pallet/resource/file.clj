@@ -43,14 +43,20 @@
 (script/defscript md5sum-verify [file & {:as options}])
 (stevedore/defimpl md5sum-verify :default
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
-  ("md5sum" ~(stevedore/map-to-arg-string {:quiet quiet :check check}) ~file))
+  (chain-and
+   (cd @(dirname ~file))
+   ("md5sum"
+    ~(stevedore/map-to-arg-string {:quiet quiet :check check})
+    @(basename ~file))
+   (cd -)))
 (stevedore/defimpl md5sum-verify [#{:centos :amzn-linux :rhel}]
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
   (chain-and
    (cd @(dirname ~file))
    ("md5sum"
     ~(stevedore/map-to-arg-string {:status quiet :check check})
-    @(basename ~file))))
+    @(basename ~file))
+   (cd -)))
 (stevedore/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
   (chain-and
    (var testfile @(cut -d "' '" -f 2 ~file))
@@ -89,18 +95,26 @@
       (format "-e \"%s%s\"" (when restriction (str restriction " ")) expr-map))
    ~file))
 
-(script/defscript download-file [url path])
+(script/defscript download-file [url path & {:keys [proxy]}])
 
-(stevedore/defimpl download-file :default [url path]
+(stevedore/defimpl download-file :default [url path & {:keys [proxy]}]
   (if (test @(which curl))
     ("curl" "-o" (quoted ~path)
      --retry 5 --silent --show-error --fail --location
+     ~(if proxy
+        (let [url (java.net.URL. proxy)]
+          (format "--proxy %s:%s" (.getHost url) (.getPort url)))
+        "")
      (quoted ~url))
     (if (test @(which wget))
-      ("wget" "-O" (quoted ~path) --tries 5 --no-verbose (quoted ~url))
-     (do
-         (println "No download utility available")
-         (exit 1)))))
+      ("wget" "-O" (quoted ~path) --tries 5 --no-verbose
+       ~(if proxy
+          (format "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\"" proxy proxy)
+          "")
+       (quoted ~url))
+      (do
+        (println "No download utility available")
+        (exit 1)))))
 
 (script/defscript download-request [path request])
 (stevedore/defimpl download-request :default [path request]
