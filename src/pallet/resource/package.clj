@@ -6,6 +6,7 @@
    `package-source` is used to specify a non-standard source for packages."
   (:require
    [pallet.resource :as resource]
+   [pallet.resource.file :as file]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.hostinfo :as hostinfo]
    [pallet.resource.exec-script :as exec-script]
@@ -28,8 +29,16 @@
    declared package sources."
   [& options])
 
+(script/defscript upgrade-all-packages
+  "Upgrade the all installed package."
+  [& options])
+
 (script/defscript install-package
   "Install the specified package."
+  [name & options])
+
+(script/defscript upgrade-package
+  "Upgrade the specified package."
   [name & options])
 
 (script/defscript remove-package
@@ -50,6 +59,8 @@
 ;;; Repeating the selector makes it more explicit
 (stevedore/defimpl update-package-list [#{:no-packages} #{:no-packages}]
   [& options] "")
+(stevedore/defimpl upgrade-all-packages [#{:no-packages} #{:no-packages}]
+  [& options] "")
 (stevedore/defimpl install-package [#{:no-packages} #{:no-packages}]
   [package & options] "")
 (stevedore/defimpl upgrade-package [#{:no-packages} #{:no-packages}]
@@ -65,6 +76,9 @@
 (stevedore/defimpl update-package-list [#{:aptitude}] [& options]
   (chain-or
    (aptitude update ~(stevedore/option-args options)) true))
+
+(stevedore/defimpl upgrade-all-packages [#{:aptitude}] [& options]
+  (aptitude upgrade -q -y ~(stevedore/option-args options)))
 
 (stevedore/defimpl install-package [#{:aptitude}] [package & options]
   (aptitude install -q -y ~(stevedore/option-args options) ~package
@@ -91,6 +105,9 @@
 (stevedore/defimpl update-package-list [#{:yum}] [& options]
   (yum makecache -q ~(stevedore/option-args options)))
 
+(stevedore/defimpl upgrade-all-packages [#{:yum}] [& options]
+  (yum update -y -q ~(stevedore/option-args options)))
+
 (stevedore/defimpl install-package [#{:yum}] [package & options]
   (yum install -y -q ~(stevedore/option-args options) ~package))
 
@@ -110,6 +127,9 @@
 (stevedore/defimpl update-package-list [#{:zypper}] [& options]
   (zypper refresh ~(stevedore/option-args options)))
 
+(stevedore/defimpl upgrade-all-packages [#{:zypper}] [& options]
+  (zypper update -y ~(stevedore/option-args options)))
+
 (stevedore/defimpl install-package [#{:zypper}] [package & options]
   (zypper install -y ~(stevedore/option-args options) ~package))
 
@@ -123,6 +143,9 @@
 (stevedore/defimpl update-package-list [#{:pacman}] [& options]
   (pacman -Sy "--noconfirm" "--noprogressbar" ~(stevedore/option-args options)))
 
+(stevedore/defimpl upgrade-all-packages [#{:pacman}] [& options]
+  (pacman -Su "--noconfirm" "--noprogressbar" ~(stevedore/option-args options)))
+
 (stevedore/defimpl install-package [#{:pacman}] [package & options]
   (pacman -S "--noconfirm" "--noprogressbar"
           ~(stevedore/option-args options) ~package))
@@ -135,11 +158,15 @@
   (pacman -R "--noconfirm" ~(stevedore/option-args options) ~package))
 
 (stevedore/defimpl purge-package [#{:pacman}] [package & options]
-  (pacman -R "--noconfirm" "--nosave" ~(stevedore/option-args options) ~package))
+  (pacman -R "--noconfirm" "--nosave"
+          ~(stevedore/option-args options) ~package))
 
 ;; brew
 (stevedore/defimpl update-package-list [#{:brew}] [& options]
   (brew update ~(stevedore/option-args options)))
+
+(stevedore/defimpl upgrade-all-packages [#{:brew}] [& options]
+  (comment "No command to do this"))
 
 (stevedore/defimpl install-package [#{:brew}] [package & options]
   (brew install -y ~(stevedore/option-args options) ~package))
@@ -174,26 +201,31 @@
   [request packages]
   (stevedore/checked-commands
    "Packages"
-   (stevedore/chain-commands
-    (stevedore/script (package-manager-non-interactive))
-    (stevedore/script
-     (aptitude
-      install -q -y
-      ~(string/join
-        " "
-        (for [[action packages] (group-by :action packages)
-              {:keys [package force purge]} packages]
-          (case action
-            :install (format "%s+" package)
-            :remove (if purge
-                      (format "%s_" package)
-                      (format "%s-" package))
-            :upgrade (format "%s+" package)
-            (throw
-             (IllegalArgumentException.
-              (str
-               action " is not a valid action for package resource"))))))))
-    (stevedore/script (list-installed-packages)))))
+   (stevedore/script (package-manager-non-interactive))
+   (stevedore/chain-commands*
+    (for [[opts packages] (->>
+                           packages
+                           (group-by #(select-keys % [:enable]))
+                           (sort-by #(apply min (map :priority (second %)))))]
+      (stevedore/script
+       (aptitude
+        install -q -y
+        ~(string/join " " (map #(str "-t " %) (:enable opts)))
+        ~(string/join
+          " "
+          (for [[action packages] (group-by :action packages)
+                {:keys [package force purge]} packages]
+            (case action
+              :install (format "%s+" package)
+              :remove (if purge
+                        (format "%s_" package)
+                        (format "%s-" package))
+              :upgrade (format "%s+" package)
+              (throw
+               (IllegalArgumentException.
+                (str
+                 action " is not a valid action for package resource"))))))))))
+   (stevedore/script (list-installed-packages))))
 
 (def ^{:private true :doc "Define the order of actions"}
   action-order {:install 10 :remove 20 :upgrade 30})
@@ -361,7 +393,9 @@
      (when-let [key (and (= packager :yum) (-> options :yum :gpgkey))]
        (stevedore/script (rpm "--import" ~key))))))
 
-(defaggregate ^{:always-before `package} package-source
+(declare package-manager)
+
+(defaggregate ^{:always-before #{`package-manager `package}} package-source
   "Control package sources.
    Options are the package manager keywords, each specifying a map of
    packager specific options.
@@ -407,6 +441,88 @@
    (:scope opts)
    (or (opts :file) "/etc/apt/sources.list")))
 
+(defmulti configure-package-manager
+  "Configure the package manager"
+  (fn [request packager options] packager))
+
+(defmulti package-manager-option
+  "Provide packager specific options"
+  (fn [request packager option value] [packager option]))
+
+(defmethod package-manager-option [:aptitude :proxy]
+  [request packager proxy proxy-url]
+  (format "ACQUIRE::http::proxy \"%s\";" proxy-url))
+
+(defmethod package-manager-option [:yum :proxy]
+  [request packager proxy proxy-url]
+  (format "proxy=%s" proxy-url))
+
+(defmethod package-manager-option [:pacman :proxy]
+  [request packager proxy proxy-url]
+  (format
+   (str "XferCommand = /usr/bin/wget "
+        "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\" "
+        "--passive-ftp --no-verbose -c -O %%o %%u")
+   proxy-url proxy-url))
+
+(defmethod configure-package-manager :aptitude
+  [request packager {:keys [priority prox] :or {priority 50} :as options}]
+  (remote-file/remote-file*
+   request
+   (format "/etc/apt/apt.conf.d/%spallet" priority)
+   :content (string/join
+             \newline
+             (map
+              #(package-manager-option request packager (key %) (val %))
+              (dissoc options :priority)))
+   :literal true))
+
+(defmethod configure-package-manager :yum
+  [request packager {:keys [proxy] :as options}]
+  (stevedore/chain-commands
+   (remote-file/remote-file*
+    request
+    "/etc/yum.pallet.conf"
+    :content (string/join
+              \newline
+              (map
+               #(package-manager-option request packager (key %) (val %))
+               (dissoc options :priority)))
+    :literal true)
+   ;; include yum.pallet.conf from yum.conf
+   (stevedore/script
+    (if (not @("fgrep" "yum.pallet.conf" "/etc/yum.conf"))
+      (do
+        ("cat" ">>" "/etc/yum.conf" " <<'EOFpallet'")
+        "include=file:///etc/yum.pallet.conf"
+        "EOFpallet")))))
+
+(defmethod configure-package-manager :pacman
+  [request packager {:keys [proxy] :as options}]
+  (stevedore/chain-commands
+   (remote-file/remote-file*
+    request
+    "/etc/pacman.pallet.conf"
+    :content (string/join
+              \newline
+              (map
+               #(package-manager-option request packager (key %) (val %))
+               (dissoc options :priority)))
+    :literal true)
+   ;; include pacman.pallet.conf from pacman.conf
+   (stevedore/script
+    (if (not @("fgrep" "pacman.pallet.conf" "/etc/pacman.conf"))
+      (do
+        ~(file/sed*
+          request
+          "/etc/pacman.conf"
+          "a Include = /etc/pacman.pallet.conf"
+          :restriction "/\\[options\\]/"))))))
+
+(defmethod configure-package-manager :default
+  [request packager {:as options}]
+  (comment "do nothing"))
+
 (defn package-manager*
   "Package management."
   [request action & options]
@@ -415,12 +531,14 @@
      "package-manager"
      (case action
        :update (stevedore/script (update-package-list))
+       :upgrade (stevedore/script (upgrade-all-packages))
        :list-installed (stevedore/script (list-installed-packages))
        :add-scope (add-scope (apply hash-map options))
        :multiverse (add-scope (apply hash-map :scope "multiverse" options))
        :universe (add-scope (apply hash-map :scope "universe" options))
        :debconf (if (= :aptitude packager)
                   (stevedore/script (apply debconf-set-selections ~options)))
+       :configure (configure-package-manager request packager options)
        (throw (IllegalArgumentException.
                (str action
                     " is not a valid action for package-manager resource")))))))
@@ -445,7 +563,7 @@
   (apply-package-manager
    [request package-manager-args]
    (stevedore/do-script*
-    (map #(apply package-manager* request %) package-manager-args))))
+    (map #(apply package-manager* request %) (distinct package-manager-args)))))
 
 (def ^{:private true} centos-55-repo
   "http://mirror.centos.org/centos/5.5/os/x86_64/repodata/repomd.xml")
@@ -464,13 +582,25 @@
              :gpgkey centos-55-repo-key
              :priority 50})))
 
+(defn add-debian-backports
+  "Add debian backport source"
+  [request]
+  (package-source
+   request
+   "debian-backports"
+   :aptitude {:url "http://backports.debian.org/debian-backports"
+              :release (str (stevedore/script (os-version-name)) "-backports")
+              :scopes ["main"]}))
+
 ;; this is an aggregate so that it can come before the aggragate package-manager
-(defaggregate ^{:always-before `package-manager} add-epel
+(defaggregate ^{:always-before #{`package-manager `package}} add-epel
   "Add the EPEL repository"
   {:use-arglist [request & {:keys [version] :or {version "5-4"}}]}
   (add-epel*
    [request args]
-   (let [{:keys [version] :or {version "5-4"}} (apply merge {} args)]
+   (let [{:keys [version] :or {version "5-4"}} (apply
+                                                merge {}
+                                                (map #(apply hash-map %) args))]
      (stevedore/script
       ;; "Add EPEL package repository"
       (rpm
@@ -486,7 +616,7 @@
 
 
 ;; this is an aggregate so that it can come before the aggragate package-manager
-(defaggregate ^{:always-before `package-manager} add-rpmforge
+(defaggregate ^{:always-before #{`package-manager `package}} add-rpmforge
   "Add the rpmforge repository"
   {:use-arglist [request & {:keys [version distro arch]
                             :or {version "0.5.2-2" distro "el5" arch "i386"}}]}
@@ -559,3 +689,22 @@
               "jpackage-generic-updates"
               (format "jpackage-%s" component)
               (format "jpackage-%s-updates" component)])))
+
+(defaggregate
+  ^{:always-before `package-manager `package-source `package}
+  minimal-packages
+  "Add minimal packages for pallet to function"
+  {:use-arglist [request]}
+  (minimal-packages*
+   [request args]
+   (let [os-family (request-map/os-family request)]
+     (cond
+      (= :debian os-family) (stevedore/checked-script
+                             "Add minimal packages"
+                             (update-package-list)
+                             (install-package "coreutils")
+                             (install-package "sudo"))
+      (= :arch os-family) (stevedore/checked-script
+                           "Add minimal packages"
+                           (update-package-list)
+                           (install-package "sudo"))))))

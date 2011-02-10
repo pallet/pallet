@@ -43,14 +43,20 @@
 (script/defscript md5sum-verify [file & {:as options}])
 (stevedore/defimpl md5sum-verify :default
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
-  ("md5sum" ~(stevedore/map-to-arg-string {:quiet quiet :check check}) ~file))
-(stevedore/defimpl md5sum-verify [#{:centos :amzn-linux :rhel}]
+  (chain-and
+   (cd @(dirname ~file))
+   ("md5sum"
+    ~(stevedore/map-to-arg-string {:quiet quiet :check check})
+    @(basename ~file))
+   (cd -)))
+(stevedore/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel}]
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
   (chain-and
    (cd @(dirname ~file))
    ("md5sum"
     ~(stevedore/map-to-arg-string {:status quiet :check check})
-    @(basename ~file))))
+    @(basename ~file))
+   (cd -)))
 (stevedore/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
   (chain-and
    (var testfile @(cut -d "' '" -f 2 ~file))
@@ -65,28 +71,50 @@
 
 (script/defscript sed-file [file expr-map options])
 
-(stevedore/defimpl sed-file :default [file expr-map options]
+(def ^{:doc "Possible sed separators" :private true}
+  sed-separators
+  (concat [\/ \_ \| \: \% \! \@] (map char (range 42 127))))
+
+(stevedore/defimpl sed-file :default
+  [file expr-map {:keys [seperator restriction] :as options}]
   ("sed" "-i"
-   ~(let [sep (:seperator options "/")]
+   ~(if (map? expr-map)
       (string/join
        " "
        (map
-        #(format "-e \"s%s%s%s%s%s\"" sep (first %) sep (second %) sep)
-        expr-map)))
+        (fn [[key value]]
+          (let [used (fn [c]
+                       (or (>= (.indexOf key (int c)) 0)
+                           (>= (.indexOf value (int c)) 0)))
+                seperator (or seperator (first (remove used sed-separators)))]
+            (format
+             "-e \"%ss%s%s%s%s%s\""
+             (if restriction (str restriction " ") "")
+             seperator key seperator value seperator)))
+        expr-map))
+      (format "-e \"%s%s\"" (when restriction (str restriction " ")) expr-map))
    ~file))
 
-(script/defscript download-file [url path])
+(script/defscript download-file [url path & {:keys [proxy]}])
 
-(stevedore/defimpl download-file :default [url path]
+(stevedore/defimpl download-file :default [url path & {:keys [proxy]}]
   (if (test @(which curl))
     ("curl" "-o" (quoted ~path)
      --retry 5 --silent --show-error --fail --location
+     ~(if proxy
+        (let [url (java.net.URL. proxy)]
+          (format "--proxy %s:%s" (.getHost url) (.getPort url)))
+        "")
      (quoted ~url))
     (if (test @(which wget))
-      ("wget" "-O" (quoted ~path) --tries 5 --no-verbose (quoted ~url))
-     (do
-         (println "No download utility available")
-         (exit 1)))))
+      ("wget" "-O" (quoted ~path) --tries 5 --no-verbose
+       ~(if proxy
+          (format "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\"" proxy proxy)
+          "")
+       (quoted ~url))
+      (do
+        (println "No download utility available")
+        (exit 1)))))
 
 (script/defscript download-request [path request])
 (stevedore/defimpl download-request :default [path request]
@@ -192,7 +220,7 @@
 (defresource sed
   "Execute sed on a file.  Takes a path and a map for expr to replacement."
   (sed*
-   [request path exprs-map & {:keys [seperator no-md5] :as options}]
+   [request path exprs-map & {:keys [seperator no-md5 restriction] :as options}]
    (stevedore/checked-script
     (format "sed file %s" path)
     (sed-file ~path ~exprs-map ~options)

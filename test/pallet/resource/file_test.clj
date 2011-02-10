@@ -68,8 +68,27 @@
                  [] (file "file1" :action :delete :force true))))))
 
 (deftest sed-file-test
-  (is (= "sed -i -e \"s|a|b|\" path"
-         (stevedore/script (sed-file "path" {"a" "b"} {:seperator "|"})))))
+  (testing "explicit separator"
+    (is (= "sed -i -e \"s|a|b|\" path"
+           (stevedore/script (sed-file "path" {"a" "b"} {:seperator "|"})))))
+  (testing "computed separator"
+    (is (= "sed -i -e \"s/a/b/\" path"
+           (stevedore/script (sed-file "path" {"a" "b"} {}))))
+    (is (= "sed -i -e \"s_a/_b_\" path"
+           (stevedore/script (sed-file "path" {"a/" "b"} {}))))
+    (is (= "sed -i -e \"s_a_b/_\" path"
+           (stevedore/script (sed-file "path" {"a" "b/"} {}))))
+    (is (= "sed -i -e \"s*/_|:%!@*b*\" path"
+           (stevedore/script (sed-file "path" {"/_|:%!@" "b"} {})))))
+  (testing "restrictions"
+    (is (= "sed -i -e \"1 s/a/b/\" path"
+           (stevedore/script (sed-file "path" {"a" "b"} {:restriction "1"}))))
+    (is (= "sed -i -e \"/a/ s/a/b/\" path"
+           (stevedore/script
+            (sed-file "path" {"a" "b"} {:restriction "/a/"})))))
+  (testing "other commands"
+    (is (= "sed -i -e \"1 a\" path"
+           (stevedore/script (sed-file "path" "a" {:restriction "1"}))))))
 
 (deftest sed-test
   (is (= (stevedore/checked-commands
@@ -85,3 +104,13 @@
 (deftest make-temp-file-test
   (is (= "$(mktemp \"prefixXXXXX\")"
          (stevedore/script (make-temp-file "prefix")))))
+
+(deftest download-file-test
+  (is
+   (stevedore/script
+    (download-file
+     "http://server.com/" "/path")))
+  (is (= "if test $(which curl); then curl -o \"/path\" --retry 5 --silent --show-error --fail --location --proxy localhost:3812 \"http://server.com/\";else\nif test $(which wget); then wget -O \"/path\" --tries 5 --no-verbose -e \"http_proxy = http://localhost:3812\" -e \"ftp_proxy = http://localhost:3812\" \"http://server.com/\";else\necho No download utility available\nexit 1\nfi\nfi"
+         (stevedore/script
+          (download-file
+           "http://server.com/" "/path" :proxy "http://localhost:3812")))))

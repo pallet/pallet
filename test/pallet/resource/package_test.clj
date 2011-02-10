@@ -10,6 +10,7 @@
    [pallet.stevedore :as stevedore]
    [pallet.resource :as resource]
    [pallet.resource.exec-script :as exec-script]
+   [pallet.resource.file :as file]
    [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]
    [pallet.target :as target]
@@ -30,6 +31,20 @@
   (is (= "pacman -Sy --noconfirm --noprogressbar"
          (script/with-template [:pacman]
            (stevedore/script (update-package-list))))))
+
+(deftest upgrade-all-packages-test
+  (is (= "aptitude upgrade -q -y"
+         (script/with-template [:aptitude]
+           (stevedore/script (upgrade-all-packages)))))
+  (is (= "yum update -y -q"
+         (script/with-template [:yum]
+           (stevedore/script (upgrade-all-packages)))))
+  (is (= "zypper update -y"
+         (script/with-template [:zypper]
+           (stevedore/script (upgrade-all-packages)))))
+  (is (= "pacman -Su --noconfirm --noprogressbar"
+         (script/with-template [:pacman]
+           (stevedore/script (upgrade-all-packages))))))
 
 (deftest install-package-test
   (is (= "aptitude install -q -y java && aptitude show java"
@@ -148,6 +163,71 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
          (script/with-template [:aptitude]
            (package-manager* ubuntu-request :update)))))
 
+(deftest package-manager-configure-test
+  (testing "aptitude"
+    (is (= (first
+            (build-resources
+             []
+             (exec-script/exec-checked-script
+              "package-manager"
+              ~(remote-file/remote-file*
+                {}
+                "/etc/apt/apt.conf.d/50pallet"
+                :content "ACQUIRE::http::proxy \"http://192.168.2.37:3182\";"
+                :literal true))))
+           (first
+            (build-resources
+             []
+             (package-manager
+              :configure :proxy "http://192.168.2.37:3182"))))))
+  (testing "yum"
+    (is (= (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :centos}}]
+             (exec-script/exec-checked-script
+              "package-manager"
+              ~(remote-file/remote-file*
+                {}
+                "/etc/yum.pallet.conf"
+                :content "proxy=http://192.168.2.37:3182"
+                :literal true)
+              (if (not @("fgrep" "yum.pallet.conf" "/etc/yum.conf"))
+                (do
+                  ("cat" ">>" "/etc/yum.conf" " <<'EOFpallet'")
+                  "include=file:///etc/yum.pallet.conf"
+                  "EOFpallet")))))
+           (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :centos}}]
+             (package-manager
+              :configure :proxy "http://192.168.2.37:3182"))))))
+  (testing "pacman"
+    (is (= (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :arch}}]
+             (exec-script/exec-checked-script
+              "package-manager"
+              ~(remote-file/remote-file*
+                {}
+                "/etc/pacman.pallet.conf"
+                :content (str "XferCommand = /usr/bin/wget "
+                              "-e \"http_proxy = http://192.168.2.37:3182\" "
+                              "-e \"ftp_proxy = http://192.168.2.37:3182\" "
+                              "--passive-ftp --no-verbose -c -O %o %u")
+                :literal true)
+              (if (not @("fgrep" "pacman.pallet.conf" "/etc/pacman.conf"))
+                (do
+                  ~(file/sed*
+                    {}
+                    "/etc/pacman.conf"
+                    "a Include = /etc/pacman.pallet.conf"
+                    :restriction "/\\[options\\]/"))))))
+           (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :arch}}]
+             (package-manager
+              :configure :proxy "http://192.168.2.37:3182")))))))
+
 (deftest add-multiverse-example-test
   (is (=  (str
            (stevedore/checked-script
@@ -258,6 +338,21 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                              :scopes ["main"]}
                   :yum {:url "http://somewhere/yum"}))))))
 
+(deftest add-debian-backports-test
+  (core/defnode debian {:packager :aptitude :os-family :debian})
+  (is (= (script/with-template [:debian]
+           (stevedore/checked-commands
+            "Package source"
+            (remote-file/remote-file*
+             {:node-type debian}
+             "/etc/apt/sources.list.d/debian-backports.list"
+             :content (str
+                       "deb http://backports.debian.org/debian-backports "
+                       "$(lsb_release -c -s)-backports main\n"))))
+         (first (build-resources
+                 [:node-type debian]
+                 (add-debian-backports))))))
+
 (deftest packages-test
   (core/defnode a {:packager :aptitude})
   (core/defnode b {:packager :yum})
@@ -281,7 +376,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   :aptitude ["git-apt"]
                   :yum ["git-yum"]))))))
 
-(deftest package-package-sorce-test
+(deftest ordering-test
   (testing "package-source alway precedes packages"
     (is (= (first
             (build-resources
@@ -292,6 +387,32 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (build-resources
              []
              (package "p")
+             (package-source "s" :aptitude {:url "http://somewhere/apt"}))))))
+
+  (testing "package-manager alway precedes packages"
+    (is (= (first
+            (build-resources
+             []
+             (package-manager :update)
+             (package "p")))
+           (first
+            (build-resources
+             []
+             (package "p")
+             (package-manager :update))))))
+
+  (testing "package-source alway precedes packages and package-manager"
+    (is (= (first
+            (build-resources
+             []
+             (package-source "s" :aptitude {:url "http://somewhere/apt"})
+             (package-manager :update)
+             (package "p")))
+           (first
+            (build-resources
+             []
+             (package "p")
+             (package-manager :update)
              (package-source "s" :aptitude {:url "http://somewhere/apt"})))))))
 
 (deftest adjust-packages-test
@@ -308,6 +429,18 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                {:package "p2" :action :install}
                {:package "p3" :action :upgrade}
                {:package "p4" :action :remove :purge true}])))))
+  (testing "aptitude with enable"
+    (script/with-template [:aptitude]
+      (is (= (stevedore/checked-script
+              "Packages"
+              (package-manager-non-interactive)
+              (aptitude install -q -y -t r1 p2+)
+              (aptitude install -q -y p1+)
+              (aptitude search (quoted "~i")))
+             (adjust-packages
+              {:target-packager :aptitude}
+              [{:package "p1" :action :install :priority 20}
+               {:package "p2" :action :install :enable ["r1"] :priority 2}])))))
   (testing "yum"
     (is (= (stevedore/checked-script
             "Packages"

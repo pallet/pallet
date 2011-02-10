@@ -86,8 +86,8 @@
    not, then report the exception."
   [e]
   (when-not (= e exit-task-exception)
-          (report-error (.getMessage e))
-          (.. e .printStackTrace *err*)))
+    (report-error (.getMessage e))
+    (.printStackTrace e)))
 
 (defn pallet-task
   "A pallet task.
