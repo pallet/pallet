@@ -159,9 +159,7 @@
 
 (defn- add-to-scripts
   [scripts script-name specialisers f]
-  (assoc scripts script-name
-         (assoc (*scripts* script-name {})
-           specialisers f)))
+  (assoc-in scripts [script-name specialisers] f))
 
 (defn implement
   "Add an implementation of script-name for the given specialisers.

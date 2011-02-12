@@ -281,6 +281,13 @@
            family (-> (.. template getImage getOperatingSystem getFamily)
                       str keyword)]
        (logging/info (format "Default OS is %s" (pr-str family)))
+       (when (or (nil? family) (= family OsFamily/UNRECOGNIZED))
+         (condition/raise
+          :type :unable-to-determine-os-type
+          :message (format
+                    (str "jclouds was unable to determine the os-family "
+                         "of the template %s")
+                    (pr-str (-> request :node-type :image)))))
        (->
         request
         (assoc-in [:node-type :image :os-family] family)

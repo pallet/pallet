@@ -245,6 +245,7 @@
           {:node-type {:image {:os-family :ubuntu}
                        :phases {:bootstrap (resource/phase
                                             (identity-resource "a"))}}
+           :target-packager :ubuntu
            :target-id :id})))
   (testing "rejects local resources"
     (is (thrown?
@@ -253,6 +254,7 @@
           {:node-type
            {:image {:os-family :ubuntu}
             :phases {:bootstrap (resource/phase (identity-local-resource))}}
+           :target-packager :ubuntu
            :target-id :id})))))
 
 
