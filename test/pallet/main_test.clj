@@ -53,7 +53,10 @@
 
 (deftest report-unexpected-exception-test
   (is (re-find #"hello"
-               (with-out-str
-                 (binding [*err* *out*]
-                   (#'pallet.main/report-unexpected-exception
-                    (Exception. "hello")))))))
+               (with-err-str
+                 (#'pallet.main/report-unexpected-exception
+                  (Exception. "hello")))))
+  (is (re-find #"java.lang.Exception"
+               (with-err-str
+                 (#'pallet.main/report-unexpected-exception
+                  (Exception. "hello"))))))
