@@ -299,10 +299,10 @@ script that is run with root privileges immediatly after first boot."
     {:pre [handler
            (-> request :node-type :image :os-family)
            (-> request :target-packager)]}
-    (handler
-     (assoc request
-       :commands (script/with-template (resource/script-template request)
-                   (resource/produce-phase request))))))
+    (if-let [commands (script/with-template (resource/script-template request)
+                        (resource/produce-phase request))]
+      (handler (assoc request :commands commands))
+      [nil request])))
 
 (defn- apply-phase-to-node
   "Apply a phase to a node request"
