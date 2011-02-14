@@ -298,7 +298,17 @@
                            :username (test-utils/test-username)
                            :no-sudo true)
                    :compute service))))
-      (is (seen?)))))
+      (is (seen?))
+      (testing "invalid :phases keyword"
+        (is (thrown-with-msg?
+              clojure.contrib.condition.Condition
+              #":phases"
+              (lift local :phases []))))
+      (testing "invalid keyword"
+        (is (thrown-with-msg?
+              clojure.contrib.condition.Condition
+              #"Invalid"
+              (lift local :abcdef [])))))))
 
 (deftest lift2-test
   (let [[localf seen?] (seen-fn "x")
