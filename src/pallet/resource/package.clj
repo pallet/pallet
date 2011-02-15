@@ -699,11 +699,11 @@
    [request args]
    (let [os-family (request-map/os-family request)]
      (cond
-      (= :debian os-family) (stevedore/checked-script
-                             "Add minimal packages"
-                             (update-package-list)
-                             (install-package "coreutils")
-                             (install-package "sudo"))
+      (#{:ubuntu :debian} os-family) (stevedore/checked-script
+                                      "Add minimal packages"
+                                      (update-package-list)
+                                      (install-package "coreutils")
+                                      (install-package "sudo"))
       (= :arch os-family) (stevedore/checked-script
                            "Add minimal packages"
                            (update-package-list)
