@@ -192,6 +192,11 @@
         (:cmds (f request)))
       "")))
 
+(defn- filter-nodes-with-tag
+  "Return nodes with the given tag"
+  [nodes with-tag]
+  (filter #(= (name with-tag) (compute/tag %)) nodes))
+
 (defn- create-nodes
   "Create count nodes based on the template for tag. The boostrap argument
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
@@ -224,8 +229,10 @@ script that is run with root privileges immediatly after first boot."
   (let [tag-nodes (filter (partial compute/node-has-tag? tag) nodes)]
     (if (= destroy-count (count tag-nodes))
       (compute/destroy-nodes-with-tag compute (name tag))
-      (doseq [node (take destroy-count tag-nodes)]
-        (compute/destroy-node compute node)))))
+      (do
+        (doseq [node (take destroy-count tag-nodes)]
+          (compute/destroy-node compute node))
+        (drop destroy-count tag-nodes)))))
 
 (defn- node-count-difference
   "Find the difference between the required and actual node counts by tag."
@@ -236,18 +243,28 @@ script that is run with root privileges immediatly after first boot."
      (into {} (map #(vector (first %) (get node-counts ((first %) :tag) 0))
                    node-map)))))
 
-(defn- adjust-node-counts
+(defn- adjust-node-count
+  "Adjust the node by delta nodes"
+  [[{:keys [tag] :as node} delta] nodes request]
+  (cond
+   (pos? delta) (create-nodes node delta request)
+   (neg? delta) (destroy-nodes-with-count
+                  nodes tag (- delta) (:compute request))
+   :else (filter-nodes-with-tag nodes tag)))
+
+(defn- serial-adjust-node-counts
   "Start or stop the specified number of nodes."
   [delta-map nodes request]
-  (logging/trace (str "adjust-node-counts" delta-map))
-  (logging/info (str "destroying excess nodes"))
-  (doseq [node-count (filter #(neg? (second %)) delta-map)]
-    (destroy-nodes-with-count
-      nodes ((first node-count) :tag) (- (second node-count))
-      (:compute request)))
-  (logging/info (str "adjust-node-counts starting new nodes"))
-  (mapcat #(create-nodes (first %) (second %) request)
-          (filter #(pos? (second %)) delta-map)))
+  (logging/trace (str "serial-adjust-node-counts" delta-map))
+  (mapcat #(adjust-node-count % nodes request) delta-map))
+
+(defn- parallel-adjust-node-counts
+  "Start or stop the specified number of nodes."
+  [delta-map nodes request]
+  (logging/trace (str "parallel-adjust-node-counts" delta-map))
+  (mapcat
+   deref
+   (doall (map #(future (adjust-node-count % nodes request)) delta-map))))
 
 (defn- converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
@@ -258,11 +275,10 @@ script that is run with root privileges immediatly after first boot."
   ;;(compute/boot-if-down (:compute request) nodes) ; this needs improving
                                         ; should only reboot if required
   (let [nodes (filter compute/running? nodes)]
-    (adjust-node-counts
+    ((:converge-fn request parallel-adjust-node-counts)
      (node-count-difference node-map nodes)
      nodes
      request)))
-
 
 (defn execute-with-ssh
   [{:keys [target-node] :as request}]
@@ -414,16 +430,20 @@ script that is run with root privileges immediatly after first boot."
     (apply-phase-to-node
      (assoc request :target-node node))))
 
+(defn parallel-apply-phase
+  "Apply a phase to a sequence of nodes"
+  [request nodes]
+  (logging/info
+   (format
+    "apply-phase %s for %s with %d nodes"
+    (:phase request) (:tag (:node-type request)) (count nodes)))
+  (map #(future (apply-phase-to-node (assoc request :target-node %))) nodes))
+
 (defn- nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"
   [node-map nodes]
   (let [tags (->> node-map keys (map :tag) (map name) set)]
     (->> nodes (filter compute/running?) (filter #(-> % compute/tag tags)))))
-
-(defn- filter-nodes-with-tag
-  "Return nodes with the given tag"
-  [nodes with-tag]
-  (filter #(= (name with-tag) (compute/tag %)) nodes))
 
 (defn- add-prefix-to-node-type
   [prefix node-type]
@@ -516,6 +536,17 @@ script that is run with root privileges immediatly after first boot."
      (assoc request :phase phase :node-type node-type)
      tag-nodes)))
 
+(defn parallel-lift
+  "Apply the phases in sequence, to nodes in parallel."
+  [request phases target-node-map]
+  (for [phase (resource/phase-list phases)]
+    (mapcat
+     #(map deref %) ; make sure all nodes complete before next phase
+     (for [[node-type tag-nodes] target-node-map]
+       (parallel-apply-phase
+        (assoc request :phase phase :node-type node-type)
+        tag-nodes)))))
+
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
   [all-nodes target-node-map all-node-map phases request]
@@ -531,7 +562,7 @@ script that is run with root privileges immediatly after first boot."
      (->
       request
       (invoke-phases (ensure-configure-phase phases) all-node-map)
-      (sequential-lift phases target-node-map)))))
+      ((:lift-fn request parallel-lift) phases target-node-map)))))
 
 (def
   ^{:doc
@@ -642,7 +673,7 @@ script that is run with root privileges immediatly after first boot."
        :private true}
   argument-keywords
   #{:compute :blobstore :phase :user :prefix :middleware :all-node-set
-    :all-nodes :parameters})
+    :all-nodes :parameters :converge-fn :lift-fn})
 
 (defn- check-arguments-map
   "Check an arguments map for errors."
