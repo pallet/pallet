@@ -93,21 +93,32 @@
 (defn nil-if-blank [x]
   (if (string/blank? x) nil x))
 
+(defn- current-time-millis []
+  (System/currentTimeMillis))
+
 (defn wait-for-ip
   "Wait for the machines IP to become available."
-  [machine]
-  (loop []
-    (try
-      (let [ip (try (manager/get-ip machine)
-                    (catch org.virtualbox_3_2.RuntimeFaultMsg e
-                      (logging/warn
-                       (format "wait-for-ip: Machine %s not started yet..." machine)))
-                    (catch clojure.contrib.condition.Condition e
-                      (logging/warn
-                       (format "wait-for-ip: Machine %s is not accessible yet..." machine))))]
-        (when (string/blank? ip)
-          (Thread/sleep 2000)
-          (recur))))))
+  ([machine] (wait-for-ip machine 300000))
+  ([machine timeout]
+     (let [timeout (+ (current-time-millis) timeout)]
+       (loop []
+         (try
+           (let [ip (try (manager/get-ip machine)
+                         (catch org.virtualbox_3_2.RuntimeFaultMsg e
+                           (logging/warn
+                            (format
+                             "wait-for-ip: Machine %s not started yet..."
+                             machine)))
+                         (catch clojure.contrib.condition.Condition e
+                           (logging/warn
+                            (format
+                             "wait-for-ip: Machine %s is not accessible yet..."
+                             machine))))]
+             (if (and (string/blank? ip) (< (current-time-millis) timeout))
+               (do
+                 (Thread/sleep 2000)
+                 (recur))
+               ip)))))))
 
 
 (defn machine-name
@@ -148,7 +159,10 @@
     (logging/trace "Wait to allow boot")
     (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
-    (wait-for-ip machine)
+    (when-not (wait-for-ip machine)
+      (condition/raise
+       :type :no-ip-available
+       :message "Could not determine IP address of new node"))
     (Thread/sleep 4000)
     (logging/trace (format "Bootstrapping %s" (manager/get-ip machine)))
     (script/with-template
@@ -212,11 +226,12 @@
                                 (format "No matching image for %s"
                                         (pr-str (-> node-type :image))))))
            tag-name (name (:tag node-type))
+           machines (manager/machines server)
            current-machines-in-tag (filter
                                     #(= tag-name
                                         (manager/get-extra-data
                                          % "/pallet/tag"))
-                                    (manager/machines server))
+                                    machines)
            current-machine-names (into #{}
                                        (map
                                         #(:name (manager/as-map %))
