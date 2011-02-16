@@ -169,7 +169,8 @@
 
 (defn- produce-init-script
   [request]
-  {:pre [(get-in request [:node-type :image :os-family])]}
+  {:pre [(get-in request [:node-type :image :os-family])
+         (get-in request [:target-packager])]}
   (let [cmds
         (resource/produce-phase
          (resource-invocations
@@ -182,6 +183,12 @@
                  (pr-str cmds))))
     (if-let [f (:f (first cmds))]
       (script/with-template (resource/script-template request)
+        (logging/info
+         (format
+          "Generating init script - :os-family %s, :packager %s, *template* %s"
+          (-> request :node-type :image :os-family)
+          (-> request :target-packager)
+          (vec script/*template*)))
         (:cmds (f request)))
       "")))
 
@@ -192,13 +199,16 @@ bootstrap-script value is expected tobe a function that produces a
 script that is run with root privileges immediatly after first boot."
   [node-type count request]
   {:pre [(map? node-type)]}
-  (logging/info (str "Starting " count " nodes for " (node-type :tag)))
+  (logging/info
+   (str "Starting " count " nodes for " (node-type :tag)
+        " os-family " (-> node-type :image :os-family)))
   (let [request (compute/ensure-os-family
                  (:compute request)
                  (assoc request :node-type node-type))
         request (add-target-packager request)
         init-script (produce-init-script request)]
-    (logging/trace (format "Bootstrap script:\n%s" init-script))
+    (logging/trace
+     (format "Bootstrap script:\n%s" init-script))
     (compute/run-nodes
      (:compute request)
      node-type
@@ -289,10 +299,10 @@ script that is run with root privileges immediatly after first boot."
     {:pre [handler
            (-> request :node-type :image :os-family)
            (-> request :target-packager)]}
-    (handler
-     (assoc request
-       :commands (script/with-template (resource/script-template request)
-                   (resource/produce-phase request))))))
+    (if-let [commands (script/with-template (resource/script-template request)
+                        (resource/produce-phase request))]
+      (handler (assoc request :commands commands))
+      [nil request])))
 
 (defn- apply-phase-to-node
   "Apply a phase to a node request"
@@ -628,6 +638,30 @@ script that is run with root privileges immediatly after first boot."
    (update-in [:user] (or-fn utils/*admin-user*))
    (update-in [:middleware] (or-fn *middleware*))))
 
+(def ^{:doc "A set of recognised argument keywords, used for input checking."
+       :private true}
+  argument-keywords
+  #{:compute :blobstore :phase :user :prefix :middleware :all-node-set
+    :all-nodes :parameters})
+
+(defn- check-arguments-map
+  "Check an arguments map for errors."
+  [{:as options}]
+  (let [unknown (remove argument-keywords (keys options))]
+    (when (and (:phases options) (not (:phase options)))
+      (condition/raise
+       :type :invalid-argument
+       :message (str
+                 "Please pass :phase and not :phases. :phase takes a single "
+                 "phase or a sequence of phases.")
+       :invalid-keys unknown))
+    (when (seq unknown)
+      (condition/raise
+       :type :invalid-argument
+       :message (format "Invalid argument keywords %s" (vec unknown))
+       :invalid-keys unknown)))
+  options)
+
 (defn converge
   "Converge the existing compute resources with the counts specified in
    node-map.  The compute service may be supplied as an option, otherwise the
@@ -641,12 +675,17 @@ script that is run with root privileges immediatly after first boot."
    explicitly listing them.
 
    An optional tag prefix may be specified before the node-map."
-  [node-map & {:keys [compute phase prefix middleware all-node-set]
+  [node-map & {:keys [compute blobstore user phase prefix middleware
+                      all-nodes all-node-set]
                :as options}]
   (converge*
    node-map all-node-set
    (if (sequential? phase) phase (if phase [phase] nil))
-   (build-request-map (dissoc options :all-node-set :phase))))
+   (->
+    options
+    (check-arguments-map)
+    (dissoc :all-node-set :phase)
+    (build-request-map))))
 
 
 (defn lift
@@ -680,4 +719,8 @@ script that is run with root privileges immediatly after first boot."
   (lift*
    node-set all-node-set
    (if (sequential? phase) phase (if phase [phase] nil))
-   (build-request-map (dissoc options :all-node-set :phase))))
+   (->
+    options
+    (check-arguments-map)
+    (dissoc :all-node-set :phase)
+    (build-request-map))))

@@ -225,7 +225,8 @@
           {:node-type {:image {:os-family :ubuntu}
                        :phases {:bootstrap (resource/phase
                                             (identity-resource "a"))}}
-           :target-id :id})))
+           :target-id :id
+           :target-packager :aptitude})))
   (testing "rejects local resources"
     (is (thrown?
          clojure.contrib.condition.Condition
@@ -233,7 +234,19 @@
           {:node-type
            {:image {:os-family :ubuntu}
             :phases {:bootstrap (resource/phase (identity-local-resource))}}
-           :target-id :id})))))
+           :target-id :id
+           :target-packager :aptitude}))))
+  (testing "requires a packager"
+    (is (thrown?
+         java.lang.AssertionError
+         (#'core/produce-init-script
+          {:node-type {:image {:os-family :ubuntu}}}))))
+  (testing "requires an os-family"
+    (is (thrown?
+         java.lang.AssertionError
+         (#'core/produce-init-script
+          {:node-type {:image {}}
+           :target-packager :yum})))))
 
 
 
@@ -285,7 +298,17 @@
                            :username (test-utils/test-username)
                            :no-sudo true)
                    :compute service))))
-      (is (seen?)))))
+      (is (seen?))
+      (testing "invalid :phases keyword"
+        (is (thrown-with-msg?
+              clojure.contrib.condition.Condition
+              #":phases"
+              (lift local :phases []))))
+      (testing "invalid keyword"
+        (is (thrown-with-msg?
+              clojure.contrib.condition.Condition
+              #"Invalid"
+              (lift local :abcdef [])))))))
 
 (deftest lift2-test
   (let [[localf seen?] (seen-fn "x")
