@@ -1,6 +1,291 @@
 Release Notes
 
-The latest release is 0.3.0.
+The latest release is 0.4.0.
+
+* 0.4.0
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** General
+
+The pallet crates have been moved into the pallet-crates project.
+
+This release introduces the ~/.pallet/config.clj configuration file.
+
+maven-settings is now an optional dependency. This means that to use
+settings.xml to store pallet configuration, you need to add
+org.apache.maven/maven-settings 2.0.10 to your project dependencies. This
+dependency was causing conflicts with lein.
+
+There is also preliminary support for virtualbox via vmfest.
+
+
+
+** Lein and cake
+- Fix reporting of unexpected error stack traces in pallet.main
+
+- Fix pallet.main/report-unexpected-exception, and add test for it
+
+
+** Fixes
+
+- Fix bug in pallet.script/add-to-scripts
+  The add-to-scripts function was referencing *scripts*, which was
+  incorrect since it is called by an alter-var-root invoctation on
+  *scripts*.
+
+  Change pallet.scripts/*scripts* to pallet.script/scripts, and make it an atom
+
+  Added extra tests and logging around script template selection for
+  generation of the bootstrap script.
+
+  Added a condition/raise when jclouds returns OsFamily/UNRECOGNISED on the
+  image to be used for a new node.
+
+- Improve exception message in stevedore/emit-infix
+
+- Fix md5-verify script implementation on ubuntu
+- Use --status for md5sum-verify on debian
+
+- Add repositories to pom to make sure parent pom can be found
+
+- Fix option argument processing for add-epel
+
+- Ensure package-source is executed before either package-manager or package
+
+- fix pallet.template/path-components for windows
+
+- Add test for propogation of :parameters supplied to lift
+
+- Remove the -n option for sudo on debian
+
+- Fix execute/remote-sudo
+
+- Fix a bug that prevented converge from reducing an existing node count to a
+  smaller, non-zero number of nodes
+
+- Remove -n option in sudo-no-password for mac
+
+- Fix jpackage-utils install priority. Remove duplicate package requests
+
+- Remove superfluous spaces produced by stevedore/script
+
+- Ensure correct treatment in stevedore for single statement if blocks
+  containing newlines
+
+- Correct quoting of checked-commands failure message
+
+- Allow pallet-version to be nil, to solve issue when compiling before
+  resource generation
+
+- Fix pacmans purge test
+
+- purge-package (pacman): also remove all (possibly modified) config files
+
+- Fix forwaring of all provider options from config, and ensure that provider
+  specific jclouds endpoint option is used
+
+- Fix pallet.thread-expr/if-> for case with no else expression
+
+- fix infinite recursion when pallet.main is invoked without command line
+  arguments
+
+
+** Enhancements
+
+- Add a timeout to vmfest/wait-for-ip
+
+- Make minimal-packages update coreutils and sudo on ubuntu
+- Fix pallet.resource.package/minimal-packages
+
+- Shortcut execution of empty phases
+
+- Add pallet.resource.network-service/wait-for-port-response
+  wait-for-port-response is a function to wait for a port to a return a
+  response matching a given regex when sent a specific message.
+
+- Add checking of argument keywords to lift and converge
+
+- Add add-debian-backports to pallet.resource.package and process :enable
+  options in adjust-packages for aptitude
+
+- Add :proxy option to pallet.resource.file/download-file
+
+- Add the ability to configure the package manager
+  Add :configure option to pallet.resource.package/package-manager. The
+  only option at the moment is :proxy, which accepts a url for the http
+  proxy that should be used by the package manager
+
+- Add :upgrade action to pallet.resource.package/package-manager
+  In order to upgrade all installed packages, the :upgrade action is now
+  accepted by pallet.resource.package/package-manager. This is implemented
+  via the upgrade-all-packages script function.
+
+- Added pallet.live-test for running tests with actual nodes
+
+  Add pallet.test.image-list to select images to use for testing
+  When running the live tests, it is useful to be able to specify which
+  images to use.  The pallet.test.image-list can be used to specify this.
+  The list of images is made available to the tests in
+  pallet.live-test/*images*.  The pallet.live-test/exclude-images and
+  pallet.live-test/filter-images can be used to special case tests, or
+  filter unsupported images.
+
+- Add pallet.resource.network-service with functions for waiting on the state
+  of network services
+
+- Add alias as a special form in stevedore
+  Use alias to define command aliases:
+   (script (alias ls (ls -l)))
+
+- Add pallet.debug with print-request and log-request.
+  Add initial helper functions for debugging. print-request and log-request
+  can be inserted into a crate to show the intermediate request map.
+
+- Add the form causing an invalid request map to condition message in
+  pallet.resource/phase.
+  In order to help debugging, when an invalid request map is detected in a
+  phase, a condition is raised and the form that returned the invalid map
+  will be included in the condition's message.
+
+- Add the :endpoint option to compute/compute-service-from-map.
+
+- List packages after install/remove.
+  Ensure feedback on the state of packages after each package operation.
+
+- Add simple validation of the the request map to resource/phase
+
+- Add :no-sudo to the image specification, increase standoff while waiting
+  for ip
+
+- Add an :add-scope action to pallet.resource.package/package-manager that
+  can be used with debian or ubuntu
+
+- Add compile and tests phase executions for clojure-maven-plugin
+
+- Add marginalia and autodoc output directory targets
+
+- Change jclouds service implementation to use a provider specifc default
+  extension list, which will try to use pallet's no-op ssh client for the
+  stub service
+
+- Change compute-service-from-map so that the :extensions and :node-list key
+  values are read using read-string only when the values are strings
+
+- Add an overload to find-var-with-require for a single namespace qualified
+  symbol argument
+
+- Update pallet.main/-main to factor out pallet-task.
+  pallet-task returns an integer suitable for System/exit, but never calls
+  System/exit.  This simplifies lein interactive and cake integration.
+
+- make package/add-rpmforge an aggregate resource :always-before
+  package-manager
+
+- Add pkg- prefixed path functions, for locations of files managed by the
+  package manager Package managers such as brew do not install files in the
+  base system locations
+
+- Add pallet.thread-expr/let-with-arg-> to allow a let in the middle of a
+  threaded expression In pallet crates, it is often useful to access an
+  element of the request in the middle of a threaded expression, and
+  let-with-arg-> provides access to the request, and allows you to make
+  lexical scoped assignments.
+
+- Add per package enabling/disabling of repositories (yum only) Package
+  operations are grouped by enabled/disabled repositories and are ordererd
+  by a priority
+
+- add pallet.execute/local-checked-script
+
+- Add pallet.core/version based on a maven filtered resource
+
+- Allow documentation string and metadata on pallet.script/defscript
+  definitions
+
+- Do not complain about pallet.script/*template* being unbound until trying
+  to use a defined script multimethod
+
+- Use (seq *template*) for appropriate logging output of script template
+
+- Make maven-settings an optional dependency This means that to use
+  settings.xml to store pallet configuration, you need to add
+  org.apache.maven/maven-settings 2.0.10 to your project dependencies. This
+  dependency was causing conflicts with lein.
+
+- Add the vmfest compute provider from the vmfest branch
+
+- Update remote-sudo to use the user :password if present, and to use
+  sudo-cmd-for to generate the sudo command prefix.
+
+- Improve robustness of stevedore statement generation
+
+- Add :services key for config.clj and deprecate :providers
+
+- Add pallet.resource.format/name-values for formatting name value pairs
+
+- Attempt to use wget if curl not available
+
+- stop ls complaining about no version files when limiting the number of
+  versions of a file
+
+- Add pallet.parameter/get-for-service
+
+- Add execute/local-script for running local shell script commands
+
+- Add stevedore/directory?
+
+- Add warn-on-undefined-phase to warn if requested phase is not defined on
+  any target tag. Fixes #43
+
+- Explicitly remove :blobstore from jclouds compute service options
+
+- Simplify nodes-in-tag to not rely on the target node
+
+- Make package/add-epel aggregated and force it before any package-manager
+  commands
+
+- Allow specification of node-list nodes as data vectors
+
+- Remove default usage of compute provider as blob provider.
+
+- Add :endpoint to config.clj, and pallet.endpoint to settings.xml
+
+- Updates for new repository location. Removal of superfluous config in pom
+  (supplied by pallet-pom).
+
+- Add configure-service overload for rhel based distros
+
+- Added the start of crate writing guidelines
+
+- add pallet.request-map/os-version
+
+- Add specialisation for sudo for centos 5.3, to remove the -n option
+
+- remove src/demo.clj - now in the pallet-examples basic project
+
+- Enable script specialisation on OS version. Add os-version to Node. Add
+  :os-version to image. Add a combined os-family and os-version to
+  script-template.
+
+- refactor script template generation to resource/script-template
+
+- Add jclouds-snapshot profile.
+
+- Add assert for non-nil request in pallet.resource/invoke-resource
+
+- Propogate config map to request in tasks
+
+- add explicit maven-jar-plugin version
+
+- change lift and converge to take keyword arguments
+
+- Updated to use template as a map, and for new Hardware in jclouds nodes
+
+- Change maven settings keys to match jclouds
+
 
 * 0.3.0
 

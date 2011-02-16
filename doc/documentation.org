@@ -37,13 +37,13 @@ The first time you do this, you will need to add a remote for the wiki in your
 clone of the pallet repository.
 
 #+begin_src sh
-git remote add wiki git@github.com:pallet/pallet.wiki.git
+    git remote add wiki git@github.com:pallet/pallet.wiki.git
 #+end_src
 
 You can then pull in changes from the wiki.
 
 #+begin_src sh
-git pull wiki master
+    git pull wiki master
 #+end_src
 
 ** Publishing the org-mode project
@@ -57,15 +57,17 @@ clojure:swank= in the =pallet-all= project. With this repl running, you can run
 ** Run autodoc
 
 Autodoc is generated using:
+
 #+begin_src sh
-mvn clojure:autodoc
+    mvn clojure:autodoc
 #+end_src
 
 ** Run Marginalia
 
 Marginalia documentation is generated using:
+
 #+begin_src sh
-mvn clojure:marginalia
+    mvn clojure:marginalia
 #+end_src
 
 ** Commit the generated documentation
@@ -73,9 +75,9 @@ mvn clojure:marginalia
 In order to get the generated documentation onto the GitHub Pages site, the
 documentation needs to be committed and pushed.
 
-#+begin_src sh
-cd autodoc
-git add -A
-git commit -m "Updated documentation"
-git push origin gn-pages
-#+end_src
+#+BEGIN_SRC sh
+    cd autodoc
+    git add -A
+    git commit -m "Updated documentation"
+    git push origin gn-pages
+#+END_SRC
