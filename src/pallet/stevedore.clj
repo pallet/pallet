@@ -173,7 +173,7 @@
 
 (defn- emit-infix [type [operator & args]]
   (when (< (count args) 2)
-    (throw (Exception. "not supported yet")))
+    (throw (Exception. "Less than 2 infix arguments not supported yet.")))
   (let [open (if (logical-operator? operator) "\\( " "(")
         close (if (logical-operator? operator) " \\)" ")")
         quoting (if (quoted-operator? operator) add-quotes identity)]

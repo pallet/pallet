@@ -3,7 +3,7 @@
 #+DESCRIPTION: Pallet environment proposal
 #+KEYWORDS: pallet environment parameters
 
-WARNING: This is a proposal
+*WARNING: This is a proposal*
 
 When switching environments (i.e. from development to test to stage to
 production) you do not want to update the node definitions, etc.
@@ -15,37 +15,63 @@ the :environment key in the request map.
 
 The effective environment is made available to crates through the standard keys.
 
-
 * :environment
 
- :templates
-   node templates for each tag, keyed by tag.  If not specified for
-   a given tag, then falls back to the definition in the defnode for
-   the tag.
+The :pallet key of the environment map should be a hash map and will be
+interpreted by pallet and can contain data to specify node templates, counts,
+user names and compute service.
 
- :admin-user
-   a default admin user for the environment. If not specified, then
-   falss back on the :user passed to converge/lift.
+Arbitrary data can be specified on other keys, to be used by crates and node
+definitions, and will not be interpreted by pallet.
 
- :admin-users
-   admin-user for each tag.  If not specified for a given tag, then
-   falls back on the :admin-user for the environment.
+** [:pallet :tags]
 
- :compute-services
-   compute services to use for each tag, keyed by tag. If not specified
-   for a given tag, then uses the :compute value passed to converge/lift
+The :tags map contains overriding values specific to a tag. The map keys are the
+tag names (as keywords).
 
- :blobstore-services
-   blobstore services to use for each tag, keyed by tag. If not specified
-   for a given tag, then uses the :blobstore value passed to converge/lift
+- :image :: node template for the tag.  Inherits values from the definition
+            in :defaults, and from the tag's `defnode`.
 
- :userdata
-   arbitrary data to be used by crates and node definitions. Not
-   interpreted by pallet.core.
+- :phases :: phases for the node. Inherits values from the definition
+             in :defaults, and from the tag's `defnode`.
+
+- :user :: admin user for the tag.  If not specified for a given tag, then falls
+           back on the :user for the environment specified in :defaults.
+
+- :compute :: compute service to use for the tag. If not specified for a given
+              tag, then uses the :compute for the environment specified
+              in :defaults.
+
+- :blobstore :: blobstore service to use for the tag. If not specified for a
+                given tag, then uses the :blobstore for the environment
+                specified in :defaults.
+
+- :count :: node count for the tag. If not specified for a given tag, then uses
+            the value passed to converge.
+
+** [:pallet :defaults]
+
+The :defaults map contains overriding values for the whole call.
+
+- :image :: node template for the environment. If specified, will be merged with
+            the :image specificaion in a tag's `defnode`.
+
+- :phases :: default phases for the environment.
+
+- :user :: a default admin user for the environment. If not specified, then falls
+           back on the :user passed to converge/lift.
+
+- :compute :: compute service to use for the environment. If not specified, then
+              uses the :compute passed to converge/lift.
+
+- :blobstore :: blobstore service to use for the environment. If not specified,
+                then uses the :blobstore passed to converge/lift.
 
 * effective keys
 
 ** converge and other phases
+:count
+:image
 :user
 :compute
 :blobstore

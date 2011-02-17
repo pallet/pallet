@@ -24,7 +24,7 @@
 
 ;; map from script name to implementations
 ;; where implementations is a map from keywords to function
-(defonce *scripts* {})
+(defonce scripts (atom {}))
 
 (def *script-line* nil)
 (def *script-file* nil)
@@ -99,7 +99,7 @@
   [script]
   (logging/trace
    (format "Looking up script %s" script))
-  (when-let [impls (*scripts* script)]
+  (when-let [impls (@scripts script)]
     (logging/trace
      (format
       "Found implementations %s - template %s" (keys impls) (seq *template*)))
@@ -170,15 +170,15 @@
    indication whether the implementation is a match for the `*template*` passed
    as the function's first argument."
   [script-name specialisers f]
-  (alter-var-root
-   #'*scripts*
+  (swap!
+   scripts
    (fn add-implementation-fn [current]
      (add-to-scripts current (keyword (name script-name)) specialisers f))))
 
 (defn remove-script
   "Remove all implementations of a script."
   [script-name]
-  (alter-var-root
-   #'*scripts*
+  (swap!
+   scripts
    (fn remove-script-fn [current]
      (dissoc current (keyword (name script-name))))))

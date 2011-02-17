@@ -77,3 +77,44 @@
       (println ~(format "Waiting for %s to return a %s status" url-name status))
       (sleep ~standoff))
     (sleep ~standoff))))
+
+(defn wait-for-port-response
+  "Wait for a port to respond to a message with a given response regex.
+
+   Options:
+   - :host          host to check (defaults to localhost)
+   - :timeout       time to wait for a response (default 2 secs)
+   - :standoff      time between checking HTTP status (seconds)
+   - :max-retries   number of times to test HTTP status before erroring
+   - :service-name  name of service to use in messages (defaults to port)"
+
+  [request port message response-regex
+   & {:keys [host timeout max-retries standoff service-name]
+      :or {host "localhost" max-retries 5 standoff 2 timeout 2
+           service-name (str "port " port)}}]
+  (->
+   request
+   (exec-script/exec-checked-script
+    (format
+     "Wait for %s to return a response %s to message %s"
+     service-name response-regex message)
+
+    (group (chain-or (let x 0) true))
+    (while
+        (! (pipe (println (quoted ~message))
+                 ("nc" -q ~timeout ~host ~port)
+                 ("grep" -E (quoted ~response-regex))))
+      (let x (+ x 1))
+      (if (= ~max-retries @x)
+        (do
+          (println
+           ~(format
+             "Timed out waiting for %s to return response %s"
+             service-name response-regex)
+           >&2)
+          (exit 1)))
+      (println
+       ~(format
+         "Waiting for %s to return response %s" service-name response-regex))
+      (sleep ~standoff))
+    (sleep ~standoff))))

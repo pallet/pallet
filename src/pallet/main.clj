@@ -84,10 +84,10 @@
 (defn- report-unexpected-exception
   "Check the exception to see if it is the `exit-task-exception`, and if it is
    not, then report the exception."
-  [e]
+  [^Throwable e]
   (when-not (= e exit-task-exception)
     (report-error (.getMessage e))
-    (.printStackTrace e)))
+    (.printStackTrace e (java.io.PrintWriter. *err*))))
 
 (defn pallet-task
   "A pallet task.
