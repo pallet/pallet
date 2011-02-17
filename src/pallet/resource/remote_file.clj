@@ -9,6 +9,7 @@
    by default."
   (:require
    [pallet.blobstore :as blobstore]
+   [pallet.environment :as environment]
    [pallet.resource :as resource]
    [pallet.resource.directory :as directory]
    [pallet.resource.file :as file]
@@ -182,7 +183,7 @@
                (download-request
                 ~new-path
                 ~(blobstore/sign-blob-request
-                  (or blobstore (:blobstore request)
+                  (or blobstore (environment/get-for request [:blobstore] nil)
                       (throw (IllegalArgumentException.
                               "No :blobstore given for blob content.") ))
                   (:container blob) (:path blob)
