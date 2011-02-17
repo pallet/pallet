@@ -104,7 +104,7 @@
        (loop []
          (try
            (let [ip (try (manager/get-ip machine)
-                         (catch org.virtualbox_3_2.RuntimeFaultMsg e
+                         (catch org.virtualbox_4_0.VBoxException e
                            (logging/warn
                             (format
                              "wait-for-ip: Machine %s not started yet..."
@@ -142,6 +142,7 @@
   (let [nodes (manager/machines compute-service)]
     (map node-data nodes)))
 
+(def *vm-session-type* "headless")
 
 (defn create-node
   [compute node-path node-type machine-name images image-id tag-name
@@ -155,7 +156,7 @@
     (manager/set-extra-data machine "/pallet/os-family" (name (:os-family image)))
     (manager/set-extra-data machine "/pallet/os-version" (:os-version image))
     ;; (manager/add-startup-command machine 1 init-script )
-    (manager/start machine :session-type "vrdp")
+    (manager/start machine :session-type *vm-session-type*)
     (logging/trace "Wait to allow boot")
     (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
