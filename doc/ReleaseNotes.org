@@ -1,6 +1,23 @@
 Release Notes
 
-The latest release is 0.4.0.
+The latest release is 0.4.1.
+
+* 0.4.1
+
+* Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Enhancements
+
+- This targets vmfest 0.2.1, adding support for virtualbox 4.0.2.
+
+- Adds handling of inaccessible virtual box machines
+
+** Fixes
+
+- Fixes handling of the case where a new machine fails to get an IP address
+  assigned
 
 * 0.4.0
 
