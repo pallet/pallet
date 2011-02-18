@@ -165,7 +165,7 @@
     (logging/trace "Wait to allow boot")
     (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
-    (when-not (wait-for-ip machine)
+    (when (string/blank? (wait-for-ip machine))
       (condition/raise
        :type :no-ip-available
        :message "Could not determine IP address of new node"))
