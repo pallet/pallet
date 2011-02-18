@@ -7,7 +7,7 @@ lang="en" xml:lang="en">
 <title>Release Notes</title>
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2011-01-21 12:56:51 EST"/>
+<meta name="generated" content="2011-02-17 22:36:50 EST"/>
 <meta name="author" content="Hugo Duncan"/>
 <meta name="description" content=""/>
 <meta name="keywords" content=""/>
@@ -83,22 +83,31 @@ lang="en" xml:lang="en">
 
 <h1 class="title">Release Notes</h1>
 
-<p>The latest release is 0.3.0.
+<p>The latest release is 0.4.0.
 </p>
 
 <div id="table-of-contents">
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#sec-1">1 0.3.0 </a>
+<li><a href="#sec-1">1 0.4.0 </a>
 <ul>
 <li><a href="#sec-1_1">1.1 Install </a></li>
-<li><a href="#sec-1_2">1.2 Known Issues </a></li>
-<li><a href="#sec-1_3">1.3 General </a></li>
-<li><a href="#sec-1_4">1.4 Lein and Cake tasks </a></li>
-<li><a href="#sec-1_5">1.5 New Crates </a></li>
-<li><a href="#sec-1_6">1.6 Enhancements </a></li>
-<li><a href="#sec-1_7">1.7 Fixes </a></li>
+<li><a href="#sec-1_2">1.2 General </a></li>
+<li><a href="#sec-1_3">1.3 Lein and cake </a></li>
+<li><a href="#sec-1_4">1.4 Fixes </a></li>
+<li><a href="#sec-1_5">1.5 Enhancements </a></li>
+</ul>
+</li>
+<li><a href="#sec-2">2 0.3.0 </a>
+<ul>
+<li><a href="#sec-2_1">2.1 Install </a></li>
+<li><a href="#sec-2_2">2.2 Known Issues </a></li>
+<li><a href="#sec-2_3">2.3 General </a></li>
+<li><a href="#sec-2_4">2.4 Lein and Cake tasks </a></li>
+<li><a href="#sec-2_5">2.5 New Crates </a></li>
+<li><a href="#sec-2_6">2.6 Enhancements </a></li>
+<li><a href="#sec-2_7">2.7 Fixes </a></li>
 </ul>
 </li>
 </ul>
@@ -106,7 +115,7 @@ lang="en" xml:lang="en">
 </div>
 
 <div id="outline-container-1" class="outline-2">
-<h2 id="sec-1"><span class="section-number-2">1</span> 0.3.0 </h2>
+<h2 id="sec-1"><span class="section-number-2">1</span> 0.4.0 </h2>
 <div class="outline-text-2" id="text-1">
 
 
@@ -119,15 +128,546 @@ lang="en" xml:lang="en">
 
 
 <p>
-The release is on <a href="http://clojars.org/org.cloudhoist/pallet">clojars</a>.
+The release is on <a href="http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet">sonatype</a>.
 </p>
 </div>
 
 </div>
 
 <div id="outline-container-1_2" class="outline-3">
-<h3 id="sec-1_2"><span class="section-number-3">1.2</span> Known Issues </h3>
+<h3 id="sec-1_2"><span class="section-number-3">1.2</span> General </h3>
 <div class="outline-text-3" id="text-1_2">
+
+
+<p>
+The pallet crates have been moved into the pallet-crates project.
+</p>
+<p>
+This release introduces the ~/.pallet/config.clj configuration file.
+</p>
+<p>
+maven-settings is now an optional dependency. This means that to use
+settings.xml to store pallet configuration, you need to add
+org.apache.maven/maven-settings 2.0.10 to your project dependencies. This
+dependency was causing conflicts with lein.
+</p>
+<p>
+There is also preliminary support for virtualbox via vmfest.
+</p>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1_3" class="outline-3">
+<h3 id="sec-1_3"><span class="section-number-3">1.3</span> Lein and cake </h3>
+<div class="outline-text-3" id="text-1_3">
+
+<ul>
+<li>
+Fix reporting of unexpected error stack traces in pallet.main
+
+</li>
+<li>
+Fix pallet.main/report-unexpected-exception, and add test for it
+
+</li>
+</ul>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1_4" class="outline-3">
+<h3 id="sec-1_4"><span class="section-number-3">1.4</span> Fixes </h3>
+<div class="outline-text-3" id="text-1_4">
+
+
+<ul>
+<li>
+Fix bug in pallet.script/add-to-scripts
+The add-to-scripts function was referencing <b>scripts</b>, which was
+incorrect since it is called by an alter-var-root invoctation on
+<b>scripts</b>.
+
+<p>
+Change pallet.scripts/*scripts* to pallet.script/scripts, and make it an atom
+</p>
+<p>
+Added extra tests and logging around script template selection for
+generation of the bootstrap script.
+</p>
+<p>
+Added a condition/raise when jclouds returns OsFamily/UNRECOGNISED on the
+image to be used for a new node.
+</p>
+</li>
+<li>
+Improve exception message in stevedore/emit-infix
+
+</li>
+<li>
+Fix md5-verify script implementation on ubuntu
+</li>
+<li>
+Use &ndash;status for md5sum-verify on debian
+
+</li>
+<li>
+Add repositories to pom to make sure parent pom can be found
+
+</li>
+<li>
+Fix option argument processing for add-epel
+
+</li>
+<li>
+Ensure package-source is executed before either package-manager or package
+
+</li>
+<li>
+fix pallet.template/path-components for windows
+
+</li>
+<li>
+Add test for propogation of :parameters supplied to lift
+
+</li>
+<li>
+Remove the -n option for sudo on debian
+
+</li>
+<li>
+Fix execute/remote-sudo
+
+</li>
+<li>
+Fix a bug that prevented converge from reducing an existing node count to a
+smaller, non-zero number of nodes
+
+</li>
+<li>
+Remove -n option in sudo-no-password for mac
+
+</li>
+<li>
+Fix jpackage-utils install priority. Remove duplicate package requests
+
+</li>
+<li>
+Remove superfluous spaces produced by stevedore/script
+
+</li>
+<li>
+Ensure correct treatment in stevedore for single statement if blocks
+containing newlines
+
+</li>
+<li>
+Correct quoting of checked-commands failure message
+
+</li>
+<li>
+Allow pallet-version to be nil, to solve issue when compiling before
+resource generation
+
+</li>
+<li>
+Fix pacmans purge test
+
+</li>
+<li>
+purge-package (pacman): also remove all (possibly modified) config files
+
+</li>
+<li>
+Fix forwaring of all provider options from config, and ensure that provider
+specific jclouds endpoint option is used
+
+</li>
+<li>
+Fix pallet.thread-expr/if-&gt; for case with no else expression
+
+</li>
+<li>
+fix infinite recursion when pallet.main is invoked without command line
+arguments
+
+</li>
+</ul>
+
+
+</div>
+
+</div>
+
+<div id="outline-container-1_5" class="outline-3">
+<h3 id="sec-1_5"><span class="section-number-3">1.5</span> Enhancements </h3>
+<div class="outline-text-3" id="text-1_5">
+
+
+<ul>
+<li>
+Add a timeout to vmfest/wait-for-ip
+
+</li>
+<li>
+Make minimal-packages update coreutils and sudo on ubuntu
+</li>
+<li>
+Fix pallet.resource.package/minimal-packages
+
+</li>
+<li>
+Shortcut execution of empty phases
+
+</li>
+<li>
+Add pallet.resource.network-service/wait-for-port-response
+wait-for-port-response is a function to wait for a port to a return a
+response matching a given regex when sent a specific message.
+
+</li>
+<li>
+Add checking of argument keywords to lift and converge
+
+</li>
+<li>
+Add add-debian-backports to pallet.resource.package and process :enable
+options in adjust-packages for aptitude
+
+</li>
+<li>
+Add :proxy option to pallet.resource.file/download-file
+
+</li>
+<li>
+Add the ability to configure the package manager
+Add :configure option to pallet.resource.package/package-manager. The
+only option at the moment is :proxy, which accepts a url for the http
+proxy that should be used by the package manager
+
+</li>
+<li>
+Add :upgrade action to pallet.resource.package/package-manager
+In order to upgrade all installed packages, the :upgrade action is now
+accepted by pallet.resource.package/package-manager. This is implemented
+via the upgrade-all-packages script function.
+
+</li>
+<li>
+Added pallet.live-test for running tests with actual nodes
+
+<p>
+Add pallet.test.image-list to select images to use for testing
+When running the live tests, it is useful to be able to specify which
+images to use.  The pallet.test.image-list can be used to specify this.
+The list of images is made available to the tests in
+pallet.live-test/*images*.  The pallet.live-test/exclude-images and
+pallet.live-test/filter-images can be used to special case tests, or
+filter unsupported images.
+</p>
+</li>
+<li>
+Add pallet.resource.network-service with functions for waiting on the state
+of network services
+
+</li>
+<li>
+Add alias as a special form in stevedore
+Use alias to define command aliases:
+(script (alias ls (ls -l)))
+
+</li>
+<li>
+Add pallet.debug with print-request and log-request.
+Add initial helper functions for debugging. print-request and log-request
+can be inserted into a crate to show the intermediate request map.
+
+</li>
+<li>
+Add the form causing an invalid request map to condition message in
+pallet.resource/phase.
+In order to help debugging, when an invalid request map is detected in a
+phase, a condition is raised and the form that returned the invalid map
+will be included in the condition's message.
+
+</li>
+<li>
+Add the :endpoint option to compute/compute-service-from-map.
+
+</li>
+<li>
+List packages after install/remove.
+Ensure feedback on the state of packages after each package operation.
+
+</li>
+<li>
+Add simple validation of the the request map to resource/phase
+
+</li>
+<li>
+Add :no-sudo to the image specification, increase standoff while waiting
+for ip
+
+</li>
+<li>
+Add an :add-scope action to pallet.resource.package/package-manager that
+can be used with debian or ubuntu
+
+</li>
+<li>
+Add compile and tests phase executions for clojure-maven-plugin
+
+</li>
+<li>
+Add marginalia and autodoc output directory targets
+
+</li>
+<li>
+Change jclouds service implementation to use a provider specifc default
+extension list, which will try to use pallet's no-op ssh client for the
+stub service
+
+</li>
+<li>
+Change compute-service-from-map so that the :extensions and :node-list key
+values are read using read-string only when the values are strings
+
+</li>
+<li>
+Add an overload to find-var-with-require for a single namespace qualified
+symbol argument
+
+</li>
+<li>
+Update pallet.main/-main to factor out pallet-task.
+pallet-task returns an integer suitable for System/exit, but never calls
+System/exit.  This simplifies lein interactive and cake integration.
+
+</li>
+<li>
+make package/add-rpmforge an aggregate resource :always-before
+package-manager
+
+</li>
+<li>
+Add pkg- prefixed path functions, for locations of files managed by the
+package manager Package managers such as brew do not install files in the
+base system locations
+
+</li>
+<li>
+Add pallet.thread-expr/let-with-arg-&gt; to allow a let in the middle of a
+threaded expression In pallet crates, it is often useful to access an
+element of the request in the middle of a threaded expression, and
+let-with-arg-&gt; provides access to the request, and allows you to make
+lexical scoped assignments.
+
+</li>
+<li>
+Add per package enabling/disabling of repositories (yum only) Package
+operations are grouped by enabled/disabled repositories and are ordererd
+by a priority
+
+</li>
+<li>
+add pallet.execute/local-checked-script
+
+</li>
+<li>
+Add pallet.core/version based on a maven filtered resource
+
+</li>
+<li>
+Allow documentation string and metadata on pallet.script/defscript
+definitions
+
+</li>
+<li>
+Do not complain about pallet.script/*template* being unbound until trying
+to use a defined script multimethod
+
+</li>
+<li>
+Use (seq <b>template</b>) for appropriate logging output of script template
+
+</li>
+<li>
+Make maven-settings an optional dependency This means that to use
+settings.xml to store pallet configuration, you need to add
+org.apache.maven/maven-settings 2.0.10 to your project dependencies. This
+dependency was causing conflicts with lein.
+
+</li>
+<li>
+Add the vmfest compute provider from the vmfest branch
+
+</li>
+<li>
+Update remote-sudo to use the user :password if present, and to use
+sudo-cmd-for to generate the sudo command prefix.
+
+</li>
+<li>
+Improve robustness of stevedore statement generation
+
+</li>
+<li>
+Add :services key for config.clj and deprecate :providers
+
+</li>
+<li>
+Add pallet.resource.format/name-values for formatting name value pairs
+
+</li>
+<li>
+Attempt to use wget if curl not available
+
+</li>
+<li>
+stop ls complaining about no version files when limiting the number of
+versions of a file
+
+</li>
+<li>
+Add pallet.parameter/get-for-service
+
+</li>
+<li>
+Add execute/local-script for running local shell script commands
+
+</li>
+<li>
+Add stevedore/directory?
+
+</li>
+<li>
+Add warn-on-undefined-phase to warn if requested phase is not defined on
+any target tag. Fixes #43
+
+</li>
+<li>
+Explicitly remove :blobstore from jclouds compute service options
+
+</li>
+<li>
+Simplify nodes-in-tag to not rely on the target node
+
+</li>
+<li>
+Make package/add-epel aggregated and force it before any package-manager
+commands
+
+</li>
+<li>
+Allow specification of node-list nodes as data vectors
+
+</li>
+<li>
+Remove default usage of compute provider as blob provider.
+
+</li>
+<li>
+Add :endpoint to config.clj, and pallet.endpoint to settings.xml
+
+</li>
+<li>
+Updates for new repository location. Removal of superfluous config in pom
+(supplied by pallet-pom).
+
+</li>
+<li>
+Add configure-service overload for rhel based distros
+
+</li>
+<li>
+Added the start of crate writing guidelines
+
+</li>
+<li>
+add pallet.request-map/os-version
+
+</li>
+<li>
+Add specialisation for sudo for centos 5.3, to remove the -n option
+
+</li>
+<li>
+remove src/demo.clj - now in the pallet-examples basic project
+
+</li>
+<li>
+Enable script specialisation on OS version. Add os-version to Node. Add
+:os-version to image. Add a combined os-family and os-version to
+script-template.
+
+</li>
+<li>
+refactor script template generation to resource/script-template
+
+</li>
+<li>
+Add jclouds-snapshot profile.
+
+</li>
+<li>
+Add assert for non-nil request in pallet.resource/invoke-resource
+
+</li>
+<li>
+Propogate config map to request in tasks
+
+</li>
+<li>
+add explicit maven-jar-plugin version
+
+</li>
+<li>
+change lift and converge to take keyword arguments
+
+</li>
+<li>
+Updated to use template as a map, and for new Hardware in jclouds nodes
+
+</li>
+<li>
+Change maven settings keys to match jclouds
+
+</li>
+</ul>
+
+
+</div>
+</div>
+
+</div>
+
+<div id="outline-container-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> 0.3.0 </h2>
+<div class="outline-text-2" id="text-2">
+
+
+
+</div>
+
+<div id="outline-container-2_1" class="outline-3">
+<h3 id="sec-2_1"><span class="section-number-3">2.1</span> Install </h3>
+<div class="outline-text-3" id="text-2_1">
+
+
+<p>
+The release is on <a href="http://clojars.org/org.cloudhoist/pallet">clojars</a>.
+</p>
+</div>
+
+</div>
+
+<div id="outline-container-2_2" class="outline-3">
+<h3 id="sec-2_2"><span class="section-number-3">2.2</span> Known Issues </h3>
+<div class="outline-text-3" id="text-2_2">
 
 
 <p>
@@ -140,9 +680,9 @@ pallet.main/-main goes into an infinite recursion if called without arguments.
 
 </div>
 
-<div id="outline-container-1_3" class="outline-3">
-<h3 id="sec-1_3"><span class="section-number-3">1.3</span> General </h3>
-<div class="outline-text-3" id="text-1_3">
+<div id="outline-container-2_3" class="outline-3">
+<h3 id="sec-2_3"><span class="section-number-3">2.3</span> General </h3>
+<div class="outline-text-3" id="text-2_3">
 
 
 <p>
@@ -175,9 +715,9 @@ much better.
 
 </div>
 
-<div id="outline-container-1_4" class="outline-3">
-<h3 id="sec-1_4"><span class="section-number-3">1.4</span> Lein and Cake tasks </h3>
-<div class="outline-text-3" id="text-1_4">
+<div id="outline-container-2_4" class="outline-3">
+<h3 id="sec-2_4"><span class="section-number-3">2.4</span> Lein and Cake tasks </h3>
+<div class="outline-text-3" id="text-2_4">
 
 
 <p>
@@ -216,9 +756,9 @@ Added to-blob task to enable upload of files to a blobstore.
 
 </div>
 
-<div id="outline-container-1_5" class="outline-3">
-<h3 id="sec-1_5"><span class="section-number-3">1.5</span> New Crates </h3>
-<div class="outline-text-3" id="text-1_5">
+<div id="outline-container-2_5" class="outline-3">
+<h3 id="sec-2_5"><span class="section-number-3">2.5</span> New Crates </h3>
+<div class="outline-text-3" id="text-2_5">
 
 
 <p>
@@ -228,9 +768,9 @@ squeak, etc-hosts, postgresql (thanks David Santiago)
 
 </div>
 
-<div id="outline-container-1_6" class="outline-3">
-<h3 id="sec-1_6"><span class="section-number-3">1.6</span> Enhancements </h3>
-<div class="outline-text-3" id="text-1_6">
+<div id="outline-container-2_6" class="outline-3">
+<h3 id="sec-2_6"><span class="section-number-3">2.6</span> Enhancements </h3>
+<div class="outline-text-3" id="text-2_6">
 
 
 <p>
@@ -274,9 +814,9 @@ a path can now be specified, allowing use elsewhere in the filesystem
 
 </div>
 
-<div id="outline-container-1_7" class="outline-3">
-<h3 id="sec-1_7"><span class="section-number-3">1.7</span> Fixes </h3>
-<div class="outline-text-3" id="text-1_7">
+<div id="outline-container-2_7" class="outline-3">
+<h3 id="sec-2_7"><span class="section-number-3">2.7</span> Fixes </h3>
+<div class="outline-text-3" id="text-2_7">
 
 
 <p>
@@ -326,7 +866,7 @@ now runs on centos and amzn-linux, on ec2
 <div id="postamble">
 <p class="author"> Author: Hugo Duncan
 </p>
-<p class="date"> Date: 2011-01-21 12:56:51 EST</p>
+<p class="date"> Date: 2011-02-17 22:36:50 EST</p>
 <p class="creator">HTML generated by org-mode 7.4 in emacs 24</p>
 </div>
 </div>

@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>pallet.script API reference (pallet)</title>
+    <title>pallet.debug API reference (pallet)</title>
     <link href="static/favicon.png" rel="icon" />
     <link href="static/favicon.png" rel="shortcut icon" />
     <link media="all" type="text/css" href="static/clojure.css" rel="stylesheet" />
@@ -48,142 +48,50 @@ namespace.
   <div style="margin-left: 1em;" class="toc-section">
     <a href="#toc0">Overview</a>
     <div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.script/*template*">*template*</a>
+      <a href="#pallet.debug/log-request">log-request</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.script/defscript">defscript</a>
-    </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.script/dispatch-target">dispatch-target</a>
-    </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.script/implement">implement</a>
-    </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.script/invoke-target">invoke-target</a>
-    </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.script/remove-script">remove-script</a>
-    </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.script/with-line-number">with-line-number</a>
-    </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.script/with-template">with-template</a>
+      <a href="#pallet.debug/print-request">print-request</a>
     </div>
     <br />
   </div>
 </div>
 </div>
-                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.script</span></h1>
+                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.debug</span></h1>
 by <span id="author">Unknown</span><br />
 <br />Usage:
 <pre>
 (ns your-namespace
-  (:require <span id="long-name">pallet.script</span>))
+  (:require <span id="long-name">pallet.debug</span>))
 </pre><pre>
 </pre><h2>Overview</h2>
-<pre id="namespace-docstr">Base infrastructure for script generation, and operating system abstraction.
-
-`defscript` defines an abstract script function, that can be implemented
-for different operating system (and version) targets.
-
-`implement` is used to add an implementation to a function defined with
-`defscript`.
-
-Dispatch of `defscript` is based on an implementation's specialisers vector.
-All elements of the specialisers vector must match `*template*`.  The
-specialisers vector may contain keywords that match if the are in
-`*template*`, sets of keywords that match if any of the set values are in
-`*template*`, or functions that will be passed `*template*` as an argument
-and should return a truth value indicating whether a match occured.
-
-Mutiple implementations may match the `*template*` vector, and the
-best fit is determined by the highest number of matching specialiser
-functions, with ties decided by the earliest defined implementation.</pre>
+<pre id="namespace-docstr">Helpers for debugging.</pre>
 <br />
 <h2>Public Variables and Functions</h2>
 <div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.script/*template*">*template*</h2>
-  <span id="var-type">var</span><br />
-  <pre id="var-usage"></pre>
-  <pre id="var-docstr">Determine the target to generate script for.
-`defscript` implementations are dispatched on this.  The value should
-be a vector, containing os-family values (e.g. `:ubuntu`), os-family and
-os-version values (e.g. `:centos-5.3`), or other keywords.</pre>
-  
-</div><div id="var-entry">
-  <br />
-  <hr />
-  <h2 id="pallet.script/defscript">defscript</h2>
-  <span id="var-type">macro</span><br />
-  <pre id="var-usage">Usage: (defscript name &amp; args)
-</pre>
-  <pre id="var-docstr">Define an abstract script function, that can be implemented differently for
-different operating systems.
-Calls to functions defined by `defscript` are dispatched based on the
-`*template*` vector.</pre>
-  
-</div><div id="var-entry">
-  <br />
-  <hr />
-  <h2 id="pallet.script/dispatch-target">dispatch-target</h2>
+  <h2 id="pallet.debug/log-request">log-request</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (dispatch-target script &amp; args)
+  <pre id="var-usage">Usage: (log-request request)
+       (log-request request format-string)
 </pre>
-  <pre id="var-docstr">Invoke `script` with the given `args`.  The implementations of `script` is
-found based on the current `*template*` value.  If no matching
-implementation is found, then a :no-script-implementation condition
-is raised.</pre>
+  <pre id="var-docstr">A crate function that will log the request map at the debug level, using
+the supplied format string.
+
+    (log-request request "The request is %s")</pre>
   
 </div><div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.script/implement">implement</h2>
+  <h2 id="pallet.debug/print-request">print-request</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (implement script-name specialisers f)
+  <pre id="var-usage">Usage: (print-request request)
+       (print-request request format-string)
 </pre>
-  <pre id="var-docstr">Add an implementation of script-name for the given specialisers.
-The default implementation can be set by passing :default as the
-`specialisers` argument. `specialisers` should be the :default keyword, or a
-vector.  The `specialisers` vector may contain keywords, a set of keywords
-that provide an inclusive `or` match, or functions that return a truth value
-indication whether the implementation is a match for the `*template*` passed
-as the function's first argument.</pre>
-  
-</div><div id="var-entry">
-  <br />
-  <hr />
-  <h2 id="pallet.script/invoke-target">invoke-target</h2>
-  <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (invoke-target script args)
-</pre>
-  <pre id="var-docstr">Invoke `script` with the given `args`.  The implementations of `script` is
-found based on the current `*template*` value.  If no matching
-implementation is found, then nil is returned.</pre>
-  
-</div><div id="var-entry">
-  <br />
-  <hr />
-  <h2 id="pallet.script/remove-script">remove-script</h2>
-  <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (remove-script script-name)
-</pre>
-  <pre id="var-docstr">Remove all implementations of a script.</pre>
-  
-</div><div id="var-entry">
-  <br />
-  <hr />
-  <h2 id="pallet.script/with-line-number">with-line-number</h2>
-  <span id="var-type">macro</span><br />
-  <pre id="var-usage">Usage: (with-line-number [file line] &amp; body)
-</pre>
-  <pre id="var-docstr">Provide the source file and line number for use in reporting.</pre>
-  
-</div><div id="var-entry">
-  <br />
-  <hr />
-  <h2 id="pallet.script/with-template">with-template</h2>
-  <span id="var-type">macro</span><br />
-  <pre id="var-usage">Usage: (with-template template &amp; body)
-</pre>
-  <pre id="var-docstr">Specify the target for script generation. `template` should be a vector of
-os-family, os-family and os-version, or other keywords. </pre>
+  <pre id="var-docstr">A crate function that will print the request map to *out*, using the supplied
+format string.
+
+    (print-request request "The request is %s")</pre>
   
 </div>
 
