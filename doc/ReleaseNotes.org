@@ -1,10 +1,22 @@
-Release Notes
+The latest release is 0.4.2.
 
-The latest release is 0.4.1.
+* 0.4.2
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Enhancements
+
+- Speeds up creating and destroying virtualbox vms using vmfest.
+
+  Replace use of manager/as-map in pallet/compute/vmfest.clj with faster
+  alternative
+
 
 * 0.4.1
 
-* Install
+** Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
