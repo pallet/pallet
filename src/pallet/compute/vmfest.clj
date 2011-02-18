@@ -28,6 +28,7 @@
    [vmfest.virtualbox.virtualbox :as virtualbox]
    [vmfest.virtualbox.machine :as machine]
    [vmfest.virtualbox.model :as model]
+   [vmfest.virtualbox.session :as session]
    [vmfest.manager :as manager]
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
@@ -86,7 +87,11 @@
    (or
       (manager/get-extra-data node "/pallet/os-version")
       "5.3"))
-  (running? [node] true)
+  (running?
+   [node]
+   (and
+    (session/with-no-session node [vb-m] (.getAccessible vb-m))
+    (= :running (manager/state node))))
   (terminated? [node] false)
   (id [node] (:id node)))
 
@@ -227,7 +232,9 @@
                                 (format "No matching image for %s"
                                         (pr-str (-> node-type :image))))))
            tag-name (name (:tag node-type))
-           machines (manager/machines server)
+           machines (filter
+                     #(session/with-no-session % [vb-m] (.getAccessible vb-m))
+                     (manager/machines server))
            current-machines-in-tag (filter
                                     #(= tag-name
                                         (manager/get-extra-data
@@ -289,7 +296,9 @@
     [compute tag-name]
     (doseq [machine
             (filter
-             #(= tag-name (manager/get-extra-data % "/pallet/tag"))
+             #(and
+               (compute/running? %)
+               (= tag-name (manager/get-extra-data % "/pallet/tag")))
              (manager/machines server))]
       (compute/destroy-node compute machine)))
 
