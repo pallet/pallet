@@ -28,6 +28,7 @@
    [vmfest.virtualbox.virtualbox :as virtualbox]
    [vmfest.virtualbox.machine :as machine]
    [vmfest.virtualbox.model :as model]
+   [vmfest.virtualbox.session :as session]
    [vmfest.manager :as manager]
    [vmfest.virtualbox.session :as session]
    [vmfest.virtualbox.enums :as enums]
@@ -89,7 +90,11 @@
    (or
       (manager/get-extra-data node "/pallet/os-version")
       "5.3"))
-  (running? [node] true)
+  (running?
+   [node]
+   (and
+    (session/with-no-session node [vb-m] (.getAccessible vb-m))
+    (= :running (manager/state node))))
   (terminated? [node] false)
   (id [node] (:id node)))
 
@@ -168,7 +173,7 @@
     (logging/trace "Wait to allow boot")
     (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
-    (when-not (wait-for-ip machine)
+    (when (string/blank? (wait-for-ip machine))
       (condition/raise
        :type :no-ip-available
        :message "Could not determine IP address of new node"))
@@ -235,7 +240,9 @@
                                 (format "No matching image for %s"
                                         (pr-str (-> node-type :image))))))
            tag-name (name (:tag node-type))
-           machines (manager/machines server)
+           machines (filter
+                     #(session/with-no-session % [vb-m] (.getAccessible vb-m))
+                     (manager/machines server))
            current-machines-in-tag (filter
                                     #(= tag-name
                                         (manager/get-extra-data
@@ -287,7 +294,10 @@
    ;; todo: wait for completion
    (logging/info (format "Shutting down %s" (pr-str node)))
    (manager/power-down node)
-   (manager/wait-for-machine-state node [:powered-off] 10000))
+   (if-let [state (manager/wait-for-machine-state node [:powered-off] 300000)]
+     (logging/info (format "Machine state is %s" state))
+     (logging/warn "Failed to wait for power down completion"))
+   (manager/wait-for-lockable-session-state node 2000))
 
   (shutdown
    [compute nodes user]
@@ -298,7 +308,9 @@
     [compute tag-name]
     (doseq [machine
             (filter
-             #(= tag-name (manager/get-extra-data % "/pallet/tag"))
+             #(and
+               (compute/running? %)
+               (= tag-name (manager/get-extra-data % "/pallet/tag")))
              (manager/machines server))]
       (compute/destroy-node compute machine)))
 
