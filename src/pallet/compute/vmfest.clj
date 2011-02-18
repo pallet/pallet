@@ -285,7 +285,10 @@
    ;; todo: wait for completion
    (logging/info (format "Shutting down %s" (pr-str node)))
    (manager/power-down node)
-   (manager/wait-for-machine-state node [:powered-off] 10000))
+   (if-let [state (manager/wait-for-machine-state node [:powered-off] 300000)]
+     (logging/info (format "Machine state is %s" state))
+     (logging/warn "Failed to wait for power down completion"))
+   (manager/wait-for-lockable-session-state node 2000))
 
   (shutdown
    [compute nodes user]
