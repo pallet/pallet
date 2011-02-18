@@ -28,6 +28,7 @@
    [vmfest.virtualbox.virtualbox :as virtualbox]
    [vmfest.virtualbox.machine :as machine]
    [vmfest.virtualbox.model :as model]
+   [vmfest.virtualbox.session :as session]
    [vmfest.manager :as manager]
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
@@ -86,7 +87,11 @@
    (or
       (manager/get-extra-data node "/pallet/os-version")
       "5.3"))
-  (running? [node] true)
+  (running?
+   [node]
+   (and
+    (session/with-no-session node [vb-m] (.getAccessible vb-m))
+    (= :running (manager/state node))))
   (terminated? [node] false)
   (id [node] (:id node)))
 
@@ -104,7 +109,7 @@
        (loop []
          (try
            (let [ip (try (manager/get-ip machine)
-                         (catch org.virtualbox_3_2.RuntimeFaultMsg e
+                         (catch org.virtualbox_4_0.VBoxException e
                            (logging/warn
                             (format
                              "wait-for-ip: Machine %s not started yet..."
@@ -142,6 +147,7 @@
   (let [nodes (manager/machines compute-service)]
     (map node-data nodes)))
 
+(def *vm-session-type* "headless")
 
 (defn create-node
   [compute node-path node-type machine-name images image-id tag-name
@@ -155,11 +161,11 @@
     (manager/set-extra-data machine "/pallet/os-family" (name (:os-family image)))
     (manager/set-extra-data machine "/pallet/os-version" (:os-version image))
     ;; (manager/add-startup-command machine 1 init-script )
-    (manager/start machine :session-type "vrdp")
+    (manager/start machine :session-type *vm-session-type*)
     (logging/trace "Wait to allow boot")
     (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
-    (when-not (wait-for-ip machine)
+    (when (string/blank? (wait-for-ip machine))
       (condition/raise
        :type :no-ip-available
        :message "Could not determine IP address of new node"))
@@ -226,7 +232,9 @@
                                 (format "No matching image for %s"
                                         (pr-str (-> node-type :image))))))
            tag-name (name (:tag node-type))
-           machines (manager/machines server)
+           machines (filter
+                     #(session/with-no-session % [vb-m] (.getAccessible vb-m))
+                     (manager/machines server))
            current-machines-in-tag (filter
                                     #(= tag-name
                                         (manager/get-extra-data
@@ -277,7 +285,10 @@
    ;; todo: wait for completion
    (logging/info (format "Shutting down %s" (pr-str node)))
    (manager/power-down node)
-   (manager/wait-for-machine-state node [:powered-off] 10000))
+   (if-let [state (manager/wait-for-machine-state node [:powered-off] 300000)]
+     (logging/info (format "Machine state is %s" state))
+     (logging/warn "Failed to wait for power down completion"))
+   (manager/wait-for-lockable-session-state node 2000))
 
   (shutdown
    [compute nodes user]
@@ -288,7 +299,9 @@
     [compute tag-name]
     (doseq [machine
             (filter
-             #(= tag-name (manager/get-extra-data % "/pallet/tag"))
+             #(and
+               (compute/running? %)
+               (= tag-name (manager/get-extra-data % "/pallet/tag")))
              (manager/machines server))]
       (compute/destroy-node compute machine)))
 
