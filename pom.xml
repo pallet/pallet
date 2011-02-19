@@ -9,7 +9,7 @@
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
-  <version>0.4.2-parallel-SNAPSHOT</version>
+  <version>0.4.3-parallel-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>pallet</name>
   <description>
@@ -129,7 +129,7 @@
     <dependency>
       <groupId>vmfest</groupId>
       <artifactId>vmfest</artifactId>
-      <version>0.2.1</version>
+      <version>0.2.2</version>
       <optional>true</optional>
     </dependency>
     <dependency>

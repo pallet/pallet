@@ -30,6 +30,8 @@
    [vmfest.virtualbox.model :as model]
    [vmfest.virtualbox.session :as session]
    [vmfest.manager :as manager]
+   [vmfest.virtualbox.session :as session]
+   [vmfest.virtualbox.enums :as enums]
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
@@ -66,17 +68,18 @@
   (private-ip [node] nil)
   (is-64bit?
    [node]
-   (let [os-type-id (:os-type-id (manager/as-map node))]
+   (let [os-type-id (session/with-no-session node [m] (.getOSTypeId m))]
      (re-find #"64 bit" os-type-id)))
   (tag
    [node]
    (manager/get-extra-data node "/pallet/tag"))
   (hostname
    [node]
-   (:name (manager/as-map node)))
+   (session/with-no-session node [m]
+     (.getName m)))
   (os-family
    [node]
-   (let [os-name (:os-type-id (manager/as-map node))]
+   (let [os-name (session/with-no-session node [m] (.getOSTypeId m))]
      (or
       (keyword (manager/get-extra-data node "/pallet/os-family"))
       (os-family-from-name os-name os-name)
@@ -136,9 +139,14 @@
   (medium-formats [compute] "Return supported medium-formats"))
 
 (defn node-data [m]
-  (let [node-map (manager/as-map m)
-        attributes (select-keys node-map [:name :description :session-state])
-        open? (= :open (:session-state node-map))
+  (let [attributes (session/with-no-session m [im]
+                     [(.getName im)
+                      (.getDescription im)
+                      (.getSessionState im)])
+        open? (= :open
+                 (session/with-no-session m [im]
+                   (enums/session-state-to-key
+                    (.getSessionState im))))
         ip (when open? (manager/get-ip m))
         tag (when open? (manager/get-extra-data m "/pallet/tag"))]
     (into attributes {:ip ip :tag tag}) ))
@@ -246,7 +254,8 @@
                                     machines)
            current-machine-names (into #{}
                                        (map
-                                        #(:name (manager/as-map %))
+                                        #(session/with-no-session % [m]
+                                           (.getName m))
                                         current-machines-in-tag))
            target-indices (range (+ node-count
                                     (count current-machines-in-tag)))
