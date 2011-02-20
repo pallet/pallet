@@ -1,4 +1,17 @@
-The latest release is 0.4.2.
+The latest release is 0.4.3.
+
+* 0.4.3
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Fixes
+
+- Remove extra keys from request in converge and lift tasks
+
+  lein and cake plugins were triggering the new keyword argument checking in
+  lift and converge
 
 * 0.4.2
 
