@@ -3,6 +3,7 @@
   (:require
    [pallet.compute.implementation :as implementation]
    [pallet.configure :as configure]
+   [pallet.environment :as environment]
    [pallet.utils :as utils]
    [pallet.execute :as execute]
    [clojure.contrib.condition :as condition]
@@ -21,12 +22,14 @@
   "Instantiate a compute service. The provider name should be a recognised
    jclouds provider, or \"node-list\". The other arguments are keyword value
    pairs.
-     :identity     username or key
-     :credential   password or secret
-     :extensions   extension modules for jclouds
-     :node-list    a list of nodes for the \"node-list\" provider."
+   - :identity     username or key
+   - :credential   password or secret
+   - :extensions   extension modules for jclouds
+   - :node-list    a list of nodes for the \"node-list\" provider.
+   - :environment  an environment map with service specific values."
   [provider-name
-   & {:keys [identity credential extensions node-list endpoint] :as options}]
+   & {:keys [identity credential extensions node-list endpoint environment]
+      :as options}]
   (implementation/load-providers)
   (implementation/service provider-name options))
 
@@ -48,7 +51,9 @@
                               (if (string? node-list)
                                 (read-string node-list)
                                 node-list))
-                 :endpoint (:endpoint credentials)}]
+                 :endpoint (:endpoint credentials)
+                 :environment (environment/eval-environment
+                               (:environment credentials))}]
     (when-let [provider (:provider credentials)]
       (apply
        compute-service

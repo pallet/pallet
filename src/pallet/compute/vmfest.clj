@@ -35,8 +35,8 @@
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
-   [pallet.core :as core]
    [pallet.script :as script]
+   [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.resource :as resource]
    [clojure.contrib.condition :as condition]
@@ -219,7 +219,7 @@
      ffirst)))
 
 (deftype VmfestService
-    [server images locations]
+    [server images locations environment]
   pallet.compute/ComputeService
   (nodes
    [compute-service]
@@ -320,11 +320,14 @@
    (compute/shutdown-node compute node nil)
    (manager/destroy node))
 
-  (close [compute]))
+  (close [compute])
+  pallet.environment.Environment
+  (environment [_] environment))
 
 ;;;; Compute service
 (defmethod implementation/service :virtualbox
-  [_ {:keys [url identity credential images node-path model-path locations]
+  [_ {:keys [url identity credential images node-path model-path locations
+             environment]
       :or {url "http://localhost:18083/"
            identity "test"
            credential "test"}
@@ -334,7 +337,8 @@
     (VmfestService.
      (vmfest.virtualbox.model.Server. url identity credential)
      images
-     (val (first locations)))))
+     (val (first locations))
+     environment)))
 
 (defmethod clojure.core/print-method vmfest.virtualbox.model.Machine
   [node writer]

@@ -4,6 +4,7 @@
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
+   [pallet.environment :as environment]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]))
 
@@ -43,7 +44,8 @@
    is-64bit
    running))
 
-(defrecord NodeList [node-list]
+(defrecord NodeList
+    [node-list environment]
   pallet.compute.ComputeService
   (nodes [compute-service] node-list)
   (ensure-os-family
@@ -59,7 +61,9 @@
   (boot-if-down [compute nodes] nil)
   ;; (shutdown-node "Shutdown a node.")
   ;; (shutdown "Shutdown specified nodes")
-  (close [compute]))
+  (close [compute])
+  pallet.environment.Environment
+  (environment [_] environment))
 
 
 
@@ -91,11 +95,12 @@
 
 ;;;; Compute service
 (defmethod implementation/service :node-list
-  [_ {:keys [node-list]}]
+  [_ {:keys [node-list environment]}]
   (NodeList.
    (vec
     (map
      #(if (vector? %)
         (apply make-node %)
         %)
-     node-list))))
+     node-list))
+   environment))
