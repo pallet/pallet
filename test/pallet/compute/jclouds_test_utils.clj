@@ -1,17 +1,17 @@
 (ns pallet.compute.jclouds-test-utils
   "Test utils for jclouds"
   (:require
-   org.jclouds.compute))
+   org.jclouds.compute
+   pallet.compute))
 
 (defn compute-service-fixture
   "Use jcloud's stub compute service, or some other if specified"
   ([] (compute-service-fixture ["stub" "" ""]))
   ([[service account key] & options]
      (fn [f]
-       (org.jclouds.compute/with-compute-service
-         [(apply
-           org.jclouds.compute/compute-service
-           service account key options)]
+       (binding [org.jclouds.compute/*compute*
+                 (apply pallet.compute/compute-service
+                        service account key options)]
          (f)))))
 
 (defn purge-compute-service

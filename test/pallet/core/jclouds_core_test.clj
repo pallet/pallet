@@ -117,7 +117,10 @@
                   (mock/once :template))]
     (let [a-node (jclouds/make-node "a" :state NodeState/TERMINATED)]
       (#'core/converge-node-counts
-       {a 1} [a-node] {:compute org.jclouds.compute/*compute*}))))
+       {a 1}
+       [a-node]
+       {:environment
+        {:compute org.jclouds.compute/*compute*}}))))
 
 (deftest nodes-in-map-test
   (defnode a {:os-family :ubuntu})
@@ -177,22 +180,6 @@
         nb (jclouds/make-node "b")]
     (is (= [na nb] (#'core/nodes-in-map {a 1 b 1 c 1} [na nb])))
     (is (= [na] (#'core/nodes-in-map {a 1 c 1} [na nb])))))
-
-(deftest build-request-map-test
-  (binding [pallet.core/*middleware* :middleware]
-    (testing "defaults"
-      (is (= {:blobstore nil :compute nil :user utils/*admin-user*
-              :middleware :middleware}
-             (#'pallet.core/build-request-map {}))))
-    (testing "passing a prefix"
-      (is (= {:blobstore nil :compute nil :prefix "prefix"
-              :user utils/*admin-user* :middleware *middleware*}
-             (#'pallet.core/build-request-map {:prefix "prefix"}))))
-    (testing "passing a user"
-      (let [user (utils/make-user "fred")]
-        (is (= {:blobstore nil :compute nil  :user user
-                :middleware :middleware}
-               (#'pallet.core/build-request-map {:user user})))))))
 
 (resource/defresource test-component
   (test-component-fn
@@ -284,7 +271,7 @@
       (is (.contains
            "bin"
            (with-out-str
-             (lift {local (jclouds/make-unmanaged-node "local" "localhost")}
+             (lift {local (jclouds/make-localhost-node)}
                    :phase [(resource/phase (exec-script/exec-script (ls "/")))
                            (resource/phase (localf))]
                    :user (assoc utils/*admin-user*
@@ -320,20 +307,28 @@
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
                       []))]
-                  (lift* {a #{na nb nc}} nil [:configure]
-                         {:compute nil
-                          :user utils/*admin-user*
-                          :middleware *middleware*}))
+                  (lift*
+                   {:node-set {a #{na nb nc}}
+                    :phase-list [:configure]
+                    :environment
+                    {:compute nil
+                     :user utils/*admin-user*
+                     :middleware *middleware*
+                     :algorithms {:lift-fn sequential-lift}}}))
     (mock/expects [(sequential-apply-phase
                     [request nodes]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
                       []))]
-                  (lift* {a #{na} b #{nb}} nil [:configure]
-                         {:compute nil
-                          :user utils/*admin-user*
-                          :middleware *middleware*}))))
+                  (lift*
+                   {:node-set {a #{na} b #{nb}}
+                    :phase-list [:configure]
+                    :environment
+                    {:compute nil
+                     :user utils/*admin-user*
+                     :middleware *middleware*
+                     :algorithms {:lift-fn sequential-lift}}}))))
 
 (deftest lift-multiple-test
   (defnode a {})
@@ -364,13 +359,16 @@
                       []))
                    (org.jclouds.compute/nodes-with-details [& _] [na nb nc])]
                   (converge*
-                   {a 1 b 1} nil [:configure]
-                   {:compute org.jclouds.compute/*compute*
-                    :middleware *middleware*}))))
+                   {:node-map {a 1 b 1}
+                    :phase-list [:configure]
+                    :environment
+                    {:compute org.jclouds.compute/*compute*
+                     :middleware *middleware*
+                     :algorithms {:lift-fn sequential-lift}}}))))
 
 (deftest converge-test
   (org.jclouds.compute/with-compute-service
-    [(org.jclouds.compute/compute-service
+    [(pallet.compute/compute-service
       "stub" "" "" :extensions [(ssh-test/ssh-test-client
                                  ssh-test/no-op-ssh-client)])]
     (jclouds-test-utils/purge-compute-service)
