@@ -26,10 +26,13 @@
         (core/defnode tag {:packager :no-packages})
         (.delete target-dir)
         (core/lift*
-         {tag node} nil
-         [(resource/phase (rsync (.getPath dir) (.getPath target-dir) {}))]
-         {:user user
-          :middleware core/*middleware*})
+         {:node-set {tag node}
+          :phase-list [(resource/phase
+                        (rsync (.getPath dir) (.getPath target-dir) {}))]
+          :environment
+          {:user user
+           :middleware core/*middleware*
+           :algorithms {:lift-fn core/sequential-lift}}})
         (let [target-tmp (java.io.File.
                           (str (.getPath target-dir)
                                "/" (.getName dir)
@@ -39,11 +42,13 @@
           (.delete target-tmp))
         (.delete target-dir)
         (core/lift*
-         {tag node} nil
-         [(resource/phase
-           (rsync-directory (.getPath dir) (.getPath target-dir)))]
-         {:user user
-          :middleware core/*middleware*})
+         {:node-set {tag node}
+          :phase-list [(resource/phase
+                        (rsync-directory (.getPath dir) (.getPath target-dir)))]
+          :environment
+          {:user user
+           :middleware core/*middleware*
+           :algorithms {:lift-fn core/sequential-lift}}})
         (let [target-tmp (java.io.File.
                           (str (.getPath target-dir)
                                "/" (.getName dir)

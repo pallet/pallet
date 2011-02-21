@@ -5,6 +5,7 @@
    [pallet.compute.implementation :as implementation]
    [pallet.compute.jvm :as jvm]
    [pallet.compute :as compute]
+   [pallet.environment :as environment]
    [pallet.resource :as resource]
    [pallet.script :as script]
    [pallet.target :as target]
@@ -16,9 +17,14 @@
    [org.jclouds.compute.domain.internal NodeMetadataImpl ImageImpl HardwareImpl]
    org.jclouds.compute.util.ComputeServiceUtils
    org.jclouds.compute.ComputeService
+   org.jclouds.compute.options.RunScriptOptions
+   org.jclouds.compute.options.TemplateOptions
    [org.jclouds.compute.domain
-    NodeState NodeMetadata Image OperatingSystem OsFamily Hardware]
-   org.jclouds.domain.Location))
+    NodeState NodeMetadata Image OperatingSystem OsFamily Hardware Template]
+   org.jclouds.domain.Location
+   org.jclouds.io.Payload
+   org.jclouds.scriptbuilder.domain.Statement
+   com.google.common.base.Predicate))
 
 
 ;;; Meta
@@ -49,20 +55,6 @@
   (case key
     :endpoint (keyword (format (str provider ".endpoint")))
     (option-keys key key)))
-
-(defmethod implementation/service :default
-  [provider {:keys [identity credential extensions endpoint]
-             :or {extensions (default-jclouds-extensions provider)}
-             :as options}]
-  (logging/info (format "extensions %s" (pr-str extensions)))
-  (let [options (dissoc options :identity :credential :extensions :blobstore)]
-    (apply
-     jclouds/compute-service
-     (name provider) identity credential
-     :extensions extensions
-     (interleave
-      (map #(option-key provider %) (keys options))
-      (vals options)))))
 
 ;;; Node utilities
 (defn make-operating-system
@@ -266,17 +258,68 @@
                     options)]
       (jclouds/build-template compute options))))
 
-(extend-type org.jclouds.compute.ComputeService
-  pallet.compute/ComputeService
+(deftype JcloudsService
+    [^org.jclouds.compute.ComputeService compute environment]
 
-  (nodes [compute] (jclouds/nodes-with-details compute))
+  ;; implement jclouds ComputeService by forwarding
+  org.jclouds.compute.ComputeService
+  (getContext [_] (.getContext compute))
+  (templateBuilder [_] (.templateBuilder compute))
+  (templateOptions [_] (.templateOptions compute))
+  (listHardwareProfiles [_] (.listHardwareProfiles compute))
+  (listImages [_] (.listImages compute))
+  (listNodes [_] (.listNodes compute))
+  (listAssignableLocations [_] (.listAssignableLocations compute))
+  ;; (createNodesInGroup [_ group count template]
+  ;;                     (.createNodesInGroup compute group count template))
+  ;; (createNodesInGroup [_ group count]
+  ;;                     (.createNodesInGroup compute group count))
+  (^java.util.Set runNodesWithTag
+   [_ ^String group ^int count ^Template template]
+   (.createNodesInGroup compute group count template))
+  (^java.util.Set runNodesWithTag
+   [_ ^String group ^int count ^TemplateOptions template-options]
+   (.createNodesInGroup compute group count template-options))
+  (^java.util.Set runNodesWithTag
+   [_ ^String group ^int count]
+   (.createNodesInGroup compute group count))
+  (resumeNode [_ id] (.resumeNode compute id))
+  (resumeNodesMatching [_ predicate] (.resumeNodesMatching compute predicate))
+  (suspendNode [_ id] (.suspendNode compute id))
+  (suspendNodesMatching [_ predicate] (.suspendNodesMatching compute predicate))
+  (rebootNode [_ id] (.rebootNode compute id))
+  (rebootNodesMatching [_ predicate] (.rebootNodesMatching compute predicate))
+  (getNodeMetadata [_ id] (.getNodeMetadata compute id))
+  (listNodesDetailsMatching [_ predicate]
+                            (.listNodesDetailsMatching compute predicate))
+  (^java.util.Map runScriptOnNodesMatching
+   [_ ^Predicate predicate ^Payload script]
+   (.runScriptOnNodesMatching compute predicate script))
+  (^java.util.Map runScriptOnNodesMatching
+   [_ ^Predicate predicate ^Payload script ^RunScriptOptions options]
+   (.runScriptOnNodesMatching compute predicate script options))
+  ;; (^java.util.Map runScriptOnNodesMatching
+  ;;  [_ ^Predicate predicate ^String script]
+  ;;  (.runScriptOnNodesMatching compute predicate script))
+  ;; (^java.util.Map runScriptOnNodesMatching
+  ;;  [_ ^Predicate predicate ^String script ^RunScriptOptions options]
+  ;;  (.runScriptOnNodesMatching compute predicate script options))
+  ;; (^java.util.Map runScriptOnNodesMatching
+  ;;  [_ ^Predicate predicate ^Statement script]
+  ;;  (.runScriptOnNodesMatching compute predicate script))
+  ;; (^java.util.Map runScriptOnNodesMatching
+  ;;  [_ ^Predicate predicate ^Statement script ^RunScriptOptions options]
+  ;;  (.runScriptOnNodesMatching compute predicate script options))
+
+  pallet.compute.ComputeService
+  (nodes [_] (jclouds/nodes-with-details compute))
 
   (ensure-os-family
-   [compute request]
+   [_ request]
    (if (-> request :node-type :image :os-family)
      request
      (let [template (jclouds/build-template
-                     (:compute request)
+                     (environment/get-for request [:compute])
                      (-> request :node-type :image))
            family (-> (.. template getImage getOperatingSystem getFamily)
                       str keyword)]
@@ -294,7 +337,7 @@
         (assoc-in [:node-type :default-os-family] true)))))
 
   (run-nodes
-   [compute node-type node-count request init-script]
+   [_ node-type node-count request init-script]
    (jclouds/run-nodes
     (name (node-type :tag))
     node-count
@@ -306,35 +349,38 @@
     compute))
 
   (reboot
-   [compute nodes]
+   [_ nodes]
    (doseq [node nodes]
      (jclouds/reboot-node node compute)))
 
   (boot-if-down
-   [compute nodes]
+   [_ nodes]
    (map #(jclouds/reboot-node % compute)
         (filter jclouds/terminated? nodes)))
 
   (shutdown-node
-   [compute node user]
+   [_ node user]
    (let [ip (compute/primary-ip node)]
      (if ip
        (execute/remote-sudo ip "shutdown -h 0" user))))
 
   (shutdown
-   [compute nodes user]
+   [self nodes user]
    (doseq [node nodes]
-     (compute/shutdown-node compute node user)))
+     (compute/shutdown-node self node user)))
 
   (destroy-nodes-with-tag
-    [compute tag-name]
+    [_ tag-name]
     (jclouds/destroy-nodes-with-tag (name tag-name) compute))
 
   (destroy-node
-   [compute node]
+   [_ node]
    (jclouds/destroy-node (compute/id node) compute))
 
-  (close [compute] (.. compute getContext close)))
+  (close [_] (.. compute getContext close))
+
+  pallet.environment.Environment
+  (environment [_] environment))
 
 (defn node-locations
   "Return locations of a node as a seq."
@@ -410,3 +456,20 @@
      :all-nodes [node]
      :target-nodes [node]
      :node-type {:image [(get jvm-os-map (System/getProperty "os.name"))]}}))
+
+;; service factory implementation for jclouds
+(defmethod implementation/service :default
+  [provider {:keys [identity credential extensions endpoint environment]
+             :or {extensions (default-jclouds-extensions provider)}
+             :as options}]
+  (logging/info (format "extensions %s" (pr-str extensions)))
+  (let [options (dissoc options :identity :credential :extensions :blobstore)]
+    (JcloudsService.
+     (apply
+      jclouds/compute-service
+      (name provider) identity credential
+      :extensions extensions
+      (interleave
+       (map #(option-key provider %) (keys options))
+       (vals options)))
+     environment)))

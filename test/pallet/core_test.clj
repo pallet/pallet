@@ -161,17 +161,22 @@
 (deftest build-request-map-test
   (binding [pallet.core/*middleware* :middleware]
     (testing "defaults"
-      (is (= {:blobstore nil :compute nil :user utils/*admin-user*
-              :middleware :middleware}
+      (is (= {:environment
+              {:blobstore nil :compute nil :user utils/*admin-user*
+               :middleware :middleware :algorithms {:lift-fn sequential-lift}}}
              (#'core/build-request-map {}))))
     (testing "passing a prefix"
-      (is (= {:blobstore nil :compute nil :prefix "prefix"
-              :user utils/*admin-user* :middleware *middleware*}
+      (is (= {:environment
+              {:blobstore nil :compute nil :user utils/*admin-user*
+               :middleware *middleware* :algorithms {:lift-fn sequential-lift}}
+              :prefix "prefix"}
              (#'core/build-request-map {:prefix "prefix"}))))
     (testing "passing a user"
       (let [user (utils/make-user "fred")]
-        (is (= {:blobstore nil :compute nil  :user user
-                :middleware :middleware}
+        (is (= {:environment
+                {:blobstore nil :compute nil  :user user
+                 :middleware :middleware
+                 :algorithms {:lift-fn sequential-lift}}}
                (#'core/build-request-map {:user user})))))))
 
 (resource/defresource test-component
@@ -286,8 +291,7 @@
     (let [[localf seen?] (seen-fn "1")
           service (compute/compute-service
                    "node-list"
-                   :node-list [(node-list/make-localhost-node
-                                :tag "local" :os-family :ubuntu)])]
+                   :node-list [(node-list/make-localhost-node :tag "local")])]
       (is (.contains
            "bin"
            (with-out-str
@@ -344,20 +348,28 @@
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
                       []))]
-                  (lift* {a #{na nb nc}} nil [:configure]
-                         {:compute nil
-                          :user utils/*admin-user*
-                          :middleware *middleware*}))
+                  (lift*
+                   {:node-set {a #{na nb nc}}
+                    :phase-list [:configure]
+                    :environment
+                    {:compute nil
+                     :user utils/*admin-user*
+                     :middleware *middleware*
+                     :algorithms {:lift-fn sequential-lift}}}))
     (mock/expects [(sequential-apply-phase
                     [request nodes]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
                       []))]
-                  (lift* {a #{na} b #{nb}} nil [:configure]
-                         {:compute nil
-                          :user utils/*admin-user*
-                          :middleware *middleware*}))))
+                  (lift*
+                   {:node-set {a #{na} b #{nb}}
+                    :phase-list [:configure]
+                    :environment
+                    {:compute nil
+                     :user utils/*admin-user*
+                     :middleware *middleware*
+                     :algorithms {:lift-fn sequential-lift}}}))))
 
 (deftest lift-multiple-test
   (defnode a {})

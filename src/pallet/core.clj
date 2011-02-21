@@ -4,6 +4,7 @@
   (:require
    [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
+   [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.utils :as utils]
    [pallet.script :as script]
@@ -13,7 +14,9 @@
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]
    [clojure.contrib.logging :as logging]
-   [clojure.contrib.map-utils :as map-utils]))
+   [clojure.contrib.map-utils :as map-utils])
+  (:use
+   [clojure.contrib.core :only [-?>]]))
 
 (defn version
   "Returns the pallet version."
@@ -207,26 +210,22 @@ script that is run with root privileges immediatly after first boot."
   (logging/info
    (str "Starting " count " nodes for " (node-type :tag)
         " os-family " (-> node-type :image :os-family)))
-  (let [request (compute/ensure-os-family
-                 (:compute request)
-                 (assoc request :node-type node-type))
+  (let [compute (:compute request)
+        request (compute/ensure-os-family
+                 compute (assoc request :node-type node-type))
         request (add-target-packager request)
         init-script (produce-init-script request)]
     (logging/trace
      (format "Bootstrap script:\n%s" init-script))
-    (compute/run-nodes
-     (:compute request)
-     node-type
-     count
-     request
-     init-script)))
+    (compute/run-nodes compute node-type count request init-script)))
 
 (defn- destroy-nodes-with-count
   "Destroys the specified number of nodes with the given tag.  Nodes are
    selected at random."
-  [nodes tag destroy-count compute]
+  [nodes tag destroy-count request]
   (logging/info (str "destroying " destroy-count " nodes with tag " tag))
-  (let [tag-nodes (filter (partial compute/node-has-tag? tag) nodes)]
+  (let [compute (:compute request)
+        tag-nodes (filter (partial compute/node-has-tag? tag) nodes)]
     (if (= destroy-count (count tag-nodes))
       (compute/destroy-nodes-with-tag compute (name tag))
       (do
@@ -245,18 +244,22 @@ script that is run with root privileges immediatly after first boot."
 
 (defn- adjust-node-count
   "Adjust the node by delta nodes"
-  [[{:keys [tag] :as node} delta] nodes request]
-  (cond
-   (pos? delta) (create-nodes node delta request)
-   (neg? delta) (destroy-nodes-with-count
-                  nodes tag (- delta) (:compute request))
-   :else (filter-nodes-with-tag nodes tag)))
+  [[{:keys [tag environment] :as node} delta] nodes request]
+  (let [request (environment/request-with-environment
+                  (assoc request :node-type node)
+                  (environment/merge-environments
+                   (:environment request) environment))]
+    (cond
+     (pos? delta) (create-nodes (:node-type request) delta request)
+     (neg? delta) (destroy-nodes-with-count nodes tag (- delta) request)
+     :else (filter-nodes-with-tag nodes tag))))
 
 (defn- serial-adjust-node-counts
   "Start or stop the specified number of nodes."
   [delta-map nodes request]
   (logging/trace (str "serial-adjust-node-counts" delta-map))
-  (mapcat #(adjust-node-count % nodes request) delta-map))
+  (mapcat identity
+   (doall (map #(adjust-node-count % nodes request) delta-map))))
 
 (defn- parallel-adjust-node-counts
   "Start or stop the specified number of nodes."
@@ -275,7 +278,7 @@ script that is run with root privileges immediatly after first boot."
   ;;(compute/boot-if-down (:compute request) nodes) ; this needs improving
                                         ; should only reboot if required
   (let [nodes (filter compute/running? nodes)]
-    ((:converge-fn request parallel-adjust-node-counts)
+    ((:converge-fn request serial-adjust-node-counts)
      (node-count-difference node-map nodes)
      nodes
      request)))
@@ -324,7 +327,12 @@ script that is run with root privileges immediatly after first boot."
   "Apply a phase to a node request"
   [request]
   {:pre [(:target-node request)]}
-  (let [middleware (:middleware request)]
+  (let [request (environment/request-with-environment
+                  request
+                  (environment/merge-environments
+                   (:environment request)
+                   (-> request :node-type :environment)))
+        middleware (:middleware request)]
     ((utils/pipe
       add-target-keys
       build-commands
@@ -362,14 +370,10 @@ script that is run with root privileges immediatly after first boot."
   "Middleware to user the request :user credentials for SSH authentication."
   [handler]
   (fn [request]
-    (logging/info
-     (format
-      "Using identity at %s"
-      (:private-key-path (:user request))))
-    (execute/possibly-add-identity
-     (execute/default-agent)
-     (:private-key-path (:user request))
-     (:passphrase (:user request)))
+    (let [user (:user request)]
+      (logging/info (format "Using identity at %s" (:private-key-path user)))
+      (execute/possibly-add-identity
+       (execute/default-agent) (:private-key-path user) (:passphrase user)))
     (handler request)))
 
 (def *middleware* wrap-with-user-credentials)
@@ -506,13 +510,22 @@ script that is run with root privileges immediatly after first boot."
                [(assoc-in (first %1) [:phases phase] %2)
                 (conj (second %1) phase)])) [request []] phases))
 
+(defn- invoke-for-node
+  "Build an invocation map for specified node."
+  [request node]
+  (resource-invocations
+   (->
+    request
+    (assoc :target-node node :target-id (keyword (compute/id node)))
+    (environment/request-with-environment
+      (environment/merge-environments
+       (:environment request)
+       (-> request :node-type :environment))))))
+
 (defn- invoke-for-nodes
   "Build an invocation map for specified nodes."
   [request nodes]
-  (reduce
-   #(resource-invocations
-     (assoc %1 :target-node %2 :target-id (keyword (compute/id %2))))
-   request nodes))
+  (reduce invoke-for-node request nodes))
 
 (defn- invoke-for-node-type
   "Build an invocation map for specified node-type map."
@@ -562,7 +575,8 @@ script that is run with root privileges immediatly after first boot."
      (->
       request
       (invoke-phases (ensure-configure-phase phases) all-node-map)
-      ((:lift-fn request parallel-lift) phases target-node-map)))))
+      ((environment/get-for request [:algorithms :lift-fn])
+       phases target-node-map)))))
 
 (def
   ^{:doc
@@ -588,15 +602,16 @@ script that is run with root privileges immediatly after first boot."
         (string/join ", " (map name undefined)))))))
 
 (defn lift*
-  [node-set all-node-set phases request]
-  (logging/trace (format "lift* phases %s" (vec phases)))
-  (let [nodes (or
+  [request]
+  (logging/trace (format "lift* phases %s" (vec (:phase-list request))))
+  (let [node-set (:node-set request)
+        all-node-set (:all-node-set request)
+        phases (:phase-list request)
+        nodes (or
                (:all-nodes request)
-               (when (:compute request)
+               (when-let [compute (environment/get-for request [:compute] nil)]
                  (logging/info "retrieving nodes")
-                 (filter
-                  compute/running?
-                  (compute/nodes (:compute request)))))
+                 (filter compute/running? (compute/nodes compute))))
         target-node-map (nodes-in-set node-set (:prefix request) nodes)
         all-node-map (or (and all-node-set
                               (nodes-in-set all-node-set nil nodes))
@@ -608,16 +623,19 @@ script that is run with root privileges immediatly after first boot."
   "Converge the node counts of each tag in node-map, executing each of the
    configuration phases on all the tags in node-map. Th phase-functions are
    also executed, but not applied, for any other nodes in all-node-set"
-  [node-map all-node-set phases request]
-  {:pre [(map? node-map)]}
-  (logging/trace (format "converge* %s %s" node-map phases))
+  [request]
+  {:pre [(map? (:node-map request))]}
+  (logging/trace
+   (format "converge* %s %s" (:node-map request) (:phase-list request)))
   (logging/info "retrieving nodes")
-  (let [node-map (add-prefix-to-node-map (:prefix request) node-map)
-        nodes (compute/nodes (:compute request))]
+  (let [node-map (:node-map request)
+        all-node-set (:all-node-set request)
+        phases (:phase-list request)
+        node-map (add-prefix-to-node-map (:prefix request) node-map)
+        compute (environment/get-for request [:compute])
+        nodes (compute/nodes compute)]
     (converge-node-counts node-map nodes request)
-    (let [nodes (filter
-                 compute/running?
-                 (compute/nodes (:compute request)))
+    (let [nodes (filter compute/running? (compute/nodes compute))
           tag-groups (group-by #(keyword (compute/tag %)) nodes)
           target-node-map (into
                            {}
@@ -659,21 +677,48 @@ script that is run with root privileges immediatly after first boot."
             :credential (:credential blobstore-service)
             :extensions (:extensions blobstore-service)))))
 
+(defn default-environment
+  "Specify the built-in default environment"
+  []
+  {:blobstore nil
+   :compute nil
+   :user utils/*admin-user*
+   :middleware *middleware*
+   :algorithms {:lift-fn sequential-lift}})
+
+(defn- effective-environment
+  "Build the effective environment for the request map.
+   This merges the explicitly passed :environment, with that
+   defined on the :compute service."
+  [request]
+  (assoc
+   request
+   :environment
+   (environment/merge-environments
+    (default-environment)                                     ; global default
+    (utils/find-var-with-require 'pallet.config 'environment) ; project default
+    (-?> request :environment :compute environment/environment) ;service default
+    (:environment request))))                                 ; request default
+
+(def ^{:doc "args that are really part of the environment"}
+  environment-args [:compute :blobstore :user :middleware])
+
 (defn- build-request-map
   "Build a request map from the given options."
   [{:as options}]
   (->
    options
-   (update-in [:compute] compute-from-options options)
-   (update-in [:blobstore] blobstore-from-options options)
-   (update-in [:user] (or-fn utils/*admin-user*))
-   (update-in [:middleware] (or-fn *middleware*))))
+   (update-in                           ; ensure backwards compatable
+    [:environment]
+    merge (select-keys options environment-args))
+   (utils/dissoc-keys environment-args)
+   (effective-environment)))
 
 (def ^{:doc "A set of recognised argument keywords, used for input checking."
        :private true}
   argument-keywords
   #{:compute :blobstore :phase :user :prefix :middleware :all-node-set
-    :all-nodes :parameters :converge-fn :lift-fn})
+    :all-nodes :parameters :environment :node-set :node-map :phase-list})
 
 (defn- check-arguments-map
   "Check an arguments map for errors."
@@ -707,15 +752,14 @@ script that is run with root privileges immediatly after first boot."
 
    An optional tag prefix may be specified before the node-map."
   [node-map & {:keys [compute blobstore user phase prefix middleware
-                      all-nodes all-node-set]
+                      all-nodes all-node-set environment]
                :as options}]
   (converge*
-   node-map all-node-set
-   (if (sequential? phase) phase (if phase [phase] nil))
    (->
     options
+    (assoc :node-map node-map
+           :phase-list (if (sequential? phase) phase (if phase [phase] nil)))
     (check-arguments-map)
-    (dissoc :all-node-set :phase)
     (build-request-map))))
 
 
@@ -745,13 +789,13 @@ script that is run with root privileges immediatly after first boot."
     :prefix          a prefix for the tag names
     :user            the admin-user on the nodes
 "
-  [node-set & {:keys [compute phase prefix middleware all-node-set]
+  [node-set & {:keys [compute phase prefix middleware all-node-set environment]
                :as options}]
   (lift*
-   node-set all-node-set
-   (if (sequential? phase) phase (if phase [phase] nil))
    (->
     options
+    (assoc :node-set node-set
+           :phase-list (if (sequential? phase) phase (if phase [phase] nil)))
     (check-arguments-map)
     (dissoc :all-node-set :phase)
     (build-request-map))))

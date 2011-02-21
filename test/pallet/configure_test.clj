@@ -39,4 +39,20 @@
             {:services
              {:a {:provider "pa" :identity "ia" :credential "ca" :endpoint "ea"}
               :b {:provider "pb" :identity "ib" :credential "cb"}}}
+            [:a]))))
+  (testing "with environment"
+    (is (= {:provider "pa" :identity "ia" :credential "ca"
+            :environment {:image {:os-family :ubuntu}}}
+           (compute-service-properties
+            {:providers
+             {:a {:provider "pa" :identity "ia" :credential "ca"
+                  :environment {:image {:os-family :ubuntu}}}}}
+            [:a])))
+    (is (= {:provider "pa" :identity "ia" :credential "ca"
+            :environment {:image {:os-family :ubuntu :os-version "101"}}}
+           (compute-service-properties
+            {:services
+             {:a {:provider "pa" :identity "ia" :credential "ca"
+                  :environment {:image {:os-family :ubuntu}}}}
+             :environment {:image {:os-version "101"}}}
             [:a])))))

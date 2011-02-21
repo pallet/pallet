@@ -222,6 +222,23 @@
                       (keyword? x) (symbol (name x))))]
     (zipmap (map to-symbol (keys m)) (vals m))))
 
+(defn dissoc-keys
+  "Like clojure.core/dissoc, except it takes a vector of keys to remove"
+  [m keys]
+  (apply dissoc m keys))
+
+(defn maybe-update-in
+  "'Updates' a value in a nested associative structure, where ks is a
+  sequence of keys and f is a function that will take the old value
+  and any supplied args and return the new value, and returns a new
+  nested structure.  If any levels do not exist, hash-maps will be
+  created only if the update function returns a non-nil value. If
+  the update function returns nil, the map is returned unmodified."
+  ([m [& ks] f & args]
+     (let [v (f (get-in m ks))]
+       (if v
+         (assoc-in m ks v)
+         m))))
 
 (defmacro pipe
   "Build a request processing pipeline from the specified forms."
