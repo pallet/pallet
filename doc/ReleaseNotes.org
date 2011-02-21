@@ -1,4 +1,20 @@
-The latest release is 0.4.3.
+The latest release is 0.4.4.
+
+* 0.4.4
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Enhancements
+- Add an environment concept
+  The environment concept allows passing of external data to pallet, and
+  allows project, service, or command line overrides of pallet algorithms
+  and domain data objects.
+
+  The :environment key is recognised by lift and converge, in the
+  config.clj file at the global and service scope. A project specific
+  environment maybe be specified in pallet.config/environment.
 
 * 0.4.3
 
