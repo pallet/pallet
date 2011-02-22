@@ -278,7 +278,7 @@ script that is run with root privileges immediatly after first boot."
   ;;(compute/boot-if-down (:compute request) nodes) ; this needs improving
                                         ; should only reboot if required
   (let [nodes (filter compute/running? nodes)]
-    ((:converge-fn request serial-adjust-node-counts)
+    ((environment/get-for request [:algorithms :converge-fn])
      (node-count-difference node-map nodes)
      nodes
      request)))
@@ -684,7 +684,8 @@ script that is run with root privileges immediatly after first boot."
    :compute nil
    :user utils/*admin-user*
    :middleware *middleware*
-   :algorithms {:lift-fn sequential-lift}})
+   :algorithms {:lift-fn sequential-lift
+                :converge-fn serial-adjust-node-counts}})
 
 (defn- effective-environment
   "Build the effective environment for the request map.

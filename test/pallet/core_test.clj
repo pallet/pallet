@@ -97,7 +97,12 @@
   (let [a-node (test-utils/make-node "a" :running true)
         compute (compute/compute-service "node-list" :node-list [a-node])]
     (#'core/converge-node-counts
-     {a 1} [a-node] {:compute compute})))
+     {a 1} [a-node]
+     {:environment
+      {:compute compute
+       :algorithms {:lift-fn sequential-lift
+                    :converge-fn
+                    (var-get #'core/serial-adjust-node-counts)}}})))
 
 (deftest nodes-in-map-test
   (defnode a {:os-family :ubuntu})
@@ -163,12 +168,18 @@
     (testing "defaults"
       (is (= {:environment
               {:blobstore nil :compute nil :user utils/*admin-user*
-               :middleware :middleware :algorithms {:lift-fn sequential-lift}}}
+               :middleware :middleware
+               :algorithms {:lift-fn sequential-lift
+                            :converge-fn
+                            (var-get #'core/serial-adjust-node-counts)}}}
              (#'core/build-request-map {}))))
     (testing "passing a prefix"
       (is (= {:environment
               {:blobstore nil :compute nil :user utils/*admin-user*
-               :middleware *middleware* :algorithms {:lift-fn sequential-lift}}
+               :middleware *middleware*
+               :algorithms {:lift-fn sequential-lift
+                            :converge-fn
+                            (var-get #'core/serial-adjust-node-counts)}}
               :prefix "prefix"}
              (#'core/build-request-map {:prefix "prefix"}))))
     (testing "passing a user"
@@ -176,7 +187,9 @@
         (is (= {:environment
                 {:blobstore nil :compute nil  :user user
                  :middleware :middleware
-                 :algorithms {:lift-fn sequential-lift}}}
+                 :algorithms {:lift-fn sequential-lift
+                              :converge-fn
+                              (var-get #'core/serial-adjust-node-counts)}}}
                (#'core/build-request-map {:user user})))))))
 
 (resource/defresource test-component

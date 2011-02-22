@@ -108,7 +108,11 @@
   (defnode a {:os-family :ubuntu})
   (let [a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
     (#'core/converge-node-counts
-     {a 1} [a-node] {:compute org.jclouds.compute/*compute*}))
+     {a 1} [a-node]
+     {:environment
+      {:compute org.jclouds.compute/*compute*
+       :algorithms {:converge-fn #'pallet.core/serial-adjust-node-counts
+                    :lift-fn #'pallet.core/sequential-lift}}}))
   (mock/expects [(org.jclouds.compute/run-nodes
                   [tag n template compute]
                   (mock/once
@@ -116,12 +120,46 @@
                  (org.jclouds.compute/build-template
                   [compute & options]
                   (mock/once :template))]
-    (let [a-node (jclouds/make-node "a" :state NodeState/TERMINATED)]
-      (#'core/converge-node-counts
-       {a 1}
-       [a-node]
-       {:environment
-        {:compute org.jclouds.compute/*compute*}}))))
+                (let [a-node (jclouds/make-node
+                              "a" :state NodeState/TERMINATED)]
+                  (#'core/converge-node-counts
+                   {a 1}
+                   [a-node]
+                   {:environment
+                    {:compute org.jclouds.compute/*compute*
+                     :algorithms
+                     {:converge-fn #'pallet.core/serial-adjust-node-counts
+                      :lift-fn #'pallet.core/sequential-lift}}}))))
+
+(deftest parallel-converge-node-counts-test
+  (defnode a {:os-family :ubuntu})
+  (let [a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
+    (#'core/converge-node-counts
+     {a 1} [a-node]
+     {:environment
+      {:compute org.jclouds.compute/*compute*
+       :algorithms {:converge-fn #'pallet.core/parallel-adjust-node-counts
+                    :lift-fn #'pallet.core/parallel-lift}}}))
+  (mock/expects [(clojure.core/future-call
+                  [f]
+                  (mock/once (delay (f)))) ;; delay implements deref
+                 (org.jclouds.compute/run-nodes
+                  [tag n template compute]
+                  (mock/once
+                   (is (= n 1))))
+                 (org.jclouds.compute/build-template
+                  [compute & options]
+                  (mock/once :template))]
+                (let [a-node (jclouds/make-node
+                              "a" :state NodeState/TERMINATED)]
+                  (#'core/converge-node-counts
+                   {a 1}
+                   [a-node]
+                   {:environment
+                    {:compute org.jclouds.compute/*compute*
+                     :algorithms
+                     {:converge-fn #'pallet.core/parallel-adjust-node-counts
+                      :lift-fn #'pallet.core/parallel-lift}}}))))
 
 (deftest nodes-in-map-test
   (defnode a {:os-family :ubuntu})
@@ -315,7 +353,9 @@
                     {:compute nil
                      :user utils/*admin-user*
                      :middleware *middleware*
-                     :algorithms {:lift-fn sequential-lift}}}))
+                     :algorithms
+                     {:converge-fn #'pallet.core/serial-adjust-node-counts
+                      :lift-fn sequential-lift}}}))
     (mock/expects [(sequential-apply-phase
                     [request nodes]
                     (do
@@ -329,7 +369,9 @@
                     {:compute nil
                      :user utils/*admin-user*
                      :middleware *middleware*
-                     :algorithms {:lift-fn sequential-lift}}}))))
+                     :algorithms
+                     {:converge-fn #'pallet.core/serial-adjust-node-counts
+                      :lift-fn sequential-lift}}}))))
 
 (deftest lift-multiple-test
   (defnode a {})
@@ -365,7 +407,9 @@
                     :environment
                     {:compute org.jclouds.compute/*compute*
                      :middleware *middleware*
-                     :algorithms {:lift-fn sequential-lift}}}))))
+                     :algorithms
+                     {:converge-fn #'pallet.core/serial-adjust-node-counts
+                      :lift-fn sequential-lift}}}))))
 
 (deftest converge-test
   (org.jclouds.compute/with-compute-service
