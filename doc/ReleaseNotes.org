@@ -1,4 +1,42 @@
-The latest release is 0.4.4.
+The latest release is 0.4.5.
+
+* 0.4.5
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Enhancements
+
+- Add a parallel converge, and a lift that applies phases in series,
+  and nodes in parallel.
+
+- Make identical node creation parallel in vmfest
+
+- Use environment to select converge and lift algorithms
+  Allow selection of parallel or serial execution using the environment.
+  The keys used are:
+  - [:algorithms :lift-fn]
+  - [:algorithms :converge-fn]
+  - [:algorithms :vmfest :create-nodes-fn]
+
+  The choice of :converge-fn functions:
+  - pallet.core/serial-adjust-node-counts
+  - pallet.core/parallel-adjust-node-counts
+
+  The choice of :lift-fn functions:
+  - pallet.core/sequential-lift
+  - pallet.core/parallel-lift
+
+  The choice of :create-nodes functions:
+  - pallet.compute.vmfest/serial-create-nodes
+  - pallet.core/parallel-create-nodes
+
+- Add parallel execution of live-tests
+  Parallel execution is off by default. It can be enabled with the
+  pallet.live-test.parallel system property.  Live tests need to
+  pallet.live-test/test-for to enable this.
+
 
 * 0.4.4
 
