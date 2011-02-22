@@ -195,6 +195,11 @@
         (:cmds (f request)))
       "")))
 
+(defn- filter-nodes-with-tag
+  "Return nodes with the given tag"
+  [nodes with-tag]
+  (filter #(= (name with-tag) (compute/tag %)) nodes))
+
 (defn- create-nodes
   "Create count nodes based on the template for tag. The boostrap argument
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
@@ -223,8 +228,10 @@ script that is run with root privileges immediatly after first boot."
         tag-nodes (filter (partial compute/node-has-tag? tag) nodes)]
     (if (= destroy-count (count tag-nodes))
       (compute/destroy-nodes-with-tag compute (name tag))
-      (doseq [node (take destroy-count tag-nodes)]
-        (compute/destroy-node compute node)))))
+      (do
+        (doseq [node (take destroy-count tag-nodes)]
+          (compute/destroy-node compute node))
+        (drop destroy-count tag-nodes)))))
 
 (defn- node-count-difference
   "Find the difference between the required and actual node counts by tag."
@@ -234,11 +241,6 @@ script that is run with root privileges immediatly after first boot."
      - node-map
      (into {} (map #(vector (first %) (get node-counts ((first %) :tag) 0))
                    node-map)))))
-
-(defn- filter-nodes-with-tag
-  "Return nodes with the given tag"
-  [nodes with-tag]
-  (filter #(= (name with-tag) (compute/tag %)) nodes))
 
 (defn- adjust-node-count
   "Adjust the node by delta nodes"
@@ -255,9 +257,17 @@ script that is run with root privileges immediatly after first boot."
 (defn- serial-adjust-node-counts
   "Start or stop the specified number of nodes."
   [delta-map nodes request]
-  (logging/trace (str "adjust-node-counts" delta-map))
+  (logging/trace (str "serial-adjust-node-counts" delta-map))
   (mapcat identity
    (doall (map #(adjust-node-count % nodes request) delta-map))))
+
+(defn- parallel-adjust-node-counts
+  "Start or stop the specified number of nodes."
+  [delta-map nodes request]
+  (logging/trace (str "parallel-adjust-node-counts" delta-map))
+  (mapcat
+   deref
+   (doall (map #(future (adjust-node-count % nodes request)) delta-map))))
 
 (defn- converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
@@ -268,7 +278,7 @@ script that is run with root privileges immediatly after first boot."
   ;;(compute/boot-if-down (:compute request) nodes) ; this needs improving
                                         ; should only reboot if required
   (let [nodes (filter compute/running? nodes)]
-    (serial-adjust-node-counts
+    ((environment/get-for request [:algorithms :converge-fn])
      (node-count-difference node-map nodes)
      nodes
      request)))
@@ -424,6 +434,15 @@ script that is run with root privileges immediatly after first boot."
     (apply-phase-to-node
      (assoc request :target-node node))))
 
+(defn parallel-apply-phase
+  "Apply a phase to a sequence of nodes"
+  [request nodes]
+  (logging/info
+   (format
+    "apply-phase %s for %s with %d nodes"
+    (:phase request) (:tag (:node-type request)) (count nodes)))
+  (map #(future (apply-phase-to-node (assoc request :target-node %))) nodes))
+
 (defn- nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"
   [node-map nodes]
@@ -529,6 +548,17 @@ script that is run with root privileges immediatly after first boot."
     (sequential-apply-phase
      (assoc request :phase phase :node-type node-type)
      tag-nodes)))
+
+(defn parallel-lift
+  "Apply the phases in sequence, to nodes in parallel."
+  [request phases target-node-map]
+  (for [phase (resource/phase-list phases)]
+    (mapcat
+     #(map deref %) ; make sure all nodes complete before next phase
+     (for [[node-type tag-nodes] target-node-map]
+       (parallel-apply-phase
+        (assoc request :phase phase :node-type node-type)
+        tag-nodes)))))
 
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
@@ -654,7 +684,8 @@ script that is run with root privileges immediatly after first boot."
    :compute nil
    :user utils/*admin-user*
    :middleware *middleware*
-   :algorithms {:lift-fn sequential-lift}})
+   :algorithms {:lift-fn sequential-lift
+                :converge-fn serial-adjust-node-counts}})
 
 (defn- effective-environment
   "Build the effective environment for the request map.

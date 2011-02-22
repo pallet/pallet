@@ -162,12 +162,16 @@
    init-script user]
   {:pre [image-id]}
   (logging/trace (format "Creating node from image-id: %s" image-id))
-  (let [machine (manager/instance
-                 compute machine-name image-id :micro node-path)
+  (let [machine (binding [manager/*images* images]
+                  (manager/instance
+                   compute machine-name image-id :micro node-path))
         image (image-id images)]
-    (manager/set-extra-data machine "/pallet/tag" tag-name)
-    (manager/set-extra-data machine "/pallet/os-family" (name (:os-family image)))
-    (manager/set-extra-data machine "/pallet/os-version" (:os-version image))
+    (manager/set-extra-data
+     machine "/pallet/tag" tag-name)
+    (manager/set-extra-data
+     machine "/pallet/os-family" (name (:os-family image)))
+    (manager/set-extra-data
+     machine "/pallet/os-version" (:os-version image))
     ;; (manager/add-startup-command machine 1 init-script )
     (manager/start machine :session-type *vm-session-type*)
     (logging/trace "Wait to allow boot")
@@ -217,6 +221,29 @@
          (dissoc template :image-id :inbound-ports)))
       images)
      ffirst)))
+
+(defn serial-create-nodes
+  "Create all nodes for a group in parallel."
+  [target-machines-to-create server node-path node-type images image-id
+   tag-name init-script user]
+  (doseq [name target-machines-to-create]
+    (create-node
+     server node-path node-type name images image-id tag-name init-script
+     user)))
+
+(defn parallel-create-nodes
+  "Create all nodes for a group in parallel."
+  [target-machines-to-create server node-path node-type images image-id
+   tag-name init-script user]
+  ;; the doseq ensures that all futures are completed before
+  ;; returning
+  (doseq [f (doall ;; doall forces creation of all futures before any deref
+             (for [name target-machines-to-create]
+               (future
+                 (create-node
+                  server node-path node-type name images image-id tag-name
+                  init-script user))))]
+    @f))
 
 (deftype VmfestService
     [server images locations environment]
@@ -271,13 +298,12 @@
                            target-machines-already-existing))
        (logging/debug (str "target-machines-to-create"
                            target-machines-to-create))
-       (binding [manager/*images* images]
-         (doseq [name target-machines-to-create]
-           (create-node
-            server (:node-path locations) node-type name
-            images image-id tag-name
-            init-script
-            (:user request)))))))
+
+       ((get-in
+         request [:environment :algorithms :vmfest :create-nodes-fn]
+         parallel-create-nodes)
+        target-machines-to-create server (:node-path locations) node-type
+        images image-id tag-name init-script (:user request)))))
 
   (reboot
    [compute nodes]
