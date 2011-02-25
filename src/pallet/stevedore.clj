@@ -624,7 +624,7 @@
      str (interpose
           " "
           (map #(arg-string
-                 (first %) (second %) (opts :underscore) (:opts :assign)
+                 (first %) (second %) (opts :underscore) (opts :assign)
                  (get opts :dash "--"))
                m)))))
 
