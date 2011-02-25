@@ -1,38 +1,41 @@
 (ns pallet.crate.sudoers
   (:require
-   [pallet.resource.package :as package]
-   [clojure.contrib.string :as string])
-  (:use
-   [pallet.utils :only [underscore as-string]]
-   [pallet.target :only [admin-group]]
-   [pallet.template]
-   [pallet.resource :only [defaggregate]]
-   [clojure.contrib.logging]))
+   [pallet.action :as action]
+   [pallet.action.package :as package]
+   [pallet.session :as session]
+   [pallet.template :as template]
+   [pallet.utils :as utils]
+   [clojure.contrib.logging :as logging]
+   [clojure.string :as string]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
 ;; TODO - dsl for sudoers, eg. (alias "user1" "user2" :as :ADMINS)
 
 (defn install
-  [request & {:keys [package-name action]
+  [session & {:keys [package-name action]
               :or {package-name "sudo" action :install}}]
   (->
-   request
+   session
    (package/package-manager :update)
    (package/package package-name :action action)))
 
-(defn- default-specs [request]
+(defn- default-specs [session]
   (array-map
    "root" {:ALL {:run-as-user :ALL}}
-   (str "%" (admin-group (:image (:node-type request))))
+   (str "%" (session/admin-group session))
    {:ALL {:run-as-user :ALL}}))
 
 (defn- param-string [[key value]]
   (cond
-   (instance? Boolean value) (str (if-not value "!") (underscore (name key)))
-   (instance? String value) (str (underscore (name key)) \= value)
-   (keyword? value) (str (underscore (name key)) \= (underscore (name value)))
-   :else (str (underscore (name key)) \= value)))
+   (instance? Boolean value) (str
+                              (if-not value "!") (utils/underscore (name key)))
+   (instance? String value) (str (utils/underscore (name key)) \= value)
+   (keyword? value) (str
+                     (utils/underscore (name key))
+                     \=
+                     (utils/underscore (name value)))
+   :else (str (utils/underscore (name key)) \= value)))
 
 (defn- write-defaults [type name defaults]
   (str "Defaults" type name " "
@@ -43,7 +46,7 @@
   (apply
    str
    (map
-    #(write-defaults type (as-string (first %)) (second %))
+    #(write-defaults type (utils/as-string (first %)) (second %))
     (defaults key))))
 
 (defn- defaults [defaults]
@@ -69,7 +72,7 @@
                ["User_Alias" "Runas_Alias" "Host_Alias" "Cmnd_Alias"])))
 
 (defn- as-tag [item]
-  (str (as-string item) ":"))
+  (str (utils/as-string item) ":"))
 
 (defn- tag-or-vector [item]
   (if (vector? item)
@@ -78,16 +81,18 @@
 
 (defn- item-or-vector [item]
   (if (vector? item)
-    (string/join "," (map as-string item))
-    (as-string item)))
+    (string/join "," (map utils/as-string item))
+    (utils/as-string item)))
 
 (defn- write-cmd-spec [[cmds options]]
-  (str (if (:run-as-user options) (str "(" (item-or-vector (:run-as-user options))  ") "))
-       (if (:tags options) (str (tag-or-vector (:tags options)) " "))
+  (str (when (:run-as-user options)
+         (str "(" (item-or-vector (:run-as-user options))  ") "))
+       (when (:tags options)
+         (str (tag-or-vector (:tags options)) " "))
        (item-or-vector cmds)))
 
 (defn- write-host-spec [host-spec]
-  (trace (str "write-host-spec" host-spec))
+  (logging/trace (str "write-host-spec" host-spec))
   (str
    (item-or-vector (or (:host host-spec) :ALL)) " = "
    (string/join "," (map write-cmd-spec (dissoc host-spec :host)))))
@@ -101,7 +106,7 @@
 (defn- specs [spec-map]
   (string/join "\n" (map write-spec spec-map)))
 
-(deftemplate sudoer-templates
+(template/deftemplate sudoer-templates
   [aliases-map default-map spec-map]
   {{:path "/etc/sudoers" :owner "root" :mode "0440"}
    (str
@@ -131,8 +136,7 @@
                    v1 v2))
             initial args)))
 
-
-(defaggregate sudoers
+(action/def-aggregated-action sudoers
   "Sudo configuration. Generates a sudoers file.
 By default, root and an admin group are already present.
 
@@ -152,12 +156,11 @@ specs [ { [\"user1\" \"user2\"]
             :KILL { :run-as-user \"operator\" :tags :NOPASSWORD }
             [\"/usr/bin/*\" \"/usr/local/bin/*\"]
             { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }"
-  {:use-arglist [aliases defaults specs]}
-  (apply-sudoers
-   [request args]
-   (trace "apply-sudoers")
-   (apply-templates
-    sudoer-templates
-    (sudoer-merge
-     [(array-map) (array-map) (default-specs (:image (:node-type request)))]
-     args))))
+  {:arglists '([aliases defaults specs])}
+  [session args]
+  (logging/trace "apply-sudoers")
+  (template/apply-templates
+   sudoer-templates
+   (sudoer-merge
+    [(array-map) (array-map) (default-specs session)]
+    args)))

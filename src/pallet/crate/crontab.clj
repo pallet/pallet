@@ -2,13 +2,13 @@
   "crontab management"
   (:refer-clojure :exclude [alias])
   (:require
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.action.user :as user]
+   [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [pallet.utils :as utils]
-   [pallet.resource :as resource]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.file :as file]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.user :as user])
+   [pallet.utils :as utils])
   (:use pallet.thread-expr))
 
 (def system-cron-dir "/etc/cron.d")
@@ -16,11 +16,11 @@
 (defn crontab
   "Manage a user's crontab file. Valid actions are :create or :remove.
    Options are as for remote-file."
-  [request user & {:keys [action] :or {action :create} :as options}]
-  (let [in-file (str (stevedore/script (user/user-home user)) "/crontab.in")]
+  [session user & {:keys [action] :or {action :create} :as options}]
+  (let [in-file (str (stevedore/script (~lib/user-home user)) "/crontab.in")]
     (case action
       :create (->
-               request
+               session
                (apply->
                 remote-file/remote-file
                 in-file :owner user :mode "0600"
@@ -31,7 +31,7 @@
                 "Load crontab"
                 ("crontab" -u ~user ~in-file)))
       :remove (->
-               request
+               session
                (file/file in-file :action :delete)
                (exec-script/exec-checked-script
                 "Remove crontab"
@@ -40,14 +40,14 @@
 (defn system-crontab
   "Manage a system crontab file. Valid actions are :create or :remove.
 Options are as for remote-file."
-  [request name & options]
+  [session name & options]
   (let [options (apply hash-map options)
         cron-file (str system-cron-dir "/" name)]
     (condp = (get options :action :create)
         :create (apply
-                 remote-file/remote-file request cron-file
+                 remote-file/remote-file session cron-file
                  :owner "root" :group "root" :mode "0644"
                  (apply
                   concat
                   (select-keys options remote-file/content-options)))
-        :remove (file/file request cron-file :action :delete))))
+        :remove (file/file session cron-file :action :delete))))

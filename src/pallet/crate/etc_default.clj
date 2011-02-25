@@ -2,9 +2,9 @@
   "Generation and installation of /etc/default-style files."
  (:require
    [pallet.stevedore :as stevedore]
-   [pallet.resource.file :as file]
-   [pallet.resource.filesystem-layout :as filesystem-layout]
-   [pallet.resource.remote-file :as remote-file]
+   [pallet.action.file :as file]
+   [pallet.action.remote-file :as remote-file]
+   [pallet.script.lib :as lib]
    [clojure.string :as string]))
 
 (defn write
@@ -15,11 +15,11 @@
    e.g. (write \"tomcat6\"
           :JAVA_OPTS \"-Xmx1024m\"
           \"JSP_COMPILER\" \"javac\")"
-  [request filename & key-value-pairs]
+  [session filename & key-value-pairs]
   (let [file (if (= \/ (first filename))
                filename
-               (str (stevedore/script (etc-default)) "/" filename))]
-    (-> request
+               (str (stevedore/script (~lib/etc-default)) "/" filename))]
+    (-> session
         (remote-file/remote-file
          file
          :owner "root:root"

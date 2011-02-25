@@ -1,29 +1,33 @@
 (ns pallet.crate.automated-admin-user
-  (:use [pallet.resource.user :only [user]]
-        [pallet.crate.ssh-key :only [authorize-key]]
-        [pallet.utils :only [default-public-key-path *admin-user*]]
-        pallet.thread-expr)
   (:require
-   [pallet.resource :as resource]
+   [pallet.action.user :as user]
+   [pallet.crate.ssh-key :as ssh-key]
+   [pallet.utils :as utils]
+   [pallet.thread-expr :as thread-expr]
    [pallet.crate.sudoers :as sudoers]))
 
 (defn automated-admin-user
   "Builds a user for use in remote-admin automation. The user is given
   permission to sudo without password, so that passwords don't have to appear
   in scripts, etc."
-  ([request]
+  ([session]
      (automated-admin-user
-      request (:username *admin-user*) (:public-key-path *admin-user*)))
-  ([request username]
-     (automated-admin-user request username (:public-key-path *admin-user*)))
-  ([request username & public-key-paths]
+      session
+      (:username utils/*admin-user*)
+      (:public-key-path utils/*admin-user*)))
+  ([session username]
+     (automated-admin-user
+      session username (:public-key-path utils/*admin-user*)))
+  ([session username & public-key-paths]
      (->
-      request
+      session
       (sudoers/install)
-      (user username :create-home true :shell :bash)
-      (for-> [path-or-bytes public-key-paths]
-             (if-> (string? path-or-bytes)
-                   (authorize-key username (slurp path-or-bytes))
-                   (authorize-key username (String. path-or-bytes))))
+      (user/user username :create-home true :shell :bash)
+      (thread-expr/for->
+       [path-or-bytes public-key-paths]
+       (thread-expr/if->
+        (string? path-or-bytes)
+        (ssh-key/authorize-key username (slurp path-or-bytes))
+        (ssh-key/authorize-key username (String. path-or-bytes))))
       (sudoers/sudoers
        {} {} {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}}))))

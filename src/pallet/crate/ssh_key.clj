@@ -1,32 +1,29 @@
 (ns pallet.crate.ssh-key
   "Crate functions for manipulating SSH-keys"
   (:require
-   [pallet.stevedore :as stevedore]
-   [pallet.utils :as utils]
+   [pallet.action :as action]
+   [pallet.action.directory :as directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.remote-file :as remote-file]
    [pallet.parameter :as parameter]
-   [pallet.resource :as resource]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.file :as file]
-   [clojure.string :as string])
-  (:use
-   [pallet.target :only [admin-group]]
-   [pallet.resource.user :only [user-home]]
-   [pallet.resource.file :only [chmod chown]]
-   pallet.thread-expr))
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]
+   [pallet.thread-expr :as thread-expr]
+   [pallet.utils :as utils]
+   [clojure.string :as string]))
 
 (defn user-ssh-dir [user]
-  (str (stevedore/script (user-home ~user)) "/.ssh/"))
+  (str (stevedore/script (~lib/user-home ~user)) "/.ssh/"))
 
 (defn authorize-key
   "Authorize a public key on the specified user."
-  [request user public-key-string & {:keys [authorize-for-user] :as options}]
+  [session user public-key-string & {:keys [authorize-for-user] :as options}]
   (let [target-user (or authorize-for-user user)
         dir (user-ssh-dir target-user)
         auth-file (str dir "authorized_keys")]
     (->
-     request
+     session
      (directory/directory dir :owner target-user :mode "755")
      (file/file auth-file :owner target-user :mode "644")
      (exec-script/exec-checked-script
@@ -39,12 +36,12 @@
   "Authorize a user's public key on the specified user, for ssh access to
   localhost.  The :authorize-for-user option can be used to specify the
   user to who's authorized_keys file is modified."
-  [request user public-key-filename & {:keys [authorize-for-user] :as options}]
+  [session user public-key-filename & {:keys [authorize-for-user] :as options}]
   (let [target-user (or authorize-for-user user)
         key-file (str (user-ssh-dir user) public-key-filename)
         auth-file (str (user-ssh-dir target-user) "authorized_keys")]
     (->
-     request
+     session
      (directory/directory
       (user-ssh-dir target-user) :owner target-user :mode "755")
      (file/file auth-file :owner target-user :mode "644")
@@ -59,10 +56,10 @@
 
 (defn install-key
   "Install a ssh private key."
-  [request user key-name private-key-string public-key-string]
+  [session user key-name private-key-string public-key-string]
   (let [ssh-dir (user-ssh-dir user)]
     (->
-     request
+     session
      (directory/directory ssh-dir :owner user :mode "755")
      (remote-file/remote-file
       (str ssh-dir key-name)
@@ -86,7 +83,7 @@
      :no-dir true   -- do note ensure directory exists
      :passphrase    -- new passphrase for encrypring the private key
      :comment       -- comment for new key"
-  [request user & {:keys [type file passphrase no-dir comment]
+  [session user & {:keys [type file passphrase no-dir comment]
                    :or {type "rsa" passphrase ""}
                    :as  options}]
   (let [key-type type
@@ -95,9 +92,10 @@
                     (or file (ssh-default-filenames key-type))))
         ssh-dir (.getParent (java.io.File. path))]
     (->
-     request
-     (when-not-> (or (:no-dir options))
-                 (directory/directory ssh-dir :owner user :mode "755"))
+     session
+     (thread-expr/when-not->
+      (or (:no-dir options))
+      (directory/directory ssh-dir :owner user :mode "755"))
      (exec-script/exec-checked-script
       "ssh-keygen"
       (var key_path ~path)
@@ -111,26 +109,26 @@
      (file/file (str path ".pub") :owner user :mode "0644"))))
 
 (defn record-public-key
-  [request user & {:keys [filename type]
+  [session user & {:keys [filename type]
                    :or {type "rsa"} :as options}]
   (let [filename (or filename (ssh-default-filenames type))
         path (str (user-ssh-dir user) filename ".pub")]
     (->
-     request
+     session
      (remote-file/with-remote-file
-       (fn [request local-path]
-         (resource/as-local-resource
-          request
-          (fn [request]
+       (fn [session local-path]
+         (action/as-clj-action
+          (fn [session]
             (parameter/assoc-for-target
-             request [:user (keyword user) (keyword filename)]
-             (slurp local-path)))))
+             session [:user (keyword user) (keyword filename)]
+             (slurp local-path)))
+          [session]))
        path))))
 
 #_
 (pallet.core/defnode a {}
-  :bootstrap (pallet.resource/phase
+  :bootstrap (pallet.phase/phase-fn
               (pallet.crate.automated-admin-user/automated-admin-user))
-  :configure (pallet.resource/phase
+  :configure (pallet.phase/phase-fn
               (pallet.crate.ssh-key/generate-key "duncan")
               (pallet.crate.ssh-key/record-public-key "duncan")))

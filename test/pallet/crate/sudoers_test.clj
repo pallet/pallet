@@ -1,7 +1,9 @@
 (ns pallet.crate.sudoers-test
   (:use pallet.crate.sudoers)
   (:use clojure.test
-        pallet.test-utils))
+        pallet.test-utils)
+  (:require
+   [pallet.build-actions :as build-actions]))
 
 (with-private-vars [pallet.crate.sudoers
                     [default-specs
@@ -44,21 +46,14 @@
                             [{} {} (array-map "user0" {})]]))))
 
   (deftest merge-test
-    (let [request
-          (-> {:phase :configure :target-id :id}
-              (sudoers {} {} (array-map "user1" [{:host "h1" :ALL {}}]))
-              (sudoers {} {} (array-map "user2" {:host "h2" :ALL {}})))]
-      (is (= [{} {} (array-map "root" {:ALL {:run-as-user :ALL}}
-                               "%adm" {:ALL {:run-as-user :ALL}}
-                               "user1" [{:host "h1" :ALL {}}]
-                               "user2" {:host "h2" :ALL {}})]
-               (sudoer-merge
-                [{} {} (default-specs {})]
-                (->> request :invocations
-                     :configure
-                     :id
-                     :aggregated
-                     (map :args)))))))
+    (is (= [{} {} (array-map "root" {:ALL {:run-as-user :ALL}}
+                             "%adm" {:ALL {:run-as-user :ALL}}
+                             "user1" [{:host "h1" :ALL {}}]
+                             "user2" {:host "h2" :ALL {}})]
+             (sudoer-merge
+              [{} {} (default-specs {})]
+              [[{} {} (array-map "user1" [{:host "h1" :ALL {}}])]
+               [{} {} (array-map "user2" {:host "h2" :ALL {}})]]))))
 
   (deftest test-param-string
     (is (= "fqdn" (param-string [:fqdn true])))
@@ -273,8 +268,8 @@ chmod 0440 ${file}
 chown root ${file}
 "
        (first
-        (build-resources
-         []
+        (build-actions/build-actions
+         {}
          (sudoers {:user {:FULLTIMERS ["millert" "mikef" "dowdy"]
                           :PARTTIMERS ["bostley" "jwfox" "crawl"]
                           :WEBMASTERS ["will" "wendy" "wim"]}

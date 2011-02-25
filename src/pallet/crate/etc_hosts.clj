@@ -1,14 +1,15 @@
 (ns pallet.crate.etc-hosts
   "/etc/hosts file."
  (:require
+   [pallet.action.file :as file]
+   [pallet.action.remote-file :as remote-file]
    [pallet.argument :as argument]
    [pallet.compute :as compute]
    [pallet.parameter :as parameter]
+   [pallet.script.lib :as lib]
+   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
-   [pallet.request-map :as request-map]
-   [pallet.resource.file :as file]
-   [pallet.resource.filesystem-layout :as filesystem-layout]
-   [pallet.resource.remote-file :as remote-file]
+   [pallet.utils :as utils]
    [clojure.string :as string]))
 
 (defn- format-entry
@@ -17,24 +18,33 @@
 
 (defn host
   "Declare a host entry"
-  [request address names]
+  [session address names]
   (->
-   request
+   session
    (parameter/update-for-target [:hosts] merge {address names})))
 
-(defn hosts-for-tag
-  "Declare host entries for all nodes of a tag"
-  [request tag & {:keys [private-ip]}]
+(defn hosts-for-group
+  "Declare host entries for all nodes of a group"
+  [session group-name & {:keys [private-ip]}]
   (let [ip (if private-ip compute/private-ip compute/primary-ip)]
     (->
-     request
+     session
      (parameter/update-for-target
       [:hosts]
       merge
       (into
        {}
        (map #(vector (ip %) (compute/hostname %))
-            (request-map/nodes-in-tag request tag)))))))
+            (session/nodes-in-group session group-name)))))))
+
+(defn hosts-for-tag
+  "Declare host entries for all nodes of a tag"
+  {:deprecated "0.5.0"}
+  [session tag & {:keys [private-ip] :as opts}]
+  (utils/deprecated
+   (utils/deprecate-rename
+    'pallet.crate.etc-hosts-for-tag 'pallet.crate.etc-hosts/hosts-for-group))
+  (apply hosts-for-group session tag (apply concat opts)))
 
 (def ^{:private true} localhost
   {"127.0.0.1" "localhost localhost.localdomain"})
@@ -44,16 +54,16 @@
   (string/join "\n" (map format-entry entries)))
 
 (defn- format-hosts
-  [request]
+  [session]
   (format-hosts*
-   (conj localhost (parameter/get-for-target request [:hosts] nil))))
+   (conj localhost (parameter/get-for-target session [:hosts] nil))))
 
 (defn hosts
   "Writes the hosts files"
-  [request]
-  (-> request
+  [session]
+  (-> session
       (remote-file/remote-file
-       (stevedore/script (etc-hosts))
+       (stevedore/script (~lib/etc-hosts))
        :owner "root:root"
        :mode 644
-       :content (argument/delayed [request] (format-hosts request)))))
+       :content (argument/delayed [session] (format-hosts session)))))
