@@ -6,22 +6,6 @@
   (:require
    [net.cgrand.enlive-html :as enlive]))
 
-;; (def memo-nodes
-;;      (memoize
-;;       (fn [source]
-;;         (if-let [source (find-template source)]
-;;           (map enlive/annotate
-;;                (enlive/select
-;;                 (enlive/xml-resource source) [:body :> enlive/any-node]))))))
-
-;; (defmacro deffragment
-;;   [name source args & forms]
-;;   `(def ~name
-;;         (fn ~args
-;;           (if-let [nodes# (memo-nodes ~source)]
-;;             (enlive/flatmap
-;;              (enlive/transformation ~@forms) nodes#)))))
-
 (defn elt
  ([tag] (elt tag nil))
  ([tag attrs & content]
@@ -40,26 +24,29 @@
 
 (def memo-xml-resource
      (memoize
-      (fn [source node-type]
-        (if-let [source (find-template source node-type)]
+      (fn [source request]
+        (if-let [source (find-template source request)]
           (enlive/xml-resource source)
-          (error (str "No template found for " source " " (node-type :tag)))))))
+          (error
+           (format
+            "No template found for %s %s"
+            source (-> request :group-node :tag)))))))
 
 (defmacro defsnippet
   "A snippet returns a collection of nodes."
-  [name source node-type args & forms]
+  [name source request args & forms]
   `(defn ~name ~args
-    (if-let [nodes# (memo-xml-resource ~source ~node-type)]
+    (if-let [nodes# (memo-xml-resource ~source ~request)]
       (enlive/at nodes# ~@forms))))
 
 (defmacro xml-template
   "A template returns a seq of string:
    Overridden from enlive to defer evaluation of the source until runtime, and
    to enable specialisation on node-type"
-  [source node-type args & forms]
+  [source request args & forms]
   `(comp enlive/emit*
          (fn ~args
-           (if-let [nodes# (memo-xml-resource ~source ~node-type)]
+           (if-let [nodes# (memo-xml-resource ~source ~request)]
              (enlive/flatmap (enlive/transformation ~@forms) nodes#)))))
 
 (defn xml-emit

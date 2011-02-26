@@ -184,7 +184,7 @@
     (Thread/sleep 4000)
     (logging/trace (format "Bootstrapping %s" (manager/get-ip machine)))
     (script/with-template
-      (resource/script-template {:node-type {:image image}})
+      (resource/script-template-for-node-spec {:image image})
       (execute/remote-sudo
        (manager/get-ip machine)
        init-script
@@ -193,7 +193,8 @@
           (:username image)
           :password (:password image)
           :no-sudo (:no-sudo image))
-         user)))))
+         user)))
+    machine))
 
 (defn- equality-match
   [image-properties kw arg]
@@ -226,10 +227,11 @@
   "Create all nodes for a group in parallel."
   [target-machines-to-create server node-path node-type images image-id
    tag-name init-script user]
-  (doseq [name target-machines-to-create]
-    (create-node
-     server node-path node-type name images image-id tag-name init-script
-     user)))
+  (doall
+   (for [name target-machines-to-create]
+     (create-node
+      server node-path node-type name images image-id tag-name init-script
+      user))))
 
 (defn parallel-create-nodes
   "Create all nodes for a group in parallel."
@@ -237,13 +239,14 @@
    tag-name init-script user]
   ;; the doseq ensures that all futures are completed before
   ;; returning
-  (doseq [f (doall ;; doall forces creation of all futures before any deref
-             (for [name target-machines-to-create]
-               (future
-                 (create-node
-                  server node-path node-type name images image-id tag-name
-                  init-script user))))]
-    @f))
+  (doall
+   (for [f (doall ;; doall forces creation of all futures before any deref
+            (for [name target-machines-to-create]
+              (future
+                (create-node
+                 server node-path node-type name images image-id tag-name
+                 init-script user))))]
+     @f)))
 
 (deftype VmfestService
     [server images locations environment]
@@ -260,13 +263,13 @@
   ;; (build-node-template)
 
   (run-nodes
-   [compute-service node-type node-count request init-script]
+   [compute-service node-spec node-count request init-script]
    (try
-     (let [image-id (or (image-from-template images (-> node-type :image))
+     (let [image-id (or (image-from-template images (:image node-spec))
                         (throw (RuntimeException.
                                 (format "No matching image for %s"
-                                        (pr-str (-> node-type :image))))))
-           tag-name (name (:tag node-type))
+                                        (pr-str (:image node-spec))))))
+           tag-name (name (:tag node-spec))
            machines (filter
                      #(session/with-no-session % [vb-m] (.getAccessible vb-m))
                      (manager/machines server))
@@ -302,8 +305,8 @@
        ((get-in
          request [:environment :algorithms :vmfest :create-nodes-fn]
          parallel-create-nodes)
-        target-machines-to-create server (:node-path locations) node-type
-        images image-id tag-name init-script (:user request)))))
+        target-machines-to-create server (:node-path locations)
+        node-spec images image-id tag-name init-script (:user request)))))
 
   (reboot
    [compute nodes]

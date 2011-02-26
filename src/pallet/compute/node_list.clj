@@ -50,7 +50,7 @@
   (nodes [compute-service] node-list)
   (ensure-os-family
    [compute-service request]
-   (when (not (-> request :node-type :image :os-family))
+   (when (not (-> request :group :image :os-family))
      (condition/raise
       :type :no-os-family-specified
        :message "Node list contains a node without os-family")))

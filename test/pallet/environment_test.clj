@@ -60,15 +60,15 @@
            (environment/request-with-environment
              {:user {:username :a}} {:user {:username :b}}))))
   (testing "node-type merge"
-    (is (= {:user {:username :b} :node-type {:tag :t :image :i}}
+    (is (= {:user {:username :b} :group-node {:tag :t :image :i}}
            (environment/request-with-environment
-             {:user {:username :a} :node-type {:tag :t}}
+             {:user {:username :a} :group-node {:tag :t}}
              {:user {:username :b} :tags {:t {:image :i}}}))))
   (testing "phases merge"
     (is (= {:user {:username :b}
-            :node-type {:tag :t :image :i :phases {:bootstrap identity}}}
+            :group-node {:tag :t :image :i :phases {:bootstrap identity}}}
            (environment/request-with-environment
-             {:user {:username :a} :node-type {:tag :t}}
+             {:user {:username :a} :group-node {:tag :t}}
              {:user {:username :b}
               :tags {:t {:image :i}}
               :phases {:bootstrap identity}})))))

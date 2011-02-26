@@ -8,17 +8,17 @@
 
 (deftest service-test
   (is (= "/etc/init.d/tomcat start\n"
-         (first (build-resources [] (service "tomcat")))))
+         (first (build-resources {} (service "tomcat")))))
   (is (= "/etc/init.d/tomcat stop\n"
-         (first (build-resources [] (service "tomcat" :action :stop))))))
+         (first (build-resources {} (service "tomcat" :action :stop))))))
 
 (deftest with-restart-test
   (is (= "/etc/init.d/tomcat stop\n/etc/init.d/tomcat start\n"
-         (first (build-resources [] (with-restart "tomcat"))))))
+         (first (build-resources {} (with-restart "tomcat"))))))
 
 (deftest init-script-test
   (is (= (first (build-resources
-                 []
+                 {}
                  (remote-file/remote-file
                   "/etc/init.d/tomcat"
                   :action :create
@@ -26,4 +26,4 @@
                   :owner "root"
                   :group "root"
                   :mode "0755")))
-         (first (build-resources [] (init-script "tomcat" :content "c"))))))
+         (first (build-resources {} (init-script "tomcat" :content "c"))))))

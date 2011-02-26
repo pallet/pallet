@@ -63,9 +63,9 @@
           :target-id :id1} [:a :b])
          => 1"
   ([request keys]
-     (get-for request (concat [:host (:target-id request)] keys)))
+     (get-for request (concat [:host (-> request :group-node :node-id)] keys)))
   ([request keys default]
-     (get-for request (concat [:host (:target-id request)] keys) default)))
+     (get-for request (concat [:host (-> request :group-node :node-id)] keys) default)))
 
 (defn get-for-service
   "Retrieve the service parameter for the service and path specified by
@@ -107,7 +107,7 @@
          => {:parameters {:host {:id1 {:a {:b 1} {:d 2}}}}}"
   [request & {:as keys-value-pairs}]
   (assoc-for-prefix
-   request [:parameters :host (:target-id request)] keys-value-pairs))
+   request [:parameters :host (-> request :group-node :node-id)] keys-value-pairs))
 
 (defn assoc-for-service
   "Set the service parameter values at the paths specified.
@@ -150,7 +150,7 @@
          => {:parameters {:host {:id1 {:a {:b 3}}}}}"
   [request keys f & args]
   (update-for-prefix
-   request [:parameters :host (:target-id request)] keys f args))
+   request [:parameters :host (-> request :group-node :node-id)] keys f args))
 
 (defn update-for-service
   "Update serivce parameters for the pecified service at the path given by keys.
@@ -177,7 +177,7 @@
   pallet.argument.DelayedArgument
   (evaluate
    [_ request]
-   (get-for request (concat [:host (:target-id request)] keys))))
+   (get-for request (concat [:host (-> request :group-node :node-id)] keys))))
 
 (defn lookup
   "Lookup a parameter in a delayed manner. Use a call to this function as the

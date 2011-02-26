@@ -1,6 +1,25 @@
-(ns ^{:author "Hugo Duncan"}
-  pallet.core
-"Core functionality is provided in `lift` and `converge`."
+(ns pallet.core
+"Core functionality is provided in `lift` and `converge`.
+
+
+- execution plan :: A list of resources that should be run.
+- node           :: A node in the compute service
+- node-spec      :: A specification for a node. The node-spec links a node to to
+                    the phases that can be run on it, through the node-spec's
+                    tag. It also provides an image template for starting new
+                    nodes.
+
+- group          :: A group of identically configured nodes, represented as a
+                    map with :tag, :image, :phases, :count and :group-nodes
+                    keys. This is a node-spec, together with the group-nodes
+                    that are running with that node-spec.
+- group tag      :: The tag used to identify a group.
+- group node     :: A map used to descibe the node, image, etc of a single
+                    node running as part of a group. A group node has the
+                    following keys :tag, :node, :image, :node-id, :phases
+- phase list     :: A list of phases to be used
+"
+ {:author "Hugo Duncan"}
   (:require
    [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
@@ -12,9 +31,10 @@
    [pallet.parameter :as parameter]
    [pallet.resource :as resource]
    [clojure.contrib.condition :as condition]
-   [clojure.string :as string]
    [clojure.contrib.logging :as logging]
-   [clojure.contrib.map-utils :as map-utils])
+   [clojure.contrib.map-utils :as map-utils]
+   [clojure.set :as set]
+   [clojure.string :as string])
   (:use
    [clojure.contrib.core :only [-?>]]))
 
@@ -33,12 +53,15 @@
 (defmacro with-admin-user
   "Specify the admin user for running remote commands.  The user is specified
    either as pallet.utils.User record (see the pallet.utils/make-user
-   convenience fn) or as an argument list that will be passed to make-user."
+   convenience fn) or as an argument list that will be passed to make-user.
+
+   This is mainly for use at the repl, since the admin user can be specified
+   functionally using the :user key in a lift or converge call, or in the
+   environment."
   {:arglists
    '([user & body]
-     [[username & {:keys [public-key-path private-key-path passphrase
-                          password sudo-password no-sudo] :as options}]
-      & body])}
+     [[username & {:keys [public-key-path private-key-path passphrase password
+                          sudo-password no-sudo] :as options}] & body])}
   [user & exprs]
   `(let [user# ~user]
      (binding [utils/*admin-user* (if (utils/user? user#)
@@ -48,8 +71,12 @@
 
 (defn admin-user
   "Set the root binding for the admin user.
-  The user arg is a map as returned by make-user, or a username.  When passing a
-  username the options can be specified as in `pallet.utils/make-user`."
+   The user arg is a map as returned by make-user, or a username.  When passing
+   a username the options can be specified as in `pallet.utils/make-user`.
+
+   This is mainly for use at the repl, since the admin user can be specified
+   functionally using the :user key in a lift or converge call, or in the
+   environment."
   {:arglists
    '([user]
      [username & {:keys [public-key-path private-key-path passphrase
@@ -61,6 +88,24 @@
    (if (string? user)
      (apply utils/make-user user options)
      user)))
+
+(defn node-spec
+  "Create a node-spec. `name` is used for the group tag, which is set on each
+   node and links a node to it's node-spec
+
+   :image  defines the compute image selector template.  This is a map that is
+           used to filter a cloud provider's image and hardware list to select
+           an image and hardware for nodes created for this node-spec.
+
+   :phases used to define phases. Standard phases are:
+     - :bootstrap    run on first boot of a new node
+     - :configure    defines the configuration of the node.
+
+   :count    specify the target number of nodes for this node-spec
+   :packager override the choice of packager to use"
+  [name & {:keys [count image phases packager] :as options}]
+  {:pre [(or (nil? image) (map? image))]}
+  (assoc options :tag (keyword name)))
 
 (defn make-node
   "Create a node definition.  See defnode."
@@ -102,50 +147,18 @@
   (let [[tag options] (name-with-attributes tag options)]
     `(def ~tag (make-node '~(name tag) ~@options))))
 
-(defn- add-os-family
-  "Add the os family to the node-type if available from node."
-  [request]
-  (let [node (:target-node request)
-        family (and node (compute/os-family node))
-        version (and node (compute/os-version node))]
-    (->
-     request
-     (update-in
-      [:node-type :image :os-family]
-      (fn ensure-os-family [f]
-        (or family f)))
-     (update-in
-      [:node-type :image :os-version]
-      (fn ensure-os-family-version [f]
-        (or version f))))))
 
-(defn- add-target-id
-  "Add the target-id to the request"
-  [request]
-  (update-in
-   request [:target-id]
-   (fn ensure-target-id [id]
-     (or
-      (when-let [node (:target-node request)] (keyword (compute/id node)))
-      id))))
-
-(defn- add-target-packager
-  "Add the target packager to the request"
-  [request]
-  (update-in
-   request [:target-packager]
-   (fn ensure-target-packager [p]
-     (or p (compute/packager (get-in request [:node-type :image]))))))
-
-(defn- add-target-keys
-  "Add target keys on the way down"
+(defn- add-request-keys-for-backward-compatibility
+  "Add target keys for compatibility.
+   This function adds back deprecated keys"
   [handler]
   (fn [request]
     (handler
      (-> request
-         add-os-family
-         add-target-packager
-         add-target-id))))
+         (assoc :node-type (:group request))
+         (assoc :target-packager (-> request :group-node :packager))
+         (assoc :target-id (-> request :group-node :node-id))
+         (assoc :target-node (-> request :group-node :node))))))
 
 (defn show-target-keys
   "Middleware that is useful in debugging."
@@ -153,31 +166,36 @@
   (fn [request]
     (logging/info
      (format
-      "TARGET KEYS :phase %s :target-id %s :tag %s :target-packager %s"
+      "TARGET KEYS :phase %s :node-id %s :tag %s :packager %s"
       (:phase request)
-      (:target-id request)
-      (:tag (:node-type request))
-      (:target-packager request)))
+      (-> request :group-node :node-id)
+      (-> request :group-node :tag)
+      (-> request :group-node :packager)))
     (handler request)))
 
 (defn- resource-invocations [request]
   {:pre [(:phase request)]}
   (if-let [f (some
               (:phase request)
-              [(:phases (:node-type request)) (:phases request)])]
-    (let [request ((utils/pipe add-target-keys identity) request)]
-      (script/with-template (resource/script-template request)
-        (f request)))
+              [(:phases (:group-node request)) (:phases request)])]
+    (script/with-template (resource/script-template request)
+      (f request))
     request))
 
-(defn- produce-init-script
+(defn- bootstrap-script
+  "Generates the bootstrap script for :group specified in the request.
+
+   This builds an execution plan for the bootstrap phase, and then realises the
+   plan, verifying that only script generating resources are included in the
+   bootstrap.  This limitation is necessary so that the script can be executed
+   over a \"fire and forget\" transport."
   [request]
-  {:pre [(get-in request [:node-type :image :os-family])
-         (get-in request [:target-packager])]}
-  (let [cmds
-        (resource/produce-phase
-         (resource-invocations
-          (assoc request :phase :bootstrap :target-id :bootstrap-id)))]
+  {:pre [(get-in request [:group :image :os-family])
+         (get-in request [:group :packager])]}
+  (let [request (assoc request
+                  :phase :bootstrap
+                  :group-node (assoc (:group request) :node-id :bootstrap-id))
+        cmds (resource/produce-phase (resource-invocations request))]
     (if-not (and (every? #(= :remote (:location %)) cmds) (>= 1 (count cmds)))
       (condition/raise
        :type :booststrap-contains-local-resources
@@ -185,110 +203,117 @@
                  "Bootstrap can not contain local resources %s"
                  (pr-str cmds))))
     (if-let [f (:f (first cmds))]
-      (script/with-template (resource/script-template request)
+      (script/with-template
+        (resource/script-template-for-node-spec (:group request))
         (logging/info
          (format
-          "Generating init script - :os-family %s, :packager %s, *template* %s"
-          (-> request :node-type :image :os-family)
-          (-> request :target-packager)
+          "Bootstrap script for - :os-family %s, :packager %s, *template* %s"
+          (-> request :group :image :os-family)
+          (-> request :group :packager)
           (vec script/*template*)))
         (:cmds (f request)))
       "")))
-
-(defn- filter-nodes-with-tag
-  "Return nodes with the given tag"
-  [nodes with-tag]
-  (filter #(= (name with-tag) (compute/tag %)) nodes))
 
 (defn- create-nodes
   "Create count nodes based on the template for tag. The boostrap argument
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
 bootstrap-script value is expected tobe a function that produces a
 script that is run with root privileges immediatly after first boot."
-  [node-type count request]
-  {:pre [(map? node-type)]}
+  [group count request]
+  {:pre [(map? group)]}
   (logging/info
-   (str "Starting " count " nodes for " (node-type :tag)
-        " os-family " (-> node-type :image :os-family)))
+   (str "Starting " count " nodes for " (:tag group)
+        " os-family " (-> group :image :os-family)))
   (let [compute (:compute request)
-        request (compute/ensure-os-family
-                 compute (assoc request :node-type node-type))
-        request (add-target-packager request)
-        init-script (produce-init-script request)]
+        request (compute/ensure-os-family compute request)
+        request (assoc-in request [:group :packager]
+                          (compute/packager (-> request :group :image)))
+        init-script (bootstrap-script request)]
     (logging/trace
      (format "Bootstrap script:\n%s" init-script))
-    (compute/run-nodes compute node-type count request init-script)))
+    (concat
+     (map :node (:group-nodes group))
+     (compute/run-nodes compute group count request init-script))))
 
-(defn- destroy-nodes-with-count
+(defn- destroy-nodes
   "Destroys the specified number of nodes with the given tag.  Nodes are
    selected at random."
-  [nodes tag destroy-count request]
-  (logging/info (str "destroying " destroy-count " nodes with tag " tag))
+  [group destroy-count request]
+  (logging/info (str "destroying " destroy-count " nodes for " (:tag group)))
   (let [compute (:compute request)
-        tag-nodes (filter (partial compute/node-has-tag? tag) nodes)]
-    (if (= destroy-count (count tag-nodes))
-      (compute/destroy-nodes-with-tag compute (name tag))
+        group-nodes (:group-nodes group)]
+    (if (= destroy-count (count group-nodes))
       (do
-        (doseq [node (take destroy-count tag-nodes)]
+        (compute/destroy-nodes-with-tag compute (name (:tag group)))
+        nil)
+      (let [nodes (map :node group-nodes)]
+        (doseq [node (take destroy-count nodes)]
           (compute/destroy-node compute node))
-        (drop destroy-count tag-nodes)))))
+        (drop destroy-count nodes)))))
 
 (defn- node-count-difference
-  "Find the difference between the required and actual node counts by tag."
-  [node-map nodes]
-  (let [node-counts (compute/node-counts-by-tag nodes)]
-    (merge-with
-     - node-map
-     (into {} (map #(vector (first %) (get node-counts ((first %) :tag) 0))
-                   node-map)))))
+  "Find the difference between the required and actual node counts by group."
+  [groups]
+  (->>
+   groups
+   (map
+    (fn [group]
+      (vector (:tag group) (- (:count group) (count (:group-nodes group))))))
+   (into {})))
 
 (defn- adjust-node-count
   "Adjust the node by delta nodes"
-  [[{:keys [tag environment] :as node} delta] nodes request]
+  [{:keys [tag environment group-nodes] :as group} delta request]
   (let [request (environment/request-with-environment
-                  (assoc request :node-type node)
+                  (assoc request :group group)
                   (environment/merge-environments
                    (:environment request) environment))]
+    (logging/info (format "adjust-node-count %s %d" tag delta))
     (cond
-     (pos? delta) (create-nodes (:node-type request) delta request)
-     (neg? delta) (destroy-nodes-with-count nodes tag (- delta) request)
-     :else (filter-nodes-with-tag nodes tag))))
+     (pos? delta) (create-nodes group delta request)
+     (neg? delta) (destroy-nodes group (- delta) request)
+     :else (map :node group-nodes))))
 
 (defn- serial-adjust-node-counts
   "Start or stop the specified number of nodes."
-  [delta-map nodes request]
+  [delta-map request]
   (logging/trace (str "serial-adjust-node-counts" delta-map))
-  (mapcat identity
-   (doall (map #(adjust-node-count % nodes request) delta-map))))
+  (reduce
+   concat
+   (doall
+    (map
+     (fn [group]
+       (adjust-node-count group ((:tag group) delta-map 0) request))
+     (:groups request)))))
 
 (defn- parallel-adjust-node-counts
   "Start or stop the specified number of nodes."
-  [delta-map nodes request]
+  [delta-map request]
   (logging/trace (str "parallel-adjust-node-counts" delta-map))
   (mapcat
    deref
-   (doall (map #(future (adjust-node-count % nodes request)) delta-map))))
+   (doall
+    (map
+     (fn [group]
+       (future (adjust-node-count group ((:tag group) delta-map 0) request)))
+     (:groups request)))))
 
 (defn- converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
    instances."
-  [node-map nodes request]
+  [request]
   (logging/info "converging nodes")
-  (logging/trace (str "  " node-map))
-  ;;(compute/boot-if-down (:compute request) nodes) ; this needs improving
-                                        ; should only reboot if required
-  (let [nodes (filter compute/running? nodes)]
-    ((environment/get-for request [:algorithms :converge-fn])
-     (node-count-difference node-map nodes)
-     nodes
-     request)))
+  ((environment/get-for request [:algorithms :converge-fn])
+   (node-count-difference (:groups request))
+   request))
 
 (defn execute-with-ssh
-  [{:keys [target-node] :as request}]
-  (execute/ssh-cmds
-   (assoc request
-     :address (compute/node-address target-node)
-     :ssh-port (compute/ssh-port target-node))))
+  [request]
+  (let [target-node (-> request :group-node :node)]
+    (execute/ssh-cmds
+     (assoc request
+       :address (compute/node-address target-node)
+       :ssh-port (compute/ssh-port target-node)))))
 
 (defn execute-with-local-sh
   "Middleware to execute on localhost with shell"
@@ -310,31 +335,36 @@ script that is run with root privileges immediatly after first boot."
          request :parameters
          (parameter/from-map
           parameters
-          (parameter-keys (:target-node request) (:node-type request)))))))
+          (parameter-keys
+           (-> request :group-node :node) (:group-node request)))))))
 
 (defn- build-commands
+  "Middlware that generates the commands that should be run for the execution
+   plan.
+   If no commands are generated for the current phase, then the pipleline short
+   circuits and returns here."
   [handler]
   (fn [request]
     {:pre [handler
-           (-> request :node-type :image :os-family)
-           (-> request :target-packager)]}
+           (-> request :group-node :image :os-family)
+           (-> request :group-node :packager)]}
     (if-let [commands (script/with-template (resource/script-template request)
                         (resource/produce-phase request))]
       (handler (assoc request :commands commands))
       [nil request])))
 
 (defn- apply-phase-to-node
-  "Apply a phase to a node request"
+  "Apply a phase to a node"
   [request]
-  {:pre [(:target-node request)]}
+  {:pre [(:group-node request)]}
   (let [request (environment/request-with-environment
                   request
                   (environment/merge-environments
                    (:environment request)
-                   (-> request :node-type :environment)))
+                   (-> request :group-node :environment)))
         middleware (:middleware request)]
     ((utils/pipe
-      add-target-keys
+      add-request-keys-for-backward-compatibility
       build-commands
       middleware
       execute-with-ssh)
@@ -392,10 +422,11 @@ script that is run with root privileges immediatly after first boot."
   [request results]
   (reduce
    (fn apply-phase-accumulate [request [result req :as arg]]
-     (let [param-keys [:parameters :host (:target-id req)]]
+     (let [target-id (-> req :group-node :node-id)
+           param-keys [:parameters :host target-id]]
        (->
         request
-        (assoc-in [:results (:target-id req) (:phase req)] result)
+        (assoc-in [:results target-id (:phase req)] result)
         (update-in
          param-keys
          (fn [p]
@@ -423,25 +454,129 @@ script that is run with root privileges immediatly after first boot."
    request
    results))
 
+
+(defn- identify-anonymous-phases
+  "For inline phase definitions, generate a name for the phase, and add it
+   to the request."
+  [request phases]
+  (reduce
+   (fn [[request phases] phase]
+     (if (keyword? phase)
+      [request (conj phases phase)]
+      (let [phase-kw (keyword (name (gensym "phase")))]
+        [(assoc-in request [:phases phase-kw] phase)
+         (conj phases phase-kw)])))
+   [request []] phases))
+
+(defn- plan-for-group-node
+  "Build an execution plan for the specified group node."
+  [request group-node]
+  {:pre [(:node group-node) (:node-id group-node)]}
+  (resource-invocations
+   (->
+    request
+    (assoc :group-node group-node)
+    (environment/request-with-environment
+      (environment/merge-environments
+       (:environment request)
+       (-> request :group-node :environment))))))
+
+(defn- plan-for-group-nodes
+  "Build an execution plan for the specified group nodes."
+  [request group-nodes]
+  (reduce plan-for-group-node request group-nodes))
+
+(defn- plan-for-groups
+  "Build an invocation map for specified node-type map."
+  [request groups]
+  (reduce
+   (fn [request group]
+     (plan-for-group-nodes (assoc request :group group) (:group-nodes group)))
+   request groups))
+
+(defn- plan-for-phases
+  "Build an invocation map for specified phases and nodes.
+   This allows configuration to be accumulated in the request parameters."
+  [request phases groups]
+  (reduce
+   (fn [request phase]
+     (plan-for-groups (assoc request :phase phase) groups))
+   request phases))
+
 (defn sequential-apply-phase
   "Apply a phase to a sequence of nodes"
-  [request nodes]
+  [request group-nodes]
   (logging/info
    (format
     "apply-phase %s for %s with %d nodes"
-    (:phase request) (:tag (:node-type request)) (count nodes)))
-  (for [node nodes]
+    (:phase request) (-> request :group-node :tag) (count group-nodes)))
+  (for [group-node group-nodes]
     (apply-phase-to-node
-     (assoc request :target-node node))))
+     (assoc request :group-node group-node))))
 
 (defn parallel-apply-phase
   "Apply a phase to a sequence of nodes"
-  [request nodes]
+  [request group-nodes]
   (logging/info
    (format
     "apply-phase %s for %s with %d nodes"
-    (:phase request) (:tag (:node-type request)) (count nodes)))
-  (map #(future (apply-phase-to-node (assoc request :target-node %))) nodes))
+    (:phase request) (-> request :group-node :tag) (count group-nodes)))
+  (map (fn [group-node]
+         (future (apply-phase-to-node
+                  (assoc request :group-node group-node))))
+       group-nodes))
+
+(defn sequential-lift
+  "Sequential apply the phases."
+  [request phases groups]
+  (for [phase (resource/phase-list phases)
+        group groups]
+    (sequential-apply-phase
+     (assoc request :phase phase :group group)
+     (:group-nodes group))))
+
+(defn parallel-lift
+  "Apply the phases in sequence, to nodes in parallel."
+  [request phases groups]
+  (for [phase (resource/phase-list phases)]
+    (mapcat
+     #(map deref %) ; make sure all nodes complete before next phase
+     (for [group groups]
+       (parallel-apply-phase
+        (assoc request :phase phase :group group)
+        (:group-nodes groups))))))
+
+(defn lift-nodes
+  "Lift nodes in target-node-map for the specified phases."
+  [request phases]
+  (logging/trace (format "lift-nodes phases %s" (vec phases)))
+  (let [[request phases] (identify-anonymous-phases request phases)]
+    (reduce-results
+     request
+     (->
+      request
+      (plan-for-phases phases (:groups request))
+      ((environment/get-for request [:algorithms :lift-fn])
+       phases (:groups request))))))
+
+(def
+  ^{:doc
+    "Flag to control output of warnings about undefined phases in calls to lift
+     and converge."}
+  *warn-on-undefined-phase* true)
+
+(defn- warn-on-undefined-phase
+  [tags phases]
+  (when *warn-on-undefined-phase*
+    (when-let [undefined (seq
+                          (set/difference
+                           (set (filter keyword? phases))
+                           (set
+                            (reduce concat (map (comp keys :phases) tags)))))]
+      (logging/warn
+       (format
+        "Undefined phases: %s"
+        (string/join ", " (map name undefined)))))))
 
 (defn- nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"
@@ -449,14 +584,14 @@ script that is run with root privileges immediatly after first boot."
   (let [tags (->> node-map keys (map :tag) (map name) set)]
     (->> nodes (filter compute/running?) (filter #(-> % compute/tag tags)))))
 
-(defn- add-prefix-to-node-type
-  [prefix node-type]
-  (update-in node-type [:tag]
+(defn- node-spec-with-prefix
+  [prefix node-spec]
+  (update-in node-spec [:tag]
              (fn [tag] (keyword (str prefix (name tag))))))
 
-(defn- add-prefix-to-node-map [prefix node-map]
+(defn- node-map-with-prefix [prefix node-map]
   (zipmap
-   (map (partial add-prefix-to-node-type prefix) (keys node-map))
+   (map #(node-spec-with-prefix prefix %) (keys node-map))
    (vals node-map)))
 
 (defn- ensure-configure-phase [phases]
@@ -475,180 +610,147 @@ script that is run with root privileges immediatly after first boot."
   (let [tag-string (name (node-type :tag))]
     (filter #(compute/node-has-tag? tag-string %) nodes)))
 
-(defn- node-type?
-  "Predicate for testing if argument is node-type."
+(defn- node-spec?
+  "Predicate for testing if argument is a node-spec.
+   This is not exhaustive, and not intended for general use."
   [x]
-  (and (map? x) (x :tag) (x :image) true))
+  (and (map? x) (:tag x) (keyword? (:tag x))))
 
-(defn- nodes-in-set
-  "Build a map of nodes for the given node-set. A node set can be a node type, a
-   sequence of node types, a node node-typ vector, or a sequence of nodes.
-     e.g [node-type1 node-type2 {node-type #{node1 node2}}]
+(defn nodes-in-set
+  "Build a map of node-spec to nodes for the given `node-set`.
+   A node set can be a node spec, a map from node-spec to a sequence of nodes,
+   or a sequence of these.
 
-  The return value is a map of node-type -> node sequence."
+   The prefix is applied to the tag of each node-spec in the result.  This
+   allows you to build seperate clusters based on the same node-spec's.
+
+   The return value is a map of node-spec to node sequence.
+
+   Example node sets:
+       node-spec-1
+       [node-spec1 node-spec-2]
+       {node-spec #{node1 node2}}
+       [node-spec1 node-spec-2 {node-spec #{node1 node2}}]"
   [node-set prefix nodes]
   (letfn [(ensure-set [x] (if (set? x) x #{x}))
           (ensure-set-values
            [m]
            (zipmap (keys m) (map ensure-set (vals m))))]
     (cond
-     (and (map? node-set) (not (node-type? node-set)))
-     (ensure-set-values (add-prefix-to-node-map prefix node-set))
-     (node-type? node-set)
-     (let [node-type (add-prefix-to-node-type prefix node-set)]
+     (and (map? node-set) (not (node-spec? node-set)))
+     (ensure-set-values (node-map-with-prefix prefix node-set))
+     (node-spec? node-set)
+     (let [node-type (node-spec-with-prefix prefix node-set)]
        {node-type (set (nodes-for-type nodes node-type))})
      :else (reduce
             #(merge-with concat %1 %2) {}
             (map #(nodes-in-set % prefix nodes) node-set)))))
 
-(defn- identify-anonymous-phases
-  [request phases]
-  (reduce #(if (keyword? %2)
-             [(first %1)
-              (conj (second %1) %2)]
-             (let [phase (keyword (name (gensym "phase")))]
-               [(assoc-in (first %1) [:phases phase] %2)
-                (conj (second %1) phase)])) [request []] phases))
+(defn- group-node-with-packager
+  "Add the target packager to the request"
+  [group-node]
+  (update-in group-node [:packager]
+             (fn [p] (or p
+                         (-> group-node :image :packager)
+                         (compute/packager (:image group-node))))))
 
-(defn- invoke-for-node
-  "Build an invocation map for specified node."
-  [request node]
-  (resource-invocations
-   (->
-    request
-    (assoc :target-node node :target-id (keyword (compute/id node)))
-    (environment/request-with-environment
-      (environment/merge-environments
-       (:environment request)
-       (-> request :node-type :environment))))))
+(defn group-node
+  "Take a `group` and a `node`, an `options` map and combine them to produce
+   a group-node.
 
-(defn- invoke-for-nodes
-  "Build an invocation map for specified nodes."
-  [request nodes]
-  (reduce invoke-for-node request nodes))
+   The group os-family, os-version, are replaced with the details form the
+   node. The :node key is set to `node`, and the :node-id and :packager keys
+   are set.
 
-(defn- invoke-for-node-type
-  "Build an invocation map for specified node-type map."
-  [request node-map]
-  (reduce
-   #(invoke-for-nodes (assoc %1 :node-type (first %2)) (second %2))
-   request node-map))
+   `options` allows adding extra keys on the group node."
+  [group node options]
+  (->
+   group
+   (update-in [:image :os-family] (fn [f] (or (compute/os-family node) f)))
+   (update-in [:image :os-version] (fn [f] (or (compute/os-version node) f)))
+   (update-in [:node-id] (fn [id] (or (keyword (compute/id node)) id)))
+   (assoc :node node)
+   group-node-with-packager
+   (merge options)))
 
-(defn- invoke-phases
-  "Build an invocation map for specified phases and nodes.
-   This allows configuration to be accumulated in the request parameters."
-  [request phases node-map]
-  (reduce #(invoke-for-node-type (assoc %1 :phase %2) node-map) request phases))
+(defn groups-with-nodes
+  "Takes a map from node-spec to sequence of nodes, and converts it to a
+   sequence of group definitions, containing a group-node for each node in then
+   :group-nodes key of each group.  The group node will contain the node-spec,
+   updated with any information that was available from the node.
 
-(defn sequential-lift
-  "Sequential apply the phases."
-  [request phases target-node-map]
-  (for [phase (resource/phase-list phases)
-        [node-type tag-nodes] target-node-map]
-    (sequential-apply-phase
-     (assoc request :phase phase :node-type node-type)
-     tag-nodes)))
+       (groups-with-nodes {(node-spec \"spec\" {}) [a b c]})
+         => [{:tag \"spec\"
+              :group-nodes [{:tag \"spec\" :node a}
+                            {:tag \"spec\" :node b}
+                            {:tag \"spec\" :node c}]}]
 
-(defn parallel-lift
-  "Apply the phases in sequence, to nodes in parallel."
-  [request phases target-node-map]
-  (for [phase (resource/phase-list phases)]
-    (mapcat
-     #(map deref %) ; make sure all nodes complete before next phase
-     (for [[node-type tag-nodes] target-node-map]
-       (parallel-apply-phase
-        (assoc request :phase phase :node-type node-type)
-        tag-nodes)))))
+   `options` allows adding extra keys to the group nodes."
+  [node-map & {:as options}]
+  (for [[group nodes] node-map]
+    (assoc group
+      :group-nodes (map #(group-node group % options)
+                        (filter compute/running? nodes)))))
 
-(defn lift-nodes
-  "Lift nodes in target-node-map for the specified phases."
-  [all-nodes target-node-map all-node-map phases request]
-  (logging/trace (format "lift-nodes phases %s" (vec phases)))
-  (let [target-nodes (filter compute/running?
-                             (apply concat (vals target-node-map)))
-        all-nodes (or all-nodes target-nodes) ; Target node map may contain
-                                        ; unmanged nodes
-        [request phases] (identify-anonymous-phases request phases)
-        request (assoc request :all-nodes all-nodes :target-nodes target-nodes)]
-    (reduce-results
+(defn request-with-groups
+  "Takes the :all-nodes, :node-set and :prefix keys and compute the groups
+   for the request, updating the :all-nodes and :groups keys of the request.
+
+   If the :all-nodes key is not set, then the nodes are retrieved from the
+   compute service if possible, or are inferred from the :node-set value.
+
+   The :groups key is set to a sequence of groups, each containing its
+   list of group nodes on the :group-nodes key."
+  [request]
+  (let [all-nodes (filter
+                   compute/running?
+                   (or (seq (:all-nodes request))
+                       (when-let [compute (environment/get-for
+                                           request [:compute] nil)]
+                         (logging/info "retrieving nodes")
+                         (compute/nodes compute))))
+        targets (nodes-in-set (:node-set request) (:prefix request) all-nodes)
+        plan-targets (if-let [all-node-set (:all-node-set request)]
+                       (-> (nodes-in-set all-node-set nil all-nodes)
+                           (utils/dissoc-keys (keys targets))))]
+    (->
      request
-     (->
-      request
-      (invoke-phases (ensure-configure-phase phases) all-node-map)
-      ((environment/get-for request [:algorithms :lift-fn])
-       phases target-node-map)))))
-
-(def
-  ^{:doc
-    "Flag to control output of warnings about undefined phases in calls to lift
-     and converge."}
-  *warn-on-undefined-phase* true)
-
-(defn- warn-on-undefined-phase
-  [all-node-map phases]
-  (when *warn-on-undefined-phase*
-    (when-let [undefined (seq (filter
-                               (fn [phase]
-                                 (if (keyword? phase)
-                                   (not (some
-                                         (fn [[{:keys [phases]} _]]
-                                           (phase phases))
-                                         all-node-map))
-                                   false))
-                               phases))]
-      (logging/warn
-       (format
-        "Undefined phases: %s"
-        (string/join ", " (map name undefined)))))))
+     (assoc :all-nodes (or (seq all-nodes)
+                           (filter
+                            compute/running?
+                            (reduce
+                             concat
+                             (concat (vals targets) (vals plan-targets))))))
+     (assoc :groups (concat
+                     (groups-with-nodes targets)
+                     (groups-with-nodes plan-targets :invoke-only true))))))
 
 (defn lift*
+  "Lift the nodes specified in the request :node-set key.
+   - :node-set     - a specification of nodes to lift
+   - :all-nodes    - a sequence of all known nodes
+   - :all-node-set - a specification of nodes to invoke (but not lift)"
   [request]
   (logging/trace (format "lift* phases %s" (vec (:phase-list request))))
-  (let [node-set (:node-set request)
-        all-node-set (:all-node-set request)
-        phases (:phase-list request)
-        nodes (or
-               (:all-nodes request)
-               (when-let [compute (environment/get-for request [:compute] nil)]
-                 (logging/info "retrieving nodes")
-                 (filter compute/running? (compute/nodes compute))))
-        target-node-map (nodes-in-set node-set (:prefix request) nodes)
-        all-node-map (or (and all-node-set
-                              (nodes-in-set all-node-set nil nodes))
-                         target-node-map)]
-    (warn-on-undefined-phase all-node-map phases)
-    (lift-nodes nodes target-node-map all-node-map phases request)))
+  (let [request (request-with-groups request)
+        phases (or (seq (:phase-list request)) [:configure])]
+    (warn-on-undefined-phase (:groups request) phases)
+    (lift-nodes request phases)))
 
 (defn converge*
-  "Converge the node counts of each tag in node-map, executing each of the
-   configuration phases on all the tags in node-map. Th phase-functions are
-   also executed, but not applied, for any other nodes in all-node-set"
+  "Converge the node counts of each node-spec in `:node-set`, executing each of
+   the configuration phases on all the tags in `:node-set`. The phase-functions
+   are also executed, but not applied, for any other nodes in `:all-node-set`"
   [request]
-  {:pre [(map? (:node-map request))]}
+  {:pre [(:node-set request)]}
   (logging/trace
-   (format "converge* %s %s" (:node-map request) (:phase-list request)))
-  (logging/info "retrieving nodes")
-  (let [node-map (:node-map request)
-        all-node-set (:all-node-set request)
-        phases (:phase-list request)
-        node-map (add-prefix-to-node-map (:prefix request) node-map)
-        compute (environment/get-for request [:compute])
-        nodes (compute/nodes compute)]
-    (converge-node-counts node-map nodes request)
-    (let [nodes (filter compute/running? (compute/nodes compute))
-          tag-groups (group-by #(keyword (compute/tag %)) nodes)
-          target-node-map (into
-                           {}
-                           (map
-                            #(vector % ((:tag %) tag-groups))
-                            (keys node-map)))
-          all-node-map (or (and all-node-set
-                                (nodes-in-set all-node-set nil nodes))
-                           target-node-map)
-          phases (ensure-configure-phase phases)]
-      (warn-on-undefined-phase all-node-map phases)
-      (lift-nodes
-       nodes target-node-map all-node-map phases request))))
+   (format "converge* %s %s" (:node-set request) (:phase-list request)))
+  (let [request (request-with-groups request)
+        request (assoc request :all-nodes (converge-node-counts request))
+        request (request-with-groups request)
+        phases (ensure-configure-phase (:phase-list request))]
+    (warn-on-undefined-phase (:groups request) phases)
+    (lift-nodes request phases)))
 
 (defmacro or-fn [& args]
   `(fn or-args [current#]
@@ -704,8 +806,9 @@ script that is run with root privileges immediatly after first boot."
 (def ^{:doc "args that are really part of the environment"}
   environment-args [:compute :blobstore :user :middleware])
 
-(defn- build-request-map
-  "Build a request map from the given options."
+(defn- request-with-environment
+  "Build a request map from the given options, combining the service specific
+   options with those given in the converge or lift invocation."
   [{:as options}]
   (->
    options
@@ -719,7 +822,7 @@ script that is run with root privileges immediatly after first boot."
        :private true}
   argument-keywords
   #{:compute :blobstore :phase :user :prefix :middleware :all-node-set
-    :all-nodes :parameters :environment :node-set :node-map :phase-list})
+    :all-nodes :parameters :environment :node-set :phase-list})
 
 (defn- check-arguments-map
   "Check an arguments map for errors."
@@ -739,29 +842,46 @@ script that is run with root privileges immediatly after first boot."
        :invalid-keys unknown)))
   options)
 
+(defn- node-spec-with-count
+  "Take the given node-spec, and set the :count key to the value specified
+   by `count`"
+  [[node-spec count]]
+  (assoc node-spec :count count))
+
 (defn converge
   "Converge the existing compute resources with the counts specified in
-   node-map.  The compute service may be supplied as an option, otherwise the
-   bound compute-service is used.
+   `node-spec->count`. New nodes are started, or nodes are destroyed,
+   to obtain the specified node counts.
 
-   This applies the bootstrap phase to all new nodes, and the configure phase to
+   `node-spec->count` can be a map from node-spec to node count, or can be a
+   sequence of node-specs containing a :count key.
+
+   The compute service may be supplied as an option, otherwise the bound
+   compute-service is used.
+
+
+   This applies the bootstrap phase to all new nodes and the configure phase to
    all running nodes whose tag matches a key in the node map.  Additional phases
    can also be specified in the options, and will be applied to all matching
-   nodes.  The :configure phase is always applied, as the first (post bootstrap)
-   phase.  You can change the order in which the phases are applied by
-   explicitly listing them.
+   nodes.  The :configure phase is always applied, by default as the first (post
+   bootstrap) phase.  You can change the order in which the :configure phase is
+   applied by explicitly listing it.
 
-   An optional tag prefix may be specified before the node-map."
-  [node-map & {:keys [compute blobstore user phase prefix middleware
-                      all-nodes all-node-set environment]
-               :as options}]
+   An optional tag prefix may be specified. This will be used to modify the
+   tag for each node-spec, allowing you to build multiple discrete clusters
+   from a single set of node-specs."
+  [node-spec->count & {:keys [compute blobstore user phase prefix middleware
+                              all-nodes all-node-set environment]
+                       :as options}]
   (converge*
    (->
     options
-    (assoc :node-map node-map
+    (assoc :node-set (if (map? node-spec->count)
+                       (into {} (map node-spec-with-count node-spec->count))
+                       node-spec->count)
            :phase-list (if (sequential? phase) phase (if phase [phase] nil)))
     (check-arguments-map)
-    (build-request-map))))
+    (request-with-environment))))
 
 
 (defn lift
@@ -799,4 +919,4 @@ script that is run with root privileges immediatly after first boot."
            :phase-list (if (sequential? phase) phase (if phase [phase] nil)))
     (check-arguments-map)
     (dissoc :all-node-set :phase)
-    (build-request-map))))
+    (request-with-environment))))

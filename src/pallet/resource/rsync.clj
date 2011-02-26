@@ -1,6 +1,7 @@
 (ns pallet.resource.rsync
   (:require
    [pallet.compute :as compute]
+   [pallet.request-map :as request-map]
    [pallet.resource :as resource]
    [pallet.resource.directory :as directory]
    [pallet.resource.package :as package]
@@ -20,7 +21,7 @@
                   (if port (format "-p %s" port)))
          cmd (format
               cmd ssh from (:username utils/*admin-user*)
-              (compute/primary-ip (:target-node request)) to)]
+              (compute/primary-ip (request-map/target-node request)) to)]
      (execute/sh-script cmd)
      request)))
 

@@ -21,11 +21,11 @@
 
 (deftest directory-test
   (is (= (stevedore/checked-commands "Directory file1" "mkdir -p file1")
-         (first (build-resources [] (directory "file1")))))
+         (first (build-resources {} (directory "file1")))))
   (testing "delete"
     (is (= (stevedore/checked-script "Delete directory file1" "rm -r -f file1")
            (first (build-resources
-                   []
+                   {}
                    (directory "file1" :action :delete :recursive true)))))))
 
 (deftest directories-test
@@ -36,5 +36,5 @@
           \newline)
          (first
           (build-resources
-           []
+           {}
            (directories ["d1" "d2"] :owner "o"))))))

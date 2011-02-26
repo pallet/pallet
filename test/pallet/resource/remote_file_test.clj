@@ -16,7 +16,10 @@
    [clojure.contrib.io :as io]
    [pallet.test-utils :as test-utils]))
 
-(use-fixtures :once test-utils/with-ubuntu-script-template)
+(use-fixtures
+ :once
+ test-utils/with-ubuntu-script-template
+ (test-utils/console-logging-threshold))
 
 (deftest remote-file*-test
   (testing "no-versioning"
@@ -88,28 +91,29 @@
             "remote-file path"
             (file/heredoc "path.new" "a 1\n"))
            (remote-file*
-            {:node-type {:tag :n :image {:os-family :ubuntu}}}
+            {:group-node {:tag :n :image {:os-family :ubuntu}}}
             "path" :template "template/strint" :values {'a 1}
             :no-versioning true)))))
 
 (deftest remote-file-test
-  (core/with-admin-user (assoc utils/*admin-user* :username (test-utils/test-username))
+  (core/with-admin-user
+    (assoc utils/*admin-user* :username (test-utils/test-username))
     (is (thrown-with-msg? RuntimeException
           #".*/some/non-existing/file.*does not exist, is a directory, or is unreadable.*"
           (test-utils/build-resources
-           [] (remote-file
+           {} (remote-file
                "file1" :local-file "/some/non-existing/file" :owner "user1"))))
 
     (is (thrown-with-msg? RuntimeException
           #".*file1.*without content.*"
           (test-utils/build-resources
-           [] (remote-file "file1" :owner "user1"))))
+           {} (remote-file "file1" :owner "user1"))))
 
     (utils/with-temporary [tmp (utils/tmpfile)]
       (is (re-find #"mv -f --backup=numbered file1.new file1"
                    (first
                     (test-utils/build-resources
-                     [] (remote-file
+                     {} (remote-file
                          "file1" :local-file (.getPath tmp)))))))
 
     (utils/with-temporary [tmp (utils/tmpfile)
@@ -257,9 +261,9 @@
                           :username (test-utils/test-username))
     (utils/with-temporary [remote-file (utils/tmpfile)]
       (let [user (assoc utils/*admin-user*
-                   :username (test-utils/test-username) :no-sudo true)]
+                   :username (test-utils/test-username) :no-sudo true)
+            local (core/node-spec "local")]
         (io/copy "text" remote-file)
-        (core/defnode local {})
         (testing "with local ssh"
           (let [node (test-utils/make-localhost-node)
                 path-atom (atom nil)]

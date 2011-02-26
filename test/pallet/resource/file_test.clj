@@ -43,29 +43,29 @@
 
 (deftest file-test
   (is (= (stevedore/checked-script "file file1" (touch file1))
-         (first (build-resources [] (file "file1")))))
+         (first (build-resources {} (file "file1")))))
   (is (= (stevedore/checked-script
           "file file1"
           (touch file1)
           (chown user1 file1))
-         (first (build-resources [] (file "file1" :owner "user1")))))
+         (first (build-resources {} (file "file1" :owner "user1")))))
   (is (= (stevedore/checked-script
           "file file1"
           (touch file1)
           (chown user1 file1))
          (first (build-resources
-                 [] (file "file1" :owner "user1" :action :create)))))
+                 {} (file "file1" :owner "user1" :action :create)))))
   (is (= (stevedore/checked-script
           "file file1"
           (touch file1)
           (chgrp group1 file1))
          (first (build-resources
-                 [] (file "file1" :group "group1" :action :touch)))))
+                 {} (file "file1" :group "group1" :action :touch)))))
   (is (= (stevedore/checked-script
           "delete file file1"
           ("rm" "--force" file1))
          (first (build-resources
-                 [] (file "file1" :action :delete :force true))))))
+                 {} (file "file1" :action :delete :force true))))))
 
 (deftest sed-file-test
   (testing "explicit separator"
@@ -98,7 +98,7 @@
          (sed* {} "path" {"a" "b"} :seperator "|")))
   (is
    (build-resources
-    []
+    {}
     (sed "path" {"a" "b"} :seperator "|"))))
 
 (deftest make-temp-file-test

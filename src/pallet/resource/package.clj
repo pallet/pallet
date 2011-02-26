@@ -5,6 +5,7 @@
 
    `package-source` is used to specify a non-standard source for packages."
   (:require
+   [pallet.request-map :as request-map]
    [pallet.resource :as resource]
    [pallet.resource.file :as file]
    [pallet.resource.remote-file :as remote-file]
@@ -193,7 +194,7 @@
 
 (defmulti adjust-packages
   (fn [request & _]
-    (:target-packager request)))
+    (request-map/packager request)))
 
 ;; aptitude can install, remove and purge all in one command, so we just need to
 ;; split by enable/disable options.
@@ -321,7 +322,7 @@
   (->
    request
    (for->
-    [package-name (options (:target-packager request))]
+    [package-name (options (request-map/packager request))]
     (package package-name))))
 
 (def source-location
@@ -526,7 +527,7 @@
 (defn package-manager*
   "Package management."
   [request action & options]
-  (let [packager (:target-packager request)]
+  (let [packager (request-map/packager request)]
     (stevedore/checked-commands
      "package-manager"
      (case action

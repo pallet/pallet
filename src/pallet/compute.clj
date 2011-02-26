@@ -5,7 +5,6 @@
    [pallet.configure :as configure]
    [pallet.environment :as environment]
    [pallet.utils :as utils]
-   [pallet.execute :as execute]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]))
 

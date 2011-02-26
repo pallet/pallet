@@ -8,7 +8,7 @@
 (deftest resource-when-test
   (is (= "if [ \\( \"a\" == \"b\" \\) ]; then\nc\nfi\n"
          (first (build-resources
-                 []
+                 {}
                  (resource-when
                   (== "a" "b")
                   (test-component "c")))))))
@@ -16,7 +16,7 @@
 (deftest resource-when-not-test
   (is (= "if [ ! \\( \"a\" == \"b\" \\) ]; then\nc\nfi\n"
          (first (build-resources
-                 []
+                 {}
                  (resource-when-not
                   (== "a" "b")
                   (test-component "c")))))))

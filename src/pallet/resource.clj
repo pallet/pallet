@@ -4,6 +4,7 @@ configuration code."
   (:require
    [pallet.argument :as argument]
    [pallet.script :as script]
+   [pallet.request-map :as request-map]
    [clojure.contrib.seq :as seq]
    [clojure.string :as string]
    [clojure.contrib.condition :as condition]
@@ -76,15 +77,16 @@ configuration code."
      (invoke-resource request invoke-fn args execution :script/bash))
   ([request invoke-fn args execution resource-type]
      {:pre [request
-            (keyword? (:phase request))
-            (keyword? (:target-id request))]}
+            (keyword? (request-map/phase request))
+            (keyword? (request-map/target-id request))]}
      (let [[execution location] (if (#{:fn/clojure :transfer/to-local}
                                      resource-type)
                                   [:in-sequence :local]
                                   [execution :remote])]
        (update-in
         request
-        [:invocations (:phase request) (:target-id request) execution]
+        [:invocations
+         (request-map/phase request) (request-map/target-id request) execution]
         #(conj
           (or % [])
           {:f invoke-fn
@@ -329,20 +331,26 @@ configuration code."
 (defn produce-phase
   "Produce the :phase phase from the :invocations"
   [request]
-  {:pre [(keyword? (:phase request))
-         (keyword? (:target-id request))]}
-  (let [phase (:phase request)
-        target-id (:target-id request)]
-    (seq (output-resources
-          (-> request :invocations phase target-id)))))
+  {:pre [(keyword? (request-map/phase request))
+         (keyword? (request-map/target-id request))]}
+  (let [phase (request-map/phase request)
+        target-id (request-map/target-id request)]
+    (seq (output-resources (-> request :invocations phase target-id)))))
 
-(defn script-template [request]
-  (let [family (-> request :node-type :image :os-family)]
+(defn script-template-for-node-spec
+  "Return the script template for the specified node spec."
+  [node-spec]
+  (let [family (-> node-spec :image :os-family)]
     (filter identity
             [family
-             (-> request :target-packager)
-             (if-let [version (-> request :node-type :image :os-version)]
+             (:packager node-spec)
+             (when-let [version (-> node-spec :image :os-version)]
                (keyword (format "%s-%s" (name family) version)))])))
+
+(defn script-template
+  "Return the script template for the current group node."
+  [request]
+  (script-template-for-node-spec (-> request :group-node)))
 
 (defmulti execute-resource
   "Execute a resource of the given type.  Returns [request result]"

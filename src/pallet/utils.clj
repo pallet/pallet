@@ -7,8 +7,12 @@
    [clojure.contrib.logging :as logging])
   (:use
    clojure.contrib.logging
-   clj-ssh.ssh
-   clojure.contrib.def))
+   clojure.contrib.def)
+  (:import
+   (java.security
+    NoSuchAlgorithmException
+    MessageDigest)
+   (org.apache.commons.codec.binary Base64)))
 
 (defn pprint-lines
   "Pretty print a multiline string"
@@ -253,3 +257,14 @@
     (if (seq middlewares)
       `(-> ~handler ~@middlewares)
       handler)))
+
+(defn base64-md5
+  "Computes the base64 encoding of the md5 of a string"
+  [#^String unsafe-id]
+  (let [alg (doto (MessageDigest/getInstance "MD5")
+              (.reset)
+              (.update (.getBytes unsafe-id)))]
+    (try
+      (Base64/encodeBase64URLSafeString (.digest alg))
+      (catch NoSuchAlgorithmException e
+        (throw (new RuntimeException e))))))

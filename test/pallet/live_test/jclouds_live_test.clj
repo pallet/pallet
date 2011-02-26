@@ -4,7 +4,10 @@
    [pallet.live-test :as live-test]
    [pallet.core :as core]
    [pallet.resource :as resource]
+   [pallet.test-utils :as test-utils]
    [pallet.compute :as compute]))
+
+(use-fixtures :once (test-utils/console-logging-threshold))
 
 (deftest node-types-test
   (is (= {:repo {:tag :repo :base-tag :repo :image {:os-family :ubuntu}

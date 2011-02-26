@@ -12,6 +12,8 @@
    [clojure.contrib.io :as io]
    [pallet.test-utils :as test-utils]))
 
+(use-fixtures :once (console-logging-threshold))
+
 (deftest rsync-test
   (core/with-admin-user (assoc utils/*admin-user*
                           :username (test-utils/test-username))
@@ -21,12 +23,12 @@
       ;; this is convoluted to get around the "t" sticky bit on temp dirs
       (let [user (assoc utils/*admin-user*
                    :username (test-utils/test-username) :no-sudo true)
-            node (test-utils/make-localhost-node :tag "tag")]
+            node (test-utils/make-localhost-node :tag "tag")
+            tag (core/node-spec "tag" :packager :no-packages)]
         (io/copy "text" tmp)
-        (core/defnode tag {:packager :no-packages})
         (.delete target-dir)
         (core/lift*
-         {:node-set {tag node}
+         {:node-set {tag #{node}}
           :phase-list [(resource/phase
                         (rsync (.getPath dir) (.getPath target-dir) {}))]
           :environment

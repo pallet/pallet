@@ -1,5 +1,7 @@
 (ns pallet.target
-  "Provide information about the target image"
+  "Provide information about the target image.
+
+   This is not part of the pallet API."
   (:require
    [clojure.contrib.condition :as condition]))
 

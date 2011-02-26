@@ -175,7 +175,7 @@
                    file/heredoc
                    new-path
                    (templates/interpolate-template
-                    template (or values {}) (:node-type request))
+                    template (or values {}) request)
                    (apply concat (seq (select-keys options [:literal]))))
          link (stevedore/script (ln -f -s ~link ~path))
          blob (stevedore/checked-script

@@ -229,19 +229,18 @@
   (terminated? [node] (jclouds/terminated? node)))
 
 
-
 (defn build-node-template
   "Build the template for specified target node and compute context"
   [compute public-key-path request init-script]
-  {:pre [(map? (:node-type request))]}
+  {:pre [(map? (:group request))]}
   (logging/info
-   (str "building node template for " (-> request :node-type :tag)))
+   (str "building node template for " (-> request :group :tag)))
   (when public-key-path
     (logging/info (str "  authorizing " public-key-path)))
   (when init-script
     (logging/debug (str "  init script\n" init-script)))
-  (let [options (-> request :node-type :image)
-        options (if (-> request :node-type :default-os-family)
+  (let [options (-> request :group :image)
+        options (if (-> request :group :default-os-family)
                   (dissoc options :os-family) ; remove if we added in
                                               ; ensure-os-family
                   options)]
@@ -316,11 +315,9 @@
 
   (ensure-os-family
    [_ request]
-   (if (-> request :node-type :image :os-family)
+   (if (-> request :group :image :os-family)
      request
-     (let [template (jclouds/build-template
-                     (environment/get-for request [:compute])
-                     (-> request :node-type :image))
+     (let [template (jclouds/build-template compute (-> request :group :image))
            family (-> (.. template getImage getOperatingSystem getFamily)
                       str keyword)]
        (logging/info (format "Default OS is %s" (pr-str family)))
@@ -330,11 +327,11 @@
           :message (format
                     (str "jclouds was unable to determine the os-family "
                          "of the template %s")
-                    (pr-str (-> request :node-type :image)))))
+                    (pr-str (-> request :group :image)))))
        (->
         request
-        (assoc-in [:node-type :image :os-family] family)
-        (assoc-in [:node-type :default-os-family] true)))))
+        (assoc-in [:group :image :os-family] family)
+        (assoc-in [:group :default-os-family] true)))))
 
   (run-nodes
    [_ node-type node-count request init-script]
@@ -429,7 +426,8 @@
     (jclouds/node-tag node)
     (apply str (interpose "." (map location-string (node-locations node))))
     (let [location (.getLocation node)]
-      (when (and location (not (= (.getDescription location) (.getId location))))
+      (when (and location
+                 (not (= (.getDescription location) (.getId location))))
         (.getDescription location)))
     (os-string (.getOperatingSystem node))
     (.getState node)
@@ -452,17 +450,16 @@
   "Create a request map for localhost"
   []
   (let [node (make-localhost-node)]
-    {:target-node node
-     :all-nodes [node]
-     :target-nodes [node]
-     :node-type {:image [(get jvm-os-map (System/getProperty "os.name"))]}}))
+    {:all-nodes [node]
+     :group-node {:image [(get jvm-os-map (System/getProperty "os.name"))]
+                  :node node}}))
 
 ;; service factory implementation for jclouds
 (defmethod implementation/service :default
   [provider {:keys [identity credential extensions endpoint environment]
              :or {extensions (default-jclouds-extensions provider)}
              :as options}]
-  (logging/info (format "extensions %s" (pr-str extensions)))
+  (logging/debug (format "extensions %s" (pr-str extensions)))
   (let [options (dissoc options :identity :credential :extensions :blobstore)]
     (JcloudsService.
      (apply
