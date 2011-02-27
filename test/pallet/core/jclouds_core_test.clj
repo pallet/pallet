@@ -67,12 +67,14 @@
   (let [a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
     (is
      (= [a-node]
-          (#'core/converge-node-counts
-           {:groups [{:tag :a :count 1 :group-nodes [{:node a-node}]}]
-            :environment
-            {:compute (jclouds-test-utils/compute)
-             :algorithms {:converge-fn #'pallet.core/serial-adjust-node-counts
-                          :lift-fn #'pallet.core/sequential-lift}}}))))
+          (->
+           (#'core/converge-node-counts
+            {:groups [{:tag :a :count 1 :group-nodes [{:node a-node}]}]
+             :environment
+             {:compute (jclouds-test-utils/compute)
+              :algorithms {:converge-fn #'pallet.core/serial-adjust-node-counts
+                           :lift-fn #'pallet.core/sequential-lift}}})
+           :all-nodes))))
   (let [build-template org.jclouds.compute/build-template
         a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
     (mock/expects [(org.jclouds.compute/run-nodes
@@ -86,13 +88,17 @@
                     (mock/times 2 (apply build-template compute options)))]
                   (is
                    (= [a-node]
-                        (#'core/converge-node-counts
-                         {:groups [{:tag :a :count 1 :image {} :group-nodes []}]
-                          :environment
-                          {:compute (jclouds-test-utils/compute)
-                           :algorithms
-                           {:converge-fn #'pallet.core/serial-adjust-node-counts
-                            :lift-fn #'pallet.core/sequential-lift}}}))))))
+                        (->
+                         (#'core/converge-node-counts
+                          {:groups [{:tag :a :count 1 :image {}
+                                     :group-nodes []}]
+                           :environment
+                           {:compute (jclouds-test-utils/compute)
+                            :algorithms
+                            {:converge-fn
+                             #'pallet.core/serial-adjust-node-counts
+                             :lift-fn #'pallet.core/sequential-lift}}})
+                         :all-nodes))))))
 
 (deftest parallel-converge-node-counts-test
   (let [a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
@@ -118,13 +124,16 @@
                   (is
                    (=
                     [a-node]
-                    (#'core/converge-node-counts
-                     {:groups [{:tag :a :count 1 :image {} :group-nodes []}]
-                      :environment
-                      {:compute (jclouds-test-utils/compute)
-                       :algorithms
-                       {:converge-fn #'pallet.core/parallel-adjust-node-counts
-                        :lift-fn #'pallet.core/parallel-lift}}}))))))
+                      (->
+                       (#'core/converge-node-counts
+                        {:groups [{:tag :a :count 1 :image {} :group-nodes []}]
+                         :environment
+                         {:compute (jclouds-test-utils/compute)
+                          :algorithms
+                          {:converge-fn
+                           #'pallet.core/parallel-adjust-node-counts
+                           :lift-fn #'pallet.core/parallel-lift}}})
+                       :all-nodes))))))
 
 (deftest nodes-in-map-test
   (let [a (node-spec "a" :image {:os-family :ubuntu})

@@ -350,15 +350,49 @@
        [~localf-sym seen?#])))
 
 (deftest warn-on-undefined-phase-test
+  (testing "return value"
+    (is (= {:a 1} (#'core/warn-on-undefined-phase {:a 1}))))
   (test-utils/logging-to-stdout
-    (is (= "Undefined phases: a, b\n"
-           (with-out-str (#'core/warn-on-undefined-phase nil [:a :b])))))
+   (is (= "Undefined phases: a, b\n"
+          (with-out-str
+            (#'core/warn-on-undefined-phase
+             {:groups nil :phase-list [:a :b]})))))
   (test-utils/logging-to-stdout
-    (is (= "Undefined phases: b\n"
-           (with-out-str
-             (#'core/warn-on-undefined-phase
-              [{:phases {:a identity}}]
-              [:a :b]))))))
+   (is (= "Undefined phases: b\n"
+          (with-out-str
+            (#'core/warn-on-undefined-phase
+             {:groups [{:phases {:a identity}}]
+              :phase-list [:a :b]}))))))
+
+(deftest identify-anonymous-phases-test
+  (testing "with keyword"
+    (is (= {:phase-list [:a]}
+           (#'core/identify-anonymous-phases {:phase-list [:a]}))))
+  (testing "with non-keyword"
+    (let [request (#'core/identify-anonymous-phases {:phase-list ['a]})]
+      (is (every? keyword (:phase-list request)))
+      (is (= 'a
+             (get (:inline-phases request) (first (:phase-list request))))))))
+
+(deftest request-with-default-phase-test
+  (testing "with empty phase list"
+    (is (= {:phase-list [:configure]}
+           (#'core/request-with-default-phase {}))))
+  (testing "with non-empty phase list"
+    (is (= {:phase-list [:a]}
+           (#'core/request-with-default-phase {:phase-list [:a]})))))
+
+(deftest request-with-configure-phase-test
+  (testing "with empty phase-list"
+    (is (= {:phase-list [:configure]}
+           (#'core/request-with-configure-phase {}))))
+  (testing "with phase list without configure"
+    (is (= {:phase-list [:configure :a]}
+           (#'core/request-with-configure-phase {:phase-list [:a]}))))
+  (testing "with phase list with configure"
+    (is (= {:phase-list [:a :configure]}
+           (#'core/request-with-configure-phase
+             {:phase-list [:a :configure]})))))
 
 (deftest lift-test
   (testing "node-list"

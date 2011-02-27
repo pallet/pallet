@@ -29,8 +29,9 @@
         (.delete target-dir)
         (core/lift*
          {:node-set {tag #{node}}
-          :phase-list [(resource/phase
-                        (rsync (.getPath dir) (.getPath target-dir) {}))]
+          :phase-list [:p]
+          :inline-phases {:p (resource/phase
+                              (rsync (.getPath dir) (.getPath target-dir) {}))}
           :environment
           {:user user
            :middleware core/*middleware*
@@ -45,8 +46,10 @@
         (.delete target-dir)
         (core/lift*
          {:node-set {tag node}
-          :phase-list [(resource/phase
-                        (rsync-directory (.getPath dir) (.getPath target-dir)))]
+          :phase-list [:p]
+          :inline-phases {:p (resource/phase
+                              (rsync-directory
+                               (.getPath dir) (.getPath target-dir)))}
           :environment
           {:user user
            :middleware core/*middleware*

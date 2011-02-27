@@ -177,13 +177,13 @@
   {:pre [(:phase request)]}
   (if-let [f (some
               (:phase request)
-              [(:phases (:group-node request)) (:phases request)])]
+              [(:phases (:group-node request)) (:inline-phases request)])]
     (script/with-template (resource/script-template request)
       (f request))
     request))
 
 (defn- bootstrap-script
-  "Generates the bootstrap script for :group specified in the request.
+  "Generates the bootstrap script for the :group specified in the request.
 
    This builds an execution plan for the bootstrap phase, and then realises the
    plan, verifying that only script generating resources are included in the
@@ -303,9 +303,10 @@ script that is run with root privileges immediatly after first boot."
    instances."
   [request]
   (logging/info "converging nodes")
-  ((environment/get-for request [:algorithms :converge-fn])
-   (node-count-difference (:groups request))
-   request))
+  (assoc request
+    :all-nodes ((environment/get-for request [:algorithms :converge-fn])
+                (node-count-difference (:groups request))
+                request)))
 
 (defn execute-with-ssh
   [request]
@@ -454,20 +455,6 @@ script that is run with root privileges immediatly after first boot."
    request
    results))
 
-
-(defn- identify-anonymous-phases
-  "For inline phase definitions, generate a name for the phase, and add it
-   to the request."
-  [request phases]
-  (reduce
-   (fn [[request phases] phase]
-     (if (keyword? phase)
-      [request (conj phases phase)]
-      (let [phase-kw (keyword (name (gensym "phase")))]
-        [(assoc-in request [:phases phase-kw] phase)
-         (conj phases phase-kw)])))
-   [request []] phases))
-
 (defn- plan-for-group-node
   "Build an execution plan for the specified group node."
   [request group-node]
@@ -497,11 +484,11 @@ script that is run with root privileges immediatly after first boot."
 (defn- plan-for-phases
   "Build an invocation map for specified phases and nodes.
    This allows configuration to be accumulated in the request parameters."
-  [request phases groups]
+  [request]
   (reduce
    (fn [request phase]
-     (plan-for-groups (assoc request :phase phase) groups))
-   request phases))
+     (plan-for-groups (assoc request :phase phase) (:groups request)))
+   request (:phase-list request)))
 
 (defn sequential-apply-phase
   "Apply a phase to a sequence of nodes"
@@ -528,36 +515,35 @@ script that is run with root privileges immediatly after first boot."
 
 (defn sequential-lift
   "Sequential apply the phases."
-  [request phases groups]
-  (for [phase (resource/phase-list phases)
-        group groups]
+  [request]
+  (for [phase (resource/phase-list (:phase-list request))
+        group (:groups request)]
     (sequential-apply-phase
      (assoc request :phase phase :group group)
      (:group-nodes group))))
 
 (defn parallel-lift
   "Apply the phases in sequence, to nodes in parallel."
-  [request phases groups]
-  (for [phase (resource/phase-list phases)]
+  [request]
+  (for [phase (resource/phase-list (:phase-list request))]
     (mapcat
      #(map deref %) ; make sure all nodes complete before next phase
-     (for [group groups]
+     (for [group (:groups request)]
        (parallel-apply-phase
         (assoc request :phase phase :group group)
-        (:group-nodes groups))))))
+        (:group-nodes group))))))
 
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
-  [request phases]
-  (logging/trace (format "lift-nodes phases %s" (vec phases)))
-  (let [[request phases] (identify-anonymous-phases request phases)]
+  [request]
+  (logging/trace (format "lift-nodes phases %s" (vec (:phase-list request))))
+  (let [lift-fn (environment/get-for request [:algorithms :lift-fn])]
     (reduce-results
      request
      (->
       request
-      (plan-for-phases phases (:groups request))
-      ((environment/get-for request [:algorithms :lift-fn])
-       phases (:groups request))))))
+      plan-for-phases
+      lift-fn))))
 
 (def
   ^{:doc
@@ -566,17 +552,25 @@ script that is run with root privileges immediatly after first boot."
   *warn-on-undefined-phase* true)
 
 (defn- warn-on-undefined-phase
-  [tags phases]
+  "Generate a warning for the elements of the request's :phase-list that are not
+   defined in the request's :groups."
+  [request]
   (when *warn-on-undefined-phase*
     (when-let [undefined (seq
                           (set/difference
-                           (set (filter keyword? phases))
+                           (set (filter keyword? (:phase-list request)))
                            (set
-                            (reduce concat (map (comp keys :phases) tags)))))]
+                            (concat
+                             (->>
+                              (:groups request)
+                              (map (comp keys :phases))
+                              (reduce concat))
+                             (keys (:inline-phases request))))))]
       (logging/warn
        (format
         "Undefined phases: %s"
-        (string/join ", " (map name undefined)))))))
+        (string/join ", " (map name undefined))))))
+  request)
 
 (defn- nodes-in-map
   "Return nodes with tags corresponding to the keys in node-map"
@@ -594,10 +588,28 @@ script that is run with root privileges immediatly after first boot."
    (map #(node-spec-with-prefix prefix %) (keys node-map))
    (vals node-map)))
 
-(defn- ensure-configure-phase [phases]
-  (if (some #{:configure} phases)
-    phases
-    (concat [:configure] phases)))
+(defn- phase-list-with-configure
+  "Ensure that the `phase-list` contains the :configure phase, prepending it if
+  not."
+  [phase-list]
+  (if (some #{:configure} phase-list)
+    phase-list
+    (concat [:configure] phase-list)))
+
+(defn- phase-list-with-default
+  "Add the default configure phase if the `phase-list` is empty"
+  [phase-list]
+  (if (seq phase-list) phase-list [:configure]))
+
+(defn- request-with-configure-phase
+  "Add the configure phase to the request's :phase-list if not present."
+  [request]
+  (update-in request [:phase-list] phase-list-with-configure))
+
+(defn- request-with-default-phase
+  "Add the default phase to the request's :phase-list if none supplied."
+  [request]
+  (update-in request [:phase-list] phase-list-with-default))
 
 (defn- node-in-types?
   "Predicate for matching a node belonging to a set of node types"
@@ -732,10 +744,12 @@ script that is run with root privileges immediatly after first boot."
    - :all-node-set - a specification of nodes to invoke (but not lift)"
   [request]
   (logging/trace (format "lift* phases %s" (vec (:phase-list request))))
-  (let [request (request-with-groups request)
-        phases (or (seq (:phase-list request)) [:configure])]
-    (warn-on-undefined-phase (:groups request) phases)
-    (lift-nodes request phases)))
+  (->
+   request
+   request-with-groups
+   request-with-default-phase
+   warn-on-undefined-phase
+   lift-nodes))
 
 (defn converge*
   "Converge the node counts of each node-spec in `:node-set`, executing each of
@@ -745,12 +759,11 @@ script that is run with root privileges immediatly after first boot."
   {:pre [(:node-set request)]}
   (logging/trace
    (format "converge* %s %s" (:node-set request) (:phase-list request)))
-  (let [request (request-with-groups request)
-        request (assoc request :all-nodes (converge-node-counts request))
-        request (request-with-groups request)
-        phases (ensure-configure-phase (:phase-list request))]
-    (warn-on-undefined-phase (:groups request) phases)
-    (lift-nodes request phases)))
+  (->
+   request
+   request-with-groups
+   converge-node-counts
+   lift*))
 
 (defmacro or-fn [& args]
   `(fn or-args [current#]
@@ -842,6 +855,24 @@ script that is run with root privileges immediatly after first boot."
        :invalid-keys unknown)))
   options)
 
+(defn- identify-anonymous-phases
+  "For all inline phase defintions in the request's :phase-list,
+   generate a keyword for the phase, adding an entry to the request's
+   :inline-phases map containing the phase definition, and replacing the
+   phase defintion in the :phase-list with the keyword."
+  [request]
+  (reduce
+   (fn [request phase]
+     (if (keyword? phase)
+       (update-in request [:phase-list] conj phase)
+       (let [phase-kw (keyword (name (gensym "phase")))]
+         (->
+          request
+          (assoc-in [:inline-phases phase-kw] phase)
+          (update-in [:phase-list] conj phase-kw)))))
+   (dissoc request :phase-list)
+   (:phase-list request)))
+
 (defn- node-spec-with-count
   "Take the given node-spec, and set the :count key to the value specified
    by `count`"
@@ -880,8 +911,9 @@ script that is run with root privileges immediatly after first boot."
                        (into {} (map node-spec-with-count node-spec->count))
                        node-spec->count)
            :phase-list (if (sequential? phase) phase (if phase [phase] nil)))
-    (check-arguments-map)
-    (request-with-environment))))
+    check-arguments-map
+    request-with-environment
+    identify-anonymous-phases)))
 
 
 (defn lift
@@ -908,8 +940,7 @@ script that is run with root privileges immediatly after first boot."
     :phase           a phase keyword, phase function, or sequence of these
     :middleware      the middleware to apply to the configuration pipeline
     :prefix          a prefix for the tag names
-    :user            the admin-user on the nodes
-"
+    :user            the admin-user on the nodes"
   [node-set & {:keys [compute phase prefix middleware all-node-set environment]
                :as options}]
   (lift*
@@ -917,6 +948,7 @@ script that is run with root privileges immediatly after first boot."
     options
     (assoc :node-set node-set
            :phase-list (if (sequential? phase) phase (if phase [phase] nil)))
-    (check-arguments-map)
+    check-arguments-map
     (dissoc :all-node-set :phase)
-    (request-with-environment))))
+    request-with-environment
+    identify-anonymous-phases)))
