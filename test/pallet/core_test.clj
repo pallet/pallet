@@ -51,28 +51,31 @@
     (admin-user old)
     (is (= old pallet.utils/*admin-user*))))
 
+(def ubuntu-node (node-spec :image {:os-family :ubuntu}))
 
-(deftest node-spec-with-prefix-test
-  (is (= {:tag :pa} (#'core/node-spec-with-prefix "p" {:tag :a}))))
+(deftest group-with-prefix-test
+  (is (= {:group-name :pa}
+         (#'core/group-with-prefix "p" (test-utils/group :a)))))
 
 (deftest node-map-with-prefix-test
-  (is (= {{:tag :pa} 1} (#'core/node-map-with-prefix "p" {{:tag :a} 1}))))
+  (is (= {{:group-name :pa} 1}
+         (#'core/node-map-with-prefix "p" {(test-utils/group :a) 1}))))
 
 (deftest node-count-difference-test
   (is (= {:a 1 :b -1}
          (#'core/node-count-difference
-          [{:tag :a :count 2 :group-nodes [(test-utils/make-node "a")]}
-           {:tag :b :count 0 :group-nodes [(test-utils/make-node "b")]}])))
+          [(test-utils/group :a :count 2 :servers [:a-server])
+           (test-utils/group :b :count 0 :servers [:a-server])])))
   (is (= {:a 1 :b 1}
          (#'core/node-count-difference
-          [{:tag :a :count 1} {:tag :b :count 1}]))))
+          [(test-utils/group :a :count 1) (test-utils/group :b :count 1)]))))
 
 (deftest converge-node-counts-test
-  (let [a (node-spec "a" :image {:os-family :ubuntu})
+  (let [a (group-spec "a" :node-spec ubuntu-node)
         a-node (test-utils/make-node "a" :running true)
         compute (compute/compute-service "node-list" :node-list [a-node])]
     (#'core/converge-node-counts
-     {:groups [{:tag :a :count 1 :group-nodes [{:node a-node}]}]
+     {:groups [{:group-name :a :count 1 :servers [{:node a-node}]}]
       :environment
       {:compute compute
        :algorithms {:lift-fn sequential-lift
@@ -80,8 +83,8 @@
                     (var-get #'core/serial-adjust-node-counts)}}})))
 
 (deftest nodes-in-map-test
-  (let [a (node-spec "a" :image {:os-family :ubuntu})
-        b (node-spec "b" :image {:os-family :ubuntu})
+  (let [a (group-spec "a" :image {:os-family :ubuntu})
+        b (group-spec "b" :image {:os-family :ubuntu})
         a-node (test-utils/make-node "a")
         b-node (test-utils/make-node "b")
         nodes [a-node b-node]]
@@ -89,21 +92,21 @@
              (#'core/nodes-in-map {a 1} nodes)))
     (is (= [a-node b-node]
              (#'core/nodes-in-map {a 1 b 2} nodes))))
-  (let [a (node-spec "a")
-        b (node-spec "b")
-        c (node-spec "c")
+  (let [a (group-spec "a")
+        b (group-spec "b")
+        c (group-spec "c")
         na (test-utils/make-node "a")
         nb (test-utils/make-node "b")]
     (is (= [na nb] (#'core/nodes-in-map {a 1 b 1 c 1} [na nb])))
     (is (= [na] (#'core/nodes-in-map {a 1 c 1} [na nb])))))
 
-(deftest node-spec?-test
-  (is (#'core/node-spec? (core/node-spec "a")))
-  (is (#'core/node-spec? (core/make-node "a" {}))))
+(deftest group-spec?-test
+  (is (#'core/group-spec? (core/group-spec "a")))
+  (is (#'core/group-spec? (core/make-node "a" (server-spec)))))
 
 (deftest nodes-in-set-test
-  (let [a (make-node :a {:os-family :ubuntu})
-        b (make-node :b {:os-family :ubuntu})
+  (let [a (group-spec :a :node-spec ubuntu-node)
+        b (group-spec :b :node-spec ubuntu-node)
         pa (make-node :pa {:os-family :ubuntu})
         pb (make-node :pb {:os-family :ubuntu})]
     (testing "sequence of groups"
@@ -131,92 +134,83 @@
              (#'core/nodes-in-set {a a-node b b-node} "p" nil))))))
 
 (deftest node-in-types?-test
-  (let [a (node-spec "a")
-        b (node-spec "b")]
+  (let [a (group-spec "a")
+        b (group-spec "b")]
     (is (#'core/node-in-types? [a b] (test-utils/make-node "a")))
     (is (not (#'core/node-in-types? [a b] (test-utils/make-node "c"))))))
 
-(deftest nodes-for-type-test
-  (let [a (node-spec "a")
-        b (node-spec "b")
+(deftest nodes-for-group-test
+  (let [a (group-spec "a")
+        b (group-spec "b")
         na (test-utils/make-node "a")
         nb (test-utils/make-node "b")
         nc (test-utils/make-node "c")]
-    (is (= [nb] (#'core/nodes-for-type [na nb nc] b)))
-    (is (= [na] (#'core/nodes-for-type [na nc] a)))))
+    (is (= [nb] (#'core/nodes-for-group [na nb nc] b)))
+    (is (= [na] (#'core/nodes-for-group [na nc] a)))))
 
-(deftest group-node-test
+(deftest server-test
   (let [a (make-node :a {})
         n (test-utils/make-node
            "a" :os-family :ubuntu :os-version "v" :id "id")]
     (is (= {:node-id :id
-            :tag :a
+            :group-name :a
             :packager :aptitude
             :image {:os-version "v"
                     :os-family :ubuntu}
-            :phases nil
             :node n}
-           (group-node a n {})))))
+           (server a n {})))))
 
-(deftest groups-with-nodes-test
+(deftest groups-with-servers-test
   (let [a (make-node :a {})
         n (test-utils/make-node
            "a" :os-family :ubuntu :os-version "v" :id "id")]
-    (is (= [{:group-nodes [{:node-id :id
-                            :tag :a
+    (is (= [{:servers [{:node-id :id
+                            :group-name :a
                             :packager :aptitude
                             :image {:os-version "v"
                                     :os-family :ubuntu}
-                            :phases nil
                             :node n}]
-             :tag :a
-             :image {}
-             :phases nil}]
-             (groups-with-nodes {a #{n}})))
+             :group-name :a
+             :image {}}]
+             (groups-with-servers {a #{n}})))
     (testing "with options"
-      (is (= [{:group-nodes [{:node-id :id
-                              :tag :a
+      (is (= [{:servers [{:node-id :id
+                              :group-name :a
                               :packager :aptitude
                               :image {:os-version "v"
                                       :os-family :ubuntu}
-                              :phases nil
                               :node n
                               :extra 1}]
-               :tag :a
-               :image {}
-               :phases nil}]
-               (groups-with-nodes {a #{n}} :extra 1))))))
+               :group-name :a
+               :image {}}]
+               (groups-with-servers {a #{n}} :extra 1))))))
 
 (deftest request-with-groups-test
   (let [a (make-node :a {})
         n (test-utils/make-node
            "a" :os-family :ubuntu :os-version "v" :id "id")]
-    (is (= {:groups [{:group-nodes [{:node-id :id
-                                     :tag :a
+    (is (= {:groups [{:servers [{:node-id :id
+                                     :group-name :a
                                      :packager :aptitude
                                      :image {:os-version "v"
                                              :os-family :ubuntu}
-                                     :node n
-                                     :phases nil}]
-                      :tag :a
-                      :image {}
-                      :phases nil}]
+                                     :node n}]
+                      :group-name :a
+                      :image {}}]
             :all-nodes [n]
             :node-set {a #{n}}}
            (request-with-groups
              {:all-nodes [n] :node-set {a #{n}}})))
     (testing "with-options"
-      (is (= {:groups [{:group-nodes [{:node-id :id
-                                       :tag :a
+      (is (= {:groups [{:servers [{:node-id :id
+                                       :group-name :a
                                        :packager :aptitude
                                        :image {:os-version "v"
                                                :os-family :ubuntu}
-                                       :phases nil
                                        :node n
                                        :invoke-only true}]
-                        :tag :a
-                        :image {}
-                        :phases nil}]
+                        :group-name :a
+                        :image {}}]
               :all-nodes [n]
               :node-set nil
               :all-node-set {a #{n}}}
@@ -258,29 +252,61 @@
    [request arg & options]
    (str arg)))
 
+(deftest node-spec-test
+  (is (= {:image {}}
+         (node-spec :image {})))
+  (is (= {:hardware {}}
+         (node-spec :hardware {}))))
+
+(deftest server-spec-test
+  (is (= {:phases {:a 1}}
+         (server-spec :phases {:a 1})))
+  (is (= {:phases {:a 1} :image {:b 2}}
+         (server-spec :phases {:a 1} :node-spec (node-spec :image {:b 2})))
+      "node-spec merged in")
+  (is (= {:phases {:a 1} :image {:b 2} :hardware {:hardware-id :id}}
+         (server-spec
+          :phases {:a 1}
+          :node-spec (node-spec :image {:b 2})
+          :hardware {:hardware-id :id}))
+      "node-spec keys moved to :node-spec keyword")
+  (is (= {:phases {:a 1} :image {:b 2}}
+         (server-spec
+          :extends (server-spec :phases {:a 1} :node-spec {:image {:b 2}})))
+      "extends a server-spec"))
+
+(deftest group-spec-test
+  (is (= {:group-name :gn :phases {:a 1}}
+         (group-spec "gn" :extends (server-spec :phases {:a 1}))))
+  (is (= {:group-name :gn :phases {:a 1} :image {:b 2}}
+         (group-spec
+          "gn"
+          :extends [(server-spec :phases {:a 1})
+                    (server-spec :node-spec {:image {:b 2}})]))))
+
 (deftest make-node-test
-  (is (= {:tag :fred :image {:os-family :ubuntu} :phases nil}
+  (is (= {:group-name :fred :image {:os-family :ubuntu}}
          (make-node "fred" {:os-family :ubuntu})))
-  (is (= {:tag :tom :image {:os-family :centos} :phases nil}
+  (is (= {:group-name :tom :image {:os-family :centos}}
          (make-node "tom" {:os-family :centos}))))
 
 (deftest defnode-test
   (defnode fred {:os-family :ubuntu})
-  (is (= {:tag :fred :image {:os-family :ubuntu} :phases nil} fred))
+  (is (= {:group-name :fred :image {:os-family :ubuntu}} fred))
   (defnode tom "This is tom" {:os-family :centos})
-  (is (= {:tag :tom :image {:os-family :centos} :phases nil} tom))
+  (is (= {:group-name :tom :image {:os-family :centos}} tom))
   (is (= "This is tom" (:doc (meta #'tom))))
   (defnode harry (tom :image))
-  (is (= {:tag :harry :image {:os-family :centos} :phases nil} harry))
+  (is (= {:group-name :harry :image {:os-family :centos}} harry))
   (defnode node-with-phases (tom :image)
     :bootstrap (resource/phase (test-component :a))
     :configure (resource/phase (test-component :b)))
   (is (= #{:bootstrap :configure} (set (keys (node-with-phases :phases)))))
-  (let [request {:group-node {:node-id :id
-                              :tag :tag
+  (let [request {:server {:node-id :id
+                              :group-name :group-name
                               :packager :yum
                               :image {}
-                              :node (test-utils/make-node "tag" :id "id")
+                              :node (test-utils/make-node "group-name" :id "id")
                               :phases (:phases node-with-phases)}}]
     (is (= ":a\n"
            (first
@@ -344,7 +370,7 @@
           (clojure.contrib.logging/info (format "Seenfn %s" ~name))
           (is (not @~seen-sym))
           (reset! ~seen-sym true)
-          (is (:group-node request#))
+          (is (:server request#))
           (is (:group request#))
           request#))
        [~localf-sym seen?#])))
@@ -396,11 +422,11 @@
 
 (deftest lift-test
   (testing "node-list"
-    (let [local (node-spec "local")
+    (let [local (group-spec "local")
           [localf seen?] (seen-fn "1")
           service (compute/compute-service
                    "node-list"
-                   :node-list [(node-list/make-localhost-node :tag "local")])]
+                   :node-list [(node-list/make-localhost-node :group-name "local")])]
       (is (re-find
            #"bin"
            (->
@@ -431,10 +457,10 @@
         compute (compute/compute-service
                  "node-list"
                  :node-list [(node-list/make-localhost-node
-                              :tag "x1" :name "x1" :id "x1"
+                              :group-name "x1" :name "x1" :id "x1"
                               :os-family :ubuntu)
                              (node-list/make-localhost-node
-                              :tag "y1" :name "y1" :id "y1"
+                              :group-name "y1" :name "y1" :id "y1"
                               :os-family :ubuntu)])
         x1 (make-node "x1" {} :configure (resource/phase localf))
         y1 (make-node "y1" {} :configure (resource/phase localfy))]
@@ -448,20 +474,20 @@
     (is (seeny?))))
 
 (deftest lift*-nodes-binding-test
-  (let [a (node-spec "a")
-        b (node-spec "b")
+  (let [a (group-spec "a")
+        b (group-spec "b")
         na (test-utils/make-node "a")
         nb (test-utils/make-node "b")
         nc (test-utils/make-node "c" :running false)]
     (mock/expects [(sequential-apply-phase
-                    [request group-nodes]
+                    [request servers]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
-                      (is (= #{na nb} (set (map :node group-nodes))))
+                      (is (= #{na nb} (set (map :node servers))))
                       (is (= #{na nb}
                              (set (map
                                    :node
-                                   (-> request :groups first :group-nodes)))))
+                                   (-> request :groups first :servers)))))
                       []))]
                   (lift*
                    {:node-set {a #{na nb nc}}
@@ -477,10 +503,10 @@
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= na
                              (-> request
-                                 :groups first :group-nodes first :node)))
+                                 :groups first :servers first :node)))
                       (is (= nb
                              (-> request
-                                 :groups second :group-nodes first :node)))
+                                 :groups second :servers first :node)))
                       []))]
                   (lift*
                    {:node-set {a #{na} b #{nb}}
@@ -492,8 +518,8 @@
                      :algorithms {:lift-fn sequential-lift}}}))))
 
 (deftest lift-multiple-test
-  (let [a (node-spec "a")
-        b (node-spec "b")
+  (let [a (group-spec "a")
+        b (group-spec "b")
         na (test-utils/make-node "a")
         nb (test-utils/make-node "b")
         nc (test-utils/make-node "c")
@@ -505,9 +531,10 @@
                       (is (= #{na nb nc} (set (:all-nodes request))))
                       (let [m (into
                                {}
-                               (map (juxt :tag identity) (:groups request)))]
-                        (is (= na (-> m :a :group-nodes first :node)))
-                        (is (= nb (-> m :b :group-nodes first :node)))
+                               (map
+                                (juxt :group-name identity) (:groups request)))]
+                        (is (= na (-> m :a :servers first :node)))
+                        (is (= nb (-> m :b :servers first :node)))
                         (is (= 2 (count (:groups request)))))
                       (is (= 1 (-> request :parameters :x)))
                       []))]

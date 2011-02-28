@@ -120,16 +120,16 @@
     (make-hardware {})))
 
 
-(defn make-node [tag & options]
+(defn make-node [group-name & options]
   (let [options (apply hash-map options)]
     (NodeMetadataImpl.
-     (options :provider-id (options :id tag))
-     (options :name tag)                ; name
-     (options :id tag)                   ; id
+     (options :provider-id (options :id group-name))
+     (options :name group-name)                ; name
+     (options :id group-name)                   ; id
      (options :location)
-     (java.net.URI. tag)                ; uri
+     (java.net.URI. group-name)                ; uri
      (options :user-metadata {})
-     tag
+     group-name
      (if-let [hardware (options :hardware)]
        (if (map? hardware) (make-hardware hardware) hardware)
        (make-hardware {}))
@@ -148,19 +148,19 @@
   "Make a node that is not created by pallet's node management.
    This can be used to manage configuration of any machine accessable over
    ssh, including virtual machines."
-  [tag host-or-ip & options]
+  [group-name host-or-ip & options]
   (let [options (apply hash-map options)
         meta (dissoc options :location :user-metadata :state :login-port
                      :public-ips :private-ips :extra :admin-password
                      :credentials)]
     (NodeMetadataImpl.
-     (options :provider-id (options :id tag))
-     (options :name tag)
-     (options :id (str tag (rand-int 65000)))
+     (options :provider-id (options :id group-name))
+     (options :name group-name)
+     (options :id (str group-name (rand-int 65000)))
      (options :location)
-     (java.net.URI. tag)                ; uri
+     (java.net.URI. group-name)                ; uri
      (merge (get options :user-metadata {}) meta)
-     tag
+     group-name
      (if-let [hardware (options :hardware)]
        (if (map? hardware) (make-hardware hardware) hardware)
        (make-hardware {}))
@@ -211,7 +211,7 @@
   (primary-ip [node] (first (jclouds/public-ips node)))
   (private-ip [node] (first (jclouds/private-ips node)))
   (is-64bit? [node] (.. node getOperatingSystem is64Bit))
-  (tag [node] (jclouds/tag node))
+  (group-name [node] (jclouds/tag node))
 
   (os-family
     [node]
@@ -234,12 +234,15 @@
   [compute public-key-path request init-script]
   {:pre [(map? (:group request))]}
   (logging/info
-   (str "building node template for " (-> request :group :tag)))
+   (str "building node template for " (-> request :group :group-name)))
   (when public-key-path
     (logging/info (str "  authorizing " public-key-path)))
   (when init-script
     (logging/debug (str "  init script\n" init-script)))
-  (let [options (-> request :group :image)
+  (let [options (->> [:image :hardware :location :network]
+                     (select-keys (:group request))
+                     vals
+                     (reduce merge))
         options (if (-> request :group :default-os-family)
                   (dissoc options :os-family) ; remove if we added in
                                               ; ensure-os-family
@@ -334,9 +337,9 @@
         (assoc-in [:group :default-os-family] true)))))
 
   (run-nodes
-   [_ node-type node-count request init-script]
+   [_ group-spec node-count request init-script]
    (jclouds/run-nodes
-    (name (node-type :tag))
+    (name (:group-name group-spec))
     node-count
     (build-node-template
      compute
@@ -366,9 +369,9 @@
    (doseq [node nodes]
      (compute/shutdown-node self node user)))
 
-  (destroy-nodes-with-tag
-    [_ tag-name]
-    (jclouds/destroy-nodes-with-tag (name tag-name) compute))
+  (destroy-nodes-in-group
+    [_ group-name]
+    (jclouds/destroy-nodes-with-tag (name group-name) compute))
 
   (destroy-node
    [_ node]
@@ -451,8 +454,8 @@
   []
   (let [node (make-localhost-node)]
     {:all-nodes [node]
-     :group-node {:image [(get jvm-os-map (System/getProperty "os.name"))]
-                  :node node}}))
+     :server {:image [(get jvm-os-map (System/getProperty "os.name"))]
+              :node node}}))
 
 ;; service factory implementation for jclouds
 (defmethod implementation/service :default

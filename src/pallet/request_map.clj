@@ -22,7 +22,7 @@
 (defn target-node
   "Target compute service node."
   [request]
-  (-> request :group-node :node))
+  (-> request :server :node))
 
 (defn target-name
   "Name of the target-node."
@@ -32,7 +32,7 @@
 (defn target-id
   "Id of the target-node (unique for provider)."
   [request]
-  (-> request :group-node :node-id))
+  (-> request :server :node-id))
 
 (defn target-ip
   "IP of the target-node."
@@ -42,17 +42,23 @@
 (defn os-family
   "OS-Family of the target-node."
   [request]
-  (-> request :group-node :image :os-family))
+  (-> request :server :image :os-family))
 
 (defn os-version
   "OS-Family of the target-node."
   [request]
-  (-> request :group-node :image :os-version))
+  (-> request :server :image :os-version))
+
+(defn group-name
+  "Group name of the target-node."
+  [request]
+  (-> request :server :group-name))
 
 (defn tag
   "Tag of the target-node."
+  {:deprecated "0.4.6"}
   [request]
-  (-> request :group-node :tag))
+  (group-name request))
 
 (defn safe-name
   "Safe name for target machine.
@@ -61,16 +67,24 @@
   [request]
   (format "%s%s" (name (tag request)) (safe-id (name (target-id request)))))
 
+(defn nodes-in-group
+  "All nodes in the same tag as the target-node, or with the specified tag."
+  ([request] (nodes-in-group request (group-name request)))
+  ([request group-name]
+     (filter
+      #(= (name group-name) (compute/group-name %))
+      (:all-nodes request))))
+
 (defn nodes-in-tag
   "All nodes in the same tag as the target-node, or with the specified tag."
-  ([request] (nodes-in-tag request (tag request)))
-  ([request tag]
-     (filter #(= (name tag) (compute/tag %)) (:all-nodes request))))
+  {:deprecated "0.4.6"}
+  ([request] (nodes-in-group request (group-name request)))
+  ([request group-name] (nodes-in-group request group-name)))
 
 (defn packager
   [request]
-  (get-in request [:group-node :packager]))
+  (get-in request [:server :packager]))
 
 (defn admin-group
   [request]
-  (get-in request [:group-node :packager]))
+  (get-in request [:server :packager]))

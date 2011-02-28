@@ -59,7 +59,7 @@
 (deftest invoke-resource-test
   (testing "invoke aggregated execution"
     (let [request (invoke-resource
-                   {:phase :configure :group-node {:node-id :id}}
+                   {:phase :configure :server {:node-id :id}}
                    identity :a :aggregated)]
       (is (= identity
              (-> request :invocations :configure :id :aggregated first :f)))
@@ -71,7 +71,7 @@
 
   (testing "invoke collected execution"
     (let [request (invoke-resource
-                   {:phase :configure :group-node {:node-id :id}}
+                   {:phase :configure :server {:node-id :id}}
                    identity :a :collected)]
       (is (= identity
              (-> request :invocations :configure :id :collected first :f)))
@@ -83,7 +83,7 @@
 
   (testing "invoke in-sequence execution"
     (let [request (invoke-resource
-                   {:phase :configure :group-node {:node-id :id}}
+                   {:phase :configure :server {:node-id :id}}
                    identity :b :in-sequence)]
       (is (= identity
              (-> request :invocations :configure :id :in-sequence first :f)))
@@ -94,7 +94,7 @@
                  :location)))))
   (testing "invoke local execution"
     (let [request (invoke-resource
-                   {:phase :configure :group-node {:node-id :id}}
+                   {:phase :configure :server {:node-id :id}}
                    identity :b :in-sequence :fn/clojure)]
       (is (= identity
              (-> request :invocations :configure :id :in-sequence first :f)))
@@ -121,7 +121,7 @@
 
   (testing "aggregation"
 
-    (let [request (-> {:phase :configure :group-node {:node-id :id}}
+    (let [request (-> {:phase :configure :server {:node-id :id}}
                       (invoke-resource #'combiner [:a] :aggregated)
                       (invoke-resource #'combiner [:b] :aggregated))
           fs (bound-invocations (-> request :invocations :configure :id))]
@@ -129,14 +129,14 @@
       (is (= ":a:b" ((:f (first fs)) {})))))
   (testing "collection"
 
-    (let [request (-> {:phase :configure :group-node {:node-id :id}}
+    (let [request (-> {:phase :configure :server {:node-id :id}}
                       (invoke-resource #'combiner [:a] :collected)
                       (invoke-resource #'combiner [:b] :collected))
           fs (bound-invocations (-> request :invocations :configure :id))]
       (is (= :remote (:location (first fs))))
       (is (= ":a:b" ((:f (first fs)) {})))))
   (testing "with-local-sequence"
-    (let [request (-> {:phase :configure :group-node {:node-id :id}}
+    (let [request (-> {:phase :configure :server {:node-id :id}}
                       (invoke-resource #'combiner [:a] :aggregated)
                       (invoke-resource #'identity-resource [:b] :in-sequence)
                       (invoke-resource
@@ -150,7 +150,7 @@
       (is (= :remote (:location (second fs))))
       (is (= :local (:location (last fs))))))
   (testing "aggregated parameters"
-    (let [request (-> {:phase :configure :group-node {:node-id :id}}
+    (let [request (-> {:phase :configure :server {:node-id :id}}
                       (invoke-resource #'combiner [:a] :aggregated)
                       (invoke-resource #'combiner ["b" :c] :aggregated))
           m (produce-phase request)]
@@ -166,7 +166,7 @@
              ((:f (first m)) {})))
       (let [fs (resource-build/produce-phases [:configure] request)]
         (is (= ":ab:c\n" (first fs)))))
-    (let [request (-> {:phase :configure :group-node {:node-id :id}}
+    (let [request (-> {:phase :configure :server {:node-id :id}}
                       (invoke-resource #'combiner [:a] :aggregated)
                       (invoke-resource #'identity-resource ["x"]
                                        :in-sequence)
@@ -174,7 +174,7 @@
           fs (resource-build/produce-phases [:configure] request)]
       (is (= ":ab:c\nx\n" (first fs)))))
   (testing "delayed parameters"
-    (let [request (-> {:phase :configure :group-node {:node-id :id}}
+    (let [request (-> {:phase :configure :server {:node-id :id}}
                       (invoke-resource #'combiner [:a] :aggregated)
                       (invoke-resource #'combiner [:b] :aggregated)
                       (invoke-resource
@@ -208,7 +208,7 @@
   (testing "resource"
     (defresource test-resource (f [request arg] (name arg)))
     (is (= "a\n" (first (test-utils/build-resources
-                         {:group-node {:node-id :id}}
+                         {:server {:node-id :id}}
                          (test-resource :a)))))
     (is (= '([request arg]) (:arglists (meta #'test-resource))))
     (is (= f (:resource-fn (meta test-resource)))))
@@ -217,7 +217,7 @@
 
     (is (= [:a]
              (-> (test-resource
-                  {:phase :configure :group-node {:node-id :id}} :a)
+                  {:phase :configure :server {:node-id :id}} :a)
                  :invocations :configure :id :aggregated first :args))))
   (testing "aggregate with :use-arglist"
     (defaggregate test-resource
@@ -233,12 +233,12 @@
     (defcollect test-resource (f [request arg] arg))
     (is (= [:a]
              (-> (test-resource
-                  {:phase :configure :group-node {:node-id :id}} :a)
+                  {:phase :configure :server {:node-id :id}} :a)
                  :invocations :configure :id :collected first :args))))
   (testing "local"
     (deflocal test-resource (f [request arg] arg))
     (is (= {:f #'f :args [:a] :location :local :type :fn/clojure}
-           (-> (test-resource {:phase :configure :group-node {:node-id :id}} :a)
+           (-> (test-resource {:phase :configure :server {:node-id :id}} :a)
                :invocations :configure :id :in-sequence first)))))
 
 (defresource test-component
@@ -341,7 +341,7 @@
     (testing "node with phase"
       (let [result (resource-build/produce-phases
                     [:a]
-                    {:group-node {:node-id :id}
+                    {:server {:node-id :id}
                      :invocations {:a
                                    {:id
                                     {:in-sequence

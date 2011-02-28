@@ -10,7 +10,8 @@
 (use-fixtures :once (test-utils/console-logging-threshold))
 
 (deftest node-types-test
-  (is (= {:repo {:tag :repo :base-tag :repo :image {:os-family :ubuntu}
+  (is (= {:repo {:group-name :repo :base-group-name :repo
+                 :image {:os-family :ubuntu}
                  :count 1 :phases {}}}
          (live-test/node-types
           {:repo {:image {:os-family :ubuntu}
@@ -21,7 +22,8 @@
   (let [specs {:repo {:image {:os-family :ubuntu}
                   :count 1
                   :phases {}}}]
-    (is (= {{:tag :repo :base-tag :repo :image {:os-family :ubuntu}
+    (is (= {{:group-name :repo :base-group-name :repo
+             :image {:os-family :ubuntu}
              :count 1 :phases {}} 1}
            (#'live-test/counts specs)))))
 
@@ -45,10 +47,10 @@
                :count 1
                :phases {}}}
        (let [node-list (compute/nodes compute)]
-         (is (= 1 (count ((group-by compute/tag node-list) "repo")))))))
+         (is (= 1 (count ((group-by compute/group-name node-list) "repo")))))))
     ;; (is (= 0
     ;;        (count
-    ;;         ((group-by compute/tag (compute/nodes @live-test/service))
+    ;;         ((group-by compute/group-name (compute/nodes @live-test/service))
     ;;          "repo"))))
     )
   (testing "with prefix"
@@ -60,9 +62,11 @@
                  :count 1
                  :phases {}}}
          (let [node-list (compute/nodes compute)]
-           (is (= 1 (count ((group-by compute/tag node-list) "repo1")))))))
+           (is (= 1
+                  (count ((group-by compute/group-name node-list) "repo1")))))))
       ;; (is (= 0
       ;;        (count
-      ;;         ((group-by compute/tag (compute/nodes @live-test/service))
+      ;;         ((group-by
+      ;;            compute/group-name (compute/nodes @live-test/service))
       ;;          "repo1"))))
       )))

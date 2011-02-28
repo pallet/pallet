@@ -231,6 +231,12 @@
   [m keys]
   (apply dissoc m keys))
 
+(defn dissoc-if-empty
+  "Like clojure.core/dissoc, except it only dissoc's if the value at the
+   keyword is nil."
+  [m key]
+  (if (empty? (m key)) (dissoc m key) m))
+
 (defn maybe-update-in
   "'Updates' a value in a nested associative structure, where ks is a
   sequence of keys and f is a function that will take the old value

@@ -31,45 +31,45 @@
      ["" request]
      (resource/phase-list phases))))
 
-(defn- convert-compatible-keys
+(defn- convert-0-4-5-compatible-keys
   "Convert old build-resources keys to new keys."
   [request]
   (let [request (if-let [node-type (:node-type request)]
                   (do
-                    (logging/info ":node-type -> :group-node")
+                    (logging/info ":node-type -> :server")
                     (-> request
-                        (assoc :group-node node-type)
+                        (assoc :server node-type)
                         (dissoc :node-type)))
                   request)
         request (if-let [target-node (:target-node request)]
                   (do
-                    (logging/info ":target-node -> [:group-node :node]")
+                    (logging/info ":target-node -> [:server :node]")
                     (-> request
-                        (assoc-in [:group-node :node] target-node)
-                        (assoc-in [:group-node :node-id]
+                        (assoc-in [:server :node] target-node)
+                        (assoc-in [:server :node-id]
                                   (keyword (compute/id target-node)))
                         (dissoc :target-node)))
                   request)
         request (if-let [target-id (:target-id request)]
                   (do
-                    (logging/info ":target-id -> [:group-node :node-id]")
+                    (logging/info ":target-id -> [:server :node-id]")
                     (-> request
-                        (assoc-in [:group-node :node-id] target-id)
+                        (assoc-in [:server :node-id] target-id)
                         (dissoc :target-id)))
                   request)
-        request (if-let [packager (-> request :group-node :image :packager)]
+        request (if-let [packager (-> request :server :image :packager)]
                   (do
                     (logging/info
-                     "[:node-type :image :package] -> [:group-node :packager]")
+                     "[:node-type :image :package] -> [:server :packager]")
                     (-> request
-                        (assoc-in [:group-node :packager] packager)
-                        (update-in [:group-node :image] dissoc :packager)))
+                        (assoc-in [:server :packager] packager)
+                        (update-in [:server :image] dissoc :packager)))
                   request)
         request (if-let [target-packager (:target-packager request)]
                   (do
-                    (logging/info ":target-packager -> [:group-node :packager]")
+                    (logging/info ":target-packager -> [:server :packager]")
                     (-> request
-                        (assoc-in [:group-node :packager] target-packager)
+                        (assoc-in [:server :packager] target-packager)
                         (dissoc :target-packager)))
                   request)]
     request))
@@ -78,7 +78,7 @@
   "Takes the request map, and tries to add the most keys possible.
    The default request is
        {:all-nodes [nil]
-        :group-node {:packager :aptitude
+        :server {:packager :aptitude
                      :node-id :id
                      :tag :id
                      :image {:os-family :ubuntu}}
@@ -87,26 +87,26 @@
   (let [request (or request-map {})
         request (update-in request [:phase]
                            #(or % :configure))
-        request (update-in request [:group-node :image :os-family]
+        request (update-in request [:server :image :os-family]
                            #(or % :ubuntu))
-        request (update-in request [:group-node :tag]
+        request (update-in request [:server :group-name]
                            #(or % :id))
-        request (update-in request [:group-node :node-id]
+        request (update-in request [:server :node-id]
                            #(or %
-                                (if-let [node (-> request :group-node :node)]
+                                (if-let [node (-> request :server :node)]
                                   (keyword (compute/id node))
                                   :id)))
         request (update-in request [:all-nodes]
-                           #(or % [(-> request :group-node :node)]))
+                           #(or % [(-> request :server :node)]))
         request (update-in
-                 request [:group-node :packager]
+                 request [:server :packager]
                  #(or
                    %
-                   (get-in request [:group-node :packager])
+                   (get-in request [:server :packager])
                    (get-in request [:packager])
                    (let [os-family (get-in
                                      request
-                                     [:group-node :image :os-family])]
+                                     [:server :image :os-family])]
                      (cond
                       (#{:ubuntu :debian :jeos :fedora} os-family) :aptitude
                       (#{:centos :rhel} os-family) :yum
@@ -120,15 +120,16 @@
   [f request-map]
   (let [request (if (map? request-map)  ; historical compatibility
                   request-map
-                  (convert-compatible-keys (apply hash-map request-map)))
+                  (convert-0-4-5-compatible-keys (apply hash-map request-map)))
         request (build-request request)
         request (if (map? request-map)  ; historical compatibility
                   request
-                  ((#'core/add-request-keys-for-backward-compatibility identity)
+                  ((#'core/add-request-keys-for-0-4-5-compatibility
+                    identity)
                    request))]
     (script/with-template
-      [(-> request :group-node :image :os-family)
-       (-> request :group-node :packager)]
+      [(-> request :server :image :os-family)
+       (-> request :server :packager)]
       (produce-phases [(:phase request)] (f request)))))
 
 (defmacro build-resources
@@ -143,4 +144,10 @@
        (when-not (map? request-map#)
          (logging/warn
           "Use of vector for request-map in build-resources is deprecated."))
-       (build-resources* (resource/phase ~@body) request-map#))))
+       (build-resources*
+        (resource/phase
+         (resource/check-request-map "The request passed to the pipeline")
+         ~@(mapcat
+            (fn [form] [form `(resource/check-request-map '~form)])
+            body))
+        request-map#))))

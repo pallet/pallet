@@ -84,7 +84,7 @@
   (testing "yum"
     (is (= (first
             (build-resources
-             {:group-node {:tag :n :image {:os-family :centos}}}
+             {:server {:tag :n :image {:os-family :centos}}}
              (exec-script/exec-checked-script
               "Packages"
               "yum install -q -y java rubygems"
@@ -93,7 +93,7 @@
               (yum list installed))))
            (first
             (build-resources
-             {:group-node {:tag :n :image {:os-family :centos}}}
+             {:server {:tag :n :image {:os-family :centos}}}
              (package "java" :action :install)
              (package "rubygems")
              (package "maven2" :action :upgrade)
@@ -102,7 +102,7 @@
   (testing "pacman"
     (is (= (first
             (build-resources
-             {:group-node {:tag :n :image {:os-family :arch}}}
+             {:server {:tag :n :image {:os-family :arch}}}
              (exec-script/exec-checked-script
               "Packages"
               "pacman -S --noconfirm --noprogressbar java"
@@ -112,7 +112,7 @@
               "pacman -R --noconfirm --nosave ruby")))
            (first
             (build-resources
-             {:group-node {:tag :n :image {:os-family :arch}}}
+             {:server {:tag :n :image {:os-family :arch}}}
              (package "java" :action :install)
              (package "rubygems")
              (package "maven2" :action :upgrade)
@@ -184,7 +184,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (testing "yum"
     (is (= (first
             (build-resources
-             {:group-node {:tag :n :image {:os-family :centos}}}
+             {:server {:tag :n :image {:os-family :centos}}}
              (exec-script/exec-checked-script
               "package-manager"
               ~(remote-file/remote-file*
@@ -199,13 +199,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   "EOFpallet")))))
            (first
             (build-resources
-             {:group-node {:tag :n :image {:os-family :centos}}}
+             {:server {:tag :n :image {:os-family :centos}}}
              (package-manager
               :configure :proxy "http://192.168.2.37:3182"))))))
   (testing "pacman"
     (is (= (first
             (build-resources
-             {:group-node {:tag :n :image {:os-family :arch}}}
+             {:server {:tag :n :image {:os-family :arch}}}
              (exec-script/exec-checked-script
               "package-manager"
               ~(remote-file/remote-file*
@@ -225,7 +225,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                     :restriction "/\\[options\\]/"))))))
            (first
             (build-resources
-             {:group-node {:tag :n :image {:os-family :arch}}}
+             {:server {:tag :n :image {:os-family :arch}}}
              (package-manager
               :configure :proxy "http://192.168.2.37:3182")))))))
 
@@ -254,11 +254,11 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
          (stevedore/checked-commands
           "Package source"
           (remote-file/remote-file*
-           {:group-node a}
+           {:server a}
            "/etc/apt/sources.list.d/source1.list"
            :content "deb http://somewhere/apt $(lsb_release -c -s) main\n"))
          (package-source*
-          {:group-node a}
+          {:server a}
           "source1"
           :aptitude {:url "http://somewhere/apt" :scopes ["main"]}
           :yum {:url "http://somewhere/yum"})))
@@ -267,13 +267,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
       (stevedore/checked-commands
        "Package source"
        (remote-file/remote-file*
-        {:group-node b}
+        {:server b}
         "/etc/yum.repos.d/source1.repo"
         :content
         "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\nenabled=1\n"
         :literal true))
       (package-source*
-       {:group-node b}
+       {:server b}
        "source1"
        :aptitude {:url "http://somewhere/apt"
                   :scopes ["main"]}
@@ -295,13 +295,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (is (= (stevedore/checked-commands
             "Package source"
             (remote-file/remote-file*
-             {:group-node a}
+             {:server a}
              "/etc/apt/sources.list.d/source1.list"
              :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
             (stevedore/script
              (apt-key adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
            (package-source*
-            {:group-node a}
+            {:server a}
             "source1"
             :aptitude {:url "http://somewhere/apt"
                        :scopes ["main"]
@@ -314,11 +314,11 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (is (= (stevedore/checked-commands
             "Package source"
             (remote-file/remote-file*
-             {:group-node a}
+             {:server a}
              "/etc/apt/sources.list.d/source1.list"
              :content "deb http://somewhere/apt $(lsb_release -c -s) main\n"))
            (first (build-resources
-                   {:group-node a}
+                   {:server a}
                    (package-source
                     "source1"
                     :aptitude {:url "http://somewhere/apt"
@@ -327,12 +327,12 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (is (= (stevedore/checked-commands
             "Package source"
             (remote-file/remote-file*
-             {:group-node b}
+             {:server b}
              "/etc/yum.repos.d/source1.repo"
              :content "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\nenabled=1\n"
              :literal true))
            (first (build-resources
-                   {:group-node b}
+                   {:server b}
                    (package-source
                     "source1"
                     :aptitude {:url "http://somewhere/apt"
@@ -340,18 +340,18 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                     :yum {:url "http://somewhere/yum"})))))))
 
 (deftest add-debian-backports-test
-  (let [debian (core/node-spec "debian" :image {:os-family :debian})]
+  (let [debian (core/group-spec "debian" :image {:os-family :debian})]
     (is (= (script/with-template [:debian]
              (stevedore/checked-commands
               "Package source"
               (remote-file/remote-file*
-               {:group-node debian}
+               {:server debian}
                "/etc/apt/sources.list.d/debian-backports.list"
                :content (str
                          "deb http://backports.debian.org/debian-backports "
                          "$(lsb_release -c -s)-backports main\n"))))
            (first (build-resources
-                   {:group-node debian}
+                   {:server debian}
                    (add-debian-backports)))))))
 
 (deftest packages-test
@@ -359,7 +359,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
         b (assoc (core/make-node "b" {}) :packager :yum)]
     (is (= (first
             (build-resources
-             {:group-node a}
+             {:server a}
              (package "git-apt")
              (package "git-apt2")))
            (first (build-resources
@@ -369,10 +369,10 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                     :yum ["git-yum"])))))
     (is (= (first
             (build-resources
-             {:group-node b}
+             {:server b}
              (package "git-yum")))
            (first (build-resources
-                   {:group-node b}
+                   {:server b}
                    (packages
                     :aptitude ["git-apt"]
                     :yum ["git-yum"])))))))
@@ -425,7 +425,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               (aptitude install -q -y p1- p4_ p2+ p3+)
               (aptitude search (quoted "~i")))
              (adjust-packages
-              {:group-node {:packager :aptitude}}
+              {:server {:packager :aptitude}}
               [{:package "p1" :action :remove}
                {:package "p2" :action :install}
                {:package "p3" :action :upgrade}
@@ -439,7 +439,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               (aptitude install -q -y p1+)
               (aptitude search (quoted "~i")))
              (adjust-packages
-              {:group-node {:packager :aptitude}}
+              {:server {:packager :aptitude}}
               [{:package "p1" :action :install :priority 20}
                {:package "p2" :action :install :enable ["r1"] :priority 2}])))))
   (testing "yum"
@@ -451,7 +451,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (yum list installed))
            (script/with-template [:yum]
              (adjust-packages
-              {:group-node {:packager :yum}}
+              {:server {:packager :yum}}
               [{:package "p1" :action :remove}
                {:package "p2" :action :install}
                {:package "p3" :action :upgrade}
@@ -464,7 +464,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (yum list installed))
            (script/with-template [:yum]
              (adjust-packages
-              {:group-node {:packager :yum}}
+              {:server {:packager :yum}}
               [{:package "p1" :action :install :priority 50}
                {:package "p2" :action :install :disable ["r1"]
                 :priority 25}]))))

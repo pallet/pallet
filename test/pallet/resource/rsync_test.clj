@@ -24,7 +24,7 @@
       (let [user (assoc utils/*admin-user*
                    :username (test-utils/test-username) :no-sudo true)
             node (test-utils/make-localhost-node :tag "tag")
-            tag (core/node-spec "tag" :packager :no-packages)]
+            tag (core/group-spec "tag" :packager :no-packages)]
         (io/copy "text" tmp)
         (.delete target-dir)
         (core/lift*

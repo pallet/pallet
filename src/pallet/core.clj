@@ -1,25 +1,28 @@
 (ns pallet.core
 "Core functionality is provided in `lift` and `converge`.
 
-
-- execution plan :: A list of resources that should be run.
 - node           :: A node in the compute service
-- node-spec      :: A specification for a node. The node-spec links a node to to
-                    the phases that can be run on it, through the node-spec's
-                    tag. It also provides an image template for starting new
+- node-spec      :: A specification for a node. The node-spec provides an image
+                    hardware, location and network template for starting new
                     nodes.
-
+- server-spec    :: A specification for a server. This is a map of phases and
+                    a default node-spec. A server-spec has the following keys
+                    :phase, :packager and node-spec keys.
+- group-spec     :: A group of identically configured nodes, represented as a
+                    map with :group-name, :count and server-spec keys.
+                    The group-name is used to link running nodes to their
+                    configuration (via pallet.compute.Node/group-name)
 - group          :: A group of identically configured nodes, represented as a
-                    map with :tag, :image, :phases, :count and :group-nodes
-                    keys. This is a node-spec, together with the group-nodes
-                    that are running with that node-spec.
-- group tag      :: The tag used to identify a group.
-- group node     :: A map used to descibe the node, image, etc of a single
-                    node running as part of a group. A group node has the
-                    following keys :tag, :node, :image, :node-id, :phases
+                    group-spec, together with the servers that are running
+                    for that group-spec.
+- group name     :: The name used to identify a group.
+- server         :: A map used to descibe the node, image, etc of a single
+                    node running as part of a group. A server has the
+                    following keys :group-name, :node, :node-id and server-spec
+                    keys.
 - phase list     :: A list of phases to be used
-"
- {:author "Hugo Duncan"}
+- action plan    :: A list of resources that should be run."
+  {:author "Hugo Duncan"}
   (:require
    [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
@@ -30,6 +33,7 @@
    [pallet.target :as target]
    [pallet.parameter :as parameter]
    [pallet.resource :as resource]
+   [pallet.thread-expr :as thread-expr]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.logging :as logging]
    [clojure.contrib.map-utils :as map-utils]
@@ -89,31 +93,107 @@
      (apply utils/make-user user options)
      user)))
 
+(def ^{:doc "Vector of keywords recognised by node-spec"
+       :private true}
+  node-spec-keys [:image :hardware :location :network])
+
 (defn node-spec
-  "Create a node-spec. `name` is used for the group tag, which is set on each
-   node and links a node to it's node-spec
+  "Create a node-spec.
 
-   :image  defines the compute image selector template.  This is a map that is
-           used to filter a cloud provider's image and hardware list to select
-           an image and hardware for nodes created for this node-spec.
+   Defines the compute image and hardware selector template.
 
-   :phases used to define phases. Standard phases are:
+   This is used to filter a cloud provider's image and hardware list to select
+   an image and hardware for nodes created for this node-spec.
+
+   :image     a map descirbing a predicate for matching an image:
+              os-family os-name-matches os-version-matches
+              os-description-matches os-64-bit
+              image-version-matches image-name-matches
+              image-description-matches image-id
+
+   :location  a map describing a predicate for matching location:
+              location-id
+   :hardware  a map describing a predicate for matching harware:
+              min-cores min-ram smallest fastest biggest architecture
+              hardware-id
+   :network   a map for network connectivity options
+              inbound-ports"
+  [& {:keys [image hardware location network] :as options}]
+  {:pre [(or (nil? image) (map? image))]}
+  options)
+
+(defn- merge-specs
+  "Merge specs, using comp for :phases"
+  [a b]
+  (let [phases (merge-with #(comp %2 %1) (:phases a) (:phases b))]
+    (->
+     (merge a b)
+     (thread-expr/when-not->
+      (empty? phases)
+      (assoc :phases phases)))))
+
+(defn- extend-specs
+  "Merge in the inherited specs"
+  [spec inherits]
+  (if inherits
+    (merge-specs
+     (if (map? inherits) inherits (reduce merge-specs inherits))
+     spec)
+    spec))
+
+(defn server-spec
+  "Create a server-spec.
+
+   - :phases used to define phases. Standard phases are:
+     - :bootstrap    run on first boot of a new node
+     - :configure    defines the configuration of the node
+   - :packager       override the choice of packager to use
+   - :node-spec      default node-spec for this server-spec
+   - :server-spec    is a server-spec, or sequence thereof, and is used to
+                     inherit phases, etc."
+  [& {:keys [phases packager node-spec extends image hardware location network]
+      :as options}]
+  (->
+   node-spec
+   (merge options)
+   (extend-specs extends)
+   (dissoc :extends :node-spec)))
+
+(defn group-spec
+  "Create a group-spec.
+
+   `name` is used for the group name, which is set on each node and links a node
+   to it's node-spec
+
+   `server-or-group-spec` is a server-spec, a group-spec, or sequence thereof,
+                          and is used to inherit phases, etc.
+   - :phases used to define phases. Standard phases are:
      - :bootstrap    run on first boot of a new node
      - :configure    defines the configuration of the node.
 
-   :count    specify the target number of nodes for this node-spec
-   :packager override the choice of packager to use"
-  [name & {:keys [count image phases packager] :as options}]
+   - :count    specify the target number of nodes for this node-spec
+   - :packager override the choice of packager to use
+   - :node-spec      default node-spec for this server-spec"
+  [name
+   & {:keys [extends count image phases packager node-spec] :as options}]
   {:pre [(or (nil? image) (map? image))]}
-  (assoc options :tag (keyword name)))
+  (->
+   node-spec
+   (merge options)
+   (extend-specs extends)
+   (dissoc :extends :node-spec)
+   (assoc :group-name (keyword name))))
 
 (defn make-node
   "Create a node definition.  See defnode."
   [name image & {:as phase-map}]
   {:pre [(or (nil? image) (map? image))]}
-  {:tag (keyword name)
-   :image image
-   :phases phase-map})
+  (->
+   {:group-name (keyword name)
+    :image image}
+   (thread-expr/when-not->
+    (empty? phase-map)
+    (assoc :phases phase-map))))
 
 (defn name-with-attributes
   "Modified version, of that found in contrib, to handle the image map."
@@ -134,7 +214,7 @@
     [(with-meta name attr) macro-args]))
 
 (defmacro defnode
-  "Define a node type.  The name is used for the node tag.
+  "Define a node type.  The name is used for the group name.
 
    image defines the image selector template.  This is a vector of keyword or
           keyword value pairs that are used to filter the image list to select
@@ -142,13 +222,14 @@
    Options are used to define phases. Standard phases are:
      :bootstrap    run on first boot
      :configure    defines the configuration of the node."
-  {:arglists ['(tag doc-str? attr-map? image & phasekw-phasefn-pairs)]}
-  [tag & options]
-  (let [[tag options] (name-with-attributes tag options)]
-    `(def ~tag (make-node '~(name tag) ~@options))))
+  {:arglists ['(tag doc-str? attr-map? image & phasekw-phasefn-pairs)]
+   :deprecated "0.4.6"}
+  [group-name & options]
+  (let [[group-name options] (name-with-attributes group-name options)]
+    `(def ~group-name (make-node '~(name group-name) ~@options))))
 
 
-(defn- add-request-keys-for-backward-compatibility
+(defn- add-request-keys-for-0-4-5-compatibility
   "Add target keys for compatibility.
    This function adds back deprecated keys"
   [handler]
@@ -156,9 +237,9 @@
     (handler
      (-> request
          (assoc :node-type (:group request))
-         (assoc :target-packager (-> request :group-node :packager))
-         (assoc :target-id (-> request :group-node :node-id))
-         (assoc :target-node (-> request :group-node :node))))))
+         (assoc :target-packager (-> request :server :packager))
+         (assoc :target-id (-> request :server :node-id))
+         (assoc :target-node (-> request :server :node))))))
 
 (defn show-target-keys
   "Middleware that is useful in debugging."
@@ -166,18 +247,18 @@
   (fn [request]
     (logging/info
      (format
-      "TARGET KEYS :phase %s :node-id %s :tag %s :packager %s"
+      "TARGET KEYS :phase %s :node-id %s :group-name %s :packager %s"
       (:phase request)
-      (-> request :group-node :node-id)
-      (-> request :group-node :tag)
-      (-> request :group-node :packager)))
+      (-> request :server :node-id)
+      (-> request :server :group-name)
+      (-> request :server :packager)))
     (handler request)))
 
 (defn- resource-invocations [request]
   {:pre [(:phase request)]}
   (if-let [f (some
               (:phase request)
-              [(:phases (:group-node request)) (:inline-phases request)])]
+              [(:phases (:server request)) (:inline-phases request)])]
     (script/with-template (resource/script-template request)
       (f request))
     request))
@@ -185,7 +266,7 @@
 (defn- bootstrap-script
   "Generates the bootstrap script for the :group specified in the request.
 
-   This builds an execution plan for the bootstrap phase, and then realises the
+   This builds an action plan for the bootstrap phase, and then realises the
    plan, verifying that only script generating resources are included in the
    bootstrap.  This limitation is necessary so that the script can be executed
    over a \"fire and forget\" transport."
@@ -194,7 +275,7 @@
          (get-in request [:group :packager])]}
   (let [request (assoc request
                   :phase :bootstrap
-                  :group-node (assoc (:group request) :node-id :bootstrap-id))
+                  :server (assoc (:group request) :node-id :bootstrap-id))
         cmds (resource/produce-phase (resource-invocations request))]
     (if-not (and (every? #(= :remote (:location %)) cmds) (>= 1 (count cmds)))
       (condition/raise
@@ -215,14 +296,14 @@
       "")))
 
 (defn- create-nodes
-  "Create count nodes based on the template for tag. The boostrap argument
+  "Create count nodes based on the template for the group. The boostrap argument
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
-bootstrap-script value is expected tobe a function that produces a
-script that is run with root privileges immediatly after first boot."
+bootstrap-script value is expected tobe a function that produces a script that
+is run with root privileges immediatly after first boot."
   [group count request]
   {:pre [(map? group)]}
   (logging/info
-   (str "Starting " count " nodes for " (:tag group)
+   (str "Starting " count " nodes for " (:group-name group)
         " os-family " (-> group :image :os-family)))
   (let [compute (:compute request)
         request (compute/ensure-os-family compute request)
@@ -232,21 +313,22 @@ script that is run with root privileges immediatly after first boot."
     (logging/trace
      (format "Bootstrap script:\n%s" init-script))
     (concat
-     (map :node (:group-nodes group))
+     (map :node (:servers group))
      (compute/run-nodes compute group count request init-script))))
 
 (defn- destroy-nodes
-  "Destroys the specified number of nodes with the given tag.  Nodes are
+  "Destroys the specified number of nodes with the given group.  Nodes are
    selected at random."
   [group destroy-count request]
-  (logging/info (str "destroying " destroy-count " nodes for " (:tag group)))
+  (logging/info
+   (str "destroying " destroy-count " nodes for " (:group-name group)))
   (let [compute (:compute request)
-        group-nodes (:group-nodes group)]
-    (if (= destroy-count (count group-nodes))
+        servers (:servers group)]
+    (if (= destroy-count (count servers))
       (do
-        (compute/destroy-nodes-with-tag compute (name (:tag group)))
+        (compute/destroy-nodes-in-group compute (name (:group-name group)))
         nil)
-      (let [nodes (map :node group-nodes)]
+      (let [nodes (map :node servers)]
         (doseq [node (take destroy-count nodes)]
           (compute/destroy-node compute node))
         (drop destroy-count nodes)))))
@@ -258,21 +340,21 @@ script that is run with root privileges immediatly after first boot."
    groups
    (map
     (fn [group]
-      (vector (:tag group) (- (:count group) (count (:group-nodes group))))))
+      (vector (:group-name group) (- (:count group) (count (:servers group))))))
    (into {})))
 
 (defn- adjust-node-count
   "Adjust the node by delta nodes"
-  [{:keys [tag environment group-nodes] :as group} delta request]
+  [{:keys [group-name environment servers] :as group} delta request]
   (let [request (environment/request-with-environment
                   (assoc request :group group)
                   (environment/merge-environments
                    (:environment request) environment))]
-    (logging/info (format "adjust-node-count %s %d" tag delta))
+    (logging/info (format "adjust-node-count %s %d" group-name delta))
     (cond
      (pos? delta) (create-nodes group delta request)
      (neg? delta) (destroy-nodes group (- delta) request)
-     :else (map :node group-nodes))))
+     :else (map :node servers))))
 
 (defn- serial-adjust-node-counts
   "Start or stop the specified number of nodes."
@@ -283,7 +365,7 @@ script that is run with root privileges immediatly after first boot."
    (doall
     (map
      (fn [group]
-       (adjust-node-count group ((:tag group) delta-map 0) request))
+       (adjust-node-count group ((:group-name group) delta-map 0) request))
      (:groups request)))))
 
 (defn- parallel-adjust-node-counts
@@ -295,7 +377,7 @@ script that is run with root privileges immediatly after first boot."
    (doall
     (map
      (fn [group]
-       (future (adjust-node-count group ((:tag group) delta-map 0) request)))
+       (future (adjust-node-count group ((:group-name group) delta-map 0) request)))
      (:groups request)))))
 
 (defn- converge-node-counts
@@ -310,7 +392,7 @@ script that is run with root privileges immediatly after first boot."
 
 (defn execute-with-ssh
   [request]
-  (let [target-node (-> request :group-node :node)]
+  (let [target-node (-> request :server :node)]
     (execute/ssh-cmds
      (assoc request
        :address (compute/node-address target-node)
@@ -337,7 +419,7 @@ script that is run with root privileges immediatly after first boot."
          (parameter/from-map
           parameters
           (parameter-keys
-           (-> request :group-node :node) (:group-node request)))))))
+           (-> request :server :node) (:server request)))))))
 
 (defn- build-commands
   "Middlware that generates the commands that should be run for the execution
@@ -347,8 +429,8 @@ script that is run with root privileges immediatly after first boot."
   [handler]
   (fn [request]
     {:pre [handler
-           (-> request :group-node :image :os-family)
-           (-> request :group-node :packager)]}
+           (-> request :server :image :os-family)
+           (-> request :server :packager)]}
     (if-let [commands (script/with-template (resource/script-template request)
                         (resource/produce-phase request))]
       (handler (assoc request :commands commands))
@@ -357,15 +439,15 @@ script that is run with root privileges immediatly after first boot."
 (defn- apply-phase-to-node
   "Apply a phase to a node"
   [request]
-  {:pre [(:group-node request)]}
+  {:pre [(:server request)]}
   (let [request (environment/request-with-environment
                   request
                   (environment/merge-environments
                    (:environment request)
-                   (-> request :group-node :environment)))
+                   (-> request :server :environment)))
         middleware (:middleware request)]
     ((utils/pipe
-      add-request-keys-for-backward-compatibility
+      add-request-keys-for-0-4-5-compatibility
       build-commands
       middleware
       execute-with-ssh)
@@ -423,7 +505,7 @@ script that is run with root privileges immediatly after first boot."
   [request results]
   (reduce
    (fn apply-phase-accumulate [request [result req :as arg]]
-     (let [target-id (-> req :group-node :node-id)
+     (let [target-id (-> req :server :node-id)
            param-keys [:parameters :host target-id]]
        (->
         request
@@ -455,30 +537,30 @@ script that is run with root privileges immediatly after first boot."
    request
    results))
 
-(defn- plan-for-group-node
-  "Build an execution plan for the specified group node."
-  [request group-node]
-  {:pre [(:node group-node) (:node-id group-node)]}
+(defn- plan-for-server
+  "Build an action plan for the specified server."
+  [request server]
+  {:pre [(:node server) (:node-id server)]}
   (resource-invocations
    (->
     request
-    (assoc :group-node group-node)
+    (assoc :server server)
     (environment/request-with-environment
       (environment/merge-environments
        (:environment request)
-       (-> request :group-node :environment))))))
+       (-> request :server :environment))))))
 
-(defn- plan-for-group-nodes
-  "Build an execution plan for the specified group nodes."
-  [request group-nodes]
-  (reduce plan-for-group-node request group-nodes))
+(defn- plan-for-servers
+  "Build an action plan for the specified servers."
+  [request servers]
+  (reduce plan-for-server request servers))
 
 (defn- plan-for-groups
   "Build an invocation map for specified node-type map."
   [request groups]
   (reduce
    (fn [request group]
-     (plan-for-group-nodes (assoc request :group group) (:group-nodes group)))
+     (plan-for-servers (assoc request :group group) (:servers group)))
    request groups))
 
 (defn- plan-for-phases
@@ -492,26 +574,26 @@ script that is run with root privileges immediatly after first boot."
 
 (defn sequential-apply-phase
   "Apply a phase to a sequence of nodes"
-  [request group-nodes]
+  [request servers]
   (logging/info
    (format
     "apply-phase %s for %s with %d nodes"
-    (:phase request) (-> request :group-node :tag) (count group-nodes)))
-  (for [group-node group-nodes]
+    (:phase request) (-> request :server :group-name) (count servers)))
+  (for [server servers]
     (apply-phase-to-node
-     (assoc request :group-node group-node))))
+     (assoc request :server server))))
 
 (defn parallel-apply-phase
   "Apply a phase to a sequence of nodes"
-  [request group-nodes]
+  [request servers]
   (logging/info
    (format
     "apply-phase %s for %s with %d nodes"
-    (:phase request) (-> request :group-node :tag) (count group-nodes)))
-  (map (fn [group-node]
+    (:phase request) (-> request :server :group-name) (count servers)))
+  (map (fn [server]
          (future (apply-phase-to-node
-                  (assoc request :group-node group-node))))
-       group-nodes))
+                  (assoc request :server server))))
+       servers))
 
 (defn sequential-lift
   "Sequential apply the phases."
@@ -520,7 +602,7 @@ script that is run with root privileges immediatly after first boot."
         group (:groups request)]
     (sequential-apply-phase
      (assoc request :phase phase :group group)
-     (:group-nodes group))))
+     (:servers group))))
 
 (defn parallel-lift
   "Apply the phases in sequence, to nodes in parallel."
@@ -531,7 +613,7 @@ script that is run with root privileges immediatly after first boot."
      (for [group (:groups request)]
        (parallel-apply-phase
         (assoc request :phase phase :group group)
-        (:group-nodes group))))))
+        (:servers group))))))
 
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
@@ -573,19 +655,21 @@ script that is run with root privileges immediatly after first boot."
   request)
 
 (defn- nodes-in-map
-  "Return nodes with tags corresponding to the keys in node-map"
+  "Return nodes with group-names corresponding to the keys in node-map"
   [node-map nodes]
-  (let [tags (->> node-map keys (map :tag) (map name) set)]
-    (->> nodes (filter compute/running?) (filter #(-> % compute/tag tags)))))
+  (let [group-names (->> node-map keys (map :group-name) (map name) set)]
+    (->> nodes
+         (filter compute/running?)
+         (filter #(-> % compute/group-name group-names)))))
 
-(defn- node-spec-with-prefix
+(defn- group-with-prefix
   [prefix node-spec]
-  (update-in node-spec [:tag]
-             (fn [tag] (keyword (str prefix (name tag))))))
+  (update-in node-spec [:group-name]
+             (fn [group-name] (keyword (str prefix (name group-name))))))
 
 (defn- node-map-with-prefix [prefix node-map]
   (zipmap
-   (map #(node-spec-with-prefix prefix %) (keys node-map))
+   (map #(group-with-prefix prefix %) (keys node-map))
    (vals node-map)))
 
 (defn- phase-list-with-configure
@@ -614,27 +698,27 @@ script that is run with root privileges immediatly after first boot."
 (defn- node-in-types?
   "Predicate for matching a node belonging to a set of node types"
   [node-types node]
-  (some #(= (compute/tag node) (name (% :tag))) node-types))
+  (some #(= (compute/group-name node) (name (% :group-name))) node-types))
 
-(defn- nodes-for-type
-  "Return the nodes that have a tag that matches one of the node types"
-  [nodes node-type]
-  (let [tag-string (name (node-type :tag))]
-    (filter #(compute/node-has-tag? tag-string %) nodes)))
+(defn- nodes-for-group
+  "Return the nodes that have a group-name that matches one of the node types"
+  [nodes group]
+  (let [group-name (name (:group-name group))]
+    (filter #(compute/node-in-group? group-name %) nodes)))
 
-(defn- node-spec?
+(defn- group-spec?
   "Predicate for testing if argument is a node-spec.
    This is not exhaustive, and not intended for general use."
   [x]
-  (and (map? x) (:tag x) (keyword? (:tag x))))
+  (and (map? x) (:group-name x) (keyword? (:group-name x))))
 
 (defn nodes-in-set
   "Build a map of node-spec to nodes for the given `node-set`.
    A node set can be a node spec, a map from node-spec to a sequence of nodes,
    or a sequence of these.
 
-   The prefix is applied to the tag of each node-spec in the result.  This
-   allows you to build seperate clusters based on the same node-spec's.
+   The prefix is applied to the group-name of each node-spec in the result.
+   This allows you to build seperate clusters based on the same node-spec's.
 
    The return value is a map of node-spec to node sequence.
 
@@ -649,32 +733,32 @@ script that is run with root privileges immediatly after first boot."
            [m]
            (zipmap (keys m) (map ensure-set (vals m))))]
     (cond
-     (and (map? node-set) (not (node-spec? node-set)))
+     (and (map? node-set) (not (group-spec? node-set)))
      (ensure-set-values (node-map-with-prefix prefix node-set))
-     (node-spec? node-set)
-     (let [node-type (node-spec-with-prefix prefix node-set)]
-       {node-type (set (nodes-for-type nodes node-type))})
+     (group-spec? node-set)
+     (let [group (group-with-prefix prefix node-set)]
+       {group (set (nodes-for-group nodes group))})
      :else (reduce
             #(merge-with concat %1 %2) {}
             (map #(nodes-in-set % prefix nodes) node-set)))))
 
-(defn- group-node-with-packager
+(defn- server-with-packager
   "Add the target packager to the request"
-  [group-node]
-  (update-in group-node [:packager]
+  [server]
+  (update-in server [:packager]
              (fn [p] (or p
-                         (-> group-node :image :packager)
-                         (compute/packager (:image group-node))))))
+                         (-> server :image :packager)
+                         (compute/packager (:image server))))))
 
-(defn group-node
+(defn server
   "Take a `group` and a `node`, an `options` map and combine them to produce
-   a group-node.
+   a server.
 
    The group os-family, os-version, are replaced with the details form the
    node. The :node key is set to `node`, and the :node-id and :packager keys
    are set.
 
-   `options` allows adding extra keys on the group node."
+   `options` allows adding extra keys on the server."
   [group node options]
   (->
    group
@@ -682,27 +766,27 @@ script that is run with root privileges immediatly after first boot."
    (update-in [:image :os-version] (fn [f] (or (compute/os-version node) f)))
    (update-in [:node-id] (fn [id] (or (keyword (compute/id node)) id)))
    (assoc :node node)
-   group-node-with-packager
+   server-with-packager
    (merge options)))
 
-(defn groups-with-nodes
+(defn groups-with-servers
   "Takes a map from node-spec to sequence of nodes, and converts it to a
-   sequence of group definitions, containing a group-node for each node in then
-   :group-nodes key of each group.  The group node will contain the node-spec,
+   sequence of group definitions, containing a server for each node in then
+   :servers key of each group.  The server will contain the node-spec,
    updated with any information that was available from the node.
 
-       (groups-with-nodes {(node-spec \"spec\" {}) [a b c]})
-         => [{:tag \"spec\"
-              :group-nodes [{:tag \"spec\" :node a}
-                            {:tag \"spec\" :node b}
-                            {:tag \"spec\" :node c}]}]
+       (groups-with-servers {(node-spec \"spec\" {}) [a b c]})
+         => [{:group-name \"spec\"
+              :servers [{:group-name \"spec\" :node a}
+                        {:group-name \"spec\" :node b}
+                        {:group-name \"spec\" :node c}]}]
 
-   `options` allows adding extra keys to the group nodes."
+   `options` allows adding extra keys to the servers."
   [node-map & {:as options}]
   (for [[group nodes] node-map]
     (assoc group
-      :group-nodes (map #(group-node group % options)
-                        (filter compute/running? nodes)))))
+      :servers (map #(server group % options)
+                    (filter compute/running? nodes)))))
 
 (defn request-with-groups
   "Takes the :all-nodes, :node-set and :prefix keys and compute the groups
@@ -712,7 +796,7 @@ script that is run with root privileges immediatly after first boot."
    compute service if possible, or are inferred from the :node-set value.
 
    The :groups key is set to a sequence of groups, each containing its
-   list of group nodes on the :group-nodes key."
+   list of servers on the :servers key."
   [request]
   (let [all-nodes (filter
                    compute/running?
@@ -734,8 +818,8 @@ script that is run with root privileges immediatly after first boot."
                              concat
                              (concat (vals targets) (vals plan-targets))))))
      (assoc :groups (concat
-                     (groups-with-nodes targets)
-                     (groups-with-nodes plan-targets :invoke-only true))))))
+                     (groups-with-servers targets)
+                     (groups-with-servers plan-targets :invoke-only true))))))
 
 (defn lift*
   "Lift the nodes specified in the request :node-set key.
@@ -753,7 +837,7 @@ script that is run with root privileges immediatly after first boot."
 
 (defn converge*
   "Converge the node counts of each node-spec in `:node-set`, executing each of
-   the configuration phases on all the tags in `:node-set`. The phase-functions
+   the configuration phases on all the group-names in `:node-set`. The phase-functions
    are also executed, but not applied, for any other nodes in `:all-node-set`"
   [request]
   {:pre [(:node-set request)]}
@@ -892,15 +976,15 @@ script that is run with root privileges immediatly after first boot."
 
 
    This applies the bootstrap phase to all new nodes and the configure phase to
-   all running nodes whose tag matches a key in the node map.  Additional phases
-   can also be specified in the options, and will be applied to all matching
-   nodes.  The :configure phase is always applied, by default as the first (post
-   bootstrap) phase.  You can change the order in which the :configure phase is
-   applied by explicitly listing it.
+   all running nodes whose group-name matches a key in the node map.  Additional
+   phases can also be specified in the options, and will be applied to all
+   matching nodes.  The :configure phase is always applied, by default as the
+   first (post bootstrap) phase.  You can change the order in which
+   the :configure phase is applied by explicitly listing it.
 
-   An optional tag prefix may be specified. This will be used to modify the
-   tag for each node-spec, allowing you to build multiple discrete clusters
-   from a single set of node-specs."
+   An optional group-name prefix may be specified. This will be used to modify
+   the group-name for each node-spec, allowing you to build multiple discrete
+   clusters from a single set of node-specs."
   [node-spec->count & {:keys [compute blobstore user phase prefix middleware
                               all-nodes all-node-set environment]
                        :as options}]
@@ -939,7 +1023,7 @@ script that is run with root privileges immediatly after first boot."
                      service.
     :phase           a phase keyword, phase function, or sequence of these
     :middleware      the middleware to apply to the configuration pipeline
-    :prefix          a prefix for the tag names
+    :prefix          a prefix for the group-name names
     :user            the admin-user on the nodes"
   [node-set & {:keys [compute phase prefix middleware all-node-set environment]
                :as options}]

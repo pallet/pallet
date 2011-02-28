@@ -1,5 +1,6 @@
 (ns pallet.test-utils
   (:require
+   [pallet.core :as core]
    [pallet.execute :as execute]
    [pallet.target :as target]
    [pallet.script :as script]
@@ -91,8 +92,8 @@ list, Alan Dipert and MeikelBrandmeyer."
   [] (or (. System getProperty "ssh.username")
          (. System getProperty "user.name")))
 
-(def ubuntu-request {:group-node {:image {:os-family :ubuntu}}})
-(def centos-request {:group-node {:image {:os-family :centos}}})
+(def ubuntu-request {:server {:image {:os-family :ubuntu}}})
+(def centos-request {:server {:image {:os-family :centos}}})
 
 (defn with-ubuntu-script-template
   [f]
@@ -104,7 +105,8 @@ list, Alan Dipert and MeikelBrandmeyer."
   [tag & {:as options}]
   (apply
    node-list/make-node
-   tag (:tag options tag) (:ip options "1.2.3.4") (:os-family options :ubuntu)
+   tag (:group-name options (:tag options tag))
+   (:ip options "1.2.3.4") (:os-family options :ubuntu)
    (apply concat options)))
 
 (defn make-localhost-node
@@ -116,3 +118,28 @@ list, Alan Dipert and MeikelBrandmeyer."
   "Forwarding definition, until resource-when is fixed"
   [& args]
   `(resource-build/build-resources ~@args))
+
+(defn test-request
+  "Build a test request"
+  [& components]
+  (reduce merge components))
+
+(defn server
+  "Build a server for the request map"
+  [& {:as options}]
+  (apply core/server-spec (apply concat options)))
+
+(defn target-server
+  "Build the target server for the request map"
+  [& {:as options}]
+  {:server (apply core/server-spec (apply concat options))})
+
+(defn group
+  "Build a group for the request map"
+  [name & {:as options}]
+  (apply core/group-spec name (apply concat options)))
+
+(defn target-group
+  "Build the target group for the request map"
+  [name & {:as options}]
+  {:group (apply core/group-spec name (apply concat options))})

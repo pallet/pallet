@@ -145,7 +145,7 @@
   "Returns an updated `request` map, containing the keys for the specified
    `environment` map.
 
-   When request includes a :group-node value, then the :group-node value is
+   When request includes a :server value, then the :server value is
    treated as an environment, and merge with any environment in the
    `environment`'s :tags key.
 
@@ -154,11 +154,11 @@
   (let [request (merge
                  request
                  (utils/dissoc-keys environment (conj node-keys :tags)))]
-    (if (:group-node request)
-      (let [tag (-> request :group-node :tag)]
+    (if (:server request)
+      (let [tag (-> request :server :tag)]
         (assoc request
-          :group-node (merge-environments
-                       (:group-node request)
-                       (select-keys environment node-keys)
-                       (-?> environment :tags tag))))
+          :server (merge-environments
+                   (:server request)
+                   (select-keys environment node-keys)
+                   (-?> environment :tags tag))))
       request)))

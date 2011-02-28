@@ -54,11 +54,11 @@
   "Find a template for the specified path, for application to the given node.
    Templates may be specialised."
   [path request]
-  {:pre [(map? request) (request :group-node)]}
+  {:pre [(map? request) (request :server)]}
   (some
    get-resource
    (candidate-templates
-    path (-> request :group-node :tag) (-> request :group-node :image))))
+    path (-> request :server :tag) (-> request :server :image))))
 
 (defn interpolate-template
   "Interpolate the given template."

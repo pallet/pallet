@@ -64,18 +64,18 @@ EOF
                             nil))))
 
 (deftest find-template-test
-  (let [a (core/node-spec "a" :image {:os-family :ubuntu})]
+  (let [a (core/group-spec "a" :image {:os-family :ubuntu})]
     (is (re-find
          #"resources/template/strint"
-         (str (find-template "template/strint" {:group-node a}))))
+         (str (find-template "template/strint" {:server a}))))
     (is (= "a ~{a}\n"
            (utils/load-resource-url
-            (find-template "template/strint" {:group-node a}))))))
+            (find-template "template/strint" {:server a}))))))
 
 (deftest interpolate-template-test
 
-  (let [n(core/node-spec "n" :image {:os-family :ubuntu})
+  (let [n(core/group-spec "n" :image {:os-family :ubuntu})
         a 1]
     (is (= "a 1\n"
            (interpolate-template
-            "template/strint" (strint/capture-values a) {:group-node n})))))
+            "template/strint" (strint/capture-values a) {:server n})))))

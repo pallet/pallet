@@ -30,7 +30,7 @@
           (error
            (format
             "No template found for %s %s"
-            source (-> request :group-node :tag)))))))
+            source (-> request :server :tag)))))))
 
 (defmacro defsnippet
   "A snippet returns a collection of nodes."

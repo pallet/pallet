@@ -350,7 +350,7 @@ configuration code."
 (defn script-template
   "Return the script template for the current group node."
   [request]
-  (script-template-for-node-spec (-> request :group-node)))
+  (script-template-for-node-spec (-> request :server)))
 
 (defmulti execute-resource
   "Execute a resource of the given type.  Returns [request result]"

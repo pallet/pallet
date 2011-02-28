@@ -62,7 +62,7 @@
                   "...done\n")
              (->
               (pallet.core/lift
-               {{:tag :local} (test-utils/make-localhost-node)}
+               {{:group-name :local} (test-utils/make-localhost-node)}
                :phase #(remote-file % (.getPath tmp) :content "xxx")
                :compute nil
                :middleware pallet.core/execute-with-local-sh)
@@ -78,7 +78,7 @@
                      java.util.regex.Pattern/DOTALL))
             (->
              (pallet.core/lift
-              {{:tag :local} (test-utils/make-localhost-node)}
+              {{:group-name :local} (test-utils/make-localhost-node)}
               :phase #(remote-file
                        % (.getPath tmp) :content "xxx")
               :compute nil
@@ -91,7 +91,7 @@
             "remote-file path"
             (file/heredoc "path.new" "a 1\n"))
            (remote-file*
-            {:group-node {:tag :n :image {:os-family :ubuntu}}}
+            {:server {:group-name :n :image {:os-family :ubuntu}}}
             "path" :template "template/strint" :values {'a 1}
             :no-versioning true)))))
 
@@ -124,7 +124,7 @@
         (.delete target-tmp)
         (io/copy "text" tmp)
         (let [local (core/make-node "local" {})
-              node (test-utils/make-localhost-node :tag "local")]
+              node (test-utils/make-localhost-node :group-name "local")]
           (testing "local-file"
             (core/lift
              {local node}
@@ -262,7 +262,7 @@
     (utils/with-temporary [remote-file (utils/tmpfile)]
       (let [user (assoc utils/*admin-user*
                    :username (test-utils/test-username) :no-sudo true)
-            local (core/node-spec "local")]
+            local (core/group-spec "local")]
         (io/copy "text" remote-file)
         (testing "with local ssh"
           (let [node (test-utils/make-localhost-node)
