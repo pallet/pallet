@@ -19,6 +19,27 @@
 (use-fixtures :once test-utils/with-ubuntu-script-template)
 
 (deftest remote-file*-test
+  (testing "url"
+    (is (= (stevedore/checked-commands
+            "remote-file path"
+            (stevedore/chained-script
+             (download-file "http://a.com/b" "path.new")
+             (if (file-exists? "path.new")
+               (do
+                 (mv -f "path.new" path)))))
+           (remote-file* {} "path" :url "http://a.com/b" :no-versioning true))))
+  (testing "url with proxy"
+    (is (= (stevedore/checked-commands
+            "remote-file path"
+            (stevedore/chained-script
+             (download-file "http://a.com/b" "path.new" :proxy "http://proxy/")
+             (if (file-exists? "path.new")
+               (do
+                 (mv -f "path.new" path)))))
+           (remote-file*
+            {:environment {:proxy "http://proxy/"}}
+            "path" :url "http://a.com/b" :no-versioning true))))
+
   (testing "no-versioning"
     (is (= (stevedore/checked-commands
             "remote-file path"
