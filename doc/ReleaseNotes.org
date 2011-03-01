@@ -1,4 +1,20 @@
-The latest release is 0.4.5.
+The latest release is 0.4.6.
+
+* 0.4.6
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Enhancements
+
+- Add a :proxy entry to the environment for specifying a proxy for use by
+  remote-file
+  When running in environments that have a proxy available, specifying the
+  :proxy key of the environment as a url string will allow remote-file to
+  use the proxy.
+
+      :environment {:proxy "http://192.168.2.37:3128"}
 
 * 0.4.5
 
