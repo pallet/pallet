@@ -261,7 +261,7 @@ script that is run with root privileges immediatly after first boot."
   (mapcat identity
    (doall (map #(adjust-node-count % nodes request) delta-map))))
 
-(defn- parallel-adjust-node-counts
+(defn parallel-adjust-node-counts
   "Start or stop the specified number of nodes."
   [delta-map nodes request]
   (logging/trace (str "parallel-adjust-node-counts" delta-map))
