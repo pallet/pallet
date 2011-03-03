@@ -1,4 +1,18 @@
-The latest release is 0.4.6.
+The latest release is 0.4.7.
+
+* 0.4.7
+
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Fixes
+
+- Documentation fixes for provider dependencies and :services
+
+- Make core/parallel-adjust-node-counts public
+
+- Make compute/vmfest use the :sudo-password option for the user
 
 * 0.4.6
 
