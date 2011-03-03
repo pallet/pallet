@@ -62,7 +62,7 @@
          (println "\n  the ~/.pallet/config.clj is checked for an active profile")
          (println "    specified with `defpallet`.  e.g.")
          (println "      (defpallet")
-         (println "        :providers {")
+         (println "        :services {")
          (println "          :aws {:provider \"ec2\"")
          (println "                :identity \"username or key\"")
          (println "                :credential \"password, key or secret key\"}})")

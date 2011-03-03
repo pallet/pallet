@@ -192,7 +192,8 @@
          (pallet.utils/make-user
           (:username image)
           :password (:password image)
-          :no-sudo (:no-sudo image))
+          :no-sudo (:no-sudo image)
+          :sudo-password (:sudo-password image))
          user)))))
 
 (defn- equality-match
