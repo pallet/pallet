@@ -30,5 +30,5 @@
       "\t%20s  %s"
       name
       (if (enabled? (second supported)) "Enabled" "Disabled"))))
-  (println "\nProviders can be enabled by copying the corresponding jclouds jar")
-  (println "into pallet/lib."))
+  (println "\nProviders can be enabled by adding a dependency on the jclouds ")
+  (println "provider into your project.clj or pom.xml."))

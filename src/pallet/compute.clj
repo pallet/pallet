@@ -106,8 +106,8 @@
        (apply concat (dissoc options :provider :identity :credential))))))
 
 (defn compute-service-from-config-file
-  "Compute service from ~/.pallet/config.clj. Profiles is a sequence of provider
-   keys to use from the :providers map."
+  "Compute service from ~/.pallet/config.clj. Profiles is a sequence of service
+   keys to use from the :services map."
   [& profiles]
   (compute-service-from-config
    (configure/pallet-config)
