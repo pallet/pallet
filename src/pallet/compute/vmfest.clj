@@ -39,6 +39,7 @@
    [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.resource :as resource]
+   [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]
    [clojure.contrib.logging :as logging]))
@@ -157,12 +158,41 @@
 
 (def *vm-session-type* "headless")
 
+(defn basic-config [m {:keys [memory-size cpu-count] :as parameters}]
+  (let [parameters (merge {:memory-size 512 :cpu-count 1} parameters)]
+    (manager/configure-machine m parameters)
+    (manager/set-bridged-network m "en1: AirPort")
+    (manager/add-ide-controller m)))
+
+(def hardware-parameters
+  {:min-ram :memory-size
+   :min-cores :cpu-count})
+
+(def hardware-config
+  {:bridged-network (fn [m iface] (manager/set-bridged-network m iface))})
+
+(defn machine-model-with-parameters
+  "Set a machine basic parameters and default configuration"
+  [m image]
+  (let [hw-keys (filter hardware-parameters (keys image))]
+    (basic-config
+     m (zipmap (map hardware-parameters hw-keys) (map image hw-keys)))))
+
+(defn machine-model
+  "Construct a machine model function from a node image spec"
+  [image]
+  (fn [m]
+    (machine-model-with-parameters m image)
+    (doseq [kw (filter hardware-config (keys image))]
+      ((hardware-config kw) m (image kw)))))
+
 (defn create-node
-  [compute node-path node-type machine-name images image-id tag-name
-   init-script user]
+  [compute node-path node-type machine-name images image-id machine-models
+   tag-name init-script user]
   {:pre [image-id]}
   (logging/trace (format "Creating node from image-id: %s" image-id))
-  (let [machine (binding [manager/*images* images]
+  (let [machine (binding [manager/*images* images
+                          manager/*machine-models* machine-models]
                   (manager/instance
                    compute machine-name image-id :micro node-path))
         image (image-id images)]
@@ -219,31 +249,36 @@
         (every?
          #(((first %) template-matchers equality-match)
            image-properties (first %) (second %))
-         (dissoc template :image-id :inbound-ports)))
+         (utils/dissoc-keys
+          template
+          (concat
+           [:image-id :inbound-ports]
+           (keys hardware-config)
+           (keys hardware-parameters)))))
       images)
      ffirst)))
 
 (defn serial-create-nodes
   "Create all nodes for a group in parallel."
   [target-machines-to-create server node-path node-type images image-id
-   tag-name init-script user]
+   machine-models tag-name init-script user]
   (doseq [name target-machines-to-create]
     (create-node
-     server node-path node-type name images image-id tag-name init-script
-     user)))
+     server node-path node-type name images image-id machine-models tag-name
+     init-script user)))
 
 (defn parallel-create-nodes
   "Create all nodes for a group in parallel."
   [target-machines-to-create server node-path node-type images image-id
-   tag-name init-script user]
+   machine-models tag-name init-script user]
   ;; the doseq ensures that all futures are completed before
   ;; returning
   (doseq [f (doall ;; doall forces creation of all futures before any deref
              (for [name target-machines-to-create]
                (future
                  (create-node
-                  server node-path node-type name images image-id tag-name
-                  init-script user))))]
+                  server node-path node-type name images image-id machine-models
+                  tag-name init-script user))))]
     @f))
 
 (deftype VmfestService
@@ -304,7 +339,9 @@
          request [:environment :algorithms :vmfest :create-nodes-fn]
          parallel-create-nodes)
         target-machines-to-create server (:node-path locations) node-type
-        images image-id tag-name init-script (:user request)))))
+        images image-id
+        {:micro (machine-model (:image node-type))}
+        tag-name init-script (:user request)))))
 
   (reboot
    [compute nodes]
