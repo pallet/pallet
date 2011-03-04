@@ -101,6 +101,18 @@
    phases)
   (zipmap (keys phases) (map eval-phase (vals phases))))
 
+(defn- eval-algorithms
+  "Evaluate an algorithm map.  This will attempt to require any namespaces
+   mentioned and will then lookup each symbol to retrieve the specified
+   var."
+  [algorithms]
+  (walk/postwalk
+   #(or
+     (when (and (symbol? %) (namespace %))
+       (utils/find-var-with-require %))
+      %)
+   algorithms))
+
 (defn eval-environment
   "Evaluate an environment literal.  This is used to replace certain keys with
    objects constructed from the map of values provided.  The keys that are
@@ -115,6 +127,9 @@
                   env-map)
         env-map (if-let [phases (:phases env-map)]
                   (assoc env-map :phases (eval-phases phases))
+                  env-map)
+        env-map (if-let [algorithms (:algorithms env-map)]
+                  (assoc env-map :algorithms (eval-algorithms algorithms))
                   env-map)]
     env-map))
 
