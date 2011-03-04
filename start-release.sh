@@ -10,13 +10,20 @@ fi
 previous_version=$1
 version=$2
 
-echo "\nStart release of $version, previous version is $previous_version\n\n"
+echo ""
+echo "Start release of $version, previous version is $previous_version"
+echo ""
+echo ""
 
 git flow release start $version
 
-echo "\n\nChanges since $previous_version"
+echo ""
+echo ""
+echo "Changes since $previous_version"
 git log --pretty=changelog  pallet-$previous_version.. | tee git.log
-echo "\n\nNow edit ReleaseNotes and README"
+echo ""
+echo ""
+echo "Now edit ReleaseNotes and README"
 
-$EDITOR ../pallet-wiki/docs/ReleaseNotes.org
+$EDITOR ../pallet-wiki/doc/ReleaseNotes.org
 $EDITOR README.md
