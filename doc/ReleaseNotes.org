@@ -1,4 +1,28 @@
-The latest release is 0.4.7.
+The latest release is 0.4.8.
+
+* 0.4.8
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Fixes
+
+- Use the node image spec to construct the virtualbox machine definition
+  In order to allow control of the vmfest hardware and network
+  configuration, use the image template to overide the vmfest defaults. At
+  present it uses
+  :min-cores, :min-ram and :bridged-network.
+
+- Add release scripts
+
+- Fix the lookup of symbols in the :algorithms key of the nvironment
+  When evaluating an environment, say from config.clj, then the values
+  under the
+  :arguments key should be resolved to vars.
+
+- map-to-arg-string: quote arguments
+  Handle arguments with spaces like:
+  (pallet.resource.user/user "nexus" :comment "Sonatype Nexus system user")
 
 * 0.4.7
 
