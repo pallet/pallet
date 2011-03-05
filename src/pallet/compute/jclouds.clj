@@ -426,7 +426,7 @@
    writer
    (format
     "%14s\t %s %s\n\t\t %s\n\t\t %s\n\t\t public: %s  private: %s"
-    (jclouds/node-tag node)
+    (jclouds/tag node)
     (apply str (interpose "." (map location-string (node-locations node))))
     (let [location (.getLocation node)]
       (when (and location (not (= (.getDescription location) (.getId location))))
