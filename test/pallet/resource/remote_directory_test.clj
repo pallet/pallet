@@ -21,7 +21,7 @@
            ("cd" "/path")
            ("tar" xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz")))
          (first (build-resources
-                 []
+                 {}
                  (remote-directory
                   "/path"
                   :url "http://site.com/a/file.tgz"
@@ -38,7 +38,7 @@
            ("tar" xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz"))
           (directory/directory* {} "/path" :owner "fred" :recursive true))
          (first (build-resources
-                 []
+                 {}
                  (remote-directory
                   "/path"
                   :url "http://site.com/a/file.tgz"

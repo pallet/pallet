@@ -8,12 +8,12 @@
   (is
    (first
     (test-utils/build-resources
-     []
+     {}
      (network-service/wait-for-port-listen 80)))))
 
 (deftest wait-for-http-status-test
   (is
    (first
     (test-utils/build-resources
-     []
+     {}
      (network-service/wait-for-http-status "http://localhost/" 200)))))

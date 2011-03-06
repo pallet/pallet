@@ -17,7 +17,10 @@
    [clojure.contrib.io :as io]
    [pallet.test-utils :as test-utils]))
 
-(use-fixtures :once test-utils/with-ubuntu-script-template)
+(use-fixtures
+ :once
+ test-utils/with-ubuntu-script-template
+ (test-utils/console-logging-threshold))
 
 (deftest remote-file*-test
   (testing "url"
@@ -82,7 +85,7 @@
                   "...done\n")
              (->
               (pallet.core/lift
-               {{:tag :local} (test-utils/make-localhost-node)}
+               {{:group-name :local} (test-utils/make-localhost-node)}
                :phase #(remote-file % (.getPath tmp) :content "xxx")
                :compute nil
                :middleware pallet.core/execute-with-local-sh)
@@ -98,7 +101,7 @@
                     java.util.regex.Pattern/DOTALL))
            (->
             (pallet.core/lift
-             {{:tag :local} (test-utils/make-localhost-node)}
+             {{:group-name :local} (test-utils/make-localhost-node)}
              :phase #(remote-file % (.getPath tmp) :content "xxx")
              :compute nil
              :middleware pallet.core/execute-with-local-sh)
@@ -112,28 +115,29 @@
             "remote-file path"
             (file/heredoc "path.new" "a 1\n" {}))
            (remote-file*
-            {:node-type {:tag :n :image {:os-family :ubuntu}}}
+            {:server {:group-name :n :image {:os-family :ubuntu}}}
             "path" :template "template/strint" :values {'a 1}
             :no-versioning true))))))
 
 (deftest remote-file-test
-  (core/with-admin-user (assoc utils/*admin-user* :username (test-utils/test-username))
+  (core/with-admin-user
+    (assoc utils/*admin-user* :username (test-utils/test-username))
     (is (thrown-with-msg? RuntimeException
           #".*/some/non-existing/file.*does not exist, is a directory, or is unreadable.*"
           (test-utils/build-resources
-           [] (remote-file
+           {} (remote-file
                "file1" :local-file "/some/non-existing/file" :owner "user1"))))
 
     (is (thrown-with-msg? RuntimeException
           #".*file1.*without content.*"
           (test-utils/build-resources
-           [] (remote-file "file1" :owner "user1"))))
+           {} (remote-file "file1" :owner "user1"))))
 
     (utils/with-temporary [tmp (utils/tmpfile)]
       (is (re-find #"mv -f --backup=\"numbered\" file1.new file1"
                    (first
                     (test-utils/build-resources
-                     [] (remote-file
+                     {} (remote-file
                          "file1" :local-file (.getPath tmp)))))))
 
     (utils/with-temporary [tmp (utils/tmpfile)
@@ -144,7 +148,7 @@
         (.delete target-tmp)
         (io/copy "text" tmp)
         (let [local (core/make-node "local" {})
-              node (test-utils/make-localhost-node :tag "local")]
+              node (test-utils/make-localhost-node :group-name "local")]
           (testing "local-file"
             (core/lift
              {local node}
@@ -281,9 +285,9 @@
                           :username (test-utils/test-username))
     (utils/with-temporary [remote-file (utils/tmpfile)]
       (let [user (assoc utils/*admin-user*
-                   :username (test-utils/test-username) :no-sudo true)]
+                   :username (test-utils/test-username) :no-sudo true)
+            local (core/group-spec "local")]
         (io/copy "text" remote-file)
-        (core/defnode local {})
         (testing "with local ssh"
           (let [node (test-utils/make-localhost-node)
                 path-atom (atom nil)]

@@ -4,6 +4,7 @@
   (:use
    [org.jclouds.compute
     :exclude [destroy-node nodes run-nodes destroy-nodes-with-tag
+              destroy-nodes-in-group
               terminated? id running? tag hostname compute-service]]
    pallet.utils
    [pallet.compute :exclude [make-node]]
@@ -20,6 +21,7 @@
      (clojure.core/use
       '[org.jclouds.compute
         :exclude [destroy-node nodes run-nodes destroy-nodes-with-tag
+                  destroy-nodes-in-group
                   terminated? id running? tag hostname compute-service]]
       'pallet.utils
       '[pallet.compute :exclude [make-node]]

@@ -13,13 +13,14 @@
   ["node-list"])
 
 (defrecord Node
-    [name tag ip os-family os-version id ssh-port private-ip is-64bit running]
+    [name group-name ip os-family os-version id ssh-port private-ip is-64bit
+     running]
   pallet.compute.Node
   (ssh-port [node] ssh-port)
   (primary-ip [node] ip)
   (private-ip [node] private-ip)
   (is-64bit? [node] (:is-64bit node))
-  (tag [node] tag)
+  (group-name [node] group-name)
   (running? [node] running)
   (terminated? [node] (not running))
   (os-family [node] os-family)
@@ -28,13 +29,13 @@
   (id [node] id))
 
 ;;; Node utilities
-(defn make-node [name tag ip os-family
+(defn make-node [name group-name ip os-family
                  & {:keys [id ssh-port private-ip is-64bit running os-version]
                     :or {ssh-port 22 is-64bit true running true}
                     :as options}]
   (Node.
    name
-   tag
+   group-name
    ip
    os-family
    os-version
@@ -50,7 +51,7 @@
   (nodes [compute-service] node-list)
   (ensure-os-family
    [compute-service request]
-   (when (not (-> request :node-type :image :os-family))
+   (when (not (-> request :group :image :os-family))
      (condition/raise
       :type :no-os-family-specified
        :message "Node list contains a node without os-family")))
@@ -73,7 +74,7 @@
    writer
    (format
     "%14s\t %s %s public: %s  private: %s  %s"
-    (:tag node)
+    (:group-name node)
     (:os-family node)
     (:running node)
     (:ip node)
@@ -82,14 +83,14 @@
 
 (defn make-localhost-node
   "Make a node representing the local host"
-  [& {:keys [name tag ip os-family id]
+  [& {:keys [name group-name ip os-family id]
       :or {name "localhost"
-           tag "local"
+           group-name "local"
            ip "127.0.0.1"
            os-family (jvm/os-family)}
       :as options}]
   (apply
-   make-node name tag ip os-family
+   make-node name group-name ip os-family
    (apply concat (merge {:id "localhost"} options))))
 
 

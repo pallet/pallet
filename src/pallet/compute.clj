@@ -5,7 +5,6 @@
    [pallet.configure :as configure]
    [pallet.environment :as environment]
    [pallet.utils :as utils]
-   [pallet.execute :as execute]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]))
 
@@ -119,7 +118,7 @@
   (primary-ip [node] "Returns the first public IP for the node.")
   (private-ip [node] "Returns the first private IP for the node.")
   (is-64bit? [node] "64 Bit OS predicate")
-  (tag [node] "Returns the tag for the node.")
+  (group-name [node] "Returns the group name for the node.")
   (hostname [node] "TODO make this work on ec2")
   (os-family [node] "Return a node's os-family, or nil if not available.")
   (os-version [node] "Return a node's os-version, or nil if not available.")
@@ -127,8 +126,9 @@
   (terminated? [node])
   (id [node]))
 
-(defn node-has-tag? [tag-name node]
-  (= (clojure.core/name tag-name) (tag node)))
+(defn tag [node] (group-name node))
+(defn node-in-group? [group-name node]
+  (= (clojure.core/name group-name) (pallet.compute/group-name node)))
 
 (defn node-address
   [node]
@@ -152,7 +152,7 @@
    [compute request]
    "Called on startup of a new node to ensure request has an os-family attached
    to it.")
-  (destroy-nodes-with-tag [compute tag-name])
+  (destroy-nodes-in-group [compute group-name])
   (destroy-node [compute node])
   (close [compute]))
 

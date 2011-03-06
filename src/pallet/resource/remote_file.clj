@@ -181,7 +181,7 @@
                    (file/heredoc
                     ~new-path
                     ~(templates/interpolate-template
-                      template (or values {}) (:node-type request))
+                      template (or values {}) request)
                     ~(select-keys options [:literal])))
          link (stevedore/script
                (file/ln ~link ~path :force ~true :symbolic ~true))

@@ -5,30 +5,53 @@
 
 (def *expectations*)
 
+(defn equality-checker
+  [actual expected msg]
+  (is (= actual expected) msg))
+
+(def *equality-checker* equality-checker)
+
 (defn verify-expectations
   [checks]
   (doseq [check checks]
     (check)))
 
+(defn add-expectation
+  "Add an expectation check function to the list of expectations"
+  [f]
+  (set! *expectations* (conj *expectations* f)))
+
 (defmacro once
   "Add an expectation that the function is called once."
   [v args body]
   `(let [counter# (atom 0)]
-     (set! *expectations* (conj
-                     *expectations*
-                     (fn []
-                       (is (= @counter# 1)
-                         (format
-                           "Expected one call to %s. %d seen."
-                           '~v @counter#)))))
+     (add-expectation
+      (fn []
+        (*equality-checker*
+         @counter# 1
+         (format "Expected one call to %s. %d seen." '~v @counter#))))
      (fn [& args#]
        (swap! counter# inc)
        (apply (fn ~args ~@(rest body)) args#))))
 
+(defmacro times
+  "Add an expectation that the function is called specified number of times."
+  [v args body]
+  `(let [counter# (atom 0)
+         n# ~(second body)]
+     (add-expectation
+      (fn []
+        (*equality-checker*
+         @counter# n#
+         (format "Expected %d calls to %s. %d seen." n# '~v @counter#))))
+     (fn [& args#]
+       (swap! counter# inc)
+       (apply (fn ~args ~@(nnext body)) args#))))
+
 (defn construct-mock
   "Construct the mock. Checks for a mock wrapper around the body."
   [[v args body]]
-  (if (and (list? body) (#{#'once} (resolve (first body))))
+  (if (and (list? body) (#{#'once #'times} (resolve (first body))))
     `(~(first body) ~v ~args ~body)
     `(fn ~args ~@(if (seq? body) body (list body)))))
 

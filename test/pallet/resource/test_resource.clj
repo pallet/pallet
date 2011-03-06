@@ -7,8 +7,8 @@
    [request]
    (str
     "test-resource:"
-    (:tag (:node-type request))
-    (:image (:node-type request)))))
+    (-> request :server :tag)
+    (-> request :server :image))))
 
 (defresource test-component
   (test-component-fn

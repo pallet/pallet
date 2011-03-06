@@ -8,6 +8,8 @@
    [pallet.utils :as utils]
    [pallet.script :as script]))
 
+(use-fixtures :once (console-logging-threshold))
+
 (use-fixtures
  :each
  (fn bind-default-agent [f]
@@ -23,7 +25,8 @@
    :else (warn "Skipping system-test")))
 
 (deftest bash-test
-  (is (= {:exit 0 :out "fred\n" :err ""} (bash "echo fred"))))
+  (is (= {:exit 0 :out "fred\n" :err ""}
+         (bash "echo fred"))))
 
 (deftest sudo-cmd-for-test
   (script/with-template [:ubuntu]
@@ -53,7 +56,8 @@
 
 (deftest sh-script-test
   (let [res (sh-script
-             "file=$(mktemp -t utilXXXX);echo fred > \"$file\";cat \"$file\";rm \"$file\"")]
+             (str "file=$(mktemp -t utilXXXX);echo fred > \"$file\";"
+                  "cat \"$file\";rm \"$file\""))]
     (is (= {:exit 0 :err "" :out "fred\n"} res))))
 
 
@@ -85,7 +89,7 @@
         (is (= 0 (:exit (ffirst result))))))))
 
 (deftest local-script-test
-  (local-script "ls"))
+  (is (zero? (:exit (local-script "ls")))))
 
 (deftest local-checked-script-test
-  (local-checked-script "ls should work" "ls"))
+  (is (zero? (:exit (local-checked-script "ls should work" "ls")))))

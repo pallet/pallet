@@ -274,7 +274,8 @@
      :script-exit (:exit result)
      :script-out  (:out result)
      :script-err (:err result)
-     :server "localhost")))
+     :server "localhost"))
+  result)
 
 (defmacro local-checked-script
   "Run a script on the local machine, setting up stevedore to produce the
