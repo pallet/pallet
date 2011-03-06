@@ -98,7 +98,12 @@
   (let [a-node (test-utils/make-node "a" :running true)
         compute (compute/compute-service "node-list" :node-list [a-node])]
     (#'core/converge-node-counts
-     {a 1} [a-node] {:compute compute})))
+     {a 1} [a-node]
+     {:environment
+      {:compute compute
+       :algorithms {:lift-fn sequential-lift
+                    :converge-fn
+                    (var-get #'core/serial-adjust-node-counts)}}})))
 
 (deftest nodes-in-map-test
   (defnode a {:os-family :ubuntu})
@@ -162,17 +167,30 @@
 (deftest build-request-map-test
   (binding [pallet.core/*middleware* :middleware]
     (testing "defaults"
-      (is (= {:blobstore nil :compute nil :user utils/*admin-user*
-              :middleware :middleware}
+      (is (= {:environment
+              {:blobstore nil :compute nil :user utils/*admin-user*
+               :middleware :middleware
+               :algorithms {:lift-fn sequential-lift
+                            :converge-fn
+                            (var-get #'core/serial-adjust-node-counts)}}}
              (#'core/build-request-map {}))))
     (testing "passing a prefix"
-      (is (= {:blobstore nil :compute nil :prefix "prefix"
-              :user utils/*admin-user* :middleware *middleware*}
+      (is (= {:environment
+              {:blobstore nil :compute nil :user utils/*admin-user*
+               :middleware *middleware*
+               :algorithms {:lift-fn sequential-lift
+                            :converge-fn
+                            (var-get #'core/serial-adjust-node-counts)}}
+              :prefix "prefix"}
              (#'core/build-request-map {:prefix "prefix"}))))
     (testing "passing a user"
       (let [user (utils/make-user "fred")]
-        (is (= {:blobstore nil :compute nil  :user user
-                :middleware :middleware}
+        (is (= {:environment
+                {:blobstore nil :compute nil  :user user
+                 :middleware :middleware
+                 :algorithms {:lift-fn sequential-lift
+                              :converge-fn
+                              (var-get #'core/serial-adjust-node-counts)}}}
                (#'core/build-request-map {:user user})))))))
 
 (resource/defresource test-component
@@ -287,8 +305,7 @@
     (let [[localf seen?] (seen-fn "1")
           service (compute/compute-service
                    "node-list"
-                   :node-list [(node-list/make-localhost-node
-                                :tag "local" :os-family :ubuntu)])]
+                   :node-list [(node-list/make-localhost-node :tag "local")])]
       (is (re-find
            #"bin"
            (str
@@ -347,20 +364,28 @@
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
                       []))]
-                  (lift* {a #{na nb nc}} nil [:configure]
-                         {:compute nil
-                          :user utils/*admin-user*
-                          :middleware *middleware*}))
+                  (lift*
+                   {:node-set {a #{na nb nc}}
+                    :phase-list [:configure]
+                    :environment
+                    {:compute nil
+                     :user utils/*admin-user*
+                     :middleware *middleware*
+                     :algorithms {:lift-fn sequential-lift}}}))
     (mock/expects [(sequential-apply-phase
                     [request nodes]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
                       []))]
-                  (lift* {a #{na} b #{nb}} nil [:configure]
-                         {:compute nil
-                          :user utils/*admin-user*
-                          :middleware *middleware*}))))
+                  (lift*
+                   {:node-set {a #{na} b #{nb}}
+                    :phase-list [:configure]
+                    :environment
+                    {:compute nil
+                     :user utils/*admin-user*
+                     :middleware *middleware*
+                     :algorithms {:lift-fn sequential-lift}}}))))
 
 (deftest lift-multiple-test
   (defnode a {})

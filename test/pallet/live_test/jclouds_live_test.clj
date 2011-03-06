@@ -7,7 +7,8 @@
    [pallet.compute :as compute]))
 
 (deftest node-types-test
-  (is (= {:repo {:tag :repo, :image {:os-family :ubuntu}, :count 1, :phases {}}}
+  (is (= {:repo {:tag :repo :base-tag :repo :image {:os-family :ubuntu}
+                 :count 1 :phases {}}}
          (live-test/node-types
           {:repo {:image {:os-family :ubuntu}
                   :count 1
@@ -17,7 +18,8 @@
   (let [specs {:repo {:image {:os-family :ubuntu}
                   :count 1
                   :phases {}}}]
-    (is (= {{:tag :repo :image {:os-family :ubuntu}, :count 1, :phases {}} 1}
+    (is (= {{:tag :repo :base-tag :repo :image {:os-family :ubuntu}
+             :count 1 :phases {}} 1}
            (#'live-test/counts specs)))))
 
 (deftest build-nodes-test
@@ -40,4 +42,24 @@
                :count 1
                :phases {}}}
        (let [node-list (compute/nodes compute)]
-         (is (= 1 (count ((group-by compute/tag node-list) "repo")))))))))
+         (is (= 1 (count ((group-by compute/tag node-list) "repo")))))))
+    ;; (is (= 0
+    ;;        (count
+    ;;         ((group-by compute/tag (compute/nodes @live-test/service))
+    ;;          "repo"))))
+    )
+  (testing "with prefix"
+    (live-test/with-live-tests
+      (doseq [os-family [:centos]]
+        (live-test/test-nodes
+         [compute node-map node-types]
+         {:repo {:image {:os-family os-family :prefix "1"}
+                 :count 1
+                 :phases {}}}
+         (let [node-list (compute/nodes compute)]
+           (is (= 1 (count ((group-by compute/tag node-list) "repo1")))))))
+      ;; (is (= 0
+      ;;        (count
+      ;;         ((group-by compute/tag (compute/nodes @live-test/service))
+      ;;          "repo1"))))
+      )))

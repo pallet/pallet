@@ -6,3 +6,16 @@
  - No Tabs
  - 80 character maximum line length
 
+* Changelog
+The [[changelog][ChangeLog]] is maintained in the wiki, and is built using commit messages.
+
+The changelog format is produced directly by git, just add the following to your
+`.gitconfig` file:
+
+    [pretty]
+    changelog = format:- %w(76,0,2)%s%n%w(76,2,2)%b
+
+To generate the raw input for the changelog, then run the following, replacing
+`pallet-0.3.0` with a commit or tag that you want to start from:
+
+    git log --pretty=changelog  pallet-0.3.0..

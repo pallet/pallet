@@ -9,6 +9,7 @@
    by default."
   (:require
    [pallet.blobstore :as blobstore]
+   [pallet.environment :as environment]
    [pallet.resource :as resource]
    [pallet.resource.directory :as directory]
    [pallet.resource.file :as file]
@@ -130,7 +131,8 @@
                     :as options}]
    (let [new-path (str path ".new")
          md5-path (str path ".md5")
-         versioning (if no-versioning nil :numbered)]
+         versioning (if no-versioning nil :numbered)
+         proxy (environment/get-for request [:proxy] nil)]
      (case action
        :create
        (stevedore/checked-commands
@@ -143,7 +145,7 @@
                                             (file/cut
                                              "" :fields 1 :delimiter " ")))))
                           ~(stevedore/chained-script
-                            (file/download-file ~url ~new-path))))
+                            (file/download-file ~url ~new-path :proxy ~proxy))))
          ;; Download md5 to temporary directory.
          (and url md5-url) (stevedore/chained-script
                             (var tmpdir (quoted (directory/make-temp-dir "rf")))
@@ -151,11 +153,11 @@
                                  (quoted
                                   (str @tmpdir "/" @(file/basename ~path))))
                             (var newmd5path (quoted (str @basefile ".md5")))
-                            (file/download-file ~md5-url @newmd5path)
+                            (file/download-file ~md5-url @newmd5path :proxy ~proxy)
                             (if (|| (not (file-exists? ~md5-path))
                                     (file/diff @newmd5path ~md5-path))
                               (do
-                                (file/download-file ~url ~new-path)
+                                (file/download-file ~url ~new-path :proxy ~proxy)
                                 (file/ln ~new-path @basefile :symbolic true)
                                 (if-not (file/md5sum-verify @newmd5path)
                                   (do
@@ -164,7 +166,7 @@
                                     (shell/exit 1)))))
                             (file/rm @tmpdir :force ~true :recursive ~true))
          url (stevedore/chained-script
-              (file/download-file ~url ~new-path))
+              (file/download-file ~url ~new-path :proxy ~proxy))
          content (stevedore/script
                   (file/heredoc
                    ~new-path ~content ~(select-keys options [:literal])))
@@ -188,7 +190,7 @@
                (download-request
                 ~new-path
                 ~(blobstore/sign-blob-request
-                  (or blobstore (:blobstore request)
+                  (or blobstore (environment/get-for request [:blobstore] nil)
                       (throw (IllegalArgumentException.
                               "No :blobstore given for blob content.") ))
                   (:container blob) (:path blob)

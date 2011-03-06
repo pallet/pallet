@@ -104,11 +104,16 @@
          (#'core/add-target-packager
           {:node-type {:image {:os-family :ubuntu}}}))))
 
+;; NEED to make this work multi-threaded
 (deftest converge-node-counts-test
   (defnode a {:os-family :ubuntu})
   (let [a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
     (#'core/converge-node-counts
-     {a 1} [a-node] {:compute org.jclouds.compute/*compute*}))
+     {a 1} [a-node]
+     {:environment
+      {:compute org.jclouds.compute/*compute*
+       :algorithms {:converge-fn #'pallet.core/serial-adjust-node-counts
+                    :lift-fn #'pallet.core/sequential-lift}}}))
   (mock/expects [(org.jclouds.compute/run-nodes
                   [tag n template compute]
                   (mock/once
@@ -116,9 +121,46 @@
                  (org.jclouds.compute/build-template
                   [compute & options]
                   (mock/once :template))]
-    (let [a-node (jclouds/make-node "a" :state NodeState/TERMINATED)]
-      (#'core/converge-node-counts
-       {a 1} [a-node] {:compute org.jclouds.compute/*compute*}))))
+                (let [a-node (jclouds/make-node
+                              "a" :state NodeState/TERMINATED)]
+                  (#'core/converge-node-counts
+                   {a 1}
+                   [a-node]
+                   {:environment
+                    {:compute org.jclouds.compute/*compute*
+                     :algorithms
+                     {:converge-fn #'pallet.core/serial-adjust-node-counts
+                      :lift-fn #'pallet.core/sequential-lift}}}))))
+
+(deftest parallel-converge-node-counts-test
+  (defnode a {:os-family :ubuntu})
+  (let [a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
+    (#'core/converge-node-counts
+     {a 1} [a-node]
+     {:environment
+      {:compute org.jclouds.compute/*compute*
+       :algorithms {:converge-fn #'pallet.core/parallel-adjust-node-counts
+                    :lift-fn #'pallet.core/parallel-lift}}}))
+  (mock/expects [(clojure.core/future-call
+                  [f]
+                  (mock/once (delay (f)))) ;; delay implements deref
+                 (org.jclouds.compute/run-nodes
+                  [tag n template compute]
+                  (mock/once
+                   (is (= n 1))))
+                 (org.jclouds.compute/build-template
+                  [compute & options]
+                  (mock/once :template))]
+                (let [a-node (jclouds/make-node
+                              "a" :state NodeState/TERMINATED)]
+                  (#'core/converge-node-counts
+                   {a 1}
+                   [a-node]
+                   {:environment
+                    {:compute org.jclouds.compute/*compute*
+                     :algorithms
+                     {:converge-fn #'pallet.core/parallel-adjust-node-counts
+                      :lift-fn #'pallet.core/parallel-lift}}}))))
 
 (deftest nodes-in-map-test
   (defnode a {:os-family :ubuntu})
@@ -178,22 +220,6 @@
         nb (jclouds/make-node "b")]
     (is (= [na nb] (#'core/nodes-in-map {a 1 b 1 c 1} [na nb])))
     (is (= [na] (#'core/nodes-in-map {a 1 c 1} [na nb])))))
-
-(deftest build-request-map-test
-  (binding [pallet.core/*middleware* :middleware]
-    (testing "defaults"
-      (is (= {:blobstore nil :compute nil :user utils/*admin-user*
-              :middleware :middleware}
-             (#'pallet.core/build-request-map {}))))
-    (testing "passing a prefix"
-      (is (= {:blobstore nil :compute nil :prefix "prefix"
-              :user utils/*admin-user* :middleware *middleware*}
-             (#'pallet.core/build-request-map {:prefix "prefix"}))))
-    (testing "passing a user"
-      (let [user (utils/make-user "fred")]
-        (is (= {:blobstore nil :compute nil  :user user
-                :middleware :middleware}
-               (#'pallet.core/build-request-map {:user user})))))))
 
 (resource/defresource test-component
   (test-component-fn
@@ -285,7 +311,7 @@
       (is (.contains
            "bin"
            (with-out-str
-             (lift {local (jclouds/make-unmanaged-node "local" "localhost")}
+             (lift {local (jclouds/make-localhost-node)}
                    :phase [(resource/phase (exec-script/exec-script
                                             (file/ls "/")))
                            (resource/phase (localf))]
@@ -322,20 +348,32 @@
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
                       []))]
-                  (lift* {a #{na nb nc}} nil [:configure]
-                         {:compute nil
-                          :user utils/*admin-user*
-                          :middleware *middleware*}))
+                  (lift*
+                   {:node-set {a #{na nb nc}}
+                    :phase-list [:configure]
+                    :environment
+                    {:compute nil
+                     :user utils/*admin-user*
+                     :middleware *middleware*
+                     :algorithms
+                     {:converge-fn #'pallet.core/serial-adjust-node-counts
+                      :lift-fn sequential-lift}}}))
     (mock/expects [(sequential-apply-phase
                     [request nodes]
                     (do
                       (is (= #{na nb} (set (:all-nodes request))))
                       (is (= #{na nb} (set (:target-nodes request))))
                       []))]
-                  (lift* {a #{na} b #{nb}} nil [:configure]
-                         {:compute nil
-                          :user utils/*admin-user*
-                          :middleware *middleware*}))))
+                  (lift*
+                   {:node-set {a #{na} b #{nb}}
+                    :phase-list [:configure]
+                    :environment
+                    {:compute nil
+                     :user utils/*admin-user*
+                     :middleware *middleware*
+                     :algorithms
+                     {:converge-fn #'pallet.core/serial-adjust-node-counts
+                      :lift-fn sequential-lift}}}))))
 
 (deftest lift-multiple-test
   (defnode a {})
@@ -366,13 +404,18 @@
                       []))
                    (org.jclouds.compute/nodes-with-details [& _] [na nb nc])]
                   (converge*
-                   {a 1 b 1} nil [:configure]
-                   {:compute org.jclouds.compute/*compute*
-                    :middleware *middleware*}))))
+                   {:node-map {a 1 b 1}
+                    :phase-list [:configure]
+                    :environment
+                    {:compute org.jclouds.compute/*compute*
+                     :middleware *middleware*
+                     :algorithms
+                     {:converge-fn #'pallet.core/serial-adjust-node-counts
+                      :lift-fn sequential-lift}}}))))
 
 (deftest converge-test
   (org.jclouds.compute/with-compute-service
-    [(org.jclouds.compute/compute-service
+    [(pallet.compute/compute-service
       "stub" "" "" :extensions [(ssh-test/ssh-test-client
                                  ssh-test/no-op-ssh-client)])]
     (jclouds-test-utils/purge-compute-service)

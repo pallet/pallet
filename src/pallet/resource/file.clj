@@ -94,7 +94,7 @@
 (script-impl/defimpl cut :default
   [file & {:keys [fields delimiter]}]
   ("cut"
-   ~(stevedore/map-to-arg-string {:f fields :d (utils/quoted delimiter)})
+   ~(stevedore/map-to-arg-string {:f fields :d delimiter})
    ~file))
 
 (script/defscript chown [owner file & {:as options}])

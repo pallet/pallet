@@ -24,12 +24,18 @@
 (def
   ^{:doc "The default images for testing"}
   default-images
-  [{:os-family :ubuntu :os-version-matches "10.04" :os-64-bit false}
-   {:os-family :ubuntu :os-version-matches "10.10" :os-64-bit true}
-   {:os-family :debian :os-version-matches "5.0.7" :os-64-bit false}
-   {:os-family :centos :os-version-matches "5.5" :os-64-bit true}
-   {:os-family :centos :os-version-matches "5.3" :os-64-bit false}
-   {:os-family :arch :os-version-matches "2010.05" :os-64-bit true}])
+  [{:os-family :ubuntu :os-version-matches "10.04" :os-64-bit false
+    :prefix "u1004"}
+   {:os-family :ubuntu :os-version-matches "10.10" :os-64-bit true
+    :prefix "u1010"}
+   {:os-family :debian :os-version-matches "5.0.7" :os-64-bit false
+    :prefix "deb"}
+   {:os-family :centos :os-version-matches "5.5" :os-64-bit true
+    :prefix "co55"}
+   {:os-family :centos :os-version-matches "5.3" :os-64-bit false
+    :prefix "co53"}
+   {:os-family :arch :os-version-matches "2010.05" :os-64-bit true
+    :prefix "arch"}])
 
 (def
   ^{:doc "Selectable image lists"}
@@ -72,6 +78,13 @@
   *cleanup-nodes*
   (let [cleanup (read-property "pallet.test.cleanup-nodes")]
     (if (nil? cleanup) true cleanup)))
+
+(def ^{:doc "Flag for tests in parallel"}
+  *parallel*
+  (let [parallel (System/getProperty "pallet.test.parallel")]
+    (if (string/blank? parallel)
+      false
+      (read-string parallel))))
 
 (def ^{:doc "List of images to test with"}
   *images*
@@ -135,22 +148,27 @@
    (set-service! (compute/compute-service-from-config-file service-name))
    (set-service! (compute/compute-service-from-settings service-name))))
 
+(defn- effective-tag
+  [tag spec]
+  (keyword (str (name tag) (name (get-in spec [:image :prefix] "")))))
+
+(defn- node-spec
+  [[tag spec]]
+  (-> spec
+      (assoc
+          :base-tag (keyword (name tag))
+          :tag (effective-tag tag spec))
+      (update-in [:image] dissoc :prefix)))
+
 (defn node-types
   "Build node types according to the specs"
   [specs]
-  (into
-   {}
-   (map #(vector (key %) (assoc (val %) :tag (keyword (key %)))) specs)))
+  (into {} (map #((juxt :tag identity) (node-spec %)) specs)))
 
 (defn- counts
   "Build a map of node defintion to count suitable for passing to `converge`."
   [specs]
-  (into
-   {}
-   (map
-    #(vector (assoc (val %) :tag (keyword (name (key %)))) (:count (val %)))
-    specs)))
-
+  (into {} (map #(vector (node-spec %) (:count (val %))) specs)))
 
 (defn build-nodes
   "Build nodes using the node-types specs"
@@ -196,3 +214,10 @@
          (finally
           (when *cleanup-nodes*
             (destroy-nodes ~'compute (keys ~'node-types))))))))
+
+(defmacro test-for
+  "Loop over tests, in parallel or serial, depending on pallet.test.parallel."
+  [[& bindings] & body]
+  `(if *parallel*
+     (doseq [f# (doall (for [~@bindings] (future ~@body)))] @f#)
+     (doseq [~@bindings] ~@body)))

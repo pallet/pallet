@@ -30,7 +30,7 @@ nodes.
 
   (def service (pallet.compute/compute-service-from-config-file))
   (pallet.core/defnode mytag {})
-  (pallet.core/lift mytag service
-    (pallet.resource/phase (pallet.resource.package/package "curl")))
+  (pallet.core/lift mytag :compute service
+    :phase (pallet.resource/phase (pallet.resource.package/package "curl")))
 #+END_SRC
 

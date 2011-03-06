@@ -634,13 +634,13 @@
   (let [opt (if do-underscore (utils/underscore (name option)) (name option))]
     (if argument
       (if (> (.length opt) 1)
-        (str dash opt (if (and argument (not (= argument true)))
-                        (str (if do-assign "=" " ") argument)))
-        (str "-" opt (if-not (= argument true) (str " " argument)))))))
+        (str dash opt (if-not (= argument true)
+                        (str (if do-assign "=" " ") \" argument \")))
+        (str "-" opt (if-not (= argument true) (str " " \" argument \")))))))
 
 (defn map-to-arg-string
   "Output a set of command line switches from a map"
-  [m & {:keys [underscore assign dash] :or {dash "--"} :as options}]
+  [m & {:keys [underscore assign dash] :or {dash "--"}}]
   (apply
    str (interpose
         " "

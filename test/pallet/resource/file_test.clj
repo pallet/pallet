@@ -14,7 +14,7 @@
          (script (rm "file1" :force true)))))
 
 (deftest mv-test
-  (is (= "mv --backup=numbered file1 file2"
+  (is (= "mv --backup=\"numbered\" file1 file2"
          (script (mv "file1" "file2" :backup :numbered)))))
 
 (deftest ln-test
