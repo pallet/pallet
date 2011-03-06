@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.4.0</version>
+    <version>0.4.1</version>
     <relativePath>../pallet-pom</relativePath>
   </parent>
   <groupId>org.cloudhoist</groupId>
@@ -116,7 +116,7 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>org.cloudhoist</groupId>
+      <groupId>enlive</groupId>
       <artifactId>enlive</artifactId>
       <version>1.0.0</version>
     </dependency>
@@ -351,11 +351,11 @@
   <!-- make sure we can find the parent pom -->
   <repositories>
     <repository>
-      <id>sonatype-snapshots</id>
-      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
-    </repository>
-    <repository>
-      <id>sonatype</id>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <id>sonatype-nexus-releases</id>
+      <name>Sonatype Nexus Releases</name>
       <url>http://oss.sonatype.org/content/repositories/releases</url>
     </repository>
   </repositories>
