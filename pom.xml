@@ -171,7 +171,7 @@
 	<activeByDefault>true</activeByDefault>
       </activation>
       <properties>
-        <jclouds.version>1.0-beta-8</jclouds.version>
+        <jclouds.version>1.0-beta-9</jclouds.version>
       </properties>
       <dependencies>
         <dependency>
@@ -186,68 +186,27 @@
         </dependency>
 
         <!-- You will need the jclouds provider specific jars for your project -->
-        <!-- An alternative to invidual provider jars is to pull in everything -->
-        <!-- <dependency> -->
-        <!--     <groupId>org.jclouds</groupId> -->
-        <!--     <artifactId>jclouds-all</artifactId> -->
-        <!--     <version>${jclouds.version}</version> -->
-        <!--     <optional>true</optional> -->
-        <!-- </dependency> -->
+        <!-- The simplest is to pull in everything, but you can use individual -->
+        <!-- provider dependencies. -->
         <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-aws</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-bluelock</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-gogrid</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-rackspace</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-rimuhosting</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-slicehost</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-terremark</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-all</artifactId>
+            <version>${jclouds.version}</version>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
-          <groupId>org.jclouds</groupId>
+          <groupId>org.jclouds.driver</groupId>
           <artifactId>jclouds-jsch</artifactId>
           <version>${jclouds.version}</version>
         </dependency>
         <dependency>
-          <groupId>org.jclouds</groupId>
+          <groupId>org.jclouds.driver</groupId>
           <artifactId>jclouds-log4j</artifactId>
           <version>${jclouds.version}</version>
         </dependency>
         <dependency>
-          <groupId>org.jclouds</groupId>
+          <groupId>org.jclouds.driver</groupId>
           <artifactId>jclouds-enterprise</artifactId>
           <version>${jclouds.version}</version>
         </dependency>
