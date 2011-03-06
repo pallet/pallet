@@ -225,17 +225,15 @@
       (is (= {:environment
               {:blobstore nil :compute nil :user utils/*admin-user*
                :middleware :middleware
-               :algorithms {:lift-fn sequential-lift
-                            :converge-fn
-                            (var-get #'core/serial-adjust-node-counts)}}}
+               :algorithms {:lift-fn core/parallel-lift
+                            :converge-fn core/parallel-adjust-node-counts}}}
              (#'core/request-with-environment {}))))
     (testing "passing a prefix"
       (is (= {:environment
               {:blobstore nil :compute nil :user utils/*admin-user*
                :middleware *middleware*
-               :algorithms {:lift-fn sequential-lift
-                            :converge-fn
-                            (var-get #'core/serial-adjust-node-counts)}}
+               :algorithms {:lift-fn core/parallel-lift
+                            :converge-fn core/parallel-adjust-node-counts}}
               :prefix "prefix"}
              (#'core/request-with-environment {:prefix "prefix"}))))
     (testing "passing a user"
@@ -243,9 +241,8 @@
         (is (= {:environment
                 {:blobstore nil :compute nil  :user user
                  :middleware :middleware
-                 :algorithms {:lift-fn sequential-lift
-                              :converge-fn
-                              (var-get #'core/serial-adjust-node-counts)}}}
+                 :algorithms {:lift-fn parallel-lift
+                              :converge-fn parallel-adjust-node-counts}}}
                (#'core/request-with-environment {:user user})))))))
 
 (resource/defresource test-component

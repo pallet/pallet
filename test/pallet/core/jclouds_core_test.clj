@@ -329,7 +329,10 @@
                         (is (= nb (-> m :b :servers first :node)))
                         (is (= 2 (count (:groups request)))))
                       []))]
-                  (lift [a b] :compute (jclouds-test-utils/compute)))))
+                  (lift [a b] :compute (jclouds-test-utils/compute)
+                        :environment
+                        {:algorithms
+                         {:lift-fn pallet.core/sequential-lift}}))))
 
 (deftest create-nodes-test
   (let [a (jclouds/make-node "a")

@@ -356,7 +356,7 @@ is run with root privileges immediatly after first boot."
      (neg? delta) (destroy-nodes group (- delta) request)
      :else (map :node servers))))
 
-(defn- serial-adjust-node-counts
+(defn serial-adjust-node-counts
   "Start or stop the specified number of nodes."
   [delta-map request]
   (logging/trace (str "serial-adjust-node-counts" delta-map))
@@ -883,8 +883,8 @@ is run with root privileges immediatly after first boot."
    :compute nil
    :user utils/*admin-user*
    :middleware *middleware*
-   :algorithms {:lift-fn sequential-lift
-                :converge-fn serial-adjust-node-counts}})
+   :algorithms {:lift-fn parallel-lift
+                :converge-fn parallel-adjust-node-counts}})
 
 (defn- effective-environment
   "Build the effective environment for the request map.
