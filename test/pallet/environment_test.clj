@@ -52,7 +52,12 @@
            pallet.utils.User
            (:user (environment/eval-environment env))))
       (is (= "u"
-             (-> (environment/eval-environment env) :user :username))))))
+             (-> (environment/eval-environment env) :user :username)))))
+  (testing "arguments"
+    (let [env {:algorithms {:lift-fn 'pallet.core/parallel-apply-phase}}
+          f (-> (environment/eval-environment env) :algorithms :lift-fn)]
+      (is (find-var 'pallet.core/parallel-apply-phase))
+      (is (= (var-get (find-var 'pallet.core/parallel-apply-phase)) f)))))
 
 (deftest request-with-environment-test
   (testing "basic merge"

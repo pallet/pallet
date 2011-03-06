@@ -128,7 +128,8 @@
                     :as options}]
    (let [new-path (str path ".new")
          md5-path (str path ".md5")
-         versioning (if no-versioning "" (stevedore/script (backup-option)))]
+         versioning (if no-versioning "" (stevedore/script (backup-option)))
+         proxy (environment/get-for request [:proxy] nil)]
      (case action
        :create
        (stevedore/checked-commands
@@ -140,18 +141,18 @@
                                             (md5sum ~path)
                                             (cut "-f1" "-d" "' '")))))
                           ~(stevedore/chained-script
-                            (download-file ~url ~new-path))))
+                            (download-file ~url ~new-path :proxy ~proxy))))
          ;; Download md5 to temporary directory.
          (and url md5-url) (stevedore/chained-script
                             (var tmpdir (quoted (make-temp-dir "rf")))
                             (var basefile
                                  (quoted (str @tmpdir "/" @(basename ~path))))
                             (var newmd5path (quoted (str @basefile ".md5")))
-                            (download-file ~md5-url @newmd5path)
+                            (download-file ~md5-url @newmd5path :proxy ~proxy)
                             (if (|| (not (file-exists? ~md5-path))
                                     (diff @newmd5path ~md5-path))
                               (do
-                                (download-file ~url ~new-path)
+                                (download-file ~url ~new-path :proxy ~proxy)
                                 (ln -s ~new-path @basefile)
                                 (if-not (md5sum-verify @newmd5path)
                                   (do
@@ -160,7 +161,7 @@
                                     (exit 1)))))
                             (rm @tmpdir ~{:force true :recursive true}))
          url (stevedore/chained-script
-              (download-file ~url ~new-path))
+              (download-file ~url ~new-path :proxy ~proxy))
          content (apply file/heredoc
                         new-path content
                         (apply concat (seq (select-keys options [:literal]))))

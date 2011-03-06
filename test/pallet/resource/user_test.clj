@@ -20,17 +20,19 @@
              (script (user/create-user "user1"  ~{:system true})))))))
 
 (deftest modify-user-test
-  (is (= "/usr/sbin/usermod --home /home2/user1 --shell /bin/bash user1"
+  (is (= "/usr/sbin/usermod --home \"/home2/user1\" --shell \"/bin/bash\" user1"
          (script
           (user/modify-user
            "user1"  ~{:home "/home2/user1" :shell "/bin/bash"})))))
 
 (deftest user*-create-test
-  (is (= "if ! getent passwd user1; then /usr/sbin/useradd --shell /bin/bash user1;fi"
+  (is (= (str "if ! getent passwd user1;"
+              " then /usr/sbin/useradd --shell \"/bin/bash\" user1;fi")
          (user/user* {} "user1" :action :create :shell :bash))))
 
 (deftest user*-modify-test
-  (is (= "if getent passwd user1; then /usr/sbin/usermod  user1;else /usr/sbin/useradd  user1;fi"
+  (is (= (str "if getent passwd user1;"
+              " then /usr/sbin/usermod  user1;else /usr/sbin/useradd  user1;fi")
          (user/user* {} "user1" :action :manage))))
 
 (deftest user*-lock-test

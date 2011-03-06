@@ -368,7 +368,7 @@ is run with root privileges immediatly after first boot."
        (adjust-node-count group ((:group-name group) delta-map 0) request))
      (:groups request)))))
 
-(defn- parallel-adjust-node-counts
+(defn parallel-adjust-node-counts
   "Start or stop the specified number of nodes."
   [delta-map request]
   (logging/trace (str "parallel-adjust-node-counts" delta-map))

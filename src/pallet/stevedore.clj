@@ -613,20 +613,18 @@
     (if argument
       (if (> (.length opt) 1)
         (str dash opt (if-not (= argument true)
-                        (str (if do-assign "=" " ") argument)))
-        (str "-" opt (if-not (= argument true) (str " " argument)))))))
+                        (str (if do-assign "=" " ") \" argument \")))
+        (str "-" opt (if-not (= argument true) (str " " \" argument \")))))))
 
 (defn map-to-arg-string
   "Output a set of command line switches from a map"
-  [m & options]
-  (let [opts (apply hash-map options)]
-    (apply
-     str (interpose
-          " "
-          (map #(arg-string
-                 (first %) (second %) (opts :underscore) (:opts :assign)
-                 (get opts :dash "--"))
-               m)))))
+  [m & {:keys [underscore assign dash] :or {dash "--"}}]
+  (apply
+   str (interpose
+        " "
+        (map #(arg-string
+               (first %) (second %) underscore assign dash)
+             m))))
 
 (defn option-args
   "Output a set of command line switches from a sequence of options"
