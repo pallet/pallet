@@ -18,8 +18,8 @@
           (remote-file/remote-file* {}
            "${TMPDIR-/tmp}/file.tgz" :url "http://site.com/a/file.tgz" :md5 nil)
           (stevedore/script
-           (cd "/path")
-           (tar xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz")))
+           ("cd" "/path")
+           ("tar" xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz")))
          (first (build-resources
                  []
                  (remote-directory
@@ -34,8 +34,8 @@
            {} "${TMPDIR-/tmp}/file.tgz"
            :url "http://site.com/a/file.tgz" :md5 nil)
           (stevedore/script
-           (cd "/path")
-           (tar xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz"))
+           ("cd" "/path")
+           ("tar" xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz"))
           (directory/directory* {} "/path" :owner "fred" :recursive true))
          (first (build-resources
                  []

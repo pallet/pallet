@@ -5,6 +5,7 @@
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
    [pallet.resource.exec-script :as exec-script]
+   [pallet.resource.file :as file]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
    [pallet.target :as target]
@@ -305,16 +306,18 @@
           service (compute/compute-service
                    "node-list"
                    :node-list [(node-list/make-localhost-node :tag "local")])]
-      (is (.contains
-           "bin"
-           (with-out-str
-             (lift local
-                   :phase [(resource/phase (exec-script/exec-script (ls "/")))
-                           (resource/phase (localf))]
-                   :user (assoc utils/*admin-user*
-                           :username (test-utils/test-username)
-                           :no-sudo true)
-                   :compute service))))
+      (is (re-find
+           #"bin"
+           (str
+            (:results (lift
+                       local
+                       :phase [(resource/phase
+                                (exec-script/exec-script (file/ls "/")))
+                               (resource/phase (localf))]
+                       :user (assoc utils/*admin-user*
+                               :username (test-utils/test-username)
+                               :no-sudo true)
+                       :compute service)))))
       (is (seen?))
       (testing "invalid :phases keyword"
         (is (thrown-with-msg?

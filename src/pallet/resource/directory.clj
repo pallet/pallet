@@ -4,31 +4,36 @@
   (:require
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
+   [pallet.stevedore.script :as script-impl]
+   [pallet.resource.file :as file]
    [pallet.script :as script])
   (:use
    [pallet.resource :only [defresource]]
-   [pallet.resource.file :only [chown chgrp chmod]]
+   [pallet.resource.file :only [chown chgrp chmod rm]]
    clojure.contrib.logging))
 
 (script/defscript rmdir
   "Remove the specified directory"
-  [directory & options])
+  [directory & {:as options}])
 
-(stevedore/defimpl rmdir :default [directory & options]
-  ("rmdir" ~(stevedore/map-to-arg-string (first options)) ~directory))
+(script-impl/defimpl rmdir :default [directory & {:as options}]
+  ("rmdir" ~(stevedore/map-to-arg-string options) ~directory))
 
 (script/defscript mkdir
   "Create the specified directory"
-  [directory & options])
-(stevedore/defimpl mkdir :default [directory & options]
-  ("mkdir" ~(stevedore/map-to-arg-string (first options)) ~directory))
+  [directory & {:keys [path verbose mode]}])
+(script-impl/defimpl mkdir :default
+  [directory & {:keys [path verbose mode] :as options}]
+  ("mkdir"
+   ~(stevedore/map-to-arg-string {:m mode :p path :v verbose})
+   ~directory))
 
 (script/defscript make-temp-dir
   "Create a temporary directory"
-  [pattern & options])
-(stevedore/defimpl make-temp-dir :default [pattern & options]
+  [pattern & {:as options}])
+(script-impl/defimpl make-temp-dir :default [pattern & {:as options}]
   @("mktemp" -d
-    ~(stevedore/map-to-arg-string (first options))
+    ~(stevedore/map-to-arg-string options)
     ~(str pattern "XXXXX")))
 
 (defn adjust-directory
@@ -49,12 +54,12 @@
 
 (defn make-directory
   "Script to create a directory."
-  [path opts]
+  [dir-path & {:keys [path verbose mode] :as opts}]
   (stevedore/checked-commands
-   (str "Directory " path)
+   (str "Directory " dir-path)
    (stevedore/script
-    (mkdir ~path ~(select-keys opts [:p :v :m])))
-   (adjust-directory path opts)))
+    (mkdir ~dir-path :path ~path :verbose ~verbose :mode ~mode))
+   (adjust-directory dir-path opts)))
 
 (defresource directory
   "Directory management.
@@ -66,14 +71,15 @@
     - :recursive  Flag for recursive delete
     - :force      Flag for forced delete"
   (directory*
-   [request path & {:keys [action] :or {action :create} :as options}]
+   [request dir-path & {:keys [action recursive force path mode verbose]
+                        :or {action :create recursive true force true path true}
+                        :as options}]
    (case action
      :delete (stevedore/checked-script
-              (str "Delete directory " path)
-              (rm ~path ~{:r (get options :recursive true)
-                          :f (get options :force true)}))
-     :create (make-directory path (merge {:p true} options))
-     :touch (make-directory path (merge {:p true} options)))))
+              (str "Delete directory " dir-path)
+              (file/rm ~dir-path :recursive ~recursive :force ~force))
+     :create (make-directory dir-path :path path :mode mode :verbose verbose)
+     :touch (make-directory dir-path :path path :mode mode :verbose verbose))))
 
 (defresource directories
   "Directory management of multiple directories with the same

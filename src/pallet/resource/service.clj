@@ -4,6 +4,7 @@
   (:require
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
+   [pallet.stevedore.script :as script-impl]
    [pallet.resource.filesystem-layout :as filesystem-layout]
    [pallet.resource.lib :as lib]
    [pallet.resource.remote-file :as remote-file]
@@ -21,22 +22,22 @@
    (map #(% debian-configure-option-names %) (keys options))
    (vals options)))
 
-(stevedore/defimpl configure-service :default [name action options]
+(script-impl/defimpl configure-service :default [name action options]
   ~(condp = action
        :disable (stevedore/script
-                 (update-rc.d
+                 ("update-rc.d"
                   ~(stevedore/map-to-arg-string
                     (select-keys [:f :n] (debian-options options)))
                   ~name remove))
        :enable (stevedore/script
-                (update-rc.d
+                ("update-rc.d"
                  ~(stevedore/map-to-arg-string
                    (select-keys [:n] (debian-options options)))
                  ~name defaults
                  ~(:sequence-start options 20)
                  ~(:sequence-stop options (:sequence-start options 20))))
        :start-stop (stevedore/script ;; start/stop
-                    (update-rc.d
+                    ("update-rc.d"
                      ~(stevedore/map-to-arg-string
                        (select-keys [:n] (debian-options options)))
                      ~name
@@ -52,7 +53,7 @@
   [options]
   (->> options (drop 1 ) (map str) string/join))
 
-(stevedore/defimpl configure-service [#{:yum}] [name action options]
+(script-impl/defimpl configure-service [#{:yum}] [name action options]
   ~(condp = action
        :disable (stevedore/script ("/sbin/chkconfig" ~name off))
        :enable (stevedore/script
@@ -88,7 +89,7 @@
       (configure-service ~service-name ~action ~options))
      (if if-flag
        (stevedore/script
-        (if (== "1" (flag? ~if-flag))
+        (if (== "1" (lib/flag? ~if-flag))
           (~(str "/etc/init.d/" service-name) ~(name action))))
        (stevedore/script
         ( ~(str "/etc/init.d/" service-name) ~(name action)))))))
@@ -111,6 +112,6 @@
   (apply
    remote-file/remote-file
    request
-   (str (stevedore/script (etc-init)) "/" name)
+   (str (stevedore/script (filesystem-layout/etc-init)) "/" name)
    :action action :owner "root" :group "root" :mode "0755"
    (apply concat options)))

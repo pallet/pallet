@@ -3,45 +3,124 @@
   (:require
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
-   [pallet.resource.file :as file]
+   [pallet.stevedore.script :as script-impl]
+   [pallet.resource.shell :as shell]
    [pallet.script :as script]
-   [clojure.string :as string])
+   [clojure.string :as string]
+   pallet.resource.script)
   (:use
    [pallet.resource :only [defresource]]
    clojure.contrib.logging))
 
-(script/defscript rm [file & options])
-(stevedore/defimpl rm :default [file & options]
-  ("rm" ~(stevedore/map-to-arg-string (first options)) ~file))
-(stevedore/defimpl rm [#{:darwin :os-x}] [file & options]
-  ("rm" ~(stevedore/map-to-arg-string
-          {:r (:recursive (first options))
-           :f (:force (first options))}) ~file))
+(script/defscript rm [file & {:keys [recursive force]}])
+(script-impl/defimpl rm :default [file & {:keys [recursive force] :as options}]
+  ("rm" ~(stevedore/map-to-arg-string options) ~file))
+(script-impl/defimpl rm [#{:darwin :os-x}] [file & {:keys [recursive force]}]
+  ("rm" ~(stevedore/map-to-arg-string {:r recursive :f force}) ~file))
 
-(script/defscript chown [owner file & options])
-(stevedore/defimpl chown :default [owner file & options]
-  ("chown" ~(stevedore/map-to-arg-string (first options)) ~owner ~file))
+(script/defscript mv [source destination & {:keys [force backup]}])
+(script-impl/defimpl mv :default
+  [source destination & {:keys [force backup]}]
+  ("mv"
+   ~(stevedore/map-to-arg-string
+     {:f force :backup (when backup (name backup))}
+     :assign true)
+   ~source ~destination))
+(script-impl/defimpl mv [#{:darwin :os-x}]
+  [source destination & {:keys [force backup]}]
+  ("mv"
+   ~(stevedore/map-to-arg-string
+     {:f force}
+     :assign true)
+   ~source ~destination))
 
-(script/defscript chgrp [group file & options])
-(stevedore/defimpl chgrp :default [group file & options]
-  ("chgrp" ~(stevedore/map-to-arg-string (first options)) ~group ~file))
+(script/defscript cp [source destination & {:keys [force backup preserve]}])
+(script-impl/defimpl cp :default
+  [source destination & {:keys [force backup preserve]}]
+  ("cp"
+   ~(stevedore/map-to-arg-string {:f force
+                                  :backup (when backup (name backup))
+                                  :p preserve})
+   ~source ~destination))
+(script-impl/defimpl cp [#{:darwin :os-x}]
+  [source destination & {:keys [force backup preserve]}]
+  ("cp"
+   ~(stevedore/map-to-arg-string {:f force :p preserve})
+   ~source ~destination))
 
-(script/defscript chmod [mode file & options])
-(stevedore/defimpl chmod :default [mode file & options]
-  ("chmod" ~(stevedore/map-to-arg-string (first options)) ~mode ~file))
+(script/defscript ln [source destination & {:keys [force symbolic]}])
+(script-impl/defimpl ln :default
+  [source destination & {:keys [force symbolic]}]
+  ("ln"
+   ~(stevedore/map-to-arg-string {:f force :s symbolic})
+   ~source ~destination))
 
-(script/defscript touch [file & options])
-(stevedore/defimpl touch :default [file & options]
-  ("touch" ~(stevedore/map-to-arg-string (first options)) ~file))
+(script/defscript backup-option [])
+(script-impl/defimpl backup-option :default []
+  "--backup=numbered")
+(script-impl/defimpl backup-option [#{:darwin :os-x}] []
+  "")
+
+(script/defscript basename [path])
+(script-impl/defimpl basename :default
+  [path]
+  ("basename" ~path))
+
+(script/defscript ls [pattern & {:keys [sort-by-time sort-by-size reverse]}])
+(script-impl/defimpl ls :default
+  [pattern & {:keys [sort-by-time sort-by-size reverse]}]
+  ("ls" ~(stevedore/map-to-arg-string
+          {:t sort-by-time
+           :S sort-by-size
+           :r reverse})
+   ~pattern))
+
+(script/defscript cat [pattern])
+(script-impl/defimpl cat :default
+  [pattern]
+  ("cat" ~pattern))
+
+(script/defscript tail [pattern & {:keys [max-lines]}])
+(script-impl/defimpl tail :default
+  [pattern & {:keys [max-lines]}]
+  ("tail" ~(stevedore/map-to-arg-string {:n max-lines}) ~pattern))
+
+(script/defscript diff [file1 file2 & {:keys [unified]}])
+(script-impl/defimpl diff :default
+  [file1 file2 & {:keys [unified]}]
+  ("diff" ~(stevedore/map-to-arg-string {:u unified}) ~file1 ~file2))
+
+(script/defscript cut [file & {:keys [fields delimiter]}])
+(script-impl/defimpl cut :default
+  [file & {:keys [fields delimiter]}]
+  ("cut"
+   ~(stevedore/map-to-arg-string {:f fields :d delimiter})
+   ~file))
+
+(script/defscript chown [owner file & {:as options}])
+(script-impl/defimpl chown :default [owner file & {:as options}]
+  ("chown" ~(stevedore/map-to-arg-string options) ~owner ~file))
+
+(script/defscript chgrp [group file & {:as options}])
+(script-impl/defimpl chgrp :default [group file & {:as options}]
+  ("chgrp" ~(stevedore/map-to-arg-string options) ~group ~file))
+
+(script/defscript chmod [mode file & {:as options}])
+(script-impl/defimpl chmod :default [mode file & {:as options}]
+  ("chmod" ~(stevedore/map-to-arg-string options) ~mode ~file))
+
+(script/defscript touch [file & {:as options}])
+(script-impl/defimpl touch :default [file & {:as options}]
+  ("touch" ~(stevedore/map-to-arg-string options) ~file))
 
 (script/defscript md5sum [file & {:as options}])
-(stevedore/defimpl md5sum :default [file & {:as options}]
+(script-impl/defimpl md5sum :default [file & {:as options}]
   ("md5sum" ~(stevedore/map-to-arg-string options) ~file))
-(stevedore/defimpl md5sum [#{:darwin :os-x}] [file & {:as options}]
+(script-impl/defimpl md5sum [#{:darwin :os-x}] [file & {:as options}]
   ("/sbin/md5" -r ~file))
 
 (script/defscript md5sum-verify [file & {:as options}])
-(stevedore/defimpl md5sum-verify :default
+(script-impl/defimpl md5sum-verify :default
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
   (chain-and
    (cd @(dirname ~file))
@@ -49,7 +128,7 @@
     ~(stevedore/map-to-arg-string {:quiet quiet :check check})
     @(basename ~file))
    (cd -)))
-(stevedore/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel}]
+(script-impl/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel}]
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
   (chain-and
    (cd @(dirname ~file))
@@ -57,16 +136,16 @@
     ~(stevedore/map-to-arg-string {:status quiet :check check})
     @(basename ~file))
    (cd -)))
-(stevedore/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
+(script-impl/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
   (chain-and
-   (var testfile @(cut -d "' '" -f 2 ~file))
-   (var md5 @(cut -d "' '" -f 1 ~file))
-   (test (quoted @("/sbin/md5" -q @testfile)) == (quoted @md5))))
+   (var testfile @(cut ~file :delimiter " " :fields 2))
+   (var md5 @(cut ~file :delimiter " " :fields 1))
+   ("test" (quoted @("/sbin/md5" -q @testfile)) == (quoted @md5))))
 
 (script/defscript backup-option [])
-(stevedore/defimpl backup-option :default []
+(script-impl/defimpl backup-option :default []
   "--backup=numbered")
-(stevedore/defimpl backup-option [#{:darwin :os-x}] []
+(script-impl/defimpl backup-option [#{:darwin :os-x}] []
   "")
 
 (script/defscript sed-file [file expr-map options])
@@ -75,7 +154,7 @@
   sed-separators
   (concat [\/ \_ \| \: \% \! \@] (map char (range 42 127))))
 
-(stevedore/defimpl sed-file :default
+(script-impl/defimpl sed-file :default
   [file expr-map {:keys [seperator restriction] :as options}]
   ("sed" "-i"
    ~(if (map? expr-map)
@@ -97,8 +176,8 @@
 
 (script/defscript download-file [url path & {:keys [proxy]}])
 
-(stevedore/defimpl download-file :default [url path & {:keys [proxy]}]
-  (if (test @(which curl))
+(script-impl/defimpl download-file :default [url path & {:keys [proxy]}]
+  (if ("test" @(shell/which curl))
     ("curl" "-o" (quoted ~path)
      --retry 5 --silent --show-error --fail --location
      ~(if proxy
@@ -106,7 +185,7 @@
           (format "--proxy %s:%s" (.getHost url) (.getPort url)))
         "")
      (quoted ~url))
-    (if (test @(which wget))
+    (if ("test" @(shell/which wget))
       ("wget" "-O" (quoted ~path) --tries 5 --no-verbose
        ~(if proxy
           (format "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\"" proxy proxy)
@@ -114,10 +193,10 @@
        (quoted ~url))
       (do
         (println "No download utility available")
-        (exit 1)))))
+        (shell/exit 1)))))
 
 (script/defscript download-request [path request])
-(stevedore/defimpl download-request :default [path request]
+(script-impl/defimpl download-request :default [path request]
   ("curl" "-o" (quoted ~path) --retry 3 --silent --show-error --fail --location
    ~(string/join
      " "
@@ -126,26 +205,34 @@
    (quoted ~(:endpoint request))))
 
 (script/defscript tmp-dir [])
-(stevedore/defimpl tmp-dir :default []
+(script-impl/defimpl tmp-dir :default []
   @TMPDIR-/tmp)
 
 (script/defscript make-temp-file [pattern])
-(stevedore/defimpl make-temp-file :default [pattern]
-  @(mktemp (quoted ~(str pattern "XXXXX"))))
+(script-impl/defimpl make-temp-file :default [pattern]
+  @("mktemp" (quoted ~(str pattern "XXXXX"))))
 
-(script/defscript heredoc [path content])
-(stevedore/defimpl heredoc :default [path content]
-  ("{ cat" ">" ~path ~(str "<<EOFpallet\n" content "\nEOFpallet\n }")))
+(script/defscript heredoc-in [cmd content {:keys [literal]}])
+(script-impl/defimpl heredoc-in :default [cmd content {:keys [literal]}]
+  ("{" ~cmd
+   ~(str (if literal "<<'EOFpallet'\n" "<<EOFpallet\n")
+         content "\nEOFpallet\n }")))
 
-;; the cat is wrapped in braces so that the final newline is protected
-(defn heredoc
-  "Generates a heredoc. Options:
-      :literal boolean  - if true, prevents shell expansion of contents"
-  [path content & options]
-  (let [options (apply hash-map options)]
-    (stevedore/script ("{ cat" ">" ~path
-             ~(str (if (options :literal) "<<'EOFpallet'\n" "<<EOFpallet\n")
-                   content "\nEOFpallet\n }")))))
+(script/defscript heredoc [path content {:keys [literal]}])
+(script-impl/defimpl heredoc :default
+  [path content {:keys [literal] :as options}]
+  (heredoc-in ("cat" ">" ~path) ~content ~options))
+
+;; ;; the cat is wrapped in braces so that the final newline is protected
+;; (defn heredoc
+;;   "Generates a heredoc. Options:
+;;       :literal boolean  - if true, prevents shell expansion of contents"
+;;   [path content & {:keys [literal] :as options}]
+;;   (stevedore/script (heredoc-file ~path content options))
+;;   ;; (stevedore/script ("{ cat" ">" ~path
+;;   ;;          ~(str (if (options :literal) "<<'EOFpallet'\n" "<<EOFpallet\n")
+;;   ;;                content "\nEOFpallet\n }")))
+;;   )
 
 (defn adjust-file [path options]
   (stevedore/chain-commands*
@@ -164,22 +251,22 @@
   (stevedore/script
    ((md5sum ~path) > ~md5-path)))
 
-(defn touch-file [path opts]
+(defn touch-file [path {:keys [force] :as options}]
   (stevedore/chain-commands
    (stevedore/script
-    (touch ~path ~(select-keys opts [:force])))
-   (adjust-file path opts)))
+    (touch ~path :force ~force))
+   (adjust-file path options)))
 
 (defresource file
   "File management."
   (file*
    [request path & {:keys [action owner group mode force]
-                    :or {action :create}
+                    :or {action :create force true}
                     :as options}]
    (case action
      :delete (stevedore/checked-script
               (str "delete file " path)
-              (rm ~path ~{:force (:force options true)}))
+              (rm ~path :force ~force))
      :create (stevedore/checked-commands
               (str "file " path)
               (touch-file path options))
@@ -195,12 +282,10 @@
    (case action
      :delete (stevedore/checked-script
               (str "Link %s " name)
-              (rm ~name ~{:force force}))
+              (rm ~name :force ~force))
      :create (stevedore/checked-script
               (format "Link %s as %s" from name)
-              (ln -s
-                  ~(stevedore/map-to-arg-string {:force force})
-                  ~from ~name)))))
+              (ln ~from ~name :force ~force :symbolic ~true)))))
 
 (defresource fifo
   "FIFO pipe management."
@@ -209,7 +294,7 @@
    (case action
      :delete (stevedore/checked-script
               (str "fifo " path)
-              (rm ~path ~{:force force}))
+              (rm ~path :force ~force))
      :create (stevedore/checked-commands
               (str "fifo " path)
               (stevedore/script

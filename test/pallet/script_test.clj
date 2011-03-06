@@ -21,21 +21,52 @@
     (is (more-explicit? [:something] [:anything :longer]))
     (is (not (more-explicit? [:something :longer] [:anything])))))
 
+(deftest script-fn-test
+  (testing "no varargs"
+    (let [f (script-fn '[a b])]
+      (is (= :anonymous (:fn-name f)))
+      (with-template [:a]
+        (is (thrown?
+             clojure.contrib.condition.Condition
+             (dispatch f [1 1])))
+        (implement f :default (fn [a b] b))
+        (is (= 2 (dispatch f [1 2]))))))
+  (testing "varargs"
+    (let [f (script-fn '[a b & c])]
+      (with-template [:a]
+        (is (thrown?
+             clojure.contrib.condition.Condition
+             (dispatch f [1 1 2 3])))
+        (implement f :default (fn [a b & c] c))
+        (is (= [2 3] (dispatch f [1 1 2 3]))))))
+  (testing "named"
+    (let [f (script-fn :fn1 '[a b])]
+      (is (= :fn1 (:fn-name f))))))
+
 (deftest best-match-test
-  (defscript best-match-script)
-  (let [f1 (fn [] 1)
+  (let [s (script-fn '[])
+        f1 (fn [] 1)
         f2 (fn [] 2)]
-    (implement :best-match-script :default f1)
-    (implement :best-match-script [:os-x] f2)
+    (implement s :default f1)
+    (implement s [:os-x] f2)
     (with-template [:centos :yum]
-      (is (= f1 (#'pallet.script/best-match :best-match-script)))
-      (is (= 1 (invoke-target :best-match-script []))))
+      (is (= f1 (#'pallet.script/best-match @(:methods s))))
+      (is (= 1 (invoke s []))))
     (with-template [:os-x :brew]
-      (is (= f2 (#'pallet.script/best-match :best-match-script)))
-      (is (= 2 (invoke-target :best-match-script []))))))
+      (is (= f2 (#'pallet.script/best-match @(:methods s))))
+      (is (= 2 (invoke s []))))))
 
 (deftest defscript-test
-  (defscript script1 [a b])
-  (is (nil? (:doc (meta script1))))
-  (defscript script2 "doc" [a b])
-  (is (= "doc" (:doc (meta script2)))))
+  (with-template [:a]
+    (testing "no varargs"
+      (defscript script1a [a b])
+      (is (nil? (:doc (meta script1a))))
+      (is (= '([a b]) (:arglists (meta #'script1a))))
+      (implement script1a :default (fn [a b] b))
+      (is (= 2 (dispatch script1a [1 2]))))
+    (testing "varargs"
+      (defscript script2 "doc" [a b & c])
+      (is (= "doc" (:doc (meta #'script2))))
+      (is (= '([a b & c]) (:arglists (meta #'script2))))
+      (implement script2 :default (fn [a b & c] c))
+      (is (= [2 3] (dispatch script2 [1 1 2 3]))))))

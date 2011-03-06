@@ -11,35 +11,39 @@
 
 (deftest rm-test
   (is (= "rm --force file1"
-         (script (rm "file1" ~{:force true})))))
+         (script (rm "file1" :force true)))))
+
+(deftest mv-test
+  (is (= "mv --backup=\"numbered\" file1 file2"
+         (script (mv "file1" "file2" :backup :numbered)))))
+
+(deftest ln-test
+  (is (= "ln -s file1 file2"
+         (script (ln "file1" "file2" :symbolic true)))))
 
 (deftest chown-test
-  (is (= "chown  user1 file1"
+  (is (= "chown user1 file1"
          (script (chown "user1" "file1")))))
 
 (deftest chgrp-test
-  (is (= "chgrp  group1 file1"
+  (is (= "chgrp group1 file1"
          (script (chgrp "group1" "file1")))))
 
 (deftest chmod-test
-  (is (= "chmod  0666 file1"
+  (is (= "chmod 0666 file1"
          (script (chmod "0666" "file1")))))
 
 (deftest tmpdir-test
   (is (= "${TMPDIR-/tmp}"
          (script (tmp-dir)))))
 
-(deftest heredoc-script-test
-  (is (= "{ cat > somepath <<EOFpallet\nsomecontent\nEOFpallet\n }"
-         (script (heredoc "somepath" "somecontent")))))
-
 (deftest heredoc-test
   (is (= "{ cat > somepath <<EOFpallet\nsomecontent\nEOFpallet\n }"
-         (heredoc "somepath" "somecontent"))))
+         (script (heredoc "somepath" "somecontent" {})))))
 
 (deftest heredoc-literal-test
   (is (= "{ cat > somepath <<'EOFpallet'\nsomecontent\nEOFpallet\n }"
-         (heredoc "somepath" "somecontent" :literal true))))
+         (script (heredoc "somepath" "somecontent" {:literal true})))))
 
 (deftest file-test
   (is (= (stevedore/checked-script "file file1" (touch file1))
@@ -94,7 +98,7 @@
   (is (= (stevedore/checked-commands
           "sed file path"
           "sed -i -e \"s|a|b|\" path"
-          "md5sum  path > path.md5")
+          "md5sum path > path.md5")
          (sed* {} "path" {"a" "b"} :seperator "|")))
   (is
    (build-resources

@@ -20,16 +20,16 @@
 
 (deftest update-package-list-test
   (is (= "aptitude update || true"
-         (script/with-template [:aptitude]
+         (script/with-script-context [:aptitude]
            (stevedore/script (update-package-list)))))
   (is (= "yum makecache -q"
-         (script/with-template [:yum]
+         (script/with-script-context [:yum]
            (stevedore/script (update-package-list)))))
   (is (= "zypper refresh"
-         (script/with-template [:zypper]
+         (script/with-script-context [:zypper]
            (stevedore/script (update-package-list)))))
   (is (= "pacman -Sy --noconfirm --noprogressbar"
-         (script/with-template [:pacman]
+         (script/with-script-context [:pacman]
            (stevedore/script (update-package-list))))))
 
 (deftest upgrade-all-packages-test
@@ -48,18 +48,18 @@
 
 (deftest install-package-test
   (is (= "aptitude install -q -y java && aptitude show java"
-         (script/with-template [:aptitude]
+         (script/with-script-context [:aptitude]
            (stevedore/script (install-package "java")))))
   (is (= "yum install -y -q java"
-         (script/with-template [:yum]
+         (script/with-script-context [:yum]
            (stevedore/script (install-package "java"))))))
 
 (deftest list-installed-packages-test
   (is (= "aptitude search \"~i\""
-         (script/with-template [:aptitude]
+         (script/with-script-context [:aptitude]
            (stevedore/script (list-installed-packages)))))
   (is (= "yum list installed"
-         (script/with-template [:yum]
+         (script/with-script-context [:yum]
            (stevedore/script (list-installed-packages))))))
 
 
@@ -124,7 +124,7 @@ debconf debconf/frontend select noninteractive
 debconf debconf/frontend seen false
 EOF
 }"
-         (script/with-template [:aptitude]
+         (script/with-script-context [:aptitude]
            (stevedore/script (package-manager-non-interactive))))))
 
 (deftest add-scope-test
@@ -160,7 +160,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           (chain-or
            (aptitude update "")
            true))
-         (script/with-template [:aptitude]
+         (script/with-script-context [:aptitude]
            (package-manager* ubuntu-request :update)))))
 
 (deftest package-manager-configure-test
@@ -233,9 +233,9 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (stevedore/checked-script
             "package-manager"
             (set! tmpfile @(mktemp -t addscopeXXXX))
-            (cp -p "/etc/apt/sources.list" @tmpfile)
+            (file/cp "/etc/apt/sources.list" @tmpfile :preserve true)
             (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
-            (mv -f @tmpfile "/etc/apt/sources.list"))
+            (file/mv @tmpfile "/etc/apt/sources.list" :force true))
            (stevedore/checked-script
             "package-manager"
             (chain-or
@@ -298,7 +298,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            "/etc/apt/sources.list.d/source1.list"
            :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
           (stevedore/script
-           (apt-key adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
+           ("apt-key" adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
          (package-source*
           {:node-type a}
           "source1"
@@ -417,7 +417,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 
 (deftest adjust-packages-test
   (testing "aptitude"
-    (script/with-template [:aptitude]
+    (script/with-script-context [:aptitude]
       (is (= (stevedore/checked-script
               "Packages"
               (package-manager-non-interactive)
@@ -448,7 +448,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (yum remove -q -y p1 p4)
             (yum upgrade -q -y p3)
             (yum list installed))
-           (script/with-template [:yum]
+           (script/with-script-context [:yum]
              (adjust-packages
               {:target-packager :yum}
               [{:package "p1" :action :remove}
@@ -461,7 +461,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (yum install -q -y "--disablerepo=r1" p2)
             (yum install -q -y p1)
             (yum list installed))
-           (script/with-template [:yum]
+           (script/with-script-context [:yum]
              (adjust-packages
               {:target-packager :yum}
               [{:package "p1" :action :install :priority 50}

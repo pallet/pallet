@@ -8,6 +8,7 @@
    [pallet.resource :as resource]
    [pallet.resource.exec-script :as exec-script]
    [pallet.resource.file :as file]
+   [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.compute :as compute]
    [pallet.execute :as execute]
@@ -23,7 +24,7 @@
     (is (= (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             (download-file "http://a.com/b" "path.new")
+             (file/download-file "http://a.com/b" "path.new")
              (if (file-exists? "path.new")
                (do
                  (mv -f "path.new" path)))))
@@ -32,7 +33,8 @@
     (is (= (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             (download-file "http://a.com/b" "path.new" :proxy "http://proxy/")
+             (file/download-file
+              "http://a.com/b" "path.new" :proxy "http://proxy/")
              (if (file-exists? "path.new")
                (do
                  (mv -f "path.new" path)))))
@@ -43,24 +45,24 @@
   (testing "no-versioning"
     (is (= (stevedore/checked-commands
             "remote-file path"
-            (file/heredoc "path.new" "xxx")
+            (stevedore/script (file/heredoc "path.new" "xxx" {}))
             (stevedore/chained-script
              (if (file-exists? "path.new")
                (do
-                 (mv -f "path.new" path)))))
+                 (file/mv "path.new" path :force true)))))
            (remote-file* {} "path" :content "xxx" :no-versioning true))))
 
   (testing "no-versioning with owner, group and mode"
     (is (= (stevedore/checked-commands
             "remote-file path"
-            (file/heredoc "path.new" "xxx")
+            (stevedore/script (file/heredoc "path.new" "xxx" {}))
             (stevedore/chained-script
              (if (file-exists? "path.new")
                (do
-                 (mv -f "path.new" "path")))
-             (chown "o" "path")
-             (chgrp "g" "path")
-             (chmod "m" "path")))
+                 (file/mv "path.new" "path" :force true)))
+             (file/chown "o" "path")
+             (file/chgrp "g" "path")
+             (file/chmod "m" "path")))
            (remote-file*
             {} "path" :content "xxx" :owner "o" :group "g" :mode "m"
             :no-versioning true))))
@@ -89,29 +91,30 @@
 
   (testing "overwrite on existing content and no md5"
     (utils/with-temporary [tmp (utils/tmpfile)]
-      (is  (re-matches
-            (java.util.regex.Pattern/compile
-             (str "remote-file .*...done.")
-             (bit-or java.util.regex.Pattern/MULTILINE
-                     java.util.regex.Pattern/DOTALL))
-            (->
-             (pallet.core/lift
-              {{:tag :local} (test-utils/make-localhost-node)}
-              :phase #(remote-file
-                       % (.getPath tmp) :content "xxx")
-              :compute nil
-              :middleware pallet.core/execute-with-local-sh)
-             :results :localhost second second first :out)))
+      (is (re-matches
+           (java.util.regex.Pattern/compile
+            (str "remote-file .*...done.")
+            (bit-or java.util.regex.Pattern/MULTILINE
+                    java.util.regex.Pattern/DOTALL))
+           (->
+            (pallet.core/lift
+             {{:tag :local} (test-utils/make-localhost-node)}
+             :phase #(remote-file % (.getPath tmp) :content "xxx")
+             :compute nil
+             :middleware pallet.core/execute-with-local-sh)
+            :results :localhost second second first :out)))
       (is (= "xxx\n" (slurp (.getPath tmp))))))
 
   (binding [install-new-files nil]
-    (is (= (stevedore/checked-commands
+    (script/with-template [:ubuntu]
+      (is (=
+           (stevedore/checked-script
             "remote-file path"
-            (file/heredoc "path.new" "a 1\n"))
+            (file/heredoc "path.new" "a 1\n" {}))
            (remote-file*
             {:node-type {:tag :n :image {:os-family :ubuntu}}}
             "path" :template "template/strint" :values {'a 1}
-            :no-versioning true)))))
+            :no-versioning true))))))
 
 (deftest remote-file-test
   (core/with-admin-user (assoc utils/*admin-user* :username (test-utils/test-username))
@@ -127,7 +130,7 @@
            [] (remote-file "file1" :owner "user1"))))
 
     (utils/with-temporary [tmp (utils/tmpfile)]
-      (is (re-find #"mv -f --backup=numbered file1.new file1"
+      (is (re-find #"mv -f --backup=\"numbered\" file1.new file1"
                    (first
                     (test-utils/build-resources
                      [] (remote-file
@@ -173,9 +176,9 @@
                          (.getPath target-tmp) :content "$(hostname)"
                          :mode "0666" :flag-on-changed :changed)
                         (exec-script/exec-script
-                         (if (== (flag? :changed) "1")
-                           (echo "incorrect!" (flag? :changed) "!")
-                           (echo "correctly unchanged"))))
+                         (if (== (lib/flag? :changed) "1")
+                           (println "incorrect!" (lib/flag? :changed) "!")
+                           (println "correctly unchanged"))))
                 :user user)
                :results :localhost second second first :out)))
             (is (.canRead target-tmp))
@@ -193,9 +196,9 @@
                          (.getPath target-tmp) :content "abc"
                          :mode "0666" :flag-on-changed :changed)
                         (exec-script/exec-script
-                         (if (== (flag? :changed) "1")
-                           (echo "correctly changed")
-                           (echo "incorrect!" (flag? :changed) "!"))))
+                         (if (== (lib/flag? :changed) "1")
+                           (println "correctly changed")
+                           (println "incorrect!" (lib/flag? :changed) "!"))))
                 :user user)
                :results :localhost second second first :out)))
             (is (.canRead target-tmp))
@@ -238,7 +241,7 @@
              :phase #(remote-file
                       % (.getPath target-tmp)
                       :url (str "file://" (.getPath tmp))
-                      :md5 (stevedore/script @(md5sum ~(.getPath tmp)))
+                      :md5 (stevedore/script @(file/md5sum ~(.getPath tmp)))
                       :mode "0666")
              :user user)
             (is (.canRead target-tmp))
@@ -251,7 +254,7 @@
                {local node}
                :phase (resource/phase
                        (exec-script/exec-script
-                        ((md5sum ~(.getPath tmp)) > ~md5path))
+                        ((file/md5sum ~(.getPath tmp)) > ~md5path))
                        (remote-file
                         (.getPath target-tmp)
                         :url (str "file://" (.getPath tmp))

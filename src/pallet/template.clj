@@ -6,7 +6,8 @@
    [pallet.compute :as compute]
    [pallet.utils :as utils]
    [clojure.string :as string]
-   [pallet.stevedore :as stevedore])
+   [pallet.stevedore :as stevedore]
+   [pallet.resource.file :as file])
   (:use
    [pallet.resource.file]
    [clojure.contrib.logging]))
@@ -78,7 +79,9 @@
   (let [path (:path file-spec)]
     (string/join ""
                  (filter (complement nil?)
-                         [(stevedore/script (var file ~path) (cat > @file <<EOF))
+                         [(stevedore/script
+                           (var file ~path)
+                           ((file/cat "") > @file <<EOF))
                           content
                           "\nEOF\n"
                           (when-let [mode (:mode file-spec)]

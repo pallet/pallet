@@ -4,17 +4,36 @@
    Shell script is embedded by wrapping in the `script` macro.
        (script (ls)) => \"ls\"
 
-   The result of a `script` form is a string.
-
-   Script functions (defined with `pallet.script/defscript`) can be implemented
-   using `defimpl`."
+   The result of a `script` form is a string."
   (:require
    [pallet.utils :as utils]
-   [pallet.script :as script]
    [clojure.string :as string]
-   [clojure.contrib.condition :as condition]
    [clojure.walk :as walk]
+   [clojure.contrib.condition :as condition]
    [clojure.contrib.logging :as logging]))
+
+(def
+  ^{:doc "Used to capture the namespace in which `script` is invoked."
+    :private true}
+  *script-ns*)
+
+(def
+  ^{:doc "Used to capture a form's line number."
+    :private true}
+  *script-line* nil)
+
+(def
+  ^{:doc "Used to capture a form's file name."
+    :private true}
+  *script-file* nil)
+
+(defmacro with-line-number
+  "Provide the source file and line number for use in reporting."
+  [[file line] & body]
+  `(do
+     (binding [*script-line* ~line
+               *script-file* ~file]
+       ~@body)))
 
 (defn ^String substring
   "Drops first n characters from s.  Returns an empty string if n is
@@ -268,17 +287,42 @@
 (defmethod emit-special 'print [type [println & args]]
   (str "echo -n " (emit args)))
 
+(defn script-fn-dispatch-none
+  "Script function dispatch. This implementation does nothing."
+  [name args ns file line]
+  nil)
+
+(def ^{:doc "Script function dispatch."}
+  *script-fn-dispatch* script-fn-dispatch-none)
+
+(defn script-fn-dispatch!
+  "Set the script-fn dispatch function"
+  [f]
+  (alter-var-root #'*script-fn-dispatch* (fn [_] f)))
+
+(defmacro with-no-script-fn-dispatch
+  [& body]
+  `(binding [*script-fn-dispatch* script-fn-dispatch-none]
+     ~@body))
+
+(defmacro with-script-fn-dispatch
+  [f & body]
+  `(binding [*script-fn-dispatch* ~f]
+     ~@body))
+
 (defmethod emit-special 'invoke
   [type [name & args]]
   (logging/trace (str "INVOKE " name args))
   (or (try
-        (script/invoke-target name args)
+        (*script-fn-dispatch* name args *script-ns* *script-file* *script-line*)
         (catch java.lang.IllegalArgumentException e
           (throw (java.lang.IllegalArgumentException.
                   (str "Invalid arguments for " name) e))))
       (let [argseq (interpose " "
                      (filter (complement string/blank?) (map emit args)))]
-        (apply str (emit name) (if (seq argseq) " " "") argseq))))
+        (if (seq argseq)
+          (apply str (emit name) " " argseq)
+          (emit name)))))
 
 (defn emit-method [obj method args]
   (str (emit obj) "." (emit method) (comma-list (map emit args))))
@@ -427,14 +471,14 @@
 (defn emit-s-expr [expr]
   (if (symbol? (first expr))
     (let [head (symbol (name (first expr)))  ; remove any ns resolution
-          expr (conj (rest expr) head)]
+          expr1 (conj (rest expr) head)]
       (cond
         (and (= (first (str head)) \.)
-             (> (count (str head)) 1)) (emit-special 'dot-method expr)
-        (special-form? head) (emit-special head expr)
-        (infix-operator? head) (emit-infix head expr)
+             (> (count (str head)) 1)) (emit-special 'dot-method expr1)
+        (special-form? head) (emit-special head expr1)
+        (infix-operator? head) (emit-infix head expr1)
         :else (emit-special 'invoke expr)))
-    (string/join " " (map emit expr))))
+    (string/join " " (filter (complement string/blank?) (map emit expr)))))
 
 (defmethod emit clojure.lang.IPersistentList [expr]
   (emit-s-expr expr))
@@ -518,31 +562,9 @@
          (println \"hello\")
          (ls -l \"*.sh\"))"
   [& forms]
-  `(script/with-line-number [~*file* ~(:line (meta &form))]
-     (script* (quasiquote ~forms))))
-
-(defmacro defimpl
-  "Define a script function implementation for the given `specialisers`.
-
-   `specialisers` should be the :default keyword, or a vector.  The
-   `specialisers` vector may contain keywords, a set of keywords that provide an
-   inclusive `or` match, or functions that return a truth value indication
-   whether the implementation is a match for the script template passed as the
-   function's first argument.
-
-   `body` is wrapped in an implicit `script` form.
-
-       (pallet.script/defscript ls [& args])
-       (defimpl ls :default [& args] (ls ~@args))
-       (defimpl ls [:windows] [& args] (dir ~@args))"
-  [script-name specialisers [& args] & body]
-  {:pre [(or (= :default specialisers)
-             (vector? specialisers))]}
-  `(pallet.script/implement
-    ~(name script-name) ~specialisers
-    (fn ~(symbol (str "script-fn-for-" (name script-name))) [~@args]
-      (script ~@body))))
-
+  `(with-line-number [~*file* ~(:line (meta &form))]
+     (binding [*script-ns* ~*ns*]
+       (script* (quasiquote ~forms)))))
 
 ;;; Script combiners
 (defn do-script*
@@ -622,15 +644,14 @@
   (apply
    str (interpose
         " "
-        (map #(arg-string
-               (first %) (second %) underscore assign dash)
-             m))))
+        (map
+         #(arg-string (key %) (val %) underscore assign dash)
+         (filter val m)))))
 
 (defn option-args
   "Output a set of command line switches from a sequence of options"
-  [options]
-  (let [m (if (first options) (apply hash-map options) {})
-        assign (m :assign)
-        underscore (m :underscore)]
+  [{:as m}]
+  (let [assign (:assign m)
+        underscore (:underscore m)]
     (map-to-arg-string
      (dissoc m :assign :underscore) :assign assign :underscore underscore)))

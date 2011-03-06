@@ -13,7 +13,7 @@
   (-> request
       (exec-script/exec-checked-script
        (format "Format %s as XFS" device)
-       (mkfs.xfs -f ~device))))
+       ("mkfs.xfs" -f ~device))))
 
 (defmulti format-mount-option
   (fn [[key value]] (class value)))
@@ -45,6 +45,6 @@
    (directory/directory mount-point)
    (exec-script/exec-checked-script
     (format "Mount %s at %s" device mount-point)
-    (mount ~(mount-cmd-options
-             (dissoc options :device-type :dump-frequency :boot-check-pass))
-           ~device (quoted ~mount-point)))))
+    ("mount" ~(mount-cmd-options
+               (dissoc options :device-type :dump-frequency :boot-check-pass))
+     ~device (quoted ~mount-point)))))

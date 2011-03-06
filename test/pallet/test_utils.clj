@@ -35,7 +35,7 @@ list, Alan Dipert and MeikelBrandmeyer."
 
 (defn with-ubuntu-script-template
   [f]
-  (script/with-template [:ubuntu]
+  (script/with-script-context [:ubuntu]
     (f)))
 
 (defn make-node

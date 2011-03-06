@@ -15,7 +15,7 @@
   (is (= "/usr/sbin/useradd --system user1"
          (script (create-user "user1"  ~{:system true}))))
   (testing "system on rh"
-    (binding [script/*template* [:centos]]
+    (script/with-script-context [:centos]
       (is (= "/usr/sbin/useradd -r user1"
              (script (create-user "user1"  ~{:system true})))))))
 
@@ -31,7 +31,7 @@
 
 (deftest user*-modify-test
   (is (= (str "if getent passwd user1;"
-              " then /usr/sbin/usermod  user1;else /usr/sbin/useradd  user1;fi")
+              " then /usr/sbin/usermod user1;else /usr/sbin/useradd user1;fi")
          (user* {} "user1" :action :manage))))
 
 (deftest user*-lock-test
@@ -43,11 +43,11 @@
          (user* {} "user1" :action :unlock))))
 
 (deftest user*-remove-test
-  (is (= "if getent passwd user1; then /usr/sbin/userdel  user1;fi"
+  (is (= "if getent passwd user1; then /usr/sbin/userdel user1;fi"
          (user* {} "user1" :action :remove))))
 
 (deftest group-create-test
-  (is (= "if ! getent group group11; then /usr/sbin/groupadd  group11;fi\n"
+  (is (= "if ! getent group group11; then /usr/sbin/groupadd group11;fi\n"
          (first (build-resources
                  []
                  (group "group11" :action :create)))))

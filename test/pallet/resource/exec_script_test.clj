@@ -5,23 +5,24 @@
    pallet.test-utils)
   (:require
    [pallet.stevedore :as stevedore]
-   [pallet.resource :as resource]))
+   [pallet.resource :as resource]
+   [pallet.resource.file :as file]))
 
 (deftest exec-script*-test
   (is (= "ls file1\n"
          (first (build-resources
                  []
-                 (exec-script* (stevedore/script (ls "file1"))))))))
+                 (exec-script* (stevedore/script (file/ls "file1"))))))))
 
 (deftest exec-script-test
   (is (= "ls file1\n"
          (first (build-resources
                  []
-                 (exec-script (ls "file1"))))))
+                 (exec-script (file/ls "file1"))))))
     (is (= "ls file1\nls file2\n"
            (first (build-resources
                    []
-                   (exec-script (ls "file1") (ls "file2")))))))
+                   (exec-script (file/ls "file1") (file/ls "file2")))))))
 
 (deftest exec-checked-script-test
   (is (= (stevedore/checked-commands
@@ -29,4 +30,4 @@
           "ls file1\n")
          (first (build-resources
                  []
-                 (exec-checked-script "check" (ls "file1")))))))
+                 (exec-checked-script "check" (file/ls "file1")))))))

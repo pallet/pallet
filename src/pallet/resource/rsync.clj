@@ -4,7 +4,6 @@
    [pallet.resource :as resource]
    [pallet.resource.directory :as directory]
    [pallet.resource.package :as package]
-   [pallet.stevedore :as stevedore]
    [pallet.target :as target]
    [pallet.execute :as execute]
    [pallet.utils :as utils]

@@ -5,6 +5,7 @@
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
    [pallet.resource.exec-script :as exec-script]
+   [pallet.resource.file :as file]
    [pallet.compute :as compute]
    [pallet.compute.jclouds :as jclouds]
    [pallet.compute.node-list :as node-list]
@@ -311,7 +312,8 @@
            "bin"
            (with-out-str
              (lift {local (jclouds/make-localhost-node)}
-                   :phase [(resource/phase (exec-script/exec-script (ls "/")))
+                   :phase [(resource/phase (exec-script/exec-script
+                                            (file/ls "/")))
                            (resource/phase (localf))]
                    :user (assoc utils/*admin-user*
                            :username (test-utils/test-username)

@@ -12,6 +12,7 @@ configuration code."
    [clojure.contrib.def :only [defunbound defvar defvar- name-with-attributes]]
    clojure.contrib.core))
 
+
 (defn pre-phase
   "Calculate the name for the pre-phase"
   [phase]
