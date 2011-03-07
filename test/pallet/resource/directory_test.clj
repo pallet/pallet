@@ -22,6 +22,15 @@
 (deftest directory-test
   (is (= (stevedore/checked-commands "Directory file1" "mkdir -p file1")
          (first (build-resources {} (directory "file1")))))
+  (is (= (stevedore/checked-commands
+          "Directory file1"
+          "mkdir -m \"0755\" -p file1"
+          "chown u file1"
+          "chgrp g file1"
+          "chmod 0755 file1")
+         (first (build-resources
+                 {}
+                 (directory "file1" :owner "u" :group "g" :mode "0755")))))
   (testing "delete"
     (is (= (stevedore/checked-script
             "Delete directory file1"

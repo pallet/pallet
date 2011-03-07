@@ -107,6 +107,7 @@
   ([script args]
      (dispatch script args nil nil))
   ([script args file line]
+     {:pre [(:methods script)]}
      (logging/trace (str "dispatch-target " script " " (print-args args)))
      (if-let [f (or (best-match @(:methods script)))]
        (apply f args)
@@ -146,13 +147,11 @@
   ([args]
      (script-fn :anonymous args))
   ([fn-name args]
-     (let [var-args (some #(= '& %) args)
-           fwd-args (filter #(not (= '& %)) args)]
-       (with-meta
-         {::script-fn true
-          :fn-name (keyword (name fn-name))
-          :methods (atom {})}
-         {:arglists (list 'quote (list (vec args)))}))))
+     (with-meta
+       {::script-fn true
+        :fn-name (keyword (name fn-name))
+        :methods (atom {})}
+       {:arglists (list 'quote (list (vec args)))})))
 
 (defmacro defscript
   "Define a top level var with an abstract script function, that can be

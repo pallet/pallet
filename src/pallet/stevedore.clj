@@ -641,6 +641,7 @@
 (defn map-to-arg-string
   "Output a set of command line switches from a map"
   [m & {:keys [underscore assign dash] :or {dash "--"}}]
+  {:pre [(or (nil? m) (map? m))]}
   (apply
    str (interpose
         " "

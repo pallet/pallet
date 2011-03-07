@@ -38,19 +38,19 @@
 
 (defn adjust-directory
   "Script to set the ownership and mode of a directory."
-  [path opts]
+  [path {:keys [owner group mode recursive] :as opts}]
   (stevedore/chain-commands*
    (filter
-    (complement nil?)
-    [(when (opts :owner)
+    identity
+    [(when owner
        (stevedore/script
-        (chown ~(opts :owner) ~path  ~(select-keys opts [:recursive]))))
-     (when (opts :group)
+        (chown ~owner ~path :recursive ~recursive)))
+     (when group
        (stevedore/script
-        (chgrp ~(opts :group) ~path  ~(select-keys opts [:recursive]))))
-     (when (opts :mode)
+        (chgrp ~group ~path :recursive ~recursive)))
+     (when mode
        (stevedore/script
-        (chmod ~(opts :mode) ~path  ~(select-keys opts [:recursive]))))])))
+        (chmod ~mode ~path :recursive ~recursive)))])))
 
 (defn make-directory
   "Script to create a directory."
@@ -69,17 +69,28 @@
    Options are:
     - :action     One of :create, :touch, :delete
     - :recursive  Flag for recursive delete
-    - :force      Flag for forced delete"
+    - :force      Flag for forced delete
+    - :path       flag to create all path elements
+    - :owner      set owner
+    - :group      set group
+    - :mode       set mode"
   (directory*
-   [request dir-path & {:keys [action recursive force path mode verbose]
+   [request dir-path & {:keys [action recursive force path mode verbose owner
+                               group]
                         :or {action :create recursive true force true path true}
                         :as options}]
    (case action
      :delete (stevedore/checked-script
               (str "Delete directory " dir-path)
               (file/rm ~dir-path :recursive ~recursive :force ~force))
-     :create (make-directory dir-path :path path :mode mode :verbose verbose)
-     :touch (make-directory dir-path :path path :mode mode :verbose verbose))))
+     :create (make-directory
+              dir-path
+              :path path :mode mode :verbose verbose
+              :owner owner :group group)
+     :touch (make-directory
+             dir-path
+             :path path :mode mode :verbose verbose
+             :owner owner :group group))))
 
 (defresource directories
   "Directory management of multiple directories with the same
