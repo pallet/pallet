@@ -141,7 +141,7 @@
 ;;; Actions
 (defprotocol ComputeService
   (nodes [compute] "List nodes")
-  (run-nodes [compute node-type node-count request init-script])
+  (run-nodes [compute group-spec node-count user init-script])
   (reboot [compute nodes] "Reboot the specified nodes")
   (boot-if-down
    [compute nodes]
@@ -149,9 +149,9 @@
   (shutdown-node [compute node user] "Shutdown a node.")
   (shutdown [compute nodes user] "Shutdown specified nodes")
   (ensure-os-family
-   [compute request]
-   "Called on startup of a new node to ensure request has an os-family attached
-   to it.")
+   [compute group-spec]
+   "Called on startup of a new node to ensure group-spec has an os-family
+   attached to it.")
   (destroy-nodes-in-group [compute group-name])
   (destroy-node [compute node])
   (close [compute]))

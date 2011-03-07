@@ -306,7 +306,8 @@ is run with root privileges immediatly after first boot."
    (str "Starting " count " nodes for " (:group-name group)
         " os-family " (-> group :image :os-family)))
   (let [compute (:compute request)
-        request (compute/ensure-os-family compute request)
+        request (update-in request [:group]
+                           #(compute/ensure-os-family compute %))
         request (assoc-in request [:group :packager]
                           (compute/packager (-> request :group :image)))
         init-script (bootstrap-script request)]
@@ -314,7 +315,7 @@ is run with root privileges immediatly after first boot."
      (format "Bootstrap script:\n%s" init-script))
     (concat
      (map :node (:servers group))
-     (compute/run-nodes compute group count request init-script))))
+     (compute/run-nodes compute group count (:user request) init-script))))
 
 (defn- destroy-nodes
   "Destroys the specified number of nodes with the given group.  Nodes are

@@ -229,21 +229,21 @@
   (terminated? [node] (jclouds/terminated? node)))
 
 
-(defn build-node-template
+(defn- build-node-template
   "Build the template for specified target node and compute context"
-  [compute public-key-path request init-script]
-  {:pre [(map? (:group request))]}
+  [compute group public-key-path init-script]
+  {:pre [(map? group) (:group-name group)]}
   (logging/info
-   (str "building node template for " (-> request :group :group-name)))
+   (str "building node template for " (:group-name group)))
   (when public-key-path
     (logging/info (str "  authorizing " public-key-path)))
   (when init-script
     (logging/debug (str "  init script\n" init-script)))
   (let [options (->> [:image :hardware :location :network]
-                     (select-keys (:group request))
+                     (select-keys group)
                      vals
                      (reduce merge))
-        options (if (-> request :group :default-os-family)
+        options (if (:default-os-family group)
                   (dissoc options :os-family) ; remove if we added in
                                               ; ensure-os-family
                   options)]
@@ -317,10 +317,10 @@
   (nodes [_] (jclouds/nodes-with-details compute))
 
   (ensure-os-family
-   [_ request]
-   (if (-> request :group :image :os-family)
-     request
-     (let [template (jclouds/build-template compute (-> request :group :image))
+   [_ group]
+   (if (-> group :image :os-family)
+     group
+     (let [template (jclouds/build-template compute (:image group))
            family (-> (.. template getImage getOperatingSystem getFamily)
                       str keyword)]
        (logging/info (format "Default OS is %s" (pr-str family)))
@@ -330,21 +330,21 @@
           :message (format
                     (str "jclouds was unable to determine the os-family "
                          "of the template %s")
-                    (pr-str (-> request :group :image)))))
+                    (pr-str (:image group)))))
        (->
-        request
-        (assoc-in [:group :image :os-family] family)
-        (assoc-in [:group :default-os-family] true)))))
+        group
+        (assoc-in [:image :os-family] family)
+        (assoc-in [:default-os-family] true)))))
 
   (run-nodes
-   [_ group-spec node-count request init-script]
+   [_ group-spec node-count user init-script]
    (jclouds/run-nodes
     (name (:group-name group-spec))
     node-count
     (build-node-template
      compute
-     (-> request :user :public-key-path)
-     request
+     group-spec
+     (:public-key-path user)
      init-script)
     compute))
 

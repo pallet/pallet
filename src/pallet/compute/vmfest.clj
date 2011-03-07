@@ -287,25 +287,18 @@
 (deftype VmfestService
     [server images locations environment]
   pallet.compute/ComputeService
-  (nodes
-   [compute-service]
-   (manager/machines server))
+  (nodes [compute-service] (manager/machines server))
 
-  (ensure-os-family
-   [compute-service request]
-   request)
-
-  ;; Not implemented
-  ;; (build-node-template)
+  (ensure-os-family [compute-service group] group)
 
   (run-nodes
-   [compute-service node-spec node-count request init-script]
+   [compute-service group-spec node-count user init-script]
    (try
-     (let [image-id (or (image-from-template images (:image node-spec))
+     (let [image-id (or (image-from-template images (:image group-spec))
                         (throw (RuntimeException.
                                 (format "No matching image for %s"
-                                        (pr-str (:image node-spec))))))
-           group-name (name (:group-name node-spec))
+                                        (pr-str (:image group-spec))))))
+           group-name (name (:group-name group-spec))
            machines (filter
                      #(session/with-no-session % [vb-m] (.getAccessible vb-m))
                      (manager/machines server))
@@ -338,13 +331,12 @@
        (logging/debug (str "target-machines-to-create"
                            target-machines-to-create))
 
-       ((get-in
-         request [:environment :algorithms :vmfest :create-nodes-fn]
-         parallel-create-nodes)
+       ((get-in environment [:algorithms :vmfest :create-nodes-fn]
+                parallel-create-nodes)
         target-machines-to-create server (:node-path locations)
-        node-spec images image-id
-        {:micro (machine-model (:image node-spec))}
-        group-name init-script (:user request)))))
+        group-spec images image-id
+        {:micro (machine-model (:image group-spec))}
+        group-name init-script user))))
 
   (reboot
    [compute nodes]
