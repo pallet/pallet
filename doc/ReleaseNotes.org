@@ -1,6 +1,6 @@
 #+TITLE:     Pallet - Release Notes
 
-The latest release is 0.4.8.
+The latest release is 0.4.9.
 
 * 0.5.0-SNAPHSOT
 ** Install
@@ -52,6 +52,21 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
       (file/rm ~path :force true)
       ("rm" -f ~path)
+
+* 0.4.9
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Fixes
+
+- Filter for running nodes in compute/run-nodes for jclouds
+  In order to work around an issue 501 in jclouds, the return value of
+  org.jclouds.compute/run-nodes is now filtered for running nodes.  This
+  should prevent the occasional hang, where pallet would try to ssh into a
+  terminated node.
+
+- Switch to pallet-pom 0.4.1 and enlive 1.0
 
 * 0.4.8
 ** Install
