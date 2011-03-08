@@ -338,15 +338,19 @@
 
   (run-nodes
    [_ node-type node-count request init-script]
-   (jclouds/run-nodes
-    (name (node-type :tag))
-    node-count
-    (build-node-template
-     compute
-     (-> request :user :public-key-path)
-     request
-     init-script)
-    compute))
+   (->>
+    (jclouds/run-nodes
+     (name (node-type :tag))
+     node-count
+     (build-node-template
+      compute
+      (-> request :user :public-key-path)
+      request
+      init-script)
+     compute)
+    ;; The following is a workaround for terminated nodes.
+    ;; See http://code.google.com/p/jclouds/issues/detail?id=501
+    (filter compute/running?)))
 
   (reboot
    [_ nodes]
