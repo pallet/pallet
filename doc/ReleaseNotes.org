@@ -1,4 +1,82 @@
-The latest release is 0.4.8.
+#+TITLE:     Pallet - Release Notes
+
+The latest release is 0.4.10.
+
+* 0.5.0-SNAPHSOT
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Features
+
+- Remove request from pallet.compute.ComputeService interface
+
+- Change default to parallel lift and converge
+
+- Switch to pallet-pom 0.4.1 and enlive 1.0
+
+- Update to jclouds 1.0-beta-9b
+
+- Introduced group-spec and server-spec
+  Refactored to separate domain concepts for group-spec and server-spec.
+  Renamed group-node to server.
+
+- Refactored lift* and converge*
+  Ensure that all functions called in lift*, converge*, and lift-nodes
+  follow the request map state pattern.
+
+- Refactor pallet.core
+  Improve naming consistency and reduce complexity of processing the input
+  node-set.
+
+  To improve encapsulation of the request map when accessed in crates
+  pallet.request-map has been extended to cover a couple of missing
+  functions, and some template functions have been altered to take a
+  request map rather than a node-spec.
+
+  This changes the keys in the request map used to specify the current
+  target.
+
+  Added a top level node-spec function for creating node spec's (to replace
+  make-node eventually).
+
+  An effort has been made to preserve backward compatability.
+
+- Unified scriptfn optional args to be keyword argument pairs
+
+- namespaced lookup of first element of a form in a stevedore script expression
+
+  This makes script functions behave similarly to ordinary clojure functions
+  and methods.  The first element of a form now has to resolve to a script
+  function, unless it is a string or a keyword implemented by pallet.stevedore.
+
+      (file/rm ~path :force true)
+      ("rm" -f ~path)
+
+
+* 0.4.10
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Fixes
+- Switch from jclouds/node-tag (removed in beta 9), and fix use of
+  :environment at the service level
+
+* 0.4.9
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Fixes
+
+- Filter for running nodes in compute/run-nodes for jclouds
+  In order to work around an issue 501 in jclouds, the return value of
+  org.jclouds.compute/run-nodes is now filtered for running nodes.  This
+  should prevent the occasional hang, where pallet would try to ssh into a
+  terminated node.
+
+- Switch to pallet-pom 0.4.1 and enlive 1.0
 
 * 0.4.8
 ** Install

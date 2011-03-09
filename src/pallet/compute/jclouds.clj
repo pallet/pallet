@@ -337,6 +337,7 @@
         (assoc-in [:default-os-family] true)))))
 
   (run-nodes
+<<<<<<< HEAD
    [_ group-spec node-count user init-script]
    (jclouds/run-nodes
     (name (:group-name group-spec))
@@ -347,6 +348,22 @@
      (:public-key-path user)
      init-script)
     compute))
+=======
+   [_ node-type node-count request init-script]
+   (->>
+    (jclouds/run-nodes
+     (name (node-type :tag))
+     node-count
+     (build-node-template
+      compute
+      (-> request :user :public-key-path)
+      request
+      init-script)
+     compute)
+    ;; The following is a workaround for terminated nodes.
+    ;; See http://code.google.com/p/jclouds/issues/detail?id=501
+    (filter compute/running?)))
+>>>>>>> develop
 
   (reboot
    [_ nodes]
@@ -463,7 +480,9 @@
              :or {extensions (default-jclouds-extensions provider)}
              :as options}]
   (logging/debug (format "extensions %s" (pr-str extensions)))
-  (let [options (dissoc options :identity :credential :extensions :blobstore)]
+  (let [options (dissoc
+                 options
+                 :identity :credential :extensions :blobstore :environment)]
     (JcloudsService.
      (apply
       jclouds/compute-service
