@@ -430,10 +430,11 @@
    writer
    (format
     "%14s\t %s %s\n\t\t %s\n\t\t %s\n\t\t public: %s  private: %s"
-    (jclouds/node-tag node)
+    (jclouds/tag node)
     (apply str (interpose "." (map location-string (node-locations node))))
     (let [location (.getLocation node)]
-      (when (and location (not (= (.getDescription location) (.getId location))))
+      (when (and location
+                 (not (= (.getDescription location) (.getId location))))
         (.getDescription location)))
     (os-string (.getOperatingSystem node))
     (.getState node)
@@ -467,7 +468,9 @@
              :or {extensions (default-jclouds-extensions provider)}
              :as options}]
   (logging/info (format "extensions %s" (pr-str extensions)))
-  (let [options (dissoc options :identity :credential :extensions :blobstore)]
+  (let [options (dissoc
+                 options
+                 :identity :credential :extensions :blobstore :environment)]
     (JcloudsService.
      (apply
       jclouds/compute-service
