@@ -993,7 +993,7 @@ is run with root privileges immediatly after first boot."
    (->
     options
     (assoc :node-set (if (map? node-spec->count)
-                       (into {} (map node-spec-with-count node-spec->count))
+                       (map node-spec-with-count node-spec->count)
                        node-spec->count)
            :phase-list (if (sequential? phase) phase (if phase [phase] nil)))
     check-arguments-map

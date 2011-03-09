@@ -149,6 +149,13 @@
     (is (= [nb] (#'core/nodes-for-group [na nb nc] b)))
     (is (= [na] (#'core/nodes-for-group [na nc] a)))))
 
+(deftest node-spec-with-count-test
+  (let [a (group-spec "a")
+        b (group-spec "b")]
+    (is (= [(assoc a :count 1) (assoc b :count 2)]
+             (map #'core/node-spec-with-count {a 1 b 2})))))
+
+
 (deftest server-test
   (let [a (make-node :a {})
         n (test-utils/make-node
