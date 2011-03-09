@@ -53,6 +53,11 @@
    ;:rhel "RedHat"
    :rhel "RedHat_64"})
 
+(def ip-tag "/pallet/ip")
+(def group-name-tag "/pallet/group-name")
+(def os-family-tag "/pallet/os-family")
+(def os-version-tag "/pallet/os-version")
+
 (def os-family-from-name
   (zipmap (vals os-family-name) (keys os-family-name)))
 
@@ -65,7 +70,7 @@
     :type
     (manager/get-ip node)
     (handle :vbox-runtime
-      (manager/get-extra-data node "/pallet/ip"))))
+      (manager/get-extra-data node ip-tag))))
   (private-ip [node] nil)
   (is-64bit?
    [node]
@@ -73,7 +78,7 @@
      (re-find #"64 bit" os-type-id)))
   (group-name
    [node]
-   (manager/get-extra-data node "/pallet/group-name"))
+   (manager/get-extra-data node group-name-tag))
   (hostname
    [node]
    (session/with-no-session node [m]
@@ -82,14 +87,14 @@
    [node]
    (let [os-name (session/with-no-session node [m] (.getOSTypeId m))]
      (or
-      (keyword (manager/get-extra-data node "/pallet/os-family"))
+      (keyword (manager/get-extra-data node os-family-tag))
       (os-family-from-name os-name os-name)
       :centos) ;; hack!
      ))
   (os-version
    [node]
    (or
-      (manager/get-extra-data node "/pallet/os-version")
+      (manager/get-extra-data node os-version-tag)
       "5.3"))
   (running?
    [node]
@@ -149,7 +154,7 @@
                    (enums/session-state-to-key
                     (.getSessionState im))))
         ip (when open? (manager/get-ip m))
-        group-name (when open? (manager/get-extra-data m "/pallet/group-name"))]
+        group-name (when open? (manager/get-extra-data m group-name-tag))]
     (into attributes {:ip ip :group-name group-name}) ))
 
 (defn node-infos [compute-service]
@@ -196,12 +201,9 @@
                   (manager/instance
                    compute machine-name image-id :micro node-path))
         image (image-id images)]
-    (manager/set-extra-data
-     machine "/pallet/group-name" group-name)
-    (manager/set-extra-data
-     machine "/pallet/os-family" (name (:os-family image)))
-    (manager/set-extra-data
-     machine "/pallet/os-version" (:os-version image))
+    (manager/set-extra-data machine group-name-tag group-name)
+    (manager/set-extra-data machine os-family-tag (name (:os-family image)))
+    (manager/set-extra-data machine os-version-tag (:os-version image))
     ;; (manager/add-startup-command machine 1 init-script )
     (manager/start machine :session-type *vm-session-type*)
     (logging/trace "Wait to allow boot")
@@ -305,7 +307,7 @@
            current-machines-in-group (filter
                                       #(= group-name
                                           (manager/get-extra-data
-                                           % "/pallet/group-name"))
+                                           % group-name-tag))
                                       machines)
            current-machine-names (into #{}
                                        (map
@@ -369,7 +371,7 @@
             (filter
              #(and
                (compute/running? %)
-               (= group-name (manager/get-extra-data % "/pallet/group-name")))
+               (= group-name (manager/get-extra-data % group-name-tag)))
              (manager/machines server))]
       (compute/destroy-node compute machine)))
 
