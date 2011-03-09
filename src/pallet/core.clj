@@ -144,7 +144,7 @@
 (defn server-spec
   "Create a server-spec.
 
-   - :phases used to define phases. Standard phases are:
+   - :phases a hash-map used to define phases. Standard phases are:
      - :bootstrap    run on first boot of a new node
      - :configure    defines the configuration of the node
    - :packager       override the choice of packager to use
@@ -165,8 +165,9 @@
    `name` is used for the group name, which is set on each node and links a node
    to it's node-spec
 
-   `server-or-group-spec` is a server-spec, a group-spec, or sequence thereof,
-                          and is used to inherit phases, etc.
+   - :extends  specify a server-spec, a group-spec, or sequence thereof,
+               and is used to inherit phases, etc.
+
    - :phases used to define phases. Standard phases are:
      - :bootstrap    run on first boot of a new node
      - :configure    defines the configuration of the node.
@@ -838,8 +839,9 @@ is run with root privileges immediatly after first boot."
 
 (defn converge*
   "Converge the node counts of each node-spec in `:node-set`, executing each of
-   the configuration phases on all the group-names in `:node-set`. The phase-functions
-   are also executed, but not applied, for any other nodes in `:all-node-set`"
+   the configuration phases on all the group-names in `:node-set`. The
+   phase-functions are also executed, but not applied, for any other nodes in
+   `:all-node-set`"
   [request]
   {:pre [(:node-set request)]}
   (logging/trace
