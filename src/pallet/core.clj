@@ -28,6 +28,7 @@
    [pallet.compute :as compute]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
+   [pallet.futures :as futures]
    [pallet.utils :as utils]
    [pallet.script :as script]
    [pallet.target :as target]
@@ -374,13 +375,15 @@ is run with root privileges immediatly after first boot."
   "Start or stop the specified number of nodes."
   [delta-map request]
   (logging/trace (str "parallel-adjust-node-counts" delta-map))
-  (mapcat
-   deref
-   (doall
-    (map
-     (fn [group]
-       (future (adjust-node-count group ((:group-name group) delta-map 0) request)))
-     (:groups request)))))
+  (->>
+   (:groups request)
+   (map
+    (fn [group]
+      (future
+        (adjust-node-count group ((:group-name group) delta-map 0) request))))
+   futures/add
+   doall ;; force generation of all futures
+   (mapcat #(futures/deref-with-logging % "Adjust node count"))))
 
 (defn- converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
@@ -592,10 +595,11 @@ is run with root privileges immediatly after first boot."
    (format
     "apply-phase %s for %s with %d nodes"
     (:phase request) (-> request :server :group-name) (count servers)))
-  (map (fn [server]
-         (future (apply-phase-to-node
-                  (assoc request :server server))))
-       servers))
+  (->>
+   servers
+   (map (fn [server]
+          (future (apply-phase-to-node (assoc request :server server)))))
+   futures/add))
 
 (defn sequential-lift
   "Sequential apply the phases."

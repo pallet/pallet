@@ -35,10 +35,11 @@
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
-   [pallet.script :as script]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
+   [pallet.futures :as futures]
    [pallet.resource :as resource]
+   [pallet.script :as script]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]
@@ -277,14 +278,17 @@
    machine-models group-name init-script user]
   ;; the doseq ensures that all futures are completed before
   ;; returning
-  (doall
-   (for [f (doall ;; doall forces creation of all futures before any deref
-            (for [name target-machines-to-create]
-              (future
-                (create-node
-                 server node-path node-spec name images image-id machine-models
-                 group-name init-script user))))]
-     @f)))
+  (->>
+   (for [name target-machines-to-create]
+     (future
+       (create-node
+        server node-path node-spec name images image-id
+        machine-models group-name init-script user)))
+   doall ;; doall forces creation of all futures before any deref
+   futures/add
+   (map #(futures/deref-with-logging % "Start of node"))
+   (filter identity)
+   doall))
 
 (deftype VmfestService
     [server images locations environment]
