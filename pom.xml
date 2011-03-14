@@ -9,7 +9,7 @@
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
-  <version>0.4.11-SNAPSHOT</version>
+  <version>0.4.12-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>pallet</name>
   <description>
@@ -119,6 +119,12 @@
       <groupId>enlive</groupId>
       <artifactId>enlive</artifactId>
       <version>1.0.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.clojure</groupId>
+          <artifactId>clojure</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
