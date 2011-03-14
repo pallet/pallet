@@ -6,10 +6,11 @@
 
 - [[file:reference_providers.org][Talking to the cloud]]
 - [[file:reference_node_push.org][Talking to nodes]]
-- [[file:reference_node_types.org][Node Types]]
+- [[file:reference_node_types.org][Groups, Servers and Node Specs]]
 - [[file:reference_phases.org][Phases]]
 - [[file:reference_operations.org][Operations]]
 - [[file:reference_crates.org][Crates]]
 - [[file:reference_request_map.org][Request Map]]
 - [[file:reference_script.org][Shell Script]]
 - [[file:reference_logging.org][Logging]]
+- [[file:reference_glossary.org][Glossary]]

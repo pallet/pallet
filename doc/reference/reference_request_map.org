@@ -6,18 +6,21 @@
 The request map is used to accumulate the configuration data, and the results of
 execution.
 
+* Access in crates
+
+To access the information in the request map, use the functions in
+=pallet.request-map=.
+
+* Internal details
+
 The request map has some well defined keys:
 
-- :node-type : The pallet defnode type for the current node
-- :target-id : The id for the current node
-- :target-node : The jclouds node object for the current node
+- :group-spec : The group-spec for the current node
+- :server : The server describing the current node
 - :all-nodes : The jclouds node objects for all nodes in the provider
-- :target-nodes : The jclouds node objects for all nodes in the current operation target
 - :parameters : The parameters used for cross-crate configuration
 - :results : the result of executing a converge or lift
 - :compute : The compute service
-- :compute-service : A map of :provider, :identity, :credential, and optionally
-  :extensions for constructing a jclouds compute service
 - :blobstore : The blobstore service
 - :user : The admin user to use on the nodes
 - :invocations : the invocation list of resources to run on each node
