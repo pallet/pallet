@@ -68,12 +68,12 @@
     (is (= {:user {:username :b} :server {:tag :t :image :i}}
            (environment/request-with-environment
              {:user {:username :a} :server {:tag :t}}
-             {:user {:username :b} :tags {:t {:image :i}}}))))
+             {:user {:username :b} :groups {:t {:image :i}}}))))
   (testing "phases merge"
     (is (= {:user {:username :b}
             :server {:tag :t :image :i :phases {:bootstrap identity}}}
            (environment/request-with-environment
              {:user {:username :a} :server {:tag :t}}
              {:user {:username :b}
-              :tags {:t {:image :i}}
+              :groups {:t {:image :i}}
               :phases {:bootstrap identity}})))))

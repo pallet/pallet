@@ -42,6 +42,7 @@
    :count :merge
    :algorithms :merge
    :middleware :replace
+   :groups :merge-environments
    :tags :merge-environments})
 
 (defmulti merge-key
@@ -162,18 +163,20 @@
 
    When request includes a :server value, then the :server value is
    treated as an environment, and merge with any environment in the
-   `environment`'s :tags key.
+   `environment`'s :groups key.
 
    The node-specific environment keys are :images and :phases."
   [request environment]
   (let [request (merge
                  request
-                 (utils/dissoc-keys environment (conj node-keys :tags)))]
+                 (utils/dissoc-keys
+                  environment (conj node-keys :groups :tags)))]
     (if (:server request)
       (let [tag (-> request :server :tag)]
         (assoc request
           :server (merge-environments
                    (:server request)
                    (select-keys environment node-keys)
-                   (-?> environment :tags tag))))
+                   (-?> environment :tags tag) ; :tags is deprecated
+                   (-?> environment :groups tag))))
       request)))
