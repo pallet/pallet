@@ -117,9 +117,11 @@
    :hardware  a map describing a predicate for matching harware:
               min-cores min-ram smallest fastest biggest architecture
               hardware-id
-   :network   a map for network connectivity options
-              inbound-ports"
-  [& {:keys [image hardware location network] :as options}]
+   :network   a map for network connectivity options:
+              inbound-ports
+   :qos       a map for quality of service options:
+              spot-price enable-monitoring"
+  [& {:keys [image hardware location network qos] :as options}]
   {:pre [(or (nil? image) (map? image))]}
   options)
 

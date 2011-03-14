@@ -239,7 +239,7 @@
     (logging/info (str "  authorizing " public-key-path)))
   (when init-script
     (logging/debug (str "  init script\n" init-script)))
-  (let [options (->> [:image :hardware :location :network]
+  (let [options (->> [:image :hardware :location :network :qos]
                      (select-keys group)
                      vals
                      (reduce merge))
