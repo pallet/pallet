@@ -603,6 +603,7 @@ script that is run with root privileges immediatly after first boot."
 
 (defn lift*
   [request]
+  (logging/debug (format "pallet version: %s" (version)))
   (logging/trace (format "lift* phases %s" (vec (:phase-list request))))
   (let [node-set (:node-set request)
         all-node-set (:all-node-set request)
@@ -625,6 +626,7 @@ script that is run with root privileges immediatly after first boot."
    also executed, but not applied, for any other nodes in all-node-set"
   [request]
   {:pre [(map? (:node-map request))]}
+  (logging/debug (format "pallet version: %s" (version)))
   (logging/trace
    (format "converge* %s %s" (:node-map request) (:phase-list request)))
   (logging/info "retrieving nodes")
