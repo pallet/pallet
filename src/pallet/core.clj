@@ -152,7 +152,7 @@
      - :configure    defines the configuration of the node
    - :packager       override the choice of packager to use
    - :node-spec      default node-spec for this server-spec
-   - :server-spec    is a server-spec, or sequence thereof, and is used to
+   - :extends        takes a server-spec, or sequence thereof, and is used to
                      inherit phases, etc."
   [& {:keys [phases packager node-spec extends image hardware location network]
       :as options}]
@@ -966,19 +966,33 @@ is run with root privileges immediatly after first boot."
    (dissoc request :phase-list)
    (:phase-list request)))
 
-(defn- node-spec-with-count
-  "Take the given node-spec, and set the :count key to the value specified
+(defn- group-spec-with-count
+  "Take the given group-spec, and set the :count key to the value specified
    by `count`"
-  [[node-spec count]]
-  (assoc node-spec :count count))
+  [[group-spec count]]
+  (assoc group-spec :count count))
+
+(defn- node-set-for-converge
+  "Takes the input, and translates it into a sequence of group-spec's.
+   The input can be a single group-spec, a map from group-spec to node count,
+   or a sequence of group-spec's"
+  [group-spec->count]
+  (cond
+   ;; a single group-spec
+   (and
+    (map? group-spec->count)
+    (:group-name group-spec->count)) [group-spec->count]
+   ;; a map from group-spec to count
+   (map? group-spec->count) (map group-spec-with-count group-spec->count)
+   :else group-spec->count))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
-   `node-spec->count`. New nodes are started, or nodes are destroyed,
+   `group-spec->count`. New nodes are started, or nodes are destroyed,
    to obtain the specified node counts.
 
-   `node-spec->count` can be a map from node-spec to node count, or can be a
-   sequence of node-specs containing a :count key.
+   `group-spec->count` can be a map from group-spec to node count, or can be a
+   sequence of group-specs containing a :count key.
 
    The compute service may be supplied as an option, otherwise the bound
    compute-service is used.
@@ -992,17 +1006,15 @@ is run with root privileges immediatly after first boot."
    the :configure phase is applied by explicitly listing it.
 
    An optional group-name prefix may be specified. This will be used to modify
-   the group-name for each node-spec, allowing you to build multiple discrete
-   clusters from a single set of node-specs."
-  [node-spec->count & {:keys [compute blobstore user phase prefix middleware
-                              all-nodes all-node-set environment]
-                       :as options}]
+   the group-name for each group-spec, allowing you to build multiple discrete
+   clusters from a single set of group-specs."
+  [group-spec->count & {:keys [compute blobstore user phase prefix middleware
+                               all-nodes all-node-set environment]
+                        :as options}]
   (converge*
    (->
     options
-    (assoc :node-set (if (map? node-spec->count)
-                       (map node-spec-with-count node-spec->count)
-                       node-spec->count)
+    (assoc :node-set (node-set-for-converge group-spec->count)
            :phase-list (if (sequential? phase) phase (if phase [phase] nil)))
     check-arguments-map
     request-with-environment
