@@ -67,6 +67,8 @@ The :defaults map contains overriding values for the whole call.
 - :blobstore :: blobstore service to use for the environment. If not specified,
                 then uses the :blobstore passed to converge/lift.
 
+- :algorithms :: algorithm seletion for pallet converge, lift, etc.
+
 * effective keys
 
 ** converge and other phases
@@ -82,3 +84,8 @@ The :defaults map contains overriding values for the whole call.
 :user
 :compute
 :blobstore
+
+* config.clj
+
+The environment key from config.clj is propogated to the environment, as is
+the environment key from within each each service definition map.
