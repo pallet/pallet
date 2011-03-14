@@ -1,6 +1,9 @@
+#+SETUPFILE: org-templates/level-0.org
 #+TITLE:     Pallet - Release Notes
+#+DESCRIPTION: Release notes for pallet releases
+#+KEYWORDS: pallet palletops contribute
 
-The latest release is 0.4.10.
+The latest release is 0.4.11.
 
 * 0.5.0-SNAPHSOT
 ** Install
@@ -53,6 +56,31 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
       (file/rm ~path :force true)
       ("rm" -f ~path)
 
+
+* 0.4.11
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Fixes
+- Pass any :environment key in project.clj to the converge and lif tasks
+  In order to allow environment definitions in project.clj, and to enable
+  environments to be supplied by the cake context feature, the :environment
+  key values from project.clj are passed to the converge and lift commands
+  invoked by the converge and lift tasks (used by the lein and cake
+  plugins)
+
+- Add logging of pallet version
+  To ease identification of pallet versions in the log files, add debug
+  level logging of the pallet version on every lift and converge
+
+- Fix loading of providers to work with custom classloaders
+  Custom classloaders as used by cake, tomcat, etc, would break the loading
+  of the pallet compute providers.
+
+  Fixes #57
+
+- Add an exclusion of clojure to the enlive dependency
 
 * 0.4.10
 ** Install
