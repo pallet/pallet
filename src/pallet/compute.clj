@@ -112,6 +112,46 @@
    (configure/pallet-config)
    profiles))
 
+(defn service
+  "Instantiate a compute service.
+
+   If passed no arguments, then the compute service is looked up in the
+   following order:
+   - from a var referenced by the pallet.config.service system property
+   - from pallet.config/service if defined
+   - the first service in config.xlj
+   - the service from the first active profile in settings.xml
+
+   If passed a service name, it is looked up in external
+   configuration (~/.pallet/config.clj or ~/.m2/settings.xml). A service name is
+   one of the keys in the :services map in config.clj, or a profile id in
+   settings.xml.
+
+   When passed a provider name and credentials, the service is instantiated
+   based on the credentials.  The provider name should be a recognised provider
+   name (see `pallet.compute/supported-providers` to obtain a list of these).
+
+   The other arguments are keyword value pairs.
+   - :identity     username or key
+   - :credential   password or secret
+   - :extensions   extension modules for jclouds
+   - :node-list    a list of nodes for the \"node-list\" provider.
+   - :environment  an environment map with service specific values."
+  ([]
+     (or
+      (compute-service-from-property)
+      (compute-service-from-config-var)
+      (compute-service-from-config-file)
+      (compute-service-from-settings)))
+  ([service-name]
+     (or
+      (compute-service-from-config-file service-name)
+      (compute-service-from-settings service-name)))
+  ([provider-name
+    & {:keys [identity credential extensions node-list endpoint environment]
+       :as options}]
+     (apply compute-service provider-name (apply concat options))))
+
 ;;; Nodes
 (defprotocol Node
   (ssh-port [node] "Extract the port from the node's userMetadata")
