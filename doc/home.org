@@ -12,5 +12,4 @@ designed to make small to midsize deployments simple.
 - [[http://pallet.github.com/pallet/marginalia/uberdoc.html][Annotated Source]]
 
 - [[file:proposals/proposal_environment.org][Proposals]]
-- [[Guideline for Writing Crates]]
 
