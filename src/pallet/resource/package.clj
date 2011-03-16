@@ -5,7 +5,7 @@
 
    `package-source` is used to specify a non-standard source for packages."
   (:require
-   [pallet.resource :as resource]
+   [pallet.action :as action]
    [pallet.resource.file :as file]
    [pallet.resource.remote-file :as remote-file]
    [pallet.resource.hostinfo :as hostinfo]
@@ -18,9 +18,12 @@
    [clojure.contrib.string :as string]
    [clojure.contrib.logging :as logging])
   (:use
-   [pallet.resource :only [defaggregate defresource]]
-   [clojure.contrib.core :only [-?>]]
    pallet.thread-expr))
+
+(def ^{:private true}
+  remote-file* (action/action-fn remote-file/remote-file-resource))
+(def ^{:private true}
+  sed* (action/action-fn file/sed))
 
 ;;; the package management commands vary for each distribution, so we
 ;;; use a script multimethod to describe these
@@ -290,7 +293,7 @@
      (update-in [:enable] as-seq)
      (update-in [:disable] as-seq))))
 
-(defaggregate package
+(action/def-aggregated-action package
   "Install or remove a package.
 
    Options
@@ -302,15 +305,14 @@
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
-  {:use-arglist  [request package-name
-                  & {:keys [action y force purge enable disable priority]
-                     :or {action :install
-                          y true
-                          priority 50}
-                     :as options}]}
-  (package*
-   [request args]
-   (adjust-packages request (map #(apply package-map request %) args))))
+  [request args]
+  {:arglists '([request package-name
+                & {:keys [action y force purge enable disable priority]
+                   :or {action :install
+                        y true
+                        priority 50}
+                   :as options}])}
+  (adjust-packages request (map #(apply package-map request %) args)))
 
 (defn packages
   "Install a list of packages keyed on packager.
@@ -371,7 +373,7 @@
          (stevedore/chain-commands
           (stevedore/script (install-package "python-software-properties"))
           (stevedore/script (add-apt-repository ~key-url)))
-         (remote-file/remote-file*
+         (remote-file*
           request
           (format (source-location packager) name)
           :content (format-source packager name (packager options))
@@ -385,7 +387,7 @@
      (if (and (-> options :aptitude :key-url)
               (= packager :aptitude))
        (stevedore/chain-commands
-        (remote-file/remote-file*
+        (remote-file*
          request
          "aptkey.tmp"
          :url (-> options :aptitude :key-url))
@@ -395,7 +397,7 @@
 
 (declare package-manager)
 
-(defaggregate ^{:always-before #{`package-manager `package}} package-source
+(action/def-aggregated-action package-source
   "Control package sources.
    Options are the package manager keywords, each specifying a map of
    packager specific options.
@@ -416,11 +418,11 @@
        (package-source \"Partner\"
          :aptitude {:url \"http://archive.canonical.com/\"
                     :scopes [\"partner\"]})"
-  {:copy-arglist pallet.resource.package/package-source*}
-  (package-source-aggregate
-   [request args]
-   (stevedore/do-script*
-    (map (fn [x] (apply package-source* request x)) args))))
+  [request args]
+  {:arglists (:arglists (meta pallet.resource.package/package-source*))
+   :always-before #{`package-manager `package}}
+  (stevedore/do-script*
+   (map (fn [x] (apply package-source* request x)) args)))
 
 (defn add-scope*
   "Add a scope to all the existing package sources. Aptitude specific."
@@ -467,7 +469,7 @@
 
 (defmethod configure-package-manager :aptitude
   [request packager {:keys [priority prox] :or {priority 50} :as options}]
-  (remote-file/remote-file*
+  (remote-file*
    request
    (format "/etc/apt/apt.conf.d/%spallet" priority)
    :content (string/join
@@ -480,7 +482,7 @@
 (defmethod configure-package-manager :yum
   [request packager {:keys [proxy] :as options}]
   (stevedore/chain-commands
-   (remote-file/remote-file*
+   (remote-file*
     request
     "/etc/yum.pallet.conf"
     :content (string/join
@@ -500,7 +502,7 @@
 (defmethod configure-package-manager :pacman
   [request packager {:keys [proxy] :as options}]
   (stevedore/chain-commands
-   (remote-file/remote-file*
+   (remote-file*
     request
     "/etc/pacman.pallet.conf"
     :content (string/join
@@ -513,7 +515,7 @@
    (stevedore/script
     (if (not @("fgrep" "pacman.pallet.conf" "/etc/pacman.conf"))
       (do
-        ~(file/sed*
+        ~(sed*
           request
           "/etc/pacman.conf"
           "a Include = /etc/pacman.pallet.conf"
@@ -543,7 +545,7 @@
                (str action
                     " is not a valid action for package-manager resource")))))))
 
-(defaggregate ^{:always-before `package} package-manager
+(action/def-aggregated-action package-manager
   "Package manager controls.
 
    `action` is one of the following:
@@ -559,11 +561,11 @@
 
    To enable non-free on debian:
        (package-manager request :add-scope :scope :non-free)"
-  {:copy-arglist pallet.resource.package/package-manager*}
-  (apply-package-manager
-   [request package-manager-args]
-   (stevedore/do-script*
-    (map #(apply package-manager* request %) (distinct package-manager-args)))))
+  [request package-manager-args]
+  {:copy-arglist (:arglists (meta pallet.resource.package/package-manager*))
+   :always-before `package}
+  (stevedore/do-script*
+   (map #(apply package-manager* request %) (distinct package-manager-args))))
 
 (def ^{:private true} centos-55-repo
   "http://mirror.centos.org/centos/5.5/os/x86_64/repodata/repomd.xml")
@@ -593,22 +595,22 @@
               :scopes ["main"]}))
 
 ;; this is an aggregate so that it can come before the aggragate package-manager
-(defaggregate ^{:always-before #{`package-manager `package}} add-epel
+(action/def-aggregated-action add-epel
   "Add the EPEL repository"
-  {:use-arglist [request & {:keys [version] :or {version "5-4"}}]}
-  (add-epel*
-   [request args]
-   (let [{:keys [version] :or {version "5-4"}} (apply
-                                                merge {}
-                                                (map #(apply hash-map %) args))]
-     (stevedore/script
-      ;; "Add EPEL package repository"
-      (rpm
-       -U --quiet
-       ~(format
-         "http://download.fedora.redhat.com/pub/epel/5/%s/epel-release-%s.noarch.rpm"
-         "$(uname -i)"
-         version))))))
+  [request args]
+  {:arglists '([request & {:keys [version] :or {version "5-4"}}])
+   :always-before #{`package-manager `package}}
+  (let [{:keys [version] :or {version "5-4"}} (apply
+                                               merge {}
+                                               (map #(apply hash-map %) args))]
+    (stevedore/script
+     ;; "Add EPEL package repository"
+     (rpm
+      -U --quiet
+      ~(format
+        "http://download.fedora.redhat.com/pub/epel/5/%s/epel-release-%s.noarch.rpm"
+        "$(uname -i)"
+        version)))))
 
 (def ^{:private true}
   rpmforge-url-pattern
@@ -616,26 +618,26 @@
 
 
 ;; this is an aggregate so that it can come before the aggragate package-manager
-(defaggregate ^{:always-before #{`package-manager `package}} add-rpmforge
+(action/def-aggregated-action add-rpmforge
   "Add the rpmforge repository"
-  {:use-arglist [request & {:keys [version distro arch]
-                            :or {version "0.5.2-2" distro "el5" arch "i386"}}]}
-  (add-rpmforge*
-   [request args]
-   (let [{:keys [version distro arch]
-          :or {version "0.5.2-2"
-               distro "el5"
-               arch "i386"}} (apply hash-map (first args))]
-     (stevedore/checked-script
-      "Add rpmforge repositories"
-      (chain-or
-       (if (= "0" @(pipe (rpm -qa) (grep rpmforge) (wc -l)))
-         (do
-           ~(remote-file/remote-file*
-             request
-             "rpmforge.rpm"
-             :url (format rpmforge-url-pattern version distro arch))
-           (rpm -U --quiet "rpmforge.rpm"))))))))
+  [request args]
+  {:always-before #{`package-manager `package}
+   :arglists '([request & {:keys [version distro arch]
+                           :or {version "0.5.2-2" distro "el5" arch "i386"}}])}
+  (let [{:keys [version distro arch]
+         :or {version "0.5.2-2"
+              distro "el5"
+              arch "i386"}} (apply hash-map (first args))]
+    (stevedore/checked-script
+     "Add rpmforge repositories"
+     (chain-or
+      (if (= "0" @(pipe (rpm -qa) (grep rpmforge) (wc -l)))
+        (do
+          ~(remote-file*
+            request
+            "rpmforge.rpm"
+            :url (format rpmforge-url-pattern version distro arch))
+          (rpm -U --quiet "rpmforge.rpm")))))))
 
 (def jpackage-mirror-fmt
   "http://www.jpackage.org/mirrorlist.php?dist=%s&type=free&release=%s")
@@ -690,21 +692,20 @@
               (format "jpackage-%s" component)
               (format "jpackage-%s-updates" component)])))
 
-(defaggregate
-  ^{:always-before `package-manager `package-source `package}
+(action/def-aggregated-action
   minimal-packages
   "Add minimal packages for pallet to function"
-  {:use-arglist [request]}
-  (minimal-packages*
-   [request args]
-   (let [os-family (request-map/os-family request)]
-     (cond
-      (#{:ubuntu :debian} os-family) (stevedore/checked-script
-                                      "Add minimal packages"
-                                      (update-package-list)
-                                      (install-package "coreutils")
-                                      (install-package "sudo"))
-      (= :arch os-family) (stevedore/checked-script
-                           "Add minimal packages"
-                           (update-package-list)
-                           (install-package "sudo"))))))
+  [request args]
+  {:arglists '([request])
+   :always-before #{`package-manager `package-source `package}}
+  (let [os-family (request-map/os-family request)]
+    (cond
+     (#{:ubuntu :debian} os-family) (stevedore/checked-script
+                                     "Add minimal packages"
+                                     (update-package-list)
+                                     (install-package "coreutils")
+                                     (install-package "sudo"))
+     (= :arch os-family) (stevedore/checked-script
+                          "Add minimal packages"
+                          (update-package-list)
+                          (install-package "sudo")))))

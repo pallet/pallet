@@ -8,21 +8,21 @@
   (loop [args args
          prefix nil
          m nil
-         phases []]
+         tasks []]
     (if-let [a (first args)]
       (cond
        (and (nil? m) (symbol? a) (nil? (namespace a))) (recur
                                                         (next args)
                                                         (name a)
                                                         m
-                                                        phases)
+                                                        tasks)
        (not (keyword? a)) (recur
                            (next args)
                            prefix
                            (conj (or m []) a)
-                           phases)
-       :else (recur (next args) prefix m (conj phases a)))
-      (concat (if prefix [prefix] []) [(set m)] [:phase phases]))))
+                           tasks)
+       :else (recur (next args) prefix m (conj tasks a)))
+      (concat (if prefix [prefix] []) [(set m)] [:task tasks]))))
 
 (defn lift
   "Apply configuration.

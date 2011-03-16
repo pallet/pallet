@@ -1,0 +1,495 @@
+(ns pallet.action-plan
+  "An action plan contains actions for execution.
+
+   The action plan is built by executing a phase function. Each phase function
+   calls actions which insert themselves into the action plan.
+
+   The action plan is transformed to provide aggregated operations, and to
+   resolve precedence relations between actions.
+
+   A translated plan is executed by passing an executor, which is a map
+   from action type to function.  The executor functions are called with the
+   result of evaluating the action with it's arguments."
+  {:author "Hugo Duncan"}
+  (:require
+   [pallet.argument :as argument]
+   [pallet.request-map :as request-map]
+   [pallet.script :as script]
+   [clojure.contrib.condition :as condition]
+   [clojure.contrib.logging :as logging]
+   [clojure.contrib.monads :as monad]
+   [clojure.string :as string])
+  (:use
+   [clojure.contrib.def :only [defunbound defvar defvar- name-with-attributes]]
+   clojure.contrib.core))
+
+;; The action plan is a stack of actions, where the action could itself
+;; be a stack of actions (ie a tree of stacks)
+
+(defn push-block
+  "Push a block onto the action-plan"
+  [action-plan]
+  (conj (or action-plan '(nil nil)) nil))
+
+(defn pop-block
+  "Take the last block and add it to the scope below it in the stack.
+   The block is reversed to put it into the order in which elements
+   were added. Once pop'd, nothing should be added to the block."
+  [action-plan]
+  (let [block (peek action-plan)
+        stack (pop action-plan)]
+    (if-let [stem (next stack)]
+      (conj stem (conj (first stack) (reverse block)))
+      (if-let [stem (seq (first stack))]
+        (conj stem (reverse block))
+        (reverse block)))))
+
+(defn add-action
+  "Add an action to the plan"
+  [action-plan action]
+  (let [action-plan (or action-plan '(nil nil))
+        block (peek action-plan)
+        stack (pop action-plan)]
+    (conj stack (conj block action))))
+
+;; pallet specific action
+(defn action-map
+  "Return an action map for the given args. The action plan is a tree of
+   action maps.
+
+   - :f          the action function
+   - :args       the arguments to pass to the action function
+   - :location   where to execute the action - :orgin or :target
+   - :type       the type of action - :script/bash, :fn/clojure, etc
+   - :execution  the execution type - :in-sequence, :aggregated, :collected
+   - :value      the result of calling the action function, :f, with :args
+   - :request    the request map after calling the action function."
+  [action-fn args execution resource-type location]
+  {:f action-fn
+   :args args
+   :location location
+   :type resource-type
+   :execution execution})
+
+;;; utilities
+
+(defn- script-join
+  "Concatenate multiple scripts, removing blank lines"
+  [scripts]
+  (str
+   (->>
+    scripts
+    (map #(when % (string/trim %)))
+    (filter (complement string/blank?))
+    (string/join \newline))
+   \newline))
+
+
+;;; transform functions for working with an action-plan containing action-maps
+;;; with :nested-scope types
+
+(defn- walk-action-plan
+  "Traverses an action-plan structure.  leaf-fn is applied to leaf
+   action, list-fn to sequences of actions, and nested-fn to
+   a nested scope. nested-fn takes the existin nested scope and a transformed
+   arg list"
+  [leaf-fn list-fn nested-fn action-plan]
+  (cond
+   (sequential? action-plan) (list-fn
+                              (map
+                               #(walk-action-plan leaf-fn list-fn nested-fn %)
+                               action-plan))
+   (= :nested-scope (:type action-plan)) (nested-fn
+                                          action-plan
+                                          (walk-action-plan
+                                           leaf-fn list-fn nested-fn
+                                           (:args action-plan)))
+   :else (leaf-fn action-plan)))
+
+;;; transform input nested scopes into action maps with :type :nested-scope
+(defn- scope-action
+  "A scope combining action."
+  [request & args]
+  (script-join (map #((:f %) request) args)))
+
+(defn- nested-scope-transform
+  "Transform a nested scope into an action-map with :type :nested-scope"
+  [x]
+  {:pre [(sequential? x)]}
+  {:f scope-action
+   :args x
+   :type :nested-scope
+   :execution :in-sequence
+   :location :target})
+
+(defn transform-nested-scopes
+  "Traverses an action-plan structure. Converting nested scopes into
+   action-map's."
+  [action-plan]
+  (cond
+   (sequential? action-plan) (nested-scope-transform
+                              (vec (map transform-nested-scopes action-plan)))
+   :else action-plan))
+
+(defn- transform-scopes
+  "Transforms nexted scopes into an action map."
+  [action-plan]
+  (map transform-nested-scopes action-plan))
+
+;;; transform executions
+
+(defn- group-by-function
+  "Transforms a seq of actions, generally some with identical :f values into a
+   sequence of actions where the :args are the concatenation of all of the :args
+   of associated with each :f in the original seq.  Sequence order from the
+   original seq is retained. Keys over than :f and :args are assumed identical
+   for a given :f value.
+
+   e.g. (group-by-function
+           [{:f :a :args [1 2]}
+            {:f :b :args [3 4]}
+            {:f :a :args [5 6]}
+            {:f :c :args [7 8]]])
+        => ({:f :a :args ([1 2] [5 6])}
+            {:f :c :args ([7 8])}
+            {:f :b :args ([3 4])})"
+  [action-plan]
+  (->>
+   action-plan
+   (group-by :f)
+   (map (fn [[_ action-calls]]
+          (reduce
+           #(update-in %1 [:args] conj (:args %2))
+           (assoc (first action-calls) :args [])
+           action-calls)))))
+
+(def ^{:doc "Execution specifc transforms" :private true}
+  execution-transforms
+  {:aggregated [group-by-function]
+   :collected [group-by-function]})
+
+(defvar- execution-ordering [:aggregated :in-sequence :collected])
+
+(defn- transform-execution
+  "Transform an execution by applying execution-transforms."
+  [execution action-plan]
+  (if-let [transforms (execution-transforms execution)]
+    (reduce #(%2 %1) action-plan transforms)
+    action-plan))
+
+(defn- transform-scope-executions
+  "Sort an action plan scope into different executions, applying execution
+   specific transforms."
+  [action-plan]
+  (let [executions (group-by :execution action-plan)]
+    (mapcat
+     #(transform-execution % (% executions))
+     execution-ordering)))
+
+(defn- transform-executions
+  "Sort an action plan into different executions, applying execution specific
+   transforms."
+  [action-plan]
+  (walk-action-plan
+   identity
+   transform-scope-executions
+   #(assoc %1 :args %2)
+   action-plan))
+
+;;; enforce declared precedence rules
+(defn- action-precedence-comparator
+  "A comparator for precedence between actions."
+  [x y]
+  (let [before-fn (fn [f]
+                    (let [before (:always-before (meta f))
+                          before (if (or (set? before) (nil? before))
+                                   before
+                                   #{before})
+                          before (seq
+                                  (filter identity (map find-var before)))]
+                      (into #{} (map
+                                 (comp :pallet.action/action-fn meta var-get)
+                                 before))))
+        fx (:f x)
+        fy (:f y)]
+    (cond
+     ((before-fn fx) fy) -1
+     ((before-fn fy) fx) 1
+     :else 0)))
+
+(defn- enforce-scope-precedence
+  "Enforce precedence relations between actions in a scope."
+  [action-plan]
+  (sort action-precedence-comparator action-plan)) ; sort is order preserving
+
+(defn- enforce-precedence
+  "Enforce precedence relations between actions."
+  [action-plan]
+  (walk-action-plan
+   identity
+   enforce-scope-precedence
+   #(assoc %1 :args %2)
+   action-plan))
+
+;;; convert nested-scopes to script functions
+
+(defn- script-type-scope
+  "Convert a scope to a single script function"
+  [action-map]
+  (if (= :nested-scope (:type action-map))
+    (assoc action-map :type :script/bash :target)
+    action-map))
+
+(defn- script-type-scopes-in-scope
+  "Reduce a nested scopes of a single scope to a compound action"
+  [action-plan]
+  (map script-type-scope action-plan))
+
+(defn- script-type-scopes
+  "Reduce nested scopes to a compound action"
+  [action-plan]
+  (walk-action-plan
+   identity
+   script-type-scopes-in-scope
+   (fn [action _] action)
+   action-plan))
+
+;;; Bind arguments
+
+(defn- evaluate-args
+  "Evaluate an argument sequence"
+  [request args]
+  (map (fn [arg] (when arg (argument/evaluate arg request))) args))
+
+(defn- apply-action
+  "Returns a function that applies args to the function f,
+   evaluating the arguments."
+  [f args]
+  (fn [request]
+    (apply f request (evaluate-args request args))))
+
+(defn- apply-aggregated-action
+  "Apply args-seq to the function f, evaluating each argument list in args-seq."
+  [f args-seq]
+  (fn [request]
+    (f request (map #(evaluate-args request %) args-seq))))
+
+(defmulti bind-action-arguments
+  "Bind an action's arguments."
+  (fn [{:keys [execution]}] execution))
+
+(defmethod bind-action-arguments :in-sequence
+  [{:keys [f args] :as action-map}]
+  (->
+   action-map
+   (update-in [:f] apply-action args)
+   (dissoc :args)))
+
+(defmethod bind-action-arguments :aggregated
+  [{:keys [f args] :as action-map}]
+  (->
+   action-map
+   (update-in [:f] apply-aggregated-action args)
+   (dissoc :args)))
+
+(defmethod bind-action-arguments :collected
+  [{:keys [f args] :as action-map}]
+  (->
+   action-map
+   (update-in [:f] apply-aggregated-action args)
+   (dissoc :args)))
+
+(defn- bind-scope-arguments
+  "Takes an action plan scope and binds each actions arguments"
+  [action-plan]
+  (map bind-action-arguments action-plan))
+
+(defn- bind-arguments
+  "Takes an action plan and binds each actions arguments"
+  [action-plan]
+  (walk-action-plan
+   identity
+   bind-scope-arguments
+   #(assoc %1 :args %2)
+   action-plan))
+
+;;; combine by location and type
+(defmulti combine-actions
+  "Combine actions by type"
+  (fn [actions] (:type (first actions))))
+
+(defmethod combine-actions :default
+  [actions]
+  (reduce
+   (fn combine-actions-compose [combined action]
+     (update-in combined [:f] #(comp (:f action) %)))
+   actions))
+
+(defmethod combine-actions :script/bash
+  [actions]
+  (assoc (first actions)
+    :f (fn [request] (script-join (map #((:f %) request) actions)))))
+
+(defmethod combine-actions :transfer/to-local
+  [actions]
+  (assoc (first actions)
+    :f (fn [request] (map #((:f %) request) actions))))
+
+(defmethod combine-actions :transfer/from-local
+  [actions]
+  (assoc (first actions)
+    :f (fn [request] (map #((:f %) request) actions))))
+
+(defn- combine-scope-by-location-and-type
+  "Combines the bound actions of a scope by location and type, producing
+  compound actions"
+  [action-plan]
+  (->>
+   action-plan
+   (partition-by (juxt :location :type))
+   (map combine-actions)))
+
+(defn- combine-by-location-and-type
+  "Combines bound actions by location and type, producing compound actions"
+  [action-plan]
+  (walk-action-plan
+   identity
+   combine-scope-by-location-and-type
+   #(assoc %1 :args %2)
+   action-plan))
+
+;;; augment return
+(defmulti augment-return
+  "Change the return type of an action, to be an action map with
+   :value and :request keys that are the value of the action, and the updated
+   request map for the next action.  This creates a consistent return value for
+   all action types (effectively creating a monadic value which is a map)."
+  (fn [{:keys [type] :as action}] type))
+
+(defmethod augment-return :default
+  [{:keys [f] :as action}]
+  (assoc action
+    :f (fn [request]
+         (assoc action
+           :request request
+           :value (f request)))))
+
+(defmethod augment-return :fn/clojure
+  [{:keys [f] :as action}]
+  (assoc action
+    :f (fn [request]
+         (let [request (f request)]
+           (assoc action
+             :request request
+             :value request)))))
+
+(defn- augment-scope-return-values
+  "Augment the return values of each action in a scope."
+  [action-plan]
+  (map augment-return action-plan))
+
+(defn- augment-return-values
+  "Augment the return values of each action."
+  [action-plan]
+  (walk-action-plan
+   identity
+   augment-scope-return-values
+   #(assoc %1 :args %2)
+   action-plan))
+
+;;; translate action plan
+(defn translate
+  "Process the action-plan, applying groupings and precedence, producing
+   an action plan with fully bound functions, ready for execution.
+
+   This is equivalent to using an identity monad with a monadic value
+   that is a tree of action maps."
+  [action-plan]
+  (->
+   action-plan
+   pop-block ;; pop the default block
+   transform-scopes
+   transform-executions
+   enforce-precedence
+   bind-arguments
+   combine-by-location-and-type
+   script-type-scopes
+   augment-return-values))
+
+
+;;; execute action plan
+(defn execute-action
+  "Execut a single action"
+  [executor [result request] {:keys [f type] :as action}]
+  (let [executor-f (executor type)
+        {:keys [request value]} (f request)]
+    (logging/info
+     (format "action-plan/execute-action :type %s :value %s" type value))
+    [(conj result (executor-f value)) request]))
+
+(defn execute
+  "Execute actions by passing the evaluated actions to the function of the
+   correct type in `executor` (a map of functions keyed by action type)."
+  [action-plan request executor]
+  (logging/info
+   (format "action-plan/execute with %s actions" (count action-plan)))
+  (reduce #(execute-action executor %1 %2) [[] request] action-plan))
+
+
+;;; Target specific functions
+(defn target-path
+  "Return the vector path of the action plan for the current request target"
+  [request]
+  {:pre [(keyword? (request-map/phase request))
+         (keyword? (request-map/target-id request))]}
+  [:action-plan (request-map/phase request) (request-map/target-id request)])
+
+(defn- script-template-for-node-spec
+  "Return the script template for the specified node spec."
+  [node-spec]
+  (let [family (-> node-spec :image :os-family)]
+    (filter identity
+            [family
+             (:packager node-spec)
+             (when-let [version (-> node-spec :image :os-version)]
+               (keyword (format "%s-%s" (name family) version)))])))
+
+(defn script-template
+  "Return the script template for the current group node."
+  [request]
+  (script-template-for-node-spec
+   (assoc (-> request :node-type) :packager (:target-packager request))))
+
+
+;;; action plan functions based on request
+
+(defn build-for-target
+  "Create the action plan by calling the current phase for the target group."
+  [request]
+  {:pre [(:phase request)]}
+  (let [phase (:phase request)]
+    (if-let [f (or
+                (phase (:phases (:node-type request)))
+                (phase (:phases request)))]
+      (script/with-template (script-template request)
+        (f request))
+      request)))
+
+(defn get-for-target
+  "Get the action plan for the current phase and target node."
+  [request]
+  (get-in request (target-path request)))
+
+(defn translate-for-target
+  "Build the action plan and translate for the current phase and target node."
+  [request]
+  {:pre [(:phase request)]}
+  (update-in request (target-path request) translate))
+
+(defn execute-for-target
+  "Execute the translated action plan for the current target."
+  [request executor]
+  {:pre [(:phase request)]}
+  (script/with-template (script-template request)
+    (execute
+     (get-in request (target-path request)) request executor)))

@@ -2,11 +2,11 @@
   "User management resource."
   (:use
    pallet.script
-   [pallet.resource :only [defresource defaggregate]]
    pallet.stevedore
    [clojure.contrib.def :only [defvar-]]
    clojure.contrib.logging)
   (:require
+   [pallet.action :as action]
    [clojure.contrib.string :as string]))
 
 (defscript user-exists? [name])
@@ -126,36 +126,34 @@
               (str action " is not a valid action for user resource"))))))
 
 
-(defaggregate user
+(action/def-aggregated-action user
   "User management."
-  {:copy-arglist pallet.resource.user/user*}
-  (user-combiner
-   [request user-args]
-   (string/join \newline (map #(apply user* request %) user-args))))
+  [request user-args]
+  {:arglists (:arglists (meta pallet.resource.user/user*))}
+  (string/join \newline (map #(apply user* request %) user-args)))
 
 
-(defresource group
+(action/def-bash-action group
   "User Group Management."
-  (group*
-   [request groupname & {:keys [action system gid password]
-                         :or {action :manage}
-                         :as options}]
-   (case action
-     :create
-     (script
-      (if-not (group-exists? ~groupname)
-        (create-group
-         ~groupname ~(select-keys options [:system :gid :password]))))
-     :manage
-     (script
-      (if (group-exists? ~groupname)
-        (modify-group
-         ~groupname ~(select-keys options [:gid :password]))
-        (create-group
-         ~groupname ~(select-keys options [:system :gid :password]))))
-     :remove
-     (script
-      (if (group-exists? ~groupname)
-        (remove-group ~groupname {})))
-     (throw (IllegalArgumentException.
-             (str action " is not a valid action for group resource"))))))
+  [request groupname & {:keys [action system gid password]
+                        :or {action :manage}
+                        :as options}]
+  (case action
+    :create
+    (script
+     (if-not (group-exists? ~groupname)
+       (create-group
+        ~groupname ~(select-keys options [:system :gid :password]))))
+    :manage
+    (script
+     (if (group-exists? ~groupname)
+       (modify-group
+        ~groupname ~(select-keys options [:gid :password]))
+       (create-group
+        ~groupname ~(select-keys options [:system :gid :password]))))
+    :remove
+    (script
+     (if (group-exists? ~groupname)
+       (remove-group ~groupname {})))
+    (throw (IllegalArgumentException.
+            (str action " is not a valid action for group resource")))))

@@ -3,8 +3,6 @@
    [pallet.execute :as execute]
    [pallet.target :as target]
    [pallet.script :as script]
-   [pallet.resource :as resource]
-   [pallet.resource-build :as resource-build]
    [pallet.parameter :as parameter]
    [pallet.compute.node-list :as node-list]
    [pallet.utils :as utils])
@@ -50,8 +48,3 @@ list, Alan Dipert and MeikelBrandmeyer."
   "Simple localhost node for testing"
   [& {:as options}]
   (apply node-list/make-localhost-node (apply concat options)))
-
-(defmacro build-resources
-  "Forwarding definition, until resource-when is fixed"
-  [& args]
-  `(resource-build/build-resources ~@args))

@@ -2,12 +2,12 @@
   "Service control."
   (:use clojure.contrib.logging)
   (:require
+   [pallet.action :as action]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.resource.filesystem-layout :as filesystem-layout]
    [pallet.resource.lib :as lib]
    [pallet.resource.remote-file :as remote-file]
-   [pallet.resource :as resource]
    [clojure.string :as string]))
 
 (script/defscript configure-service
@@ -69,7 +69,7 @@
                                   options chkconfig-default-options))))))
 
 
-(resource/defresource service
+(action/def-bash-action service
   "Control services.
 
    - :action  accepts either startstop, restart, enable or disable keywords.
@@ -78,20 +78,19 @@
    - :sequence-start  a sequence of [sequence-number level level ...], where
                       sequence number determines the order in which services
                       are started within a level."
-  (service*
-   [request service-name & {:keys [action if-flag]
-                            :or {action :start}
-                            :as options}]
-   (if (#{:enable :disable :start-stop} action)
-     (stevedore/checked-script
-      (format "Confgure service %s" service-name)
-      (configure-service ~service-name ~action ~options))
-     (if if-flag
-       (stevedore/script
-        (if (== "1" (flag? ~if-flag))
-          (~(str "/etc/init.d/" service-name) ~(name action))))
-       (stevedore/script
-        ( ~(str "/etc/init.d/" service-name) ~(name action)))))))
+  [request service-name & {:keys [action if-flag]
+                           :or {action :start}
+                           :as options}]
+  (if (#{:enable :disable :start-stop} action)
+    (stevedore/checked-script
+     (format "Confgure service %s" service-name)
+     (configure-service ~service-name ~action ~options))
+    (if if-flag
+      (stevedore/script
+       (if (== "1" (flag? ~if-flag))
+         (~(str "/etc/init.d/" service-name) ~(name action))))
+      (stevedore/script
+       ( ~(str "/etc/init.d/" service-name) ~(name action))))))
 
 (defmacro with-restart
   "Stop the given service, execute the body, and then restart."

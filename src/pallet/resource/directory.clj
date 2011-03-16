@@ -2,11 +2,11 @@
   "A directory manipulation resource, to create and remove directories
    with given ownership and mode."
   (:require
-   [pallet.utils :as utils]
+   [pallet.action :as action]
+   [pallet.script :as script]
    [pallet.stevedore :as stevedore]
-   [pallet.script :as script])
+   [pallet.utils :as utils])
   (:use
-   [pallet.resource :only [defresource]]
    [pallet.resource.file :only [chown chgrp chmod]]
    clojure.contrib.logging))
 
@@ -56,7 +56,7 @@
     (mkdir ~path ~(select-keys opts [:p :v :m])))
    (adjust-directory path opts)))
 
-(defresource directory
+(action/def-bash-action directory
   "Directory management.
 
    For :create and :touch, all components of path are effected.
@@ -65,23 +65,21 @@
     - :action     One of :create, :touch, :delete
     - :recursive  Flag for recursive delete
     - :force      Flag for forced delete"
-  (directory*
-   [request path & {:keys [action] :or {action :create} :as options}]
-   (case action
-     :delete (stevedore/checked-script
-              (str "Delete directory " path)
-              (rm ~path ~{:r (get options :recursive true)
-                          :f (get options :force true)}))
-     :create (make-directory path (merge {:p true} options))
-     :touch (make-directory path (merge {:p true} options)))))
+  [request path & {:keys [action] :or {action :create} :as options}]
+  (case action
+    :delete (stevedore/checked-script
+             (str "Delete directory " path)
+             (rm ~path ~{:r (get options :recursive true)
+                         :f (get options :force true)}))
+    :create (make-directory path (merge {:p true} options))
+    :touch (make-directory path (merge {:p true} options))))
 
-(defresource directories
+(action/def-bash-action directories
   "Directory management of multiple directories with the same
    owner/group/permissions.
 
    `options` are as for `directory` and are applied to each directory in
    `paths`"
-  (directories*
-   [request paths & options]
-   (stevedore/chain-commands*
-    (map #(apply directory* request % options) paths))))
+  [request paths & options]
+  (stevedore/chain-commands*
+   (map #(apply (action/action-fn directory) request % options) paths)))

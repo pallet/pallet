@@ -4,7 +4,7 @@
         clojure.test
         pallet.test-utils)
   (:require
-   [pallet.resource :as resource]
+   [pallet.build-actions :as build-actions]
    [pallet.script :as script]))
 
 (use-fixtures :once with-ubuntu-script-template)
@@ -48,11 +48,11 @@
 
 (deftest group-create-test
   (is (= "if ! getent group group11; then /usr/sbin/groupadd  group11;fi\n"
-         (first (build-resources
+         (first (build-actions/build-actions
                  []
                  (group "group11" :action :create)))))
   (testing "system on rh"
     (is (= "if ! getent group group11; then /usr/sbin/groupadd -r group11;fi\n"
-           (first (build-resources
+           (first (build-actions/build-actions
                    [:node-type {:image {:os-family :centos}}]
                    (group "group11" :action :create :system true)))))))

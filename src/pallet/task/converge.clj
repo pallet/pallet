@@ -8,21 +8,21 @@
   (loop [args args
          prefix nil
          m nil
-         phases []]
+         tasks []]
     (if-let [a (first args)]
       (cond
        (and (nil? m) (symbol? a) (nil? (namespace a))) (recur
                                                         (next args)
                                                         (name a)
                                                         m
-                                                        phases)
+                                                        tasks)
        (not (keyword? a)) (recur
                            (nnext args)
                            prefix
                            (assoc (or m {}) a (fnext args))
-                           phases)
-       :else (recur (next args) prefix m (conj phases a)))
-      (concat [m] (if prefix [:prefix prefix] []) [:phase phases]))))
+                           tasks)
+       :else (recur (next args) prefix m (conj tasks a)))
+      (concat [m] (if prefix [:prefix prefix] []) [:task tasks]))))
 
 (defn converge
   "Adjust node counts.  Requires a map of node-type, count pairs.

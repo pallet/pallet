@@ -22,6 +22,11 @@
       (catch NoSuchAlgorithmException e
         (throw (new RuntimeException e))))))
 
+(defn phase
+  "Current phase"
+  [request]
+  (:phase request))
+
 (defn target-name
   "Name of the target-node."
   [request]
@@ -30,7 +35,7 @@
 (defn target-id
   "Id of the target-node (unique for provider)."
   [request]
-  (compute/id (:target-node request)))
+  (or (:target-id request) (compute/id (:target-node request))))
 
 (defn target-ip
   "IP of the target-node."

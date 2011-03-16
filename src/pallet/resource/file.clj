@@ -1,14 +1,12 @@
 (ns pallet.resource.file
   "File manipulation."
   (:require
-   [pallet.utils :as utils]
-   [pallet.stevedore :as stevedore]
+   [pallet.action :as action]
    [pallet.resource.file :as file]
    [pallet.script :as script]
-   [clojure.string :as string])
-  (:use
-   [pallet.resource :only [defresource]]
-   clojure.contrib.logging))
+   [pallet.stevedore :as stevedore]
+   [pallet.utils :as utils]
+   [clojure.string :as string]))
 
 (script/defscript rm [file & options])
 (stevedore/defimpl rm :default [file & options]
@@ -170,59 +168,55 @@
     (touch ~path ~(select-keys opts [:force])))
    (adjust-file path opts)))
 
-(defresource file
+(action/def-bash-action file
   "File management."
-  (file*
-   [request path & {:keys [action owner group mode force]
-                    :or {action :create}
-                    :as options}]
-   (case action
-     :delete (stevedore/checked-script
-              (str "delete file " path)
-              (rm ~path ~{:force (:force options true)}))
-     :create (stevedore/checked-commands
-              (str "file " path)
-              (touch-file path options))
-     :touch (stevedore/checked-commands
+  [request path & {:keys [action owner group mode force]
+                   :or {action :create}
+                   :as options}]
+  (case action
+    :delete (stevedore/checked-script
+             (str "delete file " path)
+             (rm ~path ~{:force (:force options true)}))
+    :create (stevedore/checked-commands
              (str "file " path)
-             (touch-file path options)))))
+             (touch-file path options))
+    :touch (stevedore/checked-commands
+            (str "file " path)
+            (touch-file path options))))
 
-(defresource symbolic-link
+(action/def-bash-action symbolic-link
   "Symbolic link management."
-  (symbolic-link*
-   [request from name & {:keys [action owner group mode force]
-                                        :or {action :create force true}}]
-   (case action
-     :delete (stevedore/checked-script
-              (str "Link %s " name)
-              (rm ~name ~{:force force}))
-     :create (stevedore/checked-script
-              (format "Link %s as %s" from name)
-              (ln -s
-                  ~(stevedore/map-to-arg-string {:force force})
-                  ~from ~name)))))
+  [request from name & {:keys [action owner group mode force]
+                        :or {action :create force true}}]
+  (case action
+    :delete (stevedore/checked-script
+             (str "Link %s " name)
+             (rm ~name ~{:force force}))
+    :create (stevedore/checked-script
+             (format "Link %s as %s" from name)
+             (ln -s
+                 ~(stevedore/map-to-arg-string {:force force})
+                 ~from ~name))))
 
-(defresource fifo
+(action/def-bash-action fifo
   "FIFO pipe management."
-  (fifo*
-   [request path & {:keys [action] :or {action :create} :as options}]
-   (case action
-     :delete (stevedore/checked-script
-              (str "fifo " path)
-              (rm ~path ~{:force force}))
-     :create (stevedore/checked-commands
-              (str "fifo " path)
-              (stevedore/script
-               (if-not (file-exists? ~path)
-                 (mkfifo ~path)))
-              (adjust-file path options)))))
+  [request path & {:keys [action] :or {action :create} :as options}]
+  (case action
+    :delete (stevedore/checked-script
+             (str "fifo " path)
+             (rm ~path ~{:force force}))
+    :create (stevedore/checked-commands
+             (str "fifo " path)
+             (stevedore/script
+              (if-not (file-exists? ~path)
+                (mkfifo ~path)))
+             (adjust-file path options))))
 
-(defresource sed
+(action/def-bash-action sed
   "Execute sed on a file.  Takes a path and a map for expr to replacement."
-  (sed*
-   [request path exprs-map & {:keys [seperator no-md5 restriction] :as options}]
-   (stevedore/checked-script
-    (format "sed file %s" path)
-    (sed-file ~path ~exprs-map ~options)
-    ~(when-not no-md5
-       (write-md5-for-file path (str path ".md5"))))))
+  [request path exprs-map & {:keys [seperator no-md5 restriction] :as options}]
+  (stevedore/checked-script
+   (format "sed file %s" path)
+   (sed-file ~path ~exprs-map ~options)
+   ~(when-not no-md5
+      (write-md5-for-file path (str path ".md5")))))

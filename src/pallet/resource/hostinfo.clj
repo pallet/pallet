@@ -2,10 +2,7 @@
   "Host information."
   (:require
    [pallet.script :as script]
-   [pallet.stevedore :as stevedore])
-  (:use
-   [pallet.resource :only [defresource]]
-   clojure.contrib.logging))
+   [pallet.stevedore :as stevedore]))
 
 (script/defscript os-version-name [])
 (stevedore/defimpl os-version-name [#{:ubuntu :debian}] []

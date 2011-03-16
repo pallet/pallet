@@ -1,42 +1,46 @@
-(ns pallet.resource-build
-  "Temporary namespace - needs to move to testing, but need to resource-when"
+(ns pallet.build-actions
+  "Test utilities for building actions"
   (:require
-   [pallet.resource :as resource]
+   [pallet.action-plan :as action-plan]
    [pallet.compute :as compute]
+   [pallet.core :as core]
    [pallet.script :as script]
+   [pallet.phase :as phase]
    [clojure.string :as string]))
 
 (defn produce-phases
-  "Join the result of produce-phase, executing local resources.
+  "Join the result of excute-action-plan, executing local resources.
    Useful for testing."
-  [phases request]
-  (clojure.contrib.logging/trace
-   (format "produce-phases %s %s" phases request))
+  [request]
+  (clojure.contrib.logging/info
+   (format "produce-phases %s" request ))
   (let [execute
         (fn [request]
-          (let [commands (resource/produce-phase request)
-                [result request] (if commands
-                                   (resource/execute-commands
-                                    (assoc request :commands commands)
-                                    {:script/bash (fn [cmds] cmds)
-                                     :transfer/from-local (fn [& _])
-                                     :transfer/to-local (fn [& _])})
-                                   [nil request])]
+          (let [[result request] (->
+                                  request
+                                  action-plan/build-for-target
+                                  action-plan/translate-for-target
+                                  (action-plan/execute-for-target
+                                   {:script/bash (fn [cmds] cmds)
+                                    :fn/clojure (constantly nil)
+                                    :transfer/from-local (fn [r & _])
+                                    :transfer/to-local (fn [r & _])}))]
             [(string/join "" result) request]))]
     (reduce
-     #(let [[result request] (execute (assoc (second %1) :phase %2))]
-        [(str (first %1) result) request])
+     (fn [[results request] phase]
+       (let [[result request] (execute (assoc request :phase phase))]
+         [(str results result) request]))
      ["" request]
-     (resource/phase-list phases))))
+     (#'core/phase-list-with-implicit-phases [(:phase request)]))))
 
-(defmacro build-resources
+(defmacro build-actions
   "Outputs the remote resources specified in the body for the specified phases.
    This is useful in testing."
   [[& {:as request-map}] & body]
-  `(let [f# (resource/phase ~@body)
+  `(let [f# (phase/phase-fn ~@body)
          request# (or ~request-map {})
-         request# (update-in request# [:phase]
-                             #(or % :configure))
+         request# (update-in request# [:phase] #(or % :configure))
+         request# (assoc-in request# [:phases (:phase request#)] f#)
          request# (update-in request# [:node-type :image :os-family]
                              #(or % :ubuntu))
          request# (update-in request# [:node-type :tag]
@@ -65,7 +69,4 @@
                         (#{:arch} os-family#) :pacman
                         (#{:suse} os-family#) :zypper
                         (#{:gentoo} os-family#) :portage))))]
-     (script/with-template
-       [(-> request# :node-type :image :os-family)
-        (-> request# :target-packager)]
-       (produce-phases [(:phase request#)] (f# request#)))))
+     (produce-phases request#)))

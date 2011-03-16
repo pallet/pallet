@@ -10,7 +10,7 @@
   (deftest build-args-test
     (core/defnode a {})
     (core/defnode b {})
-    (is (= [{a 1} :phase []] (build-args [a 1])))
-    (is (= [{a 1 b 2} :phase []] (build-args [a 1 b 2])))
-    (is (= [{a 1} :phase [:b]] (build-args [a 1 :b])))
-    (is (= [{a 1} :prefix "a" :phase [:b]] (build-args ['a a 1 :b])))))
+    (is (= [{a 1} :task []] (build-args [a 1])))
+    (is (= [{a 1 b 2} :task []] (build-args [a 1 b 2])))
+    (is (= [{a 1} :task [:b]] (build-args [a 1 :b])))
+    (is (= [{a 1} :prefix "a" :task [:b]] (build-args ['a a 1 :b])))))

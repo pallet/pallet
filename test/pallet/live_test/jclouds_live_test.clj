@@ -3,7 +3,6 @@
   (:require
    [pallet.live-test :as live-test]
    [pallet.core :as core]
-   [pallet.resource :as resource]
    [pallet.compute :as compute]))
 
 (deftest node-types-test

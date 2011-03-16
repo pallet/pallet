@@ -74,12 +74,19 @@
     (binding [utils/*admin-user* user]
       (possibly-add-identity
        (default-agent) (:private-key-path user) (:passphrase user))
-      (let [result (execute-ssh-cmds
-                    "localhost"
-                    {:commands [{:location :remote :f (fn [request] "ls /")
-                                 :type :script/bash}]}
-                    (assoc user :no-sudo true)
-                    {})]
+      (let [result
+            (script/with-template [:ubuntu]
+              (execute-ssh-cmds
+               "localhost"
+               {:target-id :id
+                :phase :configure
+                :action-plan
+                {:configure
+                 {:id [{:location :remote
+                        :f (fn [request] "ls /")
+                        :type :script/bash}]}}}
+               (assoc user :no-sudo true)
+               {}))]
         (is (= 2 (count result)))
         (is (= 1 (count (first result))))
         (is (= 0 (:exit (ffirst result))))))))

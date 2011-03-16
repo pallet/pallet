@@ -23,8 +23,8 @@
    are also implemented here. `lookup` and `lookup-for-target`.
 "
   (:require
+   [pallet.action :as action]
    [pallet.argument :as argument]
-   [pallet.resource :as resource]
    [clojure.contrib.condition :as condition]))
 
 (defn from-map
@@ -199,11 +199,11 @@
   (ParameterLookupTarget. keys))
 
 ;;; Resources
-(resource/deflocal parameters
+(action/def-clj-action parameters
   "A resource to set parameters"
-  (parameters* [request & {:as keyvector-value-pairs}]
-   (assoc request
-     :parameters (reduce
-                  #(apply assoc-in %1 %2)
-                  (:parameters request)
-                  keyvector-value-pairs))))
+  [request & {:as keyvector-value-pairs}]
+  (assoc request
+    :parameters (reduce
+                 #(apply assoc-in %1 %2)
+                 (:parameters request)
+                 keyvector-value-pairs)))

@@ -2,15 +2,17 @@
   "Core functionality is provided in `lift` and `converge`."
   {:author "Hugo Duncan"}
   (:require
+   [pallet.action :as action]
+   [pallet.action-plan :as action-plan]
    [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
-   [pallet.utils :as utils]
+   [pallet.parameter :as parameter]
    [pallet.script :as script]
    [pallet.target :as target]
-   [pallet.parameter :as parameter]
-   [pallet.resource :as resource]
+   [pallet.phase :as phase]
+   [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]
    [clojure.contrib.logging :as logging]
@@ -137,15 +139,19 @@
    (fn ensure-target-packager [p]
      (or p (compute/packager (get-in request [:node-type :image]))))))
 
+(defn- add-target-keys*
+  "Add target keys on the way down"
+  [request]
+  (-> request
+      add-os-family
+      add-target-packager
+      add-target-id))
+
 (defn- add-target-keys
   "Add target keys on the way down"
   [handler]
   (fn [request]
-    (handler
-     (-> request
-         add-os-family
-         add-target-packager
-         add-target-id))))
+    (handler (add-target-keys* request))))
 
 (defn show-target-keys
   "Middleware that is useful in debugging."
@@ -160,40 +166,42 @@
       (:target-packager request)))
     (handler request)))
 
-(defn- resource-invocations [request]
-  {:pre [(:phase request)]}
-  (if-let [f (some
-              (:phase request)
-              [(:phases (:node-type request)) (:phases request)])]
-    (let [request ((utils/pipe add-target-keys identity) request)]
-      (script/with-template (resource/script-template request)
-        (f request)))
-    request))
+(defn- all-phases-for-phase
+  "Return a sequence including the implicit pre and post phases for a phase."
+  [phase]
+  [(#'phase/pre-phase-name phase) phase (#'phase/post-phase-name phase)])
 
-(defn- produce-init-script
+(defn- phase-list-with-implicit-phases
+  "Add implicit pre and post phases."
+  [phases]
+  (mapcat all-phases-for-phase phases))
+
+;;; bootstrap functions
+
+(defn- bootstrap-script
   [request]
   {:pre [(get-in request [:node-type :image :os-family])
          (get-in request [:target-packager])]}
-  (let [cmds
-        (resource/produce-phase
-         (resource-invocations
-          (assoc request :phase :bootstrap :target-id :bootstrap-id)))]
-    (if-not (and (every? #(= :remote (:location %)) cmds) (>= 1 (count cmds)))
-      (condition/raise
-       :type :booststrap-contains-local-resources
-       :message (format
-                 "Bootstrap can not contain local resources %s"
-                 (pr-str cmds))))
-    (if-let [f (:f (first cmds))]
-      (script/with-template (resource/script-template request)
-        (logging/info
-         (format
-          "Generating init script - :os-family %s, :packager %s, *template* %s"
-          (-> request :node-type :image :os-family)
-          (-> request :target-packager)
-          (vec script/*template*)))
-        (:cmds (f request)))
-      "")))
+  (let [error-fn (fn [message]
+                   (fn [_]
+                     (condition/raise
+                      :type :booststrap-contains-non-remote-actions
+                      :message message)))
+        executor {:script/bash (fn [script] script)
+                  :fn/clojure (error-fn
+                               "Bootstrap can not contain local actions")
+                  :transfer/to-local (error-fn
+                                      "Bootstrap can not contain transfers")
+                  :transfer/from-local (error-fn
+                                        "Bootstrap can not contain transfers")}
+        request (assoc request :phase :bootstrap :target-id :bootstrap-id)
+        [result request] (->
+                          request
+                          add-target-keys*
+                          action-plan/build-for-target
+                          action-plan/translate-for-target
+                          (action-plan/execute-for-target executor))]
+    (string/join \newline result)))
 
 (defn- filter-nodes-with-tag
   "Return nodes with the given tag"
@@ -214,7 +222,7 @@ script that is run with root privileges immediatly after first boot."
         request (compute/ensure-os-family
                  compute (assoc request :node-type node-type))
         request (add-target-packager request)
-        init-script (produce-init-script request)]
+        init-script (bootstrap-script request)]
     (logging/trace
      (format "Bootstrap script:\n%s" init-script))
     (compute/run-nodes compute node-type count request init-script)))
@@ -312,21 +320,16 @@ script that is run with root privileges immediatly after first boot."
           parameters
           (parameter-keys (:target-node request) (:node-type request)))))))
 
-(defn- build-commands
+(defn- translate-commands
+  "Translate commands"
   [handler]
   (fn [request]
-    {:pre [handler
-           (-> request :node-type :image :os-family)
-           (-> request :target-packager)]}
-    (if-let [commands (script/with-template (resource/script-template request)
-                        (resource/produce-phase request))]
-      (handler (assoc request :commands commands))
-      [nil request])))
+    (handler (action-plan/translate-for-target request))))
 
 (defn- apply-phase-to-node
   "Apply a phase to a node request"
   [request]
-  {:pre [(:target-node request)]}
+  {:pre [(:target-node request)(:phase request)]}
   (let [request (environment/request-with-environment
                   request
                   (environment/merge-environments
@@ -335,7 +338,7 @@ script that is run with root privileges immediatly after first boot."
         middleware (:middleware request)]
     ((utils/pipe
       add-target-keys
-      build-commands
+      translate-commands
       middleware
       execute-with-ssh)
      request)))
@@ -353,18 +356,22 @@ script that is run with root privileges immediatly after first boot."
              [cmd]
              (logging/info (format "Commands %s" cmd))
              cmd)]
-      (resource/execute-commands request {:script/bash execute
-                                          :transfer/to-local (fn [& _])
-                                          :transfer/from-local (fn [& _])}))))
+      (action-plan/execute-for-target
+       request
+       {:script/bash execute
+        :transfer/to-local (fn [& _])
+        :transfer/from-local (fn [& _])}))))
 
 (defn wrap-local-exec
   "Middleware to execute only local functions"
   [_]
   (fn [request]
     (letfn [(execute [cmd] nil)]
-      (resource/execute-commands request {:script/bash execute
-                                          :transfer/to-local (fn [& _])
-                                          :transfer/from-local (fn [& _])}))))
+      (action-plan/execute-for-target
+       request
+       {:script/bash execute
+        :transfer/to-local (fn [& _])
+        :transfer/from-local (fn [& _])}))))
 
 (defn wrap-with-user-credentials
   "Middleware to user the request :user credentials for SSH authentication."
@@ -421,10 +428,11 @@ script that is run with root privileges immediatly after first boot."
 (defn- invoke-for-node
   "Build an invocation map for specified node."
   [request node]
-  (resource-invocations
+  (action-plan/build-for-target
    (->
     request
     (assoc :target-node node :target-id (keyword (compute/id node)))
+    add-target-keys*
     (environment/request-with-environment
       (environment/merge-environments
        (:environment request)
@@ -534,12 +542,11 @@ script that is run with root privileges immediatly after first boot."
                [(assoc-in (first %1) [:phases phase] %2)
                 (conj (second %1) phase)])) [request []] phases))
 
-
 (defn sequential-lift
   "Sequential apply a phase."
   [request phase target-node-map]
-  (apply
-   concat
+  (mapcat
+   identity
    (for [[node-type tag-nodes] target-node-map
          :let [request (invoke-for-node-type
                         (assoc request :phase phase)
@@ -556,6 +563,26 @@ script that is run with root privileges immediatly after first boot."
                         (assoc request :phase phase)
                         {node-type tag-nodes})]]
      (parallel-apply-phase (assoc request :node-type node-type) tag-nodes))))
+
+;; (defn sequential-lift
+;;   "Sequential apply the phases."
+;;   [request phases target-node-map]
+;;   (for [phase (phase-list-with-implicit-phases phases)
+;;         [node-type tag-nodes] target-node-map]
+;;     (sequential-apply-phase
+;;      (assoc request :phase phase :node-type node-type)
+;;      tag-nodes)))
+
+;; (defn parallel-lift
+;;   "Apply the phases in sequence, to nodes in parallel."
+;;   [request phases target-node-map]
+;;   (for [phase (phase-list-with-implicit-phases phases)]
+;;     (mapcat
+;;      #(map deref %) ; make sure all nodes complete before next phase
+;;      (for [[node-type tag-nodes] target-node-map]
+;;        (parallel-apply-phase
+;;         (assoc request :phase phase :node-type node-type)
+;;         tag-nodes)))))
 
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
@@ -577,7 +604,7 @@ script that is run with root privileges immediatly after first boot."
         request
         (reduce-node-results request (lift-fn request phase target-node-map))))
      request
-     (resource/phase-list phases))))
+     (phase-list-with-implicit-phases phases))))
 
 (def
   ^{:doc
@@ -762,7 +789,9 @@ script that is run with root privileges immediatly after first boot."
    (->
     options
     (assoc :node-map node-map
-           :phase-list (if (sequential? phase) phase (if phase [phase] nil)))
+           :phase-list (if (sequential? phase)
+                        phase
+                        (if phase [phase] [:configure])))
     (check-arguments-map)
     (build-request-map))))
 
@@ -799,7 +828,9 @@ script that is run with root privileges immediatly after first boot."
    (->
     options
     (assoc :node-set node-set
-           :phase-list (if (sequential? phase) phase (if phase [phase] nil)))
+           :phase-list (if (sequential? phase)
+                        phase
+                        (if phase [phase] [:configure])))
     (check-arguments-map)
     (dissoc :all-node-set :phase)
     (build-request-map))))

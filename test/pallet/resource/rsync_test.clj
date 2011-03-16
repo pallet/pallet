@@ -1,16 +1,17 @@
 (ns pallet.resource.rsync-test
   (:use pallet.resource.rsync)
   (:use [pallet.stevedore :only [script]]
-        clojure.test
-        pallet.test-utils)
+        clojure.test)
   (:require
+   [pallet.action :as action]
    [pallet.core :as core]
-   [pallet.utils :as utils] [pallet.stevedore :as stevedore]
-   [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
+   [pallet.stevedore :as stevedore]
    [pallet.target :as target]
-   [clojure.contrib.io :as io]
-   [pallet.test-utils :as test-utils]))
+   [pallet.phase :as phase]
+   [pallet.test-utils :as test-utils]
+   [pallet.utils :as utils]
+   [clojure.contrib.io :as io]))
 
 (deftest rsync-test
   (core/with-admin-user (assoc utils/*admin-user*
@@ -27,7 +28,7 @@
         (.delete target-dir)
         (core/lift*
          {:node-set {tag node}
-          :phase-list [(resource/phase
+          :phase-list [(phase/phase-fn
                         (rsync (.getPath dir) (.getPath target-dir) {}))]
           :environment
           {:user user
@@ -43,7 +44,7 @@
         (.delete target-dir)
         (core/lift*
          {:node-set {tag node}
-          :phase-list [(resource/phase
+          :phase-list [(phase/phase-fn
                         (rsync-directory (.getPath dir) (.getPath target-dir)))]
           :environment
           {:user user
