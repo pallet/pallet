@@ -1,6 +1,6 @@
-(ns ^{:author "Hugo Duncan"}
-  pallet.core
-"Core functionality is provided in `lift` and `converge`."
+(ns pallet.core
+  "Core functionality is provided in `lift` and `converge`."
+  {:author "Hugo Duncan"}
   (:require
    [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
@@ -387,11 +387,11 @@ script that is run with root privileges immediatly after first boot."
   `(binding [*middleware* ~f]
      ~@body))
 
-(defn- reduce-phase-results
-  "Combine the execution results."
+(defn- reduce-node-results
+  "Combine the node execution results."
   [request results]
   (reduce
-   (fn apply-phase-accumulate [request [result req :as arg]]
+   (fn reduce-node-results-fn [request [result req :as arg]]
      (let [param-keys [:parameters :host (:target-id req)]]
        (->
         request
@@ -404,24 +404,49 @@ script that is run with root privileges immediatly after first boot."
    request
    results))
 
-(defn- reduce-results
+(defn- merge-phase-results
   "Reduce across all phase results"
   [request results]
-  (reduce
-   (fn lift-nodes-reduce-result [request req]
-     (let [req (reduce-phase-results request req)]
-       (->
-        request
-        (update-in
-         [:results]
-         #(map-utils/deep-merge-with
-           (fn [x y] (or y x)) (or % {}) (:results req)))
-        (update-in
-         [:parameters]
-         #(map-utils/deep-merge-with
-           (fn [x y] (or y x)) % (:parameters req))))))
+  (->
    request
-   results))
+   (update-in
+    [:results]
+    #(map-utils/deep-merge-with
+      (fn [x y] (or y x)) (or % {}) (:results results)))
+   (update-in
+    [:parameters]
+    #(map-utils/deep-merge-with
+      (fn [x y] (or y x)) % (:parameters results)))))
+
+(defn- invoke-for-node
+  "Build an invocation map for specified node."
+  [request node]
+  (resource-invocations
+   (->
+    request
+    (assoc :target-node node :target-id (keyword (compute/id node)))
+    (environment/request-with-environment
+      (environment/merge-environments
+       (:environment request)
+       (-> request :node-type :environment))))))
+
+(defn- invoke-for-nodes
+  "Build an invocation map for specified nodes."
+  [request nodes]
+  (reduce invoke-for-node request nodes))
+
+(defn- invoke-for-node-type
+  "Build an invocation map for specified node-type map."
+  [request node-map]
+  (reduce
+   #(invoke-for-nodes (assoc %1 :node-type (first %2)) (second %2))
+   request node-map))
+
+(defn- invoke-phases
+  "Build an invocation map for specified phases and nodes.
+   This allows configuration to be accumulated in the request parameters."
+  [request phases node-map]
+  (reduce #(invoke-for-node-type (assoc %1 :phase %2) node-map) request phases))
 
 (defn sequential-apply-phase
   "Apply a phase to a sequence of nodes"
@@ -431,8 +456,7 @@ script that is run with root privileges immediatly after first boot."
     "apply-phase %s for %s with %d nodes"
     (:phase request) (:tag (:node-type request)) (count nodes)))
   (for [node nodes]
-    (apply-phase-to-node
-     (assoc request :target-node node))))
+    (apply-phase-to-node (assoc request :target-node node))))
 
 (defn parallel-apply-phase
   "Apply a phase to a sequence of nodes"
@@ -510,55 +534,28 @@ script that is run with root privileges immediatly after first boot."
                [(assoc-in (first %1) [:phases phase] %2)
                 (conj (second %1) phase)])) [request []] phases))
 
-(defn- invoke-for-node
-  "Build an invocation map for specified node."
-  [request node]
-  (resource-invocations
-   (->
-    request
-    (assoc :target-node node :target-id (keyword (compute/id node)))
-    (environment/request-with-environment
-      (environment/merge-environments
-       (:environment request)
-       (-> request :node-type :environment))))))
-
-(defn- invoke-for-nodes
-  "Build an invocation map for specified nodes."
-  [request nodes]
-  (reduce invoke-for-node request nodes))
-
-(defn- invoke-for-node-type
-  "Build an invocation map for specified node-type map."
-  [request node-map]
-  (reduce
-   #(invoke-for-nodes (assoc %1 :node-type (first %2)) (second %2))
-   request node-map))
-
-(defn- invoke-phases
-  "Build an invocation map for specified phases and nodes.
-   This allows configuration to be accumulated in the request parameters."
-  [request phases node-map]
-  (reduce #(invoke-for-node-type (assoc %1 :phase %2) node-map) request phases))
 
 (defn sequential-lift
-  "Sequential apply the phases."
-  [request phases target-node-map]
-  (for [phase (resource/phase-list phases)
-        [node-type tag-nodes] target-node-map]
-    (sequential-apply-phase
-     (assoc request :phase phase :node-type node-type)
-     tag-nodes)))
+  "Sequential apply a phase."
+  [request phase target-node-map]
+  (apply
+   concat
+   (for [[node-type tag-nodes] target-node-map
+         :let [request (invoke-for-node-type
+                        (assoc request :phase phase)
+                        {node-type tag-nodes})]]
+     (sequential-apply-phase (assoc request :node-type node-type) tag-nodes))))
 
 (defn parallel-lift
-  "Apply the phases in sequence, to nodes in parallel."
-  [request phases target-node-map]
-  (for [phase (resource/phase-list phases)]
-    (mapcat
-     #(map deref %) ; make sure all nodes complete before next phase
-     (for [[node-type tag-nodes] target-node-map]
-       (parallel-apply-phase
-        (assoc request :phase phase :node-type node-type)
-        tag-nodes)))))
+  "Apply a phase to nodes in parallel."
+  [request phase target-node-map]
+  (mapcat
+   #(map deref %)               ; make sure all nodes complete before next phase
+   (for [[node-type tag-nodes] target-node-map
+         :let [request (invoke-for-node-type
+                        (assoc request :phase phase)
+                        {node-type tag-nodes})]]
+     (parallel-apply-phase (assoc request :node-type node-type) tag-nodes))))
 
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
@@ -569,14 +566,18 @@ script that is run with root privileges immediatly after first boot."
         all-nodes (or all-nodes target-nodes) ; Target node map may contain
                                         ; unmanged nodes
         [request phases] (identify-anonymous-phases request phases)
-        request (assoc request :all-nodes all-nodes :target-nodes target-nodes)]
-    (reduce-results
+        request (assoc request :all-nodes all-nodes :target-nodes target-nodes)
+        lift-fn (environment/get-for request [:algorithms :lift-fn])
+        request (invoke-phases
+                 request (ensure-configure-phase phases)
+                 (utils/dissoc-keys all-node-map (keys target-node-map)))]
+    (reduce
+     (fn [request phase]
+       (merge-phase-results
+        request
+        (reduce-node-results request (lift-fn request phase target-node-map))))
      request
-     (->
-      request
-      (invoke-phases (ensure-configure-phase phases) all-node-map)
-      ((environment/get-for request [:algorithms :lift-fn])
-       phases target-node-map)))))
+     (resource/phase-list phases))))
 
 (def
   ^{:doc

@@ -12,6 +12,7 @@
    [pallet.mock :as mock]
    [pallet.compute.jclouds-test-utils :as jclouds-test-utils]
    [pallet.compute.jclouds-ssh-test :as ssh-test]
+   [pallet.parameter :as parameter]
    [pallet.resource :as resource]
    [pallet.resource-build :as resource-build]
    [pallet.test-utils :as test-utils])
@@ -412,42 +413,71 @@
                       :lift-fn sequential-lift}}}))))
 
 (deftest converge-test
-  (org.jclouds.compute/with-compute-service
-    [(pallet.compute/compute-service
-      "stub" "" "" :extensions [(ssh-test/ssh-test-client
-                                 ssh-test/no-op-ssh-client)])]
-    (jclouds-test-utils/purge-compute-service)
-    (let [id "a"
-          node (make-node "a" {}
-                          :configure (fn [request]
-                                       (resource/invoke-resource
-                                        request
-                                        (fn [request] "Hi")
-                                        [] :in-sequence :script/bash)))
-          request (with-middleware
-                    wrap-no-exec
-                    (converge {node 2} :compute org.jclouds.compute/*compute*))]
-      (is (map? request))
-      (is (map? (-> request :results)))
-      (is (map? (-> request :results first second)))
-      (is (:configure (-> request :results first second)))
-      (is (some
-           #(= "Hi\n" %)
-           (:configure (-> request :results first second))))
-      (is (= 2 (count (:all-nodes request))))
-      (is (= 2 (count (org.jclouds.compute/nodes))))
-      (testing "remove some instances"
-        (let [reqeust (with-middleware
-                        wrap-no-exec
-                        (converge {node 1}
-                                  :compute org.jclouds.compute/*compute*))]
-          (Thread/sleep 300) ;; stub destroyNode is asynchronous ?
-          (is (= 1 (count (compute/nodes org.jclouds.compute/*compute*))))))
-      (testing "remove all instances"
-        (let [request (with-middleware
-                        wrap-no-exec
-                        (converge {node 0}
-                                  :compute org.jclouds.compute/*compute*))]
-          (is (= 0 (count (filter
-                           (complement compute/terminated?)
-                           (:all-nodes request))))))))))
+  (let [id "a"
+        node (make-node "a" {}
+                        :configure (fn [request]
+                                     (resource/invoke-resource
+                                      request
+                                      (fn [request] "Hi")
+                                      [] :in-sequence :script/bash)))
+        request (with-middleware
+                  wrap-no-exec
+                  (converge {node 2} :compute org.jclouds.compute/*compute*))]
+    (is (map? request))
+    (is (map? (-> request :results)))
+    (is (map? (-> request :results first second)))
+    (is (:configure (-> request :results first second)))
+    (is (some
+         #(= "Hi\n" %)
+         (:configure (-> request :results first second))))
+    (is (= 2 (count (:all-nodes request))))
+    (is (= 2 (count (org.jclouds.compute/nodes))))
+    (testing "remove some instances"
+      (let [reqeust (with-middleware
+                      wrap-no-exec
+                      (converge {node 1}
+                                :compute org.jclouds.compute/*compute*))]
+        (Thread/sleep 300) ;; stub destroyNode is asynchronous ?
+        (is (= 1 (count (compute/nodes org.jclouds.compute/*compute*))))))
+    (testing "remove all instances"
+      (let [request (with-middleware
+                      wrap-no-exec
+                      (converge {node 0}
+                                :compute org.jclouds.compute/*compute*))]
+        (is (= 0 (count (filter
+                         (complement compute/terminated?)
+                         (:all-nodes request)))))))))
+
+(resource/deflocal parameter-resource
+  (identity-local-resource*
+   [request]
+   (parameter/assoc-for-target request [:x] "x")))
+
+(deftest lift-with-runtime-params-test
+  ;; test that parameters set at execution time are propogated
+  ;; between phases
+  (let [node (make-node
+              "localhost" {}
+              :configure (fn [request]
+                           (resource/invoke-resource
+                            request
+                            (fn [request]
+                              (parameter/assoc-for-target request [:x] "x"))
+                            [] :in-sequence :fn/clojure))
+              :configure2 (fn [request]
+                            (resource/invoke-resource
+                             request
+                             (fn [request]
+                               (is (= (parameter/get-for-target request [:x])
+                                      "x"))
+                               request)
+                             [] :in-sequence :fn/clojure)))
+        request (lift {node (jclouds/make-localhost-node)}
+                      :phase [:configure :configure2]
+                      :compute org.jclouds.compute/*compute*)]
+    (is (map? request))
+    (is (map? (-> request :results)))
+    (is (map? (-> request :results first second)))
+    (is (-> request :results :localhost :configure))
+    (is (-> request :results :localhost :configure2))
+    (is (= [] (-> request :results :localhost :configure)))))

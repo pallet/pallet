@@ -83,7 +83,7 @@
   [session prefix]
   (let [result (ssh/ssh
                 session
-                (stevedore/script (println (make-temp-file prefix)))
+                (stevedore/script (println (make-temp-file ~prefix)))
                 :return-map true)]
     (if (zero? (:exit result))
       (string/trim (result :out))
