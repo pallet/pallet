@@ -2,6 +2,7 @@
   (:use pallet.core)
   (require
    [pallet.core :as core]
+   [pallet.execute :as execute]
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
    [pallet.resource.exec-script :as exec-script]
@@ -405,12 +406,13 @@
         node (make-node "a" {}
                         :configure (fn [request]
                                      (action/schedule-action
-                                        request
-                                        (fn [request] "Hi")
-                                        [] :in-sequence :script/bash :target)))
-        request (with-middleware
-                  wrap-no-exec
-                  (converge {node 2} :compute org.jclouds.compute/*compute*))]
+                                      request
+                                      (fn [request] "Hi")
+                                      [] :in-sequence :script/bash :target)))
+        request (converge {node 2}
+                          :compute org.jclouds.compute/*compute*
+                          :middleware [core/translate-action-plan
+                                       execute/execute-echo])]
     (is (map? request))
     (is (map? (-> request :results)))
     (is (map? (-> request :results first second)))
@@ -421,17 +423,17 @@
     (is (= 2 (count (:all-nodes request))))
     (is (= 2 (count (org.jclouds.compute/nodes))))
     (testing "remove some instances"
-      (let [reqeust (with-middleware
-                      wrap-no-exec
-                      (converge {node 1}
-                                :compute org.jclouds.compute/*compute*))]
+      (let [reqeust (converge {node 1}
+                              :compute org.jclouds.compute/*compute*
+                              :middleware [core/translate-action-plan
+                                           execute/execute-echo])]
         (Thread/sleep 300) ;; stub destroyNode is asynchronous ?
         (is (= 1 (count (compute/nodes org.jclouds.compute/*compute*))))))
     (testing "remove all instances"
-      (let [request (with-middleware
-                      wrap-no-exec
-                      (converge {node 0}
-                                :compute org.jclouds.compute/*compute*))]
+      (let [request (converge {node 0}
+                              :compute org.jclouds.compute/*compute*
+                              :middleware [core/translate-action-plan
+                                           execute/execute-echo])]
         (is (= 0 (count (filter
                          (complement compute/terminated?)
                          (:all-nodes request)))))))))
@@ -503,6 +505,7 @@
                              [] :in-sequence :script/bash :target)))
         request (lift {node (jclouds/make-localhost-node)}
                       :phase [:configure :configure2]
+                      :user (assoc utils/*admin-user* :no-sudo true)
                       :compute org.jclouds.compute/*compute*)]
     (is (map? request))
     (is (map? (-> request :results)))

@@ -47,27 +47,29 @@
       (is (= '((2 3) 4) g)))))
 
 (deftest action-map-test
-  (is (= {:f identity :args [] :type :b :execution :a :location :l}
+  (is (= {:f identity :args [] :action-type :b :execution :a :location :l}
          (action-plan/action-map identity [] :a :b :l))))
 
 
 (deftest walk-action-plan-test
   (let [nested-identity (fn [a _] a)]
-    (let [action-plan [{:f identity :args [1] :type :script/bash}]]
+    (let [action-plan [{:f identity :args [1] :action-type :script/bash}]]
       (is (= action-plan
              (#'action-plan/walk-action-plan
               identity identity nested-identity action-plan))))
-    (let [action-plan [{:f identity :args [1] :type :script/bash}
-                       {:f identity :args [2] :type :script/bash}]]
+    (let [action-plan [{:f identity :args [1] :action-type :script/bash}
+                       {:f identity :args [2] :action-type :script/bash}]]
       (is (= action-plan
              (#'action-plan/walk-action-plan
               identity identity nested-identity action-plan))))
-    (let [action-plan [{:f identity :args [1] :type :script/bash}
-                       {:f identity :args [2] :type :script/bash}
+    (let [action-plan [{:f identity :args [1] :action-type :script/bash}
+                       {:f identity :args [2] :action-type :script/bash}
                        {:f identity
-                        :args [{:f identity :args [1] :type :script/bash}
-                               {:f identity :args [2] :type :script/bash}]
-                        :type :nested-scope}]]
+                        :args [{:f identity :args [1]
+                                :action-type :script/bash}
+                               {:f identity :args [2]
+                                :action-type :script/bash}]
+                        :action-type :nested-scope}]]
       (is (= action-plan
              (#'action-plan/walk-action-plan
               identity identity nested-identity action-plan))))))
@@ -83,10 +85,10 @@
                              (action-plan/action-map
                               f [2] :in-sequence :script/bash :target)))]
         (is (=
-             [{:f f :args [1]
-               :location :target :type :script/bash :execution :in-sequence}
-              {:f f :args [2]
-               :location :target :type :script/bash :execution :in-sequence}]
+             [{:f f :args [1] :location :target :action-type
+               :script/bash :execution :in-sequence}
+              {:f f :args [2] :location :target :action-type :script/bash
+               :execution :in-sequence}]
              (->>
               action-plan
               action-plan/pop-block
@@ -104,12 +106,12 @@
         (is (=
              [{:f (var-get #'action-plan/scope-action)
                :args [{:f f :args [1]
-                       :location :target :type :script/bash
+                       :location :target :action-type :script/bash
                        :execution :in-sequence}
                       {:f f :args [2]
-                       :location :target :type :script/bash
+                       :location :target :action-type :script/bash
                        :execution :in-sequence}]
-               :type :nested-scope
+               :action-type :nested-scope
                :execution :in-sequence
                :location :target}]
              (->>
@@ -135,46 +137,46 @@
          [{:f identity
            :args [[1] [2]]
            :location :target
-           :type :script/bash
+           :action-type :script/bash
            :execution :aggregated}]
          (#'action-plan/transform-executions
           [{:f identity
             :args [1]
             :location :target
-            :type :script/bash
+            :action-type :script/bash
             :execution :aggregated}
            {:f identity
             :args [2]
             :location :target
-            :type :script/bash
+            :action-type :script/bash
             :execution :aggregated}]))))
   (testing "mixed"
     (is (=
          [{:f identity
            :args [[1] [2]]
            :location :target
-           :type :script/bash
+           :action-type :script/bash
            :execution :aggregated}
           {:f identity
            :args [3]
            :location :target
-           :type :script/bash
+           :action-type :script/bash
            :execution :in-sequence}]
          (#'action-plan/transform-executions
           [{:f identity
             :args [1]
             :location :target
-            :type :script/bash
+            :action-type :script/bash
             :execution :aggregated}
            {:f identity
             :args [3]
             :location :target
-            :type :script/bash
+            :action-type :script/bash
             :execution :in-sequence}
            {:f identity
             :args [2]
             :location :target
-            :type :script/bash
+            :action-type :script/bash
             :execution :aggregated}]))))
   (testing "nested"
     (is (=
@@ -182,14 +184,14 @@
            :args [{:f identity
                    :args [[1] [2]]
                    :location :target
-                   :type :script/bash
+                   :action-type :script/bash
                    :execution :aggregated}
                   {:f identity
                    :args [3]
                    :location :target
-                   :type :script/bash
+                   :action-type :script/bash
                    :execution :in-sequence}]
-           :type :nested-scope
+           :action-type :nested-scope
            :execution :in-sequence
            :location :target}]
          (#'action-plan/transform-executions
@@ -197,19 +199,19 @@
             :args [{:f identity
                     :args [1]
                     :location :target
-                    :type :script/bash
+                    :action-type :script/bash
                     :execution :aggregated}
                    {:f identity
                     :args [3]
                     :location :target
-                    :type :script/bash
+                    :action-type :script/bash
                     :execution :in-sequence}
                    {:f identity
                     :args [2]
                     :location :target
-                    :type :script/bash
+                    :action-type :script/bash
                     :execution :aggregated}]
-            :type :nested-scope
+            :action-type :nested-scope
             :execution :in-sequence
             :location :target}])))))
 
@@ -222,7 +224,7 @@
                        [{:f f
                          :args [1]
                          :location :target
-                         :type :script/bash
+                         :action-type :script/bash
                          :execution :in-sequence}])]
       (is (= 1 (count action-plan)))
       (is (map? (first action-plan)))
@@ -235,7 +237,7 @@
                        [{:f f
                          :args [[1] [2]]
                          :location :target
-                         :type :script/bash
+                         :action-type :script/bash
                          :execution :aggregated}])]
       (is (= 1 (count action-plan)))
       (is (map? (first action-plan)))
@@ -248,7 +250,7 @@
                        [{:f f
                          :args [[1] [2]]
                          :location :target
-                         :type :script/bash
+                         :action-type :script/bash
                          :execution :collected}])]
       (is (= 1 (count action-plan)))
       (is (map? (first action-plan)))
@@ -262,15 +264,15 @@
           action-plan [{:f f
                         :args [1]
                         :location :target
-                        :type :script/bash
+                        :action-type :script/bash
                         :execution :in-sequence}
                        {:f f
                         :args [2]
                         :location :target
-                        :type :script/bash
+                        :action-type :script/bash
                         :execution :in-sequence}]
           action-plan (#'action-plan/bind-arguments action-plan)
-          action-plan (#'action-plan/combine-by-location-and-type
+          action-plan (#'action-plan/combine-by-location-and-action-type
                        action-plan)]
       (is (= 1 (count action-plan)))
       (is (map? (first action-plan)))
@@ -283,7 +285,7 @@
     (let [f (fn [request x] (str x))
           action-plan [{:f #(f % 1)
                         :location :target
-                        :type :script/bash
+                        :action-type :script/bash
                         :execution :in-sequence}]
           action-plan (#'action-plan/augment-return-values action-plan)]
       (is (= 1 (count action-plan)))
@@ -293,7 +295,7 @@
       (is (= {:value "1"
               :request {:a 1}
               :location :target
-              :type :script/bash
+              :action-type :script/bash
               :execution :in-sequence}
              (-> ((:f (first action-plan)) {:a 1})
                  (dissoc :f)))))))
@@ -308,7 +310,7 @@
                          (action-plan/action-map
                           f [2] :in-sequence :script/bash :target)))]
     (is (=
-         [{:location :target :type :script/bash :execution :in-sequence}]
+         [{:location :target :action-type :script/bash :execution :in-sequence}]
          (->>
           (action-plan/translate action-plan)
           (map #(dissoc % :f)))))
@@ -316,23 +318,40 @@
          {:value "1\n2\n",
           :request {}
           :location :target
-          :type :script/bash
+          :action-type :script/bash
           :execution :in-sequence}
          (->
           ((-> (action-plan/translate action-plan) first :f) {})
           (dissoc :f))))))
+
+(defn executor [m]
+  (fn [request f action-type location]
+    (let [exec-fn (get-in m [action-type location])]
+      (assert exec-fn)
+      (exec-fn request f))))
+
+(defn echo
+  "Echo the result of an action. Do not execute."
+  [request f]
+  [(:value (f request)) request])
+
+(defn null-result
+  "Echo the result of an action. Do not execute."
+  [request f]
+  (let [{:keys [request]} (f request)]
+    [nil request]))
 
 (deftest excute-action-test
   (let [f (fn [request x] (str x))]
     (is (=
          [["1"] {}]
          (action-plan/execute-action
-          {:script/bash identity}
+          (executor {:script/bash {:target echo}})
           [[] {}]
           (action-plan/augment-return
            {:f (fn [request] "1")
             :location :target
-            :type :script/bash
+            :action-type :script/bash
             :execution :in-sequence}))))))
 
 (deftest execute-test
@@ -349,7 +368,7 @@
          (action-plan/execute
           (action-plan/translate action-plan)
           {:a 1}
-          {:script/bash identity}))))
+          (executor {:script/bash {:target echo}})))))
   (testing "nested"
     (let [f (fn [request x] (str (vec x)))
           action-plan (-> nil
@@ -372,4 +391,4 @@
            (action-plan/execute
             (action-plan/translate action-plan)
             {:a 1}
-            {:script/bash identity}))))))
+            (executor {:script/bash {:target echo}})))))))

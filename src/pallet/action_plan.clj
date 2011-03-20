@@ -57,18 +57,18 @@
   "Return an action map for the given args. The action plan is a tree of
    action maps.
 
-   - :f          the action function
-   - :args       the arguments to pass to the action function
-   - :location   where to execute the action - :orgin or :target
-   - :type       the type of action - :script/bash, :fn/clojure, etc
-   - :execution  the execution type - :in-sequence, :aggregated, :collected
-   - :value      the result of calling the action function, :f, with :args
-   - :request    the request map after calling the action function."
+   - :f            the action function
+   - :args         the arguments to pass to the action function
+   - :location     where to execute the action - :orgin or :target
+   - :action-type  the type of action - :script/bash, :fn/clojure, etc
+   - :execution    the execution type - :in-sequence, :aggregated, :collected
+   - :value        the result of calling the action function, :f, with :args
+   - :request      the request map after calling the action function."
   [action-fn args execution resource-type location]
   {:f action-fn
    :args args
    :location location
-   :type resource-type
+   :action-type resource-type
    :execution execution})
 
 ;;; utilities
@@ -99,26 +99,28 @@
                               (map
                                #(walk-action-plan leaf-fn list-fn nested-fn %)
                                action-plan))
-   (= :nested-scope (:type action-plan)) (nested-fn
-                                          action-plan
-                                          (walk-action-plan
-                                           leaf-fn list-fn nested-fn
-                                           (:args action-plan)))
+   (= :nested-scope (:action-type action-plan)) (nested-fn
+                                                 action-plan
+                                                 (walk-action-plan
+                                                  leaf-fn list-fn nested-fn
+                                                  (:args action-plan)))
    :else (leaf-fn action-plan)))
 
-;;; transform input nested scopes into action maps with :type :nested-scope
+;;; transform input nested scopes into action maps with :action-type of
+;;; :nested-scope
+
 (defn- scope-action
   "A scope combining action."
   [request & args]
   (script-join (map #((:f %) request) args)))
 
 (defn- nested-scope-transform
-  "Transform a nested scope into an action-map with :type :nested-scope"
+  "Transform a nested scope into an action-map with :action-type :nested-scope"
   [x]
   {:pre [(sequential? x)]}
   {:f scope-action
    :args x
-   :type :nested-scope
+   :action-type :nested-scope
    :execution :in-sequence
    :location :target})
 
@@ -236,8 +238,8 @@
 (defn- script-type-scope
   "Convert a scope to a single script function"
   [action-map]
-  (if (= :nested-scope (:type action-map))
-    (assoc action-map :type :script/bash :target)
+  (if (= :nested-scope (:action-type action-map))
+    (assoc action-map :action-type :script/bash :target)
     action-map))
 
 (defn- script-type-scopes-in-scope
@@ -313,10 +315,10 @@
    #(assoc %1 :args %2)
    action-plan))
 
-;;; combine by location and type
+;;; combine by location and action-type
 (defmulti combine-actions
-  "Combine actions by type"
-  (fn [actions] (:type (first actions))))
+  "Combine actions by action-type"
+  (fn [actions] (:action-type (first actions))))
 
 (defmethod combine-actions :default
   [actions]
@@ -340,21 +342,22 @@
   (assoc (first actions)
     :f (fn [request] (map #((:f %) request) actions))))
 
-(defn- combine-scope-by-location-and-type
-  "Combines the bound actions of a scope by location and type, producing
+(defn- combine-scope-by-location-and-action-type
+  "Combines the bound actions of a scope by location and action-type, producing
   compound actions"
   [action-plan]
   (->>
    action-plan
-   (partition-by (juxt :location :type))
+   (partition-by (juxt :location :action-type))
    (map combine-actions)))
 
-(defn- combine-by-location-and-type
-  "Combines bound actions by location and type, producing compound actions"
+(defn- combine-by-location-and-action-type
+  "Combines bound actions by location and action-type, producing compound
+  actions"
   [action-plan]
   (walk-action-plan
    identity
-   combine-scope-by-location-and-type
+   combine-scope-by-location-and-action-type
    #(assoc %1 :args %2)
    action-plan))
 
@@ -364,7 +367,7 @@
    :value and :request keys that are the value of the action, and the updated
    request map for the next action.  This creates a consistent return value for
    all action types (effectively creating a monadic value which is a map)."
-  (fn [{:keys [type] :as action}] type))
+  (fn [{:keys [action-type] :as action}] action-type))
 
 (defmethod augment-return :default
   [{:keys [f] :as action}]
@@ -412,27 +415,39 @@
    transform-executions
    enforce-precedence
    bind-arguments
-   combine-by-location-and-type
+   combine-by-location-and-action-type
    script-type-scopes
    augment-return-values))
 
 
 ;;; execute action plan
+(defn translated?
+  "Predicate to test if an action plan has been translated"
+  [action-plan]
+  (not (and (= 2 (count action-plan))
+            (list? (first action-plan))
+            (nil? (second action-plan)))))
+
 (defn execute-action
-  "Execut a single action"
-  [executor [result request] {:keys [f type] :as action}]
-  (let [executor-f (executor type)
-        {:keys [request value]} (f request)]
+  "Execute a single action"
+  [executor [results request] {:keys [f action-type location] :as action}]
+  (let [[result request] (executor request f action-type location)]
     (logging/info
-     (format "action-plan/execute-action :type %s :value %s" type value))
-    [(conj result (executor-f value)) request]))
+     (format
+      "action-plan/execute-action :result %s :request %s"
+      result request))
+    [(conj results result) request]))
 
 (defn execute
-  "Execute actions by passing the evaluated actions to the function of the
-   correct type in `executor` (a map of functions keyed by action type)."
+  "Execute actions by passing the un-evaluated actions to the `executor`
+   function (a function with an arglist of [request f action-type location])."
   [action-plan request executor]
   (logging/info
    (format "action-plan/execute with %s actions" (count action-plan)))
+  (when-not (translated? action-plan)
+    (condition/raise
+     :type :pallet/execute-called-on-untranslated-action-plan
+     :message "Attempt to execute an action plan that has not been translated"))
   (reduce #(execute-action executor %1 %2) [[] request] action-plan))
 
 

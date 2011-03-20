@@ -15,6 +15,16 @@
   [phase]
   (keyword (str "after-" (name phase))))
 
+(defn- all-phases-for-phase
+  "Return a sequence including the implicit pre and post phases for a phase."
+  [phase]
+  [(pre-phase-name phase) phase (post-phase-name phase)])
+
+(defn phase-list-with-implicit-phases
+  "Add implicit pre and post phases."
+  [phases]
+  (mapcat all-phases-for-phase phases))
+
 (defmacro schedule-in-pre-phase
   "Specify that the body should be executed in the pre-phase."
   [request & body]

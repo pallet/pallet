@@ -2,7 +2,8 @@
   "Actions implement the conversion of phase functions to script and other
    execution code.
 
-   An action has a :type.  Known types include :script/bash and :fn/clojure.
+   An action has a :action-type. Known types include :script/bash
+   and :fn/clojure.
 
    An action has a :location, :origin for execution on the node running
    pallet, and :target for the target node.

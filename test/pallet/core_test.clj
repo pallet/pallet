@@ -168,15 +168,18 @@
 (deftest build-request-map-test
   (binding [pallet.core/*middleware* :middleware]
     (testing "defaults"
-      (is (= {:environment
+      (is (= {:executor core/default-executors
+              :environment
               {:blobstore nil :compute nil :user utils/*admin-user*
                :middleware :middleware
                :algorithms {:lift-fn sequential-lift
                             :converge-fn
-                            (var-get #'core/serial-adjust-node-counts)}}}
+                            (var-get #'core/serial-adjust-node-counts)}
+               }}
              (#'core/build-request-map {}))))
     (testing "passing a prefix"
-      (is (= {:environment
+      (is (= {:executor core/default-executors
+              :environment
               {:blobstore nil :compute nil :user utils/*admin-user*
                :middleware *middleware*
                :algorithms {:lift-fn sequential-lift
@@ -186,7 +189,8 @@
              (#'core/build-request-map {:prefix "prefix"}))))
     (testing "passing a user"
       (let [user (utils/make-user "fred")]
-        (is (= {:environment
+        (is (= {:executor core/default-executors
+                :environment
                 {:blobstore nil :compute nil  :user user
                  :middleware :middleware
                  :algorithms {:lift-fn sequential-lift
@@ -486,6 +490,7 @@
       (let [compute (compute/compute-service "node-list" :node-list [localhost])
             request (lift {node localhost}
                           :phase [:configure :configure2]
+                          :user (assoc utils/*admin-user* :no-sudo true)
                           :compute compute
                           :environment
                           {:algorithms {:lift-fn sequential-lift}})]
@@ -503,6 +508,7 @@
       (let [compute (compute/compute-service "node-list" :node-list [localhost])
             request (lift {node localhost}
                           :phase [:configure :configure2]
+                          :user (assoc utils/*admin-user* :no-sudo true)
                           :compute compute
                           :environment
                           {:algorithms {:lift-fn parallel-lift}})]

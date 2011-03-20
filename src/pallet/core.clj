@@ -139,19 +139,13 @@
    (fn ensure-target-packager [p]
      (or p (compute/packager (get-in request [:node-type :image]))))))
 
-(defn- add-target-keys*
+(defn- add-target-keys
   "Add target keys on the way down"
   [request]
   (-> request
       add-os-family
       add-target-packager
       add-target-id))
-
-(defn- add-target-keys
-  "Add target keys on the way down"
-  [handler]
-  (fn [request]
-    (handler (add-target-keys* request))))
 
 (defn show-target-keys
   "Middleware that is useful in debugging."
@@ -166,15 +160,43 @@
       (:target-packager request)))
     (handler request)))
 
-(defn- all-phases-for-phase
-  "Return a sequence including the implicit pre and post phases for a phase."
-  [phase]
-  [(#'phase/pre-phase-name phase) phase (#'phase/post-phase-name phase)])
 
-(defn- phase-list-with-implicit-phases
-  "Add implicit pre and post phases."
-  [phases]
-  (mapcat all-phases-for-phase phases))
+;;; executor
+
+(defn- executor [request f action-type location]
+  (let [exec-fn (get-in request [:executor action-type location])]
+    (when-not exec-fn
+      (condition/raise
+       :type :missing-executor-fn
+       :fn-for [action-type location]
+       :message (format
+                 "Missing executor function for %s %s"
+                 action-type location)))
+    (exec-fn request f)))
+
+(let [raise (fn [message]
+              (fn [_ _]
+                (condition/raise :type :executor-error :message message)))]
+  (def ^{:doc "Default executor map"}
+    default-executors
+    {:script/bash
+     {:origin execute/bash-on-origin
+      :target (raise
+               (str ":script/bash on :target not implemented.\n"
+                    "Add middleware to enable remote execution."))}
+     :fn/clojure
+     {:origin execute/clojure-on-origin
+      :target (raise ":fn/clojure on :target not supported")}
+     :transfer/to-local
+     {:origin (raise
+               (str ":transfer/to-local on :origin not implemented.\n"
+                    "Add middleware to enable transfers."))
+      :target (raise ":transfer/to-local on :target not supported")}
+     :transfer/from-local
+     {:origin (raise
+               (str ":transfer/to-local on :origin not implemented.\n"
+                    "Add middleware to enable transfers."))
+      :target (raise ":transfer/from-local on :target not supported")}}))
 
 ;;; bootstrap functions
 
@@ -183,21 +205,26 @@
   {:pre [(get-in request [:node-type :image :os-family])
          (get-in request [:target-packager])]}
   (let [error-fn (fn [message]
-                   (fn [_]
+                   (fn [_ _]
                      (condition/raise
                       :type :booststrap-contains-non-remote-actions
                       :message message)))
-        executor {:script/bash (fn [script] script)
-                  :fn/clojure (error-fn
-                               "Bootstrap can not contain local actions")
-                  :transfer/to-local (error-fn
-                                      "Bootstrap can not contain transfers")
-                  :transfer/from-local (error-fn
-                                        "Bootstrap can not contain transfers")}
-        request (assoc request :phase :bootstrap :target-id :bootstrap-id)
         [result request] (->
                           request
-                          add-target-keys*
+                          (assoc :phase :bootstrap :target-id :bootstrap-id)
+                          (assoc-in
+                           [:executor :script/bash :target]
+                           execute/echo-bash)
+                          (assoc-in
+                           [:executor :transfer/to-local :origin]
+                           (error-fn "Bootstrap can not contain transfers"))
+                          (assoc-in
+                           [:executor :transfer/from-local :origin]
+                           (error-fn "Bootstrap can not contain transfers"))
+                          (assoc-in
+                           [:executor :fn/clojure :origin]
+                           (error-fn "Bootstrap can not contain local actions"))
+                          add-target-keys
                           action-plan/build-for-target
                           action-plan/translate-for-target
                           (action-plan/execute-for-target executor))]
@@ -291,99 +318,62 @@ script that is run with root privileges immediatly after first boot."
      nodes
      request)))
 
-(defn execute-with-ssh
-  [{:keys [target-node] :as request}]
-  (execute/ssh-cmds
-   (assoc request
-     :address (compute/node-address target-node)
-     :ssh-port (compute/ssh-port target-node))))
+;;; middleware
 
-(defn execute-with-local-sh
-  "Middleware to execute on localhost with shell"
-  [handler]
-  (fn [{:as request}]
-    (execute/local-sh-cmds request)))
-
-(defn parameter-keys [node node-type]
-  [:default
-   (compute/packager (node-type :image))
-   (target/os-family (node-type :image))])
-
-(defn with-target-parameters
-  "Middleware to set parameters based on a specified parameter map"
-  [handler parameters]
+(defn log-request
+  "Log the request state"
+  [msg]
   (fn [request]
-    (handler
-     (assoc
-         request :parameters
-         (parameter/from-map
-          parameters
-          (parameter-keys (:target-node request) (:node-type request)))))))
+    (logging/info (format "%s Request is %s" msg request))
+    request))
 
-(defn- translate-commands
-  "Translate commands"
+(defn log-message
+  "Log the message"
+  [msg]
+  (fn [request]
+    (logging/info (format "%s" msg))
+    request))
+
+(defn- apply-environment
+  "Apply the effective environment"
+  [request]
+  (environment/request-with-environment
+    request
+    (environment/merge-environments
+     (:environment request)
+     (-> request :node-type :environment))))
+
+(defn translate-action-plan
   [handler]
   (fn [request]
     (handler (action-plan/translate-for-target request))))
+
+(defn middleware-handler
+  "Build a middleware processing pipeline from the specified middleware.
+   The result is a middleware."
+  [handler]
+  (fn [request]
+    ((reduce #(%2 %1) handler (:middleware request)) request)))
+
+(defn- execute
+  "Execute the action plan"
+  [request]
+  (action-plan/execute-for-target request executor))
 
 (defn- apply-phase-to-node
   "Apply a phase to a node request"
   [request]
   {:pre [(:target-node request)(:phase request)]}
-  (let [request (environment/request-with-environment
-                  request
-                  (environment/merge-environments
-                   (:environment request)
-                   (-> request :node-type :environment)))
-        middleware (:middleware request)]
-    ((utils/pipe
-      add-target-keys
-      translate-commands
-      middleware
-      execute-with-ssh)
-     request)))
+  ((middleware-handler execute)
+   (->
+    request
+    apply-environment
+    add-target-keys)))
 
-(defn wrap-no-exec
-  "Middleware to report on the request, without executing"
-  [_]
-  (fn [request]
-    (logging/info
-     (format
-      "Commands on node %s as user %s"
-      (pr-str (:node request))
-      (pr-str (:user request))))
-    (letfn [(execute
-             [cmd]
-             (logging/info (format "Commands %s" cmd))
-             cmd)]
-      (action-plan/execute-for-target
-       request
-       {:script/bash execute
-        :transfer/to-local (fn [& _])
-        :transfer/from-local (fn [& _])}))))
-
-(defn wrap-local-exec
-  "Middleware to execute only local functions"
-  [_]
-  (fn [request]
-    (letfn [(execute [cmd] nil)]
-      (action-plan/execute-for-target
-       request
-       {:script/bash execute
-        :transfer/to-local (fn [& _])
-        :transfer/from-local (fn [& _])}))))
-
-(defn wrap-with-user-credentials
-  "Middleware to user the request :user credentials for SSH authentication."
-  [handler]
-  (fn [request]
-    (let [user (:user request)]
-      (logging/info (format "Using identity at %s" (:private-key-path user)))
-      (execute/possibly-add-identity
-       (execute/default-agent) (:private-key-path user) (:passphrase user)))
-    (handler request)))
-
-(def *middleware* wrap-with-user-credentials)
+(def *middleware*
+  [translate-action-plan
+   execute/ssh-user-credentials
+   execute/execute-with-ssh])
 
 (defmacro with-middleware
   "Wrap node execution in the given middleware. A middleware is a function of
@@ -432,7 +422,7 @@ script that is run with root privileges immediatly after first boot."
    (->
     request
     (assoc :target-node node :target-id (keyword (compute/id node)))
-    add-target-keys*
+    add-target-keys
     (environment/request-with-environment
       (environment/merge-environments
        (:environment request)
@@ -564,26 +554,6 @@ script that is run with root privileges immediatly after first boot."
                         {node-type tag-nodes})]]
      (parallel-apply-phase (assoc request :node-type node-type) tag-nodes))))
 
-;; (defn sequential-lift
-;;   "Sequential apply the phases."
-;;   [request phases target-node-map]
-;;   (for [phase (phase-list-with-implicit-phases phases)
-;;         [node-type tag-nodes] target-node-map]
-;;     (sequential-apply-phase
-;;      (assoc request :phase phase :node-type node-type)
-;;      tag-nodes)))
-
-;; (defn parallel-lift
-;;   "Apply the phases in sequence, to nodes in parallel."
-;;   [request phases target-node-map]
-;;   (for [phase (phase-list-with-implicit-phases phases)]
-;;     (mapcat
-;;      #(map deref %) ; make sure all nodes complete before next phase
-;;      (for [[node-type tag-nodes] target-node-map]
-;;        (parallel-apply-phase
-;;         (assoc request :phase phase :node-type node-type)
-;;         tag-nodes)))))
-
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
   [all-nodes target-node-map all-node-map phases request]
@@ -604,7 +574,7 @@ script that is run with root privileges immediatly after first boot."
         request
         (reduce-node-results request (lift-fn request phase target-node-map))))
      request
-     (phase-list-with-implicit-phases phases))))
+     (phase/phase-list-with-implicit-phases phases))))
 
 (def
   ^{:doc
@@ -742,6 +712,7 @@ script that is run with root privileges immediatly after first boot."
    (update-in                           ; ensure backwards compatable
     [:environment]
     merge (select-keys options environment-args))
+   (assoc :executor default-executors)
    (utils/dissoc-keys environment-args)
    (effective-environment)))
 

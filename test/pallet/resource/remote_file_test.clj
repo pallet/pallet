@@ -88,7 +88,8 @@
                {{:tag :local} (test-utils/make-localhost-node)}
                :phase #(remote-file % (.getPath tmp) :content "xxx")
                :compute nil
-               :middleware pallet.core/execute-with-local-sh)
+               :middleware [core/translate-action-plan
+                            execute/execute-target-on-localhost])
               :results :localhost second second first :out)))
       (is (= "xxx\n" (slurp (.getPath tmp))))))
 
@@ -105,7 +106,8 @@
               :phase #(remote-file
                        % (.getPath tmp) :content "xxx")
               :compute nil
-              :middleware pallet.core/execute-with-local-sh)
+              :middleware [core/translate-action-plan
+                           execute/execute-target-on-localhost])
              :results :localhost second second first :out)))
       (is (= "xxx\n" (slurp (.getPath tmp))))))
 
@@ -307,6 +309,7 @@
                          % check-content (.getPath remote-file)
                          "text" path-atom)
                :user user
-               :middleware pallet.core/execute-with-local-sh)
+               :middleware [core/translate-action-plan
+                            execute/execute-target-on-localhost])
               (is @path-atom)
               (is (not= (.getPath remote-file) (.getPath @path-atom))))))))))

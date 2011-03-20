@@ -1,7 +1,8 @@
 (ns pallet.action-test
   (:require
    [pallet.action :as action]
-   [pallet.action-plan :as action-plan])
+   [pallet.action-plan :as action-plan]
+   [pallet.action-plan-test :as action-plan-test])
   (:use
    clojure.test))
 
@@ -15,7 +16,7 @@
              {:id [[{:f (action/action-fn f)
                      :args []
                      :location :target
-                     :type :script/bash
+                     :action-type :script/bash
                      :execution :in-sequence}] nil]}}
             :phase :fred
             :target-id :id
@@ -34,7 +35,7 @@
              {:id [[{:f (action/action-fn f)
                      :args ["hello"]
                      :location :target
-                     :type :script/bash
+                     :action-type :script/bash
                      :execution :in-sequence}] nil]}}
             :phase :fred
             :target-id :id
@@ -59,7 +60,7 @@
            {:id [[{:f (action/action-fn test-bash-action)
                    :args ["hello"]
                    :location :target
-                   :type :script/bash
+                   :action-type :script/bash
                    :execution :in-sequence}] nil]}}
           :phase :fred
           :target-id :id
@@ -78,7 +79,7 @@
              {:id [[{:f (action/action-fn f)
                      :args [1]
                      :location :origin
-                     :type :fn/clojure
+                     :action-type :fn/clojure
                      :execution :in-sequence}] nil]}}
             :phase :fred
             :target-id :id
@@ -96,12 +97,12 @@
                 {:id [[{:f (action/action-fn f)
                         :args [2]
                         :location :origin
-                        :type :fn/clojure
+                        :action-type :fn/clojure
                         :execution :in-sequence}
                        {:f (action/action-fn f)
                         :args [1]
                         :location :origin
-                        :type :fn/clojure
+                        :action-type :fn/clojure
                         :execution :in-sequence}]
                       nil]}}
                :phase :fred
@@ -110,7 +111,9 @@
                (action-plan/execute
                 (action-plan/translate (-> req :action-plan :fred :id))
                 req
-                {:script/bash identity :fn/clojure (constantly nil)})))
+                (action-plan-test/executor
+                 {:script/bash {:target action-plan-test/echo}
+                  :fn/clojure {:origin action-plan-test/null-result}}))))
       (is @x))))
 
 (deftest as-clj-action-test
@@ -124,7 +127,7 @@
                {:id [[{:f (action/action-fn f)
                        :args []
                        :location :origin
-                       :type :fn/clojure
+                       :action-type :fn/clojure
                        :execution :in-sequence}] nil]}}
               :phase :fred
               :target-id :id
@@ -140,7 +143,7 @@
                {:id [[{:f (action/action-fn f)
                        :args []
                        :location :origin
-                       :type :fn/clojure
+                       :action-type :fn/clojure
                        :execution :in-sequence}] nil]}}
               :phase :fred
               :target-id :id
@@ -161,12 +164,12 @@
                 {:id [[{:f (action/action-fn f)
                         :args [2]
                         :location :target
-                        :type :script/bash
+                        :action-type :script/bash
                         :execution :aggregated}
                        {:f (action/action-fn f)
                         :args [1]
                         :location :target
-                        :type :script/bash
+                        :action-type :script/bash
                         :execution :aggregated}]
                       nil]}}
                :phase :fred
@@ -175,7 +178,9 @@
                (action-plan/execute
                 (action-plan/translate (-> req :action-plan :fred :id))
                 req
-                {:script/bash identity}))))))
+                (action-plan-test/executor
+                 {:script/bash {:target action-plan-test/echo}
+                  :fn/clojure {:origin action-plan-test/null-result}})))))))
 
 
 (action/def-aggregated-action
@@ -199,7 +204,7 @@
            {:id [[{:f (action/action-fn test-aggregated-action)
                    :args ["hello"]
                    :location :target
-                   :type :script/bash
+                   :action-type :script/bash
                    :execution :aggregated}] nil]}}
           :phase :fred
           :target-id :id

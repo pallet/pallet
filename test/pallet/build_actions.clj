@@ -4,34 +4,39 @@
    [pallet.action-plan :as action-plan]
    [pallet.compute :as compute]
    [pallet.core :as core]
+   [pallet.execute :as execute]
    [pallet.script :as script]
    [pallet.phase :as phase]
+   [pallet.utils :as utils]
    [clojure.string :as string]))
 
+(defn- apply-phase-to-node
+  "Apply a phase to a node request"
+  [request]
+  {:pre [(:phase request)]}
+  ((#'core/middleware-handler #'core/execute) request))
+
 (defn produce-phases
-  "Join the result of excute-action-plan, executing local resources.
+  "Join the result of execute-action-plan, executing local resources.
    Useful for testing."
   [request]
-  (clojure.contrib.logging/info
-   (format "produce-phases %s" request ))
   (let [execute
         (fn [request]
-          (let [[result request] (->
-                                  request
-                                  action-plan/build-for-target
-                                  action-plan/translate-for-target
-                                  (action-plan/execute-for-target
-                                   {:script/bash (fn [cmds] cmds)
-                                    :fn/clojure (constantly nil)
-                                    :transfer/from-local (fn [r & _])
-                                    :transfer/to-local (fn [r & _])}))]
+          (let [[result request] (apply-phase-to-node
+                                  (->
+                                   request
+                                   (assoc :middleware
+                                     [core/translate-action-plan
+                                      execute/execute-echo]
+                                     :executor core/default-executors)
+                                   action-plan/build-for-target))]
             [(string/join "" result) request]))]
     (reduce
      (fn [[results request] phase]
        (let [[result request] (execute (assoc request :phase phase))]
          [(str results result) request]))
      ["" request]
-     (#'core/phase-list-with-implicit-phases [(:phase request)]))))
+     (phase/phase-list-with-implicit-phases [(:phase request)]))))
 
 (defmacro build-actions
   "Outputs the remote resources specified in the body for the specified phases.
