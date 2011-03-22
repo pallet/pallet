@@ -275,6 +275,16 @@
       (catch NoSuchAlgorithmException e
         (throw (new RuntimeException e))))))
 
+(defmacro middleware
+  "Build a middleware processing pipeline from the specified forms.
+   The result is a middleware."
+  [& forms]
+  (let [[middlewares] (split-with #(or (seq? %) (symbol? %)) forms)
+        middlewares (reverse middlewares)]
+    (if (seq middlewares)
+      `(fn [handler#] (-> handler# ~@middlewares))
+      `(fn [handler#] handler#))))
+
 ;; see http://weblogs.java.net/blog/kohsuke/archive/2007/04/how_to_convert.html
 (defn file-for-url
   "Convert a URL to a File. "

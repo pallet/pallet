@@ -8,14 +8,14 @@
    Modification of remote files outside of pallet cause an error to be raised
    by default."
   (:require
+   pallet.resource.script
    [pallet.blobstore :as blobstore]
    [pallet.environment :as environment]
-   [pallet.resource :as resource]
+   [pallet.action :as action]
    [pallet.resource.directory :as directory]
    [pallet.resource.file :as file]
    [pallet.resource.lib :as lib]
    [pallet.resource.shell :as shell]
-   pallet.resource.script
    [pallet.stevedore :as stevedore]
    [pallet.template :as templates]
    [pallet.utils :as utils]
@@ -101,161 +101,160 @@
   (let [local-path (utils/tmpfile)]
     (->
      request
-     (resource/invoke-resource #'arg-vector [path (.getPath local-path)]
-                               :in-sequence :transfer/to-local)
+     (action/schedule-action
+      arg-vector [path (.getPath local-path)]
+      :in-sequence :transfer/to-local :origin)
      (apply-> f local-path args)
-     (resource/invoke-resource
-      #'delete-local-path [local-path]
-      :in-sequence :fn/clojure))))
+     (action/schedule-action
+      delete-local-path [local-path]
+      :in-sequence :fn/clojure :origin))))
 
 (defn transfer-file
   "Function to transfer a local file."
   [request local-path remote-path]
-  (resource/invoke-resource
-   request #'arg-vector [local-path remote-path]
-   :in-sequence :transfer/from-local))
+  (action/schedule-action
+   request arg-vector [local-path remote-path]
+   :in-sequence :transfer/from-local :origin))
 
-
-(resource/defresource remote-file-resource
-  (remote-file*
-   [request path & {:keys [action url local-file remote-file link
-                           content literal
-                           template values
-                           md5 md5-url
-                           owner group mode force
-                           blob blobstore
-                           overwrite-changes no-versioning max-versions
-                           flag-on-changed
-                           force]
-                    :or {action :create max-versions 5}
-                    :as options}]
-   (let [new-path (str path ".new")
-         md5-path (str path ".md5")
-         versioning (if no-versioning nil :numbered)
-         proxy (environment/get-for request [:proxy] nil)]
-     (case action
-       :create
-       (stevedore/checked-commands
-        (str "remote-file " path)
-        (cond
-         (and url md5) (stevedore/chained-script
-                        (if (|| (not (file-exists? ~path))
-                                (!= ~md5 @((pipe
-                                            (file/md5sum ~path)
-                                            (file/cut
-                                             "" :fields 1 :delimiter " ")))))
-                          ~(stevedore/chained-script
-                            (file/download-file ~url ~new-path :proxy ~proxy))))
-         ;; Download md5 to temporary directory.
-         (and url md5-url) (stevedore/chained-script
-                            (var tmpdir (quoted (directory/make-temp-dir "rf")))
-                            (var basefile
-                                 (quoted
-                                  (str @tmpdir "/" @(file/basename ~path))))
-                            (var newmd5path (quoted (str @basefile ".md5")))
-                            (file/download-file ~md5-url @newmd5path :proxy ~proxy)
-                            (if (|| (not (file-exists? ~md5-path))
-                                    (file/diff @newmd5path ~md5-path))
-                              (do
-                                (file/download-file ~url ~new-path :proxy ~proxy)
-                                (file/ln ~new-path @basefile :symbolic true)
-                                (if-not (file/md5sum-verify @newmd5path)
-                                  (do
-                                    (println ~(str "Download of " url
-                                                   " failed to match md5"))
-                                    (shell/exit 1)))))
-                            (file/rm @tmpdir :force ~true :recursive ~true))
-         url (stevedore/chained-script
-              (file/download-file ~url ~new-path :proxy ~proxy))
-         content (stevedore/script
+(action/def-bash-action remote-file-resource
+  [request path & {:keys [action url local-file remote-file link
+                          content literal
+                          template values
+                          md5 md5-url
+                          owner group mode force
+                          blob blobstore
+                          overwrite-changes no-versioning max-versions
+                          flag-on-changed
+                          force]
+                   :or {action :create max-versions 5}
+                   :as options}]
+  (let [new-path (str path ".new")
+        md5-path (str path ".md5")
+        versioning (if no-versioning nil :numbered)
+        proxy (environment/get-for request [:proxy] nil)]
+    (case action
+      :create
+      (stevedore/checked-commands
+       (str "remote-file " path)
+       (cond
+        (and url md5) (stevedore/chained-script
+                       (if (|| (not (file-exists? ~path))
+                               (!= ~md5 @((pipe
+                                           (file/md5sum ~path)
+                                           (file/cut
+                                            "" :fields 1 :delimiter " ")))))
+                         ~(stevedore/chained-script
+                           (file/download-file ~url ~new-path :proxy ~proxy))))
+        ;; Download md5 to temporary directory.
+        (and url md5-url) (stevedore/chained-script
+                           (var tmpdir (quoted (directory/make-temp-dir "rf")))
+                           (var basefile
+                                (quoted
+                                 (str @tmpdir "/" @(file/basename ~path))))
+                           (var newmd5path (quoted (str @basefile ".md5")))
+                           (file/download-file ~md5-url @newmd5path :proxy ~proxy)
+                           (if (|| (not (file-exists? ~md5-path))
+                                   (file/diff @newmd5path ~md5-path))
+                             (do
+                               (file/download-file ~url ~new-path :proxy ~proxy)
+                               (file/ln ~new-path @basefile :symbolic true)
+                               (if-not (file/md5sum-verify @newmd5path)
+                                 (do
+                                   (println ~(str "Download of " url
+                                                  " failed to match md5"))
+                                   (shell/exit 1)))))
+                           (file/rm @tmpdir :force ~true :recursive ~true))
+        url (stevedore/chained-script
+             (file/download-file ~url ~new-path :proxy ~proxy))
+        content (stevedore/script
+                 (file/heredoc
+                  ~new-path ~content ~(select-keys options [:literal])))
+        local-file nil
+        ;; (let [temp-path (resource/register-file-transfer!
+        ;;                   local-file)]
+        ;;    (stevedore/script
+        ;;     (mv -f (str "~/" ~temp-path) ~new-path)))
+        remote-file (stevedore/script
+                     (file/cp ~remote-file ~new-path :force ~true))
+        template (stevedore/script
                   (file/heredoc
-                   ~new-path ~content ~(select-keys options [:literal])))
-         local-file nil
-         ;; (let [temp-path (resource/register-file-transfer!
-         ;;                   local-file)]
-         ;;    (stevedore/script
-         ;;     (mv -f (str "~/" ~temp-path) ~new-path)))
-         remote-file (stevedore/script
-                      (file/cp ~remote-file ~new-path :force ~true))
-         template (stevedore/script
-                   (file/heredoc
-                    ~new-path
-                    ~(templates/interpolate-template
-                      template (or values {}) request)
-                    ~(select-keys options [:literal])))
-         link (stevedore/script
-               (file/ln ~link ~path :force ~true :symbolic ~true))
-         blob (stevedore/checked-script
-               "Download blob"
-               (download-request
-                ~new-path
-                ~(blobstore/sign-blob-request
-                  (or blobstore (environment/get-for request [:blobstore] nil)
-                      (throw (IllegalArgumentException.
-                              "No :blobstore given for blob content.") ))
-                  (:container blob) (:path blob)
-                  {:method :get})))
-         :else (throw
-                (IllegalArgumentException.
-                 (str "remote-file " path " specified without content."))))
+                   ~new-path
+                   ~(templates/interpolate-template
+                     template (or values {}) request)
+                   ~(select-keys options [:literal])))
+        link (stevedore/script
+              (file/ln ~link ~path :force ~true :symbolic ~true))
+        blob (stevedore/checked-script
+              "Download blob"
+              (download-request
+               ~new-path
+               ~(blobstore/sign-blob-request
+                 (or blobstore (environment/get-for request [:blobstore] nil)
+                     (throw (IllegalArgumentException.
+                             "No :blobstore given for blob content.") ))
+                 (:container blob) (:path blob)
+                 {:method :get})))
+        :else (throw
+               (IllegalArgumentException.
+                (str "remote-file " path " specified without content."))))
 
-        ;; process the new file accordingly
-        (when install-new-files
-          (stevedore/chain-commands
-           (if (or overwrite-changes no-versioning force-overwrite)
+       ;; process the new file accordingly
+       (when install-new-files
+         (stevedore/chain-commands
+          (if (or overwrite-changes no-versioning force-overwrite)
+            (stevedore/script
+             (if (file-exists? ~new-path)
+               (do
+                 ~(stevedore/chain-commands
+                   (stevedore/script
+                    (file/mv ~new-path ~path :backup ~versioning :force ~true))
+                   (if flag-on-changed
+                     (stevedore/script (lib/set-flag ~flag-on-changed)))))))
+            (stevedore/script
+             (var md5diff "")
+             (if (&& (file-exists? ~path) (file-exists? ~md5-path))
+               (do
+                 (file/md5sum-verify ~md5-path)
+                 (set! md5diff "$?")))
+             (var contentdiff "")
+             (if (&& (file-exists? ~path) (file-exists? ~new-path))
+               (do
+                 (file/diff ~path ~new-path :unified true)
+                 (set! contentdiff "$?")))
+             (if (== @md5diff 1)
+               (do
+                 (println "Existing content did not match md5:")
+                 (shell/exit 1)))
+             (if (!= @contentdiff "0")
+               (do
+                 ~(stevedore/chain-commands
+                   (stevedore/script
+                    (file/mv ~new-path ~path :force ~true :backup ~versioning))
+                   (if flag-on-changed
+                     (stevedore/script (lib/set-flag ~flag-on-changed))))))
+             (if-not (file-exists? ~path)
+               (do
+                 ~(stevedore/chain-commands
+                   (stevedore/script (file/mv ~new-path ~path))
+                   (if flag-on-changed
+                     (stevedore/script (lib/set-flag ~flag-on-changed))))))))
+          (file/adjust-file path options)
+          (when-not no-versioning
+            (stevedore/chain-commands
+             (file/write-md5-for-file path md5-path)
              (stevedore/script
-              (if (file-exists? ~new-path)
-                (do
-                  ~(stevedore/chain-commands
-                    (stevedore/script
-                     (file/mv ~new-path ~path :backup ~versioning :force ~true))
-                    (if flag-on-changed
-                      (stevedore/script (lib/set-flag ~flag-on-changed)))))))
-             (stevedore/script
-              (var md5diff "")
-              (if (&& (file-exists? ~path) (file-exists? ~md5-path))
-                (do
-                  (file/md5sum-verify ~md5-path)
-                  (set! md5diff "$?")))
-              (var contentdiff "")
-              (if (&& (file-exists? ~path) (file-exists? ~new-path))
-                (do
-                  (file/diff ~path ~new-path :unified true)
-                  (set! contentdiff "$?")))
-              (if (== @md5diff 1)
-                (do
-                  (println "Existing content did not match md5:")
-                  (shell/exit 1)))
-              (if (!= @contentdiff "0")
-                (do
-                  ~(stevedore/chain-commands
-                    (stevedore/script
-                     (file/mv ~new-path ~path :force ~true :backup ~versioning))
-                    (if flag-on-changed
-                      (stevedore/script (lib/set-flag ~flag-on-changed))))))
-              (if-not (file-exists? ~path)
-                (do
-                  ~(stevedore/chain-commands
-                    (stevedore/script (file/mv ~new-path ~path))
-                    (if flag-on-changed
-                      (stevedore/script (lib/set-flag ~flag-on-changed))))))))
-           (file/adjust-file path options)
-           (when-not no-versioning
-             (stevedore/chain-commands
-              (file/write-md5-for-file path md5-path)
-              (stevedore/script
-               (println "MD5 sum is" @(file/cat ~md5-path)))))))
-        ;; cleanup
-        (if (and (not no-versioning) (pos? max-versions))
-          (stevedore/script
-           (pipe
-            ((file/ls (str ~path ".~[0-9]*~") :sort-by-time ~true)
-             "2>" "/dev/null")
-            (file/tail "" :max-lines ~(str "+" (inc max-versions)))
-            (shell/xargs (file/rm "" :force ~true))))))
-       :delete (stevedore/checked-script
-                (str "delete remote-file " path)
-                (file/rm ~path :force ~force))))))
+              (println "MD5 sum is" @(file/cat ~md5-path)))))))
+       ;; cleanup
+       (if (and (not no-versioning) (pos? max-versions))
+         (stevedore/script
+          (pipe
+           ((file/ls (str ~path ".~[0-9]*~") :sort-by-time ~true)
+            "2>" "/dev/null")
+           (file/tail "" :max-lines ~(str "+" (inc max-versions)))
+           (shell/xargs (file/rm "" :force ~true))))))
+      :delete (stevedore/checked-script
+               (str "delete remote-file " path)
+               (file/rm ~path :force ~force)))))
 
 (defn remote-file
   "Remote file content management.

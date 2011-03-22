@@ -2,6 +2,7 @@
   (:use pallet.core)
   (require
    [pallet.core :as core]
+   [pallet.execute :as execute]
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
    [pallet.resource.exec-script :as exec-script]
@@ -12,7 +13,10 @@
    [pallet.mock :as mock]
    [pallet.compute.jclouds-test-utils :as jclouds-test-utils]
    [pallet.compute.jclouds-ssh-test :as ssh-test]
+   [pallet.action :as action]
+   [pallet.build-actions :as build-actions]
    [pallet.parameter :as parameter]
+   [pallet.phase :as phase]
    [pallet.resource :as resource]
    [pallet.resource-build :as resource-build]
    [pallet.test-utils :as test-utils]
@@ -166,69 +170,43 @@
     (is (= {pa #{a-node} pb #{b-node}}
            (#'core/nodes-in-set {a a-node b b-node} "p" nil)))))
 
-(resource/defresource test-component
-  (test-component-fn
-   [request arg & options]
-   (str arg)))
+(deftest node-in-types?-test
+  (defnode a {})
+  (defnode b {})
+  (is (#'core/node-in-types? [a b] (jclouds/make-node "a")))
+  (is (not (#'core/node-in-types? [a b] (jclouds/make-node "c")))))
 
-(deftest defnode-test
-  (let [with-phases (group-spec
-                     "tag"
-                     :image {:os-family :centos}
-                     :phases {:bootstrap (resource/phase (test-component :a))
-                              :configure (resource/phase (test-component :b))})
-        request {:server {:node-id :id
-                          :group-name :tag
-                          :packager :yum
-                          :node (jclouds/make-node "tag" :id "id")
-                          :phases (:phases with-phases)}}]
-    (is (= ":a\n"
-           (first
-            (resource-build/produce-phases
-             [:bootstrap]
-             (#'core/resource-invocations (assoc request :phase :bootstrap))))))
-    (is (= ":b\n"
-           (first
-            (resource-build/produce-phases
-             [:configure]
-             (#'core/resource-invocations
-              (assoc request :phase :configure))))))))
+(def test-component
+  (action/bash-action [request arg] (str arg)))
 
-(resource/defresource identity-resource
-  (identity-resource* [request x] x))
+(def identity-resource (action/bash-action [request x] x))
+(def identity-local-resource (action/clj-action [request] request))
 
-(resource/deflocal identity-local-resource
-  (identity-local-resource* [request] request))
-
-(defmacro seen-fn
+(defn seen-fn
   "Generate a local function, which uses an atom to record when it is called."
-  []
-  (let [localf-sym (gensym "localf")
-        localf*-sym (gensym "localf*")]
-    `(let [seen# (atom nil)
-           seen?# (fn [] @seen#)]
-       (resource/deflocal ~localf-sym
-         (~localf*-sym
-          [request#]
-          (clojure.contrib.logging/info "Seenfn")
-          (is (not @seen#))
-          (reset! seen# true)
-          (is (:server request#))
-          (is (:group request#))
-          request#))
-       [~localf-sym seen?#])))
+  [name]
+  (let [seen (atom nil)
+        seen? (fn [] @seen)]
+    [(action/clj-action
+       [request]
+       (clojure.contrib.logging/info (format "Seenfn %s" name))
+       (is (not @seen))
+       (reset! seen true)
+       (is (:target-node request))
+       (is (:node-type request))
+       request)
+      seen?]))
 
 (deftest lift-test
   (testing "jclouds"
     (let [local (group-spec "local")
-          [localf seen?] (seen-fn)]
+          [localf seen?] (seen-fn "lift-test")]
       (is (.contains
            "bin"
            (with-out-str
              (lift {local (jclouds/make-localhost-node)}
-                   :phase [(resource/phase (exec-script/exec-script
-                                            (file/ls "/")))
-                           (resource/phase (localf))]
+                   :phase [(phase/phase-fn (exec-script/exec-script (ls "/")))
+                           (phase/phase-fn (localf))]
                    :user (assoc utils/*admin-user*
                            :username (test-utils/test-username)
                            :no-sudo true)
@@ -236,8 +214,8 @@
       (is (seen?)))))
 
 (deftest lift2-test
-  (let [[localf seen?] (seen-fn)
-        [localfy seeny?] (seen-fn)
+  (let [[localf seen?] (seen-fn "lift2-test")
+        [localfy seeny?] (seen-fn "lift2-test y")
         x1 (group-spec "x1" :phases {:configure (resource/phase localf)})
         y1 (group-spec "y1" :phases {:configure (resource/phase localfy)})]
     (is (map?
@@ -375,17 +353,14 @@
                       :lift-fn sequential-lift}}})))
   (logging/info "converge*-test end"))
 
-(resource/defresource hi
-  (hi* [request] "Hi"))
-
 (deftest converge-test
-  (let [id "a" node (make-node "a" {} :configure hi)
-        request (with-middleware
-                  wrap-no-exec
-                  (converge
-                   {node 2}
-                   :compute (jclouds-test-utils/compute)
-                   :environment {:algorithms {:lift-fn core/sequential-lift}}))]
+  (let [hi (action/bash-action [request] "Hi")
+        id "a"
+        node (make-node "a" {} :configure hi)
+        request (converge {node 2}
+                          :compute (jclouds-test-utils/compute)
+                          :middleware [core/translate-action-plan
+                                       execute/execute-echo])]
     (is (map? request))
     (is (map? (-> request :results)))
     (is (map? (-> request :results first second)))
@@ -396,38 +371,34 @@
     (is (= 2 (count (:all-nodes request))))
     (is (= 2 (count (org.jclouds.compute/nodes (jclouds-test-utils/compute)))))
     (testing "remove some instances"
-      (let [reqeust (with-middleware
-                      wrap-no-exec
-                      (converge {node 1} :compute (jclouds-test-utils/compute)))]
+      (let [reqeust (converge {node 1}
+                              :compute (jclouds-test-utils/compute)
+                              :middleware [core/translate-action-plan
+                                           execute/execute-echo])]
         (Thread/sleep 300) ;; stub destroyNode is asynchronous ?
         (is (= 1 (count (compute/nodes (jclouds-test-utils/compute)))))))
     (testing "remove all instances"
-      (let [request (with-middleware
-                      wrap-no-exec
-                      (converge {node 0} :compute (jclouds-test-utils/compute)))]
+      (let [request (converge {node 0}
+                              :compute (jclouds-test-utils/compute)
+                              :middleware [core/translate-action-plan
+                                           execute/execute-echo])]
         (is (= 0 (count (filter
                          (complement compute/terminated?)
                          (:all-nodes request)))))))))
 
-(resource/deflocal parameter-resource
-  (identity-local-resource*
-   [request]
-   (parameter/assoc-for-target request [:x] "x")))
-
-(resource/deflocal assoc-runtime-param
-  (assoc-runtime-param*
-   [request]
-   (parameter/assoc-for-target request [:x] "x")))
-
-(resource/defresource get-runtime-param
-  (get-runtime-param*
-   [request]
-   (format "echo %s" (parameter/get-for-target request [:x]))))
 
 (deftest lift-with-runtime-params-test
   ;; test that parameters set at execution time are propogated
   ;; between phases
-  (let [node (make-node
+  (let [assoc-runtime-param (action/clj-action
+                             [request]
+                             (parameter/assoc-for-target request [:x] "x"))
+
+        get-runtime-param (action/bash-action
+                           [request]
+                           (format
+                            "echo %s" (parameter/get-for-target request [:x])))
+        node (make-node
               "localhost" {}
               :configure assoc-runtime-param
               :configure2 (fn [request]
@@ -436,10 +407,15 @@
                             (get-runtime-param request)))
         request (lift {node (jclouds/make-localhost-node)}
                       :phase [:configure :configure2]
+                      :user (assoc utils/*admin-user* :no-sudo true)
                       :compute (jclouds-test-utils/compute))]
     (is (map? request))
     (is (map? (-> request :results)))
     (is (map? (-> request :results first second)))
     (is (-> request :results :localhost :configure))
     (is (-> request :results :localhost :configure2))
-    (is (= [] (-> request :results :localhost :configure)))))
+    (let [{:keys [out err exit]} (-> request
+                                     :results :localhost :configure2 first)]
+      (is out)
+      (is (= err ""))
+      (is (zero? exit)))))

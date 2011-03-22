@@ -11,8 +11,9 @@
    [pallet.target :as target]
    [pallet.mock :as mock]
    [pallet.parameter :as parameter]
-   [pallet.resource :as resource]
-   [pallet.resource-build :as resource-build]
+   [pallet.action :as action]
+   [pallet.build-actions :as build-actions]
+   [pallet.phase :as phase]
    [pallet.test-utils :as test-utils])
   (:use
    clojure.test))
@@ -210,14 +211,16 @@
 (deftest request-with-environment-test
   (binding [pallet.core/*middleware* :middleware]
     (testing "defaults"
-      (is (= {:environment
+      (is (= {:executor core/default-executors
+              :environment
               {:blobstore nil :compute nil :user utils/*admin-user*
                :middleware :middleware
                :algorithms {:lift-fn core/parallel-lift
                             :converge-fn core/parallel-adjust-node-counts}}}
              (#'core/request-with-environment {}))))
     (testing "passing a prefix"
-      (is (= {:environment
+      (is (= {:executor core/default-executors
+              :environment
               {:blobstore nil :compute nil :user utils/*admin-user*
                :middleware *middleware*
                :algorithms {:lift-fn core/parallel-lift
@@ -226,17 +229,13 @@
              (#'core/request-with-environment {:prefix "prefix"}))))
     (testing "passing a user"
       (let [user (utils/make-user "fred")]
-        (is (= {:environment
+        (is (= {:executor core/default-executors
+                :environment
                 {:blobstore nil :compute nil  :user user
                  :middleware :middleware
                  :algorithms {:lift-fn parallel-lift
                               :converge-fn parallel-adjust-node-counts}}}
                (#'core/request-with-environment {:user user})))))))
-
-(resource/defresource test-component
-  (test-component-fn
-   [request arg & options]
-   (str arg)))
 
 (deftest node-spec-test
   (is (= {:image {}}
@@ -284,50 +283,46 @@
   (is (= "This is tom" (:doc (meta #'tom))))
   (defnode harry (tom :image))
   (is (= {:group-name :harry :image {:os-family :centos}} harry))
-  (defnode node-with-phases (tom :image)
-    :bootstrap (resource/phase (test-component :a))
-    :configure (resource/phase (test-component :b)))
-  (is (= #{:bootstrap :configure} (set (keys (node-with-phases :phases)))))
-  (let [request {:server {:node-id :id
-                              :group-name :group-name
-                              :packager :yum
-                              :image {}
-                              :node (test-utils/make-node "group-name" :id "id")
-                              :phases (:phases node-with-phases)}}]
-    (is (= ":a\n"
-           (first
-            (resource-build/produce-phases
-             [:bootstrap]
-             (#'core/resource-invocations (assoc request :phase :bootstrap))))))
-    (is (= ":b\n"
-           (first
-            (resource-build/produce-phases
-             [:configure]
-             (#'core/resource-invocations
-              (assoc request :phase :configure))))))))
+  (let [test-component (action/bash-action [request arg] (str arg))
+        node-with-phases (make-node
+                          "node-with-phases" (tom :image)
+                          :bootstrap #(test-component % :a)
+                          :configure  #(test-component % :b))]
+    (is (= #{:bootstrap :configure} (set (keys (node-with-phases :phases)))))
+    (let [request {:server {:node-id :id
+                            :group-name :group-name
+                            :packager :yum
+                            :image {}
+                            :node (test-utils/make-node "group-name" :id "id")
+                            :phases (:phases node-with-phases)}}]
+      (is (= ":a\n"
+             (first
+              (build-actions/produce-phases
+               (assoc request :phase :bootstrap)))))
+      (is (= ":b\n"
+             (first
+              (build-actions/produce-phases
+               (assoc request :phase :configure))))))))
 
-(resource/defresource identity-resource
-  (identity-resource* [request x] x))
-
-(resource/deflocal identity-local-resource
-  (identity-local-resource* [request] request))
+(def identity-resource (action/bash-action [request x] x))
+(def identity-local-resource (action/clj-action [request] request))
 
 (deftest bootstrap-script-test
   (is (= "a\n"
          (#'core/bootstrap-script
           {:group {:image {:os-family :ubuntu}
                    :packager :aptitude
-                   :phases {:bootstrap (resource/phase
+                   :phases {:bootstrap (phase/phase-fn
                                         (identity-resource "a"))}}})))
   (testing "rejects local resources"
     (is (thrown-with-msg?
           clojure.contrib.condition.Condition
-          #"local resources"
+          #"local actions"
           (#'core/bootstrap-script
            {:group
             {:image {:os-family :ubuntu}
              :packager :aptitude
-             :phases {:bootstrap (resource/phase
+             :phases {:bootstrap (phase/phase-fn
                                   (identity-local-resource))}}}))))
   (testing "requires a packager"
     (is (thrown?
@@ -340,27 +335,21 @@
          (#'core/bootstrap-script
           {:group {:packager :yum}})))))
 
-
-
-(defmacro seen-fn
+(defn seen-fn
   "Generate a local function, which uses an atom to record when it is called."
   [name]
-  (let [localf-sym (gensym "localf")
-        localf*-sym (gensym "localf*")
-        seen-sym (gensym "seen")]
-    `(let [~seen-sym (atom nil)
-           seen?# (fn [] @~seen-sym)]
-       (resource/deflocal ~localf-sym
-         (~localf*-sym
-          [request#]
-          (clojure.contrib.logging/info (format "Seenfn %s" ~name))
-          (testing (format "not already seen %s" ~name)
-            (is (not @~seen-sym)))
-          (reset! ~seen-sym true)
-          (is (:server request#))
-          (is (:group request#))
-          request#))
-       [~localf-sym seen?#])))
+  (let [seen (atom nil)
+        seen? (fn [] @seen)]
+    [(action/clj-action
+       [request]
+       (clojure.contrib.logging/info (format "Seenfn %s" name))
+       (testing (format "not already seen %s" name)
+         (is (not @seen)))
+       (reset! seen true)
+       (is (:server request))
+       (is (:group request))
+       request)
+      seen?]))
 
 (deftest warn-on-undefined-phase-test
   (testing "return value"
@@ -411,18 +400,15 @@
   (testing "node-list"
     (let [local (group-spec "local")
           [localf seen?] (seen-fn "lift-test")
-          service (compute/compute-service
-                   "node-list"
-                   :node-list [(node-list/make-localhost-node
-                                :group-name "local")])]
+          localhost (node-list/make-localhost-node :group-name "local")
+          service (compute/compute-service "node-list" :node-list [localhost])]
       (is (re-find
            #"bin"
            (->
             (lift
              local
-             :phase [(resource/phase
-                      (exec-script/exec-script (file/ls "/")))
-                     (resource/phase (localf))]
+             :phase [(phase/phase-fn (exec-script/exec-script (file/ls "/")))
+                     (phase/phase-fn (localf))]
              :user (assoc utils/*admin-user*
                      :username (test-utils/test-username)
                      :no-sudo true)
@@ -451,8 +437,8 @@
            #"bin"
            (->
              (lift local
-                   :phase [(resource/phase (exec-script/exec-script (ls "/")))
-                           (resource/phase (localf))]
+                   :phase [(phase/phase-fn (exec-script/exec-script (ls "/")))
+                           (phase/phase-fn (localf))]
                    :user (assoc utils/*admin-user*
                            :username (test-utils/test-username)
                            :no-sudo true)
@@ -483,8 +469,8 @@
                              (node-list/make-localhost-node
                               :group-name "y1" :name "y1" :id "y1"
                               :os-family :ubuntu)])
-        x1 (make-node "x1" {} :configure (resource/phase localf))
-        y1 (make-node "y1" {} :configure (resource/phase localfy))]
+        x1 (make-node "x1" {} :configure (phase/phase-fn localf))
+        y1 (make-node "y1" {} :configure (phase/phase-fn localfy))]
     (is (map?
          (lift [x1 y1]
                :user (assoc utils/*admin-user*
@@ -505,8 +491,8 @@
                              (node-list/make-localhost-node
                               :group-name "y1" :name "y1" :id "y1"
                               :os-family :ubuntu)])
-        x1 (make-node "x1" {} :configure (resource/phase localf))
-        y1 (make-node "y1" {} :configure (resource/phase localfy))]
+        x1 (make-node "x1" {} :configure (phase/phase-fn localf))
+        y1 (make-node "y1" {} :configure (phase/phase-fn localfy))]
     (is (map?
          (lift [x1 y1]
                :user (assoc utils/*admin-user*
@@ -585,20 +571,18 @@
                       []))]
                   (lift [a b] :compute compute :parameters {:x 1}))))
 
-(resource/deflocal assoc-runtime-param
-  (assoc-runtime-param*
-   [request]
-   (parameter/assoc-for-target request [:x] "x")))
-
-(resource/defresource get-runtime-param
-  (get-runtime-param*
-   [request]
-   (format "echo %s" (parameter/get-for-target request [:x]))))
-
 (deftest lift-with-runtime-params-test
   ;; test that parameters set at execution time are propogated
   ;; between phases
-  (let [node (group-spec
+  (let [assoc-runtime-param (action/clj-action
+                             [request]
+                             (parameter/assoc-for-target request [:x] "x"))
+
+        get-runtime-param (action/bash-action
+                           [request]
+                           (format
+                            "echo %s" (parameter/get-for-target request [:x])))
+        node (group-spec
                 "localhost"
                 :phases
                 {:configure assoc-runtime-param
@@ -606,11 +590,14 @@
                                (is (= (parameter/get-for-target request [:x])
                                       "x"))
                                (get-runtime-param request))})
-        localhost (node-list/make-localhost-node :tag "localhost")]
+        localhost (node-list/make-localhost-node :group-name "localhost")]
     (testing "serial"
       (let [compute (compute/compute-service "node-list" :node-list [localhost])
             request (lift {node localhost}
                           :phase [:configure :configure2]
+                          :user (assoc utils/*admin-user*
+                                  :username (test-utils/test-username)
+                                  :no-sudo true)
                           :compute compute
                           :environment
                           {:algorithms {:lift-fn sequential-lift}})]
@@ -628,6 +615,9 @@
       (let [compute (compute/compute-service "node-list" :node-list [localhost])
             request (lift {node localhost}
                           :phase [:configure :configure2]
+                          :user (assoc utils/*admin-user*
+                                  :username (test-utils/test-username)
+                                  :no-sudo true)
                           :compute compute
                           :environment
                           {:algorithms {:lift-fn parallel-lift}})]
@@ -641,45 +631,3 @@
           (is out)
           (is (= err ""))
           (is (zero? exit)))))))
-
-
-
-;; (deftest converge*-nodes-binding-test
-;;   (defnode a {})
-;;   (defnode b {})
-;;   (let [na (test-utils/make-node "a")
-;;         nb (test-utils/make-node "b")
-;;         nc (test-utils/make-node "b" :name "b1" :running false)
-;;         compute (compute/compute-service "node-list" :node-list [na nb nc])]
-;;     (mock/expects [(sequential-apply-phase
-;;                     [request nodes]
-;;                     (do
-;;                       (is (= #{na nb} (set (:all-nodes request))))
-;;                       (is (= #{na nb} (set (:target-nodes request))))))
-;;                    (compute/nodes [& _] [na nb nc])]
-;;                   (converge*
-;;                    {a 1 b 1} nil [:configure]
-;;                    {:compute compute
-;;                     :middleware *middleware*}))))
-
-;; (deftest converge-test
-;;   (let [id "a"
-;;         request (with-middleware
-;;                   wrap-no-exec
-;;                   (converge {(make-node
-;;                               "a" {}
-;;                               :configure (fn [request]
-;;                                            (resource/invoke-resource
-;;                                             request
-;;                                             (fn [request] "Hi")
-;;                                             [] :in-sequence :script/bash)))
-;;                              1} :compute nil))]
-;;     (is (map? request))
-;;     (is (map? (-> request :results)))
-;;     (is (map? (-> request :results first second)))
-;;     (is (:configure (-> request :results first second)))
-;;     (is (some
-;;          #(= "Hi\n" %)
-;;          (:configure (-> request :results first second))))
-;;     (is (= 1 (count (:all-nodes request))))
-;;     (is (= 1 (count (compute/nodes))))))

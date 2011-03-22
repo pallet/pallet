@@ -4,7 +4,10 @@
         pallet.test-utils
         clojure.contrib.logging)
   (:require
+   [pallet.action-plan :as action-plan]
    [pallet.compute.jvm :as jvm]
+   [pallet.core :as core]
+   [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
    [pallet.script :as script]))
 
@@ -73,17 +76,27 @@
                       (assoc user :no-sudo true))]
           (is (zero? (:exit result))))))))
 
-(deftest execute-ssh-cmds-test
-  (let [user (assoc utils/*admin-user* :username (test-username))]
+(deftest execute-with-ssh-test
+  (let [user (assoc utils/*admin-user* :username (test-username) :no-sudo true)]
     (binding [utils/*admin-user* user]
       (possibly-add-identity
        (default-agent) (:private-key-path user) (:passphrase user))
-      (let [result (execute-ssh-cmds
-                    "localhost"
-                    {:commands [{:location :remote :f (fn [request] "ls /")
-                                 :type :script/bash}]}
-                    (assoc user :no-sudo true)
-                    {})]
+      (let [request {:phase :configure
+                     :server {:node-id :localhost
+                              :node (test-utils/make-localhost-node)}
+                     :action-plan
+                     {:configure
+                      {:localhost (action-plan/add-action
+                                   nil
+                                   (action-plan/action-map
+                                    (fn [request] "ls /") []
+                                    :in-sequence :script/bash :target))}}
+                     :executor core/default-executors
+                     :middleware [core/translate-action-plan
+                                  ssh-user-credentials
+                                  execute-with-ssh]
+                     :user user}
+            result (#'core/apply-phase-to-node request)]
         (is (= 2 (count result)))
         (is (= 1 (count (first result))))
         (is (= 0 (:exit (ffirst result))))))))
@@ -93,3 +106,9 @@
 
 (deftest local-checked-script-test
   (is (zero? (:exit (local-checked-script "ls should work" "ls")))))
+
+(deftest echo-transfer-test
+  (is (= [[["a" "b"]] {}]
+           (echo-transfer
+            {}
+            (fn [request] {:value [["a" "b"]] :request request})))))

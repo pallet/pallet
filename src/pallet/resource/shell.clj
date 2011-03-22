@@ -1,11 +1,11 @@
 (ns pallet.resource.shell
   "General shell functions"
   (:require
+   pallet.resource.script
    [pallet.utils :as utils]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore.script :as script-impl]
    [pallet.resource.file :as file]
-   pallet.resource.script
    [pallet.script :as script]
    [clojure.string :as string]))
 

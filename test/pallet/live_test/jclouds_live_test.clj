@@ -3,9 +3,8 @@
   (:require
    [pallet.live-test :as live-test]
    [pallet.core :as core]
-   [pallet.resource :as resource]
-   [pallet.test-utils :as test-utils]
-   [pallet.compute :as compute]))
+   [pallet.compute :as compute]
+   [pallet.test-utils :as test-utils]))
 
 (use-fixtures :once (test-utils/console-logging-threshold))
 

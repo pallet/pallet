@@ -1,16 +1,15 @@
 (ns pallet.resource.test-resource
+  "Defines a test resource"
   (:use
-   [pallet.resource :only [defresource defaggregate]]))
+   [pallet.action :as action]))
 
-(defaggregate test-resource
-  (apply-test-resources
-   [request]
-   (str
-    "test-resource:"
-    (-> request :server :tag)
-    (-> request :server :image))))
+(action/def-bash-action test-resource
+  [request]
+  (str
+   "test-resource:"
+   (-> request :server :tag)
+   (-> request :server :image)))
 
-(defresource test-component
-  (test-component-fn
-   [request arg]
-   (str arg)))
+(action/def-bash-action test-component
+  [request arg]
+  (str arg))

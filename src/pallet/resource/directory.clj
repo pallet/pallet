@@ -2,13 +2,14 @@
   "A directory manipulation resource, to create and remove directories
    with given ownership and mode."
   (:require
-   [pallet.utils :as utils]
+   pallet.resource.script
+   [pallet.action :as action]
+   [pallet.resource.file :as file]
+   [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore.script :as script-impl]
-   [pallet.resource.file :as file]
    [pallet.script :as script])
   (:use
-   [pallet.resource :only [defresource]]
    [pallet.resource.file :only [chown chgrp chmod rm]]
    clojure.contrib.logging))
 
@@ -61,7 +62,7 @@
     (mkdir ~dir-path :path ~path :verbose ~verbose :mode ~mode))
    (adjust-directory dir-path opts)))
 
-(defresource directory
+(action/def-bash-action directory
   "Directory management.
 
    For :create and :touch, all components of path are effected.
@@ -74,31 +75,30 @@
     - :owner      set owner
     - :group      set group
     - :mode       set mode"
-  (directory*
-   [request dir-path & {:keys [action recursive force path mode verbose owner
-                               group]
-                        :or {action :create recursive true force true path true}
-                        :as options}]
-   (case action
-     :delete (stevedore/checked-script
-              (str "Delete directory " dir-path)
-              (file/rm ~dir-path :recursive ~recursive :force ~force))
-     :create (make-directory
-              dir-path
-              :path path :mode mode :verbose verbose
-              :owner owner :group group)
-     :touch (make-directory
+
+  [request dir-path & {:keys [action recursive force path mode verbose owner
+                              group]
+                       :or {action :create recursive true force true path true}
+                       :as options}]
+  (case action
+    :delete (stevedore/checked-script
+             (str "Delete directory " dir-path)
+             (file/rm ~dir-path :recursive ~recursive :force ~force))
+    :create (make-directory
              dir-path
              :path path :mode mode :verbose verbose
-             :owner owner :group group))))
+             :owner owner :group group)
+    :touch (make-directory
+            dir-path
+            :path path :mode mode :verbose verbose
+            :owner owner :group group)))
 
-(defresource directories
+(action/def-bash-action directories
   "Directory management of multiple directories with the same
    owner/group/permissions.
 
    `options` are as for `directory` and are applied to each directory in
    `paths`"
-  (directories*
-   [request paths & options]
-   (stevedore/chain-commands*
-    (map #(apply directory* request % options) paths))))
+  [request paths & options]
+  (stevedore/chain-commands*
+   (map #(apply (action/action-fn directory) request % options) paths)))

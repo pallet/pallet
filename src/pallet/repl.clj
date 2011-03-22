@@ -9,7 +9,7 @@
    pallet.utils
    [pallet.compute :exclude [make-node]]
    pallet.core
-   pallet.resource
+   [pallet.resource :exclude [script-template script-template-for-node]]
    pallet.resource.package
    pallet.task.feedback
    clj-ssh.ssh))
@@ -26,7 +26,7 @@
       'pallet.utils
       '[pallet.compute :exclude [make-node]]
       'pallet.core
-      'pallet.resource
+      '[pallet.resource :exclude [script-template script-template-for-node]]
       'pallet.resource.package
       'pallet.task.feedback
       'clj-ssh.ssh)))

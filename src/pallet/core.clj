@@ -24,17 +24,19 @@
 - action plan    :: A list of resources that should be run."
   {:author "Hugo Duncan"}
   (:require
+   [pallet.action :as action]
+   [pallet.action-plan :as action-plan]
    [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.futures :as futures]
-   [pallet.utils :as utils]
+   [pallet.parameter :as parameter]
+   [pallet.phase :as phase]
    [pallet.script :as script]
    [pallet.target :as target]
-   [pallet.parameter :as parameter]
-   [pallet.resource :as resource]
    [pallet.thread-expr :as thread-expr]
+   [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.logging :as logging]
    [clojure.contrib.map-utils :as map-utils]
@@ -232,18 +234,15 @@
   (let [[group-name options] (name-with-attributes group-name options)]
     `(def ~group-name (make-node '~(name group-name) ~@options))))
 
-
 (defn- add-request-keys-for-0-4-5-compatibility
   "Add target keys for compatibility.
    This function adds back deprecated keys"
-  [handler]
-  (fn [request]
-    (handler
-     (-> request
-         (assoc :node-type (:group request))
-         (assoc :target-packager (-> request :server :packager))
-         (assoc :target-id (-> request :server :node-id))
-         (assoc :target-node (-> request :server :node))))))
+  [request]
+  (-> request
+      (assoc :node-type (:group request))
+      (assoc :target-packager (-> request :server :packager))
+      (assoc :target-id (-> request :server :node-id))
+      (assoc :target-node (-> request :server :node))))
 
 (defn show-target-keys
   "Middleware that is useful in debugging."
@@ -258,46 +257,76 @@
       (-> request :server :packager)))
     (handler request)))
 
-(defn- resource-invocations [request]
-  {:pre [(:phase request)]}
-  (if-let [f (some
-              (:phase request)
-              [(:phases (:server request)) (:inline-phases request)])]
-    (script/with-template (resource/script-template request)
-      (f request))
-    request))
 
+;;; executor
+
+(defn- executor [request f action-type location]
+  (let [exec-fn (get-in request [:executor action-type location])]
+    (when-not exec-fn
+      (condition/raise
+       :type :missing-executor-fn
+       :fn-for [action-type location]
+       :message (format
+                 "Missing executor function for %s %s"
+                 action-type location)))
+    (exec-fn request f)))
+
+(let [raise (fn [message]
+              (fn [_ _]
+                (condition/raise :type :executor-error :message message)))]
+  (def ^{:doc "Default executor map"}
+    default-executors
+    {:script/bash
+     {:origin execute/bash-on-origin
+      :target (raise
+               (str ":script/bash on :target not implemented.\n"
+                    "Add middleware to enable remote execution."))}
+     :fn/clojure
+     {:origin execute/clojure-on-origin
+      :target (raise ":fn/clojure on :target not supported")}
+     :transfer/to-local
+     {:origin (raise
+               (str ":transfer/to-local on :origin not implemented.\n"
+                    "Add middleware to enable transfers."))
+      :target (raise ":transfer/to-local on :target not supported")}
+     :transfer/from-local
+     {:origin (raise
+               (str ":transfer/to-local on :origin not implemented.\n"
+                    "Add middleware to enable transfers."))
+      :target (raise ":transfer/from-local on :target not supported")}}))
+
+;;; bootstrap functions
 (defn- bootstrap-script
-  "Generates the bootstrap script for the :group specified in the request.
-
-   This builds an action plan for the bootstrap phase, and then realises the
-   plan, verifying that only script generating resources are included in the
-   bootstrap.  This limitation is necessary so that the script can be executed
-   over a \"fire and forget\" transport."
   [request]
   {:pre [(get-in request [:group :image :os-family])
          (get-in request [:group :packager])]}
-  (let [request (assoc request
-                  :phase :bootstrap
-                  :server (assoc (:group request) :node-id :bootstrap-id))
-        cmds (resource/produce-phase (resource-invocations request))]
-    (if-not (and (every? #(= :remote (:location %)) cmds) (>= 1 (count cmds)))
-      (condition/raise
-       :type :booststrap-contains-local-resources
-       :message (format
-                 "Bootstrap can not contain local resources %s"
-                 (pr-str cmds))))
-    (if-let [f (:f (first cmds))]
-      (script/with-template
-        (resource/script-template-for-node-spec (:group request))
-        (logging/info
-         (format
-          "Bootstrap script for - :os-family %s, :packager %s, *template* %s"
-          (-> request :group :image :os-family)
-          (-> request :group :packager)
-          (vec script/*script-context*)))
-        (:cmds (f request)))
-      "")))
+  (let [error-fn (fn [message]
+                   (fn [_ _]
+                     (condition/raise
+                      :type :booststrap-contains-non-remote-actions
+                      :message message)))
+        [result request] (->
+                          request
+                          (assoc
+                              :phase :bootstrap
+                              :server (assoc (:group request) :node-id :bootstrap-id))
+                          (assoc-in
+                           [:executor :script/bash :target]
+                           execute/echo-bash)
+                          (assoc-in
+                           [:executor :transfer/to-local :origin]
+                           (error-fn "Bootstrap can not contain transfers"))
+                          (assoc-in
+                           [:executor :transfer/from-local :origin]
+                           (error-fn "Bootstrap can not contain transfers"))
+                          (assoc-in
+                           [:executor :fn/clojure :origin]
+                           (error-fn "Bootstrap can not contain local actions"))
+                          add-request-keys-for-0-4-5-compatibility
+                          action-plan/build-for-target
+                          action-plan/translate-for-target
+                          (action-plan/execute-for-target executor))]
+    (string/join \newline result)))
 
 (defn- create-nodes
   "Create count nodes based on the template for the group. The boostrap argument
@@ -397,106 +426,62 @@ is run with root privileges immediatly after first boot."
                 (node-count-difference (:groups request))
                 request)))
 
-(defn execute-with-ssh
+;;; middleware
+
+(defn log-request
+  "Log the request state"
+  [msg]
+  (fn [request]
+    (logging/info (format "%s Request is %s" msg request))
+    request))
+
+(defn log-message
+  "Log the message"
+  [msg]
+  (fn [request]
+    (logging/info (format "%s" msg))
+    request))
+
+(defn- apply-environment
+  "Apply the effective environment"
   [request]
-  (let [target-node (-> request :server :node)]
-    (execute/ssh-cmds
-     (assoc request
-       :address (compute/node-address target-node)
-       :ssh-port (compute/ssh-port target-node)))))
+  (environment/request-with-environment
+    request
+    (environment/merge-environments
+     (:environment request)
+     (-> request :server :environment))))
 
-(defn execute-with-local-sh
-  "Middleware to execute on localhost with shell"
-  [handler]
-  (fn [{:as request}]
-    (execute/local-sh-cmds request)))
-
-(defn parameter-keys [node node-type]
-  [:default
-   (compute/packager (node-type :image))
-   (target/os-family (node-type :image))])
-
-(defn with-target-parameters
-  "Middleware to set parameters based on a specified parameter map"
-  [handler parameters]
-  (fn [request]
-    (handler
-     (assoc
-         request :parameters
-         (parameter/from-map
-          parameters
-          (parameter-keys
-           (-> request :server :node) (:server request)))))))
-
-(defn- build-commands
-  "Middlware that generates the commands that should be run for the execution
-   plan.
-   If no commands are generated for the current phase, then the pipleline short
-   circuits and returns here."
+(defn translate-action-plan
   [handler]
   (fn [request]
-    {:pre [handler
-           (-> request :server :image :os-family)
-           (-> request :server :packager)]}
-    (if-let [commands (script/with-template (resource/script-template request)
-                        (resource/produce-phase request))]
-      (handler (assoc request :commands commands))
-      [nil request])))
+    (handler (action-plan/translate-for-target request))))
+
+(defn middleware-handler
+  "Build a middleware processing pipeline from the specified middleware.
+   The result is a middleware."
+  [handler]
+  (fn [request]
+    ((reduce #(%2 %1) handler (:middleware request)) request)))
+
+(defn- execute
+  "Execute the action plan"
+  [request]
+  (action-plan/execute-for-target request executor))
 
 (defn- apply-phase-to-node
-  "Apply a phase to a node"
+  "Apply a phase to a node request"
   [request]
-  {:pre [(:server request)]}
-  (let [request (environment/request-with-environment
-                  request
-                  (environment/merge-environments
-                   (:environment request)
-                   (-> request :server :environment)))
-        middleware (:middleware request)]
-    ((utils/pipe
-      add-request-keys-for-0-4-5-compatibility
-      build-commands
-      middleware
-      execute-with-ssh)
-     request)))
+  {:pre [(:server request) (:phase request)]}
+  ((middleware-handler execute)
+   (->
+    request
+    apply-environment
+    add-request-keys-for-0-4-5-compatibility)))
 
-(defn wrap-no-exec
-  "Middleware to report on the request, without executing"
-  [_]
-  (fn [request]
-    (logging/info
-     (format
-      "Commands on node %s as user %s"
-      (pr-str (:node request))
-      (pr-str (:user request))))
-    (letfn [(execute
-             [cmd]
-             (logging/info (format "Commands %s" cmd))
-             cmd)]
-      (resource/execute-commands request {:script/bash execute
-                                          :transfer/to-local (fn [& _])
-                                          :transfer/from-local (fn [& _])}))))
-
-(defn wrap-local-exec
-  "Middleware to execute only local functions"
-  [_]
-  (fn [request]
-    (letfn [(execute [cmd] nil)]
-      (resource/execute-commands request {:script/bash execute
-                                          :transfer/to-local (fn [& _])
-                                          :transfer/from-local (fn [& _])}))))
-
-(defn wrap-with-user-credentials
-  "Middleware to user the request :user credentials for SSH authentication."
-  [handler]
-  (fn [request]
-    (let [user (:user request)]
-      (logging/info (format "Using identity at %s" (:private-key-path user)))
-      (execute/possibly-add-identity
-       (execute/default-agent) (:private-key-path user) (:passphrase user)))
-    (handler request)))
-
-(def *middleware* wrap-with-user-credentials)
+(def *middleware*
+  [translate-action-plan
+   execute/ssh-user-credentials
+   execute/execute-with-ssh])
 
 (defmacro with-middleware
   "Wrap node execution in the given middleware. A middleware is a function of
@@ -543,10 +528,11 @@ is run with root privileges immediatly after first boot."
   "Build an action plan for the specified server."
   [request server]
   {:pre [(:node server) (:node-id server)]}
-  (resource-invocations
+  (action-plan/build-for-target
    (->
     request
     (assoc :server server)
+    add-request-keys-for-0-4-5-compatibility
     (environment/request-with-environment
       (environment/merge-environments
        (:environment request)
@@ -624,7 +610,7 @@ is run with root privileges immediatly after first boot."
 
 (defn sequential-lift
   "Sequential apply the phases."
-  [request phase]
+  [request]
   (apply
    concat
    (for [group (:groups request)]
@@ -632,7 +618,7 @@ is run with root privileges immediatly after first boot."
 
 (defn parallel-lift
   "Apply the phases in sequence, to nodes in parallel."
-  [request phase]
+  [request]
   (mapcat
    #(map deref %)               ; make sure all nodes complete before next phase
    (for [group (:groups request)]
@@ -646,7 +632,7 @@ is run with root privileges immediatly after first boot."
   (let [lift-fn (environment/get-for request [:algorithms :lift-fn])
         lift-phase (fn [request]
                      (reduce-node-results
-                      request (lift-fn request (:phase request))))]
+                      request (lift-fn request)))]
     (reduce
      (fn [request phase]
        (->
@@ -655,7 +641,8 @@ is run with root privileges immediatly after first boot."
         (plan-for-groups (:groups request))
         lift-phase))
      request
-     (resource/phase-list (:phase-list request)))))
+     (phase/phase-list-with-implicit-phases (:phase-list request)))))
+
 
 (def
   ^{:doc
@@ -937,6 +924,7 @@ is run with root privileges immediatly after first boot."
    (update-in                           ; ensure backwards compatable
     [:environment]
     merge (select-keys options environment-args))
+   (assoc :executor default-executors)
    (utils/dissoc-keys environment-args)
    (effective-environment)))
 
@@ -1031,7 +1019,9 @@ is run with root privileges immediatly after first boot."
    (->
     options
     (assoc :node-set (node-set-for-converge group-spec->count)
-           :phase-list (if (sequential? phase) phase (if phase [phase] nil)))
+           :phase-list (if (sequential? phase)
+                         phase
+                         (if phase [phase] [:configure])))
     check-arguments-map
     request-with-environment
     identify-anonymous-phases)))
@@ -1068,7 +1058,9 @@ is run with root privileges immediatly after first boot."
    (->
     options
     (assoc :node-set node-set
-           :phase-list (if (sequential? phase) phase (if phase [phase] nil)))
+           :phase-list (if (sequential? phase)
+                         phase
+                         (if phase [phase] [:configure])))
     check-arguments-map
     (dissoc :all-node-set :phase)
     request-with-environment

@@ -1,16 +1,14 @@
 (ns pallet.resource.file
   "File manipulation."
   (:require
-   [pallet.utils :as utils]
-   [pallet.stevedore :as stevedore]
-   [pallet.stevedore.script :as script-impl]
+   pallet.resource.script
+   [pallet.action :as action]
    [pallet.resource.shell :as shell]
    [pallet.script :as script]
-   [clojure.string :as string]
-   pallet.resource.script)
-  (:use
-   [pallet.resource :only [defresource]]
-   clojure.contrib.logging))
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore.script :as script-impl]
+   [pallet.utils :as utils]
+   [clojure.string :as string]))
 
 (script/defscript rm [file & {:keys [recursive force]}])
 (script-impl/defimpl rm :default [file & {:keys [recursive force] :as options}]
@@ -223,17 +221,6 @@
   [path content {:keys [literal] :as options}]
   (heredoc-in ("cat" ">" ~path) ~content ~options))
 
-;; ;; the cat is wrapped in braces so that the final newline is protected
-;; (defn heredoc
-;;   "Generates a heredoc. Options:
-;;       :literal boolean  - if true, prevents shell expansion of contents"
-;;   [path content & {:keys [literal] :as options}]
-;;   (stevedore/script (heredoc-file ~path content options))
-;;   ;; (stevedore/script ("{ cat" ">" ~path
-;;   ;;          ~(str (if (options :literal) "<<'EOFpallet'\n" "<<EOFpallet\n")
-;;   ;;                content "\nEOFpallet\n }")))
-;;   )
-
 (defn adjust-file [path options]
   (stevedore/chain-commands*
    (filter
@@ -257,57 +244,53 @@
     (touch ~path :force ~force))
    (adjust-file path options)))
 
-(defresource file
+(action/def-bash-action file
   "File management."
-  (file*
-   [request path & {:keys [action owner group mode force]
-                    :or {action :create force true}
-                    :as options}]
-   (case action
-     :delete (stevedore/checked-script
-              (str "delete file " path)
-              (rm ~path :force ~force))
-     :create (stevedore/checked-commands
-              (str "file " path)
-              (touch-file path options))
-     :touch (stevedore/checked-commands
+  [request path & {:keys [action owner group mode force]
+                   :or {action :create force true}
+                   :as options}]
+  (case action
+    :delete (stevedore/checked-script
+             (str "delete file " path)
+             (rm ~path :force ~force))
+    :create (stevedore/checked-commands
              (str "file " path)
-             (touch-file path options)))))
+             (touch-file path options))
+    :touch (stevedore/checked-commands
+             (str "file " path)
+             (touch-file path options))))
 
-(defresource symbolic-link
+(action/def-bash-action symbolic-link
   "Symbolic link management."
-  (symbolic-link*
-   [request from name & {:keys [action owner group mode force]
-                                        :or {action :create force true}}]
-   (case action
-     :delete (stevedore/checked-script
-              (str "Link %s " name)
-              (rm ~name :force ~force))
-     :create (stevedore/checked-script
-              (format "Link %s as %s" from name)
-              (ln ~from ~name :force ~force :symbolic ~true)))))
+  [request from name & {:keys [action owner group mode force]
+                        :or {action :create force true}}]
+  (case action
+    :delete (stevedore/checked-script
+             (str "Link %s " name)
+             (rm ~name :force ~force))
+    :create (stevedore/checked-script
+             (format "Link %s as %s" from name)
+             (ln ~from ~name :force ~force :symbolic ~true))))
 
-(defresource fifo
+(action/def-bash-action fifo
   "FIFO pipe management."
-  (fifo*
-   [request path & {:keys [action] :or {action :create} :as options}]
-   (case action
-     :delete (stevedore/checked-script
-              (str "fifo " path)
-              (rm ~path :force ~force))
-     :create (stevedore/checked-commands
-              (str "fifo " path)
-              (stevedore/script
-               (if-not (file-exists? ~path)
-                 (mkfifo ~path)))
-              (adjust-file path options)))))
+  [request path & {:keys [action] :or {action :create} :as options}]
+  (case action
+    :delete (stevedore/checked-script
+             (str "fifo " path)
+             (rm ~path :force ~force))
+    :create (stevedore/checked-commands
+             (str "fifo " path)
+             (stevedore/script
+              (if-not (file-exists? ~path)
+                (mkfifo ~path)))
+             (adjust-file path options))))
 
-(defresource sed
+(action/def-bash-action sed
   "Execute sed on a file.  Takes a path and a map for expr to replacement."
-  (sed*
-   [request path exprs-map & {:keys [seperator no-md5 restriction] :as options}]
-   (stevedore/checked-script
-    (format "sed file %s" path)
-    (sed-file ~path ~exprs-map ~options)
-    ~(when-not no-md5
-       (write-md5-for-file path (str path ".md5"))))))
+  [request path exprs-map & {:keys [seperator no-md5 restriction] :as options}]
+  (stevedore/checked-script
+   (format "sed file %s" path)
+   (sed-file ~path ~exprs-map ~options)
+   ~(when-not no-md5
+      (write-md5-for-file path (str path ".md5")))))

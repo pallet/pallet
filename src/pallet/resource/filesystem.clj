@@ -1,6 +1,7 @@
 (ns pallet.resource.filesystem
   "Filesystem resource"
   (:require
+   pallet.resource.script
    [pallet.resource.directory :as directory]
    [pallet.resource.exec-script :as exec-script]
    [clojure.string :as string])

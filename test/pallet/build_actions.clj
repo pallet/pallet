@@ -1,35 +1,44 @@
-(ns pallet.resource-build
-  "Temporary namespace - needs to move to testing, but need to resource-when"
+(ns pallet.build-actions
+  "Test utilities for building actions"
   (:require
-   [pallet.core :as core]
-   [pallet.resource :as resource]
+   [pallet.action-plan :as action-plan]
    [pallet.compute :as compute]
+   [pallet.core :as core]
+   [pallet.core :as core]
+   [pallet.execute :as execute]
+   [pallet.phase :as phase]
    [pallet.script :as script]
-   [clojure.string :as string]
-   [clojure.contrib.logging :as logging]))
+   [pallet.utils :as utils]
+   [clojure.contrib.logging :as logging]
+   [clojure.string :as string]))
+
+(defn- apply-phase-to-node
+  "Apply a phase to a node request"
+  [request]
+  {:pre [(:phase request)]}
+  ((#'core/middleware-handler #'core/execute) request))
 
 (defn produce-phases
-  "Join the result of produce-phase, executing local resources.
+  "Join the result of execute-action-plan, executing local resources.
    Useful for testing."
-  [phases request]
-  (clojure.contrib.logging/trace
-   (format "produce-phases %s %s" phases request))
+  [request]
   (let [execute
         (fn [request]
-          (let [commands (resource/produce-phase request)
-                [result request] (if commands
-                                   (resource/execute-commands
-                                    (assoc request :commands commands)
-                                    {:script/bash (fn [cmds] cmds)
-                                     :transfer/from-local (fn [& _])
-                                     :transfer/to-local (fn [& _])})
-                                   [nil request])]
+          (let [[result request] (apply-phase-to-node
+                                  (->
+                                   request
+                                   (assoc :middleware
+                                     [core/translate-action-plan
+                                      execute/execute-echo]
+                                     :executor core/default-executors)
+                                   action-plan/build-for-target))]
             [(string/join "" result) request]))]
     (reduce
-     #(let [[result request] (execute (assoc (second %1) :phase %2))]
-        [(str (first %1) result) request])
+     (fn [[results request] phase]
+       (let [[result request] (execute (assoc request :phase phase))]
+         [(str results result) request]))
      ["" request]
-     (resource/phase-list phases))))
+     (phase/phase-list-with-implicit-phases [(:phase request)]))))
 
 (defn- convert-0-4-5-compatible-keys
   "Convert old build-resources keys to new keys."
@@ -115,24 +124,22 @@
                       (#{:gentoo} os-family) :portage))))]
     request))
 
-(defn build-resources*
+(defn build-actions*
   "Implementation for build-resources."
   [f request-map]
   (let [request (if (map? request-map)  ; historical compatibility
                   request-map
                   (convert-0-4-5-compatible-keys (apply hash-map request-map)))
         request (build-request request)
+        request (assoc-in request [:server :phases (:phase request)] f)
         request (if (map? request-map)  ; historical compatibility
                   request
                   ((#'core/add-request-keys-for-0-4-5-compatibility
                     identity)
                    request))]
-    (script/with-template
-      [(-> request :server :image :os-family)
-       (-> request :server :packager)]
-      (produce-phases [(:phase request)] (f request)))))
+    (produce-phases request)))
 
-(defmacro build-resources
+(defmacro build-actions
   "Outputs the remote resources specified in the body for the specified phases.
    This is useful in testing.
 
@@ -144,10 +151,4 @@
        (when-not (map? request-map#)
          (logging/warn
           "Use of vector for request-map in build-resources is deprecated."))
-       (build-resources*
-        (resource/phase
-         (resource/check-request-map "The request passed to the pipeline")
-         ~@(mapcat
-            (fn [form] [form `(resource/check-request-map '~form)])
-            body))
-        request-map#))))
+       (build-actions* (phase/phase-fn ~@body) request-map#))))

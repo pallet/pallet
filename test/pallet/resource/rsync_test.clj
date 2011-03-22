@@ -1,18 +1,19 @@
 (ns pallet.resource.rsync-test
   (:use pallet.resource.rsync)
   (:use [pallet.stevedore :only [script]]
-        clojure.test
-        pallet.test-utils)
+        clojure.test)
   (:require
+   [pallet.action :as action]
    [pallet.core :as core]
-   [pallet.utils :as utils] [pallet.stevedore :as stevedore]
-   [pallet.resource :as resource]
    [pallet.resource.remote-file :as remote-file]
+   [pallet.stevedore :as stevedore]
    [pallet.target :as target]
-   [clojure.contrib.io :as io]
-   [pallet.test-utils :as test-utils]))
+   [pallet.phase :as phase]
+   [pallet.test-utils :as test-utils]
+   [pallet.utils :as utils]
+   [clojure.contrib.io :as io]))
 
-(use-fixtures :once (console-logging-threshold))
+(use-fixtures :once (test-utils/console-logging-threshold))
 
 (deftest rsync-test
   (core/with-admin-user (assoc utils/*admin-user*
@@ -30,11 +31,12 @@
         (core/lift*
          {:node-set {tag #{node}}
           :phase-list [:p]
-          :inline-phases {:p (resource/phase
+          :inline-phases {:p (phase/phase-fn
                               (rsync (.getPath dir) (.getPath target-dir) {}))}
           :environment
           {:user user
            :middleware core/*middleware*
+           :executor core/default-executors
            :algorithms {:lift-fn core/sequential-lift}}})
         (let [target-tmp (java.io.File.
                           (str (.getPath target-dir)
@@ -47,12 +49,13 @@
         (core/lift*
          {:node-set {tag node}
           :phase-list [:p]
-          :inline-phases {:p (resource/phase
+          :inline-phases {:p (phase/phase-fn
                               (rsync-directory
                                (.getPath dir) (.getPath target-dir)))}
           :environment
           {:user user
            :middleware core/*middleware*
+           :executor core/default-executors
            :algorithms {:lift-fn core/sequential-lift}}})
         (let [target-tmp (java.io.File.
                           (str (.getPath target-dir)

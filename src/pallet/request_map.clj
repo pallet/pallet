@@ -24,6 +24,11 @@
   [request]
   (-> request :server :node))
 
+(defn phase
+  "Current phase"
+  [request]
+  (:phase request))
+
 (defn target-name
   "Name of the target-node."
   [request]

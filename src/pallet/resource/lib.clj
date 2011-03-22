@@ -1,10 +1,10 @@
 (ns pallet.resource.lib
   "Routines that can be used in other resources"
   (:require
+   pallet.resource.script
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
-   [pallet.stevedore.script :as script-impl]
-   pallet.resource.script))
+   [pallet.stevedore.script :as script-impl]))
 
 ;; Register changed files
 (script/defscript file-changed [path])

@@ -9,10 +9,10 @@
     - http://www.pathname.com/fhs/
     - http://wiki.apache.org/httpd/DistrosDefaultLayout"
   (:require
+   pallet.resource.script
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
-   [pallet.stevedore.script :as script-impl]
-   pallet.resource.script))
+   [pallet.stevedore.script :as script-impl]))
 
 (script/defscript etc-default [])
 (script-impl/defimpl etc-default [#{:ubuntu :debian :jeos}] []

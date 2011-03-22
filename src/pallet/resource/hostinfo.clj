@@ -1,13 +1,10 @@
 (ns pallet.resource.hostinfo
   "Host information."
   (:require
+   pallet.resource.script
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
-   [pallet.stevedore.script :as script-impl]
-   pallet.resource.script)
-  (:use
-   [pallet.resource :only [defresource]]
-   clojure.contrib.logging))
+   [pallet.stevedore.script :as script-impl]))
 
 (script/defscript os-version-name [])
 (script-impl/defimpl os-version-name [#{:ubuntu :debian}] []

@@ -3,9 +3,9 @@
   (:use [pallet.stevedore :only [script]]
         clojure.test)
   (:require
+   [pallet.action :as action]
    [pallet.core :as core]
    [pallet.resource.lib :as lib]
-   [pallet.resource :as resource]
    [pallet.resource.exec-script :as exec-script]
    [pallet.resource.file :as file]
    [pallet.script :as script]
@@ -13,8 +13,10 @@
    [pallet.compute :as compute]
    [pallet.execute :as execute]
    [pallet.target :as target]
+   [pallet.phase :as phase]
    [pallet.utils :as utils]
    [clojure.contrib.io :as io]
+   [pallet.build-actions :as build-actions]
    [pallet.test-utils :as test-utils]))
 
 (use-fixtures
@@ -22,7 +24,10 @@
  test-utils/with-ubuntu-script-template
  (test-utils/console-logging-threshold))
 
+(def remote-file* (action/action-fn remote-file-resource))
+
 (deftest remote-file*-test
+  (is remote-file*)
   (testing "url"
     (is (= (stevedore/checked-commands
             "remote-file path"
@@ -88,7 +93,8 @@
                {{:group-name :local} (test-utils/make-localhost-node)}
                :phase #(remote-file % (.getPath tmp) :content "xxx")
                :compute nil
-               :middleware pallet.core/execute-with-local-sh)
+               :middleware [core/translate-action-plan
+                            execute/execute-target-on-localhost])
               :results :localhost second second first :out)))
       (is (= "xxx\n" (slurp (.getPath tmp))))))
 
@@ -104,7 +110,8 @@
              {{:group-name :local} (test-utils/make-localhost-node)}
              :phase #(remote-file % (.getPath tmp) :content "xxx")
              :compute nil
-             :middleware pallet.core/execute-with-local-sh)
+             :middleware [core/translate-action-plan
+                          execute/execute-target-on-localhost])
             :results :localhost second second first :out)))
       (is (= "xxx\n" (slurp (.getPath tmp))))))
 
@@ -124,19 +131,19 @@
     (assoc utils/*admin-user* :username (test-utils/test-username))
     (is (thrown-with-msg? RuntimeException
           #".*/some/non-existing/file.*does not exist, is a directory, or is unreadable.*"
-          (test-utils/build-resources
+          (build-actions/build-actions
            {} (remote-file
                "file1" :local-file "/some/non-existing/file" :owner "user1"))))
 
     (is (thrown-with-msg? RuntimeException
           #".*file1.*without content.*"
-          (test-utils/build-resources
+          (build-actions/build-actions
            {} (remote-file "file1" :owner "user1"))))
 
     (utils/with-temporary [tmp (utils/tmpfile)]
       (is (re-find #"mv -f --backup=\"numbered\" file1.new file1"
                    (first
-                    (test-utils/build-resources
+                    (build-actions/build-actions
                      {} (remote-file
                          "file1" :local-file (.getPath tmp)))))))
 
@@ -175,7 +182,7 @@
               (->
                (core/lift
                 {local node}
-                :phase (resource/phase
+                :phase (phase/phase-fn
                         (remote-file
                          (.getPath target-tmp) :content "$(hostname)"
                          :mode "0666" :flag-on-changed :changed)
@@ -195,7 +202,7 @@
               (->
                (core/lift
                 {local node}
-                :phase (resource/phase
+                :phase (phase/phase-fn
                         (remote-file
                          (.getPath target-tmp) :content "abc"
                          :mode "0666" :flag-on-changed :changed)
@@ -256,7 +263,7 @@
             (let [md5path (str (.getPath tmp) ".md5")]
               (core/lift
                {local node}
-               :phase (resource/phase
+               :phase (phase/phase-fn
                        (exec-script/exec-script
                         ((file/md5sum ~(.getPath tmp)) > ~md5path))
                        (remote-file
@@ -274,11 +281,10 @@
              :user user)
             (is (not (.exists target-tmp)))))))))
 
-(resource/deflocal check-content
-  (*check-content
-   [request path content path-atom]
-   (is (= content (slurp path)))
-   (reset! path-atom path)))
+(action/def-clj-action check-content
+  [request path content path-atom]
+  (is (= content (slurp path)))
+  (reset! path-atom path))
 
 (deftest with-remote-file-test
   (core/with-admin-user (assoc utils/*admin-user*
@@ -310,6 +316,7 @@
                          % check-content (.getPath remote-file)
                          "text" path-atom)
                :user user
-               :middleware pallet.core/execute-with-local-sh)
+               :middleware [core/translate-action-plan
+                            execute/execute-target-on-localhost])
               (is @path-atom)
               (is (not= (.getPath remote-file) (.getPath @path-atom))))))))))

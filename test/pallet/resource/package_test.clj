@@ -1,23 +1,27 @@
 (ns pallet.resource.package-test
   (:use pallet.resource.package)
   (:use [pallet.stevedore :only [script]]
-        clojure.test
-        pallet.test-utils)
+        clojure.test)
   (:require
+   [pallet.action :as action]
+   [pallet.build-actions :as build-actions]
    [pallet.core :as core]
    [pallet.script :as script]
    [pallet.execute :as execute]
    [pallet.stevedore :as stevedore]
-   [pallet.resource :as resource]
    [pallet.resource.exec-script :as exec-script]
    [pallet.resource.file :as file]
    [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]
    [pallet.target :as target]
+   [pallet.test-utils :as test-utils]
    [clojure.contrib.io :as io]))
 
-(use-fixtures :each with-ubuntu-script-template)
-(use-fixtures :once (console-logging-threshold))
+(use-fixtures :each test-utils/with-ubuntu-script-template)
+(use-fixtures :once (test-utils/console-logging-threshold))
+
+(def remote-file* (action/action-fn remote-file/remote-file-resource))
+(def sed* (action/action-fn file/sed))
 
 (deftest update-package-list-test
   (is (= "aptitude update || true"
@@ -67,7 +71,7 @@
 (deftest test-install-example
   (testing "aptitude"
     (is (= (first
-            (build-resources
+            (build-actions/build-actions
              {}
              (exec-script/exec-checked-script
               "Packages"
@@ -75,7 +79,7 @@
               "aptitude install -q -y java+ rubygems+ git- ruby_"
               (aptitude search (quoted "~i")))))
            (first
-            (build-resources
+            (build-actions/build-actions
              {}
              (package "java" :action :install)
              (package "rubygems")
@@ -83,7 +87,7 @@
              (package "ruby" :action :remove :purge true))))))
   (testing "yum"
     (is (= (first
-            (build-resources
+            (build-actions/build-actions
              {:server {:tag :n :image {:os-family :centos}}}
              (exec-script/exec-checked-script
               "Packages"
@@ -92,7 +96,7 @@
               "yum upgrade -q -y maven2"
               (yum list installed))))
            (first
-            (build-resources
+            (build-actions/build-actions
              {:server {:tag :n :image {:os-family :centos}}}
              (package "java" :action :install)
              (package "rubygems")
@@ -101,7 +105,7 @@
              (package "ruby" :action :remove :purge true))))))
   (testing "pacman"
     (is (= (first
-            (build-resources
+            (build-actions/build-actions
              {:server {:tag :n :image {:os-family :arch}}}
              (exec-script/exec-checked-script
               "Packages"
@@ -111,7 +115,7 @@
               "pacman -R --noconfirm git"
               "pacman -R --noconfirm --nosave ruby")))
            (first
-            (build-resources
+            (build-actions/build-actions
              {:server {:tag :n :image {:os-family :arch}}}
              (package "java" :action :install)
              (package "rubygems")
@@ -155,39 +159,39 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           (cp -p "/etc/apt/sources.list" @tmpfile)
           (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
           (mv -f @tmpfile "/etc/apt/sources.list"))
-         (package-manager* ubuntu-request :multiverse)))
+         (package-manager* test-utils/ubuntu-request :multiverse)))
   (is (= (stevedore/checked-script
           "package-manager"
           (chain-or
            (aptitude update "")
            true))
          (script/with-script-context [:aptitude]
-           (package-manager* ubuntu-request :update)))))
+           (package-manager* test-utils/ubuntu-request :update)))))
 
 (deftest package-manager-configure-test
   (testing "aptitude"
     (is (= (first
-            (build-resources
+            (build-actions/build-actions
              {}
              (exec-script/exec-checked-script
               "package-manager"
-              ~(remote-file/remote-file*
+              ~(remote-file*
                 {}
                 "/etc/apt/apt.conf.d/50pallet"
                 :content "ACQUIRE::http::proxy \"http://192.168.2.37:3182\";"
                 :literal true))))
            (first
-            (build-resources
+            (build-actions/build-actions
              {}
              (package-manager
               :configure :proxy "http://192.168.2.37:3182"))))))
   (testing "yum"
     (is (= (first
-            (build-resources
+            (build-actions/build-actions
              {:server {:tag :n :image {:os-family :centos}}}
              (exec-script/exec-checked-script
               "package-manager"
-              ~(remote-file/remote-file*
+              ~(remote-file*
                 {}
                 "/etc/yum.pallet.conf"
                 :content "proxy=http://192.168.2.37:3182"
@@ -198,17 +202,17 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   "include=file:///etc/yum.pallet.conf"
                   "EOFpallet")))))
            (first
-            (build-resources
+            (build-actions/build-actions
              {:server {:tag :n :image {:os-family :centos}}}
              (package-manager
               :configure :proxy "http://192.168.2.37:3182"))))))
   (testing "pacman"
     (is (= (first
-            (build-resources
+            (build-actions/build-actions
              {:server {:tag :n :image {:os-family :arch}}}
              (exec-script/exec-checked-script
               "package-manager"
-              ~(remote-file/remote-file*
+              ~(remote-file*
                 {}
                 "/etc/pacman.pallet.conf"
                 :content (str "XferCommand = /usr/bin/wget "
@@ -218,13 +222,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                 :literal true)
               (if (not @("fgrep" "pacman.pallet.conf" "/etc/pacman.conf"))
                 (do
-                  ~(file/sed*
+                  ~(sed*
                     {}
                     "/etc/pacman.conf"
                     "a Include = /etc/pacman.pallet.conf"
                     :restriction "/\\[options\\]/"))))))
            (first
-            (build-resources
+            (build-actions/build-actions
              {:server {:tag :n :image {:os-family :arch}}}
              (package-manager
               :configure :proxy "http://192.168.2.37:3182")))))))
@@ -242,7 +246,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (chain-or
              (aptitude update "")
              true)))
-          (first (build-resources
+          (first (build-actions/build-actions
                   {}
                   (package-manager :multiverse)
                   (package-manager :update))))))
@@ -253,7 +257,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (is (=
          (stevedore/checked-commands
           "Package source"
-          (remote-file/remote-file*
+          (remote-file*
            {:server a}
            "/etc/apt/sources.list.d/source1.list"
            :content "deb http://somewhere/apt $(lsb_release -c -s) main\n"))
@@ -266,7 +270,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
      (=
       (stevedore/checked-commands
        "Package source"
-       (remote-file/remote-file*
+       (remote-file*
         {:server b}
         "/etc/yum.repos.d/source1.repo"
         :content
@@ -279,14 +283,14 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   :scopes ["main"]}
        :yum {:url "http://somewhere/yum"})))
     (is (= (first
-            (build-resources
+            (build-actions/build-actions
              {}
              (exec-script/exec-checked-script
               "Package source"
               (install-package "python-software-properties")
               (add-apt-repository "ppa:abc"))))
            (first
-            (build-resources
+            (build-actions/build-actions
              {}
              (package-source
               "source1"
@@ -294,7 +298,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               :yum {:url "http://somewhere/yum"})))))
     (is (= (stevedore/checked-commands
             "Package source"
-            (remote-file/remote-file*
+            (remote-file*
              {:server a}
              "/etc/apt/sources.list.d/source1.list"
              :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
@@ -313,11 +317,11 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
         b (assoc (core/make-node "b" {}) :packager :yum)]
     (is (= (stevedore/checked-commands
             "Package source"
-            (remote-file/remote-file*
+            (remote-file*
              {:server a}
              "/etc/apt/sources.list.d/source1.list"
              :content "deb http://somewhere/apt $(lsb_release -c -s) main\n"))
-           (first (build-resources
+           (first (build-actions/build-actions
                    {:server a}
                    (package-source
                     "source1"
@@ -326,12 +330,12 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                     :yum {:url "http://somewhere/yum"})))))
     (is (= (stevedore/checked-commands
             "Package source"
-            (remote-file/remote-file*
+            (remote-file*
              {:server b}
              "/etc/yum.repos.d/source1.repo"
              :content "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\nenabled=1\n"
              :literal true))
-           (first (build-resources
+           (first (build-actions/build-actions
                    {:server b}
                    (package-source
                     "source1"
@@ -344,13 +348,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (is (= (script/with-template [:debian]
              (stevedore/checked-commands
               "Package source"
-              (remote-file/remote-file*
+              (remote-file*
                {:server debian}
                "/etc/apt/sources.list.d/debian-backports.list"
                :content (str
                          "deb http://backports.debian.org/debian-backports "
                          "$(lsb_release -c -s)-backports main\n"))))
-           (first (build-resources
+           (first (build-actions/build-actions
                    {:server debian}
                    (add-debian-backports)))))))
 
@@ -358,20 +362,20 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (let [a (assoc (core/make-node "a" {}) :packager :aptitude)
         b (assoc (core/make-node "b" {}) :packager :yum)]
     (is (= (first
-            (build-resources
+            (build-actions/build-actions
              {:server a}
              (package "git-apt")
              (package "git-apt2")))
-           (first (build-resources
+           (first (build-actions/build-actions
                    {}
                    (packages
                     :aptitude ["git-apt" "git-apt2"]
                     :yum ["git-yum"])))))
     (is (= (first
-            (build-resources
+            (build-actions/build-actions
              {:server b}
              (package "git-yum")))
-           (first (build-resources
+           (first (build-actions/build-actions
                    {:server b}
                    (packages
                     :aptitude ["git-apt"]
@@ -380,37 +384,37 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 (deftest ordering-test
   (testing "package-source alway precedes packages"
     (is (= (first
-            (build-resources
+            (build-actions/build-actions
              {}
              (package-source "s" :aptitude {:url "http://somewhere/apt"})
              (package "p")))
            (first
-            (build-resources
+            (build-actions/build-actions
              {}
              (package "p")
              (package-source "s" :aptitude {:url "http://somewhere/apt"}))))))
 
   (testing "package-manager alway precedes packages"
     (is (= (first
-            (build-resources
+            (build-actions/build-actions
              {}
              (package-manager :update)
              (package "p")))
            (first
-            (build-resources
+            (build-actions/build-actions
              {}
              (package "p")
              (package-manager :update))))))
 
   (testing "package-source alway precedes packages and package-manager"
     (is (= (first
-            (build-resources
+            (build-actions/build-actions
              {}
              (package-source "s" :aptitude {:url "http://somewhere/apt"})
              (package-manager :update)
              (package "p")))
            (first
-            (build-resources
+            (build-actions/build-actions
              {}
              (package "p")
              (package-manager :update)
@@ -474,7 +478,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (yum install -q -y p1)
             (yum list installed))
            (first
-            (build-resources
+            (build-actions/build-actions
              {:packager :yum}
              (package "p1")
              (package "p2" :disable ["r1"] :priority 25)))))))

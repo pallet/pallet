@@ -2,14 +2,19 @@
   "Resource to specify the content of a remote directory.  At present the
    content can come from a downloaded tar or zip file."
   (:require
-   [pallet.resource :as resource]
+   pallet.resource.script
+   [pallet.action :as action]
    [pallet.stevedore :as stevedore]
    [pallet.resource.file :as file]
    [pallet.resource.directory :as directory]
-   [pallet.resource.remote-file :as remote-file]
-   pallet.resource.script))
+   [pallet.resource.remote-file :as remote-file]))
 
-(resource/defresource remote-directory
+(def ^{:private true}
+  directory* (action/action-fn directory/directory))
+(def ^{:private true}
+  remote-file* (action/action-fn remote-file/remote-file-resource))
+
+(action/def-bash-action remote-directory
   "Specify the contents of remote directory.
 
    Options:
@@ -42,40 +47,38 @@
        (remote-directory request path
           :url \"http://a.com/path/file.\"
           :unpack :unzip)"
-  (remote-directory*
-   [request path & {:keys [action url unpack tar-options unzip-options
-                           strip-components md5 md5-url owner group recursive]
-                    :or {action :create
-                         tar-options "xz"
-                         unzip-options "-o"
-                         strip-components 1}
-                    :as options}]
+  [request path & {:keys [action url unpack tar-options unzip-options
+                          strip-components md5 md5-url owner group recursive]
+                   :or {action :create
+                        tar-options "xz"
+                        unzip-options "-o"
+                        strip-components 1}
+                   :as options}]
 
-   (case action
-     :create (let [url (options :url)
-                   unpack (options :unpack :tar)]
-               (when (and url unpack)
-                 (let [filename (.getName
-                                 (java.io.File. (.getFile (java.net.URL. url))))
-                       tarpath (str (stevedore/script (file/tmp-dir)) "/" filename)]
-                   (stevedore/checked-commands
-                    "remote-directory"
-                    (directory/directory*
-                     request path :owner owner :group group)
-                    (remote-file/remote-file*
-                     request tarpath :url url :md5 md5 :md5-url md5-url)
-                    (condp = unpack
-                        :tar (stevedore/script
-                              (cd ~path)
-                              (tar ~tar-options
-                                   ~(str "--strip-components=" strip-components)
-                                   -f ~tarpath))
-                        :unzip (stevedore/script
-                                (cd ~path)
-                                (unzip ~unzip-options ~tarpath)))
-                    (if recursive
-                      (directory/directory*
-                       request path
-                       :owner owner
-                       :group group
-                       :recursive recursive)))))))))
+  (case action
+    :create (let [url (options :url)
+                  unpack (options :unpack :tar)]
+              (when (and url unpack)
+                (let [filename (.getName
+                                (java.io.File. (.getFile (java.net.URL. url))))
+                      tarpath (str (stevedore/script (file/tmp-dir)) "/" filename)]
+                  (stevedore/checked-commands
+                   "remote-directory"
+                   (directory*
+                    request path :owner owner :group group)
+                   (remote-file*
+                    request tarpath :url url :md5 md5 :md5-url md5-url)
+                   (condp = unpack
+                       :tar (stevedore/script
+                             (cd ~path)
+                             (tar ~tar-options ~(str "--strip-components="
+                                                     strip-components) -f ~tarpath))
+                       :unzip (stevedore/script
+                               (cd ~path)
+                               (unzip ~unzip-options ~tarpath)))
+                   (if recursive
+                     (directory*
+                      request path
+                      :owner owner
+                      :group group
+                      :recursive recursive))))))))
