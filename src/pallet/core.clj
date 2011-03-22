@@ -510,20 +510,6 @@ is run with root privileges immediatly after first boot."
    request
    results))
 
-(defn- merge-phase-results
-  "Reduce across all phase results"
-  [request results]
-  (->
-   request
-   (update-in
-    [:results]
-    #(map-utils/deep-merge-with
-      (fn [x y] (or y x)) (or % {}) (:results results)))
-   (update-in
-    [:parameters]
-    #(map-utils/deep-merge-with
-      (fn [x y] (or y x)) % (:parameters results)))))
-
 (defn- plan-for-server
   "Build an action plan for the specified server."
   [request server]

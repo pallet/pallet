@@ -18,7 +18,6 @@
   (:require
    [pallet.core :as core]
    [pallet.compute :as compute]
-   [pallet.resource :as resource]
    [clojure.string :as string]))
 
 (def

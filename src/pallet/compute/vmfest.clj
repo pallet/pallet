@@ -32,13 +32,13 @@
    [vmfest.manager :as manager]
    [vmfest.virtualbox.session :as session]
    [vmfest.virtualbox.enums :as enums]
+   [pallet.action-plan :as action-plan]
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.futures :as futures]
-   [pallet.resource :as resource]
    [pallet.script :as script]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
@@ -217,7 +217,7 @@
     (Thread/sleep 4000)
     (logging/trace (format "Bootstrapping %s" (manager/get-ip machine)))
     (script/with-template
-      (resource/script-template-for-node-spec {:image image})
+      (action-plan/script-template-for-server {:image image})
       (execute/remote-sudo
        (manager/get-ip machine)
        init-script

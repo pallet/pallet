@@ -432,17 +432,13 @@
   "Execute a single action"
   [executor [results request] {:keys [f action-type location] :as action}]
   (let [[result request] (executor request f action-type location)]
-    (logging/info
-     (format
-      "action-plan/execute-action :result %s :request %s"
-      result request))
     [(conj results result) request]))
 
 (defn execute
   "Execute actions by passing the un-evaluated actions to the `executor`
    function (a function with an arglist of [request f action-type location])."
   [action-plan request executor]
-  (logging/info
+  (logging/trace
    (format "action-plan/execute with %s actions" (count action-plan)))
   (when-not (translated? action-plan)
     (condition/raise
@@ -459,7 +455,7 @@
          (keyword? (request-map/target-id request))]}
   [:action-plan (request-map/phase request) (request-map/target-id request)])
 
-(defn- script-template-for-node-spec
+(defn script-template-for-server
   "Return the script template for the specified server."
   [server]
   (let [family (-> server :image :os-family)]
@@ -472,7 +468,7 @@
 (defn script-template
   "Return the script template for the current group node."
   [request]
-  (script-template-for-node-spec (:server request)))
+  (script-template-for-server (:server request)))
 
 ;;; action plan functions based on request
 

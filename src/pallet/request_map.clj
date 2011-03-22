@@ -93,3 +93,8 @@
 (defn admin-group
   [request]
   (get-in request [:server :packager]))
+
+(defn admin-user
+  "User that remote commands are run under"
+  [request]
+  (-> request :server :node-id))

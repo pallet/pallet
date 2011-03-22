@@ -17,8 +17,6 @@
    [pallet.build-actions :as build-actions]
    [pallet.parameter :as parameter]
    [pallet.phase :as phase]
-   [pallet.resource :as resource]
-   [pallet.resource-build :as resource-build]
    [pallet.test-utils :as test-utils]
    [clojure.contrib.logging :as logging])
   (:use
@@ -216,8 +214,8 @@
 (deftest lift2-test
   (let [[localf seen?] (seen-fn "lift2-test")
         [localfy seeny?] (seen-fn "lift2-test y")
-        x1 (group-spec "x1" :phases {:configure (resource/phase localf)})
-        y1 (group-spec "y1" :phases {:configure (resource/phase localfy)})]
+        x1 (group-spec "x1" :phases {:configure (phase/phase-fn localf)})
+        y1 (group-spec "y1" :phases {:configure (phase/phase-fn localfy)})]
     (is (map?
          (lift {x1 (jclouds/make-unmanaged-node "x" "localhost")
                 y1 (jclouds/make-unmanaged-node "y" "localhost")}

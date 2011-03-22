@@ -6,7 +6,6 @@
    [pallet.compute.jvm :as jvm]
    [pallet.compute :as compute]
    [pallet.environment :as environment]
-   [pallet.resource :as resource]
    [pallet.script :as script]
    [pallet.target :as target]
    [pallet.utils :as utils]

@@ -6,7 +6,6 @@
    pallet.test-utils)
   (:require
    [pallet.stevedore :as stevedore]
-   [pallet.resource :as resource]
    [pallet.resource.file :as file]))
 
 (deftest exec-script*-test
