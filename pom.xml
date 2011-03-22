@@ -119,6 +119,12 @@
       <groupId>enlive</groupId>
       <artifactId>enlive</artifactId>
       <version>1.0.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.clojure</groupId>
+          <artifactId>clojure</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
@@ -266,6 +272,14 @@
                 </configuration>
               </execution>
             </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-jar-plugin</artifactId>
+            <configuration>
+              <excludes>
+                <exclude>log4j.xml</exclude>
+              </excludes>
+            </configuration>
           </plugin>
         </plugins>
       </build>

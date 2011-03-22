@@ -1,6 +1,7 @@
 (ns pallet.compute.implementation
   "Implementation details"
   (:require
+   [pallet.utils :as utils]
    [clojure.contrib.find-namespaces :as find-namespaces]))
 
 (defmulti service
@@ -20,11 +21,12 @@
   "Find the available providers."
   []
   (try
-    (->> (find-namespaces/find-namespaces-on-classpath)
-         (filter #(re-find compute-regex (name %)))
-         (remove #(re-find exclude-regex (name %)))
-         (remove exclude-compute-ns)
-         (set))
+    (binding [clojure.contrib.classpath/classpath utils/classpath]
+      (->> (find-namespaces/find-namespaces-on-classpath)
+           (filter #(re-find compute-regex (name %)))
+           (remove #(re-find exclude-regex (name %)))
+           (remove exclude-compute-ns)
+           (set)))
     (catch java.io.FileNotFoundException _)))
 
 (defn load-providers

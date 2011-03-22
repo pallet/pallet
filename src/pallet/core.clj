@@ -507,42 +507,37 @@ is run with root privileges immediatly after first boot."
   `(binding [*middleware* ~f]
      ~@body))
 
-(defn- reduce-phase-results
-  "Combine the execution results."
+(defn- reduce-node-results
+  "Combine the node execution results."
   [request results]
   (reduce
-   (fn apply-phase-accumulate [request [result req :as arg]]
+   (fn reduce-node-results-fn [request [result req :as arg]]
      (let [target-id (-> req :server :node-id)
-           param-keys [:parameters :host target-id]]
+           param-keys [:parameters]]
        (->
         request
         (assoc-in [:results target-id (:phase req)] result)
         (update-in
          param-keys
-         (fn [p]
+         (fn merge-params [p]
            (map-utils/deep-merge-with
-            (fn [x y] (or y x)) p (get-in req param-keys)))))))
+            (fn merge-params-fn [x y] (or y x)) p (get-in req param-keys)))))))
    request
    results))
 
-(defn- reduce-results
+(defn- merge-phase-results
   "Reduce across all phase results"
   [request results]
-  (reduce
-   (fn lift-nodes-reduce-result [request req]
-     (let [req (reduce-phase-results request req)]
-       (->
-        request
-        (update-in
-         [:results]
-         #(map-utils/deep-merge-with
-           (fn [x y] (or y x)) (or % {}) (:results req)))
-        (update-in
-         [:parameters]
-         #(map-utils/deep-merge-with
-           (fn [x y] (or y x)) % (:parameters req))))))
+  (->
    request
-   results))
+   (update-in
+    [:results]
+    #(map-utils/deep-merge-with
+      (fn [x y] (or y x)) (or % {}) (:results results)))
+   (update-in
+    [:parameters]
+    #(map-utils/deep-merge-with
+      (fn [x y] (or y x)) % (:parameters results)))))
 
 (defn- plan-for-server
   "Build an action plan for the specified server."
@@ -587,8 +582,7 @@ is run with root privileges immediatly after first boot."
     "apply-phase %s for %s with %d nodes"
     (:phase request) (-> request :server :group-name) (count servers)))
   (for [server servers]
-    (apply-phase-to-node
-     (assoc request :server server))))
+    (apply-phase-to-node (assoc request :server server))))
 
 (defn parallel-apply-phase
   "Apply a phase to a sequence of nodes"
@@ -603,37 +597,65 @@ is run with root privileges immediatly after first boot."
           (future (apply-phase-to-node (assoc request :server server)))))
    futures/add))
 
+
+(defn- add-prefix-to-node-type
+  [prefix node-type]
+  (update-in node-type [:tag]
+             (fn [tag] (keyword (str prefix (name tag))))))
+
+(defn- add-prefix-to-node-map [prefix node-map]
+  (zipmap
+   (map (partial add-prefix-to-node-type prefix) (keys node-map))
+   (vals node-map)))
+
+(defn- ensure-configure-phase [phases]
+  (if (some #{:configure} phases)
+    phases
+    (concat [:configure] phases)))
+
+(defn- identify-anonymous-phases
+  [request phases]
+  (reduce #(if (keyword? %2)
+             [(first %1)
+              (conj (second %1) %2)]
+             (let [phase (keyword (name (gensym "phase")))]
+               [(assoc-in (first %1) [:phases phase] %2)
+                (conj (second %1) phase)])) [request []] phases))
+
 (defn sequential-lift
   "Sequential apply the phases."
-  [request]
-  (for [phase (resource/phase-list (:phase-list request))
-        group (:groups request)]
-    (sequential-apply-phase
-     (assoc request :phase phase :group group)
-     (:servers group))))
+  [request phase]
+  (apply
+   concat
+   (for [group (:groups request)]
+     (sequential-apply-phase (assoc request :group group) (:servers group)))))
 
 (defn parallel-lift
   "Apply the phases in sequence, to nodes in parallel."
-  [request]
-  (for [phase (resource/phase-list (:phase-list request))]
-    (mapcat
-     #(map deref %) ; make sure all nodes complete before next phase
-     (for [group (:groups request)]
-       (parallel-apply-phase
-        (assoc request :phase phase :group group)
-        (:servers group))))))
+  [request phase]
+  (mapcat
+   #(map deref %)               ; make sure all nodes complete before next phase
+   (for [group (:groups request)]
+     (parallel-apply-phase (assoc request :group group) (:servers group)))))
+
 
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
   [request]
   (logging/trace (format "lift-nodes phases %s" (vec (:phase-list request))))
-  (let [lift-fn (environment/get-for request [:algorithms :lift-fn])]
-    (reduce-results
+  (let [lift-fn (environment/get-for request [:algorithms :lift-fn])
+        lift-phase (fn [request]
+                     (reduce-node-results
+                      request (lift-fn request (:phase request))))]
+    (reduce
+     (fn [request phase]
+       (->
+        request
+        (assoc :phase phase)
+        (plan-for-groups (:groups request))
+        lift-phase))
      request
-     (->
-      request
-      plan-for-phases
-      lift-fn))))
+     (resource/phase-list (:phase-list request)))))
 
 (def
   ^{:doc
@@ -661,14 +683,6 @@ is run with root privileges immediatly after first boot."
         "Undefined phases: %s"
         (string/join ", " (map name undefined))))))
   request)
-
-(defn- nodes-in-map
-  "Return nodes with group-names corresponding to the keys in node-map"
-  [node-map nodes]
-  (let [group-names (->> node-map keys (map :group-name) (map name) set)]
-    (->> nodes
-         (filter compute/running?)
-         (filter #(-> % compute/group-name group-names)))))
 
 (defn- group-with-prefix
   [prefix node-spec]
@@ -835,6 +849,7 @@ is run with root privileges immediatly after first boot."
    - :all-nodes    - a sequence of all known nodes
    - :all-node-set - a specification of nodes to invoke (but not lift)"
   [request]
+  (logging/debug (format "pallet version: %s" (version)))
   (logging/trace (format "lift* phases %s" (vec (:phase-list request))))
   (->
    request
@@ -850,6 +865,7 @@ is run with root privileges immediatly after first boot."
    `:all-node-set`"
   [request]
   {:pre [(:node-set request)]}
+  (logging/debug (format "pallet version: %s" (version)))
   (logging/trace
    (format "converge* %s %s" (:node-set request) (:phase-list request)))
   (->
@@ -957,7 +973,7 @@ is run with root privileges immediatly after first boot."
   (reduce
    (fn [request phase]
      (if (keyword? phase)
-       (update-in request [:phase-list] conj phase)
+       (update-in request [:phase-list] #(conj (or % []) phase))
        (let [phase-kw (keyword (name (gensym "phase")))]
          (->
           request

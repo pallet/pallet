@@ -31,4 +31,10 @@
   [request & args]
   (let [args (build-args args)]
     (apply core/lift
-           (concat args (apply concat (dissoc request :config :project))))))
+           (concat args
+                   (apply concat
+                          (->
+                           request
+                           (dissoc :config :project)
+                           (assoc :environment
+                             (-> request :project :environment))))))))

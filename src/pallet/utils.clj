@@ -274,3 +274,22 @@
       (Base64/encodeBase64URLSafeString (.digest alg))
       (catch NoSuchAlgorithmException e
         (throw (new RuntimeException e))))))
+
+;; see http://weblogs.java.net/blog/kohsuke/archive/2007/04/how_to_convert.html
+(defn file-for-url
+  "Convert a URL to a File. "
+  [^java.net.URL url]
+  (try
+    (java.io.File. (.toURI url))
+    (catch java.net.URISyntaxException _
+      (java.io.File. (.getPath url)))))
+
+(defn classpath-urls
+  "Return the classpath URL's for the current clojure classloader."
+  []
+  (.getURLs (.getClassLoader clojure.lang.RT)))
+
+(defn classpath
+  "Return the classpath File's for the current clojure classloader."
+  []
+  (map file-for-url (classpath-urls)))

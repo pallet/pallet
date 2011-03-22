@@ -10,6 +10,7 @@
    [pallet.compute.node-list :as node-list]
    [pallet.target :as target]
    [pallet.mock :as mock]
+   [pallet.parameter :as parameter]
    [pallet.resource :as resource]
    [pallet.resource-build :as resource-build]
    [pallet.test-utils :as test-utils])
@@ -83,24 +84,6 @@
                     :converge-fn
                     (var-get #'core/serial-adjust-node-counts)}}})))
 
-(deftest nodes-in-map-test
-  (let [a (group-spec "a" :image {:os-family :ubuntu})
-        b (group-spec "b" :image {:os-family :ubuntu})
-        a-node (test-utils/make-node "a")
-        b-node (test-utils/make-node "b")
-        nodes [a-node b-node]]
-    (is (= [a-node]
-             (#'core/nodes-in-map {a 1} nodes)))
-    (is (= [a-node b-node]
-             (#'core/nodes-in-map {a 1 b 2} nodes))))
-  (let [a (group-spec "a")
-        b (group-spec "b")
-        c (group-spec "c")
-        na (test-utils/make-node "a")
-        nb (test-utils/make-node "b")]
-    (is (= [na nb] (#'core/nodes-in-map {a 1 b 1 c 1} [na nb])))
-    (is (= [na] (#'core/nodes-in-map {a 1 c 1} [na nb])))))
-
 (deftest group-spec?-test
   (is (#'core/group-spec? (core/group-spec "a")))
   (is (#'core/group-spec? (core/make-node "a" (server-spec)))))
@@ -108,23 +91,21 @@
 (deftest nodes-in-set-test
   (let [a (group-spec :a :node-spec ubuntu-node)
         b (group-spec :b :node-spec ubuntu-node)
-        pa (make-node :pa {:os-family :ubuntu})
-        pb (make-node :pb {:os-family :ubuntu})]
+        a-node (test-utils/make-node "a")
+        b-node (test-utils/make-node "b")]
     (testing "sequence of groups"
-      (let [a-node (test-utils/make-node "a")
-            b-node (test-utils/make-node "b")]
+      (let []
         (is (= {a #{a-node} b #{b-node}}
                (#'core/nodes-in-set [a b] nil [a-node b-node])))))
-    (let [a-node (test-utils/make-node "a")
-                 b-node (test-utils/make-node "b")]
+    (testing "explicit nodes"
       (is (= {a #{a-node}}
              (#'core/nodes-in-set {a a-node} nil nil)))
       (is (= {a #{a-node b-node}}
              (#'core/nodes-in-set {a #{a-node b-node}} nil nil)))
       (is (= {a #{a-node} b #{b-node}}
              (#'core/nodes-in-set {a #{a-node} b #{b-node}} nil nil))))
-    (let [a-node (test-utils/make-node "a")
-          b-node (test-utils/make-node "b")]
+    (let [pa (group-spec :pa :node-spec ubuntu-node)
+          pb (group-spec :pb :node-spec ubuntu-node)]
       (is (= {pa #{a-node}}
              (#'core/nodes-in-set {a a-node} "p" nil)))
       (is (= {pa #{a-node b-node}}
@@ -135,8 +116,8 @@
              (#'core/nodes-in-set {a a-node b b-node} "p" nil))))))
 
 (deftest node-in-types?-test
-  (let [a (group-spec "a")
-        b (group-spec "b")]
+  (let [a (group-spec :a)
+        b (group-spec :b)]
     (is (#'core/node-in-types? [a b] (test-utils/make-node "a")))
     (is (not (#'core/node-in-types? [a b] (test-utils/make-node "c"))))))
 
@@ -373,7 +354,8 @@
          (~localf*-sym
           [request#]
           (clojure.contrib.logging/info (format "Seenfn %s" ~name))
-          (is (not @~seen-sym))
+          (testing (format "not already seen %s" ~name)
+            (is (not @~seen-sym)))
           (reset! ~seen-sym true)
           (is (:server request#))
           (is (:group request#))
@@ -428,10 +410,11 @@
 (deftest lift-test
   (testing "node-list"
     (let [local (group-spec "local")
-          [localf seen?] (seen-fn "1")
+          [localf seen?] (seen-fn "lift-test")
           service (compute/compute-service
                    "node-list"
-                   :node-list [(node-list/make-localhost-node :group-name "local")])]
+                   :node-list [(node-list/make-localhost-node
+                                :group-name "local")])]
       (is (re-find
            #"bin"
            (->
@@ -444,8 +427,39 @@
                      :username (test-utils/test-username)
                      :no-sudo true)
              :compute service)
-            (-> :results :localhost)
-            pr-str)))
+             :results :localhost pr-str)))
+      (is (seen?))
+      (testing "invalid :phases keyword"
+        (is (thrown-with-msg?
+              clojure.contrib.condition.Condition
+              #":phases"
+              (lift local :phases []))))
+      (testing "invalid keyword"
+        (is (thrown-with-msg?
+              clojure.contrib.condition.Condition
+              #"Invalid"
+              (lift local :abcdef [])))))))
+
+(deftest lift-parallel-test
+  (defnode local {})
+  (testing "node-list"
+    (let [[localf seen?] (seen-fn "lift-parallel-test")
+          service (compute/compute-service
+                   "node-list"
+                   :node-list [(node-list/make-localhost-node :tag "local")])]
+      (is (re-find
+           #"bin"
+           (->
+             (lift local
+                   :phase [(resource/phase (exec-script/exec-script (ls "/")))
+                           (resource/phase (localf))]
+                   :user (assoc utils/*admin-user*
+                           :username (test-utils/test-username)
+                           :no-sudo true)
+                   :compute service
+                   :environment
+                   {:algorithms {:lift-fn #'pallet.core/parallel-lift}})
+             :results :localhost pr-str)))
       (is (seen?))
       (testing "invalid :phases keyword"
         (is (thrown-with-msg?
@@ -477,6 +491,30 @@
                        :username (test-utils/test-username)
                        :no-sudo true)
                :compute compute)))
+    (is (seen?))
+    (is (seeny?))))
+
+(deftest lift2-parallel-test
+  (let [[localf seen?] (seen-fn "lift-parallel test x")
+        [localfy seeny?] (seen-fn "lift-parallel test y")
+        compute (compute/compute-service
+                 "node-list"
+                 :node-list [(node-list/make-localhost-node
+                              :group-name "x1" :name "x1" :id "x1"
+                              :os-family :ubuntu)
+                             (node-list/make-localhost-node
+                              :group-name "y1" :name "y1" :id "y1"
+                              :os-family :ubuntu)])
+        x1 (make-node "x1" {} :configure (resource/phase localf))
+        y1 (make-node "y1" {} :configure (resource/phase localfy))]
+    (is (map?
+         (lift [x1 y1]
+               :user (assoc utils/*admin-user*
+                       :username (test-utils/test-username)
+                       :no-sudo true)
+               :compute compute
+               :environment
+               {:algorithms {:lift-fn #'pallet.core/parallel-lift}})))
     (is (seen?))
     (is (seeny?))))
 
@@ -546,6 +584,65 @@
                       (is (= 1 (-> request :parameters :x)))
                       []))]
                   (lift [a b] :compute compute :parameters {:x 1}))))
+
+(resource/deflocal assoc-runtime-param
+  (assoc-runtime-param*
+   [request]
+   (parameter/assoc-for-target request [:x] "x")))
+
+(resource/defresource get-runtime-param
+  (get-runtime-param*
+   [request]
+   (format "echo %s" (parameter/get-for-target request [:x]))))
+
+(deftest lift-with-runtime-params-test
+  ;; test that parameters set at execution time are propogated
+  ;; between phases
+  (let [node (group-spec
+                "localhost"
+                :phases
+                {:configure assoc-runtime-param
+                 :configure2 (fn [request]
+                               (is (= (parameter/get-for-target request [:x])
+                                      "x"))
+                               (get-runtime-param request))})
+        localhost (node-list/make-localhost-node :tag "localhost")]
+    (testing "serial"
+      (let [compute (compute/compute-service "node-list" :node-list [localhost])
+            request (lift {node localhost}
+                          :phase [:configure :configure2]
+                          :compute compute
+                          :environment
+                          {:algorithms {:lift-fn sequential-lift}})]
+        (is (map? request))
+        (is (map? (-> request :results)))
+        (is (map? (-> request :results first second)))
+        (is (-> request :results :localhost :configure))
+        (is (-> request :results :localhost :configure2))
+        (let [{:keys [out err exit]} (-> request
+                                         :results :localhost :configure2 first)]
+          (is out)
+          (is (= err ""))
+          (is (zero? exit)))))
+    (testing "parallel"
+      (let [compute (compute/compute-service "node-list" :node-list [localhost])
+            request (lift {node localhost}
+                          :phase [:configure :configure2]
+                          :compute compute
+                          :environment
+                          {:algorithms {:lift-fn parallel-lift}})]
+        (is (map? request))
+        (is (map? (-> request :results)))
+        (is (map? (-> request :results first second)))
+        (is (-> request :results :localhost :configure))
+        (is (-> request :results :localhost :configure2))
+        (let [{:keys [out err exit]} (-> request
+                                         :results :localhost :configure2 first)]
+          (is out)
+          (is (= err ""))
+          (is (zero? exit)))))))
+
+
 
 ;; (deftest converge*-nodes-binding-test
 ;;   (defnode a {})
