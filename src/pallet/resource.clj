@@ -385,26 +385,12 @@ configuration code."
         (recur rest request (if fn-result (conj result fn-result) result)))
       [result request])))
 
-(defn phase-list*
-  "Add pre and after phases"
-  [phases]
-  (lazy-seq
-   (when (seq phases)
-     (let [phase (first phases)]
-       (if (keyword? phase)
-         (cons (pre-phase phase)
-               (cons phase
-                     (cons (after-phase phase)
-                           (phase-list* (rest phases)))))
-         (cons (pre-phase (first phase))
-               (cons phase
-                     (cons [(after-phase (first phase)) (second phase)]
-                           (phase-list* (rest phases))))))))))
-
 (defn phase-list
   "Add default phases, pre and after phases."
-  [phases]
-  (phase-list* (or (seq phases) (seq [:configure]))))
+  [phase]
+  (if (keyword? phase)
+    [(pre-phase phase) phase (after-phase phase)]
+    [(pre-phase (first phase)) (first phase) (after-phase (first phase))]))
 
 (defn check-request-map
   "Function that can check a request map to ensure it is a valid part of

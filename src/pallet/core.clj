@@ -392,7 +392,7 @@ script that is run with root privileges immediatly after first boot."
   [request results]
   (reduce
    (fn reduce-node-results-fn [request [result req :as arg]]
-     (let [param-keys [:parameters :host (:target-id req)]]
+     (let [param-keys [:parameters]]
        (->
         request
         (assoc-in [:results (:target-id req) (:phase req)] result)
@@ -421,6 +421,7 @@ script that is run with root privileges immediatly after first boot."
 (defn- invoke-for-node
   "Build an invocation map for specified node."
   [request node]
+  {:pre [(:phase request)]}
   (resource-invocations
    (->
     request
@@ -537,25 +538,37 @@ script that is run with root privileges immediatly after first boot."
 
 (defn sequential-lift
   "Sequential apply a phase."
-  [request phase target-node-map]
+  [request target-node-map]
   (apply
    concat
-   (for [[node-type tag-nodes] target-node-map
-         :let [request (invoke-for-node-type
-                        (assoc request :phase phase)
-                        {node-type tag-nodes})]]
+   (for [[node-type tag-nodes] target-node-map]
      (sequential-apply-phase (assoc request :node-type node-type) tag-nodes))))
 
 (defn parallel-lift
   "Apply a phase to nodes in parallel."
-  [request phase target-node-map]
+  [request target-node-map]
   (mapcat
    #(map deref %)               ; make sure all nodes complete before next phase
-   (for [[node-type tag-nodes] target-node-map
-         :let [request (invoke-for-node-type
-                        (assoc request :phase phase)
-                        {node-type tag-nodes})]]
+   (for [[node-type tag-nodes] target-node-map]
      (parallel-apply-phase (assoc request :node-type node-type) tag-nodes))))
+
+(defn lift-nodes-for-phase
+  "Lift nodes in target-node-map for the specified phases.
+
+   Builds the commands for the phase, then executes pre-phase, phase, and
+   after-phase"
+  [request phase target-node-map]
+  (let [request (->
+                 request
+                 (assoc :phase phase)
+                 (invoke-for-node-type target-node-map))
+        lift-fn (environment/get-for request [:algorithms :lift-fn])]
+    (reduce
+     (fn [request phase]
+       (let [request (assoc request :phase phase)]
+         (reduce-node-results request (lift-fn request target-node-map))))
+     request
+     (resource/phase-list phase))))
 
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
@@ -567,17 +580,14 @@ script that is run with root privileges immediatly after first boot."
                                         ; unmanged nodes
         [request phases] (identify-anonymous-phases request phases)
         request (assoc request :all-nodes all-nodes :target-nodes target-nodes)
-        lift-fn (environment/get-for request [:algorithms :lift-fn])
         request (invoke-phases
-                 request (ensure-configure-phase phases)
+                 request phases
                  (utils/dissoc-keys all-node-map (keys target-node-map)))]
     (reduce
      (fn [request phase]
-       (merge-phase-results
-        request
-        (reduce-node-results request (lift-fn request phase target-node-map))))
+       (lift-nodes-for-phase request phase target-node-map))
      request
-     (resource/phase-list phases))))
+     phases)))
 
 (def
   ^{:doc
@@ -608,7 +618,7 @@ script that is run with root privileges immediatly after first boot."
   (logging/trace (format "lift* phases %s" (vec (:phase-list request))))
   (let [node-set (:node-set request)
         all-node-set (:all-node-set request)
-        phases (:phase-list request)
+        phases (or (:phase-list request) [:configure])
         nodes (or
                (:all-nodes request)
                (when-let [compute (environment/get-for request [:compute] nil)]
@@ -633,7 +643,7 @@ script that is run with root privileges immediatly after first boot."
   (logging/info "retrieving nodes")
   (let [node-map (:node-map request)
         all-node-set (:all-node-set request)
-        phases (:phase-list request)
+        phases (or (:phase-list request) [:configure])
         node-map (add-prefix-to-node-map (:prefix request) node-map)
         compute (environment/get-for request [:compute])
         nodes (compute/nodes compute)]

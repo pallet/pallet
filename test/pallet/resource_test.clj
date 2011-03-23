@@ -29,10 +29,7 @@
 (deftest phase-list-test
   (testing "pre, after added"
     (is (= [:pre-fred :fred :after-fred]
-             (phase-list [:fred]))))
-  (testing "configure as default"
-    (is (= [:pre-configure :configure :after-configure]
-             (phase-list [])))))
+             (phase-list :fred)))))
 
 (defmacro is-phase
   [request phase]
