@@ -303,3 +303,20 @@
   "Return the classpath File's for the current clojure classloader."
   []
   (map file-for-url (classpath-urls)))
+
+(defn resolved-name [sym]
+  (let [v (resolve sym)
+        m (meta v)]
+    (str (ns-name (:ns m)) "/" (:name m))))
+
+(defmacro deprecated
+  [form old msg new]
+  `(logging/log
+   :warn
+   (format
+    "[%s:%s] %s %s %s"
+    ~(or (:file (meta form)) "unknown")
+    ~(:line (meta form))
+    ~(resolved-name old)
+    ~msg
+    ~(resolved-name new))))
