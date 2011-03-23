@@ -3,7 +3,7 @@
 #+DESCRIPTION: Release notes for pallet releases
 #+KEYWORDS: pallet palletops contribute
 
-The latest release is 0.4.12.
+The latest release is 0.4.13.
 
 * 0.5.0-SNAPHSOT
 ** Install
@@ -58,7 +58,19 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
 
 
+* 0.4.13
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Fixes
+- Fix issues with cross-node configuration
+  When using delayed arguments or the post phase, to access parameters set
+  in a phase, there were several issues that masked the parameters. This
+  also adds tests for these use cases.
 * 0.4.12
+** Known issues
+- has an issue with propogation of parameters between phases.
 ** Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
