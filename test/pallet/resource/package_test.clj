@@ -6,13 +6,14 @@
    [pallet.action :as action]
    [pallet.build-actions :as build-actions]
    [pallet.core :as core]
-   [pallet.script :as script]
    [pallet.execute :as execute]
    [pallet.stevedore :as stevedore]
    [pallet.resource.exec-script :as exec-script]
    [pallet.resource.file :as file]
    [pallet.resource.package :as package]
    [pallet.resource.remote-file :as remote-file]
+   [pallet.script :as script]
+   [pallet.script.lib :as lib]
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
    [clojure.contrib.io :as io]))
@@ -23,51 +24,6 @@
 (def remote-file* (action/action-fn remote-file/remote-file-resource))
 (def sed* (action/action-fn file/sed))
 
-(deftest update-package-list-test
-  (is (= "aptitude update || true"
-         (script/with-script-context [:aptitude]
-           (stevedore/script (update-package-list)))))
-  (is (= "yum makecache -q"
-         (script/with-script-context [:yum]
-           (stevedore/script (update-package-list)))))
-  (is (= "zypper refresh"
-         (script/with-script-context [:zypper]
-           (stevedore/script (update-package-list)))))
-  (is (= "pacman -Sy --noconfirm --noprogressbar"
-         (script/with-script-context [:pacman]
-           (stevedore/script (update-package-list))))))
-
-(deftest upgrade-all-packages-test
-  (is (= "aptitude upgrade -q -y"
-         (script/with-template [:aptitude]
-           (stevedore/script (upgrade-all-packages)))))
-  (is (= "yum update -y -q"
-         (script/with-template [:yum]
-           (stevedore/script (upgrade-all-packages)))))
-  (is (= "zypper update -y"
-         (script/with-template [:zypper]
-           (stevedore/script (upgrade-all-packages)))))
-  (is (= "pacman -Su --noconfirm --noprogressbar"
-         (script/with-template [:pacman]
-           (stevedore/script (upgrade-all-packages))))))
-
-(deftest install-package-test
-  (is (= "aptitude install -q -y java && aptitude show java"
-         (script/with-script-context [:aptitude]
-           (stevedore/script (install-package "java")))))
-  (is (= "yum install -y -q java"
-         (script/with-script-context [:yum]
-           (stevedore/script (install-package "java"))))))
-
-(deftest list-installed-packages-test
-  (is (= "aptitude search \"~i\""
-         (script/with-script-context [:aptitude]
-           (stevedore/script (list-installed-packages)))))
-  (is (= "yum list installed"
-         (script/with-script-context [:yum]
-           (stevedore/script (list-installed-packages))))))
-
-
 (deftest test-install-example
   (testing "aptitude"
     (is (= (first
@@ -75,7 +31,7 @@
              {}
              (exec-script/exec-checked-script
               "Packages"
-              (package-manager-non-interactive)
+              (~lib/package-manager-non-interactive)
               "aptitude install -q -y java+ rubygems+ git- ruby_"
               (aptitude search (quoted "~i")))))
            (first
@@ -130,7 +86,7 @@ debconf debconf/frontend seen false
 EOF
 }"
          (script/with-script-context [:aptitude]
-           (stevedore/script (package-manager-non-interactive))))))
+           (stevedore/script (~lib/package-manager-non-interactive))))))
 
 (deftest add-scope-test
   (is (= (stevedore/chained-script
@@ -238,9 +194,9 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (stevedore/checked-script
             "package-manager"
             (set! tmpfile @(mktemp -t addscopeXXXX))
-            (file/cp "/etc/apt/sources.list" @tmpfile :preserve true)
+            (~lib/cp "/etc/apt/sources.list" @tmpfile :preserve true)
             (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
-            (file/mv @tmpfile "/etc/apt/sources.list" :force true))
+            (~lib/mv @tmpfile "/etc/apt/sources.list" :force true))
            (stevedore/checked-script
             "package-manager"
             (chain-or
@@ -287,7 +243,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              {}
              (exec-script/exec-checked-script
               "Package source"
-              (install-package "python-software-properties")
+              (~lib/install-package "python-software-properties")
               (add-apt-repository "ppa:abc"))))
            (first
             (build-actions/build-actions
@@ -425,7 +381,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (script/with-script-context [:aptitude]
       (is (= (stevedore/checked-script
               "Packages"
-              (package-manager-non-interactive)
+              (~lib/package-manager-non-interactive)
               (aptitude install -q -y p1- p4_ p2+ p3+)
               (aptitude search (quoted "~i")))
              (adjust-packages
@@ -438,7 +394,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (script/with-template [:aptitude]
       (is (= (stevedore/checked-script
               "Packages"
-              (package-manager-non-interactive)
+              (~lib/package-manager-non-interactive)
               (aptitude install -q -y -t r1 p2+)
               (aptitude install -q -y p1+)
               (aptitude search (quoted "~i")))

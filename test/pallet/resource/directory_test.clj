@@ -13,10 +13,6 @@
 
 (def directory* (action/action-fn directory))
 
-(deftest mkdir-test
-  (is (= "mkdir -p dir"
-         (stevedore/script (mkdir "dir" :path ~true)))))
-
 (deftest directory*-test
   (is (= (stevedore/checked-commands "Directory file1" "mkdir -p file1")
          (directory* {} "file1"))))

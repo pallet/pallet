@@ -1,11 +1,11 @@
 (ns pallet.resource.filesystem-test
   (:use clojure.test)
   (:require
+   [pallet.build-actions :as build-actions]
    [pallet.resource.directory :as directory]
-   [pallet.resource.filesystem :as filesystem]
    [pallet.resource.exec-script :as exec-script]
-   [pallet.stevedore :as stevedore]
-   [pallet.build-actions :as build-actions]))
+   [pallet.resource.filesystem :as filesystem]
+   [pallet.stevedore :as stevedore]))
 
 (deftest make-xfs-filesytem-test
   (is (= (first
@@ -26,7 +26,7 @@
            (directory/directory "/mnt/a")
            (exec-script/exec-checked-script
             "Mount /dev/a at /mnt/a"
-            ("mount" "/dev/a" (quoted "/mnt/a")))))
+            (mount "/dev/a" (quoted "/mnt/a")))))
          (first
           (build-actions/build-actions
            {}

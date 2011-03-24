@@ -3,14 +3,13 @@
   (:require
    [pallet.action-plan :as action-plan]
    [pallet.compute :as compute]
-   [pallet.environment :as environment]
-   [pallet.script :as script]
-   [pallet.stevedore :as stevedore]
-   [pallet.stevedore.script :as script-impl]
-   [pallet.utils :as utils]
-   [pallet.resource.file :as file]
    [pallet.compute.jvm :as jvm]
-   pallet.resource.script
+   [pallet.environment :as environment]
+   [pallet.resource.file :as file]
+   [pallet.script :as script]
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]
+   [pallet.utils :as utils]
    [clj-ssh.ssh :as ssh]
    [clojure.string :as string]
    [clojure.contrib.condition :as condition]
@@ -34,9 +33,9 @@
    s (format "\"%s\"" (or (:password user) (:sudo-password user))) "XXXXXXX"))
 
 (script/defscript sudo-no-password [])
-(script-impl/defimpl sudo-no-password :default []
+(script/defimpl sudo-no-password :default []
   ("/usr/bin/sudo" -n))
-(script-impl/defimpl sudo-no-password [#{:centos-5.3 :os-x :darwin :debian}] []
+(script/defimpl sudo-no-password [#{:centos-5.3 :os-x :darwin :debian}] []
   ("/usr/bin/sudo"))
 
 (defn sudo-cmd-for
@@ -46,7 +45,7 @@
     ""
     (if-let [pw (:sudo-password user)]
       (str "echo \"" (or (:password user) pw) "\" | /usr/bin/sudo -S")
-      (stevedore/script (sudo-no-password)))))
+      (stevedore/script (~sudo-no-password)))))
 
 ;;; local script execution
 (defn system
@@ -168,7 +167,7 @@
   [session prefix]
   (let [result (ssh/ssh
                 session
-                (stevedore/script (println (file/make-temp-file ~prefix)))
+                (stevedore/script (println (~lib/make-temp-file ~prefix)))
                 :return-map true)]
     (if (zero? (:exit result))
       (string/trim (result :out))

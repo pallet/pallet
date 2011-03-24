@@ -1,23 +1,23 @@
 (ns pallet.core.jclouds-core-test
   (:use pallet.core)
   (require
-   [pallet.core :as core]
-   [pallet.execute :as execute]
-   [pallet.utils :as utils]
-   [pallet.stevedore :as stevedore]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.file :as file]
-   [pallet.compute :as compute]
-   [pallet.compute.jclouds :as jclouds]
-   [pallet.target :as target]
-   [pallet.mock :as mock]
-   [pallet.compute.jclouds-test-utils :as jclouds-test-utils]
-   [pallet.compute.jclouds-ssh-test :as ssh-test]
    [pallet.action :as action]
    [pallet.build-actions :as build-actions]
+   [pallet.compute :as compute]
+   [pallet.compute.jclouds :as jclouds]
+   [pallet.compute.jclouds-ssh-test :as ssh-test]
+   [pallet.compute.jclouds-test-utils :as jclouds-test-utils]
+   [pallet.core :as core]
+   [pallet.execute :as execute]
+   [pallet.mock :as mock]
    [pallet.parameter :as parameter]
    [pallet.phase :as phase]
+   [pallet.resource.exec-script :as exec-script]
+   [pallet.resource.file :as file]
+   [pallet.stevedore :as stevedore]
+   [pallet.target :as target]
    [pallet.test-utils :as test-utils]
+   [pallet.utils :as utils]
    [clojure.contrib.logging :as logging])
   (:use
    clojure.test)

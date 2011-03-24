@@ -2,74 +2,12 @@
   "Service control."
   (:use clojure.contrib.logging)
   (:require
-   pallet.resource.script
    [pallet.action :as action]
    [pallet.script :as script]
+   [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [pallet.stevedore.script :as script-impl]
-   [pallet.resource.filesystem-layout :as filesystem-layout]
-   [pallet.resource.lib :as lib]
    [pallet.resource.remote-file :as remote-file]
    [clojure.string :as string]))
-
-(script/defscript configure-service
-  [name action options])
-
-(def debian-configure-option-names
-     {:force :f})
-
-(defn debian-options [options]
-  (zipmap
-   (map #(% debian-configure-option-names %) (keys options))
-   (vals options)))
-
-(script-impl/defimpl configure-service :default [name action options]
-  ~(condp = action
-       :disable (stevedore/script
-                 ("update-rc.d"
-                  ~(stevedore/map-to-arg-string
-                    (select-keys [:f :n] (debian-options options)))
-                  ~name remove))
-       :enable (stevedore/script
-                ("update-rc.d"
-                 ~(stevedore/map-to-arg-string
-                   (select-keys [:n] (debian-options options)))
-                 ~name defaults
-                 ~(:sequence-start options 20)
-                 ~(:sequence-stop options (:sequence-start options 20))))
-       :start-stop (stevedore/script ;; start/stop
-                    ("update-rc.d"
-                     ~(stevedore/map-to-arg-string
-                       (select-keys [:n] (debian-options options)))
-                     ~name
-                     start ~(:sequence-start options 20)
-                     "."
-                     stop ~(:sequence-stop options (:sequence-start options 20))
-                     "."))))
-
-(def ^{:private true} chkconfig-default-options
-  [20 2 3 4 5])
-
-(defn- chkconfig-levels
-  [options]
-  (->> options (drop 1 ) (map str) string/join))
-
-(script-impl/defimpl configure-service [#{:yum}] [name action options]
-  ~(condp = action
-       :disable (stevedore/script ("/sbin/chkconfig" ~name off))
-       :enable (stevedore/script
-                ("/sbin/chkconfig"
-                 ~name on
-                 "--level" ~(chkconfig-levels
-                             (:sequence-start
-                              options chkconfig-default-options))))
-       :start-stop (stevedore/script ;; start/stop
-                    ("/sbin/chkconfig"
-                     ~name on
-                     "--level" ~(chkconfig-levels
-                                 (:sequence-start
-                                  options chkconfig-default-options))))))
-
 
 (action/def-bash-action service
   "Control services.
@@ -112,6 +50,6 @@
   (apply
    remote-file/remote-file
    request
-   (str (stevedore/script (filesystem-layout/etc-init)) "/" name)
+   (str (stevedore/script (~lib/etc-init)) "/" name)
    :action action :owner "root" :group "root" :mode "0755"
    (apply concat options)))

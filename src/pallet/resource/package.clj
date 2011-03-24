@@ -5,14 +5,12 @@
 
    `package-source` is used to specify a non-standard source for packages."
   (:require
-   pallet.resource.script
    [pallet.action :as action]
    [pallet.resource.file :as file]
    [pallet.resource.remote-file :as remote-file]
-   [pallet.resource.hostinfo :as hostinfo]
    [pallet.resource.exec-script :as exec-script]
+   [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [pallet.stevedore.script :as script-impl]
    [pallet.request-map :as request-map]
    [pallet.script :as script]
    [pallet.utils :as utils]
@@ -27,176 +25,6 @@
 (def ^{:private true}
   sed* (action/action-fn file/sed))
 
-;;; the package management commands vary for each distribution, so we
-;;; use a script multimethod to describe these
-(script/defscript update-package-list
-  "Update the list of packages available to the package manager from the
-   declared package sources."
-  [& options])
-
-(script/defscript upgrade-all-packages
-  "Upgrade the all installed package."
-  [& options])
-
-(script/defscript install-package
-  "Install the specified package."
-  [name & options])
-
-(script/defscript upgrade-package
-  "Upgrade the specified package."
-  [name & options])
-
-(script/defscript remove-package
-  "Uninstall the specified package, leaving the configuration files if
-   possible."
-  [name & options])
-
-(script/defscript purge-package
-  "Uninstall the specified package, removing the configuration files if
-   possible."
-  [name & options])
-
-(script/defscript list-installed-packages
-  "List the installed packages"
-  [& options])
-
-;;; Implementation to do nothing
-;;; Repeating the selector makes it more explicit
-(script-impl/defimpl update-package-list [#{:no-packages} #{:no-packages}]
-  [& options] "")
-(script-impl/defimpl upgrade-all-packages [#{:no-packages} #{:no-packages}]
-  [& options] "")
-(script-impl/defimpl install-package [#{:no-packages} #{:no-packages}]
-  [package & options] "")
-(script-impl/defimpl upgrade-package [#{:no-packages} #{:no-packages}]
-  [package & options] "")
-(script-impl/defimpl remove-package [#{:no-packages} #{:no-packages}]
-  [package & options] "")
-(script-impl/defimpl purge-package [#{:no-packages} #{:no-packages}]
-  [package & options] "")
-(script-impl/defimpl list-installed-packages [#{:no-packages} #{:no-packages}]
-  [& options] "")
-
-;;; aptitude
-(script-impl/defimpl update-package-list [#{:aptitude}] [& options]
-  (chain-or
-   ("aptitude" update ~(stevedore/option-args options)) true))
-
-(script-impl/defimpl upgrade-all-packages [#{:aptitude}] [& options]
-  ("aptitude" upgrade -q -y ~(stevedore/option-args options)))
-
-(script-impl/defimpl install-package [#{:aptitude}] [package & options]
-  ("aptitude" install -q -y ~(stevedore/option-args options) ~package
-            ;; show returns an error code if no package found, while install
-            ;; does not.  There should be a better way than this...
-            "&&" aptitude show ~package))
-
-(script-impl/defimpl upgrade-package [#{:aptitude}] [package & options]
-  ("aptitude" install -q -y ~(stevedore/option-args options) ~package
-            ;; show returns an error code if no package found, while install
-            ;; does not.  There should be a better way than this...
-            "&&" aptitude show ~package))
-
-(script-impl/defimpl remove-package [#{:aptitude}] [package & options]
-  ("aptitude" remove -y ~(stevedore/option-args options) ~package))
-
-(script-impl/defimpl purge-package [#{:aptitude}] [package & options]
-  ("aptitude" purge -y  ~(stevedore/option-args options) ~package))
-
-(script-impl/defimpl list-installed-packages [#{:aptitude}] [& options]
-  ("aptitude" search (quoted "~i")))
-
-;;; yum
-(script-impl/defimpl update-package-list [#{:yum}] [& options]
-  ("yum" makecache -q ~(stevedore/option-args options)))
-
-(script-impl/defimpl upgrade-all-packages [#{:yum}] [& options]
-  ("yum" update -y -q ~(stevedore/option-args options)))
-
-(script-impl/defimpl install-package [#{:yum}] [package & options]
-  ("yum" install -y -q ~(stevedore/option-args options) ~package))
-
-(script-impl/defimpl upgrade-package [#{:yum}] [package & options]
-  ("yum" upgrade -y -q ~(stevedore/option-args options) ~package))
-
-(script-impl/defimpl remove-package [#{:yum}] [package & options]
-  ("yum" remove ~(stevedore/option-args options) ~package))
-
-(script-impl/defimpl purge-package [#{:yum}] [package & options]
-  ("yum" purge ~(stevedore/option-args options) ~package))
-
-(script-impl/defimpl list-installed-packages [#{:yum}] [& options]
-  ("yum" list installed))
-
-;;; zypper
-(script-impl/defimpl update-package-list [#{:zypper}] [& options]
-  ("zypper" refresh ~(stevedore/option-args options)))
-
-(script-impl/defimpl upgrade-all-packages [#{:zypper}] [& options]
-  ("zypper" update -y ~(stevedore/option-args options)))
-
-(script-impl/defimpl install-package [#{:zypper}] [package & options]
-  ("zypper" install -y ~(stevedore/option-args options) ~package))
-
-(script-impl/defimpl remove-package [#{:zypper}] [package & options]
-  ("zypper" remove ~(stevedore/option-args options) ~package))
-
-(script-impl/defimpl purge-package [#{:zypper}] [package & options]
-  ("zypper" remove ~(stevedore/option-args options) ~package))
-
-;;; pacman
-(script-impl/defimpl update-package-list [#{:pacman}] [& options]
-  ("pacman" -Sy "--noconfirm" "--noprogressbar"
-   ~(stevedore/option-args options)))
-
-(script-impl/defimpl upgrade-all-packages [#{:pacman}] [& options]
-  ("pacman" -Su "--noconfirm" "--noprogressbar" ~(stevedore/option-args options)))
-
-(script-impl/defimpl install-package [#{:pacman}] [package & options]
-  ("pacman" -S "--noconfirm" "--noprogressbar"
-   ~(stevedore/option-args options) ~package))
-
-(script-impl/defimpl upgrade-package [#{:pacman}] [package & options]
-  ("pacman" -S "--noconfirm" "--noprogressbar"
-   ~(stevedore/option-args options) ~package))
-
-(script-impl/defimpl remove-package [#{:pacman}] [package & options]
-  ("pacman" -R "--noconfirm" ~(stevedore/option-args options) ~package))
-
-(script-impl/defimpl purge-package [#{:pacman}] [package & options]
-  ("pacman" -R "--noconfirm" "--nosave"
-   ~(stevedore/option-args options) ~package))
-
-;; brew
-(script-impl/defimpl update-package-list [#{:brew}] [& options]
-  ("brew" update ~(stevedore/option-args options)))
-
-(script-impl/defimpl upgrade-all-packages [#{:brew}] [& options]
-  (comment "No command to do this"))
-
-(script-impl/defimpl install-package [#{:brew}] [package & options]
-  ("brew" install -y ~(stevedore/option-args options) ~package))
-
-(script-impl/defimpl remove-package [#{:brew}] [package & options]
-  ("brew" uninstall ~(stevedore/option-args options) ~package))
-
-(script-impl/defimpl purge-package [#{:brew}] [package & options]
-  ("brew" uninstall ~(stevedore/option-args options) ~package))
-
-
-(script/defscript debconf-set-selections [& selections])
-(script-impl/defimpl debconf-set-selections :default [& selections] "")
-(script-impl/defimpl debconf-set-selections [#{:aptitude}] [& selections]
-  ("{ debconf-set-selections"
-   ~(str "<<EOF\n" (string/join \newline selections) "\nEOF\n}")))
-
-(script/defscript package-manager-non-interactive [])
-(script-impl/defimpl package-manager-non-interactive :default [] "")
-(script-impl/defimpl package-manager-non-interactive [#{:aptitude}] []
-  (debconf-set-selections
-   "debconf debconf/frontend select noninteractive"
-   "debconf debconf/frontend seen false"))
-
 (defmulti adjust-packages
   (fn [request & _]
     (request-map/packager request)))
@@ -207,14 +35,14 @@
   [request packages]
   (stevedore/checked-commands
    "Packages"
-   (stevedore/script (package-manager-non-interactive))
+   (stevedore/script (~lib/package-manager-non-interactive))
    (stevedore/chain-commands*
     (for [[opts packages] (->>
                            packages
                            (group-by #(select-keys % [:enable]))
                            (sort-by #(apply min (map :priority (second %)))))]
       (stevedore/script
-       ("aptitude"
+       (aptitude
         install -q -y
         ~(string/join " " (map #(str "-t " %) (:enable opts)))
         ~(string/join
@@ -231,7 +59,7 @@
                (IllegalArgumentException.
                 (str
                  action " is not a valid action for package resource"))))))))))
-   (stevedore/script (list-installed-packages))))
+   (stevedore/script (~lib/list-installed-packages))))
 
 (def ^{:private true :doc "Define the order of actions"}
   action-order {:install 10 :remove 20 :upgrade 30})
@@ -253,14 +81,14 @@
                              (group-by #(select-keys % [:enable :disable]))
                              (sort-by #(apply min (map :priority (second %)))))]
         (stevedore/script
-         ("yum"
+         (yum
           ~(name action) -q -y
           ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
           ~(string/join " " (map #(str "--disablerepo=" %) (:disable opts)))
           ~(string/join
             " "
             (distinct (map :package packages)))))))
-     (stevedore/script (list-installed-packages))))))
+     (stevedore/script (~lib/list-installed-packages))))))
 
 
 (defmethod adjust-packages :default
@@ -269,16 +97,16 @@
    "Packages"
    (stevedore/chain-commands*
     (list*
-     (stevedore/script (package-manager-non-interactive))
+     (stevedore/script (~lib/package-manager-non-interactive))
      (for [[action packages] (group-by :action packages)
            {:keys [package force purge]} packages]
        (case action
          :install (stevedore/script
-                   (install-package ~package :force ~force))
+                   (~lib/install-package ~package :force ~force))
          :remove (if purge
-                   (stevedore/script (purge-package ~package))
-                   (stevedore/script (remove-package ~package)))
-         :upgrade (stevedore/script (upgrade-package ~package))
+                   (stevedore/script (~lib/purge-package ~package))
+                   (stevedore/script (~lib/remove-package ~package)))
+         :upgrade (stevedore/script (~lib/upgrade-package ~package))
          (throw
           (IllegalArgumentException.
            (str action " is not a valid action for package resource")))))))))
@@ -343,7 +171,7 @@
    "%s %s %s %s\n"
    (:source-type options "deb")
    (:url options)
-   (:release options (stevedore/script (hostinfo/os-version-name)))
+   (:release options (stevedore/script (~lib/os-version-name)))
    (string/join " " (:scopes options ["main"]))))
 
 (defmethod format-source :yum
@@ -374,7 +202,7 @@
      (let [key-url (-> options :aptitude :url)]
        (if (and key-url (.startsWith key-url "ppa:"))
          (stevedore/chain-commands
-          (stevedore/script (install-package "python-software-properties"))
+          (stevedore/script (~lib/install-package "python-software-properties"))
           (stevedore/script (add-apt-repository ~key-url)))
          (remote-file*
           request
@@ -394,9 +222,9 @@
          request
          "aptkey.tmp"
          :url (-> options :aptitude :key-url))
-        (stevedore/script ("apt-key" add aptkey.tmp))))
+        (stevedore/script (apt-key add aptkey.tmp))))
      (when-let [key (and (= packager :yum) (-> options :yum :gpgkey))]
-       (stevedore/script ("rpm" "--import" ~key))))))
+       (stevedore/script (rpm "--import" ~key))))))
 
 (declare package-manager)
 
@@ -432,11 +260,11 @@
   [type scope file]
   (stevedore/chained-script
    (var tmpfile @(mktemp -t addscopeXXXX))
-   (file/cp ~file @tmpfile :preserve true)
-   ("awk" "'{if ($1 ~" ~(str "/^" type "/") "&& !" ~(str "/" scope "/")
+   (~lib/cp ~file @tmpfile :preserve true)
+   (awk "'{if ($1 ~" ~(str "/^" type "/") "&& !" ~(str "/" scope "/")
         " ) print $0 \" \" \"" ~scope  "\" ; else print; }'"
         ~file > @tmpfile)
-   (file/mv @tmpfile ~file :force ~true)))
+   (~lib/mv @tmpfile ~file :force ~true)))
 
 (defn add-scope
   "Add a scope to an apt source"
@@ -535,14 +363,15 @@
     (stevedore/checked-commands
      "package-manager"
      (case action
-       :update (stevedore/script (update-package-list))
-       :upgrade (stevedore/script (upgrade-all-packages))
-       :list-installed (stevedore/script (list-installed-packages))
+       :update (stevedore/script (~lib/update-package-list))
+       :upgrade (stevedore/script (~lib/upgrade-all-packages))
+       :list-installed (stevedore/script (~lib/list-installed-packages))
        :add-scope (add-scope (apply hash-map options))
        :multiverse (add-scope (apply hash-map :scope "multiverse" options))
        :universe (add-scope (apply hash-map :scope "universe" options))
        :debconf (if (= :aptitude packager)
-                  (stevedore/script (apply debconf-set-selections ~options)))
+                  (stevedore/script
+                   (apply ~lib/debconf-set-selections ~options)))
        :configure (configure-package-manager request packager options)
        (throw (IllegalArgumentException.
                (str action
@@ -595,7 +424,7 @@
    "debian-backports"
    :aptitude {:url "http://backports.debian.org/debian-backports"
               :release (str
-                        (stevedore/script (hostinfo/os-version-name))
+                        (stevedore/script (~lib/os-version-name))
                         "-backports")
               :scopes ["main"]}))
 

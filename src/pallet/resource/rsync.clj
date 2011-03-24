@@ -1,6 +1,5 @@
 (ns pallet.resource.rsync
   (:require
-   pallet.resource.script
    [pallet.action :as action]
    [pallet.compute :as compute]
    [pallet.request-map :as request-map]

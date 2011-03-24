@@ -1,20 +1,20 @@
 (ns pallet.core-test
   (:use pallet.core)
-  (require
-   [pallet.core :as core]
-   [pallet.utils :as utils]
-   [pallet.stevedore :as stevedore]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.file :as file]
-   [pallet.compute :as compute]
-   [pallet.compute.node-list :as node-list]
-   [pallet.target :as target]
-   [pallet.mock :as mock]
-   [pallet.parameter :as parameter]
+  (:require
    [pallet.action :as action]
    [pallet.build-actions :as build-actions]
+   [pallet.compute :as compute]
+   [pallet.compute.node-list :as node-list]
+   [pallet.mock :as mock]
+   [pallet.parameter :as parameter]
    [pallet.phase :as phase]
-   [pallet.test-utils :as test-utils])
+   [pallet.resource.exec-script :as exec-script]
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]
+   [pallet.target :as target]
+   [pallet.test-utils :as test-utils]
+   [pallet.utils :as utils]
+   [pallet.core :as core])
   (:use
    clojure.test))
 
@@ -407,7 +407,7 @@
            (->
             (lift
              local
-             :phase [(phase/phase-fn (exec-script/exec-script (file/ls "/")))
+             :phase [(phase/phase-fn (exec-script/exec-script (~lib/ls "/")))
                      (phase/phase-fn (localf))]
              :user (assoc utils/*admin-user*
                      :username (test-utils/test-username)

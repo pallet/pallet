@@ -2,8 +2,8 @@
   "Resource to specify the content of a remote directory.  At present the
    content can come from a downloaded tar or zip file."
   (:require
-   pallet.resource.script
    [pallet.action :as action]
+   [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.resource.file :as file]
    [pallet.resource.directory :as directory]
@@ -61,7 +61,7 @@
               (when (and url unpack)
                 (let [filename (.getName
                                 (java.io.File. (.getFile (java.net.URL. url))))
-                      tarpath (str (stevedore/script (file/tmp-dir)) "/" filename)]
+                      tarpath (str (stevedore/script (~lib/tmp-dir)) "/" filename)]
                   (stevedore/checked-commands
                    "remote-directory"
                    (directory*

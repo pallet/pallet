@@ -1,13 +1,13 @@
 (ns pallet.template
   "Template file writing"
   (:require
+   [pallet.compute :as compute]
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]
    [pallet.strint :as strint]
    [pallet.target :as target]
-   [pallet.compute :as compute]
    [pallet.utils :as utils]
-   [clojure.string :as string]
-   [pallet.stevedore :as stevedore]
-   [pallet.resource.file :as file])
+   [clojure.string :as string])
   (:use
    [pallet.resource.file]
    [clojure.contrib.logging]))
@@ -82,7 +82,7 @@
                  (filter (complement nil?)
                          [(stevedore/script
                            (var file ~path)
-                           ((file/cat "") > @file <<EOF))
+                           ((~lib/cat "") > @file <<EOF))
                           content
                           "\nEOF\n"
                           (when-let [mode (:mode file-spec)]

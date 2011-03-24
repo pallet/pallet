@@ -2,40 +2,11 @@
   "A directory manipulation resource, to create and remove directories
    with given ownership and mode."
   (:require
-   pallet.resource.script
    [pallet.action :as action]
    [pallet.resource.file :as file]
-   [pallet.script :as script]
-   [pallet.stevedore :as stevedore]
-   [pallet.stevedore.script :as script-impl]
-   [pallet.script :as script])
-  (:use
-   [pallet.resource.file :only [chown chgrp chmod rm]]
-   clojure.contrib.logging))
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]))
 
-(script/defscript rmdir
-  "Remove the specified directory"
-  [directory & {:as options}])
-
-(script-impl/defimpl rmdir :default [directory & {:as options}]
-  ("rmdir" ~(stevedore/map-to-arg-string options) ~directory))
-
-(script/defscript mkdir
-  "Create the specified directory"
-  [directory & {:keys [path verbose mode]}])
-(script-impl/defimpl mkdir :default
-  [directory & {:keys [path verbose mode] :as options}]
-  ("mkdir"
-   ~(stevedore/map-to-arg-string {:m mode :p path :v verbose})
-   ~directory))
-
-(script/defscript make-temp-dir
-  "Create a temporary directory"
-  [pattern & {:as options}])
-(script-impl/defimpl make-temp-dir :default [pattern & {:as options}]
-  @("mktemp" -d
-    ~(stevedore/map-to-arg-string options)
-    ~(str pattern "XXXXX")))
 
 (defn adjust-directory
   "Script to set the ownership and mode of a directory."
@@ -45,13 +16,13 @@
     identity
     [(when owner
        (stevedore/script
-        (chown ~owner ~path :recursive ~recursive)))
+        (~lib/chown ~owner ~path :recursive ~recursive)))
      (when group
        (stevedore/script
-        (chgrp ~group ~path :recursive ~recursive)))
+        (~lib/chgrp ~group ~path :recursive ~recursive)))
      (when mode
        (stevedore/script
-        (chmod ~mode ~path :recursive ~recursive)))])))
+        (~lib/chmod ~mode ~path :recursive ~recursive)))])))
 
 (defn make-directory
   "Script to create a directory."
@@ -59,7 +30,7 @@
   (stevedore/checked-commands
    (str "Directory " dir-path)
    (stevedore/script
-    (mkdir ~dir-path :path ~path :verbose ~verbose :mode ~mode))
+    (~lib/mkdir ~dir-path :path ~path :verbose ~verbose :mode ~mode))
    (adjust-directory dir-path opts)))
 
 (action/def-bash-action directory
@@ -83,7 +54,7 @@
   (case action
     :delete (stevedore/checked-script
              (str "Delete directory " dir-path)
-             (file/rm ~dir-path :recursive ~recursive :force ~force))
+             (~lib/rm ~dir-path :recursive ~recursive :force ~force))
     :create (make-directory
              dir-path
              :path path :mode mode :verbose verbose

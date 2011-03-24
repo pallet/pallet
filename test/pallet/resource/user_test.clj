@@ -9,21 +9,6 @@
 
 (use-fixtures :once with-ubuntu-script-template)
 
-(deftest create-user-test
-  (is (= "/usr/sbin/useradd --create-home user1"
-         (script (user/create-user "user1"  ~{:create-home true}))))
-  (is (= "/usr/sbin/useradd --system user1"
-         (script (user/create-user "user1"  ~{:system true}))))
-  (testing "system on rh"
-    (script/with-script-context [:centos]
-      (is (= "/usr/sbin/useradd -r user1"
-             (script (user/create-user "user1"  ~{:system true})))))))
-
-(deftest modify-user-test
-  (is (= "/usr/sbin/usermod --home \"/home2/user1\" --shell \"/bin/bash\" user1"
-         (script
-          (user/modify-user
-           "user1"  ~{:home "/home2/user1" :shell "/bin/bash"})))))
 
 (deftest user*-create-test
   (is (= (str "if ! getent passwd user1;"

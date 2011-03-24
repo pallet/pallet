@@ -19,9 +19,12 @@
    best fit is determined by the highest number of matching specialiser
    functions, with ties decided by the earliest defined implementation."
   (:require
+   [pallet.stevedore :as stevedore]
    [clojure.contrib.def :as def]
    [clojure.contrib.condition :as condition]
-   [clojure.contrib.logging :as logging]))
+   [clojure.contrib.logging :as logging])
+  (:use
+   [clojure.contrib.core :only [-?>]]))
 
 (def/defunbound *script-context*
   "Determine the target to generate script for.
@@ -140,18 +143,25 @@
          (:fn-name script) f (print-args args) (empty? args)))
        (apply f args))))
 
-(defn script-fn
+(defn script-fn*
+  "Define an abstract script function, that can be implemented differently for
+   different operating systems. Calls to functions defined by `script-fn*` are
+   dispatched based on the `*script-context*` vector."
+  [fn-name args]
+  `(with-meta
+     {::script-fn true
+      :fn-name ~(keyword (name fn-name))
+      :methods (atom {})}
+     {:arglists ~(list 'quote (list (vec args)))}))
+
+(defmacro script-fn
   "Define an abstract script function, that can be implemented differently for
    different operating systems. Calls to functions defined by `script-fn` are
    dispatched based on the `*script-context*` vector."
-  ([args]
-     (script-fn :anonymous args))
-  ([fn-name args]
-     (with-meta
-       {::script-fn true
-        :fn-name (keyword (name fn-name))
-        :methods (atom {})}
-       {:arglists (list 'quote (list (vec args)))})))
+  ([[& args]]
+     (script-fn* :anonymous args))
+  ([fn-name [& args]]
+     (script-fn* fn-name args)))
 
 (defmacro defscript
   "Define a top level var with an abstract script function, that can be
@@ -159,10 +169,10 @@
    defined by `defscript` are dispatched based on the `*script-context*`
    vector."
   [fn-name & args]
-  (let [[fn-name [args]] (def/name-with-attributes fn-name args)]
-    `(let [f# (script-fn '~fn-name '~args)]
-       (def ~(vary-meta fn-name assoc :arglists (list 'quote (list (vec args))))
-         f#))))
+  (let [[fn-name [args]] (def/name-with-attributes fn-name args)
+        fn-name (vary-meta
+                 fn-name assoc :arglists (list 'quote (list (vec args))))]
+    `(def ~fn-name (script-fn ~fn-name [~@args]))))
 
 (defn implement
   "Add an implementation of script for the given specialisers.
@@ -175,3 +185,34 @@
   [script specialisers f]
   {:pre [(::script-fn script)]}
   (swap! (:methods script) assoc specialisers f))
+
+;;; Dispatch mechanisms for stevedore
+
+(defmacro defimpl
+  "Define a script function implementation for the given `specialisers`.
+
+   `specialisers` should be the :default keyword, or a vector.  The
+   `specialisers` vector may contain keywords, a set of keywords that provide an
+   inclusive `or` match, or functions that return a truth value indication
+   whether the implementation is a match for the script template passed as the
+   function's first argument.
+
+   `body` is wrapped in an implicit `script` form.
+
+       (pallet.script/defscript ls [& args])
+       (defimpl ls :default [& args] (ls ~@args))
+       (defimpl ls [:windows] [& args] (dir ~@args))"
+  [script specialisers [& args] & body]
+  {:pre [(or (= :default specialisers) (vector? specialisers))]}
+  `(implement
+    ~script ~specialisers
+    (fn [~@args] (stevedore/script ~@body))))
+
+(defn script-fn-dispatch
+  "Optional dispatching of script functions"
+  [script-fn args ns file line]
+  (dispatch script-fn args file line))
+
+;;; Link stevedore to the dispatch mechanism
+
+(stevedore/script-fn-dispatch! script-fn-dispatch)

@@ -312,17 +312,18 @@
 
 (defmethod emit-special 'invoke
   [type [name & args]]
-  (logging/trace (str "INVOKE " name args))
-  (or (try
-        (*script-fn-dispatch* name args *script-ns* *script-file* *script-line*)
-        (catch java.lang.IllegalArgumentException e
-          (throw (java.lang.IllegalArgumentException.
-                  (str "Invalid arguments for " name) e))))
-      (let [argseq (interpose " "
-                     (filter (complement string/blank?) (map emit args)))]
-        (if (seq argseq)
-          (apply str (emit name) " " argseq)
-          (emit name)))))
+  (logging/trace (str "INVOKE " name " " args))
+  (if (map? name)
+    (try
+      (*script-fn-dispatch* name args *script-ns* *script-file* *script-line*)
+      (catch java.lang.IllegalArgumentException e
+        (throw (java.lang.IllegalArgumentException.
+                (str "Invalid arguments for " name) e))))
+    (let [argseq (interpose
+                  " " (filter (complement string/blank?) (map emit args)))]
+      (if (seq argseq)
+        (apply str (emit name) " " argseq)
+        (emit name)))))
 
 (defn emit-method [obj method args]
   (str (emit obj) "." (emit method) (comma-list (map emit args))))
@@ -470,15 +471,17 @@
 
 (defn emit-s-expr [expr]
   (if (symbol? (first expr))
-    (let [head (symbol (name (first expr)))  ; remove any ns resolution
+    (let [head (symbol (name (first expr))) ; remove any ns resolution
           expr1 (conj (rest expr) head)]
       (cond
-        (and (= (first (str head)) \.)
-             (> (count (str head)) 1)) (emit-special 'dot-method expr1)
-        (special-form? head) (emit-special head expr1)
-        (infix-operator? head) (emit-infix head expr1)
-        :else (emit-special 'invoke expr)))
-    (string/join " " (filter (complement string/blank?) (map emit expr)))))
+       (and (= (first (str head)) \.)
+            (> (count (str head)) 1)) (emit-special 'dot-method expr1)
+       (special-form? head) (emit-special head expr1)
+       (infix-operator? head) (emit-infix head expr1)
+       :else (emit-special 'invoke expr)))
+    (if (map? (first expr))
+      (emit-special 'invoke expr)
+      (string/join " " (filter (complement string/blank?) (map emit expr))))))
 
 (defmethod emit clojure.lang.IPersistentList [expr]
   (emit-s-expr expr))
