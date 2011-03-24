@@ -488,6 +488,9 @@
             request (lift {node localhost}
                           :phase [:configure :configure2]
                           :compute compute
+                          :user (assoc utils/*admin-user*
+                                  :username (test-utils/test-username)
+                                  :no-sudo true)
                           :environment
                           {:algorithms {:lift-fn sequential-lift}})]
         (is (map? request))
@@ -505,6 +508,9 @@
             request (lift {node localhost}
                           :phase [:configure :configure2]
                           :compute compute
+                          :user (assoc utils/*admin-user*
+                                  :username (test-utils/test-username)
+                                  :no-sudo true)
                           :environment
                           {:algorithms {:lift-fn parallel-lift}})]
         (is (map? request))
@@ -555,6 +561,9 @@
       (let [request (lift
                      [master slave]
                      :compute compute
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username)
+                             :no-sudo true)
                      :environment {:algorithms {:lift-fn sequential-lift}})]
         (is @seen "get-slaves should be called")
         (is (= ["127.0.0.1" "127.0.0.1"]
@@ -563,6 +572,9 @@
         (let [request (lift
                      [slave master]
                      :compute compute
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username)
+                             :no-sudo true)
                      :environment {:algorithms {:lift-fn sequential-lift}})]
         (is @seen "get-slaves should be called")
         (is (= ["127.0.0.1" "127.0.0.1"]
@@ -571,6 +583,9 @@
       (let [request (lift
                      [master slave]
                      :compute compute
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username)
+                             :no-sudo true)
                      :environment {:algorithms {:lift-fn parallel-lift}})]
         (is @seen "get-slaves should be called")
         (is (= ["127.0.0.1" "127.0.0.1"]
@@ -617,6 +632,9 @@
               request (lift
                        [master slave]
                        :compute compute
+                       :user (assoc utils/*admin-user*
+                               :username (test-utils/test-username)
+                               :no-sudo true)
                        :environment {:algorithms {:lift-fn sequential-lift}})]
           (is (seen-pre?) "checking-not-set should be called")
           (is (seen-post?) "checking-set should be called")
@@ -637,6 +655,9 @@
               request (lift
                        [slave master]
                        :compute compute
+                       :user (assoc utils/*admin-user*
+                               :username (test-utils/test-username)
+                               :no-sudo true)
                        :environment {:algorithms {:lift-fn sequential-lift}})]
           (is (seen-pre?) "checking-not-set should be called")
           (is (seen-post?) "checking-set should be called")
@@ -657,6 +678,9 @@
               request (lift
                        [master slave]
                        :compute compute
+                       :user (assoc utils/*admin-user*
+                               :username (test-utils/test-username)
+                               :no-sudo true)
                        :environment {:algorithms {:lift-fn parallel-lift}})]
           (is (seen-pre?) "checking-not-set should be called")
           (is (seen-post?) "checking-set should be called")

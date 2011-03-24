@@ -474,6 +474,9 @@
                              [] :in-sequence :fn/clojure)))
         request (lift {node (jclouds/make-localhost-node)}
                       :phase [:configure :configure2]
+                       :user (assoc utils/*admin-user*
+                               :username (test-utils/test-username)
+                               :no-sudo true)
                       :compute org.jclouds.compute/*compute*)]
     (is (map? request))
     (is (map? (-> request :results)))
