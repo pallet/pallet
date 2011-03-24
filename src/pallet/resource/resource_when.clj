@@ -1,27 +1,25 @@
 (ns pallet.resource.resource-when
   "Conditional resource execution."
   (:require
-   [pallet.action :as action]
-   [pallet.resource.exec-script :as exec-script])
-  (:use
-   clojure.contrib.logging))
+   [pallet.action.conditional :as conditional]
+   [pallet.utils :as utils]))
 
 (defmacro resource-when
   [request condition & resources]
-  `(->
-    ~request
-    (action/enter-scope)
-    (exec-script/exec-script ("if [" ~condition "]; then"))
-    ~@resources
-    (exec-script/exec-script "fi")
-    (action/leave-scope)))
+  `(do
+     (utils/deprecated-macro
+      ~&form
+      (utils/deprecate-rename
+       'pallet.resource.resource-when/resource-when
+       'pallet.action.conditional/when))
+     (conditional/when ~request ~condition ~@resources)))
 
 (defmacro resource-when-not
   [request condition & resources]
-  `(->
-    ~request
-    (action/enter-scope)
-    (exec-script/exec-script ("if [ !" ~condition "]; then"))
-    ~@resources
-    (exec-script/exec-script "fi")
-    (action/leave-scope)))
+  `(do
+     (utils/deprecated-macro
+      ~&form
+      (utils/deprecate-rename
+       'pallet.resource.resource-when/resource-when-not
+       'pallet.action.conditional/when-not))
+     (conditional/when-not ~request ~condition ~@resources)))

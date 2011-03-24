@@ -4,7 +4,9 @@
    clojure.test
    pallet.test-utils)
   (:require
-   [pallet.utils :as utils]))
+   [pallet.script :as script]
+   [pallet.utils :as utils]
+   [pallet.test-utils :as test-utils]))
 
 (use-fixtures :once with-ubuntu-script-template)
 
@@ -281,3 +283,7 @@ fi"
     (is (= "" (script ~@x))))
   (let [fx (fn [] ["a" "b" "c"])]
     (is (= "a b c" (script ~@(fx))))))
+
+(test-utils/with-console-logging-threshold :error
+  (script/defscript x [a])
+  (defimpl x :default [a] a))

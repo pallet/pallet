@@ -21,7 +21,7 @@
                     following keys :group-name, :node, :node-id and server-spec
                     keys.
 - phase list     :: A list of phases to be used
-- action plan    :: A list of resources that should be run."
+- action plan    :: A list of actions that should be run."
   {:author "Hugo Duncan"}
   (:require
    [pallet.action :as action]

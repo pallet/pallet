@@ -9,7 +9,7 @@
    [pallet.utils :as utils]
    [clojure.string :as string])
   (:use
-   [pallet.resource.file]
+   [pallet.action.file]
    [clojure.contrib.logging]))
 
 (defn get-resource

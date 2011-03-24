@@ -659,3 +659,12 @@
         underscore (:underscore m)]
     (map-to-arg-string
      (dissoc m :assign :underscore) :assign assign :underscore underscore)))
+
+(defmacro defimpl
+  [script specialisers [& args] & body]
+  (require 'pallet.script)
+  `(do
+     (utils/deprecated-macro
+      ~&form
+      (utils/deprecate-rename 'pallet.stevedore/defimpl 'pallet.script/defimpl))
+     (pallet.script/defimpl ~script ~specialisers [~@args] ~@body)))

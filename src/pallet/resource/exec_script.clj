@@ -1,20 +1,28 @@
 (ns pallet.resource.exec-script
-  "Script execution. script generation is delayed until resource application
-   time, so that it occurs wirh the correct target."
+  "Compatability namespace"
   (:require
-   [pallet.action :as action]
-   [pallet.stevedore :as stevedore]))
-
-
-(def exec-script* (action/bash-action [request script] script))
+   [pallet.action.exec-script :as exec-script]
+   [pallet.utils :as utils]))
 
 (defmacro exec-script
   "Execute a bash script remotely"
   [request & script]
-  `(exec-script* ~request (stevedore/script ~@script)))
+  `(do
+     (utils/deprecated-macro
+      ~&form
+      (utils/deprecate-rename
+       'pallet.resource.exec-script/exec-script
+       'pallet.action.exec-script/exec-script))
+     (exec-script/exec-script ~request ~@script)))
 
 (defmacro exec-checked-script
   "Execute a bash script remotely, throwing if any element of the
    script fails."
   [request name & script]
-  `(exec-script* ~request (stevedore/checked-script ~name ~@script)))
+  `(do
+     (utils/deprecated-macro
+      ~&form
+      (utils/deprecate-rename
+       'pallet.resource.exec-script/exec-checked-script
+       'pallet.action.exec-script/exec-checked-script))
+     (exec-script/exec-checked-script ~request ~name ~@script)))

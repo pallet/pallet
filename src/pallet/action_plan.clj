@@ -64,11 +64,11 @@
    - :execution    the execution type - :in-sequence, :aggregated, :collected
    - :value        the result of calling the action function, :f, with :args
    - :request      the request map after calling the action function."
-  [action-fn args execution resource-type location]
+  [action-fn args execution action-type location]
   {:f action-fn
    :args args
    :location location
-   :action-type resource-type
+   :action-type action-type
    :execution execution})
 
 ;;; utilities

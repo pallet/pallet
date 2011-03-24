@@ -1,11 +1,11 @@
-(ns pallet.resource.service-test
-  (:use pallet.resource.service)
+(ns pallet.action.service-test
+  (:use pallet.action.service)
   (:use [pallet.stevedore :only [script]]
         clojure.test
         pallet.test-utils)
   (:require
-   [pallet.build-actions :as build-actions]
-   [pallet.resource.remote-file :as remote-file]))
+   [pallet.action.remote-file :as remote-file]
+   [pallet.build-actions :as build-actions]))
 
 (deftest service-test
   (is (= "/etc/init.d/tomcat start\n"

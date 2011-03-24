@@ -2,6 +2,8 @@
   (:use pallet.core)
   (require
    [pallet.action :as action]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
    [pallet.build-actions :as build-actions]
    [pallet.compute :as compute]
    [pallet.compute.jclouds :as jclouds]
@@ -12,8 +14,6 @@
    [pallet.mock :as mock]
    [pallet.parameter :as parameter]
    [pallet.phase :as phase]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.file :as file]
    [pallet.stevedore :as stevedore]
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
@@ -176,9 +176,6 @@
 
 (def test-component
   (action/bash-action [request arg] (str arg)))
-
-(def identity-resource (action/bash-action [request x] x))
-(def identity-local-resource (action/clj-action [request] request))
 
 (defn seen-fn
   "Generate a local function, which uses an atom to record when it is called."

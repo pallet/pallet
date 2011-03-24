@@ -2,13 +2,13 @@
   (:use pallet.core)
   (:require
    [pallet.action :as action]
+   [pallet.action.exec-script :as exec-script]
    [pallet.build-actions :as build-actions]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
    [pallet.mock :as mock]
    [pallet.parameter :as parameter]
    [pallet.phase :as phase]
-   [pallet.resource.exec-script :as exec-script]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.target :as target]
@@ -304,8 +304,8 @@
               (build-actions/produce-phases
                (assoc request :phase :configure))))))))
 
-(def identity-resource (action/bash-action [request x] x))
-(def identity-local-resource (action/clj-action [request] request))
+(def identity-action (action/bash-action [request x] x))
+(def identity-local-action (action/clj-action [request] request))
 
 (deftest bootstrap-script-test
   (is (= "a\n"
@@ -313,8 +313,8 @@
           {:group {:image {:os-family :ubuntu}
                    :packager :aptitude
                    :phases {:bootstrap (phase/phase-fn
-                                        (identity-resource "a"))}}})))
-  (testing "rejects local resources"
+                                        (identity-action "a"))}}})))
+  (testing "rejects local actions"
     (is (thrown-with-msg?
           clojure.contrib.condition.Condition
           #"local actions"
@@ -323,7 +323,7 @@
             {:image {:os-family :ubuntu}
              :packager :aptitude
              :phases {:bootstrap (phase/phase-fn
-                                  (identity-local-resource))}}}))))
+                                  (identity-local-action))}}}))))
   (testing "requires a packager"
     (is (thrown?
          java.lang.AssertionError

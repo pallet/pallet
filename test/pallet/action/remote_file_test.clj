@@ -1,5 +1,5 @@
-(ns pallet.resource.remote-file-test
-  (:use pallet.resource.remote-file)
+(ns pallet.action.remote-file-test
+  (:use pallet.action.remote-file)
   (:use [pallet.stevedore :only [script]]
         clojure.test)
   (:require
@@ -9,8 +9,8 @@
    [pallet.core :as core]
    [pallet.execute :as execute]
    [pallet.phase :as phase]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.file :as file]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
    [pallet.script :as script]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -24,7 +24,7 @@
  test-utils/with-ubuntu-script-template
  (test-utils/console-logging-threshold))
 
-(def remote-file* (action/action-fn remote-file-resource))
+(def remote-file* (action/action-fn remote-file-action))
 
 (deftest remote-file*-test
   (is remote-file*)

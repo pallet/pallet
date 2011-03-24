@@ -1,5 +1,6 @@
 (ns pallet.test-utils
   (:require
+   [pallet.build-actions :as build-actions]
    [pallet.core :as core]
    [pallet.execute :as execute]
    [pallet.target :as target]
@@ -75,6 +76,11 @@ list, Alan Dipert and MeikelBrandmeyer."
            (finally
             (.setThreshold console threshold)))))))
 
+(defmacro with-console-logging-threshold
+  "A scope for no output from tests"
+  [level & body]
+  `((console-logging-threshold ~level) (fn [] ~@body)))
+
 (defmacro bash-out
   "Check output of bash. Macro so that errors appear on the correct line."
   ([str] `(bash-out ~str 0 ""))
@@ -112,10 +118,16 @@ list, Alan Dipert and MeikelBrandmeyer."
   [& {:as options}]
   (apply node-list/make-localhost-node (apply concat options)))
 
-;; (defmacro build-resources
-;;   "Forwarding definition, until resource-when is fixed"
-;;   [& args]
-;;   `(resource-build/build-resources ~@args))
+(defmacro build-resources
+  "Forwarding definition"
+  [& args]
+  `(do
+     (utils/deprecated-macro
+      ~&form
+      (utils/deprecate-rename
+       'pallet.test-utils/build-resources
+       'pallet.build-actions/build-actions))
+     (build-actions/build-actions ~@args)))
 
 (defn test-request
   "Build a test request"

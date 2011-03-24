@@ -109,7 +109,7 @@
   `(action :collected :script/bash :target [~request ~@args] ~@body))
 
 (defmacro as-clj-action
-  "An adaptor for using a normal function as a local resource function"
+  "An adaptor for using a normal function as a local action function"
   ([f [request & args]]
      `(clj-action
        [~request ~@(map (comp symbol name) args)]

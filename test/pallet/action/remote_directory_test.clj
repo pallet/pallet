@@ -1,19 +1,19 @@
-(ns pallet.resource.remote-directory-test
-  (:use pallet.resource.remote-directory)
+(ns pallet.action.remote-directory-test
+  (:use pallet.action.remote-directory)
   (:use clojure.test
         pallet.test-utils)
   (:require
    [pallet.action :as action]
+   [pallet.action.directory :as directory]
+   [pallet.action.remote-file :as remote-file]
    [pallet.build-actions :as build-actions]
    [pallet.stevedore :as stevedore]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.remote-file :as remote-file]
    [pallet.utils :as utils]))
 
 (use-fixtures :once with-ubuntu-script-template)
 
 (def directory* (action/action-fn directory/directory))
-(def remote-file* (action/action-fn remote-file/remote-file-resource))
+(def remote-file* (action/action-fn remote-file/remote-file-action))
 
 (deftest remote-directory-test
   (is (= (stevedore/checked-commands

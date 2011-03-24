@@ -10,7 +10,7 @@
    [pallet.compute :exclude [make-node]]
    pallet.core
    pallet.phase
-   pallet.resource.package
+   pallet.action.package
    pallet.task.feedback
    clj-ssh.ssh))
 
@@ -27,6 +27,6 @@
       '[pallet.compute :exclude [make-node]]
       'pallet.core
       'pallet.phase
-      'pallet.resource.package
+      'pallet.action.package
       'pallet.task.feedback
       'clj-ssh.ssh)))

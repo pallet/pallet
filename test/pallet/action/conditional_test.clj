@@ -1,25 +1,26 @@
-(ns pallet.resource.resource-when-test
-  (:use pallet.resource.resource-when)
+(ns pallet.action.conditional-test
+  (:refer-clojure :exclude [when when-not])
+  (:use pallet.action.conditional)
   (:require
    [pallet.action :as action]
-   [pallet.resource.exec-script :as exec-script])
+   [pallet.action.exec-script :as exec-script])
   (:use
    clojure.test
    pallet.build-actions
    pallet.test-utils))
 
-(deftest resource-when-test
+(deftest when-test
   (is (= "if [ \\( \"a\" == \"b\" \\) ]; then\nc\nfi\n"
          (first (build-actions
                  {}
-                 (resource-when
+                 (when
                   (== "a" "b")
                   (exec-script/exec-script "c")))))))
 
-(deftest resource-when-not-test
+(deftest when-not-test
   (is (= "if [ ! \\( \"a\" == \"b\" \\) ]; then\nc\nfi\n"
          (first (build-actions
                  {}
-                 (resource-when-not
+                 (when-not
                   (== "a" "b")
                   (exec-script/exec-script "c")))))))

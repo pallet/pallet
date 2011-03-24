@@ -43,7 +43,7 @@
     (is (= ::abc (get-for p [:b :c :d] ::abc)))))
 
 
-(action/def-bash-action lookup-test-resource
+(action/def-bash-action lookup-test-action
   [request a]
   (str a))
 
@@ -51,10 +51,10 @@
   (is (= "9\n"
          (first (build-actions/build-actions
                  {:parameters {:a 1 :b 9}}
-                 (lookup-test-resource (lookup :b)))))))
+                 (lookup-test-action (lookup :b)))))))
 
 (action/def-clj-action parameters-test
-  "A resource that tests parameter values for equality with the argument
+  "An action that tests parameter values for equality with the argument
    supplied values."
   [request & {:as options}]
   (let [parameters (:parameters request)]

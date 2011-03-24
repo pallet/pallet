@@ -1,5 +1,5 @@
-(ns pallet.resource.exec-script-test
-  (:use pallet.resource.exec-script)
+(ns pallet.action.exec-script-test
+  (:use pallet.action.exec-script)
   (:use
    clojure.test
    pallet.build-actions

@@ -2,10 +2,10 @@
   "Exectute commands.  At the moment the only available transport is ssh."
   (:require
    [pallet.action-plan :as action-plan]
+   [pallet.action.file :as file]
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
    [pallet.environment :as environment]
-   [pallet.resource.file :as file]
    [pallet.script :as script]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -369,6 +369,12 @@
   [request f]
   [(:value (f request)) request])
 
+(defn echo-clojure
+  "Echo a clojure action (which returns nil)"
+  [request f]
+  (let [{:keys [value request]} (f request)]
+    ["" request]))
+
 (defn echo-transfer
   "echo transfer of files"
   [request f]
@@ -418,6 +424,8 @@
      request
      (assoc-in [:executor :script/bash :target] echo-bash)
      (assoc-in [:executor :script/bash :origin] echo-bash)
+     (assoc-in [:executor :fn/clojure :target] echo-clojure)
+     (assoc-in [:executor :fn/clojure :origin] echo-clojure)
      (assoc-in [:executor :transfer/from-local :origin] echo-transfer)
      (assoc-in [:executor :transfer/to-local :origin] echo-transfer)
      handler)))

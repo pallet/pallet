@@ -1,11 +1,11 @@
-(ns pallet.resource.file-test
-  (:use pallet.resource.file)
+(ns pallet.action.file-test
+  (:use pallet.action.file)
   (:use [pallet.stevedore :only [script]]
         clojure.test)
   (:require
    [pallet.action :as action]
+   [pallet.action.file :as file]
    [pallet.build-actions :as build-actions]
-   [pallet.resource.file :as file]
    [pallet.stevedore :as stevedore]
    [pallet.test-utils :as test-utils]))
 

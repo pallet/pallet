@@ -1,8 +1,8 @@
-(ns pallet.resource.network-service-test
+(ns pallet.crate.network-service-test
   (:use clojure.test)
   (:require
    [pallet.build-actions :as build-actions]
-   [pallet.resource.network-service :as network-service]
+   [pallet.crate.network-service :as network-service]
    [pallet.test-utils :as test-utils]))
 
 (deftest wait-for-port-listen-test

@@ -19,7 +19,7 @@
   ((#'core/middleware-handler #'core/execute) request))
 
 (defn produce-phases
-  "Join the result of execute-action-plan, executing local resources.
+  "Join the result of execute-action-plan, executing local actions.
    Useful for testing."
   [request]
   (let [execute
@@ -41,7 +41,7 @@
      (phase/phase-list-with-implicit-phases [(:phase request)]))))
 
 (defn- convert-0-4-5-compatible-keys
-  "Convert old build-resources keys to new keys."
+  "Convert old build-actions keys to new keys."
   [request]
   (let [request (if-let [node-type (:node-type request)]
                   (do
@@ -125,7 +125,7 @@
     request))
 
 (defn build-actions*
-  "Implementation for build-resources."
+  "Implementation for build-actions."
   [f request-map]
   (let [request (if (map? request-map)  ; historical compatibility
                   request-map
@@ -140,7 +140,7 @@
     (produce-phases request)))
 
 (defmacro build-actions
-  "Outputs the remote resources specified in the body for the specified phases.
+  "Outputs the remote actions specified in the body for the specified phases.
    This is useful in testing.
 
    `request-map` should be a map (but was historically a vector of keyword
@@ -150,5 +150,5 @@
      (let [request-map# ~request-map]
        (when-not (map? request-map#)
          (logging/warn
-          "Use of vector for request-map in build-resources is deprecated."))
+          "Use of vector for request-map in build-actions is deprecated."))
        (build-actions* (phase/phase-fn ~@body) request-map#))))

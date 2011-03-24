@@ -1,14 +1,14 @@
-(ns pallet.resource.rsync-test
-  (:use pallet.resource.rsync)
+(ns pallet.action.rsync-test
+  (:use pallet.action.rsync)
   (:use [pallet.stevedore :only [script]]
         clojure.test)
   (:require
    [pallet.action :as action]
+   [pallet.action.remote-file :as remote-file]
    [pallet.core :as core]
-   [pallet.resource.remote-file :as remote-file]
+   [pallet.phase :as phase]
    [pallet.stevedore :as stevedore]
    [pallet.target :as target]
-   [pallet.phase :as phase]
    [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
    [clojure.contrib.io :as io]))

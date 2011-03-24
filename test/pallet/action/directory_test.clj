@@ -1,10 +1,10 @@
-(ns pallet.resource.directory-test
-  (:use pallet.resource.directory)
+(ns pallet.action.directory-test
+  (:use pallet.action.directory)
   (:require
    [pallet.action :as action]
    [pallet.stevedore :as stevedore]
-   [pallet.utils :as utils]
-   [pallet.test-utils :as test-utils])
+   [pallet.test-utils :as test-utils]
+   [pallet.utils :as utils])
   (:use
    clojure.test
    pallet.build-actions))

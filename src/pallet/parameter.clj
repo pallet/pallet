@@ -19,7 +19,7 @@
    clojure.core/get, in that they throw an exception if the key is undefined
    and no default value is specified.
 
-   Delayed evaluation of parameters specified as arguments to resource functions
+   Delayed evaluation of parameters specified as arguments to action functions
    are also implemented here. `lookup` and `lookup-for-target`.
 "
   (:require
@@ -182,7 +182,7 @@
 
 (defn lookup
   "Lookup a parameter in a delayed manner. Use a call to this function as the
-   argument of a resource.
+   argument of a action.
    This function produces an object, which causes parameter lookup when it's
    toString method is called.
 
@@ -192,16 +192,16 @@
 
 (defn lookup-for-target
   "Lookup a parameter for the target in a delayed manner. Use a call to this
-   function as the argument of a resource.  This function produces an object,
+   function as the argument of a action.  This function produces an object,
    which causes parameter lookup when it's toString method is called.
 
    See also `pallet.argument`."
   [& keys]
   (ParameterLookupTarget. keys))
 
-;;; Resources
+;;; Actions
 (action/def-clj-action parameters
-  "A resource to set parameters"
+  "An action to set parameters"
   [request & {:as keyvector-value-pairs}]
   (assoc request
     :parameters (reduce

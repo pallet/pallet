@@ -64,7 +64,7 @@
 
       A crate function is a function that takes a request map and other
       arguments, and returns a modified request map. Calls to crate functions
-      are often wrapped in a threading macro, -> or pallet.resource/phase,
+      are often wrapped in a threading macro, -> or pallet.phase/phase-fn,
       to simplify chaining of the request map argument."))
      request)
   ([request form]

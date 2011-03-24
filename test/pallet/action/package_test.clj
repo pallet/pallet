@@ -1,19 +1,19 @@
-(ns pallet.resource.package-test
-  (:use pallet.resource.package)
+(ns pallet.action.package-test
+  (:use pallet.action.package)
   (:use [pallet.stevedore :only [script]]
         clojure.test)
   (:require
    [pallet.action :as action]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.file :as file]
+   [pallet.action.package :as package]
+   [pallet.action.remote-file :as remote-file]
    [pallet.build-actions :as build-actions]
    [pallet.core :as core]
    [pallet.execute :as execute]
-   [pallet.stevedore :as stevedore]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.file :as file]
-   [pallet.resource.package :as package]
-   [pallet.resource.remote-file :as remote-file]
    [pallet.script :as script]
    [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
    [clojure.contrib.io :as io]))
@@ -21,7 +21,7 @@
 (use-fixtures :each test-utils/with-ubuntu-script-template)
 (use-fixtures :once (test-utils/console-logging-threshold))
 
-(def remote-file* (action/action-fn remote-file/remote-file-resource))
+(def remote-file* (action/action-fn remote-file/remote-file-action))
 (def sed* (action/action-fn file/sed))
 
 (deftest test-install-example

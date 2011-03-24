@@ -1,9 +1,9 @@
-(ns pallet.resource.user-test
+(ns pallet.action.user-test
   (:use [pallet.stevedore :only [script]]
         clojure.test
         pallet.test-utils)
   (:require
-   [pallet.resource.user :as user]
+   [pallet.action.user :as user]
    [pallet.build-actions :as build-actions]
    [pallet.script :as script]))
 

@@ -1,10 +1,10 @@
-(ns pallet.resource.filesystem-test
+(ns pallet.action.filesystem-test
   (:use clojure.test)
   (:require
+   [pallet.action.directory :as directory]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.action.filesystem :as filesystem]
    [pallet.build-actions :as build-actions]
-   [pallet.resource.directory :as directory]
-   [pallet.resource.exec-script :as exec-script]
-   [pallet.resource.filesystem :as filesystem]
    [pallet.stevedore :as stevedore]))
 
 (deftest make-xfs-filesytem-test

@@ -1,6 +1,6 @@
 (ns pallet.argument
-  "Arguments to resources.  Adds capability of evaluating arguments at
-   resource application")
+  "Arguments to actions.  Adds capability of evaluating arguments at
+   action application")
 
 (defprotocol DelayedArgument
   "A protocol for passing arguments, with delayed evaluation."
@@ -19,11 +19,11 @@
 
 (defn delayed-fn
   "Pass a function with a single argument, to be used to compute an argument at
-   resource applicaiton time."
+   action application time."
   [f]
   (DelayedFunction. f))
 
 (defmacro delayed
-  "Pass an argument to be evaluated at resource applicaiton time."
+  "Pass an argument to be evaluated at action application time."
   [[request-sym] & body]
   `(DelayedFunction. (fn [~request-sym] ~@body)))

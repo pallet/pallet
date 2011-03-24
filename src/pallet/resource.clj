@@ -78,3 +78,8 @@
          'pallet.resource/defcollect 'pallet.action/def-collected-action))
        (action/def-collected-action
          ~n [~@arguments] ~@forms))))
+
+
+(action/def-clj-action as-local-resource
+  [request f & args]
+  (apply f request args))
