@@ -1,4 +1,5 @@
 (ns pallet.crate.ssh-key
+  "Crate functions for manipulating SSH-keys"
   (:require
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
