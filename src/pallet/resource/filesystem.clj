@@ -37,7 +37,8 @@
 (defn mount
   "Mount a device."
   [request device mount-point
-   & {:keys [device-type automount no-automount dump-frequency boot-check-pass]
+   & {:keys [fs-type device-type automount no-automount dump-frequency
+             boot-check-pass]
       :or {dump-frequency 0 boot-check-pass 0}
       :as options}]
   (->
@@ -45,6 +46,9 @@
    (directory/directory mount-point)
    (exec-script/exec-checked-script
     (format "Mount %s at %s" device mount-point)
-    (mount ~(mount-cmd-options
-             (dissoc options :device-type :dump-frequency :boot-check-pass))
-           ~device (quoted ~mount-point)))))
+    (if-not @(mountpoint -q ~mount-point)
+      (mount ~(if fs-type (str "-t " fs-type) "")
+             ~(mount-cmd-options
+               (dissoc options :device-type :dump-frequency :boot-check-pass
+                       :fs-type))
+             ~device (quoted ~mount-point))))))
