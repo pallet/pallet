@@ -304,19 +304,26 @@
   []
   (map file-for-url (classpath-urls)))
 
-(defn resolved-name [sym]
-  (let [v (resolve sym)
-        m (meta v)]
-    (str (ns-name (:ns m)) "/" (:name m))))
-
-(defmacro deprecated
-  [form old msg new]
+(defmacro deprecated-macro
+  "Generates a deprecated warning for a macro, allowing the source file and
+   line to be captured"
+  [form msg]
   `(logging/log
    :warn
    (format
-    "[%s:%s] %s %s %s"
-    ~(or (:file (meta form)) "unknown")
-    ~(:line (meta form))
-    ~(resolved-name old)
-    ~msg
-    ~(resolved-name new))))
+    "[%s:%s] %s"
+    ~(or (:file (meta form) *file*) "unknown") ~(:line (meta form)) ~msg)))
+
+(defmacro deprecated
+  "Generates a deprecated warning"
+  [msg]
+  `(logging/log
+   :warn
+   (format
+    "[%s:%s] %s"
+    ~(or (:file (meta &form) *file*) "unknown") ~(:line (meta &form)) ~msg)))
+
+(defn deprecate-rename
+  "Generates a deprecated message for renaming a function"
+  [from to]
+  (format "%s is deprecated, use %s" (pr-str from) (pr-str to)))

@@ -5,12 +5,12 @@
   (:require
    [clojure.contrib.condition :as condition]))
 
-(defn- pre-phase-name
+(defn pre-phase-name
   "Return the name for the pre-phase for the given `phase`."
   [phase]
   (keyword (str "pre-" (name phase))))
 
-(defn- post-phase-name
+(defn post-phase-name
   "Return the name for the post-phase for the given `phase`."
   [phase]
   (keyword (str "after-" (name phase))))
@@ -31,7 +31,7 @@
   `(let [request# ~request
          phase# (:phase request#)]
      (->
-      (assoc request# :phase (pre-phase phase#))
+      (assoc request# :phase (pre-phase-name phase#))
       ~@body
       (assoc :phase phase#))))
 
@@ -41,7 +41,7 @@
   `(let [request# ~request
          phase# (:phase request#)]
      (->
-      (assoc request# :phase (post-phase phase#))
+      (assoc request# :phase (post-phase-name phase#))
       ~@body
       (assoc :phase phase#))))
 
