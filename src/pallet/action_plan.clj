@@ -480,7 +480,7 @@
     (if-let [f (or
                 (phase (-> session :server :phases))
                 (phase (:inline-phases session)))]
-      (script/with-template (script-template session)
+      (script/with-script-context (script-template session)
         (f session))
       session)))
 
@@ -499,6 +499,6 @@
   "Execute the translated action plan for the current target."
   [session executor]
   {:pre [(:phase session)]}
-  (script/with-template (script-template session)
+  (script/with-script-context (script-template session)
     (execute
      (get-in session (target-path session)) session executor)))

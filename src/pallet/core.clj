@@ -192,7 +192,12 @@
 
 (defn make-node
   "Create a node definition.  See defnode."
+  {:deprecated "0.5.0"}
   [name image & {:as phase-map}]
+  (utils/deprecated
+   (str
+    "pallet.core/make-node is deprecated. "
+    "See group-spec, server-spec and node-spec in pallet.core."))
   {:pre [(or (nil? image) (map? image))]}
   (->
    {:group-name (keyword name)
@@ -229,12 +234,18 @@
      :bootstrap    run on first boot
      :configure    defines the configuration of the node."
   {:arglists ['(tag doc-str? attr-map? image & phasekw-phasefn-pairs)]
-   :deprecated "0.4.6"}
+   :deprecated "0.5.0"}
   [group-name & options]
   (let [[group-name options] (name-with-attributes group-name options)]
-    `(def ~group-name (make-node '~(name group-name) ~@options))))
+    `(do
+       (utils/deprecated-macro
+        ~&form
+        (str
+         "pallet.core/defnode is deprecated. See group-spec, server-spec and "
+         "node-spec in pallet.core"))
+       (def ~group-name (make-node '~(name group-name) ~@options)))))
 
-(defn- add-session-keys-for-0-4-5-compatibility
+(defn- add-session-keys-for-0-4-compatibility
   "Add target keys for compatibility.
    This function adds back deprecated keys"
   [session]
@@ -309,7 +320,8 @@
                           session
                           (assoc
                               :phase :bootstrap
-                              :server (assoc (:group session) :node-id :bootstrap-id))
+                              :server (assoc (:group session)
+                                        :node-id :bootstrap-id))
                           (assoc-in
                            [:executor :script/bash :target]
                            execute/echo-bash)
@@ -322,7 +334,7 @@
                           (assoc-in
                            [:executor :fn/clojure :origin]
                            (error-fn "Bootstrap can not contain local actions"))
-                          add-session-keys-for-0-4-5-compatibility
+                          add-session-keys-for-0-4-compatibility
                           action-plan/build-for-target
                           action-plan/translate-for-target
                           (action-plan/execute-for-target executor))]
@@ -476,7 +488,7 @@ is run with root privileges immediatly after first boot."
    (->
     session
     apply-environment
-    add-session-keys-for-0-4-5-compatibility)))
+    add-session-keys-for-0-4-compatibility)))
 
 (def *middleware*
   [translate-action-plan
@@ -518,7 +530,7 @@ is run with root privileges immediatly after first boot."
    (->
     session
     (assoc :server server)
-    add-session-keys-for-0-4-5-compatibility
+    add-session-keys-for-0-4-compatibility
     (environment/session-with-environment
       (environment/merge-environments
        (:environment session)

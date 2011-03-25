@@ -6,6 +6,7 @@
 
 (defmacro exec-script
   "Execute a bash script remotely"
+  {:deprecated "0.5.0"}
   [session & script]
   `(do
      (utils/deprecated-macro
@@ -18,6 +19,7 @@
 (defmacro exec-checked-script
   "Execute a bash script remotely, throwing if any element of the
    script fails."
+  {:deprecated "0.5.0"}
   [session name & script]
   `(do
      (utils/deprecated-macro

@@ -122,16 +122,16 @@
 
 (deftest upgrade-all-packages-test
   (is (= "aptitude upgrade -q -y"
-         (script/with-template [:aptitude]
+         (script/with-script-context [:aptitude]
            (script (~upgrade-all-packages)))))
   (is (= "yum update -y -q"
-         (script/with-template [:yum]
+         (script/with-script-context [:yum]
            (script (~upgrade-all-packages)))))
   (is (= "zypper update -y"
-         (script/with-template [:zypper]
+         (script/with-script-context [:zypper]
            (script (~upgrade-all-packages)))))
   (is (= "pacman -Su --noconfirm --noprogressbar"
-         (script/with-template [:pacman]
+         (script/with-script-context [:pacman]
            (script (~upgrade-all-packages))))))
 
 (deftest install-package-test

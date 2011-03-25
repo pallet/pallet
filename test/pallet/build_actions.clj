@@ -134,7 +134,7 @@
         session (assoc-in session [:server :phases (:phase session)] f)
         session (if (map? session-arg)  ; historical compatibility
                   session
-                  ((#'core/add-session-keys-for-0-4-5-compatibility
+                  ((#'core/add-session-keys-for-0-4-compatibility
                     identity)
                    session))]
     (produce-phases session)))

@@ -661,6 +661,7 @@
      (dissoc m :assign :underscore) :assign assign :underscore underscore)))
 
 (defmacro defimpl
+  {:deprecated "0.5.0"}
   [script specialisers [& args] & body]
   (require 'pallet.script)
   `(do

@@ -5,6 +5,7 @@
    [pallet.utils :as utils]))
 
 (defmacro resource-when
+  {:deprecated "0.5.0"}
   [session condition & resources]
   `(do
      (utils/deprecated-macro
@@ -15,6 +16,7 @@
      (conditional/when ~session ~condition ~@resources)))
 
 (defmacro resource-when-not
+  {:deprecated "0.5.0"}
   [session condition & resources]
   `(do
      (utils/deprecated-macro

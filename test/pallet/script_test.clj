@@ -6,11 +6,11 @@
 
 (with-private-vars [pallet.script [matches? more-explicit?]]
   (deftest matches?-test
-    (with-template [:ubuntu]
+    (with-script-context [:ubuntu]
       (is (matches? [:ubuntu]))
       (is (not (matches? [:fedora])))
       (is (not (matches? [:ubuntu :smallest]))))
-    (with-template [:ubuntu :smallest]
+    (with-script-context [:ubuntu :smallest]
       (is (matches? [:ubuntu]))
       (is (matches? [:smallest]))
       (is (not (matches? [:fedora])))
@@ -25,7 +25,7 @@
   (testing "no varargs"
     (let [f (script-fn [a b])]
       (is (= :anonymous (:fn-name f)))
-      (with-template [:a]
+      (with-script-context [:a]
         (is (thrown?
              clojure.contrib.condition.Condition
              (dispatch f [1 1])))
@@ -33,7 +33,7 @@
         (is (= 2 (dispatch f [1 2]))))))
   (testing "varargs"
     (let [f (script-fn [a b & c])]
-      (with-template [:a]
+      (with-script-context [:a]
         (is (thrown?
              clojure.contrib.condition.Condition
              (dispatch f [1 1 2 3])))
@@ -49,15 +49,15 @@
         f2 (fn [] 2)]
     (implement s :default f1)
     (implement s [:os-x] f2)
-    (with-template [:centos :yum]
+    (with-script-context [:centos :yum]
       (is (= f1 (#'pallet.script/best-match @(:methods s))))
       (is (= 1 (invoke s []))))
-    (with-template [:os-x :brew]
+    (with-script-context [:os-x :brew]
       (is (= f2 (#'pallet.script/best-match @(:methods s))))
       (is (= 2 (invoke s []))))))
 
 (deftest defscript-test
-  (with-template [:a]
+  (with-script-context [:a]
     (testing "no varargs"
       (defscript script1a [a b])
       (is (nil? (:doc (meta script1a))))

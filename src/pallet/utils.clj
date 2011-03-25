@@ -304,24 +304,30 @@
   []
   (map file-for-url (classpath-urls)))
 
+(defmacro find-caller-from-stack
+  "Find the call site of a function. A macro so we don't create extra frames."
+  ([] `(find-caller-from-stack 4))
+  ([frame-depth]
+     `(let [frame# (nth (.. (Thread/currentThread) getStackTrace) ~frame-depth)]
+        [(.getFileName frame#) (.getLineNumber frame#)])))
+
 (defmacro deprecated-macro
   "Generates a deprecated warning for a macro, allowing the source file and
    line to be captured"
   [form msg]
   `(logging/log
-   :warn
-   (format
-    "[%s:%s] %s"
-    ~(or (:file (meta form) *file*) "unknown") ~(:line (meta form)) ~msg)))
+    :warn
+    (format
+     "DEPRECATED [%s:%s] %s"
+     ~(or (:file (meta form) *file*) "unknown") ~(:line (meta form)) ~msg)))
 
-(defmacro deprecated
+(defn deprecated
   "Generates a deprecated warning"
   [msg]
-  `(logging/log
-   :warn
-   (format
-    "[%s:%s] %s"
-    ~(or (:file (meta &form) *file*) "unknown") ~(:line (meta &form)) ~msg)))
+  (let [[file line] (find-caller-from-stack)]
+    (logging/log
+     :warn
+     (format "DEPRECATED [%s:%s] %s" (or file "unknown") line msg))))
 
 (defn deprecate-rename
   "Generates a deprecated message for renaming a function"

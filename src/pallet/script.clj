@@ -20,6 +20,7 @@
    functions, with ties decided by the earliest defined implementation."
   (:require
    [pallet.stevedore :as stevedore]
+   [pallet.utils :as utils]
    [clojure.contrib.def :as def]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.logging :as logging])
@@ -43,9 +44,14 @@
   "Specify the target for script generation. `template` should be a vector of
    os-family, os-family and os-version, or other keywords.
    DEPRECATED - see `with-script-context`"
-  {:deprecated "0.4"}
+  {:deprecated "0.5.0"}
   [template & body]
-  `(with-script-context ~template ~@body))
+  `(do
+     (utils/deprecated-macro
+      ~&form
+      (utils/deprecate-rename
+       'pallet.script/with-template 'pallet.script/with-script-context))
+     (with-script-context ~template ~@body)))
 
 (defn- print-args
   "Utitlity function to print arguments for logging"

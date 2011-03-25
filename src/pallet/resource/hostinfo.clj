@@ -17,6 +17,7 @@
 
 (defn architecture
   "Machine CPU architecture."
+  {:deprecated "0.5.0"}
   []
   (utils/deprecated
    "pallet.resource.hostinfo/architecture is deprecated")

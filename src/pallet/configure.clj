@@ -58,8 +58,9 @@
   (when config
     (when (:providers config)
       (logging/warn
-       "DEPRECATED: use of :providers key in ~/.pallet/config.clj
-           is deprecated. Please change to use :services."))
+       (str
+        "DEPRECATED: use of :providers key in ~/.pallet/config.clj is "
+        "deprecated. Please change to use :services.")))
     (let [service (first profiles)
           default-service (map config [:provider :identity :credential])
           services (:services config (:providers config))

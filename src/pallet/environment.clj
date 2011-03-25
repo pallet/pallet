@@ -171,6 +171,10 @@
                  session
                  (utils/dissoc-keys
                   environment (conj node-keys :groups :tags)))]
+    (when (:tags environment)
+      (logging/warn
+       (str "DEPRECATED: use of :tags key in the environment is deprecated. "
+            "Please change to use :groups.")))
     (if (:server session)
       (let [tag (-> session :server :tag)]
         (assoc session
