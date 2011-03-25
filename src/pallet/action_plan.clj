@@ -13,8 +13,8 @@
   {:author "Hugo Duncan"}
   (:require
    [pallet.argument :as argument]
-   [pallet.request-map :as request-map]
    [pallet.script :as script]
+   [pallet.session :as session]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.logging :as logging]
    [clojure.contrib.monads :as monad]
@@ -63,7 +63,7 @@
    - :action-type  the type of action - :script/bash, :fn/clojure, etc
    - :execution    the execution type - :in-sequence, :aggregated, :collected
    - :value        the result of calling the action function, :f, with :args
-   - :request      the request map after calling the action function."
+   - :session      the session map after calling the action function."
   [action-fn args execution action-type location]
   {:f action-fn
    :args args
@@ -111,8 +111,8 @@
 
 (defn- scope-action
   "A scope combining action."
-  [request & args]
-  (script-join (map #((:f %) request) args)))
+  [session & args]
+  (script-join (map #((:f %) session) args)))
 
 (defn- nested-scope-transform
   "Transform a nested scope into an action-map with :action-type :nested-scope"
@@ -260,21 +260,21 @@
 
 (defn- evaluate-args
   "Evaluate an argument sequence"
-  [request args]
-  (map (fn [arg] (when arg (argument/evaluate arg request))) args))
+  [session args]
+  (map (fn [arg] (when arg (argument/evaluate arg session))) args))
 
 (defn- apply-action
   "Returns a function that applies args to the function f,
    evaluating the arguments."
   [f args]
-  (fn [request]
-    (apply f request (evaluate-args request args))))
+  (fn [session]
+    (apply f session (evaluate-args session args))))
 
 (defn- apply-aggregated-action
   "Apply args-seq to the function f, evaluating each argument list in args-seq."
   [f args-seq]
-  (fn [request]
-    (f request (map #(evaluate-args request %) args-seq))))
+  (fn [session]
+    (f session (map #(evaluate-args session %) args-seq))))
 
 (defmulti bind-action-arguments
   "Bind an action's arguments."
@@ -330,17 +330,17 @@
 (defmethod combine-actions :script/bash
   [actions]
   (assoc (first actions)
-    :f (fn [request] (script-join (map #((:f %) request) actions)))))
+    :f (fn [session] (script-join (map #((:f %) session) actions)))))
 
 (defmethod combine-actions :transfer/to-local
   [actions]
   (assoc (first actions)
-    :f (fn [request] (map #((:f %) request) actions))))
+    :f (fn [session] (map #((:f %) session) actions))))
 
 (defmethod combine-actions :transfer/from-local
   [actions]
   (assoc (first actions)
-    :f (fn [request] (map #((:f %) request) actions))))
+    :f (fn [session] (map #((:f %) session) actions))))
 
 (defn- combine-scope-by-location-and-action-type
   "Combines the bound actions of a scope by location and action-type, producing
@@ -364,27 +364,27 @@
 ;;; augment return
 (defmulti augment-return
   "Change the return type of an action, to be an action map with
-   :value and :request keys that are the value of the action, and the updated
-   request map for the next action.  This creates a consistent return value for
+   :value and :session keys that are the value of the action, and the updated
+   session map for the next action.  This creates a consistent return value for
    all action types (effectively creating a monadic value which is a map)."
   (fn [{:keys [action-type] :as action}] action-type))
 
 (defmethod augment-return :default
   [{:keys [f] :as action}]
   (assoc action
-    :f (fn [request]
+    :f (fn [session]
          (assoc action
-           :request request
-           :value (f request)))))
+           :session session
+           :value (f session)))))
 
 (defmethod augment-return :fn/clojure
   [{:keys [f] :as action}]
   (assoc action
-    :f (fn [request]
-         (let [request (f request)]
+    :f (fn [session]
+         (let [session (f session)]
            (assoc action
-             :request request
-             :value request)))))
+             :session session
+             :value session)))))
 
 (defn- augment-scope-return-values
   "Augment the return values of each action in a scope."
@@ -430,30 +430,30 @@
 
 (defn execute-action
   "Execute a single action"
-  [executor [results request] {:keys [f action-type location] :as action}]
-  (let [[result request] (executor request f action-type location)]
-    [(conj results result) request]))
+  [executor [results session] {:keys [f action-type location] :as action}]
+  (let [[result session] (executor session f action-type location)]
+    [(conj results result) session]))
 
 (defn execute
   "Execute actions by passing the un-evaluated actions to the `executor`
-   function (a function with an arglist of [request f action-type location])."
-  [action-plan request executor]
+   function (a function with an arglist of [session f action-type location])."
+  [action-plan session executor]
   (logging/trace
    (format "action-plan/execute with %s actions" (count action-plan)))
   (when-not (translated? action-plan)
     (condition/raise
      :type :pallet/execute-called-on-untranslated-action-plan
      :message "Attempt to execute an action plan that has not been translated"))
-  (reduce #(execute-action executor %1 %2) [[] request] action-plan))
+  (reduce #(execute-action executor %1 %2) [[] session] action-plan))
 
 
 ;;; Target specific functions
 (defn target-path
-  "Return the vector path of the action plan for the current request target"
-  [request]
-  {:pre [(keyword? (request-map/phase request))
-         (keyword? (request-map/target-id request))]}
-  [:action-plan (request-map/phase request) (request-map/target-id request)])
+  "Return the vector path of the action plan for the current session target"
+  [session]
+  {:pre [(keyword? (session/phase session))
+         (keyword? (session/target-id session))]}
+  [:action-plan (session/phase session) (session/target-id session)])
 
 (defn script-template-for-server
   "Return the script template for the specified server."
@@ -467,38 +467,38 @@
 
 (defn script-template
   "Return the script template for the current group node."
-  [request]
-  (script-template-for-server (:server request)))
+  [session]
+  (script-template-for-server (:server session)))
 
-;;; action plan functions based on request
+;;; action plan functions based on session
 
 (defn build-for-target
   "Create the action plan by calling the current phase for the target group."
-  [request]
-  {:pre [(:phase request)]}
-  (let [phase (:phase request)]
+  [session]
+  {:pre [(:phase session)]}
+  (let [phase (:phase session)]
     (if-let [f (or
-                (phase (-> request :server :phases))
-                (phase (:inline-phases request)))]
-      (script/with-template (script-template request)
-        (f request))
-      request)))
+                (phase (-> session :server :phases))
+                (phase (:inline-phases session)))]
+      (script/with-template (script-template session)
+        (f session))
+      session)))
 
 (defn get-for-target
   "Get the action plan for the current phase and target node."
-  [request]
-  (get-in request (target-path request)))
+  [session]
+  (get-in session (target-path session)))
 
 (defn translate-for-target
   "Build the action plan and translate for the current phase and target node."
-  [request]
-  {:pre [(:phase request)]}
-  (update-in request (target-path request) translate))
+  [session]
+  {:pre [(:phase session)]}
+  (update-in session (target-path session) translate))
 
 (defn execute-for-target
   "Execute the translated action plan for the current target."
-  [request executor]
-  {:pre [(:phase request)]}
-  (script/with-template (script-template request)
+  [session executor]
+  {:pre [(:phase session)]}
+  (script/with-template (script-template session)
     (execute
-     (get-in request (target-path request)) request executor)))
+     (get-in session (target-path session)) session executor)))

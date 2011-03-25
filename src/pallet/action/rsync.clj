@@ -5,7 +5,7 @@
    [pallet.action.package :as package]
    [pallet.compute :as compute]
    [pallet.execute :as execute]
-   [pallet.request-map :as request-map]
+   [pallet.session :as session]
    [pallet.target :as target]
    [pallet.utils :as utils]
    [clojure.contrib.logging :as logging]))
@@ -13,21 +13,21 @@
 (def cmd "/usr/bin/rsync -e '%s' -rP --delete --copy-links -F -F %s %s@%s:%s")
 
 (action/def-clj-action rsync
-  [request from to {:keys [port]}]
+  [session from to {:keys [port]}]
   (logging/info (format "rsync %s to %s" from to))
   (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
                  (if port (format "-p %s" port)))
         cmd (format
              cmd ssh from (:username utils/*admin-user*)
-             (compute/primary-ip (request-map/target-node request)) to)]
+             (compute/primary-ip (session/target-node session)) to)]
     (execute/sh-script cmd)
-    request))
+    session))
 
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
-  [request from to & {:keys [owner group mode port] :as options}]
+  [session from to & {:keys [owner group mode port] :as options}]
   (->
-   request
+   session
    (package/package "rsync")
    (directory/directory to :owner owner :group group :mode mode)
    (rsync from to options)))

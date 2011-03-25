@@ -81,7 +81,7 @@
     (binding [utils/*admin-user* user]
       (possibly-add-identity
        (default-agent) (:private-key-path user) (:passphrase user))
-      (let [request {:phase :configure
+      (let [session {:phase :configure
                      :server {:node-id :localhost
                               :node (test-utils/make-localhost-node)}
                      :action-plan
@@ -89,14 +89,14 @@
                       {:localhost (action-plan/add-action
                                    nil
                                    (action-plan/action-map
-                                    (fn [request] "ls /") []
+                                    (fn [session] "ls /") []
                                     :in-sequence :script/bash :target))}}
                      :executor core/default-executors
                      :middleware [core/translate-action-plan
                                   ssh-user-credentials
                                   execute-with-ssh]
                      :user user}
-            result (#'core/apply-phase-to-node request)]
+            result (#'core/apply-phase-to-node session)]
         (is (= 2 (count result)))
         (is (= 1 (count (first result))))
         (is (= 0 (:exit (ffirst result))))))))
@@ -111,4 +111,4 @@
   (is (= [[["a" "b"]] {}]
            (echo-transfer
             {}
-            (fn [request] {:value [["a" "b"]] :request request})))))
+            (fn [session] {:value [["a" "b"]] :session session})))))

@@ -4,18 +4,18 @@
 
 (defprotocol DelayedArgument
   "A protocol for passing arguments, with delayed evaluation."
-  (evaluate [x request]))
+  (evaluate [x session]))
 
 ;; By default, arguments should evaluate to themeselves
 (extend-type
  Object
  DelayedArgument
- (evaluate [x request] x))
+ (evaluate [x session] x))
 
 (deftype DelayedFunction
   [f]
   DelayedArgument
-  (evaluate [_ request] (f request)))
+  (evaluate [_ session] (f session)))
 
 (defn delayed-fn
   "Pass a function with a single argument, to be used to compute an argument at
@@ -25,5 +25,5 @@
 
 (defmacro delayed
   "Pass an argument to be evaluated at action application time."
-  [[request-sym] & body]
-  `(DelayedFunction. (fn [~request-sym] ~@body)))
+  [[session-sym] & body]
+  `(DelayedFunction. (fn [~session-sym] ~@body)))

@@ -176,7 +176,7 @@
                :image {}}]
                (groups-with-servers {a #{n}} :extra 1))))))
 
-(deftest request-with-groups-test
+(deftest session-with-groups-test
   (let [a (make-node :a {})
         n (test-utils/make-node
            "a" :os-family :ubuntu :os-version "v" :id "id")]
@@ -190,7 +190,7 @@
                       :image {}}]
             :all-nodes [n]
             :node-set {a #{n}}}
-           (request-with-groups
+           (session-with-groups
              {:all-nodes [n] :node-set {a #{n}}})))
     (testing "with-options"
       (is (= {:groups [{:servers [{:node-id :id
@@ -205,11 +205,11 @@
               :all-nodes [n]
               :node-set nil
               :all-node-set {a #{n}}}
-             (request-with-groups
+             (session-with-groups
                {:all-nodes [n] :node-set nil :all-node-set {a #{n}}}))))))
 
 
-(deftest request-with-environment-test
+(deftest session-with-environment-test
   (binding [pallet.core/*middleware* :middleware]
     (testing "defaults"
       (is (= {:executor core/default-executors
@@ -218,7 +218,7 @@
                :middleware :middleware
                :algorithms {:lift-fn core/parallel-lift
                             :converge-fn core/parallel-adjust-node-counts}}}
-             (#'core/request-with-environment {}))))
+             (#'core/session-with-environment {}))))
     (testing "passing a prefix"
       (is (= {:executor core/default-executors
               :environment
@@ -227,7 +227,7 @@
                :algorithms {:lift-fn core/parallel-lift
                             :converge-fn core/parallel-adjust-node-counts}}
               :prefix "prefix"}
-             (#'core/request-with-environment {:prefix "prefix"}))))
+             (#'core/session-with-environment {:prefix "prefix"}))))
     (testing "passing a user"
       (let [user (utils/make-user "fred")]
         (is (= {:executor core/default-executors
@@ -236,7 +236,7 @@
                  :middleware :middleware
                  :algorithms {:lift-fn parallel-lift
                               :converge-fn parallel-adjust-node-counts}}}
-               (#'core/request-with-environment {:user user})))))))
+               (#'core/session-with-environment {:user user})))))))
 
 (deftest node-spec-test
   (is (= {:image {}}
@@ -284,13 +284,13 @@
   (is (= "This is tom" (:doc (meta #'tom))))
   (defnode harry (tom :image))
   (is (= {:group-name :harry :image {:os-family :centos}} harry))
-  (let [test-component (action/bash-action [request arg] (str arg))
+  (let [test-component (action/bash-action [session arg] (str arg))
         node-with-phases (make-node
                           "node-with-phases" (tom :image)
                           :bootstrap #(test-component % :a)
                           :configure  #(test-component % :b))]
     (is (= #{:bootstrap :configure} (set (keys (node-with-phases :phases)))))
-    (let [request {:server {:node-id :id
+    (let [session {:server {:node-id :id
                             :group-name :group-name
                             :packager :yum
                             :image {}
@@ -299,14 +299,14 @@
       (is (= ":a\n"
              (first
               (build-actions/produce-phases
-               (assoc request :phase :bootstrap)))))
+               (assoc session :phase :bootstrap)))))
       (is (= ":b\n"
              (first
               (build-actions/produce-phases
-               (assoc request :phase :configure))))))))
+               (assoc session :phase :configure))))))))
 
-(def identity-action (action/bash-action [request x] x))
-(def identity-local-action (action/clj-action [request] request))
+(def identity-action (action/bash-action [session x] x))
+(def identity-local-action (action/clj-action [session] session))
 
 (deftest bootstrap-script-test
   (is (= "a\n"
@@ -342,14 +342,14 @@
   (let [seen (atom nil)
         seen? (fn [] @seen)]
     [(action/clj-action
-       [request]
+       [session]
        (clojure.contrib.logging/info (format "Seenfn %s" name))
        (testing (format "not already seen %s" name)
          (is (not @seen)))
        (reset! seen true)
-       (is (:server request))
-       (is (:group request))
-       request)
+       (is (:server session))
+       (is (:group session))
+       session)
       seen?]))
 
 (deftest warn-on-undefined-phase-test
@@ -372,29 +372,29 @@
     (is (= {:phase-list [:a]}
            (#'core/identify-anonymous-phases {:phase-list [:a]}))))
   (testing "with non-keyword"
-    (let [request (#'core/identify-anonymous-phases {:phase-list ['a]})]
-      (is (every? keyword (:phase-list request)))
+    (let [session (#'core/identify-anonymous-phases {:phase-list ['a]})]
+      (is (every? keyword (:phase-list session)))
       (is (= 'a
-             (get (:inline-phases request) (first (:phase-list request))))))))
+             (get (:inline-phases session) (first (:phase-list session))))))))
 
-(deftest request-with-default-phase-test
+(deftest session-with-default-phase-test
   (testing "with empty phase list"
     (is (= {:phase-list [:configure]}
-           (#'core/request-with-default-phase {}))))
+           (#'core/session-with-default-phase {}))))
   (testing "with non-empty phase list"
     (is (= {:phase-list [:a]}
-           (#'core/request-with-default-phase {:phase-list [:a]})))))
+           (#'core/session-with-default-phase {:phase-list [:a]})))))
 
-(deftest request-with-configure-phase-test
+(deftest session-with-configure-phase-test
   (testing "with empty phase-list"
     (is (= {:phase-list [:configure]}
-           (#'core/request-with-configure-phase {}))))
+           (#'core/session-with-configure-phase {}))))
   (testing "with phase list without configure"
     (is (= {:phase-list [:configure :a]}
-           (#'core/request-with-configure-phase {:phase-list [:a]}))))
+           (#'core/session-with-configure-phase {:phase-list [:a]}))))
   (testing "with phase list with configure"
     (is (= {:phase-list [:a :configure]}
-           (#'core/request-with-configure-phase
+           (#'core/session-with-configure-phase
              {:phase-list [:a :configure]})))))
 
 (deftest lift-test
@@ -512,14 +512,14 @@
         nb (test-utils/make-node "b")
         nc (test-utils/make-node "c" :running false)]
     (mock/expects [(sequential-apply-phase
-                    [request servers]
+                    [session servers]
                     (do
-                      (is (= #{na nb} (set (:all-nodes request))))
+                      (is (= #{na nb} (set (:all-nodes session))))
                       (is (= #{na nb} (set (map :node servers))))
                       (is (= #{na nb}
                              (set (map
                                    :node
-                                   (-> request :groups first :servers)))))
+                                   (-> session :groups first :servers)))))
                       []))]
                   (lift*
                    {:node-set {a #{na nb nc}}
@@ -530,14 +530,14 @@
                      :middleware *middleware*
                      :algorithms {:lift-fn sequential-lift}}}))
     (mock/expects [(sequential-apply-phase
-                    [request nodes]
+                    [session nodes]
                     (do
-                      (is (= #{na nb} (set (:all-nodes request))))
+                      (is (= #{na nb} (set (:all-nodes session))))
                       (is (= na
-                             (-> request
+                             (-> session
                                  :groups first :servers first :node)))
                       (is (= nb
-                             (-> request
+                             (-> session
                                  :groups second :servers first :node)))
                       []))]
                   (lift*
@@ -558,17 +558,17 @@
         compute (compute/compute-service "node-list" :node-list [na nb nc])]
     (mock/expects [(compute/nodes [_] [na nb nc])
                    (sequential-apply-phase
-                    [request nodes]
+                    [session nodes]
                     (do
-                      (is (= #{na nb nc} (set (:all-nodes request))))
+                      (is (= #{na nb nc} (set (:all-nodes session))))
                       (let [m (into
                                {}
                                (map
-                                (juxt :group-name identity) (:groups request)))]
+                                (juxt :group-name identity) (:groups session)))]
                         (is (= na (-> m :a :servers first :node)))
                         (is (= nb (-> m :b :servers first :node)))
-                        (is (= 2 (count (:groups request)))))
-                      (is (= 1 (-> request :parameters :x)))
+                        (is (= 2 (count (:groups session)))))
+                      (is (= 1 (-> session :parameters :x)))
                       []))]
                   (lift [a b] :compute compute :parameters {:x 1}))))
 
@@ -576,25 +576,25 @@
   ;; test that parameters set at execution time are propogated
   ;; between phases
   (let [assoc-runtime-param (action/clj-action
-                             [request]
-                             (parameter/assoc-for-target request [:x] "x"))
+                             [session]
+                             (parameter/assoc-for-target session [:x] "x"))
 
         get-runtime-param (action/bash-action
-                           [request]
+                           [session]
                            (format
-                            "echo %s" (parameter/get-for-target request [:x])))
+                            "echo %s" (parameter/get-for-target session [:x])))
         node (group-spec
                 "localhost"
                 :phases
                 {:configure assoc-runtime-param
-                 :configure2 (fn [request]
-                               (is (= (parameter/get-for-target request [:x])
+                 :configure2 (fn [session]
+                               (is (= (parameter/get-for-target session [:x])
                                       "x"))
-                               (get-runtime-param request))})
+                               (get-runtime-param session))})
         localhost (node-list/make-localhost-node :group-name "localhost")]
     (testing "serial"
       (let [compute (compute/compute-service "node-list" :node-list [localhost])
-            request (lift {node localhost}
+            session (lift {node localhost}
                           :phase [:configure :configure2]
                           :user (assoc utils/*admin-user*
                                   :username (test-utils/test-username)
@@ -602,19 +602,19 @@
                           :compute compute
                           :environment
                           {:algorithms {:lift-fn sequential-lift}})]
-        (is (map? request))
-        (is (map? (-> request :results)))
-        (is (map? (-> request :results first second)))
-        (is (-> request :results :localhost :configure))
-        (is (-> request :results :localhost :configure2))
-        (let [{:keys [out err exit]} (-> request
+        (is (map? session))
+        (is (map? (-> session :results)))
+        (is (map? (-> session :results first second)))
+        (is (-> session :results :localhost :configure))
+        (is (-> session :results :localhost :configure2))
+        (let [{:keys [out err exit]} (-> session
                                          :results :localhost :configure2 first)]
           (is out)
           (is (= err ""))
           (is (zero? exit)))))
     (testing "parallel"
       (let [compute (compute/compute-service "node-list" :node-list [localhost])
-            request (lift {node localhost}
+            session (lift {node localhost}
                           :phase [:configure :configure2]
                           :user (assoc utils/*admin-user*
                                   :username (test-utils/test-username)
@@ -622,43 +622,43 @@
                           :compute compute
                           :environment
                           {:algorithms {:lift-fn parallel-lift}})]
-        (is (map? request))
-        (is (map? (-> request :results)))
-        (is (map? (-> request :results first second)))
-        (is (-> request :results :localhost :configure))
-        (is (-> request :results :localhost :configure2))
-        (let [{:keys [out err exit]} (-> request
+        (is (map? session))
+        (is (map? (-> session :results)))
+        (is (map? (-> session :results first second)))
+        (is (-> session :results :localhost :configure))
+        (is (-> session :results :localhost :configure2))
+        (let [{:keys [out err exit]} (-> session
                                          :results :localhost :configure2 first)]
           (is out)
           (is (= err ""))
           (is (zero? exit)))))))
 
 (action/def-clj-action dummy-local-resource
-  [request arg] request)
+  [session arg] session)
 
 (deftest lift-with-delayed-argument-test
   ;; test that delayed arguments correcly see parameter updates
   ;; within the same phase
-  (let [add-slave (fn [request]
-                    (let [target-node (:target-node request)
+  (let [add-slave (fn [session]
+                    (let [target-node (:target-node session)
                           target-ip (compute/primary-ip target-node)]
                       (parameter/update-for-service
-                       request
+                       session
                        [:slaves]
                        (fn [v] (conj (or v []) target-ip)))))
         seen (atom false)
-        get-slaves (fn [request]
+        get-slaves (fn [session]
                      (reset! seen true)
                      (is (= ["127.0.0.1" "127.0.0.1"]
-                              (parameter/get-for-service request [:slaves]))))
+                              (parameter/get-for-service session [:slaves]))))
 
         master (make-node "master" {}
-                          :configure (fn [request]
+                          :configure (fn [session]
                                        (dummy-local-resource
-                                        request
+                                        session
                                         (argument/delayed
-                                         [request]
-                                         (get-slaves request)))))
+                                         [session]
+                                         (get-slaves session)))))
         slave (make-node "slave" {} :configure add-slave)
         slaves [(test-utils/make-localhost-node :name "a" :id "a" :group-name "slave")
                 (test-utils/make-localhost-node :name "b" :id "b" :group-name "slave")]
@@ -666,7 +666,7 @@
         compute (compute/compute-service
                  "node-list" :node-list (conj slaves master-node))]
     (testing "serial"
-      (let [request (lift
+      (let [session (lift
                      [master slave]
                      :compute compute
                      :user (assoc utils/*admin-user*
@@ -675,10 +675,10 @@
                      :environment {:algorithms {:lift-fn sequential-lift}})]
         (is @seen "get-slaves should be called")
         (is (= ["127.0.0.1" "127.0.0.1"]
-                 (parameter/get-for-service request [:slaves]))))
+                 (parameter/get-for-service session [:slaves]))))
       (testing "node sequence neutrality"
         (reset! seen false)
-        (let [request (lift
+        (let [session (lift
                      [slave master]
                      :compute compute
                      :user (assoc utils/*admin-user*
@@ -687,10 +687,10 @@
                      :environment {:algorithms {:lift-fn sequential-lift}})]
         (is @seen "get-slaves should be called")
         (is (= ["127.0.0.1" "127.0.0.1"]
-                 (parameter/get-for-service request [:slaves]))))))
+                 (parameter/get-for-service session [:slaves]))))))
     (testing "parallel"
       (reset! seen false)
-      (let [request (lift
+      (let [session (lift
                      [master slave]
                      :compute compute
                      :user (assoc utils/*admin-user*
@@ -699,22 +699,22 @@
                      :environment {:algorithms {:lift-fn parallel-lift}})]
         (is @seen "get-slaves should be called")
         (is (= ["127.0.0.1" "127.0.0.1"]
-                 (parameter/get-for-service request [:slaves])))))))
+                 (parameter/get-for-service session [:slaves])))))))
 
 (action/def-clj-action checking-set
-  [request]
+  [session]
   (is (= ["127.0.0.1" "127.0.0.1"]
-           (parameter/get-for-service request [:slaves])))
-  request)
+           (parameter/get-for-service session [:slaves])))
+  session)
 
 (deftest lift-post-phase-test
   (testing
       "test that parameter updates are correctly seen in the post phase"
-    (let [add-slave (fn [request]
-                      (let [target-node (:target-node request)
+    (let [add-slave (fn [session]
+                      (let [target-node (:target-node session)
                             target-ip (compute/primary-ip target-node)]
                         (parameter/update-for-service
-                         request
+                         session
                          [:slaves]
                          (fn [v] (conj (or v []) target-ip)))))
           slave (make-node "slave" {} :configure add-slave)
@@ -738,7 +738,7 @@
                                              checking-set
                                              localf-post)))
 
-              request (lift
+              session (lift
                        [master slave]
                        :compute compute
                        :user (assoc utils/*admin-user*
@@ -748,7 +748,7 @@
           (is (seen-pre?) "checking-not-set should be called")
           (is (seen-post?) "checking-set should be called")
           (is (= ["127.0.0.1" "127.0.0.1"]
-                   (parameter/get-for-service request [:slaves])))))
+                   (parameter/get-for-service session [:slaves])))))
       (testing "with serial lift in reverse node type order"
         (let [[localf-pre seen-pre?] (seen-fn "lift-post-phase-test pre")
               [localf-post seen-post?] (seen-fn "lift-post-phase-test post")
@@ -761,7 +761,7 @@
                                              checking-set
                                              localf-post)))
 
-              request (lift
+              session (lift
                        [slave master]
                        :compute compute
                        :user (assoc utils/*admin-user*
@@ -771,7 +771,7 @@
           (is (seen-pre?) "checking-not-set should be called")
           (is (seen-post?) "checking-set should be called")
           (is (= ["127.0.0.1" "127.0.0.1"]
-                   (parameter/get-for-service request [:slaves])))))
+                   (parameter/get-for-service session [:slaves])))))
       (testing "with parallel lift"
         (let [[localf-pre seen-pre?] (seen-fn "lift-post-phase-test pre")
               [localf-post seen-post?] (seen-fn "lift-post-phase-test post")
@@ -784,7 +784,7 @@
                                              checking-set
                                              localf-post)))
 
-              request (lift
+              session (lift
                        [master slave]
                        :compute compute
                        :user (assoc utils/*admin-user*
@@ -794,4 +794,4 @@
           (is (seen-pre?) "checking-not-set should be called")
           (is (seen-post?) "checking-set should be called")
           (is (= ["127.0.0.1" "127.0.0.1"]
-                   (parameter/get-for-service request [:slaves]))))))))
+                   (parameter/get-for-service session [:slaves]))))))))

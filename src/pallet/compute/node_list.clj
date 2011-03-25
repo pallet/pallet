@@ -50,8 +50,8 @@
   pallet.compute.ComputeService
   (nodes [compute-service] node-list)
   (ensure-os-family
-   [compute-service request]
-   (when (not (-> request :group :image :os-family))
+   [compute-service group-spec]
+   (when (not (-> group-spec :image :os-family))
      (condition/raise
       :type :no-os-family-specified
        :message "Node list contains a node without os-family")))

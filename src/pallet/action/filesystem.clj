@@ -9,8 +9,8 @@
 
 (defn make-xfs-filesytem
   "Format a device as an XFS filesystem."
-  [request device]
-  (-> request
+  [session device]
+  (-> session
       (exec-script/exec-checked-script
        (format "Format %s as XFS" device)
        (mkfs.xfs -f ~device))))
@@ -36,13 +36,13 @@
 
 (defn mount
   "Mount a device."
-  [request device mount-point
+  [session device mount-point
    & {:keys [fs-type device-type automount no-automount dump-frequency
              boot-check-pass]
       :or {dump-frequency 0 boot-check-pass 0}
       :as options}]
   (->
-   request
+   session
    (directory/directory mount-point)
    (exec-script/exec-checked-script
     (format "Mount %s at %s" device mount-point)

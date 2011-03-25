@@ -44,7 +44,7 @@
 
 
 (action/def-bash-action lookup-test-action
-  [request a]
+  [session a]
   (str a))
 
 (deftest lookup-test
@@ -56,8 +56,8 @@
 (action/def-clj-action parameters-test
   "An action that tests parameter values for equality with the argument
    supplied values."
-  [request & {:as options}]
-  (let [parameters (:parameters request)]
+  [session & {:as options}]
+  (let [parameters (:parameters session)]
     (doseq [[[key & keys] value] options]
       (is (= value
              (let [param-value (get parameters key ::not-set)]
@@ -65,12 +65,12 @@
                (if (seq keys)
                  (get-in param-value keys)
                  param-value))))))
-  request)
+  session)
 
 (deftest set-parameters-test
-  (let [[res request] (build-actions/build-actions
+  (let [[res session] (build-actions/build-actions
                        {}
                        (parameters [:a] 33)
                        (parameters [:b] 43)
                        (parameters-test [:a] 33))]
-    (is (= {:a 33 :b 43} (:parameters request)))))
+    (is (= {:a 33 :b 43} (:parameters session)))))

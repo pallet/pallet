@@ -8,9 +8,9 @@
    clojure.contrib.logging))
 
 (defmacro when
-  [request condition & crate-fns-or-actions]
+  [session condition & crate-fns-or-actions]
   `(->
-    ~request
+    ~session
     (action/enter-scope)
     (exec-script/exec-script ("if [" ~condition "]; then"))
     ~@crate-fns-or-actions
@@ -18,9 +18,9 @@
     (action/leave-scope)))
 
 (defmacro when-not
-  [request condition & crate-fns-or-actions]
+  [session condition & crate-fns-or-actions]
   `(->
-    ~request
+    ~session
     (action/enter-scope)
     (exec-script/exec-script ("if [ !" ~condition "]; then"))
     ~@crate-fns-or-actions

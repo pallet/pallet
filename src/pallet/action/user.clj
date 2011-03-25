@@ -17,7 +17,7 @@
 
 (defn user*
   "Require a user"
-  [request username & {:keys [action shell base-dir home system create-home
+  [session username & {:keys [action shell base-dir home system create-home
                               password shell comment groups remove force]
                        :or {action :manage}
                        :as options}]
@@ -56,14 +56,14 @@
 
 (action/def-aggregated-action user
   "User management."
-  [request user-args]
+  [session user-args]
   {:arglists (:arglists (meta pallet.action.user/user*))}
-  (string/join \newline (map #(apply user* request %) user-args)))
+  (string/join \newline (map #(apply user* session %) user-args)))
 
 
 (action/def-bash-action group
   "User Group Management."
-  [request groupname & {:keys [action system gid password]
+  [session groupname & {:keys [action system gid password]
                         :or {action :manage}
                         :as options}]
   (case action

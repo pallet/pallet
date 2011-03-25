@@ -18,7 +18,7 @@
    - :sequence-start  a sequence of [sequence-number level level ...], where
                       sequence number determines the order in which services
                       are started within a level."
-  [request service-name & {:keys [action if-flag]
+  [session service-name & {:keys [action if-flag]
                            :or {action :start}
                            :as options}]
   (if (#{:enable :disable :start-stop} action)
@@ -34,22 +34,22 @@
 
 (defmacro with-restart
   "Stop the given service, execute the body, and then restart."
-  [request service-name & body]
+  [session service-name & body]
   `(let [service# ~service-name]
-     (-> ~request
+     (-> ~session
          (service service# :action :stop)
          ~@body
          (service service# :action :start))))
 
 (defn init-script
   "Install an init script.  Sources as for remote-file."
-  [request name & {:keys [action url local-file remote-file link
+  [session name & {:keys [action url local-file remote-file link
                           content literal template values md5 md5-url force]
                    :or {action :create}
                    :as options}]
   (apply
    remote-file/remote-file
-   request
+   session
    (str (stevedore/script (~lib/etc-init)) "/" name)
    :action action :owner "root" :group "root" :mode "0755"
    (apply concat options)))

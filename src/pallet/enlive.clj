@@ -24,29 +24,29 @@
 
 (def memo-xml-resource
      (memoize
-      (fn [source request]
-        (if-let [source (find-template source request)]
+      (fn [source session]
+        (if-let [source (find-template source session)]
           (enlive/xml-resource source)
           (error
            (format
             "No template found for %s %s"
-            source (-> request :server :tag)))))))
+            source (-> session :server :tag)))))))
 
 (defmacro defsnippet
   "A snippet returns a collection of nodes."
-  [name source request args & forms]
+  [name source session args & forms]
   `(defn ~name ~args
-    (if-let [nodes# (memo-xml-resource ~source ~request)]
+    (if-let [nodes# (memo-xml-resource ~source ~session)]
       (enlive/at nodes# ~@forms))))
 
 (defmacro xml-template
   "A template returns a seq of string:
    Overridden from enlive to defer evaluation of the source until runtime, and
    to enable specialisation on node-type"
-  [source request args & forms]
+  [source session args & forms]
   `(comp enlive/emit*
          (fn ~args
-           (if-let [nodes# (memo-xml-resource ~source ~request)]
+           (if-let [nodes# (memo-xml-resource ~source ~session)]
              (enlive/flatmap (enlive/transformation ~@forms) nodes#)))))
 
 (defn xml-emit

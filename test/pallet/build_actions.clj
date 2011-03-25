@@ -13,108 +13,108 @@
    [clojure.string :as string]))
 
 (defn- apply-phase-to-node
-  "Apply a phase to a node request"
-  [request]
-  {:pre [(:phase request)]}
-  ((#'core/middleware-handler #'core/execute) request))
+  "Apply a phase to a node session"
+  [session]
+  {:pre [(:phase session)]}
+  ((#'core/middleware-handler #'core/execute) session))
 
 (defn produce-phases
   "Join the result of execute-action-plan, executing local actions.
    Useful for testing."
-  [request]
+  [session]
   (let [execute
-        (fn [request]
-          (let [[result request] (apply-phase-to-node
-                                  request)]
-            [(string/join "" result) request]))]
+        (fn [session]
+          (let [[result session] (apply-phase-to-node
+                                  session)]
+            [(string/join "" result) session]))]
     (reduce
-     (fn [[results request] phase]
-       (let [[result request] (execute (assoc request :phase phase))]
-         [(str results result) request]))
+     (fn [[results session] phase]
+       (let [[result session] (execute (assoc session :phase phase))]
+         [(str results result) session]))
      ["" (->
-          request
+          session
           (assoc :middleware
             [core/translate-action-plan
              execute/execute-echo]
             :executor core/default-executors)
           action-plan/build-for-target)]
-     (phase/all-phases-for-phase (:phase request)))))
+     (phase/all-phases-for-phase (:phase session)))))
 
 (defn- convert-0-4-5-compatible-keys
   "Convert old build-actions keys to new keys."
-  [request]
-  (let [request (if-let [node-type (:node-type request)]
+  [session]
+  (let [session (if-let [node-type (:node-type session)]
                   (do
                     (logging/info ":node-type -> :server")
-                    (-> request
+                    (-> session
                         (assoc :server node-type)
                         (dissoc :node-type)))
-                  request)
-        request (if-let [target-node (:target-node request)]
+                  session)
+        session (if-let [target-node (:target-node session)]
                   (do
                     (logging/info ":target-node -> [:server :node]")
-                    (-> request
+                    (-> session
                         (assoc-in [:server :node] target-node)
                         (assoc-in [:server :node-id]
                                   (keyword (compute/id target-node)))
                         (dissoc :target-node)))
-                  request)
-        request (if-let [target-id (:target-id request)]
+                  session)
+        session (if-let [target-id (:target-id session)]
                   (do
                     (logging/info ":target-id -> [:server :node-id]")
-                    (-> request
+                    (-> session
                         (assoc-in [:server :node-id] target-id)
                         (dissoc :target-id)))
-                  request)
-        request (if-let [packager (-> request :server :image :packager)]
+                  session)
+        session (if-let [packager (-> session :server :image :packager)]
                   (do
                     (logging/info
                      "[:node-type :image :package] -> [:server :packager]")
-                    (-> request
+                    (-> session
                         (assoc-in [:server :packager] packager)
                         (update-in [:server :image] dissoc :packager)))
-                  request)
-        request (if-let [target-packager (:target-packager request)]
+                  session)
+        session (if-let [target-packager (:target-packager session)]
                   (do
                     (logging/info ":target-packager -> [:server :packager]")
-                    (-> request
+                    (-> session
                         (assoc-in [:server :packager] target-packager)
                         (dissoc :target-packager)))
-                  request)]
-    request))
+                  session)]
+    session))
 
-(defn- build-request
-  "Takes the request map, and tries to add the most keys possible.
-   The default request is
+(defn- build-session
+  "Takes the session map, and tries to add the most keys possible.
+   The default session is
        {:all-nodes [nil]
         :server {:packager :aptitude
                      :node-id :id
                      :tag :id
                      :image {:os-family :ubuntu}}
         :phase :configure}"
-  [request-map]
-  (let [request (or request-map {})
-        request (update-in request [:phase]
+  [session]
+  (let [session (or session {})
+        session (update-in session [:phase]
                            #(or % :configure))
-        request (update-in request [:server :image :os-family]
+        session (update-in session [:server :image :os-family]
                            #(or % :ubuntu))
-        request (update-in request [:server :group-name]
+        session (update-in session [:server :group-name]
                            #(or % :id))
-        request (update-in request [:server :node-id]
+        session (update-in session [:server :node-id]
                            #(or %
-                                (if-let [node (-> request :server :node)]
+                                (if-let [node (-> session :server :node)]
                                   (keyword (compute/id node))
                                   :id)))
-        request (update-in request [:all-nodes]
-                           #(or % [(-> request :server :node)]))
-        request (update-in
-                 request [:server :packager]
+        session (update-in session [:all-nodes]
+                           #(or % [(-> session :server :node)]))
+        session (update-in
+                 session [:server :packager]
                  #(or
                    %
-                   (get-in request [:server :packager])
-                   (get-in request [:packager])
+                   (get-in session [:server :packager])
+                   (get-in session [:packager])
                    (let [os-family (get-in
-                                     request
+                                     session
                                      [:server :image :os-family])]
                      (cond
                       (#{:ubuntu :debian :jeos :fedora} os-family) :aptitude
@@ -122,33 +122,33 @@
                       (#{:arch} os-family) :pacman
                       (#{:suse} os-family) :zypper
                       (#{:gentoo} os-family) :portage))))]
-    request))
+    session))
 
 (defn build-actions*
   "Implementation for build-actions."
-  [f request-map]
-  (let [request (if (map? request-map)  ; historical compatibility
-                  request-map
-                  (convert-0-4-5-compatible-keys (apply hash-map request-map)))
-        request (build-request request)
-        request (assoc-in request [:server :phases (:phase request)] f)
-        request (if (map? request-map)  ; historical compatibility
-                  request
-                  ((#'core/add-request-keys-for-0-4-5-compatibility
+  [f session-arg]
+  (let [session (if (map? session-arg)  ; historical compatibility
+                  session-arg
+                  (convert-0-4-5-compatible-keys (apply hash-map session-arg)))
+        session (build-session session)
+        session (assoc-in session [:server :phases (:phase session)] f)
+        session (if (map? session-arg)  ; historical compatibility
+                  session
+                  ((#'core/add-session-keys-for-0-4-5-compatibility
                     identity)
-                   request))]
-    (produce-phases request)))
+                   session))]
+    (produce-phases session)))
 
 (defmacro build-actions
   "Outputs the remote actions specified in the body for the specified phases.
    This is useful in testing.
 
-   `request-map` should be a map (but was historically a vector of keyword
-   pairs).  See `build-request`."
-  [request-map & body]
+   `session` should be a map (but was historically a vector of keyword
+   pairs).  See `build-session`."
+  [session & body]
   `(do
-     (let [request-map# ~request-map]
-       (when-not (map? request-map#)
+     (let [session# ~session]
+       (when-not (map? session#)
          (logging/warn
-          "Use of vector for request-map in build-actions is deprecated."))
-       (build-actions* (phase/phase-fn ~@body) request-map#))))
+          "Use of vector for session in build-actions is deprecated."))
+       (build-actions* (phase/phase-fn ~@body) session#))))

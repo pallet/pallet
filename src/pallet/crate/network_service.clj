@@ -11,11 +11,11 @@
    - :max-retries   number of times to test port state before erroring
    - :service-name  name of service to use in messages (defaults to port)"
 
-  [request port & {:keys [max-retries standoff service-name]
+  [session port & {:keys [max-retries standoff service-name]
                    :or {max-retries 5 standoff 2
                         service-name (str "port " port)}}]
   (->
-   request
+   session
    (exec-script/exec-checked-script
     (format "Wait for %s to be in a listen state" service-name)
     (group (chain-or (let x 0) true))
@@ -40,11 +40,11 @@
    - :max-retries   number of times to test HTTP status before erroring
    - :url-name      name of url to use in messages (defaults to url)"
 
-  [request url status & {:keys [max-retries standoff url-name]
+  [session url status & {:keys [max-retries standoff url-name]
                          :or {max-retries 5 standoff 2
                               url-name url}}]
   (->
-   request
+   session
    (exec-script/exec-checked-script
     (format "Wait for %s to return a %s status" url-name status)
 
@@ -88,12 +88,12 @@
    - :max-retries   number of times to test HTTP status before erroring
    - :service-name  name of service to use in messages (defaults to port)"
 
-  [request port message response-regex
+  [session port message response-regex
    & {:keys [host timeout max-retries standoff service-name]
       :or {host "localhost" max-retries 5 standoff 2 timeout 2
            service-name (str "port " port)}}]
   (->
-   request
+   session
    (exec-script/exec-checked-script
     (format
      "Wait for %s to return a response %s to message %s"

@@ -33,21 +33,21 @@
 
    To install the content of an url pointing at a tar file, specify the :url
    option.
-       (remote-directory request path
+       (remote-directory session path
           :url \"http://a.com/path/file.tgz\")
 
    If there is an md5 url with the tar file's md5, you can specify that as well,
    to prevent unecessary downloads and verify the content.
-       (remote-directory request path
+       (remote-directory session path
           :url \"http://a.com/path/file.tgz\"
           :md5-url \"http://a.com/path/file.md5\")
 
    To install the content of an url pointing at a zip file, specify the :url
    option and :unpack :unzip.
-       (remote-directory request path
+       (remote-directory session path
           :url \"http://a.com/path/file.\"
           :unpack :unzip)"
-  [request path & {:keys [action url unpack tar-options unzip-options
+  [session path & {:keys [action url unpack tar-options unzip-options
                           strip-components md5 md5-url owner group recursive]
                    :or {action :create
                         tar-options "xz"
@@ -65,9 +65,9 @@
                   (stevedore/checked-commands
                    "remote-directory"
                    (directory*
-                    request path :owner owner :group group)
+                    session path :owner owner :group group)
                    (remote-file*
-                    request tarpath :url url :md5 md5 :md5-url md5-url)
+                    session tarpath :url url :md5 md5 :md5-url md5-url)
                    (condp = unpack
                        :tar (stevedore/script
                              (cd ~path)
@@ -78,7 +78,7 @@
                                (unzip ~unzip-options ~tarpath)))
                    (if recursive
                      (directory*
-                      request path
+                      session path
                       :owner owner
                       :group group
                       :recursive recursive))))))))

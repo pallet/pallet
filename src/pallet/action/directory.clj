@@ -47,7 +47,7 @@
     - :group      set group
     - :mode       set mode"
 
-  [request dir-path & {:keys [action recursive force path mode verbose owner
+  [session dir-path & {:keys [action recursive force path mode verbose owner
                               group]
                        :or {action :create recursive true force true path true}
                        :as options}]
@@ -70,6 +70,6 @@
 
    `options` are as for `directory` and are applied to each directory in
    `paths`"
-  [request paths & options]
+  [session paths & options]
   (stevedore/chain-commands*
-   (map #(apply (action/action-fn directory) request % options) paths)))
+   (map #(apply (action/action-fn directory) session % options) paths)))

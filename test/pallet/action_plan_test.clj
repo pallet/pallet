@@ -75,7 +75,7 @@
               identity identity nested-identity action-plan))))))
 
 (deftest transform-scopes-test
-  (let [f (fn [request x] (str x))]
+  (let [f (fn [session x] (str x))]
     (testing "unnested"
       (let [action-plan (-> nil
                             (action-plan/add-action
@@ -219,7 +219,7 @@
 
 (deftest bind-arguments-test
   (testing "in-sequence"
-    (let [f (fn [request x] x)
+    (let [f (fn [session x] x)
           action-plan (#'action-plan/bind-arguments
                        [{:f f
                          :args [1]
@@ -232,7 +232,7 @@
       (is (fn? (:f (first action-plan))))
       (is (= 1 ((:f (first action-plan)) {})))))
   (testing "aggregated"
-    (let [f (fn [request x] x)
+    (let [f (fn [session x] x)
           action-plan (#'action-plan/bind-arguments
                        [{:f f
                          :args [[1] [2]]
@@ -245,7 +245,7 @@
       (is (fn? (:f (first action-plan))))
       (is (= [[1] [2]] ((:f (first action-plan)) {})))))
     (testing "collected"
-    (let [f (fn [request x] x)
+    (let [f (fn [session x] x)
           action-plan (#'action-plan/bind-arguments
                        [{:f f
                          :args [[1] [2]]
@@ -260,7 +260,7 @@
 
 (deftest combine-by-location-and-type-test
   (testing "script/bash"
-    (let [f (fn [request x] (str x))
+    (let [f (fn [session x] (str x))
           action-plan [{:f f
                         :args [1]
                         :location :target
@@ -282,7 +282,7 @@
 
 (deftest augment-return-test
   (testing "script/bash"
-    (let [f (fn [request x] (str x))
+    (let [f (fn [session x] (str x))
           action-plan [{:f #(f % 1)
                         :location :target
                         :action-type :script/bash
@@ -293,7 +293,7 @@
       (is (nil? (:args action-plan)))
       (is (fn? (:f (first action-plan))))
       (is (= {:value "1"
-              :request {:a 1}
+              :session {:a 1}
               :location :target
               :action-type :script/bash
               :execution :in-sequence}
@@ -301,7 +301,7 @@
                  (dissoc :f)))))))
 
 (deftest translate-test
-  (let [f (fn [request x] (str x))
+  (let [f (fn [session x] (str x))
         action-plan (-> nil
                         (action-plan/add-action
                          (action-plan/action-map
@@ -316,7 +316,7 @@
           (map #(dissoc % :f)))))
     (is (=
          {:value "1\n2\n",
-          :request {}
+          :session {}
           :location :target
           :action-type :script/bash
           :execution :in-sequence}
@@ -325,37 +325,37 @@
           (dissoc :f))))))
 
 (defn executor [m]
-  (fn [request f action-type location]
+  (fn [session f action-type location]
     (let [exec-fn (get-in m [action-type location])]
       (assert exec-fn)
-      (exec-fn request f))))
+      (exec-fn session f))))
 
 (defn echo
   "Echo the result of an action. Do not execute."
-  [request f]
-  [(:value (f request)) request])
+  [session f]
+  [(:value (f session)) session])
 
 (defn null-result
   "Echo the result of an action. Do not execute."
-  [request f]
-  (let [{:keys [request]} (f request)]
-    [nil request]))
+  [session f]
+  (let [{:keys [session]} (f session)]
+    [nil session]))
 
 (deftest excute-action-test
-  (let [f (fn [request x] (str x))]
+  (let [f (fn [session x] (str x))]
     (is (=
          [["1"] {}]
          (action-plan/execute-action
           (executor {:script/bash {:target echo}})
           [[] {}]
           (action-plan/augment-return
-           {:f (fn [request] "1")
+           {:f (fn [session] "1")
             :location :target
             :action-type :script/bash
             :execution :in-sequence}))))))
 
 (deftest execute-test
-  (let [f (fn [request x] (str (vec x)))
+  (let [f (fn [session x] (str (vec x)))
         action-plan (-> nil
                         (action-plan/add-action
                          (action-plan/action-map
@@ -370,7 +370,7 @@
           {:a 1}
           (executor {:script/bash {:target echo}})))))
   (testing "nested"
-    (let [f (fn [request x] (str (vec x)))
+    (let [f (fn [session x] (str (vec x)))
           action-plan (-> nil
                           action-plan/push-block
                           (action-plan/add-action

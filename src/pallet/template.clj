@@ -54,19 +54,19 @@
 (defn find-template
   "Find a template for the specified path, for application to the given node.
    Templates may be specialised."
-  [path request]
-  {:pre [(map? request) (request :server)]}
+  [path session]
+  {:pre [(map? session) (session :server)]}
   (some
    get-resource
    (candidate-templates
-    path (-> request :server :tag) (-> request :server :image))))
+    path (-> session :server :tag) (-> session :server :image))))
 
 (defn interpolate-template
   "Interpolate the given template."
-  [path values request]
+  [path values session]
   (strint/<<!
    (utils/load-resource-url
-    (find-template path request))
+    (find-template path session))
    (utils/map-with-keys-as-symbols values)))
 
 ;;; programatic templates - umm not really templates at all

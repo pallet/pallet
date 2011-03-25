@@ -40,18 +40,18 @@
 
        (get-for {:p {:a {:b 1} {:d 2}}} [:p :a :d])
          => 2"
-  ([request keys]
-     (let [result (get-in (:parameters request) keys ::not-set)]
+  ([session keys]
+     (let [result (get-in (:parameters session) keys ::not-set)]
        (when (= ::not-set result)
          (condition/raise
           :type :parameter-not-found
           :message (format
-                    "Could not find keys %s in request :parameters"
+                    "Could not find keys %s in session :parameters"
                     (if (sequential? keys) (vec keys) keys))
           :key-not-set keys))
        result))
-  ([request keys default]
-       (get-in (:parameters request) keys default)))
+  ([session keys default]
+       (get-in (:parameters session) keys default)))
 
 (defn get-for-target
   "Retrieve the host parameter for the current target at the path specified by
@@ -62,11 +62,11 @@
          {:parameters {:host {:id1 {:a {:b 1} {:d 2}}}}
           :target-id :id1} [:a :b])
          => 1"
-  ([request keys]
-     (get-for request (concat [:host (-> request :server :node-id)] keys)))
-  ([request keys default]
+  ([session keys]
+     (get-for session (concat [:host (-> session :server :node-id)] keys)))
+  ([session keys default]
      (get-for
-      request (concat [:host (-> request :server :node-id)] keys) default)))
+      session (concat [:host (-> session :server :node-id)] keys) default)))
 
 (defn get-for-service
   "Retrieve the service parameter for the service and path specified by
@@ -76,10 +76,10 @@
        (get-for-service
          {:parameters {:service {:proxy {:a {:b 1} {:d 2}}}}} [:proxy :a :b])
          => 1"
-  ([request keys]
-     (get-for request (concat [:service] keys)))
-  ([request keys default]
-     (get-for request (concat [:service] keys) default)))
+  ([session keys]
+     (get-for session (concat [:service] keys)))
+  ([session keys default]
+     (get-for session (concat [:service] keys) default)))
 
 (defn- assoc-for-prefix
   "Set the values in a map at the paths specified with prefix prepended to each
@@ -87,10 +87,10 @@
 
        (assoc-for-prefix {} :prefix [:a :b] 1 [:a :d] 2)
          => {:prefix {:a {:b 1} {:d 2}}}"
-  [request prefix {:as keys-value-pairs}]
+  [session prefix {:as keys-value-pairs}]
   (reduce
    #(assoc-in %1 (concat prefix (first %2)) (second %2))
-   request
+   session
    keys-value-pairs))
 
 (defn assoc-for
@@ -98,26 +98,26 @@
 
        (assoc-for {} [:a :b] 1 [:a :d] 2)
          => {:parameters {:a {:b 1} {:d 2}}}"
-  [request & {:as keys-value-pairs}]
-  (assoc-for-prefix request [:parameters] keys-value-pairs))
+  [session & {:as keys-value-pairs}]
+  (assoc-for-prefix session [:parameters] keys-value-pairs))
 
 (defn assoc-for-target
   "Set the host parameter values at the paths specified.
 
        (assoc-for-target {:target-id :id1} [:a :b] 1 [:a :d] 2)
          => {:parameters {:host {:id1 {:a {:b 1} {:d 2}}}}}"
-  [request & {:as keys-value-pairs}]
+  [session & {:as keys-value-pairs}]
   (assoc-for-prefix
-   request [:parameters :host (-> request :server :node-id)] keys-value-pairs))
+   session [:parameters :host (-> session :server :node-id)] keys-value-pairs))
 
 (defn assoc-for-service
   "Set the service parameter values at the paths specified.
 
        (assoc-for-service {} :proxy [:a :b] 1 [:a :d] 2)
          => {:parameters {:srvice {:proxy {:a {:b 1} {:d 2}}}}}"
-  [request service & {:as keys-value-pairs}]
+  [session service & {:as keys-value-pairs}]
   (assoc-for-prefix
-   request [:parameters :service service] keys-value-pairs))
+   session [:parameters :service service] keys-value-pairs))
 
 (defn- update-for-prefix
   "Update a map at the path given by the prefix and keys.
@@ -126,8 +126,8 @@
 
        (update-for-prefix {:p {:a {:b 1}}} [:p] [:a :b] + 2)
          => {:p {:a {:b 3}}}"
-  ([request prefix keys f args]
-  (apply update-in request (concat prefix keys) f args)))
+  ([session prefix keys f args]
+  (apply update-in session (concat prefix keys) f args)))
 
 (defn update-for
   "Update parameters at the path given by keys.
@@ -136,8 +136,8 @@
 
        (update-for {:parameters {:a {:b 1}}} [:a :b] + 2)
          => {:parameters {:a {:b 3}}}"
-  ([request keys f & args]
-     (update-for-prefix request [:parameters] keys f args)))
+  ([session keys f & args]
+     (update-for-prefix session [:parameters] keys f args)))
 
 (defn update-for-target
   "Update host parameters for the current target at the path given by keys.
@@ -149,9 +149,9 @@
            :target-id :id1}
           [:a :b] + 2)
          => {:parameters {:host {:id1 {:a {:b 3}}}}}"
-  [request keys f & args]
+  [session keys f & args]
   (update-for-prefix
-   request [:parameters :host (-> request :server :node-id)] keys f args))
+   session [:parameters :host (-> session :server :node-id)] keys f args))
 
 (defn update-for-service
   "Update serivce parameters for the pecified service at the path given by keys.
@@ -162,23 +162,23 @@
           {:parameters {:service {:proxy {:a {:b 1}}}}}
           [:proxy :a :b] + 2)
          => {:parameters {:service {:proxy {:a {:b 3}}}}}"
-  [request keys f & args]
-  (update-for-prefix request [:parameters :service] keys f args))
+  [session keys f & args]
+  (update-for-prefix session [:parameters :service] keys f args))
 
 ;;; Delayed parameter evaluation
 (deftype ParameterLookup
   [keys]
   pallet.argument.DelayedArgument
   (evaluate
-   [_ request]
-   (get-for request keys)))
+   [_ session]
+   (get-for session keys)))
 
 (deftype ParameterLookupTarget
   [keys]
   pallet.argument.DelayedArgument
   (evaluate
-   [_ request]
-   (get-for request (concat [:host (-> request :server :node-id)] keys))))
+   [_ session]
+   (get-for session (concat [:host (-> session :server :node-id)] keys))))
 
 (defn lookup
   "Lookup a parameter in a delayed manner. Use a call to this function as the
@@ -202,9 +202,9 @@
 ;;; Actions
 (action/def-clj-action parameters
   "An action to set parameters"
-  [request & {:as keyvector-value-pairs}]
-  (assoc request
+  [session & {:as keyvector-value-pairs}]
+  (assoc session
     :parameters (reduce
                  #(apply assoc-in %1 %2)
-                 (:parameters request)
+                 (:parameters session)
                  keyvector-value-pairs)))

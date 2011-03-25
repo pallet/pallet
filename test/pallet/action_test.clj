@@ -7,8 +7,8 @@
    clojure.test))
 
 (deftest action-test
-  (is (fn? (action/action :in-sequence :script/bash :target [request] "hello")))
-  (let [f (action/action :in-sequence :script/bash :target [request] "hello")]
+  (is (fn? (action/action :in-sequence :script/bash :target [session] "hello")))
+  (let [f (action/action :in-sequence :script/bash :target [session] "hello")]
     (is (fn? (action/action-fn f)))
     (is (= "hello" ((action/action-fn f) {})))
     (is (= {:action-plan
@@ -24,8 +24,8 @@
            (f {:phase :fred :target-id :id :server {:node-id :id}})))))
 
 (deftest bash-action-test
-  (is (fn? (action/bash-action [request arg] arg)))
-  (let [f (action/bash-action [request arg] {:some-meta :a} arg)]
+  (is (fn? (action/bash-action [session arg] arg)))
+  (let [f (action/bash-action [session arg] {:some-meta :a} arg)]
     (is (fn? (action/action-fn f)))
     (is (= "hello" ((action/action-fn f) {:a 1} "hello")))
     (is (= :a (:some-meta (meta f))))
@@ -44,12 +44,12 @@
 
 (action/def-bash-action test-bash-action
   "Some doc"
-  [request arg]
+  [session arg]
   {:some-meta :a}
   arg)
 
 (deftest def-bash-action-test
-  (is (= '([request arg]) (:arglists (meta #'test-bash-action))))
+  (is (= '([session arg]) (:arglists (meta #'test-bash-action))))
   (is (= "Some doc" (:doc (meta #'test-bash-action))))
   (is (= :a (:some-meta (meta test-bash-action))))
   (is (fn? (action/action-fn test-bash-action)))
@@ -70,8 +70,8 @@
           "hello"))))
 
 (deftest clj-action-test
-  (is (fn? (action/clj-action [request arg] request)))
-  (let [f (action/clj-action [request arg] request)]
+  (is (fn? (action/clj-action [session arg] session)))
+  (let [f (action/clj-action [session arg] session)]
     (is (fn? (action/action-fn f)))
     (is (= {:a 1} ((action/action-fn f) {:a 1} 1)))
     (is (= {:action-plan
@@ -87,7 +87,7 @@
            (f {:phase :fred :target-id :id :server {:node-id :id}} 1))))
   (testing "execute"
     (let [x (atom nil)
-          f (action/clj-action [request arg] (reset! x true) request)
+          f (action/clj-action [session arg] (reset! x true) session)
           req {:phase :fred :target-id :id :server {:node-id :id}}
           req (f req 1)
           req (f req 2)]
@@ -118,8 +118,8 @@
 
 (deftest as-clj-action-test
   (testing "with named args"
-    (is (fn? (action/as-clj-action identity [request])))
-    (let [f (action/as-clj-action identity [request])]
+    (is (fn? (action/as-clj-action identity [session])))
+    (let [f (action/as-clj-action identity [session])]
       (is (fn? (action/action-fn f)))
       (is (= {:a 1} ((action/action-fn f) {:a 1})))
       (is (= {:action-plan
@@ -151,8 +151,8 @@
              (f {:phase :fred :target-id :id :server {:node-id :id}}))))))
 
 (deftest aggregated-action-test
-  (is (fn? (action/aggregated-action [request args] args)))
-  (let [f (action/aggregated-action [request args] (vec args))]
+  (is (fn? (action/aggregated-action [session args] args)))
+  (let [f (action/aggregated-action [session args] (vec args))]
     (is (fn? (action/action-fn f)))
     (is (= [1] ((action/action-fn f) {:a 1} [1])))
     (let [req {:phase :fred :target-id :id :server {:node-id :id}}
@@ -186,13 +186,13 @@
 (action/def-aggregated-action
   test-aggregated-action
   "Some doc"
-  [request arg]
-  {:arglists '([request arg1])
+  [session arg]
+  {:arglists '([session arg1])
    :some-meta :a}
   arg)
 
 (deftest def-aggregated-action-test
-  (is (= '([request arg1]) (:arglists (meta #'test-aggregated-action))))
+  (is (= '([session arg1]) (:arglists (meta #'test-aggregated-action))))
   (is (= :a (:some-meta (meta #'test-aggregated-action))))
   (is (= "Some doc" (:doc (meta #'test-aggregated-action))))
   (is (= :a (:some-meta (meta test-aggregated-action))))

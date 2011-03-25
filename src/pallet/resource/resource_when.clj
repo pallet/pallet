@@ -5,21 +5,21 @@
    [pallet.utils :as utils]))
 
 (defmacro resource-when
-  [request condition & resources]
+  [session condition & resources]
   `(do
      (utils/deprecated-macro
       ~&form
       (utils/deprecate-rename
        'pallet.resource.resource-when/resource-when
        'pallet.action.conditional/when))
-     (conditional/when ~request ~condition ~@resources)))
+     (conditional/when ~session ~condition ~@resources)))
 
 (defmacro resource-when-not
-  [request condition & resources]
+  [session condition & resources]
   `(do
      (utils/deprecated-macro
       ~&form
       (utils/deprecate-rename
        'pallet.resource.resource-when/resource-when-not
        'pallet.action.conditional/when-not))
-     (conditional/when-not ~request ~condition ~@resources)))
+     (conditional/when-not ~session ~condition ~@resources)))

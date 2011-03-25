@@ -11,10 +11,10 @@
   (is (= :pre-fred (pre-phase-name :fred))))
 
 (defmacro is-phase
-  [request phase]
+  [session phase]
   `(do
-     (is (= ~phase (:phase ~request)))
-     ~request))
+     (is (= ~phase (:phase ~session)))
+     ~session))
 
 (deftest schedule-in-post-phase-test
   (is (= :fred

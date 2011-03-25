@@ -81,5 +81,5 @@
 
 
 (action/def-clj-action as-local-resource
-  [request f & args]
-  (apply f request args))
+  [session f & args]
+  (apply f session args))

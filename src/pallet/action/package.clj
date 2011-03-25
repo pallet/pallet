@@ -10,8 +10,8 @@
    [pallet.action.remote-file :as remote-file]
    [pallet.action.exec-script :as exec-script]
    [pallet.script.lib :as lib]
+   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
-   [pallet.request-map :as request-map]
    [pallet.script :as script]
    [pallet.utils :as utils]
    [pallet.target :as target]
@@ -26,13 +26,13 @@
   sed* (action/action-fn file/sed))
 
 (defmulti adjust-packages
-  (fn [request & _]
-    (request-map/packager request)))
+  (fn [session & _]
+    (session/packager session)))
 
 ;; aptitude can install, remove and purge all in one command, so we just need to
 ;; split by enable/disable options.
 (defmethod adjust-packages :aptitude
-  [request packages]
+  [session packages]
   (stevedore/checked-commands
    "Packages"
    (stevedore/script (~lib/package-manager-non-interactive))
@@ -67,7 +67,7 @@
 ;; `yum` has separate install, remove and purge commands, so we just need to
 ;; split by enable/disable options and by command.  We install before removing.
 (defmethod adjust-packages :yum
-  [request packages]
+  [session packages]
   (stevedore/checked-commands
    "Packages"
    (stevedore/chain-commands*
@@ -92,7 +92,7 @@
 
 
 (defmethod adjust-packages :default
-  [request packages]
+  [session packages]
   (stevedore/checked-commands
    "Packages"
    (stevedore/chain-commands*
@@ -113,7 +113,7 @@
 
 (defn- package-map
   "Convert the args into a single map"
-  [request package-name
+  [session package-name
    & {:keys [action y force purge priority enable disable] :as options}]
   (letfn [(as-seq [x] (if (or (string? x) (symbol? x) (keyword? x))
                         [(name x)] x))]
@@ -136,25 +136,25 @@
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
-  [request args]
-  {:arglists '([request package-name
+  [session args]
+  {:arglists '([session package-name
                 & {:keys [action y force purge enable disable priority]
                    :or {action :install
                         y true
                         priority 50}
                    :as options}])}
-  (adjust-packages request (map #(apply package-map request %) args)))
+  (adjust-packages session (map #(apply package-map session %) args)))
 
 (defn packages
   "Install a list of packages keyed on packager.
-       (packages request
+       (packages session
          :yum [\"git\" \"git-email\"]
          :aptitude [\"git-core\" \"git-email\"])"
-  [request & {:keys [yum aptitude pacman brew] :as options}]
+  [session & {:keys [yum aptitude pacman brew] :as options}]
   (->
-   request
+   session
    (for->
-    [package-name (options (request-map/packager request))]
+    [package-name (options (session/packager session))]
     (package package-name))))
 
 (def source-location
@@ -195,8 +195,8 @@
 
 (defn package-source*
   "Add a packager source."
-  [request name & {:as options}]
-  (let [packager (request-map/packager request)]
+  [session name & {:as options}]
+  (let [packager (session/packager session)]
     (stevedore/checked-commands
      "Package source"
      (let [key-url (-> options :aptitude :url)]
@@ -205,7 +205,7 @@
           (stevedore/script (~lib/install-package "python-software-properties"))
           (stevedore/script (add-apt-repository ~key-url)))
          (remote-file*
-          request
+          session
           (format (source-location packager) name)
           :content (format-source packager name (packager options))
           :literal (= packager :yum))))
@@ -219,7 +219,7 @@
               (= packager :aptitude))
        (stevedore/chain-commands
         (remote-file*
-         request
+         session
          "aptkey.tmp"
          :url (-> options :aptitude :key-url))
         (stevedore/script (apt-key add aptkey.tmp))))
@@ -249,11 +249,11 @@
        (package-source \"Partner\"
          :aptitude {:url \"http://archive.canonical.com/\"
                     :scopes [\"partner\"]})"
-  [request args]
+  [session args]
   {:arglists (:arglists (meta pallet.action.package/package-source*))
    :always-before #{`package-manager `package}}
   (stevedore/do-script*
-   (map (fn [x] (apply package-source* request x)) args)))
+   (map (fn [x] (apply package-source* session x)) args)))
 
 (defn add-scope*
   "Add a scope to all the existing package sources. Aptitude specific."
@@ -276,22 +276,22 @@
 
 (defmulti configure-package-manager
   "Configure the package manager"
-  (fn [request packager options] packager))
+  (fn [session packager options] packager))
 
 (defmulti package-manager-option
   "Provide packager specific options"
-  (fn [request packager option value] [packager option]))
+  (fn [session packager option value] [packager option]))
 
 (defmethod package-manager-option [:aptitude :proxy]
-  [request packager proxy proxy-url]
+  [session packager proxy proxy-url]
   (format "ACQUIRE::http::proxy \"%s\";" proxy-url))
 
 (defmethod package-manager-option [:yum :proxy]
-  [request packager proxy proxy-url]
+  [session packager proxy proxy-url]
   (format "proxy=%s" proxy-url))
 
 (defmethod package-manager-option [:pacman :proxy]
-  [request packager proxy proxy-url]
+  [session packager proxy proxy-url]
   (format
    (str "XferCommand = /usr/bin/wget "
         "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\" "
@@ -299,27 +299,27 @@
    proxy-url proxy-url))
 
 (defmethod configure-package-manager :aptitude
-  [request packager {:keys [priority prox] :or {priority 50} :as options}]
+  [session packager {:keys [priority prox] :or {priority 50} :as options}]
   (remote-file*
-   request
+   session
    (format "/etc/apt/apt.conf.d/%spallet" priority)
    :content (string/join
              \newline
              (map
-              #(package-manager-option request packager (key %) (val %))
+              #(package-manager-option session packager (key %) (val %))
               (dissoc options :priority)))
    :literal true))
 
 (defmethod configure-package-manager :yum
-  [request packager {:keys [proxy] :as options}]
+  [session packager {:keys [proxy] :as options}]
   (stevedore/chain-commands
    (remote-file*
-    request
+    session
     "/etc/yum.pallet.conf"
     :content (string/join
               \newline
               (map
-               #(package-manager-option request packager (key %) (val %))
+               #(package-manager-option session packager (key %) (val %))
                (dissoc options :priority)))
     :literal true)
    ;; include yum.pallet.conf from yum.conf
@@ -331,15 +331,15 @@
         "EOFpallet")))))
 
 (defmethod configure-package-manager :pacman
-  [request packager {:keys [proxy] :as options}]
+  [session packager {:keys [proxy] :as options}]
   (stevedore/chain-commands
    (remote-file*
-    request
+    session
     "/etc/pacman.pallet.conf"
     :content (string/join
               \newline
               (map
-               #(package-manager-option request packager (key %) (val %))
+               #(package-manager-option session packager (key %) (val %))
                (dissoc options :priority)))
     :literal true)
    ;; include pacman.pallet.conf from pacman.conf
@@ -347,19 +347,19 @@
     (if (not @("fgrep" "pacman.pallet.conf" "/etc/pacman.conf"))
       (do
         ~(sed*
-          request
+          session
           "/etc/pacman.conf"
           "a Include = /etc/pacman.pallet.conf"
           :restriction "/\\[options\\]/"))))))
 
 (defmethod configure-package-manager :default
-  [request packager {:as options}]
+  [session packager {:as options}]
   (comment "do nothing"))
 
 (defn package-manager*
   "Package management."
-  [request action & options]
-  (let [packager (request-map/packager request)]
+  [session action & options]
+  (let [packager (session/packager session)]
     (stevedore/checked-commands
      "package-manager"
      (case action
@@ -372,7 +372,7 @@
        :debconf (if (= :aptitude packager)
                   (stevedore/script
                    (apply ~lib/debconf-set-selections ~options)))
-       :configure (configure-package-manager request packager options)
+       :configure (configure-package-manager session packager options)
        (throw (IllegalArgumentException.
                (str action
                     " is not a valid action for package-manager action")))))))
@@ -386,18 +386,18 @@
    - :add-scope       - enable a scope (eg. multiverse, non-free)
 
    To refresh the list of packages known to the pakage manager:
-       (package-manager request :update)
+       (package-manager session :update)
 
    To enable multiverse on ubuntu:
-       (package-manager request :add-scope :scope :multiverse)
+       (package-manager session :add-scope :scope :multiverse)
 
    To enable non-free on debian:
-       (package-manager request :add-scope :scope :non-free)"
-  [request package-manager-args]
+       (package-manager session :add-scope :scope :non-free)"
+  [session package-manager-args]
   {:copy-arglist (:arglists (meta pallet.action.package/package-manager*))
    :always-before `package}
   (stevedore/do-script*
-   (map #(apply package-manager* request %) (distinct package-manager-args))))
+   (map #(apply package-manager* session %) (distinct package-manager-args))))
 
 (def ^{:private true} centos-55-repo
   "http://mirror.centos.org/centos/5.5/os/x86_64/repodata/repomd.xml")
@@ -407,8 +407,8 @@
 (defn add-centos55-to-amzn-linux
   "Add the centos 5.5 repository to Amazon Linux. Ensure that it has a lower
    than default priority."
-  [request]
-  (-> request
+  [session]
+  (-> session
       (package "yum-priorities")
       (package-source
        "Centos-5.5"
@@ -418,9 +418,9 @@
 
 (defn add-debian-backports
   "Add debian backport source"
-  [request]
+  [session]
   (package-source
-   request
+   session
    "debian-backports"
    :aptitude {:url "http://backports.debian.org/debian-backports"
               :release (str
@@ -431,8 +431,8 @@
 ;; this is an aggregate so that it can come before the aggragate package-manager
 (action/def-aggregated-action add-epel
   "Add the EPEL repository"
-  [request args]
-  {:arglists '([request & {:keys [version] :or {version "5-4"}}])
+  [session args]
+  {:arglists '([session & {:keys [version] :or {version "5-4"}}])
    :always-before #{`package-manager `package}}
   (let [{:keys [version] :or {version "5-4"}} (apply
                                                merge {}
@@ -453,9 +453,9 @@
 ;; this is an aggregate so that it can come before the aggragate package-manager
 (action/def-aggregated-action add-rpmforge
   "Add the rpmforge repository"
-  [request args]
+  [session args]
   {:always-before #{`package-manager `package}
-   :arglists '([request & {:keys [version distro arch]
+   :arglists '([session & {:keys [version distro arch]
                            :or {version "0.5.2-2" distro "el5" arch "i386"}}])}
   (let [{:keys [version distro arch]
          :or {version "0.5.2-2"
@@ -467,7 +467,7 @@
       (if (= "0" @(pipe (rpm -qa) (grep rpmforge) (wc -l)))
         (do
           ~(remote-file*
-            request
+            session
             "rpmforge.rpm"
             :url (format rpmforge-url-pattern version distro arch))
           ("rpm" -U --quiet "rpmforge.rpm")))))))
@@ -482,12 +482,12 @@
 
    Installs the jpackage-utils package from the base repos at a
    pritority of 25."
-  [request & {:keys [version component releasever]
+  [session & {:keys [version component releasever]
               :or {component "redhat-el"
                    releasever "$releasever"
                    version "5.0"}}]
   (->
-   request
+   session
    (package-source
     "jpackage-generic"
     :yum {:mirrorlist (format jpackage-mirror-fmt "generic" version)
@@ -528,10 +528,10 @@
 (action/def-aggregated-action
   minimal-packages
   "Add minimal packages for pallet to function"
-  [request args]
-  {:arglists '([request])
+  [session args]
+  {:arglists '([session])
    :always-before #{`package-manager `package-source `package}}
-  (let [os-family (request-map/os-family request)]
+  (let [os-family (session/os-family session)]
     (cond
      (#{:ubuntu :debian} os-family) (stevedore/checked-script
                                      "Add minimal packages"

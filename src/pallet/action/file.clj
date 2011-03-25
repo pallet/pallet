@@ -32,7 +32,7 @@
 
 (action/def-bash-action file
   "File management."
-  [request path & {:keys [action owner group mode force]
+  [session path & {:keys [action owner group mode force]
                    :or {action :create force true}
                    :as options}]
   (case action
@@ -48,7 +48,7 @@
 
 (action/def-bash-action symbolic-link
   "Symbolic link management."
-  [request from name & {:keys [action owner group mode force]
+  [session from name & {:keys [action owner group mode force]
                         :or {action :create force true}}]
   (case action
     :delete (stevedore/checked-script
@@ -60,7 +60,7 @@
 
 (action/def-bash-action fifo
   "FIFO pipe management."
-  [request path & {:keys [action] :or {action :create} :as options}]
+  [session path & {:keys [action] :or {action :create} :as options}]
   (case action
     :delete (stevedore/checked-script
              (str "fifo " path)
@@ -74,7 +74,7 @@
 
 (action/def-bash-action sed
   "Execute sed on a file.  Takes a path and a map for expr to replacement."
-  [request path exprs-map & {:keys [seperator no-md5 restriction] :as options}]
+  [session path exprs-map & {:keys [seperator no-md5 restriction] :as options}]
   (stevedore/checked-script
    (format "sed file %s" path)
    (~lib/sed-file ~path ~exprs-map ~options)

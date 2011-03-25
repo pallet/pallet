@@ -16,7 +16,7 @@
   (:require
    [pallet.action-plan :as action-plan]
    [pallet.argument :as argument]
-   [pallet.request-map :as request-map]
+   [pallet.session :as session]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.def :as ccdef]
    [clojure.contrib.logging :as logging]
@@ -55,27 +55,27 @@
                         and local destination.
    :transfer/from-local - action is a function specifying local source
                           and remote destination."
-  [request action-fn args execution action-type location]
-  {:pre [request
-         (keyword? (request-map/phase request))
-         (keyword? (request-map/target-id request))]}
+  [session action-fn args execution action-type location]
+  {:pre [session
+         (keyword? (session/phase session))
+         (keyword? (session/target-id session))]}
   (update-in
-   request
-   (action-plan/target-path request)
+   session
+   (action-plan/target-path session)
    action-plan/add-action
    (action-plan/action-map action-fn args execution action-type location)))
 
 (defmacro action
   "Define an anonymous action"
-  [execution action-type location [request & args] & body]
+  [execution action-type location [session & args] & body]
   (let [meta-map (when (and (map? (first body)) (> (count body) 1))
                    (first body))
         body (if meta-map (rest body) body)]
-    `(let [f# (vary-meta (fn [~request ~@args] ~@body) merge ~meta-map)]
+    `(let [f# (vary-meta (fn [~session ~@args] ~@body) merge ~meta-map)]
        (vary-meta
-        (fn [& [request# ~@args :as argv#]]
+        (fn [& [session# ~@args :as argv#]]
           (schedule-action
-           request# f# (rest argv#) ~execution ~action-type ~location))
+           session# f# (rest argv#) ~execution ~action-type ~location))
         merge
         ~meta-map
         {::action-fn f#}))))
@@ -88,32 +88,32 @@
 ;;; Convenience action definers for common cases
 (defmacro bash-action
   "Define a remotely executed bash action function."
-  [[request & args] & body]
-  `(action :in-sequence :script/bash :target [~request ~@args] ~@body))
+  [[session & args] & body]
+  `(action :in-sequence :script/bash :target [~session ~@args] ~@body))
 
 (defmacro clj-action
   "Define a clojure action to be executed on the origin machine."
-  [[request & args] & body]
-  `(action :in-sequence :fn/clojure :origin [~request ~@args] ~@body))
+  [[session & args] & body]
+  `(action :in-sequence :fn/clojure :origin [~session ~@args] ~@body))
 
 (defmacro aggregated-action
   "Define a remotely executed aggregated action function, which will
    be executed before :in-sequence actions."
-  [[request & args] & body]
-  `(action :aggregated :script/bash :target [~request ~@args] ~@body))
+  [[session & args] & body]
+  `(action :aggregated :script/bash :target [~session ~@args] ~@body))
 
 (defmacro collected-action
   "Define a remotely executed collected action function, which will
    be executed after :in-sequence actions."
-  [[request & args] & body]
-  `(action :collected :script/bash :target [~request ~@args] ~@body))
+  [[session & args] & body]
+  `(action :collected :script/bash :target [~session ~@args] ~@body))
 
 (defmacro as-clj-action
   "An adaptor for using a normal function as a local action function"
-  ([f [request & args]]
+  ([f [session & args]]
      `(clj-action
-       [~request ~@(map (comp symbol name) args)]
-       (~f ~request ~@(map (comp symbol name) args))))
+       [~session ~@(map (comp symbol name) args)]
+       (~f ~session ~@(map (comp symbol name) args))))
   ([f]
      `(as-clj-action
        ~f [~@(first (:arglists (meta (var-get (resolve f)))))])))
@@ -122,8 +122,8 @@
   "Define a macro for definining action defining vars"
   [name actionfn1]
   `(defmacro ~name
-     {:arglists '(~'[name [request & args] & body]
-                  ~'[name [request & args] meta? & body])}
+     {:arglists '(~'[name [session & args] & body]
+                  ~'[name [session & args] meta? & body])}
      [name# ~'& args#]
      (let [[name# args#] (ccdef/name-with-attributes name# args#)
            arglist# (first args#)
@@ -145,10 +145,10 @@
 
 (defn enter-scope
   "Enter a new action scope."
-  [request]
-  (update-in request (action-plan/target-path request) action-plan/push-block))
+  [session]
+  (update-in session (action-plan/target-path session) action-plan/push-block))
 
 (defn leave-scope
   "Leave the current action scope."
-  [request]
-  (update-in request (action-plan/target-path request) action-plan/pop-block))
+  [session]
+  (update-in session (action-plan/target-path session) action-plan/pop-block))

@@ -61,45 +61,45 @@
   "A vector of the options accepted by remote-file.  Can be used for option
   forwarding when calling remote-file from other crates.")
 
-(defn- get-request
-  "Build a curl or wget command from the specified request object."
-  [request]
+(defn- get-session
+  "Build a curl or wget command from the specified session object."
+  [session]
   (stevedore/script
    (if (test @(~lib/which curl))
      (curl -s "--retry" 20
            ~(apply str (map
                         #(format "-H \"%s: %s\" " (first %) (second %))
-                        (.. request getHeaders entries)))
-           ~(.. request getEndpoint toASCIIString))
+                        (.. session getHeaders entries)))
+           ~(.. session getEndpoint toASCIIString))
      (if (test @(~lib/which wget))
        (wget -nv "--tries" 20
              ~(apply str (map
                           #(format "--header \"%s: %s\" " (first %) (second %))
-                          (.. request getHeaders entries)))
-             ~(.. request getEndpoint toASCIIString))
+                          (.. session getHeaders entries)))
+             ~(.. session getEndpoint toASCIIString))
        (do
          (println "No download utility available")
          (~lib/exit 1))))))
 
 (defn- arg-vector
-  "Return the non-request arguments."
+  "Return the non-session arguments."
   [_ & args]
   args)
 
 (defn- delete-local-path
-  [request local-path]
+  [session local-path]
   (.delete local-path)
-  request)
+  session)
 
 (defn with-remote-file
-  "Function to call f with a local copy of the requested remote path.
-   f should be a function taking [request local-path & _], where local-path will
+  "Function to call f with a local copy of the sessioned remote path.
+   f should be a function taking [session local-path & _], where local-path will
    be a File with a copy of the remote file (which will be unlinked after
    calling f."
-  [request f path & args]
+  [session f path & args]
   (let [local-path (utils/tmpfile)]
     (->
-     request
+     session
      (action/schedule-action
       arg-vector [path (.getPath local-path)]
       :in-sequence :transfer/to-local :origin)
@@ -110,13 +110,13 @@
 
 (defn transfer-file
   "Function to transfer a local file."
-  [request local-path remote-path]
+  [session local-path remote-path]
   (action/schedule-action
-   request arg-vector [local-path remote-path]
+   session arg-vector [local-path remote-path]
    :in-sequence :transfer/from-local :origin))
 
 (action/def-bash-action remote-file-action
-  [request path & {:keys [action url local-file remote-file link
+  [session path & {:keys [action url local-file remote-file link
                           content literal
                           template values
                           md5 md5-url
@@ -130,7 +130,7 @@
   (let [new-path (str path ".new")
         md5-path (str path ".md5")
         versioning (if no-versioning nil :numbered)
-        proxy (environment/get-for request [:proxy] nil)]
+        proxy (environment/get-for session [:proxy] nil)]
     (case action
       :create
       (stevedore/checked-commands
@@ -179,16 +179,16 @@
                   (~lib/heredoc
                    ~new-path
                    ~(templates/interpolate-template
-                     template (or values {}) request)
+                     template (or values {}) session)
                    ~(select-keys options [:literal])))
         link (stevedore/script
               (~lib/ln ~link ~path :force ~true :symbolic ~true))
         blob (stevedore/checked-script
               "Download blob"
-              (download-request
+              (download-session
                ~new-path
                ~(blobstore/sign-blob-request
-                 (or blobstore (environment/get-for request [:blobstore] nil)
+                 (or blobstore (environment/get-for session [:blobstore] nil)
                      (throw (IllegalArgumentException.
                              "No :blobstore given for blob content.") ))
                  (:container blob) (:path blob)
@@ -281,7 +281,7 @@ Options for specifying the file's content are:
   :template         - specify a template to be interpolated
   :values           - values for interpolation
   :blob             - map of :container, :path
-  :blobstore        - a jclouds blobstore object (override blobstore in request)
+  :blobstore        - a jclouds blobstore object (override blobstore in session)
 
 Options for version control are:
   :overwrite-changes - flag to force overwriting of locally modified content
@@ -295,33 +295,33 @@ Options for specifying the file's permissions are:
   :mode  file-mode
 
 To copy the content of a local file to a remote file:
-    (remote-file request \"remote/path\" :local-file \"local/path\")
+    (remote-file session \"remote/path\" :local-file \"local/path\")
 
 To copy the content of one remote file to another remote file:
-    (remote-file request \"remote/path\" :remote-file \"remote/source/path\")
+    (remote-file session \"remote/path\" :remote-file \"remote/source/path\")
 
 To link one remote file to another remote file:
-    (remote-file request \"remote/path\" :link \"remote/source/path\")
+    (remote-file session \"remote/path\" :link \"remote/source/path\")
 
 To download a url to a remote file:
-    (remote-file request \"remote/path\" :url \"http://a.com/path\")
+    (remote-file session \"remote/path\" :url \"http://a.com/path\")
 
 If a url to a md5 file is also available, then it can be specified to prevent
 unnecessary downloads and to verify the download.
-    (remote-file request \"remote/path\"
+    (remote-file session \"remote/path\"
       :url \"http://a.com/path\"
       :md5-url \"http://a.com/path.md5\")
 
 If the md5 of the file to download, it can be specified to prevent unnecessary
 downloads and to verify the download.
-    (remote-file request \"remote/path\"
+    (remote-file session \"remote/path\"
       :url \"http://a.com/path\"
       :md5 \"6de9439834c9147569741d3c9c9fc010\")
 
 Content can also be copied from a blobstore.
-    (remote-file request \"remote/path\"
+    (remote-file session \"remote/path\"
       :blob {:container \"container\" :path \"blob\"})"
-  [request path & {:keys [action url local-file remote-file link
+  [session path & {:keys [action url local-file remote-file link
                           content literal
                           template values
                           md5 md5-url
@@ -338,7 +338,7 @@ Content can also be copied from a blobstore.
                     "cannot register it for transfer.")
                local-file)))))
   (->
-   request
+   session
    (when-> local-file
            ;; transfer local file to remote system if required
            (transfer-file local-file (str path ".new")))

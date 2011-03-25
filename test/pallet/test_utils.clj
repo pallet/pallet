@@ -96,8 +96,8 @@ list, Alan Dipert and MeikelBrandmeyer."
   [] (or (. System getProperty "ssh.username")
          (. System getProperty "user.name")))
 
-(def ubuntu-request {:server {:image {:os-family :ubuntu}}})
-(def centos-request {:server {:image {:os-family :centos}}})
+(def ubuntu-session {:server {:image {:os-family :ubuntu}}})
+(def centos-session {:server {:image {:os-family :centos}}})
 
 (defn with-ubuntu-script-template
   [f]
@@ -129,27 +129,27 @@ list, Alan Dipert and MeikelBrandmeyer."
        'pallet.build-actions/build-actions))
      (build-actions/build-actions ~@args)))
 
-(defn test-request
-  "Build a test request"
+(defn test-session
+  "Build a test session"
   [& components]
   (reduce merge components))
 
 (defn server
-  "Build a server for the request map"
+  "Build a server for the session map"
   [& {:as options}]
   (apply core/server-spec (apply concat options)))
 
 (defn target-server
-  "Build the target server for the request map"
+  "Build the target server for the session map"
   [& {:as options}]
   {:server (apply core/server-spec (apply concat options))})
 
 (defn group
-  "Build a group for the request map"
+  "Build a group for the session map"
   [name & {:as options}]
   (apply core/group-spec name (apply concat options)))
 
 (defn target-group
-  "Build the target group for the request map"
+  "Build the target group for the session map"
   [name & {:as options}]
   {:group (apply core/group-spec name (apply concat options))})

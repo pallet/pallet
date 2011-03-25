@@ -59,20 +59,20 @@
       (is (find-var 'pallet.core/parallel-apply-phase))
       (is (= (var-get (find-var 'pallet.core/parallel-apply-phase)) f)))))
 
-(deftest request-with-environment-test
+(deftest session-with-environment-test
   (testing "basic merge"
     (is (= {:user {:username :b}}
-           (environment/request-with-environment
+           (environment/session-with-environment
              {:user {:username :a}} {:user {:username :b}}))))
   (testing "node-type merge"
     (is (= {:user {:username :b} :server {:tag :t :image :i}}
-           (environment/request-with-environment
+           (environment/session-with-environment
              {:user {:username :a} :server {:tag :t}}
              {:user {:username :b} :groups {:t {:image :i}}}))))
   (testing "phases merge"
     (is (= {:user {:username :b}
             :server {:tag :t :image :i :phases {:bootstrap identity}}}
-           (environment/request-with-environment
+           (environment/session-with-environment
              {:user {:username :a} :server {:tag :t}}
              {:user {:username :b}
               :groups {:t {:image :i}}

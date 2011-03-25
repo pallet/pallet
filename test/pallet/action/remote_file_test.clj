@@ -282,7 +282,7 @@
             (is (not (.exists target-tmp)))))))))
 
 (action/def-clj-action check-content
-  [request path content path-atom]
+  [session path content path-atom]
   (is (= content (slurp path)))
   (reset! path-atom path))
 

@@ -115,14 +115,14 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           (cp -p "/etc/apt/sources.list" @tmpfile)
           (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
           (mv -f @tmpfile "/etc/apt/sources.list"))
-         (package-manager* test-utils/ubuntu-request :multiverse)))
+         (package-manager* test-utils/ubuntu-session :multiverse)))
   (is (= (stevedore/checked-script
           "package-manager"
           (chain-or
            (aptitude update "")
            true))
          (script/with-script-context [:aptitude]
-           (package-manager* test-utils/ubuntu-request :update)))))
+           (package-manager* test-utils/ubuntu-session :update)))))
 
 (deftest package-manager-configure-test
   (testing "aptitude"

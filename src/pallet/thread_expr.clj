@@ -22,7 +22,7 @@
        s#))))
 
 (defmacro when->
-  "A `when` form that can appear in a request thread.
+  "A `when` form that can appear in a expression thread.
    eg.
       (-> 1
         (when-> true
@@ -35,7 +35,7 @@
        arg#)))
 
 (defmacro when-not->
-  "A `when-not` form that can appear in a request thread.
+  "A `when-not` form that can appear in a expression thread.
    eg.
       (-> 1
         (when-not-> true
@@ -48,7 +48,7 @@
        arg#)))
 
 (defmacro when-let->
-  "A `when-let` form that can appear in a request thread.
+  "A `when-let` form that can appear in a expression thread.
    eg.
       (-> 1
         (when-let-> [a 1]
@@ -61,7 +61,7 @@
        arg#)))
 
 (defmacro if->
-  "An `if` form that can appear in a request thread
+  "An `if` form that can appear in a expression thread
    eg.
       (-> 1
         (if-> true
@@ -80,7 +80,7 @@
           (-> arg# ~else-form)))))
 
 (defmacro if-not->
-  "An `if-not` form that can appear in a request thread
+  "An `if-not` form that can appear in a expression thread
    eg.
       (-> 1
         (if-not-> true
@@ -98,8 +98,8 @@
           (-> arg# ~else-form)))))
 
 (defmacro let-with-arg->
-  "A `let` form that can appear in a request thread, and assign the value of the
-   threaded arg.
+  "A `let` form that can appear in a expression thread, and assign the value
+   of the threaded arg.
    eg.
       (-> 1
         (let-with-arg-> val [a 1]

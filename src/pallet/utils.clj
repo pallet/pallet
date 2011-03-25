@@ -251,7 +251,7 @@
          m))))
 
 (defmacro pipe
-  "Build a request processing pipeline from the specified forms."
+  "Build a session processing pipeline from the specified forms."
   [& forms]
   (let [[middlewares etc] (split-with #(or (seq? %) (symbol? %)) forms)
         middlewares (reverse middlewares)

@@ -175,7 +175,7 @@
   (is (not (#'core/node-in-types? [a b] (jclouds/make-node "c")))))
 
 (def test-component
-  (action/bash-action [request arg] (str arg)))
+  (action/bash-action [session arg] (str arg)))
 
 (defn seen-fn
   "Generate a local function, which uses an atom to record when it is called."
@@ -183,13 +183,13 @@
   (let [seen (atom nil)
         seen? (fn [] @seen)]
     [(action/clj-action
-       [request]
+       [session]
        (clojure.contrib.logging/info (format "Seenfn %s" name))
        (is (not @seen))
        (reset! seen true)
-       (is (:target-node request))
-       (is (:node-type request))
-       request)
+       (is (:target-node session))
+       (is (:node-type session))
+       session)
       seen?]))
 
 (deftest lift-test
@@ -230,14 +230,14 @@
         nb (jclouds/make-node "b")
         nc (jclouds/make-node "c" :state NodeState/TERMINATED)]
     (mock/expects [(sequential-apply-phase
-                    [request group-nodes]
+                    [session group-nodes]
                     (do
-                      (is (= #{na nb} (set (:all-nodes request))))
+                      (is (= #{na nb} (set (:all-nodes session))))
                       (is (= #{na nb} (set (map :node group-nodes))))
                       (is (= #{na nb}
                              (set (map
                                    :node
-                                   (-> request :groups first :servers)))))
+                                   (-> session :groups first :servers)))))
                       []))]
                   (lift*
                    {:node-set {a #{na nb nc}}
@@ -250,14 +250,14 @@
                      {:converge-fn #'pallet.core/serial-adjust-node-counts
                       :lift-fn sequential-lift}}}))
     (mock/expects [(sequential-apply-phase
-                    [request group-nodes]
+                    [session group-nodes]
                     (do
-                      (is (= #{na nb} (set (:all-nodes request))))
+                      (is (= #{na nb} (set (:all-nodes session))))
                       (is (= na
-                             (-> request
+                             (-> session
                                  :groups first :servers first :node)))
                       (is (= nb
-                             (-> request
+                             (-> session
                                  :groups second :servers first :node)))
                       []))]
                   (lift*
@@ -281,16 +281,16 @@
                      [_]
                      (mock/once [na nb nc]))
                    (sequential-apply-phase
-                    [request group-nodes]
+                    [session group-nodes]
                     (mock/times 6 ;; 2 groups :pre, :after, :configure
-                      (is (= #{na nb nc} (set (:all-nodes request))))
+                      (is (= #{na nb nc} (set (:all-nodes session))))
                       (let [m (into
                                {}
                                (map (juxt :group-name identity)
-                                    (:groups request)))]
+                                    (:groups session)))]
                         (is (= na (-> m :a :servers first :node)))
                         (is (= nb (-> m :b :servers first :node)))
-                        (is (= 2 (count (:groups request)))))
+                        (is (= 2 (count (:groups session)))))
                       []))]
                   (lift [a b] :compute (jclouds-test-utils/compute)
                         :environment
@@ -332,9 +332,9 @@
         nb (jclouds/make-node "b")
         nb2 (jclouds/make-node "b" :id "b2" :state NodeState/TERMINATED)]
     (mock/expects [(sequential-apply-phase
-                    [request nodes]
+                    [session nodes]
                     (do
-                      (is (= #{na nb} (set (:all-nodes request))))
+                      (is (= #{na nb} (set (:all-nodes session))))
                       []))
                    (org.jclouds.compute/nodes-with-details [_] [na nb nb2])]
                   (converge*
@@ -349,21 +349,21 @@
   (logging/info "converge*-test end"))
 
 (deftest converge-test
-  (let [hi (action/bash-action [request] "Hi")
+  (let [hi (action/bash-action [session] "Hi")
         id "a"
         node (make-node "a" {} :configure hi)
-        request (converge {node 2}
+        session (converge {node 2}
                           :compute (jclouds-test-utils/compute)
                           :middleware [core/translate-action-plan
                                        execute/execute-echo])]
-    (is (map? request))
-    (is (map? (-> request :results)))
-    (is (map? (-> request :results first second)))
-    (is (:configure (-> request :results first second)))
+    (is (map? session))
+    (is (map? (-> session :results)))
+    (is (map? (-> session :results first second)))
+    (is (:configure (-> session :results first second)))
     (is (some
          #(= "Hi\n" %)
-         (:configure (-> request :results first second))))
-    (is (= 2 (count (:all-nodes request))))
+         (:configure (-> session :results first second))))
+    (is (= 2 (count (:all-nodes session))))
     (is (= 2 (count (org.jclouds.compute/nodes (jclouds-test-utils/compute)))))
     (testing "remove some instances"
       (let [reqeust (converge {node 1}
@@ -373,45 +373,45 @@
         (Thread/sleep 300) ;; stub destroyNode is asynchronous ?
         (is (= 1 (count (compute/nodes (jclouds-test-utils/compute)))))))
     (testing "remove all instances"
-      (let [request (converge {node 0}
+      (let [session (converge {node 0}
                               :compute (jclouds-test-utils/compute)
                               :middleware [core/translate-action-plan
                                            execute/execute-echo])]
         (is (= 0 (count (filter
                          (complement compute/terminated?)
-                         (:all-nodes request)))))))))
+                         (:all-nodes session)))))))))
 
 
 (deftest lift-with-runtime-params-test
   ;; test that parameters set at execution time are propogated
   ;; between phases
   (let [assoc-runtime-param (action/clj-action
-                             [request]
-                             (parameter/assoc-for-target request [:x] "x"))
+                             [session]
+                             (parameter/assoc-for-target session [:x] "x"))
 
         get-runtime-param (action/bash-action
-                           [request]
+                           [session]
                            (format
-                            "echo %s" (parameter/get-for-target request [:x])))
+                            "echo %s" (parameter/get-for-target session [:x])))
         node (make-node
               "localhost" {}
               :configure assoc-runtime-param
-              :configure2 (fn [request]
-                            (is (= (parameter/get-for-target request [:x])
+              :configure2 (fn [session]
+                            (is (= (parameter/get-for-target session [:x])
                                    "x"))
-                            (get-runtime-param request)))
-        request (lift {node (jclouds/make-localhost-node)}
+                            (get-runtime-param session)))
+        session (lift {node (jclouds/make-localhost-node)}
                       :phase [:configure :configure2]
                       :user (assoc utils/*admin-user*
                               :username (test-utils/test-username)
                               :no-sudo true)
                       :compute (jclouds-test-utils/compute))]
-    (is (map? request))
-    (is (map? (-> request :results)))
-    (is (map? (-> request :results first second)))
-    (is (-> request :results :localhost :configure))
-    (is (-> request :results :localhost :configure2))
-    (let [{:keys [out err exit]} (-> request
+    (is (map? session))
+    (is (map? (-> session :results)))
+    (is (map? (-> session :results first second)))
+    (is (-> session :results :localhost :configure))
+    (is (-> session :results :localhost :configure2))
+    (let [{:keys [out err exit]} (-> session
                                      :results :localhost :configure2 first)]
       (is out)
       (is (= err ""))

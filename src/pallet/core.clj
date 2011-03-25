@@ -234,34 +234,34 @@
   (let [[group-name options] (name-with-attributes group-name options)]
     `(def ~group-name (make-node '~(name group-name) ~@options))))
 
-(defn- add-request-keys-for-0-4-5-compatibility
+(defn- add-session-keys-for-0-4-5-compatibility
   "Add target keys for compatibility.
    This function adds back deprecated keys"
-  [request]
-  (-> request
-      (assoc :node-type (:group request))
-      (assoc :target-packager (-> request :server :packager))
-      (assoc :target-id (-> request :server :node-id))
-      (assoc :target-node (-> request :server :node))))
+  [session]
+  (-> session
+      (assoc :node-type (:group session))
+      (assoc :target-packager (-> session :server :packager))
+      (assoc :target-id (-> session :server :node-id))
+      (assoc :target-node (-> session :server :node))))
 
 (defn show-target-keys
   "Middleware that is useful in debugging."
   [handler]
-  (fn [request]
+  (fn [session]
     (logging/info
      (format
       "TARGET KEYS :phase %s :node-id %s :group-name %s :packager %s"
-      (:phase request)
-      (-> request :server :node-id)
-      (-> request :server :group-name)
-      (-> request :server :packager)))
-    (handler request)))
+      (:phase session)
+      (-> session :server :node-id)
+      (-> session :server :group-name)
+      (-> session :server :packager)))
+    (handler session)))
 
 
 ;;; executor
 
-(defn- executor [request f action-type location]
-  (let [exec-fn (get-in request [:executor action-type location])]
+(defn- executor [session f action-type location]
+  (let [exec-fn (get-in session [:executor action-type location])]
     (when-not exec-fn
       (condition/raise
        :type :missing-executor-fn
@@ -269,7 +269,7 @@
        :message (format
                  "Missing executor function for %s %s"
                  action-type location)))
-    (exec-fn request f)))
+    (exec-fn session f)))
 
 (let [raise (fn [message]
               (fn [_ _]
@@ -297,19 +297,19 @@
 
 ;;; bootstrap functions
 (defn- bootstrap-script
-  [request]
-  {:pre [(get-in request [:group :image :os-family])
-         (get-in request [:group :packager])]}
+  [session]
+  {:pre [(get-in session [:group :image :os-family])
+         (get-in session [:group :packager])]}
   (let [error-fn (fn [message]
                    (fn [_ _]
                      (condition/raise
                       :type :booststrap-contains-non-remote-actions
                       :message message)))
-        [result request] (->
-                          request
+        [result session] (->
+                          session
                           (assoc
                               :phase :bootstrap
-                              :server (assoc (:group request) :node-id :bootstrap-id))
+                              :server (assoc (:group session) :node-id :bootstrap-id))
                           (assoc-in
                            [:executor :script/bash :target]
                            execute/echo-bash)
@@ -322,7 +322,7 @@
                           (assoc-in
                            [:executor :fn/clojure :origin]
                            (error-fn "Bootstrap can not contain local actions"))
-                          add-request-keys-for-0-4-5-compatibility
+                          add-session-keys-for-0-4-5-compatibility
                           action-plan/build-for-target
                           action-plan/translate-for-target
                           (action-plan/execute-for-target executor))]
@@ -333,30 +333,30 @@
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
 bootstrap-script value is expected tobe a function that produces a script that
 is run with root privileges immediatly after first boot."
-  [group count request]
+  [group count session]
   {:pre [(map? group)]}
   (logging/info
    (str "Starting " count " nodes for " (:group-name group)
         " os-family " (-> group :image :os-family)))
-  (let [compute (:compute request)
-        request (update-in request [:group]
+  (let [compute (:compute session)
+        session (update-in session [:group]
                            #(compute/ensure-os-family compute %))
-        request (assoc-in request [:group :packager]
-                          (compute/packager (-> request :group :image)))
-        init-script (bootstrap-script request)]
+        session (assoc-in session [:group :packager]
+                          (compute/packager (-> session :group :image)))
+        init-script (bootstrap-script session)]
     (logging/trace
      (format "Bootstrap script:\n%s" init-script))
     (concat
      (map :node (:servers group))
-     (compute/run-nodes compute group count (:user request) init-script))))
+     (compute/run-nodes compute group count (:user session) init-script))))
 
 (defn- destroy-nodes
   "Destroys the specified number of nodes with the given group.  Nodes are
    selected at random."
-  [group destroy-count request]
+  [group destroy-count session]
   (logging/info
    (str "destroying " destroy-count " nodes for " (:group-name group)))
-  (let [compute (:compute request)
+  (let [compute (:compute session)
         servers (:servers group)]
     (if (= destroy-count (count servers))
       (do
@@ -379,39 +379,39 @@ is run with root privileges immediatly after first boot."
 
 (defn- adjust-node-count
   "Adjust the node by delta nodes"
-  [{:keys [group-name environment servers] :as group} delta request]
-  (let [request (environment/request-with-environment
-                  (assoc request :group group)
+  [{:keys [group-name environment servers] :as group} delta session]
+  (let [session (environment/session-with-environment
+                  (assoc session :group group)
                   (environment/merge-environments
-                   (:environment request) environment))]
+                   (:environment session) environment))]
     (logging/info (format "adjust-node-count %s %d" group-name delta))
     (cond
-     (pos? delta) (create-nodes group delta request)
-     (neg? delta) (destroy-nodes group (- delta) request)
+     (pos? delta) (create-nodes group delta session)
+     (neg? delta) (destroy-nodes group (- delta) session)
      :else (map :node servers))))
 
 (defn serial-adjust-node-counts
   "Start or stop the specified number of nodes."
-  [delta-map request]
+  [delta-map session]
   (logging/trace (str "serial-adjust-node-counts" delta-map))
   (reduce
    concat
    (doall
     (map
      (fn [group]
-       (adjust-node-count group ((:group-name group) delta-map 0) request))
-     (:groups request)))))
+       (adjust-node-count group ((:group-name group) delta-map 0) session))
+     (:groups session)))))
 
 (defn parallel-adjust-node-counts
   "Start or stop the specified number of nodes."
-  [delta-map request]
+  [delta-map session]
   (logging/trace (str "parallel-adjust-node-counts" delta-map))
   (->>
-   (:groups request)
+   (:groups session)
    (map
     (fn [group]
       (future
-        (adjust-node-count group ((:group-name group) delta-map 0) request))))
+        (adjust-node-count group ((:group-name group) delta-map 0) session))))
    futures/add
    doall ;; force generation of all futures
    (mapcat #(futures/deref-with-logging % "Adjust node count"))))
@@ -419,64 +419,64 @@ is run with root privileges immediatly after first boot."
 (defn- converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
    instances."
-  [request]
+  [session]
   (logging/info "converging nodes")
-  (assoc request
-    :all-nodes ((environment/get-for request [:algorithms :converge-fn])
-                (node-count-difference (:groups request))
-                request)))
+  (assoc session
+    :all-nodes ((environment/get-for session [:algorithms :converge-fn])
+                (node-count-difference (:groups session))
+                session)))
 
 ;;; middleware
 
-(defn log-request
-  "Log the request state"
+(defn log-session
+  "Log the session state"
   [msg]
-  (fn [request]
-    (logging/info (format "%s Request is %s" msg request))
-    request))
+  (fn [session]
+    (logging/info (format "%s Session is %s" msg session))
+    session))
 
 (defn log-message
   "Log the message"
   [msg]
-  (fn [request]
+  (fn [session]
     (logging/info (format "%s" msg))
-    request))
+    session))
 
 (defn- apply-environment
   "Apply the effective environment"
-  [request]
-  (environment/request-with-environment
-    request
+  [session]
+  (environment/session-with-environment
+    session
     (environment/merge-environments
-     (:environment request)
-     (-> request :server :environment))))
+     (:environment session)
+     (-> session :server :environment))))
 
 (defn translate-action-plan
   [handler]
-  (fn [request]
-    (handler (action-plan/translate-for-target request))))
+  (fn [session]
+    (handler (action-plan/translate-for-target session))))
 
 (defn middleware-handler
   "Build a middleware processing pipeline from the specified middleware.
    The result is a middleware."
   [handler]
-  (fn [request]
-    ((reduce #(%2 %1) handler (:middleware request)) request)))
+  (fn [session]
+    ((reduce #(%2 %1) handler (:middleware session)) session)))
 
 (defn- execute
   "Execute the action plan"
-  [request]
-  (action-plan/execute-for-target request executor))
+  [session]
+  (action-plan/execute-for-target session executor))
 
 (defn- apply-phase-to-node
-  "Apply a phase to a node request"
-  [request]
-  {:pre [(:server request) (:phase request)]}
+  "Apply a phase to a node session"
+  [session]
+  {:pre [(:server session) (:phase session)]}
   ((middleware-handler execute)
    (->
-    request
+    session
     apply-environment
-    add-request-keys-for-0-4-5-compatibility)))
+    add-session-keys-for-0-4-5-compatibility)))
 
 (def *middleware*
   [translate-action-plan
@@ -486,7 +486,7 @@ is run with root privileges immediatly after first boot."
 (defmacro with-middleware
   "Wrap node execution in the given middleware. A middleware is a function of
    one argument (a handler function, that is the next middleware to call) and
-   returns a dunction of one argument (the request map).  Middleware can be
+   returns a dunction of one argument (the session map).  Middleware can be
    composed with the pipe macro."
   [f & body]
   `(binding [*middleware* ~f]
@@ -494,79 +494,79 @@ is run with root privileges immediatly after first boot."
 
 (defn- reduce-node-results
   "Combine the node execution results."
-  [request results]
+  [session results]
   (reduce
-   (fn reduce-node-results-fn [request [result req :as arg]]
+   (fn reduce-node-results-fn [session [result req :as arg]]
      (let [target-id (-> req :server :node-id)
            param-keys [:parameters]]
        (->
-        request
+        session
         (assoc-in [:results target-id (:phase req)] result)
         (update-in
          param-keys
          (fn merge-params [p]
            (map-utils/deep-merge-with
             (fn merge-params-fn [x y] (or y x)) p (get-in req param-keys)))))))
-   request
+   session
    results))
 
 (defn- plan-for-server
   "Build an action plan for the specified server."
-  [request server]
+  [session server]
   {:pre [(:node server) (:node-id server)]}
   (action-plan/build-for-target
    (->
-    request
+    session
     (assoc :server server)
-    add-request-keys-for-0-4-5-compatibility
-    (environment/request-with-environment
+    add-session-keys-for-0-4-5-compatibility
+    (environment/session-with-environment
       (environment/merge-environments
-       (:environment request)
-       (-> request :server :environment))))))
+       (:environment session)
+       (-> session :server :environment))))))
 
 (defn- plan-for-servers
   "Build an action plan for the specified servers."
-  [request servers]
-  (reduce plan-for-server request servers))
+  [session servers]
+  (reduce plan-for-server session servers))
 
 (defn- plan-for-groups
   "Build an invocation map for specified node-type map."
-  [request groups]
+  [session groups]
   (reduce
-   (fn [request group]
-     (plan-for-servers (assoc request :group group) (:servers group)))
-   request groups))
+   (fn [session group]
+     (plan-for-servers (assoc session :group group) (:servers group)))
+   session groups))
 
 (defn- plan-for-phases
   "Build an invocation map for specified phases and nodes.
-   This allows configuration to be accumulated in the request parameters."
-  [request]
+   This allows configuration to be accumulated in the session parameters."
+  [session]
   (reduce
-   (fn [request phase]
-     (plan-for-groups (assoc request :phase phase) (:groups request)))
-   request (:phase-list request)))
+   (fn [session phase]
+     (plan-for-groups (assoc session :phase phase) (:groups session)))
+   session (:phase-list session)))
 
 (defn sequential-apply-phase
   "Apply a phase to a sequence of nodes"
-  [request servers]
+  [session servers]
   (logging/info
    (format
     "apply-phase %s for %s with %d nodes"
-    (:phase request) (-> request :server :group-name) (count servers)))
+    (:phase session) (-> session :server :group-name) (count servers)))
   (for [server servers]
-    (apply-phase-to-node (assoc request :server server))))
+    (apply-phase-to-node (assoc session :server server))))
 
 (defn parallel-apply-phase
   "Apply a phase to a sequence of nodes"
-  [request servers]
+  [session servers]
   (logging/info
    (format
     "apply-phase %s for %s with %d nodes"
-    (:phase request) (-> request :server :group-name) (count servers)))
+    (:phase session) (-> session :server :group-name) (count servers)))
   (->>
    servers
    (map (fn [server]
-          (future (apply-phase-to-node (assoc request :server server)))))
+          (future (apply-phase-to-node (assoc session :server server)))))
    futures/add))
 
 (defn- ensure-configure-phase [phases]
@@ -575,58 +575,58 @@ is run with root privileges immediatly after first boot."
     (concat [:configure] phases)))
 
 (defn- identify-anonymous-phases
-  [request phases]
+  [session phases]
   (reduce #(if (keyword? %2)
              [(first %1)
               (conj (second %1) %2)]
              (let [phase (keyword (name (gensym "phase")))]
                [(assoc-in (first %1) [:phases phase] %2)
-                (conj (second %1) phase)])) [request []] phases))
+                (conj (second %1) phase)])) [session []] phases))
 
 (defn sequential-lift
   "Sequential apply the phases."
-  [request]
+  [session]
   (apply
    concat
-   (for [group (:groups request)]
-     (sequential-apply-phase (assoc request :group group) (:servers group)))))
+   (for [group (:groups session)]
+     (sequential-apply-phase (assoc session :group group) (:servers group)))))
 
 (defn parallel-lift
   "Apply the phases in sequence, to nodes in parallel."
-  [request]
+  [session]
   (mapcat
    #(map deref %)               ; make sure all nodes complete before next phase
-   (for [group (:groups request)]
-     (parallel-apply-phase (assoc request :group group) (:servers group)))))
+   (for [group (:groups session)]
+     (parallel-apply-phase (assoc session :group group) (:servers group)))))
 
 (defn lift-nodes-for-phase
   "Lift nodes in target-node-map for the specified phases.
 
    Builds the commands for the phase, then executes pre-phase, phase, and
    after-phase"
-  [request]
-  (let [lift-fn (environment/get-for request [:algorithms :lift-fn])]
+  [session]
+  (let [lift-fn (environment/get-for session [:algorithms :lift-fn])]
     (reduce
-     (fn [request phase]
-       (let [request (assoc request :phase phase)]
-         (reduce-node-results request (lift-fn request))))
-     request
-     (phase/all-phases-for-phase (:phase request)))))
+     (fn [session phase]
+       (let [session (assoc session :phase phase)]
+         (reduce-node-results session (lift-fn session))))
+     session
+     (phase/all-phases-for-phase (:phase session)))))
 
 
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
-  [request]
-  (logging/trace (format "lift-nodes phases %s" (vec (:phase-list request))))
+  [session]
+  (logging/trace (format "lift-nodes phases %s" (vec (:phase-list session))))
   (reduce
-   (fn [request phase]
+   (fn [session phase]
      (->
-      request
+      session
       (assoc :phase phase)
-      (plan-for-groups (:groups request))
+      (plan-for-groups (:groups session))
       lift-nodes-for-phase))
-   request
-   (:phase-list request)))
+   session
+   (:phase-list session)))
 
 (def
   ^{:doc
@@ -635,25 +635,25 @@ is run with root privileges immediatly after first boot."
   *warn-on-undefined-phase* true)
 
 (defn- warn-on-undefined-phase
-  "Generate a warning for the elements of the request's :phase-list that are not
-   defined in the request's :groups."
-  [request]
+  "Generate a warning for the elements of the session's :phase-list that are not
+   defined in the session's :groups."
+  [session]
   (when *warn-on-undefined-phase*
     (when-let [undefined (seq
                           (set/difference
-                           (set (filter keyword? (:phase-list request)))
+                           (set (filter keyword? (:phase-list session)))
                            (set
                             (concat
                              (->>
-                              (:groups request)
+                              (:groups session)
                               (map (comp keys :phases))
                               (reduce concat))
-                             (keys (:inline-phases request))))))]
+                             (keys (:inline-phases session))))))]
       (logging/warn
        (format
         "Undefined phases: %s"
         (string/join ", " (map name undefined))))))
-  request)
+  session)
 
 (defn- group-with-prefix
   [prefix node-spec]
@@ -678,15 +678,15 @@ is run with root privileges immediatly after first boot."
   [phase-list]
   (if (seq phase-list) phase-list [:configure]))
 
-(defn- request-with-configure-phase
-  "Add the configure phase to the request's :phase-list if not present."
-  [request]
-  (update-in request [:phase-list] phase-list-with-configure))
+(defn- session-with-configure-phase
+  "Add the configure phase to the session's :phase-list if not present."
+  [session]
+  (update-in session [:phase-list] phase-list-with-configure))
 
-(defn- request-with-default-phase
-  "Add the default phase to the request's :phase-list if none supplied."
-  [request]
-  (update-in request [:phase-list] phase-list-with-default))
+(defn- session-with-default-phase
+  "Add the default phase to the session's :phase-list if none supplied."
+  [session]
+  (update-in session [:phase-list] phase-list-with-default))
 
 (defn- node-in-types?
   "Predicate for matching a node belonging to a set of node types"
@@ -736,7 +736,7 @@ is run with root privileges immediatly after first boot."
             (map #(nodes-in-set % prefix nodes) node-set)))))
 
 (defn- server-with-packager
-  "Add the target packager to the request"
+  "Add the target packager to the session"
   [server]
   (update-in server [:packager]
              (fn [p] (or p
@@ -781,29 +781,29 @@ is run with root privileges immediatly after first boot."
       :servers (map #(server group % options)
                     (filter compute/running? nodes)))))
 
-(defn request-with-groups
+(defn session-with-groups
   "Takes the :all-nodes, :node-set and :prefix keys and compute the groups
-   for the request, updating the :all-nodes and :groups keys of the request.
+   for the session, updating the :all-nodes and :groups keys of the session.
 
    If the :all-nodes key is not set, then the nodes are retrieved from the
    compute service if possible, or are inferred from the :node-set value.
 
    The :groups key is set to a sequence of groups, each containing its
    list of servers on the :servers key."
-  [request]
+  [session]
   (let [all-nodes (filter
                    compute/running?
-                   (or (seq (:all-nodes request))
+                   (or (seq (:all-nodes session))
                        (when-let [compute (environment/get-for
-                                           request [:compute] nil)]
+                                           session [:compute] nil)]
                          (logging/info "retrieving nodes")
                          (compute/nodes compute))))
-        targets (nodes-in-set (:node-set request) (:prefix request) all-nodes)
-        plan-targets (if-let [all-node-set (:all-node-set request)]
+        targets (nodes-in-set (:node-set session) (:prefix session) all-nodes)
+        plan-targets (if-let [all-node-set (:all-node-set session)]
                        (-> (nodes-in-set all-node-set nil all-nodes)
                            (utils/dissoc-keys (keys targets))))]
     (->
-     request
+     session
      (assoc :all-nodes (or (seq all-nodes)
                            (filter
                             compute/running?
@@ -815,17 +815,17 @@ is run with root privileges immediatly after first boot."
                      (groups-with-servers plan-targets :invoke-only true))))))
 
 (defn lift*
-  "Lift the nodes specified in the request :node-set key.
+  "Lift the nodes specified in the session :node-set key.
    - :node-set     - a specification of nodes to lift
    - :all-nodes    - a sequence of all known nodes
    - :all-node-set - a specification of nodes to invoke (but not lift)"
-  [request]
+  [session]
   (logging/debug (format "pallet version: %s" (version)))
-  (logging/trace (format "lift* phases %s" (vec (:phase-list request))))
+  (logging/trace (format "lift* phases %s" (vec (:phase-list session))))
   (->
-   request
-   request-with-groups
-   request-with-default-phase
+   session
+   session-with-groups
+   session-with-default-phase
    warn-on-undefined-phase
    lift-nodes))
 
@@ -834,14 +834,14 @@ is run with root privileges immediatly after first boot."
    the configuration phases on all the group-names in `:node-set`. The
    phase-functions are also executed, but not applied, for any other nodes in
    `:all-node-set`"
-  [request]
-  {:pre [(:node-set request)]}
+  [session]
+  {:pre [(:node-set session)]}
   (logging/debug (format "pallet version: %s" (version)))
   (logging/trace
-   (format "converge* %s %s" (:node-set request) (:phase-list request)))
+   (format "converge* %s %s" (:node-set session) (:phase-list session)))
   (->
-   request
-   request-with-groups
+   session
+   session-with-groups
    converge-node-counts
    lift*))
 
@@ -883,24 +883,24 @@ is run with root privileges immediatly after first boot."
                 :converge-fn parallel-adjust-node-counts}})
 
 (defn- effective-environment
-  "Build the effective environment for the request map.
+  "Build the effective environment for the session map.
    This merges the explicitly passed :environment, with that
    defined on the :compute service."
-  [request]
+  [session]
   (assoc
-   request
+   session
    :environment
    (environment/merge-environments
     (default-environment)                                     ; global default
     (utils/find-var-with-require 'pallet.config 'environment) ; project default
-    (-?> request :environment :compute environment/environment) ;service default
-    (:environment request))))                                 ; request default
+    (-?> session :environment :compute environment/environment) ;service default
+    (:environment session))))                                 ; session default
 
 (def ^{:doc "args that are really part of the environment"}
   environment-args [:compute :blobstore :user :middleware])
 
-(defn- request-with-environment
-  "Build a request map from the given options, combining the service specific
+(defn- session-with-environment
+  "Build a session map from the given options, combining the service specific
    options with those given in the converge or lift invocation."
   [{:as options}]
   (->
@@ -937,22 +937,22 @@ is run with root privileges immediatly after first boot."
   options)
 
 (defn- identify-anonymous-phases
-  "For all inline phase defintions in the request's :phase-list,
-   generate a keyword for the phase, adding an entry to the request's
+  "For all inline phase defintions in the session's :phase-list,
+   generate a keyword for the phase, adding an entry to the session's
    :inline-phases map containing the phase definition, and replacing the
    phase defintion in the :phase-list with the keyword."
-  [request]
+  [session]
   (reduce
-   (fn [request phase]
+   (fn [session phase]
      (if (keyword? phase)
-       (update-in request [:phase-list] #(conj (or % []) phase))
+       (update-in session [:phase-list] #(conj (or % []) phase))
        (let [phase-kw (keyword (name (gensym "phase")))]
          (->
-          request
+          session
           (assoc-in [:inline-phases phase-kw] phase)
           (update-in [:phase-list] conj phase-kw)))))
-   (dissoc request :phase-list)
-   (:phase-list request)))
+   (dissoc session :phase-list)
+   (:phase-list session)))
 
 (defn- group-spec-with-count
   "Take the given group-spec, and set the :count key to the value specified
@@ -1007,7 +1007,7 @@ is run with root privileges immediatly after first boot."
                          phase
                          (if phase [phase] [:configure])))
     check-arguments-map
-    request-with-environment
+    session-with-environment
     identify-anonymous-phases)))
 
 
@@ -1047,5 +1047,5 @@ is run with root privileges immediatly after first boot."
                          (if phase [phase] [:configure])))
     check-arguments-map
     (dissoc :all-node-set :phase)
-    request-with-environment
+    session-with-environment
     identify-anonymous-phases)))

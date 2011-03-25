@@ -4,12 +4,12 @@
    [pallet.action :as action]))
 
 (action/def-bash-action test-resource
-  [request]
+  [session]
   (str
    "test-resource:"
-   (-> request :server :tag)
-   (-> request :server :image)))
+   (-> session :server :tag)
+   (-> session :server :image)))
 
 (action/def-bash-action test-component
-  [request arg]
+  [session arg]
   (str arg))

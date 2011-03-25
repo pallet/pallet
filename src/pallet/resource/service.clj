@@ -10,11 +10,11 @@
 (utils/forward-fns pallet.action.service service init-script)
 
 (defmacro with-restart
-  [request service-name & body]
+  [session service-name & body]
   `(do
      (utils/deprecated-macro
       ~&form
       (utils/deprecate-rename
        'pallet.resource.service/with-restart
        'pallet.action.service/with-restart))
-     (pallet.action.service/with-restart ~request ~service-name ~@body)))
+     (pallet.action.service/with-restart ~session ~service-name ~@body)))

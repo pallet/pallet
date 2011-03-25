@@ -452,8 +452,8 @@
              :public-ips ["127.0.0.1"]
              :operating-system (local-operating-system)))
 
-(defn local-request
-  "Create a request map for localhost"
+(defn local-session
+  "Create a session map for localhost"
   []
   (let [node (make-localhost-node)]
     {:all-nodes [node]
