@@ -4,6 +4,12 @@
    clojure.test))
 
 
+(deftest post-phase-name-test
+  (is (= :after-fred (post-phase-name :fred))))
+
+(deftest pre-phase-name-test
+  (is (= :pre-fred (pre-phase-name :fred))))
+
 (defmacro is-phase
   [request phase]
   `(do

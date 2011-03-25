@@ -2,10 +2,11 @@
   (:use clojure.test)
   (:require
    [pallet.action.directory :as directory]
-   [pallet.action.exec-script :as exec-script]
    [pallet.action.filesystem :as filesystem]
+   [pallet.action.exec-script :as exec-script]
    [pallet.build-actions :as build-actions]
-   [pallet.stevedore :as stevedore]))
+   [pallet.stevedore :as stevedore]
+   [pallet.test-utils :as test-utils]))
 
 (deftest make-xfs-filesytem-test
   (is (= (first
@@ -13,7 +14,7 @@
            {}
            (exec-script/exec-checked-script
             "Format /dev/a as XFS"
-            ("mkfs.xfs" -f "/dev/a"))))
+            (mkfs.xfs -f "/dev/a"))))
          (first
           (build-actions/build-actions
            {}
@@ -26,8 +27,23 @@
            (directory/directory "/mnt/a")
            (exec-script/exec-checked-script
             "Mount /dev/a at /mnt/a"
-            (mount "/dev/a" (quoted "/mnt/a")))))
+            (if-not @(mountpoint -q "/mnt/a")
+              (mount "/dev/a" (quoted "/mnt/a"))))))
          (first
           (build-actions/build-actions
            {}
-           (filesystem/mount "/dev/a" "/mnt/a"))))))
+           (filesystem/mount "/dev/a" "/mnt/a")))))
+  (is (= (first
+          (build-actions/build-actions
+           {}
+           (directory/directory "/mnt/a")
+           (exec-script/exec-checked-script
+            "Mount /dev/a at /mnt/a"
+            (if-not @(mountpoint -q "/mnt/a")
+              (mount -t "vboxsf" -o "gid=user,uid=user"
+                     "/dev/a" (quoted "/mnt/a"))))))
+         (first
+          (build-actions/build-actions
+           {}
+           (filesystem/mount "/dev/a" "/mnt/a" :fs-type "vboxsf"
+                             :uid "user" :gid "user"))))))

@@ -3,9 +3,11 @@
   (:require
    [pallet.action :as action]
    [pallet.action.exec-script :as exec-script]
+   [pallet.argument :as argument]
    [pallet.build-actions :as build-actions]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
+   [pallet.core :as core]
    [pallet.mock :as mock]
    [pallet.parameter :as parameter]
    [pallet.phase :as phase]
@@ -13,8 +15,7 @@
    [pallet.stevedore :as stevedore]
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
-   [pallet.utils :as utils]
-   [pallet.core :as core])
+   [pallet.utils :as utils])
   (:use
    clojure.test))
 
@@ -631,3 +632,166 @@
           (is out)
           (is (= err ""))
           (is (zero? exit)))))))
+
+(action/def-clj-action dummy-local-resource
+  [request arg] request)
+
+(deftest lift-with-delayed-argument-test
+  ;; test that delayed arguments correcly see parameter updates
+  ;; within the same phase
+  (let [add-slave (fn [request]
+                    (let [target-node (:target-node request)
+                          target-ip (compute/primary-ip target-node)]
+                      (parameter/update-for-service
+                       request
+                       [:slaves]
+                       (fn [v] (conj (or v []) target-ip)))))
+        seen (atom false)
+        get-slaves (fn [request]
+                     (reset! seen true)
+                     (is (= ["127.0.0.1" "127.0.0.1"]
+                              (parameter/get-for-service request [:slaves]))))
+
+        master (make-node "master" {}
+                          :configure (fn [request]
+                                       (dummy-local-resource
+                                        request
+                                        (argument/delayed
+                                         [request]
+                                         (get-slaves request)))))
+        slave (make-node "slave" {} :configure add-slave)
+        slaves [(test-utils/make-localhost-node :name "a" :id "a" :group-name "slave")
+                (test-utils/make-localhost-node :name "b" :id "b" :group-name "slave")]
+        master-node (test-utils/make-localhost-node :name "c" :group-name "master")
+        compute (compute/compute-service
+                 "node-list" :node-list (conj slaves master-node))]
+    (testing "serial"
+      (let [request (lift
+                     [master slave]
+                     :compute compute
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username)
+                             :no-sudo true)
+                     :environment {:algorithms {:lift-fn sequential-lift}})]
+        (is @seen "get-slaves should be called")
+        (is (= ["127.0.0.1" "127.0.0.1"]
+                 (parameter/get-for-service request [:slaves]))))
+      (testing "node sequence neutrality"
+        (reset! seen false)
+        (let [request (lift
+                     [slave master]
+                     :compute compute
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username)
+                             :no-sudo true)
+                     :environment {:algorithms {:lift-fn sequential-lift}})]
+        (is @seen "get-slaves should be called")
+        (is (= ["127.0.0.1" "127.0.0.1"]
+                 (parameter/get-for-service request [:slaves]))))))
+    (testing "parallel"
+      (reset! seen false)
+      (let [request (lift
+                     [master slave]
+                     :compute compute
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username)
+                             :no-sudo true)
+                     :environment {:algorithms {:lift-fn parallel-lift}})]
+        (is @seen "get-slaves should be called")
+        (is (= ["127.0.0.1" "127.0.0.1"]
+                 (parameter/get-for-service request [:slaves])))))))
+
+(action/def-clj-action checking-set
+  [request]
+  (is (= ["127.0.0.1" "127.0.0.1"]
+           (parameter/get-for-service request [:slaves])))
+  request)
+
+(deftest lift-post-phase-test
+  (testing
+      "test that parameter updates are correctly seen in the post phase"
+    (let [add-slave (fn [request]
+                      (let [target-node (:target-node request)
+                            target-ip (compute/primary-ip target-node)]
+                        (parameter/update-for-service
+                         request
+                         [:slaves]
+                         (fn [v] (conj (or v []) target-ip)))))
+          slave (make-node "slave" {} :configure add-slave)
+          slaves [(test-utils/make-localhost-node
+                   :name "a" :id "a" :group-name "slave")
+                  (test-utils/make-localhost-node
+                   :name "b" :id "b" :group-name "slave")]
+          master-node (test-utils/make-localhost-node
+                       :name "c" :id "c" :group-name "master")
+          compute (compute/compute-service
+                   "node-list" :node-list (conj slaves master-node))]
+      (testing "with serial lift"
+        (let [[localf-pre seen-pre?] (seen-fn "lift-post-phase-test pre")
+              [localf-post seen-post?] (seen-fn "lift-post-phase-test post")
+              master (make-node "master" {}
+                                :configure (phase/phase-fn
+                                            (phase/schedule-in-pre-phase
+                                             checking-set
+                                             localf-pre)
+                                            (phase/schedule-in-post-phase
+                                             checking-set
+                                             localf-post)))
+
+              request (lift
+                       [master slave]
+                       :compute compute
+                       :user (assoc utils/*admin-user*
+                               :username (test-utils/test-username)
+                               :no-sudo true)
+                       :environment {:algorithms {:lift-fn sequential-lift}})]
+          (is (seen-pre?) "checking-not-set should be called")
+          (is (seen-post?) "checking-set should be called")
+          (is (= ["127.0.0.1" "127.0.0.1"]
+                   (parameter/get-for-service request [:slaves])))))
+      (testing "with serial lift in reverse node type order"
+        (let [[localf-pre seen-pre?] (seen-fn "lift-post-phase-test pre")
+              [localf-post seen-post?] (seen-fn "lift-post-phase-test post")
+              master (make-node "master" {}
+                                :configure (phase/phase-fn
+                                            (phase/schedule-in-pre-phase
+                                             checking-set
+                                             localf-pre)
+                                            (phase/schedule-in-post-phase
+                                             checking-set
+                                             localf-post)))
+
+              request (lift
+                       [slave master]
+                       :compute compute
+                       :user (assoc utils/*admin-user*
+                               :username (test-utils/test-username)
+                               :no-sudo true)
+                       :environment {:algorithms {:lift-fn sequential-lift}})]
+          (is (seen-pre?) "checking-not-set should be called")
+          (is (seen-post?) "checking-set should be called")
+          (is (= ["127.0.0.1" "127.0.0.1"]
+                   (parameter/get-for-service request [:slaves])))))
+      (testing "with parallel lift"
+        (let [[localf-pre seen-pre?] (seen-fn "lift-post-phase-test pre")
+              [localf-post seen-post?] (seen-fn "lift-post-phase-test post")
+              master (make-node "master" {}
+                                :configure (phase/phase-fn
+                                            (phase/schedule-in-pre-phase
+                                             checking-set
+                                             localf-pre)
+                                            (phase/schedule-in-post-phase
+                                             checking-set
+                                             localf-post)))
+
+              request (lift
+                       [master slave]
+                       :compute compute
+                       :user (assoc utils/*admin-user*
+                               :username (test-utils/test-username)
+                               :no-sudo true)
+                       :environment {:algorithms {:lift-fn parallel-lift}})]
+          (is (seen-pre?) "checking-not-set should be called")
+          (is (seen-post?) "checking-set should be called")
+          (is (= ["127.0.0.1" "127.0.0.1"]
+                   (parameter/get-for-service request [:slaves]))))))))

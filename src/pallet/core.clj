@@ -569,17 +569,6 @@ is run with root privileges immediatly after first boot."
           (future (apply-phase-to-node (assoc request :server server)))))
    futures/add))
 
-
-(defn- add-prefix-to-node-type
-  [prefix node-type]
-  (update-in node-type [:tag]
-             (fn [tag] (keyword (str prefix (name tag))))))
-
-(defn- add-prefix-to-node-map [prefix node-map]
-  (zipmap
-   (map (partial add-prefix-to-node-type prefix) (keys node-map))
-   (vals node-map)))
-
 (defn- ensure-configure-phase [phases]
   (if (some #{:configure} phases)
     phases
@@ -610,25 +599,34 @@ is run with root privileges immediatly after first boot."
    (for [group (:groups request)]
      (parallel-apply-phase (assoc request :group group) (:servers group)))))
 
+(defn lift-nodes-for-phase
+  "Lift nodes in target-node-map for the specified phases.
+
+   Builds the commands for the phase, then executes pre-phase, phase, and
+   after-phase"
+  [request]
+  (let [lift-fn (environment/get-for request [:algorithms :lift-fn])]
+    (reduce
+     (fn [request phase]
+       (let [request (assoc request :phase phase)]
+         (reduce-node-results request (lift-fn request))))
+     request
+     (phase/all-phases-for-phase (:phase request)))))
+
 
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
   [request]
   (logging/trace (format "lift-nodes phases %s" (vec (:phase-list request))))
-  (let [lift-fn (environment/get-for request [:algorithms :lift-fn])
-        lift-phase (fn [request]
-                     (reduce-node-results
-                      request (lift-fn request)))]
-    (reduce
-     (fn [request phase]
-       (->
-        request
-        (assoc :phase phase)
-        (plan-for-groups (:groups request))
-        lift-phase))
-     request
-     (phase/phase-list-with-implicit-phases (:phase-list request)))))
-
+  (reduce
+   (fn [request phase]
+     (->
+      request
+      (assoc :phase phase)
+      (plan-for-groups (:groups request))
+      lift-nodes-for-phase))
+   request
+   (:phase-list request)))
 
 (def
   ^{:doc

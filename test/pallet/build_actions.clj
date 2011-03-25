@@ -25,20 +25,20 @@
   (let [execute
         (fn [request]
           (let [[result request] (apply-phase-to-node
-                                  (->
-                                   request
-                                   (assoc :middleware
-                                     [core/translate-action-plan
-                                      execute/execute-echo]
-                                     :executor core/default-executors)
-                                   action-plan/build-for-target))]
+                                  request)]
             [(string/join "" result) request]))]
     (reduce
      (fn [[results request] phase]
        (let [[result request] (execute (assoc request :phase phase))]
          [(str results result) request]))
-     ["" request]
-     (phase/phase-list-with-implicit-phases [(:phase request)]))))
+     ["" (->
+          request
+          (assoc :middleware
+            [core/translate-action-plan
+             execute/execute-echo]
+            :executor core/default-executors)
+          action-plan/build-for-target)]
+     (phase/all-phases-for-phase (:phase request)))))
 
 (defn- convert-0-4-5-compatible-keys
   "Convert old build-actions keys to new keys."
