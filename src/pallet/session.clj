@@ -59,18 +59,14 @@
   [session]
   (-> session :server :group-name))
 
-(defn tag
-  "Tag of the target-node."
-  {:deprecated "0.4.6"}
-  [session]
-  (group-name session))
-
 (defn safe-name
   "Safe name for target machine.
    Some providers don't allow for node names, only node ids, and there is
    no guarantee on the id format."
   [session]
-  (format "%s%s" (name (tag session)) (safe-id (name (target-id session)))))
+  (format
+   "%s%s"
+   (name (group-name session)) (safe-id (name (target-id session)))))
 
 (defn nodes-in-group
   "All nodes in the same tag as the target-node, or with the specified tag."
@@ -79,12 +75,6 @@
      (filter
       #(= (name group-name) (compute/group-name %))
       (:all-nodes session))))
-
-(defn nodes-in-tag
-  "All nodes in the same tag as the target-node, or with the specified tag."
-  {:deprecated "0.4.6"}
-  ([session] (nodes-in-group session (group-name session)))
-  ([session group-name] (nodes-in-group session group-name)))
 
 (defn packager
   [session]
