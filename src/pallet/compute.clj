@@ -226,3 +226,11 @@
              :message (format
                        "Unknown packager for %s - :image %s"
                        os-family target))))))
+
+(defn admin-group
+  "User that remote commands are run under"
+  [target]
+  (case (-> target :image :os-family)
+    :centos "wheel"
+    :rhel "wheel"
+    "adm"))

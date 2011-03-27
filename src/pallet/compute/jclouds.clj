@@ -7,7 +7,6 @@
    [pallet.compute :as compute]
    [pallet.environment :as environment]
    [pallet.script :as script]
-   [pallet.target :as target]
    [pallet.utils :as utils]
    [pallet.execute :as execute]
    [clojure.contrib.condition :as condition]

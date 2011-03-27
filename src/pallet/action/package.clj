@@ -14,7 +14,6 @@
    [pallet.stevedore :as stevedore]
    [pallet.script :as script]
    [pallet.utils :as utils]
-   [pallet.target :as target]
    [clojure.contrib.string :as string]
    [clojure.contrib.logging :as logging])
   (:use

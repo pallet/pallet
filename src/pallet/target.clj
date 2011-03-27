@@ -1,17 +1,21 @@
 (ns pallet.target
-  "Provide information about the target image.
-
-   This is not part of the pallet API."
+  "Compatibility namespace"
   (:require
-   [clojure.contrib.condition :as condition]))
+   [pallet.utils :as utils]))
 
 (defn os-family
   "OS family"
-  [target] (:os-family target))
+  {:deprecated "0.5.0"}
+  [target]
+  (utils/deprecated
+   "pallet.target/os-family is deprecated, please use pallet.session/os-family")
+  (:os-family target))
 
 (defn admin-group
   "Default administrator group"
   [target]
+  (utils/deprecated
+   "pallet.target/admin-group is deprecated, please use pallet.session/admin-group")
   (case (os-family target)
     :yum "wheel"
     "adm"))

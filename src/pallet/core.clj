@@ -34,7 +34,6 @@
    [pallet.parameter :as parameter]
    [pallet.phase :as phase]
    [pallet.script :as script]
-   [pallet.target :as target]
    [pallet.thread-expr :as thread-expr]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]

@@ -6,7 +6,6 @@
    [pallet.compute :as compute]
    [pallet.execute :as execute]
    [pallet.session :as session]
-   [pallet.target :as target]
    [pallet.utils :as utils]
    [clojure.contrib.logging :as logging]))
 

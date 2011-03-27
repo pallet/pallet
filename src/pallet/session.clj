@@ -83,4 +83,9 @@
 (defn admin-user
   "User that remote commands are run under"
   [session]
-  (-> session :user))
+  (:user session))
+
+(defn admin-group
+  "User that remote commands are run under"
+  [session]
+  (compute/admin-group (:server session)))

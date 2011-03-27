@@ -3,14 +3,13 @@
   (:require
    [pallet.compute :as compute]
    [pallet.script.lib :as lib]
+   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    [pallet.strint :as strint]
    [pallet.target :as target]
    [pallet.utils :as utils]
-   [clojure.string :as string])
-  (:use
-   [pallet.action.file]
-   [clojure.contrib.logging]))
+   [clojure.string :as string]
+   [clojure.contrib.logging :as logging]))
 
 (defn get-resource
   "Loads a resource. Returns a URI."
@@ -35,9 +34,9 @@
   [path file ext]
   (str (when path (str path "/")) file (when ext (str "." ext))))
 
-(defn candidate-templates
+(defn- candidate-templates
   "Generate a prioritised list of possible template paths."
-  [path tag template]
+  [path tag session]
   (let [[dirpath base ext] (path-components path)
         variants (fn [specifier]
                    (let [p (pathname
@@ -47,8 +46,8 @@
                      [p (str "resources/" p)]))]
     (concat
      (variants tag)
-     (variants (name (or (target/os-family template) "unknown")))
-     (variants (name (or (compute/packager template) "unknown")))
+     (variants (name (or (session/os-family session) "unknown")))
+     (variants (name (or (session/packager session) "unknown")))
      (variants nil))))
 
 (defn find-template
@@ -59,7 +58,7 @@
   (some
    get-resource
    (candidate-templates
-    path (-> session :server :tag) (-> session :server :image))))
+    path (-> session :server :group-name) session)))
 
 (defn interpolate-template
   "Interpolate the given template."
@@ -76,21 +75,22 @@
      ~m))
 
 (defn- apply-template-file [[file-spec content]]
-  (trace (str "apply-template-file " file-spec \newline content))
+  (logging/trace (str "apply-template-file " file-spec \newline content))
   (let [path (:path file-spec)]
-    (string/join ""
-                 (filter (complement nil?)
-                         [(stevedore/script
-                           (var file ~path)
-                           ((~lib/cat "") > @file <<EOF))
-                          content
-                          "\nEOF\n"
-                          (when-let [mode (:mode file-spec)]
-                            (stevedore/script (do ("chmod" ~mode @file))))
-                          (when-let [group (:group file-spec)]
-                            (stevedore/script (do ("chgrp" ~group @file))))
-                          (when-let [owner (:owner file-spec)]
-                            (stevedore/script (do ("chown" ~owner @file))))]))))
+    (string/join
+     ""
+     (filter (complement nil?)
+             [(stevedore/script
+               (var file ~path)
+               ((~lib/cat "") > @file <<EOF))
+              content
+              "\nEOF\n"
+              (when-let [mode (:mode file-spec)]
+                (stevedore/script (do (chmod ~mode @file))))
+              (when-let [group (:group file-spec)]
+                (stevedore/script (do (chgrp ~group @file))))
+              (when-let [owner (:owner file-spec)]
+                (stevedore/script (do (chown ~owner @file))))]))))
 
 ;; TODO - add chmod, owner, group
 (defn apply-templates [template-fn args]

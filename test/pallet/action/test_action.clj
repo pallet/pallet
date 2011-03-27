@@ -1,9 +1,9 @@
-(ns pallet.resource.test-resource
-  "Defines a test resource"
+(ns pallet.action.test-action
+  "Defines a test action"
   (:use
    [pallet.action :as action]))
 
-(action/def-bash-action test-resource
+(action/def-bash-action test-action
   [session]
   (str
    "test-resource:"
