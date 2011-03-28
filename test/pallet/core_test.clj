@@ -15,7 +15,8 @@
    [pallet.stevedore :as stevedore]
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
-   [pallet.utils :as utils])
+   [pallet.utils :as utils]
+   [clojure.string :as string])
   (:use
    clojure.test))
 
@@ -610,7 +611,7 @@
         (let [{:keys [out err exit]} (-> session
                                          :results :localhost :configure2 first)]
           (is out)
-          (is (= err ""))
+          (is (string/blank? err))
           (is (zero? exit)))))
     (testing "parallel"
       (let [compute (compute/compute-service "node-list" :node-list [localhost])
@@ -630,7 +631,7 @@
         (let [{:keys [out err exit]} (-> session
                                          :results :localhost :configure2 first)]
           (is out)
-          (is (= err ""))
+          (is (string/blank? err))
           (is (zero? exit)))))))
 
 (action/def-clj-action dummy-local-resource

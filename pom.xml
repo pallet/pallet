@@ -102,7 +102,7 @@
     <dependency>
       <groupId>clj-ssh</groupId>
       <artifactId>clj-ssh</artifactId>
-      <version>0.2.0</version>
+      <version>0.2.3</version>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>

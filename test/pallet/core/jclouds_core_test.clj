@@ -18,7 +18,8 @@
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
-   [clojure.contrib.logging :as logging])
+   [clojure.contrib.logging :as logging]
+   [clojure.string :as string])
   (:use
    clojure.test)
   (:import [org.jclouds.compute.domain NodeState OperatingSystem OsFamily]))
@@ -414,5 +415,5 @@
     (let [{:keys [out err exit]} (-> session
                                      :results :localhost :configure2 first)]
       (is out)
-      (is (= err ""))
+      (is (string/blank? err))
       (is (zero? exit)))))
