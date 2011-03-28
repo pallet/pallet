@@ -8,18 +8,13 @@
         (for-> [x [1 2 3]]
           (+ x)))
    => 7"
-  [arg [value s & {:keys [let]}] & body]
-  (clojure.core/let
-   [argsym (gensym "arg")]
-   `(let [arg# ~arg s# ~s] ; maintain correct evaluation order
-      (reduce
-       (fn [~argsym ~value]
-         ~(if let
-            `(let ~let
-               (-> ~argsym ~@body))
-            `(-> ~argsym ~@body)))
-       arg#
-       s#))))
+  [arg seq-exprs body-expr]
+  `((apply comp (reverse
+                 (for ~seq-exprs
+                   (fn [arg#]
+                     (-> arg#
+                         ~body-expr)))))
+    ~arg))
 
 (defmacro when->
   "A `when` form that can appear in a request thread.
