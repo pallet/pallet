@@ -108,38 +108,45 @@
   (let [chmod-result (ssh/ssh
                       session (str "chmod 755 " tmpfile) :return-map true)]
     (if (pos? (chmod-result :exit))
-      (logging/error (str "Couldn't chmod script : " ) (chmod-result :err))))
-  (let [script-result (ssh/ssh
-                       session
-                       ;; using :in forces a shell session, rather than
-                       ;; exec; some services check for a shell session
-                       ;; before detaching (couchdb being one prime
-                       ;; example)
-                       :in (str (sudo-cmd-for user)
-                                " ~" (:username user) "/" tmpfile)
-                       :return-map true
-                       :pty true)]
-    (let [stdout (normalise-eol
-                  (strip-sudo-password (script-result :out) user))
-          stderr (normalise-eol
-                  (strip-sudo-password (get script-result :err "") user))]
-      (if (zero? (script-result :exit))
-        (logging/info stdout)
+      (logging/error (str "Couldn't chmod script : "  (chmod-result :err)))))
+  (let [[shell stream] (ssh/ssh
+                        session
+                        ;; using :in forces a shell session, rather than
+                        ;; exec; some services check for a shell session
+                        ;; before detaching (couchdb being one prime
+                        ;; example)
+                        :in (str (sudo-cmd-for user)
+                                 " ~" (:username user) "/" tmpfile)
+                        :out :stream
+                        :return-map true
+                        :pty true)
+        sb (StringBuilder.)
+        buffer-size 4096
+        bytes (byte-array buffer-size)]
+    (while (ssh/connected? shell)
+      (Thread/sleep 1000)
+      (when (pos? (.available stream))
+        (let [num-read (.read stream bytes 0 buffer-size)
+              s (normalise-eol
+                 (strip-sudo-password (String. bytes 0 num-read "UTF-8") user))]
+          (logging/info (format "Output: %s" s))
+          (.append sb s))))
+    (let [exit (.getExitStatus shell)
+          stdout (str sb)]
+      (when-not (zero? exit)
         (do
-          (logging/error (str "Exit status  : " (script-result :exit)))
+          (logging/error (str "Exit status  : " exit))
           (logging/error (str "Output       : " stdout))
-          (logging/error (str "Error output : " stderr))
           (condition/raise
            :message (format
-                     "Error executing script :\n :cmd %s\n :out %s\n :err %s"
-                     command stdout stderr)
+                     "Error executing script :\n :cmd %s\n :out %s\n"
+                     command stdout)
            :type :pallet-script-excution-error
-           :script-exit (script-result :exit)
+           :script-exit exit
            :script-out stdout
-           :script-err stderr
            :server server)))
       (ssh/ssh session (str "rm " tmpfile))
-      {:out stdout :err stderr :exit (:exit script-result)})))
+      {:out stdout :exit exit})))
 
 (defn remote-sudo
   "Run a sudo command on a server."

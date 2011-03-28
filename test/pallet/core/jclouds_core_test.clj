@@ -1,21 +1,23 @@
 (ns pallet.core.jclouds-core-test
   (:use pallet.core)
   (require
-   [pallet.core :as core]
-   [pallet.utils :as utils]
-   [pallet.stevedore :as stevedore]
-   [pallet.resource.exec-script :as exec-script]
    [pallet.compute :as compute]
    [pallet.compute.jclouds :as jclouds]
-   [pallet.compute.node-list :as node-list]
-   [pallet.target :as target]
-   [pallet.mock :as mock]
-   [pallet.compute.jclouds-test-utils :as jclouds-test-utils]
    [pallet.compute.jclouds-ssh-test :as ssh-test]
+   [pallet.compute.jclouds-test-utils :as jclouds-test-utils]
+   [pallet.compute.node-list :as node-list]
+   [pallet.core :as core]
+   [pallet.mock :as mock]
    [pallet.parameter :as parameter]
    [pallet.resource :as resource]
    [pallet.resource-build :as resource-build]
-   [pallet.test-utils :as test-utils])
+   [pallet.resource.exec-script :as exec-script]
+   [pallet.stevedore :as stevedore]
+   [pallet.target :as target]
+   [pallet.test-utils :as test-utils]
+   [pallet.utils :as utils]
+   [clojure.contrib.logging :as logging]
+   [clojure.string :as string])
   (:use
    clojure.test)
   (:import [org.jclouds.compute.domain NodeState OperatingSystem OsFamily]))
@@ -474,13 +476,12 @@
                              [] :in-sequence :fn/clojure)))
         request (lift {node (jclouds/make-localhost-node)}
                       :phase [:configure :configure2]
-                       :user (assoc utils/*admin-user*
-                               :username (test-utils/test-username)
-                               :no-sudo true)
+                      :user (assoc utils/*admin-user*
+                              :username (test-utils/test-username)
+                              :no-sudo true)
                       :compute org.jclouds.compute/*compute*)]
     (is (map? request))
     (is (map? (-> request :results)))
     (is (map? (-> request :results first second)))
     (is (-> request :results :localhost :configure))
-    (is (-> request :results :localhost :configure2))
-    (is (= [] (-> request :results :localhost :configure)))))
+    (is (-> request :results :localhost :configure2))))

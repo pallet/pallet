@@ -2,18 +2,19 @@
   (:use pallet.core)
   (require
    [pallet.argument :as argument]
-   [pallet.core :as core]
-   [pallet.utils :as utils]
-   [pallet.stevedore :as stevedore]
-   [pallet.resource.exec-script :as exec-script]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
-   [pallet.target :as target]
+   [pallet.core :as core]
    [pallet.mock :as mock]
    [pallet.parameter :as parameter]
    [pallet.resource :as resource]
    [pallet.resource-build :as resource-build]
-   [pallet.test-utils :as test-utils])
+   [pallet.resource.exec-script :as exec-script]
+   [pallet.stevedore :as stevedore]
+   [pallet.target :as target]
+   [pallet.test-utils :as test-utils]
+   [pallet.utils :as utils]
+   [clojure.string :as string])
   (:use
    clojure.test))
 
@@ -501,7 +502,7 @@
         (let [{:keys [out err exit]} (-> request
                                          :results :localhost :configure2 first)]
           (is out)
-          (is (= err ""))
+          (is (string/blank? err))
           (is (zero? exit)))))
     (testing "parallel"
       (let [compute (compute/compute-service "node-list" :node-list [localhost])
@@ -521,7 +522,7 @@
         (let [{:keys [out err exit]} (-> request
                                          :results :localhost :configure2 first)]
           (is out)
-          (is (= err ""))
+          (is (string/blank? err))
           (is (zero? exit)))))))
 
 
