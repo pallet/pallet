@@ -149,19 +149,32 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 
 (deftest package-manager*-test
   (is (= (stevedore/checked-script
-          "package-manager"
+          "package-manager multiverse"
           (set! tmpfile @(mktemp -t addscopeXXXX))
           (cp -p "/etc/apt/sources.list" @tmpfile)
           (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
           (mv -f @tmpfile "/etc/apt/sources.list"))
          (package-manager* ubuntu-request :multiverse)))
   (is (= (stevedore/checked-script
-          "package-manager"
+          "package-manager update"
           (chain-or
-           (aptitude update "")
+           (aptitude update)
            true))
          (script/with-template [:aptitude]
            (package-manager* ubuntu-request :update)))))
+
+(deftest package-manager-update-test
+  (testing "yum"
+    (is (= (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :centos}}]
+             (exec-script/exec-checked-script
+              "package-manager update"
+              (yum makecache -q "--enablerepo=r1"))))
+           (first
+            (build-resources
+             [:node-type {:tag :n :image {:os-family :centos}}]
+             (package-manager :update :enable ["r1"])))))))
 
 (deftest package-manager-configure-test
   (testing "aptitude"
@@ -169,7 +182,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (build-resources
              []
              (exec-script/exec-checked-script
-              "package-manager"
+              "package-manager configure"
               ~(remote-file/remote-file*
                 {}
                 "/etc/apt/apt.conf.d/50pallet"
@@ -185,7 +198,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (build-resources
              [:node-type {:tag :n :image {:os-family :centos}}]
              (exec-script/exec-checked-script
-              "package-manager"
+              "package-manager configure"
               ~(remote-file/remote-file*
                 {}
                 "/etc/yum.pallet.conf"
@@ -206,7 +219,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (build-resources
              [:node-type {:tag :n :image {:os-family :arch}}]
              (exec-script/exec-checked-script
-              "package-manager"
+              "package-manager configure"
               ~(remote-file/remote-file*
                 {}
                 "/etc/pacman.pallet.conf"
@@ -231,13 +244,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 (deftest add-multiverse-example-test
   (is (=  (str
            (stevedore/checked-script
-            "package-manager"
+            "package-manager multiverse"
             (set! tmpfile @(mktemp -t addscopeXXXX))
             (cp -p "/etc/apt/sources.list" @tmpfile)
             (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
             (mv -f @tmpfile "/etc/apt/sources.list"))
            (stevedore/checked-script
-            "package-manager"
+            "package-manager update"
             (chain-or
              (aptitude update "")
              true)))
@@ -477,3 +490,10 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              [:target-packager :yum]
              (package "p1")
              (package "p2" :disable ["r1"] :priority 25)))))))
+
+(deftest jpackage-test
+  (is
+   (build-resources
+    [:target-packager :yum :phase :configure]
+    (package/add-jpackage)
+    (package/package-manager-update-jpackage))))
