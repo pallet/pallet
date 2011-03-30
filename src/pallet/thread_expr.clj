@@ -8,12 +8,12 @@
         (for-> [x [1 2 3]]
           (+ x)))
    => 7"
-  [arg seq-exprs body-expr]
-  `((apply comp (reverse
-                 (for ~seq-exprs
-                   (fn [arg#]
-                     (-> arg#
-                         ~body-expr)))))
+  [arg seq-exprs & body]
+  `((apply comp (conj
+                 (reverse
+                  (for ~seq-exprs
+                    (fn [arg#] (-> arg# ~@body))))
+                 identity))
     ~arg))
 
 (defmacro when->
