@@ -4,6 +4,7 @@
    clojure.test
    pallet.test-utils)
   (:require
+   [pallet.script :as script]
    [pallet.utils :as utils]))
 
 (use-fixtures :once with-ubuntu-script-template)
@@ -272,13 +273,25 @@ fi"
   (is (= "ls | ls"
          (script (pipe (ls) (ls))))))
 
+(script/defscript xfn [& args])
+(defimpl xfn :default [& args]
+  ("xfn" ~args))
+
 (deftest unquote-splicing-test
   (is (= "a b c" (script ~@["a" "b" "c"])))
+  (is (= "x" (script x ~@[])))
+  (is (= "x" (script (x ~@[]))))
   (let [x ["a" "b" "c"]]
     (is (= "a b c" (script ~@x))))
+  (let [x []]
+    (is (= "x" (script x ~@x))))
   (let [x nil]
     (is (= "" (script ~@x))))
   (let [x []]
     (is (= "" (script ~@x))))
   (let [fx (fn [] ["a" "b" "c"])]
-    (is (= "a b c" (script ~@(fx))))))
+    (is (= "a b c" (script ~@(fx)))))
+  (let [x nil]
+    (is (= "xfn null" (script (xfn ~@x)))))
+  (let [x [:a 1]]
+    (is (= "xfn a 1" (script (xfn ~@x))))))
