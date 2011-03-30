@@ -644,7 +644,7 @@ script that is run with root privileges immediatly after first boot."
   (logging/info "retrieving nodes")
   (let [node-map (:node-map request)
         all-node-set (:all-node-set request)
-        phases (or (:phase-list request) [:configure])
+        phases (ensure-configure-phase (:phase-list request))
         node-map (add-prefix-to-node-map (:prefix request) node-map)
         compute (environment/get-for request [:compute])
         nodes (compute/nodes compute)]
