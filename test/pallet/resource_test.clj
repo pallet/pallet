@@ -21,14 +21,14 @@
 ;;     (is (= :fred *phase*))))
 
 (deftest after-phase-test
-  (is (= :after-fred (after-phase :fred))))
+  (is (= :pallet.resource/after-fred (after-phase :fred))))
 
 (deftest pre-phase-test
-  (is (= :pre-fred (pre-phase :fred))))
+  (is (= :pallet.resource/pre-fred (pre-phase :fred))))
 
 (deftest phase-list-test
   (testing "pre, after added"
-    (is (= [:pre-fred :fred :after-fred]
+    (is (= [:pallet.resource/pre-fred :fred :pallet.resource/after-fred]
              (phase-list :fred)))))
 
 (defmacro is-phase
@@ -42,14 +42,14 @@
          (:phase
           (execute-after-phase
            {:phase :fred}
-           (is-phase :after-fred))))))
+           (is-phase :pallet.resource/after-fred))))))
 
 (deftest execute-pre-phase-test
   (is (= :fred
          (:phase
           (execute-pre-phase
            {:phase :fred}
-           (is-phase :pre-fred))))))
+           (is-phase :pallet.resource/pre-fred))))))
 
 (defn identity-resource [request x] x)
 

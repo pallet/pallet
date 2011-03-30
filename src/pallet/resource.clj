@@ -15,12 +15,12 @@ configuration code."
 (defn pre-phase
   "Calculate the name for the pre-phase"
   [phase]
-  (keyword (str "pre-" (name phase))))
+  (keyword "pallet.resource" (str "pre-" (name phase))))
 
 (defn after-phase
   "Calculate the name for the after-phase"
   [phase]
-  (keyword (str "after-" (name phase))))
+  (keyword "pallet.resource" (str "after-" (name phase))))
 
 (defmacro execute-pre-phase
   "Specify the pre phase for execution of resources."
