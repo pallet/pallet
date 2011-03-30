@@ -165,7 +165,8 @@
   (if-let [f (some
               (:phase request)
               [(:phases (:node-type request)) (:phases request)])]
-    (let [request ((utils/pipe add-target-keys identity) request)]
+    (let [request ((utils/pipe add-target-keys identity) request)
+          request (resource/reset-invocations request)]
       (script/with-template (resource/script-template request)
         (f request)))
     request))
@@ -558,14 +559,14 @@ script that is run with root privileges immediatly after first boot."
    Builds the commands for the phase, then executes pre-phase, phase, and
    after-phase"
   [request phase target-node-map]
-  (let [request (->
-                 request
-                 (assoc :phase phase)
-                 (invoke-for-node-type target-node-map))
-        lift-fn (environment/get-for request [:algorithms :lift-fn])]
+  (let [lift-fn (environment/get-for request [:algorithms :lift-fn])]
     (reduce
-     (fn [request phase]
-       (let [request (assoc request :phase phase)]
+     (fn [request sub-phase]
+       (let [request (->
+                      request
+                      (assoc :phase phase)
+                      (invoke-for-node-type target-node-map)
+                      (assoc :phase sub-phase))]
          (reduce-node-results request (lift-fn request target-node-map))))
      request
      (resource/phase-list phase))))
