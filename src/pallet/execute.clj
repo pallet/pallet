@@ -129,7 +129,7 @@
         (let [num-read (.read stream bytes 0 buffer-size)
               s (normalise-eol
                  (strip-sudo-password (String. bytes 0 num-read "UTF-8") user))]
-          (logging/info (format "Output: %s" s))
+          (logging/info (format "Output:\n%s" s))
           (.append sb s))))
     (let [exit (.getExitStatus shell)
           stdout (str sb)]
