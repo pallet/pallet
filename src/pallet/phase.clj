@@ -101,12 +101,10 @@
    with an added safety call to `check-session` prior to each phase
    invocation."
   ([argvec] `(phase-fn ~argvec identity))
-  ([argvec & forms]
-     (let [subphase (first forms)
-           left (rest forms)]
-       `(fn [session# ~@argvec]
-          (--> session#
-               ~subphase
-               (check-session (str "The session passed out of" '~subphase))
-               ~@(when (seq left)
-                   [`((phase-fn ~argvec ~@left))]))))))
+  ([argvec & [subphase & left]]
+     `(fn [session# ~@argvec]
+        (-> session#
+            ~subphase
+            (check-session (str "The session passed out of" '~subphase))
+            ~@(when left
+                [`((phase-fn ~argvec ~@left))])))))
