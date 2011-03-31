@@ -261,6 +261,7 @@
             (is (.canRead target-tmp))
             (is (= "urlmd5urltext" (slurp (.getPath target-tmp)))))
           (testing "delete action"
+            (.createNewFile target-tmp)
             (core/lift
              {local node}
              :phase #(remote-file % (.getPath target-tmp) :action :delete)

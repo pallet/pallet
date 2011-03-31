@@ -15,12 +15,12 @@ configuration code."
 (defn pre-phase
   "Calculate the name for the pre-phase"
   [phase]
-  (keyword (str "pre-" (name phase))))
+  (keyword "pallet.resource" (str "pre-" (name phase))))
 
 (defn after-phase
   "Calculate the name for the after-phase"
   [phase]
-  (keyword (str "after-" (name phase))))
+  (keyword "pallet.resource" (str "after-" (name phase))))
 
 (defmacro execute-pre-phase
   "Specify the pre phase for execution of resources."
@@ -41,6 +41,24 @@ configuration code."
       (assoc request# :phase (after-phase phase#))
       ~@body
       (assoc :phase phase#))))
+
+(defn phase-list
+  "Add default phases, pre and after phases."
+  [phase]
+  (if (keyword? phase)
+    [(pre-phase phase) phase (after-phase phase)]
+    [(pre-phase (first phase)) (first phase) (after-phase (first phase))]))
+
+(defn reset-invocations
+  "Reset the invocation list"
+  [request]
+  {:pre [request
+         (keyword? (:phase request))
+         (keyword? (:target-id request))]}
+  (reduce
+   #(assoc-in %1 [:invocations %2 (:target-id request)] {})
+   request
+   (phase-list (:phase request))))
 
 (defn invoke-resource
   "Registers a resource whose generation is defined by the specified
@@ -169,10 +187,12 @@ configuration code."
                       (into #{} (map (comp :resource-fn meta) before))))
         fx (:f x)
         fy (:f y)]
-    (cond
-     ((before-fn fx) (var-get fy)) -1
-     ((before-fn fy) (var-get fx)) 1
-     :else 0)))
+    (if (and (var? fx) (var? fy))
+      (cond
+       ((before-fn fx) (var-get fy)) -1
+       ((before-fn fy) (var-get fx)) 1
+       :else 0)
+      0)))
 
 (defn- execution-invocations
   "Sort by execution-ordering"
@@ -384,13 +404,6 @@ configuration code."
       (let [[request fn-result] (execute-resource request type (type fn-map) f)]
         (recur rest request (if fn-result (conj result fn-result) result)))
       [result request])))
-
-(defn phase-list
-  "Add default phases, pre and after phases."
-  [phase]
-  (if (keyword? phase)
-    [(pre-phase phase) phase (after-phase phase)]
-    [(pre-phase (first phase)) (first phase) (after-phase (first phase))]))
 
 (defn check-request-map
   "Function that can check a request map to ensure it is a valid part of

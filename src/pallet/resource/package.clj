@@ -5,6 +5,7 @@
 
    `package-source` is used to specify a non-standard source for packages."
   (:require
+   [pallet.parameter :as parameter]
    [pallet.resource :as resource]
    [pallet.resource.file :as file]
    [pallet.resource.remote-file :as remote-file]
@@ -73,9 +74,9 @@
   [& options] "")
 
 ;;; aptitude
-(stevedore/defimpl update-package-list [#{:aptitude}] [& options]
+(stevedore/defimpl update-package-list [#{:aptitude}] [& {:keys [] :as options}]
   (chain-or
-   (aptitude update ~(stevedore/option-args options)) true))
+   (aptitude update ~(stevedore/map-to-arg-string options)) true))
 
 (stevedore/defimpl upgrade-all-packages [#{:aptitude}] [& options]
   (aptitude upgrade -q -y ~(stevedore/option-args options)))
@@ -102,8 +103,10 @@
   (aptitude search (quoted "~i")))
 
 ;;; yum
-(stevedore/defimpl update-package-list [#{:yum}] [& options]
-  (yum makecache -q ~(stevedore/option-args options)))
+(stevedore/defimpl update-package-list [#{:yum}] [& {:keys [enable]}]
+  (yum makecache -q ~(string/join
+                      " "
+                      (map #(str "--enablerepo=" %) enable))))
 
 (stevedore/defimpl upgrade-all-packages [#{:yum}] [& options]
   (yum update -y -q ~(stevedore/option-args options)))
@@ -244,13 +247,15 @@
                                    (group-by :action))
             [opts packages] (->>
                              packages
-                             (group-by #(select-keys % [:enable :disable]))
+                             (group-by
+                              #(select-keys % [:enable :disable :exclude]))
                              (sort-by #(apply min (map :priority (second %)))))]
         (stevedore/script
          (yum
           ~(name action) -q -y
           ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
           ~(string/join " " (map #(str "--disablerepo=" %) (:disable opts)))
+          ~(string/join " " (map #(str "--exclude=" %) (:exclude opts)))
           ~(string/join
             " "
             (distinct (map :package packages)))))))
@@ -528,9 +533,9 @@
   [request action & options]
   (let [packager (:target-packager request)]
     (stevedore/checked-commands
-     "package-manager"
+     (format "package-manager %s" (name action))
      (case action
-       :update (stevedore/script (update-package-list))
+       :update (stevedore/script (apply update-package-list ~options))
        :upgrade (stevedore/script (upgrade-all-packages))
        :list-installed (stevedore/script (list-installed-packages))
        :add-scope (add-scope (apply hash-map options))
@@ -647,48 +652,54 @@
 
    Installs the jpackage-utils package from the base repos at a
    pritority of 25."
-  [request & {:keys [version component releasever]
+  [request & {:keys [version component releasever enabled]
               :or {component "redhat-el"
                    releasever "$releasever"
-                   version "5.0"}}]
-  (->
-   request
-   (package-source
-    "jpackage-generic"
-    :yum {:mirrorlist (format jpackage-mirror-fmt "generic" version)
-          :failovermethod "priority"
-          ;;gpgkey "http://www.jpackage.org/jpackage.asc"
-          :enabled 1})
-   (package-source
-    (format "jpackage-%s" component)
-    :yum {:mirrorlist (format
-                       jpackage-mirror-fmt
-                       (str component "-" releasever) version)
-          :failovermethod "priority"
-          ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
-          :enabled 1})
-   (package-source
-    "jpackage-generic-updates"
-    :yum {:mirrorlist (format
-                       jpackage-mirror-fmt "generic" (str version "-updates"))
-          :failovermethod "priority"
-          ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
-          :enabled 1})
-   (package-source
-    (format "jpackage-%s-updates" component)
-    :yum {:mirrorlist (format
-                       jpackage-mirror-fmt
-                       (str component "-" releasever) (str version "-updates"))
-          :failovermethod "priority"
-          ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
-          :enabled 1})
-   (package
-    "jpackage-utils"
-    :priority 25
-    :disable ["jpackage-generic"
-              "jpackage-generic-updates"
-              (format "jpackage-%s" component)
-              (format "jpackage-%s-updates" component)])))
+                   version "5.0"
+                   enabled 0}}]
+  (let [jpackage-repos ["jpackage-generic"
+                        "jpackage-generic-updates"
+                        (format "jpackage-%s" component)
+                        (format "jpackage-%s-updates" component)]]
+    (->
+     request
+     (package-source
+      "jpackage-generic"
+      :yum {:mirrorlist (format jpackage-mirror-fmt "generic" version)
+            :failovermethod "priority"
+            ;;gpgkey "http://www.jpackage.org/jpackage.asc"
+            :enabled enabled})
+     (package-source
+      (format "jpackage-%s" component)
+      :yum {:mirrorlist (format
+                         jpackage-mirror-fmt
+                         (str component "-" releasever) version)
+            :failovermethod "priority"
+            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+            :enabled enabled})
+     (package-source
+      "jpackage-generic-updates"
+      :yum {:mirrorlist (format
+                         jpackage-mirror-fmt "generic" (str version "-updates"))
+            :failovermethod "priority"
+            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+            :enabled enabled})
+     (package-source
+      (format "jpackage-%s-updates" component)
+      :yum {:mirrorlist (format
+                         jpackage-mirror-fmt
+                         (str component "-" releasever) (str version "-updates"))
+            :failovermethod "priority"
+            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+            :enabled enabled})
+     (parameter/assoc-for-target [:jpackage-repos] jpackage-repos)
+     (package "jpackage-utils" :priority 25 :disable jpackage-repos))))
+
+(defn package-manager-update-jpackage
+  [request]
+  (package-manager
+   request :update
+   :enable (parameter/get-for-target request [:jpackage-repos])))
 
 (defaggregate
   ^{:always-before `package-manager `package-source `package}

@@ -83,8 +83,18 @@
   "Emit a collection as a space separated list.
        (splice-list [a b c]) => \"a b c\""
   [coll]
-  (string/join " " coll))
+  (if (seq coll)
+    (string/join " " coll)
+    ;; to maintain unquote splicing semantics, this term has to disappear
+    ;; from the result
+    ::empty-splice))
 
+(defn filter-empty-splice
+  [args]
+  (filter #(not= ::empty-splice %) args))
+
+(defmethod emit ::empty-splice [expr]
+  "")
 
 ;;; * Keyword and Operator Classes
 (def
@@ -272,12 +282,16 @@
   [type [name & args]]
   (logging/trace (str "INVOKE " name args))
   (or (try
-        (script/invoke-target name args)
+        (script/invoke-target name (filter-empty-splice args))
         (catch java.lang.IllegalArgumentException e
           (throw (java.lang.IllegalArgumentException.
                   (str "Invalid arguments for " name) e))))
-      (let [argseq (interpose " "
-                     (filter (complement string/blank?) (map emit args)))]
+      (let [argseq (->>
+                    args
+                    filter-empty-splice
+                    (map emit)
+                    (filter (complement string/blank?))
+                    (interpose " "))]
         (apply str (emit name) (if (seq argseq) " " "") argseq))))
 
 (defn emit-method [obj method args]
@@ -360,7 +374,7 @@
     (str "${" (emit expr) "}")))
 
 (defn- emit-do [exprs]
-  (string/join "" (map (comp statement emit) exprs)))
+  (string/join (map (comp statement emit) (filter-empty-splice exprs))))
 
 (defmethod emit-special 'do [type [ do & exprs]]
   (emit-do exprs))
@@ -434,7 +448,7 @@
         (special-form? head) (emit-special head expr)
         (infix-operator? head) (emit-infix head expr)
         :else (emit-special 'invoke expr)))
-    (string/join " " (map emit expr))))
+    (when (seq expr) (string/join " " (map emit expr)))))
 
 (defmethod emit clojure.lang.IPersistentList [expr]
   (emit-s-expr expr))
@@ -466,8 +480,11 @@
 
 (defn script* [forms]
   (let [code (if (> (count forms) 1)
-               (emit-do forms)
-               (emit (first forms)))]
+               (emit-do (filter-empty-splice forms))
+               (let [form (first forms)]
+                 (if (= form ::empty-splice)
+                   ""
+                   (emit form))))]
     code))
 
 (defn- unquote?
@@ -487,7 +504,9 @@
   (second form))
 
 (defn- splice [form]
-  (string/join " " (map emit form)))
+  (if (seq form)
+    (string/join " " (map emit form))
+    ::empty-splice))
 
 (defn- handle-unquote-splicing [form]
   (list splice (second form)))
@@ -549,10 +568,11 @@
   "Concatenate multiple scripts."
   [scripts]
   (str
-   (string/join \newline
-     (filter
-      (complement string/blank?)
-      (map #(when % (string/trim %)) scripts)))
+   (->>
+    scripts
+    (map #(when % (string/trim %)))
+    (filter (complement string/blank?))
+    (string/join \newline))
    \newline))
 
 (defn do-script

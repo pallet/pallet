@@ -165,7 +165,8 @@
   (if-let [f (some
               (:phase request)
               [(:phases (:node-type request)) (:phases request)])]
-    (let [request ((utils/pipe add-target-keys identity) request)]
+    (let [request ((utils/pipe add-target-keys identity) request)
+          request (resource/reset-invocations request)]
       (script/with-template (resource/script-template request)
         (f request)))
     request))
@@ -558,14 +559,14 @@ script that is run with root privileges immediatly after first boot."
    Builds the commands for the phase, then executes pre-phase, phase, and
    after-phase"
   [request phase target-node-map]
-  (let [request (->
-                 request
-                 (assoc :phase phase)
-                 (invoke-for-node-type target-node-map))
-        lift-fn (environment/get-for request [:algorithms :lift-fn])]
+  (let [lift-fn (environment/get-for request [:algorithms :lift-fn])]
     (reduce
-     (fn [request phase]
-       (let [request (assoc request :phase phase)]
+     (fn [request sub-phase]
+       (let [request (->
+                      request
+                      (assoc :phase phase)
+                      (invoke-for-node-type target-node-map)
+                      (assoc :phase sub-phase))]
          (reduce-node-results request (lift-fn request target-node-map))))
      request
      (resource/phase-list phase))))
@@ -618,7 +619,7 @@ script that is run with root privileges immediatly after first boot."
   (logging/trace (format "lift* phases %s" (vec (:phase-list request))))
   (let [node-set (:node-set request)
         all-node-set (:all-node-set request)
-        phases (or (:phase-list request) [:configure])
+        phases (or (seq (:phase-list request)) [:configure])
         nodes (or
                (:all-nodes request)
                (when-let [compute (environment/get-for request [:compute] nil)]
@@ -643,7 +644,7 @@ script that is run with root privileges immediatly after first boot."
   (logging/info "retrieving nodes")
   (let [node-map (:node-map request)
         all-node-set (:all-node-set request)
-        phases (or (:phase-list request) [:configure])
+        phases (ensure-configure-phase (:phase-list request))
         node-map (add-prefix-to-node-map (:prefix request) node-map)
         compute (environment/get-for request [:compute])
         nodes (compute/nodes compute)]

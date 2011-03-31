@@ -2,18 +2,19 @@
   (:use pallet.core)
   (require
    [pallet.argument :as argument]
-   [pallet.core :as core]
-   [pallet.utils :as utils]
-   [pallet.stevedore :as stevedore]
-   [pallet.resource.exec-script :as exec-script]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
-   [pallet.target :as target]
+   [pallet.core :as core]
    [pallet.mock :as mock]
    [pallet.parameter :as parameter]
    [pallet.resource :as resource]
    [pallet.resource-build :as resource-build]
-   [pallet.test-utils :as test-utils])
+   [pallet.resource.exec-script :as exec-script]
+   [pallet.stevedore :as stevedore]
+   [pallet.target :as target]
+   [pallet.test-utils :as test-utils]
+   [pallet.utils :as utils]
+   [clojure.string :as string])
   (:use
    clojure.test))
 
@@ -488,6 +489,9 @@
             request (lift {node localhost}
                           :phase [:configure :configure2]
                           :compute compute
+                          :user (assoc utils/*admin-user*
+                                  :username (test-utils/test-username)
+                                  :no-sudo true)
                           :environment
                           {:algorithms {:lift-fn sequential-lift}})]
         (is (map? request))
@@ -498,13 +502,16 @@
         (let [{:keys [out err exit]} (-> request
                                          :results :localhost :configure2 first)]
           (is out)
-          (is (= err ""))
+          (is (string/blank? err))
           (is (zero? exit)))))
     (testing "parallel"
       (let [compute (compute/compute-service "node-list" :node-list [localhost])
             request (lift {node localhost}
                           :phase [:configure :configure2]
                           :compute compute
+                          :user (assoc utils/*admin-user*
+                                  :username (test-utils/test-username)
+                                  :no-sudo true)
                           :environment
                           {:algorithms {:lift-fn parallel-lift}})]
         (is (map? request))
@@ -515,7 +522,7 @@
         (let [{:keys [out err exit]} (-> request
                                          :results :localhost :configure2 first)]
           (is out)
-          (is (= err ""))
+          (is (string/blank? err))
           (is (zero? exit)))))))
 
 
@@ -527,16 +534,18 @@
   ;; within the same phase
   (let [add-slave (fn [request]
                     (let [target-node (:target-node request)
+                          hostname (compute/hostname target-node)
                           target-ip (compute/primary-ip target-node)]
                       (parameter/update-for-service
                        request
                        [:slaves]
-                       (fn [v] (conj (or v []) target-ip)))))
+                       (fn [v]
+                         (conj (or v #{}) (str hostname "-" target-ip))))))
         seen (atom false)
         get-slaves (fn [request]
                      (reset! seen true)
-                     (is (= ["127.0.0.1" "127.0.0.1"]
-                              (parameter/get-for-service request [:slaves]))))
+                     (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
+                            (parameter/get-for-service request [:slaves]))))
 
         master (make-node "master" {}
                           :configure (fn [request]
@@ -555,31 +564,40 @@
       (let [request (lift
                      [master slave]
                      :compute compute
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username)
+                             :no-sudo true)
                      :environment {:algorithms {:lift-fn sequential-lift}})]
         (is @seen "get-slaves should be called")
-        (is (= ["127.0.0.1" "127.0.0.1"]
+        (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
                  (parameter/get-for-service request [:slaves]))))
       (testing "node sequence neutrality"
         (let [request (lift
                      [slave master]
                      :compute compute
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username)
+                             :no-sudo true)
                      :environment {:algorithms {:lift-fn sequential-lift}})]
         (is @seen "get-slaves should be called")
-        (is (= ["127.0.0.1" "127.0.0.1"]
+        (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
                  (parameter/get-for-service request [:slaves]))))))
     (testing "parallel"
       (let [request (lift
                      [master slave]
                      :compute compute
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username)
+                             :no-sudo true)
                      :environment {:algorithms {:lift-fn parallel-lift}})]
         (is @seen "get-slaves should be called")
-        (is (= ["127.0.0.1" "127.0.0.1"]
+        (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
                  (parameter/get-for-service request [:slaves])))))))
 
 (resource/deflocal checking-set
   (checking-set*
    [request]
-   (is (= ["127.0.0.1" "127.0.0.1"]
+   (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
             (parameter/get-for-service request [:slaves])))
    request))
 
@@ -588,11 +606,13 @@
       "test that parameter updates are correctly seen in the post phase"
     (let [add-slave (fn [request]
                       (let [target-node (:target-node request)
+                            hostname (compute/hostname target-node)
                             target-ip (compute/primary-ip target-node)]
                         (parameter/update-for-service
                          request
                          [:slaves]
-                         (fn [v] (conj (or v []) target-ip)))))
+                         (fn [v]
+                           (conj (or v #{}) (str hostname "-" target-ip))))))
           slave (make-node "slave" {} :configure add-slave)
           slaves [(test-utils/make-localhost-node
                    :name "a" :id "a" :tag "slave")
@@ -617,10 +637,13 @@
               request (lift
                        [master slave]
                        :compute compute
+                       :user (assoc utils/*admin-user*
+                               :username (test-utils/test-username)
+                               :no-sudo true)
                        :environment {:algorithms {:lift-fn sequential-lift}})]
           (is (seen-pre?) "checking-not-set should be called")
           (is (seen-post?) "checking-set should be called")
-          (is (= ["127.0.0.1" "127.0.0.1"]
+          (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
                    (parameter/get-for-service request [:slaves])))))
       (testing "with serial lift in reverse node type order"
         (let [[localf-pre seen-pre?] (seen-fn "lift-post-phase-test pre")
@@ -637,10 +660,13 @@
               request (lift
                        [slave master]
                        :compute compute
+                       :user (assoc utils/*admin-user*
+                               :username (test-utils/test-username)
+                               :no-sudo true)
                        :environment {:algorithms {:lift-fn sequential-lift}})]
           (is (seen-pre?) "checking-not-set should be called")
           (is (seen-post?) "checking-set should be called")
-          (is (= ["127.0.0.1" "127.0.0.1"]
+          (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
                    (parameter/get-for-service request [:slaves])))))
       (testing "with parallel lift"
         (let [[localf-pre seen-pre?] (seen-fn "lift-post-phase-test pre")
@@ -657,8 +683,11 @@
               request (lift
                        [master slave]
                        :compute compute
+                       :user (assoc utils/*admin-user*
+                               :username (test-utils/test-username)
+                               :no-sudo true)
                        :environment {:algorithms {:lift-fn parallel-lift}})]
           (is (seen-pre?) "checking-not-set should be called")
           (is (seen-post?) "checking-set should be called")
-          (is (= ["127.0.0.1" "127.0.0.1"]
+          (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
                    (parameter/get-for-service request [:slaves]))))))))
