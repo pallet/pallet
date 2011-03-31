@@ -1,5 +1,6 @@
 (ns pallet.thread-expr
-  "Macros that can be used in an expression thread")
+  "Macros that can be used in an expression thread"
+  (:require [clojure.contrib.macro-utils :as macro]))
 
 (defmacro for->
   "Apply a thread expression to a sequence.
@@ -122,6 +123,18 @@
          ~@binding]
      (-> ~arg-symbol ~@body)))
 
+(defmacro expose-arg->
+  "A threaded form that exposes the value of the threaded arg. For
+  example:
+
+    (-> 1
+      (expose-arg-> [arg]
+        (+ arg)))
+  ;=> 2"
+  [arg [sym] & body]
+  `(let [~sym ~arg]
+     (-> ~sym ~@body)))
+
 (defmacro apply->
   "Apply in a threaded expression.
    e.g.
@@ -141,3 +154,23 @@
   [request f & args]
   `(let [request# ~request]
      (apply ~f request# ~@(butlast args) (apply concat ~(last args)))))
+
+(defmacro -->
+  "Similar to `clojure.core/->`, but provides access to symbol macros
+  for `when`, `let` and `for` commands on the internal threading
+  expressions. `expose-request-as` is also provided, for gaining
+  access to the threaded expression. For example:
+
+    (--> 5
+     (for [a (range 3)
+           :let [x 5]]
+       (let [y 3]
+         (+ a x y))))
+    ;= 32"
+  [& forms]
+  `(macro/symbol-macrolet
+    [~'when when->
+     ~'for for->
+     ~'let let->
+     ~'expose-request-as expose-arg->]
+    (-> ~@forms)))

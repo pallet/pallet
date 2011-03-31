@@ -37,8 +37,17 @@
                                       b (inc a)]
                    (+ a b arg))))))
 
+(deftest expose-arg->test
+  (is (= 2 (-> 1 (expose-arg-> [arg] (+ arg))))))
+
 (deftest apply->test
   (is (= 7 (-> 1 (apply-> + [1 2 3])))))
 
 (deftest apply-map->test
   (is (= {:a 1 :b 2} (-> :a (apply-map-> hash-map 1 {:b 2})))))
+
+(deftest -->test
+  (is (= 32 (--> 5 (for [a (range 3)
+                         :let [x 5]]
+                     (let [y 3]
+                       (+ a x y)))))))

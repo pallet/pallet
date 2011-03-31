@@ -2,6 +2,7 @@
   "A phase is a function of a single `session` argument, that contains
    calls to crate functions or actions. A phase has an implicitly
    defined pre and post phase."
+  (:use [pallet.thread-expr :only (-->)])
   (:require
    [clojure.contrib.condition :as condition]))
 
@@ -101,9 +102,9 @@
    with an added safety call to `check-session` prior to each phase
    invocation."
   ([argvec] `(phase-fn ~argvec identity))
-  ([argvec & [subphase & left]]
+  ([argvec subphase & left]
      `(fn [session# ~@argvec]
-        (-> session#
+        (--> session#
             ~subphase
             (check-session (str "The session passed out of" '~subphase))
             ~@(when left
