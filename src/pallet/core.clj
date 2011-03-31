@@ -619,7 +619,7 @@ script that is run with root privileges immediatly after first boot."
   (logging/trace (format "lift* phases %s" (vec (:phase-list request))))
   (let [node-set (:node-set request)
         all-node-set (:all-node-set request)
-        phases (or (:phase-list request) [:configure])
+        phases (or (seq (:phase-list request)) [:configure])
         nodes (or
                (:all-nodes request)
                (when-let [compute (environment/get-for request [:compute] nil)]
