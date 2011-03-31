@@ -98,15 +98,15 @@
          (file filename)
          (file \"/other-file\")))
   
-   
-
    with an added safety call to `check-session` prior to each phase
    invocation."
   ([argvec] identity)
-  ([argvec func]
-     `(fn [session# ~@argvec]
-        (-> session#
-            (check-session (str "The session passed into " '~func))
-            ~func)))
-  ([argvec func & more]
-     `(comp (phase-fn ~argvec ~@more) (phase-fn ~argvec ~func))))
+  ([argvec & forms]
+     (let [subphase# (first forms)
+           left# (rest forms)]
+       `(fn [session# ~@argvec]
+          (-> session#
+              ~subphase#
+              (check-session (str "The session passed out of" '~subphase#))
+              ~@(when (seq left#)
+                  [`((phase-fn ~argvec ~@left#))]))))))
