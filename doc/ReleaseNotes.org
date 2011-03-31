@@ -3,7 +3,7 @@
 #+DESCRIPTION: Release notes for pallet releases
 #+KEYWORDS: pallet palletops contribute
 
-The latest release is 0.4.13.
+The latest release is 0.4.14.
 
 * 0.5.0-SNAPHSOT
 ** Install
@@ -11,6 +11,80 @@ The latest release is 0.4.13.
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
 ** Features
+
+- Make deprecation messages consistent, and add :deprecated metadata
+
+- Rename request to session. pallet.request-map becomes pallet.session.
+
+- Rename pallet.resource.* to pallet.action.*
+  Rename resource to action. Set up forwarding from the pallet.resource
+  names.
+
+  pallet.resource.network-service becomes the first core crate at
+  pallet.crate.network-service.
+
+  pallet.resoruce.format becomes the first core configuration file
+  formatter at pallet.config-file.format.
+
+  pallet.resource.resource-when is renamed pallet.action.conditional
+
+- Refactor script fns into pallet.script.lib and make script fns use unquote
+  In order to remove the possibility of accidentally using a script
+  function, they must now be invoked using unquote. The use of unquote is a
+  reminder that clojure namespace resolution is in effect:
+     (stevedore/script (~lib/rm file))
+
+  The script functions have been factored out of pallet.resource.* into
+  pallet.script.lib in order to improve the seperation of the target script
+  generation.
+
+- Add tests for pallet.phase, fix issues, update compatability
+
+- Add pallet.resource as a compatability namespace
+
+- Refactored execution of actions to allow partial override by middleware
+  Allow middleware to override executor functions for specific :action-type
+  and :location combinations
+
+- Change resource to action and simplify code
+  To make the code clear pallet.resource is refactored into pallet.action,
+  pallet.action-plan, and pallet.phase.
+
+  The action-plan can now handle nested scopes.
+
+  The action creation macros have been renamed, and new macros for defining
+  unnamed actions are introduced.
+
+  - resource/defresource     action/action
+  - resource/defresource     action/def-bash-action
+  - resource/defaggregated   action/def-aggregated-action
+
+  For testing, test-utils/build-resources is replaced by
+  build-actions/build-actions.
+
+- Fix naming that should refer to group-set rather than node-set
+
+- Add :qos to node-spec to allow quality of service options
+  Allows the grouping of template options for quality of service related
+  options such as spot price or enabling monitoring
+
+- Add pallet.compute/service as the preferred compute service instantiation
+  function
+  Provides a single function to access the different compute service
+  instantiation functions in pallet.
+
+- Switch environment to use :groups, and deprecate :tags
+
+- Add blobstore mapping for changed jclouds provider names
+
+- Keep track of futures started by pallet
+  It is useful to be able to control the futures started by pallet for node
+  count adjustments and for executing phases, e.g. to cancel pending
+  operations, etc.
+
+- Fix node-spec mapping for converge with multiple targets
+
+- Use symbolic names for vmfest extradata tags
 
 - Remove request from pallet.compute.ComputeService interface
 
@@ -55,6 +129,67 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
       (file/rm ~path :force true)
       ("rm" -f ~path)
+
+
+
+* 0.4.14
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+
+** Changes
+- Add logging of unexpected exceptions in pallet-task
+
+- Alter logging format for ssh output to prepend newline
+  The incremental ssh output was difficult to read without a leading
+  newline
+
+- Add output of partial results from ssh command
+  In order to improve the feedback of commands running over ssh, log output
+  as it becomes available
+
+- Change pre and after phase names to be namespaced
+  To prevent collisions between the pre and after phase names with user
+  defined phase names, make the pre and after phase names namespaced with
+  pallet.resource
+
+- Rerun phase function after the pre and main phases
+  In order for the parameters from running the pre phase to be available in
+  the main phase, call the phase function again after executing the
+  pre-phase. Similarly for the main-phase and the after-phase
+
+- Update to clj-ssh 0.2.3
+
+- add-jpackage sets the jpackage repos to disabled by default
+  Add the jpackage repo list to the :jpackage-repos target parameters. Add
+  package-manager-update-jpackage to update the jpackage repos.
+
+- Updated implementation of for->, with support for destructuring.
+  The existing implementation of for-> supported the binding of a single
+  variable to a single sequence. The updated implementation here makes use
+  of clojure.core/for to build up a sequence of functions;
+  ((apply comp functionseq) arg) is then used to thread the argument among
+  the sequences. Each item in the resulting sequence is dealt with in
+  order.
+
+- Update pallet.resource.filesystem/mount to check if a filesystem is mounted
+  before attempting to mount it again. Also update it to accept an :fs-type
+  arg to set the filesystem type. Updated and added unit tests.
+
+** Fixes
+
+- Ensure pallet.config/service is used if no service specified on command
+  line
+
+- Ensure :configure is called for lift if invoked with no phases
+
+- Fix pallet.stevedore unquote splicing of empty sequences
+
+- Update pallet.thread-expr/for-> to handle multiple body forms and empty
+  sequences
+
+- Add resource for the pallet version via pallet.core/version
 
 
 
