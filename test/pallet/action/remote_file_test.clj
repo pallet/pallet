@@ -182,7 +182,7 @@
               (->
                (core/lift
                 {local node}
-                :phase (phase/phase-fn
+                :phase (phase/phase-fn []
                         (remote-file
                          (.getPath target-tmp) :content "$(hostname)"
                          :mode "0666" :flag-on-changed :changed)
@@ -202,7 +202,7 @@
               (->
                (core/lift
                 {local node}
-                :phase (phase/phase-fn
+                :phase (phase/phase-fn []
                         (remote-file
                          (.getPath target-tmp) :content "abc"
                          :mode "0666" :flag-on-changed :changed)
@@ -263,7 +263,7 @@
             (let [md5path (str (.getPath tmp) ".md5")]
               (core/lift
                {local node}
-               :phase (phase/phase-fn
+               :phase (phase/phase-fn []
                        (exec-script/exec-script
                         ((~lib/md5sum ~(.getPath tmp)) > ~md5path))
                        (remote-file

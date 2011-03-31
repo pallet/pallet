@@ -151,4 +151,4 @@
        (when-not (map? session#)
          (logging/warn
           "Use of vector for session in build-actions is deprecated."))
-       (build-actions* (phase/phase-fn ~@body) session#))))
+       (build-actions* (phase/phase-fn [] ~@body) session#))))

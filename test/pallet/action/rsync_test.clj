@@ -31,7 +31,7 @@
         (core/lift*
          {:node-set {tag #{node}}
           :phase-list [:p]
-          :inline-phases {:p (phase/phase-fn
+          :inline-phases {:p (phase/phase-fn []
                               (rsync (.getPath dir) (.getPath target-dir) {}))}
           :environment
           {:user user
@@ -49,7 +49,7 @@
         (core/lift*
          {:node-set {tag node}
           :phase-list [:p]
-          :inline-phases {:p (phase/phase-fn
+          :inline-phases {:p (phase/phase-fn []
                               (rsync-directory
                                (.getPath dir) (.getPath target-dir)))}
           :environment

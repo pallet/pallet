@@ -11,7 +11,7 @@
      (utils/deprecated-macro
       ~&form
       (utils/deprecate-rename 'pallet.resource/phase 'pallet.phase/phase-fn))
-     (phase/phase-fn ~@body)))
+     (phase/phase-fn [] ~@body)))
 
 (defmacro execute-pre-phase
   [& body]

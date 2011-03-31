@@ -82,22 +82,31 @@
      session))
 
 (defmacro phase-fn
-  "Create a phase function from a sequence of crate invocations with
-   an ommited session parameter.
+  "Composes a phase function from a sequence of phases by threading an
+ implicit phase session parameter through each. Each phase will have
+ access to the parameters passed in through `phase-fn`'s argument
+ vector. thus,
 
-   eg. (phase-fn
-         (file \"/some-file\")
+    (phase-fn [filename]
+         (file filename)
          (file \"/other-file\"))
 
-   which generates a function with a session argument, that is thread
-   through the function calls. The example is thus equivalent to:
+   is equivalent to:
 
-   (fn [session] (-> session
-                   (file \"/some-file\")
-                   (file \"/other-file\"))) "
-  [& body]
-  `(fn [session#]
-     (->
-      session#
-      (check-session "The session passed to the pipeline")
-      ~@(mapcat (fn [form] [form `(check-session '~form)]) body))))
+   (fn [session filename]
+     (-> session
+         (file filename)
+         (file \"/other-file\")))
+  
+   
+
+   with an added safety call to `check-session` prior to each phase
+   invocation."
+  ([argvec] identity)
+  ([argvec func]
+     `(fn [session# ~@argvec]
+        (-> session#
+            (check-session (str "The session passed into " '~func))
+            ~func)))
+  ([argvec func & more]
+     `(comp (phase-fn ~argvec ~@more) (phase-fn ~argvec ~func))))

@@ -314,8 +314,7 @@
          (#'core/bootstrap-script
           {:group {:image {:os-family :ubuntu}
                    :packager :aptitude
-                   :phases {:bootstrap (phase/phase-fn
-                                        (identity-action "a"))}}})))
+                   :phases {:bootstrap (phase/phase-fn [] (identity-action "a"))}}})))
   (testing "rejects local actions"
     (is (thrown-with-msg?
           clojure.contrib.condition.Condition
@@ -324,8 +323,7 @@
            {:group
             {:image {:os-family :ubuntu}
              :packager :aptitude
-             :phases {:bootstrap (phase/phase-fn
-                                  (identity-local-action))}}}))))
+             :phases {:bootstrap (phase/phase-fn [] (identity-local-action))}}}))))
   (testing "requires a packager"
     (is (thrown?
          java.lang.AssertionError
@@ -409,8 +407,8 @@
            (->
             (lift
              local
-             :phase [(phase/phase-fn (exec-script/exec-script (~lib/ls "/")))
-                     (phase/phase-fn (localf))]
+             :phase [(phase/phase-fn [] (exec-script/exec-script (~lib/ls "/")))
+                     (phase/phase-fn [] (localf))]
              :user (assoc utils/*admin-user*
                      :username (test-utils/test-username)
                      :no-sudo true)
@@ -439,8 +437,8 @@
            #"bin"
            (->
              (lift local
-                   :phase [(phase/phase-fn (exec-script/exec-script (ls "/")))
-                           (phase/phase-fn (localf))]
+                   :phase [(phase/phase-fn [] (exec-script/exec-script (ls "/")))
+                           (phase/phase-fn [] (localf))]
                    :user (assoc utils/*admin-user*
                            :username (test-utils/test-username)
                            :no-sudo true)
@@ -471,8 +469,8 @@
                              (node-list/make-localhost-node
                               :group-name "y1" :name "y1" :id "y1"
                               :os-family :ubuntu)])
-        x1 (make-node "x1" {} :configure (phase/phase-fn localf))
-        y1 (make-node "y1" {} :configure (phase/phase-fn localfy))]
+        x1 (make-node "x1" {} :configure (phase/phase-fn [] localf))
+        y1 (make-node "y1" {} :configure (phase/phase-fn [] localfy))]
     (is (map?
          (lift [x1 y1]
                :user (assoc utils/*admin-user*
@@ -493,8 +491,8 @@
                              (node-list/make-localhost-node
                               :group-name "y1" :name "y1" :id "y1"
                               :os-family :ubuntu)])
-        x1 (make-node "x1" {} :configure (phase/phase-fn localf))
-        y1 (make-node "y1" {} :configure (phase/phase-fn localfy))]
+        x1 (make-node "x1" {} :configure (phase/phase-fn [] localf))
+        y1 (make-node "y1" {} :configure (phase/phase-fn [] localfy))]
     (is (map?
          (lift [x1 y1]
                :user (assoc utils/*admin-user*
@@ -731,7 +729,7 @@
         (let [[localf-pre seen-pre?] (seen-fn "lift-post-phase-test pre")
               [localf-post seen-post?] (seen-fn "lift-post-phase-test post")
               master (make-node "master" {}
-                                :configure (phase/phase-fn
+                                :configure (phase/phase-fn []
                                             (phase/schedule-in-pre-phase
                                              checking-set
                                              localf-pre)
@@ -754,7 +752,7 @@
         (let [[localf-pre seen-pre?] (seen-fn "lift-post-phase-test pre")
               [localf-post seen-post?] (seen-fn "lift-post-phase-test post")
               master (make-node "master" {}
-                                :configure (phase/phase-fn
+                                :configure (phase/phase-fn []
                                             (phase/schedule-in-pre-phase
                                              checking-set
                                              localf-pre)
@@ -777,7 +775,7 @@
         (let [[localf-pre seen-pre?] (seen-fn "lift-post-phase-test pre")
               [localf-post seen-post?] (seen-fn "lift-post-phase-test post")
               master (make-node "master" {}
-                                :configure (phase/phase-fn
+                                :configure (phase/phase-fn []
                                             (phase/schedule-in-pre-phase
                                              checking-set
                                              localf-pre)

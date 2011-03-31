@@ -201,8 +201,8 @@
            "bin"
            (with-out-str
              (lift {local (jclouds/make-localhost-node)}
-                   :phase [(phase/phase-fn (exec-script/exec-script (ls "/")))
-                           (phase/phase-fn (localf))]
+                   :phase [(phase/phase-fn [] (exec-script/exec-script (ls "/")))
+                           (phase/phase-fn [] (localf))]
                    :user (assoc utils/*admin-user*
                            :username (test-utils/test-username)
                            :no-sudo true)
@@ -212,8 +212,8 @@
 (deftest lift2-test
   (let [[localf seen?] (seen-fn "lift2-test")
         [localfy seeny?] (seen-fn "lift2-test y")
-        x1 (group-spec "x1" :phases {:configure (phase/phase-fn localf)})
-        y1 (group-spec "y1" :phases {:configure (phase/phase-fn localfy)})]
+        x1 (group-spec "x1" :phases {:configure (phase/phase-fn [] localf)})
+        y1 (group-spec "y1" :phases {:configure (phase/phase-fn [] localfy)})]
     (is (map?
          (lift {x1 (jclouds/make-unmanaged-node "x" "localhost")
                 y1 (jclouds/make-unmanaged-node "y" "localhost")}
