@@ -97,18 +97,30 @@
           (-> arg# ~form)
           (-> arg# ~else-form)))))
 
+(defmacro let->
+  "A `let` form that allows for binding of variables in a threading
+  expression, with support for destructuring. For example:
+
+ (-> 5
+    (let-> [x 10]
+           (for-> [y (range 4)
+                   z (range 2)] (+ x y z))))
+ ;=> 101"
+  [arg letvec & body]
+  `(let ~letvec (-> ~arg ~@body)))
+
 (defmacro let-with-arg->
-  "A `let` form that can appear in a expression thread, and assign the value
-   of the threaded arg.
-   eg.
-      (-> 1
-        (let-with-arg-> val [a 1]
-          (+ a val)))
-   => 3"
+  "A `let` form that can appear in a request thread, and assign the
+   value of the threaded arg. For example:
+
+    (-> 1
+      (let-with-arg-> val [a 1]
+        (+ a val)))
+  ;=> 3"
   [arg arg-symbol binding & body]
-  `(let [~arg-symbol ~arg]
-     (let ~binding
-       (-> ~arg-symbol ~@body))))
+  `(let [~arg-symbol ~arg
+         ~@binding]
+     (-> ~arg-symbol ~@body)))
 
 (defmacro apply->
   "Apply in a threaded expression.
