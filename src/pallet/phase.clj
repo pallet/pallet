@@ -108,4 +108,4 @@
             ~subphase
             (check-session (str "The session passed out of" '~subphase))
             ~@(when left
-                [`((phase-fn ~argvec ~@left))])))))
+                [`((phase-fn ~argvec ~@left) ~@argvec)])))))
