@@ -13,6 +13,7 @@
   {:author "Hugo Duncan"}
   (:require
    [pallet.argument :as argument]
+   [pallet.phase :as phase]
    [pallet.script :as script]
    [pallet.session :as session]
    [clojure.contrib.condition :as condition]
@@ -448,12 +449,19 @@
 
 
 ;;; Target specific functions
+(defn- target-path*
+  "Return the vector path of the action plan for the specified phase an
+  target-id."
+  [phase target-id]
+  [:action-plan phase target-id])
+
 (defn target-path
-  "Return the vector path of the action plan for the current session target"
+  "Return the vector path of the action plan for the current session target
+   node."
   [session]
   {:pre [(keyword? (session/phase session))
          (keyword? (session/target-id session))]}
-  [:action-plan (session/phase session) (session/target-id session)])
+  (target-path* (session/phase session) (session/target-id session)))
 
 (defn script-template-for-server
   "Return the script template for the specified server."
@@ -472,6 +480,15 @@
 
 ;;; action plan functions based on session
 
+(defn reset-for-target
+  "Reset the action plan for the current phase and target node."
+  [session]
+  {:pre [(:phase session)]}
+  (reduce
+   #(assoc-in %1 (target-path* %2 (session/target-id session)) nil)
+   session
+   (phase/all-phases-for-phase (:phase session))))
+
 (defn build-for-target
   "Create the action plan by calling the current phase for the target group."
   [session]
@@ -481,7 +498,7 @@
                 (phase (-> session :server :phases))
                 (phase (:inline-phases session)))]
       (script/with-script-context (script-template session)
-        (f session))
+        (f (reset-for-target session)))
       session)))
 
 (defn get-for-target

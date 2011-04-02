@@ -35,6 +35,12 @@
    (utils/admin-user-from-config-var)
    utils/*admin-user*))
 
+(defn compute-service-from-config-files
+  [defaults project profiles]
+  (compute/compute-service-from-config (:pallet project) profiles)
+  (compute/compute-service-from-config defaults profiles)
+  (apply compute/compute-service-from-settings profiles))
+
 (defn find-compute-service
   "Look for a compute service in the following sequence:
      Check pallet.config.service property,
@@ -45,12 +51,11 @@
   [options defaults project profiles]
   (or
    (compute/compute-service-from-map options)
-   (compute/compute-service-from-config (:pallet project) profiles)
-   (compute/compute-service-from-config defaults profiles)
+   (when (seq profiles)
+     (compute-service-from-config-files defaults project profiles))
    (compute/compute-service-from-property)
-   (apply compute/compute-service-from-settings profiles)
-   (compute/compute-service-from-config-var)))
-
+   (compute/compute-service-from-config-var)
+   (compute-service-from-config-files defaults project profiles)))
 
 (defn find-blobstore
   "Look for a compute service in the following sequence:

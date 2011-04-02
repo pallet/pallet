@@ -19,14 +19,14 @@
          (:phase
           (execute-after-phase
            {:phase :fred}
-           (is-phase :after-fred))))))
+           (is-phase :pallet.phase/post-fred))))))
 
 (deftest execute-pre-phase-test
   (is (= :fred
          (:phase
           (execute-pre-phase
            {:phase :fred}
-           (is-phase :pre-fred))))))
+           (is-phase :pallet.phase/pre-fred))))))
 
 (test-utils/with-console-logging-threshold :error
   (defresource test-resource (f [session arg] (name arg)))

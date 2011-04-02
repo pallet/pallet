@@ -427,110 +427,114 @@
   [& options] "")
 
 ;;; aptitude
-(script/defimpl update-package-list [#{:aptitude}] [& options]
+(script/defimpl update-package-list [#{:aptitude}] [& {:keys [] :as options}]
   (chain-or
-   ("aptitude" update ~(stevedore/option-args options)) true))
+   (aptitude update ~(stevedore/map-to-arg-string options)) true))
 
 (script/defimpl upgrade-all-packages [#{:aptitude}] [& options]
-  ("aptitude" upgrade -q -y ~(stevedore/option-args options)))
+  (aptitude upgrade -q -y ~(stevedore/option-args options)))
 
 (script/defimpl install-package [#{:aptitude}] [package & options]
-  ("aptitude" install -q -y ~(stevedore/option-args options) ~package
+  (aptitude install -q -y ~(stevedore/option-args options) ~package
             ;; show returns an error code if no package found, while install
             ;; does not.  There should be a better way than this...
             "&&" aptitude show ~package))
 
 (script/defimpl upgrade-package [#{:aptitude}] [package & options]
-  ("aptitude" install -q -y ~(stevedore/option-args options) ~package
+  (aptitude install -q -y ~(stevedore/option-args options) ~package
             ;; show returns an error code if no package found, while install
             ;; does not.  There should be a better way than this...
             "&&" aptitude show ~package))
 
 (script/defimpl remove-package [#{:aptitude}] [package & options]
-  ("aptitude" remove -y ~(stevedore/option-args options) ~package))
+  (aptitude remove -y ~(stevedore/option-args options) ~package))
 
 (script/defimpl purge-package [#{:aptitude}] [package & options]
-  ("aptitude" purge -y  ~(stevedore/option-args options) ~package))
+  (aptitude purge -y  ~(stevedore/option-args options) ~package))
 
 (script/defimpl list-installed-packages [#{:aptitude}] [& options]
-  ("aptitude" search (quoted "~i")))
+  (aptitude search (quoted "~i")))
 
 ;;; yum
-(script/defimpl update-package-list [#{:yum}] [& options]
-  ("yum" makecache -q ~(stevedore/option-args options)))
+(script/defimpl update-package-list [#{:yum}] [& {:keys [enable disable]}]
+  (yum makecache -q ~(string/join
+                      " "
+                      (concat
+                       (map #(str "--enablerepo=" %) enable)
+                       (map #(str "--disablerepo=" %) disable)))))
 
 (script/defimpl upgrade-all-packages [#{:yum}] [& options]
-  ("yum" update -y -q ~(stevedore/option-args options)))
+  (yum update -y -q ~(stevedore/option-args options)))
 
 (script/defimpl install-package [#{:yum}] [package & options]
-  ("yum" install -y -q ~(stevedore/option-args options) ~package))
+  (yum install -y -q ~(stevedore/option-args options) ~package))
 
 (script/defimpl upgrade-package [#{:yum}] [package & options]
-  ("yum" upgrade -y -q ~(stevedore/option-args options) ~package))
+  (yum upgrade -y -q ~(stevedore/option-args options) ~package))
 
 (script/defimpl remove-package [#{:yum}] [package & options]
-  ("yum" remove ~(stevedore/option-args options) ~package))
+  (yum remove ~(stevedore/option-args options) ~package))
 
 (script/defimpl purge-package [#{:yum}] [package & options]
-  ("yum" purge ~(stevedore/option-args options) ~package))
+  (yum purge ~(stevedore/option-args options) ~package))
 
 (script/defimpl list-installed-packages [#{:yum}] [& options]
-  ("yum" list installed))
+  (yum list installed))
 
 ;;; zypper
 (script/defimpl update-package-list [#{:zypper}] [& options]
-  ("zypper" refresh ~(stevedore/option-args options)))
+  (zypper refresh ~(stevedore/option-args options)))
 
 (script/defimpl upgrade-all-packages [#{:zypper}] [& options]
-  ("zypper" update -y ~(stevedore/option-args options)))
+  (zypper update -y ~(stevedore/option-args options)))
 
 (script/defimpl install-package [#{:zypper}] [package & options]
-  ("zypper" install -y ~(stevedore/option-args options) ~package))
+  (zypper install -y ~(stevedore/option-args options) ~package))
 
 (script/defimpl remove-package [#{:zypper}] [package & options]
-  ("zypper" remove ~(stevedore/option-args options) ~package))
+  (zypper remove ~(stevedore/option-args options) ~package))
 
 (script/defimpl purge-package [#{:zypper}] [package & options]
-  ("zypper" remove ~(stevedore/option-args options) ~package))
+  (zypper remove ~(stevedore/option-args options) ~package))
 
 ;;; pacman
 (script/defimpl update-package-list [#{:pacman}] [& options]
-  ("pacman" -Sy "--noconfirm" "--noprogressbar"
+  (pacman -Sy "--noconfirm" "--noprogressbar"
    ~(stevedore/option-args options)))
 
 (script/defimpl upgrade-all-packages [#{:pacman}] [& options]
-  ("pacman" -Su "--noconfirm" "--noprogressbar" ~(stevedore/option-args options)))
+  (pacman -Su "--noconfirm" "--noprogressbar" ~(stevedore/option-args options)))
 
 (script/defimpl install-package [#{:pacman}] [package & options]
-  ("pacman" -S "--noconfirm" "--noprogressbar"
+  (pacman -S "--noconfirm" "--noprogressbar"
    ~(stevedore/option-args options) ~package))
 
 (script/defimpl upgrade-package [#{:pacman}] [package & options]
-  ("pacman" -S "--noconfirm" "--noprogressbar"
+  (pacman -S "--noconfirm" "--noprogressbar"
    ~(stevedore/option-args options) ~package))
 
 (script/defimpl remove-package [#{:pacman}] [package & options]
-  ("pacman" -R "--noconfirm" ~(stevedore/option-args options) ~package))
+  (pacman -R "--noconfirm" ~(stevedore/option-args options) ~package))
 
 (script/defimpl purge-package [#{:pacman}] [package & options]
-  ("pacman" -R "--noconfirm" "--nosave"
+  (pacman -R "--noconfirm" "--nosave"
    ~(stevedore/option-args options) ~package))
 
 ;; brew
 (script/defimpl update-package-list [#{:brew}] [& options]
-  ("brew" update ~(stevedore/option-args options)))
+  (brew update ~(stevedore/option-args options)))
 
 (script/defimpl upgrade-all-packages [#{:brew}] [& options]
   (comment "No command to do this"))
 
 (script/defimpl install-package [#{:brew}] [package & options]
-  ("brew" install -y ~(stevedore/option-args options) ~package))
+  (brew install -y ~(stevedore/option-args options) ~package))
 
 (script/defimpl remove-package [#{:brew}] [package & options]
-  ("brew" uninstall ~(stevedore/option-args options) ~package))
+  (brew uninstall ~(stevedore/option-args options) ~package))
 
 (script/defimpl purge-package [#{:brew}] [package & options]
-  ("brew" uninstall ~(stevedore/option-args options) ~package))
+  (brew uninstall ~(stevedore/option-args options) ~package))
 
 
 (script/defscript debconf-set-selections [& selections])

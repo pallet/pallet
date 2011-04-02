@@ -616,13 +616,18 @@ is run with root privileges immediatly after first boot."
    Builds the commands for the phase, then executes pre-phase, phase, and
    after-phase"
   [session]
-  (let [lift-fn (environment/get-for session [:algorithms :lift-fn])]
+  (let [lift-fn (environment/get-for session [:algorithms :lift-fn])
+        phase (:phase session)]
     (reduce
-     (fn [session phase]
-       (let [session (assoc session :phase phase)]
+     (fn [session sub-phase]
+       (let [session (->
+                      session
+                      (assoc :phase phase)
+                      (plan-for-groups (:groups session))
+                      (assoc :phase sub-phase))]
          (reduce-node-results session (lift-fn session))))
      session
-     (phase/all-phases-for-phase (:phase session)))))
+     (phase/all-phases-for-phase phase))))
 
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."

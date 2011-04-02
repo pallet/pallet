@@ -1,8 +1,10 @@
 (ns pallet.main
   (:gen-class)
   (:require
-   clojure.walk
    [pallet.command-line :as command-line]
+   [clojure.contrib.logging :as logging]
+   [clojure.stacktrace :as stacktrace]
+   [clojure.walk :as walk]
    [clojure.string :as string]))
 
 (def
@@ -86,8 +88,11 @@
    not, then report the exception."
   [^Throwable e]
   (when-not (= e exit-task-exception)
+    (logging/error "Exception" e)
     (report-error (.getMessage e))
-    (.printStackTrace e (java.io.PrintWriter. *err*))))
+    (binding [*out* *err*]
+      (stacktrace/print-stack-trace
+       (stacktrace/root-cause e)))))
 
 (defn pallet-task
   "A pallet task.

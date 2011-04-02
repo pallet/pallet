@@ -79,7 +79,6 @@
        (action/def-collected-action
          ~n [~@arguments] ~@forms))))
 
-
 (action/def-clj-action as-local-resource
   [session f & args]
   (apply f session args))

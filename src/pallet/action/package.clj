@@ -9,6 +9,8 @@
    [pallet.action.file :as file]
    [pallet.action.remote-file :as remote-file]
    [pallet.action.exec-script :as exec-script]
+   [pallet.action.exec-script :as exec-script]
+   [pallet.parameter :as parameter]
    [pallet.script.lib :as lib]
    [pallet.session :as session]
    [pallet.stevedore :as stevedore]
@@ -77,13 +79,15 @@
                                    (group-by :action))
             [opts packages] (->>
                              packages
-                             (group-by #(select-keys % [:enable :disable]))
+                             (group-by
+                              #(select-keys % [:enable :disable :exclude]))
                              (sort-by #(apply min (map :priority (second %)))))]
         (stevedore/script
          (yum
           ~(name action) -q -y
           ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
           ~(string/join " " (map #(str "--disablerepo=" %) (:disable opts)))
+          ~(string/join " " (map #(str "--exclude=" %) (:exclude opts)))
           ~(string/join
             " "
             (distinct (map :package packages)))))))
@@ -360,9 +364,9 @@
   [session action & options]
   (let [packager (session/packager session)]
     (stevedore/checked-commands
-     "package-manager"
+     (format "package-manager %s %s" (name action) (string/join " " options))
      (case action
-       :update (stevedore/script (~lib/update-package-list))
+       :update (stevedore/script (apply ~lib/update-package-list ~options))
        :upgrade (stevedore/script (~lib/upgrade-all-packages))
        :list-installed (stevedore/script (~lib/list-installed-packages))
        :add-scope (add-scope (apply hash-map options))
@@ -397,6 +401,21 @@
    :always-before `package}
   (stevedore/do-script*
    (map #(apply package-manager* session %) (distinct package-manager-args))))
+
+;; this is an aggregate so that it can come before the aggregate package
+(action/def-aggregated-action add-rpm
+  "Add an rpm.  Source options are as for remote file."
+  [request args]
+  {:arglists '([request rpm-name & options])
+   :always-before #{`package}}
+  (stevedore/chain-commands*
+   (for [[rpm-name & {:as options}] args]
+     (stevedore/do-script
+      (apply remote-file* request rpm-name (apply concat options))
+      (stevedore/checked-script
+       (format "Install rpm %s" rpm-name)
+       (if-not (rpm -q @(rpm -pq ~rpm-name))
+         (rpm -U --quiet ~rpm-name)))))))
 
 (def ^{:private true} centos-55-repo
   "http://mirror.centos.org/centos/5.5/os/x86_64/repodata/repomd.xml")
@@ -471,6 +490,32 @@
             :url (format rpmforge-url-pattern version distro arch))
           ("rpm" -U --quiet "rpmforge.rpm")))))))
 
+;; The source for this rpm is available here:
+;; http://plone.lucidsolutions.co.nz/linux/centos/
+;;   jpackage-rpm-repository-for-centos-rhel-5.x
+;; http://plone.lucidsolutions.co.nz/linux/centos/images/
+;;   jpackage-utils-compat-el5-0.0.1-1.noarch.rpm/at_download/file
+(def jpackage-utils-compat-rpm
+  (str "https://github.com/downloads/pallet/pallet/"
+       "jpackage-utils-compat-el5-0.0.1-1.noarch.rpm"))
+
+(defn jpackage-utils
+  "Add jpackge-utils. Due to incompatibilities on RHEL derived distributions,
+   a compatability package is required.
+
+   https://bugzilla.redhat.com/show_bug.cgi?id=260161
+   https://bugzilla.redhat.com/show_bug.cgi?id=497213"
+  [session]
+  (->
+   session
+   (when-> (and
+            (= :centos (session/os-family session))
+            (re-matches #"5\.[0-5]" (session/os-version session)))
+           (add-rpm
+            "jpackage-utils-compat-el5-0.0.1-1"
+            :url jpackage-utils-compat-rpm))
+   (package "jpackage-utils")))
+
 (def jpackage-mirror-fmt
   "http://www.jpackage.org/mirrorlist.php?dist=%s&type=free&release=%s")
 
@@ -481,48 +526,55 @@
 
    Installs the jpackage-utils package from the base repos at a
    pritority of 25."
-  [session & {:keys [version component releasever]
+  [session & {:keys [version component releasever enabled]
               :or {component "redhat-el"
                    releasever "$releasever"
-                   version "5.0"}}]
-  (->
-   session
-   (package-source
-    "jpackage-generic"
-    :yum {:mirrorlist (format jpackage-mirror-fmt "generic" version)
-          :failovermethod "priority"
-          ;;gpgkey "http://www.jpackage.org/jpackage.asc"
-          :enabled 1})
-   (package-source
-    (format "jpackage-%s" component)
-    :yum {:mirrorlist (format
-                       jpackage-mirror-fmt
-                       (str component "-" releasever) version)
-          :failovermethod "priority"
-          ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
-          :enabled 1})
-   (package-source
-    "jpackage-generic-updates"
-    :yum {:mirrorlist (format
-                       jpackage-mirror-fmt "generic" (str version "-updates"))
-          :failovermethod "priority"
-          ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
-          :enabled 1})
-   (package-source
-    (format "jpackage-%s-updates" component)
-    :yum {:mirrorlist (format
-                       jpackage-mirror-fmt
-                       (str component "-" releasever) (str version "-updates"))
-          :failovermethod "priority"
-          ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
-          :enabled 1})
-   (package
-    "jpackage-utils"
-    :priority 25
-    :disable ["jpackage-generic"
-              "jpackage-generic-updates"
-              (format "jpackage-%s" component)
-              (format "jpackage-%s-updates" component)])))
+                   version "5.0"
+                   enabled 0}}]
+  (let [jpackage-repos ["jpackage-generic"
+                        "jpackage-generic-updates"
+                        (format "jpackage-%s" component)
+                        (format "jpackage-%s-updates" component)]]
+    (->
+     session
+     (package-source
+      "jpackage-generic"
+      :yum {:mirrorlist (format jpackage-mirror-fmt "generic" version)
+            :failovermethod "priority"
+            ;;gpgkey "http://www.jpackage.org/jpackage.asc"
+            :enabled enabled})
+     (package-source
+      (format "jpackage-%s" component)
+      :yum {:mirrorlist (format
+                         jpackage-mirror-fmt
+                         (str component "-" releasever) version)
+            :failovermethod "priority"
+            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+            :enabled enabled})
+     (package-source
+      "jpackage-generic-updates"
+      :yum {:mirrorlist (format
+                         jpackage-mirror-fmt "generic" (str version "-updates"))
+            :failovermethod "priority"
+            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+            :enabled enabled})
+     (package-source
+      (format "jpackage-%s-updates" component)
+      :yum {:mirrorlist (format
+                         jpackage-mirror-fmt
+                         (str component "-" releasever)
+                         (str version "-updates"))
+            :failovermethod "priority"
+            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+            :enabled enabled})
+     (parameter/assoc-for-target [:jpackage-repos] jpackage-repos))))
+
+(defn package-manager-update-jpackage
+  [request]
+  (package-manager
+   request :update
+   :enable (parameter/get-for-target request [:jpackage-repos])
+   :disable ["base" "updates" "addons" "extras" "centosplus" "contrib"]))
 
 (action/def-aggregated-action
   minimal-packages

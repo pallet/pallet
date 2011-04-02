@@ -4,7 +4,12 @@
    clojure.test))
 
 (deftest for->-test
-  (is (= 7 (-> 1 (for-> [x [1 2 3]] (+ x))))))
+  (is (= 7  (-> 1 (for-> [x [1 2 3]] (+ x)))))
+  (is (= 13  (-> 1 (for-> [x [1 2 3]] (+ x) (+ x)))))
+  (is (= 1  (-> 1 (for-> [x []] (+ x)))))
+  (is (= 55  (-> 1 (for-> [x [1 2 3]
+                           y [2 3 4]
+                           :let [z (dec x)]] (+ x y z))))))
 
 (deftest when->test
   (is (= 2 (-> 1 (when-> true (+ 1)))))
@@ -26,6 +31,9 @@
 (deftest if-not->test
   (is (= 3 (-> 1 (if-not-> true  (+ 1) (+ 2)))))
   (is (= 2 (-> 1 (if-not-> false (+ 1) (+ 2))))))
+
+(deftest arg->test
+  (is (= 6 (-> 2 (arg-> [x] (* (inc x)))))))
 
 (deftest let-with-arg->test
   (is (= 3 (-> 1 (let-with-arg-> arg [a 1] (+ a arg))))))

@@ -8,18 +8,13 @@
         (for-> [x [1 2 3]]
           (+ x)))
    => 7"
-  [arg [value s & {:keys [let]}] & body]
-  (clojure.core/let
-   [argsym (gensym "arg")]
-   `(let [arg# ~arg s# ~s] ; maintain correct evaluation order
-      (reduce
-       (fn [~argsym ~value]
-         ~(if let
-            `(let ~let
-               (-> ~argsym ~@body))
-            `(-> ~argsym ~@body)))
-       arg#
-       s#))))
+  [arg seq-exprs & body]
+  `((apply comp (conj
+                 (reverse
+                  (for ~seq-exprs
+                    (fn [arg#] (-> arg# ~@body))))
+                 identity))
+    ~arg))
 
 (defmacro when->
   "A `when` form that can appear in a expression thread.
@@ -96,6 +91,18 @@
         (if-not ~condition
           (-> arg# ~form)
           (-> arg# ~else-form)))))
+
+
+(defmacro arg->
+  "Lexically assign the threaded argument to the specified symbol.
+
+       (-> 1
+         (arg-> [x] (+ x)))
+
+       => 2"
+  [arg [sym] & body]
+  `(let [~sym ~arg]
+     (-> ~sym ~@body)))
 
 (defmacro let-with-arg->
   "A `let` form that can appear in a expression thread, and assign the value
