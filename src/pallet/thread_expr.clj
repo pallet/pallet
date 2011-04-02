@@ -92,6 +92,18 @@
           (-> arg# ~form)
           (-> arg# ~else-form)))))
 
+
+(defmacro arg->
+  "Lexically assign the threaded argument to the specified symbol.
+
+       (-> 1
+         (arg-> [x] (+ x)))
+
+       => 2"
+  [arg [sym] & body]
+  `(let [~sym ~arg]
+     (-> ~sym ~@body)))
+
 (defmacro let-with-arg->
   "A `let` form that can appear in a request thread, and assign the value of the
    threaded arg.

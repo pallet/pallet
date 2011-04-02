@@ -32,6 +32,9 @@
   (is (= 3 (-> 1 (if-not-> true  (+ 1) (+ 2)))))
   (is (= 2 (-> 1 (if-not-> false (+ 1) (+ 2))))))
 
+(deftest arg->test
+  (is (= 6 (-> 2 (arg-> [x] (* (inc x)))))))
+
 (deftest let-with-arg->test
   (is (= 3 (-> 1 (let-with-arg-> arg [a 1] (+ a arg))))))
 
