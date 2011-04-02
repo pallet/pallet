@@ -159,3 +159,18 @@
        (-> session
            (+ x)
            (+ y)))")
+
+(defmacro comp-phase
+  "Composes any number of phases. Suitable for cases when an argument
+  vector is unnecessary; when bundling phases for a `converge` or
+  `lift` commmand, for example.
+
+    (comp-phase phase1 phase2)
+
+  expands to:
+
+    (phase-fn []
+      phase1
+      phase2)"
+  [& phases]
+  `(phase-fn [] ~@(reverse phases)))
