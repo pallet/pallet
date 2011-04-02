@@ -572,6 +572,22 @@
    (stevedore/do-script*
     (map #(apply package-manager* request %) (distinct package-manager-args)))))
 
+
+;; this is an aggregate so that it can come before the aggregate package
+(defaggregate ^{:always-before #{`package}} add-rpm
+  "Add an rpm.  Source as for remote file."
+  {:use-arglist [request rpm-name & options]}
+  (add-rpm*
+   [request args]
+   (stevedore/chain-commands*
+    (for [[rpm-name & {:as options}] args]
+      (stevedore/do-script
+       (apply remote-file/remote-file* request rpm-name (apply concat options))
+       (stevedore/checked-script
+        (format "Install rpm %s" rpm-name)
+        (if-not (rpm -q @(rpm -pq ~rpm-name))
+          (rpm -U --quiet ~rpm-name))))))))
+
 (def ^{:private true} centos-55-repo
   "http://mirror.centos.org/centos/5.5/os/x86_64/repodata/repomd.xml")
 (def ^{:private true} centos-55-repo-key

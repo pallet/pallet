@@ -491,6 +491,25 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              (package "p1")
              (package "p2" :disable ["r1"] :priority 25)))))))
 
+(deftest add-rpm-test
+  (is (=
+       (first
+        (build-resources
+         [:target-packager :yum]
+         (remote-file/remote-file
+          "jpackage-utils-compat"
+          :url pallet.resource.package/jpackage-utils-compat-rpm)
+         (exec-script/exec-checked-script
+          "Install rpm jpackage-utils-compat"
+          (if-not (rpm -q @(rpm -pq "jpackage-utils-compat"))
+            (rpm -U --quiet "jpackage-utils-compat")))))
+       (first
+        (build-resources
+         [:target-packager :yum]
+         (add-rpm
+          "jpackage-utils-compat"
+          :url pallet.resource.package/jpackage-utils-compat-rpm))))))
+
 (deftest jpackage-test
   (is
    (build-resources
