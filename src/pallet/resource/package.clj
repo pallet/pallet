@@ -103,10 +103,12 @@
   (aptitude search (quoted "~i")))
 
 ;;; yum
-(stevedore/defimpl update-package-list [#{:yum}] [& {:keys [enable]}]
+(stevedore/defimpl update-package-list [#{:yum}] [& {:keys [enable disable]}]
   (yum makecache -q ~(string/join
                       " "
-                      (map #(str "--enablerepo=" %) enable))))
+                      (concat
+                       (map #(str "--enablerepo=" %) enable)
+                       (map #(str "--disablerepo=" %) disable)))))
 
 (stevedore/defimpl upgrade-all-packages [#{:yum}] [& options]
   (yum update -y -q ~(stevedore/option-args options)))
@@ -533,7 +535,7 @@
   [request action & options]
   (let [packager (:target-packager request)]
     (stevedore/checked-commands
-     (format "package-manager %s" (name action))
+     (format "package-manager %s %s" (name action) (string/join " " options))
      (case action
        :update (stevedore/script (apply update-package-list ~options))
        :upgrade (stevedore/script (upgrade-all-packages))
