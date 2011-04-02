@@ -3,7 +3,7 @@
 #+DESCRIPTION: Release notes for pallet releases
 #+KEYWORDS: pallet palletops contribute
 
-The latest release is 0.4.14.
+The latest release is 0.4.15.
 
 * 0.5.0-SNAPHSOT
 ** Install
@@ -131,6 +131,26 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
       ("rm" -f ~path)
 
 
+
+* 0.4.15
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+
+** Changes
+- Update jpackage functions to use jpackage-utils-compat-el5-0.0.1-1
+  Add a compatability package to allow jpackge to work with it's own
+  jpackage-utils
+
+- Add pallet.package/add-rpm to install rpm files
+
+- Add :disable option update-package-list for yum
+  Allow for specification of exactly which repos will be updated.
+
+  The log message now also includes the options passed to package-manager
+
+- Add pallet.thread-arg/arg-> for exposing the threaded argument
 
 * 0.4.14
 ** Install
