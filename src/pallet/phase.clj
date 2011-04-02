@@ -120,8 +120,8 @@
           `(fn [~'session# ~@argvec#]
              (--> ~'session#
                   ~subphase#
-                  ~@(for [func# '~checkers]
-                      `(~func# (str '~subphase#)))
+                  ~@(for [func# ~(vec checkers)]
+                      (list func# (str 'subphase#)))
                   ~@(when left#
                       [`((~'~macro-name ~argvec# ~@left#) ~@argvec#)])))))))
 
