@@ -563,7 +563,7 @@ is run with root privileges immediatly after first boot."
   (logging/info
    (format
     "apply-phase %s for %s with %d nodes"
-    (:phase session) (-> session :server :group-name) (count servers)))
+    (:phase session) (-> session :group :group-name) (count servers)))
   (for [server servers]
     (apply-phase-to-node (assoc session :server server))))
 
@@ -573,7 +573,7 @@ is run with root privileges immediatly after first boot."
   (logging/info
    (format
     "apply-phase %s for %s with %d nodes"
-    (:phase session) (-> session :server :group-name) (count servers)))
+    (:phase session) (-> session :group :group-name) (count servers)))
   (->>
    servers
    (map (fn [server]
@@ -624,11 +624,14 @@ is run with root privileges immediatly after first boot."
      session
      (phase/all-phases-for-phase (:phase session)))))
 
-
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
   [session]
-  (logging/trace (format "lift-nodes phases %s" (vec (:phase-list session))))
+  (logging/info
+   (format
+    "lift-nodes phases %s, groups %s"
+    (vec (:phase-list session))
+    (vec (map :group-name (:groups session)))))
   (reduce
    (fn [session phase]
      (->
