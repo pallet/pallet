@@ -660,6 +660,34 @@
              :url (format rpmforge-url-pattern version distro arch))
            (rpm -U --quiet "rpmforge.rpm"))))))))
 
+
+;; The source for this rpm is available here:
+;; http://plone.lucidsolutions.co.nz/linux/centos/
+;;   jpackage-rpm-repository-for-centos-rhel-5.x
+;; http://plone.lucidsolutions.co.nz/linux/centos/images/
+;;   jpackage-utils-compat-el5-0.0.1-1.noarch.rpm/at_download/file
+(def jpackage-utils-compat-rpm
+  (str "https://github.com/downloads/pallet/pallet/"
+       "jpackage-utils-compat-el5-0.0.1-1.noarch.rpm"))
+
+(defn jpackage-utils
+  "Add jpackge-utils. Due to incompatibilities on RHEL derived distributions,
+   a compatability package is required.
+
+   https://bugzilla.redhat.com/show_bug.cgi?id=260161
+   https://bugzilla.redhat.com/show_bug.cgi?id=497213"
+  [request]
+  (->
+   request
+   (when-> (and
+            (= :centos (request-map/os-family request))
+            (re-matches #"5\.[0-5]" (request-map/os-version request)))
+           (add-rpm
+            "jpackage-utils-compat-el5-0.0.1-1"
+            :url jpackage-utils-compat-rpm))
+   (package "jpackage-utils")))
+
+
 (def jpackage-mirror-fmt
   "http://www.jpackage.org/mirrorlist.php?dist=%s&type=free&release=%s")
 
@@ -706,18 +734,20 @@
       (format "jpackage-%s-updates" component)
       :yum {:mirrorlist (format
                          jpackage-mirror-fmt
-                         (str component "-" releasever) (str version "-updates"))
+                         (str component "-" releasever)
+                         (str version "-updates"))
             :failovermethod "priority"
             ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
             :enabled enabled})
-     (parameter/assoc-for-target [:jpackage-repos] jpackage-repos)
-     (package "jpackage-utils" :priority 25 :disable jpackage-repos))))
+     (parameter/assoc-for-target [:jpackage-repos] jpackage-repos))))
 
 (defn package-manager-update-jpackage
   [request]
   (package-manager
    request :update
-   :enable (parameter/get-for-target request [:jpackage-repos])))
+   :enable (parameter/get-for-target request [:jpackage-repos])
+   :disable ["base" "updates" "addons" "extras" "centosplus" "contrib"]))
+
 
 (defaggregate
   ^{:always-before `package-manager `package-source `package}

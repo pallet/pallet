@@ -513,6 +513,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 (deftest jpackage-test
   (is
    (build-resources
-    [:target-packager :yum :phase :configure]
+    [:target-packager :yum :image {:os-family :centos :os-version "5.5"}]
+    (add-rpm "jpackge-utils-compat" :url jpackage-utils-compat-rpm)
+    (package/jpackage-utils)
     (package/add-jpackage)
     (package/package-manager-update-jpackage))))
