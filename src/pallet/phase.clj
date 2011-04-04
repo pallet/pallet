@@ -121,7 +121,7 @@
              (--> ~'session#
                   ~subphase#
                   ~@(for [func# ~(vec checkers)]
-                      (list func# (str 'subphase#)))
+                      (list func# (str subphase#)))
                   ~@(when left#
                       [`((~'~macro-name ~argvec# ~@left#) ~@argvec#)])))))))
 
