@@ -9,12 +9,11 @@
           (+ x)))
    => 7"
   [arg seq-exprs & body]
-  `((apply comp (conj
-                 (reverse
-                  (for ~seq-exprs
-                    (fn [arg#] (-> arg# ~@body))))
-                 identity))
-    ~arg))
+  `(reduce #(%2 %1)
+           ~arg
+           (conj (for ~seq-exprs
+                   (fn [arg#] (-> arg# ~@body)))
+                 identity)))
 
 (defmacro when->
   "A `when` form that can appear in a request thread.
