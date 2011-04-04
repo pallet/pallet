@@ -11,9 +11,8 @@
   [arg seq-exprs & body]
   `(reduce #(%2 %1)
            ~arg
-           (conj (for ~seq-exprs
-                   (fn [arg#] (-> arg# ~@body)))
-                 identity)))
+           (for ~seq-exprs
+             (fn [arg#] (-> arg# ~@body)))))
 
 (defmacro when->
   "A `when` form that can appear in a request thread.
