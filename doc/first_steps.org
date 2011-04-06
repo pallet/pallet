@@ -3,7 +3,7 @@
 #+DESCRIPTION: Pallet first steps introduction
 #+KEYWORDS: pallet introduction install first
 
-The simplest way to start pallet is with a git checkout of the [[https://github.com/hugoduncan/pallet-examples][pallet-examples
+The simplest way to start pallet is with a git checkout of the [[https://github.com/pallet/pallet-examples][pallet-examples
 project]].
 
 * Install
