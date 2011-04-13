@@ -133,15 +133,20 @@
         sb (StringBuilder.)
         buffer-size @ssh-output-buffer-size
         period @ssh-output-poll-period
-        bytes (byte-array buffer-size)]
+        bytes (byte-array buffer-size)
+        read-ouput (fn []
+                     (when (pos? (.available stream))
+                       (let [num-read (.read stream bytes 0 buffer-size)
+                             s (normalise-eol
+                                (strip-sudo-password
+                                 (String. bytes 0 num-read "UTF-8") user))]
+                         (logging/info (format "Output:\n%s" s))
+                         (.append sb s)
+                         s)))]
     (while (ssh/connected? shell)
       (Thread/sleep period)
-      (when (pos? (.available stream))
-        (let [num-read (.read stream bytes 0 buffer-size)
-              s (normalise-eol
-                 (strip-sudo-password (String. bytes 0 num-read "UTF-8") user))]
-          (logging/info (format "Output:\n%s" s))
-          (.append sb s))))
+      (read-ouput))
+    (while (read-ouput))
     (let [exit (.getExitStatus shell)
           stdout (str sb)]
       (when-not (zero? exit)
