@@ -8,7 +8,6 @@
    [pallet.action.remote-file :as remote-file]
    [pallet.build-actions :as build-actions]
    [pallet.core :as core]
-   [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.live-test :as live-test]
    [pallet.parameter :as parameter]
    [pallet.stevedore :as stevedore]
@@ -238,20 +237,23 @@
 (deftest live-test
   (live-test/test-for
    [image live-test/*images*]
-   (live-test/test-nodes
-    [compute node-map node-types]
-    {:ssh-key
-     {:image image
-      :count 1
-      :phases
-      {:bootstrap (resource/phase
-                   (automated-admin-user/automated-admin-user)
-                   (user/user "testuser"))
-       :configure (resource/phase (generate-key "testuser"))
-       :verify1 (resource/phase
-                 (record-public-key "testuser"))
-       :verify2 (resource/phase
-                 (check-public-key))}}}
-    (core/lift (:ssh-key node-types)
-               :phase [:verify1 :verify2]
-               :compute compute))))
+   (require '[pallet.crate.automated-admin-user :as automated-admin-user])
+   (let [automated-admin-user (var-get
+                               (resolve 'pallet.crate.automated-admin-user))]
+     (live-test/test-nodes
+      [compute node-map node-types]
+      {:ssh-key
+       {:image image
+        :count 1
+        :phases
+        {:bootstrap (resource/phase
+                     (automated-admin-user)
+                     (user/user "testuser"))
+         :configure (resource/phase (generate-key "testuser"))
+         :verify1 (resource/phase
+                   (record-public-key "testuser"))
+         :verify2 (resource/phase
+                   (check-public-key))}}}
+      (core/lift (:ssh-key node-types)
+                 :phase [:verify1 :verify2]
+                 :compute compute)))))
