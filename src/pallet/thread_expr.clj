@@ -42,6 +42,29 @@
        (-> arg# ~@body)
        arg#)))
 
+(defmacro let->
+  "A `let` form that can appear in a request thread.
+   eg.
+      (-> 1
+        (let-> [a 1]
+          (+ a)))
+   => 2"
+  [arg binding & body]
+  `(let ~binding
+     (-> ~arg ~@body)))
+
+(defmacro binding->
+  "A `binding` form that can appear in a request thread.
+   eg.
+      (def *a* 0)
+      (-> 1
+        (binding-> [*a* 1]
+          (+ a)))
+   => 2"
+  [arg bindings & body]
+  `(binding ~bindings
+     (-> ~arg ~@body)))
+
 (defmacro when-let->
   "A `when-let` form that can appear in a request thread.
    eg.
