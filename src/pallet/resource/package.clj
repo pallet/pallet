@@ -103,10 +103,12 @@
   (aptitude search (quoted "~i")))
 
 ;;; yum
-(stevedore/defimpl update-package-list [#{:yum}] [& {:keys [enable]}]
+(stevedore/defimpl update-package-list [#{:yum}] [& {:keys [enable disable]}]
   (yum makecache -q ~(string/join
                       " "
-                      (map #(str "--enablerepo=" %) enable))))
+                      (concat
+                       (map #(str "--enablerepo=" %) enable)
+                       (map #(str "--disablerepo=" %) disable)))))
 
 (stevedore/defimpl upgrade-all-packages [#{:yum}] [& options]
   (yum update -y -q ~(stevedore/option-args options)))
@@ -533,7 +535,7 @@
   [request action & options]
   (let [packager (:target-packager request)]
     (stevedore/checked-commands
-     (format "package-manager %s" (name action))
+     (format "package-manager %s %s" (name action) (string/join " " options))
      (case action
        :update (stevedore/script (apply update-package-list ~options))
        :upgrade (stevedore/script (upgrade-all-packages))
@@ -569,6 +571,22 @@
    [request package-manager-args]
    (stevedore/do-script*
     (map #(apply package-manager* request %) (distinct package-manager-args)))))
+
+
+;; this is an aggregate so that it can come before the aggregate package
+(defaggregate ^{:always-before #{`package}} add-rpm
+  "Add an rpm.  Source as for remote file."
+  {:use-arglist [request rpm-name & options]}
+  (add-rpm*
+   [request args]
+   (stevedore/chain-commands*
+    (for [[rpm-name & {:as options}] args]
+      (stevedore/do-script
+       (apply remote-file/remote-file* request rpm-name (apply concat options))
+       (stevedore/checked-script
+        (format "Install rpm %s" rpm-name)
+        (if-not (rpm -q @(rpm -pq ~rpm-name))
+          (rpm -U --quiet ~rpm-name))))))))
 
 (def ^{:private true} centos-55-repo
   "http://mirror.centos.org/centos/5.5/os/x86_64/repodata/repomd.xml")
@@ -642,6 +660,34 @@
              :url (format rpmforge-url-pattern version distro arch))
            (rpm -U --quiet "rpmforge.rpm"))))))))
 
+
+;; The source for this rpm is available here:
+;; http://plone.lucidsolutions.co.nz/linux/centos/
+;;   jpackage-rpm-repository-for-centos-rhel-5.x
+;; http://plone.lucidsolutions.co.nz/linux/centos/images/
+;;   jpackage-utils-compat-el5-0.0.1-1.noarch.rpm/at_download/file
+(def jpackage-utils-compat-rpm
+  (str "https://github.com/downloads/pallet/pallet/"
+       "jpackage-utils-compat-el5-0.0.1-1.noarch.rpm"))
+
+(defn jpackage-utils
+  "Add jpackge-utils. Due to incompatibilities on RHEL derived distributions,
+   a compatability package is required.
+
+   https://bugzilla.redhat.com/show_bug.cgi?id=260161
+   https://bugzilla.redhat.com/show_bug.cgi?id=497213"
+  [request]
+  (->
+   request
+   (when-> (and
+            (= :centos (request-map/os-family request))
+            (re-matches #"5\.[0-5]" (request-map/os-version request)))
+           (add-rpm
+            "jpackage-utils-compat-el5-0.0.1-1"
+            :url jpackage-utils-compat-rpm))
+   (package "jpackage-utils")))
+
+
 (def jpackage-mirror-fmt
   "http://www.jpackage.org/mirrorlist.php?dist=%s&type=free&release=%s")
 
@@ -688,18 +734,20 @@
       (format "jpackage-%s-updates" component)
       :yum {:mirrorlist (format
                          jpackage-mirror-fmt
-                         (str component "-" releasever) (str version "-updates"))
+                         (str component "-" releasever)
+                         (str version "-updates"))
             :failovermethod "priority"
             ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
             :enabled enabled})
-     (parameter/assoc-for-target [:jpackage-repos] jpackage-repos)
-     (package "jpackage-utils" :priority 25 :disable jpackage-repos))))
+     (parameter/assoc-for-target [:jpackage-repos] jpackage-repos))))
 
 (defn package-manager-update-jpackage
   [request]
   (package-manager
    request :update
-   :enable (parameter/get-for-target request [:jpackage-repos])))
+   :enable (parameter/get-for-target request [:jpackage-repos])
+   :disable ["base" "updates" "addons" "extras" "centosplus" "contrib"]))
+
 
 (defaggregate
   ^{:always-before `package-manager `package-source `package}

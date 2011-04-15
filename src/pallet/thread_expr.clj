@@ -42,6 +42,29 @@
        (-> arg# ~@body)
        arg#)))
 
+(defmacro let->
+  "A `let` form that can appear in a request thread.
+   eg.
+      (-> 1
+        (let-> [a 1]
+          (+ a)))
+   => 2"
+  [arg binding & body]
+  `(let ~binding
+     (-> ~arg ~@body)))
+
+(defmacro binding->
+  "A `binding` form that can appear in a request thread.
+   eg.
+      (def *a* 0)
+      (-> 1
+        (binding-> [*a* 1]
+          (+ a)))
+   => 2"
+  [arg bindings & body]
+  `(binding ~bindings
+     (-> ~arg ~@body)))
+
 (defmacro when-let->
   "A `when-let` form that can appear in a request thread.
    eg.
@@ -91,6 +114,18 @@
         (if-not ~condition
           (-> arg# ~form)
           (-> arg# ~else-form)))))
+
+
+(defmacro arg->
+  "Lexically assign the threaded argument to the specified symbol.
+
+       (-> 1
+         (arg-> [x] (+ x)))
+
+       => 2"
+  [arg [sym] & body]
+  `(let [~sym ~arg]
+     (-> ~sym ~@body)))
 
 (defmacro let-with-arg->
   "A `let` form that can appear in a request thread, and assign the value of the

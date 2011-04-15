@@ -37,9 +37,10 @@
 
 (defn compute-service-from-config-files
   [defaults project profiles]
-  (compute/compute-service-from-config (:pallet project) profiles)
-  (compute/compute-service-from-config defaults profiles)
-  (apply compute/compute-service-from-settings profiles))
+  (or
+   (compute/compute-service-from-config (:pallet project) profiles)
+   (compute/compute-service-from-config defaults profiles)
+   (apply compute/compute-service-from-settings profiles)))
 
 (defn find-compute-service
   "Look for a compute service in the following sequence:

@@ -1,7 +1,8 @@
 (ns pallet.utils
   "Utilities used across pallet."
   (:require
-   [clojure.contrib.io :as io]
+   [clojure.java.io :as io]
+   [clojure.contrib.jar :as jar]
    [clojure.contrib.string :as string]
    [clojure.contrib.pprint :as pprint]
    [clojure.contrib.logging :as logging])
@@ -272,3 +273,16 @@
   "Return the classpath File's for the current clojure classloader."
   []
   (map file-for-url (classpath-urls)))
+
+(defn classpath-jarfiles
+  "Returns a sequence of JarFile objects for the JAR files on classpath."
+  []
+  (filter
+   identity
+   (map
+    #(try
+       (java.util.jar.JarFile. %)
+       (catch Exception _
+         (logging/warn
+          (format "Unable to open jar file on classpath: %s" %))))
+    (filter jar/jar-file? (classpath)))))

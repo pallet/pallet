@@ -218,6 +218,7 @@
 (defmacro test-for
   "Loop over tests, in parallel or serial, depending on pallet.test.parallel."
   [[& bindings] & body]
-  `(if *parallel*
-     (doseq [f# (doall (for [~@bindings] (future ~@body)))] @f#)
-     (doseq [~@bindings] ~@body)))
+  `(when *live-tests*
+     (if *parallel*
+       (doseq [f# (doall (for [~@bindings] (future ~@body)))] @f#)
+       (doseq [~@bindings] ~@body))))

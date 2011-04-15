@@ -149,14 +149,14 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 
 (deftest package-manager*-test
   (is (= (stevedore/checked-script
-          "package-manager multiverse"
+          "package-manager multiverse "
           (set! tmpfile @(mktemp -t addscopeXXXX))
           (cp -p "/etc/apt/sources.list" @tmpfile)
           (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
           (mv -f @tmpfile "/etc/apt/sources.list"))
          (package-manager* ubuntu-request :multiverse)))
   (is (= (stevedore/checked-script
-          "package-manager update"
+          "package-manager update "
           (chain-or
            (aptitude update)
            true))
@@ -169,7 +169,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (build-resources
              [:node-type {:tag :n :image {:os-family :centos}}]
              (exec-script/exec-checked-script
-              "package-manager update"
+              "package-manager update :enable [\"r1\"]"
               (yum makecache -q "--enablerepo=r1"))))
            (first
             (build-resources
@@ -182,7 +182,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (build-resources
              []
              (exec-script/exec-checked-script
-              "package-manager configure"
+              "package-manager configure :proxy http://192.168.2.37:3182"
               ~(remote-file/remote-file*
                 {}
                 "/etc/apt/apt.conf.d/50pallet"
@@ -198,7 +198,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (build-resources
              [:node-type {:tag :n :image {:os-family :centos}}]
              (exec-script/exec-checked-script
-              "package-manager configure"
+              "package-manager configure :proxy http://192.168.2.37:3182"
               ~(remote-file/remote-file*
                 {}
                 "/etc/yum.pallet.conf"
@@ -219,7 +219,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (build-resources
              [:node-type {:tag :n :image {:os-family :arch}}]
              (exec-script/exec-checked-script
-              "package-manager configure"
+              "package-manager configure :proxy http://192.168.2.37:3182"
               ~(remote-file/remote-file*
                 {}
                 "/etc/pacman.pallet.conf"
@@ -244,13 +244,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 (deftest add-multiverse-example-test
   (is (=  (str
            (stevedore/checked-script
-            "package-manager multiverse"
+            "package-manager multiverse "
             (set! tmpfile @(mktemp -t addscopeXXXX))
             (cp -p "/etc/apt/sources.list" @tmpfile)
             (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
             (mv -f @tmpfile "/etc/apt/sources.list"))
            (stevedore/checked-script
-            "package-manager update"
+            "package-manager update "
             (chain-or
              (aptitude update "")
              true)))
@@ -491,9 +491,30 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              (package "p1")
              (package "p2" :disable ["r1"] :priority 25)))))))
 
+(deftest add-rpm-test
+  (is (=
+       (first
+        (build-resources
+         [:target-packager :yum]
+         (remote-file/remote-file
+          "jpackage-utils-compat"
+          :url pallet.resource.package/jpackage-utils-compat-rpm)
+         (exec-script/exec-checked-script
+          "Install rpm jpackage-utils-compat"
+          (if-not (rpm -q @(rpm -pq "jpackage-utils-compat"))
+            (rpm -U --quiet "jpackage-utils-compat")))))
+       (first
+        (build-resources
+         [:target-packager :yum]
+         (add-rpm
+          "jpackage-utils-compat"
+          :url pallet.resource.package/jpackage-utils-compat-rpm))))))
+
 (deftest jpackage-test
   (is
    (build-resources
-    [:target-packager :yum :phase :configure]
+    [:target-packager :yum :image {:os-family :centos :os-version "5.5"}]
+    (add-rpm "jpackge-utils-compat" :url jpackage-utils-compat-rpm)
+    (package/jpackage-utils)
     (package/add-jpackage)
     (package/package-manager-update-jpackage))))
