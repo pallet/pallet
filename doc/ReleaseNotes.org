@@ -3,7 +3,7 @@
 #+DESCRIPTION: Release notes for pallet releases
 #+KEYWORDS: pallet palletops contribute
 
-The latest release is 0.4.15.
+The latest release is 0.4.16.
 
 * 0.5.0-SNAPHSOT
 ** Install
@@ -132,7 +132,35 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
 
 
+* 0.4.16
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Changes
+- Improve robustness of classpath discovery in presence of corrupt jars
+  If a jar on the classpath can not be read for some reason, we should not
+  give up, but just ignore that jar file
+
+- Ensure all output is read when an ssh shell closes
+
+- Provide better control of ssh ouput reading
+  Move to clj-ssh 0.2.4, which provides a larger default piped stream
+  buffer (and allows override of the buffer size).
+
+  Allow override of ssh output buffer size with an atom
+  (pallet.execute/ssh-output-buffer-size).
+
+  Allow override of ssh output polling period with an atom
+  (pallet.execute/ssh-output-poll-period).
+
+- Fix a bug that would cause Pallet to not find compute service in
+  config.clj when invoked through lein or cake
+
+
 * 0.4.15
+** Known issues
+- Pallet can not find compute service in config.clj when invoked through lein or cake
 ** Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
