@@ -179,6 +179,16 @@
        :err (:err result)
        :out (:out result)))))
 
+(def
+  ^{:doc "Specifies the buffer size used to read the ssh output stream.
+    Defaults to 10K, to match clj-ssh.ssh/*piped-stream-buffer-size*"}
+  ssh-output-buffer-size (atom (* 1024 10)))
+
+(def
+  ^{:doc "Specifies the polling period for retrieving ssh command output.
+    Defaults to 1000ms."}
+  ssh-output-poll-period (atom 1000))
+
 (defn remote-sudo-cmd
   "Execute remote command.
    Copies `command` to `tmpfile` on the remote node using the `sftp-channel`
@@ -205,16 +215,22 @@
                         :return-map true
                         :pty true)
         sb (StringBuilder.)
-        buffer-size 4096
-        bytes (byte-array buffer-size)]
+        buffer-size @ssh-output-buffer-size
+        period @ssh-output-poll-period
+        bytes (byte-array buffer-size)
+        read-ouput (fn []
+                     (when (pos? (.available stream))
+                       (let [num-read (.read stream bytes 0 buffer-size)
+                             s (normalise-eol
+                                (strip-sudo-password
+                                 (String. bytes 0 num-read "UTF-8") user))]
+                         (logging/info (format "Output:\n%s" s))
+                         (.append sb s)
+                         s)))]
     (while (ssh/connected? shell)
-      (Thread/sleep 1000)
-      (when (pos? (.available stream))
-        (let [num-read (.read stream bytes 0 buffer-size)
-              s (normalise-eol
-                 (strip-sudo-password (String. bytes 0 num-read "UTF-8") user))]
-          (logging/info (format "Output:\n%s" s))
-          (.append sb s))))
+      (Thread/sleep period)
+      (read-ouput))
+    (while (read-ouput))
     (let [exit (.getExitStatus shell)
           stdout (str sb)]
       (when-not (zero? exit)

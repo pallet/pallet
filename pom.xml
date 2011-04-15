@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.4.2-SNAPSHOT</version>
+    <version>0.4.3-SNAPSHOT</version>
     <relativePath>../pallet-pom</relativePath>
   </parent>
   <groupId>org.cloudhoist</groupId>
@@ -102,7 +102,7 @@
     <dependency>
       <groupId>clj-ssh</groupId>
       <artifactId>clj-ssh</artifactId>
-      <version>0.2.3</version>
+      <version>0.2.4</version>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>

@@ -342,4 +342,8 @@ Content can also be copied from a blobstore.
    (when-> local-file
            ;; transfer local file to remote system if required
            (transfer-file local-file (str path ".new")))
-   (apply-map-> remote-file-action path options)))
+   (apply-map->
+    remote-file-action path
+    (merge
+     {:overwrite-changes force-overwrite} ;; capture the value of the flag
+     options))))

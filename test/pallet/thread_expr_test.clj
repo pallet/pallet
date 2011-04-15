@@ -23,6 +23,13 @@
   (is (= 2) (-> 1 (when-let-> [a 1] (+ a))))
   (is (= 1) (-> 1 (when-let-> [a nil] (+ a)))))
 
+(deftest let->test
+  (is (= 2) (-> 1 (let-> [a 1] (+ a)))))
+
+(def *a* 0)
+(deftest binding->test
+  (is (= 2) (-> 1 (binding-> [*a* 1] (+ *a*)))))
+
 (deftest if->test
   (is (= 2 (-> 1 (if-> true  (+ 1) (+ 2)))))
   (is (= 3 (-> 1 (if-> false (+ 1) (+ 2)))))
