@@ -59,6 +59,11 @@
   [request]
   (format "%s%s" (name (tag request)) (safe-id (target-id request))))
 
+(defn admin-user
+  "Admin user for the target"
+  [request]
+  (:user request))
+
 (defn nodes-in-tag
   "All nodes in the same tag as the target-node, or with the specified tag."
   ([request] (nodes-in-tag request (tag request)))
