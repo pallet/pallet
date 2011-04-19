@@ -273,6 +273,10 @@ fi"
   (is (= "ls | ls"
          (script (pipe (ls) (ls))))))
 
+(deftest empty?-test
+  (is (= "if [ -z ${a} ]; then echo true;fi"
+         (script (if (empty? @a) (println true))))))
+
 (deftest unquote-splicing-test
   (is (= "a b c" (script ~@["a" "b" "c"])))
   (is (= "x" (script x ~@[])))

@@ -124,7 +124,7 @@
   special-forms
   #{'if 'if-not 'when 'case 'aget 'aset 'get 'defn 'return 'set! 'var 'defvar
     'let 'local 'literally 'deref 'do 'str 'quoted 'apply
-    'file-exists? 'directory? 'symlink? 'readable? 'writeable?
+    'file-exists? 'directory? 'symlink? 'readable? 'writeable? 'empty?
     'not 'println 'print 'group 'pipe 'chain-or
     'chain-and 'while 'doseq 'merge! 'assoc! 'alias})
 
@@ -138,13 +138,14 @@
   ^{:doc "Logical operators for test expressions."
     :private true}
   #{'== '= '< '> '<= '>= '!= '<< '>> '<<< '>>> '& '| '&& '||
-    'file-exists? 'directory? 'symlink? 'readable? 'writeable? 'not 'and 'or})
+    'file-exists? 'directory? 'symlink? 'readable? 'writeable? 'empty?
+    'not 'and 'or})
 
 (def
   ^{:doc "Operators that should quote their arguments."
     :private true}
   quoted-operators
-  (disj logical-operators 'file-exists? 'directory? 'symlink 'can-read))
+  (disj logical-operators 'file-exists? 'directory? 'symlink 'can-read 'empty?))
 
 (def
   ^{:doc "Conversion from clojure operators to shell infix operators."
@@ -231,6 +232,10 @@
 (defmethod emit-special 'writeable?
   [type [readable? path]]
   (str "-w " (emit path)))
+
+(defmethod emit-special 'empty?
+  [type [empty? path]]
+  (str "-z " (emit path)))
 
 (defmethod emit-special 'not [type [not expr]]
   (str "! " (emit expr)))
