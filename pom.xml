@@ -177,7 +177,7 @@
 	<activeByDefault>true</activeByDefault>
       </activation>
       <properties>
-        <jclouds.version>1.0-beta-9</jclouds.version>
+        <jclouds.version>1.0-beta-9c</jclouds.version>
       </properties>
       <dependencies>
         <dependency>
