@@ -85,12 +85,25 @@
       false
       (read-string parallel))))
 
-(def ^{:doc "List of images to test with"}
+(def ^{:doc "List of images to test with" :deprecated "0.4.17"}
   *images*
   (let [image-list (System/getProperty "pallet.test.image-list")]
     (if (string/blank? image-list)
       default-images
       ((keyword image-list) image-lists))))
+
+(defn images
+  "List of images to test with"
+  []
+  (let [image-list (System/getProperty "pallet.test.image-list")]
+    (if (string/blank? image-list)
+      default-images
+      ((keyword image-list) image-lists))))
+
+(defn add-image-list!
+  "Add an image list"
+  [kw image-maps]
+  (alter-var-root #'image-lists assoc kw image-maps))
 
 (defn exclude-images
   "Takes two maps, and returns the first map with all entries removed that match
