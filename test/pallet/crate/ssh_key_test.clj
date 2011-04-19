@@ -6,10 +6,12 @@
    [pallet.action.exec-script :as exec-script]
    [pallet.action.file :as file]
    [pallet.action.remote-file :as remote-file]
+   [pallet.action.user :as user]
    [pallet.build-actions :as build-actions]
    [pallet.core :as core]
    [pallet.live-test :as live-test]
    [pallet.parameter :as parameter]
+   [pallet.phase :as phase]
    [pallet.stevedore :as stevedore]
    [pallet.template :as template]
    [pallet.utils :as utils]
@@ -246,13 +248,13 @@
        {:image image
         :count 1
         :phases
-        {:bootstrap (resource/phase
+        {:bootstrap (phase/phase-fn
                      (automated-admin-user)
                      (user/user "testuser"))
-         :configure (resource/phase (generate-key "testuser"))
-         :verify1 (resource/phase
+         :configure (phase/phase-fn (generate-key "testuser"))
+         :verify1 (phase/phase-fn
                    (record-public-key "testuser"))
-         :verify2 (resource/phase
+         :verify2 (phase/phase-fn
                    (check-public-key))}}}
       (core/lift (:ssh-key node-types)
                  :phase [:verify1 :verify2]
