@@ -89,3 +89,8 @@
   "User that remote commands are run under"
   [session]
   (compute/admin-group (:server session)))
+
+(defn is-64bit?
+  "Predicate for a 64 bit target"
+  [session]
+  (compute/is-64bit? (target-node session)))

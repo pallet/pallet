@@ -8,6 +8,7 @@
    [pallet.execute :as execute]
    [pallet.phase :as phase]
    [pallet.script :as script]
+   [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
    [clojure.contrib.logging :as logging]
    [clojure.string :as string]))
@@ -105,6 +106,15 @@
                                 (if-let [node (-> session :server :node)]
                                   (keyword (compute/id node))
                                   :id)))
+        session (update-in
+                 session [:server :node]
+                 #(or
+                   %
+                   (test-utils/make-node
+                    (-> session :server :group-name)
+                    :os-family (-> session :server :image :os-family)
+                    :id (-> session :server :node-id)
+                    :is-64bit (-> session :is-64bit))))
         session (update-in session [:all-nodes]
                            #(or % [(-> session :server :node)]))
         session (update-in
@@ -114,8 +124,8 @@
                    (get-in session [:server :packager])
                    (get-in session [:packager])
                    (let [os-family (get-in
-                                     session
-                                     [:server :image :os-family])]
+                                    session
+                                    [:server :image :os-family])]
                      (cond
                       (#{:ubuntu :debian :jeos :fedora} os-family) :aptitude
                       (#{:centos :rhel} os-family) :yum

@@ -312,21 +312,6 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                                :scopes ["main"]}
                     :yum {:url "http://somewhere/yum"})))))))
 
-(deftest add-debian-backports-test
-  (let [debian (core/group-spec "debian" :image {:os-family :debian})]
-    (is (= (script/with-template [:debian]
-             (stevedore/checked-commands
-              "Package source"
-              (remote-file*
-               {:server debian}
-               "/etc/apt/sources.list.d/debian-backports.list"
-               :content (str
-                         "deb http://backports.debian.org/debian-backports "
-                         "$(lsb_release -c -s)-backports main\n"))))
-           (first (build-actions/build-actions
-                   {:server debian}
-                   (add-debian-backports)))))))
-
 (deftest packages-test
   (let [a (assoc (core/make-node "a" {}) :packager :aptitude)
         b (assoc (core/make-node "b" {}) :packager :yum)]
@@ -466,12 +451,3 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
         (build-actions/build-actions
          {:server {:packager :yum}}
          (add-rpm "jpackage-utils-compat" :url "http:url"))))))
-
-(deftest jpackage-test
-  (is
-   (build-actions/build-actions
-    {:server {:packager :yum :image {:os-family :centos :os-version "5.5"}}}
-    (add-rpm "jpackge-utils-compat" :url jpackage-utils-compat-rpm)
-    (package/jpackage-utils)
-    (package/add-jpackage)
-    (package/package-manager-update-jpackage))))

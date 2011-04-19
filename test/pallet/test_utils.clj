@@ -1,6 +1,5 @@
 (ns pallet.test-utils
   (:require
-   [pallet.build-actions :as build-actions]
    [pallet.core :as core]
    [pallet.execute :as execute]
    [pallet.target :as target]
@@ -122,12 +121,13 @@ list, Alan Dipert and MeikelBrandmeyer."
   "Forwarding definition"
   [& args]
   `(do
+     (require 'pallet.build-actions)
      (utils/deprecated-macro
       ~&form
       (utils/deprecate-rename
        'pallet.test-utils/build-resources
        'pallet.build-actions/build-actions))
-     (build-actions/build-actions ~@args)))
+     ((resolve 'pallet.build-actions/build-actions) ~@args)))
 
 (defn test-session
   "Build a test session"
