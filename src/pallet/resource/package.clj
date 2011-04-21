@@ -472,6 +472,10 @@
         "--passive-ftp --no-verbose -c -O %%o %%u")
    proxy-url proxy-url))
 
+(defmethod package-manager-option [:yum :installonlypkgs]
+  [request packager installonly packages]
+  (format "installonlypkgs=%s" (string/join " " packages)))
+
 (defmethod configure-package-manager :aptitude
   [request packager {:keys [priority prox] :or {priority 50} :as options}]
   (remote-file/remote-file*
