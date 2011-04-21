@@ -4,12 +4,13 @@
   (:use
    [org.jclouds.compute
     :exclude [destroy-node nodes run-nodes destroy-nodes-with-tag
+              destroy-nodes-in-group
               terminated? id running? tag hostname compute-service]]
    pallet.utils
    [pallet.compute :exclude [make-node]]
    pallet.core
-   pallet.resource
-   pallet.resource.package
+   pallet.phase
+   pallet.action.package
    pallet.task.feedback
    clj-ssh.ssh))
 
@@ -20,11 +21,12 @@
      (clojure.core/use
       '[org.jclouds.compute
         :exclude [destroy-node nodes run-nodes destroy-nodes-with-tag
+                  destroy-nodes-in-group
                   terminated? id running? tag hostname compute-service]]
       'pallet.utils
       '[pallet.compute :exclude [make-node]]
       'pallet.core
-      'pallet.resource
-      'pallet.resource.package
+      'pallet.phase
+      'pallet.action.package
       'pallet.task.feedback
       'clj-ssh.ssh)))

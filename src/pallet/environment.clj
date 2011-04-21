@@ -19,6 +19,7 @@
    The merging of values between scopes is key specific, and is determined by
    `merge-key-algorithm`."
   (:require
+   [pallet.common.deprecate :as deprecate]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.logging :as logging]
@@ -42,6 +43,7 @@
    :count :merge
    :algorithms :merge
    :middleware :replace
+   :groups :merge-environments
    :tags :merge-environments})
 
 (defmulti merge-key
@@ -140,40 +142,46 @@
 
        (get-for {:p {:a {:b 1} {:d 2}}} [:p :a :d])
          => 2"
-  ([request keys]
-     (let [result (get-in (:environment request) keys ::not-set)]
+  ([session keys]
+     (let [result (get-in (:environment session) keys ::not-set)]
        (when (= ::not-set result)
          (condition/raise
           :type :environment-not-found
           :message (format
-                    "Could not find keys %s in request :environment"
+                    "Could not find keys %s in session :environment"
                     (if (sequential? keys) (vec keys) keys))
           :key-not-set keys))
        result))
-  ([request keys default]
-       (get-in (:environment request) keys default)))
+  ([session keys default]
+       (get-in (:environment session) keys default)))
 
 (def ^{:doc "node specific environment keys"}
   node-keys [:image :phases])
 
-(defn request-with-environment
-  "Returns an updated `request` map, containing the keys for the specified
+(defn session-with-environment
+  "Returns an updated `session` map, containing the keys for the specified
    `environment` map.
 
-   When request includes a :node-type value, then the :node-type value is
+   When session includes a :server value, then the :server value is
    treated as an environment, and merge with any environment in the
-   `environment`'s :tags key.
+   `environment`'s :groups key.
 
    The node-specific environment keys are :images and :phases."
-  [request environment]
-  (let [request (merge
-                 request
-                 (utils/dissoc-keys environment (conj node-keys :tags)))]
-    (if (:node-type request)
-      (let [tag (-> request :node-type :tag)]
-        (assoc request
-          :node-type (merge-environments
-                      (:node-type request)
-                      (select-keys environment node-keys)
-                      (-?> environment :tags tag))))
-      request)))
+  [session environment]
+  (let [session (merge
+                 session
+                 (utils/dissoc-keys
+                  environment (conj node-keys :groups :tags)))]
+    (when (:tags environment)
+      (deprecate/warn
+       (str "Use of :tags key in the environment is deprecated. "
+            "Please change to use :groups.")))
+    (if (:server session)
+      (let [tag (-> session :server :tag)]
+        (assoc session
+          :server (merge-environments
+                   (:server session)
+                   (select-keys environment node-keys)
+                   (-?> environment :tags tag) ; :tags is deprecated
+                   (-?> environment :groups tag))))
+      session)))

@@ -6,9 +6,7 @@
    [pallet.compute.jvm :as jvm]
    [pallet.compute :as compute]
    [pallet.environment :as environment]
-   [pallet.resource :as resource]
    [pallet.script :as script]
-   [pallet.target :as target]
    [pallet.utils :as utils]
    [pallet.execute :as execute]
    [clojure.contrib.condition :as condition]
@@ -120,16 +118,16 @@
     (make-hardware {})))
 
 
-(defn make-node [tag & options]
+(defn make-node [group-name & options]
   (let [options (apply hash-map options)]
     (NodeMetadataImpl.
-     (options :provider-id (options :id tag))
-     (options :name tag)                ; name
-     (options :id tag)                   ; id
+     (options :provider-id (options :id group-name))
+     (options :name group-name)                ; name
+     (options :id group-name)                   ; id
      (options :location)
-     (java.net.URI. tag)                ; uri
+     (java.net.URI. group-name)                ; uri
      (options :user-metadata {})
-     tag
+     group-name
      (if-let [hardware (options :hardware)]
        (if (map? hardware) (make-hardware hardware) hardware)
        (make-hardware {}))
@@ -148,19 +146,19 @@
   "Make a node that is not created by pallet's node management.
    This can be used to manage configuration of any machine accessable over
    ssh, including virtual machines."
-  [tag host-or-ip & options]
+  [group-name host-or-ip & options]
   (let [options (apply hash-map options)
         meta (dissoc options :location :user-metadata :state :login-port
                      :public-ips :private-ips :extra :admin-password
                      :credentials)]
     (NodeMetadataImpl.
-     (options :provider-id (options :id tag))
-     (options :name tag)
-     (options :id (str tag (rand-int 65000)))
+     (options :provider-id (options :id group-name))
+     (options :name group-name)
+     (options :id (str group-name (rand-int 65000)))
      (options :location)
-     (java.net.URI. tag)                ; uri
+     (java.net.URI. group-name)                ; uri
      (merge (get options :user-metadata {}) meta)
-     tag
+     group-name
      (if-let [hardware (options :hardware)]
        (if (map? hardware) (make-hardware hardware) hardware)
        (make-hardware {}))
@@ -211,7 +209,7 @@
   (primary-ip [node] (first (jclouds/public-ips node)))
   (private-ip [node] (first (jclouds/private-ips node)))
   (is-64bit? [node] (.. node getOperatingSystem is64Bit))
-  (tag [node] (jclouds/tag node))
+  (group-name [node] (jclouds/tag node))
 
   (os-family
     [node]
@@ -229,19 +227,21 @@
   (terminated? [node] (jclouds/terminated? node)))
 
 
-
-(defn build-node-template
+(defn- build-node-template
   "Build the template for specified target node and compute context"
-  [compute public-key-path request init-script]
-  {:pre [(map? (:node-type request))]}
+  [compute group public-key-path init-script]
+  {:pre [(map? group) (:group-name group)]}
   (logging/info
-   (str "building node template for " (-> request :node-type :tag)))
+   (str "building node template for " (:group-name group)))
   (when public-key-path
     (logging/info (str "  authorizing " public-key-path)))
   (when init-script
     (logging/debug (str "  init script\n" init-script)))
-  (let [options (-> request :node-type :image)
-        options (if (-> request :node-type :default-os-family)
+  (let [options (->> [:image :hardware :location :network :qos]
+                     (select-keys group)
+                     vals
+                     (reduce merge))
+        options (if (:default-os-family group)
                   (dissoc options :os-family) ; remove if we added in
                                               ; ensure-os-family
                   options)]
@@ -315,12 +315,10 @@
   (nodes [_] (jclouds/nodes-with-details compute))
 
   (ensure-os-family
-   [_ request]
-   (if (-> request :node-type :image :os-family)
-     request
-     (let [template (jclouds/build-template
-                     (environment/get-for request [:compute])
-                     (-> request :node-type :image))
+   [_ group]
+   (if (-> group :image :os-family)
+     group
+     (let [template (jclouds/build-template compute (:image group))
            family (-> (.. template getImage getOperatingSystem getFamily)
                       str keyword)]
        (logging/info (format "Default OS is %s" (pr-str family)))
@@ -330,22 +328,22 @@
           :message (format
                     (str "jclouds was unable to determine the os-family "
                          "of the template %s")
-                    (pr-str (-> request :node-type :image)))))
+                    (pr-str (:image group)))))
        (->
-        request
-        (assoc-in [:node-type :image :os-family] family)
-        (assoc-in [:node-type :default-os-family] true)))))
+        group
+        (assoc-in [:image :os-family] family)
+        (assoc-in [:default-os-family] true)))))
 
   (run-nodes
-   [_ node-type node-count request init-script]
+   [_ group-spec node-count user init-script]
    (->>
     (jclouds/run-nodes
-     (name (node-type :tag))
+     (name (:group-name group-spec))
      node-count
      (build-node-template
       compute
-      (-> request :user :public-key-path)
-      request
+      group-spec
+      (:public-key-path user)
       init-script)
      compute)
     ;; The following is a workaround for terminated nodes.
@@ -373,9 +371,9 @@
    (doseq [node nodes]
      (compute/shutdown-node self node user)))
 
-  (destroy-nodes-with-tag
-    [_ tag-name]
-    (jclouds/destroy-nodes-with-tag (name tag-name) compute))
+  (destroy-nodes-in-group
+    [_ group-name]
+    (jclouds/destroy-nodes-with-tag (name group-name) compute))
 
   (destroy-node
    [_ node]
@@ -453,21 +451,20 @@
              :public-ips ["127.0.0.1"]
              :operating-system (local-operating-system)))
 
-(defn local-request
-  "Create a request map for localhost"
+(defn local-session
+  "Create a session map for localhost"
   []
   (let [node (make-localhost-node)]
-    {:target-node node
-     :all-nodes [node]
-     :target-nodes [node]
-     :node-type {:image [(get jvm-os-map (System/getProperty "os.name"))]}}))
+    {:all-nodes [node]
+     :server {:image [(get jvm-os-map (System/getProperty "os.name"))]
+              :node node}}))
 
 ;; service factory implementation for jclouds
 (defmethod implementation/service :default
   [provider {:keys [identity credential extensions endpoint environment]
              :or {extensions (default-jclouds-extensions provider)}
              :as options}]
-  (logging/info (format "extensions %s" (pr-str extensions)))
+  (logging/debug (format "extensions %s" (pr-str extensions)))
   (let [options (dissoc
                  options
                  :identity :credential :extensions :blobstore :environment)]

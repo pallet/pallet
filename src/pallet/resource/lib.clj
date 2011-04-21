@@ -1,18 +1,10 @@
 (ns pallet.resource.lib
-  "Routines that can be used in other resources"
+  "Compatibility namespace"
   (:require
-   [pallet.script :as script]
-   [pallet.stevedore :as stevedore]))
+   pallet.script.lib
+   [pallet.utils :as utils]))
 
-;; Register changed files
-(script/defscript file-changed [path])
-(stevedore/defimpl file-changed :default [path]
-  (assoc! changed_files path 1))
-
-(script/defscript set-flag [path])
-(stevedore/defimpl set-flag :default [path]
-  (assoc! flags_hash ~(name path) 1))
-
-(script/defscript flag? [path])
-(stevedore/defimpl flag? :default [path]
-  (get flags_hash ~(name path)))
+(utils/forward-to-script-lib
+ file-changed
+ set-flag
+ flag?)

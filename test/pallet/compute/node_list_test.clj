@@ -3,13 +3,15 @@
    [pallet.compute.node-list :as node-list]
    [pallet.compute :as compute])
   (:use
-   [clojure.test]))
+   clojure.test)
+  (:import
+   pallet.compute.node_list.Node))
 
 (deftest supported-providers-test
   (is (node-list/supported-providers)))
 
 (deftest make-node-test
-  (is (= (pallet.compute.node-list.Node.
+  (is (= (pallet.compute.node_list.Node.
           "n" "t" "1.2.3.4" :ubuntu "10.2" "n-1-2-3-4" 22 "4.3.2.1" false true)
          (node-list/make-node
           "n" "t" "1.2.3.4" :ubuntu :private-ip "4.3.2.1" :is-64bit false
@@ -20,7 +22,7 @@
        pallet.compute.ComputeService
        (compute/compute-service "node-list" :node-list [])))
   (is (instance?
-       pallet.compute.node-list.NodeList
+       pallet.compute.node_list.NodeList
        (compute/compute-service "node-list" :node-list []))))
 
 (deftest nodes-test

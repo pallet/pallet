@@ -1,35 +1,28 @@
 (ns pallet.resource.resource-when
   "Conditional resource execution."
   (:require
-   [pallet.stevedore :as stevedore]
-   [pallet.argument :as argument]
-   [pallet.resource :as resource]
-   [pallet.resource-build :as resource-build]
-   [pallet.resource.exec-script :as exec-script])
-  (:use
-   clojure.contrib.logging))
+   [pallet.action.conditional :as conditional]
+   [pallet.common.deprecate :as deprecate]
+   [pallet.utils :as utils]))
 
 (defmacro resource-when
-  [request condition & resources]
-  `(exec-script/exec-script
-    ~request
-    (if ~condition
-      (do (unquote (->
-                    (resource-build/produce-phases
-                      [(:phase ~request)]
-                      ((resource/phase ~@resources) ~request))
-                    first))))))
+  {:deprecated "0.5.0"}
+  [session condition & resources]
+  `(do
+     (deprecate/deprecated-macro
+      ~&form
+      (deprecate/rename
+       'pallet.resource.resource-when/resource-when
+       'pallet.action.conditional/when))
+     (conditional/when ~session ~condition ~@resources)))
 
-;; This is a macro, so that the condition can be wrapped in a function
-;; preventing capture of its literal value, and ensuring that it is
-;; specialised on target node
 (defmacro resource-when-not
-  [request condition & resources]
-  `(exec-script/exec-script
-    ~request
-    (if-not ~condition
-      (do (unquote (->
-                    (resource-build/produce-phases
-                      [(:phase ~request)]
-                      ((resource/phase ~@resources) ~request))
-                    first))))))
+  {:deprecated "0.5.0"}
+  [session condition & resources]
+  `(do
+     (deprecate/deprecated-macro
+      ~&form
+      (deprecate/rename
+       'pallet.resource.resource-when/resource-when-not
+       'pallet.action.conditional/when-not))
+     (conditional/when-not ~session ~condition ~@resources)))

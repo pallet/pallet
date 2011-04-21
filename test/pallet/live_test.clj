@@ -18,7 +18,6 @@
   (:require
    [pallet.core :as core]
    [pallet.compute :as compute]
-   [pallet.resource :as resource]
    [clojure.string :as string]))
 
 (def
@@ -161,22 +160,22 @@
    (set-service! (compute/compute-service-from-config-file service-name))
    (set-service! (compute/compute-service-from-settings service-name))))
 
-(defn- effective-tag
-  [tag spec]
-  (keyword (str (name tag) (name (get-in spec [:image :prefix] "")))))
+(defn- effective-group-name
+  [group-name spec]
+  (keyword (str (name group-name) (name (get-in spec [:image :prefix] "")))))
 
 (defn- node-spec
-  [[tag spec]]
+  [[group-name spec]]
   (-> spec
       (assoc
-          :base-tag (keyword (name tag))
-          :tag (effective-tag tag spec))
+          :base-group-name (keyword (name group-name))
+          :group-name (effective-group-name group-name spec))
       (update-in [:image] dissoc :prefix)))
 
 (defn node-types
   "Build node types according to the specs"
   [specs]
-  (into {} (map #((juxt :tag identity) (node-spec %)) specs)))
+  (into {} (map #((juxt :group-name identity) (node-spec %)) specs)))
 
 (defn- counts
   "Build a map of node defintion to count suitable for passing to `converge`."
@@ -191,24 +190,24 @@
      (->>
       (core/converge counts :compute service)
       :all-nodes
-      (group-by compute/tag)
+      (group-by compute/group-name)
       (map #(vector (keyword (first %)) (second %)))
       (into {}))
      (keys node-types))))
 
 (defn destroy-nodes
   "Build nodes using the phase and specs"
-  [service tags]
-  (doseq [tag tags]
-    (compute/destroy-nodes-with-tag service (name tag))))
+  [service group-names]
+  (doseq [group-name group-names]
+    (compute/destroy-nodes-in-group service (name group-name))))
 
 (defmacro test-nodes
   "Top level testing macro.
 
   Declares a live test.  Requires three symbols:
   - `compute` bound to the compute service being used
-  - `node-map` bound to a map from tag to nodes running for that tag
-  - `node-types` a map from tag to node definition for that tag
+  - `node-map` bound to a map from group to nodes running for that group
+  - `node-types` a map from group to node definition for that group
 
   `specs` is a map, keyed by tag, with values being a map with
   `:image`, `:phases` and `:count` tags

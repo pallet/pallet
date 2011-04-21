@@ -8,8 +8,12 @@
    [clojure.contrib.logging :as logging])
   (:use
    clojure.contrib.logging
-   clj-ssh.ssh
-   clojure.contrib.def))
+   clojure.contrib.def)
+  (:import
+   (java.security
+    NoSuchAlgorithmException
+    MessageDigest)
+   (org.apache.commons.codec.binary Base64)))
 
 (defn pprint-lines
   "Pretty print a multiline string"
@@ -58,26 +62,6 @@
           (do
             (.append sb (char c))
             (recur (.read r))))))))
-
-(defn slurp-resource
-  "Reads the resource named by name using the encoding enc into a string
-   and returns it."
-  ([name] (slurp-resource
-           name (.name (java.nio.charset.Charset/defaultCharset))))
-  ([#^String name #^String enc]
-     (let [stream (load-resource name)]
-       (when stream
-         (with-open [stream stream
-                     r (new java.io.BufferedReader
-                            (new java.io.InputStreamReader
-                                 stream enc))]
-           (let [sb (new StringBuilder)]
-             (loop [c (.read r)]
-               (if (neg? c)
-                 (str sb)
-                 (do
-                   (.append sb (char c))
-                   (recur (.read r)))))))))))
 
 (defn resource-properties
   "Given a resource `path`, load it as a java properties file.
@@ -228,6 +212,12 @@
   [m keys]
   (apply dissoc m keys))
 
+(defn dissoc-if-empty
+  "Like clojure.core/dissoc, except it only dissoc's if the value at the
+   keyword is nil."
+  [m key]
+  (if (empty? (m key)) (dissoc m key) m))
+
 (defn maybe-update-in
   "'Updates' a value in a nested associative structure, where ks is a
   sequence of keys and f is a function that will take the old value
@@ -242,7 +232,7 @@
          m))))
 
 (defmacro pipe
-  "Build a request processing pipeline from the specified forms."
+  "Build a session processing pipeline from the specified forms."
   [& forms]
   (let [[middlewares etc] (split-with #(or (seq? %) (symbol? %)) forms)
         middlewares (reverse middlewares)
@@ -254,6 +244,27 @@
     (if (seq middlewares)
       `(-> ~handler ~@middlewares)
       handler)))
+
+(defn base64-md5
+  "Computes the base64 encoding of the md5 of a string"
+  [#^String unsafe-id]
+  (let [alg (doto (MessageDigest/getInstance "MD5")
+              (.reset)
+              (.update (.getBytes unsafe-id)))]
+    (try
+      (Base64/encodeBase64URLSafeString (.digest alg))
+      (catch NoSuchAlgorithmException e
+        (throw (new RuntimeException e))))))
+
+(defmacro middleware
+  "Build a middleware processing pipeline from the specified forms.
+   The result is a middleware."
+  [& forms]
+  (let [[middlewares] (split-with #(or (seq? %) (symbol? %)) forms)
+        middlewares (reverse middlewares)]
+    (if (seq middlewares)
+      `(fn [handler#] (-> handler# ~@middlewares))
+      `(fn [handler#] handler#))))
 
 ;; see http://weblogs.java.net/blog/kohsuke/archive/2007/04/how_to_convert.html
 (defn file-for-url
@@ -286,3 +297,10 @@
          (logging/warn
           (format "Unable to open jar file on classpath: %s" %))))
     (filter jar/jar-file? (classpath)))))
+
+(defmacro forward-to-script-lib
+  "Forward a script to the new script lib"
+  [& symbols]
+  `(do
+     ~@(for [sym symbols]
+         (list `def sym (symbol "pallet.script.lib" (name sym))))))

@@ -1,7 +1,11 @@
 (ns pallet.configure-test
   (:use pallet.configure)
   (:use
-   clojure.test))
+   clojure.test)
+  (:require
+   [pallet.common.logging.log4j :as log4j]))
+
+(use-fixtures :once (log4j/logging-threshold-fixture))
 
 (deftest compute-service-properties-test
   (testing "default"
