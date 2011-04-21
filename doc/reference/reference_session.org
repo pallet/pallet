@@ -1,19 +1,22 @@
 #+SETUPFILE: ../org-templates/level-1.org
-#+TITLE:     Request Map
-#+DESCRIPTION: Pallet Request Map
-#+KEYWORDS: pallet request map
+#+TITLE:     Session
+#+DESCRIPTION: Pallet Session
+#+KEYWORDS: pallet session
 
-The request map is used to accumulate the configuration data, and the results of
-execution.
+The session is used to hold state and context for the duration of a call
+to =lift= or =converge=.
+
+The parameters, envrionment and results are all maintained in the session.  The
+session also provides crates with access to the current node and other details.
 
 * Access in crates
 
-To access the information in the request map, use the functions in
-=pallet.request-map=.
+To access the information in the session, use the functions in
+=pallet.session=.
 
 * Internal details
 
-The request map has some well defined keys:
+The session has some well defined keys:
 
 - :group-spec : The group-spec for the current node
 - :server : The server describing the current node
