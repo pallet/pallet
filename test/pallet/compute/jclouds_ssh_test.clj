@@ -2,10 +2,11 @@
   (:require
    [clojure.contrib.logging :as logging])
   (:import
-   [org.jclouds.ssh SshClient ExecResponse]
    org.jclouds.domain.Credentials
+   org.jclouds.compute.domain.ExecResponse
    org.jclouds.io.Payload
-   org.jclouds.net.IPSocket))
+   org.jclouds.net.IPSocket
+   org.jclouds.ssh.SshClient))
 
 
 (defn instantiate [impl-class & args]

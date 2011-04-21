@@ -3,62 +3,111 @@
 #+DESCRIPTION: Pallet first steps introduction
 #+KEYWORDS: pallet introduction install first
 
-The simplest way to start pallet is with a git checkout of the [[https://github.com/hugoduncan/pallet-examples][pallet-examples
-project]].
+Zero to running in five minutes with lein.
 
-* Install
+* Install leiningen
 
-Pallet can be used as a jar file or from a source code checkout.  Release versions
-are available at [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist][Sonatype]], and can be used with {{{maven}}}, {{{leiningen}}} or any
-maven repository aware tool.
-
-** Lein/Cake
-
-Include the following in your project.clj
-
-#+begin_src clojure
-:dependencies [[org.cloudhoist/pallet "0.4.0"]
-               [org.cloudhoist/pallet-crates-complete "0.4.0"]]
-:repositories {"sonatype"
-               "http://oss.sonatype.org/content/repositories/releases"
-               "sonatype-snapshots"
-               "http://oss.sonatype.org/content/repositories/snapshots"}
-#+end_src
-
-** Maven
-Include the following in your pom.xml.
-
-#+begin_src xml :results silent :session s1
-    <dependencies>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>pallet</artifactId>
-        <version>0.4.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>pallet</artifactId>
-        <version>0.4.0</version>
-      </dependency>
-    <dependencies>
-
-    <repositories>
-      <repository>
-        <id>sonatype</id>
-        <url>http://oss.sonatype.org/content/repositories/releases</url>
-      </repository>
-      <repository>
-        <id>sonatype-snapshots</id>
-        <url>http://oss.sonatype.org/content/repositories/snapshots</url>
-      </repository>
-    </repositories>
-#+end_src
-
-
-* Source
-Pallet is available on [[http://github.com/hugoduncan/pallet][github]]. Pallet requires [[http://clojure.org/][Clojure 1.2]], and uses {{{jclouds}}}.
+The first thing we need is [leiningen](http://github.com/technomancy/leiningen),
+a build tool for clojure. You can downlaod this with your web browser, =curl= or
+=wget= or your favourite download tool. Here we show using =curl=.
 
 #+BEGIN_SRC sh :dir tmp
-  git clone git://github.com/hugoduncan/pallet.git
-  git clone git://github.com/hugoduncan/pallet-crates.git
+    bash$ curl -O http://github.com/technomancy/leiningen/raw/stable/bin/lein
+    bash$ chmod +x lein
 #+END_SRC
+
+* Create a new project
+
+Now we can create a new clojure project using lein. This uses quickstart as the
+name of the project:
+
+#+BEGIN_SRC sh :dir tmp
+    bash$ lein new quickstart
+    Created new project in: quickstart
+    bash$ cd quickstart
+#+END_SRC
+
+* Setup the project for pallet
+
+Pallet is just a library, and can be used as a jar file.  Release versions are
+available at the [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist][Sonatype]] maven repository.
+
+Include the following in the =project.clj= file, which describes the project
+dependencies.
+
+#+begin_src clojure
+    :dependencies [[org.cloudhoist/pallet "0.4.10"]
+                   [org.cloudhoist/pallet-crates-standalone "0.4.10"]
+                   [org.jclouds/jclouds-all "1.0-beta-9b"]
+                   [org.jclouds.driver/jclouds-jsch "1.0-beta-9b"]
+                   [org.jclouds.driver/jclouds-log4j "1.0-beta-9b"]]
+    :repositories {"sonatype"
+                   "http://oss.sonatype.org/content/repositories/releases"}
+#+end_src
+
+You should end up with a =project.clj= that looks something like this:
+
+#+begin_src clojure
+    (defproject blank-project "0.1.0-SNAPSHOT"
+      :description "quickstart for pallet"
+      :dependencies [[org.cloudhoist/pallet "0.4.10"]
+                     [org.cloudhoist/pallet-crates-standalone "0.4.10"]
+                     [org.jclouds/jclouds-all "1.0-beta-9b"]
+                     [org.jclouds.driver/jclouds-jsch "1.0-beta-9b"]
+                     [org.jclouds.driver/jclouds-log4j "1.0-beta-9b"]]
+      :repositories {"sonatype"
+                     "http://oss.sonatype.org/content/repositories/releases"})
+#+end_src
+
+* Start the REPL and load pallet
+
+Start a repl with =lein repl= and load pallet with =require= at the repl
+=user=>= prompt.
+
+#+begin_src clojure
+    (require 'pallet.core 'pallet.compute)
+#+end_src
+
+
+* Configure your credentials
+
+Now you can configure your credentials in a =~/.pallet/config.clj= file, under
+the =:services= key. You will need to create this file.
+
+#+begin_src clojure
+    (defpallet
+      :serivces
+        {:gogrid {:provider "gogrid" :identity "key" :credential "secret-key"}
+         :aws {:provider "ec2-aws" :identity "key" :credential "secret-key"}
+         :rs  {:provider "cloudservers-us" :identity "user" :credential "key"}})
+#+end_src
+
+Each service is named (the key in the map supplied to =:services=).
+
+The :provider key specifies the jclouds provider to use.  For a list of the
+valid :provider values, you can enter the following command:
+
+#+begin_src clojure
+    (pallet.compute/supported-providers)
+#+end_src
+
+
+* Start a cloud node
+
+You can now start your first compute node:
+
+#+begin_src clojure
+    (pallet.core/converge
+      (pallet.core/group-spec "mygroup" :count 1)
+      :compute (pallet.compute/service :gogrid))
+#+end_src
+
+To shut the node down again, change the :count value to zero:
+
+#+begin_src clojure
+    (pallet.core/converge
+      (pallet.core/group-spec "mygroup" :count 0)
+      :compute (pallet.compute/service :gogrid))
+#+end_src
+
+Congratulations!

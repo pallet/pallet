@@ -52,11 +52,12 @@
           (is (= 1 (pallet-task ["some-non-existing-task"])))))))
 
 (deftest report-unexpected-exception-test
-  (is (re-find #"hello"
-               (with-err-str
-                 (#'pallet.main/report-unexpected-exception
-                  (Exception. "hello")))))
-  (is (re-find #"java.lang.Exception"
-               (with-err-str
-                 (#'pallet.main/report-unexpected-exception
-                  (Exception. "hello"))))))
+  (suppress-logging
+   (is (re-find #"hello"
+                (with-err-str
+                  (#'pallet.main/report-unexpected-exception
+                   (Exception. "hello")))))
+   (is (re-find #"java.lang.Exception"
+                (with-err-str
+                  (#'pallet.main/report-unexpected-exception
+                   (Exception. "hello")))))))
