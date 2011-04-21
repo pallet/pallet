@@ -1,7 +1,7 @@
 #+AUTHOR:    Hugo Duncan
 #+EMAIL:     hugo_duncan@yahoo.com
 #+DESCRIPTION: Pallet is a node provisioning, configuration and administration tool.
-#+KEYWORDS:
+#+KEYWORDS: pallet palletops
 #+LANGUAGE:  en
 #+OPTIONS:   H:3 num:nil toc:nil \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t
 #+OPTIONS:   TeX:t LaTeX:nil skip:nil d:nil todo:t pri:nil tags:not-in-toc

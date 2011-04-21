@@ -15,7 +15,7 @@ to shell script.
     '[pallet.stevedore :as stevedore])
 
   (stevedore/script
-    (ls))
+    ("ls"))
 #+END_SRC
 
 * Variables
