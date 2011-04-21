@@ -4,6 +4,7 @@
    [pallet.action.file :as file]
    [pallet.action.remote-file :as remote-file]
    [pallet.argument :as argument]
+   [pallet.common.deprecate :as deprecate]
    [pallet.compute :as compute]
    [pallet.parameter :as parameter]
    [pallet.script.lib :as lib]
@@ -41,8 +42,8 @@
   "Declare host entries for all nodes of a tag"
   {:deprecated "0.5.0"}
   [session tag & {:keys [private-ip] :as opts}]
-  (utils/deprecated
-   (utils/deprecate-rename
+  (deprecate/deprecated
+   (deprecate/rename
     'pallet.crate.etc-hosts-for-tag 'pallet.crate.etc-hosts/hosts-for-group))
   (apply hosts-for-group session tag (apply concat opts)))
 
