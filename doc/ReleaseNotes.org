@@ -7,7 +7,7 @@ The latest stable release is 0.4.17.
 
 The latest development release is 0.5.0.
 
-* 0.5.0-SNAPHSOT
+* 0.5.0
 ** Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
