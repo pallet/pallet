@@ -3,7 +3,9 @@
 #+DESCRIPTION: Release notes for pallet releases
 #+KEYWORDS: pallet palletops contribute
 
-The latest release is 0.4.17.
+The latest stable release is 0.4.17.
+
+The latest development release is 0.5.0.
 
 * 0.5.0-SNAPHSOT
 ** Install
@@ -11,6 +13,39 @@ The latest release is 0.4.17.
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
 ** Features
+
+- Switch to release versions of pallet-common and stevedore
+
+- Factor out thread-expr, stevedore and pallet-common
+
+- Conj-ing identity onto the comprehension is unnecessary, as reduce simply
+  returns the original value (arg, in this case) if handed an empty list.
+
+- More efficient implementation of for->, without the need to call reverse on
+  the list comprehension.
+  we now reduce with an initial value of arg and the #(%2 %1) function
+  -- (reduce #(%2 %1) arg function-sequence) ends up acting exactly like a
+  call to comp with a reversed sequence.
+
+- Update to pallet-pom 0.4.3
+
+- Seperate repository manipulation actions into separate namespaces
+
+- Update to jclouds beta-9c
+
+- Add pallet.stevedore/empty?
+  This expands to the -z test.
+
+- Fix log messages for apply-phase
+
+- Fix incorrect switch of phase to task
+
+- Add outputput of partial results from ssh command
+  In order to improve the feedback of commands running over ssh, log output
+  as it becomes available
+
+- Deprecate pallet.target
+  Replaced with pallet.compute/admin-group and pallet.session/admin-group
 
 - Make deprecation messages consistent, and add :deprecated metadata
 
