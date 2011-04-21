@@ -102,12 +102,12 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>pallet-common</artifactId>
-      <version>0.1.0-SNAPSHOT</version>
+      <version>0.1.0</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>stevedore</artifactId>
-      <version>0.5.0-SNAPSHOT</version>
+      <version>0.5.0</version>
     </dependency>
     <dependency>
       <groupId>clj-http</groupId>
@@ -345,14 +345,6 @@
       <id>sonatype-nexus-releases</id>
       <name>Sonatype Nexus Releases</name>
       <url>http://oss.sonatype.org/content/repositories/releases</url>
-    </repository>
-    <repository>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <id>sonatype-nexus-snapshots</id>
-      <name>Sonatype Nexus Snapshots</name>
-      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
     </repository>
   </repositories>
 
