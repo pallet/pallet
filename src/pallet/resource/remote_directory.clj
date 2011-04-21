@@ -2,6 +2,6 @@
   "Compatability namespace"
   (:require
    pallet.action.remote-directory
-   [pallet.utils :as utils]))
+   [pallet.common.deprecate :as deprecate]))
 
-(utils/forward-fns pallet.action.remote-directory remote-directory)
+(deprecate/forward-fns pallet.action.remote-directory remote-directory)

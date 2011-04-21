@@ -5,6 +5,7 @@
   (:require
    [pallet.action :as action]
    [pallet.action.remote-file :as remote-file]
+   [pallet.common.logging.log4j :as log4j]
    [pallet.core :as core]
    [pallet.phase :as phase]
    [pallet.stevedore :as stevedore]
@@ -13,7 +14,7 @@
    [pallet.utils :as utils]
    [clojure.contrib.io :as io]))
 
-(use-fixtures :once (test-utils/console-logging-threshold))
+(use-fixtures :once (log4j/logging-threshold-fixture))
 
 (deftest rsync-test
   (core/with-admin-user (assoc utils/*admin-user*

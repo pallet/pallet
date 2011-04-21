@@ -2,6 +2,7 @@
     "Compatability namespace"
   (:require
    pallet.config-file.format
-   [pallet.utils :as utils]))
+   [pallet.common.deprecate :as deprecate]))
 
-(utils/forward-fns pallet.config-file.format sectioned-properties name-values)
+(deprecate/forward-fns
+ pallet.config-file.format sectioned-properties name-values)

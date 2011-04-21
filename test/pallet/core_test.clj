@@ -5,6 +5,7 @@
    [pallet.action.exec-script :as exec-script]
    [pallet.argument :as argument]
    [pallet.build-actions :as build-actions]
+   [pallet.common.logging.log4j :as log4j]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
    [pallet.core :as core]
@@ -21,7 +22,7 @@
   (:use
    clojure.test))
 
-(use-fixtures :once (test-utils/console-logging-threshold))
+(use-fixtures :once (log4j/logging-threshold-fixture))
 
 ;; tests run with node-list, as no external dependencies
 

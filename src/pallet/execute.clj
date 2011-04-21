@@ -3,6 +3,7 @@
   (:require
    [pallet.action-plan :as action-plan]
    [pallet.action.file :as file]
+   [pallet.common.shell :as shell]
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
    [pallet.environment :as environment]
@@ -14,7 +15,7 @@
    [clojure.string :as string]
    [clojure.contrib.condition :as condition]
    [clojure.java.io :as io]
-   [clojure.contrib.shell :as shell]
+   [clojure.contrib.shell :as ccshell]
    [clojure.contrib.logging :as logging]))
 
 (def prolog
@@ -48,20 +49,6 @@
       (stevedore/script (~sudo-no-password)))))
 
 ;;; local script execution
-(defn system
-  "Launch a system process, return a map containing the exit code, standard
-  output and standard error of the process."
-  [cmd]
-  (let [result (apply shell/sh :return-map true (.split cmd " "))]
-    (when (pos? (result :exit))
-      (logging/error (str "Command failed: " cmd "\n" (result :err))))
-    (logging/info (result :out))
-    result))
-
-(defn bash [cmds]
-  (utils/with-temp-file [file cmds]
-    (system (str "/usr/bin/env bash " (.getPath file)))))
-
 (defn local-cmds
   "Run local cmds on a target."
   [#^String commands]
@@ -77,8 +64,8 @@
   (let [tmp (java.io.File/createTempFile "pallet" "script")]
     (try
       (io/copy (str prolog command) tmp)
-      (shell/sh "chmod" "+x" (.getPath tmp))
-      (let [result (shell/sh "bash" (.getPath tmp) :return-map true)]
+      (ccshell/sh "chmod" "+x" (.getPath tmp))
+      (let [result (ccshell/sh "bash" (.getPath tmp) :return-map true)]
         (when-not (zero? (:exit result))
           (logging/error
            (format "Command failed: %s\n%s" command (:err result))))

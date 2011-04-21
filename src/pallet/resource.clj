@@ -2,31 +2,31 @@
   "Namespace for backward compatibility"
   (:require
    [pallet.action :as action]
+   [pallet.common.deprecate :as deprecate]
    [pallet.phase :as phase]
-   [pallet.utils :as utils]
    [clojure.contrib.def :as ccdef]))
 
 (defmacro phase [& body]
   `(do
-     (utils/deprecated-macro
+     (deprecate/deprecated-macro
       ~&form
-      (utils/deprecate-rename 'pallet.resource/phase 'pallet.phase/phase-fn))
+      (deprecate/rename 'pallet.resource/phase 'pallet.phase/phase-fn))
      (phase/phase-fn ~@body)))
 
 (defmacro execute-pre-phase
   [& body]
   `(do
-     (utils/deprecated-macro
+     (deprecate/deprecated-macro
       ~&form
-      (utils/deprecate-rename
+      (deprecate/rename
        'pallet.resource/execute-pre-phase 'pallet.phase/schedule-in-pre-phase))
      (phase/schedule-in-pre-phase ~@body)))
 
 (defmacro execute-after-phase [& body]
   `(do
-     (utils/deprecated-macro
+     (deprecate/deprecated-macro
       ~&form
-      (utils/deprecate-rename
+      (deprecate/rename
        'pallet.resource/execute-after-phase
        'pallet.phase/schedule-in-post-phase))
      (phase/schedule-in-post-phase ~@body)))
@@ -36,9 +36,9 @@
         n (vary-meta n dissoc :use-arglist :copy-arglist)
         [[n* arguments & forms]] args]
     `(do
-       (utils/deprecated-macro
+       (deprecate/deprecated-macro
         ~&form
-        (utils/deprecate-rename
+        (deprecate/rename
          'pallet.resource/defresource 'pallet.action/def-bash-action))
        (action/def-bash-action
          ~n [~@arguments] ~@forms))))
@@ -48,9 +48,9 @@
         n (vary-meta n dissoc :use-arglist :copy-arglist)
         [[n* arguments & forms]] args]
     `(do
-       (utils/deprecated-macro
+       (deprecate/deprecated-macro
         ~&form
-        (utils/deprecate-rename
+        (deprecate/rename
          'pallet.resource/deflocal 'pallet.action/def-clj-action))
        (action/def-clj-action
          ~n [~@arguments] ~@forms))))
@@ -60,9 +60,9 @@
         n (vary-meta n dissoc :use-arglist :copy-arglist)
         [[n* arguments & forms]] args]
     `(do
-       (utils/deprecated-macro
+       (deprecate/deprecated-macro
         ~&form
-        (utils/deprecate-rename
+        (deprecate/rename
          'pallet.resource/defaggregate 'pallet.action/def-aggregated-action))
        (action/def-aggregated-action
          ~n [~@arguments] ~@forms))))
@@ -72,9 +72,9 @@
         n (vary-meta n dissoc :use-arglist :copy-arglist)
         [[n* arguments & forms]] args]
     `(do
-       (utils/deprecated-macro
+       (deprecate/deprecated-macro
         ~&form
-        (utils/deprecate-rename
+        (deprecate/rename
          'pallet.resource/defcollect 'pallet.action/def-collected-action))
        (action/def-collected-action
          ~n [~@arguments] ~@forms))))

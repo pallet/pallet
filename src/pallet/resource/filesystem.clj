@@ -2,8 +2,8 @@
   "Compatability namespace"
   (:require
    pallet.action.filesystem
-   [pallet.utils :as utils]))
+   [pallet.common.deprecate :as deprecate]))
 
-(utils/forward-fns
+(deprecate/forward-fns
  pallet.action.filesystem
  make-xfs-filesytem format-mount-option mount)

@@ -2,9 +2,9 @@
   (:use pallet.target)
   (:use clojure.test)
   (:require
-   [pallet.test-utils :as test-utils]))
+   [pallet.common.logging.log4j :as log4j]))
 
-(use-fixtures :once (test-utils/console-logging-threshold))
+(use-fixtures :once (log4j/logging-threshold-fixture))
 
 (deftest os-family-test
   (is (= :ubuntu (os-family {:os-family :ubuntu}))))

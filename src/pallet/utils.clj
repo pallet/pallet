@@ -63,26 +63,6 @@
             (.append sb (char c))
             (recur (.read r))))))))
 
-(defn slurp-resource
-  "Reads the resource named by name using the encoding enc into a string
-   and returns it."
-  ([name] (slurp-resource
-           name (.name (java.nio.charset.Charset/defaultCharset))))
-  ([#^String name #^String enc]
-     (let [stream (load-resource name)]
-       (when stream
-         (with-open [stream stream
-                     r (new java.io.BufferedReader
-                            (new java.io.InputStreamReader
-                                 stream enc))]
-           (let [sb (new StringBuilder)]
-             (loop [c (.read r)]
-               (if (neg? c)
-                 (str sb)
-                 (do
-                   (.append sb (char c))
-                   (recur (.read r)))))))))))
-
 (defn resource-properties
   "Given a resource `path`, load it as a java properties file.
    Returns nil if resource not found."
@@ -318,77 +298,9 @@
           (format "Unable to open jar file on classpath: %s" %))))
     (filter jar/jar-file? (classpath)))))
 
-(defmacro find-caller-from-stack
-  "Find the call site of a function. A macro so we don't create extra frames."
-  ([] `(find-caller-from-stack 4))
-  ([frame-depth]
-     `(let [frame# (nth (.. (Thread/currentThread) getStackTrace) ~frame-depth)]
-        [(.getFileName frame#) (.getLineNumber frame#)])))
-
-(defmacro deprecated-macro
-  "Generates a deprecated warning for a macro, allowing the source file and
-   line to be captured"
-  [form msg]
-  `(logging/log
-    :warn
-    (format
-     "DEPRECATED [%s:%s] %s"
-     ~(or (:file (meta form) *file*) "unknown") ~(:line (meta form)) ~msg)))
-
-(defn deprecated
-  "Generates a deprecated warning"
-  [msg]
-  (let [[file line] (find-caller-from-stack)]
-    (logging/log
-     :warn
-     (format "DEPRECATED [%s:%s] %s" (or file "unknown") line msg))))
-
-(defn deprecate-rename
-  "Generates a deprecated message for renaming a function"
-  [from to]
-  (format "%s is deprecated, use %s" (pr-str from) (pr-str to)))
-
 (defmacro forward-to-script-lib
+  "Forward a script to the new script lib"
   [& symbols]
   `(do
      ~@(for [sym symbols]
          (list `def sym (symbol "pallet.script.lib" (name sym))))))
-
-(defmacro forward-no-warn
-  [f-name to-ns]
-  `(def ~f-name ~(symbol (name to-ns) (name f-name))))
-
-
-(defmacro forward-fn-warn
-  [f-name ns]
-  (let [argv (gensym "argv")]
-    `(defmacro ~f-name [~'& ~argv]
-       `(do
-          (deprecated-macro
-           ~~'&form
-           (deprecate-rename
-            ~(list 'quote (symbol (name (ns-name *ns*)) (name '~f-name)))
-            ~'~(list 'quote (symbol (name (ns-name ns)) (name f-name)))))
-          ~~(list
-             `list*
-             (list 'quote (symbol (name ns) (name f-name)))
-             argv)))))
-(defmacro forward-fn-no-warn
-  [f-name ns]
-  `(forward-no-warn ~f-name ~ns))
-
-(defmacro forward-fn
-  [f-name ns]
-  (if (System/getProperty "pallet.warn-on-resource-use")
-    `(forward-fn-warn ~f-name ~ns)
-    `(forward-fn-no-warn ~f-name ~ns)))
-
-(defmacro forward-fns
-  "Forward syms to ns"
-  [ns & fns]
-  `(do ~@(for [f fns] `(forward-fn ~f ~ns))))
-
-(defmacro forward-vars
-  "Forward syms to ns"
-  [ns & syms]
-  `(do ~@(for [sym syms] `(forward-no-warn ~sym ~ns))))

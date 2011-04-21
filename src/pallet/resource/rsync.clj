@@ -2,8 +2,8 @@
   "Compatability namespace"
   (:require
    pallet.action.rsync
-   [pallet.utils :as utils]))
+   [pallet.common.deprecate :as deprecate]))
 
-(utils/forward-fns
+(deprecate/forward-fns
  pallet.action.rsync
  rsync rsync-directory)

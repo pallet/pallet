@@ -2,6 +2,7 @@
   "Compatibility namespace"
   (:require
    pallet.script.lib
+   [pallet.common.deprecate :as deprecate]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]))
 
@@ -19,6 +20,5 @@
   "Machine CPU architecture."
   {:deprecated "0.5.0"}
   []
-  (utils/deprecated
-   "pallet.resource.hostinfo/architecture is deprecated")
+  (deprecate/deprecated "pallet.resource.hostinfo/architecture is deprecated")
   (stevedore/script (~arch)))

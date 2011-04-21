@@ -2,6 +2,7 @@
   "Compatability namespace"
   (:require
    pallet.action.user
+   [pallet.common.deprecate :as deprecate]
    pallet.script.lib
    [pallet.utils :as utils]))
 
@@ -9,4 +10,4 @@
  user-exists? modify-user create-user remove-user lock-user unlock-user
  user-home current-user group-exists? modify-group create-group remove-group)
 
-(utils/forward-fns pallet.action.user user group)
+(deprecate/forward-fns pallet.action.user user group)

@@ -2,6 +2,7 @@
   "Compatability namespace"
   (:require
    [pallet.action.exec-script :as exec-script]
+   [pallet.common.deprecate :as deprecate]
    [pallet.utils :as utils]))
 
 (defmacro exec-script
@@ -9,9 +10,9 @@
   {:deprecated "0.5.0"}
   [session & script]
   `(do
-     (utils/deprecated-macro
+     (deprecate/deprecated-macro
       ~&form
-      (utils/deprecate-rename
+      (deprecate/rename
        'pallet.resource.exec-script/exec-script
        'pallet.action.exec-script/exec-script))
      (exec-script/exec-script ~session ~@script)))
@@ -22,9 +23,9 @@
   {:deprecated "0.5.0"}
   [session name & script]
   `(do
-     (utils/deprecated-macro
+     (deprecate/deprecated-macro
       ~&form
-      (utils/deprecate-rename
+      (deprecate/rename
        'pallet.resource.exec-script/exec-checked-script
        'pallet.action.exec-script/exec-checked-script))
      (exec-script/exec-checked-script ~session ~name ~@script)))

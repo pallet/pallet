@@ -2,11 +2,11 @@
   (:use pallet.resource)
   (:require
    [clojure.contrib.string :as string]
-   [pallet.test-utils :as test-utils])
+   [pallet.common.logging.log4j :as log4j])
   (:use
    clojure.test))
 
-(use-fixtures :once (test-utils/console-logging-threshold))
+(use-fixtures :once (log4j/logging-threshold-fixture))
 
 (defmacro is-phase
   [session phase]
@@ -28,7 +28,7 @@
            {:phase :fred}
            (is-phase :pallet.phase/pre-fred))))))
 
-(test-utils/with-console-logging-threshold :error
+(log4j/with-appender-threshold [:error]
   (defresource test-resource (f [session arg] (name arg)))
   (defaggregate test-resource (f [session arg] (string/join "" arg)))
   (defcollect test-resource (f [session arg] arg))

@@ -5,6 +5,7 @@
   (:require
    [pallet.action :as action]
    [pallet.build-actions :as build-actions]
+   [pallet.common.logging.log4j :as log4j]
    [pallet.compute :as compute]
    [pallet.core :as core]
    [pallet.execute :as execute]
@@ -22,7 +23,7 @@
 (use-fixtures
  :once
  test-utils/with-ubuntu-script-template
- (test-utils/console-logging-threshold))
+ (log4j/logging-threshold-fixture))
 
 (def remote-file* (action/action-fn remote-file-action))
 

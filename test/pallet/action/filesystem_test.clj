@@ -5,8 +5,7 @@
    [pallet.action.filesystem :as filesystem]
    [pallet.action.exec-script :as exec-script]
    [pallet.build-actions :as build-actions]
-   [pallet.stevedore :as stevedore]
-   [pallet.test-utils :as test-utils]))
+   [pallet.stevedore :as stevedore]))
 
 (deftest make-xfs-filesytem-test
   (is (= (first

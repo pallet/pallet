@@ -6,6 +6,7 @@
    pallet.action.package.epel
    pallet.action.package.jpackage
    pallet.action.package.rpmforge
+   [pallet.common.deprecate :as deprecate]
    pallet.script.lib
    [pallet.utils :as utils]))
 
@@ -14,21 +15,22 @@
  remove-package purge-package list-installed-packages debconf-set-selections
  package-manager-non-interactive)
 
-(utils/forward-fns
+(deprecate/forward-fns
  pallet.action.package
  package packages package-source package-manager add-scope
  minimal-packages format-source)
 
-(utils/forward-fns pallet.action.package.jpackage add-jpackage)
-(utils/forward-fns pallet.action.package.epel add-epel)
-(utils/forward-fns pallet.action.package.rpmforge add-rpmforge)
-(utils/forward-fns pallet.action.package.debian-backports add-debian-backports)
+(deprecate/forward-fns pallet.action.package.jpackage add-jpackage)
+(deprecate/forward-fns pallet.action.package.epel add-epel)
+(deprecate/forward-fns pallet.action.package.rpmforge add-rpmforge)
+(deprecate/forward-fns
+ pallet.action.package.debian-backports add-debian-backports)
 
 (defn add-centos55-to-amzn-linux
   {:deprecated "0.5.0"}
   [& args]
-  (utils/deprecated
-   (utils/deprecate-rename
+  (deprecate/deprecated
+   (deprecate/rename
     'pallet.action.package/add-centos55-to-amzn-linux
     'pallet.action.package.centos/add-repository))
   (apply pallet.action.package.centos/add-repository args))

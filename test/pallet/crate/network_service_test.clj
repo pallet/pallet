@@ -2,8 +2,7 @@
   (:use clojure.test)
   (:require
    [pallet.build-actions :as build-actions]
-   [pallet.crate.network-service :as network-service]
-   [pallet.test-utils :as test-utils]))
+   [pallet.crate.network-service :as network-service]))
 
 (deftest wait-for-port-listen-test
   (is

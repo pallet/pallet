@@ -19,6 +19,7 @@
    The merging of values between scopes is key specific, and is determined by
    `merge-key-algorithm`."
   (:require
+   [pallet.common.deprecate :as deprecate]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.logging :as logging]
@@ -172,8 +173,8 @@
                  (utils/dissoc-keys
                   environment (conj node-keys :groups :tags)))]
     (when (:tags environment)
-      (logging/warn
-       (str "DEPRECATED: use of :tags key in the environment is deprecated. "
+      (deprecate/warn
+       (str "Use of :tags key in the environment is deprecated. "
             "Please change to use :groups.")))
     (if (:server session)
       (let [tag (-> session :server :tag)]

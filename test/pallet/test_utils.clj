@@ -1,12 +1,12 @@
 (ns pallet.test-utils
   (:require
    [pallet.core :as core]
+   [pallet.common.deprecate :as deprecate]
    [pallet.execute :as execute]
    [pallet.target :as target]
    [pallet.script :as script]
    [pallet.parameter :as parameter]
    [pallet.compute.node-list :as node-list]
-   [pallet.utils :as utils]
    [clojure.java.io :as io]
    clojure.contrib.logging)
   (:use clojure.test))
@@ -53,43 +53,6 @@ list, Alan Dipert and MeikelBrandmeyer."
       (f)
       (finally (System/setOut out#)))))
 
-(def log-priorities
-  {:warn org.apache.log4j.Priority/WARN
-   :debug org.apache.log4j.Priority/DEBUG
-   :fatal org.apache.log4j.Priority/FATAL
-   :info org.apache.log4j.Priority/INFO
-   :error org.apache.log4j.Priority/ERROR})
-
-(defn console-logging-threshold
-  "A fixture for no output from tests"
-  ([] (console-logging-threshold :error))
-  ([level]
-     (fn [f]
-       (let [console (.. (org.apache.log4j.Logger/getRootLogger)
-                         (getAppender "console"))
-             threshold (.getThreshold console)]
-         (try
-           (.setThreshold
-            console (level log-priorities org.apache.log4j.Priority/WARN))
-           (f)
-           (finally
-            (.setThreshold console threshold)))))))
-
-(defmacro with-console-logging-threshold
-  "A scope for no output from tests"
-  [level & body]
-  `((console-logging-threshold ~level) (fn [] ~@body)))
-
-(defmacro bash-out
-  "Check output of bash. Macro so that errors appear on the correct line."
-  ([str] `(bash-out ~str 0 ""))
-  ([str exit err-msg]
-     `(let [r# (suppress-logging
-                (execute/bash ~str))]
-       (is (= ~err-msg (:err r#)))
-       (is (= ~exit (:exit r#)))
-       (:out r#))))
-
 (defn test-username
   "Function to get test username. This is a function to avoid issues with AOT."
   [] (or (. System getProperty "ssh.username")
@@ -122,9 +85,9 @@ list, Alan Dipert and MeikelBrandmeyer."
   [& args]
   `(do
      (require 'pallet.build-actions)
-     (utils/deprecated-macro
+     (deprecate/deprecated-macro
       ~&form
-      (utils/deprecate-rename
+      (deprecate/rename
        'pallet.test-utils/build-resources
        'pallet.build-actions/build-actions))
      ((resolve 'pallet.build-actions/build-actions) ~@args)))

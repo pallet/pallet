@@ -9,6 +9,7 @@
    [pallet.action.package :as package]
    [pallet.action.remote-file :as remote-file]
    [pallet.build-actions :as build-actions]
+   [pallet.common.logging.log4j :as log4j]
    [pallet.core :as core]
    [pallet.execute :as execute]
    [pallet.script :as script]
@@ -19,7 +20,7 @@
    [clojure.contrib.io :as io]))
 
 (use-fixtures :each test-utils/with-ubuntu-script-template)
-(use-fixtures :once (test-utils/console-logging-threshold))
+(use-fixtures :once (log4j/logging-threshold-fixture))
 
 (def remote-file* (action/action-fn remote-file/remote-file-action))
 (def sed* (action/action-fn file/sed))

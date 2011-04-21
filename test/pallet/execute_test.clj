@@ -5,31 +5,20 @@
         clojure.contrib.logging)
   (:require
    [pallet.action-plan :as action-plan]
+   [pallet.common.logging.log4j :as log4j]
    [pallet.compute.jvm :as jvm]
    [pallet.core :as core]
    [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
    [pallet.script :as script]))
 
-(use-fixtures :once (console-logging-threshold))
+(use-fixtures :once (log4j/logging-threshold-fixture))
 
 (use-fixtures
  :each
  (fn bind-default-agent [f]
    (binding [default-agent-atom (atom nil)]
      (f))))
-
-(deftest system-test
-  (cond
-   (.canRead (java.io.File. "/usr/bin/true")) (is (= {:exit 0 :out "" :err ""}
-                                                     (system "/usr/bin/true")))
-   (.canRead (java.io.File. "/bin/true")) (is (= {:exit 0 :out "" :err ""}
-                                                 (system "/bin/true")))
-   :else (warn "Skipping system-test")))
-
-(deftest bash-test
-  (is (= {:exit 0 :out "fred\n" :err ""}
-         (bash "echo fred"))))
 
 (deftest sudo-cmd-for-test
   (script/with-template [:ubuntu]

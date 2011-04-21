@@ -5,6 +5,7 @@
    [pallet.action.exec-script :as exec-script]
    [pallet.action.file :as file]
    [pallet.build-actions :as build-actions]
+   [pallet.common.logging.log4j :as log4j]
    [pallet.compute :as compute]
    [pallet.compute.jclouds :as jclouds]
    [pallet.compute.jclouds-ssh-test :as ssh-test]
@@ -34,7 +35,7 @@
    :extensions
    [(ssh-test/ssh-test-client ssh-test/no-op-ssh-client)]))
 
-(use-fixtures :once (test-utils/console-logging-threshold))
+(use-fixtures :once (log4j/logging-threshold-fixture))
 
 (deftest with-admin-user-test
   (let [x (rand)]

@@ -2,8 +2,7 @@
   (:use pallet.action.exec-script)
   (:use
    clojure.test
-   pallet.build-actions
-   pallet.test-utils)
+   pallet.build-actions)
   (:require
    [pallet.stevedore :as stevedore]
    [pallet.script.lib :as lib]))

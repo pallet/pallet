@@ -2,19 +2,20 @@
   "Compatability namespace"
   (:require
    pallet.action.service
+   [pallet.common.deprecate :as deprecate]
    pallet.script.lib
    [pallet.utils :as utils]))
 
 (utils/forward-to-script-lib configure-service)
 
-(utils/forward-fns pallet.action.service service init-script)
+(deprecate/forward-fns pallet.action.service service init-script)
 
 (defmacro with-restart
   [session service-name & body]
   `(do
-     (utils/deprecated-macro
+     (deprecate/deprecated-macro
       ~&form
-      (utils/deprecate-rename
+      (deprecate/rename
        'pallet.resource.service/with-restart
        'pallet.action.service/with-restart))
      (pallet.action.service/with-restart ~session ~service-name ~@body)))

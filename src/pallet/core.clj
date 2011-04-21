@@ -27,6 +27,8 @@
    [pallet.action :as action]
    [pallet.action-plan :as action-plan]
    [pallet.blobstore :as blobstore]
+   [pallet.common.deprecate :as deprecate]
+   [pallet.common.resource :as resource]
    [pallet.compute :as compute]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
@@ -49,7 +51,7 @@
   []
   (or
    (System/getProperty "pallet.version")
-   (if-let [version (utils/slurp-resource "pallet-version")]
+   (if-let [version (resource/slurp "pallet-version")]
      (string/trim version))))
 
 ;; Set the agent string for http requests.
@@ -193,7 +195,7 @@
   "Create a node definition.  See defnode."
   {:deprecated "0.5.0"}
   [name image & {:as phase-map}]
-  (utils/deprecated
+  (deprecate/deprecated
    (str
     "pallet.core/make-node is deprecated. "
     "See group-spec, server-spec and node-spec in pallet.core."))
@@ -237,7 +239,7 @@
   [group-name & options]
   (let [[group-name options] (name-with-attributes group-name options)]
     `(do
-       (utils/deprecated-macro
+       (deprecate/deprecated-macro
         ~&form
         (str
          "pallet.core/defnode is deprecated. See group-spec, server-spec and "
