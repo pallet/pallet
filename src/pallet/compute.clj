@@ -215,8 +215,8 @@
    (:packager target)
    (let [os-family (:os-family target)]
      (cond
-      (#{:ubuntu :debian :jeos :fedora} os-family) :aptitude
-      (#{:centos :rhel :amzn-linux} os-family) :yum
+      (#{:ubuntu :debian :jeos} os-family) :aptitude
+      (#{:centos :rhel :amzn-linux :fedora} os-family) :yum
       (#{:arch} os-family) :pacman
       (#{:suse} os-family) :zypper
       (#{:gentoo} os-family) :portage
