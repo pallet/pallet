@@ -221,7 +221,7 @@
        :message "Could not determine IP address of new node"))
     (Thread/sleep 4000)
     (logging/trace (format "Bootstrapping %s" (manager/get-ip machine)))
-    (script/with-template
+    (script/with-script-context
       (action-plan/script-template-for-server {:image image})
       (execute/remote-sudo
        (manager/get-ip machine)
