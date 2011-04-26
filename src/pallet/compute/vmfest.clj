@@ -76,7 +76,7 @@
   (is-64bit?
    [node]
    (let [os-type-id (session/with-no-session node [m] (.getOSTypeId m))]
-     (re-find #"64 bit" os-type-id)))
+     (boolean (re-find #"_64" os-type-id))))
   (group-name
    [node]
    (manager/get-extra-data node group-name-tag))
@@ -88,15 +88,17 @@
    [node]
    (let [os-name (session/with-no-session node [m] (.getOSTypeId m))]
      (or
-      (keyword (manager/get-extra-data node os-family-tag))
+      (when-let [os-family (manager/get-extra-data node os-family-tag)]
+        (when-not (string/blank? os-family)
+          (keyword os-family)))
       (os-family-from-name os-name os-name)
       :centos) ;; hack!
      ))
   (os-version
    [node]
    (or
-      (manager/get-extra-data node os-version-tag)
-      "5.3"))
+    (manager/get-extra-data node os-version-tag)
+    "5.3"))
   (running?
    [node]
    (and
