@@ -177,7 +177,7 @@
        (str "Use of :tags key in the environment is deprecated. "
             "Please change to use :groups.")))
     (if (:server session)
-      (let [tag (-> session :server :tag)]
+      (let [tag (-> session :server :group-name)]
         (assoc session
           :server (merge-environments
                    (:server session)

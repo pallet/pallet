@@ -65,15 +65,15 @@
            (environment/session-with-environment
              {:user {:username :a}} {:user {:username :b}}))))
   (testing "node-type merge"
-    (is (= {:user {:username :b} :server {:tag :t :image :i}}
+    (is (= {:user {:username :b} :server {:group-name :t :image :i}}
            (environment/session-with-environment
-             {:user {:username :a} :server {:tag :t}}
+             {:user {:username :a} :server {:group-name :t}}
              {:user {:username :b} :groups {:t {:image :i}}}))))
   (testing "phases merge"
     (is (= {:user {:username :b}
-            :server {:tag :t :image :i :phases {:bootstrap identity}}}
+            :server {:group-name :t :image :i :phases {:bootstrap identity}}}
            (environment/session-with-environment
-             {:user {:username :a} :server {:tag :t}}
+             {:user {:username :a} :server {:group-name :t}}
              {:user {:username :b}
               :groups {:t {:image :i}}
               :phases {:bootstrap identity}})))))
