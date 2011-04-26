@@ -79,7 +79,10 @@
      (boolean (re-find #"_64" os-type-id))))
   (group-name
    [node]
-   (manager/get-extra-data node group-name-tag))
+   (let [group-name (manager/get-extra-data node group-name-tag)]
+     (if (string/blank? group-name)
+       (manager/get-extra-data node group-name-tag)
+       group-name)))
   (hostname
    [node]
    (session/with-no-session node [m]
