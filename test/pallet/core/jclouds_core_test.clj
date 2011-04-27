@@ -302,8 +302,9 @@
 (deftest create-nodes-test
   (let [a (jclouds/make-node "a")
         nodes (#'core/create-nodes
-               (group-spec :a :servers [{:node a}]) 1
-               {:compute (jclouds-test-utils/compute)})]
+               1
+               {:compute (jclouds-test-utils/compute)
+                :group (group-spec :a :servers [{:node a}])})]
     (is (seq nodes))
     (is (= 2 (count nodes)))
     (is (= "a" (compute/tag (first nodes))))
@@ -313,15 +314,17 @@
   (testing "remove all"
     (let [a (jclouds/make-node "a")
           nodes (#'core/destroy-nodes
-                 (test-utils/group :a :servers [{:node a}]) 1
-                 {:compute (jclouds-test-utils/compute)})]
+                 1
+                 {:compute (jclouds-test-utils/compute)
+                  :group (test-utils/group :a :servers [{:node a}])})]
       (is (nil? (seq nodes)))))
   (testing "remove some"
     (let [a (jclouds/make-node "a")
           b (jclouds/make-node "a")
           nodes (#'core/destroy-nodes
-                 (test-utils/group :a :servers [{:node a} {:node b}]) 1
-                 {:compute (jclouds-test-utils/compute)})]
+                 1
+                 {:compute (jclouds-test-utils/compute)
+                  :group (test-utils/group :a :servers [{:node a} {:node b}])})]
       (is (seq nodes))
       (is (= 1 (count nodes)))
       (is (= "a" (compute/tag (first nodes)))))))
@@ -349,6 +352,27 @@
                      {:converge-fn #'pallet.core/serial-adjust-node-counts
                       :lift-fn sequential-lift}}})))
   (logging/info "converge*-test end"))
+
+(deftest converge-with-environment-test
+  (let [a (make-node :a {})]
+    (mock/expects [(pallet.core/create-nodes
+                    [count session]
+                    (do
+                      (let [group (:group session)]
+                        (is (= (:group-name group) :a))
+                        (is (= (-> group :image :os-family) :centos)))
+                      [(jclouds/make-node "a")]))]
+                  (converge*
+                   {:node-set [(assoc a :count 1)]
+                    :phase-list [:configure]
+                    :environment
+                    {:compute (jclouds-test-utils/compute)
+                     :middleware *middleware*
+                     :algorithms
+                     {:converge-fn #'pallet.core/serial-adjust-node-counts
+                      :lift-fn sequential-lift}
+                     :groups {:a {:image {:os-family :centos}}}
+                     :user (utils/make-user "fred")}}))))
 
 (deftest converge-test
   (let [hi (action/bash-action [session] "Hi")

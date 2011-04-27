@@ -346,17 +346,18 @@
 expects a map with :authorize-public-key and :bootstrap-script keys.  The
 bootstrap-script value is expected tobe a function that produces a script that
 is run with root privileges immediatly after first boot."
-  [group count session]
-  {:pre [(map? group)]}
+  [count session]
+  {:pre [(map? (:group session))]}
   (logging/info
-   (str "Starting " count " nodes for " (:group-name group)
-        " os-family " (-> group :image :os-family)))
+   (str "Starting " count " nodes for " (-> session :group :group-name)
+        " os-family " (-> session :group :image :os-family)))
   (let [compute (:compute session)
         session (update-in session [:group]
                            #(compute/ensure-os-family compute %))
         session (assoc-in session [:group :packager]
                           (compute/packager (-> session :group :image)))
-        init-script (bootstrap-script session)]
+        init-script (bootstrap-script session)
+        group (:group session)]
     (logging/trace
      (format "Bootstrap script:\n%s" init-script))
     (concat
@@ -366,10 +367,12 @@ is run with root privileges immediatly after first boot."
 (defn- destroy-nodes
   "Destroys the specified number of nodes with the given group.  Nodes are
    selected at random."
-  [group destroy-count session]
+  [destroy-count session]
   (logging/info
-   (str "destroying " destroy-count " nodes for " (:group-name group)))
+   (str "destroying " destroy-count " nodes for "
+        (-> session :group :group-name)))
   (let [compute (:compute session)
+        group (:group session)
         servers (:servers group)]
     (if (= destroy-count (count servers))
       (do
@@ -399,8 +402,8 @@ is run with root privileges immediatly after first boot."
                    (:environment session) environment))]
     (logging/info (format "adjust-node-count %s %d" group-name delta))
     (cond
-     (pos? delta) (create-nodes group delta session)
-     (neg? delta) (destroy-nodes group (- delta) session)
+     (pos? delta) (create-nodes delta session)
+     (neg? delta) (destroy-nodes (- delta) session)
      :else (map :node servers))))
 
 (defn serial-adjust-node-counts

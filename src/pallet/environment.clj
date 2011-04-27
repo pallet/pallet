@@ -168,20 +168,30 @@
 
    The node-specific environment keys are :images and :phases."
   [session environment]
+  (when (:tags environment)
+    (deprecate/warn
+     (str "Use of :tags key in the environment is deprecated. "
+          "Please change to use :groups.")))
   (let [session (merge
                  session
                  (utils/dissoc-keys
-                  environment (conj node-keys :groups :tags)))]
-    (when (:tags environment)
-      (deprecate/warn
-       (str "Use of :tags key in the environment is deprecated. "
-            "Please change to use :groups.")))
-    (if (:server session)
-      (let [tag (-> session :server :group-name)]
-        (assoc session
-          :server (merge-environments
-                   (:server session)
-                   (select-keys environment node-keys)
-                   (-?> environment :tags tag) ; :tags is deprecated
-                   (-?> environment :groups tag))))
-      session)))
+                  environment (conj node-keys :groups :tags)))
+        session (if (:server session)
+                  (let [tag (-> session :server :group-name)]
+                    (assoc session
+                      :server (merge-environments
+                               (:server session)
+                               (select-keys environment node-keys)
+                               (-?> environment :tags tag) ; deprecated
+                               (-?> environment :groups tag))))
+                  session)
+        session (if (:group session)
+                  (let [tag (-> session :group :group-name)]
+                    (assoc session
+                      :group (merge-environments
+                              (:group session)
+                              (select-keys environment node-keys)
+                              (-?> environment :tags tag) ; deprecated
+                              (-?> environment :groups tag))))
+                  session)]
+    session))
