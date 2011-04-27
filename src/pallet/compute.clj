@@ -6,7 +6,9 @@
    [pallet.environment :as environment]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
-   [clojure.string :as string]))
+   [clojure.string :as string])
+  (:use
+   [clojure.contrib.core :only [-?>]]))
 
 
 ;;; Meta
@@ -51,8 +53,11 @@
                                 (read-string node-list)
                                 node-list))
                  :endpoint (:endpoint credentials)
-                 :environment (environment/eval-environment
-                               (:environment credentials))}]
+                 :environment
+                 (environment/merge-environments
+                  (environment/eval-environment
+                   (:environment credentials))
+                  (-?> 'cake/*project* resolve var-get :environment))}]
     (when-let [provider (:provider credentials)]
       (apply
        compute-service
@@ -102,7 +107,15 @@
     (when provider
       (apply compute-service
        provider :identity identity :credential credential
-       (apply concat (dissoc options :provider :identity :credential))))))
+       (apply
+        concat
+        (->
+          options
+          (dissoc :provider :identity :credential)
+          (update-in
+           [:environment]
+           environment/merge-environments
+           (-?> 'cake/*project* resolve var-get :environment))))))))
 
 (defn compute-service-from-config-file
   "Compute service from ~/.pallet/config.clj. Profiles is a sequence of service
