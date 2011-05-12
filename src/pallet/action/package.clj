@@ -16,8 +16,7 @@
    [pallet.stevedore :as stevedore]
    [pallet.script :as script]
    [pallet.utils :as utils]
-   [clojure.contrib.string :as string]
-   [clojure.contrib.logging :as logging])
+   [clojure.string :as string])
   (:use
    pallet.thread-expr))
 
@@ -301,9 +300,14 @@
         "--passive-ftp --no-verbose -c -O %%o %%u")
    proxy-url proxy-url))
 
+(def default-installonlypkgs
+  (str "kernel kernel-smp kernel-bigmem kernel-enterprise kernel-debug "
+       "kernel-unsupported"))
+
 (defmethod package-manager-option [:yum :installonlypkgs]
   [session packager installonly packages]
-  (format "installonlypkgs=%s" (string/join " " packages)))
+  (format
+   "installonlypkgs=%s %s" (string/join " " packages) default-installonlypkgs))
 
 (defmethod configure-package-manager :aptitude
   [session packager {:keys [priority prox] :or {priority 50} :as options}]
