@@ -460,8 +460,8 @@
   (yum makecache -q ~(string/join
                       " "
                       (concat
-                       (map #(str "--enablerepo=" %) enable)
-                       (map #(str "--disablerepo=" %) disable)))))
+                       (map #(str "--disablerepo=" %) disable)
+                       (map #(str "--enablerepo=" %) enable)))))
 
 (script/defimpl upgrade-all-packages [#{:yum}] [& options]
   (yum update -y -q ~(stevedore/option-args options)))

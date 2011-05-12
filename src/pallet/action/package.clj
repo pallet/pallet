@@ -85,8 +85,8 @@
         (stevedore/script
          (yum
           ~(name action) -q -y
-          ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
           ~(string/join " " (map #(str "--disablerepo=" %) (:disable opts)))
+          ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
           ~(string/join " " (map #(str "--exclude=" %) (:exclude opts)))
           ~(string/join
             " "
