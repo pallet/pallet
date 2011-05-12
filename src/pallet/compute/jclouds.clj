@@ -321,7 +321,7 @@
      (let [template (jclouds/build-template compute (:image group))
            family (-> (.. template getImage getOperatingSystem getFamily)
                       str keyword)]
-       (logging/info (format "Default OS is %s" (pr-str family)))
+       (logging/info (format "OS is %s" (pr-str family)))
        (when (or (nil? family) (= family OsFamily/UNRECOGNIZED))
          (condition/raise
           :type :unable-to-determine-os-type
