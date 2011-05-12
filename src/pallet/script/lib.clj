@@ -342,7 +342,7 @@
 (script/defimpl user-home :default [username]
   @("getent" passwd ~username | "cut" "-d:" "-f6"))
 
-(script/defimpl user-home [:os-x] [username]
+(script/defimpl user-home [#{:darwin :os-x}] [username]
   @(pipe
     ("dscl" localhost -read ~(str "/Local/Default/Users/" username)
           "dsAttrTypeNative:home")
