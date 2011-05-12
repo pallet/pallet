@@ -34,7 +34,11 @@
    (package/package "jpackage-utils")))
 
 (def jpackage-mirror-fmt
-  "http://www.jpackage.org/mirrorlist.php?dist=%s&type=free&release=%s")
+  "http://www.jpackage.org/mirrorlist.php?dist=%s&type=%s&release=%s")
+
+(defn mirrorlist
+  [dist type release]
+  (format jpackage-mirror-fmt dist type release))
 
 (defn add-jpackage
   "Add the jpackage repository.  component should be one of:
@@ -48,45 +52,72 @@
                    releasever "$releasever"
                    version "5.0"
                    enabled 0}}]
-  (let [jpackage-repos ["jpackage-generic"
-                        "jpackage-generic-updates"
-                        (format "jpackage-%s" component)
-                        (format "jpackage-%s-updates" component)]]
+  (let [no-updates (and                 ; missing updates for fedora 13, 14
+                    (= version "5.0")
+                    (= :fedora (session/os-family session))
+                    (try
+                      (< 12 (Integer/decode
+                             (str (session/os-version session))))
+                      (catch NumberFormatException _)))
+        jpackage-repos (vec
+                        (filter
+                         identity
+                         ["jpackage-generic"
+                          "jpackage-generic-updates"
+                          "jpackage-generic-non-free"
+                          "jpackage-generic-updates-non-free"
+                          (format "jpackage-%s" component)
+                          (when-not no-updates
+                            (format "jpackage-%s-updates" component))]))]
     (->
      session
      (package/package-source
       "jpackage-generic"
-      :yum {:mirrorlist (format jpackage-mirror-fmt "generic" version)
+      :yum {:mirrorlist (mirrorlist "generic" "free" version)
+            :failovermethod "priority"
+            ;;gpgkey "http://www.jpackage.org/jpackage.asc"
+            :enabled enabled})
+     (package/package-source
+      "jpackage-generic-non-free"
+      :yum {:mirrorlist (mirrorlist "generic" "non-free" version)
             :failovermethod "priority"
             ;;gpgkey "http://www.jpackage.org/jpackage.asc"
             :enabled enabled})
      (package/package-source
       (format "jpackage-%s" component)
-      :yum {:mirrorlist (format
-                         jpackage-mirror-fmt
-                         (str component "-" releasever) version)
+      :yum {:mirrorlist (mirrorlist
+                         (str component "-" releasever) "free" version)
             :failovermethod "priority"
             ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
             :enabled enabled})
      (package/package-source
       "jpackage-generic-updates"
-      :yum {:mirrorlist (format
-                         jpackage-mirror-fmt "generic" (str version "-updates"))
+      :yum {:mirrorlist (mirrorlist "generic" "free" (str version "-updates"))
             :failovermethod "priority"
             ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
             :enabled enabled})
      (package/package-source
-      (format "jpackage-%s-updates" component)
-      :yum {:mirrorlist (format
-                         jpackage-mirror-fmt
-                         (str component "-" releasever)
-                         (str version "-updates"))
+      "jpackage-generic-updates-non-free"
+      :yum {:mirrorlist (mirrorlist
+                         "generic" "non-free" (str version "-updates"))
             :failovermethod "priority"
             ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
             :enabled enabled})
+     (thread-expr/when-not->
+      no-updates
+      (package/package-source
+       (format "jpackage-%s-updates" component)
+       :yum {:mirrorlist (mirrorlist
+                          (str component "-" releasever)
+                          "free"
+                          (str version "-updates"))
+             :failovermethod "priority"
+             ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+             :enabled enabled}))
      (parameter/assoc-for-target [:jpackage-repos] jpackage-repos))))
 
 (defn package-manager-update-jpackage
+  "Update the package lists for the jpackage repositories"
   [request]
   (package/package-manager
    request :update

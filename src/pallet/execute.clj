@@ -36,7 +36,9 @@
 (script/defscript sudo-no-password [])
 (script/defimpl sudo-no-password :default []
   ("/usr/bin/sudo" -n))
-(script/defimpl sudo-no-password [#{:centos-5.3 :os-x :darwin :debian}] []
+(script/defimpl sudo-no-password
+  [#{:centos-5.3 :os-x :darwin :debian :fedora}]
+  []
   ("/usr/bin/sudo"))
 
 (defn sudo-cmd-for
@@ -45,8 +47,8 @@
   (if (or (= (:username user) "root") (:no-sudo user))
     ""
     (if-let [pw (:sudo-password user)]
-      (str "echo \"" (or (:password user) pw) "\" | /usr/bin/sudo -S")
-      (stevedore/script (~sudo-no-password)))))
+      (str "echo \"" (or (:password user) pw) "\" | /usr/bin/sudo -S ")
+      (str (stevedore/script (~sudo-no-password)) " "))))
 
 ;;; local script execution
 (defn local-cmds
@@ -185,19 +187,23 @@
                            :put (java.io.ByteArrayInputStream.
                                  (.getBytes (str prolog command))) tmpfile
                            :return-map true)]
-    (logging/info (format "Transfering commands %s" response)))
+    (logging/info
+     (format "Transfering commands to %s : %s" tmpfile response)))
   (let [chmod-result (ssh/ssh
                       ssh-session (str "chmod 755 " tmpfile) :return-map true)]
     (if (pos? (chmod-result :exit))
       (logging/error (str "Couldn't chmod script : "  (chmod-result :err)))))
-  (let [[shell stream] (ssh/ssh
+  (let [cmd (str
+             (sudo-cmd-for user)
+             (stevedore/script (~lib/user-home ~(:username user))) "/" tmpfile)
+        _ (logging/info (format "Running %s" cmd))
+        [shell stream] (ssh/ssh
                         ssh-session
                         ;; using :in forces a shell ssh-session, rather than
                         ;; exec; some services check for a shell ssh-session
                         ;; before detaching (couchdb being one prime
                         ;; example)
-                        :in (str (sudo-cmd-for user)
-                                 " ~" (:username user) "/" tmpfile)
+                        :in cmd
                         :out :stream
                         :return-map true
                         :pty true)

@@ -135,7 +135,7 @@
     ~(stevedore/map-to-arg-string {:quiet quiet :check check})
     @(basename ~file))
    (cd -)))
-(script/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel}]
+(script/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel :fedora}]
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
   (chain-and
    (cd @(dirname ~file))
@@ -319,7 +319,8 @@
 (script/defimpl create-user :default [username options]
   ("/usr/sbin/useradd" ~(stevedore/map-to-arg-string options) ~username))
 
-(script/defimpl create-user [#{:rhel :centos :amzn-linux}] [username options]
+(script/defimpl create-user [#{:rhel :centos :amzn-linux :fedora}]
+  [username options]
   ("/usr/sbin/useradd"
    ~(-> options
         (assoc :r (:system options))
@@ -357,7 +358,7 @@
 (script/defimpl create-group :default [groupname options]
   ("/usr/sbin/groupadd" ~(stevedore/map-to-arg-string options) ~groupname))
 
-(script/defimpl create-group [#{:rhel :centos :amzn-linux}]
+(script/defimpl create-group [#{:rhel :centos :amzn-linux :fedora}]
   [groupname options]
   ("/usr/sbin/groupadd"
    ~(-> options

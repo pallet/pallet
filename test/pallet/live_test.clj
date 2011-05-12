@@ -34,7 +34,9 @@
    {:os-family :centos :os-version-matches "5.3" :os-64-bit false
     :prefix "co53"}
    {:os-family :arch :os-version-matches "2010.05" :os-64-bit true
-    :prefix "arch"}])
+    :prefix "arch"}
+   {:os-family :fedora :os-version-matches "14" :os-64-bit true
+    :prefix "f14"}])
 
 (def
   ^{:doc "Selectable image lists"}
@@ -53,7 +55,9 @@
    :centos-5-5 [{:os-family :centos :os-version-matches "5.5"
                  :os-64-bit true}]
    :arch-2010-05 [{:os-family :arch :os-version-matches "2010.05"
-                   :os-64-bit true}]})
+                   :os-64-bit true}]
+   :fedora-14 [{:os-family :fedora :os-version-matches "14"
+                :os-64-bit true}]})
 
 (defn- read-property
   "Read a system property as a clojure value."
