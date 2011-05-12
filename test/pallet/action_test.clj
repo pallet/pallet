@@ -2,7 +2,8 @@
   (:require
    [pallet.action :as action]
    [pallet.action-plan :as action-plan]
-   [pallet.action-plan-test :as action-plan-test])
+   [pallet.action-plan-test :as action-plan-test]
+   [clojure.string :as string])
   (:use
    clojure.test))
 
@@ -14,6 +15,7 @@
     (is (= {:action-plan
             {:fred
              {:id [[{:f (action/action-fn f)
+                     :meta (meta (action/action-fn f))
                      :args []
                      :location :target
                      :action-type :script/bash
@@ -33,6 +35,7 @@
     (is (= {:action-plan
             {:fred
              {:id [[{:f (action/action-fn f)
+                     :meta (meta (action/action-fn f))
                      :args ["hello"]
                      :location :target
                      :action-type :script/bash
@@ -58,6 +61,7 @@
   (is (= {:action-plan
           {:fred
            {:id [[{:f (action/action-fn test-bash-action)
+                   :meta (meta (action/action-fn test-bash-action))
                    :args ["hello"]
                    :location :target
                    :action-type :script/bash
@@ -77,6 +81,7 @@
     (is (= {:action-plan
             {:fred
              {:id [[{:f (action/action-fn f)
+                     :meta (meta (action/action-fn f))
                      :args [1]
                      :location :origin
                      :action-type :fn/clojure
@@ -95,11 +100,13 @@
               {:action-plan
                {:fred
                 {:id [[{:f (action/action-fn f)
+                        :meta (meta (action/action-fn f))
                         :args [2]
                         :location :origin
                         :action-type :fn/clojure
                         :execution :in-sequence}
                        {:f (action/action-fn f)
+                        :meta (meta (action/action-fn f))
                         :args [1]
                         :location :origin
                         :action-type :fn/clojure
@@ -125,6 +132,7 @@
       (is (= {:action-plan
               {:fred
                {:id [[{:f (action/action-fn f)
+                       :meta (meta (action/action-fn f))
                        :args []
                        :location :origin
                        :action-type :fn/clojure
@@ -141,6 +149,7 @@
       (is (= {:action-plan
               {:fred
                {:id [[{:f (action/action-fn f)
+                       :meta (meta (action/action-fn f))
                        :args []
                        :location :origin
                        :action-type :fn/clojure
@@ -162,11 +171,13 @@
               {:action-plan
                {:fred
                 {:id [[{:f (action/action-fn f)
+                        :meta (meta (action/action-fn f))
                         :args [2]
                         :location :target
                         :action-type :script/bash
                         :execution :aggregated}
                        {:f (action/action-fn f)
+                        :meta (meta (action/action-fn f))
                         :args [1]
                         :location :target
                         :action-type :script/bash
@@ -189,7 +200,7 @@
   [session arg]
   {:arglists '([session arg1])
    :some-meta :a}
-  arg)
+  (string/join (map first arg)))
 
 (deftest def-aggregated-action-test
   (is (= '([session arg1]) (:arglists (meta #'test-aggregated-action))))
@@ -197,11 +208,13 @@
   (is (= "Some doc" (:doc (meta #'test-aggregated-action))))
   (is (= :a (:some-meta (meta test-aggregated-action))))
   (is (fn? (action/action-fn test-aggregated-action)))
-  (is (= "hello" ((action/action-fn test-aggregated-action) {:a 1} "hello")))
+  (is (= "hello"
+         ((action/action-fn test-aggregated-action) {:a 1} [["hello"]])))
   (is (= :a (:some-meta (meta (action/action-fn test-aggregated-action)))))
   (is (= {:action-plan
           {:fred
            {:id [[{:f (action/action-fn test-aggregated-action)
+                   :meta (meta (action/action-fn test-aggregated-action))
                    :args ["hello"]
                    :location :target
                    :action-type :script/bash
@@ -212,3 +225,30 @@
          (test-aggregated-action
           {:phase :fred :target-id :id :server {:node-id :id}}
           "hello"))))
+
+(defn echo
+  "Echo the result of an action. Do not execute."
+  [session f]
+  [(:value (f session)) session])
+
+(defn executor [m]
+  (fn [session f action-type location]
+    (let [exec-fn (get-in m [action-type location])]
+      (assert exec-fn)
+      (exec-fn session f))))
+
+(deftest with-precedence-test
+  (let [session (->
+                 {:phase :fred :target-id :id :server {:node-id :id}}
+                 (action/with-precedence
+                   {:always-before #{`test-aggregated-action}}
+                   (test-aggregated-action "hello")
+                   (test-bash-action "a")))]
+    (is (=
+         "a\nhello\n"
+         (ffirst
+          (action-plan/execute
+           (action-plan/translate
+            (get-in session (action-plan/target-path session)))
+           session
+           (executor {:script/bash {:target echo}})))))))

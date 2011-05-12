@@ -21,6 +21,7 @@
    [clojure.contrib.def :as ccdef]
    [clojure.contrib.logging :as logging]
    [clojure.contrib.seq :as seq]
+   [clojure.set :as set]
    [clojure.string :as string]))
 
 ;;; action defining functions
@@ -55,7 +56,7 @@
                         and local destination.
    :transfer/from-local - action is a function specifying local source
                           and remote destination."
-  [session action-fn args execution action-type location]
+  [session action-fn metadata args execution action-type location]
   {:pre [session
          (keyword? (session/phase session))
          (keyword? (session/target-id session))]}
@@ -63,7 +64,33 @@
    session
    (action-plan/target-path session)
    action-plan/add-action
-   (action-plan/action-map action-fn args execution action-type location)))
+   (action-plan/action-map
+    action-fn metadata args execution action-type location)))
+
+(def precedence-key :action-precedence)
+
+(defmacro with-precedence
+  "Set up local precedence relations between actions"
+  [request m & body]
+  `(let [request# ~request]
+     (->
+      request#
+      (update-in [precedence-key] merge ~m)
+      ~@body
+      (assoc-in [precedence-key] (get-in request# [precedence-key])))))
+
+(defn- force-set [x] (if (or (set? x) (nil? x)) x #{x}))
+
+(defn action-metadata
+  [session f]
+  (if-let [precedence (precedence-key session)]
+    (update-in
+     (meta f)
+     [:always-before]
+     #(set/union
+       (force-set %)
+       (force-set (:always-before precedence))))
+    (meta f)))
 
 (defmacro action
   "Define an anonymous action"
@@ -75,7 +102,10 @@
        (vary-meta
         (fn [& [session# ~@args :as argv#]]
           (schedule-action
-           session# f# (rest argv#) ~execution ~action-type ~location))
+           session#
+           f#
+           (action-metadata session# f#)
+           (rest argv#) ~execution ~action-type ~location))
         merge
         ~meta-map
         {::action-fn f#}))))

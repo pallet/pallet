@@ -65,8 +65,9 @@
    - :execution    the execution type - :in-sequence, :aggregated, :collected
    - :value        the result of calling the action function, :f, with :args
    - :session      the session map after calling the action function."
-  [action-fn args execution action-type location]
+  [action-fn meta args execution action-type location]
   {:f action-fn
+   :meta meta
    :args args
    :location location
    :action-type action-type
@@ -92,7 +93,7 @@
 (defn- walk-action-plan
   "Traverses an action-plan structure.  leaf-fn is applied to leaf
    action, list-fn to sequences of actions, and nested-fn to
-   a nested scope. nested-fn takes the existin nested scope and a transformed
+   a nested scope. nested-fn takes the existing nested scope and a transformed
    arg list"
   [leaf-fn list-fn nested-fn action-plan]
   (cond
@@ -203,8 +204,8 @@
 (defn- action-precedence-comparator
   "A comparator for precedence between actions."
   [x y]
-  (let [before-fn (fn [f]
-                    (let [before (:always-before (meta f))
+  (let [before-fn (fn [f m]
+                    (let [before (:always-before m)
                           before (if (or (set? before) (nil? before))
                                    before
                                    #{before})
@@ -216,8 +217,8 @@
         fx (:f x)
         fy (:f y)]
     (cond
-     ((before-fn fx) fy) -1
-     ((before-fn fy) fx) 1
+     ((before-fn fx (:meta x)) fy) -1
+     ((before-fn fy (:meta y)) fx) 1
      :else 0)))
 
 (defn- enforce-scope-precedence
