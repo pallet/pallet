@@ -82,15 +82,14 @@
 (defn- force-set [x] (if (or (set? x) (nil? x)) x #{x}))
 
 (defn action-metadata
+  "Compute action metadata from precedence specification in session"
   [session f]
-  (if-let [precedence (precedence-key session)]
-    (update-in
-     (meta f)
-     [:always-before]
-     #(set/union
-       (force-set %)
-       (force-set (:always-before precedence))))
-    (meta f)))
+  (merge-with
+   #(set/union
+     (force-set %1)
+     (force-set %2))
+   (:meta f)
+   (precedence-key session)))
 
 (defmacro action
   "Define an anonymous action"
@@ -98,7 +97,10 @@
   (let [meta-map (when (and (map? (first body)) (> (count body) 1))
                    (first body))
         body (if meta-map (rest body) body)]
-    `(let [f# (vary-meta (fn [~session ~@args] ~@body) merge ~meta-map)]
+    `(let [f# (vary-meta
+               (fn ~@(when-let [an (:action-name meta-map)]
+                       [(symbol (str an "-action-fn"))])
+                 [~session ~@args] ~@body) merge ~meta-map)]
        (vary-meta
         (fn [& [session# ~@args :as argv#]]
           (schedule-action
@@ -158,15 +160,19 @@
      (let [[name# args#] (ccdef/name-with-attributes name# args#)
            arglist# (first args#)
            body# (rest args#)
-           meta-map# (when (and (map? (first body#)) (> (count body#) 1))
-                       (first body#))
+           [meta-map# body#] (if (and (map? (first body#))
+                                        (> (count body#) 1))
+                               [(merge
+                                 {:action-name (name name#)} (first body#))
+                                (rest body#)]
+                               [{:action-name (name name#)} body#])
            name# (vary-meta
                   name#
                   #(merge
                     {:arglists (list 'quote (list arglist#))}
                     meta-map#
                     %))]
-       `(def ~name# (~'~actionfn1 [~@arglist#] ~@body#)))))
+       `(def ~name# (~'~actionfn1 [~@arglist#] ~meta-map# ~@body#)))))
 
 (def-action-def def-bash-action pallet.action/bash-action)
 (def-action-def def-clj-action pallet.action/clj-action)
