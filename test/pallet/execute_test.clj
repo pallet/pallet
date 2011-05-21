@@ -25,7 +25,7 @@
   (script/with-template [:ubuntu]
     (let [no-pw "/usr/bin/sudo -n "
           pw "echo \"fred\" | /usr/bin/sudo -S "
-          no-sudo ""]
+          no-sudo "/bin/bash "]
       (is (= no-pw (sudo-cmd-for (utils/make-user "fred"))))
       (is (= pw (sudo-cmd-for (utils/make-user "fred" :password "fred"))))
       (is (= pw (sudo-cmd-for (utils/make-user "fred" :sudo-password "fred"))))
@@ -37,7 +37,7 @@
   (script/with-template [:centos-5.3]
     (let [no-pw "/usr/bin/sudo "
           pw "echo \"fred\" | /usr/bin/sudo -S "
-          no-sudo ""]
+          no-sudo "/bin/bash "]
       (is (= no-pw (sudo-cmd-for (utils/make-user "fred"))))
       (is (= pw (sudo-cmd-for (utils/make-user "fred" :password "fred"))))
       (is (= pw (sudo-cmd-for (utils/make-user "fred" :sudo-password "fred"))))
@@ -63,7 +63,8 @@
         (let [result (remote-sudo
                       "localhost"
                       "ls"
-                      (assoc user :no-sudo true))]
+                      (assoc user :no-sudo true)
+                      {})]
           (is (zero? (:exit result))))))))
 
 (deftest execute-with-ssh-test

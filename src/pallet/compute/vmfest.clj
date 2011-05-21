@@ -223,16 +223,16 @@
     (logging/trace (format "Bootstrapping %s" (manager/get-ip machine)))
     (script/with-script-context
       (action-plan/script-template-for-server {:image image})
-      (execute/remote-sudo
-       (manager/get-ip machine)
-       init-script
-       (if (:username image)
-         (pallet.utils/make-user
-          (:username image)
-          :password (:password image)
-          :no-sudo (:no-sudo image)
-          :sudo-password (:sudo-password image))
-         user)))
+      (let [user (if (:username image)
+                   (pallet.utils/make-user
+                    (:username image)
+                    :password (:password image)
+                    :no-sudo (:no-sudo image)
+                    :sudo-password (:sudo-password image))
+                   user)]
+        (execute/remote-sudo
+         (manager/get-ip machine) init-script user
+         {:pty (not= :fedora (:os-family image))})))
     machine))
 
 (defn- equality-match

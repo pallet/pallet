@@ -45,7 +45,7 @@
   "Construct a sudo command prefix for the specified user."
   [user]
   (if (or (= (:username user) "root") (:no-sudo user))
-    ""
+    "/bin/bash "
     (if-let [pw (:sudo-password user)]
       (str "echo \"" (or (:password user) pw) "\" | /usr/bin/sudo -S ")
       (str (stevedore/script (~sudo-no-password)) " "))))
@@ -79,7 +79,7 @@
   "Run a script on the local machine, setting up stevedore to produce the
    correct target specific code"
   [& body]
-  `(script/with-template
+  `(script/with-script-context
      [(jvm/os-family)]
      (sh-script
       (stevedore/script
@@ -185,7 +185,10 @@
   [server ssh-session sftp-channel user tmpfile command]
   (let [response (ssh/sftp sftp-channel
                            :put (java.io.ByteArrayInputStream.
-                                 (.getBytes (str prolog command))) tmpfile
+                                 (.getBytes
+                                  (str \newline \newline ; for fedora
+                                       prolog command \newline)))
+                           tmpfile
                            :return-map true)]
     (logging/info
      (format "Transfering commands to %s : %s" tmpfile response)))
@@ -193,9 +196,8 @@
                       ssh-session (str "chmod 755 " tmpfile) :return-map true)]
     (if (pos? (chmod-result :exit))
       (logging/error (str "Couldn't chmod script : "  (chmod-result :err)))))
-  (let [cmd (str
-             (sudo-cmd-for user)
-             (stevedore/script (~lib/user-home ~(:username user))) "/" tmpfile)
+  (let [cmd (str \newline " " \newline  " " \newline  " " \newline
+                 (sudo-cmd-for user) "./" tmpfile)
         _ (logging/info (format "Running %s" cmd))
         [shell stream] (ssh/ssh
                         ssh-session
@@ -243,7 +245,7 @@
 
 (defn remote-sudo
   "Run a sudo command on a server."
-  [#^String server #^String command user]
+  [#^String server #^String command user {:keys [pty] :as options}]
   (ssh/with-ssh-agent [(default-agent)]
     (possibly-add-identity
      ssh/*ssh-agent* (:private-key-path user) (:passphrase user))
@@ -336,7 +338,7 @@
         {:keys [server ssh-session sftp-channel tmpfile tmpcpy user]} ssh
         {:keys [value session]} (f session)]
     (logging/info (format "Target cmd\n%s" value))
-    [(remote-sudo-cmd server ssh-session sftp-channel user tmpfile value)
+    [(remote-sudo-cmd server ssh-session sftp-channel user tmpfile value {})
      session]))
 
 (defn ssh-from-local
@@ -357,7 +359,8 @@
        server ssh-session sftp-channel user tmpfile
        (stevedore/script
         (chmod "0600" ~tmpcpy)
-        (mv -f ~tmpcpy ~remote-name))))
+        (mv -f ~tmpcpy ~remote-name))
+       {}))
     [value session]))
 
 (defn ssh-to-local
@@ -373,7 +376,8 @@
       (remote-sudo-cmd
        server ssh-session sftp-channel user tmpfile
        (stevedore/script
-        (cp -f ~remote-file ~tmpcpy)))
+        (cp -f ~remote-file ~tmpcpy))
+       {})
       (ssh/sftp sftp-channel
                 :get tmpcpy
                 (-> local-file java.io.FileOutputStream.

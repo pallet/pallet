@@ -364,7 +364,7 @@
    [_ node user]
    (let [ip (compute/primary-ip node)]
      (if ip
-       (execute/remote-sudo ip "shutdown -h 0" user))))
+       (execute/remote-sudo ip "shutdown -h 0" user {:pty false}))))
 
   (shutdown
    [self nodes user]
