@@ -57,7 +57,10 @@
    :arch-2010-05 [{:os-family :arch :os-version-matches "2010.05"
                    :os-64-bit true}]
    :fedora-14 [{:os-family :fedora :os-version-matches "14"
-                :os-64-bit true}]})
+                :os-64-bit true}]
+   :rh [{:os-family :fedora :os-version-matches "14" :os-64-bit true}
+        {:os-family :centos :os-version-matches "5.5" :os-64-bit true}
+        {:os-family :centos :os-version-matches "5.3" :os-64-bit false}]})
 
 (defn- read-property
   "Read a system property as a clojure value."
