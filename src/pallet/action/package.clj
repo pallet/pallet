@@ -410,20 +410,15 @@
   (stevedore/do-script*
    (map #(apply package-manager* session %) (distinct package-manager-args))))
 
-;; this is an aggregate so that it can come before the aggregate package
-(action/def-aggregated-action add-rpm
+(action/def-bash-action add-rpm
   "Add an rpm.  Source options are as for remote file."
-  [request args]
-  {:arglists '([request rpm-name & options])
-   :always-before #{`package}}
-  (stevedore/chain-commands*
-   (for [[rpm-name & {:as options}] args]
-     (stevedore/do-script
-      (apply remote-file* request rpm-name (apply concat options))
-      (stevedore/checked-script
-       (format "Install rpm %s" rpm-name)
-       (if-not (rpm -q @(rpm -pq ~rpm-name))
-         (rpm -U --quiet ~rpm-name)))))))
+  [request rpm-name & {:as options}]
+  (stevedore/do-script
+   (apply remote-file* request rpm-name (apply concat options))
+   (stevedore/checked-script
+    (format "Install rpm %s" rpm-name)
+    (if-not (rpm -q @(rpm -pq ~rpm-name) > "/dev/null" "2>&1")
+      (do (rpm -U --quiet ~rpm-name))))))
 
 (action/def-aggregated-action
   minimal-packages

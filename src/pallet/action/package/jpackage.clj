@@ -1,6 +1,7 @@
 (ns pallet.action.package.jpackage
   "Actions for working with the jpackage repository"
   (:require
+   [pallet.action :as action]
    [pallet.action.package :as package]
    [pallet.parameter :as parameter]
    [pallet.session :as session]
@@ -25,12 +26,15 @@
   (->
    session
    (thread-expr/when->
-    (and
-     (= :centos (session/os-family session))
-     (re-matches #"5\.[0-5]" (session/os-version session)))
-    (package/add-rpm
-     "jpackage-utils-compat-el5-0.0.1-1"
-     :url jpackage-utils-compat-rpm))
+    (or
+     (= :fedora (session/os-family session))
+     (and
+      (#{:rhel :centos} (session/os-family session))
+      (re-matches #"5\.[0-5]" (session/os-version session))))
+    (action/with-precedence {:action-id ::install-jpackage-compat}
+      (package/add-rpm
+       "jpackage-utils-compat-el5-0.0.1-1"
+       :url jpackage-utils-compat-rpm)))
    (package/package "jpackage-utils")))
 
 (def jpackage-mirror-fmt
