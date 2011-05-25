@@ -430,10 +430,10 @@
     (cond
      (#{:ubuntu :debian} os-family) (stevedore/checked-script
                                      "Add minimal packages"
-                                     (update-package-list)
-                                     (install-package "coreutils")
-                                     (install-package "sudo"))
+                                     (~lib/update-package-list)
+                                     (~lib/install-package "coreutils")
+                                     (~lib/install-package "sudo"))
      (= :arch os-family) (stevedore/checked-script
                           "Add minimal packages"
-                          (update-package-list)
-                          (install-package "sudo")))))
+                          (~lib/update-package-list)
+                          (~lib/install-package "sudo")))))
