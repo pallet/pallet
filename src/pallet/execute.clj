@@ -15,7 +15,7 @@
    [clojure.string :as string]
    [clojure.contrib.condition :as condition]
    [clojure.java.io :as io]
-   [clojure.contrib.shell :as ccshell]
+   [pallet.shell :as ccshell]
    [clojure.contrib.logging :as logging]))
 
 (def prolog
@@ -50,6 +50,18 @@
       (str "echo \"" (or (:password user) pw) "\" | /usr/bin/sudo -S ")
       (str (stevedore/script (~sudo-no-password)) " "))))
 
+;;;
+(def
+  ^{:doc "Specifies the buffer size used to read the ssh output stream.
+    Defaults to 10K, to match clj-ssh.ssh/*piped-stream-buffer-size*"}
+  ssh-output-buffer-size (atom (* 1024 10)))
+
+(def
+  ^{:doc "Specifies the polling period for retrieving ssh command output.
+    Defaults to 1000ms."}
+  output-poll-period (atom 1000))
+
+
 ;;; local script execution
 (defn local-cmds
   "Run local cmds on a target."
@@ -57,6 +69,19 @@
   (let [execute (fn [cmd] ((second cmd)))
         rv (doall (map execute (filter #(= :origin (first %)) commands)))]
     rv))
+
+(defn read-buffer [stream]
+  (let [buffer-size @ssh-output-buffer-size
+        bytes (byte-array buffer-size)
+        sb (StringBuilder.)]
+    {:sb sb
+     :reader (fn []
+               (when (pos? (.available stream))
+                 (let [num-read (.read stream bytes 0 buffer-size)
+                       s (normalise-eol (String. bytes 0 num-read "UTF-8"))]
+                   (logging/info (format "Output:\n%s" s))
+                   (.append sb s)
+                   s)))}))
 
 (defn sh-script
   "Run a script on local machine."
@@ -67,12 +92,29 @@
     (try
       (io/copy (str prolog command) tmp)
       (ccshell/sh "chmod" "+x" (.getPath tmp))
-      (let [result (ccshell/sh "bash" (.getPath tmp) :return-map true)]
-        (when-not (zero? (:exit result))
-          (logging/error
-           (format "Command failed: %s\n%s" command (:err result))))
-        (logging/info (:out result))
-        result)
+      (let [{:keys [out err proc]} (ccshell/sh
+                                    "bash" (.getPath tmp) :async true)
+            out-reader (read-buffer out)
+            err-reader (read-buffer err)
+            period @output-poll-period]
+        (with-open [out out err err]
+          (while (not (try (.exitValue proc)
+                           (catch IllegalThreadStateException _)))
+            (Thread/sleep period)
+            (logging/spy ((:reader out-reader)))
+            (logging/spy ((:reader err-reader))))
+
+          (while (logging/spy ((:reader out-reader))))
+          (while (logging/spy ((:reader err-reader))))
+          (let [exit (.exitValue proc)]
+            (when-not (zero? exit)
+              (logging/error
+               (format
+                "Command failed: %s\n%s"
+                command (str (:sb err-reader)))))
+            {:exit exit
+             :out (str (:sb out-reader))
+             :err (str (:sb err-reader))})))
       (finally  (.delete tmp)))))
 
 (defmacro local-script
@@ -168,36 +210,29 @@
        :err (:err result)
        :out (:out result)))))
 
-(def
-  ^{:doc "Specifies the buffer size used to read the ssh output stream.
-    Defaults to 10K, to match clj-ssh.ssh/*piped-stream-buffer-size*"}
-  ssh-output-buffer-size (atom (* 1024 10)))
-
-(def
-  ^{:doc "Specifies the polling period for retrieving ssh command output.
-    Defaults to 1000ms."}
-  ssh-output-poll-period (atom 1000))
-
 (defn remote-sudo-cmd
   "Execute remote command.
    Copies `command` to `tmpfile` on the remote node using the `sftp-channel`
    and executes the `tmpfile` as the specified `user`."
-  [server ssh-session sftp-channel user tmpfile command]
+  [server ssh-session sftp-channel user tmpfile command
+   {:keys [pty] :or {pty true} :as options}]
+  (when (not (ssh/connected? ssh-session))
+    (condition/raise :type :no-ssh-session
+                     :message (format"No ssh session for %s" server)))
   (let [response (ssh/sftp sftp-channel
                            :put (java.io.ByteArrayInputStream.
                                  (.getBytes
-                                  (str \newline \newline ; for fedora
-                                       prolog command \newline)))
+                                  (str prolog command \newline)))
                            tmpfile
-                           :return-map true)]
+                           :return-map true)
+        response2 (ssh/sftp sftp-channel :ls)]
     (logging/info
      (format "Transfering commands to %s : %s" tmpfile response)))
   (let [chmod-result (ssh/ssh
                       ssh-session (str "chmod 755 " tmpfile) :return-map true)]
     (if (pos? (chmod-result :exit))
       (logging/error (str "Couldn't chmod script : "  (chmod-result :err)))))
-  (let [cmd (str \newline " " \newline  " " \newline  " " \newline
-                 (sudo-cmd-for user) "./" tmpfile)
+  (let [cmd (str (sudo-cmd-for user) "./" tmpfile)
         _ (logging/info (format "Running %s" cmd))
         [shell stream] (ssh/ssh
                         ssh-session
@@ -208,10 +243,10 @@
                         :in cmd
                         :out :stream
                         :return-map true
-                        :pty true)
+                        :pty pty)
         sb (StringBuilder.)
         buffer-size @ssh-output-buffer-size
-        period @ssh-output-poll-period
+        period @output-poll-period
         bytes (byte-array buffer-size)
         read-ouput (fn []
                      (when (pos? (.available stream))
@@ -259,7 +294,21 @@
           (logging/info (format "Cmd %s" command))
           (ssh/with-connection sftp-channel
             (remote-sudo-cmd
-             server ssh-session sftp-channel user tmpfile command)))))))
+             server ssh-session sftp-channel user tmpfile command options)))))))
+
+(defn remote-exec
+  "Run an ssh exec command on a server."
+  [#^String server #^String command user]
+  (ssh/with-ssh-agent [(default-agent)]
+    (possibly-add-identity
+     ssh/*ssh-agent* (:private-key-path user) (:passphrase user))
+    (let [ssh-session (ssh/session server
+                               :username (:username user)
+                               :password (:password user)
+                               :strict-host-key-checking :no)]
+      (ssh/with-connection ssh-session
+        (logging/info (format "Exec %s" command))
+        (ssh/ssh-exec ssh-session command nil "UTF-8" nil)))))
 
 (defn- ensure-ssh-connection
   "Try ensuring an ssh connection to the server specified in the session."
