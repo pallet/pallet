@@ -1,18 +1,31 @@
 (ns pallet.resource.exec-script
-  "Script execution. script generation is delayed until resource application
-   time, so that it occurs wirh the correct target."
+  "Compatability namespace"
   (:require
-   [pallet.resource :as resource]
-   [pallet.stevedore :as stevedore]))
+   [pallet.action.exec-script :as exec-script]
+   [pallet.common.deprecate :as deprecate]
+   [pallet.utils :as utils]))
 
-(resource/defresource exec-script*
-  (exec-script-fn**
-   [request script]
-   script))
+(defmacro exec-script
+  "Execute a bash script remotely"
+  {:deprecated "0.5.0"}
+  [session & script]
+  `(do
+     (deprecate/deprecated-macro
+      ~&form
+      (deprecate/rename
+       'pallet.resource.exec-script/exec-script
+       'pallet.action.exec-script/exec-script))
+     (exec-script/exec-script ~session ~@script)))
 
-;; these can only be used within a phase macro
-(defmacro exec-script [request & script]
-  `(exec-script* ~request (stevedore/script ~@script)))
-
-(defmacro exec-checked-script [request name & script]
-  `(exec-script* ~request (stevedore/checked-script ~name ~@script)))
+(defmacro exec-checked-script
+  "Execute a bash script remotely, throwing if any element of the
+   script fails."
+  {:deprecated "0.5.0"}
+  [session name & script]
+  `(do
+     (deprecate/deprecated-macro
+      ~&form
+      (deprecate/rename
+       'pallet.resource.exec-script/exec-checked-script
+       'pallet.action.exec-script/exec-checked-script))
+     (exec-script/exec-checked-script ~session ~name ~@script)))

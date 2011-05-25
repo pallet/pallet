@@ -24,10 +24,18 @@
           "a/b/c_ubuntu.d" "resources/a/b/c_ubuntu.d"
           "a/b/c_aptitude.d" "resources/a/b/c_aptitude.d"
           "a/b/c.d" "resources/a/b/c.d"]
-         (candidate-templates "a/b/c.d" "t" {:os-family :ubuntu})))
+           (#'pallet.template/candidate-templates
+            "a/b/c.d" "t"
+            {:server {:image {:os-family :ubuntu}
+                      :group-name :c
+                      :packager :aptitude}})))
   (is (= ["c_t.d" "resources/c_t.d" "c_ubuntu.d" "resources/c_ubuntu.d"
           "c_aptitude.d" "resources/c_aptitude.d" "c.d" "resources/c.d"]
-         (candidate-templates "c.d" "t" {:os-family :ubuntu}))))
+         (#'pallet.template/candidate-templates
+          "c.d" "t"
+          {:server {:image {:os-family :ubuntu}
+                    :group-name :c
+                    :packager :aptitude}}))))
 
 (with-private-vars [pallet.template [apply-template-file]]
   (deftest apply-template-file-test
@@ -64,17 +72,18 @@ EOF
                             nil))))
 
 (deftest find-template-test
-  (core/defnode a {:os-family :ubuntu})
-  (is (re-find
-       #"resources/template/strint"
-       (str (find-template "template/strint" a))))
-  (is (= "a ~{a}\n"
-       (utils/load-resource-url
-        (find-template "template/strint" a)))))
+  (let [a (core/group-spec "a" :image {:os-family :ubuntu})]
+    (is (re-find
+         #"resources/template/strint"
+         (str (find-template "template/strint" {:server a}))))
+    (is (= "a ~{a}\n"
+           (utils/load-resource-url
+            (find-template "template/strint" {:server a}))))))
 
 (deftest interpolate-template-test
-  (core/defnode n {:os-family :ubuntu})
-  (let [a 1]
+
+  (let [n(core/group-spec "n" :image {:os-family :ubuntu})
+        a 1]
     (is (= "a 1\n"
            (interpolate-template
-            "template/strint" (strint/capture-values a) n)))))
+            "template/strint" (strint/capture-values a) {:server n})))))

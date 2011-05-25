@@ -12,29 +12,42 @@ specified. If the =:configure= phase is not explicitly passed, then it will
 always be applied as the first phase (or second, after =:bootstrap= on new
 nodes).
 
+In this example we define a function that changes the number of running nodes
+for the "mygroup" group.
+
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.core)
-  (pallet.core/defnode mytag {})
 
   (defn scale-cluster [n]
-    (pallet.core/converge {mytag n}))
+    (pallet.core/converge
+      (pallet.core/group-spec "mygroup" :count n)
+      :compute (pallet.core/service))
 #+END_SRC
 
-=converge= also accepts a prefix, which is applied to the tags in the call.
-This can be used to build job specific clusters.
+=converge= also accepts a :prefix keyword argument, which is applied to the
+group names in the call.  This can be used to build job specific clusters.
+In this example we scale load-balancer, web app and database nodes using
+a single load balancer and twice as many web app frontends as database
+backends.
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.core)
-  (pallet.core/defnode lb {})
-  (pallet.core/defnode webapp {})
-  (pallet.core/defnode db {})
+  (def load-balancer (pallet.core/group-spec "lb"))
+  (def web-app (pallet.core/group-spec "webapp"))
+  (def database (pallet.core/group-spec "db"))
 
   (defn scale-cluster [prefix n]
-    (pallet.core/converge {lb 1 webapp n db (inc (/ n 2))} :prefix prefix))
+    (pallet.core/converge
+       {load-balancer 1
+        web-app n
+        database (inc (/ n 2))}
+       :prefix prefix
+       :compute (pallet.core/service)))
 #+END_SRC
 
 * Lift
 
-The =lift= function is used to apply phases. The :configure phase is run by
-default only if no phases are explicitly specified.
+The =lift= function is used to apply phases but does not change node
+counts. The :configure phase is run by default only if no phases are explicitly
+specified.
 

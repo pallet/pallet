@@ -4,24 +4,24 @@
    [clojure.contrib.logging :as logging]))
 
 
-(defn log-request
-  "A crate function that will log the request map at the debug level, using
+(defn log-session
+  "A crate function that will log the session map at the debug level, using
    the supplied format string.
 
-       (log-request request \"The request is %s\")"
-  ([request]
-     (log-request request "%s"))
-  ([request format-string]
-     (logging/debug (format format-string (pr-str request)))
-     request))
+       (log-session session \"The session is %s\")"
+  ([session]
+     (log-session session "%s"))
+  ([session format-string]
+     (logging/debug (format format-string (pr-str session)))
+     session))
 
-(defn print-request
-  "A crate function that will print the request map to *out*, using the supplied
+(defn print-session
+  "A crate function that will print the session map to *out*, using the supplied
    format string.
 
-       (print-request request \"The request is %s\")"
-  ([request]
-     (print-request request "%s"))
-  ([request format-string]
-     (println (format format-string (pr-str request)))
-     request))
+       (print-session session \"The session is %s\")"
+  ([session]
+     (print-session session "%s"))
+  ([session format-string]
+     (println (format format-string (pr-str session)))
+     session))

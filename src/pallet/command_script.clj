@@ -2,7 +2,7 @@
   "Produce a shell script for launching Pallet, possibly customised for extra jars"
   (:require
    [pallet.stevedore :as stevedore]
-   [pallet.resource.user :as user]))
+   [pallet.action.user :as user]))
 
 (defn path
   [components]

@@ -83,3 +83,9 @@
 (deftest admin-user-from-config-test
   (let [admin-user (admin-user-from-config {:admin-user {:username "fred"}})]
     (is (= "fred" (:username admin-user)))))
+
+(deftest middleware-test
+  (let [f1 (fn [c] (fn [x] (c (inc x))))
+        f2 (fn [c] (fn [x] (c (* 2 x))))
+        mw (middleware f1 f2)]
+    (is (= 4 ((mw identity) 1)))))

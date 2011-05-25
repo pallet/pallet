@@ -1,6 +1,7 @@
 (ns pallet.configure
   "Pallet configuration using ~/.pallet/config.clj"
   (:require
+   [pallet.common.deprecate :as deprecate]
    [pallet.environment :as environment]
    [pallet.utils :as utils]
    [clojure.java.io :as java-io]
@@ -57,9 +58,10 @@
   [config profiles]
   (when config
     (when (:providers config)
-      (logging/warn
-       "DEPRECATED: use of :providers key in ~/.pallet/config.clj
-           is deprecated. Please change to use :services."))
+      (deprecate/warn
+       (str
+        "Use of :providers key in ~/.pallet/config.clj is "
+        "deprecated. Please change to use :services.")))
     (let [service (first profiles)
           default-service (map config [:provider :identity :credential])
           services (:services config (:providers config))

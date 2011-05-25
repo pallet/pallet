@@ -15,7 +15,10 @@
 (def ^{:doc "Translate compute provider to associated blobstore provider"}
   blobstore-lookup
   {"cloudservers" "cloudfiles"
-   "ec2" "s3"})
+   "cloudservers-us" "cloudfiles-us"
+   "cloudservers-eu" "cloudfiles-eu"
+   "ec2" "s3"
+   "aws-ec2" "aws-s3"})
 
 (defn blobstore-from-map
   "Create a blobstore service from a credentials map.

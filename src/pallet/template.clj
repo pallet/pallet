@@ -1,15 +1,15 @@
 (ns pallet.template
   "Template file writing"
   (:require
+   [pallet.compute :as compute]
+   [pallet.script.lib :as lib]
+   [pallet.session :as session]
+   [pallet.stevedore :as stevedore]
    [pallet.strint :as strint]
    [pallet.target :as target]
-   [pallet.compute :as compute]
    [pallet.utils :as utils]
    [clojure.string :as string]
-   [pallet.stevedore :as stevedore])
-  (:use
-   [pallet.resource.file]
-   [clojure.contrib.logging]))
+   [clojure.contrib.logging :as logging]))
 
 (defn get-resource
   "Loads a resource. Returns a URI."
@@ -34,9 +34,9 @@
   [path file ext]
   (str (when path (str path "/")) file (when ext (str "." ext))))
 
-(defn candidate-templates
+(defn- candidate-templates
   "Generate a prioritised list of possible template paths."
-  [path tag template]
+  [path tag session]
   (let [[dirpath base ext] (path-components path)
         variants (fn [specifier]
                    (let [p (pathname
@@ -46,25 +46,26 @@
                      [p (str "resources/" p)]))]
     (concat
      (variants tag)
-     (variants (name (or (target/os-family template) "unknown")))
-     (variants (name (or (compute/packager template) "unknown")))
+     (variants (name (or (session/os-family session) "unknown")))
+     (variants (name (or (session/packager session) "unknown")))
      (variants nil))))
 
 (defn find-template
   "Find a template for the specified path, for application to the given node.
    Templates may be specialised."
-  [path node-type]
-  {:pre [(map? node-type) (:image node-type)]}
+  [path session]
+  {:pre [(map? session) (session :server)]}
   (some
    get-resource
-   (candidate-templates path (:tag node-type) (:image node-type))))
+   (candidate-templates
+    path (-> session :server :group-name) session)))
 
 (defn interpolate-template
   "Interpolate the given template."
-  [path values node-type]
+  [path values session]
   (strint/<<!
    (utils/load-resource-url
-    (find-template path node-type))
+    (find-template path session))
    (utils/map-with-keys-as-symbols values)))
 
 ;;; programatic templates - umm not really templates at all
@@ -74,19 +75,22 @@
      ~m))
 
 (defn- apply-template-file [[file-spec content]]
-  (trace (str "apply-template-file " file-spec \newline content))
+  (logging/trace (str "apply-template-file " file-spec \newline content))
   (let [path (:path file-spec)]
-    (string/join ""
-                 (filter (complement nil?)
-                         [(stevedore/script (var file ~path) (cat > @file <<EOF))
-                          content
-                          "\nEOF\n"
-                          (when-let [mode (:mode file-spec)]
-                            (stevedore/script (do ("chmod" ~mode @file))))
-                          (when-let [group (:group file-spec)]
-                            (stevedore/script (do ("chgrp" ~group @file))))
-                          (when-let [owner (:owner file-spec)]
-                            (stevedore/script (do ("chown" ~owner @file))))]))))
+    (string/join
+     ""
+     (filter (complement nil?)
+             [(stevedore/script
+               (var file ~path)
+               ((~lib/cat "") > @file <<EOF))
+              content
+              "\nEOF\n"
+              (when-let [mode (:mode file-spec)]
+                (stevedore/script (do (chmod ~mode @file))))
+              (when-let [group (:group file-spec)]
+                (stevedore/script (do (chgrp ~group @file))))
+              (when-let [owner (:owner file-spec)]
+                (stevedore/script (do (chown ~owner @file))))]))))
 
 ;; TODO - add chmod, owner, group
 (defn apply-templates [template-fn args]
