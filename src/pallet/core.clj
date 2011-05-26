@@ -163,12 +163,12 @@
 (defn- resource-invocations [request]
   {:pre [(:phase request)]}
   (if-let [f (some
-              (:phase request)
-              [(:phases (:node-type request)) (:phases request)])]
+                (:phase request)
+                [(:phases (:node-type request)) (:phases request)])]
     (let [request ((utils/pipe add-target-keys identity) request)
           request (resource/reset-invocations request)]
       (script/with-template (resource/script-template request)
-        (f request)))
+        (dissoc (f request) :target-packager)))
     request))
 
 (defn- produce-init-script
