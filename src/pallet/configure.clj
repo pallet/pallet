@@ -51,7 +51,14 @@
 (defn pallet-config
   "Read pallet configuration file."
   []
-  (read-config (.getAbsolutePath (java-io/file (home-dir) "config.clj"))))
+  (reduce
+   (fn [config service]
+     (assoc-in config [:services (key (first service))] (val (first service))))
+   (read-config (.getAbsolutePath (java-io/file (home-dir) "config.clj")))
+   (for [file (filter
+               #(.isFile %)
+               (file-seq (java-io/file (home-dir) "services")))]
+     (read-string (slurp file)))))
 
 (defn compute-service-properties
   "Helper to read compute service properties"
@@ -68,17 +75,19 @@
           environment (when-let [env (:environment config)]
                         (environment/eval-environment env))]
       (cond
-       (every? identity default-service) (select-keys
-                                          config
-                                          [:provider :identity :credential
-                                           :blobstore :endpoint :environment])
+       (and
+        (not service)
+        (every? identity default-service)) (select-keys
+                                            config
+                                            [:provider :identity :credential
+                                             :blobstore :endpoint :environment])
        (map? services) (->
                         (or
-                         (and service (or
-                                       (services (keyword service))
-                                       (services service)))
-                         (and (not service) ; use default if no profile
-                                        ; requested
+                         (and service
+                              (or
+                               (services (keyword service))
+                               (services service)))
+                         (and (not service) ; use default if service unspecified
                               (first services)
                               (-> services first val)))
                         (utils/maybe-update-in
