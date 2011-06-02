@@ -28,9 +28,11 @@
     (if if-flag
       (stevedore/script
        (if (== "1" (lib/flag? ~if-flag))
-         (~(str "/etc/init.d/" service-name) ~(name action))))
+         (~(str (stevedore/script (~lib/etc-init)) "/" service-name)
+          ~(name action))))
       (stevedore/script
-       ( ~(str "/etc/init.d/" service-name) ~(name action))))))
+       (~(str (stevedore/script (~lib/etc-init)) "/" service-name)
+        ~(name action))))))
 
 (defmacro with-restart
   "Stop the given service, execute the body, and then restart."

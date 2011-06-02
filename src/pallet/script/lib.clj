@@ -649,8 +649,8 @@
   "/etc/hosts")
 
 (script/defscript etc-init [])
-(script/defimpl etc-init :default []
-  "/etc/init.d")
+(script/defimpl etc-init :default [] "/etc/init.d")
+(script/defimpl etc-init [:pacman] [] "/etc/rc.d")
 
 ;; Some of the packagers, like brew, are "add-ons" in the sense that they are
 ;; outside of the base system.  These paths refer to locations of packager
