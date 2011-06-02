@@ -7,6 +7,7 @@
    [pallet.action.file :as file]
    [pallet.action.remote-file :as remote-file]
    [pallet.action.user :as user]
+   [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.build-actions :as build-actions]
    [pallet.core :as core]
    [pallet.live-test :as live-test]
@@ -231,7 +232,7 @@
 
 (defn check-public-key
   [request]
-  (logging/info (format "check-public-key request is %s" request))
+  (logging/trace (format "check-public-key request is %s" request))
   (is (string?
        (parameter/get-for-target request [:user :testuser :id_rsa])))
   request)
@@ -239,23 +240,20 @@
 (deftest live-test
   (live-test/test-for
    [image live-test/*images*]
-   (require '[pallet.crate.automated-admin-user :as automated-admin-user])
-   (let [automated-admin-user (var-get
-                               (resolve 'pallet.crate.automated-admin-user))]
-     (live-test/test-nodes
-      [compute node-map node-types]
-      {:ssh-key
-       {:image image
-        :count 1
-        :phases
-        {:bootstrap (phase/phase-fn
-                     (automated-admin-user)
-                     (user/user "testuser"))
-         :configure (phase/phase-fn (generate-key "testuser"))
-         :verify1 (phase/phase-fn
-                   (record-public-key "testuser"))
-         :verify2 (phase/phase-fn
-                   (check-public-key))}}}
-      (core/lift (:ssh-key node-types)
-                 :phase [:verify1 :verify2]
-                 :compute compute)))))
+   (live-test/test-nodes
+    [compute node-map node-types]
+    {:ssh-key
+     {:image image
+      :count 1
+      :phases
+      {:bootstrap (phase/phase-fn
+                   (automated-admin-user/automated-admin-user)
+                   (user/user "testuser"))
+       :configure (phase/phase-fn (generate-key "testuser"))
+       :verify1 (phase/phase-fn
+                 (record-public-key "testuser"))
+       :verify2 (phase/phase-fn
+                 (check-public-key))}}}
+    (core/lift (:ssh-key node-types)
+               :phase [:verify1 :verify2]
+               :compute compute))))

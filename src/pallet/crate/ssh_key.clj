@@ -117,19 +117,18 @@
     (->
      session
      (remote-file/with-remote-file
-       (fn [session local-path]
-         (action/as-clj-action
-          (fn [session]
-            (let [pub-key (slurp local-path)]
-              (if-not (string/blank? pub-key)
-                (if parameter-path
-                  (parameter/update-for-service
-                   session parameter-path
-                   (fn [keys] (conj (or keys #{}) pub-key)))
-                  (parameter/assoc-for-target
-                   session [:user (keyword user) (keyword filename)] pub-key))
-                session)))
-          [session]))
+       (action/as-clj-action
+        (fn [session local-path]
+          (let [pub-key (slurp local-path)]
+            (if-not (string/blank? pub-key)
+              (if parameter-path
+                (parameter/update-for-service
+                 session parameter-path
+                 (fn [keys] (conj (or keys #{}) pub-key)))
+                (parameter/assoc-for-target
+                 session [:user (keyword user) (keyword filename)] pub-key))
+              session)))
+        [session local-path])
        path))))
 
 #_
