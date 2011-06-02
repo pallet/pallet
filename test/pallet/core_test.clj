@@ -262,7 +262,9 @@
   (is (= {:phases {:a 1} :image {:b 2}}
          (server-spec
           :extends (server-spec :phases {:a 1} :node-spec {:image {:b 2}})))
-      "extends a server-spec"))
+      "extends a server-spec")
+  (is (= {:roles #{:r1}} (server-spec :roles :r1)) "Allow roles as keyword")
+  (is (= {:roles #{:r1}} (server-spec :roles [:r1])) "Allow roles as sequence"))
 
 (deftest group-spec-test
   (is (= {:group-name :gn :phases {:a 1}}
@@ -271,7 +273,31 @@
          (group-spec
           "gn"
           :extends [(server-spec :phases {:a 1})
-                    (server-spec :node-spec {:image {:b 2}})]))))
+                    (server-spec :node-spec {:image {:b 2}})])))
+  (is (= {:group-name :gn :phases {:a 1} :image {:b 2} :roles #{:r1 :r2 :r3}}
+         (group-spec
+          "gn"
+          :roles :r1
+          :extends [(server-spec :phases {:a 1} :roles :r2)
+                    (server-spec :node-spec {:image {:b 2}} :roles [:r3])]))))
+
+(deftest cluster-spec-test
+  (let [x (fn [x] (update-in x [:x] inc))
+        gn (group-spec "gn" :count 1 :phases {:x (fn [x] (assoc x :x 1))})
+        go (group-spec "go" :count 2 :phases {:o (fn [x] (assoc x :o 1))})
+        cluster (cluster-spec
+                 "cl"
+                 :phases {:x x}
+                 :groups [gn go]
+                 :node-spec {:image {:os-family :ubuntu}})]
+    (is (= 2 (count (:groups cluster))))
+    (testing "names are prefixed"
+      (is (= :cl-gn (:group-name (first (:groups cluster)))))
+      (is (= :cl-go (:group-name (second (:groups cluster))))))
+    (testing ":phases on nodes are propogated"
+      (is (= {:o 1} ((-> cluster :groups second :phases :o) {}))))
+    (testing ":phases on cluster are merged"
+      (is (= {:x 2} ((-> cluster :groups first :phases :x) {}))))))
 
 (deftest make-node-test
   (is (= {:group-name :fred :image {:os-family :ubuntu}}

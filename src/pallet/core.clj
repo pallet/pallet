@@ -131,12 +131,16 @@
 (defn- merge-specs
   "Merge specs, using comp for :phases"
   [a b]
-  (let [phases (merge-with #(comp %2 %1) (:phases a) (:phases b))]
+  (let [phases (merge-with #(comp %2 %1) (:phases a) (:phases b))
+        roles (set/union (:roles a) (:roles b))]
     (->
      (merge a b)
      (thread-expr/when-not->
       (empty? phases)
-      (assoc :phases phases)))))
+      (assoc :phases phases))
+     (thread-expr/when-not->
+      (empty? roles)
+      (assoc :roles roles)))))
 
 (defn- extend-specs
   "Merge in the inherited specs"
@@ -153,15 +157,18 @@
    - :phases a hash-map used to define phases. Standard phases are:
      - :bootstrap    run on first boot of a new node
      - :configure    defines the configuration of the node
-   - :packager       override the choice of packager to use
-   - :node-spec      default node-spec for this server-spec
    - :extends        takes a server-spec, or sequence thereof, and is used to
-                     inherit phases, etc."
-  [& {:keys [phases packager node-spec extends image hardware location network]
+                     inherit phases, etc.
+   - :roles          defines a sequence of roles for the server-spec
+   - :node-spec      default node-spec for this server-spec
+   - :packager       override the choice of packager to use"
+  [& {:keys [phases packager node-spec extends roles]
       :as options}]
   (->
    node-spec
    (merge options)
+   (thread-expr/when-> roles
+           (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
    (extend-specs extends)
    (dissoc :extends :node-spec)))
 
@@ -182,14 +189,52 @@
    - :packager override the choice of packager to use
    - :node-spec      default node-spec for this server-spec"
   [name
-   & {:keys [extends count image phases packager node-spec] :as options}]
+   & {:keys [extends count image phases packager node-spec roles] :as options}]
   {:pre [(or (nil? image) (map? image))]}
   (->
    node-spec
    (merge options)
+   (thread-expr/when-> roles
+           (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
    (extend-specs extends)
    (dissoc :extends :node-spec)
    (assoc :group-name (keyword name))))
+
+(defn cluster-spec
+  "Create a cluster-spec.
+
+   `name` is used as a prefix for all groups in the cluster.
+
+   - :groups    specify a sequence of groups that define the cluster
+
+   - :extends   specify a server-spec, a group-spec, or sequence thereof,
+                for all groups in the cluster
+
+   - :phases    define phases on all groups.
+
+   - :node-spec default node-spec for the nodes in the cluster
+
+   - :roles     roles for the group-spec"
+  [cluster-name
+   & {:keys [extends groups phases node-spec] :as options}]
+  (->
+   options
+   (update-in [:groups]
+              (fn [group-specs]
+                (map
+                 (fn [group-spec]
+                   (->
+                    node-spec
+                    (merge (dissoc group-spec :phases))
+                    (update-in
+                     [:group-name]
+                     #(keyword (str (name cluster-name) "-" (name %))))
+                    (extend-specs extends)
+                    (extend-specs [{:phases phases}])
+                    (extend-specs [(select-keys group-spec [:phases])])))
+                 group-specs)))
+   (dissoc :extends :node-spec)
+   (assoc :cluster-cluster-name (keyword cluster-name))))
 
 (defn make-node
   "Create a node definition.  See defnode."

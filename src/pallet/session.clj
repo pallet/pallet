@@ -81,6 +81,19 @@
       #(= (name group-name) (compute/group-name %))
       (:all-nodes session))))
 
+(defn groups-with-role
+  "All target groups with the specified role."
+  [session role]
+  (->>
+   (:node-set session)
+   (filter #(when-let [roles (:roles %)] (roles role)))
+   (map :group-name)))
+
+(defn nodes-with-role
+  "All target nodes with the specified role."
+  [session role]
+  (mapcat #(nodes-in-group session %) (groups-with-role session role)))
+
 (defn packager
   [session]
   (get-in session [:server :packager]))
