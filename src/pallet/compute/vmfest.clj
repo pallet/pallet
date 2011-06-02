@@ -240,7 +240,7 @@
                    user)]
         (execute/remote-sudo
          (manager/get-ip machine) init-script user
-         {:pty (not= :fedora (:os-family image))})))
+         {:pty (not (#{:arch :fedora} (:os-family image)))})))
     machine))
 
 (defn- equality-match
