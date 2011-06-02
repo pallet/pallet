@@ -28,7 +28,9 @@
    {:os-family :ubuntu :os-version-matches "10.10" :os-64-bit true
     :prefix "u1010"}
    {:os-family :debian :os-version-matches "5.0.7" :os-64-bit false
-    :prefix "deb"}
+    :prefix "deb5"}
+   {:os-family :debian :os-version-matches "6.0.1" :os-64-bit true
+    :prefix "deb6"}
    {:os-family :centos :os-version-matches "5.5" :os-64-bit true
     :prefix "co55"}
    {:os-family :centos :os-version-matches "5.3" :os-64-bit false
@@ -50,6 +52,8 @@
                       :os-64-bit true}]
    :debian-lenny [{:os-family :debian :os-version-matches "5.0.7"
                    :os-64-bit false}]
+   :debian-squeeze [{:os-family :debian :os-version-matches "6.0.1"
+                   :os-64-bit true}]
    :centos-5-3 [{:os-family :centos :os-version-matches "5.3"
                  :os-64-bit false}]
    :centos-5-5 [{:os-family :centos :os-version-matches "5.5"
