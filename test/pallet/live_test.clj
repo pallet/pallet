@@ -92,6 +92,12 @@
       false
       (read-string parallel))))
 
+(def ^{:doc "Vbox session type. Set this to gui to debug boot issues."}
+  *vbox-session-type*
+  (let [session-type (System/getProperty "pallet.test.session-type")]
+    (when (not (string/blank? session-type))
+      session-type)))
+
 (def ^{:doc "List of images to test with" :deprecated "0.4.17"}
   *images*
   (let [image-list (System/getProperty "pallet.test.image-list")]
@@ -176,7 +182,8 @@
   (-> spec
       (assoc
           :base-group-name (keyword (name group-name))
-          :group-name (effective-group-name group-name spec))
+          :group-name (effective-group-name group-name spec)
+          :session-type *vbox-session-type*)
       (update-in [:image] dissoc :prefix)))
 
 (defn node-types

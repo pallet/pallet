@@ -59,6 +59,8 @@
 (def os-family-tag "/pallet/os-family")
 (def os-version-tag "/pallet/os-version")
 
+(def *vm-session-type* "headless") ; gui, headless or sdl
+
 (def os-family-from-name
   (zipmap (vals os-family-name) (keys os-family-name)))
 
@@ -167,7 +169,9 @@
   (let [nodes (manager/machines compute-service)]
     (map node-data nodes)))
 
-(def *vm-session-type* "headless")
+(defn add-sata-controller [m]
+  {:pre [(model/IMachine? m)]}
+  (machine/add-storage-controller m "SATA Controller" :sata))
 
 (defn basic-config [m {:keys [memory-size cpu-count] :as parameters}]
   (let [parameters (merge {:memory-size 512 :cpu-count 1} parameters)]
@@ -211,7 +215,11 @@
     (manager/set-extra-data machine os-family-tag (name (:os-family image)))
     (manager/set-extra-data machine os-version-tag (:os-version image))
     ;; (manager/add-startup-command machine 1 init-script )
-    (manager/start machine :session-type *vm-session-type*)
+    (manager/start
+     machine
+     :session-type (or
+                    (:session-type node-spec)
+                    *vm-session-type*))
     (logging/trace "Wait to allow boot")
     (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
