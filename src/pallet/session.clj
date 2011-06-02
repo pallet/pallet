@@ -44,6 +44,11 @@
   [session]
   (compute/primary-ip (target-node session)))
 
+(defn base-distribution
+  "Base distribution of the target-node."
+  [session]
+  (compute/base-distribution (-> session :server :image)))
+
 (defn os-family
   "OS-Family of the target-node."
   [session]

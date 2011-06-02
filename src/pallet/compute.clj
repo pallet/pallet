@@ -240,6 +240,25 @@
                        "Unknown packager for %s - :image %s"
                        os-family target))))))
 
+(defn base-distribution
+  "Base distribution for the target."
+  [target]
+  (or
+   (:base-distribution target)
+   (let [os-family (:os-family target)]
+     (cond
+      (#{:ubuntu :debian :jeos} os-family) :debian
+      (#{:centos :rhel :amzn-linux :fedora} os-family) :rh
+      (#{:arch} os-family) :arch
+      (#{:suse} os-family) :suse
+      (#{:gentoo} os-family) :gentoo
+      (#{:darwin :os-x} os-family) :os-x
+      :else (condition/raise
+             :type :unknown-packager
+             :message (format
+                       "Unknown base-distribution for %s - target is %s"
+                       os-family target))))))
+
 (defn admin-group
   "User that remote commands are run under"
   [target]
