@@ -266,7 +266,6 @@
       (when-not (zero? exit)
         (do
           (logging/error (str "Exit status  : " exit))
-          (logging/error (str "Output       : " stdout))
           (condition/raise
            :message (format
                      "Error executing script :\n :cmd %s\n :out %s\n"
