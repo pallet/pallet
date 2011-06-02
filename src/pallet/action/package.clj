@@ -420,12 +420,10 @@
     (if-not (rpm -q @(rpm -pq ~rpm-name) > "/dev/null" "2>&1")
       (do (rpm -U --quiet ~rpm-name))))))
 
-(action/def-aggregated-action
-  minimal-packages
+(action/def-bash-action minimal-packages
   "Add minimal packages for pallet to function"
-  [session args]
-  {:arglists '([session])
-   :always-before #{`package-manager `package-source `package}}
+  [session]
+  {:always-before #{`package-manager `package-source `package}}
   (let [os-family (session/os-family session)]
     (cond
      (#{:ubuntu :debian} os-family) (stevedore/checked-script
@@ -435,5 +433,13 @@
                                      (~lib/install-package "sudo"))
      (= :arch os-family) (stevedore/checked-script
                           "Add minimal packages"
+                          ("{" pacman-db-upgrade "||" true "; } "
+                           "2> /dev/null")
                           (~lib/update-package-list)
+                          (~lib/upgrade-package "pacman")
+                          (println "  checking for pacman-db-upgrade")
+                          ("{" pacman-db-upgrade
+                           "&&" (~lib/update-package-list)
+                           "||" true "; } "
+                           "2> /dev/null")
                           (~lib/install-package "sudo")))))
