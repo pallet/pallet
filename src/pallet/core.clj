@@ -630,10 +630,10 @@ is run with root privileges immediatly after first boot."
           (future (apply-phase-to-node (assoc session :server server)))))
    futures/add))
 
-(defn- ensure-configure-phase [phases]
-  (if (some #{:configure} phases)
+(defn- ensure-phase [phases phase-kw]
+  (if (some #{phase-kw} phases)
     phases
-    (concat [:configure] phases)))
+    (concat [phase-kw] phases)))
 
 (defn- identify-anonymous-phases
   [session phases]
@@ -738,14 +738,15 @@ is run with root privileges immediatly after first boot."
   "Ensure that the `phase-list` contains the :configure phase, prepending it if
   not."
   [phase-list]
-  (if (some #{:configure} phase-list)
-    phase-list
-    (concat [:configure] phase-list)))
+  (->
+   phase-list
+   (ensure-phase :configure)
+   (ensure-phase :settings)))
 
 (defn- phase-list-with-default
   "Add the default configure phase if the `phase-list` is empty"
   [phase-list]
-  (if (seq phase-list) phase-list [:configure]))
+  (if (seq phase-list) phase-list [:settings :configure]))
 
 (defn- session-with-configure-phase
   "Add the configure phase to the session's :phase-list if not present."
@@ -755,7 +756,11 @@ is run with root privileges immediatly after first boot."
 (defn- session-with-default-phase
   "Add the default phase to the session's :phase-list if none supplied."
   [session]
-  (update-in session [:phase-list] phase-list-with-default))
+  (update-in session [:phase-list]
+             (fn [phase-list]
+               (-> phase-list
+                   phase-list-with-default
+                   (ensure-phase :settings)))))
 
 (defn- node-in-types?
   "Predicate for matching a node belonging to a set of node types"

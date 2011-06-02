@@ -284,7 +284,7 @@
                      (mock/once [na nb nc]))
                    (sequential-apply-phase
                     [session group-nodes]
-                    (mock/times 6 ;; 2 groups :pre, :after, :configure
+                    (mock/times 12 ; 2 phases, 2 groups :pre, :after, :configure
                       (is (= #{na nb nc} (set (:all-nodes session))))
                       (let [m (into
                                {}

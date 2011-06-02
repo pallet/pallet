@@ -408,21 +408,21 @@
 
 (deftest session-with-default-phase-test
   (testing "with empty phase list"
-    (is (= {:phase-list [:configure]}
+    (is (= {:phase-list [:settings :configure]}
            (#'core/session-with-default-phase {}))))
   (testing "with non-empty phase list"
-    (is (= {:phase-list [:a]}
+    (is (= {:phase-list [:settings :a]}
            (#'core/session-with-default-phase {:phase-list [:a]})))))
 
 (deftest session-with-configure-phase-test
   (testing "with empty phase-list"
-    (is (= {:phase-list [:configure]}
+    (is (= {:phase-list [:settings :configure]}
            (#'core/session-with-configure-phase {}))))
   (testing "with phase list without configure"
-    (is (= {:phase-list [:configure :a]}
+    (is (= {:phase-list [:settings :configure :a]}
            (#'core/session-with-configure-phase {:phase-list [:a]}))))
   (testing "with phase list with configure"
-    (is (= {:phase-list [:a :configure]}
+    (is (= {:phase-list [:settings :a :configure]}
            (#'core/session-with-configure-phase
              {:phase-list [:a :configure]})))))
 
