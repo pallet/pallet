@@ -8,7 +8,7 @@
   (testing "single argument"
     (is (= {:a 1} (environment/merge-environments {:a 1}))))
   (testing "defalut algorithm"
-    (is (= {:a {:b 1}}
+    (is (= {:a {:b 1 :c 2}}
            (environment/merge-environments {:a {:c 2}} {:a {:b 1}}))))
   (testing "merge algorithm"
     (is (= {:user {:username "u" :password "p"}}
