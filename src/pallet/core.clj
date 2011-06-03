@@ -216,7 +216,7 @@
 
    - :roles     roles for the group-spec"
   [cluster-name
-   & {:keys [extends groups phases node-spec] :as options}]
+   & {:keys [extends groups phases node-spec environment] :as options}]
   (->
    options
    (update-in [:groups]
@@ -229,6 +229,9 @@
                     (update-in
                      [:group-name]
                      #(keyword (str (name cluster-name) "-" (name %))))
+                    (update-in
+                     [:environment]
+                     environment/merge-environments environment)
                     (extend-specs extends)
                     (extend-specs [{:phases phases}])
                     (extend-specs [(select-keys group-spec [:phases])])))
@@ -1123,3 +1126,19 @@ is run with root privileges immediatly after first boot."
     (dissoc :all-node-set :phase)
     session-with-environment
     identify-anonymous-phases)))
+
+(defn cluster-groups
+  [cluster]
+  (if (seq? cluster)
+    (mapcat :groups cluster)
+    (:groups cluster)))
+
+(defn converge-cluster
+  "Converge the specified cluster."
+  [cluster & options]
+  (apply converge (cluster-groups cluster) options))
+
+(defn lift-cluster
+  "Lift the specified cluster."
+  [cluster & options]
+  (apply lift (cluster-groups cluster) options))

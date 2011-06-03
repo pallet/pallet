@@ -44,6 +44,11 @@
   [session]
   (compute/primary-ip (target-node session)))
 
+(defn target-roles
+  "Roles of the target server."
+  [session]
+  (-> session :server :roles))
+
 (defn base-distribution
   "Base distribution of the target-node."
   [session]

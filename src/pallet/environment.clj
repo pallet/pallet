@@ -46,6 +46,12 @@
    :groups :merge-environments
    :tags :merge-environments})
 
+
+(def ^{:doc "node specific environment keys"}
+  node-keys [:image :phases])
+
+(def standard-pallet-keys (keys merge-key-algorithm))
+
 (defmulti merge-key
   "Merge function that dispatches on the map entry key"
   (fn [key val-in-result val-in-latter]
@@ -155,9 +161,6 @@
   ([session keys default]
        (get-in (:environment session) keys default)))
 
-(def ^{:doc "node specific environment keys"}
-  node-keys [:image :phases])
-
 (defn session-with-environment
   "Returns an updated `session` map, containing the keys for the specified
    `environment` map.
@@ -174,8 +177,12 @@
           "Please change to use :groups.")))
   (let [session (merge
                  session
-                 (utils/dissoc-keys
-                  environment (conj node-keys :groups :tags)))
+                 (->
+                  environment
+                  (select-keys standard-pallet-keys)
+                  (utils/dissoc-keys (conj node-keys :groups :tags))))
+        session (assoc-in session [:environment]
+                          (utils/dissoc-keys environment node-keys))
         session (if (:server session)
                   (let [tag (-> session :server :group-name)]
                     (assoc session
