@@ -159,57 +159,62 @@
         n (test-utils/make-node
            "a" :os-family :ubuntu :os-version "v" :id "id")]
     (is (= [{:servers [{:node-id :id
-                            :group-name :a
-                            :packager :aptitude
-                            :image {:os-version "v"
-                                    :os-family :ubuntu}
-                            :node n}]
+                        :group-name :a
+                        :packager :aptitude
+                        :image {:os-version "v"
+                                :os-family :ubuntu}
+                        :node n
+                        :invoke-only false}]
              :group-name :a
              :image {}}]
-             (groups-with-servers {a #{n}})))
-    (testing "with options"
+           (groups-with-servers {a #{n}} #{n})))
+    (testing "with invoke-only"
       (is (= [{:servers [{:node-id :id
-                              :group-name :a
-                              :packager :aptitude
-                              :image {:os-version "v"
-                                      :os-family :ubuntu}
-                              :node n
-                              :extra 1}]
+                          :group-name :a
+                          :packager :aptitude
+                          :image {:os-version "v"
+                                  :os-family :ubuntu}
+                          :node n
+                          :invoke-only true}]
                :group-name :a
                :image {}}]
-               (groups-with-servers {a #{n}} :extra 1))))))
+             (groups-with-servers {a #{n}} (constantly false)))))))
 
 (deftest session-with-groups-test
   (let [a (make-node :a {})
         n (test-utils/make-node
            "a" :os-family :ubuntu :os-version "v" :id "id")]
     (is (= {:groups [{:servers [{:node-id :id
-                                     :group-name :a
-                                     :packager :aptitude
-                                     :image {:os-version "v"
-                                             :os-family :ubuntu}
-                                     :node n}]
+                                 :group-name :a
+                                 :packager :aptitude
+                                 :image {:os-version "v"
+                                         :os-family :ubuntu}
+                                 :node n
+                                 :invoke-only false}]
                       :group-name :a
                       :image {}}]
             :all-nodes [n]
+            :selected-nodes [n]
             :node-set {a #{n}}}
            (session-with-groups
-             {:all-nodes [n] :node-set {a #{n}}})))
+             {:all-nodes [n] :selected-nodes [n] :node-set {a #{n}}})))
     (testing "with-options"
       (is (= {:groups [{:servers [{:node-id :id
-                                       :group-name :a
-                                       :packager :aptitude
-                                       :image {:os-version "v"
-                                               :os-family :ubuntu}
-                                       :node n
-                                       :invoke-only true}]
+                                   :group-name :a
+                                   :packager :aptitude
+                                   :image {:os-version "v"
+                                           :os-family :ubuntu}
+                                   :node n
+                                   :invoke-only true}]
                         :group-name :a
                         :image {}}]
               :all-nodes [n]
+              :selected-nodes [n]
               :node-set nil
               :all-node-set {a #{n}}}
              (session-with-groups
-               {:all-nodes [n] :node-set nil :all-node-set {a #{n}}}))))))
+               {:all-nodes [n] :selected-nodes [n]
+                :node-set nil :all-node-set {a #{n}}}))))))
 
 
 (deftest session-with-environment-test
@@ -543,6 +548,7 @@
     (mock/expects [(sequential-apply-phase
                     [session servers]
                     (do
+                      (is (= #{na nb} (set (:selected-nodes session))))
                       (is (= #{na nb} (set (:all-nodes session))))
                       (is (= #{na nb} (set (map :node servers))))
                       (is (= #{na nb}
@@ -561,7 +567,7 @@
     (mock/expects [(sequential-apply-phase
                     [session nodes]
                     (do
-                      (is (= #{na nb} (set (:all-nodes session))))
+                      (is (= #{na nb} (set (:selected-nodes session))))
                       (is (= na
                              (-> session
                                  :groups first :servers first :node)))
