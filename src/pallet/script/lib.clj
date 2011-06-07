@@ -331,11 +331,38 @@
    ~(-> options
         (assoc :r (:system options))
         (dissoc :system)
+        (thread-expr/when->
+         (:groups options)
+         (update-in [:groups] (fn [groups]
+                                (if (and (seq? groups) (not (string? groups)))
+                                  (string/join "," groups)))))
+        (thread-expr/when->
+         (:group options)
+         (assoc :g (:group options))
+         (dissoc :group))
         stevedore/map-to-arg-string)
    ~username))
 
 (script/defimpl modify-user :default [username options]
   ("/usr/sbin/usermod" ~(stevedore/map-to-arg-string options) ~username))
+
+(script/defimpl modify-user [#{:rhel :centos :amzn-linux :fedora}]
+  [username options]
+  ("/usr/sbin/usermod"
+   ~(-> options
+        (assoc :r (:system options))
+        (dissoc :system)
+        (thread-expr/when->
+         (:groups options)
+         (update-in [:groups] (fn [groups]
+                                (if (and (seq? groups) (not (string? groups)))
+                                  (string/join "," groups)))))
+        (thread-expr/when->
+         (:group options)
+         (assoc :g (:group options))
+         (dissoc :group))
+        stevedore/map-to-arg-string)
+   ~username))
 
 (script/defimpl remove-user :default [username options]
   ("/usr/sbin/userdel" ~(stevedore/map-to-arg-string options) ~username))
