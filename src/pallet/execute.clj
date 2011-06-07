@@ -227,7 +227,7 @@
                            :return-map true)
         response2 (ssh/sftp sftp-channel :ls)]
     (logging/info
-     (format "Transfering commands to %s : %s" tmpfile response)))
+     (format "Transfering commands to %s:%s : %s" server tmpfile response)))
   (let [chmod-result (ssh/ssh
                       ssh-session (str "chmod 755 " tmpfile) :return-map true)]
     (if (pos? (chmod-result :exit))
@@ -314,7 +314,10 @@
   [session]
   (let [{:keys [server port user ssh-session sftp-channel tmpfile tmpcpy]
          :as ssh} (:ssh session)]
-    (when-not (and server user)
+    (when-not
+        (and server
+             (if (string? server) (not (string/blank? server)) true)
+             user)
       (condition/raise
        :type :session-missing-middleware
        :message (str
@@ -385,7 +388,7 @@
   (let [{:keys [ssh] :as session} (ensure-ssh-connection session)
         {:keys [server ssh-session sftp-channel tmpfile tmpcpy user]} ssh
         {:keys [value session]} (f session)]
-    (logging/info (format "Target cmd\n%s" value))
+    (logging/info (format "Target %s cmd\n%s" server value))
     [(remote-sudo-cmd server ssh-session sftp-channel user tmpfile value {})
      session]))
 
@@ -457,6 +460,11 @@
   "Execute cmds for the session. Also accepts an IP or hostname as address."
   [handler]
   (fn execute-with-ssh-fn [{:keys [target-node user] :as session}]
+    (logging/info
+     (format
+      "execute-with-ssh on %s %s"
+      (compute/group-name target-node)
+      (pr-str (compute/node-address target-node))))
     (ssh/with-ssh-agent [(default-agent)]
       (try
         (->
