@@ -45,9 +45,12 @@
                      (try
                        (require provider)
                        provider
-                       (catch Throwable _
+                       (catch Throwable e
                          (logging/warn
-                          (format "%s provider failed to load" provider)))))))]
+                          (format
+                           "%s provider failed to load: %s"
+                           provider
+                           (.getMessage e))))))))]
       (reset! provider-list loaded)))
   @provider-list)
 
