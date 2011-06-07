@@ -28,7 +28,7 @@
           (println
            ~(format "Timed out waiting for listen state for %s" service-name)
            >&2)
-          (exit 1)))
+          (~lib/exit 1)))
       (println ~(format "Waiting for %s to be in a listen state" service-name))
       (sleep ~standoff))
     (sleep ~standoff))))
@@ -62,7 +62,7 @@
            -o "/dev/null"))
         (do
           (println "No httpresponse utility available")
-          (shell/exit 1))))
+          (~lib/exit 1))))
 
     (group (chain-or (let x 0) true))
     (while
@@ -74,7 +74,7 @@
            ~(format
              "Timed out waiting for %s to return a %s status" url-name status)
            >&2)
-          (exit 1)))
+          (~lib/exit 1)))
       (println ~(format "Waiting for %s to return a %s status" url-name status))
       (sleep ~standoff))
     (sleep ~standoff))))
@@ -113,7 +113,7 @@
              "Timed out waiting for %s to return response %s"
              service-name response-regex)
            >&2)
-          (exit 1)))
+          (~lib/exit 1)))
       (println
        ~(format
          "Waiting for %s to return response %s" service-name response-regex))
