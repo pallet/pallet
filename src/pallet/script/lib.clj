@@ -3,6 +3,7 @@
   (:require
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
+   [pallet.thread-expr :as thread-expr]
    [clojure.string :as string]))
 
 (script/defscript exit [value])
@@ -18,6 +19,11 @@
 (script/defimpl which :default
   [arg]
   (which ~arg))
+
+(script/defscript has-command?
+  "Check whether the specified command is on the path"
+  [arg])
+(script/defimpl has-command? :default [arg] (hash ~arg "2>&-"))
 
 (script/defscript rm [file & {:keys [recursive force]}])
 (script/defimpl rm :default [file & {:keys [recursive force] :as options}]
@@ -184,7 +190,7 @@
 (script/defscript download-file [url path & {:keys [proxy]}])
 
 (script/defimpl download-file :default [url path & {:keys [proxy]}]
-  (if ("test" @(~which curl))
+  (if (~has-command? curl)
     (curl "-o" (quoted ~path)
      --retry 5 --silent --show-error --fail --location
      ~(if proxy
@@ -192,7 +198,7 @@
           (format "--proxy %s:%s" (.getHost url) (.getPort url)))
         "")
      (quoted ~url))
-    (if ("test" @(~which wget))
+    (if (~has-command? wget)
       (wget "-O" (quoted ~path) --tries 5 --no-verbose
        ~(if proxy
           (format "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\"" proxy proxy)

@@ -1,7 +1,8 @@
 (ns pallet.crate.network-service
   "Crate for working with network services"
   (:require
-   [pallet.action.exec-script :as exec-script]))
+   [pallet.action.exec-script :as exec-script]
+   [pallet.script.lib :as lib]))
 
 (defn wait-for-port-listen
   "Wait for the network port `port` to be in a listening state.
@@ -48,14 +49,14 @@
    (exec-script/exec-checked-script
     (format "Wait for %s to return a %s status" url-name status)
 
-    (if ("test" @(shell/which wget))
+    (if (~lib/has-command? wget)
       (defn httpresponse []
         (pipe
          ("wget" -q -S -O "/dev/null" (quoted ~url) "2>&1")
          ("grep" "HTTP/1.1")
          ("tail" -1)
          ("grep" -o -e (quoted "[0-9][0-9][0-9]"))))
-      (if ("test" @(shell/which curl))
+      (if (~lib/has-command? curl)
         (defn httpresponse []
           ("curl" -sL -w (quoted "%{http_code}") (quoted ~url)
            -o "/dev/null"))
