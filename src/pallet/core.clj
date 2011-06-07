@@ -1189,3 +1189,9 @@
    or sequence of cluster-specs."
   [cluster & options]
   (apply lift (cluster-groups cluster) options))
+
+(defn destroy-cluster
+  "Destroy the specified cluster. As for `converge`, but takes a cluster-spec
+   or sequence of cluster-specs."
+  [cluster & options]
+  (apply converge (map #(assoc % :count 0) (cluster-groups cluster)) options))
