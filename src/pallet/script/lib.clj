@@ -323,7 +323,19 @@
   (getent passwd ~username))
 
 (script/defimpl create-user :default [username options]
-  ("/usr/sbin/useradd" ~(stevedore/map-to-arg-string options) ~username))
+  ("/usr/sbin/useradd"
+   ~(-> options
+        (thread-expr/when->
+         (:groups options)
+         (update-in [:groups] (fn [groups]
+                                (if (and (seq? groups) (not (string? groups)))
+                                  (string/join "," groups)))))
+        (thread-expr/when->
+         (:group options)
+         (assoc :g (:group options))
+         (dissoc :group))
+        stevedore/map-to-arg-string)
+   ~username))
 
 (script/defimpl create-user [#{:rhel :centos :amzn-linux :fedora}]
   [username options]
