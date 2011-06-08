@@ -5,9 +5,158 @@
 
 The latest stable release is 0.4.17.
 
-The latest development release is 0.5.0.
+The latest development release is 0.5.1.
 
-* 0.5.0-SNAPHSOT
+* 0.5.1
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Features
+- Add core/destroy-cluster and destroy-cluster task
+
+- Add converge-cluster task
+
+- Update pallet.action.user/user to handle login group
+  :group can be passed a group name to set the login group.
+
+  :groups now accepts a sequence of group names.
+
+  usermod now specialised on rh derivatives.
+
+- Add pallet.script.lib/has-command? to check availablity of command on path
+  Uses hash, instead of checking with which.  This is a lighter weight,
+  builtin, so is more portable. Some which's apparently always return a
+  zero status too.
+
+  download-file and pallet.crate.network-service are updated to use this.
+
+- Add :node-set-selector option to pallet.core
+  Add the ability to partition the nodes for lifting, based on a function
+  passed as an option. Currently implemented partitioning functions are
+  core/all-node-set-selector and core/new-node-set-selector.
+
+- Change default environment merge to deep-merge
+  User defined keys are deep merged by default, to allow them to be built
+  from cluster and lift/converge environments.
+
+- Add core/converge-cluster and lift-cluster
+  Add's the ability to lift or converge one or more clusters.  Environment
+  specified on the cluster-spec is propogated to it's groups.
+
+- Automatically run the :settings phase on lift or converge
+  In order to allow easy access to configuration metadata, run the
+  :settings phase before each lift or converge. The settings phase is
+  intended to be non side-affecting.
+
+- Add core/cluster-spec and add roles to server-spec and group-spec
+  Allows specification of a cluster made up of heterogeneous groups.  Roles
+  allow the cluster to be queried for nodes providing specified roles,
+  using session/groups-with-role and session/nodes-with-role
+
+- Add overload for etc-init to /etc/rc.d on arch
+
+- Add support for pacman-db-upgrade in package/minimal-packages
+
+- Add base-distribution to compute and session
+  Enable uniform treatment of all derived distributions. E.g. fedora,
+  centos, rhel are all based on rh.
+
+- Add debian squeeze to live test images
+
+- Add pallet.test.session-type for vbox headless/gui selection
+  When debugging boot issues, it is useful to be able to see the console
+
+- Add action/environmnet for controlling environment variables
+  Adds an environment/system-environment that is used to write
+  /etc/environment on debian based distros, and /etc/profile.d/xx on redhat
+  based distros
+
+- Add ~/.pallet/services/* as a source of service configuration
+  In order to allow the distribution of service defintions, enable service
+  definition in files in ~/.pallet/services. Add an 'add-service' task that
+  can be used to create service definitions from the command line.
+
+- Add support for post beta-9c jclouds snapshot
+  HardwareImpl, ImageImpl and NodeMetadataImpl all gain an extra tags
+  argument in their constructors
+
+- Add remote-exec, and streaming of output for sh-script
+
+- Add ability to not use a pty for ssh on fedora
+  Fedora seems to drop a few characters at the start of an ssh shell
+  connection when run with a pty.
+
+  Add an option map to execute/remote-sudo-cmd arguments. Allow
+  specification of whether to use a pty or not.
+
+- Allow dependecies between action calls
+  In order to have fine grained control over execution order, allow the
+  specification of :always-before and :always-after on an action
+  definition, and the specification of :always-before and :always-after and
+  an :action-id on the action call (via the with-precedence macro).
+
+- Add a :rh image list to live-test
+  Provides a means for testing across redhat variants.
+
+- Add fedora support
+  Add script function specialisations for fedora, and add fedora 14 to live
+  tests
+
+- Allow specification of precedence on an action invocation
+  In order to override default precedence rules, allow specification of
+  precedence on an action call.
+
+- Add merging of :environment from cake/*project*
+  In order to provide an identical environment under a cake task and from a
+  cake repl or swank server, merge :environment from cake/*project* in
+  compute-service-from-config and compute-service-from-settings
+
+** Fixes and Improvements
+- Fix a race in shutting down vmfest nodes
+
+- Improved pallet.execute logging, and checking of blank server address
+
+- Include exception message when provider fails to load
+
+- Fix network-service to use ~lib/exit
+
+- Remove use of pty on arch bootstrap for vmfest
+
+- Add warning for failed require of compute provider
+
+- Fix package/minimal-packages for new stevedore script convention
+
+- Change package/add-rpm to be non-aggregated
+  Allow use of rpm-bin in more general situations. Execution sequence can
+  now be controlled via with-precedence.
+
+- Modify log message for os-family computed from template
+
+- Add default installonlypkgs list for yum
+  When specifying installonlypkgs, the defaults should be added back in
+  (these include the kernel packages).
+
+- Fix script.lib/user-home for os-x
+
+- Disable package repos before enabling package repos
+  In yum package commands, disable repos before enabling, to allow
+  disabling all repos, then explicitly enabling a list
+
+- Fix merge of group specific environment on converge of new nodes
+
+- Fix use of :tag in pallet.environment/session-with-environment
+
+- Remove deprecation warning in vmfest
+
+- Add backward compatability to vmfest for group-name as tag
+
+- Fix vmfest 64bit and os-family detection
+
+- Fix for fedora to use yum
+
+
+* 0.5.0
 ** Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
