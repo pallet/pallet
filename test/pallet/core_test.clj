@@ -80,14 +80,36 @@
 (deftest converge-node-counts-test
   (let [a (group-spec "a" :node-spec ubuntu-node)
         a-node (test-utils/make-node "a" :running true)
-        compute (compute/compute-service "node-list" :node-list [a-node])]
-    (#'core/converge-node-counts
-     {:groups [{:group-name :a :count 1 :servers [{:node a-node}]}]
-      :environment
-      {:compute compute
-       :algorithms {:lift-fn sequential-lift
-                    :converge-fn
-                    (var-get #'core/serial-adjust-node-counts)}}})))
+        compute (compute/compute-service "node-list" :node-list [a-node])
+        session {:groups [{:group-name :a :count 1 :servers [{:node a-node}]}]
+                 :all-nodes [a-node]
+                 :environment
+                 {:compute compute
+                  :algorithms {:lift-fn sequential-lift
+                               :converge-fn
+                               (var-get #'core/serial-adjust-node-counts)}}}
+        session (#'core/converge-node-counts session)]
+    (is (map? session))
+    (is (= [a-node] (:all-nodes session)))
+    (is (empty? (:old-nodes session)))
+    (is (empty? (:new-nodes session))))
+  (testing "removal of node"
+    (let [a (group-spec "a" :node-spec ubuntu-node)
+          a-node (test-utils/make-node "a" :running true)
+          compute (compute/compute-service "node-list" :node-list [a-node])
+          session {:groups [{:group-name :a :count 0 :servers [{:node a-node}]}]
+                   :all-nodes [a-node]
+                   :environment
+                   {:compute compute
+                    :algorithms {:lift-fn sequential-lift
+                                 :converge-fn
+                                 (var-get #'core/serial-adjust-node-counts)}}}
+          session (#'core/converge-node-counts session)]
+      (is (map? session))
+      (is (nil? (seq (:all-nodes session))))
+      (is (= [a-node] (:original-nodes session)))
+      (is (= [a-node] (:old-nodes session)))
+      (is (empty? (:new-nodes session))))))
 
 (deftest group-spec?-test
   (is (#'core/group-spec? (core/group-spec "a")))
@@ -159,57 +181,62 @@
         n (test-utils/make-node
            "a" :os-family :ubuntu :os-version "v" :id "id")]
     (is (= [{:servers [{:node-id :id
-                            :group-name :a
-                            :packager :aptitude
-                            :image {:os-version "v"
-                                    :os-family :ubuntu}
-                            :node n}]
+                        :group-name :a
+                        :packager :aptitude
+                        :image {:os-version "v"
+                                :os-family :ubuntu}
+                        :node n
+                        :invoke-only false}]
              :group-name :a
              :image {}}]
-             (groups-with-servers {a #{n}})))
-    (testing "with options"
+           (groups-with-servers {a #{n}} #{n})))
+    (testing "with invoke-only"
       (is (= [{:servers [{:node-id :id
-                              :group-name :a
-                              :packager :aptitude
-                              :image {:os-version "v"
-                                      :os-family :ubuntu}
-                              :node n
-                              :extra 1}]
+                          :group-name :a
+                          :packager :aptitude
+                          :image {:os-version "v"
+                                  :os-family :ubuntu}
+                          :node n
+                          :invoke-only true}]
                :group-name :a
                :image {}}]
-               (groups-with-servers {a #{n}} :extra 1))))))
+             (groups-with-servers {a #{n}} (constantly false)))))))
 
 (deftest session-with-groups-test
   (let [a (make-node :a {})
         n (test-utils/make-node
            "a" :os-family :ubuntu :os-version "v" :id "id")]
     (is (= {:groups [{:servers [{:node-id :id
-                                     :group-name :a
-                                     :packager :aptitude
-                                     :image {:os-version "v"
-                                             :os-family :ubuntu}
-                                     :node n}]
+                                 :group-name :a
+                                 :packager :aptitude
+                                 :image {:os-version "v"
+                                         :os-family :ubuntu}
+                                 :node n
+                                 :invoke-only false}]
                       :group-name :a
                       :image {}}]
             :all-nodes [n]
+            :selected-nodes [n]
             :node-set {a #{n}}}
            (session-with-groups
-             {:all-nodes [n] :node-set {a #{n}}})))
+             {:all-nodes [n] :selected-nodes [n] :node-set {a #{n}}})))
     (testing "with-options"
       (is (= {:groups [{:servers [{:node-id :id
-                                       :group-name :a
-                                       :packager :aptitude
-                                       :image {:os-version "v"
-                                               :os-family :ubuntu}
-                                       :node n
-                                       :invoke-only true}]
+                                   :group-name :a
+                                   :packager :aptitude
+                                   :image {:os-version "v"
+                                           :os-family :ubuntu}
+                                   :node n
+                                   :invoke-only true}]
                         :group-name :a
                         :image {}}]
               :all-nodes [n]
+              :selected-nodes [n]
               :node-set nil
               :all-node-set {a #{n}}}
              (session-with-groups
-               {:all-nodes [n] :node-set nil :all-node-set {a #{n}}}))))))
+               {:all-nodes [n] :selected-nodes [n]
+                :node-set nil :all-node-set {a #{n}}}))))))
 
 
 (deftest session-with-environment-test
@@ -262,7 +289,9 @@
   (is (= {:phases {:a 1} :image {:b 2}}
          (server-spec
           :extends (server-spec :phases {:a 1} :node-spec {:image {:b 2}})))
-      "extends a server-spec"))
+      "extends a server-spec")
+  (is (= {:roles #{:r1}} (server-spec :roles :r1)) "Allow roles as keyword")
+  (is (= {:roles #{:r1}} (server-spec :roles [:r1])) "Allow roles as sequence"))
 
 (deftest group-spec-test
   (is (= {:group-name :gn :phases {:a 1}}
@@ -271,7 +300,31 @@
          (group-spec
           "gn"
           :extends [(server-spec :phases {:a 1})
-                    (server-spec :node-spec {:image {:b 2}})]))))
+                    (server-spec :node-spec {:image {:b 2}})])))
+  (is (= {:group-name :gn :phases {:a 1} :image {:b 2} :roles #{:r1 :r2 :r3}}
+         (group-spec
+          "gn"
+          :roles :r1
+          :extends [(server-spec :phases {:a 1} :roles :r2)
+                    (server-spec :node-spec {:image {:b 2}} :roles [:r3])]))))
+
+(deftest cluster-spec-test
+  (let [x (fn [x] (update-in x [:x] inc))
+        gn (group-spec "gn" :count 1 :phases {:x (fn [x] (assoc x :x 1))})
+        go (group-spec "go" :count 2 :phases {:o (fn [x] (assoc x :o 1))})
+        cluster (cluster-spec
+                 "cl"
+                 :phases {:x x}
+                 :groups [gn go]
+                 :node-spec {:image {:os-family :ubuntu}})]
+    (is (= 2 (count (:groups cluster))))
+    (testing "names are prefixed"
+      (is (= :cl-gn (:group-name (first (:groups cluster)))))
+      (is (= :cl-go (:group-name (second (:groups cluster))))))
+    (testing ":phases on nodes are propogated"
+      (is (= {:o 1} ((-> cluster :groups second :phases :o) {}))))
+    (testing ":phases on cluster are merged"
+      (is (= {:x 2} ((-> cluster :groups first :phases :x) {}))))))
 
 (deftest make-node-test
   (is (= {:group-name :fred :image {:os-family :ubuntu}}
@@ -382,21 +435,21 @@
 
 (deftest session-with-default-phase-test
   (testing "with empty phase list"
-    (is (= {:phase-list [:configure]}
+    (is (= {:phase-list [:settings :configure]}
            (#'core/session-with-default-phase {}))))
   (testing "with non-empty phase list"
-    (is (= {:phase-list [:a]}
+    (is (= {:phase-list [:settings :a]}
            (#'core/session-with-default-phase {:phase-list [:a]})))))
 
 (deftest session-with-configure-phase-test
   (testing "with empty phase-list"
-    (is (= {:phase-list [:configure]}
+    (is (= {:phase-list [:settings :configure]}
            (#'core/session-with-configure-phase {}))))
   (testing "with phase list without configure"
-    (is (= {:phase-list [:configure :a]}
+    (is (= {:phase-list [:settings :configure :a]}
            (#'core/session-with-configure-phase {:phase-list [:a]}))))
   (testing "with phase list with configure"
-    (is (= {:phase-list [:a :configure]}
+    (is (= {:phase-list [:settings :a :configure]}
            (#'core/session-with-configure-phase
              {:phase-list [:a :configure]})))))
 
@@ -517,6 +570,7 @@
     (mock/expects [(sequential-apply-phase
                     [session servers]
                     (do
+                      (is (= #{na nb} (set (:selected-nodes session))))
                       (is (= #{na nb} (set (:all-nodes session))))
                       (is (= #{na nb} (set (map :node servers))))
                       (is (= #{na nb}
@@ -535,7 +589,7 @@
     (mock/expects [(sequential-apply-phase
                     [session nodes]
                     (do
-                      (is (= #{na nb} (set (:all-nodes session))))
+                      (is (= #{na nb} (set (:selected-nodes session))))
                       (is (= na
                              (-> session
                                  :groups first :servers first :node)))

@@ -45,15 +45,15 @@
    is-64bit
    running))
 
-(defrecord NodeList
+(deftype NodeList
     [node-list environment]
   pallet.compute.ComputeService
-  (nodes [compute-service] node-list)
+  (nodes [compute-service] @node-list)
   (ensure-os-family
-   [compute-service group-spec]
-   (when (not (-> group-spec :image :os-family))
-     (condition/raise
-      :type :no-os-family-specified
+    [compute-service group-spec]
+    (when (not (-> group-spec :image :os-family))
+      (condition/raise
+       :type :no-os-family-specified
        :message "Node list contains a node without os-family")))
   ;; Not implemented
   ;; (run-nodes [node-type node-count request init-script])
@@ -61,6 +61,11 @@
   (boot-if-down [compute nodes] nil)
   ;; (shutdown-node "Shutdown a node.")
   ;; (shutdown "Shutdown specified nodes")
+
+  ;; this forgets about the nodes
+  (destroy-nodes-in-group [_ group]
+    (swap! node-list (fn [nl] (remove #(= (compute/group-name %) group) nl))))
+
   (close [compute])
   pallet.environment.Environment
   (environment [_] environment))
@@ -97,10 +102,10 @@
 (defmethod implementation/service :node-list
   [_ {:keys [node-list environment]}]
   (NodeList.
-   (vec
-    (map
-     #(if (vector? %)
-        (apply make-node %)
-        %)
-     node-list))
+   (atom (vec
+          (map
+           #(if (vector? %)
+              (apply make-node %)
+              %)
+           node-list)))
    environment))

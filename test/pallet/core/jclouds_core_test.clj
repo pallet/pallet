@@ -42,6 +42,9 @@
     (with-admin-user [x]
       (is (= x (:username pallet.utils/*admin-user*))))))
 
+(defn running-nodes [nodes]
+  (filter (complement compute/terminated?) nodes))
+
 ;; this test doesn't work too well if the test are run in more than
 ;; one thread...
 #_
@@ -69,17 +72,6 @@
     (is (= old pallet.utils/*admin-user*))))
 
 (deftest converge-node-counts-test
-  (let [a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
-    (is
-     (= [a-node]
-          (->
-           (#'core/converge-node-counts
-            {:groups [(test-utils/group :a :count 1 :servers [{:node a-node}])]
-             :environment
-             {:compute (jclouds-test-utils/compute)
-              :algorithms {:converge-fn #'pallet.core/serial-adjust-node-counts
-                           :lift-fn #'pallet.core/sequential-lift}}})
-           :all-nodes))))
   (let [build-template org.jclouds.compute/build-template
         a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
     (mock/expects [(org.jclouds.compute/run-nodes
@@ -93,30 +85,18 @@
                     (mock/times 2 (apply build-template compute options)))]
                   (is
                    (= [a-node]
-                        (->
-                         (#'core/converge-node-counts
-                          {:groups [(test-utils/group :a :count 1 :servers [])]
-                           :environment
-                           {:compute (jclouds-test-utils/compute)
-                            :algorithms
-                            {:converge-fn
-                             #'pallet.core/serial-adjust-node-counts
-                             :lift-fn #'pallet.core/sequential-lift}}})
-                         :all-nodes))))))
+                      (->
+                       (#'core/converge-node-counts
+                        {:groups [(test-utils/group :a :count 1 :servers [])]
+                         :environment
+                         {:compute (jclouds-test-utils/compute)
+                          :algorithms
+                          {:converge-fn
+                           #'pallet.core/serial-adjust-node-counts
+                           :lift-fn #'pallet.core/sequential-lift}}})
+                       :all-nodes))))))
 
 (deftest parallel-converge-node-counts-test
-  (let [a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
-    (is
-     (= [a-node]
-          (->
-           (#'core/converge-node-counts
-            {:groups [(test-utils/group :a :count 1 :servers [{:node a-node}])]
-             :environment
-             {:compute (jclouds-test-utils/compute)
-              :algorithms {:converge-fn
-                           #'pallet.core/parallel-adjust-node-counts
-                           :lift-fn #'pallet.core/parallel-lift}}})
-           :all-nodes))))
   (let [build-template org.jclouds.compute/build-template
         a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
     (mock/expects [(clojure.core/future-call
@@ -284,7 +264,7 @@
                      (mock/once [na nb nc]))
                    (sequential-apply-phase
                     [session group-nodes]
-                    (mock/times 6 ;; 2 groups :pre, :after, :configure
+                    (mock/times 12 ; 2 phases, 2 groups :pre, :after, :configure
                       (is (= #{na nb nc} (set (:all-nodes session))))
                       (let [m (into
                                {}
@@ -302,29 +282,30 @@
 (deftest create-nodes-test
   (let [a (jclouds/make-node "a")
         nodes (#'core/create-nodes
-               (group-spec :a :servers [{:node a}]) 1
-               {:compute (jclouds-test-utils/compute)})]
-    (is (seq nodes))
-    (is (= 2 (count nodes)))
-    (is (= "a" (compute/tag (first nodes))))
-    (is (= "a" (compute/tag (second nodes))))))
+               1
+               {:compute (jclouds-test-utils/compute)
+                :group (group-spec :a :servers [{:node a}])})]
+    (is (map? nodes))
+    (is (= 1 (count (:new-nodes nodes))))))
 
 (deftest destroy-nodes-test
   (testing "remove all"
     (let [a (jclouds/make-node "a")
           nodes (#'core/destroy-nodes
-                 (test-utils/group :a :servers [{:node a}]) 1
-                 {:compute (jclouds-test-utils/compute)})]
-      (is (nil? (seq nodes)))))
+                 1
+                 {:compute (jclouds-test-utils/compute)
+                  :group (test-utils/group :a :servers [{:node a}])})]
+      (is (= [a] (:old-nodes nodes)))))
   (testing "remove some"
     (let [a (jclouds/make-node "a")
           b (jclouds/make-node "a")
           nodes (#'core/destroy-nodes
-                 (test-utils/group :a :servers [{:node a} {:node b}]) 1
-                 {:compute (jclouds-test-utils/compute)})]
+                 1
+                 {:compute (jclouds-test-utils/compute)
+                  :group (test-utils/group :a :servers [{:node a} {:node b}])})]
       (is (seq nodes))
       (is (= 1 (count nodes)))
-      (is (= "a" (compute/tag (first nodes)))))))
+      (is (= "a" (compute/tag (first (:old-nodes nodes))))))))
 
 (deftest converge*-test
   (logging/info "converge*-test")
@@ -336,7 +317,9 @@
     (mock/expects [(sequential-apply-phase
                     [session nodes]
                     (do
-                      (is (= #{na nb} (set (:all-nodes session))))
+                      (is (=
+                           #{"a" "b"}
+                           (set (map compute/group-name (:all-nodes session)))))
                       []))
                    (org.jclouds.compute/nodes-with-details [_] [na nb nb2])]
                   (converge*
@@ -350,10 +333,33 @@
                       :lift-fn sequential-lift}}})))
   (logging/info "converge*-test end"))
 
+(deftest converge-with-environment-test
+  (let [a (make-node :a {})]
+    (mock/expects [(pallet.core/create-nodes
+                    [count session]
+                    (do
+                      (let [group (:group session)]
+                        (is (= (:group-name group) :a))
+                        (is (= (-> group :image :os-family) :centos)))
+                      [(jclouds/make-node "a")]))]
+                  (converge*
+                   {:node-set [(assoc a :count 1)]
+                    :phase-list [:configure]
+                    :environment
+                    {:compute (jclouds-test-utils/compute)
+                     :middleware *middleware*
+                     :algorithms
+                     {:converge-fn #'pallet.core/serial-adjust-node-counts
+                      :lift-fn sequential-lift}
+                     :groups {:a {:image {:os-family :centos}}}
+                     :user (utils/make-user "fred")}}))))
+
 (deftest converge-test
+  (jclouds-test-utils/purge-compute-service)
+
   (let [hi (action/bash-action [session] "Hi")
-        id "a"
-        node (make-node "a" {} :configure hi)
+        id "c-t"
+        node (make-node "c-t" {} :configure hi)
         session (converge {node 2}
                           :compute (jclouds-test-utils/compute)
                           :middleware [core/translate-action-plan
@@ -366,22 +372,40 @@
          #(= "Hi\n" %)
          (:configure (-> session :results first second))))
     (is (= 2 (count (:all-nodes session))))
-    (is (= 2 (count (org.jclouds.compute/nodes (jclouds-test-utils/compute)))))
+    (is (= 2
+           (count (running-nodes
+                   (org.jclouds.compute/nodes (jclouds-test-utils/compute))))))
     (testing "remove some instances"
-      (let [reqeust (converge {node 1}
+      (let [session (converge {node 1}
                               :compute (jclouds-test-utils/compute)
                               :middleware [core/translate-action-plan
                                            execute/execute-echo])]
-        (Thread/sleep 300) ;; stub destroyNode is asynchronous ?
-        (is (= 1 (count (compute/nodes (jclouds-test-utils/compute)))))))
+        (is (= 1 (count (running-nodes (:all-nodes session)))))
+        (is (= 1 (count (running-nodes
+                         (compute/nodes
+                          (jclouds-test-utils/compute))))))
+        (is (some
+             #(= "Hi\n" %)
+             (:configure (-> session :results first second))))))
+    (testing "no instance count change with new-node-selector"
+      (let [session (converge {node 1}
+                              :compute (jclouds-test-utils/compute)
+                              :node-set-selector #'core/new-node-set-selector
+                              :middleware [core/translate-action-plan
+                                           execute/execute-echo])]
+        (is (= 1 (count (running-nodes (:all-nodes session)))))
+        (is (= 1 (count (running-nodes
+                         (compute/nodes
+                          (jclouds-test-utils/compute))))))
+        (is (not (some
+                  #(= "Hi\n" %)
+                  (:configure (-> session :results first second)))))))
     (testing "remove all instances"
       (let [session (converge {node 0}
                               :compute (jclouds-test-utils/compute)
                               :middleware [core/translate-action-plan
                                            execute/execute-echo])]
-        (is (= 0 (count (filter
-                         (complement compute/terminated?)
-                         (:all-nodes session)))))))))
+        (is (= 0 (count (running-nodes (:all-nodes session)))))))))
 
 
 (deftest lift-with-runtime-params-test
@@ -418,3 +442,37 @@
       (is out)
       (is (string/blank? err))
       (is (zero? exit)))))
+
+(deftest cluster-test
+  (jclouds-test-utils/purge-compute-service)
+  (let [cluster (cluster-spec "c"
+                              :groups [(group-spec "g1" :count 1)
+                                       (group-spec "g2" :count 2)])]
+    (testing "converge-cluster"
+      (let [session
+            (converge-cluster cluster :compute (jclouds-test-utils/compute))]
+        (is (= 3 (count (:new-nodes session))))
+        (is (= 3 (count (:all-nodes session))))
+        (is (= 3 (count (:selected-nodes session))))
+        (is (empty? (:old-nodes session))))
+      (is (= 3 (count
+                (running-nodes (compute/nodes (jclouds-test-utils/compute)))))))
+    (testing "lift-cluster"
+      (let [session
+            (lift-cluster cluster :compute (jclouds-test-utils/compute))]
+        (is (empty? (:new-nodes session)))
+        (is (= 3 (count (:all-nodes session))))
+        (is (= 3 (count (:selected-nodes session))))
+        (is (empty? (:old-nodes session))))
+      (is (= 3 (count
+                (running-nodes (compute/nodes (jclouds-test-utils/compute)))))))
+    (testing "destroy-cluster"
+      (let [session
+            (destroy-cluster cluster :compute (jclouds-test-utils/compute))]
+        (is (empty? (:all-nodes session)))
+        (is (empty? (:new-nodes session)))
+        (is (empty? (:selected-nodes session)))
+        (is (= 3 (count (:old-nodes session)))))
+      (is (= 0
+             (count
+              (running-nodes (compute/nodes (jclouds-test-utils/compute)))))))))

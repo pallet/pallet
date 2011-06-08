@@ -6,7 +6,9 @@
    [pallet.environment :as environment]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
-   [clojure.string :as string]))
+   [clojure.string :as string])
+  (:use
+   [clojure.contrib.core :only [-?>]]))
 
 
 ;;; Meta
@@ -51,8 +53,11 @@
                                 (read-string node-list)
                                 node-list))
                  :endpoint (:endpoint credentials)
-                 :environment (environment/eval-environment
-                               (:environment credentials))}]
+                 :environment
+                 (environment/merge-environments
+                  (environment/eval-environment
+                   (:environment credentials))
+                  (-?> 'cake/*project* resolve var-get :environment))}]
     (when-let [provider (:provider credentials)]
       (apply
        compute-service
@@ -102,7 +107,15 @@
     (when provider
       (apply compute-service
        provider :identity identity :credential credential
-       (apply concat (dissoc options :provider :identity :credential))))))
+       (apply
+        concat
+        (->
+          options
+          (dissoc :provider :identity :credential)
+          (update-in
+           [:environment]
+           environment/merge-environments
+           (-?> 'cake/*project* resolve var-get :environment))))))))
 
 (defn compute-service-from-config-file
   "Compute service from ~/.pallet/config.clj. Profiles is a sequence of service
@@ -215,8 +228,8 @@
    (:packager target)
    (let [os-family (:os-family target)]
      (cond
-      (#{:ubuntu :debian :jeos :fedora} os-family) :aptitude
-      (#{:centos :rhel :amzn-linux} os-family) :yum
+      (#{:ubuntu :debian :jeos} os-family) :aptitude
+      (#{:centos :rhel :amzn-linux :fedora} os-family) :yum
       (#{:arch} os-family) :pacman
       (#{:suse} os-family) :zypper
       (#{:gentoo} os-family) :portage
@@ -225,6 +238,25 @@
              :type :unknown-packager
              :message (format
                        "Unknown packager for %s - :image %s"
+                       os-family target))))))
+
+(defn base-distribution
+  "Base distribution for the target."
+  [target]
+  (or
+   (:base-distribution target)
+   (let [os-family (:os-family target)]
+     (cond
+      (#{:ubuntu :debian :jeos} os-family) :debian
+      (#{:centos :rhel :amzn-linux :fedora} os-family) :rh
+      (#{:arch} os-family) :arch
+      (#{:suse} os-family) :suse
+      (#{:gentoo} os-family) :gentoo
+      (#{:darwin :os-x} os-family) :os-x
+      :else (condition/raise
+             :type :unknown-packager
+             :message (format
+                       "Unknown base-distribution for %s - target is %s"
                        os-family target))))))
 
 (defn admin-group

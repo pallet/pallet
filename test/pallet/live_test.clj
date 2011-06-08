@@ -28,13 +28,17 @@
    {:os-family :ubuntu :os-version-matches "10.10" :os-64-bit true
     :prefix "u1010"}
    {:os-family :debian :os-version-matches "5.0.7" :os-64-bit false
-    :prefix "deb"}
+    :prefix "deb5"}
+   {:os-family :debian :os-version-matches "6.0.1" :os-64-bit true
+    :prefix "deb6"}
    {:os-family :centos :os-version-matches "5.5" :os-64-bit true
     :prefix "co55"}
    {:os-family :centos :os-version-matches "5.3" :os-64-bit false
     :prefix "co53"}
    {:os-family :arch :os-version-matches "2010.05" :os-64-bit true
-    :prefix "arch"}])
+    :prefix "arch"}
+   {:os-family :fedora :os-version-matches "14" :os-64-bit true
+    :prefix "f14"}])
 
 (def
   ^{:doc "Selectable image lists"}
@@ -48,12 +52,19 @@
                       :os-64-bit true}]
    :debian-lenny [{:os-family :debian :os-version-matches "5.0.7"
                    :os-64-bit false}]
+   :debian-squeeze [{:os-family :debian :os-version-matches "6.0.1"
+                   :os-64-bit true}]
    :centos-5-3 [{:os-family :centos :os-version-matches "5.3"
                  :os-64-bit false}]
    :centos-5-5 [{:os-family :centos :os-version-matches "5.5"
                  :os-64-bit true}]
    :arch-2010-05 [{:os-family :arch :os-version-matches "2010.05"
-                   :os-64-bit true}]})
+                   :os-64-bit true}]
+   :fedora-14 [{:os-family :fedora :os-version-matches "14"
+                :os-64-bit true}]
+   :rh [{:os-family :fedora :os-version-matches "14" :os-64-bit true}
+        {:os-family :centos :os-version-matches "5.5" :os-64-bit true}
+        {:os-family :centos :os-version-matches "5.3" :os-64-bit false}]})
 
 (defn- read-property
   "Read a system property as a clojure value."
@@ -84,6 +95,12 @@
     (if (string/blank? parallel)
       false
       (read-string parallel))))
+
+(def ^{:doc "Vbox session type. Set this to gui to debug boot issues."}
+  *vbox-session-type*
+  (let [session-type (System/getProperty "pallet.test.session-type")]
+    (when (not (string/blank? session-type))
+      session-type)))
 
 (def ^{:doc "List of images to test with" :deprecated "0.4.17"}
   *images*
@@ -169,7 +186,8 @@
   (-> spec
       (assoc
           :base-group-name (keyword (name group-name))
-          :group-name (effective-group-name group-name spec))
+          :group-name (effective-group-name group-name spec)
+          :session-type *vbox-session-type*)
       (update-in [:image] dissoc :prefix)))
 
 (defn node-types

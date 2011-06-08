@@ -131,12 +131,16 @@
 (defn- merge-specs
   "Merge specs, using comp for :phases"
   [a b]
-  (let [phases (merge-with #(comp %2 %1) (:phases a) (:phases b))]
+  (let [phases (merge-with #(comp %2 %1) (:phases a) (:phases b))
+        roles (set/union (:roles a) (:roles b))]
     (->
      (merge a b)
      (thread-expr/when-not->
       (empty? phases)
-      (assoc :phases phases)))))
+      (assoc :phases phases))
+     (thread-expr/when-not->
+      (empty? roles)
+      (assoc :roles roles)))))
 
 (defn- extend-specs
   "Merge in the inherited specs"
@@ -153,15 +157,18 @@
    - :phases a hash-map used to define phases. Standard phases are:
      - :bootstrap    run on first boot of a new node
      - :configure    defines the configuration of the node
-   - :packager       override the choice of packager to use
-   - :node-spec      default node-spec for this server-spec
    - :extends        takes a server-spec, or sequence thereof, and is used to
-                     inherit phases, etc."
-  [& {:keys [phases packager node-spec extends image hardware location network]
+                     inherit phases, etc.
+   - :roles          defines a sequence of roles for the server-spec
+   - :node-spec      default node-spec for this server-spec
+   - :packager       override the choice of packager to use"
+  [& {:keys [phases packager node-spec extends roles]
       :as options}]
   (->
    node-spec
    (merge options)
+   (thread-expr/when-> roles
+           (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
    (extend-specs extends)
    (dissoc :extends :node-spec)))
 
@@ -182,14 +189,55 @@
    - :packager override the choice of packager to use
    - :node-spec      default node-spec for this server-spec"
   [name
-   & {:keys [extends count image phases packager node-spec] :as options}]
+   & {:keys [extends count image phases packager node-spec roles] :as options}]
   {:pre [(or (nil? image) (map? image))]}
   (->
    node-spec
    (merge options)
+   (thread-expr/when-> roles
+           (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
    (extend-specs extends)
    (dissoc :extends :node-spec)
    (assoc :group-name (keyword name))))
+
+(defn cluster-spec
+  "Create a cluster-spec.
+
+   `name` is used as a prefix for all groups in the cluster.
+
+   - :groups    specify a sequence of groups that define the cluster
+
+   - :extends   specify a server-spec, a group-spec, or sequence thereof,
+                for all groups in the cluster
+
+   - :phases    define phases on all groups.
+
+   - :node-spec default node-spec for the nodes in the cluster
+
+   - :roles     roles for the group-spec"
+  [cluster-name
+   & {:keys [extends groups phases node-spec environment] :as options}]
+  (->
+   options
+   (update-in [:groups]
+              (fn [group-specs]
+                (map
+                 (fn [group-spec]
+                   (->
+                    node-spec
+                    (merge (dissoc group-spec :phases))
+                    (update-in
+                     [:group-name]
+                     #(keyword (str (name cluster-name) "-" (name %))))
+                    (update-in
+                     [:environment]
+                     environment/merge-environments environment)
+                    (extend-specs extends)
+                    (extend-specs [{:phases phases}])
+                    (extend-specs [(select-keys group-spec [:phases])])))
+                 group-specs)))
+   (dissoc :extends :node-spec)
+   (assoc :cluster-cluster-name (keyword cluster-name))))
 
 (defn make-node
   "Create a node definition.  See defnode."
@@ -342,43 +390,42 @@
     (string/join \newline result)))
 
 (defn- create-nodes
-  "Create count nodes based on the template for the group. The boostrap argument
-expects a map with :authorize-public-key and :bootstrap-script keys.  The
-bootstrap-script value is expected tobe a function that produces a script that
-is run with root privileges immediatly after first boot."
-  [group count session]
-  {:pre [(map? group)]}
+  "Create count nodes based on the template for the group.
+   Returns a map with updated server node lists."
+  [count session]
+  {:pre [(map? (:group session))]}
   (logging/info
-   (str "Starting " count " nodes for " (:group-name group)
-        " os-family " (-> group :image :os-family)))
+   (str "Starting " count " nodes for " (-> session :group :group-name)
+        " os-family " (-> session :group :image :os-family)))
   (let [compute (:compute session)
         session (update-in session [:group]
                            #(compute/ensure-os-family compute %))
         session (assoc-in session [:group :packager]
                           (compute/packager (-> session :group :image)))
-        init-script (bootstrap-script session)]
-    (logging/trace
-     (format "Bootstrap script:\n%s" init-script))
-    (concat
-     (map :node (:servers group))
-     (compute/run-nodes compute group count (:user session) init-script))))
+        init-script (bootstrap-script session)
+        _ (logging/trace (format "Bootstrap script:\n%s" init-script))
+        new-nodes (compute/run-nodes
+                   compute (:group session) count (:user session) init-script)]
+    {:new-nodes new-nodes}))
 
 (defn- destroy-nodes
   "Destroys the specified number of nodes with the given group.  Nodes are
-   selected at random."
-  [group destroy-count session]
+   selected at random. Returns a map containing removed nodes."
+  [destroy-count session]
   (logging/info
-   (str "destroying " destroy-count " nodes for " (:group-name group)))
+   (str "destroying " destroy-count " nodes for "
+        (-> session :group :group-name)))
   (let [compute (:compute session)
+        group (:group session)
         servers (:servers group)]
     (if (= destroy-count (count servers))
       (do
         (compute/destroy-nodes-in-group compute (name (:group-name group)))
-        nil)
+        {:old-nodes (map :node servers)})
       (let [nodes (map :node servers)]
         (doseq [node (take destroy-count nodes)]
           (compute/destroy-node compute node))
-        (drop destroy-count nodes)))))
+        {:old-nodes (vec (take destroy-count nodes))}))))
 
 (defn- node-count-difference
   "Find the difference between the required and actual node counts by group."
@@ -387,11 +434,12 @@ is run with root privileges immediatly after first boot."
    groups
    (map
     (fn [group]
-      (vector (:group-name group) (- (:count group) (count (:servers group))))))
+      (vector
+       (:group-name group) (- (:count group) (count (:servers group))))))
    (into {})))
 
 (defn- adjust-node-count
-  "Adjust the node by delta nodes"
+  "Adjust the node by delta nodes."
   [{:keys [group-name environment servers] :as group} delta session]
   (let [session (environment/session-with-environment
                   (assoc session :group group)
@@ -399,21 +447,19 @@ is run with root privileges immediatly after first boot."
                    (:environment session) environment))]
     (logging/info (format "adjust-node-count %s %d" group-name delta))
     (cond
-     (pos? delta) (create-nodes group delta session)
-     (neg? delta) (destroy-nodes group (- delta) session)
-     :else (map :node servers))))
+     (pos? delta) (create-nodes delta session)
+     (neg? delta) (destroy-nodes (- delta) session))))
 
 (defn serial-adjust-node-counts
   "Start or stop the specified number of nodes."
   [delta-map session]
   (logging/trace (str "serial-adjust-node-counts" delta-map))
-  (reduce
-   concat
-   (doall
-    (map
-     (fn [group]
-       (adjust-node-count group ((:group-name group) delta-map 0) session))
-     (:groups session)))))
+  (->>
+   (:groups session)
+   (map
+    (fn [group]
+      (adjust-node-count group ((:group-name group) delta-map 0) session)))
+   (reduce #(merge-with concat %1 %2))))
 
 (defn parallel-adjust-node-counts
   "Start or stop the specified number of nodes."
@@ -422,22 +468,37 @@ is run with root privileges immediatly after first boot."
   (->>
    (:groups session)
    (map
-    (fn [group]
+    (fn p-a-n-c-future [group]
       (future
         (adjust-node-count group ((:group-name group) delta-map 0) session))))
    futures/add
    doall ;; force generation of all futures
-   (mapcat #(futures/deref-with-logging % "Adjust node count"))))
+   (map
+    (fn p-a-n-c-deref [f] (futures/deref-with-logging f "Adjust node count")))
+   (reduce (fn p-a-n-c-r [m1 m2] (merge-with concat m1 m2)) {})))
 
 (defn- converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
-   instances."
+   instances. Returns a session object with :original-nodes, :all-nodes,
+   :new-nodes and :old-nodes keys."
   [session]
   (logging/info "converging nodes")
-  (assoc session
-    :all-nodes ((environment/get-for session [:algorithms :converge-fn])
-                (node-count-difference (:groups session))
-                session)))
+  (let [delta-nodes ((environment/get-for session [:algorithms :converge-fn])
+                     (node-count-difference (:groups session))
+                     session)]
+    (->
+     session
+     (assoc :original-nodes (:all-nodes session))
+     (update-in [:all-nodes]
+                #(vec (->>
+                       %
+                       (concat (:new-nodes delta-nodes))
+                       (remove
+                        (fn [node] (some
+                                    (fn [n] (identical? n node))
+                                    (:old-nodes delta-nodes)))))))
+     (assoc-in [:new-nodes] (vec (:new-nodes delta-nodes)))
+     (assoc-in [:old-nodes] (vec (:old-nodes delta-nodes))))))
 
 ;;; middleware
 
@@ -453,6 +514,20 @@ is run with root privileges immediatly after first boot."
   [msg]
   (fn [session]
     (logging/info (format "%s" msg))
+    session))
+
+(defn- log-nodes
+  "Log the node lists in the session state"
+  [msg]
+  (fn [session]
+    (logging/info
+     (format
+      "%s nodes  %s with %s old nodes"
+      msg
+      (pr-str
+       (select-keys
+        session [:all-nodes :selected-nodes :new-nodes]))
+      (count (:old-nodes session))))
     session))
 
 (defn- apply-environment
@@ -582,10 +657,10 @@ is run with root privileges immediatly after first boot."
           (future (apply-phase-to-node (assoc session :server server)))))
    futures/add))
 
-(defn- ensure-configure-phase [phases]
-  (if (some #{:configure} phases)
+(defn- ensure-phase [phases phase-kw]
+  (if (some #{phase-kw} phases)
     phases
-    (concat [:configure] phases)))
+    (concat [phase-kw] phases)))
 
 (defn- identify-anonymous-phases
   [session phases]
@@ -657,12 +732,14 @@ is run with root privileges immediatly after first boot."
 
 (defn- warn-on-undefined-phase
   "Generate a warning for the elements of the session's :phase-list that are not
-   defined in the session's :groups."
+   defined in the session's :groups.
+   No warnings are generated for the settings or configure phases."
   [session]
   (when *warn-on-undefined-phase*
     (when-let [undefined (seq
                           (set/difference
                            (set (filter keyword? (:phase-list session)))
+                           #{:settings :configure}
                            (set
                             (concat
                              (->>
@@ -690,14 +767,15 @@ is run with root privileges immediatly after first boot."
   "Ensure that the `phase-list` contains the :configure phase, prepending it if
   not."
   [phase-list]
-  (if (some #{:configure} phase-list)
-    phase-list
-    (concat [:configure] phase-list)))
+  (->
+   phase-list
+   (ensure-phase :configure)
+   (ensure-phase :settings)))
 
 (defn- phase-list-with-default
   "Add the default configure phase if the `phase-list` is empty"
   [phase-list]
-  (if (seq phase-list) phase-list [:configure]))
+  (if (seq phase-list) phase-list [:settings :configure]))
 
 (defn- session-with-configure-phase
   "Add the configure phase to the session's :phase-list if not present."
@@ -707,7 +785,11 @@ is run with root privileges immediatly after first boot."
 (defn- session-with-default-phase
   "Add the default phase to the session's :phase-list if none supplied."
   [session]
-  (update-in session [:phase-list] phase-list-with-default))
+  (update-in session [:phase-list]
+             (fn [phase-list]
+               (-> phase-list
+                   phase-list-with-default
+                   (ensure-phase :settings)))))
 
 (defn- node-in-types?
   "Predicate for matching a node belonging to a set of node types"
@@ -796,30 +878,40 @@ is run with root privileges immediatly after first boot."
                         {:group-name \"spec\" :node c}]}]
 
    `options` allows adding extra keys to the servers."
-  [node-map & {:as options}]
+  [node-map execute-node?]
   (for [[group nodes] node-map]
     (assoc group
-      :servers (map #(server group % options)
-                    (filter compute/running? nodes)))))
+      :servers (map
+                (fn [node]
+                  (server group node {:invoke-only (not (execute-node? node))}))
+                (filter compute/running? nodes)))))
+
+(defn session-with-all-nodes
+  "If the :all-nodes key is not set, then the nodes are retrieved from the
+   compute service if possible."
+  [session]
+  (let [nodes (filter
+               compute/running?
+               (or (:all-nodes session) ; empty list is ok
+                   (when-let [compute (environment/get-for
+                                       session [:compute] nil)]
+                     (logging/info "retrieving nodes")
+                     (compute/nodes compute))))]
+    (assoc session :all-nodes nodes :selected-nodes nodes)))
 
 (defn session-with-groups
-  "Takes the :all-nodes, :node-set and :prefix keys and compute the groups
-   for the session, updating the :all-nodes and :groups keys of the session.
-
-   If the :all-nodes key is not set, then the nodes are retrieved from the
-   compute service if possible, or are inferred from the :node-set value.
+  "Takes the :selected-nodes, :all-nodes. :node-set and :prefix keys and compute
+   the groups for the session, updating the :selected-nodes, :all-nodes
+   and :groups keys of the session.
 
    The :groups key is set to a sequence of groups, each containing its
    list of servers on the :servers key."
   [session]
-  (let [all-nodes (filter
-                   compute/running?
-                   (or (seq (:all-nodes session))
-                       (when-let [compute (environment/get-for
-                                           session [:compute] nil)]
-                         (logging/info "retrieving nodes")
-                         (compute/nodes compute))))
-        targets (nodes-in-set (:node-set session) (:prefix session) all-nodes)
+  (let [nodes (:selected-nodes session)
+        all-nodes (:all-nodes session)
+        all-targets (nodes-in-set
+                     (:node-set session) (:prefix session) all-nodes)
+        targets (nodes-in-set (:node-set session) (:prefix session) nodes)
         plan-targets (if-let [all-node-set (:all-node-set session)]
                        (-> (nodes-in-set all-node-set nil all-nodes)
                            (utils/dissoc-keys (keys targets))))]
@@ -830,10 +922,30 @@ is run with root privileges immediatly after first boot."
                             compute/running?
                             (reduce
                              concat
-                             (concat (vals targets) (vals plan-targets))))))
+                             (concat
+                              (vals all-targets) (vals plan-targets))))))
+     (assoc :selected-nodes (or (seq nodes)
+                                (filter
+                                 compute/running?
+                                 (reduce concat (vals targets)))))
      (assoc :groups (concat
-                     (groups-with-servers targets)
-                     (groups-with-servers plan-targets :invoke-only true))))))
+                     (groups-with-servers targets (set nodes))
+                     (groups-with-servers plan-targets (constantly false)))))))
+
+(defn all-node-set-selector
+  "Select all nodes for groups in the node-set for processing"
+  [session]
+  (assoc session :selected-nodes (:all-nodes session)))
+
+(defn new-node-set-selector
+  "Select all new nodes for groups in the node-set for processing"
+  [session]
+  (assoc session :selected-nodes (:new-nodes session)))
+
+(defn select-node-set
+  "Select a node-set of nodes to be passed to lift"
+  [session]
+  ((:node-set-selector session all-node-set-selector) session))
 
 (defn lift*
   "Lift the nodes specified in the session :node-set key.
@@ -845,10 +957,13 @@ is run with root privileges immediatly after first boot."
   (logging/trace (format "lift* phases %s" (vec (:phase-list session))))
   (->
    session
+   session-with-all-nodes
+   select-node-set
    session-with-groups
    session-with-default-phase
    warn-on-undefined-phase
    lift-nodes))
+
 
 (defn converge*
   "Converge the node counts of each node-spec in `:node-set`, executing each of
@@ -859,9 +974,10 @@ is run with root privileges immediatly after first boot."
   {:pre [(:node-set session)]}
   (logging/debug (format "pallet version: %s" (version)))
   (logging/trace
-   (format "converge* %s %s" (:node-set session) (:phase-list session)))
+   (format "converge* phases %s" (vec (:phase-list session))))
   (->
    session
+   session-with-all-nodes
    session-with-groups
    converge-node-counts
    lift*))
@@ -937,7 +1053,8 @@ is run with root privileges immediatly after first boot."
        :private true}
   argument-keywords
   #{:compute :blobstore :phase :user :prefix :middleware :all-node-set
-    :all-nodes :parameters :environment :node-set :phase-list})
+    :all-nodes :parameters :environment :node-set :phase-list
+    :node-set-selector})
 
 (defn- check-arguments-map
   "Check an arguments map for errors."
@@ -1031,7 +1148,6 @@ is run with root privileges immediatly after first boot."
     session-with-environment
     identify-anonymous-phases)))
 
-
 (defn lift
   "Lift the running nodes in the specified node-set by applying the specified
    phases.  The compute service may be supplied as an option, otherwise the
@@ -1070,3 +1186,31 @@ is run with root privileges immediatly after first boot."
     (dissoc :all-node-set :phase)
     session-with-environment
     identify-anonymous-phases)))
+
+
+
+;;; Cluster operations
+(defn cluster-groups
+  "Return the groups in the passed cluster or sequence of clusters."
+  [cluster]
+  (if (seq? cluster)
+    (mapcat :groups cluster)
+    (:groups cluster)))
+
+(defn converge-cluster
+  "Converge the specified cluster. As for `converge`, but takes a cluster-spec
+   or sequence of cluster-specs."
+  [cluster & options]
+  (apply converge (cluster-groups cluster) options))
+
+(defn lift-cluster
+  "Lift the specified cluster.  As for `lift`, but takes a cluster-spec
+   or sequence of cluster-specs."
+  [cluster & options]
+  (apply lift (cluster-groups cluster) options))
+
+(defn destroy-cluster
+  "Destroy the specified cluster. As for `converge`, but takes a cluster-spec
+   or sequence of cluster-specs."
+  [cluster & options]
+  (apply converge (map #(assoc % :count 0) (cluster-groups cluster)) options))

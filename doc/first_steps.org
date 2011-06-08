@@ -36,11 +36,11 @@ Include the following in the =project.clj= file, which describes the project
 dependencies.
 
 #+begin_src clojure
-    :dependencies [[org.cloudhoist/pallet "0.4.10"]
-                   [org.cloudhoist/pallet-crates-standalone "0.4.10"]
-                   [org.jclouds/jclouds-all "1.0-beta-9b"]
-                   [org.jclouds.driver/jclouds-jsch "1.0-beta-9b"]
-                   [org.jclouds.driver/jclouds-log4j "1.0-beta-9b"]]
+    :dependencies [[org.cloudhoist/pallet "0.5.0"]
+                   [org.cloudhoist/pallet-crates-standalone "0.5.0"]
+                   [org.jclouds/jclouds-all "1.0-beta-9c"]
+                   [org.jclouds.driver/jclouds-jsch "1.0-beta-9c"]
+                   [org.jclouds.driver/jclouds-log4j "1.0-beta-9c"]]
     :repositories {"sonatype"
                    "http://oss.sonatype.org/content/repositories/releases"}
 #+end_src
@@ -50,11 +50,11 @@ You should end up with a =project.clj= that looks something like this:
 #+begin_src clojure
     (defproject blank-project "0.1.0-SNAPSHOT"
       :description "quickstart for pallet"
-      :dependencies [[org.cloudhoist/pallet "0.4.10"]
-                     [org.cloudhoist/pallet-crates-standalone "0.4.10"]
-                     [org.jclouds/jclouds-all "1.0-beta-9b"]
-                     [org.jclouds.driver/jclouds-jsch "1.0-beta-9b"]
-                     [org.jclouds.driver/jclouds-log4j "1.0-beta-9b"]]
+      :dependencies [[org.cloudhoist/pallet "0.5.0"]
+                     [org.cloudhoist/pallet-crates-standalone "0.5.0"]
+                     [org.jclouds/jclouds-all "1.0-beta-9c"]
+                     [org.jclouds.driver/jclouds-jsch "1.0-beta-9c"]
+                     [org.jclouds.driver/jclouds-log4j "1.0-beta-9c"]]
       :repositories {"sonatype"
                      "http://oss.sonatype.org/content/repositories/releases"})
 #+end_src

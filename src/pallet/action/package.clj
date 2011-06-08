@@ -16,8 +16,7 @@
    [pallet.stevedore :as stevedore]
    [pallet.script :as script]
    [pallet.utils :as utils]
-   [clojure.contrib.string :as string]
-   [clojure.contrib.logging :as logging])
+   [clojure.string :as string])
   (:use
    pallet.thread-expr))
 
@@ -85,8 +84,8 @@
         (stevedore/script
          (yum
           ~(name action) -q -y
-          ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
           ~(string/join " " (map #(str "--disablerepo=" %) (:disable opts)))
+          ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
           ~(string/join " " (map #(str "--exclude=" %) (:exclude opts)))
           ~(string/join
             " "
@@ -301,9 +300,14 @@
         "--passive-ftp --no-verbose -c -O %%o %%u")
    proxy-url proxy-url))
 
+(def default-installonlypkgs
+  (str "kernel kernel-smp kernel-bigmem kernel-enterprise kernel-debug "
+       "kernel-unsupported"))
+
 (defmethod package-manager-option [:yum :installonlypkgs]
   [session packager installonly packages]
-  (format "installonlypkgs=%s" (string/join " " packages)))
+  (format
+   "installonlypkgs=%s %s" (string/join " " packages) default-installonlypkgs))
 
 (defmethod configure-package-manager :aptitude
   [session packager {:keys [priority prox] :or {priority 50} :as options}]
@@ -406,35 +410,36 @@
   (stevedore/do-script*
    (map #(apply package-manager* session %) (distinct package-manager-args))))
 
-;; this is an aggregate so that it can come before the aggregate package
-(action/def-aggregated-action add-rpm
+(action/def-bash-action add-rpm
   "Add an rpm.  Source options are as for remote file."
-  [request args]
-  {:arglists '([request rpm-name & options])
-   :always-before #{`package}}
-  (stevedore/chain-commands*
-   (for [[rpm-name & {:as options}] args]
-     (stevedore/do-script
-      (apply remote-file* request rpm-name (apply concat options))
-      (stevedore/checked-script
-       (format "Install rpm %s" rpm-name)
-       (if-not (rpm -q @(rpm -pq ~rpm-name))
-         (rpm -U --quiet ~rpm-name)))))))
+  [request rpm-name & {:as options}]
+  (stevedore/do-script
+   (apply remote-file* request rpm-name (apply concat options))
+   (stevedore/checked-script
+    (format "Install rpm %s" rpm-name)
+    (if-not (rpm -q @(rpm -pq ~rpm-name) > "/dev/null" "2>&1")
+      (do (rpm -U --quiet ~rpm-name))))))
 
-(action/def-aggregated-action
-  minimal-packages
+(action/def-bash-action minimal-packages
   "Add minimal packages for pallet to function"
-  [session args]
-  {:arglists '([session])
-   :always-before #{`package-manager `package-source `package}}
+  [session]
+  {:always-before #{`package-manager `package-source `package}}
   (let [os-family (session/os-family session)]
     (cond
      (#{:ubuntu :debian} os-family) (stevedore/checked-script
                                      "Add minimal packages"
-                                     (update-package-list)
-                                     (install-package "coreutils")
-                                     (install-package "sudo"))
+                                     (~lib/update-package-list)
+                                     (~lib/install-package "coreutils")
+                                     (~lib/install-package "sudo"))
      (= :arch os-family) (stevedore/checked-script
                           "Add minimal packages"
-                          (update-package-list)
-                          (install-package "sudo")))))
+                          ("{" pacman-db-upgrade "||" true "; } "
+                           "2> /dev/null")
+                          (~lib/update-package-list)
+                          (~lib/upgrade-package "pacman")
+                          (println "  checking for pacman-db-upgrade")
+                          ("{" pacman-db-upgrade
+                           "&&" (~lib/update-package-list)
+                           "||" true "; } "
+                           "2> /dev/null")
+                          (~lib/install-package "sudo")))))

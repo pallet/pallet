@@ -446,8 +446,9 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
          (remote-file/remote-file "jpackage-utils-compat" :url "http:url")
          (exec-script/exec-checked-script
           "Install rpm jpackage-utils-compat"
-          (if-not (rpm -q @(rpm -pq "jpackage-utils-compat"))
-            (rpm -U --quiet "jpackage-utils-compat")))))
+          (if-not (rpm -q @(rpm -pq "jpackage-utils-compat")
+                       > "/dev/null" "2>&1")
+            (do (rpm -U --quiet "jpackage-utils-compat"))))))
        (first
         (build-actions/build-actions
          {:server {:packager :yum}}

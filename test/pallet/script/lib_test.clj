@@ -76,7 +76,7 @@
 
 (deftest download-file-test
   (is (script (~download-file "http://server.com/" "/path")))
-  (is (= "if test $(which curl); then curl -o \"/path\" --retry 5 --silent --show-error --fail --location --proxy localhost:3812 \"http://server.com/\";else\nif test $(which wget); then wget -O \"/path\" --tries 5 --no-verbose -e \"http_proxy = http://localhost:3812\" -e \"ftp_proxy = http://localhost:3812\" \"http://server.com/\";else\necho No download utility available\nexit 1\nfi\nfi"
+  (is (= "if hash curl 2>&-; then curl -o \"/path\" --retry 5 --silent --show-error --fail --location --proxy localhost:3812 \"http://server.com/\";else\nif hash wget 2>&-; then wget -O \"/path\" --tries 5 --no-verbose -e \"http_proxy = http://localhost:3812\" -e \"ftp_proxy = http://localhost:3812\" \"http://server.com/\";else\necho No download utility available\nexit 1\nfi\nfi"
          (script
           (~download-file
            "http://server.com/" "/path" :proxy "http://localhost:3812")))))

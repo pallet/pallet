@@ -47,8 +47,9 @@
       (is (= '((2 3) 4) g)))))
 
 (deftest action-map-test
-  (is (= {:f identity :args [] :action-type :b :execution :a :location :l}
-         (action-plan/action-map identity [] :a :b :l))))
+  (is (= {:f identity :action-id 1 :args [] :action-type :b :execution :a
+          :location :l}
+         (action-plan/action-map identity {:action-id 1} [] :a :b :l))))
 
 
 (deftest walk-action-plan-test
@@ -80,15 +81,15 @@
       (let [action-plan (-> nil
                             (action-plan/add-action
                              (action-plan/action-map
-                              f [1] :in-sequence :script/bash :target))
+                              f {} [1] :in-sequence :script/bash :target))
                             (action-plan/add-action
                              (action-plan/action-map
-                              f [2] :in-sequence :script/bash :target)))]
+                              f {} [2] :in-sequence :script/bash :target)))]
         (is (=
-             [{:f f :args [1] :location :target :action-type
-               :script/bash :execution :in-sequence}
-              {:f f :args [2] :location :target :action-type :script/bash
-               :execution :in-sequence}]
+             [{:f f :args [1] :location :target
+               :action-type :script/bash :execution :in-sequence}
+              {:f f :args [2] :location :target
+               :action-type :script/bash :execution :in-sequence}]
              (->>
               action-plan
               action-plan/pop-block
@@ -98,17 +99,19 @@
                             action-plan/push-block
                             (action-plan/add-action
                              (action-plan/action-map
-                              f [1] :in-sequence :script/bash :target))
+                              f nil [1] :in-sequence :script/bash :target))
                             (action-plan/add-action
                              (action-plan/action-map
-                              f [2] :in-sequence :script/bash :target))
+                              f nil [2] :in-sequence :script/bash :target))
                             action-plan/pop-block)]
         (is (=
              [{:f (var-get #'action-plan/scope-action)
-               :args [{:f f :args [1]
+               :args [{:f f
+                       :args [1]
                        :location :target :action-type :script/bash
                        :execution :in-sequence}
-                      {:f f :args [2]
+                      {:f f
+                       :args [2]
                        :location :target :action-type :script/bash
                        :execution :in-sequence}]
                :action-type :nested-scope
@@ -305,17 +308,18 @@
         action-plan (-> nil
                         (action-plan/add-action
                          (action-plan/action-map
-                          f [1] :in-sequence :script/bash :target))
+                          f {} [1] :in-sequence :script/bash :target))
                         (action-plan/add-action
                          (action-plan/action-map
-                          f [2] :in-sequence :script/bash :target)))]
+                          f {} [2] :in-sequence :script/bash :target)))]
     (is (=
-         [{:location :target :action-type :script/bash :execution :in-sequence}]
+         [{:location :target :action-type :script/bash
+           :execution :in-sequence}]
          (->>
           (action-plan/translate action-plan)
           (map #(dissoc % :f)))))
     (is (=
-         {:value "1\n2\n",
+         {:value "1\n2\n"
           :session {}
           :location :target
           :action-type :script/bash
@@ -359,10 +363,10 @@
         action-plan (-> nil
                         (action-plan/add-action
                          (action-plan/action-map
-                          f [1] :aggregated :script/bash :target))
+                          f {} [1] :aggregated :script/bash :target))
                         (action-plan/add-action
                          (action-plan/action-map
-                          f [2] :aggregated :script/bash :target)))]
+                          f {} [2] :aggregated :script/bash :target)))]
     (is (=
          [["[(1) (2)]\n"] {:a 1}]
          (action-plan/execute
@@ -375,20 +379,102 @@
                           action-plan/push-block
                           (action-plan/add-action
                            (action-plan/action-map
-                            f [1] :aggregated :script/bash :target))
+                            f {} [1] :aggregated :script/bash :target))
                           (action-plan/add-action
                            (action-plan/action-map
-                            f [2] :aggregated :script/bash :target))
+                            f {} [2] :aggregated :script/bash :target))
                           action-plan/pop-block
                           (action-plan/add-action
                            (action-plan/action-map
-                            f [3] :aggregated :script/bash :target))
+                            f {} [3] :aggregated :script/bash :target))
                           (action-plan/add-action
                            (action-plan/action-map
-                            f [[4]] :in-sequence :script/bash :target)))]
+                            f {} [[4]] :in-sequence :script/bash :target)))]
       (is (=
            [["[(3)]\n" "[(1) (2)]\n" "[4]\n"] {:a 1}]
            (action-plan/execute
             (action-plan/translate action-plan)
             {:a 1}
+            (executor {:script/bash {:target echo}})))))))
+
+;;; stubs for action precedence testing
+(def f (fn [session x] (str (vec x))))
+(def fx ^{:pallet.action/action-fn f} {})
+(def g (fn [session x] (str (vec x))))
+(def gx ^{:pallet.action/action-fn g} {})
+(def h (fn [session x] (str (vec x))))
+(def hx ^{:pallet.action/action-fn h} {})
+
+(deftest symbol-action-fn-test
+  (is (= f (#'action-plan/symbol-action-fn `fx)))
+  (is (= g (#'action-plan/symbol-action-fn `gx))))
+
+(deftest collect-action-id-test
+  (is (= {:j 1 :k 2}
+         (#'action-plan/collect-action-id
+          {:k 2} {:action-id :j :always-before :fred :f 1}))))
+
+(defn test-action-map
+  [f meta]
+  (action-plan/action-map f meta [] :in-sequence :script/bash :target))
+
+(deftest action-dependencies-test
+  (let [b (fn [])]
+    (is (= {{:f b :action-id :id-b} #{{:f g} {:f 'gg :action-id :id-g}}
+            {:action-id :id-f :f 'ff} #{{:f b :action-id :id-b}}
+            {:f f} #{{:f b :action-id :id-b}}}
+           (action-plan/action-dependencies
+            {:id-f 'ff :id-g 'gg}
+            (test-action-map
+             b {:always-before #{:id-f `fx}
+                :always-after #{:id-g `gx}
+                :action-id :id-b}))))))
+
+(deftest action-scope-dependencies-test
+  (let [action-f (test-action-map
+                  f {:always-after #{`gx}
+                     :action-id :id-f})
+        action-g (test-action-map g {})
+        action-h (test-action-map
+                  h {:always-after #{`gx}
+                     :always-before #{:id-f}
+                     :action-id :id-h})
+        actions [action-f action-g action-h]]
+    (is (= [{:id-h h :id-f f}
+            {{:f h :action-id :id-h} #{{:f g}}
+             {:action-id :id-f :f f} #{{:f h :action-id :id-h}{:f g}}}
+            {{:f h :action-id :id-h} #{action-h}
+             {:f g} #{action-g}}
+            {{:f h :action-id :id-h} #{action-g}
+             {:action-id :id-f :f f} #{action-h action-g}}]
+           (action-plan/action-scope-dependencies actions)))))
+
+(deftest enforce-scope-dependencies-test
+  (let [action-f (test-action-map
+                  f {:always-after #{`gx}
+                     :action-id :id-f})
+        action-g (test-action-map g {})
+        action-h (test-action-map
+                  h {:always-after #{`gx}
+                     :always-before #{:id-f}})
+        actions [action-f action-g action-h]]
+    (is (= [action-g action-h action-f]
+           (action-plan/enforce-scope-dependencies actions)))))
+
+(deftest enforce-precedence-test
+  (testing "reordering across execution-type"
+    (let [g (fn [session x] (str x))
+          action-plan (-> nil
+                          (action-plan/add-action
+                           (action-plan/action-map
+                            f {} [2] :aggregated :script/bash :target))
+                          (action-plan/add-action
+                           (action-plan/action-map
+                            g  {:always-before `fx}
+                            [1] :in-sequence :script/bash :target)))]
+      (is (=
+           [["1\n[(2)]\n"] {}]
+           (action-plan/execute
+            (action-plan/translate action-plan)
+            {}
             (executor {:script/bash {:target echo}})))))))

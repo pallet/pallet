@@ -59,6 +59,8 @@
 (def os-family-tag "/pallet/os-family")
 (def os-version-tag "/pallet/os-version")
 
+(def *vm-session-type* "headless") ; gui, headless or sdl
+
 (def os-family-from-name
   (zipmap (vals os-family-name) (keys os-family-name)))
 
@@ -76,10 +78,13 @@
   (is-64bit?
    [node]
    (let [os-type-id (session/with-no-session node [m] (.getOSTypeId m))]
-     (re-find #"64 bit" os-type-id)))
+     (boolean (re-find #"_64" os-type-id))))
   (group-name
    [node]
-   (manager/get-extra-data node group-name-tag))
+   (let [group-name (manager/get-extra-data node group-name-tag)]
+     (if (string/blank? group-name)
+       (manager/get-extra-data node group-name-tag)
+       group-name)))
   (hostname
    [node]
    (session/with-no-session node [m]
@@ -88,15 +93,17 @@
    [node]
    (let [os-name (session/with-no-session node [m] (.getOSTypeId m))]
      (or
-      (keyword (manager/get-extra-data node os-family-tag))
+      (when-let [os-family (manager/get-extra-data node os-family-tag)]
+        (when-not (string/blank? os-family)
+          (keyword os-family)))
       (os-family-from-name os-name os-name)
       :centos) ;; hack!
      ))
   (os-version
    [node]
    (or
-      (manager/get-extra-data node os-version-tag)
-      "5.3"))
+    (manager/get-extra-data node os-version-tag)
+    "5.3"))
   (running?
    [node]
    (and
@@ -162,7 +169,9 @@
   (let [nodes (manager/machines compute-service)]
     (map node-data nodes)))
 
-(def *vm-session-type* "headless")
+(defn add-sata-controller [m]
+  {:pre [(model/IMachine? m)]}
+  (machine/add-storage-controller m "SATA Controller" :sata))
 
 (defn basic-config [m {:keys [memory-size cpu-count] :as parameters}]
   (let [parameters (merge {:memory-size 512 :cpu-count 1} parameters)]
@@ -206,7 +215,11 @@
     (manager/set-extra-data machine os-family-tag (name (:os-family image)))
     (manager/set-extra-data machine os-version-tag (:os-version image))
     ;; (manager/add-startup-command machine 1 init-script )
-    (manager/start machine :session-type *vm-session-type*)
+    (manager/start
+     machine
+     :session-type (or
+                    (:session-type node-spec)
+                    *vm-session-type*))
     (logging/trace "Wait to allow boot")
     (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
@@ -216,18 +229,18 @@
        :message "Could not determine IP address of new node"))
     (Thread/sleep 4000)
     (logging/trace (format "Bootstrapping %s" (manager/get-ip machine)))
-    (script/with-template
+    (script/with-script-context
       (action-plan/script-template-for-server {:image image})
-      (execute/remote-sudo
-       (manager/get-ip machine)
-       init-script
-       (if (:username image)
-         (pallet.utils/make-user
-          (:username image)
-          :password (:password image)
-          :no-sudo (:no-sudo image)
-          :sudo-password (:sudo-password image))
-         user)))
+      (let [user (if (:username image)
+                   (pallet.utils/make-user
+                    (:username image)
+                    :password (:password image)
+                    :no-sudo (:no-sudo image)
+                    :sudo-password (:sudo-password image))
+                   user)]
+        (execute/remote-sudo
+         (manager/get-ip machine) init-script user
+         {:pty (not (#{:arch :fedora} (:os-family image)))})))
     machine))
 
 (defn- equality-match
@@ -371,13 +384,14 @@
 
   (destroy-nodes-in-group
     [compute group-name]
-    (doseq [machine
-            (filter
-             #(and
-               (compute/running? %)
-               (= group-name (manager/get-extra-data % group-name-tag)))
-             (manager/machines server))]
-      (compute/destroy-node compute machine)))
+    (let [nodes (locking compute ;; avoid disappearing machines
+                  (filter
+                   #(and
+                     (compute/running? %)
+                     (= group-name (manager/get-extra-data % group-name-tag)))
+                   (manager/machines server)))]
+      (doseq [machine nodes]
+        (compute/destroy-node compute machine))))
 
   (destroy-node
    [compute node]
@@ -411,6 +425,6 @@
    writer
    (format
     "%14s\t %14s\t public: %s"
-    (compute/hostname node)
-    (compute/group-name node)
-    (compute/primary-ip node))))
+    (try (compute/hostname node) (catch Throwable e "unknown"))
+    (try (compute/group-name node) (catch Throwable e "unknown"))
+    (try (compute/primary-ip node) (catch Throwable e "unknown")))))

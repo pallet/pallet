@@ -27,17 +27,18 @@
       (stevedore/script
        (if-not (~lib/user-exists? ~username)
          (~lib/create-user
-          ~username ~(select-keys opts [:base-dir :home :system :create-home
-                                        :password :shell]))))
+          ~username ~(select-keys opts [:base-dir :home :system :comment
+                                        :create-home :password :shell
+                                        :group :groups]))))
       :manage
       (stevedore/script
        (if (~lib/user-exists? ~username)
          (~lib/modify-user
-          ~username ~(select-keys opts [:home :shell :comment :groups]))
+          ~username ~(select-keys opts [:home :shell :comment :group :groups]))
          (~lib/create-user
           ~username ~(select-keys opts [:base-dir :home :system :comment
                                         :create-home :pasword :shell
-                                        :groups]))))
+                                        :group :groups]))))
       :lock
       (stevedore/script
        (if (~lib/user-exists? ~username)

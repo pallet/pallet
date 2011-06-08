@@ -44,6 +44,16 @@
   [session]
   (compute/primary-ip (target-node session)))
 
+(defn target-roles
+  "Roles of the target server."
+  [session]
+  (-> session :server :roles))
+
+(defn base-distribution
+  "Base distribution of the target-node."
+  [session]
+  (compute/base-distribution (-> session :server :image)))
+
 (defn os-family
   "OS-Family of the target-node."
   [session]
@@ -75,6 +85,19 @@
      (filter
       #(= (name group-name) (compute/group-name %))
       (:all-nodes session))))
+
+(defn groups-with-role
+  "All target groups with the specified role."
+  [session role]
+  (->>
+   (:node-set session)
+   (filter #(when-let [roles (:roles %)] (roles role)))
+   (map :group-name)))
+
+(defn nodes-with-role
+  "All target nodes with the specified role."
+  [session role]
+  (mapcat #(nodes-in-group session %) (groups-with-role session role)))
 
 (defn packager
   [session]

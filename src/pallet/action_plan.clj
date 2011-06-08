@@ -18,7 +18,7 @@
    [pallet.session :as session]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.logging :as logging]
-   [clojure.contrib.monads :as monad]
+   [clojure.set :as set]
    [clojure.string :as string])
   (:use
    [clojure.contrib.def :only [defunbound defvar defvar- name-with-attributes]]
@@ -58,6 +58,11 @@
   "Return an action map for the given args. The action plan is a tree of
    action maps.
 
+   precedence specifies naming and dependencies, with :action-id, :always-before
+   and :always-after. If a precedence is supplied, an action-id is generated
+   if none present, to ensure that the standard action precedence is not
+   altered.
+
    - :f            the action function
    - :args         the arguments to pass to the action function
    - :location     where to execute the action - :orgin or :target
@@ -65,12 +70,18 @@
    - :execution    the execution type - :in-sequence, :aggregated, :collected
    - :value        the result of calling the action function, :f, with :args
    - :session      the session map after calling the action function."
-  [action-fn args execution action-type location]
-  {:f action-fn
-   :args args
-   :location location
-   :action-type action-type
-   :execution execution})
+  [action-fn precedence args execution action-type location]
+  (let [precedence (and precedence (seq precedence)
+                        (update-in precedence [:action-id]
+                                   #(or % (gensym "action-id"))))]
+    (merge
+     (select-keys (meta action-fn) [:action-id :always-after :always-before])
+     precedence
+     {:f action-fn
+      :args args
+      :location location
+      :action-type action-type
+      :execution execution})))
 
 ;;; utilities
 
@@ -92,7 +103,7 @@
 (defn- walk-action-plan
   "Traverses an action-plan structure.  leaf-fn is applied to leaf
    action, list-fn to sequences of actions, and nested-fn to
-   a nested scope. nested-fn takes the existin nested scope and a transformed
+   a nested scope. nested-fn takes the existing nested scope and a transformed
    arg list"
   [leaf-fn list-fn nested-fn action-plan]
   (cond
@@ -159,7 +170,7 @@
   [action-plan]
   (->>
    action-plan
-   (group-by :f)
+   (group-by (juxt :f :action-id))
    (map (fn [[_ action-calls]]
           (reduce
            #(update-in %1 [:args] conj (:args %2))
@@ -200,37 +211,118 @@
    action-plan))
 
 ;;; enforce declared precedence rules
-(defn- action-precedence-comparator
-  "A comparator for precedence between actions."
-  [x y]
-  (let [before-fn (fn [f]
-                    (let [before (:always-before (meta f))
-                          before (if (or (set? before) (nil? before))
-                                   before
-                                   #{before})
-                          before (seq
-                                  (filter identity (map find-var before)))]
-                      (into #{} (map
-                                 (comp :pallet.action/action-fn meta var-get)
-                                 before))))
-        fx (:f x)
-        fy (:f y)]
-    (cond
-     ((before-fn fx) fy) -1
-     ((before-fn fy) fx) 1
-     :else 0)))
+(defn- symbol-action-fn
+  "Lookup the action-fn from a symbol"
+  [sym]
+  (if-let [v (find-var sym)]
+    (-> v var-get meta :pallet.action/action-fn)))
 
-(defn- enforce-scope-precedence
-  "Enforce precedence relations between actions in a scope."
-  [action-plan]
-  (sort action-precedence-comparator action-plan)) ; sort is order preserving
+(defn collect-action-id
+  "Extract an action's id to function mapping"
+  [m action]
+  (if-let [id (:action-id action)]
+    (assoc m id (:f action))
+    m))
+
+(defn merge-union
+  "Merge-with clojure.set/union"
+  [& m]
+  (apply merge-with set/union m))
+
+(defn action-dependencies
+  "Extract an action's dependencies.  Actions are id'd with keywords,
+   and dependencies are declared on an action's id or function."
+  [action-id-map action]
+  (let [as-set (fn [x] (if (or (nil? x) (set? x)) x #{x}))
+        before (as-set (:always-before action))
+        after (as-set (:always-after action))
+        self-id (select-keys action [:action-id :f])]
+    (reduce
+     (fn [m [id deps]] (update-in m [id] #(conj (or % #{}) deps)))
+     {}
+     (concat
+      ;; before symbol
+      (map
+       #(vector {:f %} self-id)
+       (map symbol-action-fn (filter symbol? before)))
+      ;; before id
+      (map
+       #(vector {:action-id % :f (action-id-map %)} self-id)
+       (filter keyword? before))
+      ;; after symbol
+      (map
+       #(vector self-id {:f %})
+       (map symbol-action-fn (filter symbol? after)))
+      ;; after id
+      (map
+       #(vector self-id {:action-id % :f (action-id-map %)})
+       (filter keyword? after))))))
+
+(defn action-instances
+  "Given a map of dependencies, each with an :f and maybe a :action-id,
+   returns a map where the values are all matching action instances"
+  [actions dependencies]
+  (let [action-id-maps (reduce set/union (vals dependencies))]
+    (reduce
+     (fn [instances instance]
+       (let [id (select-keys instance [:f :action-id])]
+         (if (action-id-maps id)
+           (update-in instances [id] #(conj (or % #{}) instance))
+           instances)))
+     {}
+     actions)))
+
+(defn action-scope-dependencies
+  [actions]
+  (let [action-id-map (reduce collect-action-id {} actions)
+        dependencies (reduce
+                      #(merge-union %1 (action-dependencies action-id-map %2))
+                      {} actions)
+        instances (action-instances actions dependencies)
+        dependents (zipmap (keys dependencies)
+                           (map
+                            (fn [d] (set (mapcat instances d)))
+                            (vals dependencies)))]
+    [action-id-map dependencies instances dependents]))
+
+(defn action-with-dependents
+  [actions dependents seen action]
+  {:pre [(vector? actions) (set? seen) (map? action)]}
+  (if (seen action)
+    [actions dependents seen]
+    (let [ids (distinct [(select-keys action [:f :action-id])
+                         (select-keys action [:f])])
+          action-deps (mapcat dependents ids)]
+      (let [[add-actions dependents seen]
+            (reduce
+             (fn add-a-w-d [[actions dependents seen] action]
+               {:pre [(vector? actions) (set? seen) (map? action)]}
+               (if (seen action)
+                 [actions dependents seen]
+                 (action-with-dependents actions dependents seen action)))
+             [actions (reduce dissoc dependents ids) seen]
+             action-deps)]
+        [(conj add-actions action) dependents (conj seen action)]))))
+
+(defn enforce-scope-dependencies
+  [actions]
+  (let [[action-id-map dependencies instances dependents]
+        (action-scope-dependencies actions)]
+    (first (reduce
+            (fn add-as-w-d [[actions dependents seen] action]
+              {:pre [(vector? actions) (set? seen) (map? action)]}
+              (if (seen action)
+                [actions dependents seen]
+                (action-with-dependents actions dependents seen action)))
+            [[] dependents #{}]
+            actions))))
 
 (defn- enforce-precedence
   "Enforce precedence relations between actions."
   [action-plan]
   (walk-action-plan
    identity
-   enforce-scope-precedence
+   enforce-scope-dependencies
    #(assoc %1 :args %2)
    action-plan))
 
@@ -439,8 +531,6 @@
   "Execute actions by passing the un-evaluated actions to the `executor`
    function (a function with an arglist of [session f action-type location])."
   [action-plan session executor]
-  (logging/trace
-   (format "action-plan/execute with %s actions" (count action-plan)))
   (when-not (translated? action-plan)
     (condition/raise
      :type :pallet/execute-called-on-untranslated-action-plan

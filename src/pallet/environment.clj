@@ -23,6 +23,7 @@
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.logging :as logging]
+   [clojure.contrib.map-utils :as map-utils]
    [clojure.walk :as walk])
   (:use
    [clojure.contrib.core :only [-?>]]))
@@ -42,14 +43,21 @@
    :blobstore :replace
    :count :merge
    :algorithms :merge
+   :executor :merge
    :middleware :replace
    :groups :merge-environments
    :tags :merge-environments})
 
+
+(def ^{:doc "node specific environment keys"}
+  node-keys [:image :phases])
+
+(def standard-pallet-keys (keys merge-key-algorithm))
+
 (defmulti merge-key
   "Merge function that dispatches on the map entry key"
   (fn [key val-in-result val-in-latter]
-    (merge-key-algorithm key :replace)))
+    (merge-key-algorithm key :deep-merge)))
 
 (defn merge-environments
   "Returns a map that consists of the rest of the maps conj-ed onto
@@ -74,6 +82,16 @@
 (defmethod merge-key :merge
   [key val-in-result val-in-latter]
   (merge val-in-result val-in-latter))
+
+(defmethod merge-key :deep-merge
+  [key val-in-result val-in-latter]
+  (let [map-or-nil? (fn [x] (or (nil? x) (map? x)))]
+    (map-utils/deep-merge-with
+     (fn deep-merge-env-fn [x y]
+       (if (and (map-or-nil? x) (map-or-nil? y))
+         (merge x y)
+         (or y x)))
+     val-in-result val-in-latter)))
 
 (defmethod merge-key :merge-comp
   [key val-in-result val-in-latter]
@@ -155,9 +173,6 @@
   ([session keys default]
        (get-in (:environment session) keys default)))
 
-(def ^{:doc "node specific environment keys"}
-  node-keys [:image :phases])
-
 (defn session-with-environment
   "Returns an updated `session` map, containing the keys for the specified
    `environment` map.
@@ -168,20 +183,34 @@
 
    The node-specific environment keys are :images and :phases."
   [session environment]
+  (when (:tags environment)
+    (deprecate/warn
+     (str "Use of :tags key in the environment is deprecated. "
+          "Please change to use :groups.")))
   (let [session (merge
                  session
-                 (utils/dissoc-keys
-                  environment (conj node-keys :groups :tags)))]
-    (when (:tags environment)
-      (deprecate/warn
-       (str "Use of :tags key in the environment is deprecated. "
-            "Please change to use :groups.")))
-    (if (:server session)
-      (let [tag (-> session :server :tag)]
-        (assoc session
-          :server (merge-environments
-                   (:server session)
-                   (select-keys environment node-keys)
-                   (-?> environment :tags tag) ; :tags is deprecated
-                   (-?> environment :groups tag))))
-      session)))
+                 (->
+                  environment
+                  (select-keys standard-pallet-keys)
+                  (utils/dissoc-keys (conj node-keys :groups :tags))))
+        session (assoc-in session [:environment]
+                          (utils/dissoc-keys environment node-keys))
+        session (if (:server session)
+                  (let [tag (-> session :server :group-name)]
+                    (assoc session
+                      :server (merge-environments
+                               (:server session)
+                               (select-keys environment node-keys)
+                               (-?> environment :tags tag) ; deprecated
+                               (-?> environment :groups tag))))
+                  session)
+        session (if (:group session)
+                  (let [tag (-> session :group :group-name)]
+                    (assoc session
+                      :group (merge-environments
+                              (:group session)
+                              (select-keys environment node-keys)
+                              (-?> environment :tags tag) ; deprecated
+                              (-?> environment :groups tag))))
+                  session)]
+    session))

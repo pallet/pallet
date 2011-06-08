@@ -7,6 +7,7 @@
    [pallet.action-plan :as action-plan]
    [pallet.common.logging.log4j :as log4j]
    [pallet.compute.jvm :as jvm]
+   [pallet.compute :as compute]
    [pallet.core :as core]
    [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
@@ -22,9 +23,9 @@
 
 (deftest sudo-cmd-for-test
   (script/with-template [:ubuntu]
-    (let [no-pw "/usr/bin/sudo -n"
-          pw "echo \"fred\" | /usr/bin/sudo -S"
-          no-sudo ""]
+    (let [no-pw "/usr/bin/sudo -n "
+          pw "echo \"fred\" | /usr/bin/sudo -S "
+          no-sudo "/bin/bash "]
       (is (= no-pw (sudo-cmd-for (utils/make-user "fred"))))
       (is (= pw (sudo-cmd-for (utils/make-user "fred" :password "fred"))))
       (is (= pw (sudo-cmd-for (utils/make-user "fred" :sudo-password "fred"))))
@@ -34,9 +35,9 @@
       (is (= no-sudo (sudo-cmd-for (utils/make-user "root"))))
       (is (= no-sudo (sudo-cmd-for (utils/make-user "fred" :no-sudo true))))))
   (script/with-template [:centos-5.3]
-    (let [no-pw "/usr/bin/sudo"
-          pw "echo \"fred\" | /usr/bin/sudo -S"
-          no-sudo ""]
+    (let [no-pw "/usr/bin/sudo "
+          pw "echo \"fred\" | /usr/bin/sudo -S "
+          no-sudo "/bin/bash "]
       (is (= no-pw (sudo-cmd-for (utils/make-user "fred"))))
       (is (= pw (sudo-cmd-for (utils/make-user "fred" :password "fred"))))
       (is (= pw (sudo-cmd-for (utils/make-user "fred" :sudo-password "fred"))))
@@ -62,7 +63,8 @@
         (let [result (remote-sudo
                       "localhost"
                       "ls"
-                      (assoc user :no-sudo true))]
+                      (assoc user :no-sudo true)
+                      {})]
           (is (zero? (:exit result))))))))
 
 (deftest execute-with-ssh-test
@@ -70,15 +72,17 @@
     (binding [utils/*admin-user* user]
       (possibly-add-identity
        (default-agent) (:private-key-path user) (:passphrase user))
-      (let [session {:phase :configure
+      (let [node (test-utils/make-localhost-node)
+            session {:phase :configure
                      :server {:node-id :localhost
-                              :node (test-utils/make-localhost-node)}
+                              :node node
+                              :image {:os-family (compute/os-family node)}}
                      :action-plan
                      {:configure
                       {:localhost (action-plan/add-action
                                    nil
                                    (action-plan/action-map
-                                    (fn [session] "ls /") []
+                                    (fn [session] "ls /") {} []
                                     :in-sequence :script/bash :target))}}
                      :executor core/default-executors
                      :middleware [core/translate-action-plan

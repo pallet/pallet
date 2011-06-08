@@ -101,18 +101,25 @@
     (->
      session
      (action/schedule-action
-      arg-vector [path (.getPath local-path)]
+      arg-vector
+      {}
+      [path (.getPath local-path)]
       :in-sequence :transfer/to-local :origin)
      (apply-> f local-path args)
      (action/schedule-action
-      delete-local-path [local-path]
+      delete-local-path
+      {}
+      [local-path]
       :in-sequence :fn/clojure :origin))))
 
 (defn transfer-file
   "Function to transfer a local file."
-  [session local-path remote-path]
+  [session local-path remote-path {:as options}]
   (action/schedule-action
-   session arg-vector [local-path remote-path]
+   session
+   arg-vector
+   options
+   [local-path remote-path]
    :in-sequence :transfer/from-local :origin))
 
 (action/def-bash-action remote-file-action
@@ -328,7 +335,8 @@ Content can also be copied from a blobstore.
                           owner group mode force
                           blob blobstore
                           overwrite-changes no-versioning max-versions
-                          flag-on-changed]
+                          flag-on-changed
+                          local-file-options]
                    :as options}]
   (when-let [f (and local-file (io/file local-file))]
     (when (not (and (.exists f) (.isFile f) (.canRead f)))
@@ -341,9 +349,10 @@ Content can also be copied from a blobstore.
    session
    (when-> local-file
            ;; transfer local file to remote system if required
-           (transfer-file local-file (str path ".new")))
-   (apply-map->
-    remote-file-action path
-    (merge
-     {:overwrite-changes force-overwrite} ;; capture the value of the flag
-     options))))
+           (transfer-file local-file (str path ".new") local-file-options))
+   (action/with-precedence local-file-options
+     (apply-map->
+      remote-file-action path
+      (merge
+       {:overwrite-changes force-overwrite} ;; capture the value of the flag
+       options)))))

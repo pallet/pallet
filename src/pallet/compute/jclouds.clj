@@ -12,7 +12,7 @@
    [clojure.contrib.condition :as condition]
    [clojure.contrib.logging :as logging])
   (:import
-   [org.jclouds.compute.domain.internal NodeMetadataImpl ImageImpl HardwareImpl]
+   [org.jclouds.compute.domain.internal HardwareImpl ImageImpl NodeMetadataImpl]
    org.jclouds.compute.util.ComputeServiceUtils
    org.jclouds.compute.ComputeService
    org.jclouds.compute.options.RunScriptOptions
@@ -23,7 +23,6 @@
    org.jclouds.io.Payload
    org.jclouds.scriptbuilder.domain.Statement
    com.google.common.base.Predicate))
-
 
 ;;; Meta
 (defn supported-providers []
@@ -55,6 +54,61 @@
     (option-keys key key)))
 
 ;;; Node utilities
+(defmacro impl-fns
+  []
+  (let [ctors (.getDeclaredConstructors HardwareImpl)]
+    (if (= 10 (count (.getParameterTypes (first ctors))))
+      ;; jclouds up to beta-9c
+      `(do
+         (defn hardware-impl
+           [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
+            ~'processors ~'ram ~'volumes ~'image-supported-fn]
+           (HardwareImpl.
+            ~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata
+            ~'processors ~'ram ~'volumes ~'image-supported-fn))
+         (defn node-metadata-impl
+           [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
+            ~'group-name ~'hardware ~'image-id ~'os ~'state ~'login-port
+            ~'public-ips ~'private-ips ~'admin-password ~'credentials]
+           (NodeMetadataImpl.
+            ~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata
+            ~'group-name ~'hardware ~'image-id ~'os ~'state ~'login-port
+            ~'public-ips ~'private-ips ~'admin-password ~'credentials))
+         (defn image-impl
+           [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
+            ~'os ~'description ~'version ~'admin-password ~'credentials]
+           (ImageImpl.
+            ~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata
+            ~'os ~'description ~'version ~'admin-password ~'credentials)))
+      ;; jclouds after beta-9c (added tags)
+      `(do
+         (defn hardware-impl
+           [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
+            ~'processors ~'ram ~'volumes ~'image-supported-fn]
+           (HardwareImpl.
+            ~'provider-id ~'name ~'id ~'location ~'uri
+            ~'user-metadata ~'tags
+            ~'processors ~'ram ~'volumes ~'image-supported-fn))
+         (defn node-metadata-impl
+           [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
+            ~'group-name ~'hardware ~'image-id ~'os ~'state ~'login-port
+            ~'public-ips ~'private-ips ~'admin-password ~'credentials]
+           (NodeMetadataImpl.
+            ~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
+            ~'group-name ~'hardware ~'image-id ~'os ~'state ~'login-port
+            ~'public-ips ~'private-ips ~'admin-password ~'credentials))
+         (defn image-impl
+           [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
+            ~'os ~'description ~'version ~'admin-password ~'credentials]
+           (ImageImpl.
+            ~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
+            ~'os ~'description ~'version ~'admin-password ~'credentials))))))
+
+(impl-fns)
+
+
+
+
 (defn make-operating-system
   [{:keys [family name version arch description is-64bit]
     :or {family OsFamily/UBUNTU
@@ -96,7 +150,7 @@
 
 (defn make-hardware
   [{:keys [provider-id name id location uri user-metadata processors ram
-           volumes supports-image]
+           volumes supports-image tags]
     :or {provider-id "provider-hardware-id"
          name "Some Hardware"
          id "Some id"
@@ -104,12 +158,13 @@
          processors []
          ram 512
          volumes []
-         supports-image (fn [&] true)}}]
-  (HardwareImpl.
-   provider-id name id location uri user-metadata processors ram volumes
-   (reify com.google.common.base.Predicate
-     (apply [_ i] (supports-image i))
-     (equals [_ i] (= supports-image i)))))
+         supports-image (fn [&] true)
+         tags (java.util.HashSet.)}}]
+  (let [image-supported-fn (reify com.google.common.base.Predicate
+                             (apply [_ i] (supports-image i))
+                             (equals [_ i] (= supports-image i)))]
+    (hardware-impl provider-id name id location uri user-metadata tags
+                   processors ram volumes image-supported-fn)))
 
 (defn local-hardware
   "Create an Hardware object for the local host"
@@ -120,13 +175,14 @@
 
 (defn make-node [group-name & options]
   (let [options (apply hash-map options)]
-    (NodeMetadataImpl.
+    (node-metadata-impl
      (options :provider-id (options :id group-name))
      (options :name group-name)                ; name
      (options :id group-name)                   ; id
      (options :location)
      (java.net.URI. group-name)                ; uri
      (options :user-metadata {})
+     (options :tags #{})
      group-name
      (if-let [hardware (options :hardware)]
        (if (map? hardware) (make-hardware hardware) hardware)
@@ -151,13 +207,14 @@
         meta (dissoc options :location :user-metadata :state :login-port
                      :public-ips :private-ips :extra :admin-password
                      :credentials)]
-    (NodeMetadataImpl.
+    (node-metadata-impl
      (options :provider-id (options :id group-name))
      (options :name group-name)
      (options :id (str group-name (rand-int 65000)))
      (options :location)
      (java.net.URI. group-name)                ; uri
      (merge (get options :user-metadata {}) meta)
+     (options :tags #{})
      group-name
      (if-let [hardware (options :hardware)]
        (if (map? hardware) (make-hardware hardware) hardware)
@@ -180,13 +237,14 @@
         meta (dissoc options :name :location :uri :user-metadata
                      :version :operating-system :default-credentials
                      :description)]
-    (ImageImpl.
+    (image-impl
      id ; providerId
      (options :name)
      id
      (options :location)
      (options :uri)
      (merge (get options :user-metadata {}) meta)
+     (options :tags #{})
      (options :operating-system)
      (options :description "image description")
      (options :version "image version")
@@ -321,7 +379,7 @@
      (let [template (jclouds/build-template compute (:image group))
            family (-> (.. template getImage getOperatingSystem getFamily)
                       str keyword)]
-       (logging/info (format "Default OS is %s" (pr-str family)))
+       (logging/info (format "OS is %s" (pr-str family)))
        (when (or (nil? family) (= family OsFamily/UNRECOGNIZED))
          (condition/raise
           :type :unable-to-determine-os-type
@@ -364,7 +422,7 @@
    [_ node user]
    (let [ip (compute/primary-ip node)]
      (if ip
-       (execute/remote-sudo ip "shutdown -h 0" user))))
+       (execute/remote-sudo ip "shutdown -h 0" user {:pty false}))))
 
   (shutdown
    [self nodes user]

@@ -21,6 +21,7 @@
    [clojure.contrib.def :as ccdef]
    [clojure.contrib.logging :as logging]
    [clojure.contrib.seq :as seq]
+   [clojure.set :as set]
    [clojure.string :as string]))
 
 ;;; action defining functions
@@ -55,7 +56,7 @@
                         and local destination.
    :transfer/from-local - action is a function specifying local source
                           and remote destination."
-  [session action-fn args execution action-type location]
+  [session action-fn metadata args execution action-type location]
   {:pre [session
          (keyword? (session/phase session))
          (keyword? (session/target-id session))]}
@@ -63,7 +64,32 @@
    session
    (action-plan/target-path session)
    action-plan/add-action
-   (action-plan/action-map action-fn args execution action-type location)))
+   (action-plan/action-map
+    action-fn metadata args execution action-type location)))
+
+(def precedence-key :action-precedence)
+
+(defmacro with-precedence
+  "Set up local precedence relations between actions"
+  [request m & body]
+  `(let [request# ~request]
+     (->
+      request#
+      (update-in [precedence-key] merge ~m)
+      ~@body
+      (assoc-in [precedence-key] (get-in request# [precedence-key])))))
+
+(defn- force-set [x] (if (or (set? x) (nil? x)) x #{x}))
+
+(defn action-metadata
+  "Compute action metadata from precedence specification in session"
+  [session f]
+  (merge-with
+   #(set/union
+     (force-set %1)
+     (force-set %2))
+   (:meta f)
+   (precedence-key session)))
 
 (defmacro action
   "Define an anonymous action"
@@ -71,11 +97,17 @@
   (let [meta-map (when (and (map? (first body)) (> (count body) 1))
                    (first body))
         body (if meta-map (rest body) body)]
-    `(let [f# (vary-meta (fn [~session ~@args] ~@body) merge ~meta-map)]
+    `(let [f# (vary-meta
+               (fn ~@(when-let [an (:action-name meta-map)]
+                       [(symbol (str an "-action-fn"))])
+                 [~session ~@args] ~@body) merge ~meta-map)]
        (vary-meta
         (fn [& [session# ~@args :as argv#]]
           (schedule-action
-           session# f# (rest argv#) ~execution ~action-type ~location))
+           session#
+           f#
+           (action-metadata session# f#)
+           (rest argv#) ~execution ~action-type ~location))
         merge
         ~meta-map
         {::action-fn f#}))))
@@ -128,15 +160,19 @@
      (let [[name# args#] (ccdef/name-with-attributes name# args#)
            arglist# (first args#)
            body# (rest args#)
-           meta-map# (when (and (map? (first body#)) (> (count body#) 1))
-                       (first body#))
+           [meta-map# body#] (if (and (map? (first body#))
+                                        (> (count body#) 1))
+                               [(merge
+                                 {:action-name (name name#)} (first body#))
+                                (rest body#)]
+                               [{:action-name (name name#)} body#])
            name# (vary-meta
                   name#
                   #(merge
                     {:arglists (list 'quote (list arglist#))}
                     meta-map#
                     %))]
-       `(def ~name# (~'~actionfn1 [~@arglist#] ~@body#)))))
+       `(def ~name# (~'~actionfn1 [~@arglist#] ~meta-map# ~@body#)))))
 
 (def-action-def def-bash-action pallet.action/bash-action)
 (def-action-def def-clj-action pallet.action/clj-action)
