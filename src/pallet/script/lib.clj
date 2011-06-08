@@ -184,7 +184,7 @@
              (if restriction (str restriction " ") "")
              seperator key seperator value seperator)))
         expr-map))
-      (format "-e \"%s%s\"" (when restriction (str restriction " ")) expr-map))
+      (format "-e \"%s%s\"" (if restriction (str restriction " ") "") expr-map))
    ~file))
 
 (script/defscript download-file [url path & {:keys [proxy]}])
