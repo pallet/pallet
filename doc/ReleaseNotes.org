@@ -323,6 +323,18 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
 
 
+* 0.4.18
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Changes
+
+- Ensure :target-packager is removed after producing resources
+  The :target-packager key is not overwritten if it exists, so needs to be
+  removed after every node in order for it to be set correctly when using
+  nodes with mixed os's.
+
 * 0.4.17
 ** Install
 
