@@ -425,7 +425,7 @@
       (let [nodes (map :node servers)]
         (doseq [node (take destroy-count nodes)]
           (compute/destroy-node compute node))
-        {:old-nodes (take destroy-count nodes)}))))
+        {:old-nodes (vec (take destroy-count nodes))}))))
 
 (defn- node-count-difference
   "Find the difference between the required and actual node counts by group."
@@ -434,7 +434,8 @@
    groups
    (map
     (fn [group]
-      (vector (:group-name group) (- (:count group) (count (:servers group))))))
+      (vector
+       (:group-name group) (- (:count group) (count (:servers group))))))
    (into {})))
 
 (defn- adjust-node-count
@@ -467,13 +468,14 @@
   (->>
    (:groups session)
    (map
-    (fn [group]
+    (fn p-a-n-c-future [group]
       (future
         (adjust-node-count group ((:group-name group) delta-map 0) session))))
    futures/add
    doall ;; force generation of all futures
-   (map #(futures/deref-with-logging % "Adjust node count"))
-   (reduce #(merge-with concat %1 %2))))
+   (map
+    (fn p-a-n-c-deref [f] (futures/deref-with-logging f "Adjust node count")))
+   (reduce (fn p-a-n-c-r [m1 m2] (merge-with concat m1 m2)) {})))
 
 (defn- converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
@@ -488,12 +490,15 @@
      session
      (assoc :original-nodes (:all-nodes session))
      (update-in [:all-nodes]
-                #(->>
-                  %
-                  (concat (:new-nodes delta-nodes))
-                  (remove (set (:old-nodes delta-nodes)))))
-     (assoc-in [:new-nodes] (:new-nodes delta-nodes))
-     (assoc-in [:old-nodes] (:old-nodes delta-nodes)))))
+                #(vec (->>
+                       %
+                       (concat (:new-nodes delta-nodes))
+                       (remove
+                        (fn [node] (some
+                                    (fn [n] (identical? n node))
+                                    (:old-nodes delta-nodes)))))))
+     (assoc-in [:new-nodes] (vec (:new-nodes delta-nodes)))
+     (assoc-in [:old-nodes] (vec (:old-nodes delta-nodes))))))
 
 ;;; middleware
 
@@ -509,6 +514,20 @@
   [msg]
   (fn [session]
     (logging/info (format "%s" msg))
+    session))
+
+(defn- log-nodes
+  "Log the node lists in the session state"
+  [msg]
+  (fn [session]
+    (logging/info
+     (format
+      "%s nodes  %s with %s old nodes"
+      msg
+      (pr-str
+       (select-keys
+        session [:all-nodes :selected-nodes :new-nodes]))
+      (count (:old-nodes session))))
     session))
 
 (defn- apply-environment
@@ -873,7 +892,7 @@
   [session]
   (let [nodes (filter
                compute/running?
-               (or (seq (:all-nodes session))
+               (or (:all-nodes session) ; empty list is ok
                    (when-let [compute (environment/get-for
                                        session [:compute] nil)]
                      (logging/info "retrieving nodes")
@@ -955,7 +974,7 @@
   {:pre [(:node-set session)]}
   (logging/debug (format "pallet version: %s" (version)))
   (logging/trace
-   (format "converge* %s %s" (:node-set session) (:phase-list session)))
+   (format "converge* phases %s" (vec (:phase-list session))))
   (->
    session
    session-with-all-nodes

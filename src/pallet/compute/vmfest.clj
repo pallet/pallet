@@ -384,13 +384,14 @@
 
   (destroy-nodes-in-group
     [compute group-name]
-    (doseq [machine
-            (filter
-             #(and
-               (compute/running? %)
-               (= group-name (manager/get-extra-data % group-name-tag)))
-             (manager/machines server))]
-      (compute/destroy-node compute machine)))
+    (let [nodes (locking compute ;; avoid disappearing machines
+                  (filter
+                   #(and
+                     (compute/running? %)
+                     (= group-name (manager/get-extra-data % group-name-tag)))
+                   (manager/machines server)))]
+      (doseq [machine nodes]
+        (compute/destroy-node compute machine))))
 
   (destroy-node
    [compute node]
@@ -424,6 +425,6 @@
    writer
    (format
     "%14s\t %14s\t public: %s"
-    (compute/hostname node)
-    (compute/group-name node)
-    (compute/primary-ip node))))
+    (try (compute/hostname node) (catch Throwable e "unknown"))
+    (try (compute/group-name node) (catch Throwable e "unknown"))
+    (try (compute/primary-ip node) (catch Throwable e "unknown")))))

@@ -80,14 +80,36 @@
 (deftest converge-node-counts-test
   (let [a (group-spec "a" :node-spec ubuntu-node)
         a-node (test-utils/make-node "a" :running true)
-        compute (compute/compute-service "node-list" :node-list [a-node])]
-    (#'core/converge-node-counts
-     {:groups [{:group-name :a :count 1 :servers [{:node a-node}]}]
-      :environment
-      {:compute compute
-       :algorithms {:lift-fn sequential-lift
-                    :converge-fn
-                    (var-get #'core/serial-adjust-node-counts)}}})))
+        compute (compute/compute-service "node-list" :node-list [a-node])
+        session {:groups [{:group-name :a :count 1 :servers [{:node a-node}]}]
+                 :all-nodes [a-node]
+                 :environment
+                 {:compute compute
+                  :algorithms {:lift-fn sequential-lift
+                               :converge-fn
+                               (var-get #'core/serial-adjust-node-counts)}}}
+        session (#'core/converge-node-counts session)]
+    (is (map? session))
+    (is (= [a-node] (:all-nodes session)))
+    (is (empty? (:old-nodes session)))
+    (is (empty? (:new-nodes session))))
+  (testing "removal of node"
+    (let [a (group-spec "a" :node-spec ubuntu-node)
+          a-node (test-utils/make-node "a" :running true)
+          compute (compute/compute-service "node-list" :node-list [a-node])
+          session {:groups [{:group-name :a :count 0 :servers [{:node a-node}]}]
+                   :all-nodes [a-node]
+                   :environment
+                   {:compute compute
+                    :algorithms {:lift-fn sequential-lift
+                                 :converge-fn
+                                 (var-get #'core/serial-adjust-node-counts)}}}
+          session (#'core/converge-node-counts session)]
+      (is (map? session))
+      (is (nil? (seq (:all-nodes session))))
+      (is (= [a-node] (:original-nodes session)))
+      (is (= [a-node] (:old-nodes session)))
+      (is (empty? (:new-nodes session))))))
 
 (deftest group-spec?-test
   (is (#'core/group-spec? (core/group-spec "a")))

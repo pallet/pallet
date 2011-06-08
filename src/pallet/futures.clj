@@ -1,6 +1,7 @@
 (ns pallet.futures
   "Keep track of operations started by pallet"
   (:require
+   [clojure.stacktrace :as stacktrace]
    [clojure.contrib.logging :as logging])
   (:import
    java.util.concurrent.CancellationException
@@ -44,7 +45,9 @@
       (logging/warn
        (format "%s interrupted" operation-label)))
     (catch ExecutionException e
-      (logging/error
-       (format "%s exception: %s" operation-label (.getMessage (.getCause e))))
+      (let [cause (stacktrace/root-cause e)]
+        (logging/error
+         (format "%s exception: %s" operation-label
+                 (.getMessage cause)) cause))
       (logging/debug
        (format "%s exception" operation-label) (.getCause e)))))
