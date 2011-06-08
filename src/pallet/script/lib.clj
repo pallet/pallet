@@ -702,19 +702,19 @@
 ;; installed files.
 
 (script/defscript pkg-etc-default [])
-(script/defimpl pkg-etc-default :default [] (etc-default))
+(script/defimpl pkg-etc-default :default [] (~etc-default))
 (script/defimpl etc-default [:brew] [] "/usr/local/etc/default")
 
 (script/defscript pkg-log-root [])
-(script/defimpl pkg-log-root :default [] (log-root))
+(script/defimpl pkg-log-root :default [] (~log-root))
 (script/defimpl pkg-log-root [:brew] [] "/usr/local/var/log")
 
 (script/defscript pkg-pid-root [])
-(script/defimpl pkg-pid-root :default [] (pid-root))
+(script/defimpl pkg-pid-root :default [] (~pid-root))
 (script/defimpl pkg-pid-root [:brew] [] "/usr/local/var/run")
 
 (script/defscript pkg-config-root [])
-(script/defimpl pkg-config-root :default [] (config-root))
+(script/defimpl pkg-config-root :default [] (~config-root))
 (script/defimpl pkg-config-root [:brew] [] "/usr/local/etc")
 
 (script/defscript pkg-sbin [])
