@@ -1,13 +1,281 @@
+#+SETUPFILE: org-templates/level-0.org
 #+TITLE:     Pallet - Release Notes
+#+DESCRIPTION: Release notes for pallet releases
+#+KEYWORDS: pallet palletops contribute
 
-The latest release is 0.4.10.
+The latest release is 0.6.0.
 
-* 0.5.0-SNAPHSOT
+* 0.6.0
 ** Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
 ** Features
+
+Update to jclouds 1.0.0.
+
+* 0.5.1
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Features
+- Add core/destroy-cluster and destroy-cluster task
+
+- Add converge-cluster task
+
+- Update pallet.action.user/user to handle login group
+  :group can be passed a group name to set the login group.
+
+  :groups now accepts a sequence of group names.
+
+  usermod now specialised on rh derivatives.
+
+- Add pallet.script.lib/has-command? to check availablity of command on path
+  Uses hash, instead of checking with which.  This is a lighter weight,
+  builtin, so is more portable. Some which's apparently always return a
+  zero status too.
+
+  download-file and pallet.crate.network-service are updated to use this.
+
+- Add :node-set-selector option to pallet.core
+  Add the ability to partition the nodes for lifting, based on a function
+  passed as an option. Currently implemented partitioning functions are
+  core/all-node-set-selector and core/new-node-set-selector.
+
+- Change default environment merge to deep-merge
+  User defined keys are deep merged by default, to allow them to be built
+  from cluster and lift/converge environments.
+
+- Add core/converge-cluster and lift-cluster
+  Add's the ability to lift or converge one or more clusters.  Environment
+  specified on the cluster-spec is propogated to it's groups.
+
+- Automatically run the :settings phase on lift or converge
+  In order to allow easy access to configuration metadata, run the
+  :settings phase before each lift or converge. The settings phase is
+  intended to be non side-affecting.
+
+- Add core/cluster-spec and add roles to server-spec and group-spec
+  Allows specification of a cluster made up of heterogeneous groups.  Roles
+  allow the cluster to be queried for nodes providing specified roles,
+  using session/groups-with-role and session/nodes-with-role
+
+- Add overload for etc-init to /etc/rc.d on arch
+
+- Add support for pacman-db-upgrade in package/minimal-packages
+
+- Add base-distribution to compute and session
+  Enable uniform treatment of all derived distributions. E.g. fedora,
+  centos, rhel are all based on rh.
+
+- Add debian squeeze to live test images
+
+- Add pallet.test.session-type for vbox headless/gui selection
+  When debugging boot issues, it is useful to be able to see the console
+
+- Add action/environmnet for controlling environment variables
+  Adds an environment/system-environment that is used to write
+  /etc/environment on debian based distros, and /etc/profile.d/xx on redhat
+  based distros
+
+- Add ~/.pallet/services/* as a source of service configuration
+  In order to allow the distribution of service defintions, enable service
+  definition in files in ~/.pallet/services. Add an 'add-service' task that
+  can be used to create service definitions from the command line.
+
+- Add support for post beta-9c jclouds snapshot
+  HardwareImpl, ImageImpl and NodeMetadataImpl all gain an extra tags
+  argument in their constructors
+
+- Add remote-exec, and streaming of output for sh-script
+
+- Add ability to not use a pty for ssh on fedora
+  Fedora seems to drop a few characters at the start of an ssh shell
+  connection when run with a pty.
+
+  Add an option map to execute/remote-sudo-cmd arguments. Allow
+  specification of whether to use a pty or not.
+
+- Allow dependecies between action calls
+  In order to have fine grained control over execution order, allow the
+  specification of :always-before and :always-after on an action
+  definition, and the specification of :always-before and :always-after and
+  an :action-id on the action call (via the with-precedence macro).
+
+- Add a :rh image list to live-test
+  Provides a means for testing across redhat variants.
+
+- Add fedora support
+  Add script function specialisations for fedora, and add fedora 14 to live
+  tests
+
+- Allow specification of precedence on an action invocation
+  In order to override default precedence rules, allow specification of
+  precedence on an action call.
+
+- Add merging of :environment from cake/*project*
+  In order to provide an identical environment under a cake task and from a
+  cake repl or swank server, merge :environment from cake/*project* in
+  compute-service-from-config and compute-service-from-settings
+
+** Fixes and Improvements
+- Fix a race in shutting down vmfest nodes
+
+- Improved pallet.execute logging, and checking of blank server address
+
+- Include exception message when provider fails to load
+
+- Fix network-service to use ~lib/exit
+
+- Remove use of pty on arch bootstrap for vmfest
+
+- Add warning for failed require of compute provider
+
+- Fix package/minimal-packages for new stevedore script convention
+
+- Change package/add-rpm to be non-aggregated
+  Allow use of rpm-bin in more general situations. Execution sequence can
+  now be controlled via with-precedence.
+
+- Modify log message for os-family computed from template
+
+- Add default installonlypkgs list for yum
+  When specifying installonlypkgs, the defaults should be added back in
+  (these include the kernel packages).
+
+- Fix script.lib/user-home for os-x
+
+- Disable package repos before enabling package repos
+  In yum package commands, disable repos before enabling, to allow
+  disabling all repos, then explicitly enabling a list
+
+- Fix merge of group specific environment on converge of new nodes
+
+- Fix use of :tag in pallet.environment/session-with-environment
+
+- Remove deprecation warning in vmfest
+
+- Add backward compatability to vmfest for group-name as tag
+
+- Fix vmfest 64bit and os-family detection
+
+- Fix for fedora to use yum
+
+
+* 0.5.0
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Features
+
+- Switch to release versions of pallet-common and stevedore
+
+- Factor out thread-expr, stevedore and pallet-common
+
+- Conj-ing identity onto the comprehension is unnecessary, as reduce simply
+  returns the original value (arg, in this case) if handed an empty list.
+
+- More efficient implementation of for->, without the need to call reverse on
+  the list comprehension.
+  we now reduce with an initial value of arg and the #(%2 %1) function
+  -- (reduce #(%2 %1) arg function-sequence) ends up acting exactly like a
+  call to comp with a reversed sequence.
+
+- Update to pallet-pom 0.4.3
+
+- Seperate repository manipulation actions into separate namespaces
+
+- Update to jclouds beta-9c
+
+- Add pallet.stevedore/empty?
+  This expands to the -z test.
+
+- Fix log messages for apply-phase
+
+- Fix incorrect switch of phase to task
+
+- Add outputput of partial results from ssh command
+  In order to improve the feedback of commands running over ssh, log output
+  as it becomes available
+
+- Deprecate pallet.target
+  Replaced with pallet.compute/admin-group and pallet.session/admin-group
+
+- Make deprecation messages consistent, and add :deprecated metadata
+
+- Rename request to session. pallet.request-map becomes pallet.session.
+
+- Rename pallet.resource.* to pallet.action.*
+  Rename resource to action. Set up forwarding from the pallet.resource
+  names.
+
+  pallet.resource.network-service becomes the first core crate at
+  pallet.crate.network-service.
+
+  pallet.resoruce.format becomes the first core configuration file
+  formatter at pallet.config-file.format.
+
+  pallet.resource.resource-when is renamed pallet.action.conditional
+
+- Refactor script fns into pallet.script.lib and make script fns use unquote
+  In order to remove the possibility of accidentally using a script
+  function, they must now be invoked using unquote. The use of unquote is a
+  reminder that clojure namespace resolution is in effect:
+     (stevedore/script (~lib/rm file))
+
+  The script functions have been factored out of pallet.resource.* into
+  pallet.script.lib in order to improve the seperation of the target script
+  generation.
+
+- Add tests for pallet.phase, fix issues, update compatability
+
+- Add pallet.resource as a compatability namespace
+
+- Refactored execution of actions to allow partial override by middleware
+  Allow middleware to override executor functions for specific :action-type
+  and :location combinations
+
+- Change resource to action and simplify code
+  To make the code clear pallet.resource is refactored into pallet.action,
+  pallet.action-plan, and pallet.phase.
+
+  The action-plan can now handle nested scopes.
+
+  The action creation macros have been renamed, and new macros for defining
+  unnamed actions are introduced.
+
+  - resource/defresource     action/action
+  - resource/defresource     action/def-bash-action
+  - resource/defaggregated   action/def-aggregated-action
+
+  For testing, test-utils/build-resources is replaced by
+  build-actions/build-actions.
+
+- Fix naming that should refer to group-set rather than node-set
+
+- Add :qos to node-spec to allow quality of service options
+  Allows the grouping of template options for quality of service related
+  options such as spot price or enabling monitoring
+
+- Add pallet.compute/service as the preferred compute service instantiation
+  function
+  Provides a single function to access the different compute service
+  instantiation functions in pallet.
+
+- Switch environment to use :groups, and deprecate :tags
+
+- Add blobstore mapping for changed jclouds provider names
+
+- Keep track of futures started by pallet
+  It is useful to be able to control the futures started by pallet for node
+  count adjustments and for executing phases, e.g. to cancel pending
+  operations, etc.
+
+- Fix node-spec mapping for converge with multiple targets
+
+- Use symbolic names for vmfest extradata tags
 
 - Remove request from pallet.compute.ComputeService interface
 
@@ -53,6 +321,203 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
       (file/rm ~path :force true)
       ("rm" -f ~path)
 
+
+
+* 0.4.18
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Changes
+
+- Ensure :target-packager is removed after producing resources
+  The :target-packager key is not overwritten if it exists, so needs to be
+  removed after every node in order for it to be set correctly when using
+  nodes with mixed os's.
+
+* 0.4.17
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Changes
+- More efficient implementation of for->, without the need to call reverse on
+  the list comprehension.
+  we now reduce with an initial value of arg and the #(%2 %1) function
+  -- (reduce #(%2 %1) arg function-sequence) ends up acting exactly like a
+  call to comp with a reversed sequence.
+
+  Conj-ing identity onto the comprehension is unnecessary, as reduce simply
+  returns the original value (arg, in this case) if handed an empty list.
+
+- Add a package-manager-option for installonlypkgs on yum
+  installonlypkgs allows a list of packages that should be installed,
+  rather than upgraded (i.e. old versions are not removed)
+
+- Add functions to access and manipulate the images list in live-test
+  In order to allow users of live-test to add their own image lists,
+  provide pallet.live-test/add-image-list./start-release.sh 0.4.15 0.4.16
+  For this to work, the images to be used can not be bound at compile time,
+  so the pallet.live-test/images function is added.
+
+* 0.4.16
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Changes
+- Improve robustness of classpath discovery in presence of corrupt jars
+  If a jar on the classpath can not be read for some reason, we should not
+  give up, but just ignore that jar file
+
+- Ensure all output is read when an ssh shell closes
+
+- Provide better control of ssh ouput reading
+  Move to clj-ssh 0.2.4, which provides a larger default piped stream
+  buffer (and allows override of the buffer size).
+
+  Allow override of ssh output buffer size with an atom
+  (pallet.execute/ssh-output-buffer-size).
+
+  Allow override of ssh output polling period with an atom
+  (pallet.execute/ssh-output-poll-period).
+
+- Fix a bug that would cause Pallet to not find compute service in
+  config.clj when invoked through lein or cake
+
+
+* 0.4.15
+** Known issues
+- Pallet can not find compute service in config.clj when invoked through lein or cake
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+
+** Changes
+- Update jpackage functions to use jpackage-utils-compat-el5-0.0.1-1
+  Add a compatability package to allow jpackge to work with it's own
+  jpackage-utils
+
+- Add pallet.package/add-rpm to install rpm files
+
+- Add :disable option update-package-list for yum
+  Allow for specification of exactly which repos will be updated.
+
+  The log message now also includes the options passed to package-manager
+
+- Add pallet.thread-arg/arg-> for exposing the threaded argument
+
+* 0.4.14
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+
+** Changes
+- Add logging of unexpected exceptions in pallet-task
+
+- Alter logging format for ssh output to prepend newline
+  The incremental ssh output was difficult to read without a leading
+  newline
+
+- Add output of partial results from ssh command
+  In order to improve the feedback of commands running over ssh, log output
+  as it becomes available
+
+- Change pre and after phase names to be namespaced
+  To prevent collisions between the pre and after phase names with user
+  defined phase names, make the pre and after phase names namespaced with
+  pallet.resource
+
+- Rerun phase function after the pre and main phases
+  In order for the parameters from running the pre phase to be available in
+  the main phase, call the phase function again after executing the
+  pre-phase. Similarly for the main-phase and the after-phase
+
+- Update to clj-ssh 0.2.3
+
+- add-jpackage sets the jpackage repos to disabled by default
+  Add the jpackage repo list to the :jpackage-repos target parameters. Add
+  package-manager-update-jpackage to update the jpackage repos.
+
+- Updated implementation of for->, with support for destructuring.
+  The existing implementation of for-> supported the binding of a single
+  variable to a single sequence. The updated implementation here makes use
+  of clojure.core/for to build up a sequence of functions;
+  ((apply comp functionseq) arg) is then used to thread the argument among
+  the sequences. Each item in the resulting sequence is dealt with in
+  order.
+
+- Update pallet.resource.filesystem/mount to check if a filesystem is mounted
+  before attempting to mount it again. Also update it to accept an :fs-type
+  arg to set the filesystem type. Updated and added unit tests.
+
+** Fixes
+
+- Ensure pallet.config/service is used if no service specified on command
+  line
+
+- Ensure :configure is called for lift if invoked with no phases
+
+- Fix pallet.stevedore unquote splicing of empty sequences
+
+- Update pallet.thread-expr/for-> to handle multiple body forms and empty
+  sequences
+
+- Add resource for the pallet version via pallet.core/version
+
+
+
+* 0.4.13
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Fixes
+- Fix issues with cross-node configuration
+  When using delayed arguments or the post phase, to access parameters set
+  in a phase, there were several issues that masked the parameters. This
+  also adds tests for these use cases.
+* 0.4.12
+** Known issues
+- has an issue with propogation of parameters between phases.
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Fixes
+- Build and execute phases one by one
+  Fix a regression that prevented execution time additions to parameters
+  from being propogated to the next phase. This re-enables use case such as
+  ssh-key/record-key
+
+- Add exclusion of log4j.xml from jar (was in pallet-pom)
+
+* 0.4.11
+** Install
+
+The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
+
+** Fixes
+- Pass any :environment key in project.clj to the converge and lif tasks
+  In order to allow environment definitions in project.clj, and to enable
+  environments to be supplied by the cake context feature, the :environment
+  key values from project.clj are passed to the converge and lift commands
+  invoked by the converge and lift tasks (used by the lein and cake
+  plugins)
+
+- Add logging of pallet version
+  To ease identification of pallet versions in the log files, add debug
+  level logging of the pallet version on every lift and converge
+
+- Fix loading of providers to work with custom classloaders
+  Custom classloaders as used by cake, tomcat, etc, would break the loading
+  of the pallet compute providers.
+
+  Fixes #57
+
+- Add an exclusion of clojure to the enlive dependency
 
 * 0.4.10
 ** Install
