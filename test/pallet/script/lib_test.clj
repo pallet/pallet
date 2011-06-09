@@ -52,6 +52,9 @@
   (testing "explicit separator"
     (is (= "sed -i -e \"s|a|b|\" path"
            (script (~sed-file "path" {"a" "b"} {:seperator "|"})))))
+  (testing "single quotings"
+    (is (= "sed -i -e 's/a/b/' path"
+           (script (~sed-file "path" {"a" "b"} {:quote-with "'"})))))
   (testing "computed separator"
     (is (= "sed -i -e \"s/a/b/\" path"
            (script (~sed-file "path" {"a" "b"} {}))))

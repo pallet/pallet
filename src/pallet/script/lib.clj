@@ -168,7 +168,9 @@
   (concat [\/ \_ \| \: \% \! \@] (map char (range 42 127))))
 
 (script/defimpl sed-file :default
-  [file expr-map {:keys [seperator restriction] :as options}]
+  [file expr-map {:keys [seperator restriction quote-with]
+                  :or {quote-with "\""}
+                  :as options}]
   (sed "-i"
    ~(if (map? expr-map)
       (string/join
@@ -180,11 +182,16 @@
                            (>= (.indexOf value (int c)) 0)))
                 seperator (or seperator (first (remove used sed-separators)))]
             (format
-             "-e \"%ss%s%s%s%s%s\""
+             "-e %s%ss%s%s%s%s%s%s"
+             quote-with
              (if restriction (str restriction " ") "")
-             seperator key seperator value seperator)))
+             seperator key seperator value seperator quote-with)))
         expr-map))
-      (format "-e \"%s%s\"" (if restriction (str restriction " ") "") expr-map))
+      (format
+       "-e %s%s%s%s"
+       quote-with
+       (if restriction (str restriction " ") "")
+       expr-map quote-with))
    ~file))
 
 (script/defscript download-file [url path & {:keys [proxy]}])
