@@ -682,10 +682,12 @@
 (defn parallel-lift
   "Apply the phases in sequence, to nodes in parallel."
   [session]
-  (mapcat
-   #(map deref %)               ; make sure all nodes complete before next phase
+  (->>
    (for [group (:groups session)]
-     (parallel-apply-phase (assoc session :group group) (:servers group)))))
+     (parallel-apply-phase (assoc session :group group) (:servers group)))
+   (reduce concat [])
+   vec                          ; make sure we start all futures before deref
+   (map deref)))                ; make sure all nodes complete before next phase
 
 (defn lift-nodes-for-phase
   "Lift nodes in target-node-map for the specified phases.
