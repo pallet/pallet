@@ -165,7 +165,7 @@
                                    (~lib/diff @newmd5path ~md5-path))
                              (do
                                (~lib/download-file ~url ~new-path :proxy ~proxy)
-                               (~lib/ln ~new-path @basefile :symbolic true)
+                               (~lib/ln ~new-path @basefile)
                                (if-not (~lib/md5sum-verify @newmd5path)
                                  (do
                                    (println ~(str "Download of " url
