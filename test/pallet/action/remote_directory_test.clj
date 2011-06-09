@@ -18,25 +18,9 @@
 (deftest remote-directory-test
   (is (= (stevedore/checked-commands
           "remote-directory"
-          (directory* {} "/path" :owner "fred")
+          (directory* {} "/path" :owner "fred" :recursive false)
           (remote-file* {}
            "${TMPDIR-/tmp}/file.tgz" :url "http://site.com/a/file.tgz" :md5 nil)
-          (stevedore/script
-           ("cd" "/path")
-           ("tar" xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz")))
-         (first (build-actions/build-actions
-                 {}
-                 (remote-directory
-                  "/path"
-                  :url "http://site.com/a/file.tgz"
-                  :unpack :tar
-                  :owner "fred")))))
-  (is (= (stevedore/checked-commands
-          "remote-directory"
-          (directory* {} "/path" :owner "fred")
-          (remote-file*
-           {} "${TMPDIR-/tmp}/file.tgz"
-           :url "http://site.com/a/file.tgz" :md5 nil)
           (stevedore/script
            ("cd" "/path")
            ("tar" xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz"))
@@ -47,5 +31,21 @@
                   "/path"
                   :url "http://site.com/a/file.tgz"
                   :unpack :tar
+                  :owner "fred")))))
+  (is (= (stevedore/checked-commands
+          "remote-directory"
+          (directory* {} "/path" :owner "fred" :recursive false)
+          (remote-file*
+           {} "${TMPDIR-/tmp}/file.tgz"
+           :url "http://site.com/a/file.tgz" :md5 nil)
+          (stevedore/script
+           ("cd" "/path")
+           ("tar" xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz")))
+         (first (build-actions/build-actions
+                 {}
+                 (remote-directory
+                  "/path"
+                  :url "http://site.com/a/file.tgz"
+                  :unpack :tar
                   :owner "fred"
-                  :recursive true))))))
+                  :recursive false))))))

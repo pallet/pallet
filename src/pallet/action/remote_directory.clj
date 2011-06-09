@@ -48,11 +48,13 @@
           :url \"http://a.com/path/file.\"
           :unpack :unzip)"
   [session path & {:keys [action url unpack tar-options unzip-options
+                          jar-options
                           strip-components md5 md5-url owner group recursive]
                    :or {action :create
                         tar-options "xz"
                         unzip-options "-o"
-                        strip-components 1}
+                        strip-components 1
+                        recursive true}
                    :as options}]
 
   (case action
@@ -61,21 +63,26 @@
               (when (and url unpack)
                 (let [filename (.getName
                                 (java.io.File. (.getFile (java.net.URL. url))))
-                      tarpath (str (stevedore/script (~lib/tmp-dir)) "/" filename)]
+                      tarpath (str
+                               (stevedore/script (~lib/tmp-dir)) "/" filename)]
                   (stevedore/checked-commands
                    "remote-directory"
                    (directory*
-                    session path :owner owner :group group)
+                    session path :owner owner :group group :recursive false)
                    (remote-file*
                     session tarpath :url url :md5 md5 :md5-url md5-url)
                    (condp = unpack
                        :tar (stevedore/script
                              (cd ~path)
-                             (tar ~tar-options ~(str "--strip-components="
-                                                     strip-components) -f ~tarpath))
+                             (tar ~tar-options
+                                  ~(str "--strip-components=" strip-components)
+                                  -f ~tarpath))
                        :unzip (stevedore/script
                                (cd ~path)
-                               (unzip ~unzip-options ~tarpath)))
+                               (unzip ~unzip-options ~tarpath))
+                       :jar (stevedore/script
+                             (cd ~path)
+                             (jar ~jar-options ~tarpath)))
                    (if recursive
                      (directory*
                       session path
