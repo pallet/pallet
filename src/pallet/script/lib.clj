@@ -132,6 +132,16 @@
 (script/defimpl md5sum [#{:darwin :os-x}] [file & {:as options}]
   ("/sbin/md5" -r ~file))
 
+(script/defscript normalise-md5
+  "Normalise an md5 sum file to contain the base filename"
+  [file])
+(script/defimpl normalise-md5 :default
+  [file]
+  (if (egrep "'^[a-fA-F0-9]+$'" ~file)
+    (echo
+     (quoted (str "  " @(pipe (basename ~file) (sed -e "s/.md5//"))))
+     ">>" ~file)))
+
 (script/defscript md5sum-verify [file & {:as options}])
 (script/defimpl md5sum-verify :default
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
