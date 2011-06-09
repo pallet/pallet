@@ -254,7 +254,7 @@
                              s (normalise-eol
                                 (strip-sudo-password
                                  (String. bytes 0 num-read "UTF-8") user))]
-                         (logging/info (format "Output:\n%s" s))
+                         (logging/info (format "Output: %s\n%s" server s))
                          (.append sb s)
                          s)))]
     (while (ssh/connected? shell)
