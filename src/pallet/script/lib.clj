@@ -135,20 +135,18 @@
 (script/defscript md5sum-verify [file & {:as options}])
 (script/defimpl md5sum-verify :default
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
-  (chain-and
-   (cd @(dirname ~file))
-   (md5sum
-    ~(stevedore/map-to-arg-string {:quiet quiet :check check})
-    @(basename ~file))
-   (cd -)))
+  ("(" (chain-and
+        (cd @(dirname ~file))
+        (md5sum
+         ~(stevedore/map-to-arg-string {:quiet quiet :check check})
+         @(basename ~file))) ")"))
 (script/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel :fedora}]
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
-  (chain-and
-   (cd @(dirname ~file))
-   (md5sum
-    ~(stevedore/map-to-arg-string {:status quiet :check check})
-    @(basename ~file))
-   (cd -)))
+  ("(" (chain-and
+        (cd @(dirname ~file))
+        (md5sum
+         ~(stevedore/map-to-arg-string {:status quiet :check check})
+         @(basename ~file))) ")"))
 (script/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
   (chain-and
    (var testfile @(~cut ~file :delimiter " " :fields 2))
