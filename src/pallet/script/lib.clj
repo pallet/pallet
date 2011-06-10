@@ -132,23 +132,31 @@
 (script/defimpl md5sum [#{:darwin :os-x}] [file & {:as options}]
   ("/sbin/md5" -r ~file))
 
+(script/defscript normalise-md5
+  "Normalise an md5 sum file to contain the base filename"
+  [file])
+(script/defimpl normalise-md5 :default
+  [file]
+  (if (egrep "'^[a-fA-F0-9]+$'" ~file)
+    (echo
+     (quoted (str "  " @(pipe (basename ~file) (sed -e "s/.md5//"))))
+     ">>" ~file)))
+
 (script/defscript md5sum-verify [file & {:as options}])
 (script/defimpl md5sum-verify :default
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
-  (chain-and
-   (cd @(dirname ~file))
-   (md5sum
-    ~(stevedore/map-to-arg-string {:quiet quiet :check check})
-    @(basename ~file))
-   (cd -)))
+  ("(" (chain-and
+        (cd @(dirname ~file))
+        (md5sum
+         ~(stevedore/map-to-arg-string {:quiet quiet :check check})
+         @(basename ~file))) ")"))
 (script/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel :fedora}]
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
-  (chain-and
-   (cd @(dirname ~file))
-   (md5sum
-    ~(stevedore/map-to-arg-string {:status quiet :check check})
-    @(basename ~file))
-   (cd -)))
+  ("(" (chain-and
+        (cd @(dirname ~file))
+        (md5sum
+         ~(stevedore/map-to-arg-string {:status quiet :check check})
+         @(basename ~file))) ")"))
 (script/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
   (chain-and
    (var testfile @(~cut ~file :delimiter " " :fields 2))
@@ -168,7 +176,9 @@
   (concat [\/ \_ \| \: \% \! \@] (map char (range 42 127))))
 
 (script/defimpl sed-file :default
-  [file expr-map {:keys [seperator restriction] :as options}]
+  [file expr-map {:keys [seperator restriction quote-with]
+                  :or {quote-with "\""}
+                  :as options}]
   (sed "-i"
    ~(if (map? expr-map)
       (string/join
@@ -180,11 +190,16 @@
                            (>= (.indexOf value (int c)) 0)))
                 seperator (or seperator (first (remove used sed-separators)))]
             (format
-             "-e \"%ss%s%s%s%s%s\""
+             "-e %s%ss%s%s%s%s%s%s"
+             quote-with
              (if restriction (str restriction " ") "")
-             seperator key seperator value seperator)))
+             seperator key seperator value seperator quote-with)))
         expr-map))
-      (format "-e \"%s%s\"" (when restriction (str restriction " ")) expr-map))
+      (format
+       "-e %s%s%s%s"
+       quote-with
+       (if restriction (str restriction " ") "")
+       expr-map quote-with))
    ~file))
 
 (script/defscript download-file [url path & {:keys [proxy]}])
@@ -323,7 +338,19 @@
   (getent passwd ~username))
 
 (script/defimpl create-user :default [username options]
-  ("/usr/sbin/useradd" ~(stevedore/map-to-arg-string options) ~username))
+  ("/usr/sbin/useradd"
+   ~(-> options
+        (thread-expr/when->
+         (:groups options)
+         (update-in [:groups] (fn [groups]
+                                (if (and (seq? groups) (not (string? groups)))
+                                  (string/join "," groups)))))
+        (thread-expr/when->
+         (:group options)
+         (assoc :g (:group options))
+         (dissoc :group))
+        stevedore/map-to-arg-string)
+   ~username))
 
 (script/defimpl create-user [#{:rhel :centos :amzn-linux :fedora}]
   [username options]
@@ -690,19 +717,19 @@
 ;; installed files.
 
 (script/defscript pkg-etc-default [])
-(script/defimpl pkg-etc-default :default [] (etc-default))
+(script/defimpl pkg-etc-default :default [] (~etc-default))
 (script/defimpl etc-default [:brew] [] "/usr/local/etc/default")
 
 (script/defscript pkg-log-root [])
-(script/defimpl pkg-log-root :default [] (log-root))
+(script/defimpl pkg-log-root :default [] (~log-root))
 (script/defimpl pkg-log-root [:brew] [] "/usr/local/var/log")
 
 (script/defscript pkg-pid-root [])
-(script/defimpl pkg-pid-root :default [] (pid-root))
+(script/defimpl pkg-pid-root :default [] (~pid-root))
 (script/defimpl pkg-pid-root [:brew] [] "/usr/local/var/run")
 
 (script/defscript pkg-config-root [])
-(script/defimpl pkg-config-root :default [] (config-root))
+(script/defimpl pkg-config-root :default [] (~config-root))
 (script/defimpl pkg-config-root [:brew] [] "/usr/local/etc")
 
 (script/defscript pkg-sbin [])

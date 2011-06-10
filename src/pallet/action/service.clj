@@ -23,8 +23,8 @@
                            :as options}]
   (if (#{:enable :disable :start-stop} action)
     (stevedore/checked-script
-     (format "Confgure service %s" service-name)
-     (configure-service ~service-name ~action ~options))
+     (format "Configure service %s" service-name)
+     (~lib/configure-service ~service-name ~action ~options))
     (if if-flag
       (stevedore/script
        (if (== "1" (lib/flag? ~if-flag))

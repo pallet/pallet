@@ -58,7 +58,8 @@
 (action/def-aggregated-action user
   "User management."
   [session user-args]
-  {:arglists (:arglists (meta pallet.action.user/user*))}
+  {:arglists (:arglists (meta pallet.action.user/user*))
+   :always-after #{`group}}
   (string/join \newline (map #(apply user* session %) user-args)))
 
 

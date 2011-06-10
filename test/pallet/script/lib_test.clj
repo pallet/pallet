@@ -40,6 +40,15 @@
   (is (= "${TMPDIR-/tmp}"
          (script (~tmp-dir)))))
 
+(deftest normalise-md5-test
+  (is (= (str "if egrep '^[a-fA-F0-9]+$' abc.md5; then"
+              " echo \"  $(basename abc.md5 | sed -e s/.md5//)\" >> abc.md5;fi")
+         (script (~normalise-md5 abc.md5)))))
+
+(deftest md5sum-verify-test
+  (is (= "( cd $(dirname abc.md5) && md5sum --quiet --check $(basename abc.md5) )"
+         (script (~md5sum-verify abc.md5)))))
+
 (deftest heredoc-test
   (is (= "{ cat > somepath <<EOFpallet\nsomecontent\nEOFpallet\n }"
          (script (~heredoc "somepath" "somecontent" {})))))
@@ -52,6 +61,9 @@
   (testing "explicit separator"
     (is (= "sed -i -e \"s|a|b|\" path"
            (script (~sed-file "path" {"a" "b"} {:seperator "|"})))))
+  (testing "single quotings"
+    (is (= "sed -i -e 's/a/b/' path"
+           (script (~sed-file "path" {"a" "b"} {:quote-with "'"})))))
   (testing "computed separator"
     (is (= "sed -i -e \"s/a/b/\" path"
            (script (~sed-file "path" {"a" "b"} {}))))

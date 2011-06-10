@@ -158,12 +158,14 @@
                                 (quoted
                                  (str @tmpdir "/" @(~lib/basename ~path))))
                            (var newmd5path (quoted (str @basefile ".md5")))
-                           (~lib/download-file ~md5-url @newmd5path :proxy ~proxy)
+                           (~lib/download-file
+                            ~md5-url @newmd5path :proxy ~proxy)
+                           (~lib/normalise-md5 @newmd5path)
                            (if (|| (not (file-exists? ~md5-path))
                                    (~lib/diff @newmd5path ~md5-path))
                              (do
                                (~lib/download-file ~url ~new-path :proxy ~proxy)
-                               (~lib/ln ~new-path @basefile :symbolic true)
+                               (~lib/ln ~new-path @basefile)
                                (if-not (~lib/md5sum-verify @newmd5path)
                                  (do
                                    (println ~(str "Download of " url
