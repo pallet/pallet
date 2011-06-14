@@ -21,9 +21,12 @@
           (directory* {} "/path" :owner "fred" :recursive false)
           (remote-file* {}
            "${TMPDIR-/tmp}/file.tgz" :url "http://site.com/a/file.tgz" :md5 nil)
-          (stevedore/script
-           ("cd" "/path")
-           ("tar" xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz"))
+          (stevedore/checked-script
+           "Untar ${TMPDIR-/tmp}/file.tgz"
+           (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
+           (cd "/path")
+           (tar xz "--strip-components=1" -f "${rdf}")
+           (cd -))
           (directory* {} "/path" :owner "fred" :recursive true))
          (first (build-actions/build-actions
                  {}
@@ -38,9 +41,12 @@
           (remote-file*
            {} "${TMPDIR-/tmp}/file.tgz"
            :url "http://site.com/a/file.tgz" :md5 nil)
-          (stevedore/script
-           ("cd" "/path")
-           ("tar" xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz")))
+          (stevedore/checked-script
+           "Untar ${TMPDIR-/tmp}/file.tgz"
+           (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
+           (cd "/path")
+           (tar xz "--strip-components=1" -f "${rdf}")
+           (cd -)))
          (first (build-actions/build-actions
                  {}
                  (remote-directory
