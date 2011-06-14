@@ -8,6 +8,7 @@
    [pallet.action.remote-file :as remote-file]
    [pallet.parameter :as parameter]
    [pallet.script.lib :as lib]
+   [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.thread-expr :as thread-expr]
    [pallet.utils :as utils]
@@ -15,6 +16,17 @@
 
 (defn user-ssh-dir [user]
   (str (stevedore/script (~lib/user-home ~user)) "/.ssh/"))
+
+(action/def-bash-action authorize-key-action
+  "Designed to be used by authorize-key. This is an action to allow
+   passing of delayed arguments for the public-key-string, enabling the
+   authorisation of a key found with record-key."
+  [session user public-key-string auth-file]
+  (stevedore/checked-script
+   "authorize-key"
+   (var auth_file ~auth-file)
+   (if-not (fgrep (quoted ~(string/trim public-key-string)) @auth_file)
+     (echo (quoted ~public-key-string) ">>" @auth_file))))
 
 (defn authorize-key
   "Authorize a public key on the specified user."
@@ -26,11 +38,7 @@
      session
      (directory/directory dir :owner target-user :mode "755")
      (file/file auth-file :owner target-user :mode "644")
-     (exec-script/exec-checked-script
-      "authorize-key"
-      (var auth_file ~auth-file)
-      (if-not (fgrep (quoted ~(string/trim public-key-string)) @auth_file)
-        (echo (quoted ~public-key-string) ">>" @auth_file))))))
+     (authorize-key-action user public-key-string auth-file))))
 
 (defn authorize-key-for-localhost
   "Authorize a user's public key on the specified user, for ssh access to
