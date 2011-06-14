@@ -38,7 +38,10 @@
      session
      (directory/directory dir :owner target-user :mode "755")
      (file/file auth-file :owner target-user :mode "644")
-     (authorize-key-action user public-key-string auth-file))))
+     (authorize-key-action user public-key-string auth-file)
+     (exec-script/exec-checked-script
+      "Set selinux permissions"
+      (~lib/selinux-file-type ~dir "user_home_t")))))
 
 (defn authorize-key-for-localhost
   "Authorize a user's public key on the specified user, for ssh access to
