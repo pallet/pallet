@@ -25,6 +25,12 @@
   [arg])
 (script/defimpl has-command? :default [arg] (hash ~arg "2>&-"))
 
+(script/defscript canonical-path [path]
+  "Return the canonical version of the specified path"
+  [arg])
+(script/defimpl canonical-path :default [arg] (readlink -f ~arg))
+
+
 (script/defscript rm [file & {:keys [recursive force]}])
 (script/defimpl rm :default [file & {:keys [recursive force] :as options}]
   ("rm" ~(stevedore/map-to-arg-string options) ~file))
@@ -750,3 +756,14 @@
 (script/defscript flag? [path])
 (script/defimpl flag? :default [path]
   (get flags_hash ~(name path)))
+
+;;; selinux
+
+(script/defscript selinux-file-type
+  "Set the selinux file type"
+  [path type])
+
+(script/defimpl selinux-file-type :default
+  [path type]
+  (if (~has-command? chcon)
+    (chcon -Rv ~(str "--type=" type) ~path)))
