@@ -74,3 +74,20 @@
                        (parameters [:b] 43)
                        (parameters-test [:a] 33))]
     (is (= {:a 33 :b 43} (:parameters session)))))
+
+(deftest get-target-settings-test
+  (let [m {:a 1 :b { :c 2}}
+        p {:parameters {:host {:id {:f {:default m}}}}
+           :server {:node-id :id}}]
+    (is (= m (get-target-settings p :f :default)))
+    (is (= m (get-target-settings p :f nil)))))
+
+(deftest assoc-target-settings-test
+  (let [m {:a 1 :b { :c 2}}
+        p {:server {:node-id :id}}]
+    (is (= {:parameters {:host {:id {:f {:default m}}}}
+            :server {:node-id :id}}
+           (assoc-target-settings p :f :default m)))
+    (is (= {:parameters {:host {:id {:f {:default m}}}}
+            :server {:node-id :id}}
+           (assoc-target-settings p :f nil m)))))

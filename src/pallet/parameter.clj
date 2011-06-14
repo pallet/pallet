@@ -25,6 +25,7 @@
   (:require
    [pallet.action :as action]
    [pallet.argument :as argument]
+   [pallet.compute :as compute]
    [clojure.contrib.condition :as condition]))
 
 (defn from-map
@@ -41,14 +42,26 @@
        (get-for {:p {:a {:b 1} {:d 2}}} [:p :a :d])
          => 2"
   ([session keys]
+     {:pre [(map? session)]}
      (let [result (get-in (:parameters session) keys ::not-set)]
        (when (= ::not-set result)
-         (condition/raise
-          :type :parameter-not-found
-          :message (format
-                    "Could not find keys %s in session :parameters"
-                    (if (sequential? keys) (vec keys) keys))
-          :key-not-set keys))
+         (let [found-keys (take-while
+                           #(not=
+                             (get-in (:parameters session) % ::not-set)
+                             ::not-set)
+                           (rest (reductions conj [] keys)))]
+           (condition/raise
+            :type :parameter-not-found
+            :message (format
+                      (str
+                       "Could not find keys %s in session :parameters. "
+                       "Found keys %s with values %s")
+                      (if (sequential? keys) (vec keys) keys)
+                      (vec found-keys)
+                      (if (seq found-keys)
+                        (get-in (:parameters session) (vec found-keys))
+                        (:parameters session)))
+            :key-not-set keys)))
        result))
   ([session keys default]
        (get-in (:parameters session) keys default)))
@@ -80,6 +93,24 @@
      (get-for session (concat [:service] keys)))
   ([session keys default]
      (get-for session (concat [:service] keys) default)))
+
+(defn get-node-settings
+  "Retrieve the settings for the specified node facility. The instance-id allows
+   the specification of specific instance of the facility. If passed a nil
+   `instance-id`, then `:default` is used"
+  [session node facility instance-id]
+  (get-for
+   session
+   [:host (keyword (compute/id node)) facility (or instance-id :default)]))
+
+(defn get-target-settings
+  "Retrieve the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility. If passed a nil
+   `instance-id`, then `:default` is used"
+  [session facility instance-id]
+  (get-for
+   session
+   [:host (-> session :server :node-id) facility (or instance-id :default)]))
 
 (defn- assoc-for-prefix
   "Set the values in a map at the paths specified with prefix prepended to each
@@ -119,6 +150,16 @@
   (assoc-for-prefix
    session [:parameters :service service] keys-value-pairs))
 
+(defn assoc-target-settings
+  "Set the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility (the default is
+   :default)."
+  [session facility instance-id values]
+  (assoc-for
+   session
+   [:host (-> session :server :node-id) facility (or instance-id :default)]
+   values))
+
 (defn- update-for-prefix
   "Update a map at the path given by the prefix and keys.
    The value is set to the value return by calling f with the current
@@ -136,8 +177,8 @@
 
        (update-for {:parameters {:a {:b 1}}} [:a :b] + 2)
          => {:parameters {:a {:b 3}}}"
-  ([session keys f & args]
-     (update-for-prefix session [:parameters] keys f args)))
+  [session keys f & args]
+  (update-for-prefix session [:parameters] keys f args))
 
 (defn update-for-target
   "Update host parameters for the current target at the path given by keys.
@@ -164,6 +205,17 @@
          => {:parameters {:service {:proxy {:a {:b 3}}}}}"
   [session keys f & args]
   (update-for-prefix session [:parameters :service] keys f args))
+
+(defn update-target-settings
+  "Update the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility (the default is
+   :default)."
+  [session facility instance-id f & args]
+  (apply
+   update-for
+   session
+   [:host (-> session :server :node-id) facility (or instance-id :default)]
+   f args))
 
 ;;; Delayed parameter evaluation
 (deftype ParameterLookup
