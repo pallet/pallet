@@ -46,13 +46,15 @@
   (:use
    [clojure.contrib.core :only [-?>]]))
 
-(defn version
-  "Returns the pallet version."
-  []
-  (or
-   (System/getProperty "pallet.version")
-   (if-let [version (resource/slurp "pallet-version")]
-     (string/trim version))))
+(let [v (atom nil)]
+  (defn version
+    "Returns the pallet version."
+    []
+    (or
+     @v
+     (reset! v (System/getProperty "pallet.version"))
+     (reset! v (if-let [version (resource/slurp "pallet-version")]
+                       (string/trim version))))))
 
 ;; Set the agent string for http requests.
 (. System setProperty "http.agent"
