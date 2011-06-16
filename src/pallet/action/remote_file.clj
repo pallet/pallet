@@ -194,7 +194,7 @@
               (~lib/ln ~link ~path :force ~true :symbolic ~true))
         blob (stevedore/checked-script
               "Download blob"
-              (download-session
+              (~lib/download-request
                ~new-path
                ~(blobstore/sign-blob-request
                  (or blobstore (environment/get-for session [:blobstore] nil)
