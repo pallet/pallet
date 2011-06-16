@@ -539,7 +539,7 @@
     session
     (environment/merge-environments
      (:environment session)
-     (-> session :server :environment))))
+     (environment/eval-environment (-> session :server :environment)))))
 
 (defn translate-action-plan
   [handler]

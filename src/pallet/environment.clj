@@ -137,19 +137,27 @@
   "Evaluate an environment literal.  This is used to replace certain keys with
    objects constructed from the map of values provided.  The keys that are
    evaluated are:
-   - :user"
+   - :user
+   - :phases
+   - :algorithms"
   [env-map]
   (let [env-map (if-let [user (:user env-map)]
-                  (assoc
-                      env-map :user
-                      (apply utils/make-user
-                             (:username user) (mapcat identity user)))
+                  (if-let [username (:username user)]
+                    (assoc
+                        env-map :user
+                        (apply
+                         utils/make-user username (mapcat identity user)))
+                    env-map)
                   env-map)
         env-map (if-let [phases (:phases env-map)]
-                  (assoc env-map :phases (eval-phases phases))
+                  (if (every? fn? (vals phases))
+                    env-map
+                    (assoc env-map :phases (eval-phases phases)))
                   env-map)
         env-map (if-let [algorithms (:algorithms env-map)]
-                  (assoc env-map :algorithms (eval-algorithms algorithms))
+                  (if (every? fn? (vals algorithms))
+                    env-map
+                    (assoc env-map :algorithms (eval-algorithms algorithms)))
                   env-map)]
     env-map))
 

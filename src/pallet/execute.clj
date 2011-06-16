@@ -512,7 +512,8 @@
   [handler]
   (fn [session]
     (let [user (:user session)]
-      (logging/info (format "Using identity at %s" (:private-key-path user)))
+      (logging/info
+       (format "Admin user %s %s" (:username user) (:private-key-path user)))
       (possibly-add-identity
        (default-agent) (:private-key-path user) (:passphrase user)))
     (handler session)))
