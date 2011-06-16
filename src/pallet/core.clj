@@ -686,8 +686,9 @@
    (for [group (:groups session)]
      (parallel-apply-phase (assoc session :group group) (:servers group)))
    (reduce concat [])
-   vec                          ; make sure we start all futures before deref
-   (map deref)))                ; make sure all nodes complete before next phase
+   doall                        ; make sure we start all futures before deref
+   (map deref)                  ; make sure all nodes complete before next phase
+   doall))                      ; make sure we force the deref
 
 (defn lift-nodes-for-phase
   "Lift nodes in target-node-map for the specified phases.
