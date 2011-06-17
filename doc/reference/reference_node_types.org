@@ -24,7 +24,7 @@ serivce options.  The available keywords are compatible with those in
   (require 'pallet.core)
   (def mynodes
     (pallet.core/node-spec
-      :image {:os-family :ubuntu :os-version-matches "10.10}
+      :image {:os-family :ubuntu :os-version-matches "10.10"}
       :hardware {:min-cores 2 :min-ram 512}
       :network {:inbound-ports [22 80]}
       :qos {:spot-price (float 0.03) :enable-monitoring true}))
@@ -44,11 +44,11 @@ A =server-spec- is used to specify phase functions, which can be invoked using
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.core)
-  (require 'pallet.resource.package)
+  (require 'pallet.action.package)
   (def with-wget
     (pallet.core/server-spec
-     :phases {:configure (pallet.resource/phase
-                           (pallet.resource.package/package "wget")))
+     :phases {:configure (pallet.phase/phase-fn
+                           (pallet.action.package/package "wget"))}))
 #+END_SRC
 
 The server specs can be extended.  In this example =with-wget-and-curl=
@@ -56,16 +56,16 @@ extends =with-wget=, and adds installation of curl:
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.core)
-  (require 'pallet.resource.package)
+  (require 'pallet.action.package)
   (def with-wget
     (pallet.core/server-spec
-     :phases {:configure (pallet.resource/phase
-                           (pallet.resource.package/package "wget"))}))
+     :phases {:configure (pallet.phase/phase-fn
+                           (pallet.action.package/package "wget"))}))
   (def with-wget-and-curl
     (pallet.core/server-spec
      :extends with-wget
-     :phases {:configure (pallet.resource/phase
-                           (pallet.resource.package/package "curl"))}))
+     :phases {:configure (pallet.phase/phase-fn
+                           (pallet.action.package/package "curl"))}))
 #+END_SRC
 
 The server spec can be used to overide the default packager selection
@@ -86,18 +86,18 @@ operation]].
   (require 'pallet.core)
   (def mynodes
     (pallet.core/node-spec
-      :image {:os-family :ubuntu :os-version-matches "10.10}
+      :image {:os-family :ubuntu :os-version-matches "10.10"}
       :hardware {:min-cores 2 :min-ram 512}
       :network {:inbound-ports [22 80]}
       :qos {:spot-price (float 0.03) :enable-monitoring true}))
   (def with-wget
     (pallet.core/server-spec
-     :phases {:configure (pallet.resource/phase
-                           (pallet.resource.package/package "wget"))}))
+     :phases {:configure (pallet.phase/phase-fn
+                           (pallet.action.package/package "wget"))}))
   (def with-curl
     (pallet.core/server-spec
-     :phases {:configure (pallet.resource/phase
-                           (pallet.resource.package/package "curl"))}))
+     :phases {:configure (pallet.phase/phase-fn
+                           (pallet.action.package/package "curl"))}))
   (def mygroup
     (pallet.core/group-spec
       "mygroup" :extends [with-wget with-curl] :node-spec mynodes))
@@ -117,12 +117,12 @@ Alternatively, you can specify everything in one:
   (def mygroup
     (pallet.core/group-spec
       "mygroup"
-      :phases {:configure (pallet.resource/phase
-                           (pallet.resource.package/package "wget")
-                           (pallet.resource.package/package "curl"))}
+      :phases {:configure (pallet.phase/phase-fn
+                           (pallet.action.package/package "wget")
+                           (pallet.action.package/package "curl"))}
       :node-spec (pallet.core/node-spec
-                  :image {:os-family :ubuntu :os-version-matches "10.10}
+                  :image {:os-family :ubuntu :os-version-matches "10.10"}
                   :hardware {:min-cores 2 :min-ram 512}
                   :network {:inbound-ports [22 80]}
-                  :qos {:spot-price (float 0.03) :enable-monitoring true}))
+                  :qos {:spot-price (float 0.03) :enable-monitoring true})))
 #+END_SRC

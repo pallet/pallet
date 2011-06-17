@@ -31,7 +31,7 @@ macro also adds some error checking of the request map.
   (pallet.core/server-spec
     :phases
       {:configure
-         (function [request]
+         (fn [request]
            (->
              request
              (pallet.resource.package/package "curl")))})
