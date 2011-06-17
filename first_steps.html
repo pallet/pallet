@@ -7,7 +7,7 @@ lang="en" xml:lang="en">
 <title>First Steps</title>
 <meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
 <meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2011-02-17 22:36:53 EST"/>
+<meta name="generated" content="2011-06-16 23:59:23 EDT"/>
 <meta name="author" content="Hugo Duncan"/>
 <meta name="description" content="Pallet first steps introduction"/>
 <meta name="keywords" content="pallet introduction install first"/>
@@ -89,109 +89,207 @@ lang="en" xml:lang="en">
 
 <h1 class="title">First Steps</h1>
 
-<p>The simplest way to start pallet is with a git checkout of the <a href="https://github.com/hugoduncan/pallet-examples">pallet-examples project</a>.
+<p>Zero to running in five minutes with lein.
 </p>
 
 <div id="outline-container-1" class="outline-2">
-<h2 id="sec-1">Install </h2>
+<h2 id="sec-1">Install leiningen </h2>
 <div class="outline-text-2" id="text-1">
 
 
 <p>
-Pallet can be used as a jar file or from a source code checkout.  Release versions
-are available at <a href="http://oss.sonatype.org/content/repositories/releases/org/cloudhoist">Sonatype</a>, and can be used with <a href="http://maven.apache.org/">maven</a>, <a href="http://github.com/technomancy/leiningen">leiningen</a> or any
-maven repository aware tool.
-</p>
-
-</div>
-
-<div id="outline-container-1_1" class="outline-3">
-<h3 id="sec-1_1">Lein/Cake </h3>
-<div class="outline-text-3" id="text-1_1">
-
-
-<p>
-Include the following in your project.clj
+The first thing we need is [leiningen](<a href="http://github.com/technomancy/leiningen">http://github.com/technomancy/leiningen</a>),
+a build tool for clojure. You can downlaod this with your web browser, <code>curl</code> or
+<code>wget</code> or your favourite download tool. Here we show using <code>curl</code>.
 </p>
 
 
 
-<pre class="src src-clojure"><span style="color: #0000ff;">:dependencies</span> [[org.cloudhoist/pallet <span style="color: #f4a460;">"0.4.0"</span>]
-               [org.cloudhoist/pallet-crates-complete <span style="color: #f4a460;">"0.4.0"</span>]]
-<span style="color: #0000ff;">:repositories</span> {<span style="color: #f4a460;">"sonatype"</span>
-               <span style="color: #f4a460;">"http://oss.sonatype.org/content/repositories/releases"</span>
-               <span style="color: #f4a460;">"sonatype-snapshots"</span>
-               <span style="color: #f4a460;">"http://oss.sonatype.org/content/repositories/snapshots"</span>}
+<pre class="src src-sh">bash$ curl -O http://github.com/technomancy/leiningen/raw/stable/bin/lein
+bash$ chmod +x lein
 </pre>
 
 
 
-</div>
-
-</div>
-
-<div id="outline-container-1_2" class="outline-3">
-<h3 id="sec-1_2">Maven </h3>
-<div class="outline-text-3" id="text-1_2">
-
-<p>Include the following in your pom.xml.
-</p>
-
-
-
-<pre class="src src-xml"><span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">dependencies</span><span style="color: #00cd00;">&gt;</span>
-  <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">dependency</span><span style="color: #00cd00;">&gt;</span>
-    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">groupId</span><span style="color: #00cd00;">&gt;</span>org.cloudhoist<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">groupId</span><span style="color: #00cd00;">&gt;</span>
-    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">artifactId</span><span style="color: #00cd00;">&gt;</span>pallet<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">artifactId</span><span style="color: #00cd00;">&gt;</span>
-    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">version</span><span style="color: #00cd00;">&gt;</span>0.4.0<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">version</span><span style="color: #00cd00;">&gt;</span>
-  <span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">dependency</span><span style="color: #00cd00;">&gt;</span>
-  <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">dependency</span><span style="color: #00cd00;">&gt;</span>
-    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">groupId</span><span style="color: #00cd00;">&gt;</span>org.cloudhoist<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">groupId</span><span style="color: #00cd00;">&gt;</span>
-    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">artifactId</span><span style="color: #00cd00;">&gt;</span>pallet<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">artifactId</span><span style="color: #00cd00;">&gt;</span>
-    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">version</span><span style="color: #00cd00;">&gt;</span>0.4.0<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">version</span><span style="color: #00cd00;">&gt;</span>
-  <span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">dependency</span><span style="color: #00cd00;">&gt;</span>
-<span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">dependencies</span><span style="color: #00cd00;">&gt;</span>
-
-<span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">repositories</span><span style="color: #00cd00;">&gt;</span>
-  <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">repository</span><span style="color: #00cd00;">&gt;</span>
-    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">id</span><span style="color: #00cd00;">&gt;</span>sonatype<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">id</span><span style="color: #00cd00;">&gt;</span>
-    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">url</span><span style="color: #00cd00;">&gt;</span>http://oss.sonatype.org/content/repositories/releases<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">url</span><span style="color: #00cd00;">&gt;</span>
-  <span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">repository</span><span style="color: #00cd00;">&gt;</span>
-  <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">repository</span><span style="color: #00cd00;">&gt;</span>
-    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">id</span><span style="color: #00cd00;">&gt;</span>sonatype-snapshots<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">id</span><span style="color: #00cd00;">&gt;</span>
-    <span style="color: #00cd00;">&lt;</span><span style="color: #5f9ea0;">url</span><span style="color: #00cd00;">&gt;</span>http://oss.sonatype.org/content/repositories/snapshots<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">url</span><span style="color: #00cd00;">&gt;</span>
-  <span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">repository</span><span style="color: #00cd00;">&gt;</span>
-<span style="color: #00cd00;">&lt;</span><span style="color: #00cd00;">/</span><span style="color: #5f9ea0;">repositories</span><span style="color: #00cd00;">&gt;</span>
-</pre>
-
-
-
-
-</div>
 </div>
 
 </div>
 
 <div id="outline-container-2" class="outline-2">
-<h2 id="sec-2">Source </h2>
+<h2 id="sec-2">Create a new project </h2>
 <div class="outline-text-2" id="text-2">
 
-<p>Pallet is available on <a href="http://github.com/hugoduncan/pallet">github</a>. Pallet requires <a href="http://clojure.org/">Clojure 1.2</a>, and uses <a href="http://jclouds.org">jclouds</a>.
+
+<p>
+Now we can create a new clojure project using lein. This uses quickstart as the
+name of the project:
 </p>
 
 
 
-<pre class="src src-sh">git clone git://github.com/hugoduncan/pallet.git
-git clone git://github.com/hugoduncan/pallet-crates.git
+<pre class="src src-sh">bash$ lein new quickstart
+Created new project in: quickstart
+bash$ cd quickstart
 </pre>
 
 
+
 </div>
+
+</div>
+
+<div id="outline-container-3" class="outline-2">
+<h2 id="sec-3">Setup the project for pallet </h2>
+<div class="outline-text-2" id="text-3">
+
+
+<p>
+Pallet is just a library, and can be used as a jar file.  Release versions are
+available at the <a href="http://oss.sonatype.org/content/repositories/releases/org/cloudhoist">Sonatype</a> maven repository.
+</p>
+<p>
+Include the following in the <code>project.clj</code> file, which describes the project
+dependencies.
+</p>
+
+
+
+<pre class="src src-clojure"><span style="color: #0000ff;">:dependencies</span> [[org.cloudhoist/pallet <span style="color: #f4a460;">"0.5.0"</span>]
+               [org.cloudhoist/pallet-crates-standalone <span style="color: #f4a460;">"0.5.0"</span>]
+               [org.jclouds/jclouds-all <span style="color: #f4a460;">"1.0-beta-9c"</span>]
+               [org.jclouds.driver/jclouds-jsch <span style="color: #f4a460;">"1.0-beta-9c"</span>]
+               [org.jclouds.driver/jclouds-log4j <span style="color: #f4a460;">"1.0-beta-9c"</span>]]
+<span style="color: #0000ff;">:repositories</span> {<span style="color: #f4a460;">"sonatype"</span>
+               <span style="color: #f4a460;">"http://oss.sonatype.org/content/repositories/releases"</span>}
+</pre>
+
+
+
+<p>
+You should end up with a <code>project.clj</code> that looks something like this:
+</p>
+
+
+
+<pre class="src src-clojure">(defproject blank-project <span style="color: #f4a460;">"0.1.0-SNAPSHOT"</span>
+  <span style="color: #0000ff;">:description</span> <span style="color: #f4a460;">"quickstart for pallet"</span>
+  <span style="color: #0000ff;">:dependencies</span> [[org.cloudhoist/pallet <span style="color: #f4a460;">"0.5.0"</span>]
+                 [org.cloudhoist/pallet-crates-standalone <span style="color: #f4a460;">"0.5.0"</span>]
+                 [org.jclouds/jclouds-all <span style="color: #f4a460;">"1.0-beta-9c"</span>]
+                 [org.jclouds.driver/jclouds-jsch <span style="color: #f4a460;">"1.0-beta-9c"</span>]
+                 [org.jclouds.driver/jclouds-log4j <span style="color: #f4a460;">"1.0-beta-9c"</span>]]
+  <span style="color: #0000ff;">:repositories</span> {<span style="color: #f4a460;">"sonatype"</span>
+                 <span style="color: #f4a460;">"http://oss.sonatype.org/content/repositories/releases"</span>})
+</pre>
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-4" class="outline-2">
+<h2 id="sec-4">Start the REPL and load pallet </h2>
+<div class="outline-text-2" id="text-4">
+
+
+<p>
+Start a repl with <code>lein repl</code> and load pallet with <code>require</code> at the repl
+<code>user=&gt;</code> prompt.
+</p>
+
+
+
+<pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.core 'pallet.compute)
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-5" class="outline-2">
+<h2 id="sec-5">Configure your credentials </h2>
+<div class="outline-text-2" id="text-5">
+
+
+<p>
+Now you can configure your credentials in a <code>~/.pallet/config.clj</code> file, under
+the <code>:services</code> key. You will need to create this file.
+</p>
+
+
+
+<pre class="src src-clojure">(defpallet
+  <span style="color: #0000ff;">:serivces</span>
+    {<span style="color: #0000ff;">:gogrid</span> {<span style="color: #0000ff;">:provider</span> <span style="color: #f4a460;">"gogrid"</span> <span style="color: #0000ff;">:identity</span> <span style="color: #f4a460;">"key"</span> <span style="color: #0000ff;">:credential</span> <span style="color: #f4a460;">"secret-key"</span>}
+     <span style="color: #0000ff;">:aws</span> {<span style="color: #0000ff;">:provider</span> <span style="color: #f4a460;">"ec2-aws"</span> <span style="color: #0000ff;">:identity</span> <span style="color: #f4a460;">"key"</span> <span style="color: #0000ff;">:credential</span> <span style="color: #f4a460;">"secret-key"</span>}
+     <span style="color: #0000ff;">:rs</span>  {<span style="color: #0000ff;">:provider</span> <span style="color: #f4a460;">"cloudservers-us"</span> <span style="color: #0000ff;">:identity</span> <span style="color: #f4a460;">"user"</span> <span style="color: #0000ff;">:credential</span> <span style="color: #f4a460;">"key"</span>}})
+</pre>
+
+
+
+<p>
+Each service is named (the key in the map supplied to <code>:services</code>).
+</p>
+<p>
+The :provider key specifies the jclouds provider to use.  For a list of the
+valid :provider values, you can enter the following command:
+</p>
+
+
+
+<pre class="src src-clojure">(pallet.compute/supported-providers)
+</pre>
+
+
+
+
+</div>
+
+</div>
+
+<div id="outline-container-6" class="outline-2">
+<h2 id="sec-6">Start a cloud node </h2>
+<div class="outline-text-2" id="text-6">
+
+
+<p>
+You can now start your first compute node:
+</p>
+
+
+
+<pre class="src src-clojure">(pallet.core/converge
+  (pallet.core/group-spec <span style="color: #f4a460;">"mygroup"</span> <span style="color: #0000ff;">:count</span> 1)
+  <span style="color: #0000ff;">:compute</span> (pallet.compute/service <span style="color: #0000ff;">:gogrid</span>))
+</pre>
+
+
+
+<p>
+To shut the node down again, change the :count value to zero:
+</p>
+
+
+
+<pre class="src src-clojure">(pallet.core/converge
+  (pallet.core/group-spec <span style="color: #f4a460;">"mygroup"</span> <span style="color: #0000ff;">:count</span> 0)
+  <span style="color: #0000ff;">:compute</span> (pallet.compute/service <span style="color: #0000ff;">:gogrid</span>))
+</pre>
+
+
+
+<p>
+Congratulations!
+</p></div>
 </div>
 <div id="postamble">
 <p class="author"> Author: Hugo Duncan
 </p>
-<p class="date"> Date: 2011-02-17 22:36:53 EST</p>
+<p class="date"> Date: 2011-06-16 23:59:23 EDT</p>
 <p class="creator">HTML generated by org-mode 7.4 in emacs 24</p>
 </div>
 </div>
