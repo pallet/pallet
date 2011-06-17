@@ -100,7 +100,7 @@ operation]].
                            (pallet.resource.package/package "curl"))}))
   (def mygroup
     (pallet.core/group-spec
-      "mygroup" :extends [with-wget with-curl] :node-spec mynodes)
+      "mygroup" :extends [with-wget with-curl] :node-spec mynodes))
 #+END_SRC
 
 The ability to extend multiple server-spec's allows you to build easy to
