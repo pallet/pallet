@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>pallet.target API reference (pallet)</title>
+    <title>pallet.phase API reference (pallet)</title>
     <link href="static/favicon.png" rel="icon" />
     <link href="static/favicon.png" rel="shortcut icon" />
     <link media="all" type="text/css" href="static/clojure.css" rel="stylesheet" />
@@ -48,42 +48,117 @@ namespace.
   <div style="margin-left: 1em;" class="toc-section">
     <a href="#toc0">Overview</a>
     <div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.target/admin-group">admin-group</a>
+      <a href="#pallet.phase/all-phases-for-phase">all-phases-for-phase</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.target/os-family">os-family</a>
+      <a href="#pallet.phase/check-session">check-session</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.phase/phase-fn">phase-fn</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.phase/post-phase-name">post-phase-name</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.phase/pre-phase-name">pre-phase-name</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.phase/schedule-in-post-phase">schedule-in-post-phase</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.phase/schedule-in-pre-phase">schedule-in-pre-phase</a>
     </div>
     <br />
   </div>
 </div>
 </div>
-                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.target</span></h1>
+                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.phase</span></h1>
 by <span id="author">Unknown</span><br />
 <br />Usage:
 <pre>
 (ns your-namespace
-  (:require <span id="long-name">pallet.target</span>))
+  (:require <span id="long-name">pallet.phase</span>))
 </pre><pre>
 </pre><h2>Overview</h2>
-<pre id="namespace-docstr">Compatibility namespace</pre>
+<pre id="namespace-docstr">A phase is a function of a single `session` argument, that contains
+calls to crate functions or actions. A phase has an implicitly
+defined pre and post phase.</pre>
 <br />
 <h2>Public Variables and Functions</h2>
 <div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.target/admin-group">admin-group</h2>
+  <h2 id="pallet.phase/all-phases-for-phase">all-phases-for-phase</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (admin-group target)
+  <pre id="var-usage">Usage: (all-phases-for-phase phase)
 </pre>
-  <pre id="var-docstr">Default administrator group</pre>
+  <pre id="var-docstr">Return a sequence including the implicit pre and post phases for a phase.</pre>
   
 </div><div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.target/os-family">os-family</h2>
+  <h2 id="pallet.phase/check-session">check-session</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (os-family target)
+  <pre id="var-usage">Usage: (check-session session)
+       (check-session session form)
 </pre>
-  <pre id="var-docstr">OS family</pre>
+  <pre id="var-docstr">Function that can check a session map to ensure it is a valid part of
+phase definiton. It returns the session map.
+
+If this fails, then it is likely that you have an incorrect crate function,
+which is failing to return its session map properly, or you have a non crate
+function in the phase defintion.</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.phase/phase-fn">phase-fn</h2>
+  <span id="var-type">macro</span><br />
+  <pre id="var-usage">Usage: (phase-fn &amp; body)
+</pre>
+  <pre id="var-docstr">Create a phase function from a sequence of crate invocations with
+an ommited session parameter.
+
+eg. (phase-fn
+      (file "/some-file")
+      (file "/other-file"))
+
+which generates a function with a session argument, that is thread
+through the function calls. The example is thus equivalent to:
+
+(fn [session] (-&gt; session
+                (file "/some-file")
+                (file "/other-file"))) </pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.phase/post-phase-name">post-phase-name</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (post-phase-name phase)
+</pre>
+  <pre id="var-docstr">Return the name for the post-phase for the given `phase`.</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.phase/pre-phase-name">pre-phase-name</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (pre-phase-name phase)
+</pre>
+  <pre id="var-docstr">Return the name for the pre-phase for the given `phase`.</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.phase/schedule-in-post-phase">schedule-in-post-phase</h2>
+  <span id="var-type">macro</span><br />
+  <pre id="var-usage">Usage: (schedule-in-post-phase session &amp; body)
+</pre>
+  <pre id="var-docstr">Specify that the body should be executed in the post-phase.</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.phase/schedule-in-pre-phase">schedule-in-pre-phase</h2>
+  <span id="var-type">macro</span><br />
+  <pre id="var-usage">Usage: (schedule-in-pre-phase session &amp; body)
+</pre>
+  <pre id="var-docstr">Specify that the body should be executed in the pre-phase.</pre>
   
 </div>
 

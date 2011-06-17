@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>pallet.target API reference (pallet)</title>
+    <title>pallet.config-file.format API reference (pallet)</title>
     <link href="static/favicon.png" rel="icon" />
     <link href="static/favicon.png" rel="shortcut icon" />
     <link media="all" type="text/css" href="static/clojure.css" rel="stylesheet" />
@@ -48,42 +48,48 @@ namespace.
   <div style="margin-left: 1em;" class="toc-section">
     <a href="#toc0">Overview</a>
     <div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.target/admin-group">admin-group</a>
+      <a href="#pallet.config-file.format/name-values">name-values</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.target/os-family">os-family</a>
+      <a href="#pallet.config-file.format/sectioned-properties">sectioned-properties</a>
     </div>
     <br />
   </div>
 </div>
 </div>
-                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.target</span></h1>
+                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.config-file.format</span></h1>
 by <span id="author">Unknown</span><br />
 <br />Usage:
 <pre>
 (ns your-namespace
-  (:require <span id="long-name">pallet.target</span>))
+  (:require <span id="long-name">pallet.config-file.format</span>))
 </pre><pre>
 </pre><h2>Overview</h2>
-<pre id="namespace-docstr">Compatibility namespace</pre>
+<pre id="namespace-docstr">Some standard file formating.</pre>
 <br />
 <h2>Public Variables and Functions</h2>
 <div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.target/admin-group">admin-group</h2>
+  <h2 id="pallet.config-file.format/name-values">name-values</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (admin-group target)
+  <pre id="var-usage">Usage: (name-values m &amp; {:keys [separator], :or {separator  }})
 </pre>
-  <pre id="var-docstr">Default administrator group</pre>
+  <pre id="var-docstr">A property file.
+The properties are written "key value", one per line.
+  m                   a key-value map
+  :seperator chars    seperator to use between key and value
+                      (default is a single space)</pre>
   
 </div><div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.target/os-family">os-family</h2>
+  <h2 id="pallet.config-file.format/sectioned-properties">sectioned-properties</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (os-family target)
+  <pre id="var-usage">Usage: (sectioned-properties m)
 </pre>
-  <pre id="var-docstr">OS family</pre>
+  <pre id="var-docstr">A sectioned property file.
+This is modeled as vector of maps. The keys of the outer map are the section
+names.  The inner maps are keyword value maps.</pre>
   
 </div>
 

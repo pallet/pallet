@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>pallet.target API reference (pallet)</title>
+    <title>pallet.environment API reference (pallet)</title>
     <link href="static/favicon.png" rel="icon" />
     <link href="static/favicon.png" rel="shortcut icon" />
     <link media="all" type="text/css" href="static/clojure.css" rel="stylesheet" />
@@ -48,42 +48,154 @@ namespace.
   <div style="margin-left: 1em;" class="toc-section">
     <a href="#toc0">Overview</a>
     <div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.target/admin-group">admin-group</a>
+      <a href="#pallet.environment/Environment">Environment</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.target/os-family">os-family</a>
+      <a href="#pallet.environment/environment">environment</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.environment/eval-environment">eval-environment</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.environment/get-for">get-for</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.environment/merge-environments">merge-environments</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.environment/merge-key">merge-key</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.environment/merge-key-algorithm">merge-key-algorithm</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.environment/node-keys">node-keys</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.environment/session-with-environment">session-with-environment</a>
     </div>
     <br />
   </div>
 </div>
 </div>
-                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.target</span></h1>
+                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.environment</span></h1>
 by <span id="author">Unknown</span><br />
 <br />Usage:
 <pre>
 (ns your-namespace
-  (:require <span id="long-name">pallet.target</span>))
+  (:require <span id="long-name">pallet.environment</span>))
 </pre><pre>
 </pre><h2>Overview</h2>
-<pre id="namespace-docstr">Compatibility namespace</pre>
+<pre id="namespace-docstr">The environment provide a mechanism for customising pallet and
+pallet crates according to some externally determined criteria.
+
+An environment can be specified at the global, service, invocation and tag
+scopes.
+
+To provide a global default, specify an :environment key at the top level
+of `defpallet` in `~/.pallet/config.clj`.
+
+To provide a service spevific default, specify an :environment key at the
+service level of `defpallet` in `~/.pallet/config.clj`.
+
+To provide a project specific default, define `pallet.config/environment`.
+
+To provide a specific environment when invoking lift or converge, pass an
+environment map using the `:environment` key.
+
+The merging of values between scopes is key specific, and is determined by
+`merge-key-algorithm`.</pre>
 <br />
 <h2>Public Variables and Functions</h2>
 <div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.target/admin-group">admin-group</h2>
-  <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (admin-group target)
-</pre>
-  <pre id="var-docstr">Default administrator group</pre>
+  <h2 id="pallet.environment/Environment">Environment</h2>
+  <span id="var-type">var</span><br />
+  <pre id="var-usage"></pre>
+  <pre id="var-docstr">A protocol for accessing an environment.</pre>
   
 </div><div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.target/os-family">os-family</h2>
+  <h2 id="pallet.environment/environment">environment</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (os-family target)
+  <pre id="var-usage">Usage: (environment _)
 </pre>
-  <pre id="var-docstr">OS family</pre>
+  <pre id="var-docstr">Returns an environment map</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.environment/eval-environment">eval-environment</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (eval-environment env-map)
+</pre>
+  <pre id="var-docstr">Evaluate an environment literal.  This is used to replace certain keys with
+objects constructed from the map of values provided.  The keys that are
+evaluated are:
+- :user
+- :phases
+- :algorithms</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.environment/get-for">get-for</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (get-for session keys)
+       (get-for session keys default)
+</pre>
+  <pre id="var-docstr">Retrieve the environment value at the path specified by keys.
+When no default value is specified, then raise a :environment-not-found if no
+environment value is set.
+
+    (get-for {:p {:a {:b 1} {:d 2}}} [:p :a :d])
+      =&gt; 2</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.environment/merge-environments">merge-environments</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (merge-environments &amp; maps)
+</pre>
+  <pre id="var-docstr">Returns a map that consists of the rest of the maps conj-ed onto
+the first.  If a key occurs in more than one map, the mapping(s)
+from the latter (left-to-right) will be combined with the mapping in
+the result by calling (merge-key key val-in-result val-in-latter).</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.environment/merge-key">merge-key</h2>
+  <span id="var-type">multimethod</span><br />
+  <pre id="var-usage">No usage documentation available</pre>
+  <pre id="var-docstr">Merge function that dispatches on the map entry key</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.environment/merge-key-algorithm">merge-key-algorithm</h2>
+  <span id="var-type">var</span><br />
+  <pre id="var-usage"></pre>
+  <pre id="var-docstr">Map from key to merge algorithm. Specifies how environments are merged.</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.environment/node-keys">node-keys</h2>
+  <span id="var-type">var</span><br />
+  <pre id="var-usage"></pre>
+  <pre id="var-docstr">node specific environment keys</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.environment/session-with-environment">session-with-environment</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (session-with-environment session environment)
+</pre>
+  <pre id="var-docstr">Returns an updated `session` map, containing the keys for the specified
+`environment` map.
+
+When session includes a :server value, then the :server value is
+treated as an environment, and merge with any environment in the
+`environment`'s :groups key.
+
+The node-specific environment keys are :images and :phases.</pre>
   
 </div>
 

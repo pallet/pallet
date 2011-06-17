@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>pallet.target API reference (pallet)</title>
+    <title>pallet.task.add-service API reference (pallet)</title>
     <link href="static/favicon.png" rel="icon" />
     <link href="static/favicon.png" rel="shortcut icon" />
     <link media="all" type="text/css" href="static/clojure.css" rel="stylesheet" />
@@ -48,42 +48,36 @@ namespace.
   <div style="margin-left: 1em;" class="toc-section">
     <a href="#toc0">Overview</a>
     <div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.target/admin-group">admin-group</a>
-    </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.target/os-family">os-family</a>
+      <a href="#pallet.task.add-service/add-service">add-service</a>
     </div>
     <br />
   </div>
 </div>
 </div>
-                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.target</span></h1>
+                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.task.add-service</span></h1>
 by <span id="author">Unknown</span><br />
 <br />Usage:
 <pre>
 (ns your-namespace
-  (:require <span id="long-name">pallet.target</span>))
+  (:require <span id="long-name">pallet.task.add-service</span>))
 </pre><pre>
 </pre><h2>Overview</h2>
-<pre id="namespace-docstr">Compatibility namespace</pre>
+<pre id="namespace-docstr">Add a service definition to pallet.
+
+This doesn't work, see:
+<a href="http://stackoverflow.com/questions/3790889/clojure-lein-read-line-stdin-woes">http://stackoverflow.com/questions/3790889/clojure-lein-read-line-stdin-woes</a></pre>
 <br />
 <h2>Public Variables and Functions</h2>
 <div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.target/admin-group">admin-group</h2>
+  <h2 id="pallet.task.add-service/add-service">add-service</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (admin-group target)
+  <pre id="var-usage">Usage: (add-service &amp; [service-name provider-name identity credential &amp; _])
 </pre>
-  <pre id="var-docstr">Default administrator group</pre>
-  
-</div><div id="var-entry">
-  <br />
-  <hr />
-  <h2 id="pallet.target/os-family">os-family</h2>
-  <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (os-family target)
-</pre>
-  <pre id="var-docstr">OS family</pre>
+  <pre id="var-docstr">Add a service provider definition to your pallet configuration.
+    lein pallet add-serivce name [provider [identity [credential]]]
+This will create ~/.pallet/services/name.clj</pre>
   
 </div>
 

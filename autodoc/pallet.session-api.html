@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>pallet.main API reference (pallet)</title>
+    <title>pallet.session API reference (pallet)</title>
     <link href="static/favicon.png" rel="icon" />
     <link href="static/favicon.png" rel="shortcut icon" />
     <link media="all" type="text/css" href="static/clojure.css" rel="stylesheet" />
@@ -48,101 +48,224 @@ namespace.
   <div style="margin-left: 1em;" class="toc-section">
     <a href="#toc0">Overview</a>
     <div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.main/-main">-main</a>
+      <a href="#pallet.session/admin-group">admin-group</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.main/abort">abort</a>
+      <a href="#pallet.session/admin-user">admin-user</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.main/exit-task-exception">exit-task-exception</a>
+      <a href="#pallet.session/base-distribution">base-distribution</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.main/map-and-resolve-symbols">map-and-resolve-symbols</a>
+      <a href="#pallet.session/group-name">group-name</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.main/pallet-task">pallet-task</a>
+      <a href="#pallet.session/groups-with-role">groups-with-role</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.main/parse-as-qualified-symbol">parse-as-qualified-symbol</a>
+      <a href="#pallet.session/is-64bit?">is-64bit?</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.main/report-error">report-error</a>
+      <a href="#pallet.session/nodes-in-group">nodes-in-group</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.session/nodes-with-role">nodes-with-role</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.session/os-family">os-family</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.session/os-version">os-version</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.session/phase">phase</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.session/safe-id">safe-id</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.session/safe-name">safe-name</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.session/target-id">target-id</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.session/target-ip">target-ip</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.session/target-name">target-name</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.session/target-node">target-node</a>
+    </div><div style="margin-left: 1em;" class="toc-entry">
+      <a href="#pallet.session/target-roles">target-roles</a>
     </div>
     <br />
   </div>
 </div>
 </div>
-                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.main</span></h1>
+                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.session</span></h1>
 by <span id="author">Unknown</span><br />
 <br />Usage:
 <pre>
 (ns your-namespace
-  (:require <span id="long-name">pallet.main</span>))
+  (:require <span id="long-name">pallet.session</span>))
 </pre><pre>
 </pre><h2>Overview</h2>
-<pre id="namespace-docstr"></pre>
+<pre id="namespace-docstr">Functions for querying sessions.
+
+This is the official crate API for extracting information from the session.</pre>
 <br />
 <h2>Public Variables and Functions</h2>
 <div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.main/-main">-main</h2>
+  <h2 id="pallet.session/admin-group">admin-group</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (-main &amp; args)
-       (-main)
+  <pre id="var-usage">Usage: (admin-group session)
 </pre>
-  <pre id="var-docstr">Command line runner.</pre>
+  <pre id="var-docstr">User that remote commands are run under</pre>
   
 </div><div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.main/abort">abort</h2>
+  <h2 id="pallet.session/admin-user">admin-user</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (abort msg)
+  <pre id="var-usage">Usage: (admin-user session)
 </pre>
-  <pre id="var-docstr">Abort a task, with the specified error message, and no stack trace.</pre>
+  <pre id="var-docstr">User that remote commands are run under</pre>
   
 </div><div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.main/exit-task-exception">exit-task-exception</h2>
-  <span id="var-type">var</span><br />
-  <pre id="var-usage"></pre>
-  <pre id="var-docstr">An exception instance to use for terminating the task, without
-a stack trace</pre>
+  <h2 id="pallet.session/base-distribution">base-distribution</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (base-distribution session)
+</pre>
+  <pre id="var-docstr">Base distribution of the target-node.</pre>
   
 </div><div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.main/map-and-resolve-symbols">map-and-resolve-symbols</h2>
+  <h2 id="pallet.session/group-name">group-name</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (map-and-resolve-symbols symbol-map arg)
+  <pre id="var-usage">Usage: (group-name session)
 </pre>
-  <pre id="var-docstr">Function to build a symbol-&gt;value map, requiring namespaces as needed.</pre>
+  <pre id="var-docstr">Group name of the target-node.</pre>
   
 </div><div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.main/pallet-task">pallet-task</h2>
+  <h2 id="pallet.session/groups-with-role">groups-with-role</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (pallet-task args)
+  <pre id="var-usage">Usage: (groups-with-role session role)
 </pre>
-  <pre id="var-docstr">A pallet task.
-
-Returns an integer exit status suitable for System/exit.</pre>
+  <pre id="var-docstr">All target groups with the specified role.</pre>
   
 </div><div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.main/parse-as-qualified-symbol">parse-as-qualified-symbol</h2>
+  <h2 id="pallet.session/is-64bit?">is-64bit?</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (parse-as-qualified-symbol arg)
+  <pre id="var-usage">Usage: (is-64bit? session)
 </pre>
-  <pre id="var-docstr">Convert the given string into a namespace qualified symbol.
-Returns a vector of ns and symbol</pre>
+  <pre id="var-docstr">Predicate for a 64 bit target</pre>
   
 </div><div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.main/report-error">report-error</h2>
+  <h2 id="pallet.session/nodes-in-group">nodes-in-group</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (report-error msg)
+  <pre id="var-usage">Usage: (nodes-in-group session)
+       (nodes-in-group session group-name)
 </pre>
-  <pre id="var-docstr">Report a message to *err*.</pre>
+  <pre id="var-docstr">All nodes in the same tag as the target-node, or with the specified tag.</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.session/nodes-with-role">nodes-with-role</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (nodes-with-role session role)
+</pre>
+  <pre id="var-docstr">All target nodes with the specified role.</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.session/os-family">os-family</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (os-family session)
+</pre>
+  <pre id="var-docstr">OS-Family of the target-node.</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.session/os-version">os-version</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (os-version session)
+</pre>
+  <pre id="var-docstr">OS-Family of the target-node.</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.session/phase">phase</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (phase session)
+</pre>
+  <pre id="var-docstr">Current phase</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.session/safe-id">safe-id</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (safe-id unsafe-id)
+</pre>
+  <pre id="var-docstr">Computes a configuration and filesystem safe identifier corresponding to a
+potentially unsafe ID</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.session/safe-name">safe-name</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (safe-name session)
+</pre>
+  <pre id="var-docstr">Safe name for target machine.
+Some providers don't allow for node names, only node ids, and there is
+no guarantee on the id format.</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.session/target-id">target-id</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (target-id session)
+</pre>
+  <pre id="var-docstr">Id of the target-node (unique for provider).</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.session/target-ip">target-ip</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (target-ip session)
+</pre>
+  <pre id="var-docstr">IP of the target-node.</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.session/target-name">target-name</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (target-name session)
+</pre>
+  <pre id="var-docstr">Name of the target-node.</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.session/target-node">target-node</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (target-node session)
+</pre>
+  <pre id="var-docstr">Target compute service node.</pre>
+  
+</div><div id="var-entry">
+  <br />
+  <hr />
+  <h2 id="pallet.session/target-roles">target-roles</h2>
+  <span id="var-type">function</span><br />
+  <pre id="var-usage">Usage: (target-roles session)
+</pre>
+  <pre id="var-docstr">Roles of the target server.</pre>
   
 </div>
 

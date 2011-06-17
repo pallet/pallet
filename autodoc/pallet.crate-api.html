@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>pallet.target API reference (pallet)</title>
+    <title>pallet.crate API reference (pallet)</title>
     <link href="static/favicon.png" rel="icon" />
     <link href="static/favicon.png" rel="shortcut icon" />
     <link media="all" type="text/css" href="static/clojure.css" rel="stylesheet" />
@@ -48,44 +48,71 @@ namespace.
   <div style="margin-left: 1em;" class="toc-section">
     <a href="#toc0">Overview</a>
     <div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.target/admin-group">admin-group</a>
+      <a href="#pallet.crate/crate-m">crate-m</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.target/os-family">os-family</a>
+      <a href="#pallet.crate/cratefn">cratefn</a>
     </div>
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.crate.network-service">pallet.crate.network-service</a>
+    
+    <br />
+  </div><div style="margin-left: 1em;" class="toc-section">
+    <a href="#pallet.crate.session-store">pallet.crate.session-store</a>
+    
     <br />
   </div>
 </div>
 </div>
-                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.target</span></h1>
+                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.crate</span></h1>
 by <span id="author">Unknown</span><br />
 <br />Usage:
 <pre>
 (ns your-namespace
-  (:require <span id="long-name">pallet.target</span>))
+  (:require <span id="long-name">pallet.crate</span>))
 </pre><pre>
 </pre><h2>Overview</h2>
-<pre id="namespace-docstr">Compatibility namespace</pre>
+<pre id="namespace-docstr">The crate monad.
+
+There are two issues with crates as monads.
+
+  i) need to reimplate crate functions to return functions of one
+  argument [state], so that they have a common signature for manipulation
+  as monadic functions.
+
+  ii) to achieve pluggable error handling, etc, via monads, requires
+  runtime use of monads, which isn't possible with c.c.monads.</pre>
 <br />
 <h2>Public Variables and Functions</h2>
 <div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.target/admin-group">admin-group</h2>
-  <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (admin-group target)
-</pre>
-  <pre id="var-docstr">Default administrator group</pre>
+  <h2 id="pallet.crate/crate-m">crate-m</h2>
+  <span id="var-type">var</span><br />
+  <pre id="var-usage"></pre>
+  <pre id="var-docstr">The crate monad is an identity monad</pre>
   
 </div><div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.target/os-family">os-family</h2>
-  <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (os-family target)
+  <h2 id="pallet.crate/cratefn">cratefn</h2>
+  <span id="var-type">macro</span><br />
+  <pre id="var-usage">Usage: (cratefn [session &amp; args] &amp; body)
 </pre>
-  <pre id="var-docstr">OS family</pre>
+  <pre id="var-docstr">Create an anonymous crate function</pre>
   
 </div>
+<h2 id="namespace-name">pallet.crate.network-service</h2>
+<pre id="namespace-docstr">Crate for working with network services</pre>
+<br />
+
+<h2 id="namespace-name">pallet.crate.session-store</h2>
+<pre id="namespace-docstr">Crate functions for session storage on the target node.
+
+(save-session session)
+(load-session session)</pre>
+<br />
+
 
 
 </div>
