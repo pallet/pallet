@@ -3,6 +3,7 @@
    [pallet.action.user :as user]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.utils :as utils]
+   [pallet.session :as session]
    [pallet.thread-expr :as thread-expr]
    [pallet.crate.sudoers :as sudoers]))
 
@@ -11,13 +12,11 @@
   permission to sudo without password, so that passwords don't have to appear
   in scripts, etc."
   ([session]
-     (automated-admin-user
-      session
-      (:username utils/*admin-user*)
-      (:public-key-path utils/*admin-user*)))
+     (let [user (or (session/admin-user session) utils/*admin-user*)]
+       (automated-admin-user session (:username user) (:public-key-path user))))
   ([session username]
-     (automated-admin-user
-      session username (:public-key-path utils/*admin-user*)))
+     (let [user (or (session/admin-user session) utils/*admin-user*)]
+       (automated-admin-user session username (:public-key-path user))))
   ([session username & public-key-paths]
      (->
       session
