@@ -3,7 +3,7 @@
   (:require
    [pallet.compute :as compute]
    [clojure.contrib.pprint :as pprint])
-  (:use clojure.contrib.logging))
+  (:use clojure.tools.logging))
 
 (defn nodes
   [request]

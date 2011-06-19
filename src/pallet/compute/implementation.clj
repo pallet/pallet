@@ -3,7 +3,7 @@
   (:require
    [pallet.utils :as utils]
    [clojure.contrib.find-namespaces :as find-namespaces]
-   [clojure.contrib.logging :as logging]
+   [clojure.tools.logging :as logging]
    [clojure.contrib.classpath :as cp]))
 
 (defmulti service
@@ -46,11 +46,10 @@
                        (require provider)
                        provider
                        (catch Throwable e
-                         (logging/warn
-                          (format
-                           "%s provider failed to load: %s"
-                           provider
-                           (.getMessage e))))))))]
+                         (logging/warnf
+                          "%s provider failed to load: %s"
+                          provider
+                          (.getMessage e)))))))]
       (reset! provider-list loaded)))
   @provider-list)
 

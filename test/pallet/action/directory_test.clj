@@ -9,7 +9,10 @@
    clojure.test
    pallet.build-actions))
 
-(use-fixtures :once test-utils/with-ubuntu-script-template)
+(use-fixtures
+ :once
+ test-utils/with-ubuntu-script-template
+ test-utils/with-bash-script-language)
 
 (def directory* (action/action-fn directory))
 

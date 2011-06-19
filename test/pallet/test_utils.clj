@@ -5,10 +5,11 @@
    [pallet.execute :as execute]
    [pallet.target :as target]
    [pallet.script :as script]
+   [pallet.stevedore :as stevedore]
    [pallet.parameter :as parameter]
    [pallet.compute.node-list :as node-list]
    [clojure.java.io :as io]
-   clojure.contrib.logging)
+   clojure.tools.logging)
   (:use clojure.test))
 
 (defmacro with-private-vars [[ns fns] & tests]
@@ -16,19 +17,6 @@
 list, Alan Dipert and MeikelBrandmeyer."
   `(let ~(reduce #(conj %1 %2 `@(ns-resolve '~ns '~%2)) [] fns)
      ~@tests))
-
-(defmacro logging-to-stdout
-  "Send log messages to stdout for inspection"
-  [& forms]
-  `(binding [clojure.contrib.logging/impl-write! (fn [_# _# msg# _#]
-                                                   (println msg#))]
-     ~@forms))
-
-(defmacro suppress-logging
-  "Prevent log messages to reduce test log noise"
-  [& forms]
-  `(binding [clojure.contrib.logging/impl-write! (fn [& _#])]
-     ~@forms))
 
 (def dev-null
   (proxy [java.io.OutputStream] []
@@ -64,6 +52,11 @@ list, Alan Dipert and MeikelBrandmeyer."
 (defn with-ubuntu-script-template
   [f]
   (script/with-script-context [:ubuntu]
+    (f)))
+
+(defn with-bash-script-language
+  [f]
+  (stevedore/with-script-language :pallet.stevedore.bash/bash
     (f)))
 
 (defn make-node

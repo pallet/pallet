@@ -40,10 +40,11 @@
    [pallet.execute :as execute]
    [pallet.futures :as futures]
    [pallet.script :as script]
+   [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]
-   [clojure.contrib.logging :as logging]))
+   [clojure.tools.logging :as logging]))
 
 (defn supported-providers []
   ["virtualbox"])
@@ -127,15 +128,13 @@
          (try
            (let [ip (try (manager/get-ip machine)
                          (catch org.virtualbox_4_0.VBoxException e
-                           (logging/warn
-                            (format
-                             "wait-for-ip: Machine %s not started yet..."
-                             machine)))
+                           (logging/warnf
+                            "wait-for-ip: Machine %s not started yet..."
+                            machine))
                          (catch clojure.contrib.condition.Condition e
-                           (logging/warn
-                            (format
-                             "wait-for-ip: Machine %s is not accessible yet..."
-                             machine))))]
+                           (logging/warnf
+                            "wait-for-ip: Machine %s is not accessible yet..."
+                            machine)))]
              (if (and (string/blank? ip) (< (current-time-millis) timeout))
                (do
                  (Thread/sleep 2000)
@@ -205,7 +204,7 @@
   [compute node-path node-spec machine-name images image-id machine-models
    group-name init-script user]
   {:pre [image-id]}
-  (logging/trace (format "Creating node from image-id: %s" image-id))
+  (logging/tracef"Creating node from image-id: %s" image-id)
   (let [machine (binding [manager/*images* images
                           manager/*machine-models* machine-models]
                   (manager/instance
@@ -228,19 +227,20 @@
        :type :no-ip-available
        :message "Could not determine IP address of new node"))
     (Thread/sleep 4000)
-    (logging/trace (format "Bootstrapping %s" (manager/get-ip machine)))
+    (logging/tracef "Bootstrapping %s" (manager/get-ip machine))
     (script/with-script-context
       (action-plan/script-template-for-server {:image image})
-      (let [user (if (:username image)
-                   (pallet.utils/make-user
-                    (:username image)
-                    :password (:password image)
-                    :no-sudo (:no-sudo image)
-                    :sudo-password (:sudo-password image))
-                   user)]
-        (execute/remote-sudo
-         (manager/get-ip machine) init-script user
-         {:pty (not (#{:arch :fedora} (:os-family image)))})))
+      (stevedore/with-script-language :pallet.stevedore.bash/bash
+        (let [user (if (:username image)
+                     (pallet.utils/make-user
+                      (:username image)
+                      :password (:password image)
+                      :no-sudo (:no-sudo image)
+                      :sudo-password (:sudo-password image))
+                     user)]
+          (execute/remote-sudo
+           (manager/get-ip machine) init-script user
+           {:pty (not (#{:arch :fedora} (:os-family image)))}))))
     machine))
 
 (defn- equality-match
@@ -370,10 +370,10 @@
   (shutdown-node
    [compute node _]
    ;; todo: wait for completion
-   (logging/info (format "Shutting down %s" (pr-str node)))
+   (logging/infof "Shutting down %s" (pr-str node))
    (manager/power-down node)
    (if-let [state (manager/wait-for-machine-state node [:powered-off] 300000)]
-     (logging/info (format "Machine state is %s" state))
+     (logging/infof "Machine state is %s" state)
      (logging/warn "Failed to wait for power down completion"))
    (manager/wait-for-lockable-session-state node 2000))
 

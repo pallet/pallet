@@ -6,7 +6,10 @@
    [pallet.script :as script]
    [pallet.test-utils :as test-utils]))
 
-(use-fixtures :once test-utils/with-ubuntu-script-template)
+(use-fixtures
+ :once
+ test-utils/with-ubuntu-script-template
+ test-utils/with-bash-script-language)
 
 (deftest exit-test
   (is (= "exit 1"

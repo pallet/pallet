@@ -5,7 +5,7 @@
   (:require
    [pallet.action :as action]
    [pallet.build-actions :as build-actions]
-   [pallet.common.logging.log4j :as log4j]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
    [pallet.core :as core]
    [pallet.execute :as execute]
@@ -23,7 +23,8 @@
 (use-fixtures
  :once
  test-utils/with-ubuntu-script-template
- (log4j/logging-threshold-fixture))
+ test-utils/with-bash-script-language
+ (logutils/logging-threshold-fixture))
 
 (def remote-file* (action/action-fn remote-file-action))
 
@@ -117,7 +118,7 @@
       (is (= "xxx\n" (slurp (.getPath tmp))))))
 
   (binding [install-new-files nil]
-    (script/with-template [:ubuntu]
+    (script/with-script-context [:ubuntu]
       (is (=
            (stevedore/checked-script
             "remote-file path"
@@ -155,7 +156,7 @@
                    :username (test-utils/test-username) :no-sudo true)]
         (.delete target-tmp)
         (io/copy "text" tmp)
-        (let [local (core/make-node "local" {})
+        (let [local (core/group-spec "local")
               node (test-utils/make-localhost-node :group-name "local")]
           (testing "local-file"
             (core/lift

@@ -2,7 +2,7 @@
   "Adjust node counts for a cluster."
   (:require
    [pallet.core :as core]
-   [clojure.contrib.logging :as logging]))
+   [clojure.tools.logging :as logging]))
 
 (defn- build-args [args]
   (loop [args args

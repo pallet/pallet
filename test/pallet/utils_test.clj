@@ -1,7 +1,7 @@
 (ns pallet.utils-test
   (:use pallet.utils)
   (:use clojure.test
-        clojure.contrib.logging
+        clojure.tools.logging
         pallet.test-utils))
 
 (defn- unload-ns

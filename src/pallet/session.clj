@@ -4,9 +4,7 @@
    This is the official crate API for extracting information from the session."
   (:require
    [pallet.compute :as compute]
-   [pallet.utils :as utils])
-  (:use
-   [clojure.contrib.core :only [-?>]]))
+   [pallet.utils :as utils]))
 
 (defn safe-id
   "Computes a configuration and filesystem safe identifier corresponding to a

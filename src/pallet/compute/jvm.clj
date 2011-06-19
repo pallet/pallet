@@ -18,3 +18,12 @@
     true
     (catch java.lang.ClassNotFoundException _
       false)))
+
+(defn slf4j?
+ "Predicate to test for slf4j on the classpath."
+  []
+  (try
+    (import org.slf4j.LoggerFactory)
+    true
+    (catch java.lang.ClassNotFoundException _
+      false)))

@@ -9,7 +9,10 @@
    [pallet.stevedore :as stevedore]
    [pallet.test-utils :as test-utils]))
 
-(use-fixtures :once test-utils/with-ubuntu-script-template)
+(use-fixtures
+ :once
+ test-utils/with-ubuntu-script-template
+ test-utils/with-bash-script-language)
 
 (def ^{:private true} sed* (action/action-fn file/sed))
 

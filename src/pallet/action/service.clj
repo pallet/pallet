@@ -1,6 +1,6 @@
 (ns pallet.action.service
   "Service control."
-  (:use clojure.contrib.logging)
+  (:use clojure.tools.logging)
   (:require
    [pallet.action :as action]
    [pallet.action.remote-file :as remote-file]

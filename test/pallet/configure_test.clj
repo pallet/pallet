@@ -3,9 +3,9 @@
   (:use
    clojure.test)
   (:require
-   [pallet.common.logging.log4j :as log4j]))
+   [pallet.common.logging.logutils :as logutils]))
 
-(use-fixtures :once (log4j/logging-threshold-fixture))
+(use-fixtures :once (logutils/logging-threshold-fixture))
 
 (deftest compute-service-properties-test
   (testing "default"

@@ -7,7 +7,10 @@
    [pallet.build-actions :as build-actions]
    [pallet.script :as script]))
 
-(use-fixtures :once with-ubuntu-script-template)
+(use-fixtures
+ :once
+ with-ubuntu-script-template
+ with-bash-script-language)
 
 
 (deftest user*-create-test
