@@ -10,7 +10,10 @@
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]))
 
-(use-fixtures :once with-ubuntu-script-template)
+(use-fixtures
+ :once
+ with-ubuntu-script-template
+ with-bash-script-language)
 
 (def directory* (action/action-fn directory/directory))
 (def remote-file* (action/action-fn remote-file/remote-file-action))

@@ -6,7 +6,7 @@
    [pallet.utils :as utils]
    [clojure.java.io :as java-io]
    [clojure.walk :as walk]
-   [clojure.contrib.logging :as logging]))
+   [clojure.tools.logging :as logging]))
 
 (def ^{:private true} config nil)
 

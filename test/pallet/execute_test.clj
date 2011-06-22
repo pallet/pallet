@@ -2,10 +2,10 @@
   (:use pallet.execute)
   (:use clojure.test
         pallet.test-utils
-        clojure.contrib.logging)
+        clojure.tools.logging)
   (:require
    [pallet.action-plan :as action-plan]
-   [pallet.common.logging.log4j :as log4j]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.compute.jvm :as jvm]
    [pallet.compute :as compute]
    [pallet.core :as core]
@@ -13,10 +13,11 @@
    [pallet.utils :as utils]
    [pallet.script :as script]))
 
-(use-fixtures :once (log4j/logging-threshold-fixture))
+(use-fixtures :once (logutils/logging-threshold-fixture))
 
 (use-fixtures
  :each
+ test-utils/with-bash-script-language
  (fn bind-default-agent [f]
    (binding [default-agent-atom (atom nil)]
      (f))))

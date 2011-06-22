@@ -3,10 +3,10 @@
   (:require
    [pallet.live-test :as live-test]
    [pallet.core :as core]
-   [pallet.common.logging.log4j :as log4j]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]))
 
-(use-fixtures :once (log4j/logging-threshold-fixture))
+(use-fixtures :once (logutils/logging-threshold-fixture))
 
 (deftest node-types-test
   (is (= {:repo {:group-name :repo :base-group-name :repo

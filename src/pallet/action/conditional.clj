@@ -5,7 +5,7 @@
    [pallet.action :as action]
    [pallet.action.exec-script :as exec-script])
   (:use
-   clojure.contrib.logging))
+   clojure.tools.logging))
 
 (defmacro when
   [session condition & crate-fns-or-actions]

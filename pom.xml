@@ -4,8 +4,8 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.4.3</version>
-    <relativePath>../pallet-pom</relativePath>
+    <version>0.4.4-SNAPSHOT</version>
+    <relativePath>../pallet-pom/pom.xml</relativePath>
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
@@ -44,6 +44,9 @@
     <testResources>
       <testResource>
         <directory>test</directory>
+      </testResource>
+      <testResource>
+        <directory>test-resources</directory>
       </testResource>
     </testResources>
     <plugins>
@@ -95,6 +98,11 @@
       <artifactId>clojure-contrib</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>tools.logging</artifactId>
+      <version>0.1.2</version>
+    </dependency>
+    <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>thread-expr</artifactId>
       <version>1.0.0</version>
@@ -102,27 +110,42 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>pallet-common</artifactId>
-      <version>0.1.0</version>
+      <version>0.1.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>stevedore</artifactId>
-      <version>0.5.0</version>
+      <version>0.5.1-SNAPSHOT</version>
     </dependency>
     <dependency>
-      <groupId>clj-http</groupId>
-      <artifactId>clj-http</artifactId>
-      <version>0.1.1</version>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>1.4</version>
     </dependency>
     <dependency>
       <groupId>clj-ssh</groupId>
       <artifactId>clj-ssh</artifactId>
-      <version>0.2.4</version>
+      <version>0.3.0-SNAPSHOT</version>
     </dependency>
     <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.6.1</version>
       <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <version>0.9.28</version>
+      <optional>true</optional>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>0.9.28</version>
+      <optional>true</optional>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>jline</groupId>
@@ -150,7 +173,7 @@
     <dependency>
       <groupId>vmfest</groupId>
       <artifactId>vmfest</artifactId>
-      <version>0.2.2</version>
+      <version>0.2.3-SNAPSHOT</version>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -223,13 +246,9 @@
         </dependency>
         <dependency>
           <groupId>org.jclouds.driver</groupId>
-          <artifactId>jclouds-log4j</artifactId>
+          <artifactId>jclouds-slf4j</artifactId>
           <version>${jclouds.version}</version>
-        </dependency>
-        <dependency>
-          <groupId>org.jclouds.driver</groupId>
-          <artifactId>jclouds-enterprise</artifactId>
-          <version>${jclouds.version}</version>
+          <optional>true</optional>
         </dependency>
       </dependencies>
     </profile>
@@ -293,6 +312,8 @@
             <configuration>
               <excludes>
                 <exclude>log4j.xml</exclude>
+                <exclude>logback.xml</exclude>
+                <exclude>logback_test.xml</exclude>
               </excludes>
             </configuration>
           </plugin>
@@ -345,6 +366,14 @@
       <id>sonatype-nexus-releases</id>
       <name>Sonatype Nexus Releases</name>
       <url>http://oss.sonatype.org/content/repositories/releases</url>
+    </repository>
+    <repository>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <id>sonatype-nexus-snapshots</id>
+      <name>Sonatype Nexus Snapshots</name>
+      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
     </repository>
   </repositories>
 

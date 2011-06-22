@@ -22,7 +22,7 @@
    [pallet.common.deprecate :as deprecate]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
-   [clojure.contrib.logging :as logging]
+   [clojure.tools.logging :as logging]
    [clojure.contrib.map-utils :as map-utils]
    [clojure.walk :as walk])
   (:use

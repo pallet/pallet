@@ -16,13 +16,11 @@
    [pallet.phase :as phase]
    [pallet.script :as script]
    [pallet.session :as session]
+   [pallet.stevedore :as stevedore]
    [clojure.contrib.condition :as condition]
-   [clojure.contrib.logging :as logging]
+   [clojure.tools.logging :as logging]
    [clojure.set :as set]
-   [clojure.string :as string])
-  (:use
-   [clojure.contrib.def :only [defunbound defvar defvar- name-with-attributes]]
-   clojure.contrib.core))
+   [clojure.string :as string]))
 
 ;; The action plan is a stack of actions, where the action could itself
 ;; be a stack of actions (ie a tree of stacks)
@@ -182,7 +180,7 @@
   {:aggregated [group-by-function]
    :collected [group-by-function]})
 
-(defvar- execution-ordering [:aggregated :in-sequence :collected])
+(def ^{:private true} execution-ordering [:aggregated :in-sequence :collected])
 
 (defn- transform-execution
   "Transform an execution by applying execution-transforms."
@@ -588,7 +586,8 @@
                 (phase (-> session :server :phases))
                 (phase (:inline-phases session)))]
       (script/with-script-context (script-template session)
-        (f (reset-for-target session)))
+        (stevedore/with-script-language :pallet.stevedore.bash/bash
+          (f (reset-for-target session))))
       session)))
 
 (defn get-for-target
@@ -607,5 +606,6 @@
   [session executor]
   {:pre [(:phase session)]}
   (script/with-script-context (script-template session)
-    (execute
-     (get-in session (target-path session)) session executor)))
+    (stevedore/with-script-language :pallet.stevedore.bash/bash
+      (execute
+       (get-in session (target-path session)) session executor))))

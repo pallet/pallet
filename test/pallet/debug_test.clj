@@ -1,6 +1,7 @@
 (ns pallet.debug-test
   (:require
    [clojure.string :as string]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.test-utils :as test-utils])
   (:use
    clojure.test
@@ -18,5 +19,5 @@
 
 (deftest log-session-test
   (let [m {:a 1 :b "2"}]
-    (is (= m (log-session m)))
-    (is (= m (log-session m "%s")))))
+    (is (= m (logutils/suppress-logging (log-session m))))
+    (is (= m (logutils/suppress-logging (log-session m "%s"))))))

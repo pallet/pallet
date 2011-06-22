@@ -17,6 +17,7 @@
    and should specify one of the keys in `image-lists`."
   (:require
    [pallet.core :as core]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
    [clojure.string :as string]))
 
@@ -248,7 +249,17 @@
 (defmacro test-for
   "Loop over tests, in parallel or serial, depending on pallet.test.parallel."
   [[& bindings] & body]
-  `(when *live-tests*
-     (if *parallel*
-       (doseq [f# (doall (for [~@bindings] (future ~@body)))] @f#)
-       (doseq [~@bindings] ~@body))))
+  (let [v (first bindings)]
+    `(when *live-tests*
+       (if *parallel*
+         (doseq [f# (doall (for [~@bindings] (future ~@body)))] @f#)
+         (doseq [~@bindings]
+           (logutils/with-context
+             [:os (format
+                   "%s-%s-%s"
+                   (name (:os-family ~v))
+                   (name (:os-version-matches ~v "unspecified"))
+                   (if (:os-64-bit ~v) "64" "32"))
+              :os-family (:os-family ~v)
+              :os-version (:os-version-matches ~v "unspecified")]
+             ~@body))))))

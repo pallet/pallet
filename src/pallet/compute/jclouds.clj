@@ -10,7 +10,7 @@
    [pallet.utils :as utils]
    [pallet.execute :as execute]
    [clojure.contrib.condition :as condition]
-   [clojure.contrib.logging :as logging])
+   [clojure.tools.logging :as logging])
   (:import
    [org.jclouds.compute.domain.internal HardwareImpl ImageImpl NodeMetadataImpl]
    org.jclouds.compute.util.ComputeServiceUtils
@@ -34,6 +34,7 @@
   [provider]
   (concat
    (if (jvm/log4j?) [:log4j] [])
+   (if (jvm/slf4j?) [:slf4j] [])
    (if (= (name provider) "stub")
      (try
        (require 'pallet.compute.jclouds-ssh-test)
@@ -379,7 +380,7 @@
      (let [template (jclouds/build-template compute (:image group))
            family (-> (.. template getImage getOperatingSystem getFamily)
                       str keyword)]
-       (logging/info (format "OS is %s" (pr-str family)))
+       (logging/infof "OS is %s" (pr-str family))
        (when (or (nil? family) (= family OsFamily/UNRECOGNIZED))
          (condition/raise
           :type :unable-to-determine-os-type
@@ -522,7 +523,7 @@
   [provider {:keys [identity credential extensions endpoint environment]
              :or {extensions (default-jclouds-extensions provider)}
              :as options}]
-  (logging/debug (format "extensions %s" (pr-str extensions)))
+  (logging/debugf "extensions %s" (pr-str extensions))
   (let [options (dissoc
                  options
                  :identity :credential :extensions :blobstore :environment)]

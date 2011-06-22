@@ -1,7 +1,7 @@
 (ns pallet.debug
   "Helpers for debugging."
   (:require
-   [clojure.contrib.logging :as logging]))
+   [clojure.tools.logging :as logging]))
 
 
 (defn log-session
@@ -12,7 +12,7 @@
   ([session]
      (log-session session "%s"))
   ([session format-string]
-     (logging/debug (format format-string (pr-str session)))
+     (logging/debugf format-string (pr-str session))
      session))
 
 (defn print-session

@@ -5,7 +5,10 @@
    pallet.build-actions)
   (:require
    [pallet.stevedore :as stevedore]
-   [pallet.script.lib :as lib]))
+   [pallet.script.lib :as lib]
+   [pallet.test-utils :as test-utils]))
+
+(use-fixtures :once test-utils/with-bash-script-language)
 
 (deftest exec-script*-test
   (is (= "ls file1\n"
