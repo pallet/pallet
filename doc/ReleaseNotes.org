@@ -3,7 +3,32 @@
 #+DESCRIPTION: Release notes for pallet releases
 #+KEYWORDS: pallet palletops contribute
 
-The latest release is 0.6.1.
+The latest release is 0.6.2.
+
+* 0.6.2
+** Features
+- Add settings functions to parameters
+  In order to simplify the use of the :settings phase, adds
+  assoc-target-settings, update-target-settings, get-target-settings and
+  get-node-settings.
+
+- Add canonical-path and selinux-file-type to script.lib
+
+- Enable :local-file and remote-file options in action.remote-directory
+  Also adds an :unpack :jar option
+
+** Fixes
+- Fixed the closing parentheses at the end of pallet.core/group-spec example
+
+- Ensure environment from group-spec is evaluated if required
+
+- Cache the value of pallet version
+
+- Improve clarity of converge-cluster/build-args
+
+- Be more aggressive about forcing futures
+
+- Fix remote-file with :blob source
 
 * 0.6.1
 ** Install
