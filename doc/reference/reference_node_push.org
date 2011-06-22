@@ -8,12 +8,32 @@ handling SSH identities.
 
 * The =admin= User
 
-To SSH to a node, pallet requires a username and an SSH key.  These are read
-from =pallet.utils/*admin-user*=, which defaults to your username, and =id_rsa=
-identity.  You can rebind this using =pallet.core/with-admin-user=.
+To SSH to a node, pallet requires a username and an SSH key.  You can pass
+the admin-user object (use =pallet.utils/make-user= to create one) to =lift=
+and =converge= using the :user keyword.
 
-You can also configure the admin-user that is used by the lein plugin, in the
-[[file:~/.pallet/config.clj][~/.pallet/config.clj]] file.
+For REPL use there is a rebindable var, =pallet.utils/*admin-user*=, that
+provides the default admin user. This defaults to your username, and
+=id_rsa= identity.  You can rebind this using =pallet.core/with-admin-user=.
+
+** Environment
+The admin user can also be specified in the :environment
+
+#+BEGIN_SRC clojure
+  (defpallet
+    :serivces
+      {:aws
+        {:provider "ec2" :identity "key" :credential "secret-key"
+         :environment
+           {:user {:username "admin"
+                   :private-key-path "/path/to/private-key"
+                   :public-key-path "/path/to/public-key"}}}})
+#+END_SRC
+
+
+** Lein and Cake
+You can configure the admin-user that is used by the lein and cake plugins,
+in the [[file:~/.pallet/config.clj][~/.pallet/config.clj]] file.
 
 #+BEGIN_SRC clojure
   (defpallet
@@ -22,7 +42,6 @@ You can also configure the admin-user that is used by the lein plugin, in the
        :private-key-path "/path/to/private-key"
        :public-key-path "/path/to/public-key"})
 #+END_SRC
-
 
 * Other SSH Key Strategies
 While convenient, having all your nodes authorise the same SSH key is not the

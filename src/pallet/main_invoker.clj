@@ -77,9 +77,19 @@
   (let [default-config (or (:defaults options) (configure/pallet-config))
         admin-user (find-admin-user
                     default-config (:project options) (:profiles options))
-        compute (find-compute-service
-                 options default-config
-                 (:project options) (:profiles options))]
+        compute (try
+                  (find-compute-service
+                   options default-config
+                   (:project options) (:profiles options))
+                  (catch IllegalArgumentException e
+                    (let [msg (.getMessage e)]
+                      (if (and
+                           msg
+                           (re-find #"provider .* not configured" msg))
+                        (binding [*out* *err*]
+                          (println msg)
+                          (throw pallet.main/exit-task-exception))
+                        (throw e)))))]
     (if compute
       (try
         (let [blobstore (find-blobstore

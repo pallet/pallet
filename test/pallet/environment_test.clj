@@ -8,7 +8,7 @@
   (testing "single argument"
     (is (= {:a 1} (environment/merge-environments {:a 1}))))
   (testing "defalut algorithm"
-    (is (= {:a {:b 1}}
+    (is (= {:a {:b 1 :c 2}}
            (environment/merge-environments {:a {:c 2}} {:a {:b 1}}))))
   (testing "merge algorithm"
     (is (= {:user {:username "u" :password "p"}}
@@ -59,21 +59,29 @@
       (is (find-var 'pallet.core/parallel-apply-phase))
       (is (= (var-get (find-var 'pallet.core/parallel-apply-phase)) f)))))
 
-(deftest request-with-environment-test
+(deftest session-with-environment-test
   (testing "basic merge"
-    (is (= {:user {:username :b}}
-           (environment/request-with-environment
+    (is (= {:user {:username :b} :environment {:user {:username :b}}}
+           (environment/session-with-environment
              {:user {:username :a}} {:user {:username :b}}))))
   (testing "node-type merge"
-    (is (= {:user {:username :b} :node-type {:tag :t :image :i}}
-           (environment/request-with-environment
-             {:user {:username :a} :node-type {:tag :t}}
-             {:user {:username :b} :tags {:t {:image :i}}}))))
+    (is (= {:user {:username :b}
+            :server {:group-name :t :image :i}
+            :environment {:user {:username :b} :groups {:t {:image :i}}}}
+           (environment/session-with-environment
+             {:user {:username :a} :server {:group-name :t}}
+             {:user {:username :b} :groups {:t {:image :i}}}))))
   (testing "phases merge"
     (is (= {:user {:username :b}
-            :node-type {:tag :t :image :i :phases {:bootstrap identity}}}
-           (environment/request-with-environment
-             {:user {:username :a} :node-type {:tag :t}}
+            :server {:group-name :t :image :i :phases {:bootstrap identity}}
+            :environment {:user {:username :b}
+                          :groups {:t {:image :i}}}}
+           (environment/session-with-environment
+             {:user {:username :a} :server {:group-name :t}}
              {:user {:username :b}
-              :tags {:t {:image :i}}
-              :phases {:bootstrap identity}})))))
+              :groups {:t {:image :i}}
+              :phases {:bootstrap identity}}))))
+  (testing "user data merge"
+    (is (= {:environment {:a {:a :b}}}
+           (environment/session-with-environment
+             {} {:a {:a :b}})))))

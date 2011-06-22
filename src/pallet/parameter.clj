@@ -19,12 +19,13 @@
    clojure.core/get, in that they throw an exception if the key is undefined
    and no default value is specified.
 
-   Delayed evaluation of parameters specified as arguments to resource functions
+   Delayed evaluation of parameters specified as arguments to action functions
    are also implemented here. `lookup` and `lookup-for-target`.
 "
   (:require
+   [pallet.action :as action]
    [pallet.argument :as argument]
-   [pallet.resource :as resource]
+   [pallet.compute :as compute]
    [clojure.contrib.condition :as condition]))
 
 (defn from-map
@@ -40,18 +41,30 @@
 
        (get-for {:p {:a {:b 1} {:d 2}}} [:p :a :d])
          => 2"
-  ([request keys]
-     (let [result (get-in (:parameters request) keys ::not-set)]
+  ([session keys]
+     {:pre [(map? session)]}
+     (let [result (get-in (:parameters session) keys ::not-set)]
        (when (= ::not-set result)
-         (condition/raise
-          :type :parameter-not-found
-          :message (format
-                    "Could not find keys %s in request :parameters"
-                    (if (sequential? keys) (vec keys) keys))
-          :key-not-set keys))
+         (let [found-keys (take-while
+                           #(not=
+                             (get-in (:parameters session) % ::not-set)
+                             ::not-set)
+                           (rest (reductions conj [] keys)))]
+           (condition/raise
+            :type :parameter-not-found
+            :message (format
+                      (str
+                       "Could not find keys %s in session :parameters. "
+                       "Found keys %s with values %s")
+                      (if (sequential? keys) (vec keys) keys)
+                      (vec found-keys)
+                      (if (seq found-keys)
+                        (get-in (:parameters session) (vec found-keys))
+                        (:parameters session)))
+            :key-not-set keys)))
        result))
-  ([request keys default]
-       (get-in (:parameters request) keys default)))
+  ([session keys default]
+       (get-in (:parameters session) keys default)))
 
 (defn get-for-target
   "Retrieve the host parameter for the current target at the path specified by
@@ -62,10 +75,11 @@
          {:parameters {:host {:id1 {:a {:b 1} {:d 2}}}}
           :target-id :id1} [:a :b])
          => 1"
-  ([request keys]
-     (get-for request (concat [:host (:target-id request)] keys)))
-  ([request keys default]
-     (get-for request (concat [:host (:target-id request)] keys) default)))
+  ([session keys]
+     (get-for session (concat [:host (-> session :server :node-id)] keys)))
+  ([session keys default]
+     (get-for
+      session (concat [:host (-> session :server :node-id)] keys) default)))
 
 (defn get-for-service
   "Retrieve the service parameter for the service and path specified by
@@ -75,10 +89,28 @@
        (get-for-service
          {:parameters {:service {:proxy {:a {:b 1} {:d 2}}}}} [:proxy :a :b])
          => 1"
-  ([request keys]
-     (get-for request (concat [:service] keys)))
-  ([request keys default]
-     (get-for request (concat [:service] keys) default)))
+  ([session keys]
+     (get-for session (concat [:service] keys)))
+  ([session keys default]
+     (get-for session (concat [:service] keys) default)))
+
+(defn get-node-settings
+  "Retrieve the settings for the specified node facility. The instance-id allows
+   the specification of specific instance of the facility. If passed a nil
+   `instance-id`, then `:default` is used"
+  [session node facility instance-id]
+  (get-for
+   session
+   [:host (keyword (compute/id node)) facility (or instance-id :default)]))
+
+(defn get-target-settings
+  "Retrieve the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility. If passed a nil
+   `instance-id`, then `:default` is used"
+  [session facility instance-id]
+  (get-for
+   session
+   [:host (-> session :server :node-id) facility (or instance-id :default)]))
 
 (defn- assoc-for-prefix
   "Set the values in a map at the paths specified with prefix prepended to each
@@ -86,10 +118,10 @@
 
        (assoc-for-prefix {} :prefix [:a :b] 1 [:a :d] 2)
          => {:prefix {:a {:b 1} {:d 2}}}"
-  [request prefix {:as keys-value-pairs}]
+  [session prefix {:as keys-value-pairs}]
   (reduce
    #(assoc-in %1 (concat prefix (first %2)) (second %2))
-   request
+   session
    keys-value-pairs))
 
 (defn assoc-for
@@ -97,26 +129,36 @@
 
        (assoc-for {} [:a :b] 1 [:a :d] 2)
          => {:parameters {:a {:b 1} {:d 2}}}"
-  [request & {:as keys-value-pairs}]
-  (assoc-for-prefix request [:parameters] keys-value-pairs))
+  [session & {:as keys-value-pairs}]
+  (assoc-for-prefix session [:parameters] keys-value-pairs))
 
 (defn assoc-for-target
   "Set the host parameter values at the paths specified.
 
        (assoc-for-target {:target-id :id1} [:a :b] 1 [:a :d] 2)
          => {:parameters {:host {:id1 {:a {:b 1} {:d 2}}}}}"
-  [request & {:as keys-value-pairs}]
+  [session & {:as keys-value-pairs}]
   (assoc-for-prefix
-   request [:parameters :host (:target-id request)] keys-value-pairs))
+   session [:parameters :host (-> session :server :node-id)] keys-value-pairs))
 
 (defn assoc-for-service
   "Set the service parameter values at the paths specified.
 
        (assoc-for-service {} :proxy [:a :b] 1 [:a :d] 2)
          => {:parameters {:srvice {:proxy {:a {:b 1} {:d 2}}}}}"
-  [request service & {:as keys-value-pairs}]
+  [session service & {:as keys-value-pairs}]
   (assoc-for-prefix
-   request [:parameters :service service] keys-value-pairs))
+   session [:parameters :service service] keys-value-pairs))
+
+(defn assoc-target-settings
+  "Set the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility (the default is
+   :default)."
+  [session facility instance-id values]
+  (assoc-for
+   session
+   [:host (-> session :server :node-id) facility (or instance-id :default)]
+   values))
 
 (defn- update-for-prefix
   "Update a map at the path given by the prefix and keys.
@@ -125,8 +167,8 @@
 
        (update-for-prefix {:p {:a {:b 1}}} [:p] [:a :b] + 2)
          => {:p {:a {:b 3}}}"
-  ([request prefix keys f args]
-  (apply update-in request (concat prefix keys) f args)))
+  ([session prefix keys f args]
+  (apply update-in session (concat prefix keys) f args)))
 
 (defn update-for
   "Update parameters at the path given by keys.
@@ -135,8 +177,8 @@
 
        (update-for {:parameters {:a {:b 1}}} [:a :b] + 2)
          => {:parameters {:a {:b 3}}}"
-  ([request keys f & args]
-     (update-for-prefix request [:parameters] keys f args)))
+  [session keys f & args]
+  (update-for-prefix session [:parameters] keys f args))
 
 (defn update-for-target
   "Update host parameters for the current target at the path given by keys.
@@ -148,9 +190,9 @@
            :target-id :id1}
           [:a :b] + 2)
          => {:parameters {:host {:id1 {:a {:b 3}}}}}"
-  [request keys f & args]
+  [session keys f & args]
   (update-for-prefix
-   request [:parameters :host (:target-id request)] keys f args))
+   session [:parameters :host (-> session :server :node-id)] keys f args))
 
 (defn update-for-service
   "Update serivce parameters for the pecified service at the path given by keys.
@@ -161,27 +203,38 @@
           {:parameters {:service {:proxy {:a {:b 1}}}}}
           [:proxy :a :b] + 2)
          => {:parameters {:service {:proxy {:a {:b 3}}}}}"
-  [request keys f & args]
-  (update-for-prefix request [:parameters :service] keys f args))
+  [session keys f & args]
+  (update-for-prefix session [:parameters :service] keys f args))
+
+(defn update-target-settings
+  "Update the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility (the default is
+   :default)."
+  [session facility instance-id f & args]
+  (apply
+   update-for
+   session
+   [:host (-> session :server :node-id) facility (or instance-id :default)]
+   f args))
 
 ;;; Delayed parameter evaluation
 (deftype ParameterLookup
   [keys]
   pallet.argument.DelayedArgument
   (evaluate
-   [_ request]
-   (get-for request keys)))
+   [_ session]
+   (get-for session keys)))
 
 (deftype ParameterLookupTarget
   [keys]
   pallet.argument.DelayedArgument
   (evaluate
-   [_ request]
-   (get-for request (concat [:host (:target-id request)] keys))))
+   [_ session]
+   (get-for session (concat [:host (-> session :server :node-id)] keys))))
 
 (defn lookup
   "Lookup a parameter in a delayed manner. Use a call to this function as the
-   argument of a resource.
+   argument of a action.
    This function produces an object, which causes parameter lookup when it's
    toString method is called.
 
@@ -191,19 +244,19 @@
 
 (defn lookup-for-target
   "Lookup a parameter for the target in a delayed manner. Use a call to this
-   function as the argument of a resource.  This function produces an object,
+   function as the argument of a action.  This function produces an object,
    which causes parameter lookup when it's toString method is called.
 
    See also `pallet.argument`."
   [& keys]
   (ParameterLookupTarget. keys))
 
-;;; Resources
-(resource/deflocal parameters
-  "A resource to set parameters"
-  (parameters* [request & {:as keyvector-value-pairs}]
-   (assoc request
-     :parameters (reduce
-                  #(apply assoc-in %1 %2)
-                  (:parameters request)
-                  keyvector-value-pairs))))
+;;; Actions
+(action/def-clj-action parameters
+  "An action to set parameters"
+  [session & {:as keyvector-value-pairs}]
+  (assoc session
+    :parameters (reduce
+                 #(apply assoc-in %1 %2)
+                 (:parameters session)
+                 keyvector-value-pairs)))

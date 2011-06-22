@@ -1,0 +1,8 @@
+#+SETUPFILE: ../org-templates/level-1.org
+#+TITLE:     Environment
+#+DESCRIPTION: The pallet environment allows specification of input data at various scopes
+#+KEYWORDS: pallet environment
+
+The environment is a map used for passing data and configuration choices into pallet.
+The environment may be specified at various scopes.
+

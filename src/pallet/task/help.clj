@@ -52,9 +52,9 @@
          (println "\nYou can write project specific tasks under the\n"
                   "pallet.task namespace.")
          (println "\nOptions:")
-         (println "  -service name-of-cloud-service")
-         (println "  -user    login for cloud service API")
-         (println "  -key     key or password for cloud service API")
+         (println "  -progvide    name-of-cloud-provider")
+         (println "  -identity    login for cloud service API")
+         (println "  -credential  key or password for cloud service API")
          (println "\nIf no options are given, the following sequence is used to")
          (println "find a service to use.")
          (println "\n  the pallet.config.service property is checked for the")

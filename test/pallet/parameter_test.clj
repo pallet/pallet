@@ -3,7 +3,8 @@
   (:use clojure.test pallet.test-utils)
   (:require
    pallet.argument
-   [pallet.resource :as resource])
+   [pallet.action :as action]
+   [pallet.build-actions :as build-actions])
   (:import
    clojure.contrib.condition.Condition))
 
@@ -42,36 +43,51 @@
     (is (= ::abc (get-for p [:b :c :d] ::abc)))))
 
 
-(resource/defresource lookup-test-resource
-  (lookup-test-resource*
-   [request a]
-   (str a)))
+(action/def-bash-action lookup-test-action
+  [session a]
+  (str a))
 
 (deftest lookup-test
   (is (= "9\n"
-         (first (build-resources
-                 [:parameters {:a 1 :b 9}]
-                 (lookup-test-resource (lookup :b)))))))
+         (first (build-actions/build-actions
+                 {:parameters {:a 1 :b 9}}
+                 (lookup-test-action (lookup :b)))))))
 
-(resource/deflocal parameters-test
-  "A resource that tests parameter values for equality with the argument
+(action/def-clj-action parameters-test
+  "An action that tests parameter values for equality with the argument
    supplied values."
-  (parameters-test*
-   [request & {:as options}]
-   (let [parameters (:parameters request)]
-     (doseq [[[key & keys] value] options]
-       (is (= value
-              (let [param-value (get parameters key ::not-set)]
-                (is (not= ::not-set param-value))
-                (if (seq keys)
-                  (get-in param-value keys)
-                  param-value))))))
-   request))
+  [session & {:as options}]
+  (let [parameters (:parameters session)]
+    (doseq [[[key & keys] value] options]
+      (is (= value
+             (let [param-value (get parameters key ::not-set)]
+               (is (not= ::not-set param-value))
+               (if (seq keys)
+                 (get-in param-value keys)
+                 param-value))))))
+  session)
 
 (deftest set-parameters-test
-  (let [[res request] (build-resources
-                       []
+  (let [[res session] (build-actions/build-actions
+                       {}
                        (parameters [:a] 33)
                        (parameters [:b] 43)
                        (parameters-test [:a] 33))]
-    (is (= {:a 33 :b 43} (:parameters request)))))
+    (is (= {:a 33 :b 43} (:parameters session)))))
+
+(deftest get-target-settings-test
+  (let [m {:a 1 :b { :c 2}}
+        p {:parameters {:host {:id {:f {:default m}}}}
+           :server {:node-id :id}}]
+    (is (= m (get-target-settings p :f :default)))
+    (is (= m (get-target-settings p :f nil)))))
+
+(deftest assoc-target-settings-test
+  (let [m {:a 1 :b { :c 2}}
+        p {:server {:node-id :id}}]
+    (is (= {:parameters {:host {:id {:f {:default m}}}}
+            :server {:node-id :id}}
+           (assoc-target-settings p :f :default m)))
+    (is (= {:parameters {:host {:id {:f {:default m}}}}
+            :server {:node-id :id}}
+           (assoc-target-settings p :f nil m)))))

@@ -4,8 +4,38 @@
 #+KEYWORDS: pallet phase phases configuration crates
 
 A phase specifies a sequence of crates to be executed.  A phase can be defined
-as part of a [[file:node_types.org][node type]], or inline in a [[file:operations.org][=configure= or =lift= invocation]], using
+as part of a [[file:node_types.org][server-spec]], or inline in a [[file:operations.org][=configure= or =lift= invocation]], using
 the =phase= macro.
+
+A phase is a function taking a single =request= argument, which it modifies and
+returns.  The =request= argument is passed to crate functions, which also
+return the =request.
+
+* =phase= macro
+
+The =phase= macro is a convenience for defining a phase.  In the following
+example, the two server-spec definitions are equivalent. The =phase=
+macro also adds some error checking of the request map.
+
+#+BEGIN_SRC clojure  :session s1
+  (require 'pallet.core)
+  (require 'pallet.resource)
+  (require 'pallet.resource.package)
+
+  (pallet.core/server-spec
+    :phases
+      {:configure
+         (pallet.resource/phase
+           (pallet.resource.package/package "curl"))})
+
+  (pallet.core/server-spec
+    :phases
+      {:configure
+         (fn [request]
+           (->
+             request
+             (pallet.resource.package/package "curl")))})
+#+END_SRC
 
 * :bootstrap
 
@@ -16,11 +46,11 @@ The =:bootstrap= phase is applied whenever pallet starts a new node.
 The =:configue= phase is applied by default by both the =converge= and the
 =lift= commands.
 
-* =phase= macro
+* Inline phase
 
-The =phase= macro can be used to carry out ad-hoc configuration or
-administration tasks. In this example we install =curl= on all running =mytag=
-nodes.
+The :phase keyword in =lift= and =converge= can be used to carry out ad-hoc
+configuration or administration tasks. In this example we install =curl= on all
+running =mytag= nodes.
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.core)
@@ -28,9 +58,9 @@ nodes.
   (require 'pallet.resource)
   (require 'pallet.resource.package)
 
-  (def service (pallet.compute/compute-service-from-config-file))
-  (pallet.core/defnode mytag {})
-  (pallet.core/lift mytag :compute service
-    :phase (pallet.resource/phase (pallet.resource.package/package "curl")))
+  (pallet.core/lift
+    (pallet.core/group-spec "mytag")
+    :phase (pallet.resource/phase (pallet.resource.package/package "curl"))
+    :compute (pallet.compute/service))
 #+END_SRC
 

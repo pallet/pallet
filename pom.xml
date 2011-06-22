@@ -4,12 +4,12 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.4.2</version>
+    <version>0.4.3</version>
     <relativePath>../pallet-pom</relativePath>
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
-  <version>0.4.18-SNAPSHOT</version>
+  <version>0.6.3-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>pallet</name>
   <description>
@@ -95,6 +95,21 @@
       <artifactId>clojure-contrib</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>thread-expr</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>pallet-common</artifactId>
+      <version>0.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>stevedore</artifactId>
+      <version>0.5.0</version>
+    </dependency>
+    <dependency>
       <groupId>clj-http</groupId>
       <artifactId>clj-http</artifactId>
       <version>0.1.1</version>
@@ -177,7 +192,7 @@
 	<activeByDefault>true</activeByDefault>
       </activation>
       <properties>
-        <jclouds.version>1.0-beta-8</jclouds.version>
+        <jclouds.version>1.0.0</jclouds.version>
       </properties>
       <dependencies>
         <dependency>
@@ -192,68 +207,27 @@
         </dependency>
 
         <!-- You will need the jclouds provider specific jars for your project -->
-        <!-- An alternative to invidual provider jars is to pull in everything -->
-        <!-- <dependency> -->
-        <!--     <groupId>org.jclouds</groupId> -->
-        <!--     <artifactId>jclouds-all</artifactId> -->
-        <!--     <version>${jclouds.version}</version> -->
-        <!--     <optional>true</optional> -->
-        <!-- </dependency> -->
+        <!-- The simplest is to pull in everything, but you can use individual -->
+        <!-- provider dependencies. -->
         <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-aws</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-bluelock</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-gogrid</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-rackspace</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-rimuhosting</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-slicehost</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
-        </dependency>
-        <dependency>
-          <groupId>org.jclouds</groupId>
-          <artifactId>jclouds-terremark</artifactId>
-          <version>${jclouds.version}</version>
-          <optional>true</optional>
+            <groupId>org.jclouds</groupId>
+            <artifactId>jclouds-all</artifactId>
+            <version>${jclouds.version}</version>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
-          <groupId>org.jclouds</groupId>
+          <groupId>org.jclouds.driver</groupId>
           <artifactId>jclouds-jsch</artifactId>
           <version>${jclouds.version}</version>
         </dependency>
         <dependency>
-          <groupId>org.jclouds</groupId>
+          <groupId>org.jclouds.driver</groupId>
           <artifactId>jclouds-log4j</artifactId>
           <version>${jclouds.version}</version>
         </dependency>
         <dependency>
-          <groupId>org.jclouds</groupId>
+          <groupId>org.jclouds.driver</groupId>
           <artifactId>jclouds-enterprise</artifactId>
           <version>${jclouds.version}</version>
         </dependency>
@@ -266,7 +240,7 @@
 	<activeByDefault>false</activeByDefault>
       </activation>
       <properties>
-        <jclouds.version>1.0-SNAPSHOT</jclouds.version>
+        <jclouds.version>1.1.0-SNAPSHOT</jclouds.version>
       </properties>
     </profile>
 

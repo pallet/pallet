@@ -5,9 +5,10 @@
    [pallet.configure :as configure]
    [pallet.environment :as environment]
    [pallet.utils :as utils]
-   [pallet.execute :as execute]
    [clojure.contrib.condition :as condition]
-   [clojure.string :as string]))
+   [clojure.string :as string])
+  (:use
+   [clojure.contrib.core :only [-?>]]))
 
 
 ;;; Meta
@@ -52,8 +53,11 @@
                                 (read-string node-list)
                                 node-list))
                  :endpoint (:endpoint credentials)
-                 :environment (environment/eval-environment
-                               (:environment credentials))}]
+                 :environment
+                 (environment/merge-environments
+                  (environment/eval-environment
+                   (:environment credentials))
+                  (-?> 'cake/*project* resolve var-get :environment))}]
     (when-let [provider (:provider credentials)]
       (apply
        compute-service
@@ -103,7 +107,15 @@
     (when provider
       (apply compute-service
        provider :identity identity :credential credential
-       (apply concat (dissoc options :provider :identity :credential))))))
+       (apply
+        concat
+        (->
+          options
+          (dissoc :provider :identity :credential)
+          (update-in
+           [:environment]
+           environment/merge-environments
+           (-?> 'cake/*project* resolve var-get :environment))))))))
 
 (defn compute-service-from-config-file
   "Compute service from ~/.pallet/config.clj. Profiles is a sequence of service
@@ -113,13 +125,53 @@
    (configure/pallet-config)
    profiles))
 
+(defn service
+  "Instantiate a compute service.
+
+   If passed no arguments, then the compute service is looked up in the
+   following order:
+   - from a var referenced by the pallet.config.service system property
+   - from pallet.config/service if defined
+   - the first service in config.xlj
+   - the service from the first active profile in settings.xml
+
+   If passed a service name, it is looked up in external
+   configuration (~/.pallet/config.clj or ~/.m2/settings.xml). A service name is
+   one of the keys in the :services map in config.clj, or a profile id in
+   settings.xml.
+
+   When passed a provider name and credentials, the service is instantiated
+   based on the credentials.  The provider name should be a recognised provider
+   name (see `pallet.compute/supported-providers` to obtain a list of these).
+
+   The other arguments are keyword value pairs.
+   - :identity     username or key
+   - :credential   password or secret
+   - :extensions   extension modules for jclouds
+   - :node-list    a list of nodes for the \"node-list\" provider.
+   - :environment  an environment map with service specific values."
+  ([]
+     (or
+      (compute-service-from-property)
+      (compute-service-from-config-var)
+      (compute-service-from-config-file)
+      (compute-service-from-settings)))
+  ([service-name]
+     (or
+      (compute-service-from-config-file service-name)
+      (compute-service-from-settings service-name)))
+  ([provider-name
+    & {:keys [identity credential extensions node-list endpoint environment]
+       :as options}]
+     (apply compute-service provider-name (apply concat options))))
+
 ;;; Nodes
 (defprotocol Node
   (ssh-port [node] "Extract the port from the node's userMetadata")
   (primary-ip [node] "Returns the first public IP for the node.")
   (private-ip [node] "Returns the first private IP for the node.")
   (is-64bit? [node] "64 Bit OS predicate")
-  (tag [node] "Returns the tag for the node.")
+  (group-name [node] "Returns the group name for the node.")
   (hostname [node] "TODO make this work on ec2")
   (os-family [node] "Return a node's os-family, or nil if not available.")
   (os-version [node] "Return a node's os-version, or nil if not available.")
@@ -127,8 +179,9 @@
   (terminated? [node])
   (id [node]))
 
-(defn node-has-tag? [tag-name node]
-  (= (clojure.core/name tag-name) (tag node)))
+(defn tag [node] (group-name node))
+(defn node-in-group? [group-name node]
+  (= (clojure.core/name group-name) (pallet.compute/group-name node)))
 
 (defn node-address
   [node]
@@ -141,7 +194,7 @@
 ;;; Actions
 (defprotocol ComputeService
   (nodes [compute] "List nodes")
-  (run-nodes [compute node-type node-count request init-script])
+  (run-nodes [compute group-spec node-count user init-script])
   (reboot [compute nodes] "Reboot the specified nodes")
   (boot-if-down
    [compute nodes]
@@ -149,10 +202,10 @@
   (shutdown-node [compute node user] "Shutdown a node.")
   (shutdown [compute nodes user] "Shutdown specified nodes")
   (ensure-os-family
-   [compute request]
-   "Called on startup of a new node to ensure request has an os-family attached
-   to it.")
-  (destroy-nodes-with-tag [compute tag-name])
+   [compute group-spec]
+   "Called on startup of a new node to ensure group-spec has an os-family
+   attached to it.")
+  (destroy-nodes-in-group [compute group-name])
   (destroy-node [compute node])
   (close [compute]))
 
@@ -175,8 +228,8 @@
    (:packager target)
    (let [os-family (:os-family target)]
      (cond
-      (#{:ubuntu :debian :jeos :fedora} os-family) :aptitude
-      (#{:centos :rhel :amzn-linux} os-family) :yum
+      (#{:ubuntu :debian :jeos} os-family) :aptitude
+      (#{:centos :rhel :amzn-linux :fedora} os-family) :yum
       (#{:arch} os-family) :pacman
       (#{:suse} os-family) :zypper
       (#{:gentoo} os-family) :portage
@@ -186,3 +239,30 @@
              :message (format
                        "Unknown packager for %s - :image %s"
                        os-family target))))))
+
+(defn base-distribution
+  "Base distribution for the target."
+  [target]
+  (or
+   (:base-distribution target)
+   (let [os-family (:os-family target)]
+     (cond
+      (#{:ubuntu :debian :jeos} os-family) :debian
+      (#{:centos :rhel :amzn-linux :fedora} os-family) :rh
+      (#{:arch} os-family) :arch
+      (#{:suse} os-family) :suse
+      (#{:gentoo} os-family) :gentoo
+      (#{:darwin :os-x} os-family) :os-x
+      :else (condition/raise
+             :type :unknown-packager
+             :message (format
+                       "Unknown base-distribution for %s - target is %s"
+                       os-family target))))))
+
+(defn admin-group
+  "User that remote commands are run under"
+  [target]
+  (case (-> target :image :os-family)
+    :centos "wheel"
+    :rhel "wheel"
+    "adm"))

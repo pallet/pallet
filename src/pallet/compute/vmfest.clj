@@ -32,13 +32,14 @@
    [vmfest.manager :as manager]
    [vmfest.virtualbox.session :as session]
    [vmfest.virtualbox.enums :as enums]
+   [pallet.action-plan :as action-plan]
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
-   [pallet.script :as script]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
-   [pallet.resource :as resource]
+   [pallet.futures :as futures]
+   [pallet.script :as script]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]
@@ -53,6 +54,13 @@
    ;:rhel "RedHat"
    :rhel "RedHat_64"})
 
+(def ip-tag "/pallet/ip")
+(def group-name-tag "/pallet/group-name")
+(def os-family-tag "/pallet/os-family")
+(def os-version-tag "/pallet/os-version")
+
+(def *vm-session-type* "headless") ; gui, headless or sdl
+
 (def os-family-from-name
   (zipmap (vals os-family-name) (keys os-family-name)))
 
@@ -65,15 +73,18 @@
     :type
     (manager/get-ip node)
     (handle :vbox-runtime
-      (manager/get-extra-data node "/pallet/ip"))))
+      (manager/get-extra-data node ip-tag))))
   (private-ip [node] nil)
   (is-64bit?
    [node]
    (let [os-type-id (session/with-no-session node [m] (.getOSTypeId m))]
-     (re-find #"64 bit" os-type-id)))
-  (tag
+     (boolean (re-find #"_64" os-type-id))))
+  (group-name
    [node]
-   (manager/get-extra-data node "/pallet/tag"))
+   (let [group-name (manager/get-extra-data node group-name-tag)]
+     (if (string/blank? group-name)
+       (manager/get-extra-data node group-name-tag)
+       group-name)))
   (hostname
    [node]
    (session/with-no-session node [m]
@@ -82,15 +93,17 @@
    [node]
    (let [os-name (session/with-no-session node [m] (.getOSTypeId m))]
      (or
-      (keyword (manager/get-extra-data node "/pallet/os-family"))
+      (when-let [os-family (manager/get-extra-data node os-family-tag)]
+        (when-not (string/blank? os-family)
+          (keyword os-family)))
       (os-family-from-name os-name os-name)
       :centos) ;; hack!
      ))
   (os-version
    [node]
    (or
-      (manager/get-extra-data node "/pallet/os-version")
-      "5.3"))
+    (manager/get-extra-data node os-version-tag)
+    "5.3"))
   (running?
    [node]
    (and
@@ -132,8 +145,8 @@
 
 (defn machine-name
   "Generate a machine name"
-  [tag n]
-  (format "%s-%s" tag n))
+  [group-name n]
+  (format "%s-%s" group-name n))
 
 (defprotocol VirtualBoxService
   (os-families [compute] "Return supported os-families")
@@ -149,14 +162,16 @@
                    (enums/session-state-to-key
                     (.getSessionState im))))
         ip (when open? (manager/get-ip m))
-        tag (when open? (manager/get-extra-data m "/pallet/tag"))]
-    (into attributes {:ip ip :tag tag}) ))
+        group-name (when open? (manager/get-extra-data m group-name-tag))]
+    (into attributes {:ip ip :group-name group-name}) ))
 
 (defn node-infos [compute-service]
   (let [nodes (manager/machines compute-service)]
     (map node-data nodes)))
 
-(def *vm-session-type* "headless")
+(defn add-sata-controller [m]
+  {:pre [(model/IMachine? m)]}
+  (machine/add-storage-controller m "SATA Controller" :sata))
 
 (defn basic-config [m {:keys [memory-size cpu-count] :as parameters}]
   (let [parameters (merge {:memory-size 512 :cpu-count 1} parameters)]
@@ -187,8 +202,8 @@
       ((hardware-config kw) m (image kw)))))
 
 (defn create-node
-  [compute node-path node-type machine-name images image-id machine-models
-   tag-name init-script user]
+  [compute node-path node-spec machine-name images image-id machine-models
+   group-name init-script user]
   {:pre [image-id]}
   (logging/trace (format "Creating node from image-id: %s" image-id))
   (let [machine (binding [manager/*images* images
@@ -196,14 +211,15 @@
                   (manager/instance
                    compute machine-name image-id :micro node-path))
         image (image-id images)]
-    (manager/set-extra-data
-     machine "/pallet/tag" tag-name)
-    (manager/set-extra-data
-     machine "/pallet/os-family" (name (:os-family image)))
-    (manager/set-extra-data
-     machine "/pallet/os-version" (:os-version image))
+    (manager/set-extra-data machine group-name-tag group-name)
+    (manager/set-extra-data machine os-family-tag (name (:os-family image)))
+    (manager/set-extra-data machine os-version-tag (:os-version image))
     ;; (manager/add-startup-command machine 1 init-script )
-    (manager/start machine :session-type *vm-session-type*)
+    (manager/start
+     machine
+     :session-type (or
+                    (:session-type node-spec)
+                    *vm-session-type*))
     (logging/trace "Wait to allow boot")
     (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
@@ -213,18 +229,19 @@
        :message "Could not determine IP address of new node"))
     (Thread/sleep 4000)
     (logging/trace (format "Bootstrapping %s" (manager/get-ip machine)))
-    (script/with-template
-      (resource/script-template {:node-type {:image image}})
-      (execute/remote-sudo
-       (manager/get-ip machine)
-       init-script
-       (if (:username image)
-         (pallet.utils/make-user
-          (:username image)
-          :password (:password image)
-          :no-sudo (:no-sudo image)
-          :sudo-password (:sudo-password image))
-         user)))))
+    (script/with-script-context
+      (action-plan/script-template-for-server {:image image})
+      (let [user (if (:username image)
+                   (pallet.utils/make-user
+                    (:username image)
+                    :password (:password image)
+                    :no-sudo (:no-sudo image)
+                    :sudo-password (:sudo-password image))
+                   user)]
+        (execute/remote-sudo
+         (manager/get-ip machine) init-script user
+         {:pty (not (#{:arch :fedora} (:os-family image)))})))
+    machine))
 
 (defn- equality-match
   [image-properties kw arg]
@@ -260,67 +277,65 @@
 
 (defn serial-create-nodes
   "Create all nodes for a group in parallel."
-  [target-machines-to-create server node-path node-type images image-id
-   machine-models tag-name init-script user]
-  (doseq [name target-machines-to-create]
-    (create-node
-     server node-path node-type name images image-id machine-models tag-name
-     init-script user)))
+  [target-machines-to-create server node-path node-spec images image-id
+   machine-models group-name init-script user]
+  (doall
+   (for [name target-machines-to-create]
+     (create-node
+      server node-path node-spec name images image-id machine-models group-name
+      init-script user))))
 
 (defn parallel-create-nodes
   "Create all nodes for a group in parallel."
-  [target-machines-to-create server node-path node-type images image-id
-   machine-models tag-name init-script user]
+  [target-machines-to-create server node-path node-spec images image-id
+   machine-models group-name init-script user]
   ;; the doseq ensures that all futures are completed before
   ;; returning
-  (doseq [f (doall ;; doall forces creation of all futures before any deref
-             (for [name target-machines-to-create]
-               (future
-                 (create-node
-                  server node-path node-type name images image-id machine-models
-                  tag-name init-script user))))]
-    @f))
+  (->>
+   (for [name target-machines-to-create]
+     (future
+       (create-node
+        server node-path node-spec name images image-id
+        machine-models group-name init-script user)))
+   doall ;; doall forces creation of all futures before any deref
+   futures/add
+   (map #(futures/deref-with-logging % "Start of node"))
+   (filter identity)
+   doall))
 
 (deftype VmfestService
     [server images locations environment]
   pallet.compute/ComputeService
-  (nodes
-   [compute-service]
-   (manager/machines server))
+  (nodes [compute-service] (manager/machines server))
 
-  (ensure-os-family
-   [compute-service request]
-   request)
-
-  ;; Not implemented
-  ;; (build-node-template)
+  (ensure-os-family [compute-service group] group)
 
   (run-nodes
-   [compute-service node-type node-count request init-script]
+   [compute-service group-spec node-count user init-script]
    (try
-     (let [image-id (or (image-from-template images (-> node-type :image))
+     (let [image-id (or (image-from-template images (:image group-spec))
                         (throw (RuntimeException.
                                 (format "No matching image for %s"
-                                        (pr-str (-> node-type :image))))))
-           tag-name (name (:tag node-type))
+                                        (pr-str (:image group-spec))))))
+           group-name (name (:group-name group-spec))
            machines (filter
                      #(session/with-no-session % [vb-m] (.getAccessible vb-m))
                      (manager/machines server))
-           current-machines-in-tag (filter
-                                    #(= tag-name
-                                        (manager/get-extra-data
-                                         % "/pallet/tag"))
-                                    machines)
+           current-machines-in-group (filter
+                                      #(= group-name
+                                          (manager/get-extra-data
+                                           % group-name-tag))
+                                      machines)
            current-machine-names (into #{}
                                        (map
                                         #(session/with-no-session % [m]
                                            (.getName m))
-                                        current-machines-in-tag))
+                                        current-machines-in-group))
            target-indices (range (+ node-count
-                                    (count current-machines-in-tag)))
+                                    (count current-machines-in-group)))
            target-machine-names (into #{}
                                       (map
-                                       #(machine-name tag-name %)
+                                       #(machine-name group-name %)
                                        target-indices))
            target-machines-already-existing (clojure.set/intersection
                                              current-machine-names
@@ -335,13 +350,12 @@
        (logging/debug (str "target-machines-to-create"
                            target-machines-to-create))
 
-       ((get-in
-         request [:environment :algorithms :vmfest :create-nodes-fn]
-         parallel-create-nodes)
-        target-machines-to-create server (:node-path locations) node-type
-        images image-id
-        {:micro (machine-model (:image node-type))}
-        tag-name init-script (:user request)))))
+       ((get-in environment [:algorithms :vmfest :create-nodes-fn]
+                parallel-create-nodes)
+        target-machines-to-create server (:node-path locations)
+        group-spec images image-id
+        {:micro (machine-model (:image group-spec))}
+        group-name init-script user))))
 
   (reboot
    [compute nodes]
@@ -368,15 +382,16 @@
    (doseq [node nodes]
      (compute/shutdown-node server node user)))
 
-  (destroy-nodes-with-tag
-    [compute tag-name]
-    (doseq [machine
-            (filter
-             #(and
-               (compute/running? %)
-               (= tag-name (manager/get-extra-data % "/pallet/tag")))
-             (manager/machines server))]
-      (compute/destroy-node compute machine)))
+  (destroy-nodes-in-group
+    [compute group-name]
+    (let [nodes (locking compute ;; avoid disappearing machines
+                  (filter
+                   #(and
+                     (compute/running? %)
+                     (= group-name (manager/get-extra-data % group-name-tag)))
+                   (manager/machines server)))]
+      (doseq [machine nodes]
+        (compute/destroy-node compute machine))))
 
   (destroy-node
    [compute node]
@@ -410,6 +425,6 @@
    writer
    (format
     "%14s\t %14s\t public: %s"
-    (compute/hostname node)
-    (compute/tag node)
-    (compute/primary-ip node))))
+    (try (compute/hostname node) (catch Throwable e "unknown"))
+    (try (compute/group-name node) (catch Throwable e "unknown"))
+    (try (compute/primary-ip node) (catch Throwable e "unknown")))))

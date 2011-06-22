@@ -13,13 +13,14 @@
   ["node-list"])
 
 (defrecord Node
-    [name tag ip os-family os-version id ssh-port private-ip is-64bit running]
+    [name group-name ip os-family os-version id ssh-port private-ip is-64bit
+     running]
   pallet.compute.Node
   (ssh-port [node] ssh-port)
   (primary-ip [node] ip)
   (private-ip [node] private-ip)
   (is-64bit? [node] (:is-64bit node))
-  (tag [node] tag)
+  (group-name [node] group-name)
   (running? [node] running)
   (terminated? [node] (not running))
   (os-family [node] os-family)
@@ -28,13 +29,13 @@
   (id [node] id))
 
 ;;; Node utilities
-(defn make-node [name tag ip os-family
+(defn make-node [name group-name ip os-family
                  & {:keys [id ssh-port private-ip is-64bit running os-version]
                     :or {ssh-port 22 is-64bit true running true}
                     :as options}]
   (Node.
    name
-   tag
+   group-name
    ip
    os-family
    os-version
@@ -44,23 +45,27 @@
    is-64bit
    running))
 
-(defrecord NodeList
+(deftype NodeList
     [node-list environment]
   pallet.compute.ComputeService
-  (nodes [compute-service] node-list)
+  (nodes [compute-service] @node-list)
   (ensure-os-family
-   [compute-service request]
-   (when (not (-> request :node-type :image :os-family))
-     (condition/raise
-      :type :no-os-family-specified
+    [compute-service group-spec]
+    (when (not (-> group-spec :image :os-family))
+      (condition/raise
+       :type :no-os-family-specified
        :message "Node list contains a node without os-family")))
   ;; Not implemented
-  ;; (build-node-template)
   ;; (run-nodes [node-type node-count request init-script])
   ;; (reboot "Reboot the specified nodes")
   (boot-if-down [compute nodes] nil)
   ;; (shutdown-node "Shutdown a node.")
   ;; (shutdown "Shutdown specified nodes")
+
+  ;; this forgets about the nodes
+  (destroy-nodes-in-group [_ group]
+    (swap! node-list (fn [nl] (remove #(= (compute/group-name %) group) nl))))
+
   (close [compute])
   pallet.environment.Environment
   (environment [_] environment))
@@ -73,7 +78,7 @@
    writer
    (format
     "%14s\t %s %s public: %s  private: %s  %s"
-    (:tag node)
+    (:group-name node)
     (:os-family node)
     (:running node)
     (:ip node)
@@ -82,14 +87,14 @@
 
 (defn make-localhost-node
   "Make a node representing the local host"
-  [& {:keys [name tag ip os-family id]
+  [& {:keys [name group-name ip os-family id]
       :or {name "localhost"
-           tag "local"
+           group-name "local"
            ip "127.0.0.1"
            os-family (jvm/os-family)}
       :as options}]
   (apply
-   make-node name tag ip os-family
+   make-node name group-name ip os-family
    (apply concat (merge {:id "localhost"} options))))
 
 
@@ -97,10 +102,10 @@
 (defmethod implementation/service :node-list
   [_ {:keys [node-list environment]}]
   (NodeList.
-   (vec
-    (map
-     #(if (vector? %)
-        (apply make-node %)
-        %)
-     node-list))
+   (atom (vec
+          (map
+           #(if (vector? %)
+              (apply make-node %)
+              %)
+           node-list)))
    environment))

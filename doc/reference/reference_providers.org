@@ -3,9 +3,8 @@
 #+DESCRIPTION: Pallet reference documentation for providers
 #+KEYWORDS: pallet providers cloud api
 
-Pallet uses {{{jclouds}}} to create, start and stop nodes.  In order to use the cloud,
-you will need to specify your cloud credentials.  Each cloud has a slightly
-different terminology for the username/key and password/secret.
+Pallet uses {{{jclouds}}} to create, start and stop nodes.  In order to use the
+cloud, you will need to specify which cloud to use and your cloud credentials.
 
 * Cloud Provider Names
 
@@ -32,17 +31,18 @@ credentials.
 #+BEGIN_SRC clojure
   (require 'pallet.compute)
   (def service
-    (pallet.compute/compute-service
+    (pallet.compute/service
      "provider" :identity "username" :credential "password"))
 #+END_SRC
 
 Pallet uses {{{jclouds}}}' terminology, =identity= and =credential=, but your
-cloud provider will probably use different terms for these.
+cloud provider will probably use different terms for these. Identity may be
+called username or key and credential may be called password or secret.
 
 * Credentials in config.clj
 
-You can use the pallet configuration file [[file:~/.pallet/config.clj][~/.pallet/config.clj]] to specify
-credentials.
+You can use the pallet configuration file
+[[file:~/.pallet/config.clj][~/.pallet/config.clj]] to specify credentials.
 
 #+BEGIN_SRC clojure
   (defpallet
@@ -55,12 +55,12 @@ The provider key, =:aws= and =:rs= above, has to be unqiue, but you can have
 multiple accounts for the same provider.
 
 To create a compute service object from this file, that you can pass to =lift=
-or =converge=, you use =pallet.compute/compute-service-from-config-file=. By default,
-the first provider entry will be used, and you can specify an alternative
-provider by passing the key to the function.
+or =converge=, you use =pallet.compute/service=. By default, the first provider
+entry will be used, and you can specify an alternative provider by passing the
+key to the function.
 
 #+BEGIN_SRC clojure
-  (pallet.compute/compute-service-from-config-file "rs")
+  (pallet.compute/service "rs")
 #+END_SRC
 
 The [[file:~/.pallet/config.clj][config.clj]] file is read automatically by the =lein= and =cake= plugins, and
@@ -68,6 +68,7 @@ in =lein=, you can switch between providers using the `-P` command line option.
 
 #+BEGIN_SRC sh
   lein pallet -P rs nodes
+  cake pallet nodes -- -P rs
 #+END_SRC
 
 
@@ -96,13 +97,12 @@ normally located at [[file:~/.m2/settings.xml][~/.m2/settings.xml]].
 #+END_SRC
 
 To create a compute service object from settings.xml, you use
-=pallet.compute/compute-service-from-settings=. The default is determined by the
-active profile. You can specify a different profile by passing the profile's id
-to the function.
+=pallet.compute/service=. The default is determined by the active profile. You
+can specify a different profile by passing the profile's id to the function.
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.compute)
-  (def service (pallet.compute/compute-service-from-settings "terremark"))
+  (def service (pallet.compute/service "aws"))
 #+END_SRC
 
 You will need the following maven-settings dependency in your project for this
@@ -116,4 +116,3 @@ to work:
       <optional>true</optional>
     </dependency>
 #+END_SRC
-
