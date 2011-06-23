@@ -330,6 +330,7 @@
                        :strict-host-key-checking :no
                        :port port
                        :password (:password user)))
+          _ (.setDaemonThread ssh-session true)
           _ (when-not (ssh/connected? ssh-session) (ssh/connect ssh-session))
           tmpfile (or tmpfile (ssh-mktemp ssh-session "sudocmd"))
           tmpcpy (or tmpcpy (ssh-mktemp ssh-session "tfer"))
