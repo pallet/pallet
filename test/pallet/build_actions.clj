@@ -37,7 +37,8 @@
           (assoc :middleware
             [core/translate-action-plan
              execute/execute-echo]
-            :executor core/default-executors)
+            :executor core/default-executors
+            :environment {:algorithms core/default-algorithms})
           action-plan/build-for-target)]
      (phase/all-phases-for-phase (:phase session)))))
 

@@ -91,9 +91,10 @@
                          :environment
                          {:compute (jclouds-test-utils/compute)
                           :algorithms
-                          {:converge-fn
-                           #'pallet.core/serial-adjust-node-counts
-                           :lift-fn #'pallet.core/sequential-lift}}})
+                          (assoc core/default-algorithms
+                            :converge-fn
+                            #'pallet.core/serial-adjust-node-counts
+                            :lift-fn #'pallet.core/sequential-lift)}})
                        :all-nodes))))))
 
 (deftest parallel-converge-node-counts-test
@@ -119,9 +120,10 @@
                        :environment
                        {:compute (jclouds-test-utils/compute)
                         :algorithms
-                        {:converge-fn
-                         #'pallet.core/parallel-adjust-node-counts
-                         :lift-fn #'pallet.core/parallel-lift}}})
+                        (assoc core/default-algorithms
+                          :converge-fn
+                          #'pallet.core/parallel-adjust-node-counts
+                          :lift-fn #'pallet.core/parallel-lift)}})
                      :all-nodes))))))
 
 (deftest nodes-in-set-test
@@ -284,7 +286,8 @@
         nodes (#'core/create-nodes
                1
                {:compute (jclouds-test-utils/compute)
-                :group (group-spec :a :servers [{:node a}])})]
+                :group (group-spec :a :servers [{:node a}])
+                :environment {:algorithms core/default-algorithms}})]
     (is (map? nodes))
     (is (= 1 (count (:new-nodes nodes))))))
 

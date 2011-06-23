@@ -19,7 +19,8 @@
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
-   [clojure.string :as string])
+   [clojure.string :as string]
+   [clojure.stacktrace :as stacktrace])
   (:use
    clojure.test))
 
@@ -243,16 +244,14 @@
               :environment
               {:blobstore nil :compute nil :user utils/*admin-user*
                :middleware :middleware
-               :algorithms {:lift-fn core/parallel-lift
-                            :converge-fn core/parallel-adjust-node-counts}}}
+               :algorithms core/default-algorithms}}
              (#'core/session-with-environment {}))))
     (testing "passing a prefix"
       (is (= {:executor core/default-executors
               :environment
               {:blobstore nil :compute nil :user utils/*admin-user*
                :middleware *middleware*
-               :algorithms {:lift-fn core/parallel-lift
-                            :converge-fn core/parallel-adjust-node-counts}}
+               :algorithms core/default-algorithms}
               :prefix "prefix"}
              (#'core/session-with-environment {:prefix "prefix"}))))
     (testing "passing a user"
@@ -261,8 +260,7 @@
                 :environment
                 {:blobstore nil :compute nil  :user user
                  :middleware :middleware
-                 :algorithms {:lift-fn parallel-lift
-                              :converge-fn parallel-adjust-node-counts}}}
+                 :algorithms core/default-algorithms}}
                (#'core/session-with-environment {:user user})))))))
 
 (deftest node-spec-test
@@ -367,7 +365,8 @@
           {:group {:image {:os-family :ubuntu}
                    :packager :aptitude
                    :phases {:bootstrap (phase/phase-fn
-                                        (identity-action "a"))}}})))
+                                        (identity-action "a"))}}
+           :environment {:algorithms core/default-algorithms}})))
   (testing "rejects local actions"
     (is (thrown-with-msg?
           clojure.contrib.condition.Condition
@@ -377,7 +376,8 @@
             {:image {:os-family :ubuntu}
              :packager :aptitude
              :phases {:bootstrap (phase/phase-fn
-                                  (identity-local-action))}}}))))
+                                  (identity-local-action))}}
+            :environment {:algorithms core/default-algorithms}}))))
   (testing "requires a packager"
     (is (thrown?
          java.lang.AssertionError
@@ -469,7 +469,7 @@
                      :username (test-utils/test-username)
                      :no-sudo true)
              :compute service)
-             :results :localhost pr-str)))
+            :results :localhost pr-str)))
       (is (seen?))
       (testing "invalid :phases keyword"
         (is (thrown-with-msg?
@@ -480,7 +480,28 @@
         (is (thrown-with-msg?
               clojure.contrib.condition.Condition
               #"Invalid"
-              (lift local :abcdef [])))))))
+              (lift local :abcdef []))))))
+  (testing "throw on remote bash error"
+    (let [local (group-spec
+                 "local"
+                 :phases {:configure (phase/phase-fn
+                                      (exec-script/exec-script (~lib/exit 1)))})
+          localhost (node-list/make-localhost-node :group-name "local")
+          service (compute/compute-service "node-list" :node-list [localhost])
+          thrown (atom false)]
+      (try
+        (lift
+         local
+         :user (assoc utils/*admin-user*
+                 :username (test-utils/test-username)
+                 :no-sudo true)
+         :compute service)
+        (catch Exception e
+          (let [e (stacktrace/root-cause e)]
+            (is (instance? clojure.contrib.condition.Condition e))
+            (is (re-find #"Error executing script"  (:message @(.state e))))
+            (reset! thrown true))))
+      (is @thrown))))
 
 (deftest lift-parallel-test
   (let [local (group-spec "local")]

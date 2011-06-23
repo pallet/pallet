@@ -9,6 +9,7 @@
    [pallet.compute.jvm :as jvm]
    [pallet.compute :as compute]
    [pallet.core :as core]
+   [pallet.execute :as execute]
    [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
    [pallet.script :as script]))
@@ -89,11 +90,14 @@
                      :middleware [core/translate-action-plan
                                   ssh-user-credentials
                                   execute-with-ssh]
-                     :user user}
+                     :user user
+                     :environment {:algorithms core/default-algorithms}}
             result (#'core/apply-phase-to-node session)]
-        (is (= 2 (count result)))
+        (#'execute/close-ssh-connection (second result))
+        (is (= 3 (count result)))
         (is (= 1 (count (first result))))
-        (is (= 0 (:exit (ffirst result))))))))
+        (is (= 0 (:exit (ffirst result))))
+        (is (= :continue (last result)))))))
 
 (deftest local-script-test
   (is (zero? (:exit (local-script "ls")))))

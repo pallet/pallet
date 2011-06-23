@@ -38,7 +38,8 @@
           {:user user
            :middleware core/*middleware*
            :executor core/default-executors
-           :algorithms {:lift-fn core/sequential-lift}}})
+           :algorithms (assoc core/default-algorithms
+                         :lift-fn core/sequential-lift)}})
         (let [target-tmp (java.io.File.
                           (str (.getPath target-dir)
                                "/" (.getName dir)
@@ -57,7 +58,8 @@
           {:user user
            :middleware core/*middleware*
            :executor core/default-executors
-           :algorithms {:lift-fn core/sequential-lift}}})
+           :algorithms (assoc core/default-algorithms
+                         :lift-fn core/sequential-lift)}})
         (let [target-tmp (java.io.File.
                           (str (.getPath target-dir)
                                "/" (.getName dir)

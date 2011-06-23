@@ -388,7 +388,10 @@
                           add-session-keys-for-0-4-compatibility
                           action-plan/build-for-target
                           action-plan/translate-for-target
-                          (action-plan/execute-for-target executor))]
+                          (action-plan/execute-for-target
+                           executor
+                           (environment/get-for
+                            session [:algorithms :execute-status-fn])))]
     (string/join \newline result)))
 
 (defn- create-nodes
@@ -555,7 +558,9 @@
 (defn- execute
   "Execute the action plan"
   [session]
-  (action-plan/execute-for-target session executor))
+  (action-plan/execute-for-target
+   session executor
+   (environment/get-for session [:algorithms :execute-status-fn])))
 
 (defn- apply-phase-to-node
   "Apply a phase to a node session"
@@ -571,10 +576,31 @@
       apply-environment
       add-session-keys-for-0-4-compatibility))))
 
+(defn stop-execution-on-error
+  ":execute-status-fn algorithm to stop execution on an error"
+  [result flag]
+  (if (= flag :continue)
+    (if (:error result)
+      :stop
+      flag)
+    flag))
+
+(defn raise-on-error
+  "Middleware that raises a condition on an error."
+  [handler]
+  (fn [session]
+    (let [[results session] (handler session)
+          errors (seq (filter :error results))]
+      (logging/infof "raise-on-error :results %s" results)
+      (if errors
+        (condition/raise (assoc (:error (first errors)) :all-errors errors))
+        [results session]))))
+
 (def *middleware*
   [translate-action-plan
    execute/ssh-user-credentials
-   execute/execute-with-ssh])
+   execute/execute-with-ssh
+   raise-on-error])
 
 (defmacro with-middleware
   "Wrap node execution in the given middleware. A middleware is a function of
@@ -1015,6 +1041,13 @@
             :credential (:credential blobstore-service)
             :extensions (:extensions blobstore-service)))))
 
+(def
+  ^{:doc "Algorithms to use when none specified"}
+  default-algorithms
+  {:lift-fn parallel-lift
+   :converge-fn parallel-adjust-node-counts
+   :execute-status-fn stop-execution-on-error})
+
 (defn default-environment
   "Specify the built-in default environment"
   []
@@ -1022,8 +1055,7 @@
    :compute nil
    :user utils/*admin-user*
    :middleware *middleware*
-   :algorithms {:lift-fn parallel-lift
-                :converge-fn parallel-adjust-node-counts}})
+   :algorithms default-algorithms})
 
 (defn- effective-environment
   "Build the effective environment for the session map.

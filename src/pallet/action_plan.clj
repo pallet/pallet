@@ -521,19 +521,28 @@
 
 (defn execute-action
   "Execute a single action"
-  [executor [results session] {:keys [f action-type location] :as action}]
-  (let [[result session] (executor session f action-type location)]
-    [(conj results result) session]))
+  [executor session {:keys [f action-type location] :as action}]
+  (executor session f action-type location))
 
 (defn execute
   "Execute actions by passing the un-evaluated actions to the `executor`
    function (a function with an arglist of [session f action-type location])."
-  [action-plan session executor]
+  [action-plan session executor execute-status-fn]
   (when-not (translated? action-plan)
     (condition/raise
      :type :pallet/execute-called-on-untranslated-action-plan
      :message "Attempt to execute an action plan that has not been translated"))
-  (reduce #(execute-action executor %1 %2) [[] session] action-plan))
+  (reduce
+   (fn [[results session flag] action]
+     (case flag
+       :continue (let [[result session] (execute-action
+                                         executor session action)]
+                   [(conj results result)
+                    session
+                    (execute-status-fn result flag)])
+       [[results session] action flag]))
+   [[] session :continue]
+   action-plan))
 
 
 ;;; Target specific functions
@@ -603,9 +612,10 @@
 
 (defn execute-for-target
   "Execute the translated action plan for the current target."
-  [session executor]
+  [session executor execute-status-fn]
   {:pre [(:phase session)]}
   (script/with-script-context (script-template session)
     (stevedore/with-script-language :pallet.stevedore.bash/bash
       (execute
-       (get-in session (target-path session)) session executor))))
+       (get-in session (target-path session))
+       session executor execute-status-fn))))
