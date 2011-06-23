@@ -3,6 +3,7 @@
    [pallet.action :as action]
    [pallet.action-plan :as action-plan]
    [pallet.action-plan-test :as action-plan-test]
+   [pallet.core :as core]
    [clojure.string :as string])
   (:use
    clojure.test))
@@ -108,13 +109,15 @@
                       nil]}}
                :phase :fred
                :target-id :id
-               :server {:node-id :id}}]
+               :server {:node-id :id}}
+              :continue]
                (action-plan/execute
                 (action-plan/translate (-> req :action-plan :fred :id))
                 req
                 (action-plan-test/executor
                  {:script/bash {:target action-plan-test/echo}
-                  :fn/clojure {:origin action-plan-test/null-result}}))))
+                  :fn/clojure {:origin action-plan-test/null-result}})
+                (:execute-status-fn core/default-algorithms))))
       (is @x))))
 
 (deftest as-clj-action-test
@@ -175,13 +178,15 @@
                       nil]}}
                :phase :fred
                :target-id :id
-               :server {:node-id :id}}]
+               :server {:node-id :id}}
+              :continue]
                (action-plan/execute
                 (action-plan/translate (-> req :action-plan :fred :id))
                 req
                 (action-plan-test/executor
                  {:script/bash {:target action-plan-test/echo}
-                  :fn/clojure {:origin action-plan-test/null-result}})))))))
+                  :fn/clojure {:origin action-plan-test/null-result}})
+                (:execute-status-fn core/default-algorithms)))))))
 
 
 (action/def-aggregated-action
@@ -241,4 +246,5 @@
            (action-plan/translate
             (get-in session (action-plan/target-path session)))
            session
-           (executor {:script/bash {:target echo}})))))))
+           (executor {:script/bash {:target echo}})
+           (:execute-status-fn core/default-algorithms)))))))

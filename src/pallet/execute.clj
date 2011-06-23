@@ -129,17 +129,17 @@
 (defn verify-sh-return
   "Verify the return code of a sh execution"
   [msg cmd result]
-  (when-not (zero? (:exit result))
-    (condition/raise
-     :message (format
-               "Error executing script %s\n :cmd %s :out %s\n :err %s"
-               msg cmd (:out result) (:err result))
-     :type :pallet-script-excution-error
-     :script-exit (:exit result)
-     :script-out  (:out result)
-     :script-err (:err result)
-     :server "localhost"))
-  result)
+  (if (zero? (:exit result))
+    result
+    (assoc result
+      :error {:message (format
+                        "Error executing script %s\n :cmd %s :out %s\n :err %s"
+                        msg cmd (:out result) (:err result))
+              :type :pallet-script-excution-error
+              :script-exit (:exit result)
+              :script-out  (:out result)
+              :script-err (:err result)
+              :server "localhost"})))
 
 (defmacro local-checked-script
   "Run a script on the local machine, setting up stevedore to produce the
@@ -260,21 +260,22 @@
       (Thread/sleep period)
       (read-ouput))
     (while (read-ouput))
+    (.close stream)
+    (ssh/ssh ssh-session (str "rm " tmpfile))
     (let [exit (.getExitStatus shell)
           stdout (str sb)]
-      (when-not (zero? exit)
+      (if (zero? exit)
+        {:out stdout :exit exit}
         (do
-          (logging/error (str "Exit status  : " exit))
-          (condition/raise
-           :message (format
-                     "Error executing script :\n :cmd %s\n :out %s\n"
-                     command stdout)
-           :type :pallet-script-excution-error
-           :script-exit exit
-           :script-out stdout
-           :server server)))
-      (ssh/ssh ssh-session (str "rm " tmpfile))
-      {:out stdout :exit exit})))
+          (logging/errorf "Exit status  : %s" exit)
+          {:out stdout :exit exit
+           :error {:message (format
+                             "Error executing script :\n :cmd %s\n :out %s\n"
+                             command stdout)
+                   :type :pallet-script-excution-error
+                   :script-exit exit
+                   :script-out stdout
+                   :server server}})))))
 
 (defn remote-sudo
   "Run a sudo command on a server."
@@ -343,13 +344,14 @@
 (defn- close-ssh-connection
   "Close any ssh connection to the server specified in the session."
   [session]
-  (let [{:keys [ssh-session sftp-channel tmpfile tmpcpy] :as ssh} (:ssh session)]
+  (let [{:keys [ssh-session sftp-channel tmpfile tmpcpy]
+         :as ssh} (:ssh session)]
     (if ssh
       (do
-        (when (and sftp-channel (ssh/connected? sftp-channel))
+        (when sftp-channel
           ;; remove tmpfile, tmpcpy
           (ssh/disconnect sftp-channel))
-        (when (and ssh-session (ssh/connected? ssh-session))
+        (when ssh-session
           (ssh/disconnect ssh-session))
         (dissoc session :ssh))
       session)))
