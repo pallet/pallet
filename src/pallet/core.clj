@@ -591,7 +591,6 @@
   (fn [session]
     (let [[results session] (handler session)
           errors (seq (filter :error results))]
-      (logging/infof "raise-on-error :results %s" results)
       (if errors
         (condition/raise (assoc (:error (first errors)) :all-errors errors))
         [results session]))))
