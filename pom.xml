@@ -60,6 +60,13 @@
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <excludes>
+            <exclude>log4j.xml</exclude>
+            <exclude>logback.xml</exclude>
+            <exclude>logback_test.xml</exclude>
+          </excludes>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>com.theoryinpractise</groupId>
