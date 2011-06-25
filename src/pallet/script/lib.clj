@@ -85,6 +85,11 @@
   [path]
   (basename ~path))
 
+(script/defscript dirname [path])
+(script/defimpl dirname :default
+  [path]
+  (dirname ~path))
+
 (script/defscript ls [pattern & {:keys [sort-by-time sort-by-size reverse]}])
 (script/defimpl ls :default
   [pattern & {:keys [sort-by-time sort-by-size reverse]}]
