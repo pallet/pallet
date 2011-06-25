@@ -770,5 +770,5 @@
 
 (script/defimpl selinux-file-type :default
   [path type]
-  (if (~has-command? chcon)
+  (if (&& (~has-command? chcon) (directory? "/etc/selinux"))
     (chcon -Rv ~(str "--type=" type) ~path)))
