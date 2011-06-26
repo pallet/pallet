@@ -25,26 +25,27 @@
    The images are disks that are immutable.  The virtualbox extensions need
    to be installed on the image."
   (:require
-   [vmfest.virtualbox.virtualbox :as virtualbox]
-   [vmfest.virtualbox.machine :as machine]
-   [vmfest.virtualbox.model :as model]
-   [vmfest.virtualbox.session :as session]
-   [vmfest.manager :as manager]
-   [vmfest.virtualbox.session :as session]
-   [vmfest.virtualbox.enums :as enums]
+   [clojure.contrib.condition :as condition]
+   [clojure.string :as string]
+   [clojure.tools.logging :as logging]
    [pallet.action-plan :as action-plan]
    [pallet.compute :as compute]
-   [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
+   [pallet.compute.jvm :as jvm]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.futures :as futures]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]
-   [clojure.string :as string]
-   [clojure.tools.logging :as logging]))
+   [vmfest.manager :as manager]
+   [vmfest.virtualbox.enums :as enums]
+   [vmfest.virtualbox.image :as image]
+   [vmfest.virtualbox.machine :as machine]
+   [vmfest.virtualbox.model :as model]
+   [vmfest.virtualbox.session :as session]
+   [vmfest.virtualbox.session :as session]
+   [vmfest.virtualbox.virtualbox :as virtualbox]))
 
 (defn supported-providers []
   ["virtualbox"])
@@ -303,6 +304,10 @@
    (filter identity)
    doall))
 
+(defprotocol ImageManager
+  (install-image [service url {:as options}]
+    "Install the image from the specified `url`"))
+
 (deftype VmfestService
     [server images locations environment]
   pallet.compute/ComputeService
@@ -313,7 +318,7 @@
   (run-nodes
    [compute-service group-spec node-count user init-script]
    (try
-     (let [image-id (or (image-from-template images (:image group-spec))
+     (let [image-id (or (image-from-template @images (:image group-spec))
                         (throw (RuntimeException.
                                 (format "No matching image for %s"
                                         (pr-str (:image group-spec))))))
@@ -353,7 +358,7 @@
        ((get-in environment [:algorithms :vmfest :create-nodes-fn]
                 parallel-create-nodes)
         target-machines-to-create server (:node-path locations)
-        group-spec images image-id
+        group-spec @images image-id
         {:micro (machine-model (:image group-spec))}
         group-name init-script user))))
 
@@ -401,7 +406,15 @@
 
   (close [compute])
   pallet.environment.Environment
-  (environment [_] environment))
+  (environment [_] environment)
+  ImageManager
+  (install-image
+    [compute url {:as options}]
+    (when-let [job (image/setup-model url server)]
+      (swap! images merge (:meta job)))))
+
+(defn add-image [compute url & {:as options}]
+  (install-image compute url options))
 
 ;;;; Compute service
 (defmethod implementation/service :virtualbox
@@ -409,13 +422,16 @@
              environment]
       :or {url "http://localhost:18083/"
            identity "test"
-           credential "test"}
+           credential "test"
+           model-path (manager/default-model-path)
+           node-path (manager/default-node-path)}
       :as options}]
   (let [locations (or locations
-                      {:local (select-keys options [:node-path :model-path])})]
+                      {:local {:node-path node-path :model-path model-path}})
+        images (merge (manager/load-models :model-path model-path) images)]
     (VmfestService.
      (vmfest.virtualbox.model.Server. url identity credential)
-     images
+     (atom images)
      (val (first locations))
      environment)))
 
