@@ -137,10 +137,14 @@
            {} (remote-file
                "file1" :local-file "/some/non-existing/file" :owner "user1"))))
 
-    (is (thrown-with-msg? RuntimeException
-          #".*file1.*without content.*"
-          (build-actions/build-actions
-           {} (remote-file "file1" :owner "user1"))))
+    (is (=
+         (str
+          "{:error {:message \"Unexpected exception: "
+          "java.lang.RuntimeException: java.lang.RuntimeException: "
+          "java.lang.IllegalArgumentException: remote-file file1 specified "
+          "without content.\", :type :pallet/action-excution-error}}")
+           (first (build-actions/build-actions
+                   {} (remote-file "file1" :owner "user1")))))
 
     (utils/with-temporary [tmp (utils/tmpfile)]
       (is (re-find #"mv -f --backup=\"numbered\" file1.new file1"
