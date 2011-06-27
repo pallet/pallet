@@ -310,7 +310,8 @@
 (action/def-clj-action check-content
   [session path content path-atom]
   (is (= content (slurp path)))
-  (reset! path-atom path))
+  (reset! path-atom path)
+  session)
 
 (deftest with-remote-file-test
   (core/with-admin-user (assoc utils/*admin-user*

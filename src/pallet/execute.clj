@@ -345,7 +345,7 @@
 
 (defn- close-ssh-connection
   "Close any ssh connection to the server specified in the session."
-  [session]
+  [[results session flag]]
   (let [{:keys [ssh-session sftp-channel tmpfile tmpcpy]
          :as ssh} (:ssh session)]
     (if ssh
@@ -355,8 +355,8 @@
           (ssh/disconnect sftp-channel))
         (when ssh-session
           (ssh/disconnect ssh-session))
-        (dissoc session :ssh))
-      session)))
+        [results (dissoc session :ssh) flag])
+      [results session flag])))
 
 ;;; executor functions
 
@@ -513,6 +513,9 @@
          handler
          close-ssh-connection)
         (catch Exception e
+          (logging/error
+           e
+           "Unexpected exception in execute-with-ssh: probable connection leak")
           (close-ssh-connection session)
           (throw e))))))
 
