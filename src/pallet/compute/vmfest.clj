@@ -26,9 +26,11 @@
    to be installed on the image."
   (:require
    [clojure.contrib.condition :as condition]
+   [clojure.java.io :as io]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.action-plan :as action-plan]
+   [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.jvm :as jvm]
@@ -43,7 +45,6 @@
    [vmfest.virtualbox.image :as image]
    [vmfest.virtualbox.machine :as machine]
    [vmfest.virtualbox.model :as model]
-   [vmfest.virtualbox.session :as session]
    [vmfest.virtualbox.session :as session]
    [vmfest.virtualbox.virtualbox :as virtualbox]))
 
@@ -304,9 +305,31 @@
    (filter identity)
    doall))
 
+(def
+  ^{:dynamic true
+    :doc (str "The buffer size (in bytes) for the piped stream used to implement
+    the :stream option for :out. If your ssh commands generate a high volume of
+    output, then this buffer size can become a bottleneck. You might also
+    increase the frequency with which you read the output stream if this is an
+    issue.")}
+  *piped-stream-buffer-size* (* 1024 1024))
+
+(defn- piped-streams
+  []
+  (let [os (java.io.PipedOutputStream.)]
+    [os (java.io.PipedInputStream. os *piped-stream-buffer-size*)]))
+
+(defn gzip-input-stream [from]
+  (let [input (io/input-stream from)
+        [piped-output piped-input] (piped-streams)
+        output (java.util.zip.GZIPOutputStream. piped-output)]
+    [piped-input (future (io/copy input output :buffer-size (* 1024 1024)))]))
+
 (defprotocol ImageManager
   (install-image [service url {:as options}]
-    "Install the image from the specified `url`"))
+    "Install the image from the specified `url`")
+  (publish-image [service image blobstore container {:keys [path] :as options}]
+    "Publish the image to the specified blobstore container"))
 
 (deftype VmfestService
     [server images locations environment]
@@ -411,7 +434,37 @@
   (install-image
     [compute url {:as options}]
     (when-let [job (image/setup-model url server)]
-      (swap! images merge (:meta job)))))
+      (swap! images merge (:meta job))))
+  (publish-image [service image-kw blobstore container {:keys [path]}]
+    (if-let [image (image-kw @images)]
+      (session/with-vbox server [_ vbox]
+        (let [medium (virtualbox/find-medium vbox (:uuid image))
+              file (java.io.File. (.getLocation medium))
+              _ (logging/info "get gzip")
+              [input-stream f] (gzip-input-stream file)]
+          (logging/info "put meta")
+          (blobstore/put
+           blobstore container
+           (string/replace (or path (.getName file)) #"\.vdi.*" ".meta")
+           (pr-str {image-kw (dissoc image :uuid)}))
+          (logging/infof "put gz %s" input-stream)
+          (try
+            (blobstore/put
+             blobstore container (or path (str (.getName file) ".gz"))
+             input-stream)
+            (catch Exception e
+              (logging/error e "Upload failed")))
+          (logging/info "deref")
+          @f))
+      (let [msg (format
+                 "Could not find image %s. Known images are %s."
+                 image-kw (keys @images))]
+        (logging/error msg)
+        (condition/raise
+         {:type :pallet/unkown-image
+          :image image-kw
+          :known-images (keys @images)
+          :message msg})))))
 
 (defn add-image [compute url & {:as options}]
   (install-image compute url options))
