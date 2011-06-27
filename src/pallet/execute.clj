@@ -3,6 +3,7 @@
   (:require
    [pallet.action-plan :as action-plan]
    [pallet.action.file :as file]
+   [pallet.common.filesystem :as filesystem]
    [pallet.common.shell :as shell]
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
@@ -394,25 +395,60 @@
     [(remote-sudo-cmd server ssh-session sftp-channel user tmpfile value {})
      session]))
 
+(defn- ssh-upload
+  "Upload a file to a remote location via sftp"
+  [tmpcpy file server ssh-session sftp-channel user tmpfile remote-name]
+  (logging/infof
+   "Transferring %s to %s:%s via %s" file server remote-name tmpcpy)
+  (ssh/sftp
+   sftp-channel
+   :put (-> file java.io.FileInputStream. java.io.BufferedInputStream.)
+   tmpcpy)
+  (remote-sudo-cmd
+   server ssh-session sftp-channel user tmpfile
+   (stevedore/script
+    (chmod "0600" ~tmpcpy)
+    (mv -f ~tmpcpy ~remote-name))
+   {}))
+
 (defn ssh-from-local
   "Transfer a file from the origin machine to the target via ssh."
   [session f]
   (let [{:keys [ssh] :as session} (ensure-ssh-connection session)
         {:keys [server ssh-session sftp-channel tmpfile tmpcpy user]} ssh
         {:keys [value session]} (f session)]
-    (doseq [[file remote-name] value]
-      (logging/infof
-       "Transferring file %s to node @ %s via %s" file remote-name tmpcpy)
-      (ssh/sftp
-       sftp-channel
-       :put (-> file java.io.FileInputStream. java.io.BufferedInputStream.)
-       tmpcpy)
-      (remote-sudo-cmd
-       server ssh-session sftp-channel user tmpfile
-       (stevedore/script
-        (chmod "0600" ~tmpcpy)
-        (mv -f ~tmpcpy ~remote-name))
-       {}))
+    (doseq [[file remote-name] value
+            :let [remote-md5-name (-> remote-name
+                                      (string/replace #"\.new$" ".md5")
+                                      (string/replace #"-content$" ".md5"))]]
+      (logging/debugf "Remote file %s:%s from" server remote-md5-name file)
+      (let [md5 (try
+                  (filesystem/with-temp-file [md5-copy]
+                    (ssh/sftp
+                     sftp-channel
+                     :get
+                     remote-md5-name
+                     (.getPath md5-copy))
+                    (slurp md5-copy))
+                  (catch Exception _ nil))]
+        (if md5
+          (filesystem/with-temp-file [local-md5-file]
+            (logging/debugf "Calculating md5 for %s" file)
+            (local-script
+             ((~lib/md5sum ~file) ">" ~(.getPath local-md5-file))
+             (~lib/normalise-md5 ~(.getPath local-md5-file)))
+            (let [local-md5 (slurp local-md5-file)]
+              (logging/debugf "md5 check - remote: %s local: %s" md5 local-md5)
+              (if (not=
+                   (first (string/split md5 #" "))
+                   (first (string/split local-md5 #" ")) )
+                (ssh-upload
+                 tmpcpy file server ssh-session sftp-channel user tmpfile
+                 remote-name)
+                (logging/infof "%s:%s is already up to date" server remote-name))))
+          (ssh-upload
+           tmpcpy file server ssh-session sftp-channel user tmpfile
+           remote-name))))
     [value session]))
 
 (defn ssh-to-local
