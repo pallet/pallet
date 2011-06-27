@@ -18,7 +18,8 @@
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
-   [clojure.contrib.io :as io]))
+   [clojure.contrib.io :as io]
+   [clojure.tools.logging :as logging]))
 
 (use-fixtures
  :once
@@ -137,10 +138,14 @@
            {} (remote-file
                "file1" :local-file "/some/non-existing/file" :owner "user1"))))
 
-    (is (thrown-with-msg? RuntimeException
-          #".*file1.*without content.*"
-          (build-actions/build-actions
-           {} (remote-file "file1" :owner "user1"))))
+    (is (=
+         (str
+          "{:error {:message \"Unexpected exception: "
+          "java.lang.RuntimeException: java.lang.RuntimeException: "
+          "java.lang.IllegalArgumentException: remote-file file1 specified "
+          "without content.\", :type :pallet/action-excution-error}}")
+           (first (build-actions/build-actions
+                   {} (remote-file "file1" :owner "user1")))))
 
     (utils/with-temporary [tmp (utils/tmpfile)]
       (is (re-find #"mv -f --backup=\"numbered\" file1.new file1"
@@ -153,20 +158,38 @@
                            target-tmp (utils/tmpfile)]
       ;; this is convoluted to get around the "t" sticky bit on temp dirs
       (let [user (assoc utils/*admin-user*
-                   :username (test-utils/test-username) :no-sudo true)]
+                   :username (test-utils/test-username) :no-sudo true)
+            log-action (action/clj-action
+                        [session]
+                        (logging/info "local-file test"))]
         (.delete target-tmp)
         (io/copy "text" tmp)
         (let [local (core/group-spec "local")
               node (test-utils/make-localhost-node :group-name "local")]
           (testing "local-file"
-            (core/lift
-             {local node}
-             :phase #(remote-file
-                      % (.getPath target-tmp) :local-file (.getPath tmp)
-                      :mode "0666")
-             :user user)
+            (let [result (core/lift
+                          {local node}
+                          :phase [log-action
+                                  #(remote-file
+                                    % (.getPath target-tmp)
+                                    :local-file (.getPath tmp)
+                                    :mode "0666")]
+                          :user user)]
+              (is (some #(= node %) (:all-nodes result))))
             (is (.canRead target-tmp))
-            (is (= "text" (slurp (.getPath target-tmp)))))
+            (is (= "text" (slurp (.getPath target-tmp))))
+            (is (slurp (str (.getPath target-tmp) ".md5")))
+            (testing "with md5 guard"
+              (logging/info "remote-file test: local-file with md5 guard")
+              (let [result (core/lift
+                            {local node}
+                            :phase [log-action
+                                    #(remote-file
+                                      % (.getPath target-tmp)
+                                      :local-file (.getPath tmp)
+                                      :mode "0666")]
+                            :user user)]
+                (is (some #(= node %) (:all-nodes result))))))
           (testing "content"
             (core/lift
              {local node}
@@ -287,7 +310,8 @@
 (action/def-clj-action check-content
   [session path content path-atom]
   (is (= content (slurp path)))
-  (reset! path-atom path))
+  (reset! path-atom path)
+  session)
 
 (deftest with-remote-file-test
   (core/with-admin-user (assoc utils/*admin-user*

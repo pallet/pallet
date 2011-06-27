@@ -93,7 +93,7 @@
                      :user user
                      :environment {:algorithms core/default-algorithms}}
             result (#'core/apply-phase-to-node session)]
-        (#'execute/close-ssh-connection (second result))
+        (#'execute/close-ssh-connection result)
         (is (= 3 (count result)))
         (is (= 1 (count (first result))))
         (is (= 0 (:exit (ffirst result))))

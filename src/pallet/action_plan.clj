@@ -522,7 +522,12 @@
 (defn execute-action
   "Execute a single action"
   [executor session {:keys [f action-type location] :as action}]
-  (executor session f action-type location))
+  (try
+    (executor session f action-type location)
+    (catch Exception e
+      [{:error {:message (format "Unexpected exception: %s" (.getMessage e))
+                :type :pallet/action-excution-error}}
+       session])))
 
 (defn execute
   "Execute actions by passing the un-evaluated actions to the `executor`

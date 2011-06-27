@@ -925,10 +925,16 @@
   (let [nodes (filter
                compute/running?
                (or (:all-nodes session) ; empty list is ok
-                   (when-let [compute (environment/get-for
-                                       session [:compute] nil)]
-                     (logging/info "retrieving nodes")
-                     (compute/nodes compute))))]
+                   (if-let [compute (environment/get-for
+                                     session [:compute] nil)]
+                     (do
+                       (logging/info "retrieving nodes")
+                       (compute/nodes compute))
+                     (filter
+                      compute/node?
+                      (mapcat
+                       #(let [v (val %)] (if (seq? v) v [v]))
+                       (:node-set session))))))]
     (assoc session :all-nodes nodes :selected-nodes nodes)))
 
 (defn session-with-groups
