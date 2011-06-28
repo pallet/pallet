@@ -31,6 +31,7 @@
    [clojure.tools.logging :as logging]
    [pallet.action-plan :as action-plan]
    [pallet.blobstore :as blobstore]
+   [pallet.common.filesystem :as filesystem]
    [pallet.compute :as compute]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.jvm :as jvm]
@@ -319,11 +320,10 @@
   (let [os (java.io.PipedOutputStream.)]
     [os (java.io.PipedInputStream. os *piped-stream-buffer-size*)]))
 
-(defn gzip-input-stream [from]
-  (let [input (io/input-stream from)
-        [piped-output piped-input] (piped-streams)
-        output (java.util.zip.GZIPOutputStream. piped-output)]
-    [piped-input (future (io/copy input output :buffer-size (* 1024 1024)))]))
+(defn gzip [from to]
+  (with-open [input (io/input-stream from)
+              output (java.util.zip.GZIPOutputStream. (io/output-stream to))]
+    (io/copy input output)))
 
 (defprotocol ImageManager
   (install-image [service url {:as options}]
@@ -339,76 +339,76 @@
   (ensure-os-family [compute-service group] group)
 
   (run-nodes
-   [compute-service group-spec node-count user init-script]
-   (try
-     (let [image-id (or (image-from-template @images (:image group-spec))
-                        (throw (RuntimeException.
-                                (format "No matching image for %s"
-                                        (pr-str (:image group-spec))))))
-           group-name (name (:group-name group-spec))
-           machines (filter
-                     #(session/with-no-session % [vb-m] (.getAccessible vb-m))
-                     (manager/machines server))
-           current-machines-in-group (filter
-                                      #(= group-name
-                                          (manager/get-extra-data
-                                           % group-name-tag))
-                                      machines)
-           current-machine-names (into #{}
+    [compute-service group-spec node-count user init-script]
+    (try
+      (let [image-id (or (image-from-template @images (:image group-spec))
+                         (throw (RuntimeException.
+                                 (format "No matching image for %s"
+                                         (pr-str (:image group-spec))))))
+            group-name (name (:group-name group-spec))
+            machines (filter
+                      #(session/with-no-session % [vb-m] (.getAccessible vb-m))
+                      (manager/machines server))
+            current-machines-in-group (filter
+                                       #(= group-name
+                                           (manager/get-extra-data
+                                            % group-name-tag))
+                                       machines)
+            current-machine-names (into #{}
+                                        (map
+                                         #(session/with-no-session % [m]
+                                            (.getName m))
+                                         current-machines-in-group))
+            target-indices (range (+ node-count
+                                     (count current-machines-in-group)))
+            target-machine-names (into #{}
                                        (map
-                                        #(session/with-no-session % [m]
-                                           (.getName m))
-                                        current-machines-in-group))
-           target-indices (range (+ node-count
-                                    (count current-machines-in-group)))
-           target-machine-names (into #{}
-                                      (map
-                                       #(machine-name group-name %)
-                                       target-indices))
-           target-machines-already-existing (clojure.set/intersection
-                                             current-machine-names
-                                             target-machine-names)
-           target-machines-to-create (clojure.set/difference
-                                      target-machine-names
-                                      target-machines-already-existing)]
-       (logging/debug (str "current-machine-names " current-machine-names))
-       (logging/debug (str "target-machine-names " target-machine-names))
-       (logging/debug (str "target-machines-already-existing "
-                           target-machines-already-existing))
-       (logging/debug (str "target-machines-to-create"
-                           target-machines-to-create))
+                                        #(machine-name group-name %)
+                                        target-indices))
+            target-machines-already-existing (clojure.set/intersection
+                                              current-machine-names
+                                              target-machine-names)
+            target-machines-to-create (clojure.set/difference
+                                       target-machine-names
+                                       target-machines-already-existing)]
+        (logging/debug (str "current-machine-names " current-machine-names))
+        (logging/debug (str "target-machine-names " target-machine-names))
+        (logging/debug (str "target-machines-already-existing "
+                            target-machines-already-existing))
+        (logging/debug (str "target-machines-to-create"
+                            target-machines-to-create))
 
-       ((get-in environment [:algorithms :vmfest :create-nodes-fn]
-                parallel-create-nodes)
-        target-machines-to-create server (:node-path locations)
-        group-spec @images image-id
-        {:micro (machine-model (:image group-spec))}
-        group-name init-script user))))
+        ((get-in environment [:algorithms :vmfest :create-nodes-fn]
+                 parallel-create-nodes)
+         target-machines-to-create server (:node-path locations)
+         group-spec @images image-id
+         {:micro (machine-model (:image group-spec))}
+         group-name init-script user))))
 
   (reboot
-   [compute nodes]
-   (compute/shutdown server nodes nil)
-   (compute/boot-if-down server nodes))
+    [compute nodes]
+    (compute/shutdown server nodes nil)
+    (compute/boot-if-down server nodes))
 
   (boot-if-down
-   [compute nodes]
-   (doseq [node nodes]
-     (manager/start node)))
+    [compute nodes]
+    (doseq [node nodes]
+      (manager/start node)))
 
   (shutdown-node
-   [compute node _]
-   ;; todo: wait for completion
-   (logging/infof "Shutting down %s" (pr-str node))
-   (manager/power-down node)
-   (if-let [state (manager/wait-for-machine-state node [:powered-off] 300000)]
-     (logging/infof "Machine state is %s" state)
-     (logging/warn "Failed to wait for power down completion"))
-   (manager/wait-for-lockable-session-state node 2000))
+    [compute node _]
+    ;; todo: wait for completion
+    (logging/infof "Shutting down %s" (pr-str node))
+    (manager/power-down node)
+    (if-let [state (manager/wait-for-machine-state node [:powered-off] 300000)]
+      (logging/infof "Machine state is %s" state)
+      (logging/warn "Failed to wait for power down completion"))
+    (manager/wait-for-lockable-session-state node 2000))
 
   (shutdown
-   [compute nodes user]
-   (doseq [node nodes]
-     (compute/shutdown-node server node user)))
+    [compute nodes user]
+    (doseq [node nodes]
+      (compute/shutdown-node server node user)))
 
   (destroy-nodes-in-group
     [compute group-name]
@@ -422,10 +422,10 @@
         (compute/destroy-node compute machine))))
 
   (destroy-node
-   [compute node]
-   {:pre [node]}
-   (compute/shutdown-node compute node nil)
-   (manager/destroy node))
+    [compute node]
+    {:pre [node]}
+    (compute/shutdown-node compute node nil)
+    (manager/destroy node))
 
   (close [compute])
   pallet.environment.Environment
@@ -439,23 +439,22 @@
     (if-let [image (image-kw @images)]
       (session/with-vbox server [_ vbox]
         (let [medium (virtualbox/find-medium vbox (:uuid image))
-              file (java.io.File. (.getLocation medium))
-              _ (logging/info "get gzip")
-              [input-stream f] (gzip-input-stream file)]
+              file (java.io.File. (.getLocation medium))]
+          (filesystem/with-temp-file [gzip-file]
+            (logging/infof "gzip to %s" (.getPath gzip-file))
+            (gzip file gzip-file)
+            (logging/infof "put gz %s" (.getPath gzip-file))
+            (try
+              (blobstore/put
+               blobstore container (or path (str (.getName file) ".gz"))
+               gzip-file)
+              (catch Exception e
+                (logging/error e "Upload failed"))))
           (logging/info "put meta")
           (blobstore/put
            blobstore container
            (string/replace (or path (.getName file)) #"\.vdi.*" ".meta")
-           (pr-str {image-kw (dissoc image :uuid)}))
-          (logging/infof "put gz %s" input-stream)
-          (try
-            (blobstore/put
-             blobstore container (or path (str (.getName file) ".gz"))
-             input-stream)
-            (catch Exception e
-              (logging/error e "Upload failed")))
-          (logging/info "deref")
-          @f))
+           (pr-str {image-kw (dissoc image :uuid)}))))
       (let [msg (format
                  "Could not find image %s. Known images are %s."
                  image-kw (keys @images))]
