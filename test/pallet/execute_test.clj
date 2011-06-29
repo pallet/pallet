@@ -4,6 +4,7 @@
         pallet.test-utils
         clojure.tools.logging)
   (:require
+   [clj-ssh.ssh :as ssh]
    [pallet.action-plan :as action-plan]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute.jvm :as jvm]
@@ -93,11 +94,45 @@
                      :user user
                      :environment {:algorithms core/default-algorithms}}
             result (#'core/apply-phase-to-node session)]
-        (#'execute/close-ssh-connection result)
         (is (= 3 (count result)))
         (is (= 1 (count (first result))))
         (is (= 0 (:exit (ffirst result))))
         (is (= :continue (last result)))))))
+
+(deftest with-ssh-tunnel-test
+  (let [user (assoc utils/*admin-user* :username (test-username) :no-sudo true)]
+    (binding [utils/*admin-user* user]
+      (possibly-add-identity
+       (default-agent) (:private-key-path user) (:passphrase user))
+      (let [node (test-utils/make-localhost-node)
+            session {:phase :configure
+                     :server {:node-id :localhost
+                              :node node
+                              :image {:os-family (compute/os-family node)}}
+                     :action-plan
+                     {:configure
+                      {:localhost (action-plan/add-action
+                                   nil
+                                   (action-plan/action-map
+                                    (fn w-s-t-t [session]
+                                      (execute/with-ssh-tunnel
+                                        session {22222 22
+                                                 22223 ["localhost" 22]}
+                                        session))
+                                    {} []
+                                    :in-sequence :fn/clojure :origin))}}
+                     :executor core/default-executors
+                     :middleware [core/translate-action-plan
+                                  ssh-user-credentials
+                                  execute-with-ssh]
+                     :user user
+                     :environment {:algorithms core/default-algorithms}}
+            result (#'core/apply-phase-to-node session)
+            [value session flag] result]
+        (is (and (map? (first value)) (not (:error (first value)))))
+        (is (= 3 (count result)))
+        (is (= 1 (count value)))
+        (is (= :continue flag))))))
 
 (deftest local-script-test
   (is (zero? (:exit (local-script "ls")))))

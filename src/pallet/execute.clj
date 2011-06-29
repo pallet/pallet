@@ -360,26 +360,32 @@
 
 (defmacro with-ssh-tunnel
   "Execute the body with an ssh-tunnel available for the ports given in the
-   tunnels map. tunnels should be a map from local ports (integers) to either
-     1) An integer remote port. Remote host is assumed to be 'localhost'.
+   tunnels map. Automatically closes port forwards on completion.
+
+   Tunnels should be a map from local ports (integers) to either
+     1) An integer remote port. Remote host is assumed to be \"localhost\".
      2) A vector of remote host and remote port. eg, [\"yahoo.com\" 80].
-   Automatically closes port forwards on completion."
+
+   e.g.
+        (with-ssh-tunnel session {2222 22}
+           ;; do something on local port 2222
+           session)"
   [session tunnels & body]
-  `(let [~session (#'pallet.execute/ensure-ssh-connection ~session)
-         ssh-session# (-> ~session :ssh :ssh-session)]
-     ;; Set up the port forwards
-     (doseq [tunnel# ~tunnels]
-       (let [lport# (first tunnel#)
-             [rhost# rport#] (if (vector? (second tunnel#))
-                               (second tunnel#)
-                               ["localhost" (second tunnel#)])]
-         (.setPortForwardingL ssh-session# lport# rhost# rport#)))
-     (let [body-val# ~@body] ;; Need to hold on to value of body, to return it.
-       ;; Close down the port forwards.
-       (doseq [tunnel# ~tunnels]
-         (let [lport# (first tunnel#)]
-           (.delPortForwardingL ssh-session# lport#)))
-       body-val#)))
+  `(let [~session (#'ensure-ssh-connection ~session)
+         ssh-session# (-> ~session :ssh :ssh-session)
+         tunnels# ~tunnels
+         unforward# (fn []
+                      (doseq [[lport# _#] tunnels#]
+                        (.delPortForwardingL ssh-session# lport#)))]
+     (try
+       ;; Set up the port forwards
+       (doseq [[lport# rspec#] tunnels#
+               :let [[rhost# rport#] (if (sequential? rspec#)
+                                       rspec#
+                                       ["localhost" rspec#])]]
+         (.setPortForwardingL ssh-session# lport# rhost# rport#))
+       ~@body
+       (finally (unforward#)))))
 
 ;;; executor functions
 
