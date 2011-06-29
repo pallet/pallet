@@ -40,10 +40,11 @@
    [pallet.execute :as execute]
    [pallet.futures :as futures]
    [pallet.script :as script]
+   [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]
-   [clojure.contrib.logging :as logging]))
+   [clojure.tools.logging :as logging]))
 
 (defn supported-providers []
   ["virtualbox"])
@@ -58,6 +59,8 @@
 (def group-name-tag "/pallet/group-name")
 (def os-family-tag "/pallet/os-family")
 (def os-version-tag "/pallet/os-version")
+
+(def *vm-session-type* "headless") ; gui, headless or sdl
 
 (def os-family-from-name
   (zipmap (vals os-family-name) (keys os-family-name)))
@@ -125,15 +128,13 @@
          (try
            (let [ip (try (manager/get-ip machine)
                          (catch org.virtualbox_4_0.VBoxException e
-                           (logging/warn
-                            (format
-                             "wait-for-ip: Machine %s not started yet..."
-                             machine)))
+                           (logging/warnf
+                            "wait-for-ip: Machine %s not started yet..."
+                            machine))
                          (catch clojure.contrib.condition.Condition e
-                           (logging/warn
-                            (format
-                             "wait-for-ip: Machine %s is not accessible yet..."
-                             machine))))]
+                           (logging/warnf
+                            "wait-for-ip: Machine %s is not accessible yet..."
+                            machine)))]
              (if (and (string/blank? ip) (< (current-time-millis) timeout))
                (do
                  (Thread/sleep 2000)
@@ -167,7 +168,9 @@
   (let [nodes (manager/machines compute-service)]
     (map node-data nodes)))
 
-(def *vm-session-type* "headless")
+(defn add-sata-controller [m]
+  {:pre [(model/IMachine? m)]}
+  (machine/add-storage-controller m "SATA Controller" :sata))
 
 (defn basic-config [m {:keys [memory-size cpu-count] :as parameters}]
   (let [parameters (merge {:memory-size 512 :cpu-count 1} parameters)]
@@ -201,7 +204,7 @@
   [compute node-path node-spec machine-name images image-id machine-models
    group-name init-script user]
   {:pre [image-id]}
-  (logging/trace (format "Creating node from image-id: %s" image-id))
+  (logging/tracef"Creating node from image-id: %s" image-id)
   (let [machine (binding [manager/*images* images
                           manager/*machine-models* machine-models]
                   (manager/instance
@@ -211,7 +214,11 @@
     (manager/set-extra-data machine os-family-tag (name (:os-family image)))
     (manager/set-extra-data machine os-version-tag (:os-version image))
     ;; (manager/add-startup-command machine 1 init-script )
-    (manager/start machine :session-type *vm-session-type*)
+    (manager/start
+     machine
+     :session-type (or
+                    (:session-type node-spec)
+                    *vm-session-type*))
     (logging/trace "Wait to allow boot")
     (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
@@ -220,19 +227,20 @@
        :type :no-ip-available
        :message "Could not determine IP address of new node"))
     (Thread/sleep 4000)
-    (logging/trace (format "Bootstrapping %s" (manager/get-ip machine)))
+    (logging/tracef "Bootstrapping %s" (manager/get-ip machine))
     (script/with-script-context
       (action-plan/script-template-for-server {:image image})
-      (execute/remote-sudo
-       (manager/get-ip machine)
-       init-script
-       (if (:username image)
-         (pallet.utils/make-user
-          (:username image)
-          :password (:password image)
-          :no-sudo (:no-sudo image)
-          :sudo-password (:sudo-password image))
-         user)))
+      (stevedore/with-script-language :pallet.stevedore.bash/bash
+        (let [user (if (:username image)
+                     (pallet.utils/make-user
+                      (:username image)
+                      :password (:password image)
+                      :no-sudo (:no-sudo image)
+                      :sudo-password (:sudo-password image))
+                     user)]
+          (execute/remote-sudo
+           (manager/get-ip machine) init-script user
+           {:pty (not (#{:arch :fedora} (:os-family image)))}))))
     machine))
 
 (defn- equality-match
@@ -362,10 +370,10 @@
   (shutdown-node
    [compute node _]
    ;; todo: wait for completion
-   (logging/info (format "Shutting down %s" (pr-str node)))
+   (logging/infof "Shutting down %s" (pr-str node))
    (manager/power-down node)
    (if-let [state (manager/wait-for-machine-state node [:powered-off] 300000)]
-     (logging/info (format "Machine state is %s" state))
+     (logging/infof "Machine state is %s" state)
      (logging/warn "Failed to wait for power down completion"))
    (manager/wait-for-lockable-session-state node 2000))
 
@@ -376,13 +384,14 @@
 
   (destroy-nodes-in-group
     [compute group-name]
-    (doseq [machine
-            (filter
-             #(and
-               (compute/running? %)
-               (= group-name (manager/get-extra-data % group-name-tag)))
-             (manager/machines server))]
-      (compute/destroy-node compute machine)))
+    (let [nodes (locking compute ;; avoid disappearing machines
+                  (filter
+                   #(and
+                     (compute/running? %)
+                     (= group-name (manager/get-extra-data % group-name-tag)))
+                   (manager/machines server)))]
+      (doseq [machine nodes]
+        (compute/destroy-node compute machine))))
 
   (destroy-node
    [compute node]
@@ -416,6 +425,6 @@
    writer
    (format
     "%14s\t %14s\t public: %s"
-    (compute/hostname node)
-    (compute/group-name node)
-    (compute/primary-ip node))))
+    (try (compute/hostname node) (catch Throwable e "unknown"))
+    (try (compute/group-name node) (catch Throwable e "unknown"))
+    (try (compute/primary-ip node) (catch Throwable e "unknown")))))

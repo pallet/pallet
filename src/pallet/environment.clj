@@ -22,7 +22,8 @@
    [pallet.common.deprecate :as deprecate]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
-   [clojure.contrib.logging :as logging]
+   [clojure.tools.logging :as logging]
+   [clojure.contrib.map-utils :as map-utils]
    [clojure.walk :as walk])
   (:use
    [clojure.contrib.core :only [-?>]]))
@@ -42,14 +43,21 @@
    :blobstore :replace
    :count :merge
    :algorithms :merge
+   :executor :merge
    :middleware :replace
    :groups :merge-environments
    :tags :merge-environments})
 
+
+(def ^{:doc "node specific environment keys"}
+  node-keys [:image :phases])
+
+(def standard-pallet-keys (keys merge-key-algorithm))
+
 (defmulti merge-key
   "Merge function that dispatches on the map entry key"
   (fn [key val-in-result val-in-latter]
-    (merge-key-algorithm key :replace)))
+    (merge-key-algorithm key :deep-merge)))
 
 (defn merge-environments
   "Returns a map that consists of the rest of the maps conj-ed onto
@@ -74,6 +82,16 @@
 (defmethod merge-key :merge
   [key val-in-result val-in-latter]
   (merge val-in-result val-in-latter))
+
+(defmethod merge-key :deep-merge
+  [key val-in-result val-in-latter]
+  (let [map-or-nil? (fn [x] (or (nil? x) (map? x)))]
+    (map-utils/deep-merge-with
+     (fn deep-merge-env-fn [x y]
+       (if (and (map-or-nil? x) (map-or-nil? y))
+         (merge x y)
+         (or y x)))
+     val-in-result val-in-latter)))
 
 (defmethod merge-key :merge-comp
   [key val-in-result val-in-latter]
@@ -119,19 +137,27 @@
   "Evaluate an environment literal.  This is used to replace certain keys with
    objects constructed from the map of values provided.  The keys that are
    evaluated are:
-   - :user"
+   - :user
+   - :phases
+   - :algorithms"
   [env-map]
   (let [env-map (if-let [user (:user env-map)]
-                  (assoc
-                      env-map :user
-                      (apply utils/make-user
-                             (:username user) (mapcat identity user)))
+                  (if-let [username (:username user)]
+                    (assoc
+                        env-map :user
+                        (apply
+                         utils/make-user username (mapcat identity user)))
+                    env-map)
                   env-map)
         env-map (if-let [phases (:phases env-map)]
-                  (assoc env-map :phases (eval-phases phases))
+                  (if (every? fn? (vals phases))
+                    env-map
+                    (assoc env-map :phases (eval-phases phases)))
                   env-map)
         env-map (if-let [algorithms (:algorithms env-map)]
-                  (assoc env-map :algorithms (eval-algorithms algorithms))
+                  (if (every? fn? (vals algorithms))
+                    env-map
+                    (assoc env-map :algorithms (eval-algorithms algorithms)))
                   env-map)]
     env-map))
 
@@ -155,9 +181,6 @@
   ([session keys default]
        (get-in (:environment session) keys default)))
 
-(def ^{:doc "node specific environment keys"}
-  node-keys [:image :phases])
-
 (defn session-with-environment
   "Returns an updated `session` map, containing the keys for the specified
    `environment` map.
@@ -174,8 +197,12 @@
           "Please change to use :groups.")))
   (let [session (merge
                  session
-                 (utils/dissoc-keys
-                  environment (conj node-keys :groups :tags)))
+                 (->
+                  environment
+                  (select-keys standard-pallet-keys)
+                  (utils/dissoc-keys (conj node-keys :groups :tags))))
+        session (assoc-in session [:environment]
+                          (utils/dissoc-keys environment node-keys))
         session (if (:server session)
                   (let [tag (-> session :server :group-name)]
                     (assoc session

@@ -22,7 +22,7 @@
 (defn purge-compute-service
   "Remove all nodes from the current compute service"
   []
-  (doseq [node (org.jclouds.compute/nodes)]
+  (doseq [node (org.jclouds.compute/nodes *compute*)]
     (pallet.compute/destroy-node *compute* node)))
 
 (defn clean-compute-service-fixture

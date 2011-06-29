@@ -7,6 +7,13 @@
   (is (= :yum (packager {:os-family :centos})))
   (is (= :portage (packager {:os-family :gentoo}))))
 
+(deftest base-distribution-test
+  (is (= :debian (base-distribution {:os-family :ubuntu})))
+  (is (= :rh (base-distribution {:os-family :centos})))
+  (is (= :gentoo (base-distribution {:os-family :gentoo})))
+  (is (= :arch (base-distribution {:os-family :arch})))
+  (is (= :suse (base-distribution {:os-family :suse}))))
+
 ;;; define service in pallet.config
 (ns pallet.config)
 (def service :service)

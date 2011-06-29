@@ -2,7 +2,7 @@
   "Adjust node counts."
   (:require
    [pallet.core :as core]
-   [clojure.contrib.logging :as logging]))
+   [clojure.tools.logging :as logging]))
 
 (defn describe-node
   "Display the node definition for the given node-types."

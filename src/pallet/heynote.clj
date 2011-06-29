@@ -1,7 +1,7 @@
 (ns pallet.heynote
   "Heynote feedback client"
   (:require
-   [clojure.contrib.logging :as logging]
+   [clojure.tools.logging :as logging]
    [clojure.contrib.http.agent :as agent]
    [clojure.contrib.http.connection :as connection]
    [clojure.contrib.json :as json]))

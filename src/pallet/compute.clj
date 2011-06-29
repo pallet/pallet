@@ -220,6 +220,11 @@
              (keyword (tag %2))
              (inc (get %1 (keyword (tag %2)) 0))) {} nodes))
 
+(defn node?
+  "Predicate to test whether an object implements the Node protocol"
+  [obj]
+  (instance? pallet.compute.Node obj))
+
 ;;; target mapping
 (defn packager
   "Package manager"
@@ -238,6 +243,25 @@
              :type :unknown-packager
              :message (format
                        "Unknown packager for %s - :image %s"
+                       os-family target))))))
+
+(defn base-distribution
+  "Base distribution for the target."
+  [target]
+  (or
+   (:base-distribution target)
+   (let [os-family (:os-family target)]
+     (cond
+      (#{:ubuntu :debian :jeos} os-family) :debian
+      (#{:centos :rhel :amzn-linux :fedora} os-family) :rh
+      (#{:arch} os-family) :arch
+      (#{:suse} os-family) :suse
+      (#{:gentoo} os-family) :gentoo
+      (#{:darwin :os-x} os-family) :os-x
+      :else (condition/raise
+             :type :unknown-packager
+             :message (format
+                       "Unknown base-distribution for %s - target is %s"
                        os-family target))))))
 
 (defn admin-group

@@ -9,7 +9,7 @@
    [pallet.target :as target]
    [pallet.utils :as utils]
    [clojure.string :as string]
-   [clojure.contrib.logging :as logging]))
+   [clojure.tools.logging :as logging]))
 
 (defn get-resource
   "Loads a resource. Returns a URI."

@@ -21,7 +21,7 @@ for the "mygroup" group.
   (defn scale-cluster [n]
     (pallet.core/converge
       (pallet.core/group-spec "mygroup" :count n)
-      :compute (pallet.core/service))
+      :compute (pallet.compute/service "aws")))
 #+END_SRC
 
 =converge= also accepts a :prefix keyword argument, which is applied to the
@@ -42,7 +42,7 @@ backends.
         web-app n
         database (inc (/ n 2))}
        :prefix prefix
-       :compute (pallet.core/service)))
+       :compute (pallet.compute/service "aws")))
 #+END_SRC
 
 * Lift

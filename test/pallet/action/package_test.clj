@@ -9,7 +9,7 @@
    [pallet.action.package :as package]
    [pallet.action.remote-file :as remote-file]
    [pallet.build-actions :as build-actions]
-   [pallet.common.logging.log4j :as log4j]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.core :as core]
    [pallet.execute :as execute]
    [pallet.script :as script]
@@ -19,8 +19,14 @@
    [pallet.test-utils :as test-utils]
    [clojure.contrib.io :as io]))
 
-(use-fixtures :each test-utils/with-ubuntu-script-template)
-(use-fixtures :once (log4j/logging-threshold-fixture))
+(use-fixtures
+ :each
+ test-utils/with-ubuntu-script-template
+ test-utils/with-bash-script-language)
+
+(use-fixtures
+ :once
+ (logutils/logging-threshold-fixture))
 
 (def remote-file* (action/action-fn remote-file/remote-file-action))
 (def sed* (action/action-fn file/sed))
@@ -105,7 +111,11 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
       (is (= {:exit 0, :out "", :err ""}
              (execute/sh-script
               (add-scope* "deb" "multiverse" (.getPath tmp)))))
-      (is (= "deb http://archive.ubuntu.com/ubuntu/ karmic main restricted  multiverse \ndeb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted  multiverse \n"
+      (is
+       (=
+        (str "deb http://archive.ubuntu.com/ubuntu/ karmic main restricted  "
+             "multiverse \ndeb-src http://archive.ubuntu.com/ubuntu/ karmic "
+             "main restricted  multiverse \n")
              (slurp (.getPath tmp))))
       (.delete tmp))))
 
@@ -222,8 +232,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   (package-manager :update))))))
 
 (deftest package-source*-test
-  (let [a (assoc (core/make-node "a" {}) :packager :aptitude)
-        b (assoc (core/make-node "b" {}) :packager :yum)]
+  (let [a (core/group-spec "a" :packager :aptitude)
+        b (core/group-spec "b" :packager :yum)]
     (is (=
          (stevedore/checked-commands
           "Package source"
@@ -283,8 +293,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             :yum {:url "http://somewhere/yum"})))))
 
 (deftest package-source-test
-  (let [a (assoc (core/make-node "a" {}) :packager :aptitude)
-        b (assoc (core/make-node "b" {}) :packager :yum)]
+  (let [a (core/group-spec "a" :packager :aptitude)
+        b (core/group-spec "b" :packager :yum)]
     (is (= (stevedore/checked-commands
             "Package source"
             (remote-file*
@@ -314,8 +324,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                     :yum {:url "http://somewhere/yum"})))))))
 
 (deftest packages-test
-  (let [a (assoc (core/make-node "a" {}) :packager :aptitude)
-        b (assoc (core/make-node "b" {}) :packager :yum)]
+  (let [a (core/group-spec "a" :packager :aptitude)
+        b (core/group-spec "b" :packager :yum)]
     (is (= (first
             (build-actions/build-actions
              {:server a}
@@ -390,7 +400,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                {:package "p3" :action :upgrade}
                {:package "p4" :action :remove :purge true}])))))
   (testing "aptitude with enable"
-    (script/with-template [:aptitude]
+    (script/with-script-context [:aptitude]
       (is (= (stevedore/checked-script
               "Packages"
               (~lib/package-manager-non-interactive)
@@ -446,8 +456,9 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
          (remote-file/remote-file "jpackage-utils-compat" :url "http:url")
          (exec-script/exec-checked-script
           "Install rpm jpackage-utils-compat"
-          (if-not (rpm -q @(rpm -pq "jpackage-utils-compat"))
-            (rpm -U --quiet "jpackage-utils-compat")))))
+          (if-not (rpm -q @(rpm -pq "jpackage-utils-compat")
+                       > "/dev/null" "2>&1")
+            (do (rpm -U --quiet "jpackage-utils-compat"))))))
        (first
         (build-actions/build-actions
          {:server {:packager :yum}}

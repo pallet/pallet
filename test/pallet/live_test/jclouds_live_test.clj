@@ -3,15 +3,16 @@
   (:require
    [pallet.live-test :as live-test]
    [pallet.core :as core]
-   [pallet.common.logging.log4j :as log4j]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]))
 
-(use-fixtures :once (log4j/logging-threshold-fixture))
+(use-fixtures :once (logutils/logging-threshold-fixture))
 
 (deftest node-types-test
   (is (= {:repo {:group-name :repo :base-group-name :repo
                  :image {:os-family :ubuntu}
-                 :count 1 :phases {}}}
+                 :count 1 :phases {}
+                 :session-type nil}}
          (live-test/node-types
           {:repo {:image {:os-family :ubuntu}
                   :count 1
@@ -19,11 +20,12 @@
 
 (deftest counts-test
   (let [specs {:repo {:image {:os-family :ubuntu}
-                  :count 1
-                  :phases {}}}]
+                      :count 1
+                      :phases {}}}]
     (is (= {{:group-name :repo :base-group-name :repo
              :image {:os-family :ubuntu}
-             :count 1 :phases {}} 1}
+             :count 1 :phases {}
+             :session-type nil} 1}
            (#'live-test/counts specs)))))
 
 (deftest build-nodes-test

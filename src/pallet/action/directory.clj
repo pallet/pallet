@@ -22,11 +22,11 @@
         (~lib/chgrp ~group ~path :recursive ~recursive)))
      (when mode
        (stevedore/script
-        (~lib/chmod ~mode ~path :recursive ~recursive)))])))
+        (~lib/chmod ~mode ~path)))])))
 
 (defn make-directory
   "Script to create a directory."
-  [dir-path & {:keys [path verbose mode] :as opts}]
+  [dir-path & {:keys [path verbose mode recursive] :as opts}]
   (stevedore/checked-commands
    (str "Directory " dir-path)
    (stevedore/script
@@ -58,11 +58,11 @@
     :create (make-directory
              dir-path
              :path path :mode mode :verbose verbose
-             :owner owner :group group)
+             :owner owner :group group :recursive recursive)
     :touch (make-directory
             dir-path
             :path path :mode mode :verbose verbose
-            :owner owner :group group)))
+            :owner owner :group group :recursive recursive)))
 
 (action/def-bash-action directories
   "Directory management of multiple directories with the same

@@ -102,7 +102,7 @@ can specify a different profile by passing the profile's id to the function.
 
 #+BEGIN_SRC clojure  :session s1
   (require 'pallet.compute)
-  (def service (pallet.compute/service "terremark"))
+  (def service (pallet.compute/service "aws"))
 #+END_SRC
 
 You will need the following maven-settings dependency in your project for this

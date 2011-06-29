@@ -8,7 +8,7 @@
   (testing "single argument"
     (is (= {:a 1} (environment/merge-environments {:a 1}))))
   (testing "defalut algorithm"
-    (is (= {:a {:b 1}}
+    (is (= {:a {:b 1 :c 2}}
            (environment/merge-environments {:a {:c 2}} {:a {:b 1}}))))
   (testing "merge algorithm"
     (is (= {:user {:username "u" :password "p"}}
@@ -61,19 +61,27 @@
 
 (deftest session-with-environment-test
   (testing "basic merge"
-    (is (= {:user {:username :b}}
+    (is (= {:user {:username :b} :environment {:user {:username :b}}}
            (environment/session-with-environment
              {:user {:username :a}} {:user {:username :b}}))))
   (testing "node-type merge"
-    (is (= {:user {:username :b} :server {:group-name :t :image :i}}
+    (is (= {:user {:username :b}
+            :server {:group-name :t :image :i}
+            :environment {:user {:username :b} :groups {:t {:image :i}}}}
            (environment/session-with-environment
              {:user {:username :a} :server {:group-name :t}}
              {:user {:username :b} :groups {:t {:image :i}}}))))
   (testing "phases merge"
     (is (= {:user {:username :b}
-            :server {:group-name :t :image :i :phases {:bootstrap identity}}}
+            :server {:group-name :t :image :i :phases {:bootstrap identity}}
+            :environment {:user {:username :b}
+                          :groups {:t {:image :i}}}}
            (environment/session-with-environment
              {:user {:username :a} :server {:group-name :t}}
              {:user {:username :b}
               :groups {:t {:image :i}}
-              :phases {:bootstrap identity}})))))
+              :phases {:bootstrap identity}}))))
+  (testing "user data merge"
+    (is (= {:environment {:a {:a :b}}}
+           (environment/session-with-environment
+             {} {:a {:a :b}})))))

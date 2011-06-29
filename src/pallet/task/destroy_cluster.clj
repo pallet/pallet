@@ -1,5 +1,5 @@
-(ns pallet.task.lift
-  "Apply configuration."
+(ns pallet.task.destroy-cluster
+  "Destroy nodes for a cluster."
   (:require
    [pallet.core :as core]
    [clojure.tools.logging :as logging]))
@@ -16,21 +16,17 @@
                                                         (name a)
                                                         m
                                                         phases)
-       (not (keyword? a)) (recur
-                           (next args)
-                           prefix
-                           (conj (or m []) a)
-                           phases)
+       (not (keyword? a)) (recur (next args) prefix a phases)
        :else (recur (next args) prefix m (conj phases a)))
-      (concat (if prefix [prefix] []) [(set m)] [:phase phases]))))
+      (concat [m] (if prefix [:prefix prefix] []) [:phase phases]))))
 
-(defn lift
-  "Apply configuration.
-     eg. pallet lift mynodes/my-node
-   The node-types should be namespace qualified."
+(defn destroy-cluster
+  "Adjust node counts of a cluster.  Requires the name of the cluster.
+     eg. pallet converge-cluster org.mynodes/my-cluster
+   The cluster name should be namespace qualified."
   [request & args]
   (let [args (build-args args)]
-    (apply core/lift
+    (apply core/destroy-cluster
            (concat args
                    (apply concat
                           (->

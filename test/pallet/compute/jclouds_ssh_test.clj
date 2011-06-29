@@ -1,6 +1,6 @@
 (ns pallet.compute.jclouds-ssh-test
   (:require
-   [clojure.contrib.logging :as logging])
+   [clojure.tools.logging :as logging])
   (:import
    org.jclouds.domain.Credentials
    org.jclouds.compute.domain.ExecResponse

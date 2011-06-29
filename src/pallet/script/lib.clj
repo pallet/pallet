@@ -3,6 +3,7 @@
   (:require
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
+   [pallet.thread-expr :as thread-expr]
    [clojure.string :as string]))
 
 (script/defscript exit [value])
@@ -18,6 +19,17 @@
 (script/defimpl which :default
   [arg]
   (which ~arg))
+
+(script/defscript has-command?
+  "Check whether the specified command is on the path"
+  [arg])
+(script/defimpl has-command? :default [arg] (hash ~arg "2>&-"))
+
+(script/defscript canonical-path [path]
+  "Return the canonical version of the specified path"
+  [arg])
+(script/defimpl canonical-path :default [arg] (readlink -f ~arg))
+
 
 (script/defscript rm [file & {:keys [recursive force]}])
 (script/defimpl rm :default [file & {:keys [recursive force] :as options}]
@@ -73,6 +85,11 @@
   [path]
   (basename ~path))
 
+(script/defscript dirname [path])
+(script/defimpl dirname :default
+  [path]
+  (dirname ~path))
+
 (script/defscript ls [pattern & {:keys [sort-by-time sort-by-size reverse]}])
 (script/defimpl ls :default
   [pattern & {:keys [sort-by-time sort-by-size reverse]}]
@@ -126,23 +143,31 @@
 (script/defimpl md5sum [#{:darwin :os-x}] [file & {:as options}]
   ("/sbin/md5" -r ~file))
 
+(script/defscript normalise-md5
+  "Normalise an md5 sum file to contain the base filename"
+  [file])
+(script/defimpl normalise-md5 :default
+  [file]
+  (if (egrep "'^[a-fA-F0-9]+$'" ~file)
+    (echo
+     (quoted (str "  " @(pipe (basename ~file) (sed -e "s/.md5//"))))
+     ">>" ~file)))
+
 (script/defscript md5sum-verify [file & {:as options}])
 (script/defimpl md5sum-verify :default
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
-  (chain-and
-   (cd @(dirname ~file))
-   (md5sum
-    ~(stevedore/map-to-arg-string {:quiet quiet :check check})
-    @(basename ~file))
-   (cd -)))
-(script/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel}]
+  ("(" (chain-and
+        (cd @(dirname ~file))
+        (md5sum
+         ~(stevedore/map-to-arg-string {:quiet quiet :check check})
+         @(basename ~file))) ")"))
+(script/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel :fedora}]
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
-  (chain-and
-   (cd @(dirname ~file))
-   (md5sum
-    ~(stevedore/map-to-arg-string {:status quiet :check check})
-    @(basename ~file))
-   (cd -)))
+  ("(" (chain-and
+        (cd @(dirname ~file))
+        (md5sum
+         ~(stevedore/map-to-arg-string {:status quiet :check check})
+         @(basename ~file))) ")"))
 (script/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
   (chain-and
    (var testfile @(~cut ~file :delimiter " " :fields 2))
@@ -162,7 +187,9 @@
   (concat [\/ \_ \| \: \% \! \@] (map char (range 42 127))))
 
 (script/defimpl sed-file :default
-  [file expr-map {:keys [seperator restriction] :as options}]
+  [file expr-map {:keys [seperator restriction quote-with]
+                  :or {quote-with "\""}
+                  :as options}]
   (sed "-i"
    ~(if (map? expr-map)
       (string/join
@@ -174,17 +201,22 @@
                            (>= (.indexOf value (int c)) 0)))
                 seperator (or seperator (first (remove used sed-separators)))]
             (format
-             "-e \"%ss%s%s%s%s%s\""
+             "-e %s%ss%s%s%s%s%s%s"
+             quote-with
              (if restriction (str restriction " ") "")
-             seperator key seperator value seperator)))
+             seperator key seperator value seperator quote-with)))
         expr-map))
-      (format "-e \"%s%s\"" (when restriction (str restriction " ")) expr-map))
+      (format
+       "-e %s%s%s%s"
+       quote-with
+       (if restriction (str restriction " ") "")
+       expr-map quote-with))
    ~file))
 
 (script/defscript download-file [url path & {:keys [proxy]}])
 
 (script/defimpl download-file :default [url path & {:keys [proxy]}]
-  (if ("test" @(~which curl))
+  (if (~has-command? curl)
     (curl "-o" (quoted ~path)
      --retry 5 --silent --show-error --fail --location
      ~(if proxy
@@ -192,7 +224,7 @@
           (format "--proxy %s:%s" (.getHost url) (.getPort url)))
         "")
      (quoted ~url))
-    (if ("test" @(~which wget))
+    (if (~has-command? wget)
       (wget "-O" (quoted ~path) --tries 5 --no-verbose
        ~(if proxy
           (format "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\"" proxy proxy)
@@ -317,18 +349,58 @@
   (getent passwd ~username))
 
 (script/defimpl create-user :default [username options]
-  ("/usr/sbin/useradd" ~(stevedore/map-to-arg-string options) ~username))
+  ("/usr/sbin/useradd"
+   ~(-> options
+        (thread-expr/when->
+         (:groups options)
+         (update-in [:groups] (fn [groups]
+                                (if (and (seq? groups) (not (string? groups)))
+                                  (string/join "," groups)))))
+        (thread-expr/when->
+         (:group options)
+         (assoc :g (:group options))
+         (dissoc :group))
+        stevedore/map-to-arg-string)
+   ~username))
 
-(script/defimpl create-user [#{:rhel :centos :amzn-linux}] [username options]
+(script/defimpl create-user [#{:rhel :centos :amzn-linux :fedora}]
+  [username options]
   ("/usr/sbin/useradd"
    ~(-> options
         (assoc :r (:system options))
         (dissoc :system)
+        (thread-expr/when->
+         (:groups options)
+         (update-in [:groups] (fn [groups]
+                                (if (and (seq? groups) (not (string? groups)))
+                                  (string/join "," groups)))))
+        (thread-expr/when->
+         (:group options)
+         (assoc :g (:group options))
+         (dissoc :group))
         stevedore/map-to-arg-string)
    ~username))
 
 (script/defimpl modify-user :default [username options]
   ("/usr/sbin/usermod" ~(stevedore/map-to-arg-string options) ~username))
+
+(script/defimpl modify-user [#{:rhel :centos :amzn-linux :fedora}]
+  [username options]
+  ("/usr/sbin/usermod"
+   ~(-> options
+        (assoc :r (:system options))
+        (dissoc :system)
+        (thread-expr/when->
+         (:groups options)
+         (update-in [:groups] (fn [groups]
+                                (if (and (seq? groups) (not (string? groups)))
+                                  (string/join "," groups)))))
+        (thread-expr/when->
+         (:group options)
+         (assoc :g (:group options))
+         (dissoc :group))
+        stevedore/map-to-arg-string)
+   ~username))
 
 (script/defimpl remove-user :default [username options]
   ("/usr/sbin/userdel" ~(stevedore/map-to-arg-string options) ~username))
@@ -342,7 +414,7 @@
 (script/defimpl user-home :default [username]
   @("getent" passwd ~username | "cut" "-d:" "-f6"))
 
-(script/defimpl user-home [:os-x] [username]
+(script/defimpl user-home [#{:darwin :os-x}] [username]
   @(pipe
     ("dscl" localhost -read ~(str "/Local/Default/Users/" username)
           "dsAttrTypeNative:home")
@@ -357,7 +429,7 @@
 (script/defimpl create-group :default [groupname options]
   ("/usr/sbin/groupadd" ~(stevedore/map-to-arg-string options) ~groupname))
 
-(script/defimpl create-group [#{:rhel :centos :amzn-linux}]
+(script/defimpl create-group [#{:rhel :centos :amzn-linux :fedora}]
   [groupname options]
   ("/usr/sbin/groupadd"
    ~(-> options
@@ -460,8 +532,8 @@
   (yum makecache -q ~(string/join
                       " "
                       (concat
-                       (map #(str "--enablerepo=" %) enable)
-                       (map #(str "--disablerepo=" %) disable)))))
+                       (map #(str "--disablerepo=" %) disable)
+                       (map #(str "--enablerepo=" %) enable)))))
 
 (script/defimpl upgrade-all-packages [#{:yum}] [& options]
   (yum update -y -q ~(stevedore/option-args options)))
@@ -648,27 +720,27 @@
   "/etc/hosts")
 
 (script/defscript etc-init [])
-(script/defimpl etc-init :default []
-  "/etc/init.d")
+(script/defimpl etc-init :default [] "/etc/init.d")
+(script/defimpl etc-init [:pacman] [] "/etc/rc.d")
 
 ;; Some of the packagers, like brew, are "add-ons" in the sense that they are
 ;; outside of the base system.  These paths refer to locations of packager
 ;; installed files.
 
 (script/defscript pkg-etc-default [])
-(script/defimpl pkg-etc-default :default [] (etc-default))
+(script/defimpl pkg-etc-default :default [] (~etc-default))
 (script/defimpl etc-default [:brew] [] "/usr/local/etc/default")
 
 (script/defscript pkg-log-root [])
-(script/defimpl pkg-log-root :default [] (log-root))
+(script/defimpl pkg-log-root :default [] (~log-root))
 (script/defimpl pkg-log-root [:brew] [] "/usr/local/var/log")
 
 (script/defscript pkg-pid-root [])
-(script/defimpl pkg-pid-root :default [] (pid-root))
+(script/defimpl pkg-pid-root :default [] (~pid-root))
 (script/defimpl pkg-pid-root [:brew] [] "/usr/local/var/run")
 
 (script/defscript pkg-config-root [])
-(script/defimpl pkg-config-root :default [] (config-root))
+(script/defimpl pkg-config-root :default [] (~config-root))
 (script/defimpl pkg-config-root [:brew] [] "/usr/local/etc")
 
 (script/defscript pkg-sbin [])
@@ -689,3 +761,14 @@
 (script/defscript flag? [path])
 (script/defimpl flag? :default [path]
   (get flags_hash ~(name path)))
+
+;;; selinux
+
+(script/defscript selinux-file-type
+  "Set the selinux file type"
+  [path type])
+
+(script/defimpl selinux-file-type :default
+  [path type]
+  (if (&& (~has-command? chcon) (directory? "/etc/selinux"))
+    (chcon -Rv ~(str "--type=" type) ~path)))

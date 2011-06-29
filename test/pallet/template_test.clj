@@ -4,12 +4,16 @@
    [pallet.core :as core]
    [pallet.utils :as utils]
    [pallet.strint :as strint]
-   [pallet.target :as target])
+   [pallet.target :as target]
+   [pallet.test-utils :as test-utils])
   (:use
    clojure.test
    pallet.test-utils))
 
-(use-fixtures :once with-ubuntu-script-template)
+(use-fixtures
+ :once
+ with-ubuntu-script-template
+ test-utils/with-bash-script-language)
 
 (deftest path-components-test
   (is (= ["a/b/c" "d" "e"] (path-components "a/b/c/d.e")))

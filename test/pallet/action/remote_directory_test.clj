@@ -10,7 +10,10 @@
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]))
 
-(use-fixtures :once with-ubuntu-script-template)
+(use-fixtures
+ :once
+ with-ubuntu-script-template
+ with-bash-script-language)
 
 (def directory* (action/action-fn directory/directory))
 (def remote-file* (action/action-fn remote-file/remote-file-action))
@@ -18,12 +21,16 @@
 (deftest remote-directory-test
   (is (= (stevedore/checked-commands
           "remote-directory"
-          (directory* {} "/path" :owner "fred")
+          (directory* {} "/path" :owner "fred" :recursive false)
           (remote-file* {}
            "${TMPDIR-/tmp}/file.tgz" :url "http://site.com/a/file.tgz" :md5 nil)
-          (stevedore/script
-           ("cd" "/path")
-           ("tar" xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz")))
+          (stevedore/checked-script
+           "Untar ${TMPDIR-/tmp}/file.tgz"
+           (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
+           (cd "/path")
+           (tar xz "--strip-components=1" -f "${rdf}")
+           (cd -))
+          (directory* {} "/path" :owner "fred" :recursive true))
          (first (build-actions/build-actions
                  {}
                  (remote-directory
@@ -33,14 +40,16 @@
                   :owner "fred")))))
   (is (= (stevedore/checked-commands
           "remote-directory"
-          (directory* {} "/path" :owner "fred")
+          (directory* {} "/path" :owner "fred" :recursive false)
           (remote-file*
            {} "${TMPDIR-/tmp}/file.tgz"
            :url "http://site.com/a/file.tgz" :md5 nil)
-          (stevedore/script
-           ("cd" "/path")
-           ("tar" xz "--strip-components=1" -f "${TMPDIR-/tmp}/file.tgz"))
-          (directory* {} "/path" :owner "fred" :recursive true))
+          (stevedore/checked-script
+           "Untar ${TMPDIR-/tmp}/file.tgz"
+           (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
+           (cd "/path")
+           (tar xz "--strip-components=1" -f "${rdf}")
+           (cd -)))
          (first (build-actions/build-actions
                  {}
                  (remote-directory
@@ -48,4 +57,4 @@
                   :url "http://site.com/a/file.tgz"
                   :unpack :tar
                   :owner "fred"
-                  :recursive true))))))
+                  :recursive false))))))

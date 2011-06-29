@@ -2,7 +2,9 @@
   (:require
    [pallet.action :as action]
    [pallet.action-plan :as action-plan]
-   [pallet.action-plan-test :as action-plan-test])
+   [pallet.action-plan-test :as action-plan-test]
+   [pallet.core :as core]
+   [clojure.string :as string])
   (:use
    clojure.test))
 
@@ -107,13 +109,15 @@
                       nil]}}
                :phase :fred
                :target-id :id
-               :server {:node-id :id}}]
+               :server {:node-id :id}}
+              :continue]
                (action-plan/execute
                 (action-plan/translate (-> req :action-plan :fred :id))
                 req
                 (action-plan-test/executor
                  {:script/bash {:target action-plan-test/echo}
-                  :fn/clojure {:origin action-plan-test/null-result}}))))
+                  :fn/clojure {:origin action-plan-test/null-result}})
+                (:execute-status-fn core/default-algorithms))))
       (is @x))))
 
 (deftest as-clj-action-test
@@ -174,13 +178,15 @@
                       nil]}}
                :phase :fred
                :target-id :id
-               :server {:node-id :id}}]
+               :server {:node-id :id}}
+              :continue]
                (action-plan/execute
                 (action-plan/translate (-> req :action-plan :fred :id))
                 req
                 (action-plan-test/executor
                  {:script/bash {:target action-plan-test/echo}
-                  :fn/clojure {:origin action-plan-test/null-result}})))))))
+                  :fn/clojure {:origin action-plan-test/null-result}})
+                (:execute-status-fn core/default-algorithms)))))))
 
 
 (action/def-aggregated-action
@@ -188,20 +194,22 @@
   "Some doc"
   [session arg]
   {:arglists '([session arg1])
-   :some-meta :a}
-  arg)
+   :action-id :a}
+  (string/join (map first arg)))
 
 (deftest def-aggregated-action-test
   (is (= '([session arg1]) (:arglists (meta #'test-aggregated-action))))
-  (is (= :a (:some-meta (meta #'test-aggregated-action))))
+  (is (= :a (:action-id (meta #'test-aggregated-action))))
   (is (= "Some doc" (:doc (meta #'test-aggregated-action))))
-  (is (= :a (:some-meta (meta test-aggregated-action))))
+  (is (= :a (:action-id (meta test-aggregated-action))))
   (is (fn? (action/action-fn test-aggregated-action)))
-  (is (= "hello" ((action/action-fn test-aggregated-action) {:a 1} "hello")))
-  (is (= :a (:some-meta (meta (action/action-fn test-aggregated-action)))))
+  (is (= "hello"
+         ((action/action-fn test-aggregated-action) {:a 1} [["hello"]])))
+  (is (= :a (:action-id (meta (action/action-fn test-aggregated-action)))))
   (is (= {:action-plan
           {:fred
            {:id [[{:f (action/action-fn test-aggregated-action)
+                   :action-id :a
                    :args ["hello"]
                    :location :target
                    :action-type :script/bash
@@ -212,3 +220,31 @@
          (test-aggregated-action
           {:phase :fred :target-id :id :server {:node-id :id}}
           "hello"))))
+
+(defn echo
+  "Echo the result of an action. Do not execute."
+  [session f]
+  [(:value (f session)) session])
+
+(defn executor [m]
+  (fn [session f action-type location]
+    (let [exec-fn (get-in m [action-type location])]
+      (assert exec-fn)
+      (exec-fn session f))))
+
+(deftest with-precedence-test
+  (let [session (->
+                 {:phase :fred :target-id :id :server {:node-id :id}}
+                 (test-aggregated-action "hello")
+                 (action/with-precedence
+                   {:always-before #{`test-aggregated-action}}
+                   (test-bash-action "a")))]
+    (is (=
+         "a\nhello\n"
+         (ffirst
+          (action-plan/execute
+           (action-plan/translate
+            (get-in session (action-plan/target-path session)))
+           session
+           (executor {:script/bash {:target echo}})
+           (:execute-status-fn core/default-algorithms)))))))

@@ -2,7 +2,7 @@
   "Wrappers for enlive to enable template specialisation and use xml."
   (:use
    [pallet.template :only [find-template]]
-   clojure.contrib.logging)
+   clojure.tools.logging)
   (:require
    [net.cgrand.enlive-html :as enlive]))
 
