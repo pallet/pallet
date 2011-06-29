@@ -358,6 +358,29 @@
         [results (dissoc session :ssh) flag])
       [results session flag])))
 
+(defmacro with-ssh-tunnel
+  "Execute the body with an ssh-tunnel available for the ports given in the
+   tunnels map. tunnels should be a map from local ports (integers) to either
+     1) An integer remote port. Remote host is assumed to be 'localhost'.
+     2) A vector of remote host and remote port. eg, [\"yahoo.com\" 80].
+   Automatically closes port forwards on completion."
+  [session tunnels & body]
+  `(let [~session (#'pallet.execute/ensure-ssh-connection ~session)
+         ssh-session# (-> ~session :ssh :ssh-session)]
+     ;; Set up the port forwards
+     (doseq [tunnel# ~tunnels]
+       (let [lport# (first tunnel#)
+             [rhost# rport#] (if (vector? (second tunnel#))
+                               (second tunnel#)
+                               ["localhost" (second tunnel#)])]
+         (.setPortForwardingL ssh-session# lport# rhost# rport#)))
+     (let [body-val# ~@body] ;; Need to hold on to value of body, to return it.
+       ;; Close down the port forwards.
+       (doseq [tunnel# ~tunnels]
+         (let [lport# (first tunnel#)]
+           (.delPortForwardingL ssh-session# lport#)))
+       body-val#)))
+
 ;;; executor functions
 
 (defn bash-on-origin
