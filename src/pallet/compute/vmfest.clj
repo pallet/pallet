@@ -329,7 +329,9 @@
   (install-image [service url {:as options}]
     "Install the image from the specified `url`")
   (publish-image [service image blobstore container {:keys [path] :as options}]
-    "Publish the image to the specified blobstore container"))
+    "Publish the image to the specified blobstore container")
+  (has-image? [service image-key]
+    "Predicate to test for the presence of a specific image"))
 
 (deftype VmfestService
     [server images locations environment]
@@ -463,7 +465,9 @@
          {:type :pallet/unkown-image
           :image image-kw
           :known-images (keys @images)
-          :message msg})))))
+          :message msg}))))
+  (has-image? [_ image-kw]
+    ((or @images {}) image-kw)))
 
 (defn add-image [compute url & {:as options}]
   (install-image compute url options))
