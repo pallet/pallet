@@ -23,7 +23,7 @@
    authorisation of a key found with record-key."
   [session user public-key-string auth-file]
   (stevedore/checked-script
-   "authorize-key"
+   (format "authorize-key on user %s" user)
    (var auth_file ~auth-file)
    (if-not (fgrep (quoted ~(string/trim public-key-string)) @auth_file)
      (echo (quoted ~public-key-string) ">>" @auth_file))))
