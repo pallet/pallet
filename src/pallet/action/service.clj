@@ -9,6 +9,11 @@
    [pallet.stevedore :as stevedore]
    [clojure.string :as string]))
 
+(defn init-script-path
+  "Path to the specified init script"
+  [service-name]
+  (str (stevedore/script (~lib/etc-init)) "/" service-name))
+
 (action/def-bash-action service
   "Control services.
 
@@ -27,11 +32,13 @@
      (~lib/configure-service ~service-name ~action ~options))
     (if if-flag
       (stevedore/script
-       (if (== "1" (lib/flag? ~if-flag))
-         (~(str (stevedore/script (~lib/etc-init)) "/" service-name)
+       (println ~(name action) ~service-name "if config changed")
+       (if (== "1" (~lib/flag? ~if-flag))
+         (~(init-script-path service-name)
           ~(name action))))
       (stevedore/script
-       (~(str (stevedore/script (~lib/etc-init)) "/" service-name)
+       (println ~(name action) ~service-name)
+       (~(init-script-path service-name)
         ~(name action))))))
 
 (defmacro with-restart
@@ -45,13 +52,14 @@
 
 (defn init-script
   "Install an init script.  Sources as for remote-file."
-  [session name & {:keys [action url local-file remote-file link
-                          content literal template values md5 md5-url force]
-                   :or {action :create}
-                   :as options}]
+  [session service-name & {:keys [action url local-file remote-file link
+                                  content literal template values md5 md5-url
+                                  force]
+                           :or {action :create}
+                           :as options}]
   (apply
    remote-file/remote-file
    session
-   (str (stevedore/script (~lib/etc-init)) "/" name)
+   (init-script-path service-name)
    :action action :owner "root" :group "root" :mode "0755"
    (apply concat options)))
