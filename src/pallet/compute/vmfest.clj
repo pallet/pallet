@@ -435,7 +435,9 @@
   ImageManager
   (install-image
     [compute url {:as options}]
-    (when-let [job (image/setup-model url server)]
+    (logging/infof "installing image to %s" (:model-path locations))
+    (when-let [job (image/setup-model
+                    url server :models-dir (:model-path locations))]
       (swap! images merge (:meta job))))
   (publish-image [service image-kw blobstore container {:keys [path]}]
     (if-let [image (image-kw @images)]
