@@ -58,10 +58,20 @@
     (when provider
       (service provider :identity identity :credential credential))))
 
+(defn blobstore-from-config-file
+  "Create a blobstore service form a configuration map."
+  [& profiles]
+  (blobstore-from-config
+   (configure/pallet-config)
+   profiles))
+
 (defprotocol Blobstore
   (sign-blob-request
    [blobstore container path request-map]
    "Create a signed request")
+  (put
+   [blobstore container path payload]
+   "Upload a file, string, input stream, etc")
   (put-file
    [blobstore container path file]
    "Upload a file")
