@@ -12,7 +12,7 @@
   ([session]
      (log-session session "%s"))
   ([session format-string]
-     (logging/debugf format-string (pr-str session))
+     (logging/debug (format format-string (pr-str session)))
      session))
 
 (defn print-session
