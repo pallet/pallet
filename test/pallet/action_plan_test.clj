@@ -1,6 +1,7 @@
 (ns pallet.action-plan-test
   (:require
    [pallet.action-plan :as action-plan]
+   [pallet.argument :as argument]
    [pallet.core :as core])
   (:use
    clojure.test))
@@ -477,6 +478,23 @@
                             [1] :in-sequence :script/bash :target)))]
       (is (=
            [["1\n[(2)]\n"] {} :continue]
+           (action-plan/execute
+            (action-plan/translate action-plan)
+            {}
+            (executor {:script/bash {:target echo}})
+            core/stop-execution-on-error))))))
+
+(deftest delayed-argument-test
+  (testing "delayed arguments"
+    (let [g (fn [session x] (str x))
+          action-plan (-> nil
+                          (action-plan/add-action
+                           (action-plan/action-map
+                            f {}
+                            [(pallet.argument/delayed [session] 1)]
+                            :aggregated :script/bash :target)))]
+      (is (=
+           [["[(1)]\n"] {} :continue]
            (action-plan/execute
             (action-plan/translate action-plan)
             {}
