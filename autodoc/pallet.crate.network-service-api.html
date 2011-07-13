@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>pallet.futures API reference (pallet)</title>
+    <title>pallet.crate.network-service API reference (pallet)</title>
     <link href="static/favicon.png" rel="icon" />
     <link href="static/favicon.png" rel="shortcut icon" />
     <link media="all" type="text/css" href="static/clojure.css" rel="stylesheet" />
@@ -48,55 +48,70 @@ namespace.
   <div style="margin-left: 1em;" class="toc-section">
     <a href="#toc0">Overview</a>
     <div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.futures/add">add</a>
+      <a href="#pallet.crate.network-service/wait-for-http-status">wait-for-http-status</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.futures/cancel-all">cancel-all</a>
+      <a href="#pallet.crate.network-service/wait-for-port-listen">wait-for-port-listen</a>
     </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.futures/deref-with-logging">deref-with-logging</a>
+      <a href="#pallet.crate.network-service/wait-for-port-response">wait-for-port-response</a>
     </div>
     <br />
   </div>
 </div>
 </div>
-                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.futures</span></h1>
+                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.crate.network-service</span></h1>
 by <span id="author">Unknown</span><br />
 <br />Usage:
 <pre>
 (ns your-namespace
-  (:require <span id="long-name">pallet.futures</span>))
+  (:require <span id="long-name">pallet.crate.network-service</span>))
 </pre><pre>
 </pre><h2>Overview</h2>
-<pre id="namespace-docstr">Keep track of operations started by pallet</pre>
+<pre id="namespace-docstr">Crate for working with network services</pre>
 <br />
 <h2>Public Variables and Functions</h2>
 <div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.futures/add">add</h2>
+  <h2 id="pallet.crate.network-service/wait-for-http-status">wait-for-http-status</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (add futures)
+  <pre id="var-usage">Usage: (wait-for-http-status session url status &amp; {:keys [max-retries standoff url-name], :or {max-retries 5, standoff 2, url-name url}})
 </pre>
-  <pre id="var-docstr">Add a sequence of futures to the list of pending operations. Returns
-its argument.</pre>
+  <pre id="var-docstr">Wait for a url to respond with the given HTTP status code.
+
+Options:
+- :standoff      time between checking HTTP status (seconds)
+- :max-retries   number of times to test HTTP status before erroring
+- :url-name      name of url to use in messages (defaults to url)</pre>
   
 </div><div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.futures/cancel-all">cancel-all</h2>
+  <h2 id="pallet.crate.network-service/wait-for-port-listen">wait-for-port-listen</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (cancel-all)
+  <pre id="var-usage">Usage: (wait-for-port-listen session port &amp; {:keys [max-retries standoff service-name], :or {max-retries 5, standoff 2, service-name (str port  port)}})
 </pre>
-  <pre id="var-docstr">Cancel all pending parallel operations</pre>
+  <pre id="var-docstr">Wait for the network port `port` to be in a listening state.
+
+Options:
+- :standoff      time between checking port state (seconds)
+- :max-retries   number of times to test port state before erroring
+- :service-name  name of service to use in messages (defaults to port)</pre>
   
 </div><div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.futures/deref-with-logging">deref-with-logging</h2>
+  <h2 id="pallet.crate.network-service/wait-for-port-response">wait-for-port-response</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (deref-with-logging f operation-label)
+  <pre id="var-usage">Usage: (wait-for-port-response session port message response-regex &amp; {:keys [host timeout max-retries standoff service-name], :or {host localhost, max-retries 5, standoff 2, timeout 2, service-name (str port  port)}})
 </pre>
-  <pre id="var-docstr">Deref a future with logging, returning nil if exception thrown.
-`operation-label` appears in each log message generated.</pre>
+  <pre id="var-docstr">Wait for a port to respond to a message with a given response regex.
+
+Options:
+- :host          host to check (defaults to localhost)
+- :timeout       time to wait for a response (default 2 secs)
+- :standoff      time between checking HTTP status (seconds)
+- :max-retries   number of times to test HTTP status before erroring
+- :service-name  name of service to use in messages (defaults to port)</pre>
   
 </div>
 

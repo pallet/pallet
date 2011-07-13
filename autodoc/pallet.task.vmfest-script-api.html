@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>pallet.futures API reference (pallet)</title>
+    <title>pallet.task.vmfest-script API reference (pallet)</title>
     <link href="static/favicon.png" rel="icon" />
     <link href="static/favicon.png" rel="shortcut icon" />
     <link media="all" type="text/css" href="static/clojure.css" rel="stylesheet" />
@@ -48,55 +48,36 @@ namespace.
   <div style="margin-left: 1em;" class="toc-section">
     <a href="#toc0">Overview</a>
     <div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.futures/add">add</a>
-    </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.futures/cancel-all">cancel-all</a>
-    </div><div style="margin-left: 1em;" class="toc-entry">
-      <a href="#pallet.futures/deref-with-logging">deref-with-logging</a>
+      <a href="#pallet.task.vmfest-script/vmfest-script">vmfest-script</a>
     </div>
     <br />
   </div>
 </div>
 </div>
-                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.futures</span></h1>
+                <div id="content-tag"><h1 id="overview">API for <span id="namespace-name">pallet.task.vmfest-script</span></h1>
 by <span id="author">Unknown</span><br />
 <br />Usage:
 <pre>
 (ns your-namespace
-  (:require <span id="long-name">pallet.futures</span>))
+  (:require <span id="long-name">pallet.task.vmfest-script</span>))
 </pre><pre>
 </pre><h2>Overview</h2>
-<pre id="namespace-docstr">Keep track of operations started by pallet</pre>
+<pre id="namespace-docstr">A task for running vmfest scripts</pre>
 <br />
 <h2>Public Variables and Functions</h2>
 <div id="var-entry">
   <br />
   <hr />
-  <h2 id="pallet.futures/add">add</h2>
+  <h2 id="pallet.task.vmfest-script/vmfest-script">vmfest-script</h2>
   <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (add futures)
+  <pre id="var-usage">Usage: (vmfest-script request filename)
 </pre>
-  <pre id="var-docstr">Add a sequence of futures to the list of pending operations. Returns
-its argument.</pre>
-  
-</div><div id="var-entry">
-  <br />
-  <hr />
-  <h2 id="pallet.futures/cancel-all">cancel-all</h2>
-  <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (cancel-all)
-</pre>
-  <pre id="var-docstr">Cancel all pending parallel operations</pre>
-  
-</div><div id="var-entry">
-  <br />
-  <hr />
-  <h2 id="pallet.futures/deref-with-logging">deref-with-logging</h2>
-  <span id="var-type">function</span><br />
-  <pre id="var-usage">Usage: (deref-with-logging f operation-label)
-</pre>
-  <pre id="var-docstr">Deref a future with logging, returning nil if exception thrown.
-`operation-label` appears in each log message generated.</pre>
+  <pre id="var-docstr">A task for running vmfest scripts.
+
+    lein pallet vmfest-script filename
+
+The file should be a clojure script that will be executed. *vmfest* is
+bound to the vmfest compute service</pre>
   
 </div>
 
