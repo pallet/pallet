@@ -26,6 +26,7 @@
 
   <build>
     <sourceDirectory>src</sourceDirectory>
+    <testSourceDirectory>test</testSourceDirectory>
     <resources>
       <resource>
         <directory>src</directory>
@@ -64,7 +65,7 @@
           <excludes>
             <exclude>log4j.xml</exclude>
             <exclude>logback.xml</exclude>
-            <exclude>logback_test.xml</exclude>
+            <exclude>logback-test.xml</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -122,7 +123,7 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>stevedore</artifactId>
-      <version>0.5.1-SNAPSHOT</version>
+      <version>0.6.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>commons-codec</groupId>
