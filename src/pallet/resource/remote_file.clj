@@ -2,7 +2,7 @@
   "Resource to specify remote file content.
 
    `remote-file` has many options for the content of remote files.  Ownership
-   and mode can of course be specified. By default the remote file is versioned,
+   and mode can of course be specified. By default the remote file is versioned
    and multiple versions are kept.
 
    Modification of remote files outside of pallet cause an error to be raised
@@ -38,7 +38,7 @@
 (def/defvar
   content-options
   [:local-file :remote-file :url :md5 :content :literal :template :values
-   :action :blob :blobstore]
+   :action :blob :blobstore :insecure]
   "A vector of the options accepted by remote-file.  Can be used for option
   forwarding when calling remote-file from other crates.")
 
@@ -123,7 +123,8 @@
                            owner group mode force
                            blob blobstore
                            overwrite-changes no-versioning max-versions
-                           flag-on-changed]
+                           flag-on-changed
+                           insecure]
                     :or {action :create max-versions 5}
                     :as options}]
    (let [new-path (str path ".new")
@@ -141,18 +142,24 @@
                                             (md5sum ~path)
                                             (cut "-f1" "-d" "' '")))))
                           ~(stevedore/chained-script
-                            (download-file ~url ~new-path :proxy ~proxy))))
+                            (download-file
+                             ~url ~new-path
+                             :proxy ~proxy :insecure ~insecure))))
          ;; Download md5 to temporary directory.
          (and url md5-url) (stevedore/chained-script
                             (var tmpdir (quoted (make-temp-dir "rf")))
                             (var basefile
                                  (quoted (str @tmpdir "/" @(basename ~path))))
                             (var newmd5path (quoted (str @basefile ".md5")))
-                            (download-file ~md5-url @newmd5path :proxy ~proxy)
+                            (download-file
+                             ~md5-url @newmd5path
+                             :proxy ~proxy :insecure ~insecure)
                             (if (|| (not (file-exists? ~md5-path))
                                     (diff @newmd5path ~md5-path))
                               (do
-                                (download-file ~url ~new-path :proxy ~proxy)
+                                (download-file
+                                 ~url ~new-path
+                                 :proxy ~proxy :insecure ~insecure)
                                 (ln -s ~new-path @basefile)
                                 (if-not (md5sum-verify @newmd5path)
                                   (do
@@ -161,7 +168,7 @@
                                     (exit 1)))))
                             (rm @tmpdir ~{:force true :recursive true}))
          url (stevedore/chained-script
-              (download-file ~url ~new-path :proxy ~proxy))
+              (download-file ~url ~new-path :proxy ~proxy :insecure ~insecure))
          content (apply file/heredoc
                         new-path content
                         (apply concat (seq (select-keys options [:literal]))))

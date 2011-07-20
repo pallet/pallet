@@ -95,9 +95,9 @@
       (format "-e \"%s%s\"" (when restriction (str restriction " ")) expr-map))
    ~file))
 
-(script/defscript download-file [url path & {:keys [proxy]}])
+(script/defscript download-file [url path & {:keys [proxy insecure]}])
 
-(stevedore/defimpl download-file :default [url path & {:keys [proxy]}]
+(stevedore/defimpl download-file :default [url path & {:keys [proxy insecure]}]
   (if (test @(which curl))
     ("curl" "-o" (quoted ~path)
      --retry 5 --silent --show-error --fail --location
@@ -105,12 +105,14 @@
         (let [url (java.net.URL. proxy)]
           (format "--proxy %s:%s" (.getHost url) (.getPort url)))
         "")
+     ~(if insecure "--insecure" "")
      (quoted ~url))
     (if (test @(which wget))
       ("wget" "-O" (quoted ~path) --tries 5 --no-verbose
        ~(if proxy
           (format "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\"" proxy proxy)
           "")
+       ~(if insecure "--no-check-certificate" "")
        (quoted ~url))
       (do
         (println "No download utility available")

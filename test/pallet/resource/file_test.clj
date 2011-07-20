@@ -110,7 +110,13 @@
    (stevedore/script
     (download-file
      "http://server.com/" "/path")))
-  (is (= "if test $(which curl); then curl -o \"/path\" --retry 5 --silent --show-error --fail --location --proxy localhost:3812 \"http://server.com/\";else\nif test $(which wget); then wget -O \"/path\" --tries 5 --no-verbose -e \"http_proxy = http://localhost:3812\" -e \"ftp_proxy = http://localhost:3812\" \"http://server.com/\";else\necho No download utility available\nexit 1\nfi\nfi"
+  (is (= "if test $(which curl); then curl -o \"/path\" --retry 5 --silent --show-error --fail --location --proxy localhost:3812  \"http://server.com/\";else\nif test $(which wget); then wget -O \"/path\" --tries 5 --no-verbose -e \"http_proxy = http://localhost:3812\" -e \"ftp_proxy = http://localhost:3812\"  \"http://server.com/\";else\necho No download utility available\nexit 1\nfi\nfi"
          (stevedore/script
           (download-file
-           "http://server.com/" "/path" :proxy "http://localhost:3812")))))
+           "http://server.com/" "/path" :proxy "http://localhost:3812"))))
+  (is (= "if test $(which curl); then curl -o \"/path\" --retry 5 --silent --show-error --fail --location --proxy localhost:3812 --insecure \"http://server.com/\";else\nif test $(which wget); then wget -O \"/path\" --tries 5 --no-verbose -e \"http_proxy = http://localhost:3812\" -e \"ftp_proxy = http://localhost:3812\" --no-check-certificate \"http://server.com/\";else\necho No download utility available\nexit 1\nfi\nfi"
+         (stevedore/script
+          (download-file
+           "http://server.com/" "/path" :proxy "http://localhost:3812"
+           :insecure true)))
+      ":insecure should disable ssl checks"))

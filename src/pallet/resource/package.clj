@@ -675,7 +675,7 @@
        "jpackage-utils-compat-el5-0.0.1-1.noarch.rpm"))
 
 (defn jpackage-utils
-  "Add jpackge-utils. Due to incompatibilities on RHEL derived distributions,
+  "Add jpackge-utils. Due to incompatibilities on RHEL derived distributions
    a compatability package is required.
 
    https://bugzilla.redhat.com/show_bug.cgi?id=260161
@@ -688,7 +688,8 @@
             (re-matches #"5\.[0-5]" (request-map/os-version request)))
            (add-rpm
             "jpackage-utils-compat-el5-0.0.1-1"
-            :url jpackage-utils-compat-rpm))
+            :url jpackage-utils-compat-rpm
+            :insecure true)) ;; github certificate doesn't verify
    (package "jpackage-utils")))
 
 
