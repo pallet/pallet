@@ -199,6 +199,7 @@
   "Construct a machine model function from a node image spec"
   [image]
   (fn [m]
+    (logging/debugf "Machine model for %s" image)
     (machine-model-with-parameters m image)
     (doseq [kw (filter hardware-config (keys image))]
       ((hardware-config kw) m (image kw)))))
@@ -207,7 +208,7 @@
   [compute node-path node-spec machine-name images image-id machine-models
    group-name init-script user]
   {:pre [image-id]}
-  (logging/tracef"Creating node from image-id: %s" image-id)
+  (logging/tracef "Creating node from image-id: %s" image-id)
   (let [machine (binding [manager/*images* images
                           manager/*machine-models* machine-models]
                   (manager/instance
@@ -252,7 +253,8 @@
 
 (defn- regexp-match
   [image-properties kw arg]
-  (re-matches (re-pattern arg) (image-properties kw)))
+  (when-let [value (image-properties kw)]
+    (re-matches (re-pattern arg) value)))
 
 (def template-matchers
   {:os-version-matches (fn [image-properties kw arg]
@@ -261,22 +263,24 @@
 (defn image-from-template
   "Use the template to select an image from the image map."
   [images template]
-  (if-let [image-id (:image-id template)]
-    (image-id images)
-    (->
-     (filter
-      (fn image-matches? [[image-name image-properties]]
-        (every?
-         #(((first %) template-matchers equality-match)
-           image-properties (first %) (second %))
-         (utils/dissoc-keys
-          template
-          (concat
-           [:image-id :inbound-ports]
-           (keys hardware-config)
-           (keys hardware-parameters)))))
-      images)
-     ffirst)))
+  (let [template-to-match (utils/dissoc-keys
+                           template
+                           (concat
+                            [:image-id :inbound-ports]
+                            (keys hardware-config)
+                            (keys hardware-parameters)))]
+    (logging/debugf "Looking for %s in %s" template-to-match images)
+    (if-let [image-id (:image-id template)]
+      (image-id images)
+      (->
+       (filter
+        (fn image-matches? [[image-name image-properties]]
+          (every?
+           #(((first %) template-matchers equality-match)
+             image-properties (first %) (second %))
+           template-to-match))
+        images)
+       ffirst))))
 
 (defn serial-create-nodes
   "Create all nodes for a group in parallel."
@@ -343,10 +347,16 @@
   (run-nodes
     [compute-service group-spec node-count user init-script]
     (try
-      (let [image-id (or (image-from-template @images (:image group-spec))
+      (let [template (->> [:image :hardware :location :network :qos]
+                          (select-keys group-spec)
+                          vals
+                          (reduce merge))
+            _ (logging/infof "Template %s" template)
+            image-id (or (image-from-template @images template)
                          (throw (RuntimeException.
-                                 (format "No matching image for %s"
-                                         (pr-str (:image group-spec))))))
+                                 (format "No matching image for %s in"
+                                         (pr-str (:image group-spec))
+                                         (@images)))))
             group-name (name (:group-name group-spec))
             machines (filter
                       #(session/with-no-session % [vb-m] (.getAccessible vb-m))
@@ -384,7 +394,7 @@
                  parallel-create-nodes)
          target-machines-to-create server (:node-path locations)
          group-spec @images image-id
-         {:micro (machine-model (:image group-spec))}
+         {:micro (machine-model template)}
          group-name init-script user))))
 
   (reboot
