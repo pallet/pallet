@@ -376,7 +376,12 @@
          tunnels# ~tunnels
          unforward# (fn []
                       (doseq [[lport# _#] tunnels#]
-                        (.delPortForwardingL ssh-session# lport#)))]
+                        (try
+                          (.delPortForwardingL ssh-session# lport#)
+                          (catch com.jcraft.jsch.JSchException e#
+                            (logging/warnf
+                             "Removing Port forward to %s failed: %s"
+                             lport# (.getMessage e#))))))]
      (try
        ;; Set up the port forwards
        (doseq [[lport# rspec#] tunnels#
