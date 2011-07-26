@@ -36,7 +36,7 @@
     (is (= 1
            (count
             (live-test/build-nodes
-             service (live-test/node-types specs) specs))))))
+             service (live-test/node-types specs) specs [:configure]))))))
 
 (deftest live-test-test
   (live-test/set-service! (compute/compute-service "stub" "" ""))

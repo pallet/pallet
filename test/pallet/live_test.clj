@@ -203,11 +203,11 @@
 
 (defn build-nodes
   "Build nodes using the node-types specs"
-  [service node-types specs]
+  [service node-types specs phases]
   (let [counts (counts specs)]
     (select-keys
      (->>
-      (core/converge counts :compute service)
+      (core/converge counts :phase phases :compute service)
       :all-nodes
       (group-by compute/group-name)
       (map #(vector (keyword (first %)) (second %)))
@@ -235,12 +235,14 @@
         (test-nodes [compute node-map node-types]
           {:tag {:image {:os-family :ubuntu} :count 1}}
           (lift mynode :phase :verify :compute compute))"
-  [[compute node-map node-types] specs & body]
+  [[compute node-map node-types & [phases & _]] specs & body]
   `(when *live-tests*
      (let [~compute (find-service)
            ~node-types (node-types ~specs)]
        (try
-         (let [~node-map (build-nodes ~compute ~node-types ~specs)]
+         (let [~node-map (build-nodes
+                          ~compute ~node-types ~specs
+                          [~@(or phases [:configure])])]
            ~@body)
          (finally
           (when *cleanup-nodes*
