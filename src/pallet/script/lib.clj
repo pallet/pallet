@@ -213,23 +213,26 @@
        expr-map quote-with))
    ~file))
 
-(script/defscript download-file [url path & {:keys [proxy]}])
+(script/defscript download-file [url path & {:keys [proxy insecure]}])
 
-(script/defimpl download-file :default [url path & {:keys [proxy]}]
+(script/defimpl download-file :default [url path & {:keys [proxy insecure]}]
   (if (~has-command? curl)
     (curl "-o" (quoted ~path)
-     --retry 5 --silent --show-error --fail --location
-     ~(if proxy
-        (let [url (java.net.URL. proxy)]
-          (format "--proxy %s:%s" (.getHost url) (.getPort url)))
-        "")
-     (quoted ~url))
+          --retry 5 --silent --show-error --fail --location
+          ~(if proxy
+             (let [url (java.net.URL. proxy)]
+               (format "--proxy %s:%s" (.getHost url) (.getPort url)))
+             "")
+          ~(if insecure "--insecure" "")
+          (quoted ~url))
     (if (~has-command? wget)
       (wget "-O" (quoted ~path) --tries 5 --no-verbose
-       ~(if proxy
-          (format "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\"" proxy proxy)
-          "")
-       (quoted ~url))
+            ~(if proxy
+               (format
+                "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\"" proxy proxy)
+               "")
+            ~(if insecure "--no-check-certificate" "")
+            (quoted ~url))
       (do
         (println "No download utility available")
         (~exit 1)))))

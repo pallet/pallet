@@ -39,7 +39,7 @@
 (def/defvar
   content-options
   [:local-file :remote-file :url :md5 :content :literal :template :values
-   :action :blob :blobstore]
+   :action :blob :blobstore :insecure]
   "A vector of the options accepted by remote-file.  Can be used for option
   forwarding when calling remote-file from other crates.")
 
@@ -131,7 +131,8 @@
                           blob blobstore
                           overwrite-changes no-versioning max-versions
                           flag-on-changed
-                          force]
+                          force
+                          insecure]
                    :or {action :create max-versions 5}
                    :as options}]
   (let [new-path (str path ".new")
@@ -150,7 +151,8 @@
                                            (~lib/cut
                                             "" :fields 1 :delimiter " ")))))
                          ~(stevedore/chained-script
-                           (~lib/download-file ~url ~new-path :proxy ~proxy))))
+                           (~lib/download-file
+                            ~url ~new-path :proxy ~proxy :insecure ~insecure))))
         ;; Download md5 to temporary directory.
         (and url md5-url) (stevedore/chained-script
                            (var tmpdir (quoted (~lib/make-temp-dir "rf")))
@@ -159,12 +161,15 @@
                                  (str @tmpdir "/" @(~lib/basename ~path))))
                            (var newmd5path (quoted (str @basefile ".md5")))
                            (~lib/download-file
-                            ~md5-url @newmd5path :proxy ~proxy)
+                            ~md5-url @newmd5path :proxy ~proxy
+                            :insecure ~insecure)
                            (~lib/normalise-md5 @newmd5path)
                            (if (|| (not (file-exists? ~md5-path))
                                    (~lib/diff @newmd5path ~md5-path))
                              (do
-                               (~lib/download-file ~url ~new-path :proxy ~proxy)
+                               (~lib/download-file
+                                ~url ~new-path :proxy ~proxy
+                                :insecure ~insecure)
                                (~lib/ln ~new-path @basefile)
                                (if-not (~lib/md5sum-verify @newmd5path)
                                  (do
@@ -173,7 +178,8 @@
                                    (~lib/exit 1)))))
                            (~lib/rm @tmpdir :force ~true :recursive ~true))
         url (stevedore/chained-script
-             (~lib/download-file ~url ~new-path :proxy ~proxy))
+             (~lib/download-file
+              ~url ~new-path :proxy ~proxy :insecure ~insecure))
         content (stevedore/script
                  (~lib/heredoc
                   ~new-path ~content ~(select-keys options [:literal])))
@@ -291,6 +297,7 @@ Options for specifying the file's content are:
   :values           - values for interpolation
   :blob             - map of :container, :path
   :blobstore        - a jclouds blobstore object (override blobstore in session)
+  :insecure         - boolean to specify ignoring of SLL certs
 
 Options for version control are:
   :overwrite-changes - flag to force overwriting of locally modified content
