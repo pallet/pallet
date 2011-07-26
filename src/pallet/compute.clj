@@ -207,6 +207,7 @@
    attached to it.")
   (destroy-nodes-in-group [compute group-name])
   (destroy-node [compute node])
+  (images [compute])
   (close [compute]))
 
 

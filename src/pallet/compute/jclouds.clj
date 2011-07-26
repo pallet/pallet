@@ -438,6 +438,8 @@
    [_ node]
    (jclouds/destroy-node (compute/id node) compute))
 
+  (images [_] (jclouds/images compute))
+
   (close [_] (.. compute getContext close))
 
   pallet.environment.Environment

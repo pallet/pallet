@@ -429,6 +429,9 @@
     (compute/shutdown-node compute node nil)
     (manager/destroy node))
 
+  (images [compute]
+    @(.images compute))
+
   (close [compute])
   pallet.environment.Environment
   (environment [_] environment)
