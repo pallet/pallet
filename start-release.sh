@@ -15,7 +15,7 @@ echo "Start release of $version, previous version is $previous_version"
 echo ""
 echo ""
 
-git flow release start $version
+git flow release start $version || exit 1
 
 echo ""
 echo ""
