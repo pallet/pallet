@@ -641,7 +641,7 @@
       (environment/session-with-environment
         (environment/merge-environments
          (:environment session)
-         (-> session :server :environment)))))))
+         (:environment server)))))))
 
 (defn- plan-for-servers
   "Build an action plan for the specified servers."
