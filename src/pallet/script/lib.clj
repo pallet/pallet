@@ -775,3 +775,13 @@
   [path type]
   (if (&& (~has-command? chcon) (directory? "/etc/selinux"))
     (chcon -Rv ~(str "--type=" type) ~path)))
+
+(script/defscript selinux-bool
+  "Set the selinux boolean value"
+  [flag value & {:keys [persist]}])
+
+(script/defimpl selinux-bool :default
+  [flag value & {:keys [persist]}]
+  (if (&& (&& (~has-command? setsebool) (directory? "/etc/selinux"))
+          (file-exists? "/selinux/enforce"))
+    (setsebool ~(if persist "-P" "") ~(name flag) ~value)))
