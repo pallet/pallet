@@ -25,7 +25,7 @@ freenode irc.
 
 ## Usage
 
-There is an introductory [screencast](http://www.youtube.com/hugoduncan),
+There is an introductory [screencast](http://www.youtube.com/hugoduncan#p/u/1/adzMkR0d0Uk),
 showing a basic node configuration, and starting and stopping a node.
 
 ## Quickstart
