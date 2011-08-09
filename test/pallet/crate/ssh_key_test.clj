@@ -35,7 +35,7 @@
             "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
             :owner "fred" :mode "644")
            (exec-script/exec-checked-script
-            "authorize-key"
+            "authorize-key on user fred"
             (var auth_file
                  "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
             (if-not (fgrep (quoted "key1") @auth_file)
@@ -43,7 +43,7 @@
            (exec-script/exec-checked-script
             "Set selinux permissions"
             (~lib/selinux-file-type
-             "$(getent passwd fred | cut -d: -f6)/.ssh" "user_home_t"))))
+             "$(getent passwd fred | cut -d: -f6)/.ssh/" "user_home_t"))))
          (first
           (build-actions/build-actions
            {}
