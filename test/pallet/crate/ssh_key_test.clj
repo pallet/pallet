@@ -38,7 +38,11 @@
             (var auth_file
                  "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
             (if-not (fgrep (quoted "key1") @auth_file)
-              (echo (quoted "key1") ">>" @auth_file)))))
+              (echo (quoted "key1") ">>" @auth_file)))
+           (exec-script/exec-checked-script
+            "Set selinux permissions"
+            (~lib/selinux-file-type
+             "$(getent passwd fred | cut -d: -f6)/.ssh" "user_home_t"))))
          (first
           (build-actions/build-actions
            {}
