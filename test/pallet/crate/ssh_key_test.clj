@@ -12,6 +12,7 @@
    [pallet.live-test :as live-test]
    [pallet.parameter :as parameter]
    [pallet.phase :as phase]
+   [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.template :as template]
    [pallet.utils :as utils]
