@@ -303,7 +303,8 @@
 (script/defimpl hostname :default [& options]
   @(hostname
     ~(if (first options)
-       (stevedore/map-to-arg-string (apply hash-map options)))))
+       (stevedore/map-to-arg-string (apply hash-map options))
+       "")))
 
 (script/defscript dnsdomainname [])
 (script/defimpl dnsdomainname :default []
