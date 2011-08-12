@@ -46,7 +46,7 @@ You can use the pallet configuration file
 
 #+BEGIN_SRC clojure
   (defpallet
-    :serivces
+    :services
       {:aws {:provider "ec2" :identity "key" :credential "secret-key"}
        :rs  {:provider "cloudservers" :identity "username" :credential "key"}})
 #+END_SRC
