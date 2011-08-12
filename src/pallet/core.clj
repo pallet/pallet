@@ -593,7 +593,7 @@
           errors (seq (filter :error results))]
       (if errors
         (do
-          (logging/errorf "errors found %s" (vec errors))
+          (logging/errorf "errors found %s" (vec (map :error errors)))
           (condition/raise (assoc (:error (first errors)) :all-errors errors)))
         [results session]))))
 
