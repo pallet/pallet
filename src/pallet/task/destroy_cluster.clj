@@ -33,4 +33,5 @@
                            request
                            (dissoc :config :project)
                            (assoc :environment
-                             (-> request :project :environment))))))))
+                             (or (:environment request)
+                                 (-> request :project :environment)))))))))
