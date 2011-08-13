@@ -592,7 +592,9 @@
     (let [[results session] (handler session)
           errors (seq (filter :error results))]
       (if errors
-        (condition/raise (assoc (:error (first errors)) :all-errors errors))
+        (do
+          (logging/errorf "errors found %s" (vec (map :error errors)))
+          (condition/raise (assoc (:error (first errors)) :all-errors errors)))
         [results session]))))
 
 (def *middleware*
@@ -641,7 +643,7 @@
       (environment/session-with-environment
         (environment/merge-environments
          (:environment session)
-         (-> session :server :environment)))))))
+         (:environment server)))))))
 
 (defn- plan-for-servers
   "Build an action plan for the specified servers."

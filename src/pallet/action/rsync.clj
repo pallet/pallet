@@ -17,7 +17,7 @@
   (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
                  (if port (format "-p %s" port)))
         cmd (format
-             cmd ssh from (:username utils/*admin-user*)
+             cmd ssh from (:username (session/admin-user session))
              (compute/primary-ip (session/target-node session)) to)]
     (execute/sh-script cmd)
     session))
