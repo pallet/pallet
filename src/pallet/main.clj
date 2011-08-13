@@ -98,7 +98,7 @@
   "A pallet task.
 
    Returns an integer exit status suitable for System/exit."
-  [args]
+  [args & {:keys [environment]}]
   (command-line/with-command-line args
     "Pallet command line"
     [[provider "Cloud provider name."]
@@ -137,7 +137,8 @@
                                :blobstore-credential blobstore-credential
                                :profiles (profiles P)
                                :project project-options
-                               :defaults defaults}
+                               :defaults defaults
+                               :environment environment}
                               task
                               params)))]
         (flush)
