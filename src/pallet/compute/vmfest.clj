@@ -50,6 +50,7 @@
 (def os-family-name
   {:ubuntu "Ubuntu"
    :centos "RedHat"
+   :debian "Debian"
    ;:rhel "RedHat"
    :rhel "RedHat_64"})
 
