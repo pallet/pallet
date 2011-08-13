@@ -39,21 +39,20 @@
    The :extensions and :node-list keys will be read with read-string if they
    are strings."
   [credentials]
-  (let [options {:identity (:identity credentials)
-                 :credential (:credential credentials)
-                 :extensions (when-let [extensions (:extensions credentials)]
-                               (if (string? extensions)
-                                 (map
-                                  read-string
-                                  (string/split extensions #" "))
-                                 extensions))
-                 :node-list (when-let [node-list (:node-list credentials)]
-                              (if (string? node-list)
-                                (read-string node-list)
-                                node-list))
-                 :endpoint (:endpoint credentials)
-                 :environment (environment/eval-environment
-                               (:environment credentials))}]
+  (let [options
+        (merge credentials
+               {:extensions (when-let [extensions (:extensions credentials)]
+                              (if (string? extensions)
+                                (map
+                                 read-string
+                                 (string/split extensions #" "))
+                                extensions))
+                :node-list (when-let [node-list (:node-list credentials)]
+                             (if (string? node-list)
+                               (read-string node-list)
+                               node-list))
+                :environment (environment/eval-environment
+                              (:environment credentials))})]
     (when-let [provider (:provider credentials)]
       (apply
        compute-service
