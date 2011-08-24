@@ -635,6 +635,7 @@
   [session server]
   {:pre [(:node server) (:node-id server)]}
   (logutils/with-context [:target (compute/primary-ip (:node server))]
+    (logging/debugf "p-f-s server environment %s" (:environment server))
     (action-plan/build-for-target
      (->
       session
@@ -1014,6 +1015,7 @@
   {:pre [(:node-set session)]}
   (logging/debugf "pallet version: %s" (version))
   (logging/tracef "converge* phases %s" (vec (:phase-list session)))
+  (logging/tracef "converge* node-set %s" (vec (:node-set session)))
   (->
    session
    session-with-all-nodes
