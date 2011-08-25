@@ -36,11 +36,11 @@ Include the following in the =project.clj= file, which describes the project
 dependencies.
 
 #+begin_src clojure
-    :dependencies [[org.cloudhoist/pallet "0.5.0"]
+    :dependencies [[org.cloudhoist/pallet "0.6.2"]
                    [org.cloudhoist/pallet-crates-standalone "0.5.0"]
-                   [org.jclouds/jclouds-all "1.0-beta-9c"]
-                   [org.jclouds.driver/jclouds-jsch "1.0-beta-9c"]
-                   [org.jclouds.driver/jclouds-log4j "1.0-beta-9c"]]
+                   [org.jclouds/jclouds-all "1.0.0"]
+                   [org.jclouds.driver/jclouds-jsch "1.0.0"]
+                   [org.jclouds.driver/jclouds-log4j "1.0.0"]]
     :repositories {"sonatype"
                    "http://oss.sonatype.org/content/repositories/releases"}
 #+end_src
@@ -52,9 +52,9 @@ You should end up with a =project.clj= that looks something like this:
       :description "quickstart for pallet"
       :dependencies [[org.cloudhoist/pallet "0.5.0"]
                      [org.cloudhoist/pallet-crates-standalone "0.5.0"]
-                     [org.jclouds/jclouds-all "1.0-beta-9c"]
-                     [org.jclouds.driver/jclouds-jsch "1.0-beta-9c"]
-                     [org.jclouds.driver/jclouds-log4j "1.0-beta-9c"]]
+                     [org.jclouds/jclouds-all "1.0.0"]
+                     [org.jclouds.driver/jclouds-jsch "1.0.0"]
+                     [org.jclouds.driver/jclouds-log4j "1.0.0"]]
       :repositories {"sonatype"
                      "http://oss.sonatype.org/content/repositories/releases"})
 #+end_src
@@ -76,9 +76,9 @@ the =:services= key. You will need to create this file.
 
 #+begin_src clojure
     (defpallet
-      :serivces
+      :services
         {:gogrid {:provider "gogrid" :identity "key" :credential "secret-key"}
-         :aws {:provider "ec2-aws" :identity "key" :credential "secret-key"}
+         :aws {:provider "aws-ec2" :identity "key" :credential "secret-key"}
          :rs  {:provider "cloudservers-us" :identity "user" :credential "key"}})
 #+end_src
 
