@@ -3,7 +3,121 @@
 #+DESCRIPTION: Release notes for pallet releases
 #+KEYWORDS: pallet palletops contribute
 
-The latest release is 0.6.2.
+The latest release is 0.6.3.
+
+* 0.6.3
+** Features
+- Allow specification of a cookie in wait-for-http-status
+
+- Add script.lib/selinux-bool to setsebool values
+  The script guards the setsebool call with a check for an active selinux
+  configuration.
+
+- Add dirname script to pallet.script.lib
+
+- Add :insecure option to lib/download-file and expose in remote-file
+  It is useful to be able to ignore ssl certificates that do not validate
+
+- Add a retry action
+  `retry-until` repeats until a condition is true, or a maximum number of
+  retries is reached.
+
+- Add :if-stopped option to service action
+
+- Add images to ComputeService protocol
+
+- Add plugable error handling
+  Adds the :execute-status-fn algorithm to the environment, which controls
+  wether an error stops processing on a node. Adds the raise-on-error
+  middleware, for raising an execption when an error occurs running a phase
+  on a node
+
+- Updates to allow pallet-task to take an :environment keyword arg.
+  Updated pallet-task to allow additional keyword args (source compatible).
+  Also updated converge/converge_cluster/destroy_cluster/lift tasks to
+  accept (and prefer) the explicitly passed environment. If none is given,
+  they fall back to looking for an :environment key in the project, as
+  before.
+
+- Allow explicit passing of initial build phases in live-test
+
+- Ignore invalid ssl for jpackage utils download from github
+
+- Add a get-target-settings overload for specifying default value
+
+- Add with-ssh-tunnel macro.
+  Allows for performing actions on remote nodes from clojure on the pallet machine.
+
+- Add ImageManager protocol to vmfest provider
+
+- Add vmfest/has-image?
+  Enable checking for the presence of a specific vmfest image
+
+- Add publish-image to vmfest provider
+
+- Add vmfest task
+  Allow the running of scripts to set up local vmfest environments
+
+- Add a task to list images
+
+- Switch to tools.logging and logback via slf4j
+
+- Upgrade to latest clj-ssh
+
+- Upgrade to latest pallet-common
+
+- Upgrade to latest parent pom
+
+- Upgrade to stevedore 0.7.0
+
+
+** Fixes
+
+- Update logging of errors
+  Ensure only the error message is logged, not the whole result
+
+- Add logging of all errors from running a phase
+
+- Fix script hostname function for the case with no arguments
+
+- Fix rsync to use the admin user defined in the session
+  The rsync action was using the global admin-user
+
+- Cleanup plan-for-server environment merge expression
+
+- Add other node-spec keys to vmfest template matching
+
+- Add warning on port forwading failure
+
+- Add test for delayed argument evaluation in action plan
+
+- Work around tools.logging bug with non-literal format strings
+
+- Set namespace for vmfest-script
+
+- Fix :if-flag in action.service/service and and init-script-path
+
+- Fix major leak of ssh connections
+
+- Check remote md5 before transferring local files
+  To prevent multiple uploads of unchanged local content when using
+  remote-file with a :local-file source, add a comparison of the local
+  content md5 with the remote-file's md5
+
+- Use nodes from the :node-set to compute :all-nodes
+  When no compute service is available, take :all-nodes from the nodes
+  specified in :node-set
+
+- Ensure all exceptions from actions are caught
+  When executing actions, ensure unexpected exceptions are caught for
+  handling in the middleware pipeline.
+
+- Add check for /etc/selinux to selinux-file-type script function
+  Try harder to determine whether the target is selinux capable
+
+- Make jsch use daemon threads
+  jsch seems to be leaking threads, which prevented a clean shutdown of
+  lein tasks.
 
 * 0.6.2
 ** Features
