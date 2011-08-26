@@ -440,7 +440,7 @@
     (manager/destroy node))
 
   (images [compute]
-    @(.images compute))
+    @images)
 
   (close [compute])
   pallet.environment.Environment
