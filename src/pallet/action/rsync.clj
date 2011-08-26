@@ -7,17 +7,17 @@
    [pallet.execute :as execute]
    [pallet.session :as session]
    [pallet.utils :as utils]
-   [clojure.contrib.logging :as logging]))
+   [clojure.tools.logging :as logging]))
 
 (def cmd "/usr/bin/rsync -e '%s' -rP --delete --copy-links -F -F %s %s@%s:%s")
 
 (action/def-clj-action rsync
   [session from to {:keys [port]}]
-  (logging/info (format "rsync %s to %s" from to))
+  (logging/infof "rsync %s to %s" from to)
   (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
                  (if port (format "-p %s" port)))
         cmd (format
-             cmd ssh from (:username utils/*admin-user*)
+             cmd ssh from (:username (session/admin-user session))
              (compute/primary-ip (session/target-node session)) to)]
     (execute/sh-script cmd)
     session))

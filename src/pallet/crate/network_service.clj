@@ -41,7 +41,7 @@
    - :max-retries   number of times to test HTTP status before erroring
    - :url-name      name of url to use in messages (defaults to url)"
 
-  [session url status & {:keys [max-retries standoff url-name]
+  [session url status & {:keys [max-retries standoff url-name cookie]
                          :or {max-retries 5 standoff 2
                               url-name url}}]
   (->
@@ -52,13 +52,17 @@
     (if (~lib/has-command? wget)
       (defn httpresponse []
         (pipe
-         ("wget" -q -S -O "/dev/null" (quoted ~url) "2>&1")
+         ("wget" -q -S -O "/dev/null"
+          ~(if cookie (str "--header " (format "'Cookie: %s'" cookie)) "")
+          (quoted ~url) "2>&1")
          ("grep" "HTTP/1.1")
          ("tail" -1)
          ("grep" -o -e (quoted "[0-9][0-9][0-9]"))))
       (if (~lib/has-command? curl)
         (defn httpresponse []
-          ("curl" -sL -w (quoted "%{http_code}") (quoted ~url)
+          ("curl" -sL -w (quoted "%{http_code}")
+           ~(if cookie (str "-b '" cookie "'") "")
+           (quoted ~url)
            -o "/dev/null"))
         (do
           (println "No httpresponse utility available")

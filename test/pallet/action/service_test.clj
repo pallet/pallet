@@ -9,10 +9,10 @@
    [pallet.build-actions :as build-actions]))
 
 (deftest service-test
-  (is (= "/etc/init.d/tomcat start\n"
+  (is (= "echo start tomcat\n/etc/init.d/tomcat start\n"
          (first (build-actions/build-actions
                  {} (service "tomcat")))))
-  (is (= "/etc/init.d/tomcat stop\n"
+  (is (= "echo stop tomcat\n/etc/init.d/tomcat stop\n"
          (first (build-actions/build-actions
                  {} (service "tomcat" :action :stop)))))
   (is (= (first
@@ -33,7 +33,8 @@
                  {:packager :yum} (service "tomcat" :action :enable))))))
 
 (deftest with-restart-test
-  (is (= "/etc/init.d/tomcat stop\n/etc/init.d/tomcat start\n"
+  (is (= (str "echo stop tomcat\n/etc/init.d/tomcat stop\n"
+              "echo start tomcat\n/etc/init.d/tomcat start\n")
          (first (build-actions/build-actions
                  {} (with-restart "tomcat"))))))
 

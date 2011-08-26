@@ -1,7 +1,8 @@
 (ns pallet.main-test
   (:use pallet.main)
   (:require
-   [clojure.string :as string])
+   [clojure.string :as string]
+   [pallet.common.logging.logutils :as logutils])
   (:use
    clojure.test
    pallet.test-utils))
@@ -52,7 +53,7 @@
           (is (= 1 (pallet-task ["some-non-existing-task"])))))))
 
 (deftest report-unexpected-exception-test
-  (suppress-logging
+  (logutils/suppress-logging
    (is (re-find #"hello"
                 (with-err-str
                   (#'pallet.main/report-unexpected-exception

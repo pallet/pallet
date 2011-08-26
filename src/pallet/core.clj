@@ -28,6 +28,7 @@
    [pallet.action-plan :as action-plan]
    [pallet.blobstore :as blobstore]
    [pallet.common.deprecate :as deprecate]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.common.resource :as resource]
    [pallet.compute :as compute]
    [pallet.environment :as environment]
@@ -39,7 +40,7 @@
    [pallet.thread-expr :as thread-expr]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
-   [clojure.contrib.logging :as logging]
+   [clojure.tools.logging :as logging]
    [clojure.contrib.map-utils :as map-utils]
    [clojure.set :as set]
    [clojure.string :as string])
@@ -310,13 +311,12 @@
   "Middleware that is useful in debugging."
   [handler]
   (fn [session]
-    (logging/info
-     (format
-      "TARGET KEYS :phase %s :node-id %s :group-name %s :packager %s"
-      (:phase session)
-      (-> session :server :node-id)
-      (-> session :server :group-name)
-      (-> session :server :packager)))
+    (logging/infof
+     "TARGET KEYS :phase %s :node-id %s :group-name %s :packager %s"
+     (:phase session)
+     (-> session :server :node-id)
+     (-> session :server :group-name)
+     (-> session :server :packager))
     (handler session)))
 
 
@@ -388,7 +388,10 @@
                           add-session-keys-for-0-4-compatibility
                           action-plan/build-for-target
                           action-plan/translate-for-target
-                          (action-plan/execute-for-target executor))]
+                          (action-plan/execute-for-target
+                           executor
+                           (environment/get-for
+                            session [:algorithms :execute-status-fn])))]
     (string/join \newline result)))
 
 (defn- create-nodes
@@ -405,7 +408,7 @@
         session (assoc-in session [:group :packager]
                           (compute/packager (-> session :group :image)))
         init-script (bootstrap-script session)
-        _ (logging/trace (format "Bootstrap script:\n%s" init-script))
+        _ (logging/tracef "Bootstrap script:\n%s" init-script)
         new-nodes (compute/run-nodes
                    compute (:group session) count (:user session) init-script)]
     {:new-nodes new-nodes}))
@@ -447,7 +450,7 @@
                   (assoc session :group group)
                   (environment/merge-environments
                    (:environment session) environment))]
-    (logging/info (format "adjust-node-count %s %d" group-name delta))
+    (logging/infof "adjust-node-count %s %d" group-name delta)
     (cond
      (pos? delta) (create-nodes delta session)
      (neg? delta) (destroy-nodes (- delta) session))))
@@ -508,28 +511,27 @@
   "Log the session state"
   [msg]
   (fn [session]
-    (logging/info (format "%s Session is %s" msg session))
+    (logging/infof "%s Session is %s" msg session)
     session))
 
 (defn log-message
   "Log the message"
   [msg]
   (fn [session]
-    (logging/info (format "%s" msg))
+    (logging/infof "%s" msg)
     session))
 
 (defn- log-nodes
   "Log the node lists in the session state"
   [msg]
   (fn [session]
-    (logging/info
-     (format
-      "%s nodes  %s with %s old nodes"
-      msg
-      (pr-str
-       (select-keys
-        session [:all-nodes :selected-nodes :new-nodes]))
-      (count (:old-nodes session))))
+    (logging/infof
+     "%s nodes  %s with %s old nodes"
+     msg
+     (pr-str
+      (select-keys
+       session [:all-nodes :selected-nodes :new-nodes]))
+     (count (:old-nodes session)))
     session))
 
 (defn- apply-environment
@@ -556,22 +558,50 @@
 (defn- execute
   "Execute the action plan"
   [session]
-  (action-plan/execute-for-target session executor))
+  (action-plan/execute-for-target
+   session executor
+   (environment/get-for session [:algorithms :execute-status-fn])))
 
 (defn- apply-phase-to-node
   "Apply a phase to a node session"
   [session]
   {:pre [(:server session) (:phase session)]}
-  ((middleware-handler execute)
-   (->
-    session
-    apply-environment
-    add-session-keys-for-0-4-compatibility)))
+  (logutils/with-context [:target (compute/primary-ip
+                                   (-> session :server :node))
+                          :phase (:phase session)
+                          :group (-> session :group :group-name)]
+    ((middleware-handler execute)
+     (->
+      session
+      apply-environment
+      add-session-keys-for-0-4-compatibility))))
+
+(defn stop-execution-on-error
+  ":execute-status-fn algorithm to stop execution on an error"
+  [result flag]
+  (if (= flag :continue)
+    (if (:error result)
+      :stop
+      flag)
+    flag))
+
+(defn raise-on-error
+  "Middleware that raises a condition on an error."
+  [handler]
+  (fn [session]
+    (let [[results session] (handler session)
+          errors (seq (filter :error results))]
+      (if errors
+        (do
+          (logging/errorf "errors found %s" (vec (map :error errors)))
+          (condition/raise (assoc (:error (first errors)) :all-errors errors)))
+        [results session]))))
 
 (def *middleware*
   [translate-action-plan
    execute/ssh-user-credentials
-   execute/execute-with-ssh])
+   execute/execute-with-ssh
+   raise-on-error])
 
 (defmacro with-middleware
   "Wrap node execution in the given middleware. A middleware is a function of
@@ -604,15 +634,17 @@
   "Build an action plan for the specified server."
   [session server]
   {:pre [(:node server) (:node-id server)]}
-  (action-plan/build-for-target
-   (->
-    session
-    (assoc :server server)
-    add-session-keys-for-0-4-compatibility
-    (environment/session-with-environment
-      (environment/merge-environments
-       (:environment session)
-       (-> session :server :environment))))))
+  (logutils/with-context [:target (compute/primary-ip (:node server))]
+    (logging/debugf "p-f-s server environment %s" (:environment server))
+    (action-plan/build-for-target
+     (->
+      session
+      (assoc :server server)
+      add-session-keys-for-0-4-compatibility
+      (environment/session-with-environment
+        (environment/merge-environments
+         (:environment session)
+         (:environment server)))))))
 
 (defn- plan-for-servers
   "Build an action plan for the specified servers."
@@ -624,7 +656,8 @@
   [session groups]
   (reduce
    (fn [session group]
-     (plan-for-servers (assoc session :group group) (:servers group)))
+     (logutils/with-context [:group (:group-name group)]
+       (plan-for-servers (assoc session :group group) (:servers group))))
    session groups))
 
 (defn- plan-for-phases
@@ -633,26 +666,25 @@
   [session]
   (reduce
    (fn [session phase]
-     (plan-for-groups (assoc session :phase phase) (:groups session)))
+     (logutils/with-context [:phase phase]
+       (plan-for-groups (assoc session :phase phase) (:groups session))))
    session (:phase-list session)))
 
 (defn sequential-apply-phase
   "Apply a phase to a sequence of nodes"
   [session servers]
-  (logging/info
-   (format
-    "apply-phase %s for %s with %d nodes"
-    (:phase session) (-> session :group :group-name) (count servers)))
+  (logging/infof
+   "apply-phase %s for %s with %d nodes"
+   (:phase session) (-> session :group :group-name) (count servers))
   (for [server servers]
     (apply-phase-to-node (assoc session :server server))))
 
 (defn parallel-apply-phase
   "Apply a phase to a sequence of nodes"
   [session servers]
-  (logging/info
-   (format
-    "apply-phase %s for %s with %d nodes"
-    (:phase session) (-> session :group :group-name) (count servers)))
+  (logging/infof
+   "apply-phase %s for %s with %d nodes"
+   (:phase session) (-> session :group :group-name) (count servers))
   (->>
    servers
    (map (fn [server]
@@ -714,11 +746,10 @@
 (defn lift-nodes
   "Lift nodes in target-node-map for the specified phases."
   [session]
-  (logging/info
-   (format
-    "lift-nodes phases %s, groups %s"
-    (vec (:phase-list session))
-    (vec (map :group-name (:groups session)))))
+  (logging/infof
+   "lift-nodes phases %s, groups %s"
+   (vec (:phase-list session))
+   (vec (map :group-name (:groups session))))
   (reduce
    (fn [session phase]
      (->
@@ -752,10 +783,9 @@
                               (map (comp keys :phases))
                               (reduce concat))
                              (keys (:inline-phases session))))))]
-      (logging/warn
-       (format
-        "Undefined phases: %s"
-        (string/join ", " (map name undefined))))))
+      (logging/warnf
+       "Undefined phases: %s"
+       (string/join ", " (map name undefined)))))
   session)
 
 (defn- group-with-prefix
@@ -898,10 +928,16 @@
   (let [nodes (filter
                compute/running?
                (or (:all-nodes session) ; empty list is ok
-                   (when-let [compute (environment/get-for
-                                       session [:compute] nil)]
-                     (logging/info "retrieving nodes")
-                     (compute/nodes compute))))]
+                   (if-let [compute (environment/get-for
+                                     session [:compute] nil)]
+                     (do
+                       (logging/info "retrieving nodes")
+                       (compute/nodes compute))
+                     (filter
+                      compute/node?
+                      (mapcat
+                       #(let [v (val %)] (if (seq? v) v [v]))
+                       (:node-set session))))))]
     (assoc session :all-nodes nodes :selected-nodes nodes)))
 
 (defn session-with-groups
@@ -958,8 +994,8 @@
    - :all-nodes    - a sequence of all known nodes
    - :all-node-set - a specification of nodes to invoke (but not lift)"
   [session]
-  (logging/debug (format "pallet version: %s" (version)))
-  (logging/trace (format "lift* phases %s" (vec (:phase-list session))))
+  (logging/debugf "pallet version: %s" (version))
+  (logging/tracef "lift* phases %s" (vec (:phase-list session)))
   (->
    session
    session-with-all-nodes
@@ -977,9 +1013,9 @@
    `:all-node-set`"
   [session]
   {:pre [(:node-set session)]}
-  (logging/debug (format "pallet version: %s" (version)))
-  (logging/trace
-   (format "converge* phases %s" (vec (:phase-list session))))
+  (logging/debugf "pallet version: %s" (version))
+  (logging/tracef "converge* phases %s" (vec (:phase-list session)))
+  (logging/tracef "converge* node-set %s" (vec (:node-set session)))
   (->
    session
    session-with-all-nodes
@@ -1014,6 +1050,13 @@
             :credential (:credential blobstore-service)
             :extensions (:extensions blobstore-service)))))
 
+(def
+  ^{:doc "Algorithms to use when none specified"}
+  default-algorithms
+  {:lift-fn parallel-lift
+   :converge-fn parallel-adjust-node-counts
+   :execute-status-fn stop-execution-on-error})
+
 (defn default-environment
   "Specify the built-in default environment"
   []
@@ -1021,8 +1064,7 @@
    :compute nil
    :user utils/*admin-user*
    :middleware *middleware*
-   :algorithms {:lift-fn parallel-lift
-                :converge-fn parallel-adjust-node-counts}})
+   :algorithms default-algorithms})
 
 (defn- effective-environment
   "Build the effective environment for the session map.

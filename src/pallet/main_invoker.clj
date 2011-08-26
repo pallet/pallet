@@ -3,7 +3,7 @@
    pallet, jclouds or maven specific, and ensures compiling main doesn't compile
    the world."
   (:require
-   [clojure.contrib.logging :as logging]
+   [clojure.tools.logging :as logging]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
    [pallet.blobstore :as blobstore]
@@ -12,19 +12,19 @@
 
 (defn log-info
   [admin-user]
-  (logging/debug (format "OS              %s %s"
-                         (System/getProperty "os.name")
-                         (System/getProperty "os.version")))
-  (logging/debug (format "Arch            %s" (System/getProperty "os.arch")))
-  (logging/debug (format "Admin user      %s" (:username admin-user)))
+  (logging/debugf "OS              %s %s"
+                   (System/getProperty "os.name")
+                   (System/getProperty "os.version"))
+  (logging/debugf "Arch            %s" (System/getProperty "os.arch"))
+  (logging/debugf "Admin user      %s" (:username admin-user))
   (let [private-key-path (:private-key-path admin-user)
         public-key-path (:public-key-path admin-user)]
-    (logging/debug
-     (format "private-key-path %s %s" private-key-path
-             (.canRead (java.io.File. private-key-path))))
-    (logging/debug
-     (format "public-key-path %s %s" public-key-path
-             (.canRead (java.io.File. public-key-path))))))
+    (logging/debugf
+     "private-key-path %s %s"
+     private-key-path (.canRead (java.io.File. private-key-path)))
+    (logging/debugf
+     "public-key-path %s %s"
+     public-key-path (.canRead (java.io.File. public-key-path)))))
 
 (defn find-admin-user
   "Return the admin user"
@@ -101,7 +101,8 @@
                          :blobstore blobstore
                          :project (:project options)
                          :config default-config
-                         :user admin-user} params)
+                         :user admin-user
+                         :environment (:environment options)} params)
             (finally ;; make sure we don't hang on exceptions
              (when blobstore
                (blobstore/close blobstore)))))

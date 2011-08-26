@@ -16,4 +16,16 @@
    (first
     (build-actions/build-actions
      {}
-     (network-service/wait-for-http-status "http://localhost/" 200)))))
+     (network-service/wait-for-http-status "http://localhost/" 200))))
+  (re-find #"-b 'x=y'"
+   (first
+    (build-actions/build-actions
+     {}
+     (network-service/wait-for-http-status
+      "http://localhost/" 200 :cookie "x=y"))))
+  (re-find #"--header 'Cookie: x=y'"
+   (first
+    (build-actions/build-actions
+     {}
+     (network-service/wait-for-http-status
+      "http://localhost/" 200 :cookie "x=y")))))

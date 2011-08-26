@@ -5,9 +5,9 @@
    [clojure.contrib.jar :as jar]
    [clojure.contrib.string :as string]
    [clojure.contrib.pprint :as pprint]
-   [clojure.contrib.logging :as logging])
+   [clojure.tools.logging :as logging])
   (:use
-   clojure.contrib.logging
+   clojure.tools.logging
    clojure.contrib.def)
   (:import
    (java.security
@@ -50,7 +50,7 @@
 
 (defn load-resource-url
   [name]
-  (logging/trace (format "load-resource-url %s" name))
+  (logging/tracef "load-resource-url %s" name)
   (with-open [stream (.getContent name)
               r (new java.io.BufferedReader
                      (new java.io.InputStreamReader
@@ -294,8 +294,7 @@
     #(try
        (java.util.jar.JarFile. %)
        (catch Exception _
-         (logging/warn
-          (format "Unable to open jar file on classpath: %s" %))))
+         (logging/warnf "Unable to open jar file on classpath: %s" %)))
     (filter jar/jar-file? (classpath)))))
 
 (defmacro forward-to-script-lib

@@ -10,7 +10,7 @@
    [pallet.script :as script]
    [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
-   [clojure.contrib.logging :as logging]
+   [clojure.tools.logging :as logging]
    [clojure.string :as string]))
 
 (defn- apply-phase-to-node
@@ -37,7 +37,8 @@
           (assoc :middleware
             [core/translate-action-plan
              execute/execute-echo]
-            :executor core/default-executors)
+            :executor core/default-executors
+            :environment {:algorithms core/default-algorithms})
           action-plan/build-for-target)]
      (phase/all-phases-for-phase (:phase session)))))
 

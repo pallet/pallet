@@ -25,25 +25,29 @@
    The images are disks that are immutable.  The virtualbox extensions need
    to be installed on the image."
   (:require
-   [vmfest.virtualbox.virtualbox :as virtualbox]
-   [vmfest.virtualbox.machine :as machine]
-   [vmfest.virtualbox.model :as model]
-   [vmfest.virtualbox.session :as session]
-   [vmfest.manager :as manager]
-   [vmfest.virtualbox.session :as session]
-   [vmfest.virtualbox.enums :as enums]
+   [clojure.contrib.condition :as condition]
+   [clojure.java.io :as io]
+   [clojure.string :as string]
+   [clojure.tools.logging :as logging]
    [pallet.action-plan :as action-plan]
+   [pallet.blobstore :as blobstore]
+   [pallet.common.filesystem :as filesystem]
    [pallet.compute :as compute]
-   [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
+   [pallet.compute.jvm :as jvm]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.futures :as futures]
    [pallet.script :as script]
+   [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]
-   [clojure.string :as string]
-   [clojure.contrib.logging :as logging]))
+   [vmfest.manager :as manager]
+   [vmfest.virtualbox.enums :as enums]
+   [vmfest.virtualbox.image :as image]
+   [vmfest.virtualbox.machine :as machine]
+   [vmfest.virtualbox.model :as model]
+   [vmfest.virtualbox.session :as session]
+   [vmfest.virtualbox.virtualbox :as virtualbox]))
 
 (defn supported-providers []
   ["virtualbox"])
@@ -127,15 +131,13 @@
          (try
            (let [ip (try (manager/get-ip machine)
                          (catch org.virtualbox_4_0.VBoxException e
-                           (logging/warn
-                            (format
-                             "wait-for-ip: Machine %s not started yet..."
-                             machine)))
+                           (logging/warnf
+                            "wait-for-ip: Machine %s not started yet..."
+                            machine))
                          (catch clojure.contrib.condition.Condition e
-                           (logging/warn
-                            (format
-                             "wait-for-ip: Machine %s is not accessible yet..."
-                             machine))))]
+                           (logging/warnf
+                            "wait-for-ip: Machine %s is not accessible yet..."
+                            machine)))]
              (if (and (string/blank? ip) (< (current-time-millis) timeout))
                (do
                  (Thread/sleep 2000)
@@ -197,6 +199,7 @@
   "Construct a machine model function from a node image spec"
   [image]
   (fn [m]
+    (logging/debugf "Machine model for %s" image)
     (machine-model-with-parameters m image)
     (doseq [kw (filter hardware-config (keys image))]
       ((hardware-config kw) m (image kw)))))
@@ -205,7 +208,7 @@
   [compute node-path node-spec machine-name images image-id machine-models
    group-name init-script user]
   {:pre [image-id]}
-  (logging/trace (format "Creating node from image-id: %s" image-id))
+  (logging/tracef "Creating node from image-id: %s" image-id)
   (let [machine (binding [manager/*images* images
                           manager/*machine-models* machine-models]
                   (manager/instance
@@ -228,19 +231,20 @@
        :type :no-ip-available
        :message "Could not determine IP address of new node"))
     (Thread/sleep 4000)
-    (logging/trace (format "Bootstrapping %s" (manager/get-ip machine)))
+    (logging/tracef "Bootstrapping %s" (manager/get-ip machine))
     (script/with-script-context
       (action-plan/script-template-for-server {:image image})
-      (let [user (if (:username image)
-                   (pallet.utils/make-user
-                    (:username image)
-                    :password (:password image)
-                    :no-sudo (:no-sudo image)
-                    :sudo-password (:sudo-password image))
-                   user)]
-        (execute/remote-sudo
-         (manager/get-ip machine) init-script user
-         {:pty (not (#{:arch :fedora} (:os-family image)))})))
+      (stevedore/with-script-language :pallet.stevedore.bash/bash
+        (let [user (if (:username image)
+                     (pallet.utils/make-user
+                      (:username image)
+                      :password (:password image)
+                      :no-sudo (:no-sudo image)
+                      :sudo-password (:sudo-password image))
+                     user)]
+          (execute/remote-sudo
+           (manager/get-ip machine) init-script user
+           {:pty (not (#{:arch :fedora} (:os-family image)))}))))
     machine))
 
 (defn- equality-match
@@ -249,7 +253,8 @@
 
 (defn- regexp-match
   [image-properties kw arg]
-  (re-matches (re-pattern arg) (image-properties kw)))
+  (when-let [value (image-properties kw)]
+    (re-matches (re-pattern arg) value)))
 
 (def template-matchers
   {:os-version-matches (fn [image-properties kw arg]
@@ -258,22 +263,24 @@
 (defn image-from-template
   "Use the template to select an image from the image map."
   [images template]
-  (if-let [image-id (:image-id template)]
-    (image-id images)
-    (->
-     (filter
-      (fn image-matches? [[image-name image-properties]]
-        (every?
-         #(((first %) template-matchers equality-match)
-           image-properties (first %) (second %))
-         (utils/dissoc-keys
-          template
-          (concat
-           [:image-id :inbound-ports]
-           (keys hardware-config)
-           (keys hardware-parameters)))))
-      images)
-     ffirst)))
+  (let [template-to-match (utils/dissoc-keys
+                           template
+                           (concat
+                            [:image-id :inbound-ports]
+                            (keys hardware-config)
+                            (keys hardware-parameters)))]
+    (logging/debugf "Looking for %s in %s" template-to-match images)
+    (if-let [image-id (:image-id template)]
+      (image-id images)
+      (->
+       (filter
+        (fn image-matches? [[image-name image-properties]]
+          (every?
+           #(((first %) template-matchers equality-match)
+             image-properties (first %) (second %))
+           template-to-match))
+        images)
+       ffirst))))
 
 (defn serial-create-nodes
   "Create all nodes for a group in parallel."
@@ -303,6 +310,33 @@
    (filter identity)
    doall))
 
+(def
+  ^{:dynamic true
+    :doc (str "The buffer size (in bytes) for the piped stream used to implement
+    the :stream option for :out. If your ssh commands generate a high volume of
+    output, then this buffer size can become a bottleneck. You might also
+    increase the frequency with which you read the output stream if this is an
+    issue.")}
+  *piped-stream-buffer-size* (* 1024 1024))
+
+(defn- piped-streams
+  []
+  (let [os (java.io.PipedOutputStream.)]
+    [os (java.io.PipedInputStream. os *piped-stream-buffer-size*)]))
+
+(defn gzip [from to]
+  (with-open [input (io/input-stream from)
+              output (java.util.zip.GZIPOutputStream. (io/output-stream to))]
+    (io/copy input output)))
+
+(defprotocol ImageManager
+  (install-image [service url {:as options}]
+    "Install the image from the specified `url`")
+  (publish-image [service image blobstore container {:keys [path] :as options}]
+    "Publish the image to the specified blobstore container")
+  (has-image? [service image-key]
+    "Predicate to test for the presence of a specific image"))
+
 (deftype VmfestService
     [server images locations environment]
   pallet.compute/ComputeService
@@ -311,76 +345,82 @@
   (ensure-os-family [compute-service group] group)
 
   (run-nodes
-   [compute-service group-spec node-count user init-script]
-   (try
-     (let [image-id (or (image-from-template images (:image group-spec))
-                        (throw (RuntimeException.
-                                (format "No matching image for %s"
-                                        (pr-str (:image group-spec))))))
-           group-name (name (:group-name group-spec))
-           machines (filter
-                     #(session/with-no-session % [vb-m] (.getAccessible vb-m))
-                     (manager/machines server))
-           current-machines-in-group (filter
-                                      #(= group-name
-                                          (manager/get-extra-data
-                                           % group-name-tag))
-                                      machines)
-           current-machine-names (into #{}
+    [compute-service group-spec node-count user init-script]
+    (try
+      (let [template (->> [:image :hardware :location :network :qos]
+                          (select-keys group-spec)
+                          vals
+                          (reduce merge))
+            _ (logging/infof "Template %s" template)
+            image-id (or (image-from-template @images template)
+                         (throw (RuntimeException.
+                                 (format "No matching image for %s in"
+                                         (pr-str (:image group-spec))
+                                         (@images)))))
+            group-name (name (:group-name group-spec))
+            machines (filter
+                      #(session/with-no-session % [vb-m] (.getAccessible vb-m))
+                      (manager/machines server))
+            current-machines-in-group (filter
+                                       #(= group-name
+                                           (manager/get-extra-data
+                                            % group-name-tag))
+                                       machines)
+            current-machine-names (into #{}
+                                        (map
+                                         #(session/with-no-session % [m]
+                                            (.getName m))
+                                         current-machines-in-group))
+            target-indices (range (+ node-count
+                                     (count current-machines-in-group)))
+            target-machine-names (into #{}
                                        (map
-                                        #(session/with-no-session % [m]
-                                           (.getName m))
-                                        current-machines-in-group))
-           target-indices (range (+ node-count
-                                    (count current-machines-in-group)))
-           target-machine-names (into #{}
-                                      (map
-                                       #(machine-name group-name %)
-                                       target-indices))
-           target-machines-already-existing (clojure.set/intersection
-                                             current-machine-names
-                                             target-machine-names)
-           target-machines-to-create (clojure.set/difference
-                                      target-machine-names
-                                      target-machines-already-existing)]
-       (logging/debug (str "current-machine-names " current-machine-names))
-       (logging/debug (str "target-machine-names " target-machine-names))
-       (logging/debug (str "target-machines-already-existing "
-                           target-machines-already-existing))
-       (logging/debug (str "target-machines-to-create"
-                           target-machines-to-create))
+                                        #(machine-name group-name %)
+                                        target-indices))
+            target-machines-already-existing (clojure.set/intersection
+                                              current-machine-names
+                                              target-machine-names)
+            target-machines-to-create (clojure.set/difference
+                                       target-machine-names
+                                       target-machines-already-existing)]
+        (logging/debug (str "current-machine-names " current-machine-names))
+        (logging/debug (str "target-machine-names " target-machine-names))
+        (logging/debug (str "target-machines-already-existing "
+                            target-machines-already-existing))
+        (logging/debug (str "target-machines-to-create"
+                            target-machines-to-create))
 
-       ((get-in environment [:algorithms :vmfest :create-nodes-fn]
-                parallel-create-nodes)
-        target-machines-to-create server (:node-path locations)
-        group-spec images image-id
-        {:micro (machine-model (:image group-spec))}
-        group-name init-script user))))
+        ((get-in environment [:algorithms :vmfest :create-nodes-fn]
+                 parallel-create-nodes)
+         target-machines-to-create server (:node-path locations)
+         group-spec @images image-id
+         {:micro (machine-model template)}
+         group-name init-script user))))
 
   (reboot
-   [compute nodes]
-   (compute/shutdown server nodes nil)
-   (compute/boot-if-down server nodes))
+    [compute nodes]
+    (compute/shutdown server nodes nil)
+    (compute/boot-if-down server nodes))
 
   (boot-if-down
-   [compute nodes]
-   (doseq [node nodes]
-     (manager/start node)))
+    [compute nodes]
+    (doseq [node nodes]
+      (manager/start node)))
 
   (shutdown-node
-   [compute node _]
-   ;; todo: wait for completion
-   (logging/info (format "Shutting down %s" (pr-str node)))
-   (manager/power-down node)
-   (if-let [state (manager/wait-for-machine-state node [:powered-off] 300000)]
-     (logging/info (format "Machine state is %s" state))
-     (logging/warn "Failed to wait for power down completion"))
-   (manager/wait-for-lockable-session-state node 2000))
+    [compute node _]
+    ;; todo: wait for completion
+    (logging/infof "Shutting down %s" (pr-str node))
+    (manager/power-down node)
+    (if-let [state (manager/wait-for-machine-state node [:powered-off] 300000)]
+      (logging/infof "Machine state is %s" state)
+      (logging/warn "Failed to wait for power down completion"))
+    (manager/wait-for-lockable-session-state node 2000))
 
   (shutdown
-   [compute nodes user]
-   (doseq [node nodes]
-     (compute/shutdown-node server node user)))
+    [compute nodes user]
+    (doseq [node nodes]
+      (compute/shutdown-node server node user)))
 
   (destroy-nodes-in-group
     [compute group-name]
@@ -394,14 +434,58 @@
         (compute/destroy-node compute machine))))
 
   (destroy-node
-   [compute node]
-   {:pre [node]}
-   (compute/shutdown-node compute node nil)
-   (manager/destroy node))
+    [compute node]
+    {:pre [node]}
+    (compute/shutdown-node compute node nil)
+    (manager/destroy node))
+
+  (images [compute]
+    @images)
 
   (close [compute])
   pallet.environment.Environment
-  (environment [_] environment))
+  (environment [_] environment)
+  ImageManager
+  (install-image
+    [compute url {:as options}]
+    (logging/infof "installing image to %s" (:model-path locations))
+    (when-let [job (image/setup-model
+                    url server :models-dir (:model-path locations))]
+      (swap! images merge (:meta job))))
+  (publish-image [service image-kw blobstore container {:keys [path]}]
+    (if-let [image (image-kw @images)]
+      (session/with-vbox server [_ vbox]
+        (let [medium (virtualbox/find-medium vbox (:uuid image))
+              file (java.io.File. (.getLocation medium))]
+          (filesystem/with-temp-file [gzip-file]
+            (logging/infof "gzip to %s" (.getPath gzip-file))
+            (gzip file gzip-file)
+            (logging/infof "put gz %s" (.getPath gzip-file))
+            (try
+              (blobstore/put
+               blobstore container (or path (str (.getName file) ".gz"))
+               gzip-file)
+              (catch Exception e
+                (logging/error e "Upload failed"))))
+          (logging/info "put meta")
+          (blobstore/put
+           blobstore container
+           (string/replace (or path (.getName file)) #"\.vdi.*" ".meta")
+           (pr-str {image-kw (dissoc image :uuid)}))))
+      (let [msg (format
+                 "Could not find image %s. Known images are %s."
+                 image-kw (keys @images))]
+        (logging/error msg)
+        (condition/raise
+         {:type :pallet/unkown-image
+          :image image-kw
+          :known-images (keys @images)
+          :message msg}))))
+  (has-image? [_ image-kw]
+    ((or @images {}) image-kw)))
+
+(defn add-image [compute url & {:as options}]
+  (install-image compute url options))
 
 ;;;; Compute service
 (defmethod implementation/service :virtualbox
@@ -409,13 +493,16 @@
              environment]
       :or {url "http://localhost:18083/"
            identity "test"
-           credential "test"}
+           credential "test"
+           model-path (manager/default-model-path)
+           node-path (manager/default-node-path)}
       :as options}]
   (let [locations (or locations
-                      {:local (select-keys options [:node-path :model-path])})]
+                      {:local {:node-path node-path :model-path model-path}})
+        images (merge (manager/load-models :model-path model-path) images)]
     (VmfestService.
      (vmfest.virtualbox.model.Server. url identity credential)
-     images
+     (atom images)
      (val (first locations))
      environment)))
 

@@ -2,7 +2,7 @@
   (:gen-class)
   (:require
    [pallet.command-line :as command-line]
-   [clojure.contrib.logging :as logging]
+   [clojure.tools.logging :as logging]
    [clojure.stacktrace :as stacktrace]
    [clojure.walk :as walk]
    [clojure.string :as string]))
@@ -88,7 +88,7 @@
    not, then report the exception."
   [^Throwable e]
   (when-not (= e exit-task-exception)
-    (logging/error "Exception" e)
+    (logging/error e "Exception")
     (report-error (.getMessage e))
     (binding [*out* *err*]
       (stacktrace/print-stack-trace
@@ -98,7 +98,7 @@
   "A pallet task.
 
    Returns an integer exit status suitable for System/exit."
-  [args]
+  [args & {:keys [environment]}]
   (command-line/with-command-line args
     "Pallet command line"
     [[provider "Cloud provider name."]
@@ -137,7 +137,8 @@
                                :blobstore-credential blobstore-credential
                                :profiles (profiles P)
                                :project project-options
-                               :defaults defaults}
+                               :defaults defaults
+                               :environment environment}
                               task
                               params)))]
         (flush)

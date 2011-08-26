@@ -34,7 +34,8 @@
     (action/with-precedence {:action-id ::install-jpackage-compat}
       (package/add-rpm
        "jpackage-utils-compat-el5-0.0.1-1"
-       :url jpackage-utils-compat-rpm)))
+       :url jpackage-utils-compat-rpm
+       :insecure true))) ;; github's ssl doesn't validate
    (package/package "jpackage-utils")))
 
 (def jpackage-mirror-fmt

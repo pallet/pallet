@@ -16,13 +16,11 @@
    [pallet.phase :as phase]
    [pallet.script :as script]
    [pallet.session :as session]
+   [pallet.stevedore :as stevedore]
    [clojure.contrib.condition :as condition]
-   [clojure.contrib.logging :as logging]
+   [clojure.tools.logging :as logging]
    [clojure.set :as set]
-   [clojure.string :as string])
-  (:use
-   [clojure.contrib.def :only [defunbound defvar defvar- name-with-attributes]]
-   clojure.contrib.core))
+   [clojure.string :as string]))
 
 ;; The action plan is a stack of actions, where the action could itself
 ;; be a stack of actions (ie a tree of stacks)
@@ -182,7 +180,7 @@
   {:aggregated [group-by-function]
    :collected [group-by-function]})
 
-(defvar- execution-ordering [:aggregated :in-sequence :collected])
+(def ^{:private true} execution-ordering [:aggregated :in-sequence :collected])
 
 (defn- transform-execution
   "Transform an execution by applying execution-transforms."
@@ -523,19 +521,33 @@
 
 (defn execute-action
   "Execute a single action"
-  [executor [results session] {:keys [f action-type location] :as action}]
-  (let [[result session] (executor session f action-type location)]
-    [(conj results result) session]))
+  [executor session {:keys [f action-type location] :as action}]
+  (try
+    (executor session f action-type location)
+    (catch Exception e
+      [{:error {:message (format "Unexpected exception: %s" (.getMessage e))
+                :type :pallet/action-excution-error}}
+       session])))
 
 (defn execute
   "Execute actions by passing the un-evaluated actions to the `executor`
    function (a function with an arglist of [session f action-type location])."
-  [action-plan session executor]
+  [action-plan session executor execute-status-fn]
   (when-not (translated? action-plan)
     (condition/raise
      :type :pallet/execute-called-on-untranslated-action-plan
      :message "Attempt to execute an action plan that has not been translated"))
-  (reduce #(execute-action executor %1 %2) [[] session] action-plan))
+  (reduce
+   (fn [[results session flag] action]
+     (case flag
+       :continue (let [[result session] (execute-action
+                                         executor session action)]
+                   [(conj results result)
+                    session
+                    (execute-status-fn result flag)])
+       [[results session] action flag]))
+   [[] session :continue]
+   action-plan))
 
 
 ;;; Target specific functions
@@ -588,7 +600,8 @@
                 (phase (-> session :server :phases))
                 (phase (:inline-phases session)))]
       (script/with-script-context (script-template session)
-        (f (reset-for-target session)))
+        (stevedore/with-script-language :pallet.stevedore.bash/bash
+          (f (reset-for-target session))))
       session)))
 
 (defn get-for-target
@@ -604,8 +617,10 @@
 
 (defn execute-for-target
   "Execute the translated action plan for the current target."
-  [session executor]
+  [session executor execute-status-fn]
   {:pre [(:phase session)]}
   (script/with-script-context (script-template session)
-    (execute
-     (get-in session (target-path session)) session executor)))
+    (stevedore/with-script-language :pallet.stevedore.bash/bash
+      (execute
+       (get-in session (target-path session))
+       session executor execute-status-fn))))

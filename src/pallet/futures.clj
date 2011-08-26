@@ -2,7 +2,7 @@
   "Keep track of operations started by pallet"
   (:require
    [clojure.stacktrace :as stacktrace]
-   [clojure.contrib.logging :as logging])
+   [clojure.tools.logging :as logging])
   (:import
    java.util.concurrent.CancellationException
    java.util.concurrent.ExecutionException
@@ -39,15 +39,12 @@
   (try
     @f
     (catch CancellationException e
-      (logging/warn
-       (format "%s cancelled : %s" operation-label (.getMessage e))))
+      (logging/warnf "%s cancelled : %s" operation-label (.getMessage e)))
     (catch InterruptedException e
-      (logging/warn
-       (format "%s interrupted" operation-label)))
+      (logging/warnf "%s interrupted" operation-label))
     (catch ExecutionException e
       (let [cause (stacktrace/root-cause e)]
-        (logging/error
-         (format "%s exception: %s" operation-label
-                 (.getMessage cause)) cause))
-      (logging/debug
-       (format "%s exception" operation-label) (.getCause e)))))
+        (logging/errorf
+         cause "%s exception: %s" operation-label (.getMessage cause)))
+      (logging/debugf
+       (.getCause e) "%s exception" operation-label))))

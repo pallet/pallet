@@ -25,7 +25,7 @@ freenode irc.
 
 ## Usage
 
-There is an introductory [screencast](http://www.youtube.com/hugoduncan),
+There is an introductory [screencast](http://www.youtube.com/hugoduncan#p/u/1/adzMkR0d0Uk),
 showing a basic node configuration, and starting and stopping a node.
 
 ## Quickstart
@@ -47,7 +47,7 @@ Installation is with maven or your favourite maven repository aware build tool.
 
 ### lein/cake project.clj
 
-    :dependencies [[org.cloudhoist/pallet "0.6.2"]
+    :dependencies [[org.cloudhoist/pallet "0.6.3"]
                    [org.cloudhoist/pallet-crates-all "0.5.0"]]
     :repositories {"sonatype"
                    "http://oss.sonatype.org/content/repositories/releases"
@@ -60,7 +60,7 @@ Installation is with maven or your favourite maven repository aware build tool.
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>pallet</artifactId>
-        <version>0.6.2</version>
+        <version>0.6.3</version>
       </dependency>
       <dependency>
         <groupId>org.cloudhoist</groupId>

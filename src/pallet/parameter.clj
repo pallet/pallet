@@ -107,10 +107,15 @@
   "Retrieve the settings for the specified host facility. The instance-id allows
    the specification of specific instance of the facility. If passed a nil
    `instance-id`, then `:default` is used"
-  [session facility instance-id]
-  (get-for
-   session
-   [:host (-> session :server :node-id) facility (or instance-id :default)]))
+  ([session facility instance-id]
+     (get-for
+      session
+      [:host (-> session :server :node-id) facility (or instance-id :default)]))
+  ([session facility instance-id default]
+     (get-for
+      session
+      [:host (-> session :server :node-id) facility (or instance-id :default)]
+      default)))
 
 (defn- assoc-for-prefix
   "Set the values in a map at the paths specified with prefix prepended to each

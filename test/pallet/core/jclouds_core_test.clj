@@ -5,7 +5,7 @@
    [pallet.action.exec-script :as exec-script]
    [pallet.action.file :as file]
    [pallet.build-actions :as build-actions]
-   [pallet.common.logging.log4j :as log4j]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
    [pallet.compute.jclouds :as jclouds]
    [pallet.compute.jclouds-ssh-test :as ssh-test]
@@ -19,7 +19,7 @@
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
-   [clojure.contrib.logging :as logging]
+   [clojure.tools.logging :as logging]
    [clojure.string :as string])
   (:use
    clojure.test)
@@ -35,7 +35,7 @@
    :extensions
    [(ssh-test/ssh-test-client ssh-test/no-op-ssh-client)]))
 
-(use-fixtures :once (log4j/logging-threshold-fixture))
+(use-fixtures :once (logutils/logging-threshold-fixture))
 
 (deftest with-admin-user-test
   (let [x (rand)]
@@ -91,9 +91,10 @@
                          :environment
                          {:compute (jclouds-test-utils/compute)
                           :algorithms
-                          {:converge-fn
-                           #'pallet.core/serial-adjust-node-counts
-                           :lift-fn #'pallet.core/sequential-lift}}})
+                          (assoc core/default-algorithms
+                            :converge-fn
+                            #'pallet.core/serial-adjust-node-counts
+                            :lift-fn #'pallet.core/sequential-lift)}})
                        :all-nodes))))))
 
 (deftest parallel-converge-node-counts-test
@@ -119,9 +120,10 @@
                        :environment
                        {:compute (jclouds-test-utils/compute)
                         :algorithms
-                        {:converge-fn
-                         #'pallet.core/parallel-adjust-node-counts
-                         :lift-fn #'pallet.core/parallel-lift}}})
+                        (assoc core/default-algorithms
+                          :converge-fn
+                          #'pallet.core/parallel-adjust-node-counts
+                          :lift-fn #'pallet.core/parallel-lift)}})
                      :all-nodes))))))
 
 (deftest nodes-in-set-test
@@ -151,10 +153,10 @@
            (#'core/nodes-in-set {a a-node b b-node} "p" nil)))))
 
 (deftest node-in-types?-test
-  (defnode a {})
-  (defnode b {})
-  (is (#'core/node-in-types? [a b] (jclouds/make-node "a")))
-  (is (not (#'core/node-in-types? [a b] (jclouds/make-node "c")))))
+  (let [a (group-spec "a")
+        b (group-spec "b")]
+    (is (#'core/node-in-types? [a b] (jclouds/make-node "a")))
+    (is (not (#'core/node-in-types? [a b] (jclouds/make-node "c"))))))
 
 (def test-component
   (action/bash-action [session arg] (str arg)))
@@ -166,7 +168,7 @@
         seen? (fn [] @seen)]
     [(action/clj-action
        [session]
-       (clojure.contrib.logging/info (format "Seenfn %s" name))
+       (clojure.tools.logging/info (format "Seenfn %s" name))
        (is (not @seen))
        (reset! seen true)
        (is (:target-node session))
@@ -176,7 +178,7 @@
 
 (deftest lift-test
   (testing "jclouds"
-    (let [local (group-spec "local")
+    (let [local (group-spec "local" :image {:os-family :ubuntu})
           [localf seen?] (seen-fn "lift-test")]
       (is (.contains
            "bin"
@@ -284,7 +286,8 @@
         nodes (#'core/create-nodes
                1
                {:compute (jclouds-test-utils/compute)
-                :group (group-spec :a :servers [{:node a}])})]
+                :group (group-spec :a :servers [{:node a}])
+                :environment {:algorithms core/default-algorithms}})]
     (is (map? nodes))
     (is (= 1 (count (:new-nodes nodes))))))
 
@@ -309,8 +312,8 @@
 
 (deftest converge*-test
   (logging/info "converge*-test")
-  (let [a (make-node :a {})
-        b (make-node :b {})
+  (let [a (group-spec "a")
+        b (group-spec "b")
         na (jclouds/make-node "a")
         nb (jclouds/make-node "b")
         nb2 (jclouds/make-node "b" :id "b2" :state NodeState/TERMINATED)]
@@ -334,7 +337,7 @@
   (logging/info "converge*-test end"))
 
 (deftest converge-with-environment-test
-  (let [a (make-node :a {})]
+  (let [a (group-spec :a)]
     (mock/expects [(pallet.core/create-nodes
                     [count session]
                     (do
@@ -359,7 +362,7 @@
 
   (let [hi (action/bash-action [session] "Hi")
         id "c-t"
-        node (make-node "c-t" {} :configure hi)
+        node (group-spec "c-t" :phases {:configure hi})
         session (converge {node 2}
                           :compute (jclouds-test-utils/compute)
                           :middleware [core/translate-action-plan
@@ -419,13 +422,14 @@
                            [session]
                            (format
                             "echo %s" (parameter/get-for-target session [:x])))
-        node (make-node
-              "localhost" {}
-              :configure assoc-runtime-param
-              :configure2 (fn [session]
-                            (is (= (parameter/get-for-target session [:x])
-                                   "x"))
-                            (get-runtime-param session)))
+        node (group-spec
+              "localhost"
+              :phases
+              {:configure assoc-runtime-param
+               :configure2 (fn [session]
+                             (is (= (parameter/get-for-target session [:x])
+                                    "x"))
+                             (get-runtime-param session))})
         session (lift {node (jclouds/make-localhost-node)}
                       :phase [:configure :configure2]
                       :user (assoc utils/*admin-user*
@@ -445,9 +449,12 @@
 
 (deftest cluster-test
   (jclouds-test-utils/purge-compute-service)
-  (let [cluster (cluster-spec "c"
-                              :groups [(group-spec "g1" :count 1)
-                                       (group-spec "g2" :count 2)])]
+  (let [cluster (cluster-spec
+                 "c"
+                 :groups [(group-spec
+                           "g1" :count 1 :image {:os-family :ubuntu})
+                          (group-spec
+                           "g2" :count 2 :image {:os-family :ubuntu})])]
     (testing "converge-cluster"
       (let [session
             (converge-cluster cluster :compute (jclouds-test-utils/compute))]

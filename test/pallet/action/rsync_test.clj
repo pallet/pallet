@@ -5,7 +5,7 @@
   (:require
    [pallet.action :as action]
    [pallet.action.remote-file :as remote-file]
-   [pallet.common.logging.log4j :as log4j]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.core :as core]
    [pallet.phase :as phase]
    [pallet.stevedore :as stevedore]
@@ -14,7 +14,7 @@
    [pallet.utils :as utils]
    [clojure.contrib.io :as io]))
 
-(use-fixtures :once (log4j/logging-threshold-fixture))
+(use-fixtures :once (logutils/logging-threshold-fixture))
 
 (deftest rsync-test
   (core/with-admin-user (assoc utils/*admin-user*
@@ -38,7 +38,8 @@
           {:user user
            :middleware core/*middleware*
            :executor core/default-executors
-           :algorithms {:lift-fn core/sequential-lift}}})
+           :algorithms (assoc core/default-algorithms
+                         :lift-fn core/sequential-lift)}})
         (let [target-tmp (java.io.File.
                           (str (.getPath target-dir)
                                "/" (.getName dir)
@@ -57,7 +58,8 @@
           {:user user
            :middleware core/*middleware*
            :executor core/default-executors
-           :algorithms {:lift-fn core/sequential-lift}}})
+           :algorithms (assoc core/default-algorithms
+                         :lift-fn core/sequential-lift)}})
         (let [target-tmp (java.io.File.
                           (str (.getPath target-dir)
                                "/" (.getName dir)

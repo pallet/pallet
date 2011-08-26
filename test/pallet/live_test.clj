@@ -17,6 +17,7 @@
    and should specify one of the keys in `image-lists`."
   (:require
    [pallet.core :as core]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
    [clojure.string :as string]))
 
@@ -202,11 +203,11 @@
 
 (defn build-nodes
   "Build nodes using the node-types specs"
-  [service node-types specs]
+  [service node-types specs phases]
   (let [counts (counts specs)]
     (select-keys
      (->>
-      (core/converge counts :compute service)
+      (core/converge counts :phase phases :compute service)
       :all-nodes
       (group-by compute/group-name)
       (map #(vector (keyword (first %)) (second %)))
@@ -234,12 +235,14 @@
         (test-nodes [compute node-map node-types]
           {:tag {:image {:os-family :ubuntu} :count 1}}
           (lift mynode :phase :verify :compute compute))"
-  [[compute node-map node-types] specs & body]
+  [[compute node-map node-types & [phases & _]] specs & body]
   `(when *live-tests*
      (let [~compute (find-service)
            ~node-types (node-types ~specs)]
        (try
-         (let [~node-map (build-nodes ~compute ~node-types ~specs)]
+         (let [~node-map (build-nodes
+                          ~compute ~node-types ~specs
+                          [~@(or phases [:configure])])]
            ~@body)
          (finally
           (when *cleanup-nodes*
@@ -248,7 +251,17 @@
 (defmacro test-for
   "Loop over tests, in parallel or serial, depending on pallet.test.parallel."
   [[& bindings] & body]
-  `(when *live-tests*
-     (if *parallel*
-       (doseq [f# (doall (for [~@bindings] (future ~@body)))] @f#)
-       (doseq [~@bindings] ~@body))))
+  (let [v (first bindings)]
+    `(when *live-tests*
+       (if *parallel*
+         (doseq [f# (doall (for [~@bindings] (future ~@body)))] @f#)
+         (doseq [~@bindings]
+           (logutils/with-context
+             [:os (format
+                   "%s-%s-%s"
+                   (name (:os-family ~v))
+                   (name (:os-version-matches ~v "unspecified"))
+                   (if (:os-64-bit ~v) "64" "32"))
+              :os-family (:os-family ~v)
+              :os-version (:os-version-matches ~v "unspecified")]
+             ~@body))))))

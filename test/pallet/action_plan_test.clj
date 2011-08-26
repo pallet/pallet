@@ -1,6 +1,8 @@
 (ns pallet.action-plan-test
   (:require
-   [pallet.action-plan :as action-plan])
+   [pallet.action-plan :as action-plan]
+   [pallet.argument :as argument]
+   [pallet.core :as core])
   (:use
    clojure.test))
 
@@ -345,13 +347,13 @@
   (let [{:keys [session]} (f session)]
     [nil session]))
 
-(deftest excute-action-test
+(deftest execute-action-test
   (let [f (fn [session x] (str x))]
     (is (=
-         [["1"] {}]
+         ["1" {}]
          (action-plan/execute-action
           (executor {:script/bash {:target echo}})
-          [[] {}]
+          {}
           (action-plan/augment-return
            {:f (fn [session] "1")
             :location :target
@@ -368,11 +370,12 @@
                          (action-plan/action-map
                           f {} [2] :aggregated :script/bash :target)))]
     (is (=
-         [["[(1) (2)]\n"] {:a 1}]
+         [["[(1) (2)]\n"] {:a 1} :continue]
          (action-plan/execute
           (action-plan/translate action-plan)
           {:a 1}
-          (executor {:script/bash {:target echo}})))))
+          (executor {:script/bash {:target echo}})
+          core/stop-execution-on-error))))
   (testing "nested"
     (let [f (fn [session x] (str (vec x)))
           action-plan (-> nil
@@ -391,11 +394,12 @@
                            (action-plan/action-map
                             f {} [[4]] :in-sequence :script/bash :target)))]
       (is (=
-           [["[(3)]\n" "[(1) (2)]\n" "[4]\n"] {:a 1}]
+           [["[(3)]\n" "[(1) (2)]\n" "[4]\n"] {:a 1} :continue]
            (action-plan/execute
             (action-plan/translate action-plan)
             {:a 1}
-            (executor {:script/bash {:target echo}})))))))
+            (executor {:script/bash {:target echo}})
+            core/stop-execution-on-error))))))
 
 ;;; stubs for action precedence testing
 (def f (fn [session x] (str (vec x))))
@@ -473,8 +477,26 @@
                             g  {:always-before `fx}
                             [1] :in-sequence :script/bash :target)))]
       (is (=
-           [["1\n[(2)]\n"] {}]
+           [["1\n[(2)]\n"] {} :continue]
            (action-plan/execute
             (action-plan/translate action-plan)
             {}
-            (executor {:script/bash {:target echo}})))))))
+            (executor {:script/bash {:target echo}})
+            core/stop-execution-on-error))))))
+
+(deftest delayed-argument-test
+  (testing "delayed arguments"
+    (let [g (fn [session x] (str x))
+          action-plan (-> nil
+                          (action-plan/add-action
+                           (action-plan/action-map
+                            f {}
+                            [(pallet.argument/delayed [session] 1)]
+                            :aggregated :script/bash :target)))]
+      (is (=
+           [["[(1)]\n"] {} :continue]
+           (action-plan/execute
+            (action-plan/translate action-plan)
+            {}
+            (executor {:script/bash {:target echo}})
+            core/stop-execution-on-error))))))

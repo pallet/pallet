@@ -207,6 +207,7 @@
    attached to it.")
   (destroy-nodes-in-group [compute group-name])
   (destroy-node [compute node])
+  (images [compute])
   (close [compute]))
 
 
@@ -219,6 +220,11 @@
   (reduce #(assoc %1
              (keyword (tag %2))
              (inc (get %1 (keyword (tag %2)) 0))) {} nodes))
+
+(defn node?
+  "Predicate to test whether an object implements the Node protocol"
+  [obj]
+  (instance? pallet.compute.Node obj))
 
 ;;; target mapping
 (defn packager

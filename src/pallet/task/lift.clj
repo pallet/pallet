@@ -2,7 +2,7 @@
   "Apply configuration."
   (:require
    [pallet.core :as core]
-   [clojure.contrib.logging :as logging]))
+   [clojure.tools.logging :as logging]))
 
 (defn- build-args [args]
   (loop [args args
@@ -37,4 +37,5 @@
                            request
                            (dissoc :config :project)
                            (assoc :environment
-                             (-> request :project :environment))))))))
+                             (or (:environment request)
+                                 (-> request :project :environment)))))))))
