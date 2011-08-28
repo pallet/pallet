@@ -1020,6 +1020,7 @@
    session
    session-with-all-nodes
    session-with-groups
+   session-with-configure-phase
    converge-node-counts
    lift*))
 

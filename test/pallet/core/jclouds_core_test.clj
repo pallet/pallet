@@ -403,6 +403,14 @@
         (is (not (some
                   #(= "Hi\n" %)
                   (:configure (-> session :results first second)))))))
+    (testing ":settings and :configure phases are enforced"
+      (let [session (converge {node 1}
+                              :phase [:non-configure]
+                              :compute (jclouds-test-utils/compute)
+                              :node-set-selector #'core/new-node-set-selector
+                              :middleware [core/translate-action-plan
+                                           execute/execute-echo])]
+        (is (= [:settings :configure :non-configure] (:phase-list session)))))
     (testing "remove all instances"
       (let [session (converge {node 0}
                               :compute (jclouds-test-utils/compute)
