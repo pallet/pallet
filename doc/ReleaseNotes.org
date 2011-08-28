@@ -3,7 +3,13 @@
 #+DESCRIPTION: Release notes for pallet releases
 #+KEYWORDS: pallet palletops contribute
 
-The latest release is 0.6.3.
+The latest release is 0.6.4.
+
+
+* 0.6.4
+** Fixes
+- Fix the automatic addition of :configure to the converge phase-list
+  :configure was not being added if another phase was specified
 
 * 0.6.3
 ** Features
