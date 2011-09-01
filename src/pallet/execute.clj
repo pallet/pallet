@@ -327,14 +327,24 @@
                  "The session is missing server ssh connection details.\n"
                  "Add middleware to enable ssh.")))
     (let [ssh-session (or ssh-session
-                      (ssh/session
-                       server
-                       :username (:username user)
-                       :strict-host-key-checking :no
-                       :port port
-                       :password (:password user)))
+                          (ssh/session
+                           server
+                           :username (:username user)
+                           :strict-host-key-checking :no
+                           :port port
+                           :password (:password user)))
           _ (.setDaemonThread ssh-session true)
-          _ (when-not (ssh/connected? ssh-session) (ssh/connect ssh-session))
+          _ (when-not (ssh/connected? ssh-session)
+              (try
+                (ssh/connect ssh-session)
+                (catch Exception e
+                  (condition/raise
+                   :type :pallet/ssh-connection-failure
+                   :message (format
+                             "ssh-fail: server %s, port %s, user %s, group %s"
+                             server (or port 22) (:username user)
+                             (-> session :server :group-name))
+                   :cause e))))
           tmpfile (or tmpfile (ssh-mktemp ssh-session "sudocmd"))
           tmpcpy (or tmpcpy (ssh-mktemp ssh-session "tfer"))
           sftp-channel (or sftp-channel (ssh/ssh-sftp ssh-session))
