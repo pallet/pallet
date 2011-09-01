@@ -20,6 +20,7 @@
    `merge-key-algorithm`."
   (:require
    [pallet.common.deprecate :as deprecate]
+   [pallet.execute :as execute]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.tools.logging :as logging]
@@ -53,6 +54,8 @@
   node-keys [:image :phases])
 
 (def standard-pallet-keys (keys merge-key-algorithm))
+
+(def user-keys-to-shell-expand [:public-key-path :private-key-path])
 
 (defmulti merge-key
   "Merge function that dispatches on the map entry key"
@@ -133,6 +136,16 @@
       %)
    algorithms))
 
+(defn shell-expand-keys
+  "Shell expand the values matching the specified keys"
+  [user-map keys]
+  (reduce
+   (fn [m kwd]
+     (if (kwd m)
+       (update-in m [kwd] execute/local-script-expand)
+       m))
+   user-map keys))
+
 (defn eval-environment
   "Evaluate an environment literal.  This is used to replace certain keys with
    objects constructed from the map of values provided.  The keys that are
@@ -141,7 +154,8 @@
    - :phases
    - :algorithms"
   [env-map]
-  (let [env-map (if-let [user (:user env-map)]
+  (let [env-map (if-let [user (shell-expand-keys
+                               (:user env-map) user-keys-to-shell-expand)]
                   (if-let [username (:username user)]
                     (assoc
                         env-map :user

@@ -1,13 +1,10 @@
 (ns pallet.execute
   "Exectute commands.  At the moment the only available transport is ssh."
   (:require
-   [pallet.action-plan :as action-plan]
-   [pallet.action.file :as file]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.shell :as shell]
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
-   [pallet.environment :as environment]
    [pallet.script :as script]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -127,6 +124,11 @@
         (stevedore/script
          ~@body)))))
 
+(defn local-script-expand
+  "Expand a script expression."
+  [expr]
+  (string/trim (:out (local-script (echo ~expr)))))
+
 (defn verify-sh-return
   "Verify the return code of a sh execution"
   [msg cmd result]
@@ -151,28 +153,28 @@
      (let [cmd# (stevedore/checked-script ~msg ~@body)]
        (verify-sh-return ~msg cmd# (sh-script cmd#)))))
 
-(defn local-sh-cmds
-  "Execute cmds for the session.
-   Runs locally as the current user, so useful for testing."
-  [{:keys [root-path] :or {root-path "/tmp/"} :as session}]
-  (if (seq (action-plan/get-for-target session))
-    (letfn [(execute-bash
-             [cmdstring]
-             (logging/infof "Cmd %s" cmdstring)
-             (sh-script cmdstring))
-            (transfer
-             [transfers]
-             (logging/infof "Local transfer")
-             (doseq [[from to] transfers]
-               (logging/infof "Copying %s to %s" from to)
-               (io/copy (io/file from) (io/file to))))]
-      (action-plan/execute-for-target
-       session
-       {:script/bash execute-bash
-        :fn/clojure (fn [& _])
-        :transfer/to-local transfer
-        :transfer/from-local transfer}))
-    [nil session]))
+;; (defn local-sh-cmds
+;;   "Execute cmds for the session.
+;;    Runs locally as the current user, so useful for testing."
+;;   [{:keys [root-path] :or {root-path "/tmp/"} :as session}]
+;;   (if (seq (action-plan/get-for-target session))
+;;     (letfn [(execute-bash
+;;              [cmdstring]
+;;              (logging/infof "Cmd %s" cmdstring)
+;;              (sh-script cmdstring))
+;;             (transfer
+;;              [transfers]
+;;              (logging/infof "Local transfer")
+;;              (doseq [[from to] transfers]
+;;                (logging/infof "Copying %s to %s" from to)
+;;                (io/copy (io/file from) (io/file to))))]
+;;       (action-plan/execute-for-target
+;;        session
+;;        {:script/bash execute-bash
+;;         :fn/clojure (fn [& _])
+;;         :transfer/to-local transfer
+;;         :transfer/from-local transfer}))
+;;     [nil session]))
 
 ;;; ssh
 

@@ -16,7 +16,6 @@
   (:require
    [pallet.action-plan :as action-plan]
    [pallet.argument :as argument]
-   [pallet.session :as session]
    [clojure.contrib.condition :as condition]
    [clojure.contrib.def :as ccdef]
    [clojure.tools.logging :as logging]
@@ -58,8 +57,8 @@
                           and remote destination."
   [session action-fn metadata args execution action-type location]
   {:pre [session
-         (keyword? (session/phase session))
-         (keyword? (session/target-id session))]}
+         (keyword? (:phase session))
+         (keyword? (-> session :server :node-id))]}
   (update-in
    session
    (action-plan/target-path session)

@@ -1,6 +1,7 @@
 (ns pallet.environment-test
   (:require
-   [pallet.environment :as environment])
+   [pallet.environment :as environment]
+   [clojure.java.io :as io])
   (:use
    clojure.test))
 
@@ -53,6 +54,13 @@
            (:user (environment/eval-environment env))))
       (is (= "u"
              (-> (environment/eval-environment env) :user :username)))))
+  (testing "user with shell expand"
+    (let [env {:user {:username "u" :public-key-path "~/a"}}]
+      (is (instance?
+           pallet.utils.User
+           (:user (environment/eval-environment env))))
+      (is (= (.getAbsolutePath (io/file (System/getProperty "user.home") "a"))
+             (-> (environment/eval-environment env) :user :public-key-path)))))
   (testing "arguments"
     (let [env {:algorithms {:lift-fn 'pallet.core/parallel-apply-phase}}
           f (-> (environment/eval-environment env) :algorithms :lift-fn)]

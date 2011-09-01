@@ -137,6 +137,9 @@
 (deftest local-script-test
   (is (zero? (:exit (local-script "ls")))))
 
+(deftest local-script-expand-test
+  (is (= (System/getProperty "user.home") (local-script-expand "~"))))
+
 (deftest local-checked-script-test
   (is (zero? (:exit (local-checked-script "ls should work" "ls")))))
 

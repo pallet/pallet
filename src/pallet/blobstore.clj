@@ -1,8 +1,7 @@
 (ns pallet.blobstore
   "Blobstore abstraction"
   (:require
-   [pallet.blobstore.implementation :as implementation]
-   [pallet.configure :as configure]))
+   [pallet.blobstore.implementation :as implementation]))
 
 ;;; Compute Service instantiation
 (defn service
@@ -48,7 +47,12 @@
 (defn blobstore-from-config
   "Create a blobstore service form a configuration map."
   [config profiles]
-  (let [config (configure/compute-service-properties config profiles)
+  ;; hack until we can split configuration completely into its own namespace
+  (require 'pallet.configure)
+  (let [compute-service-properties (ns-resolve
+                                    'pallet.configure
+                                    'compute-service-properties)
+        config (compute-service-properties config profiles)
         {:keys [provider identity credential]} (merge
                                                 (update-in
                                                  config [:provider]
@@ -61,9 +65,12 @@
 (defn blobstore-from-config-file
   "Create a blobstore service form a configuration map."
   [& profiles]
-  (blobstore-from-config
-   (configure/pallet-config)
-   profiles))
+  ;; hack until we can split configuration completely into its own namespace
+  (require 'pallet.configure)
+  (let [pallet-config (ns-resolve 'pallet.configure 'pallet.config)]
+    (blobstore-from-config
+     (pallet-config)
+     profiles)))
 
 (defprotocol Blobstore
   (sign-blob-request

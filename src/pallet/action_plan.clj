@@ -15,7 +15,6 @@
    [pallet.argument :as argument]
    [pallet.phase :as phase]
    [pallet.script :as script]
-   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    [clojure.contrib.condition :as condition]
    [clojure.tools.logging :as logging]
@@ -561,9 +560,9 @@
   "Return the vector path of the action plan for the current session target
    node."
   [session]
-  {:pre [(keyword? (session/phase session))
-         (keyword? (session/target-id session))]}
-  (target-path* (session/phase session) (session/target-id session)))
+  {:pre [(keyword? (:phase session))
+         (keyword? (-> session :server :node-id))]}
+  (target-path* (:phase session) (-> session :server :node-id)))
 
 (defn script-template-for-server
   "Return the script template for the specified server."
@@ -587,7 +586,7 @@
   [session]
   {:pre [(:phase session)]}
   (reduce
-   #(assoc-in %1 (target-path* %2 (session/target-id session)) nil)
+   #(assoc-in %1 (target-path* %2 (-> session :server :node-id)) nil)
    session
    (phase/all-phases-for-phase (:phase session))))
 

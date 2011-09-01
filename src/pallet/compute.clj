@@ -2,8 +2,6 @@
   "Abstraction of the compute interface"
   (:require
    [pallet.compute.implementation :as implementation]
-   [pallet.configure :as configure]
-   [pallet.environment :as environment]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string])
@@ -40,7 +38,11 @@
    The :extensions and :node-list keys will be read with read-string if they
    are strings."
   [credentials]
-  (let [options {:identity (:identity credentials)
+  ;; hack until we can split configuration completely into its own namespace
+  (require 'pallet.environment)
+  (let [merge-environments (ns-resolve 'pallet.environment 'merge-environments)
+        eval-environment (ns-resolve 'pallet.environment 'eval-environment)
+        options {:identity (:identity credentials)
                  :credential (:credential credentials)
                  :extensions (when-let [extensions (:extensions credentials)]
                                (if (string? extensions)
@@ -54,8 +56,8 @@
                                 node-list))
                  :endpoint (:endpoint credentials)
                  :environment
-                 (environment/merge-environments
-                  (environment/eval-environment
+                 (merge-environments
+                  (eval-environment
                    (:environment credentials))
                   (-?> 'cake/*project* resolve var-get :environment))}]
     (when-let [provider (:provider credentials)]
@@ -101,29 +103,38 @@
   "Compute service from a configuration map and a list of active profiles
    (provider keys)."
   [config profiles]
-  (let [{:keys [provider identity credential]
+  ;; hack until we can split configuration completely into its own namespace
+  (require 'pallet.configure 'pallet.environment)
+  (let [compute-service-properties (ns-resolve
+                                    'pallet.configure
+                                    'compute-service-properties)
+        merge-environments (ns-resolve 'pallet.environment 'merge-environments)
+        {:keys [provider identity credential]
          :as options}
-        (configure/compute-service-properties config profiles)]
+        (compute-service-properties config profiles)]
     (when provider
       (apply compute-service
-       provider :identity identity :credential credential
-       (apply
-        concat
-        (->
-          options
-          (dissoc :provider :identity :credential)
-          (update-in
-           [:environment]
-           environment/merge-environments
-           (-?> 'cake/*project* resolve var-get :environment))))))))
+             provider :identity identity :credential credential
+             (apply
+              concat
+              (->
+               options
+               (dissoc :provider :identity :credential)
+               (update-in
+                [:environment]
+                merge-environments
+                (-?> 'cake/*project* resolve var-get :environment))))))))
 
 (defn compute-service-from-config-file
   "Compute service from ~/.pallet/config.clj. Profiles is a sequence of service
    keys to use from the :services map."
   [& profiles]
-  (compute-service-from-config
-   (configure/pallet-config)
-   profiles))
+  ;; hack until we can split configuration completely into its own namespace
+  (require 'pallet.configure)
+  (let [pallet-config (ns-resolve 'pallet.configure 'pallet.config)]
+    (compute-service-from-config
+     (pallet-config)
+     profiles)))
 
 (defn service
   "Instantiate a compute service.
