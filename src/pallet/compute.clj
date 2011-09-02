@@ -90,6 +90,54 @@
   [obj]
   (instance? pallet.compute.Node obj))
 
+;;; Hierarchies
+
+(def os-hierarchy
+  (-> (make-hierarchy)
+      (derive :linux :os)
+
+      ;; base distibutions
+      (derive :rh-base :linux)
+      (derive :debian-base :linux)
+      (derive :arch-base :linux)
+      (derive :suse-base :linux)
+      (derive :bsd-base :linux)
+      (derive :gentoo-base :linux)
+
+      ;; distibutions
+      (derive :centos :rh-base)
+      (derive :rhel :rh-base)
+      (derive :amzn-linux :rh-base)
+      (derive :fedora :rh-base)
+
+      (derive :debian :debian-base)
+      (derive :ubuntu :debian-base)
+      (derive :jeos :debian-base)
+
+      (derive :arch :arch-base)
+      (derive :gentoo :gentoo-base)
+      (derive :darwin :bsd-base)
+      (derive :osx :bsd-base)))
+
+(defmacro defmulti-os
+  "Defines a defmulti used to abstract over the target operating system. The
+   function dispatches based on the target operating system, that is extracted
+   from the session passed as the first argument.
+
+   Version comparisons are not included"
+  [name [& args]]
+  `(do
+     (defmulti ~name
+       (fn [~@args] (-> ~(first args) :server :image :os-family))
+       :hierarchy #'os-hierarchy)
+
+     (defmethod ~name :default [~@args]
+       (condition/raise
+        :message (format
+                  "%s does not support %s"
+                  ~name (-> ~(first args) :server :image :os-family))
+        :type :pallet/unsupported-os))))
+
 ;;; target mapping
 (defn packager
   "Package manager"
