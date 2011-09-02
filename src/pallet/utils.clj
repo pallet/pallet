@@ -146,17 +146,6 @@
    The admin user can also be specified in config.clj when running tasks
    from the command line.")
 
-(defn admin-user-from-config-var
-  "Set the admin user based on pallet.config setup."
-  []
-  (find-var-with-require 'pallet.config 'admin-user))
-
-(defn admin-user-from-config
-  "Set the admin user based on a config map"
-  [config]
-  (when-let [admin-user (:admin-user config)]
-    (apply make-user (:username admin-user) (apply concat admin-user))))
-
 (defmacro with-temp-file
   "Create a block where `varname` is a temporary `File` containing `content`."
   [[varname content] & body]
@@ -303,3 +292,17 @@
   `(do
      ~@(for [sym symbols]
          (list `def sym (symbol "pallet.script.lib" (name sym))))))
+
+(defmacro fwd-to-configure [name & [as-name & _]]
+  `(defn ~name [& args#]
+     (require '~'pallet.configure)
+     (let [f# (ns-resolve '~'pallet.configure '~(or as-name name))]
+       (apply f# args#))))
+
+
+;;; forward with deprecation warnings
+;;;   admin-user-from-config-var
+;;;   admin-user-from-config
+
+(fwd-to-configure admin-user-from-config-var)
+(fwd-to-configure admin-user-from-config)

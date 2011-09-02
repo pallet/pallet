@@ -72,18 +72,6 @@
             :no-sudo true}
            (into {} (make-user username :no-sudo true))))))
 
-(in-ns 'pallet.config)
-(def admin-user (pallet.utils/make-user "fred"))
-(in-ns 'pallet.utils-test)
-
-(deftest admin-user-from-config-var-test
-  (let [admin-user (admin-user-from-config-var)]
-    (is (= "fred" (:username admin-user)))))
-
-(deftest admin-user-from-config-test
-  (let [admin-user (admin-user-from-config {:admin-user {:username "fred"}})]
-    (is (= "fred" (:username admin-user)))))
-
 (deftest middleware-test
   (let [f1 (fn [c] (fn [x] (c (inc x))))
         f2 (fn [c] (fn [x] (c (* 2 x))))

@@ -4,9 +4,9 @@
    the world."
   (:require
    [clojure.tools.logging :as logging]
+   [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
-   [pallet.blobstore :as blobstore]
    [pallet.utils :as utils]
    [pallet.main :as main]))
 
@@ -30,47 +30,47 @@
   "Return the admin user"
   [defaults project profiles]
   (or
-   (utils/admin-user-from-config (:pallet project))
-   (utils/admin-user-from-config defaults)
-   (utils/admin-user-from-config-var)
+   (configure/admin-user-from-config (:pallet project))
+   (configure/admin-user-from-config defaults)
+   (configure/admin-user-from-config-var)
    utils/*admin-user*))
 
 (defn compute-service-from-config-files
   [defaults project profiles]
   (or
-   (compute/compute-service-from-config (:pallet project) profiles)
-   (compute/compute-service-from-config defaults profiles)
-   (apply compute/compute-service-from-settings profiles)))
+   (configure/compute-service-from-config (:pallet project) profiles)
+   (configure/compute-service-from-config defaults profiles)
+   (apply configure/compute-service-from-settings profiles)))
 
 (defn find-compute-service
   "Look for a compute service in the following sequence:
-     Check pallet.config.service property,
-     check maven settings,
+     Check pallet.config.service property
+     check maven settings
      check pallet.config/service var.
    This sequence allows you to specify an overridable default in
    pallet.config/service."
   [options defaults project profiles]
   (or
-   (compute/compute-service-from-map options)
+   (configure/compute-service-from-map options)
    (when (seq profiles)
      (compute-service-from-config-files defaults project profiles))
-   (compute/compute-service-from-property)
-   (compute/compute-service-from-config-var)
+   (configure/compute-service-from-property)
+   (configure/compute-service-from-config-var)
    (compute-service-from-config-files defaults project profiles)))
 
 (defn find-blobstore
   "Look for a compute service in the following sequence:
-     Check pallet.config.service property,
-     check maven settings,
+     Check pallet.config.service property
+     check maven settings
      check pallet.config/service var.
    This sequence allows you to specify an overridable default in
    pallet.config/service."
   [options defaults project profiles]
   (or
-   (blobstore/blobstore-from-map options)
-   (blobstore/blobstore-from-config (:pallet project) profiles)
-   (blobstore/blobstore-from-config defaults profiles)
-   (apply blobstore/blobstore-from-settings profiles)))
+   (configure/blobstore-from-map options)
+   (configure/blobstore-from-config (:pallet project) profiles)
+   (configure/blobstore-from-config defaults profiles)
+   (apply configure/blobstore-from-settings profiles)))
 
 (defn invoke
   [options task params]

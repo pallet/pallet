@@ -3,10 +3,7 @@
   (:require
    [pallet.compute.implementation :as implementation]
    [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]
-   [clojure.string :as string])
-  (:use
-   [clojure.contrib.core :only [-?>]]))
+   [clojure.contrib.condition :as condition]))
 
 
 ;;; Meta
@@ -31,150 +28,6 @@
       :as options}]
   (implementation/load-providers)
   (implementation/service provider-name options))
-
-(defn compute-service-from-map
-  "Create a compute service from a credentials map.
-   Uses the :provider, :identity, :credential, :extensions and :node-list keys.
-   The :extensions and :node-list keys will be read with read-string if they
-   are strings."
-  [credentials]
-  ;; hack until we can split configuration completely into its own namespace
-  (require 'pallet.environment)
-  (let [merge-environments (ns-resolve 'pallet.environment 'merge-environments)
-        eval-environment (ns-resolve 'pallet.environment 'eval-environment)
-        options {:identity (:identity credentials)
-                 :credential (:credential credentials)
-                 :extensions (when-let [extensions (:extensions credentials)]
-                               (if (string? extensions)
-                                 (map
-                                  read-string
-                                  (string/split extensions #" "))
-                                 extensions))
-                 :node-list (when-let [node-list (:node-list credentials)]
-                              (if (string? node-list)
-                                (read-string node-list)
-                                node-list))
-                 :endpoint (:endpoint credentials)
-                 :environment
-                 (merge-environments
-                  (eval-environment
-                   (:environment credentials))
-                  (-?> 'cake/*project* resolve var-get :environment))}]
-    (when-let [provider (:provider credentials)]
-      (apply
-       compute-service
-       provider
-       (apply concat (filter second options))))))
-
-(defn compute-service-from-settings
-  "Create a compute service from maven property settings.
-   In Maven's settings.xml you can define a profile, that contains
-   pallet.compute.provider, pallet.compute.identity and
-   pallet.compute.credential values."
-  [& profiles]
-  (try
-    (require 'pallet.maven) ; allow running without maven jars
-    (when-let [f (ns-resolve 'pallet.maven 'credentials)]
-      (compute-service-from-map (f profiles)))
-    (catch ClassNotFoundException _)
-    (catch clojure.lang.Compiler$CompilerException _)))
-
-(defn- compute-service-from-var
-  [ns sym]
-  (utils/find-var-with-require ns sym))
-
-(defn compute-service-from-config-var
-  "Checks to see if pallet.config/service is a var, and if so returns its
-  value."
-  []
-  (compute-service-from-var 'pallet.config 'service))
-
-(defn compute-service-from-property
-  "If the pallet.config.service property is defined, and refers to a var, then
-   return its value."
-  []
-  (when-let [property (System/getProperty "pallet.config.service")]
-    (when-let [sym-names (and (re-find #"/" property)
-                              (string/split property #"/"))]
-      (compute-service-from-var
-       (symbol (first sym-names)) (symbol (second sym-names))))))
-
-(defn compute-service-from-config
-  "Compute service from a configuration map and a list of active profiles
-   (provider keys)."
-  [config profiles]
-  ;; hack until we can split configuration completely into its own namespace
-  (require 'pallet.configure 'pallet.environment)
-  (let [compute-service-properties (ns-resolve
-                                    'pallet.configure
-                                    'compute-service-properties)
-        merge-environments (ns-resolve 'pallet.environment 'merge-environments)
-        {:keys [provider identity credential]
-         :as options}
-        (compute-service-properties config profiles)]
-    (when provider
-      (apply compute-service
-             provider :identity identity :credential credential
-             (apply
-              concat
-              (->
-               options
-               (dissoc :provider :identity :credential)
-               (update-in
-                [:environment]
-                merge-environments
-                (-?> 'cake/*project* resolve var-get :environment))))))))
-
-(defn compute-service-from-config-file
-  "Compute service from ~/.pallet/config.clj. Profiles is a sequence of service
-   keys to use from the :services map."
-  [& profiles]
-  ;; hack until we can split configuration completely into its own namespace
-  (require 'pallet.configure)
-  (let [pallet-config (ns-resolve 'pallet.configure 'pallet.config)]
-    (compute-service-from-config
-     (pallet-config)
-     profiles)))
-
-(defn service
-  "Instantiate a compute service.
-
-   If passed no arguments, then the compute service is looked up in the
-   following order:
-   - from a var referenced by the pallet.config.service system property
-   - from pallet.config/service if defined
-   - the first service in config.xlj
-   - the service from the first active profile in settings.xml
-
-   If passed a service name, it is looked up in external
-   configuration (~/.pallet/config.clj or ~/.m2/settings.xml). A service name is
-   one of the keys in the :services map in config.clj, or a profile id in
-   settings.xml.
-
-   When passed a provider name and credentials, the service is instantiated
-   based on the credentials.  The provider name should be a recognised provider
-   name (see `pallet.compute/supported-providers` to obtain a list of these).
-
-   The other arguments are keyword value pairs.
-   - :identity     username or key
-   - :credential   password or secret
-   - :extensions   extension modules for jclouds
-   - :node-list    a list of nodes for the \"node-list\" provider.
-   - :environment  an environment map with service specific values."
-  ([]
-     (or
-      (compute-service-from-property)
-      (compute-service-from-config-var)
-      (compute-service-from-config-file)
-      (compute-service-from-settings)))
-  ([service-name]
-     (or
-      (compute-service-from-config-file service-name)
-      (compute-service-from-settings service-name)))
-  ([provider-name
-    & {:keys [identity credential extensions node-list endpoint environment]
-       :as options}]
-     (apply compute-service provider-name (apply concat options))))
 
 ;;; Nodes
 (defprotocol Node
@@ -283,3 +136,20 @@
     :centos "wheel"
     :rhel "wheel"
     "adm"))
+
+;;; forward moved functions
+;;;   compute-service-from-map
+;;;   compute-service-from-settings
+;;;   compute-service-from-config-var
+;;;   compute-service-from-property
+;;;   compute-service-from-config
+;;;   compute-service-from-config-file
+;;;   service -> configure/compute-service
+
+(utils/fwd-to-configure compute-service-from-map)
+(utils/fwd-to-configure compute-service-from-settings)
+(utils/fwd-to-configure compute-service-from-config-var)
+(utils/fwd-to-configure compute-service-from-property)
+(utils/fwd-to-configure compute-service-from-config)
+(utils/fwd-to-configure compute-service-from-config-file)
+(utils/fwd-to-configure service compute-service)
