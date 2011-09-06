@@ -19,7 +19,6 @@
    [clojure.contrib.condition :as condition]
    [pallet.common.def :as ccdef]
    [clojure.tools.logging :as logging]
-   [clojure.contrib.seq :as seq]
    [clojure.set :as set]
    [clojure.string :as string]))
 
