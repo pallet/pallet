@@ -11,7 +11,6 @@
    pallet.core
    pallet.phase
    pallet.action.package
-   pallet.task.feedback
    clj-ssh.ssh))
 
 (defmacro use-pallet
@@ -28,5 +27,4 @@
       'pallet.core
       'pallet.phase
       'pallet.action.package
-      'pallet.task.feedback
       'clj-ssh.ssh)))
