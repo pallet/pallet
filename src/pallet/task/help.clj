@@ -8,9 +8,9 @@
   "Find the available tasks."
   []
   (try
-   (require 'clojure.contrib.find-namespaces)
+   (require 'clojure.tools.namespace)
    (let [find-namespaces-on-classpath
-         (find-var 'clojure.contrib.find-namespaces/find-namespaces-on-classpath)]
+         (find-var 'clojure.tools.namespace/find-namespaces-on-classpath)]
      (or @task-list
          (reset! task-list
                  (set (filter #(re-find impl-ns (name %))

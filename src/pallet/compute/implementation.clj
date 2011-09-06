@@ -2,9 +2,9 @@
   "Implementation details"
   (:require
    [pallet.utils :as utils]
-   [clojure.contrib.find-namespaces :as find-namespaces]
+   [clojure.tools.namespace :as namespace]
    [clojure.tools.logging :as logging]
-   [clojure.contrib.classpath :as cp]))
+   [clojure.java.classpath :as cp]))
 
 (defmulti service
   "Instantiate a compute service. Providers should implement a method for this.
@@ -25,7 +25,7 @@
   (try
     (binding [cp/classpath utils/classpath
               cp/classpath-jarfiles utils/classpath-jarfiles]
-      (->> (find-namespaces/find-namespaces-on-classpath)
+      (->> (namespace/find-namespaces-on-classpath)
            (filter #(re-find compute-regex (name %)))
            (remove #(re-find exclude-regex (name %)))
            (remove exclude-compute-ns)

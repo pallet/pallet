@@ -2,7 +2,7 @@
   "Implementation details"
   (:require
    [pallet.utils :as utils]
-   [clojure.contrib.find-namespaces :as find-namespaces]))
+   [clojure.tools.namespace :as namespace]))
 
 (defmulti service
   "Instantiate a blobstore. Providers should implement a method for this.
@@ -19,8 +19,8 @@
   "Find the available providers."
   []
   (try
-    (binding [clojure.contrib.classpath/classpath utils/classpath]
-      (->> (find-namespaces/find-namespaces-on-classpath)
+    (binding [clojure.java.classpath/classpath utils/classpath]
+      (->> (namespace/find-namespaces-on-classpath)
            (filter #(re-find blobstore-regex (name %)))
            (remove #(re-find exclude-regex (name %)))
            (remove exclude-blobstore-ns)
