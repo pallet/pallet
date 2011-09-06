@@ -2,7 +2,7 @@
   "Utilities used across pallet."
   (:require
    [clojure.java.io :as io]
-   [clojure.contrib.pprint :as pprint]
+   [clojure.pprint :as pprint]
    [clojure.tools.logging :as logging])
   (:use
    clojure.tools.logging)
