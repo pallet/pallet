@@ -234,7 +234,7 @@
 	<activeByDefault>true</activeByDefault>
       </activation>
       <properties>
-        <jclouds.version>1.0.0</jclouds.version>
+        <jclouds.version>1.1.1</jclouds.version>
       </properties>
       <dependencies>
         <dependency>
@@ -278,7 +278,7 @@
 	<activeByDefault>false</activeByDefault>
       </activation>
       <properties>
-        <jclouds.version>1.1.0-SNAPSHOT</jclouds.version>
+        <jclouds.version>1.2.0-SNAPSHOT</jclouds.version>
       </properties>
     </profile>
 

@@ -57,53 +57,51 @@
 ;;; Node utilities
 (defmacro impl-fns
   []
-  (let [ctors (.getDeclaredConstructors HardwareImpl)]
-    (if (= 10 (count (.getParameterTypes (first ctors))))
-      ;; jclouds up to beta-9c
-      `(do
-         (defn hardware-impl
-           [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
-            ~'processors ~'ram ~'volumes ~'image-supported-fn]
-           (HardwareImpl.
-            ~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata
-            ~'processors ~'ram ~'volumes ~'image-supported-fn))
-         (defn node-metadata-impl
-           [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
-            ~'group-name ~'hardware ~'image-id ~'os ~'state ~'login-port
-            ~'public-ips ~'private-ips ~'admin-password ~'credentials]
-           (NodeMetadataImpl.
-            ~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata
-            ~'group-name ~'hardware ~'image-id ~'os ~'state ~'login-port
-            ~'public-ips ~'private-ips ~'admin-password ~'credentials))
-         (defn image-impl
-           [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
-            ~'os ~'description ~'version ~'admin-password ~'credentials]
-           (ImageImpl.
-            ~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata
-            ~'os ~'description ~'version ~'admin-password ~'credentials)))
-      ;; jclouds after beta-9c (added tags)
-      `(do
-         (defn hardware-impl
-           [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
-            ~'processors ~'ram ~'volumes ~'image-supported-fn]
-           (HardwareImpl.
-            ~'provider-id ~'name ~'id ~'location ~'uri
-            ~'user-metadata ~'tags
-            ~'processors ~'ram ~'volumes ~'image-supported-fn))
-         (defn node-metadata-impl
-           [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
-            ~'group-name ~'hardware ~'image-id ~'os ~'state ~'login-port
-            ~'public-ips ~'private-ips ~'admin-password ~'credentials]
-           (NodeMetadataImpl.
-            ~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
-            ~'group-name ~'hardware ~'image-id ~'os ~'state ~'login-port
-            ~'public-ips ~'private-ips ~'admin-password ~'credentials))
-         (defn image-impl
-           [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
-            ~'os ~'description ~'version ~'admin-password ~'credentials]
-           (ImageImpl.
-            ~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
-            ~'os ~'description ~'version ~'admin-password ~'credentials))))))
+  (let [hw-ctors (.getDeclaredConstructors HardwareImpl)
+        nm-ctors (.getDeclaredConstructors NodeMetadataImpl)
+        ;; jclouds beta-9c introduced tags
+        has-tags (= 11 (count (.getParameterTypes (first hw-ctors))))
+        ;; jclouds 1.1.0 introduced hostname
+        has-hostname (= 18 (count (.getParameterTypes (first nm-ctors))))]
+    `(do
+       (defn hardware-impl
+         [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
+          ~'processors ~'ram ~'volumes ~'image-supported-fn]
+         ~(if has-tags
+            '(HardwareImpl.
+              provider-id name id location uri user-metadata tags
+              processors ram volumes image-supported-fn)
+            '(HardwareImpl.
+              provider-id name id location uri user-metadata
+              processors ram volumes image-supported-fn)))
+       (defn node-metadata-impl
+         [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
+          ~'group-name ~'hardware ~'image-id ~'os ~'state ~'login-port
+          ~'public-ips ~'private-ips ~'admin-password ~'credentials ~'hostname]
+         ~(if has-hostname
+            '(NodeMetadataImpl.
+              provider-id name id location uri user-metadata tags
+              group-name hardware image-id os state login-port
+              public-ips private-ips admin-password credentials hostname)
+            (if has-tags
+              '(NodeMetadataImpl.
+                provider-id name id location uri user-metadata tags
+                group-name hardware image-id os state login-port
+                public-ips private-ips admin-password credentials)
+              '(NodeMetadataImpl.
+                provider-id name id location uri user-metadata
+                group-name hardware image-id os state login-port
+                public-ips private-ips admin-password credentials))))
+       (defn image-impl
+         [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
+          ~'os ~'description ~'version ~'admin-password ~'credentials]
+         ~(if has-tags
+            '(ImageImpl.
+              provider-id name id location uri user-metadata tags
+              os description version admin-password credentials)
+            '(ImageImpl.
+              provider-id name id location uri user-metadata
+              os description version admin-password credentials))))))
 
 (impl-fns)
 
@@ -197,7 +195,8 @@
      (options :public-ips [])
      (options :private-ips [])
      (options :admin-password)
-     (options :credentials nil))))
+     (options :credentials nil)
+     (options :hostname (str (gensym group-name))))))
 
 (defn make-unmanaged-node
   "Make a node that is not created by pallet's node management.
@@ -229,7 +228,8 @@
      (conj (get options :public-ips []) host-or-ip)
      (options :private-ips [])
      (options :admin-password)
-     (options :credentials nil))))
+     (options :credentials nil)
+     (options :hostname (str (gensym group-name))))))
 
 
 (defn make-image
