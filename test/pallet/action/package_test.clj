@@ -17,7 +17,7 @@
    [pallet.stevedore :as stevedore]
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
-   [clojure.contrib.io :as io]))
+   [clojure.java.io :as io]))
 
 (use-fixtures
  :each

@@ -18,7 +18,7 @@
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
-   [clojure.contrib.io :as io]
+   [clojure.java.io :as io]
    [clojure.tools.logging :as logging]))
 
 (use-fixtures
