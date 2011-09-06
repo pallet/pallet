@@ -1,8 +1,7 @@
 (ns pallet.action.user
   "User management action."
   (:use
-   [pallet.script :only [defscript]]
-   [clojure.contrib.def :only [defvar-]])
+   [pallet.script :only [defscript]])
   (:require
    [pallet.action :as action]
    [pallet.script.lib :as lib]
@@ -10,10 +9,11 @@
    [clojure.contrib.string :as string]))
 
 
-(defvar- shell-names
+(def
+  ^{:doc "Map for looking up shell path based on keyword." :private true}
+  shell-names
   {:bash "/bin/bash" :csh "/bin/csh" :ksh "/bin/ksh" :rsh "/bin/rsh"
-   :sh "/bin/sh" :tcsh "/bin/tcsh" :zsh "/bin/zsh" :false "/bin/false"}
-  "Map for looking up shell path based on keyword.")
+   :sh "/bin/sh" :tcsh "/bin/tcsh" :zsh "/bin/zsh" :false "/bin/false"})
 
 (defn user*
   "Require a user"

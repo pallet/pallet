@@ -17,7 +17,6 @@
    [pallet.stevedore :as stevedore]
    [pallet.template :as templates]
    [pallet.utils :as utils]
-   [clojure.contrib.def :as def]
    [clojure.java.io :as io])
   (:use
    pallet.thread-expr))
@@ -36,30 +35,30 @@
   [flag]
   (alter-var-root #'force-overwrite (fn [_] flag)))
 
-(def/defvar
+(def
+  ^{:doc "A vector of the options accepted by remote-file.  Can be used for
+          option forwarding when calling remote-file from other crates."}
   content-options
   [:local-file :remote-file :url :md5 :content :literal :template :values
-   :action :blob :blobstore :insecure]
-  "A vector of the options accepted by remote-file.  Can be used for option
-  forwarding when calling remote-file from other crates.")
+   :action :blob :blobstore :insecure])
 
-(def/defvar
+(def
+  ^{:doc "A vector of options for controlling versions. Can be used for option
+          forwarding when calling remote-file from other crates."}
   version-options
-  [:overwrite-changes :no-versioning :max-versions :flag-on-changed]
-  "A vector of options for controlling versions. Can be used for option
-  forwarding when calling remote-file from other crates.")
+  [:overwrite-changes :no-versioning :max-versions :flag-on-changed])
 
-(def/defvar
+(def
+  ^{:doc "A vector of options for controlling ownership. Can be used for option
+          forwarding when calling remote-file from other crates."}
   ownership-options
-  [:owner :group :mode]
-  "A vector of options for controlling ownership. Can be used for option
-  forwarding when calling remote-file from other crates.")
+  [:owner :group :mode])
 
-(def/defvar
+(def
+  ^{:doc "A vector of the options accepted by remote-file.  Can be used for
+          option forwarding when calling remote-file from other crates."}
   all-options
-  (concat content-options version-options ownership-options)
-  "A vector of the options accepted by remote-file.  Can be used for option
-  forwarding when calling remote-file from other crates.")
+  (concat content-options version-options ownership-options))
 
 (defn- get-session
   "Build a curl or wget command from the specified session object."

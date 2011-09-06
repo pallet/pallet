@@ -7,8 +7,7 @@
    [clojure.contrib.pprint :as pprint]
    [clojure.tools.logging :as logging])
   (:use
-   clojure.tools.logging
-   clojure.contrib.def)
+   clojure.tools.logging)
   (:import
    (java.security
     NoSuchAlgorithmException
@@ -137,14 +136,15 @@
      :sudo-password (:password options)}
     options))
 
-(defvar *admin-user*
+(def
+  ^{:doc "The admin user is used for running remote admin commands that require
+   root permissions.  The default admin user is taken from the
+   pallet.admin.username property.  If not specified then the user.name property
+   is used. The admin user can also be specified in config.clj when running
+   tasks from the command line."}
+  *admin-user*
   (make-user (or (. System getProperty "pallet.admin.username")
-                 (. System getProperty "user.name")))
-  "The admin user is used for running remote admin commands that require root
-   permissions.  The default admin user is taken from the pallet.admin.username
-   property.  If not specified then the user.name property is used.
-   The admin user can also be specified in config.clj when running tasks
-   from the command line.")
+                 (. System getProperty "user.name"))))
 
 (defmacro with-temp-file
   "Create a block where `varname` is a temporary `File` containing `content`."

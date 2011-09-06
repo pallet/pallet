@@ -4,7 +4,7 @@
    [pallet.action :as action]
    [pallet.common.deprecate :as deprecate]
    [pallet.phase :as phase]
-   [clojure.contrib.def :as ccdef]))
+   [pallet.common.def :as ccdef]))
 
 (defmacro phase [& body]
   `(do
