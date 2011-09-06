@@ -45,7 +45,7 @@
    [clojure.set :as set]
    [clojure.string :as string])
   (:use
-   [clojure.contrib.core :only [-?>]]))
+   [clojure.core.incubator :only [-?>]]))
 
 (let [v (atom nil)]
   (defn version

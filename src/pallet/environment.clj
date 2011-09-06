@@ -27,7 +27,7 @@
    [clojure.tools.logging :as logging]
    [clojure.walk :as walk])
   (:use
-   [clojure.contrib.core :only [-?>]]))
+   [clojure.core.incubator :only [-?>]]))
 
 (defprotocol Environment
   "A protocol for accessing an environment."

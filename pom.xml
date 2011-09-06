@@ -107,6 +107,11 @@
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
+      <artifactId>core.incubator</artifactId>
+      <version>0.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
       <artifactId>tools.logging</artifactId>
       <version>0.1.2</version>
     </dependency>

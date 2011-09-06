@@ -18,7 +18,7 @@
    [clojure.tools.logging :as logging]
    [clojure.walk :as walk])
   (:use
-   [clojure.contrib.core :only [-?>]]))
+   [clojure.core.incubator :only [-?>]]))
 
 (def ^{:private true
        :doc "A var to be set by defpallet, so that it may be loaded from any
