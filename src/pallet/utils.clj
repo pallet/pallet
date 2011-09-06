@@ -3,7 +3,6 @@
   (:require
    [clojure.java.io :as io]
    [clojure.contrib.jar :as jar]
-   [clojure.contrib.string :as string]
    [clojure.contrib.pprint :as pprint]
    [clojure.tools.logging :as logging])
   (:use

@@ -6,7 +6,7 @@
    [pallet.action :as action]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [clojure.contrib.string :as string]))
+   [clojure.string :as string]))
 
 
 (def
