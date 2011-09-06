@@ -29,6 +29,7 @@
    [pallet.blobstore :as blobstore]
    [pallet.common.deprecate :as deprecate]
    [pallet.common.logging.logutils :as logutils]
+   [pallet.common.map-utils :as map-utils]
    [pallet.common.resource :as resource]
    [pallet.compute :as compute]
    [pallet.environment :as environment]
@@ -41,7 +42,6 @@
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.tools.logging :as logging]
-   [clojure.contrib.map-utils :as map-utils]
    [clojure.set :as set]
    [clojure.string :as string])
   (:use

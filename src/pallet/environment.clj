@@ -20,11 +20,11 @@
    `merge-key-algorithm`."
   (:require
    [pallet.common.deprecate :as deprecate]
+   [pallet.common.map-utils :as map-utils]
    [pallet.execute :as execute]
    [pallet.utils :as utils]
    [clojure.contrib.condition :as condition]
    [clojure.tools.logging :as logging]
-   [clojure.contrib.map-utils :as map-utils]
    [clojure.walk :as walk])
   (:use
    [clojure.contrib.core :only [-?>]]))
