@@ -368,9 +368,8 @@
                                         (identity-action "a"))}}
            :environment {:algorithms core/default-algorithms}})))
   (testing "rejects local actions"
-    (is (thrown-with-msg?
-          clojure.contrib.condition.Condition
-          #"local actions"
+    (is (re-find
+          #":error.*local actions"
           (#'core/bootstrap-script
            {:group
             {:image {:os-family :ubuntu}
@@ -473,12 +472,12 @@
       (is (seen?))
       (testing "invalid :phases keyword"
         (is (thrown-with-msg?
-              clojure.contrib.condition.Condition
+              slingshot.Stone
               #":phases"
               (lift local :phases []))))
       (testing "invalid keyword"
         (is (thrown-with-msg?
-              clojure.contrib.condition.Condition
+              slingshot.Stone
               #"Invalid"
               (lift local :abcdef []))))))
   (testing "throw on remote bash error"
@@ -498,8 +497,8 @@
          :compute service)
         (catch Exception e
           (let [e (stacktrace/root-cause e)]
-            (is (instance? clojure.contrib.condition.Condition e))
-            (is (re-find #"Error executing script"  (:message @(.state e))))
+            (is (instance? slingshot.Stone e))
+            (is (re-find #"Error executing script"  (:message (.object e))))
             (reset! thrown true))))
       (is @thrown))))
 
@@ -526,12 +525,12 @@
         (is (seen?))
         (testing "invalid :phases keyword"
           (is (thrown-with-msg?
-                clojure.contrib.condition.Condition
+                slingshot.Stone
                 #":phases"
                 (lift local :phases []))))
         (testing "invalid keyword"
           (is (thrown-with-msg?
-                clojure.contrib.condition.Condition
+                slingshot.Stone
                 #"Invalid"
                 (lift local :abcdef []))))))))
 

@@ -10,9 +10,9 @@
    [pallet.stevedore :as stevedore]
    [pallet.stevedore.bash :as bash]
    [pallet.utils :as utils]
+   [slingshot.core :as slingshot]
    [clj-ssh.ssh :as ssh]
    [clojure.string :as string]
-   [clojure.contrib.condition :as condition]
    [clojure.java.io :as io]
    [pallet.shell :as ccshell]
    [clojure.tools.logging :as logging]))
@@ -204,13 +204,13 @@
                 :return-map true)]
     (if (zero? (:exit result))
       (string/trim (result :out))
-      (condition/raise
-       :type :remote-execution-failure
-       :message (format
-                 "Failed to generate remote temporary file %s" (:err result))
-       :exit (:exit result)
-       :err (:err result)
-       :out (:out result)))))
+      (slingshot/throw+
+       {:type :remote-execution-failure
+        :message (format
+                  "Failed to generate remote temporary file %s" (:err result))
+        :exit (:exit result)
+        :err (:err result)
+        :out (:out result)}))))
 
 (defn remote-sudo-cmd
   "Execute remote command.
@@ -219,8 +219,9 @@
   [server ssh-session sftp-channel user tmpfile command
    {:keys [pty] :or {pty true} :as options}]
   (when (not (ssh/connected? ssh-session))
-    (condition/raise :type :no-ssh-session
-                     :message (format"No ssh session for %s" server)))
+    (slingshot/throw+
+     {:type :no-ssh-session
+      :message (format"No ssh session for %s" server)}))
   (let [response (ssh/sftp sftp-channel
                            :put (java.io.ByteArrayInputStream.
                                  (.getBytes
@@ -321,11 +322,11 @@
         (and server
              (if (string? server) (not (string/blank? server)) true)
              user)
-      (condition/raise
-       :type :session-missing-middleware
-       :message (str
-                 "The session is missing server ssh connection details.\n"
-                 "Add middleware to enable ssh.")))
+      (slingshot/throw+
+       {:type :session-missing-middleware
+        :message (str
+                  "The session is missing server ssh connection details.\n"
+                  "Add middleware to enable ssh.")}))
     (let [ssh-session (or ssh-session
                           (ssh/session
                            server
@@ -338,13 +339,13 @@
               (try
                 (ssh/connect ssh-session)
                 (catch Exception e
-                  (condition/raise
-                   :type :pallet/ssh-connection-failure
-                   :message (format
-                             "ssh-fail: server %s, port %s, user %s, group %s"
-                             server (or port 22) (:username user)
-                             (-> session :server :group-name))
-                   :cause e))))
+                  (slingshot/throw+
+                   {:type :pallet/ssh-connection-failure
+                    :message (format
+                              "ssh-fail: server %s, port %s, user %s, group %s"
+                              server (or port 22) (:username user)
+                              (-> session :server :group-name))
+                    :cause e}))))
           tmpfile (or tmpfile (ssh-mktemp ssh-session "sudocmd"))
           tmpcpy (or tmpcpy (ssh-mktemp ssh-session "tfer"))
           sftp-channel (or sftp-channel (ssh/ssh-sftp ssh-session))

@@ -40,7 +40,7 @@
    [pallet.script :as script]
    [pallet.thread-expr :as thread-expr]
    [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]
+   [slingshot.core :as slingshot]
    [clojure.tools.logging :as logging]
    [clojure.set :as set]
    [clojure.string :as string])
@@ -325,17 +325,17 @@
 (defn- executor [session f action-type location]
   (let [exec-fn (get-in session [:executor action-type location])]
     (when-not exec-fn
-      (condition/raise
-       :type :missing-executor-fn
-       :fn-for [action-type location]
-       :message (format
-                 "Missing executor function for %s %s"
-                 action-type location)))
+      (slingshot/throw+
+       {:type :missing-executor-fn
+        :fn-for [action-type location]
+        :message (format
+                  "Missing executor function for %s %s"
+                  action-type location)}))
     (exec-fn session f)))
 
 (let [raise (fn [message]
               (fn [_ _]
-                (condition/raise :type :executor-error :message message)))]
+                (slingshot/throw+ {:type :executor-error :message message})))]
   (def ^{:doc "Default executor map"}
     default-executors
     {:script/bash
@@ -364,9 +364,9 @@
          (get-in session [:group :packager])]}
   (let [error-fn (fn [message]
                    (fn [_ _]
-                     (condition/raise
-                      :type :booststrap-contains-non-remote-actions
-                      :message message)))
+                     (slingshot/throw+
+                      {:type :booststrap-contains-non-remote-actions
+                       :message message})))
         [result session] (->
                           session
                           (assoc
@@ -594,7 +594,7 @@
       (if errors
         (do
           (logging/errorf "errors found %s" (vec (map :error errors)))
-          (condition/raise (assoc (:error (first errors)) :all-errors errors)))
+          (slingshot/throw+ (assoc (:error (first errors)) :all-errors errors)))
         [results session]))))
 
 (def *middleware*
@@ -1109,17 +1109,17 @@
   [{:as options}]
   (let [unknown (remove argument-keywords (keys options))]
     (when (and (:phases options) (not (:phase options)))
-      (condition/raise
-       :type :invalid-argument
-       :message (str
-                 "Please pass :phase and not :phases. :phase takes a single "
-                 "phase or a sequence of phases.")
-       :invalid-keys unknown))
+      (slingshot/throw+
+       {:type :invalid-argument
+        :message (str
+                  "Please pass :phase and not :phases. :phase takes a single "
+                  "phase or a sequence of phases.")
+        :invalid-keys unknown}))
     (when (seq unknown)
-      (condition/raise
-       :type :invalid-argument
-       :message (format "Invalid argument keywords %s" (vec unknown))
-       :invalid-keys unknown)))
+      (slingshot/throw+
+       {:type :invalid-argument
+        :message (format "Invalid argument keywords %s" (vec unknown))
+        :invalid-keys unknown})))
   options)
 
 (defn- identify-anonymous-phases

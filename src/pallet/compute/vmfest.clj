@@ -25,7 +25,6 @@
    The images are disks that are immutable.  The virtualbox extensions need
    to be installed on the image."
   (:require
-   [clojure.contrib.condition :as condition]
    [clojure.java.io :as io]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
@@ -41,6 +40,7 @@
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
+   [slingshot.core :as slingshot]
    [vmfest.manager :as manager]
    [vmfest.virtualbox.enums :as enums]
    [vmfest.virtualbox.image :as image]
@@ -72,47 +72,46 @@
   pallet.compute/Node
   (ssh-port [node] 22)
   (primary-ip
-   [node]
-   (condition/handler-case
-    :type
-    (manager/get-ip node)
-    (handle :vbox-runtime
-      (manager/get-extra-data node ip-tag))))
+    [node]
+    (slingshot/try+
+     (manager/get-ip node)
+     (catch clojure.contrib.condition.Condition _
+         (manager/get-extra-data node ip-tag))))
   (private-ip [node] nil)
   (is-64bit?
-   [node]
-   (let [os-type-id (session/with-no-session node [m] (.getOSTypeId m))]
-     (boolean (re-find #"_64" os-type-id))))
+    [node]
+    (let [os-type-id (session/with-no-session node [m] (.getOSTypeId m))]
+      (boolean (re-find #"_64" os-type-id))))
   (group-name
-   [node]
-   (let [group-name (manager/get-extra-data node group-name-tag)]
-     (if (string/blank? group-name)
-       (manager/get-extra-data node group-name-tag)
-       group-name)))
+    [node]
+    (let [group-name (manager/get-extra-data node group-name-tag)]
+      (if (string/blank? group-name)
+        (manager/get-extra-data node group-name-tag)
+        group-name)))
   (hostname
-   [node]
-   (session/with-no-session node [m]
-     (.getName m)))
+    [node]
+    (session/with-no-session node [m]
+      (.getName m)))
   (os-family
-   [node]
-   (let [os-name (session/with-no-session node [m] (.getOSTypeId m))]
-     (or
-      (when-let [os-family (manager/get-extra-data node os-family-tag)]
-        (when-not (string/blank? os-family)
-          (keyword os-family)))
-      (os-family-from-name os-name os-name)
-      :centos) ;; hack!
-     ))
+    [node]
+    (let [os-name (session/with-no-session node [m] (.getOSTypeId m))]
+      (or
+       (when-let [os-family (manager/get-extra-data node os-family-tag)]
+         (when-not (string/blank? os-family)
+           (keyword os-family)))
+       (os-family-from-name os-name os-name)
+       :centos) ;; hack!
+      ))
   (os-version
-   [node]
-   (or
-    (manager/get-extra-data node os-version-tag)
-    "5.3"))
+    [node]
+    (or
+     (manager/get-extra-data node os-version-tag)
+     "5.3"))
   (running?
-   [node]
-   (and
-    (session/with-no-session node [vb-m] (.getAccessible vb-m))
-    (= :running (manager/state node))))
+    [node]
+    (and
+     (session/with-no-session node [vb-m] (.getAccessible vb-m))
+     (= :running (manager/state node))))
   (terminated? [node] false)
   (id [node] (:id node)))
 
@@ -227,9 +226,9 @@
     (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
     (when (string/blank? (wait-for-ip machine))
-      (condition/raise
-       :type :no-ip-available
-       :message "Could not determine IP address of new node"))
+      (slingshot/throw+
+       {:type :no-ip-available
+        :message "Could not determine IP address of new node"}))
     (Thread/sleep 4000)
     (logging/tracef "Bootstrapping %s" (manager/get-ip machine))
     (script/with-script-context
@@ -476,7 +475,7 @@
                  "Could not find image %s. Known images are %s."
                  image-kw (keys @images))]
         (logging/error msg)
-        (condition/raise
+        (slingshot/throw+
          {:type :pallet/unkown-image
           :image image-kw
           :known-images (keys @images)

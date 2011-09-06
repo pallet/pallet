@@ -9,7 +9,7 @@
    [pallet.script :as script]
    [pallet.utils :as utils]
    [pallet.execute :as execute]
-   [clojure.contrib.condition :as condition]
+   [slingshot.core :as slingshot]
    [clojure.tools.logging :as logging])
   (:import
    [org.jclouds.compute.domain.internal HardwareImpl ImageImpl NodeMetadataImpl]
@@ -334,14 +334,14 @@
   ;; (createNodesInGroup [_ group count]
   ;;                     (.createNodesInGroup compute group count))
   (^java.util.Set runNodesWithTag
-   [_ ^String group ^int count ^Template template]
-   (.createNodesInGroup compute group count template))
+    [_ ^String group ^int count ^Template template]
+    (.createNodesInGroup compute group count template))
   (^java.util.Set runNodesWithTag
-   [_ ^String group ^int count ^TemplateOptions template-options]
-   (.createNodesInGroup compute group count template-options))
+    [_ ^String group ^int count ^TemplateOptions template-options]
+    (.createNodesInGroup compute group count template-options))
   (^java.util.Set runNodesWithTag
-   [_ ^String group ^int count]
-   (.createNodesInGroup compute group count))
+    [_ ^String group ^int count]
+    (.createNodesInGroup compute group count))
   (resumeNode [_ id] (.resumeNode compute id))
   (resumeNodesMatching [_ predicate] (.resumeNodesMatching compute predicate))
   (suspendNode [_ id] (.suspendNode compute id))
@@ -350,13 +350,13 @@
   (rebootNodesMatching [_ predicate] (.rebootNodesMatching compute predicate))
   (getNodeMetadata [_ id] (.getNodeMetadata compute id))
   (listNodesDetailsMatching [_ predicate]
-                            (.listNodesDetailsMatching compute predicate))
+    (.listNodesDetailsMatching compute predicate))
   (^java.util.Map runScriptOnNodesMatching
-   [_ ^Predicate predicate ^Payload script]
-   (.runScriptOnNodesMatching compute predicate script))
+    [_ ^Predicate predicate ^Payload script]
+    (.runScriptOnNodesMatching compute predicate script))
   (^java.util.Map runScriptOnNodesMatching
-   [_ ^Predicate predicate ^Payload script ^RunScriptOptions options]
-   (.runScriptOnNodesMatching compute predicate script options))
+    [_ ^Predicate predicate ^Payload script ^RunScriptOptions options]
+    (.runScriptOnNodesMatching compute predicate script options))
   ;; (^java.util.Map runScriptOnNodesMatching
   ;;  [_ ^Predicate predicate ^String script]
   ;;  (.runScriptOnNodesMatching compute predicate script))
@@ -374,69 +374,69 @@
   (nodes [_] (jclouds/nodes-with-details compute))
 
   (ensure-os-family
-   [_ group]
-   (if (-> group :image :os-family)
-     group
-     (let [template (jclouds/build-template compute (:image group))
-           family (-> (.. template getImage getOperatingSystem getFamily)
-                      str keyword)]
-       (logging/infof "OS is %s" (pr-str family))
-       (when (or (nil? family) (= family OsFamily/UNRECOGNIZED))
-         (condition/raise
-          :type :unable-to-determine-os-type
-          :message (format
-                    (str "jclouds was unable to determine the os-family "
-                         "of the template %s")
-                    (pr-str (:image group)))))
-       (->
-        group
-        (assoc-in [:image :os-family] family)
-        (assoc-in [:default-os-family] true)))))
+    [_ group]
+    (if (-> group :image :os-family)
+      group
+      (let [template (jclouds/build-template compute (:image group))
+            family (-> (.. template getImage getOperatingSystem getFamily)
+                       str keyword)]
+        (logging/infof "OS is %s" (pr-str family))
+        (when (or (nil? family) (= family OsFamily/UNRECOGNIZED))
+          (slingshot/throw+
+           {:type :unable-to-determine-os-type
+            :message (format
+                      (str "jclouds was unable to determine the os-family "
+                           "of the template %s")
+                      (pr-str (:image group)))}))
+        (->
+         group
+         (assoc-in [:image :os-family] family)
+         (assoc-in [:default-os-family] true)))))
 
   (run-nodes
-   [_ group-spec node-count user init-script]
-   (->>
-    (jclouds/run-nodes
-     (name (:group-name group-spec))
-     node-count
-     (build-node-template
-      compute
-      group-spec
-      (:public-key-path user)
-      init-script)
-     compute)
-    ;; The following is a workaround for terminated nodes.
-    ;; See http://code.google.com/p/jclouds/issues/detail?id=501
-    (filter compute/running?)))
+    [_ group-spec node-count user init-script]
+    (->>
+     (jclouds/run-nodes
+      (name (:group-name group-spec))
+      node-count
+      (build-node-template
+       compute
+       group-spec
+       (:public-key-path user)
+       init-script)
+      compute)
+     ;; The following is a workaround for terminated nodes.
+     ;; See http://code.google.com/p/jclouds/issues/detail?id=501
+     (filter compute/running?)))
 
   (reboot
-   [_ nodes]
-   (doseq [node nodes]
-     (jclouds/reboot-node node compute)))
+    [_ nodes]
+    (doseq [node nodes]
+      (jclouds/reboot-node node compute)))
 
   (boot-if-down
-   [_ nodes]
-   (map #(jclouds/reboot-node % compute)
-        (filter jclouds/terminated? nodes)))
+    [_ nodes]
+    (map #(jclouds/reboot-node % compute)
+         (filter jclouds/terminated? nodes)))
 
   (shutdown-node
-   [_ node user]
-   (let [ip (compute/primary-ip node)]
-     (if ip
-       (execute/remote-sudo ip "shutdown -h 0" user {:pty false}))))
+    [_ node user]
+    (let [ip (compute/primary-ip node)]
+      (if ip
+        (execute/remote-sudo ip "shutdown -h 0" user {:pty false}))))
 
   (shutdown
-   [self nodes user]
-   (doseq [node nodes]
-     (compute/shutdown-node self node user)))
+    [self nodes user]
+    (doseq [node nodes]
+      (compute/shutdown-node self node user)))
 
   (destroy-nodes-in-group
     [_ group-name]
     (jclouds/destroy-nodes-with-tag (name group-name) compute))
 
   (destroy-node
-   [_ node]
-   (jclouds/destroy-node (compute/id node) compute))
+    [_ node]
+    (jclouds/destroy-node (compute/id node) compute))
 
   (images [_] (jclouds/images compute))
 

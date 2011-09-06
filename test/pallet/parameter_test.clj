@@ -6,7 +6,7 @@
    [pallet.action :as action]
    [pallet.build-actions :as build-actions])
   (:import
-   clojure.contrib.condition.Condition))
+   slingshot.Stone))
 
 ;; (use-fixtures :each reset-default-parameters)
 
@@ -39,7 +39,7 @@
   (let [p {:parameters {:a 1 :b { :c 2}}}]
     (is (= 1 (get-for p [:a])))
     (is (= 2 (get-for p [:b :c])))
-    (is (thrown? Condition (get-for p [:b :c :d])))
+    (is (thrown? Stone (get-for p [:b :c :d])))
     (is (= ::abc (get-for p [:b :c :d] ::abc)))))
 
 

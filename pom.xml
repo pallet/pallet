@@ -103,10 +103,6 @@
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
-      <artifactId>clojure-contrib</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.clojure</groupId>
       <artifactId>core.incubator</artifactId>
       <version>0.1.0</version>
     </dependency>
@@ -119,6 +115,11 @@
       <groupId>org.clojure</groupId>
       <artifactId>tools.namespace</artifactId>
       <version>0.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>slingshot</groupId>
+      <artifactId>slingshot</artifactId>
+      <version>0.2.1</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>

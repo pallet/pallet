@@ -16,7 +16,7 @@
    [pallet.phase :as phase]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
-   [clojure.contrib.condition :as condition]
+   [slingshot.core :as slingshot]
    [clojure.tools.logging :as logging]
    [clojure.set :as set]
    [clojure.string :as string]))
@@ -533,9 +533,9 @@
    function (a function with an arglist of [session f action-type location])."
   [action-plan session executor execute-status-fn]
   (when-not (translated? action-plan)
-    (condition/raise
-     :type :pallet/execute-called-on-untranslated-action-plan
-     :message "Attempt to execute an action plan that has not been translated"))
+    (slingshot/throw+
+     {:type :pallet/execute-called-on-untranslated-action-plan
+      :message "Attempt to execute an untranslated action plan"}))
   (reduce
    (fn [[results session flag] action]
      (case flag

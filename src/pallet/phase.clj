@@ -3,7 +3,7 @@
    calls to crate functions or actions. A phase has an implicitly
    defined pre and post phase."
   (:require
-   [clojure.contrib.condition :as condition]))
+   [slingshot.core :as slingshot]))
 
 (defn pre-phase-name
   "Return the name for the pre-phase for the given `phase`."
@@ -44,36 +44,36 @@
   "Function that can check a session map to ensure it is a valid part of
    phase definiton. It returns the session map.
 
-   If this fails, then it is likely that you have an incorrect crate function,
+   If this fails, then it is likely that you have an incorrect crate function
    which is failing to return its session map properly, or you have a non crate
    function in the phase defintion."
   ([session]
      ;; we do not use a precondition in order to improve the error message
      (when-not (and session (map? session))
-       (condition/raise
-        :type :invalid-session
-        :message
-        "Invalid session map in phase. Check for non crate functions,
+       (slingshot/throw+
+        {:type :invalid-session
+         :message
+         "Invalid session map in phase. Check for non crate functions
       improper crate functions, or problems in threading the session map
       in your phase definition.
 
       A crate function is a function that takes a session map and other
       arguments, and returns a modified session map. Calls to crate functions
-      are often wrapped in a threading macro, -> or pallet.phase/phase-fn,
-      to simplify chaining of the session map argument."))
+      are often wrapped in a threading macro, -> or pallet.phase/phase-fn
+      to simplify chaining of the session map argument."}))
      session)
   ([session form]
      ;; we do not use a precondition in order to improve the error message
      (when-not (and session (map? session))
-       (condition/raise
-        :type :invalid-session
-        :message
-        (format
-         (str
-          "Invalid session map in phase session.\n"
-          "`session` is %s\n"
-          "Problem probably caused in:\n  %s ")
-         session form)))
+       (slingshot/throw+
+        {:type :invalid-session
+         :message
+         (format
+          (str
+           "Invalid session map in phase session.\n"
+           "`session` is %s\n"
+           "Problem probably caused in:\n  %s ")
+          session form)}))
      session))
 
 (defmacro phase-fn

@@ -3,7 +3,7 @@
   (:require
    [pallet.compute.implementation :as implementation]
    [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]))
+   [slingshot.core :as slingshot]))
 
 
 ;;; Meta
@@ -104,11 +104,11 @@
       (#{:suse} os-family) :zypper
       (#{:gentoo} os-family) :portage
       (#{:darwin :os-x} os-family) :brew
-      :else (condition/raise
-             :type :unknown-packager
-             :message (format
-                       "Unknown packager for %s - :image %s"
-                       os-family target))))))
+      :else (slingshot/throw+
+             {:type :unknown-packager
+              :message (format
+                        "Unknown packager for %s - :image %s"
+                        os-family target)})))))
 
 (defn base-distribution
   "Base distribution for the target."
@@ -123,11 +123,11 @@
       (#{:suse} os-family) :suse
       (#{:gentoo} os-family) :gentoo
       (#{:darwin :os-x} os-family) :os-x
-      :else (condition/raise
-             :type :unknown-packager
-             :message (format
-                       "Unknown base-distribution for %s - target is %s"
-                       os-family target))))))
+      :else (slingshot/throw+
+             {:type :unknown-packager
+              :message (format
+                        "Unknown base-distribution for %s - target is %s"
+                        os-family target)})))))
 
 (defn admin-group
   "User that remote commands are run under"

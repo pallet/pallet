@@ -1,6 +1,4 @@
 (ns pallet.mock
-  (:require
-   [clojure.contrib.condition :as condition])
   (:use clojure.test))
 
 (def *expectations*)

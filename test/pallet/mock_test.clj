@@ -2,12 +2,12 @@
   (:use pallet.mock)
   (:use clojure.test)
   (:require
-   [clojure.contrib.condition :as condition]))
+   [slingshot.core :as slingshot]))
 
 (deftest verify-expectations-test
   (is (thrown?
-       clojure.contrib.condition.Condition
-       (verify-expectations [(fn [] (condition/raise :error 1))])))
+       slingshot.Stone
+       (verify-expectations [(fn [] (slingshot/throw+ {:error 1}))])))
   (is (nil?
        (verify-expectations [(fn [] true)]))))
 
@@ -15,13 +15,13 @@
   (with-expectations
     (let [f (once 'v1 [] `((once 1)))]
       (is (thrown?
-           clojure.contrib.condition.Condition
+           slingshot.Stone
            ((first *expectations*))))
       (is (= 1 (f)))
       (is (nil? ((first *expectations*)))))
     (let [f (once 'v1 [x] `((once (inc x))))]
       (is (thrown?
-           clojure.contrib.condition.Condition
+           slingshot.Stone
            ((first *expectations*))))
       (is (= 1 (f 0)))
       (is (nil? ((first *expectations*)))))))

@@ -23,7 +23,7 @@
    [pallet.common.map-utils :as map-utils]
    [pallet.execute :as execute]
    [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]
+   [slingshot.core :as slingshot]
    [clojure.tools.logging :as logging]
    [clojure.walk :as walk])
   (:use
@@ -185,15 +185,15 @@
   ([session keys]
      (let [result (get-in (:environment session) keys ::not-set)]
        (when (= ::not-set result)
-         (condition/raise
-          :type :environment-not-found
-          :message (format
-                    "Could not find keys %s in session :environment"
-                    (if (sequential? keys) (vec keys) keys))
-          :key-not-set keys))
+         (slingshot/throw+
+          {:type :environment-not-found
+           :message (format
+                     "Could not find keys %s in session :environment"
+                     (if (sequential? keys) (vec keys) keys))
+           :key-not-set keys}))
        result))
   ([session keys default]
-       (get-in (:environment session) keys default)))
+     (get-in (:environment session) keys default)))
 
 (defn session-with-environment
   "Returns an updated `session` map, containing the keys for the specified
