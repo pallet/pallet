@@ -2,7 +2,6 @@
   "Utilities used across pallet."
   (:require
    [clojure.java.io :as io]
-   [clojure.contrib.jar :as jar]
    [clojure.contrib.pprint :as pprint]
    [clojure.tools.logging :as logging])
   (:use
@@ -273,6 +272,13 @@
   []
   (map file-for-url (classpath-urls)))
 
+(defn jar-file?
+  "Returns true if file is a normal file with a .jar or .JAR extension."
+  [^java.io.File file]
+  (and (.isFile file)
+       (or (.endsWith (.getName file) ".jar")
+           (.endsWith (.getName file) ".JAR"))))
+
 (defn classpath-jarfiles
   "Returns a sequence of JarFile objects for the JAR files on classpath."
   []
@@ -283,7 +289,7 @@
        (java.util.jar.JarFile. %)
        (catch Exception _
          (logging/warnf "Unable to open jar file on classpath: %s" %)))
-    (filter jar/jar-file? (classpath)))))
+    (filter jar-file? (classpath)))))
 
 (defmacro forward-to-script-lib
   "Forward a script to the new script lib"
