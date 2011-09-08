@@ -65,6 +65,8 @@
 
 (def *vm-session-type* "headless") ; gui, headless or sdl
 
+;(def match-model-template [templates models])
+
 (def os-family-from-name
   (zipmap (vals os-family-name) (keys os-family-name)))
 
@@ -129,7 +131,7 @@
        (loop []
          (try
            (let [ip (try (manager/get-ip machine)
-                         (catch org.virtualbox_4_0.VBoxException e
+                         (catch RuntimeException e
                            (logging/warnf
                             "wait-for-ip: Machine %s not started yet..."
                             machine))
@@ -170,11 +172,11 @@
   (let [nodes (manager/machines compute-service)]
     (map node-data nodes)))
 
-(defn add-sata-controller [m]
+#_(defn add-sata-controller [m]
   {:pre [(model/IMachine? m)]}
   (machine/add-storage-controller m "SATA Controller" :sata))
 
-(defn basic-config [m {:keys [memory-size cpu-count] :as parameters}]
+#_(defn basic-config [m {:keys [memory-size cpu-count] :as parameters}]
   (let [parameters (merge {:memory-size 512 :cpu-count 1} parameters)]
     (manager/configure-machine m parameters)
     (manager/set-bridged-network m "en1: AirPort")
@@ -185,34 +187,29 @@
    :min-cores :cpu-count})
 
 (def hardware-config
-  {:bridged-network (fn [m iface] (manager/set-bridged-network m iface))})
+  {:bridged-network nil #_(fn [m iface] (manager/set-bridged-network m iface))})
 
-(defn machine-model-with-parameters
+#_(defn machine-model-with-parameters
   "Set a machine basic parameters and default configuration"
   [m image]
   (let [hw-keys (filter hardware-parameters (keys image))]
     (basic-config
      m (zipmap (map hardware-parameters hw-keys) (map image hw-keys)))))
 
-(defn machine-model
+#_(defn machine-model
   "Construct a machine model function from a node image spec"
   [image]
   (fn [m]
     (logging/debugf "Machine model for %s" image)
-    (machine-model-with-parameters m image)
+    (machine-modelmachine-model-with-parameters m image)
     (doseq [kw (filter hardware-config (keys image))]
       ((hardware-config kw) m (image kw)))))
 
 (defn create-node
-  [compute node-path node-spec machine-name images image-id machine-models
-   group-name init-script user]
-  {:pre [image-id]}
-  (logging/tracef "Creating node from image-id: %s" image-id)
-  (let [machine (binding [manager/*images* images
-                          manager/*machine-models* machine-models]
-                  (manager/instance
-                   compute machine-name image-id :micro node-path))
-        image (image-id images)]
+  [compute node-path node-spec machine-name image model group-name init-script user]
+  (logging/tracef "Creating node from image: %s" image)
+  (let [machine (manager/instance*
+                 compute machine-name image model node-path)]
     (manager/set-extra-data machine group-name-tag group-name)
     (manager/set-extra-data machine os-family-tag (name (:os-family image)))
     (manager/set-extra-data machine os-version-tag (:os-version image))
@@ -283,26 +280,26 @@
 
 (defn serial-create-nodes
   "Create all nodes for a group in parallel."
-  [target-machines-to-create server node-path node-spec images image-id
-   machine-models group-name init-script user]
+  [target-machines-to-create server node-path node-spec image
+   machine-model group-name init-script user]
   (doall
    (for [name target-machines-to-create]
      (create-node
-      server node-path node-spec name images image-id machine-models group-name
+      server node-path node-spec name image machine-model group-name
       init-script user))))
 
 (defn parallel-create-nodes
   "Create all nodes for a group in parallel."
-  [target-machines-to-create server node-path node-spec images image-id
-   machine-models group-name init-script user]
+  [target-machines-to-create server node-path node-spec image machine-model
+   group-name init-script user]
   ;; the doseq ensures that all futures are completed before
   ;; returning
   (->>
    (for [name target-machines-to-create]
      (future
        (create-node
-        server node-path node-spec name images image-id
-        machine-models group-name init-script user)))
+        server node-path node-spec name image machine-model
+        group-name init-script user)))
    doall ;; doall forces creation of all futures before any deref
    futures/add
    (map #(futures/deref-with-logging % "Start of node"))
@@ -336,8 +333,9 @@
   (has-image? [service image-key]
     "Predicate to test for the presence of a specific image"))
 
+
 (deftype VmfestService
-    [server images locations environment]
+    [server images locations network-type network-interface environment]
   pallet.compute/ComputeService
   (nodes [compute-service] (manager/machines server))
 
@@ -351,7 +349,7 @@
                           vals
                           (reduce merge))
             _ (logging/infof "Template %s" template)
-            image-id (or (image-from-template @images template)
+            image (or (image-from-template @images template)
                          (throw (RuntimeException.
                                  (format "No matching image for %s in"
                                          (pr-str (:image group-spec))
@@ -381,19 +379,32 @@
                                               target-machine-names)
             target-machines-to-create (clojure.set/difference
                                        target-machine-names
-                                       target-machines-already-existing)]
+                                       target-machines-already-existing)
+            create-nodes-fn (get-in environment
+                                    [:algorithms :vmfest :create-nodes-fn]
+                                    parallel-create-nodes)]
         (logging/debug (str "current-machine-names " current-machine-names))
         (logging/debug (str "target-machine-names " target-machine-names))
         (logging/debug (str "target-machines-already-existing "
                             target-machines-already-existing))
         (logging/debug (str "target-machines-to-create"
                             target-machines-to-create))
-
-        ((get-in environment [:algorithms :vmfest :create-nodes-fn]
-                 parallel-create-nodes)
+        (logging/debugf "Selected image: %s" image)
+        (create-nodes-fn
          target-machines-to-create server (:node-path locations)
-         group-spec @images image-id
-         {:micro (machine-model template)}
+         group-spec image
+         {:memory-size 512
+          :cpu-count 1
+          :network (if (= network-type :local)
+                     [{:attachment-type :host-only
+                       :host-interface network-interface}
+                      {:attachment-type :nat}]
+                     [{:attachment-type :bridged
+                       :host-interface network-interface}])
+          :storage [{:name "IDE Controller"
+                     :bus :ide
+                     :devices [nil nil {:device-type :dvd} nil]}]
+          :boot-mount-point ["IDE Controller" 0]}
          group-name init-script user))))
 
   (reboot
@@ -486,23 +497,43 @@
 (defn add-image [compute url & {:as options}]
   (install-image compute url options))
 
-;;;; Compute service
+;;;; Compute seyrvice
 (defmethod implementation/service :virtualbox
   [_ {:keys [url identity credential images node-path model-path locations
-             environment]
+             environment default-network-type default-interface]
       :or {url "http://localhost:18083/"
            identity "test"
            credential "test"
            model-path (manager/default-model-path)
-           node-path (manager/default-node-path)}
+           node-path (manager/default-node-path)
+           default-network-type :local}
       :as options}]
   (let [locations (or locations
                       {:local {:node-path node-path :model-path model-path}})
-        images (merge (manager/load-models :model-path model-path) images)]
+        images (merge (manager/load-models :model-path model-path) images)
+        available-host-interfaces (manager/find-usable-network-interface
+                                   (manager/server url identity credential))
+        interface (or default-interface
+                      (if (= default-network-type :bridged)
+                        (do
+                          (logging/infof
+                           "No Host Interface defined. Will chose from these options: %s"
+                           (apply str (interpose "," available-host-interfaces)))
+                          (first available-host-interfaces))
+                        (do
+                          (logging/info
+                           "No Local Interface defined. Using vboxnet0")
+                          "vboxnet0")))] ;; todo. Automatically discover this
+                        
+    (logging/infof "Loaded images: %s" (keys images))
+    (logging/infof "Using '%s' networking via interface '%s' as defaults for new machines"
+                   (name default-network-type) interface)
     (VmfestService.
      (vmfest.virtualbox.model.Server. url identity credential)
      (atom images)
      (val (first locations))
+     default-network-type
+     default-interface
      environment)))
 
 (defmethod clojure.core/print-method vmfest.virtualbox.model.Machine
