@@ -22,10 +22,6 @@
   [session]
   (-> session :server :node))
 
-(defn phase
-  "Current phase"
-  [session]
-  (:phase session))
 
 (defn target-name
   "Name of the target-node."
