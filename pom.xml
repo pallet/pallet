@@ -193,12 +193,12 @@
       <version>2.0.10</version>
       <optional>true</optional>
     </dependency>
-    <!-- <dependency> -->
-    <!--   <groupId>vmfest</groupId> -->
-    <!--   <artifactId>vmfest</artifactId> -->
-    <!--   <version>0.2.4-SNAPSHOT</version> -->
-    <!--   <optional>true</optional> -->
-    <!-- </dependency> -->
+    <dependency>
+      <groupId>vmfest</groupId>
+      <artifactId>vmfest</artifactId>
+      <version>0.2.4-SNAPSHOT</version>
+      <optional>true</optional>
+    </dependency>
   </dependencies>
 
   <profiles>
