@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.4.5</version>
+    <version>0.7.0-SNAPSHOT</version>
     <relativePath>../pallet-pom/pom.xml</relativePath>
   </parent>
   <groupId>org.cloudhoist</groupId>
@@ -29,9 +29,6 @@
     <testSourceDirectory>test</testSourceDirectory>
     <resources>
       <resource>
-        <directory>src</directory>
-      </resource>
-      <resource>
         <directory>resources</directory>
         <excludes>
           <exclude>filtered/*</exclude>
@@ -44,13 +41,14 @@
     </resources>
     <testResources>
       <testResource>
-        <directory>test</directory>
-      </testResource>
-      <testResource>
         <directory>test-resources</directory>
       </testResource>
     </testResources>
     <plugins>
+      <plugin>
+        <groupId>org.cloudhoist.plugin</groupId>
+        <artifactId>zi</artifactId>
+      </plugin>
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
         <executions>
@@ -68,30 +66,6 @@
             <exclude>logback-test.xml</exclude>
           </excludes>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>com.theoryinpractise</groupId>
-        <artifactId>clojure-maven-plugin</artifactId>
-        <configuration>
-          <autodocTargetDirectory>autodoc/autodoc</autodocTargetDirectory>
-          <marginaliaTargetDirectory>autodoc/marginalia</marginaliaTargetDirectory>
-        </configuration>
-        <executions>
-          <execution>
-            <id>compile-clojure</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>test-clojure</id>
-            <phase>test</phase>
-            <goals>
-              <goal>test</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
