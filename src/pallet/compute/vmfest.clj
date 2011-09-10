@@ -4,6 +4,16 @@
    An example service configuration in ~/.pallet/config.clj
 
        :vb {:provider \"virtualbox\"
+            :default-local-interface \"vboxnet0\"
+            :default-bridged-interface \"en1: Wi-Fi 2 (AirPort)\"
+            :default-network-type :local
+            :hardware-models
+            {:test
+             {:memory-size 768
+              :cpu-count 1}
+             :test-2
+             {:memory-size 512
+              :network-type :bridged}
             :images {:centos-5-3 {:description \"CentOS 5.3 32bit\"
                                   :uuid \"4697bdf7-7acf-4a20-8c28-e20b6bb58e25\"
                                   :os-family :centos
@@ -21,9 +31,79 @@
 
    The uuid's can be found using vboxmanage
        vboxmanage list hdds
+    or it can be the path to time image file itself (.vdi)
 
    The images are disks that are immutable.  The virtualbox extensions need
-   to be installed on the image."
+   to be installed on the image.
+
+   VMs' hardware configuration
+   ===========================
+   The hardware model to be run by pallet can be defined in the node template or
+   built from the template and a default model. The model will determine by the
+   first match in the following options
+      * The template has a :hardware-model entry with a vmfest hardware map. The
+        VMs created will follow this model
+           e.g. {... :hardware-model {:memory-size 1400 ...}}
+      * The template has a :hardware-id entry. The value for this entry should
+        correspond to an entry in the hardware-models map (or one of the entries
+        that pallet offers by default.
+           e.g. {... :hardware-id :small ...}
+      * The template has no hardware entry. Pallet will use the first model
+        in the hardware-models map to build an image that matches the rest of
+        the relevant entries in the map.
+
+   By default, pallet offers the following specializations of this base model:
+
+      {:memory-size 512
+       :cpu-count 1
+       :storage [{:name \"IDE Controller\"
+                  :bus :ide
+                  :devices [nil nil nil nil]}]
+       :boot-mount-point [\"IDE Controller\" 0]})
+
+   The defined machines correspond to the above with some overrides:
+
+      {:micro {:memory 512 :cpu-count 1}
+       :small {:memory-size 1024 :cpu-count 1}
+       :medium {:memory-size 2048 :cpu-count 2}
+       :large {:memory-size (* 4 1024) :cpu-count 4}
+
+   You can define your own hardware models that will be added to the default ones,
+   or in the case that they're named the same, they will replace the default ones.
+   Custom models will also extend the base model above.
+
+   Networking
+   ==========
+
+   Pallet offers two networking models: local and bridged.
+
+   In Local mode pallet creates two network interfaces in the VM, one for an internal
+   network (e.g. vboxnet0), and the other one for a NAT network. This option doesn't
+   require VM's to obtain an external IP address, but requires the image booted to
+   bring up at least eth0 and eth1, so this method won't work on all images.
+
+   In Bridged mode pallet creates one interface in the VM that is bridged on a phisical
+   network interface. For pallet to work, this physical interface must have an IP address
+   that must be hooked in an existing network. This mode works with all images.
+
+   The networking configuration for each VM created is determined by (in order):
+      * the template contains a :hardware-model map with a :network-type entry
+      * the template contains a :network-type entry
+      * the service configuration contains a :default-network-type entry
+      * :local
+
+   Each networking type must attach to a network interface, be it local or bridged.
+   The decision about which network interface to attach is done in the following way
+   (in order):
+     * For bridged networking:
+         * A :default-bridged-interface entry exists in the service defition
+         * Pallet will try to find a suitable interface for the machine.
+         * if all fails, VMs will fail to start
+     * For local networking:
+         * A :default-local-interface entry exists in the service definition
+         * vboxnet0 (created by default by VirtualBox)
+
+"
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
@@ -172,42 +252,9 @@
   (let [nodes (manager/machines compute-service)]
     (map node-data nodes)))
 
-#_(defn add-sata-controller [m]
-  {:pre [(model/IMachine? m)]}
-  (machine/add-storage-controller m "SATA Controller" :sata))
-
-#_(defn basic-config [m {:keys [memory-size cpu-count] :as parameters}]
-  (let [parameters (merge {:memory-size 512 :cpu-count 1} parameters)]
-    (manager/configure-machine m parameters)
-    (manager/set-bridged-network m "en1: AirPort")
-    (manager/add-ide-controller m)))
-
-(def hardware-parameters
-  {:min-ram :memory-size
-   :min-cores :cpu-count})
-
-(def hardware-config
-  {:bridged-network nil #_(fn [m iface] (manager/set-bridged-network m iface))})
-
-#_(defn machine-model-with-parameters
-  "Set a machine basic parameters and default configuration"
-  [m image]
-  (let [hw-keys (filter hardware-parameters (keys image))]
-    (basic-config
-     m (zipmap (map hardware-parameters hw-keys) (map image hw-keys)))))
-
-#_(defn machine-model
-  "Construct a machine model function from a node image spec"
-  [image]
-  (fn [m]
-    (logging/debugf "Machine model for %s" image)
-    (machine-modelmachine-model-with-parameters m image)
-    (doseq [kw (filter hardware-config (keys image))]
-      ((hardware-config kw) m (image kw)))))
-
 (defn create-node
   [compute node-path node-spec machine-name image model group-name init-script user]
-  (logging/tracef "Creating node from image: %s" image)
+  (logging/tracef "Creating node from image: %s and hardware model %s" image model)
   (let [machine (manager/instance*
                  compute machine-name image model node-path)]
     (manager/set-extra-data machine group-name-tag group-name)
@@ -333,9 +380,51 @@
   (has-image? [service image-key]
     "Predicate to test for the presence of a specific image"))
 
+(defn hardware-model-from-template [model template network-type interface]
+  (merge model
+         {:memory-size (or (:min-ram template)
+                           (:memory-size model))
+          :cpu-count (or (:min-cores template)
+                         (:cpu-count model))
+          :network-type interface}))
+
+(defn selected-hardware-model
+  [{:keys [hardware-id hardware-model] :as template} models
+   default-network-type default-local-interface default-bridged-interface]
+  (let [model
+        (cond
+         ;; if a model is specified, we take it
+         hardware-model (merge (second (first models)) hardware-model)
+         ;; if not, is a model key provided?
+         hardware-id (hardware-id models)
+         ;; we'll build the model from the template then.
+         :else (hardware-model-from-template
+                 ;; use the first model in the list
+                (second (first models))
+                template
+                default-network-type
+                ;; pass the right interface for network-type
+                (if (= :local default-network-type)
+                  default-local-interface
+                  default-bridged-interface)))
+        ;; if no network-type is speficied at this point, use the
+        ;; default
+        network-type (or (:network-type model) default-network-type)]
+    (merge model
+           ;; add the right network interface configuration for the final
+           ;; network-type
+           {:network (if (= (:network-type model) :local)
+                       ;; local networking
+                       [{:attachment-type :host-only
+                         :host-interface default-local-interface}
+                        {:attachment-type :nat}]
+                       ;; bridged networking
+                       [{:attachment-type :bridged
+                         :host-interface default-bridged-interface}])})))
+
 
 (deftype VmfestService
-    [server images locations network-type network-interface environment]
+    [server images locations network-type local-interface bridged-interface environment models]
   pallet.compute/ComputeService
   (nodes [compute-service] (manager/machines server))
 
@@ -350,10 +439,10 @@
                           (reduce merge))
             _ (logging/infof "Template %s" template)
             image (or (image-from-template @images template)
-                         (throw (RuntimeException.
-                                 (format "No matching image for %s in"
-                                         (pr-str (:image group-spec))
-                                         (@images)))))
+                      (throw (RuntimeException.
+                              (format "No matching image for %s in"
+                                      (pr-str (:image group-spec))
+                                      (@images)))))
             group-name (name (:group-name group-spec))
             machines (filter
                       #(session/with-no-session % [vb-m] (.getAccessible vb-m))
@@ -382,7 +471,13 @@
                                        target-machines-already-existing)
             create-nodes-fn (get-in environment
                                     [:algorithms :vmfest :create-nodes-fn]
-                                    parallel-create-nodes)]
+                                    parallel-create-nodes)
+            final-hardware-model (selected-hardware-model
+                                  template
+                                  models
+                                  network-type
+                                  local-interface
+                                  bridged-interface)]
         (logging/debug (str "current-machine-names " current-machine-names))
         (logging/debug (str "target-machine-names " target-machine-names))
         (logging/debug (str "target-machines-already-existing "
@@ -390,22 +485,9 @@
         (logging/debug (str "target-machines-to-create"
                             target-machines-to-create))
         (logging/debugf "Selected image: %s" image)
-        (create-nodes-fn
-         target-machines-to-create server (:node-path locations)
-         group-spec image
-         {:memory-size 512
-          :cpu-count 1
-          :network (if (= network-type :local)
-                     [{:attachment-type :host-only
-                       :host-interface network-interface}
-                      {:attachment-type :nat}]
-                     [{:attachment-type :bridged
-                       :host-interface network-interface}])
-          :storage [{:name "IDE Controller"
-                     :bus :ide
-                     :devices [nil nil {:device-type :dvd} nil]}]
-          :boot-mount-point ["IDE Controller" 0]}
-         group-name init-script user))))
+        (create-nodes-fn target-machines-to-create server (:node-path locations)
+                         group-spec image final-hardware-model
+                         group-name init-script user))))
 
   (reboot
     [compute nodes]
@@ -497,10 +579,25 @@
 (defn add-image [compute url & {:as options}]
   (install-image compute url options))
 
+(def base-model
+  {:memory-size 512
+   :cpu-count 1
+   :storage [{:name "IDE Controller"
+              :bus :ide
+              :devices [nil nil nil nil]}]
+   :boot-mount-point ["IDE Controller" 0]})
+
+(def default-models
+  {:micro base-model
+   :small (merge base-model {:memory-size 1024 :cpu-count 1})
+   :medium (merge base-model {:memory-size 2048 :cpu-count 2})
+   :large (merge base-model {:memory-size (* 4 1024) :cpu-count 4})})
+
 ;;;; Compute seyrvice
 (defmethod implementation/service :virtualbox
   [_ {:keys [url identity credential images node-path model-path locations
-             environment default-network-type default-interface]
+             environment default-network-type default-bridged-interface
+             default-local-interface hardware-models]
       :or {url "http://localhost:18083/"
            identity "test"
            credential "test"
@@ -511,30 +608,44 @@
   (let [locations (or locations
                       {:local {:node-path node-path :model-path model-path}})
         images (merge (manager/load-models :model-path model-path) images)
+        models (merge default-models
+                      ;; new hardware models inherit from the
+                      ;; base-model
+                      (zipmap (keys hardware-models)
+                              (map 
+                               (partial merge base-model)
+                               (vals hardware-models))))
         available-host-interfaces (manager/find-usable-network-interface
                                    (manager/server url identity credential))
-        interface (or default-interface
-                      (if (= default-network-type :bridged)
-                        (do
-                          (logging/infof
-                           "No Host Interface defined. Will chose from these options: %s"
-                           (apply str (interpose "," available-host-interfaces)))
-                          (first available-host-interfaces))
-                        (do
-                          (logging/info
-                           "No Local Interface defined. Using vboxnet0")
-                          "vboxnet0")))] ;; todo. Automatically discover this
+        bridged-interface (or default-bridged-interface
+                              (do
+                                (logging/infof
+                                 "No Host Interface defined. Will chose from these options: %s"
+                                 (apply str (interpose "," available-host-interfaces)))
+                                (first available-host-interfaces)))
+        local-interface (or default-local-interface
+                            (do
+                              (logging/info
+                               "No Local Interface defined. Using vboxnet0")
+                              "vboxnet0"))] ;; todo. Automatically discover this
                         
     (logging/infof "Loaded images: %s" (keys images))
     (logging/infof "Using '%s' networking via interface '%s' as defaults for new machines"
-                   (name default-network-type) interface)
+                   (name default-network-type)
+                   (if (= default-network-type :local)
+                     local-interface
+                     bridged-interface))
+    (doseq [[name model] models]
+      (logging/infof "loaded model %s = %s" name model))
     (VmfestService.
      (vmfest.virtualbox.model.Server. url identity credential)
      (atom images)
      (val (first locations))
      default-network-type
-     default-interface
-     environment)))
+     local-interface
+     bridged-interface
+     environment
+     models)))
 
 (defmethod clojure.core/print-method vmfest.virtualbox.model.Machine
   [node writer]
