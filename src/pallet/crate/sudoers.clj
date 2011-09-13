@@ -5,7 +5,7 @@
    [pallet.session :as session]
    [pallet.template :as template]
    [pallet.utils :as utils]
-   [clojure.contrib.logging :as logging]
+   [clojure.tools.logging :as logging]
    [clojure.string :as string]))
 
 ;; TODO - add recogintion of +key or key+
