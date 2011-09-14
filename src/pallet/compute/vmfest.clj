@@ -132,23 +132,38 @@
 (defn supported-providers []
   ["virtualbox"])
 
+;; fallback os family translation data. This should be removed once
+;; everyone is using metadata in their images.
 (def os-family-name
   {:ubuntu "Ubuntu"
    :centos "RedHat"
    ;:rhel "RedHat"
-   :rhel "RedHat_64"})
-
-(def ip-tag "/pallet/ip")
-(def group-name-tag "/pallet/group-name")
-(def os-family-tag "/pallet/os-family")
-(def os-version-tag "/pallet/os-version")
-
-(def *vm-session-type* "headless") ; gui, headless or sdl
-
-;(def match-model-template [templates models])
+   :rhel "RedHat_64"
+   :debian "Debian_64"})
 
 (def os-family-from-name
   (zipmap (vals os-family-name) (keys os-family-name)))
+
+;; names of tags used to tag the VMs once created
+(def ip-tag "/pallet/ip")
+(def group-name-tag "/pallet/group-name")
+(def image-meta-tag "/pallet/image-meta")
+
+
+(def
+  ^{:doc "Determine what time of VM user session will be created by default:
+ \"headless\", \"gui\" or \"sdl\":"
+    :private true}
+  default-vm-session-type "headless") ; gui, headless or sdl
+
+
+(defn- image-meta-from-node
+  "Obtains the image metadata from the node's extra parameters"
+  [node]
+  (if-let [meta-str (manager/get-extra-data node image-meta-tag)]
+    (when-not (empty? meta-str)
+      (print "meta is:" meta-str)
+      (with-in-str meta-str (read)))))
 
 (extend-type vmfest.virtualbox.model.Machine
   pallet.compute/Node
@@ -158,12 +173,27 @@
     (slingshot/try+
      (manager/get-ip node)
      (catch clojure.contrib.condition.Condition _
-         (manager/get-extra-data node ip-tag))))
+       ;; fallback to the ip stored in the node's extra parameters
+       (manager/get-extra-data node ip-tag))))
   (private-ip [node] nil)
   (is-64bit?
     [node]
-    (let [os-type-id (session/with-no-session node [m] (.getOSTypeId m))]
-      (boolean (re-find #"_64" os-type-id))))
+    (let [meta (image-meta-from-node node)
+          os-64-bit (:os-64-bit meta)
+          os-type-id (:os-type-id meta)]
+      ;; either :os-64-bit is present, or we get it from :os-type-id
+      ;; if present, or we try to guess from the VM itself
+      (or (or os-64-bit
+              (when os-type-id
+                (boolean (re-find #"_64" os-type-id))))
+          ;; try guessing it from the VBox Machine object. This should
+          ;; not be necessary in the near future. Remove after 0.3
+          (do
+            (logging/warnf
+             "Cannot determine if machine is 64 bit from metadata: '%s'" meta)
+            (if-let [os-type-id (session/with-no-session node [m] (.getOSTypeId m))]
+              (boolean (re-find #"_64" os-type-id))
+              (logging/error "Cannot determine if machine is 64 bit by any means."))))))
   (group-name
     [node]
     (let [group-name (manager/get-extra-data node group-name-tag)]
@@ -176,19 +206,23 @@
       (.getName m)))
   (os-family
     [node]
-    (let [os-name (session/with-no-session node [m] (.getOSTypeId m))]
-      (or
-       (when-let [os-family (manager/get-extra-data node os-family-tag)]
-         (when-not (string/blank? os-family)
-           (keyword os-family)))
-       (os-family-from-name os-name os-name)
-       :centos) ;; hack!
-      ))
+    (let [meta (image-meta-from-node node)
+          os-family-from-meta (:os-family meta)]
+      (if os-family-from-meta
+        os-family-from-meta
+        ;; try guessing it from the VBox Machine object. This should
+        ;; not be necessary in the near future. Remove after 0.3
+        (do 
+          (logging/warnf "Cannot get os-family from node's metadata '%s'. Trying to guess" meta)
+          (let [os-name (session/with-no-session node [m] (.getOSTypeId m))]
+            (or (os-family-from-name os-name os-name)
+                :centos) ;; todo: remove this hack!
+            )))))
   (os-version
     [node]
-    (or
-     (manager/get-extra-data node os-version-tag)
-     "5.3"))
+    (let [meta (image-meta-from-node node)]
+      (or
+       (:os-version meta)))) 
   (running?
     [node]
     (and
@@ -197,14 +231,15 @@
   (terminated? [node] false)
   (id [node] (:id node)))
 
-(defn nil-if-blank [x]
+(defn- nil-if-blank [x]
   (if (string/blank? x) nil x))
 
 (defn- current-time-millis []
   (System/currentTimeMillis))
 
 (defn wait-for-ip
-  "Wait for the machines IP to become available."
+  "Wait for the machines IP to become available by the provided amount of
+  milliseconds, or 5min by default."
   ([machine] (wait-for-ip machine 300000))
   ([machine timeout]
      (let [timeout (+ (current-time-millis) timeout)]
@@ -227,7 +262,7 @@
 
 
 (defn machine-name
-  "Generate a machine name"
+  "Generate a machine name based on the grup name and an index"
   [group-name n]
   (format "%s-%s" group-name n))
 
@@ -235,7 +270,14 @@
   (os-families [compute] "Return supported os-families")
   (medium-formats [compute] "Return supported medium-formats"))
 
-(defn node-data [m]
+(defn- node-data
+  "data about a running node: name, description, session state,
+  ip address and group to which it belongs.
+
+  returns: [name description session state] {:ip ip :group-name group}*
+
+  (*) only if the machine is accessible."
+  [m]
   (let [attributes (session/with-no-session m [im]
                      [(.getName im)
                       (.getDescription im)
@@ -248,31 +290,39 @@
         group-name (when open? (manager/get-extra-data m group-name-tag))]
     (into attributes {:ip ip :group-name group-name}) ))
 
-(defn node-infos [compute-service]
+(defn- node-infos [compute-service]
   (let [nodes (manager/machines compute-service)]
     (map node-data nodes)))
 
-(defn create-node
+(defn- create-node
+  "Instantiates a compute node on vmfest and runs the supplied init script.
+
+  The node will be named 'machine-name', and will be built according
+  to the supplied 'model'. This node will boot from the supplied
+  'image' and will belong to the supplied 'group' "
   [compute node-path node-spec machine-name image model group-name init-script user]
   (logging/tracef "Creating node from image: %s and hardware model %s" image model)
   (let [machine (manager/instance*
                  compute machine-name image model node-path)]
+    (manager/set-extra-data machine image-meta-tag (pr-str image))
     (manager/set-extra-data machine group-name-tag group-name)
-    (manager/set-extra-data machine os-family-tag (name (:os-family image)))
-    (manager/set-extra-data machine os-version-tag (:os-version image))
-    ;; (manager/add-startup-command machine 1 init-script )
     (manager/start
      machine
-     :session-type (or
-                    (:session-type node-spec)
-                    *vm-session-type*))
-    (logging/trace "Wait to allow boot")
-    (Thread/sleep 15000)                ; wait minimal time for vm to boot
+     :session-type (or ;; todo: move this decision upstream, when it
+                    ;; is first possible.
+                    (get-in node-spec [:image :session-type])
+                    default-vm-session-type))
+;;    (logging/trace "Wait to allow boot")
+;;    (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
     (when (string/blank? (wait-for-ip machine))
       (slingshot/throw+
        {:type :no-ip-available
         :message "Could not determine IP address of new node"}))
+    ;; wait for services to come up, specially SSH
+    ;; todo: provide some form of exponential backoff try with at
+    ;; something like 3 attempts. A single wait for 4s might not
+    ;; work under high contention (e.g. starting many nodes)
     (Thread/sleep 4000)
     (logging/tracef "Bootstrapping %s" (manager/get-ip machine))
     (script/with-script-context
@@ -290,6 +340,10 @@
            {:pty (not (#{:arch :fedora} (:os-family image)))}))))
     machine))
 
+(defn- always-match
+  [image-properties kw arg]
+  true)
+
 (defn- equality-match
   [image-properties kw arg]
   (= (image-properties kw) arg))
@@ -297,33 +351,53 @@
 (defn- regexp-match
   [image-properties kw arg]
   (when-let [value (image-properties kw)]
-    (re-matches (re-pattern arg) value)))
+    ;;(println (format "matching %s=%s for %s in image: %s" kw value arg image-properties))
+    (re-matches (re-pattern arg) value))) 
 
-(def template-matchers
+(def
+  ^{:doc "maps the template field with a function that will determine if the template
+  matches"
+    :private true}
+  template-matchers
   {:os-version-matches (fn [image-properties kw arg]
-                         (regexp-match image-properties :os-version arg))})
+                         (regexp-match image-properties :os-version arg))
+   :image-name-matches (fn [image-properties kw arg]
+                         (regexp-match image-properties :image-name arg))
+   :image-id-matches (fn [image-properties kw arg]
+                       (regexp-match image-properties :image-id arg))
+   :image-description-matches (fn [image-properties kw arg]
+                                (regexp-match image-properties :description arg))
+   :os-family (fn [image-properties kw arg]
+                (equality-match image-properties :os-family arg))})
+
+(defn all-images-from-template
+  "Finds all the images that match a template"
+  [images template]
+  (into {}
+        (->
+         (filter
+          (fn image-matches? [[image-name image-properties]]
+            ;; check wether all the template matchers present in the
+            ;; template match and defined in 'template-matchers' match
+            ;; with the image
+            (every?
+             ;; either the key in the template has a value in
+             ;; 'template-matchers' or the template will always match,
+             ;; thus ignoring the key. Basically only try to match for
+             ;; entries in the template that have a matcher and ignore
+             ;; the rest.
+             #(((first %) template-matchers always-match)
+               image-properties (first %) (second %))
+             template))
+          images))))
 
 (defn image-from-template
   "Use the template to select an image from the image map."
   [images template]
-  (let [template-to-match (utils/dissoc-keys
-                           template
-                           (concat
-                            [:image-id :inbound-ports]
-                            (keys hardware-config)
-                            (keys hardware-parameters)))]
-    (logging/debugf "Looking for %s in %s" template-to-match images)
-    (if-let [image-id (:image-id template)]
-      (image-id images)
-      (->
-       (filter
-        (fn image-matches? [[image-name image-properties]]
-          (every?
-           #(((first %) template-matchers equality-match)
-             image-properties (first %) (second %))
-           template-to-match))
-        images)
-       ffirst))))
+  (logging/debugf "Looking for %s in %s" template images)
+  (if-let [image-id (:image-id template)]
+    image-id
+    (ffirst (all-images-from-template images template))))
 
 (defn serial-create-nodes
   "Create all nodes for a group in parallel."
@@ -378,7 +452,8 @@
   (publish-image [service image blobstore container {:keys [path] :as options}]
     "Publish the image to the specified blobstore container")
   (has-image? [service image-key]
-    "Predicate to test for the presence of a specific image"))
+    "Predicate to test for the presence of a specific image")
+  (find-images [service template]))
 
 (defn hardware-model-from-template [model template network-type interface]
   (merge model
@@ -438,11 +513,12 @@
                           vals
                           (reduce merge))
             _ (logging/infof "Template %s" template)
-            image (or (image-from-template @images template)
+            image (or (image-from-template
+                       @images template)
                       (throw (RuntimeException.
                               (format "No matching image for %s in"
                                       (pr-str (:image group-spec))
-                                      (@images)))))
+                                      @images))))
             group-name (name (:group-name group-spec))
             machines (filter
                       #(session/with-no-session % [vb-m] (.getAccessible vb-m))
@@ -486,7 +562,7 @@
                             target-machines-to-create))
         (logging/debugf "Selected image: %s" image)
         (create-nodes-fn target-machines-to-create server (:node-path locations)
-                         group-spec image final-hardware-model
+                         group-spec (image @images) final-hardware-model
                          group-name init-script user))))
 
   (reboot
@@ -574,7 +650,9 @@
           :known-images (keys @images)
           :message msg}))))
   (has-image? [_ image-kw]
-    ((or @images {}) image-kw)))
+    ((or @images {}) image-kw)) 
+  (find-images [_ template]
+    (all-images-from-template @images template)))
 
 (defn add-image [compute url & {:as options}]
   (install-image compute url options))
@@ -593,6 +671,15 @@
    :medium (merge base-model {:memory-size 2048 :cpu-count 2})
    :large (merge base-model {:memory-size (* 4 1024) :cpu-count 4})})
 
+(defn- process-images
+  "preformats the image maps to complete some of the fields"
+  [images]
+  (zipmap (keys images)
+          (map (fn [[k v]] (assoc v
+                            :image-name (name k)
+                            :image-id (name k)))
+               images)))
+
 ;;;; Compute seyrvice
 (defmethod implementation/service :virtualbox
   [_ {:keys [url identity credential images node-path model-path locations
@@ -607,7 +694,8 @@
       :as options}]
   (let [locations (or locations
                       {:local {:node-path node-path :model-path model-path}})
-        images (merge (manager/load-models :model-path model-path) images)
+        images (process-images
+                (merge (manager/load-models :model-path model-path) images))
         models (merge default-models
                       ;; new hardware models inherit from the
                       ;; base-model
