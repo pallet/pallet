@@ -22,10 +22,13 @@
  test-utils/with-bash-script-language
  (fn bind-default-agent [f]
    (binding [default-agent-atom (atom nil)]
-     (f))))
+     (f)))
+ (fn with-test-context [f]
+   (debug "Start test")
+   (f)))
 
 (deftest sudo-cmd-for-test
-  (script/with-template [:ubuntu]
+  (script/with-script-context [:ubuntu]
     (let [no-pw "/usr/bin/sudo -n "
           pw "echo \"fred\" | /usr/bin/sudo -S "
           no-sudo "/bin/bash "]
@@ -37,7 +40,7 @@
               (utils/make-user "fred" :password "fred" :sudo-password false))))
       (is (= no-sudo (sudo-cmd-for (utils/make-user "root"))))
       (is (= no-sudo (sudo-cmd-for (utils/make-user "fred" :no-sudo true))))))
-  (script/with-template [:centos-5.3]
+  (script/with-script-context [:centos-5.3]
     (let [no-pw "/usr/bin/sudo "
           pw "echo \"fred\" | /usr/bin/sudo -S "
           no-sudo "/bin/bash "]
@@ -62,7 +65,7 @@
     (binding [utils/*admin-user* user]
       (possibly-add-identity
        (default-agent) (:private-key-path user) (:passphrase user))
-      (script/with-template [(jvm/os-family)]
+      (script/with-script-context [(jvm/os-family)]
         (let [result (remote-sudo
                       "localhost"
                       "ls"
@@ -96,6 +99,7 @@
             result (#'core/apply-phase-to-node session)]
         (is (= 3 (count result)))
         (is (= 1 (count (first result))))
+        (is (nil? (:error (ffirst result))))
         (is (= 0 (:exit (ffirst result))))
         (is (= :continue (last result)))))))
 
