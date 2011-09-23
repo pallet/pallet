@@ -279,6 +279,17 @@
     </profile>
 
     <profile>
+      <id>clojure-1.3</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.clojure</groupId>
+          <artifactId>clojure</artifactId>
+          <version>1.3.0</version>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <profile>
       <id>distribution</id>
       <build>
         <plugins>
