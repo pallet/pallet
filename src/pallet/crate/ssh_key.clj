@@ -2,10 +2,12 @@
   "Crate functions for manipulating SSH-keys"
   (:require
    [pallet.action :as action]
+   [pallet.action-plan :as action-plan]
    [pallet.action.directory :as directory]
    [pallet.action.exec-script :as exec-script]
    [pallet.action.file :as file]
    [pallet.action.remote-file :as remote-file]
+   [pallet.context :as context]
    [pallet.parameter :as parameter]
    [pallet.script.lib :as lib]
    [pallet.script :as script]
@@ -22,7 +24,7 @@
    passing of delayed arguments for the public-key-string, enabling the
    authorisation of a key found with record-key."
   [session user public-key-string auth-file]
-  (stevedore/checked-script
+  (action-plan/checked-script
    (format "authorize-key on user %s" user)
    (var auth_file ~auth-file)
    (if-not (fgrep (quoted ~(string/trim public-key-string)) @auth_file)
@@ -34,14 +36,16 @@
   (let [target-user (or authorize-for-user user)
         dir (user-ssh-dir target-user)
         auth-file (str dir "authorized_keys")]
-    (->
-     session
-     (directory/directory dir :owner target-user :mode "755")
-     (file/file auth-file :owner target-user :mode "644")
-     (authorize-key-action user public-key-string auth-file)
-     (exec-script/exec-checked-script
-      "Set selinux permissions"
-      (~lib/selinux-file-type ~dir "user_home_t")))))
+    (pallet.context/with-phase-context
+      :authorize-key ["Authorize SSH key on user %s" user]
+      (->
+       session
+       (directory/directory dir :owner target-user :mode "755")
+       (file/file auth-file :owner target-user :mode "644")
+       (authorize-key-action user public-key-string auth-file)
+       (exec-script/exec-checked-script
+        "Set selinux permissions"
+        (~lib/selinux-file-type ~dir "user_home_t"))))))
 
 (defn authorize-key-for-localhost
   "Authorize a user's public key on the specified user, for ssh access to

@@ -13,6 +13,7 @@
   {:author "Hugo Duncan"}
   (:require
    [pallet.argument :as argument]
+   [pallet.context :as context]
    [pallet.phase :as phase]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
@@ -50,6 +51,10 @@
         stack (pop action-plan)]
     (conj stack (conj block action))))
 
+(def
+  ^{:doc "Phase contexts when action was called in a phase"}
+  *defining-context*)
+
 ;; pallet specific action
 (defn action-map
   "Return an action map for the given args. The action plan is a tree of
@@ -78,7 +83,8 @@
       :args args
       :location location
       :action-type action-type
-      :execution execution})))
+      :execution execution
+      :context (context/phase-contexts)})))
 
 ;;; utilities
 
@@ -420,7 +426,11 @@
 (defmethod combine-actions :script/bash
   [actions]
   (assoc (first actions)
-    :f (fn [session] (script-join (map #((:f %) session) actions)))))
+    :f (fn [session] (script-join
+                      (map
+                       #(binding [*defining-context* (:context %)]
+                          ((:f %) session))
+                       actions)))))
 
 (defmethod combine-actions :transfer/to-local
   [actions]
@@ -623,3 +633,23 @@
       (execute
        (get-in session (target-path session))
        session executor execute-status-fn))))
+
+(defmacro checked-script
+  "Return a stevedore script that uses the current context to label the
+   action"
+  [name & script]
+  `(stevedore/checked-script
+    (if-let [context# (seq action-plan/*defining-context*)]
+      (str (string/join ": " context#) ": " ~name)
+      ~name)
+    ~@script))
+
+(defmacro checked-commands
+  "Return a stevedore script that uses the current context to label the
+   action"
+  [name & script]
+  `(stevedore/checked-commands
+    (if-let [context# (seq action-plan/*defining-context*)]
+      (str (string/join ": " context#) ": " ~name)
+      ~name)
+    ~@script))

@@ -19,7 +19,8 @@
                      :args []
                      :location :target
                      :action-type :script/bash
-                     :execution :in-sequence}] nil]}}
+                     :execution :in-sequence
+                     :context nil}] nil]}}
             :phase :fred
             :target-id :id
             :server {:node-id :id}}
@@ -38,7 +39,8 @@
                      :args ["hello"]
                      :location :target
                      :action-type :script/bash
-                     :execution :in-sequence}] nil]}}
+                     :execution :in-sequence
+                     :context nil}] nil]}}
             :phase :fred
             :target-id :id
             :server {:node-id :id}}
@@ -63,7 +65,8 @@
                    :args ["hello"]
                    :location :target
                    :action-type :script/bash
-                   :execution :in-sequence}] nil]}}
+                   :execution :in-sequence
+                   :context nil}] nil]}}
           :phase :fred
           :target-id :id
           :server {:node-id :id}}
@@ -82,7 +85,8 @@
                      :args [1]
                      :location :origin
                      :action-type :fn/clojure
-                     :execution :in-sequence}] nil]}}
+                     :execution :in-sequence
+                     :context nil}] nil]}}
             :phase :fred
             :target-id :id
             :server {:node-id :id}}
@@ -100,12 +104,14 @@
                         :args [2]
                         :location :origin
                         :action-type :fn/clojure
-                        :execution :in-sequence}
+                        :execution :in-sequence
+                        :context nil}
                        {:f (action/action-fn f)
                         :args [1]
                         :location :origin
                         :action-type :fn/clojure
-                        :execution :in-sequence}]
+                        :execution :in-sequence
+                        :context nil}]
                       nil]}}
                :phase :fred
                :target-id :id
@@ -132,7 +138,8 @@
                        :args []
                        :location :origin
                        :action-type :fn/clojure
-                       :execution :in-sequence}] nil]}}
+                       :execution :in-sequence
+                       :context nil}] nil]}}
               :phase :fred
               :target-id :id
               :server {:node-id :id}}
@@ -148,7 +155,8 @@
                        :args []
                        :location :origin
                        :action-type :fn/clojure
-                       :execution :in-sequence}] nil]}}
+                       :execution :in-sequence
+                       :context nil}] nil]}}
               :phase :fred
               :target-id :id
               :server {:node-id :id}}
@@ -169,12 +177,14 @@
                         :args [2]
                         :location :target
                         :action-type :script/bash
-                        :execution :aggregated}
+                        :execution :aggregated
+                        :context nil}
                        {:f (action/action-fn f)
                         :args [1]
                         :location :target
                         :action-type :script/bash
-                        :execution :aggregated}]
+                        :execution :aggregated
+                        :context nil}]
                       nil]}}
                :phase :fred
                :target-id :id
@@ -213,7 +223,8 @@
                    :args ["hello"]
                    :location :target
                    :action-type :script/bash
-                   :execution :aggregated}] nil]}}
+                   :execution :aggregated
+                   :context nil}] nil]}}
           :phase :fred
           :target-id :id
           :server {:node-id :id}}

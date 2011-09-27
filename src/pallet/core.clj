@@ -32,6 +32,7 @@
    [pallet.common.map-utils :as map-utils]
    [pallet.common.resource :as resource]
    [pallet.compute :as compute]
+   [pallet.context :as context]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.futures :as futures]
@@ -566,15 +567,20 @@
   "Apply a phase to a node session"
   [session]
   {:pre [(:server session) (:phase session)]}
-  (logutils/with-context [:target (compute/primary-ip
-                                   (-> session :server :node))
-                          :phase (:phase session)
-                          :group (-> session :group :group-name)]
-    ((middleware-handler execute)
-     (->
-      session
-      apply-environment
-      add-session-keys-for-0-4-compatibility))))
+  (context/with-context
+    :apply-phase ["Apply phase %s to %s %s"
+                  (:phase session)
+                  (-> session :group :group-name)
+                  (compute/primary-ip (-> session :server :node))]
+    (logutils/with-context [:target (compute/primary-ip
+                                     (-> session :server :node))
+                            :phase (:phase session)
+                            :group (-> session :group :group-name)]
+      ((middleware-handler execute)
+       (->
+        session
+        apply-environment
+        add-session-keys-for-0-4-compatibility)))))
 
 (defn stop-execution-on-error
   ":execute-status-fn algorithm to stop execution on an error"
@@ -1151,14 +1157,16 @@
    The input can be a single group-spec, a map from group-spec to node count,
    or a sequence of group-spec's"
   [group-spec->count]
-  (cond
-   ;; a single group-spec
-   (and
-    (map? group-spec->count)
-    (:group-name group-spec->count)) [group-spec->count]
-   ;; a map from group-spec to count
-   (map? group-spec->count) (map group-spec-with-count group-spec->count)
-   :else group-spec->count))
+  (context/with-context
+    :node-set "Compute node set for converge"
+    (cond
+     ;; a single group-spec
+     (and
+      (map? group-spec->count)
+      (:group-name group-spec->count)) [group-spec->count]
+      ;; a map from group-spec to count
+     (map? group-spec->count) (map group-spec-with-count group-spec->count)
+     :else group-spec->count)))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in

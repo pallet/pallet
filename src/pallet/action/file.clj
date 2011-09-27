@@ -2,6 +2,8 @@
   "File manipulation."
   (:require
    [pallet.action :as action]
+   [pallet.action-plan :as action-plan]
+   [pallet.context :as context]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
@@ -36,13 +38,13 @@
                    :or {action :create force true}
                    :as options}]
   (case action
-    :delete (stevedore/checked-script
+    :delete (action-plan/checked-script
              (str "delete file " path)
              (~lib/rm ~path :force ~force))
-    :create (stevedore/checked-commands
+    :create (action-plan/checked-commands
              (str "file " path)
              (touch-file path options))
-    :touch (stevedore/checked-commands
+    :touch (action-plan/checked-commands
              (str "file " path)
              (touch-file path options))))
 
@@ -51,10 +53,10 @@
   [session from name & {:keys [action owner group mode force]
                         :or {action :create force true}}]
   (case action
-    :delete (stevedore/checked-script
+    :delete (action-plan/checked-script
              (str "Link %s " name)
              (~lib/rm ~name :force ~force))
-    :create (stevedore/checked-script
+    :create (action-plan/checked-script
              (format "Link %s as %s" from name)
              (~lib/ln ~from ~name :force ~force :symbolic ~true))))
 
@@ -62,10 +64,10 @@
   "FIFO pipe management."
   [session path & {:keys [action] :or {action :create} :as options}]
   (case action
-    :delete (stevedore/checked-script
+    :delete (action-plan/checked-script
              (str "fifo " path)
              (~lib/rm ~path :force ~force))
-    :create (stevedore/checked-commands
+    :create (action-plan/checked-commands
              (str "fifo " path)
              (stevedore/script
               (if-not (file-exists? ~path)
@@ -75,7 +77,7 @@
 (action/def-bash-action sed
   "Execute sed on a file.  Takes a path and a map for expr to replacement."
   [session path exprs-map & {:keys [seperator no-md5 restriction] :as options}]
-  (stevedore/checked-script
+  (action-plan/checked-script
    (format "sed file %s" path)
    (~lib/sed-file ~path ~exprs-map ~options)
    ~(when-not no-md5

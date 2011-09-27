@@ -5,6 +5,7 @@
    [pallet.action :as action]
    [pallet.action.exec-script :as exec-script]
    [pallet.action.user :as user]
+   [pallet.context :as context]
    [pallet.core :as core]
    [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.crate.ssh-key :as ssh-key]
@@ -20,14 +21,16 @@
 (deftest automated-admin-user-test
   (testing "with defaults"
     (is (= (first
-            (build-actions/build-actions
-             {}
-             (sudoers/install)
-             (user/user "fred" :create-home true :shell :bash)
-             (sudoers/sudoers
-              {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-             (ssh-key/authorize-key
-              "fred" (slurp (pallet.utils/default-public-key-path)))))
+            (context/with-phase-context
+              :automated-admin-user "Automated admin user fred"
+              (build-actions/build-actions
+               {}
+               (sudoers/install)
+               (user/user "fred" :create-home true :shell :bash)
+               (sudoers/sudoers
+                {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+               (ssh-key/authorize-key
+                "fred" (slurp (pallet.utils/default-public-key-path))))))
            (first
             (build-actions/build-actions
              {}
@@ -35,14 +38,16 @@
 
   (testing "with path"
     (is (= (first
-            (build-actions/build-actions
-             {}
-             (sudoers/install)
-             (user/user "fred" :create-home true :shell :bash)
-             (sudoers/sudoers
-              {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-             (ssh-key/authorize-key
-              "fred" (slurp (pallet.utils/default-public-key-path)))))
+            (context/with-phase-context
+              :automated-admin-user "Automated admin user fred"
+              (build-actions/build-actions
+               {}
+               (sudoers/install)
+               (user/user "fred" :create-home true :shell :bash)
+               (sudoers/sudoers
+                {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+               (ssh-key/authorize-key
+                "fred" (slurp (pallet.utils/default-public-key-path))))))
            (first
             (build-actions/build-actions
              {}
@@ -51,13 +56,15 @@
 
   (testing "with byte array"
     (is (= (first
-            (build-actions/build-actions
-             {}
-             (sudoers/install)
-             (user/user "fred" :create-home true :shell :bash)
-             (sudoers/sudoers
-              {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-             (ssh-key/authorize-key "fred" "abc")))
+            (context/with-phase-context
+              :automated-admin-user "Automated admin user fred"
+              (build-actions/build-actions
+               {}
+               (sudoers/install)
+               (user/user "fred" :create-home true :shell :bash)
+               (sudoers/sudoers
+                {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+               (ssh-key/authorize-key "fred" "abc"))))
            (first
             (build-actions/build-actions
              {}
@@ -66,29 +73,33 @@
   (testing "with default username"
     (let [user-name (. System getProperty "user.name")]
       (is (= (first
-              (build-actions/build-actions
-               {}
-               (sudoers/install)
-               (user/user user-name :create-home true :shell :bash)
-               (sudoers/sudoers
-                {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-               (ssh-key/authorize-key
-                user-name (slurp (pallet.utils/default-public-key-path)))))
+              (context/with-phase-context
+                :automated-admin-user (str "Automated admin user " user-name)
+                (build-actions/build-actions
+                 {}
+                 (sudoers/install)
+                 (user/user user-name :create-home true :shell :bash)
+                 (sudoers/sudoers
+                  {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+                 (ssh-key/authorize-key
+                  user-name (slurp (pallet.utils/default-public-key-path))))))
              (first
               (build-actions/build-actions
                {:user (utils/make-user user-name)}
                (automated-admin-user)))))))
-    (testing "with session username"
+  (testing "with session username"
     (let [user-name "fredxxx"]
       (is (= (first
-              (build-actions/build-actions
-               {}
-               (sudoers/install)
-               (user/user user-name :create-home true :shell :bash)
-               (sudoers/sudoers
-                {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-               (ssh-key/authorize-key
-                user-name (slurp (pallet.utils/default-public-key-path)))))
+              (context/with-phase-context
+                :automated-admin-user (str "Automated admin user " user-name)
+                (build-actions/build-actions
+                 {}
+                 (sudoers/install)
+                 (user/user user-name :create-home true :shell :bash)
+                 (sudoers/sudoers
+                  {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+                 (ssh-key/authorize-key
+                  user-name (slurp (pallet.utils/default-public-key-path))))))
              (first
               (build-actions/build-actions
                {:user (utils/make-user user-name)}
@@ -102,7 +113,7 @@
     (format "automated-admin-user live test: image %s" (pr-str image)))
    (live-test/test-nodes
     [compute node-map node-types]
-    {:pgtest
+    {:aau
      (->
       (core/server-spec
        :phases {:bootstrap (phase/phase-fn

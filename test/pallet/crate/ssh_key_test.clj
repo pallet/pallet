@@ -9,6 +9,7 @@
    [pallet.action.user :as user]
    [pallet.build-actions :as build-actions]
    [pallet.core :as core]
+   [pallet.context :as context]
    [pallet.live-test :as live-test]
    [pallet.parameter :as parameter]
    [pallet.phase :as phase]
@@ -26,24 +27,26 @@
 
 (deftest authorize-key-test
   (is (= (first
-          (build-actions/build-actions
-           {}
-           (directory/directory
-            "$(getent passwd fred | cut -d: -f6)/.ssh/"
-            :owner "fred" :mode "755")
-           (file/file
-            "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
-            :owner "fred" :mode "644")
-           (exec-script/exec-checked-script
-            "authorize-key on user fred"
-            (var auth_file
-                 "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
-            (if-not (fgrep (quoted "key1") @auth_file)
-              (echo (quoted "key1") ">>" @auth_file)))
-           (exec-script/exec-checked-script
-            "Set selinux permissions"
-            (~lib/selinux-file-type
-             "$(getent passwd fred | cut -d: -f6)/.ssh/" "user_home_t"))))
+          (context/with-phase-context
+           :authorize-key "Authorize SSH key on user fred"
+           (build-actions/build-actions
+            {}
+            (directory/directory
+             "$(getent passwd fred | cut -d: -f6)/.ssh/"
+             :owner "fred" :mode "755")
+            (file/file
+             "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
+             :owner "fred" :mode "644")
+            (exec-script/exec-checked-script
+             "authorize-key on user fred"
+             (var auth_file
+                  "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
+             (if-not (fgrep (quoted "key1") @auth_file)
+               (echo (quoted "key1") ">>" @auth_file)))
+            (exec-script/exec-checked-script
+             "Set selinux permissions"
+             (~lib/selinux-file-type
+              "$(getent passwd fred | cut -d: -f6)/.ssh/" "user_home_t")))))
          (first
           (build-actions/build-actions
            {}

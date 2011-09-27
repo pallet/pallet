@@ -2,6 +2,7 @@
   "Test utilities for building actions"
   (:require
    [pallet.action-plan :as action-plan]
+   [pallet.context :as context]
    [pallet.compute :as compute]
    [pallet.core :as core]
    [pallet.core :as core]
@@ -28,19 +29,20 @@
           (let [[result session] (apply-phase-to-node
                                   session)]
             [(string/join "" result) session]))]
-    (reduce
-     (fn [[results session] phase]
-       (let [[result session] (execute (assoc session :phase phase))]
-         [(str results result) session]))
-     ["" (->
-          session
-          (assoc :middleware
-            [core/translate-action-plan
-             execute/execute-echo]
-            :executor core/default-executors
-            :environment {:algorithms core/default-algorithms})
-          action-plan/build-for-target)]
-     (phase/all-phases-for-phase (:phase session)))))
+    (binding [action-plan/*defining-context* (context/phase-contexts)]
+      (reduce
+       (fn [[results session] phase]
+         (let [[result session] (execute (assoc session :phase phase))]
+           [(str results result) session]))
+       ["" (->
+            session
+            (assoc :middleware
+              [core/translate-action-plan
+               execute/execute-echo]
+              :executor core/default-executors
+              :environment {:algorithms core/default-algorithms})
+            action-plan/build-for-target)]
+       (phase/all-phases-for-phase (:phase session))))))
 
 (defn- convert-0-4-5-compatible-keys
   "Convert old build-actions keys to new keys."

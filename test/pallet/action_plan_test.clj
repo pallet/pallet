@@ -50,7 +50,7 @@
 
 (deftest action-map-test
   (is (= {:f identity :action-id 1 :args [] :action-type :b :execution :a
-          :location :l}
+          :location :l :context nil}
          (action-plan/action-map identity {:action-id 1} [] :a :b :l))))
 
 
@@ -89,9 +89,9 @@
                               f {} [2] :in-sequence :script/bash :target)))]
         (is (=
              [{:f f :args [1] :location :target
-               :action-type :script/bash :execution :in-sequence}
+               :action-type :script/bash :execution :in-sequence :context nil}
               {:f f :args [2] :location :target
-               :action-type :script/bash :execution :in-sequence}]
+               :action-type :script/bash :execution :in-sequence :context nil}]
              (->>
               action-plan
               action-plan/pop-block
@@ -111,11 +111,11 @@
                :args [{:f f
                        :args [1]
                        :location :target :action-type :script/bash
-                       :execution :in-sequence}
+                       :execution :in-sequence :context nil}
                       {:f f
                        :args [2]
                        :location :target :action-type :script/bash
-                       :execution :in-sequence}]
+                       :execution :in-sequence :context nil}]
                :action-type :nested-scope
                :execution :in-sequence
                :location :target}]
@@ -316,7 +316,7 @@
                           f {} [2] :in-sequence :script/bash :target)))]
     (is (=
          [{:location :target :action-type :script/bash
-           :execution :in-sequence}]
+           :execution :in-sequence :context nil}]
          (->>
           (action-plan/translate action-plan)
           (map #(dissoc % :f)))))
@@ -325,7 +325,8 @@
           :session {}
           :location :target
           :action-type :script/bash
-          :execution :in-sequence}
+          :execution :in-sequence
+          :context nil}
          (->
           ((-> (action-plan/translate action-plan) first :f) {})
           (dissoc :f))))))

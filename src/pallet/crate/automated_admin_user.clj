@@ -1,6 +1,7 @@
 (ns pallet.crate.automated-admin-user
   (:require
    [pallet.action.user :as user]
+   [pallet.context :as context]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.utils :as utils]
    [pallet.session :as session]
@@ -18,15 +19,17 @@
      (let [user (or (session/admin-user session) utils/*admin-user*)]
        (automated-admin-user session username (:public-key-path user))))
   ([session username & public-key-paths]
-     (->
-      session
-      (sudoers/install)
-      (user/user username :create-home true :shell :bash)
-      (thread-expr/for->
-       [path-or-bytes public-key-paths]
-       (thread-expr/if->
-        (string? path-or-bytes)
-        (ssh-key/authorize-key username (slurp path-or-bytes))
-        (ssh-key/authorize-key username (String. path-or-bytes))))
-      (sudoers/sudoers
-       {} {} {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}}))))
+     (context/with-phase-context
+       :automated-admin-user ["Automated admin user %s" username]
+       (->
+        session
+        (sudoers/install)
+        (user/user username :create-home true :shell :bash)
+        (thread-expr/for->
+         [path-or-bytes public-key-paths]
+         (thread-expr/if->
+          (string? path-or-bytes)
+          (ssh-key/authorize-key username (slurp path-or-bytes))
+          (ssh-key/authorize-key username (String. path-or-bytes))))
+        (sudoers/sudoers
+         {} {} {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})))))

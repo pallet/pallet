@@ -5,6 +5,7 @@
   (:require
    [pallet.action :as action]
    [pallet.action.file :as file]
+   [pallet.context :as context]
    [pallet.build-actions :as build-actions]
    [pallet.stevedore :as stevedore]
    [pallet.test-utils :as test-utils]))
@@ -19,6 +20,13 @@
 (deftest file-test
   (is (= (stevedore/checked-script "file file1" (touch file1))
          (first (build-actions/build-actions {} (file "file1")))))
+  (is (= (stevedore/checked-script "ctx: file file1" (touch file1))
+         (first
+          (build-actions/build-actions
+           {}
+           (context/phase-context
+             :ctx "ctx"
+             (file "file1"))))))
   (is (= (stevedore/checked-script
           "file file1"
           (touch file1)
@@ -48,7 +56,10 @@
           "sed file path"
           "sed -i -e \"s|a|b|\" path"
           "md5sum path > path.md5")
-         (sed* {} "path" {"a" "b"} :seperator "|")))
+         (first
+          (build-actions/build-actions
+           {}
+           (sed "path" {"a" "b"} :seperator "|")))))
   (is
    (build-actions/build-actions
     {}
