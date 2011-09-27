@@ -271,7 +271,7 @@
       (if (zero? exit)
         {:out stdout :exit exit}
         (do
-          (logging/errorf "Exit status  : %s" exit)
+          (logging/errorf "Exit status  : %s\n%s" exit stdout)
           {:out stdout :exit exit
            :error {:message (format
                              "Error executing script :\n :cmd %s\n :out %s\n"
@@ -338,6 +338,8 @@
           _ (when-not (ssh/connected? ssh-session)
               (try
                 (ssh/connect ssh-session)
+                (logging/infof
+                 "SSH connected to %s with user %s" server (:username user))
                 (catch Exception e
                   (slingshot/throw+
                    {:type :pallet/ssh-connection-failure
