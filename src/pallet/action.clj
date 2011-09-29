@@ -145,7 +145,7 @@
        (~f ~session ~@(map (comp symbol name) args))))
   ([f]
      `(as-clj-action
-       ~f [~@(first (:arglists (meta (var-get (resolve f)))))])))
+       ~f [~@(first (:arglists (meta (resolve f))))])))
 
 (defmacro def-action-def
   "Define a macro for definining action defining vars"
