@@ -189,7 +189,6 @@
           <plugin>
             <groupId>org.cloudhoist.plugin</groupId>
             <artifactId>zi</artifactId>
-            <version>0.3.7-SNAPSHOT</version>
             <configuration>
               <initScript>(System/setProperty "ssh.username" "testuser")
               </initScript>
