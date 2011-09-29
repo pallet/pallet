@@ -139,7 +139,8 @@
    root permissions.  The default admin user is taken from the
    pallet.admin.username property.  If not specified then the user.name property
    is used. The admin user can also be specified in config.clj when running
-   tasks from the command line."}
+   tasks from the command line."
+    :dynamic true}
   *admin-user*
   (make-user (or (. System getProperty "pallet.admin.username")
                  (. System getProperty "user.name"))))

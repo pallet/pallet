@@ -52,7 +52,8 @@
     (conj stack (conj block action))))
 
 (def
-  ^{:doc "Phase contexts when action was called in a phase"}
+  ^{:doc "Phase contexts when action was called in a phase"
+    :dynamic true}
   *defining-context*)
 
 ;; pallet specific action
