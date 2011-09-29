@@ -48,6 +48,14 @@
       <plugin>
         <groupId>org.cloudhoist.plugin</groupId>
         <artifactId>zi</artifactId>
+        <version>0.3.7-SNAPSHOT</version>
+        <dependencies>
+          <dependency>
+            <groupId>ritz</groupId>
+            <artifactId>ritz</artifactId>
+            <version>0.1.8-SNAPSHOT</version>
+          </dependency>
+        </dependencies>
       </plugin>
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
@@ -192,10 +200,12 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>com.theoryinpractise</groupId>
-            <artifactId>clojure-maven-plugin</artifactId>
+            <groupId>org.cloudhoist.plugin</groupId>
+            <artifactId>zi</artifactId>
+            <version>0.3.7-SNAPSHOT</version>
             <configuration>
-              <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m -Dssh.username=testuser</clojureOptions>
+              <initScript>(System/setProperty "ssh.username" "testuser")
+              </initScript>
             </configuration>
           </plugin>
         </plugins>
