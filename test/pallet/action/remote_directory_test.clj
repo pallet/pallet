@@ -19,18 +19,21 @@
 (def remote-file* (action/action-fn remote-file/remote-file-action))
 
 (deftest remote-directory-test
-  (is (= (stevedore/checked-commands
-          "remote-directory"
-          (directory* {} "/path" :owner "fred" :recursive false)
-          (remote-file* {}
-           "${TMPDIR-/tmp}/file.tgz" :url "http://site.com/a/file.tgz" :md5 nil)
-          (stevedore/checked-script
-           "Untar ${TMPDIR-/tmp}/file.tgz"
-           (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
-           (cd "/path")
-           (tar xz "--strip-components=1" -f "${rdf}")
-           (cd -))
-          (directory* {} "/path" :owner "fred" :recursive true))
+  (is (= (binding [pallet.action-plan/*defining-context* nil]
+           (stevedore/checked-commands
+            "remote-directory"
+            (directory* {} "/path" :owner "fred" :recursive false)
+            (remote-file*
+             {}
+             "${TMPDIR-/tmp}/file.tgz"
+             :url "http://site.com/a/file.tgz" :md5 nil)
+            (stevedore/checked-script
+             "Untar ${TMPDIR-/tmp}/file.tgz"
+             (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
+             (cd "/path")
+             (tar xz "--strip-components=1" -f "${rdf}")
+             (cd -))
+            (directory* {} "/path" :owner "fred" :recursive true)))
          (first (build-actions/build-actions
                  {}
                  (remote-directory
@@ -38,18 +41,19 @@
                   :url "http://site.com/a/file.tgz"
                   :unpack :tar
                   :owner "fred")))))
-  (is (= (stevedore/checked-commands
-          "remote-directory"
-          (directory* {} "/path" :owner "fred" :recursive false)
-          (remote-file*
-           {} "${TMPDIR-/tmp}/file.tgz"
-           :url "http://site.com/a/file.tgz" :md5 nil)
-          (stevedore/checked-script
-           "Untar ${TMPDIR-/tmp}/file.tgz"
-           (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
-           (cd "/path")
-           (tar xz "--strip-components=1" -f "${rdf}")
-           (cd -)))
+  (is (= (binding [pallet.action-plan/*defining-context* nil]
+           (stevedore/checked-commands
+            "remote-directory"
+            (directory* {} "/path" :owner "fred" :recursive false)
+            (remote-file*
+             {} "${TMPDIR-/tmp}/file.tgz"
+             :url "http://site.com/a/file.tgz" :md5 nil)
+            (stevedore/checked-script
+             "Untar ${TMPDIR-/tmp}/file.tgz"
+             (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
+             (cd "/path")
+             (tar xz "--strip-components=1" -f "${rdf}")
+             (cd -))))
          (first (build-actions/build-actions
                  {}
                  (remote-directory

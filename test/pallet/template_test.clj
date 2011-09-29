@@ -3,6 +3,8 @@
   (:require
    [pallet.core :as core]
    [pallet.utils :as utils]
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]
    [pallet.strint :as strint]
    [pallet.target :as target]
    [pallet.test-utils :as test-utils])
@@ -62,18 +64,19 @@ chown user ${file}"
                                  "some content"])))))
 
 (deftest apply-template-file-test
-    (is (= "file=/etc/file
-cat > ${file} <<EOF
-some content
-EOF
-file=/etc/file2
-cat > ${file} <<EOF
-some content2
-EOF
-"
+  (is (= (str
+          (stevedore/checked-script
+           "Write file /etc/file"
+           "file=/etc/file"
+           (~lib/heredoc @file "some content" {}))
+          (stevedore/checked-script
+           "Write file /etc/file2"
+           "file=/etc/file2"
+           (~lib/heredoc @file "some content2" {})))
+         (binding [pallet.action-plan/*defining-context* nil]
            (apply-templates (fn [] {{:path "/etc/file"} "some content"
                                     {:path "/etc/file2"} "some content2"})
-                            nil))))
+                            nil)))))
 
 (deftest find-template-test
   (let [a (core/group-spec "a" :image {:os-family :ubuntu})]

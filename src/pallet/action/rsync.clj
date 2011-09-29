@@ -4,6 +4,7 @@
    [pallet.action.directory :as directory]
    [pallet.action.package :as package]
    [pallet.compute :as compute]
+   [pallet.context :as context]
    [pallet.execute :as execute]
    [pallet.session :as session]
    [pallet.utils :as utils]
@@ -25,8 +26,10 @@
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
   [session from to & {:keys [owner group mode port] :as options}]
-  (->
-   session
-   (package/package "rsync")
-   (directory/directory to :owner owner :group group :mode mode)
-   (rsync from to options)))
+  (context/with-phase-context
+    :rsync-directory "rsync directory"
+    (->
+     session
+     (package/package "rsync")
+     (directory/directory to :owner owner :group group :mode mode)
+     (rsync from to options))))

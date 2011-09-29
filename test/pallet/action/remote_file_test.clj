@@ -39,7 +39,9 @@
              (if (file-exists? "path.new")
                (do
                  (mv -f "path.new" path)))))
-           (remote-file* {} "path" :url "http://a.com/b" :no-versioning true))))
+           (binding [pallet.action-plan/*defining-context* nil]
+             (remote-file*
+              {} "path" :url "http://a.com/b" :no-versioning true)))))
   (testing "url with proxy"
     (is (= (stevedore/checked-commands
             "remote-file path"
@@ -49,9 +51,10 @@
              (if (file-exists? "path.new")
                (do
                  (mv -f "path.new" path)))))
-           (remote-file*
-            {:environment {:proxy "http://proxy/"}}
-            "path" :url "http://a.com/b" :no-versioning true))))
+           (binding [pallet.action-plan/*defining-context* nil]
+             (remote-file*
+              {:environment {:proxy "http://proxy/"}}
+              "path" :url "http://a.com/b" :no-versioning true)))))
 
   (testing "no-versioning"
     (is (= (stevedore/checked-commands
@@ -61,7 +64,8 @@
              (if (file-exists? "path.new")
                (do
                  (~lib/mv "path.new" path :force true)))))
-           (remote-file* {} "path" :content "xxx" :no-versioning true))))
+           (binding [pallet.action-plan/*defining-context* nil]
+             (remote-file* {} "path" :content "xxx" :no-versioning true)))))
 
   (testing "no-versioning with owner, group and mode"
     (is (= (stevedore/checked-commands
@@ -74,15 +78,17 @@
              (~lib/chown "o" "path")
              (~lib/chgrp "g" "path")
              (~lib/chmod "m" "path")))
-           (remote-file*
-            {} "path" :content "xxx" :owner "o" :group "g" :mode "m"
-            :no-versioning true))))
+           (binding [pallet.action-plan/*defining-context* nil]
+             (remote-file*
+              {} "path" :content "xxx" :owner "o" :group "g" :mode "m"
+              :no-versioning true)))))
 
   (testing "delete"
     (is (= (stevedore/checked-script
             "delete remote-file path"
             ("rm" "--force" "path"))
-           (remote-file* {} "path" :action :delete :force true))))
+           (binding [pallet.action-plan/*defining-context* nil]
+             (remote-file* {} "path" :action :delete :force true)))))
 
   (testing "content"
     (utils/with-temporary [tmp (utils/tmpfile)]
@@ -124,10 +130,11 @@
            (stevedore/checked-script
             "remote-file path"
             (~lib/heredoc "path.new" "a 1\n" {}))
-           (remote-file*
-            {:server {:group-name :n :image {:os-family :ubuntu}}}
-            "path" :template "template/strint" :values {'a 1}
-            :no-versioning true))))))
+           (binding [pallet.action-plan/*defining-context* nil]
+             (remote-file*
+              {:server {:group-name :n :image {:os-family :ubuntu}}}
+              "path" :template "template/strint" :values {'a 1}
+              :no-versioning true)))))))
 
 (deftest remote-file-test
   (core/with-admin-user

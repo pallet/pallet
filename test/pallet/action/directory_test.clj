@@ -18,7 +18,8 @@
 
 (deftest directory*-test
   (is (= (stevedore/checked-commands "Directory file1" "mkdir -p file1")
-         (directory* {} "file1"))))
+         (binding [pallet.action-plan/*defining-context* nil]
+           (directory* {} "file1")))))
 
 (deftest directory-test
   (is (= (stevedore/checked-commands "Directory file1" "mkdir -p file1")
@@ -54,9 +55,10 @@
 
 (deftest directories-test
   (is (= (str
-          (stevedore/chain-commands
-           (directory* {} "d1" :owner "o")
-           (directory* {} "d2" :owner "o"))
+          (binding [pallet.action-plan/*defining-context* nil]
+            (stevedore/chain-commands
+             (directory* {} "d1" :owner "o")
+             (directory* {} "d2" :owner "o")))
           \newline)
          (first
           (build-actions

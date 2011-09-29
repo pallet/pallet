@@ -59,6 +59,11 @@ list, Alan Dipert and MeikelBrandmeyer."
   (stevedore/with-script-language :pallet.stevedore.bash/bash
     (f)))
 
+(defn with-null-defining-context
+  [f]
+  (binding [pallet.action-plan/*defining-context* nil]
+    f))
+
 (defn make-node
   "Simple node for testing"
   [tag & {:as options}]

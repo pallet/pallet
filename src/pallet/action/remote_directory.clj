@@ -3,6 +3,7 @@
    content can come from a downloaded tar or zip file."
   (:require
    [pallet.action :as action]
+   [pallet.action-plan :as action-plan]
    [pallet.action.directory :as directory]
    [pallet.action.file :as file]
    [pallet.action.remote-file :as remote-file]
@@ -46,7 +47,7 @@
                 (let [[cmd tarpath] (source-to-cmd-and-path
                                      session path
                                      url local-file remote-file md5 md5-url)]
-                  (stevedore/checked-commands
+                  (action-plan/checked-commands
                    "remote-directory"
                    (directory*
                     session path :owner owner :group group :recursive false)

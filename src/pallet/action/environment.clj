@@ -2,6 +2,7 @@
   "Set up the system environment."
   (:require
    [clojure.string :as string]
+   [pallet.action-plan :as action-plan]
    [pallet.action.exec-script :as exec-script]
    [pallet.action.remote-file :as remote-file]
    [pallet.session :as session]
@@ -22,7 +23,7 @@
     (if shared
       (exec-script/exec-script*
        session
-       (stevedore/checked-commands*
+       (action-plan/checked-commands*
         (format "Add %s environment to %s" env-name path)
         (conj
          (for [[k v] key-value-pairs]

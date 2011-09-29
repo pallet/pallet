@@ -125,9 +125,9 @@
               (#'action-plan/transform-scopes))))))))
 
 (deftest group-by-function-test
-  (is (= '({:f 1 :args ((0 1 2) [:a :b]) :other :a}
-           {:f 3 :args ((\f \o \o)) :other :c}
-           {:f 2 :args ((0 1 2) ["bar baz"]) :other :b})
+  (is (= '({:f 1 :args ((0 1 2) [:a :b]) :other :a :context nil}
+           {:f 3 :args ((\f \o \o)) :other :c :context nil}
+           {:f 2 :args ((0 1 2) ["bar baz"]) :other :b :context nil})
          (#'pallet.action-plan/group-by-function
           [{:f 1 :args (range 3) :other :a}
            {:f 3 :args (seq "foo") :other :c}
@@ -143,25 +143,29 @@
            :args [[1] [2]]
            :location :target
            :action-type :script/bash
-           :execution :aggregated}]
+           :execution :aggregated
+           :context ["[a] " "[b] "]}]
          (#'action-plan/transform-executions
           [{:f identity
             :args [1]
             :location :target
             :action-type :script/bash
-            :execution :aggregated}
+            :execution :aggregated
+            :context ["a"]}
            {:f identity
             :args [2]
             :location :target
             :action-type :script/bash
-            :execution :aggregated}]))))
+            :execution :aggregated
+            :context ["b"]}]))))
   (testing "mixed"
     (is (=
          [{:f identity
            :args [[1] [2]]
            :location :target
            :action-type :script/bash
-           :execution :aggregated}
+           :execution :aggregated
+           :context nil}
           {:f identity
            :args [3]
            :location :target
@@ -190,7 +194,8 @@
                    :args [[1] [2]]
                    :location :target
                    :action-type :script/bash
-                   :execution :aggregated}
+                   :execution :aggregated
+                   :context nil}
                   {:f identity
                    :args [3]
                    :location :target

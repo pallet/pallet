@@ -4,6 +4,7 @@
    [pallet.script :only [defscript]])
   (:require
    [pallet.action :as action]
+   [pallet.action-plan :as action-plan]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [clojure.string :as string]))

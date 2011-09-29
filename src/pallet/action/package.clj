@@ -6,6 +6,7 @@
    `package-source` is used to specify a non-standard source for packages."
   (:require
    [pallet.action :as action]
+   [pallet.action-plan :as action-plan]
    [pallet.action.file :as file]
    [pallet.action.remote-file :as remote-file]
    [pallet.action.exec-script :as exec-script]
@@ -33,7 +34,7 @@
 ;; split by enable/disable options.
 (defmethod adjust-packages :aptitude
   [session packages]
-  (stevedore/checked-commands
+  (action-plan/checked-commands
    "Packages"
    (stevedore/script (~lib/package-manager-non-interactive))
    (stevedore/chain-commands*
@@ -68,7 +69,7 @@
 ;; split by enable/disable options and by command.  We install before removing.
 (defmethod adjust-packages :yum
   [session packages]
-  (stevedore/checked-commands
+  (action-plan/checked-commands
    "Packages"
    (stevedore/chain-commands*
     (conj
@@ -95,7 +96,7 @@
 
 (defmethod adjust-packages :default
   [session packages]
-  (stevedore/checked-commands
+  (action-plan/checked-commands
    "Packages"
    (stevedore/chain-commands*
     (list*
@@ -199,7 +200,7 @@
   "Add a packager source."
   [session name & {:as options}]
   (let [packager (session/packager session)]
-    (stevedore/checked-commands
+    (action-plan/checked-commands
      "Package source"
      (let [key-url (-> options :aptitude :url)]
        (if (and key-url (.startsWith key-url "ppa:"))
@@ -371,7 +372,7 @@
   "Package management."
   [session action & options]
   (let [packager (session/packager session)]
-    (stevedore/checked-commands
+    (action-plan/checked-commands
      (format "package-manager %s %s" (name action) (string/join " " options))
      (case action
        :update (stevedore/script (apply ~lib/update-package-list ~options))
@@ -415,7 +416,7 @@
   [request rpm-name & {:as options}]
   (stevedore/do-script
    (apply remote-file* request rpm-name (apply concat options))
-   (stevedore/checked-script
+   (action-plan/checked-script
     (format "Install rpm %s" rpm-name)
     (if-not (rpm -q @(rpm -pq ~rpm-name) > "/dev/null" "2>&1")
       (do (rpm -U --quiet ~rpm-name))))))
@@ -426,12 +427,12 @@
   {:always-before #{`package-manager `package-source `package}}
   (let [os-family (session/os-family session)]
     (cond
-     (#{:ubuntu :debian} os-family) (stevedore/checked-script
+     (#{:ubuntu :debian} os-family) (action-plan/checked-script
                                      "Add minimal packages"
                                      (~lib/update-package-list)
                                      (~lib/install-package "coreutils")
                                      (~lib/install-package "sudo"))
-     (= :arch os-family) (stevedore/checked-script
+     (= :arch os-family) (action-plan/checked-script
                           "Add minimal packages"
                           ("{" pacman-db-upgrade "||" true "; } "
                            "2> /dev/null")

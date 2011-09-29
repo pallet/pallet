@@ -9,11 +9,13 @@
   [pallet.crate.etc-default :as default]
   [pallet.stevedore :as stevedore]))
 
-(use-fixtures :once with-ubuntu-script-template with-bash-script-language)
+(use-fixtures :once
+              with-ubuntu-script-template with-bash-script-language
+              with-null-defining-context)
 
 (def remote-file* (action/action-fn remote-file/remote-file-action))
 
-(deftest test-tomcat-defaults
+(deftest default-test
   (is (= (stevedore/do-script
           (remote-file*
            {}

@@ -3,6 +3,7 @@
    with given ownership and mode."
   (:require
    [pallet.action :as action]
+   [pallet.action-plan :as action-plan]
    [pallet.action.file :as file]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]))
@@ -27,7 +28,7 @@
 (defn make-directory
   "Script to create a directory."
   [dir-path & {:keys [path verbose mode recursive] :as opts}]
-  (stevedore/checked-commands
+  (action-plan/checked-commands
    (str "Directory " dir-path)
    (stevedore/script
     (~lib/mkdir ~dir-path :path ~path :verbose ~verbose :mode ~mode))
@@ -52,7 +53,7 @@
                        :or {action :create recursive true force true path true}
                        :as options}]
   (case action
-    :delete (stevedore/checked-script
+    :delete (action-plan/checked-script
              (str "Delete directory " dir-path)
              (~lib/rm ~dir-path :recursive ~recursive :force ~force))
     :create (make-directory

@@ -87,6 +87,15 @@
       :context (context/phase-contexts)})))
 
 ;;; utilities
+(defn multi-context-string
+  [context]
+  (when (seq context)
+    (str "[" (string/join ": " context) "] ")))
+
+(defn context-string
+  [context]
+  (when (seq context)
+    (str (string/join ": " context) "\n")))
 
 (defn- script-join
   "Concatenate multiple scripts, removing blank lines"
@@ -175,10 +184,15 @@
    action-plan
    (group-by (juxt :f :action-id))
    (map (fn [[_ action-calls]]
-          (reduce
-           #(update-in %1 [:args] conj (:args %2))
-           (assoc (first action-calls) :args [])
-           action-calls)))))
+          (update-in
+           (reduce
+            #(->
+              %
+              (update-in [:args] conj (:args %2))
+              (update-in [:context] conj (multi-context-string (:context %2))))
+            (assoc (first action-calls) :args [] :context [])
+            action-calls)
+           [:context] #(seq (distinct (filter identity %))))))))
 
 (def ^{:doc "Execution specifc transforms" :private true}
   execution-transforms
@@ -639,17 +653,21 @@
    action"
   [name & script]
   `(stevedore/checked-script
-    (if-let [context# (seq action-plan/*defining-context*)]
-      (str (string/join ": " context#) ": " ~name)
-      ~name)
+    (str
+     (context-string action-plan/*defining-context*)
+     ~name)
     ~@script))
 
-(defmacro checked-commands
+(defn checked-commands*
+  "Return a stevedore script that uses the current context to label the
+   action"
+  [name scripts]
+  (stevedore/checked-commands*
+   (str (context-string *defining-context*) name)
+   scripts))
+
+(defn checked-commands
   "Return a stevedore script that uses the current context to label the
    action"
   [name & script]
-  `(stevedore/checked-commands
-    (if-let [context# (seq action-plan/*defining-context*)]
-      (str (string/join ": " context#) ": " ~name)
-      ~name)
-    ~@script))
+  (checked-commands* name script))

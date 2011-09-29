@@ -2,6 +2,7 @@
   (:require
    [pallet.action :as action]
    [pallet.action.package :as package]
+   [pallet.context :as context]
    [pallet.session :as session]
    [pallet.template :as template]
    [pallet.utils :as utils]
@@ -159,8 +160,10 @@ specs [ { [\"user1\" \"user2\"]
   {:arglists '([aliases defaults specs])}
   [session args]
   (logging/trace "apply-sudoers")
-  (template/apply-templates
-   sudoer-templates
-   (sudoer-merge
-    [(array-map) (array-map) (default-specs session)]
-    args)))
+  (context/with-phase-context
+    :sudoers "Write sudoers config"
+    (template/apply-templates
+     sudoer-templates
+     (sudoer-merge
+      [(array-map) (array-map) (default-specs session)]
+      args))))

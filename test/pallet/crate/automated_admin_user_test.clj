@@ -114,17 +114,18 @@
    (live-test/test-nodes
     [compute node-map node-types]
     {:aau
-     (->
       (core/server-spec
        :phases {:bootstrap (phase/phase-fn
                             (automated-admin-user/automated-admin-user))
                 :verify (phase/phase-fn
+                         (context/phase-context
+                          :automated-admin-user "Check Automated admin user"
                          (exec-script/exec-checked-script
-                          "check automated admin user functional"
-                          (pipe (echo @SUDO_USER) (grep "fred"))))}
+                          "is functional"
+                          (pipe (echo @SUDO_USER) (grep "fred")))))}
        :count 1
        :node-spec (core/node-spec :image image)
-       :environment {:user {:username "fred"}}))}
+       :environment {:user {:username "fred"}})}
     (is
      (core/lift
       (val (first node-types)) :phase [:verify] :compute compute)))))

@@ -3,7 +3,9 @@
   (:use clojure.tools.logging)
   (:require
    [pallet.action :as action]
+   [pallet.action-plan :as action-plan]
    [pallet.action.remote-file :as remote-file]
+   [pallet.context :as context]
    [pallet.script :as script]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -27,7 +29,7 @@
                            :or {action :start}
                            :as options}]
   (if (#{:enable :disable :start-stop} action)
-    (stevedore/checked-script
+    (action-plan/checked-script
      (format "Configure service %s" service-name)
      (~lib/configure-service ~service-name ~action ~options))
     (if if-flag

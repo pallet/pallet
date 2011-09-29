@@ -9,6 +9,7 @@
    by default."
   (:require
    [pallet.action :as action]
+   [pallet.action-plan :as action-plan]
    [pallet.action.directory :as directory]
    [pallet.action.file :as file]
    [pallet.blobstore :as blobstore]
@@ -140,7 +141,7 @@
         proxy (environment/get-for session [:proxy] nil)]
     (case action
       :create
-      (stevedore/checked-commands
+      (action-plan/checked-commands
        (str "remote-file " path)
        (cond
         (and url md5) (stevedore/chained-script
@@ -197,7 +198,7 @@
                    ~(select-keys options [:literal])))
         link (stevedore/script
               (~lib/ln ~link ~path :force ~true :symbolic ~true))
-        blob (stevedore/checked-script
+        blob (action-plan/checked-script
               "Download blob"
               (~lib/download-request
                ~new-path
@@ -265,7 +266,7 @@
             "2>" "/dev/null")
            (~lib/tail "" :max-lines ~(str "+" (inc max-versions)))
            (~lib/xargs (~lib/rm "" :force ~true))))))
-      :delete (stevedore/checked-script
+      :delete (action-plan/checked-script
                (str "delete remote-file " path)
                (~lib/rm ~path :force ~force)))))
 

@@ -22,7 +22,8 @@
 (use-fixtures
  :each
  test-utils/with-ubuntu-script-template
- test-utils/with-bash-script-language)
+ test-utils/with-bash-script-language
+ test-utils/with-null-defining-context)
 
 (use-fixtures
  :once
@@ -126,14 +127,16 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           (cp -p "/etc/apt/sources.list" @tmpfile)
           (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
           (mv -f @tmpfile "/etc/apt/sources.list"))
-         (package-manager* test-utils/ubuntu-session :multiverse)))
+         (binding [pallet.action-plan/*defining-context* nil]
+           (package-manager* test-utils/ubuntu-session :multiverse))))
   (is (= (stevedore/checked-script
           "package-manager update "
           (chain-or
            (aptitude update)
            true))
-         (script/with-script-context [:aptitude]
-           (package-manager* test-utils/ubuntu-session :update)))))
+         (binding [pallet.action-plan/*defining-context* nil]
+           (script/with-script-context [:aptitude]
+             (package-manager* test-utils/ubuntu-session :update))))))
 
 (deftest package-manager-update-test
   (testing "yum"
@@ -241,11 +244,12 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            {:server a}
            "/etc/apt/sources.list.d/source1.list"
            :content "deb http://somewhere/apt $(lsb_release -c -s) main\n"))
-         (package-source*
-          {:server a}
-          "source1"
-          :aptitude {:url "http://somewhere/apt" :scopes ["main"]}
-          :yum {:url "http://somewhere/yum"})))
+         (binding [pallet.action-plan/*defining-context* nil]
+           (package-source*
+            {:server a}
+            "source1"
+            :aptitude {:url "http://somewhere/apt" :scopes ["main"]}
+            :yum {:url "http://somewhere/yum"}))))
     (is
      (=
       (stevedore/checked-commands
@@ -256,12 +260,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
         :content
         "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\nenabled=1\n"
         :literal true))
-      (package-source*
-       {:server b}
-       "source1"
-       :aptitude {:url "http://somewhere/apt"
-                  :scopes ["main"]}
-       :yum {:url "http://somewhere/yum"})))
+      (binding [pallet.action-plan/*defining-context* nil]
+        (package-source*
+         {:server b}
+         "source1"
+         :aptitude {:url "http://somewhere/apt"
+                    :scopes ["main"]}
+         :yum {:url "http://somewhere/yum"}))))
     (is (= (first
             (build-actions/build-actions
              {}
@@ -284,13 +289,14 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
             (stevedore/script
              (apt-key adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
-           (package-source*
-            {:server a}
-            "source1"
-            :aptitude {:url "http://somewhere/apt"
-                       :scopes ["main"]
-                       :key-id 1234}
-            :yum {:url "http://somewhere/yum"})))))
+           (binding [pallet.action-plan/*defining-context* nil]
+             (package-source*
+              {:server a}
+              "source1"
+              :aptitude {:url "http://somewhere/apt"
+                         :scopes ["main"]
+                         :key-id 1234}
+              :yum {:url "http://somewhere/yum"}))))))
 
 (deftest package-source-test
   (let [a (core/group-spec "a" :packager :aptitude)
@@ -393,12 +399,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               (~lib/package-manager-non-interactive)
               (aptitude install -q -y p1- p4_ p2+ p3+)
               (aptitude search (quoted "~i")))
-             (adjust-packages
-              {:server {:packager :aptitude}}
-              [{:package "p1" :action :remove}
-               {:package "p2" :action :install}
-               {:package "p3" :action :upgrade}
-               {:package "p4" :action :remove :purge true}])))))
+             (binding [pallet.action-plan/*defining-context* nil]
+               (adjust-packages
+                {:server {:packager :aptitude}}
+                [{:package "p1" :action :remove}
+                 {:package "p2" :action :install}
+                 {:package "p3" :action :upgrade}
+                 {:package "p4" :action :remove :purge true}]))))))
   (testing "aptitude with enable"
     (script/with-script-context [:aptitude]
       (is (= (stevedore/checked-script
@@ -407,10 +414,11 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               (aptitude install -q -y -t r1 p2+)
               (aptitude install -q -y p1+)
               (aptitude search (quoted "~i")))
-             (adjust-packages
-              {:server {:packager :aptitude}}
-              [{:package "p1" :action :install :priority 20}
-               {:package "p2" :action :install :enable ["r1"] :priority 2}])))))
+             (binding [pallet.action-plan/*defining-context* nil]
+               (adjust-packages
+                {:server {:packager :aptitude}}
+                [{:package "p1" :action :install :priority 20}
+                 {:package "p2" :action :install :enable ["r1"] :priority 2}]))))))
   (testing "yum"
     (is (= (stevedore/checked-script
             "Packages"
@@ -418,25 +426,27 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (yum remove -q -y p1 p4)
             (yum upgrade -q -y p3)
             (yum list installed))
-           (script/with-script-context [:yum]
-             (adjust-packages
-              {:server {:packager :yum}}
-              [{:package "p1" :action :remove}
-               {:package "p2" :action :install}
-               {:package "p3" :action :upgrade}
-               {:package "p4" :action :remove :purge true}])))))
+           (binding [pallet.action-plan/*defining-context* nil]
+             (script/with-script-context [:yum]
+               (adjust-packages
+                {:server {:packager :yum}}
+                [{:package "p1" :action :remove}
+                 {:package "p2" :action :install}
+                 {:package "p3" :action :upgrade}
+                 {:package "p4" :action :remove :purge true}]))))))
   (testing "yum with disable and priority"
     (is (= (stevedore/checked-script
             "Packages"
             (yum install -q -y "--disablerepo=r1" p2)
             (yum install -q -y p1)
             (yum list installed))
-           (script/with-script-context [:yum]
-             (adjust-packages
-              {:server {:packager :yum}}
-              [{:package "p1" :action :install :priority 50}
-               {:package "p2" :action :install :disable ["r1"]
-                :priority 25}]))))
+           (binding [pallet.action-plan/*defining-context* nil]
+             (script/with-script-context [:yum]
+               (adjust-packages
+                {:server {:packager :yum}}
+                [{:package "p1" :action :install :priority 50}
+                 {:package "p2" :action :install :disable ["r1"]
+                  :priority 25}])))))
     (is (= (stevedore/checked-script
             "Packages"
             (yum install -q -y "--disablerepo=r1" p2)

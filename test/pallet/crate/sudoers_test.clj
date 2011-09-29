@@ -215,8 +215,7 @@ ALL CDROM = NOPASSWD: /sbin/umount /CDROM,/sbin/mount -o nosuid\\,nodev /dev/cd0
 
 (deftest test-man-page-example
   (is (=
-       "file=/etc/sudoers
-cat > ${file} <<EOF
+       "echo \"Write file /etc/sudoers...\"\n{ file=/etc/sudoers && { cat > ${file} <<EOFpallet
 User_Alias FULLTIMERS = millert,mikef,dowdy
 User_Alias PARTTIMERS = bostley,jwfox,crawl
 User_Alias WEBMASTERS = will,wendy,wim
@@ -263,7 +262,8 @@ steve CSNETS = (operator) /usr/local/op_commands/
 matt valkyrie = KILL
 WEBMASTERS www = (www) ALL,(root) /usr/bin/su www
 ALL CDROM = NOPASSWD: /sbin/umount /CDROM,/sbin/mount -o nosuid\\,nodev /dev/cd0a /CDROM
-EOF
+EOFpallet
+ }; } || { echo \"Write file /etc/sudoers\" failed; exit 1; } >&2 \necho \"...done\"
 chmod 0440 ${file}
 chown root ${file}
 "

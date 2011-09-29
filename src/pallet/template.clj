@@ -1,6 +1,7 @@
 (ns pallet.template
   "Template file writing"
   (:require
+   [pallet.action-plan :as action-plan]
    [pallet.compute :as compute]
    [pallet.script.lib :as lib]
    [pallet.session :as session]
@@ -80,11 +81,10 @@
     (string/join
      ""
      (filter (complement nil?)
-             [(stevedore/script
+             [(action-plan/checked-script
+               (str "Write file " path)
                (var file ~path)
-               ((~lib/cat "") > @file <<EOF))
-              content
-              "\nEOF\n"
+               (~lib/heredoc @file ~content {}))
               (when-let [mode (:mode file-spec)]
                 (stevedore/script (do (chmod ~mode @file))))
               (when-let [group (:group file-spec)]

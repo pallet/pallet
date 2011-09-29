@@ -20,7 +20,7 @@
 (deftest file-test
   (is (= (stevedore/checked-script "file file1" (touch file1))
          (first (build-actions/build-actions {} (file "file1")))))
-  (is (= (stevedore/checked-script "ctx: file file1" (touch file1))
+  (is (= (stevedore/checked-script "ctx\nfile file1" (touch file1))
          (first
           (build-actions/build-actions
            {}
