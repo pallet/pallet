@@ -169,16 +169,6 @@
       <version>0.2.3</version>
       <optional>true</optional>
     </dependency>
-    <dependency>
-      <groupId>autodoc</groupId>
-      <artifactId>autodoc</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>marginalia</groupId>
-      <artifactId>marginalia</artifactId>
-      <optional>true</optional>
-    </dependency>
   </dependencies>
 
   <profiles>
