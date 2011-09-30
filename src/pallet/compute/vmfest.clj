@@ -461,7 +461,7 @@
                            (:memory-size model))
           :cpu-count (or (:min-cores template)
                          (:cpu-count model))
-          :network-type interface}))
+          :network-type network-type}))
 
 (defn selected-hardware-model
   [{:keys [hardware-id hardware-model] :as template} models
@@ -488,7 +488,7 @@
     (merge model
            ;; add the right network interface configuration for the final
            ;; network-type
-           {:network (if (= (:network-type model) :local)
+           {:network (if (= network-type :local)
                        ;; local networking
                        [{:attachment-type :host-only
                          :host-interface default-local-interface}
