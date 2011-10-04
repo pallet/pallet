@@ -7,6 +7,7 @@
    [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
+   [pallet.environment :as environment]
    [pallet.utils :as utils]
    [pallet.main :as main]))
 
@@ -97,12 +98,17 @@
                          (:project options) (:profiles options))]
           (try
             (log-info admin-user)
-            (apply task {:compute compute
-                         :blobstore blobstore
-                         :project (:project options)
-                         :config default-config
-                         :user admin-user
-                         :environment (:environment options)} params)
+            (apply task
+                   {:compute compute
+                    :blobstore blobstore
+                    :project (:project options)
+                    :config default-config
+                    :user admin-user
+                    :environment
+                    (pallet.environment/merge-environments
+                     (:environment options)
+                     (environment/environment compute))}
+                   params)
             (finally ;; make sure we don't hang on exceptions
              (when blobstore
                (blobstore/close blobstore)))))
