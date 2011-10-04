@@ -109,3 +109,9 @@ list, Alan Dipert and MeikelBrandmeyer."
   "Build the target group for the session map"
   [name & {:as options}]
   {:group (apply core/group-spec name (apply concat options))})
+
+(defmacro redef
+  [ [& bindings] & body ]
+  (if (find-var 'clojure.core/with-redefs)
+    `(with-redefs [~@bindings] ~@body)
+    `(binding [~@bindings] ~@body)))
