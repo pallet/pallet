@@ -24,5 +24,5 @@
   (is (= :linux (testos {:server {:image {:os-family :arch}}})))
   (is (= :rh-base (testos {:server {:image {:os-family :centos}}})))
   (is (= :debian (testos {:server {:image {:os-family :debian}}})))
-  (is (thrown? clojure.contrib.condition.Condition
+  (is (thrown? slingshot.Stone
                (testos {:server {:image {:os-family :unspecified}}}))))
