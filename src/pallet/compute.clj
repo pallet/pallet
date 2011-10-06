@@ -41,7 +41,8 @@
   (os-version [node] "Return a node's os-version, or nil if not available.")
   (running? [node])
   (terminated? [node])
-  (id [node]))
+  (id [node])
+  (service [node] "Return the service provider the node was provided by."))
 
 (defn tag [node] (group-name node))
 (defn node-in-group? [group-name node]

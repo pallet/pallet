@@ -73,7 +73,9 @@
 
 (deftest converge-node-counts-test
   (let [build-template org.jclouds.compute/build-template
-        a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
+        service (jclouds-test-utils/compute)
+        a-node (jclouds/make-node "a"
+                                  :state NodeState/RUNNING)]
     (mock/expects [(org.jclouds.compute/run-nodes
                     [tag n template compute]
                     (mock/once
@@ -83,22 +85,25 @@
                    (org.jclouds.compute/build-template
                     [compute & options]
                     (mock/times 2 (apply build-template compute options)))]
-                  (is
-                   (= [a-node]
-                      (->
-                       (#'core/converge-node-counts
-                        {:groups [(test-utils/group :a :count 1 :servers [])]
-                         :environment
-                         {:compute (jclouds-test-utils/compute)
-                          :algorithms
-                          (assoc core/default-algorithms
-                            :converge-fn
-                            #'pallet.core/serial-adjust-node-counts
-                            :lift-fn #'pallet.core/sequential-lift)}})
-                       :all-nodes))))))
+                  (let [nodes (->
+                               (#'core/converge-node-counts
+                                {:groups [(test-utils/group
+                                           :a :count 1 :servers [])]
+                                 :environment
+                                 {:compute service
+                                  :algorithms
+                                  (assoc core/default-algorithms
+                                    :converge-fn
+                                    #'pallet.core/serial-adjust-node-counts
+                                    :lift-fn #'pallet.core/sequential-lift)}})
+                               :all-nodes)]
+                    (is (= 1 (count nodes)))
+                    (is (= service (compute/service (first nodes))))
+                    (is (= (compute/id a-node) (compute/id (first nodes))))))))
 
 (deftest parallel-converge-node-counts-test
   (let [build-template org.jclouds.compute/build-template
+        service (jclouds-test-utils/compute)
         a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
     (mock/expects [(clojure.core/future-call
                     [f]
@@ -111,20 +116,20 @@
                    (org.jclouds.compute/build-template
                     [compute & options]
                     (mock/times 2 (apply build-template compute options)))]
-                  (is
-                   (=
-                    [a-node]
-                    (->
-                     (#'core/converge-node-counts
-                      {:groups [(test-utils/group :a :count 1)]
-                       :environment
-                       {:compute (jclouds-test-utils/compute)
-                        :algorithms
-                        (assoc core/default-algorithms
-                          :converge-fn
-                          #'pallet.core/parallel-adjust-node-counts
-                          :lift-fn #'pallet.core/parallel-lift)}})
-                     :all-nodes))))))
+                  (let [nodes (->
+                               (#'core/converge-node-counts
+                                {:groups [(test-utils/group :a :count 1)]
+                                 :environment
+                                 {:compute service
+                                  :algorithms
+                                  (assoc core/default-algorithms
+                                    :converge-fn
+                                    #'pallet.core/parallel-adjust-node-counts
+                                    :lift-fn #'pallet.core/parallel-lift)}})
+                               :all-nodes)]
+                    (is (= 1 (count nodes)))
+                    (is (= service (compute/service (first nodes))))
+                    (is (= (compute/id a-node) (compute/id (first nodes))))))))
 
 (deftest nodes-in-set-test
   (let [a (group-spec "a" :image {:os-family :ubuntu})
@@ -377,7 +382,7 @@
     (is (= 2 (count (:all-nodes session))))
     (is (= 2
            (count (running-nodes
-                   (org.jclouds.compute/nodes (jclouds-test-utils/compute))))))
+                   (compute/nodes (jclouds-test-utils/compute))))))
     (testing "remove some instances"
       (let [session (converge {node 1}
                               :compute (jclouds-test-utils/compute)
