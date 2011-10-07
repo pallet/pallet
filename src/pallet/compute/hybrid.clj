@@ -3,36 +3,59 @@
   (:require
    [pallet.compute.implementation :as implementation]
    [pallet.configure :as configure]
+   [pallet.node :as node]
    [clojure.tools.logging :as logging]))
 
+(defn supported-providers []
+  ["hybrid"])
+
+(defn- services
+  "Return the service objects from the service map"
+  [service-map]
+  (vals service-map))
+
 (deftype HybridService
-    [services dispatch environment]
+    [service-map dispatch environment]
   pallet.compute/ComputeService
   (nodes [compute]
-    (mapcat pallet.compute/nodes services))
+    (mapcat pallet.compute/nodes (services service-map)))
   (run-nodes [compute group-spec node-count user init-script]
     (pallet.compute/run-nodes
-     (dispatch group-spec)
+     (dispatch service-map group-spec)
      group-spec node-count user init-script))
   (reboot [compute nodes]
     (doseq [node nodes]
-      (pallet.compute/reboot (pallet.compute/service node) node)))
+      (pallet.compute/reboot (node/compute-service node) node)))
   (boot-if-down [compute nodes]
     (doseq [node nodes]
-      (pallet.compute/boot-if-down (pallet.compute/service node) node)))
+      (pallet.compute/boot-if-down (node/compute-service node) node)))
   (shutdown-node [compute node user]
-    (pallet.compute/shutdown-node (pallet.compute/service node) node user))
+    (pallet.compute/shutdown-node (node/compute-service node) node user))
   (shutdown [compute nodes user]
     (doseq [node nodes]
-      (pallet.compute/shutdown-node (pallet.compute/service node) node user)))
+      (pallet.compute/shutdown-node (node/compute-service node) node user)))
   (ensure-os-family [compute group-spec]
-    (pallet.compute/ensure-os-family (dispatch group-spec) group-spec))
+    (pallet.compute/ensure-os-family
+     (dispatch service-map group-spec)
+     group-spec))
   (destroy-nodes-in-group [compute group-name]
-    (pallet.compute/destroy-nodes-in-group (dispatch group-name) group-name))
+    (pallet.compute/destroy-nodes-in-group
+     (dispatch service-map (name group-name))
+     group-name))
   (destroy-node [compute node]
-    (pallet.compute/destroy-node (pallet.compute/service node) node))
-  (images [compute] (mapcat pallet.compute/images services))
-  (close [compute] (mapcat pallet.compute/close services)))
+    (pallet.compute/destroy-node (node/compute-service node) node))
+  (images [compute] (mapcat pallet.compute/images (services service-map)))
+  (close [compute] (mapcat pallet.compute/close (services service-map))))
+
+(defn ensure-service-dispatch
+  [f]
+  (fn [service-map group-spec]
+    (service-map
+     (or
+      (f group-spec)
+      (throw
+       (RuntimeException.
+        (str "No dispatch for group " group-spec)))))))
 
 (defn group-dispatcher
   "Return a dispatch function based on a map from service to groups."
@@ -54,7 +77,13 @@
                     environment]
              :as options}]
   (HybridService.
-   (map #(if (keyword? %) (configure/compute-service %) %) sub-services)
-   (or service-dispatcher
-       (and groups-for-services (group-dispatcher groups-for-services)))
+   (if (map? sub-services)
+     sub-services
+     (into {} (map #(vector % (configure/compute-service %)) sub-services)))
+   (or (and
+        service-dispatcher
+        (ensure-service-dispatch service-dispatcher))
+       (and
+        groups-for-services
+        (ensure-service-dispatch (group-dispatcher groups-for-services))))
    environment))

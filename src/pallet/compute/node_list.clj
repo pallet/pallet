@@ -5,6 +5,7 @@
    [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
    [pallet.environment :as environment]
+   [pallet.node :as node]
    [clojure.contrib.condition :as condition]
    [clojure.string :as string]))
 
@@ -15,7 +16,7 @@
 (defrecord Node
     [name group-name ip os-family os-version id ssh-port private-ip is-64bit
      running service]
-  pallet.compute.Node
+  pallet.node.Node
   (ssh-port [node] ssh-port)
   (primary-ip [node] ip)
   (private-ip [node] private-ip)
@@ -27,7 +28,7 @@
   (os-version [node] os-version)
   (hostname [node] name)
   (id [node] id)
-  (service [node] service))
+  (compute-service [node] service))
 
 ;;; Node utilities
 (defn make-node [name group-name ip os-family
@@ -115,7 +116,7 @@
     (swap! nodes
            #(map
              (fn [node]
-               (reset! (compute/service node) nodelist)
+               (reset! (node/compute-service node) nodelist)
                node)
              %))
     nodelist))

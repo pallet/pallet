@@ -6,6 +6,7 @@
    [pallet.compute.jvm :as jvm]
    [pallet.compute :as compute]
    [pallet.environment :as environment]
+   [pallet.node :as node]
    [pallet.script :as script]
    [pallet.utils :as utils]
    [pallet.execute :as execute]
@@ -196,7 +197,7 @@
 
 (deftype JcloudsNode
     [^org.jclouds.compute.domain.NodeMetadata node service]
-  pallet.compute/Node
+  pallet.node/Node
   (ssh-port
     [node]
     (let [md (into {} (.getUserMetadata node))
@@ -222,7 +223,7 @@
   (id [node] (.getId node))
   (running? [node] (jclouds/running? node))
   (terminated? [node] (jclouds/terminated? node))
-  (service [node] service)
+  (compute-service [node] service)
 
   org.jclouds.compute.domain.NodeMetadata
   ;; ResourceMetadata
