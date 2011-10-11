@@ -569,7 +569,7 @@
                    [(conj results result)
                     session
                     (execute-status-fn result flag)])
-       [[results session] action flag]))
+       [results session flag]))
    [[] session :continue]
    action-plan))
 

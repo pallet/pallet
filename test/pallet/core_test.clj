@@ -495,6 +495,32 @@
                  :username (test-utils/test-username)
                  :no-sudo true)
          :compute service)
+        (is false "should throw")
+        (catch Exception e
+          (let [e (stacktrace/root-cause e)]
+            (is (instance? clojure.contrib.condition.Condition e))
+            (is (re-find #"Error executing script"  (:message @(.state e))))
+            (reset! thrown true))))
+      (is @thrown)))
+  (testing "throw on remote bash error after other actions"
+    (let [clj-fn (action/clj-action [session] session)
+          local (group-spec
+                 "local"
+                 :phases {:configure (phase/phase-fn
+                                      (exec-script/exec-script (~lib/exit 1))
+                                      (clj-fn)
+                                      (exec-script/exec-script (~lib/exit 1)))})
+          localhost (node-list/make-localhost-node :group-name "local")
+          service (compute/compute-service "node-list" :node-list [localhost])
+          thrown (atom false)]
+      (try
+        (lift
+         local
+         :user (assoc utils/*admin-user*
+                 :username (test-utils/test-username)
+                 :no-sudo true)
+         :compute service)
+        (is false "should throw")
         (catch Exception e
           (let [e (stacktrace/root-cause e)]
             (is (instance? slingshot.Stone e))
