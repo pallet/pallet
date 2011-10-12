@@ -132,11 +132,11 @@
        :hierarchy #'os-hierarchy)
 
      (defmethod ~name :default [~@args]
-       (condition/raise
-        :message (format
+       (slingshot/throw+
+        {:message (format
                   "%s does not support %s"
                   ~name (-> ~(first args) :server :image :os-family))
-        :type :pallet/unsupported-os))))
+        :type :pallet/unsupported-os}))))
 
 ;;; target mapping
 (defn packager
