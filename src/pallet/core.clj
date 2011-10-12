@@ -11,7 +11,7 @@
 - group-spec     :: A group of identically configured nodes, represented as a
                     map with :group-name, :count and server-spec keys.
                     The group-name is used to link running nodes to their
-                    configuration (via pallet.compute.Node/group-name)
+                    configuration (via pallet.node.Node/group-name)
 - group          :: A group of identically configured nodes, represented as a
                     group-spec, together with the servers that are running
                     for that group-spec.

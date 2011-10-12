@@ -6,6 +6,7 @@
    [pallet.compute.jvm :as jvm]
    [pallet.compute :as compute]
    [pallet.environment :as environment]
+   [pallet.node :as node]
    [pallet.script :as script]
    [pallet.utils :as utils]
    [pallet.execute :as execute]
@@ -171,67 +172,6 @@
   (let [os-name (System/getProperty "os.name")]
     (make-hardware {})))
 
-
-(defn make-node [group-name & options]
-  (let [options (apply hash-map options)]
-    (node-metadata-impl
-     (options :provider-id (options :id group-name))
-     (options :name group-name)                ; name
-     (options :id group-name)                   ; id
-     (options :location)
-     (java.net.URI. group-name)                ; uri
-     (options :user-metadata {})
-     (options :tags #{})
-     group-name
-     (if-let [hardware (options :hardware)]
-       (if (map? hardware) (make-hardware hardware) hardware)
-       (make-hardware {}))
-     (options :image-id)
-     (if-let [os (options :operating-system)]
-       (if (map? os) (make-operating-system os) os)
-       (make-operating-system {}))
-     (options :state NodeState/RUNNING)
-     (options :login-port 22)
-     (options :public-ips [])
-     (options :private-ips [])
-     (options :admin-password)
-     (options :credentials nil)
-     (options :hostname (str (gensym group-name))))))
-
-(defn make-unmanaged-node
-  "Make a node that is not created by pallet's node management.
-   This can be used to manage configuration of any machine accessable over
-   ssh, including virtual machines."
-  [group-name host-or-ip & options]
-  (let [options (apply hash-map options)
-        meta (dissoc options :location :user-metadata :state :login-port
-                     :public-ips :private-ips :extra :admin-password
-                     :credentials)]
-    (node-metadata-impl
-     (options :provider-id (options :id group-name))
-     (options :name group-name)
-     (options :id (str group-name (rand-int 65000)))
-     (options :location)
-     (java.net.URI. group-name)                ; uri
-     (merge (get options :user-metadata {}) meta)
-     (options :tags #{})
-     group-name
-     (if-let [hardware (options :hardware)]
-       (if (map? hardware) (make-hardware hardware) hardware)
-       (make-hardware {}))
-     (options :image-id)
-     (if-let [os (options :operating-system)]
-       (if (map? os) (make-operating-system os) os)
-       (make-operating-system {}))
-     (get options :state NodeState/RUNNING)
-     (options :login-port 22)
-     (conj (get options :public-ips []) host-or-ip)
-     (options :private-ips [])
-     (options :admin-password)
-     (options :credentials nil)
-     (options :hostname (str (gensym group-name))))))
-
-
 (defn make-image
   [id & options]
   (let [options (apply hash-map options)
@@ -255,10 +195,9 @@
 (defn compute-node? [object]
   (instance? NodeMetadata object))
 
-
-(extend-type org.jclouds.compute.domain.NodeMetadata
-  pallet.compute/Node
-
+(deftype JcloudsNode
+    [^org.jclouds.compute.domain.NodeMetadata node service]
+  pallet.node/Node
   (ssh-port
     [node]
     (let [md (into {} (.getUserMetadata node))
@@ -283,8 +222,98 @@
   (hostname [node] (.getName node))
   (id [node] (.getId node))
   (running? [node] (jclouds/running? node))
-  (terminated? [node] (jclouds/terminated? node)))
+  (terminated? [node] (jclouds/terminated? node))
+  (compute-service [node] service)
 
+  org.jclouds.compute.domain.NodeMetadata
+  ;; ResourceMetadata
+  (getType [_] (.getType node))
+  (getProviderId [_] (.getProviderId node))
+  (getName [_] (.getName node))
+  (getLocation [_] (.getLocation node))
+  (getUri [_] (.getUri node))
+  (getUserMetadata [_] (.getUserMetadata node))
+  ;; ComputeMetadata
+  (getId [_] (.getId node))
+  (getTags [_] (.getTags node))
+  ;; NodeMetadata
+  ;; (getHostname [_] (.getHostname node))
+  (getGroup [_] (.getGroup node))
+  (getHardware [_] (.getHardware node))
+  (getImageId [_] (.getImageId node))
+  (getOperatingSystem [_] (.getOperatingSystem node))
+  (getState [_] (.getState node))
+  (getLoginPort [_] (.getLoginPort node))
+  (getAdminPassword [_] (.getAdminPassword node))
+  (getCredentials [_] (.getCredentials node))
+  (getPublicAddresses [_] (.getPublicAddresses node))
+  (getPrivateAddresses [_] (.getPrivateAddresses node)))
+
+(defn jclouds-node->node [service node]
+  (JcloudsNode. node service))
+
+(defn make-node [group-name & options]
+  (let [options (apply hash-map options)]
+    (jclouds-node->node
+     (:service options)
+     (node-metadata-impl
+      (options :provider-id (options :id group-name))
+      (options :name group-name)        ; name
+      (options :id group-name)          ; id
+      (options :location)
+      (java.net.URI. group-name)        ; uri
+      (options :user-metadata {})
+      (options :tags #{})
+      group-name
+      (if-let [hardware (options :hardware)]
+        (if (map? hardware) (make-hardware hardware) hardware)
+        (make-hardware {}))
+      (options :image-id)
+      (if-let [os (options :operating-system)]
+        (if (map? os) (make-operating-system os) os)
+        (make-operating-system {}))
+      (options :state NodeState/RUNNING)
+      (options :login-port 22)
+      (options :public-ips [])
+      (options :private-ips [])
+      (options :admin-password)
+      (options :credentials nil)
+      (options :hostname (str (gensym group-name)))))))
+
+(defn make-unmanaged-node
+  "Make a node that is not created by pallet's node management.
+   This can be used to manage configuration of any machine accessable over
+   ssh, including virtual machines."
+  [group-name host-or-ip & options]
+  (let [options (apply hash-map options)
+        meta (dissoc options :location :user-metadata :state :login-port
+                     :public-ips :private-ips :extra :admin-password
+                     :credentials)]
+    (jclouds-node->node
+     (:service options)
+     (node-metadata-impl
+      (options :provider-id (options :id group-name))
+      (options :name group-name)
+      (options :id (str group-name (rand-int 65000)))
+      (options :location)
+      (java.net.URI. group-name)        ; uri
+      (merge (get options :user-metadata {}) meta)
+      (options :tags #{})
+      group-name
+      (if-let [hardware (options :hardware)]
+        (if (map? hardware) (make-hardware hardware) hardware)
+        (make-hardware {}))
+      (options :image-id)
+      (if-let [os (options :operating-system)]
+        (if (map? os) (make-operating-system os) os)
+        (make-operating-system {}))
+      (get options :state NodeState/RUNNING)
+      (options :login-port 22)
+      (conj (get options :public-ips []) host-or-ip)
+      (options :private-ips [])
+      (options :admin-password)
+      (options :credentials nil)
+      (options :hostname (str (gensym group-name)))))))
 
 (defn- build-node-template
   "Build the template for specified target node and compute context"
@@ -334,14 +363,14 @@
   ;; (createNodesInGroup [_ group count]
   ;;                     (.createNodesInGroup compute group count))
   (^java.util.Set runNodesWithTag
-   [_ ^String group ^int count ^Template template]
-   (.createNodesInGroup compute group count template))
+    [_ ^String group ^int count ^Template template]
+    (.createNodesInGroup compute group count template))
   (^java.util.Set runNodesWithTag
-   [_ ^String group ^int count ^TemplateOptions template-options]
-   (.createNodesInGroup compute group count template-options))
+    [_ ^String group ^int count ^TemplateOptions template-options]
+    (.createNodesInGroup compute group count template-options))
   (^java.util.Set runNodesWithTag
-   [_ ^String group ^int count]
-   (.createNodesInGroup compute group count))
+    [_ ^String group ^int count]
+    (.createNodesInGroup compute group count))
   (resumeNode [_ id] (.resumeNode compute id))
   (resumeNodesMatching [_ predicate] (.resumeNodesMatching compute predicate))
   (suspendNode [_ id] (.suspendNode compute id))
@@ -350,13 +379,13 @@
   (rebootNodesMatching [_ predicate] (.rebootNodesMatching compute predicate))
   (getNodeMetadata [_ id] (.getNodeMetadata compute id))
   (listNodesDetailsMatching [_ predicate]
-                            (.listNodesDetailsMatching compute predicate))
+    (.listNodesDetailsMatching compute predicate))
   (^java.util.Map runScriptOnNodesMatching
-   [_ ^Predicate predicate ^Payload script]
-   (.runScriptOnNodesMatching compute predicate script))
+    [_ ^Predicate predicate ^Payload script]
+    (.runScriptOnNodesMatching compute predicate script))
   (^java.util.Map runScriptOnNodesMatching
-   [_ ^Predicate predicate ^Payload script ^RunScriptOptions options]
-   (.runScriptOnNodesMatching compute predicate script options))
+    [_ ^Predicate predicate ^Payload script ^RunScriptOptions options]
+    (.runScriptOnNodesMatching compute predicate script options))
   ;; (^java.util.Map runScriptOnNodesMatching
   ;;  [_ ^Predicate predicate ^String script]
   ;;  (.runScriptOnNodesMatching compute predicate script))
@@ -371,72 +400,77 @@
   ;;  (.runScriptOnNodesMatching compute predicate script options))
 
   pallet.compute.ComputeService
-  (nodes [_] (jclouds/nodes-with-details compute))
+  (nodes
+    [service]
+    (map
+     (partial jclouds-node->node service)
+     (jclouds/nodes-with-details compute)))
 
   (ensure-os-family
-   [_ group]
-   (if (-> group :image :os-family)
-     group
-     (let [template (jclouds/build-template compute (:image group))
-           family (-> (.. template getImage getOperatingSystem getFamily)
-                      str keyword)]
-       (logging/infof "OS is %s" (pr-str family))
-       (when (or (nil? family) (= family OsFamily/UNRECOGNIZED))
-         (condition/raise
-          :type :unable-to-determine-os-type
-          :message (format
-                    (str "jclouds was unable to determine the os-family "
-                         "of the template %s")
-                    (pr-str (:image group)))))
-       (->
-        group
-        (assoc-in [:image :os-family] family)
-        (assoc-in [:default-os-family] true)))))
+    [_ group]
+    (if (-> group :image :os-family)
+      group
+      (let [template (jclouds/build-template compute (:image group))
+            family (-> (.. template getImage getOperatingSystem getFamily)
+                       str keyword)]
+        (logging/infof "OS is %s" (pr-str family))
+        (when (or (nil? family) (= family OsFamily/UNRECOGNIZED))
+          (condition/raise
+           :type :unable-to-determine-os-type
+           :message (format
+                     (str "jclouds was unable to determine the os-family "
+                          "of the template %s")
+                     (pr-str (:image group)))))
+        (->
+         group
+         (assoc-in [:image :os-family] family)
+         (assoc-in [:default-os-family] true)))))
 
   (run-nodes
-   [_ group-spec node-count user init-script]
-   (->>
-    (jclouds/run-nodes
-     (name (:group-name group-spec))
-     node-count
-     (build-node-template
-      compute
-      group-spec
-      (:public-key-path user)
-      init-script)
-     compute)
-    ;; The following is a workaround for terminated nodes.
-    ;; See http://code.google.com/p/jclouds/issues/detail?id=501
-    (filter compute/running?)))
+    [service group-spec node-count user init-script]
+    (->>
+     (jclouds/run-nodes
+      (name (:group-name group-spec))
+      node-count
+      (build-node-template
+       compute
+       group-spec
+       (:public-key-path user)
+       init-script)
+      compute)
+     ;; The following is a workaround for terminated nodes.
+     ;; See http://code.google.com/p/jclouds/issues/detail?id=501
+     (map (partial jclouds-node->node service))
+     (filter compute/running?)))
 
   (reboot
-   [_ nodes]
-   (doseq [node nodes]
-     (jclouds/reboot-node node compute)))
+    [_ nodes]
+    (doseq [node nodes]
+      (jclouds/reboot-node node compute)))
 
   (boot-if-down
-   [_ nodes]
-   (map #(jclouds/reboot-node % compute)
-        (filter jclouds/terminated? nodes)))
+    [_ nodes]
+    (map #(jclouds/reboot-node % compute)
+         (filter jclouds/terminated? nodes)))
 
   (shutdown-node
-   [_ node user]
-   (let [ip (compute/primary-ip node)]
-     (if ip
-       (execute/remote-sudo ip "shutdown -h 0" user {:pty false}))))
+    [_ node user]
+    (let [ip (compute/primary-ip node)]
+      (if ip
+        (execute/remote-sudo ip "shutdown -h 0" user {:pty false}))))
 
   (shutdown
-   [self nodes user]
-   (doseq [node nodes]
-     (compute/shutdown-node self node user)))
+    [self nodes user]
+    (doseq [node nodes]
+      (compute/shutdown-node self node user)))
 
   (destroy-nodes-in-group
     [_ group-name]
     (jclouds/destroy-nodes-with-tag (name group-name) compute))
 
   (destroy-node
-   [_ node]
-   (jclouds/destroy-node (compute/id node) compute))
+    [_ node]
+    (jclouds/destroy-node (compute/id node) compute))
 
   (images [_] (jclouds/images compute))
 
