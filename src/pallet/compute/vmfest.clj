@@ -226,9 +226,13 @@
     (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
     (when (string/blank? (wait-for-ip machine))
+      (manager/destroy machine)
       (slingshot/throw+
        {:type :no-ip-available
         :message "Could not determine IP address of new node"}))
+      (condition/raise
+       :type :no-ip-available
+       :message "Could not determine IP address of new node"))
     (Thread/sleep 4000)
     (logging/tracef "Bootstrapping %s" (manager/get-ip machine))
     (script/with-script-context
@@ -240,10 +244,18 @@
                       :password (:password image)
                       :no-sudo (:no-sudo image)
                       :sudo-password (:sudo-password image))
-                     user)]
-          (execute/remote-sudo
-           (manager/get-ip machine) init-script user
-           {:pty (not (#{:arch :fedora} (:os-family image)))}))))
+                     user)
+              {:keys [out exit]} (execute/remote-sudo
+                                  (manager/get-ip machine) init-script user
+                                  {:pty (not
+                                         (#{:arch :fedora}
+                                          (:os-family image)))})]
+          (when-not (zero? exit)
+            (manager/destroy machine)
+            (condition/raise
+             :message (format "Bootstrap failed: %s" out)
+             :type :pallet/bootstrap-failure
+             :group-spec node-spec)))))
     machine))
 
 (defn- equality-match
