@@ -498,8 +498,8 @@
         (is false "should throw")
         (catch Exception e
           (let [e (stacktrace/root-cause e)]
-            (is (instance? clojure.contrib.condition.Condition e))
-            (is (re-find #"Error executing script"  (:message @(.state e))))
+            (is (instance? slingshot.Stone e))
+            (is (re-find #"Error executing script"  (:message (.object e))))
             (reset! thrown true))))
       (is @thrown)))
   (testing "throw on remote bash error after other actions"
