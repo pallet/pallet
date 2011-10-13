@@ -108,25 +108,28 @@
           a-node (jclouds/make-node "a"
                                     :state NodeState/RUNNING)
           b-node (jclouds/make-node "a"
+                                    :state NodeState/RUNNING)
+          c-node (jclouds/make-node "a"
                                     :state NodeState/RUNNING)]
       (mock/expects [(org.jclouds.compute/run-nodes
                       [tag n template compute]
                       (mock/once
                        (is (= "a" tag))
-                       (is (= 2 n))
+                       (is (= 3 n))
                        (throw (org.jclouds.compute.RunNodesException.
                                "a" 2
                                template
                                #{a-node}
                                {}
-                               {b-node (Exception.)}))))
+                               {b-node (Exception.)
+                                c-node (Exception.)}))))
                      (org.jclouds.compute/build-template
                       [compute & options]
                       (mock/times 2 (apply build-template compute options)))]
                     (let [nodes (->
                                  (#'core/converge-node-counts
                                   {:groups [(test-utils/group
-                                             :a :count 2 :servers [])]
+                                             :a :count 3 :servers [])]
                                    :environment
                                    {:compute service
                                     :algorithms
