@@ -525,7 +525,8 @@
     (executor session f action-type location)
     (catch Exception e
       [{:error {:message (format "Unexpected exception: %s" (.getMessage e))
-                :type :pallet/action-excution-error}}
+                :type :pallet/action-execution-error
+                :cause e}}
        session])))
 
 (defn execute
