@@ -150,7 +150,12 @@
           "{:error {:message \"Unexpected exception: "
           "java.lang.RuntimeException: java.lang.RuntimeException: "
           "java.lang.IllegalArgumentException: remote-file file1 specified "
-          "without content.\", :type :pallet/action-excution-error}}")
+          "without content.\", :type :pallet/action-execution-error"
+          ", :cause #<RuntimeException java.lang.RuntimeException: "
+          "java.lang.RuntimeException: java.lang.RuntimeException: "
+          "java.lang.IllegalArgumentException: "
+          "remote-file file1 specified without content.>"
+          "}}")
            (first (build-actions/build-actions
                    {} (remote-file "file1" :owner "user1")))))
 
