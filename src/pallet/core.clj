@@ -36,6 +36,7 @@
    [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.futures :as futures]
+   [pallet.node :as node]
    [pallet.parameter :as parameter]
    [pallet.phase :as phase]
    [pallet.script :as script]
@@ -182,7 +183,7 @@
    `name` is used for the group name, which is set on each node and links a node
    to it's node-spec
 
-   - :extends  specify a server-spec, a group-spec, or sequence thereof,
+   - :extends  specify a server-spec, a group-spec, or sequence thereof
                and is used to inherit phases, etc.
 
    - :phases used to define phases. Standard phases are:
@@ -211,7 +212,7 @@
 
    - :groups    specify a sequence of groups that define the cluster
 
-   - :extends   specify a server-spec, a group-spec, or sequence thereof,
+   - :extends   specify a server-spec, a group-spec, or sequence thereof
                 for all groups in the cluster
 
    - :phases    define phases on all groups.
@@ -490,7 +491,7 @@
 
 (defn- converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
-   instances. Returns a session object with :original-nodes, :all-nodes,
+   instances. Returns a session object with :original-nodes, :all-nodes
    :new-nodes and :old-nodes keys."
   [session]
   (logging/info "converging nodes")
@@ -576,8 +577,8 @@
     :apply-phase ["Apply phase %s to %s %s"
                   (:phase session)
                   (-> session :group :group-name)
-                  (compute/primary-ip (-> session :server :node))]
-    (logutils/with-context [:target (compute/primary-ip
+                  (node/primary-ip (-> session :server :node))]
+    (logutils/with-context [:target (node/primary-ip
                                      (-> session :server :node))
                             :phase (:phase session)
                             :group (-> session :group :group-name)]
@@ -646,7 +647,7 @@
   "Build an action plan for the specified server."
   [session server]
   {:pre [(:node server) (:node-id server)]}
-  (logutils/with-context [:target (compute/primary-ip (:node server))]
+  (logutils/with-context [:target (node/primary-ip (:node server))]
     (logging/debugf "p-f-s server environment %s" (:environment server))
     (action-plan/build-for-target
      (->
@@ -842,13 +843,13 @@
 (defn- node-in-types?
   "Predicate for matching a node belonging to a set of node types"
   [node-types node]
-  (some #(= (compute/group-name node) (name (% :group-name))) node-types))
+  (some #(= (node/group-name node) (name (% :group-name))) node-types))
 
 (defn- nodes-for-group
   "Return the nodes that have a group-name that matches one of the node types"
   [nodes group]
   (let [group-name (name (:group-name group))]
-    (filter #(compute/node-in-group? group-name %) nodes)))
+    (filter #(node/node-in-group? group-name %) nodes)))
 
 (defn- group-spec?
   "Predicate for testing if argument is a node-spec.
@@ -858,7 +859,7 @@
 
 (defn nodes-in-set
   "Build a map of node-spec to nodes for the given `node-set`.
-   A node set can be a node spec, a map from node-spec to a sequence of nodes,
+   A node set can be a node spec, a map from node-spec to a sequence of nodes
    or a sequence of these.
 
    The prefix is applied to the group-name of each node-spec in the result.
@@ -906,9 +907,9 @@
   [group node options]
   (->
    group
-   (update-in [:image :os-family] (fn [f] (or (compute/os-family node) f)))
-   (update-in [:image :os-version] (fn [f] (or (compute/os-version node) f)))
-   (update-in [:node-id] (fn [id] (or (keyword (compute/id node)) id)))
+   (update-in [:image :os-family] (fn [f] (or (node/os-family node) f)))
+   (update-in [:image :os-version] (fn [f] (or (node/os-version node) f)))
+   (update-in [:node-id] (fn [id] (or (keyword (node/id node)) id)))
    (assoc :node node)
    server-with-packager
    (merge options)))
@@ -916,7 +917,7 @@
 (defn groups-with-servers
   "Takes a map from node-spec to sequence of nodes, and converts it to a
    sequence of group definitions, containing a server for each node in then
-   :servers key of each group.  The server will contain the node-spec,
+   :servers key of each group.  The server will contain the node-spec
    updated with any information that was available from the node.
 
        (groups-with-servers {(node-spec \"spec\" {}) [a b c]})
@@ -932,14 +933,14 @@
       :servers (map
                 (fn [node]
                   (server group node {:invoke-only (not (execute-node? node))}))
-                (filter compute/running? nodes)))))
+                (filter node/running? nodes)))))
 
 (defn session-with-all-nodes
   "If the :all-nodes key is not set, then the nodes are retrieved from the
    compute service if possible."
   [session]
   (let [nodes (filter
-               compute/running?
+               node/running?
                (or (:all-nodes session) ; empty list is ok
                    (if-let [compute (environment/get-for
                                      session [:compute] nil)]
@@ -947,7 +948,7 @@
                        (logging/info "retrieving nodes")
                        (compute/nodes compute))
                      (filter
-                      compute/node?
+                      node/node?
                       (mapcat
                        #(let [v (val %)] (if (seq? v) v [v]))
                        (:node-set session))))))]
@@ -973,14 +974,14 @@
      session
      (assoc :all-nodes (or (seq all-nodes)
                            (filter
-                            compute/running?
+                            node/running?
                             (reduce
                              concat
                              (concat
                               (vals all-targets) (vals plan-targets))))))
      (assoc :selected-nodes (or (seq nodes)
                                 (filter
-                                 compute/running?
+                                 node/running?
                                  (reduce concat (vals targets)))))
      (assoc :groups (concat
                      (groups-with-servers targets (set nodes))
@@ -1136,7 +1137,7 @@
   options)
 
 (defn- identify-anonymous-phases
-  "For all inline phase defintions in the session's :phase-list,
+  "For all inline phase defintions in the session's :phase-list
    generate a keyword for the phase, adding an entry to the session's
    :inline-phases map containing the phase definition, and replacing the
    phase defintion in the :phase-list with the keyword."
@@ -1161,7 +1162,7 @@
 
 (defn- node-set-for-converge
   "Takes the input, and translates it into a sequence of group-spec's.
-   The input can be a single group-spec, a map from group-spec to node count,
+   The input can be a single group-spec, a map from group-spec to node count
    or a sequence of group-spec's"
   [group-spec->count]
   (context/with-context
@@ -1177,7 +1178,7 @@
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
-   `group-spec->count`. New nodes are started, or nodes are destroyed,
+   `group-spec->count`. New nodes are started, or nodes are destroyed
    to obtain the specified node counts.
 
    `group-spec->count` can be a map from group-spec to node count, or can be a
