@@ -102,6 +102,12 @@
            :insecure true)))
       ":insecure should disable ssl checks"))
 
+(deftest download-request-test
+  (is (= "curl -o \"p\" --retry 3 --silent --show-error --fail --location -H \"n: v\" \"http://server.com\""
+         (let [request {:headers {"n" "v"}
+                        :endpoint (java.net.URI. "http://server.com")}]
+           (script (~download-request "p" ~request))))))
+
 (deftest mkdir-test
   (is (= "mkdir -p dir"
          (script (~mkdir "dir" :path ~true)))))

@@ -244,7 +244,7 @@
      " "
      (map (fn dlr-fmt [e] (format "-H \"%s: %s\"" (key e) (val e)))
           (:headers request)))
-   (quoted ~(:endpoint request))))
+   (quoted ~(str (:endpoint request)))))
 
 (script/defscript tmp-dir [])
 (script/defimpl tmp-dir :default []
