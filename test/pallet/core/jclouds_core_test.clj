@@ -100,7 +100,45 @@
                                :all-nodes)]
                     (is (= 1 (count nodes)))
                     (is (= service (node/compute-service (first nodes))))
-                    (is (= (compute/id a-node) (compute/id (first nodes))))))))
+                    (is (= (compute/id a-node) (compute/id (first nodes)))))))
+  (testing "With a good and a bad node"
+    (jclouds-test-utils/purge-compute-service)
+    (let [build-template org.jclouds.compute/build-template
+          service (jclouds-test-utils/compute)
+          a-node (jclouds/make-node "a"
+                                    :state NodeState/RUNNING)
+          b-node (jclouds/make-node "a"
+                                    :state NodeState/RUNNING)]
+      (mock/expects [(org.jclouds.compute/run-nodes
+                      [tag n template compute]
+                      (mock/once
+                       (is (= "a" tag))
+                       (is (= 2 n))
+                       (throw (org.jclouds.compute.RunNodesException.
+                               "a" 2
+                               template
+                               #{a-node}
+                               {}
+                               {b-node (Exception.)}))))
+                     (org.jclouds.compute/build-template
+                      [compute & options]
+                      (mock/times 2 (apply build-template compute options)))]
+                    (let [nodes (->
+                                 (#'core/converge-node-counts
+                                  {:groups [(test-utils/group
+                                             :a :count 2 :servers [])]
+                                   :environment
+                                   {:compute service
+                                    :algorithms
+                                    (assoc core/default-algorithms
+                                      :converge-fn
+                                      #'pallet.core/serial-adjust-node-counts
+                                      :lift-fn #'pallet.core/sequential-lift)}})
+                                 :all-nodes)]
+                      (is (= 1 (count nodes)))
+                      (is (= service (node/compute-service (first nodes))))
+                      (is (= (compute/id a-node)
+                             (compute/id (first nodes)))))))))
 
 (deftest parallel-converge-node-counts-test
   (let [build-template org.jclouds.compute/build-template
@@ -425,6 +463,49 @@
                                            execute/execute-echo])]
         (is (= 0 (count (running-nodes (:all-nodes session)))))))))
 
+
+(deftest converge-with-failed-nodes-test
+  (testing "With only bad nodes"
+    (jclouds-test-utils/purge-compute-service)
+    (let [build-template org.jclouds.compute/build-template
+          service (jclouds-test-utils/compute)]
+      (is (zero?
+           (count (filter compute/running? (compute/nodes service)))))
+      (mock/expects [(org.jclouds.compute/run-nodes
+                      [tag n template compute]
+                      (mock/once
+                       (is (= "a" tag))
+                       (is (= 2 n))
+                       (throw (org.jclouds.compute.RunNodesException.
+                               "a" 2
+                               template
+                               #{}
+                               {}
+                               (hash-map
+                                (jclouds/make-node
+                                 "a" :state NodeState/RUNNING)
+                                (Exception.)
+                                (jclouds/make-node
+                                 "a" :id "a1" :state NodeState/RUNNING)
+                                (Exception.))))))
+                     (org.jclouds.compute/build-template
+                      [compute & options]
+                      (mock/times 2 (apply build-template compute options)))]
+                    (is (thrown?
+                         clojure.contrib.condition.Condition
+                         #"No additional nodes could be started"
+                         (core/converge
+                          {(core/group-spec :a) 2}
+                          :compute service
+                          :environment
+                          {
+                           :algorithms
+                           {:converge-fn
+                            #'pallet.core/serial-adjust-node-counts}})))
+                    (is (zero?
+                         (count
+                          (filter
+                           compute/running? (compute/nodes service)))))))))
 
 (deftest lift-with-runtime-params-test
   ;; test that parameters set at execution time are propogated
