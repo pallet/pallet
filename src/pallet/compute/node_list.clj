@@ -6,6 +6,7 @@
    [pallet.compute.implementation :as implementation]
    [pallet.environment :as environment]
    [slingshot.core :as slingshot]
+   [pallet.node :as node]
    [clojure.string :as string]))
 
 
@@ -14,8 +15,8 @@
 
 (defrecord Node
     [name group-name ip os-family os-version id ssh-port private-ip is-64bit
-     running]
-  pallet.compute.Node
+     running service]
+  pallet.node.Node
   (ssh-port [node] ssh-port)
   (primary-ip [node] ip)
   (private-ip [node] private-ip)
@@ -26,12 +27,15 @@
   (os-family [node] os-family)
   (os-version [node] os-version)
   (hostname [node] name)
-  (id [node] id))
+  (id [node] id)
+  (compute-service [node] service))
 
 ;;; Node utilities
 (defn make-node [name group-name ip os-family
-                 & {:keys [id ssh-port private-ip is-64bit running os-version]
-                    :or {ssh-port 22 is-64bit true running true}
+                 & {:keys [id ssh-port private-ip is-64bit running os-version
+                           service]
+                    :or {ssh-port 22 is-64bit true running true
+                         service (atom nil)}
                     :as options}]
   (Node.
    name
@@ -43,7 +47,8 @@
    ssh-port
    private-ip
    is-64bit
-   running))
+   running
+   service))
 
 (deftype NodeList
     [node-list environment]
@@ -101,11 +106,17 @@
 ;;;; Compute service
 (defmethod implementation/service :node-list
   [_ {:keys [node-list environment]}]
-  (NodeList.
-   (atom (vec
-          (map
-           #(if (vector? %)
-              (apply make-node %)
-              %)
-           node-list)))
-   environment))
+  (let [nodes (atom (vec
+                     (map
+                      #(if (vector? %)
+                         (apply make-node %)
+                         %)
+                      node-list)))
+        nodelist (NodeList. nodes environment)]
+    (swap! nodes
+           #(map
+             (fn [node]
+               (reset! (node/compute-service node) nodelist)
+               node)
+             %))
+    nodelist))

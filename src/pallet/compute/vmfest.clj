@@ -69,7 +69,7 @@
   (zipmap (vals os-family-name) (keys os-family-name)))
 
 (extend-type vmfest.virtualbox.model.Machine
-  pallet.compute/Node
+  pallet.node/Node
   (ssh-port [node] 22)
   (primary-ip
     [node]
