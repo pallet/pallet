@@ -46,5 +46,4 @@
       (let [cause (stacktrace/root-cause e)]
         (logging/errorf
          cause "%s exception: %s" operation-label (.getMessage cause)))
-      (logging/debugf
-       (.getCause e) "%s exception" operation-label))))
+      (logging/debugf (.getCause e) "%s exception" operation-label))))

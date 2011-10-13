@@ -412,6 +412,11 @@
         _ (logging/tracef "Bootstrap script:\n%s" init-script)
         new-nodes (compute/run-nodes
                    compute (:group session) count (:user session) init-script)]
+    (when-not (seq new-nodes)
+      (condition/raise
+       :message "No additional nodes could be started"
+       :group (:group session)
+       :type :pallet/could-not-start-new-nodes))
     {:new-nodes new-nodes}))
 
 (defn- destroy-nodes

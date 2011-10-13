@@ -429,20 +429,38 @@
 
   (run-nodes
     [service group-spec node-count user init-script]
-    (->>
-     (jclouds/run-nodes
-      (name (:group-name group-spec))
-      node-count
-      (build-node-template
-       compute
-       group-spec
-       (:public-key-path user)
-       init-script)
-      compute)
-     (map (partial jclouds-node->node service))
-     ;; The following is a workaround for terminated nodes.
-     ;; See http://code.google.com/p/jclouds/issues/detail?id=501
-     (filter compute/running?)))
+    (letfn [(process-failed-start-nodes
+              [e]
+              (let [bad-nodes (.getSuccessfulNodes e)]
+                (doseq [node bad-nodes]
+                  (try
+                    (compute/destroy-node service node)
+                    (catch Exception e
+                      (logging/warnf
+                       e
+                       "Exception while trying to remove failed nodes for %s"
+                       (:group-name group-spec)))))
+                (->>
+                 (.getSuccessfulNodes e)
+                 (map (partial jclouds-node->node service))
+                 (filter compute/running?))))]
+      (try
+        (->>
+         (jclouds/run-nodes
+          (name (:group-name group-spec))
+          node-count
+          (build-node-template
+           compute
+           group-spec
+           (:public-key-path user)
+           init-script)
+          compute)
+         (map (partial jclouds-node->node service))
+         ;; The following is a workaround for terminated nodes.
+         ;; See http://code.google.com/p/jclouds/issues/detail?id=501
+         (filter compute/running?))
+        (catch org.jclouds.compute.RunNodesException e
+          (process-failed-start-nodes e)))))
 
   (reboot
     [_ nodes]
