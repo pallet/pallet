@@ -431,7 +431,12 @@
     [service group-spec node-count user init-script]
     (letfn [(process-failed-start-nodes
               [e]
-              (let [bad-nodes (.getSuccessfulNodes e)]
+              (let [bad-nodes (.getNodeErrors e)]
+                (logging/warnf
+                 "Failed to start %s of %s nodes for group %s"
+                 (count bad-nodes)
+                 node-count
+                 (:group-name group-spec))
                 (doseq [node bad-nodes]
                   (try
                     (compute/destroy-node service node)
