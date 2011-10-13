@@ -38,6 +38,7 @@
    [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.futures :as futures]
+   [pallet.node :as node]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
@@ -436,7 +437,7 @@
     (let [nodes (locking compute ;; avoid disappearing machines
                   (filter
                    #(and
-                     (compute/running? %)
+                     (node/running? %)
                      (= group-name (manager/get-extra-data % group-name-tag)))
                    (manager/machines server)))]
       (doseq [machine nodes]
@@ -521,6 +522,6 @@
    writer
    (format
     "%14s\t %14s\t public: %s"
-    (try (compute/hostname node) (catch Throwable e "unknown"))
-    (try (compute/group-name node) (catch Throwable e "unknown"))
-    (try (compute/primary-ip node) (catch Throwable e "unknown")))))
+    (try (node/hostname node) (catch Throwable e "unknown"))
+    (try (node/group-name node) (catch Throwable e "unknown"))
+    (try (node/primary-ip node) (catch Throwable e "unknown")))))

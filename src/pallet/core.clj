@@ -35,6 +35,7 @@
    [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.futures :as futures]
+   [pallet.node :as node]
    [pallet.parameter :as parameter]
    [pallet.phase :as phase]
    [pallet.script :as script]
@@ -571,7 +572,7 @@
   "Apply a phase to a node session"
   [session]
   {:pre [(:server session) (:phase session)]}
-  (logutils/with-context [:target (compute/primary-ip
+  (logutils/with-context [:target (node/primary-ip
                                    (-> session :server :node))
                           :phase (:phase session)
                           :group (-> session :group :group-name)]
@@ -639,7 +640,7 @@
   "Build an action plan for the specified server."
   [session server]
   {:pre [(:node server) (:node-id server)]}
-  (logutils/with-context [:target (compute/primary-ip (:node server))]
+  (logutils/with-context [:target (node/primary-ip (:node server))]
     (logging/debugf "p-f-s server environment %s" (:environment server))
     (action-plan/build-for-target
      (->
@@ -834,13 +835,13 @@
 (defn- node-in-types?
   "Predicate for matching a node belonging to a set of node types"
   [node-types node]
-  (some #(= (compute/group-name node) (name (% :group-name))) node-types))
+  (some #(= (node/group-name node) (name (% :group-name))) node-types))
 
 (defn- nodes-for-group
   "Return the nodes that have a group-name that matches one of the node types"
   [nodes group]
   (let [group-name (name (:group-name group))]
-    (filter #(compute/node-in-group? group-name %) nodes)))
+    (filter #(node/node-in-group? group-name %) nodes)))
 
 (defn- group-spec?
   "Predicate for testing if argument is a node-spec.
@@ -898,9 +899,9 @@
   [group node options]
   (->
    group
-   (update-in [:image :os-family] (fn [f] (or (compute/os-family node) f)))
-   (update-in [:image :os-version] (fn [f] (or (compute/os-version node) f)))
-   (update-in [:node-id] (fn [id] (or (keyword (compute/id node)) id)))
+   (update-in [:image :os-family] (fn [f] (or (node/os-family node) f)))
+   (update-in [:image :os-version] (fn [f] (or (node/os-version node) f)))
+   (update-in [:node-id] (fn [id] (or (keyword (node/id node)) id)))
    (assoc :node node)
    server-with-packager
    (merge options)))
@@ -924,14 +925,14 @@
       :servers (map
                 (fn [node]
                   (server group node {:invoke-only (not (execute-node? node))}))
-                (filter compute/running? nodes)))))
+                (filter node/running? nodes)))))
 
 (defn session-with-all-nodes
   "If the :all-nodes key is not set, then the nodes are retrieved from the
    compute service if possible."
   [session]
   (let [nodes (filter
-               compute/running?
+               node/running?
                (or (:all-nodes session) ; empty list is ok
                    (if-let [compute (environment/get-for
                                      session [:compute] nil)]
@@ -939,7 +940,7 @@
                        (logging/info "retrieving nodes")
                        (compute/nodes compute))
                      (filter
-                      compute/node?
+                      node/node?
                       (mapcat
                        #(let [v (val %)] (if (seq? v) v [v]))
                        (:node-set session))))))]
@@ -965,14 +966,14 @@
      session
      (assoc :all-nodes (or (seq all-nodes)
                            (filter
-                            compute/running?
+                            node/running?
                             (reduce
                              concat
                              (concat
                               (vals all-targets) (vals plan-targets))))))
      (assoc :selected-nodes (or (seq nodes)
                                 (filter
-                                 compute/running?
+                                 node/running?
                                  (reduce concat (vals targets)))))
      (assoc :groups (concat
                      (groups-with-servers targets (set nodes))

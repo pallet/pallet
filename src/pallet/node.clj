@@ -10,8 +10,8 @@
   (hostname [node] "TODO make this work on ec2")
   (os-family [node] "Return a node's os-family, or nil if not available.")
   (os-version [node] "Return a node's os-version, or nil if not available.")
-  (running? [node])
-  (terminated? [node])
+  (running? [node] "Predicate to test if node is running.")
+  (terminated? [node] "Predicate to test if node is terminated.")
   (id [node])
   (compute-service [node]
     "Return the service provider the node was provided by."))

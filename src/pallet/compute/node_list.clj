@@ -69,7 +69,7 @@
 
   ;; this forgets about the nodes
   (destroy-nodes-in-group [_ group]
-    (swap! node-list (fn [nl] (remove #(= (compute/group-name %) group) nl))))
+    (swap! node-list (fn [nl] (remove #(= (node/group-name %) group) nl))))
 
   (close [compute])
   pallet.environment.Environment
