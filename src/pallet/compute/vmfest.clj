@@ -231,9 +231,6 @@
       (slingshot/throw+
        {:type :no-ip-available
         :message "Could not determine IP address of new node"}))
-      (condition/raise
-       :type :no-ip-available
-       :message "Could not determine IP address of new node"))
     (Thread/sleep 4000)
     (logging/tracef "Bootstrapping %s" (manager/get-ip machine))
     (script/with-script-context
@@ -253,10 +250,10 @@
                                           (:os-family image)))})]
           (when-not (zero? exit)
             (manager/destroy machine)
-            (condition/raise
-             :message (format "Bootstrap failed: %s" out)
-             :type :pallet/bootstrap-failure
-             :group-spec node-spec)))))
+            (slingshot/throw+
+             {:message (format "Bootstrap failed: %s" out)
+              :type :pallet/bootstrap-failure
+              :group-spec node-spec})))))
     machine))
 
 (defn- equality-match
