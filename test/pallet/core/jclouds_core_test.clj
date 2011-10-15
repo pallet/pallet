@@ -495,7 +495,7 @@
                       [compute & options]
                       (mock/times 2 (apply build-template compute options)))]
                     (is (thrown?
-                         clojure.contrib.condition.Condition
+                         RuntimeException
                          #"No additional nodes could be started"
                          (core/converge
                           {(core/group-spec :a) 2}

@@ -499,7 +499,7 @@
         (catch Exception e
           (let [e (stacktrace/root-cause e)]
             (is (instance? slingshot.Stone e))
-            (is (re-find #"Error executing script"  (:message (.object e))))
+            (is (re-find #"Error executing script" (.getMessage e)))
             (reset! thrown true))))
       (is @thrown)))
   (testing "throw on remote bash error after other actions"
@@ -524,7 +524,7 @@
         (catch Exception e
           (let [e (stacktrace/root-cause e)]
             (is (instance? slingshot.Stone e))
-            (is (re-find #"Error executing script"  (:message (.object e))))
+            (is (re-find #"Error executing script" (.getMessage e)))
             (reset! thrown true))))
       (is @thrown))))
 
