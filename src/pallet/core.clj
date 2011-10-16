@@ -415,9 +415,9 @@
                    compute (:group session) count (:user session) init-script)]
     (when-not (seq new-nodes)
       (slingshot/throw+
-       {:message "No additional nodes could be started"
-        :group (:group session)
-        :type :pallet/could-not-start-new-nodes}))
+       {:group (:group session)
+        :type :pallet/could-not-start-new-nodes}
+       "No additional nodes could be started"))
     {:new-nodes new-nodes}))
 
 (defn- destroy-nodes
