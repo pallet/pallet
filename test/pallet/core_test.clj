@@ -905,3 +905,37 @@
           (is (seen-post?) "checking-set should be called")
           (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
                  (parameter/get-for-service session [:slaves]))))))))
+
+(deftest expand-cluster-groups-test
+  (let [g1 (core/group-spec :g1 :phases nil :environment nil)
+        g2 (core/group-spec :g2 :phases nil :environment nil)
+        c1 (core/cluster-spec :c1 :groups [g1])
+        c2 (core/cluster-spec :c2 :groups [c1 g2])]
+    (is (= [g1] (core/expand-cluster-groups g1)))
+    (is (= [{g1 :opaque}] (core/expand-cluster-groups {g1 :opaque})))
+    (is (= [g1] (core/expand-cluster-groups [g1])))
+    (is (= [g1 g2] (core/expand-cluster-groups [g1 g2])))
+    (is (= [(assoc g1 :group-name :c1-g1 :count 1)]
+             (core/expand-cluster-groups [c1])))
+    (is (= [(assoc g1 :group-name :c2-c1-g1 :count 1)
+            (assoc g2 :group-name :c2-g2 :count 1)]
+             (core/expand-cluster-groups c2)))))
+
+(deftest expand-group-spec-with-counts-test
+  (let [g1 (core/group-spec :g1 :phases nil :environment nil :count 2)
+        g2 (core/group-spec :g2 :phases nil :environment nil :count 3)
+        c1 (core/cluster-spec :c1 :groups [g1])
+        c2 (core/cluster-spec :c2 :groups [(assoc c1 :count 2) g2])]
+    (is (= [g1] (core/expand-group-spec-with-counts g1)))
+    (is (= [(assoc g1 :count 1)] (core/expand-group-spec-with-counts {g1 1})))
+    (is (= [g1] (core/expand-group-spec-with-counts [g1])))
+    (is (= [g1 g2] (core/expand-group-spec-with-counts [g1 g2])))
+    (is (= [(assoc g1 :count 1) (assoc g2 :count 2)]
+             (core/expand-group-spec-with-counts [{g1 1} {g2 2}])))
+    (is (= [(assoc g1 :group-name :c1-g1)]
+             (core/expand-group-spec-with-counts [c1])))
+    (is (= [(assoc g1 :group-name :c1-g1 :count 4)]
+             (core/expand-group-spec-with-counts [{c1 2}])))
+    (is (= [(assoc g1 :group-name :c2-c1-g1 :count 8)
+            (assoc g2 :group-name :c2-g2 :count 6)]
+             (core/expand-group-spec-with-counts {c2 2})))))

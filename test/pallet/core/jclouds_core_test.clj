@@ -556,7 +556,7 @@
                            "g2" :count 2 :image {:os-family :ubuntu})])]
     (testing "converge-cluster"
       (let [session
-            (converge-cluster cluster :compute (jclouds-test-utils/compute))]
+            (converge cluster :compute (jclouds-test-utils/compute))]
         (is (= 3 (count (:new-nodes session))))
         (is (= 3 (count (:all-nodes session))))
         (is (= 3 (count (:selected-nodes session))))
@@ -565,7 +565,7 @@
                 (running-nodes (compute/nodes (jclouds-test-utils/compute)))))))
     (testing "lift-cluster"
       (let [session
-            (lift-cluster cluster :compute (jclouds-test-utils/compute))]
+            (lift cluster :compute (jclouds-test-utils/compute))]
         (is (empty? (:new-nodes session)))
         (is (= 3 (count (:all-nodes session))))
         (is (= 3 (count (:selected-nodes session))))
@@ -574,7 +574,7 @@
                 (running-nodes (compute/nodes (jclouds-test-utils/compute)))))))
     (testing "destroy-cluster"
       (let [session
-            (destroy-cluster cluster :compute (jclouds-test-utils/compute))]
+            (converge {cluster 0} :compute (jclouds-test-utils/compute))]
         (is (empty? (:all-nodes session)))
         (is (empty? (:new-nodes session)))
         (is (empty? (:selected-nodes session)))
