@@ -331,32 +331,32 @@
 
 (deftest create-nodes-test
   (let [a (jclouds/make-node "a")
-        nodes (#'core/create-nodes
-               1
-               {:compute (jclouds-test-utils/compute)
-                :group (group-spec :a :servers [{:node a}])
-                :environment {:algorithms core/default-algorithms}})]
-    (is (map? nodes))
-    (is (= 1 (count (:new-nodes nodes))))))
+        session (#'core/create-nodes
+                 {:compute (jclouds-test-utils/compute)
+                  :group (group-spec :a :servers [{:node a}])
+                  :environment {:algorithms core/default-algorithms}}
+                 1)]
+    (is (seq (:new-nodes session)))
+    (is (= 1 (count (:new-nodes session))))))
 
 (deftest destroy-nodes-test
   (testing "remove all"
     (let [a (jclouds/make-node "a")
-          nodes (#'core/destroy-nodes
-                 1
-                 {:compute (jclouds-test-utils/compute)
-                  :group (test-utils/group :a :servers [{:node a}])})]
-      (is (= [a] (:old-nodes nodes)))))
+          session (#'core/destroy-nodes
+                   {:compute (jclouds-test-utils/compute)
+                    :group (test-utils/group :a :servers [{:node a}])}
+                   1)]
+      (is (= [a] (:old-nodes session)))))
   (testing "remove some"
     (let [a (jclouds/make-node "a")
           b (jclouds/make-node "a")
-          nodes (#'core/destroy-nodes
-                 1
-                 {:compute (jclouds-test-utils/compute)
-                  :group (test-utils/group :a :servers [{:node a} {:node b}])})]
-      (is (seq nodes))
-      (is (= 1 (count nodes)))
-      (is (= "a" (compute/tag (first (:old-nodes nodes))))))))
+          session (#'core/destroy-nodes
+                   {:compute (jclouds-test-utils/compute)
+                    :group (test-utils/group :a :servers [{:node a} {:node b}])}
+                   1)]
+      (is (seq (:old-nodes session)))
+      (is (= 1 (count (:old-nodes session))))
+      (is (= "a" (compute/tag (first (:old-nodes session))))))))
 
 (deftest converge*-test
   (logging/info "converge*-test")
@@ -401,7 +401,8 @@
                      :middleware *middleware*
                      :algorithms
                      {:converge-fn #'pallet.core/serial-adjust-node-counts
-                      :lift-fn sequential-lift}
+                      :lift-fn sequential-lift
+                      :execute-status-fn stop-execution-on-error}
                      :groups {:a {:image {:os-family :centos}}}
                      :user (utils/make-user "fred")}}))))
 

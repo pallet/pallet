@@ -906,3 +906,18 @@
           (is (seen-post?) "checking-set should be called")
           (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
                  (parameter/get-for-service session [:slaves]))))))))
+
+(deftest group-count-delta-for-converge-test
+  (is (= {:start {:g1 1}}
+         (core/group-count-delta-for-converge
+          {:groups [{:group-name :g1 :count 1}]}))
+      "should start one node")
+  (is (= {:stop {:g1 1}}
+         (core/group-count-delta-for-converge
+          {:groups [{:group-name :g1 :count 0 :servers [:opaque]}]}))
+      "should stop one node")
+  (is (= {:start {:g1 1} :stop {:g2 2}}
+         (core/group-count-delta-for-converge
+          {:groups [{:group-name :g1 :count 1}
+                    {:group-name :g2 :count 0 :servers [:opaque1 :opaque2]}]}))
+      "should start one g1 node, and stop two :g2 nodes"))
