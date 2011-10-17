@@ -939,3 +939,18 @@
     (is (= [(assoc g1 :group-name :c2-c1-g1 :count 8)
             (assoc g2 :group-name :c2-g2 :count 6)]
              (core/expand-group-spec-with-counts {c2 2})))))
+
+(deftest group-count-delta-for-converge-test
+  (is (= {:start {:g1 1}}
+         (core/group-count-delta-for-converge
+          {:groups [{:group-name :g1 :count 1}]}))
+      "should start one node")
+  (is (= {:stop {:g1 1}}
+         (core/group-count-delta-for-converge
+          {:groups [{:group-name :g1 :count 0 :servers [:opaque]}]}))
+      "should stop one node")
+  (is (= {:start {:g1 1} :stop {:g2 2}}
+         (core/group-count-delta-for-converge
+          {:groups [{:group-name :g1 :count 1}
+                    {:group-name :g2 :count 0 :servers [:opaque1 :opaque2]}]}))
+      "should start one g1 node, and stop two :g2 nodes"))

@@ -437,7 +437,7 @@
 (defn- create-nodes
   "Create count nodes based on the template for the group.
    Returns a map with updated server node lists."
-  [count session]
+  [session count]
   {:pre [(map? (:group session))]}
   (logging/info
    (str "Starting " count " nodes for " (-> session :group :group-name)
@@ -456,12 +456,12 @@
        {:group (:group session)
         :type :pallet/could-not-start-new-nodes}
        "No additional nodes could be started"))
-    {:new-nodes new-nodes}))
+    (update-in session [:new-nodes] concat new-nodes)))
 
 (defn- destroy-nodes
   "Destroys the specified number of nodes with the given group.  Nodes are
    selected at random. Returns a map containing removed nodes."
-  [destroy-count session]
+  [session destroy-count]
   (logging/info
    (str "destroying " destroy-count " nodes for "
         (-> session :group :group-name)))
@@ -471,11 +471,12 @@
     (if (= destroy-count (count servers))
       (do
         (compute/destroy-nodes-in-group compute (name (:group-name group)))
-        {:old-nodes (map :node servers)})
-      (let [nodes (map :node servers)]
-        (doseq [node (take destroy-count nodes)]
+        (update-in session [:old-nodes] concat (map :node servers)))
+      (let [nodes (map :node servers)
+            old-nodes (take destroy-count nodes)]
+        (doseq [node old-nodes]
           (compute/destroy-node compute node))
-        {:old-nodes (vec (take destroy-count nodes))}))))
+        (update-in session [:old-nodes] concat old-nodes)))))
 
 (defn- node-count-difference
   "Find the difference between the required and actual node counts by group."
@@ -489,43 +490,110 @@
    (into {})))
 
 (defn- adjust-node-count
-  "Adjust the node by delta nodes."
-  [{:keys [group-name environment servers] :as group} delta session]
-  (let [session (environment/session-with-environment
-                  (assoc session :group group)
-                  (environment/merge-environments
-                   (:environment session) environment))]
-    (logging/infof "adjust-node-count %s %d" group-name delta)
-    (cond
-     (pos? delta) (create-nodes delta session)
-     (neg? delta) (destroy-nodes (- delta) session))))
+  "Adjust the node by delta nodes using function f."
+  [{:keys [groups] :as session}
+   {:keys [f pre post op-name]}
+   group-name
+   delta]
+  (let [group (first (filter #(= group-name (:group-name %)) groups))
+        session (->
+                 session
+                 (assoc :group group)
+                 (environment/session-with-environment
+                   (environment/merge-environments
+                    (:environment session)
+                    (:environment group))))]
+    (logging/infof
+     "adjust-node-count %s %s %d" op-name (:group-name group) delta)
+    (->
+     session
+     (pre)
+     (f delta)
+     (post))))
+
+(defn reduce-adjust-nodes
+  "reduce the result of an adjust-node onto a session"
+  [session session-adjust]
+  (->
+   session
+   (update-in [:new-nodes] concat (:new-nodes session-adjust))
+   (update-in [:old-nodes] concat (:old-nodes session-adjust))))
 
 (defn serial-adjust-node-counts
   "Start or stop the specified number of nodes."
-  [delta-map session]
+  [session op delta-map]
   (logging/trace (str "serial-adjust-node-counts" delta-map))
-  (->>
-   (:groups session)
-   (map
-    (fn [group]
-      (adjust-node-count group ((:group-name group) delta-map 0) session)))
-   (reduce #(merge-with concat %1 %2))))
+  (reduce
+   (fn [session [group-name delta]]
+     (adjust-node-count session op group-name delta))
+   session
+   delta-map))
 
 (defn parallel-adjust-node-counts
   "Start or stop the specified number of nodes."
-  [delta-map session]
+  [session op delta-map]
   (logging/trace (str "parallel-adjust-node-counts" delta-map))
   (->>
-   (:groups session)
+   delta-map
    (map
-    (fn p-a-n-c-future [group]
-      (future
-        (adjust-node-count group ((:group-name group) delta-map 0) session))))
+    (fn p-a-n-c-future [[group-name delta]]
+      (future (adjust-node-count session op group-name delta))))
    futures/add
    doall ;; force generation of all futures
    (map
-    (fn p-a-n-c-deref [f] (futures/deref-with-logging f "Adjust node count")))
-   (reduce (fn p-a-n-c-r [m1 m2] (merge-with concat m1 m2)) {})))
+    (fn p-a-n-c-deref [f]
+      (futures/deref-with-logging f "Adjust node count")))
+   (reduce reduce-adjust-nodes session)))
+
+(defn group-count-delta-for-converge
+  "Calculate the groups with nodes to start or stop based a difference
+   between actual and specified counts. Returns a map with :start and :stop
+   keys, and with values of a map of group-name to count."
+  [session]
+  (->>
+   (:groups session)
+   (node-count-difference)
+   (remove (comp zero? val))
+   (group-by #(if (pos? (second %)) :start :stop))
+   (map
+    (fn [[action group-counts]]
+      (if (= :stop action)
+        [action (into {} (map (fn [[g n]] (vector g (- n))) group-counts))]
+        [action (into {} group-counts)])))
+   (into {})))
+
+(def adjust-node-ops
+  {:start {:f create-nodes :op-name "create-nodes"
+           :pre identity :post identity}
+   :stop {:f destroy-nodes :op-name "destroy-nodes"
+          :pre identity :post identity}})
+
+(defn adjust-session-for-nodes
+  "Take :new-nodes and :old-nodes, and adjust :original-nodes and :all-nodes"
+  [session]
+  (->
+   session
+   (assoc :original-nodes (:all-nodes session))
+   (update-in [:all-nodes]
+              #(vec (->>
+                     %
+                     (concat (:new-nodes session))
+                     (remove
+                      (fn [node] (some
+                                  (fn [n] (identical? n node))
+                                  (:old-nodes session)))))))))
+
+(defn- adjust-node-counts
+  "Adjust the nodes counts, given a compute facility and a map of ops and number
+   of instances. Returns a session object with :original-nodes, :all-nodes
+   :new-nodes and :old-nodes keys."
+  [session converge-fn op-delta-map adjust-node-ops]
+  (adjust-session-for-nodes
+   (reduce
+    (fn [session [op group-counts]]
+      (converge-fn session (adjust-node-ops op) group-counts))
+    session
+    op-delta-map)))
 
 (defn- converge-node-counts
   "Converge the nodes counts, given a compute facility and a reference number of
@@ -533,22 +601,11 @@
    :new-nodes and :old-nodes keys."
   [session]
   (logging/info "converging nodes")
-  (let [delta-nodes ((environment/get-for session [:algorithms :converge-fn])
-                     (node-count-difference (:groups session))
-                     session)]
-    (->
-     session
-     (assoc :original-nodes (:all-nodes session))
-     (update-in [:all-nodes]
-                #(vec (->>
-                       %
-                       (concat (:new-nodes delta-nodes))
-                       (remove
-                        (fn [node] (some
-                                    (fn [n] (identical? n node))
-                                    (:old-nodes delta-nodes)))))))
-     (assoc-in [:new-nodes] (vec (:new-nodes delta-nodes)))
-     (assoc-in [:old-nodes] (vec (:old-nodes delta-nodes))))))
+  (adjust-node-counts
+   session
+   (environment/get-for session [:algorithms :converge-fn])
+   (group-count-delta-for-converge session)
+   adjust-node-ops))
 
 ;;; middleware
 
