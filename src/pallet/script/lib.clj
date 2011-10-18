@@ -6,6 +6,16 @@
    [pallet.thread-expr :as thread-expr]
    [clojure.string :as string]))
 
+(defn- translate-options
+  [options translations]
+  (reduce
+   (fn [options [from to]]
+     (-> options
+         (assoc to (from options))
+         (dissoc from)))
+   options
+   translations))
+
 (script/defscript exit [value])
 (script/defimpl exit :default [value]
   (exit ~value))
@@ -371,17 +381,12 @@
   [username options]
   ("/usr/sbin/useradd"
    ~(-> options
-        (assoc :r (:system options))
-        (dissoc :system)
+        (translate-options {:system :r :group :g :password :p})
         (thread-expr/when->
          (:groups options)
          (update-in [:groups] (fn [groups]
                                 (if (and (seq? groups) (not (string? groups)))
                                   (string/join "," groups)))))
-        (thread-expr/when->
-         (:group options)
-         (assoc :g (:group options))
-         (dissoc :group))
         stevedore/map-to-arg-string)
    ~username))
 
@@ -392,17 +397,12 @@
   [username options]
   ("/usr/sbin/usermod"
    ~(-> options
-        (assoc :r (:system options))
-        (dissoc :system)
+        (translate-options {:system :r :group :g :password :p})
         (thread-expr/when->
          (:groups options)
          (update-in [:groups] (fn [groups]
                                 (if (and (seq? groups) (not (string? groups)))
                                   (string/join "," groups)))))
-        (thread-expr/when->
-         (:group options)
-         (assoc :g (:group options))
-         (dissoc :group))
         stevedore/map-to-arg-string)
    ~username))
 

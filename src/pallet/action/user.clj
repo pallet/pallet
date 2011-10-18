@@ -35,10 +35,11 @@
       (stevedore/script
        (if (~lib/user-exists? ~username)
          (~lib/modify-user
-          ~username ~(select-keys opts [:home :shell :comment :group :groups]))
+          ~username ~(select-keys
+                      opts [:home :shell :comment :group :groups :password]))
          (~lib/create-user
           ~username ~(select-keys opts [:base-dir :home :system :comment
-                                        :create-home :pasword :shell
+                                        :create-home :password :shell
                                         :group :groups]))))
       :lock
       (stevedore/script
