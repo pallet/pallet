@@ -3,6 +3,7 @@
   (:require
    [org.jclouds.blobstore :as jclouds-blobstore]
    [org.jclouds.blobstore2 :as jclouds-blobstore2]
+   pallet.blobstore
    [pallet.blobstore.implementation :as implementation]
    [pallet.compute.jvm :as jvm]))
 
@@ -20,7 +21,6 @@
                   extensions (default-jclouds-extensions)}}]
   (apply jclouds-blobstore/blobstore
          provider identity credential extensions))
-
 
 (extend-type org.jclouds.blobstore.BlobStore
   pallet.blobstore/Blobstore
