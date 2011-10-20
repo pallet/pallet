@@ -13,12 +13,6 @@ version=$2
 echo ""
 echo "Start release of $version, previous version is $previous_version"
 echo ""
-echo ""
-
-git flow release start $version || exit 1
-
-echo ""
-echo ""
 echo "Changes since $previous_version"
 git log --pretty=changelog  pallet-$previous_version.. | tee git.log
 echo ""

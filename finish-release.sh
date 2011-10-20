@@ -27,7 +27,6 @@ echo -n "commiting release notes.  enter to continue:" && read x
 && mvn release:clean \
 && mvn release:prepare \
 && mvn release:perform \
-&& git flow release finish -n $version \
 && mvn nexus:staging-close \
 && mvn nexus:staging-promote
 
