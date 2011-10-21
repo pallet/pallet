@@ -422,6 +422,11 @@
   (assoc (first actions)
     :f (fn [session] (script-join (map #((:f %) session) actions)))))
 
+(defmethod combine-actions :nested-scope
+  [actions]
+  (assoc (first actions)
+    :f (fn [session] (script-join (map #((:f %) session) actions)))))
+
 (defmethod combine-actions :transfer/to-local
   [actions]
   (assoc (first actions)

@@ -157,9 +157,8 @@
    `session` should be a map (but was historically a vector of keyword
    pairs).  See `build-session`."
   [session & body]
-  `(do
-     (let [session# ~session]
-       (when-not (map? session#)
-         (logging/warn
-          "Use of vector for session in build-actions is deprecated."))
-       (build-actions* (phase/phase-fn ~@body) session#))))
+  `(let [session# ~session]
+    (when-not (map? session#)
+      (logging/warn
+       "Use of vector for session in build-actions is deprecated."))
+    (build-actions* (phase/phase-fn ~@body) session#)))
