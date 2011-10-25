@@ -102,7 +102,7 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>pallet-common</artifactId>
-      <version>0.2.1</version>
+      <version>0.2.2-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
@@ -179,7 +179,8 @@
             <groupId>org.cloudhoist.plugin</groupId>
             <artifactId>zi</artifactId>
             <configuration>
-              <initScript>(System/setProperty "ssh.username" "testuser")
+              <initScript>
+                (System/setProperty "ssh.username" "testuser")
               </initScript>
             </configuration>
           </plugin>
