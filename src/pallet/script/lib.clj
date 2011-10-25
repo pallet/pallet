@@ -362,14 +362,18 @@
 (script/defimpl user-exists? :default [username]
   (getent passwd ~username))
 
+(defn group-seq->string
+  [groups]
+  (if (not (string? groups))
+    (string/join "," groups)
+    groups))
+
 (script/defimpl create-user :default [username options]
   ("/usr/sbin/useradd"
    ~(-> options
         (thread-expr/when->
          (:groups options)
-         (update-in [:groups] (fn [groups]
-                                (if (and (seq? groups) (not (string? groups)))
-                                  (string/join "," groups)))))
+         (update-in [:groups] group-seq->string))
         (thread-expr/when->
          (:group options)
          (assoc :g (:group options))
@@ -381,28 +385,31 @@
   [username options]
   ("/usr/sbin/useradd"
    ~(-> options
-        (translate-options {:system :r :group :g :password :p})
         (thread-expr/when->
          (:groups options)
-         (update-in [:groups] (fn [groups]
-                                (if (and (seq? groups) (not (string? groups)))
-                                  (string/join "," groups)))))
+         (update-in [:groups] group-seq->string))
+        (translate-options {:system :r :group :g :password :p :groups :G})
         stevedore/map-to-arg-string)
    ~username))
 
 (script/defimpl modify-user :default [username options]
-  ("/usr/sbin/usermod" ~(stevedore/map-to-arg-string options) ~username))
+  ("/usr/sbin/usermod"
+   ~(stevedore/map-to-arg-string
+     (-> options
+         (thread-expr/when->
+          (:groups options)
+          (update-in [:groups] group-seq->string))))
+   ~username))
 
 (script/defimpl modify-user [#{:rhel :centos :amzn-linux :fedora}]
   [username options]
   ("/usr/sbin/usermod"
    ~(-> options
-        (translate-options {:system :r :group :g :password :p})
         (thread-expr/when->
          (:groups options)
-         (update-in [:groups] (fn [groups]
-                                (if (and (seq? groups) (not (string? groups)))
-                                  (string/join "," groups)))))
+         (update-in [:groups] group-seq->string))
+        (translate-options
+         {:system :r :group :g :password :p :append :a :groups :G})
         stevedore/map-to-arg-string)
    ~username))
 

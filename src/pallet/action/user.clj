@@ -19,7 +19,7 @@
 (defn user*
   "Require a user"
   [session username & {:keys [action shell base-dir home system create-home
-                              password shell comment groups remove force]
+                              password shell comment groups remove force append]
                        :or {action :manage}
                        :as options}]
   (let [opts (merge options {:shell (get shell-names shell shell)})]
@@ -36,7 +36,8 @@
        (if (~lib/user-exists? ~username)
          (~lib/modify-user
           ~username ~(select-keys
-                      opts [:home :shell :comment :group :groups :password]))
+                      opts [:home :shell :comment :group :groups :password
+                            :append]))
          (~lib/create-user
           ~username ~(select-keys opts [:base-dir :home :system :comment
                                         :create-home :password :shell
