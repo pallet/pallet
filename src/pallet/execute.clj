@@ -5,6 +5,7 @@
    [pallet.common.shell :as shell]
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
+   [pallet.context :as context]
    [pallet.script :as script]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -135,14 +136,15 @@
   (if (zero? (:exit result))
     result
     (assoc result
-      :error {:message (format
+      :error {:type :pallet-script-excution-error
+              :context (context/contexts)
+              :message (format
                         "Error executing script %s\n :cmd %s :out %s\n :err %s"
                         msg cmd (:out result) (:err result))
-              :type :pallet-script-excution-error
+              :server "localhost"
               :script-exit (:exit result)
               :script-out  (:out result)
-              :script-err (:err result)
-              :server "localhost"})))
+              :script-err (:err result)})))
 
 (defmacro local-checked-script
   "Run a script on the local machine, setting up stevedore to produce the
@@ -273,13 +275,14 @@
         (do
           (logging/errorf "Exit status  : %s\n%s" exit stdout)
           {:out stdout :exit exit
-           :error {:message (format
+           :error {:type :pallet-script-excution-error
+                   :context (context/contexts)
+                   :message (format
                              "Error executing script :\n :cmd %s\n :out %s\n"
                              command stdout)
-                   :type :pallet-script-excution-error
+                   :server server
                    :script-exit exit
-                   :script-out stdout
-                   :server server}})))))
+                   :script-out stdout}})))))
 
 (defn remote-sudo
   "Run a sudo command on a server."
@@ -545,7 +548,7 @@
   "Execute cmds for the session. Also accepts an IP or hostname as address."
   [handler]
   (fn execute-with-ssh-fn [{:keys [target-node user] :as session}]
-    (logging/infof
+    (context/infof
      "execute-with-ssh on %s %s"
      (compute/group-name target-node)
      (pr-str (compute/node-address target-node)))

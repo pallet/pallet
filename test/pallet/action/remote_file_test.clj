@@ -147,15 +147,15 @@
 
     (is (=
          (str
-          "{:error {:message \"Unexpected exception: "
+          "{:error {:type :pallet/action-execution-error, "
+          ":context nil, "
+          ":message \"Unexpected exception: java.lang.RuntimeException: "
+          "java.lang.RuntimeException: java.lang.IllegalArgumentException: "
+          "remote-file file1 specified without content.\", :cause "
+          "#<RuntimeException java.lang.RuntimeException: "
           "java.lang.RuntimeException: java.lang.RuntimeException: "
           "java.lang.IllegalArgumentException: remote-file file1 specified "
-          "without content.\", :type :pallet/action-execution-error"
-          ", :cause #<RuntimeException java.lang.RuntimeException: "
-          "java.lang.RuntimeException: java.lang.RuntimeException: "
-          "java.lang.IllegalArgumentException: "
-          "remote-file file1 specified without content.>"
-          "}}")
+          "without content.>}}")
            (first (build-actions/build-actions
                    {} (remote-file "file1" :owner "user1")))))
 

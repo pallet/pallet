@@ -14,12 +14,6 @@
       (::key-stack context)))
   ([] (kw-context-entries context/*current-context*)))
 
-(defn phase-contexts
-  "Returns all phase contexts"
-  []
-  (when (bound? #'pallet.common.context/*current-context*)
-    (context/scope-formatted-context-entries :pallet/phase)))
-
 (defn possibly-formatted-msg
   [msg]
   (if (vector? msg)
@@ -35,6 +29,19 @@
       :on-enter (context/context-history {})
       :format :msg}
      ~@body))
+
+(defn contexts
+  "Returns all pallet contexts"
+  []
+  (when (bound? #'pallet.common.context/*current-context*)
+    (context/scope-formatted-context-entries :pallet/pallet)))
+
+;;; Phase contexts
+(defn phase-contexts
+  "Returns all phase contexts"
+  []
+  (when (bound? #'pallet.common.context/*current-context*)
+    (context/scope-formatted-context-entries :pallet/phase)))
 
 (defmacro with-phase-context
   "Specifies a context inside a phase function"
@@ -53,6 +60,19 @@
      (with-phase-context ~context-kw ~context-msg
        (-> session# ~@body))))
 
+;;; exceptions
+(defmacro invalid-argument
+  [message problem-message value]
+  `(let [m# ~message
+         p# ~problem-message
+         v# ~value]
+     (context/throw-map
+      (str m#  ": " v# " " p#)
+      {:type :pallet/invalid-argument
+       :argument v#
+       :problem p#})))
+
+;;; logging
 (defmacro infof
   [fmt & fmtargs]
   `(logging/infof

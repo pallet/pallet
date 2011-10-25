@@ -450,7 +450,11 @@
 (defmethod combine-actions :nested-scope
   [actions]
   (assoc (first actions)
-    :f (fn [session] (script-join (map #((:f %) session) actions)))))
+    :f (fn [session] (script-join
+                      (map
+                       #(binding [*defining-context* (:context %)]
+                          ((:f %) session))
+                       actions)))))
 
 (defmethod combine-actions :transfer/to-local
   [actions]
@@ -554,8 +558,9 @@
   (try
     (executor session f action-type location)
     (catch Exception e
-      [{:error {:message (format "Unexpected exception: %s" (.getMessage e))
-                :type :pallet/action-execution-error
+      [{:error {:type :pallet/action-execution-error
+                :context (context/contexts)
+                :message (format "Unexpected exception: %s" (.getMessage e))
                 :cause e}}
        session])))
 
