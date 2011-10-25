@@ -93,16 +93,23 @@
                                     "bash" (.getPath tmp) :async true)
             out-reader (read-buffer out)
             err-reader (read-buffer err)
-            period @output-poll-period]
+            period @output-poll-period
+            read-out #(let [out ((:reader out-reader))]
+                        (when (not (string/blank? out))
+                          (logging/spy out))
+                        out)
+            read-err #(let [err ((:reader err-reader))]
+                        (when (not (string/blank? err))
+                          (logging/spy err))
+                        err)]
         (with-open [out out err err]
           (while (not (try (.exitValue proc)
                            (catch IllegalThreadStateException _)))
             (Thread/sleep period)
-            (logging/spy ((:reader out-reader)))
-            (logging/spy ((:reader err-reader))))
-
-          (while (logging/spy ((:reader out-reader))))
-          (while (logging/spy ((:reader err-reader))))
+            (read-out)
+            (read-err))
+          (while (read-out))
+          (while (read-err))
           (let [exit (.exitValue proc)]
             (when-not (zero? exit)
               (logging/errorf
