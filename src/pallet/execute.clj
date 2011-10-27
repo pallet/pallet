@@ -554,29 +554,34 @@
 (defn execute-with-ssh
   "Execute cmds for the session. Also accepts an IP or hostname as address."
   [handler]
-  (fn execute-with-ssh-fn [{:keys [target-node user] :as session}]
-    (context/infof
-     "execute-with-ssh on %s %s"
-     (compute/group-name target-node)
-     (pr-str (compute/node-address target-node)))
-    (ssh/with-ssh-agent [(default-agent)]
-      (try
-        (->
-         session
-         (assoc :ssh {:port (compute/ssh-port target-node)
-                      :server (compute/node-address target-node)
-                      :user user})
-         (assoc-in [:executor :script/bash :target] ssh-bash-on-target)
-         (assoc-in [:executor :transfer/to-local :origin] ssh-to-local)
-         (assoc-in [:executor :transfer/from-local :origin] ssh-from-local)
-         handler
-         close-ssh-connection)
-        (catch Exception e
-          (logging/error
-           e
-           "Unexpected exception in execute-with-ssh: probable connection leak")
-          (close-ssh-connection session)
-          (throw e))))))
+  (fn execute-with-ssh-fn [{:keys [target-type user] :as session}]
+    (if (= :node target-type)
+      (let [target-node (-> session :server :node)]
+        (context/infof
+         "execute-with-ssh on %s %s"
+         (compute/group-name target-node)
+         (pr-str (compute/node-address target-node)))
+        (ssh/with-ssh-agent [(default-agent)]
+          (try
+            (->
+             session
+             (assoc :ssh {:port (compute/ssh-port target-node)
+                          :server (compute/node-address target-node)
+                          :user user})
+             (assoc-in [:executor :script/bash :target] ssh-bash-on-target)
+             (assoc-in [:executor :transfer/to-local :origin] ssh-to-local)
+             (assoc-in [:executor :transfer/from-local :origin] ssh-from-local)
+             handler
+             close-ssh-connection)
+            (catch Exception e
+              (logging/error
+               e
+               "Unexpected exception in execute-with-ssh: probable connection leak")
+              (close-ssh-connection session)
+              (throw e)))))
+      (do
+        (logging/infof "execute-with-ssh no-ssh for target-type %s" target-type)
+        (handler session)))))
 
 (defn execute-target-on-localhost
   "Execute cmds for target on the local machine"

@@ -83,6 +83,8 @@
                      :server {:node-id :localhost
                               :node node
                               :image {:os-family (compute/os-family node)}}
+                     :target-id :localhost
+                     :target-type :node
                      :action-plan
                      {:configure
                       {:localhost (action-plan/add-action
@@ -113,6 +115,8 @@
                      :server {:node-id :localhost
                               :node node
                               :image {:os-family (compute/os-family node)}}
+                     :target-type :node
+                     :target-id :localhost
                      :action-plan
                      {:configure
                       {:localhost (action-plan/add-action

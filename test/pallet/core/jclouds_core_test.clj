@@ -38,41 +38,152 @@
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
 
-(deftest with-admin-user-test
-  (let [x (rand)]
-    (with-admin-user [x]
-      (is (= x (:username pallet.utils/*admin-user*))))))
+(defn seen-fn
+  "Generate a local function, which uses an atom to record when it is called."
+  [name]
+  (let [seen (atom nil)
+        seen? (fn [] @seen)]
+    [(action/clj-action
+       [session]
+       (clojure.tools.logging/info (format "Seenfn %s" name))
+       (is (not @seen))
+       (reset! seen true)
+       session)
+      seen?]))
 
 (defn running-nodes [nodes]
   (filter (complement compute/terminated?) nodes))
 
-;; this test doesn't work too well if the test are run in more than
-;; one thread...
-#_
-(deftest admin-user-test
-  (let [username "userfred"
-        old pallet.utils/*admin-user*]
-    (admin-user username)
-    (is (map? pallet.utils/*admin-user*))
-    (is (= username (:username pallet.utils/*admin-user*)))
-    (is (= (pallet.utils/default-public-key-path)
-           (:public-key-path pallet.utils/*admin-user*)))
-    (is (= (pallet.utils/default-private-key-path)
-           (:private-key-path pallet.utils/*admin-user*)))
-    (is (nil? (:password pallet.utils/*admin-user*)))
+;; ;; this test doesn't work too well if the test are run in more than
+;; ;; one thread...
+;; #_
+;; (deftest admin-user-test
+;;   (let [username "userfred"
+;;         old pallet.utils/*admin-user*]
+;;     (admin-user username)
+;;     (is (map? pallet.utils/*admin-user*))
+;;     (is (= username (:username pallet.utils/*admin-user*)))
+;;     (is (= (pallet.utils/default-public-key-path)
+;;            (:public-key-path pallet.utils/*admin-user*)))
+;;     (is (= (pallet.utils/default-private-key-path)
+;;            (:private-key-path pallet.utils/*admin-user*)))
+;;     (is (nil? (:password pallet.utils/*admin-user*)))
 
-    (admin-user username :password "pw" :public-key-path "pub"
-                :private-key-path "pri")
-    (is (map? pallet.utils/*admin-user*))
-    (is (= username (:username pallet.utils/*admin-user*)))
-    (is (= "pub" (:public-key-path pallet.utils/*admin-user*)))
-    (is (= "pri" (:private-key-path pallet.utils/*admin-user*)))
-    (is (= "pw" (:password pallet.utils/*admin-user*)))
+;;     (admin-user username :password "pw" :public-key-path "pub"
+;;                 :private-key-path "pri")
+;;     (is (map? pallet.utils/*admin-user*))
+;;     (is (= username (:username pallet.utils/*admin-user*)))
+;;     (is (= "pub" (:public-key-path pallet.utils/*admin-user*)))
+;;     (is (= "pri" (:private-key-path pallet.utils/*admin-user*)))
+;;     (is (= "pw" (:password pallet.utils/*admin-user*)))
 
-    (admin-user old)
-    (is (= old pallet.utils/*admin-user*))))
+;;     (admin-user old)
+;;     (is (= old pallet.utils/*admin-user*))))
 
-(deftest converge-node-counts-test
+(defn serial-environment-no-ssh
+  []
+  {:compute (jclouds-test-utils/compute)
+   :middleware [core/translate-action-plan raise-on-error]
+   :executor core/default-executors
+   :algorithms
+   (assoc core/default-algorithms
+     :converge-fn #'pallet.core/serial-adjust-node-counts
+     :lift-fn #'pallet.core/sequential-lift)})
+
+(deftest lift-destroy-server-test
+  (logging/info "lift-destroy-server-test")
+  (jclouds-test-utils/purge-compute-service)
+  (let [service (jclouds-test-utils/compute)
+        a-node (org.jclouds.compute/create-node "a" (.compute service))
+        nodes (compute/nodes service)
+        node (first nodes)
+        [action seen?] (seen-fn "lift-destroy-server-test")
+        servers [{:node node
+                  :node-id (keyword (node/id node))
+                  :phases {:destroy-server action}}]]
+    (is (= 1 (count nodes)))
+    (let [session (#'core/lift-destroy-server
+                   {:groups [(core/group-spec
+                              :a
+                              :servers servers
+                              :servers-to-remove servers)]
+                    :environment (serial-environment-no-ssh)})]
+      (is (seen?))
+      (logging/info "lift-destroy-server-test end"))))
+
+(deftest destroy-servers-test
+  (logging/info "destroy-servers-test")
+  (jclouds-test-utils/purge-compute-service)
+  (let [service (jclouds-test-utils/compute)
+        a-node (org.jclouds.compute/create-node "a" (.compute service))
+        nodes (compute/nodes service)
+        node (first nodes)
+        servers [{:node node :node-id (keyword (node/id node))}]]
+    (is (= 1 (count nodes)))
+    (let [session (#'core/destroy-servers
+                   {:groups [(core/group-spec
+                              :a
+                              :servers servers
+                              :servers-to-remove servers
+                              :remove-group true)]
+                    :environment (serial-environment-no-ssh)})]
+      (is (= 0 (count (running-nodes (compute/nodes service)))))
+      (is (= 1 (count (:old-nodes session))))
+      (logging/info "destroy-servers-test end"))))
+
+(deftest lift-destroy-group-test
+  (logging/info "lift-destroy-group-test")
+  (jclouds-test-utils/purge-compute-service)
+  (let [service (jclouds-test-utils/compute)
+        a-node (org.jclouds.compute/create-node "a" (.compute service))
+        nodes (compute/nodes service)
+        node (first nodes)
+        [action seen?] (seen-fn "lift-destroy-group-test")
+        servers [{:node node
+                  :node-id (keyword (node/id node))}]]
+    (is (= 1 (count nodes)))
+    (let [session {:groups [(core/group-spec
+                             :a
+                             :servers servers
+                             :servers-to-remove servers
+                             :phases {:destroy-group action}
+                             :delta-count -1)]
+                   :environment (serial-environment-no-ssh)}
+          session (-> session
+                      core/destroy-servers
+                      core/lift-destroy-group)]
+      (is (seen?))
+      (logging/info "lift-destroy-group-test end"))))
+
+(deftest lift-create-group-test
+  (logging/info "lift-create-group-test")
+  (jclouds-test-utils/purge-compute-service)
+  (let [service (jclouds-test-utils/compute)
+        [action seen?] (seen-fn "lift-create-group-test")]
+    (let [session {:groups [(core/group-spec
+                             :a
+                             :delta-count 1
+                             :phases {:create-group action})]
+                   :environment (serial-environment-no-ssh)}
+          session (-> session
+                      core/lift-create-group)]
+      (is (seen?))
+      (logging/info "lift-create-group-test end"))))
+
+(deftest create-servers-test
+  (logging/info "create-servers-test")
+  (jclouds-test-utils/purge-compute-service)
+  (let [service (jclouds-test-utils/compute)]
+    (is (= 0 (count (running-nodes (compute/nodes service)))))
+    (let [session (#'core/create-servers
+                   {:groups [(core/group-spec :a :delta-count 1)]
+                    :environment (serial-environment-no-ssh)})]
+      (is (= 1 (count (running-nodes (compute/nodes service)))))
+      (is (= 1 (count (:new-nodes session))))
+      (logging/info "create-servers-test end"))))
+
+(deftest adjust-server-counts-test
+  (logging/info "adjust-server-counts-test")
   (let [build-template org.jclouds.compute/build-template
         service (jclouds-test-utils/compute)
         a-node (jclouds/make-node "a"
@@ -87,9 +198,10 @@
                     [compute & options]
                     (mock/times 2 (apply build-template compute options)))]
                   (let [nodes (->
-                               (#'core/converge-node-counts
+                               (#'core/adjust-server-counts
                                 {:groups [(test-utils/group
-                                           :a :count 1 :servers [])]
+                                           :a :count 1 :delta-count 1
+                                           :servers [])]
                                  :environment
                                  {:compute service
                                   :algorithms
@@ -101,6 +213,7 @@
                     (is (= 1 (count nodes)))
                     (is (= service (node/compute-service (first nodes))))
                     (is (= (compute/id a-node) (compute/id (first nodes)))))))
+  (logging/info "converge-node-counts-test 2")
   (testing "With a good and a bad node"
     (jclouds-test-utils/purge-compute-service)
     (let [build-template org.jclouds.compute/build-template
@@ -127,9 +240,10 @@
                       [compute & options]
                       (mock/times 2 (apply build-template compute options)))]
                     (let [nodes (->
-                                 (#'core/converge-node-counts
+                                 (#'core/adjust-server-counts
                                   {:groups [(test-utils/group
-                                             :a :count 3 :servers [])]
+                                             :a :count 3 :delta-count 3
+                                             :servers [])]
                                    :environment
                                    {:compute service
                                     :algorithms
@@ -138,7 +252,7 @@
                                       #'pallet.core/serial-adjust-node-counts
                                       :lift-fn #'pallet.core/sequential-lift)}})
                                  :all-nodes)]
-                      (is (= 1 (count nodes)))
+                      (is (= 1 (count (running-nodes nodes))))
                       (is (= service (node/compute-service (first nodes))))
                       (is (= (compute/id a-node)
                              (compute/id (first nodes)))))))))
@@ -159,8 +273,8 @@
                     [compute & options]
                     (mock/times 2 (apply build-template compute options)))]
                   (let [nodes (->
-                               (#'core/converge-node-counts
-                                {:groups [(test-utils/group :a :count 1)]
+                               (#'core/adjust-server-counts
+                                {:groups [(test-utils/group :a :delta-count 1)]
                                  :environment
                                  {:compute service
                                   :algorithms
@@ -208,21 +322,6 @@
 (def test-component
   (action/bash-action [session arg] (str arg)))
 
-(defn seen-fn
-  "Generate a local function, which uses an atom to record when it is called."
-  [name]
-  (let [seen (atom nil)
-        seen? (fn [] @seen)]
-    [(action/clj-action
-       [session]
-       (clojure.tools.logging/info (format "Seenfn %s" name))
-       (is (not @seen))
-       (reset! seen true)
-       (is (:target-node session))
-       (is (:node-type session))
-       session)
-      seen?]))
-
 (deftest lift-test
   (testing "jclouds"
     (let [local (group-spec "local" :image {:os-family :ubuntu})
@@ -242,8 +341,8 @@
 (deftest lift2-test
   (let [[localf seen?] (seen-fn "lift2-test")
         [localfy seeny?] (seen-fn "lift2-test y")
-        x1 (group-spec "x1" :phases {:configure (phase/phase-fn localf)})
-        y1 (group-spec "y1" :phases {:configure (phase/phase-fn localfy)})]
+        x1 (group-spec :x1 :phases {:configure localf})
+        y1 (group-spec :y1 :phases {:configure localfy})]
     (is (map?
          (lift {x1 (jclouds/make-unmanaged-node "x" "localhost")
                 y1 (jclouds/make-unmanaged-node "y" "localhost")}
@@ -261,10 +360,12 @@
         nb (jclouds/make-node "b")
         nc (jclouds/make-node "c" :state NodeState/TERMINATED)]
     (mock/expects [(sequential-apply-phase
-                    [session group-nodes]
+                    [session]
                     (do
                       (is (= #{na nb} (set (:all-nodes session))))
-                      (is (= #{na nb} (set (map :node group-nodes))))
+                      (is (= #{na nb} (set
+                                       (map
+                                        :node (-> session :group :servers)))))
                       (is (= #{na nb}
                              (set (map
                                    :node
@@ -281,7 +382,7 @@
                      {:converge-fn #'pallet.core/serial-adjust-node-counts
                       :lift-fn sequential-lift}}}))
     (mock/expects [(sequential-apply-phase
-                    [session group-nodes]
+                    [session]
                     (do
                       (is (= #{na nb} (set (:all-nodes session))))
                       (is (= na
@@ -333,27 +434,29 @@
   (let [a (jclouds/make-node "a")
         session (#'core/create-nodes
                  {:compute (jclouds-test-utils/compute)
-                  :group (group-spec :a :servers [{:node a}])
-                  :environment {:algorithms core/default-algorithms}}
-                 1)]
+                  :group (group-spec :a :servers [{:node a}] :delta-count 1)
+                  :target-id :a
+                  :environment {:algorithms core/default-algorithms}})]
     (is (seq (:new-nodes session)))
     (is (= 1 (count (:new-nodes session))))))
 
 (deftest destroy-nodes-test
   (testing "remove all"
     (let [a (jclouds/make-node "a")
-          session (#'core/destroy-nodes
+          session (#'core/remove-nodes
                    {:compute (jclouds-test-utils/compute)
-                    :group (test-utils/group :a :servers [{:node a}])}
-                   1)]
+                    :group (core/group-spec
+                            :a :servers-to-remove [{:node a}])})]
       (is (= [a] (:old-nodes session)))))
   (testing "remove some"
     (let [a (jclouds/make-node "a")
           b (jclouds/make-node "a")
-          session (#'core/destroy-nodes
+          session (#'core/remove-nodes
                    {:compute (jclouds-test-utils/compute)
-                    :group (test-utils/group :a :servers [{:node a} {:node b}])}
-                   1)]
+                    :group (core/group-spec
+                            :a
+                            :servers [{:node a} {:node b}]
+                            :servers-to-remove [{:node a}])})]
       (is (seq (:old-nodes session)))
       (is (= 1 (count (:old-nodes session))))
       (is (= "a" (compute/tag (first (:old-nodes session))))))))
@@ -366,7 +469,7 @@
         nb (jclouds/make-node "b")
         nb2 (jclouds/make-node "b" :id "b2" :state NodeState/TERMINATED)]
     (mock/expects [(sequential-apply-phase
-                    [session nodes]
+                    [session]
                     (do
                       (is (=
                            #{"a" "b"}
@@ -387,12 +490,14 @@
 (deftest converge-with-environment-test
   (let [a (group-spec :a)]
     (mock/expects [(pallet.core/create-nodes
-                    [count session]
+                    [session]
                     (do
                       (let [group (:group session)]
+                        (is (= 1 (:delta-count group)))
                         (is (= (:group-name group) :a))
                         (is (= (-> group :image :os-family) :centos)))
-                      [(jclouds/make-node "a")]))]
+                      (update-in session [:new-nodes]
+                                 conj (jclouds/make-node "a"))))]
                   (converge*
                    {:node-set [(assoc a :count 1)]
                     :phase-list [:configure]
@@ -408,7 +513,6 @@
 
 (deftest converge-test
   (jclouds-test-utils/purge-compute-service)
-
   (let [hi (action/bash-action [session] "Hi")
         id "c-t"
         node (group-spec "c-t" :phases {:configure hi})
