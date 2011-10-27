@@ -427,7 +427,7 @@
          (assoc-in [:default-os-family] true)))))
 
   (run-nodes
-    [service group-spec node-count user init-script]
+    [service group-spec node-count user init-script options]
     (letfn [(process-failed-start-nodes
               [e]
               (let [bad-nodes (.getNodeErrors e)]
