@@ -70,48 +70,48 @@
   (is (= {{:group-name :pa} 1}
          (#'core/node-map-with-prefix "p" {(test-utils/group :a) 1}))))
 
-(deftest node-count-difference-test
-  (is (= {:a 1 :b -1}
-         (#'core/node-count-difference
-          [(test-utils/group :a :count 2 :servers [:a-server])
-           (test-utils/group :b :count 0 :servers [:a-server])])))
-  (is (= {:a 1 :b 1}
-         (#'core/node-count-difference
-          [(test-utils/group :a :count 1) (test-utils/group :b :count 1)]))))
+;; (deftest node-count-difference-test
+;;   (is (= {:a 1 :b -1}
+;;          (#'core/node-count-difference
+;;           [(test-utils/group :a :count 2 :servers [:a-server])
+;;            (test-utils/group :b :count 0 :servers [:a-server])])))
+;;   (is (= {:a 1 :b 1}
+;;          (#'core/node-count-difference
+;;           [(test-utils/group :a :count 1) (test-utils/group :b :count 1)]))))
 
-(deftest converge-node-counts-test
-  (let [a (group-spec "a" :node-spec ubuntu-node)
-        a-node (test-utils/make-node "a" :running true)
-        compute (compute/compute-service "node-list" :node-list [a-node])
-        session {:groups [{:group-name :a :count 1 :servers [{:node a-node}]}]
-                 :all-nodes [a-node]
-                 :environment
-                 {:compute compute
-                  :algorithms {:lift-fn sequential-lift
-                               :converge-fn
-                               (var-get #'core/serial-adjust-node-counts)}}}
-        session (#'core/converge-node-counts session)]
-    (is (map? session))
-    (is (= [a-node] (:all-nodes session)))
-    (is (empty? (:old-nodes session)))
-    (is (empty? (:new-nodes session))))
-  (testing "removal of node"
-    (let [a (group-spec "a" :node-spec ubuntu-node)
-          a-node (test-utils/make-node "a" :running true)
-          compute (compute/compute-service "node-list" :node-list [a-node])
-          session {:groups [{:group-name :a :count 0 :servers [{:node a-node}]}]
-                   :all-nodes [a-node]
-                   :environment
-                   {:compute compute
-                    :algorithms {:lift-fn sequential-lift
-                                 :converge-fn
-                                 (var-get #'core/serial-adjust-node-counts)}}}
-          session (#'core/converge-node-counts session)]
-      (is (map? session))
-      (is (nil? (seq (:all-nodes session))))
-      (is (= [a-node] (:original-nodes session)))
-      (is (= [a-node] (:old-nodes session)))
-      (is (empty? (:new-nodes session))))))
+;; (deftest converge-node-counts-test
+;;   (let [a (group-spec "a" :node-spec ubuntu-node)
+;;         a-node (test-utils/make-node "a" :running true)
+;;         compute (compute/compute-service "node-list" :node-list [a-node])
+;;         session {:groups [{:group-name :a :count 1 :servers [{:node a-node}]}]
+;;                  :all-nodes [a-node]
+;;                  :environment
+;;                  {:compute compute
+;;                   :algorithms {:lift-fn sequential-lift
+;;                                :converge-fn
+;;                                (var-get #'core/serial-adjust-node-counts)}}}
+;;         session (#'core/converge-node-counts session)]
+;;     (is (map? session))
+;;     (is (= [a-node] (:all-nodes session)))
+;;     (is (empty? (:old-nodes session)))
+;;     (is (empty? (:new-nodes session))))
+;;   (testing "removal of node"
+;;     (let [a (group-spec "a" :node-spec ubuntu-node)
+;;           a-node (test-utils/make-node "a" :running true)
+;;           compute (compute/compute-service "node-list" :node-list [a-node])
+;;           session {:groups [{:group-name :a :count 0 :servers [{:node a-node}]}]
+;;                    :all-nodes [a-node]
+;;                    :environment
+;;                    {:compute compute
+;;                     :algorithms {:lift-fn sequential-lift
+;;                                  :converge-fn
+;;                                  (var-get #'core/serial-adjust-node-counts)}}}
+;;           session (#'core/converge-node-counts session)]
+;;       (is (map? session))
+;;       (is (nil? (seq (:all-nodes session))))
+;;       (is (= [a-node] (:original-nodes session)))
+;;       (is (= [a-node] (:old-nodes session)))
+;;       (is (empty? (:new-nodes session))))))
 
 (deftest group-spec?-test
   (is (#'core/group-spec? (core/group-spec "a")))
@@ -346,7 +346,8 @@
                             :packager :yum
                             :image {}
                             :node (test-utils/make-node "group-name" :id "id")
-                            :phases (:phases node-with-phases)}}]
+                            :phases (:phases node-with-phases)}
+                   :target-id :id :target-type :node}]
       (is (= ":a\n"
              (first
               (build-actions/produce-phases
@@ -572,8 +573,8 @@
                              (node-list/make-localhost-node
                               :group-name "y1" :name "y1" :id "y1"
                               :os-family :ubuntu)])
-        x1 (make-node "x1" {} :configure (phase/phase-fn localf))
-        y1 (make-node "y1" {} :configure (phase/phase-fn localfy))]
+        x1 (group-spec :x1 :phases {:configure localf})
+        y1 (group-spec :y1 :phases {:configure localfy})]
     (is (map?
          (lift [x1 y1]
                :user (assoc utils/*admin-user*
@@ -594,8 +595,8 @@
                              (node-list/make-localhost-node
                               :group-name "y1" :name "y1" :id "y1"
                               :os-family :ubuntu)])
-        x1 (group-spec "x1" :phases {:configure (phase/phase-fn localf)})
-        y1 (group-spec "y1" :phases {:configure (phase/phase-fn localfy)})]
+        x1 (group-spec :x1 :phases {:configure localf})
+        y1 (group-spec :y1 :phases {:configure localfy})]
     (is (map?
          (lift [x1 y1]
                :user (assoc utils/*admin-user*
@@ -614,11 +615,13 @@
         nb (test-utils/make-node "b")
         nc (test-utils/make-node "c" :running false)]
     (mock/expects [(sequential-apply-phase
-                    [session servers]
+                    [session]
                     (do
                       (is (= #{na nb} (set (:selected-nodes session))))
                       (is (= #{na nb} (set (:all-nodes session))))
-                      (is (= #{na nb} (set (map :node servers))))
+                      (is (= #{na nb} (set
+                                       (map
+                                        :node (-> session :group :servers)))))
                       (is (= #{na nb}
                              (set (map
                                    :node
@@ -633,7 +636,7 @@
                      :middleware *middleware*
                      :algorithms {:lift-fn sequential-lift}}}))
     (mock/expects [(sequential-apply-phase
-                    [session nodes]
+                    [session]
                     (do
                       (is (= #{na nb} (set (:selected-nodes session))))
                       (is (= na
@@ -661,7 +664,7 @@
         compute (compute/compute-service "node-list" :node-list [na nb nc])]
     (mock/expects [(compute/nodes [_] [na nb nc])
                    (sequential-apply-phase
-                    [session nodes]
+                    [session]
                     (do
                       (is (= #{na nb nc} (set (:all-nodes session))))
                       (let [m (into
@@ -906,18 +909,3 @@
           (is (seen-post?) "checking-set should be called")
           (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
                  (parameter/get-for-service session [:slaves]))))))))
-
-(deftest group-count-delta-for-converge-test
-  (is (= {:start {:g1 1}}
-         (core/group-count-delta-for-converge
-          {:groups [{:group-name :g1 :count 1}]}))
-      "should start one node")
-  (is (= {:stop {:g1 1}}
-         (core/group-count-delta-for-converge
-          {:groups [{:group-name :g1 :count 0 :servers [:opaque]}]}))
-      "should stop one node")
-  (is (= {:start {:g1 1} :stop {:g2 2}}
-         (core/group-count-delta-for-converge
-          {:groups [{:group-name :g1 :count 1}
-                    {:group-name :g2 :count 0 :servers [:opaque1 :opaque2]}]}))
-      "should start one g1 node, and stop two :g2 nodes"))

@@ -20,6 +20,17 @@
   [phase]
   [(pre-phase-name phase) phase (post-phase-name phase)])
 
+(defn subphase-for
+  "Return the phase this is a subphase for, or nil if not a subphase"
+  [phase]
+  (when (= (namespace phase) "pallet.phase")
+    (let [n (name phase)
+          [_ pre] (re-matches #"pre-(.*)" n)
+          [_ post] (re-matches #"post-(.*)" n)
+          p (or pre post)]
+      (when p
+        (keyword p)))))
+
 (defmacro schedule-in-pre-phase
   "Specify that the body should be executed in the pre-phase."
   [session & body]

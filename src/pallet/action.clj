@@ -57,7 +57,7 @@
   [session action-fn metadata args execution action-type location]
   {:pre [session
          (keyword? (:phase session))
-         (keyword? (-> session :server :node-id))]}
+         (keyword? (:target-id session))]}
   (update-in
    session
    (action-plan/target-path session)

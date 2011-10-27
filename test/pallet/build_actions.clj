@@ -132,7 +132,13 @@
                       (#{:centos :rhel} os-family) :yum
                       (#{:arch} os-family) :pacman
                       (#{:suse} os-family) :zypper
-                      (#{:gentoo} os-family) :portage))))]
+                      (#{:gentoo} os-family) :portage))))
+        session (update-in
+                 session [:target-id]
+                 #(or
+                   %
+                   (get-in session [:server :node-id])
+                   (get-in session [:group :group-name])))]
     session))
 
 (defn build-actions*
