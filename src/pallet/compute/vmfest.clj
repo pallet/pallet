@@ -354,7 +354,7 @@
   (ensure-os-family [compute-service group] group)
 
   (run-nodes
-    [compute-service group-spec node-count user init-script]
+    [compute-service group-spec node-count user init-script options]
     (try
       (let [template (->> [:image :hardware :location :network :qos]
                           (select-keys group-spec)

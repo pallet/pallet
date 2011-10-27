@@ -43,7 +43,7 @@
 ;;; Actions
 (defprotocol ComputeService
   (nodes [compute] "List nodes")
-  (run-nodes [compute group-spec node-count user init-script])
+  (run-nodes [compute group-spec node-count user init-script options])
   (reboot [compute nodes] "Reboot the specified nodes")
   (boot-if-down
    [compute nodes]

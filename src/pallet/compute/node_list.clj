@@ -61,7 +61,7 @@
        {:type :no-os-family-specified
         :message "Node list contains a node without os-family"})))
   ;; Not implemented
-  ;; (run-nodes [node-type node-count request init-script])
+  ;; (run-nodes [node-type node-count request init-script options])
   ;; (reboot "Reboot the specified nodes")
   (boot-if-down [compute nodes] nil)
   ;; (shutdown-node "Shutdown a node.")

@@ -821,7 +821,8 @@
         init-script (bootstrap-script session)
         _ (logging/tracef "Bootstrap script:\n%s" init-script)
         new-nodes (compute/run-nodes
-                   compute (:group session) count (:user session) init-script)]
+                   compute (:group session) count (:user session) init-script
+                   (-> session :environment :provider-options))]
     (when-not (seq new-nodes)
       (slingshot/throw+
        {:group (:group session)
@@ -1369,7 +1370,7 @@
     (:environment session))))                                 ; session default
 
 (def ^{:doc "args that are really part of the environment"}
-  environment-args [:compute :blobstore :user :middleware])
+  environment-args [:compute :blobstore :user :middleware :provider-options])
 
 (defn- session-with-environment
   "Build a session map from the given options, combining the service specific
@@ -1389,7 +1390,7 @@
   argument-keywords
   #{:compute :blobstore :phase :user :prefix :middleware :all-node-set
     :all-nodes :parameters :environment :node-set :phase-list
-    :node-set-selector})
+    :node-set-selector :provider-options})
 
 (defn- check-arguments-map
   "Check an arguments map for errors."

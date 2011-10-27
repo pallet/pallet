@@ -19,10 +19,10 @@
   pallet.compute/ComputeService
   (nodes [compute]
     (mapcat pallet.compute/nodes (services service-map)))
-  (run-nodes [compute group-spec node-count user init-script]
+  (run-nodes [compute group-spec node-count user init-script options]
     (pallet.compute/run-nodes
      (dispatch service-map group-spec)
-     group-spec node-count user init-script))
+     group-spec node-count user init-script options))
   (reboot [compute nodes]
     (doseq [node nodes]
       (pallet.compute/reboot (node/compute-service node) node)))
