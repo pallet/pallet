@@ -36,6 +36,7 @@
    [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.futures :as futures]
+   [pallet.map-merge :as map-merge]
    [pallet.node :as node]
    [pallet.parameter :as parameter]
    [pallet.phase :as phase]
@@ -133,19 +134,17 @@
   {:pre [(or (nil? image) (map? image))]}
   options)
 
+(def
+  ^{:doc
+    "Map from key to merge algorithm. Specifies how specs are merged."}
+  merge-spec-algorithm
+  {:phases :merge-comp
+   :roles :merge-union})
+
 (defn- merge-specs
   "Merge specs, using comp for :phases"
   [a b]
-  (let [phases (merge-with #(comp %2 %1) (:phases a) (:phases b))
-        roles (set/union (:roles a) (:roles b))]
-    (->
-     (merge a b)
-     (thread-expr/when-not->
-      (empty? phases)
-      (assoc :phases phases))
-     (thread-expr/when-not->
-      (empty? roles)
-      (assoc :roles roles)))))
+  (map-merge/merge-keys merge-spec-algorithm a b))
 
 (defn- extend-specs
   "Merge in the inherited specs"

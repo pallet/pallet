@@ -20,8 +20,8 @@
    `merge-key-algorithm`."
   (:require
    [pallet.common.deprecate :as deprecate]
-   [pallet.common.map-utils :as map-utils]
    [pallet.execute :as execute]
+   [pallet.map-merge :as map-merge]
    [pallet.utils :as utils]
    [slingshot.core :as slingshot]
    [clojure.tools.logging :as logging]
@@ -57,50 +57,15 @@
 
 (def user-keys-to-shell-expand [:public-key-path :private-key-path])
 
-(defmulti merge-key
-  "Merge function that dispatches on the map entry key"
-  (fn [key val-in-result val-in-latter]
-    (merge-key-algorithm key :deep-merge)))
-
 (defn merge-environments
   "Returns a map that consists of the rest of the maps conj-ed onto
   the first.  If a key occurs in more than one map, the mapping(s)
   from the latter (left-to-right) will be combined with the mapping in
   the result by calling (merge-key key val-in-result val-in-latter)."
   [& maps]
-  (when (some identity maps)
-    (let [merge-entry (fn [m e]
-                        (let [k (key e) v (val e)]
-                          (if (contains? m k)
-                            (assoc m k (merge-key k (get m k) v))
-                            (assoc m k v))))
-          merge2 (fn [m1 m2]
-                   (reduce merge-entry (or m1 {}) (seq m2)))]
-      (reduce merge2 maps))))
+  (apply map-merge/merge-keys merge-key-algorithm maps))
 
-(defmethod merge-key :replace
-  [key val-in-result val-in-latter]
-  val-in-latter)
-
-(defmethod merge-key :merge
-  [key val-in-result val-in-latter]
-  (merge val-in-result val-in-latter))
-
-(defmethod merge-key :deep-merge
-  [key val-in-result val-in-latter]
-  (let [map-or-nil? (fn [x] (or (nil? x) (map? x)))]
-    (map-utils/deep-merge-with
-     (fn deep-merge-env-fn [x y]
-       (if (and (map-or-nil? x) (map-or-nil? y))
-         (merge x y)
-         (or y x)))
-     val-in-result val-in-latter)))
-
-(defmethod merge-key :merge-comp
-  [key val-in-result val-in-latter]
-  (merge-with comp val-in-latter val-in-result))
-
-(defmethod merge-key :merge-environments
+(defmethod map-merge/merge-key :merge-environments
   [key val-in-result val-in-latter]
   (merge-environments val-in-result val-in-latter))
 
