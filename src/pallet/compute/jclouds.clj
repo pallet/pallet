@@ -436,7 +436,7 @@
                  (count bad-nodes)
                  node-count
                  (:group-name group-spec))
-                (doseq [node bad-nodes]
+                (doseq [node (keys bad-nodes)]
                   (try
                     (compute/destroy-node service node)
                     (catch Exception e
