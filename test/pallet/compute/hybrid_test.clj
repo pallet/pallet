@@ -5,13 +5,14 @@
    [pallet.compute.jclouds-ssh-test :as ssh-test]
    [pallet.compute.jclouds-test-utils :as jclouds-test-utils]
    [pallet.compute.node-list :as node-list]
+   [pallet.configure :as configure]
    [pallet.compute :as compute]
    [pallet.core :as core]
    [pallet.utils :as utils])
   (:use
    clojure.test)
   (:import
-   pallet.compute.node_list.Node))
+   pallet.compute.node-list.Node))
 
 (def *compute-service* ["stub" "" "" ])
 
@@ -40,7 +41,21 @@
         node-list-2 (compute/compute-service "node-list" :node-list [node-2])
         hybrid (compute/compute-service
                 "hybrid" :sub-services {:nl1 node-list-1 :nl2 node-list-2})]
-    (is (= [node-1 node-2] (compute/nodes hybrid))
+    (is (= [node-2 node-1]  (compute/nodes hybrid))
+        "return nodes from both sub-services")))
+
+(deftest declarative-test
+  (let [node-1 ["n1" "t" "1.2.3.4" :ubuntu]
+        node-2 ["n2" "t" "1.2.3.5" :ubuntu]
+        prov-1 {:provider "node-list"
+                :node-list [node-1]}
+        prov-2 {:provider "node-list"
+                :node-list [node-2]}
+        hybrid (configure/compute-service-from-map
+                {:provider "hybrid"
+                 :sub-services {:prov-1 prov-1
+                                :prov-2 prov-2}})]
+    (is (= 2 (count (compute/nodes hybrid)))
         "return nodes from both sub-services")))
 
 (deftest close-test
