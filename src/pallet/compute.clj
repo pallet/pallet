@@ -25,7 +25,7 @@
    - :node-list    a list of nodes for the \"node-list\" provider.
    - :environment  an environment map with service specific values."
   [provider-name
-   & {:keys [identity credential extensions node-list endpoint environment]
+   & {:keys [identity credential extensions node-list endpoint environment sub-services]
       :as options}]
   (implementation/load-providers)
   (implementation/service provider-name options))

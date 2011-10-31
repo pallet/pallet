@@ -70,6 +70,12 @@
         (g->s (:group-name spec-or-name))))))
 
 ;; service factory implementation for hybrid provider
+
+(defn compute-provider-from-definition [definition]
+  (if (map? definition)
+    (configure/compute-service-from-map definition)
+    definition))
+
 (defmethod implementation/service :hybrid
   [provider {:keys [sub-services
                     groups-for-services
@@ -78,7 +84,8 @@
              :as options}]
   (HybridService.
    (if (map? sub-services)
-     sub-services
+     (zipmap (keys sub-services)
+             (map compute-provider-from-definition (vals sub-services)))
      (into {} (map #(vector % (configure/compute-service %)) sub-services)))
    (or (and
         service-dispatcher
