@@ -12,7 +12,7 @@
   (:use
    clojure.test)
   (:import
-   pallet.compute.node-list.Node))
+   pallet.compute.node_list.Node))
 
 (def *compute-service* ["stub" "" "" ])
 
