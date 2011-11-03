@@ -34,3 +34,13 @@
   (testing "pre, post added"
     (is (= [:pallet.phase/pre-fred :fred :pallet.phase/post-fred]
              (all-phases-for-phase :fred)))))
+
+(deftest phase-fn-test
+  (is (thrown-with-msg?
+        slingshot.Stone #"passed to the pipeline"
+        ((phase-fn identity) 1)))
+  (is (= {} ((phase-fn identity) {})))
+  (let [fgh (constantly nil)]
+    (is (thrown-with-msg?
+          slingshot.Stone #"fgh"
+          ((phase-fn fgh) {})))))

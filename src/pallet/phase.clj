@@ -87,6 +87,28 @@
           session form)}))
      session))
 
+(defmacro check-session-thread
+  "Add session checking to a sequence of calls which thread a session
+   map. e.g.
+
+       (->
+         session
+         (check-session-thread
+           (file \"/some-file\")
+           (file \"/other-file\")))
+
+   The example is thus equivalent to:
+
+       (-> session
+         (check-session \"The session passed to the pipeline\")
+         (check-session (file \"/some-file\"))
+         (check-session (file \"/other-file\")))"
+  [arg & body]
+  `(->
+    ~arg
+    (check-session "The session passed to the pipeline")
+    ~@(mapcat (fn [form] [form `(check-session '~form)]) body)))
+
 (defmacro phase-fn
   "Create a phase function from a sequence of crate invocations with
    an ommited session parameter.
@@ -105,5 +127,4 @@
   `(fn [session#]
      (->
       session#
-      (check-session "The session passed to the pipeline")
-      ~@(mapcat (fn [form] [form `(check-session '~form)]) body))))
+      (check-session-thread ~@body))))
