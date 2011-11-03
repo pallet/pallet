@@ -4,6 +4,7 @@
    [pallet.compute.implementation :as implementation]
    [pallet.configure :as configure]
    [pallet.node :as node]
+   [pallet.environment :as environment]
    [clojure.tools.logging :as logging]))
 
 (defn supported-providers []
@@ -45,7 +46,12 @@
   (destroy-node [compute node]
     (pallet.compute/destroy-node (node/compute-service node) node))
   (images [compute] (mapcat pallet.compute/images (services service-map)))
-  (close [compute] (mapcat pallet.compute/close (services service-map))))
+  (close [compute] (mapcat pallet.compute/close (services service-map)))
+  pallet.environment.Environment
+  (environment [_]
+    (apply merge (conj (map pallet.environment/environment
+                                     (vals service-map))
+                                environment))))
 
 (defn ensure-service-dispatch
   [f]
@@ -63,6 +69,7 @@
   (let [g->s (into {} (apply concat
                              (for [[service groups] groups-for-services]
                                (map #(vector % service) groups))))]
+    (logging/infof "Hybrid dispatch function: %s" g->s)
     (fn group-dispatch-fn
       [spec-or-name]
       (if (string? spec-or-name)
@@ -82,15 +89,19 @@
                     service-dispatcher
                     environment]
              :as options}]
-  (HybridService.
-   (if (map? sub-services)
-     (zipmap (keys sub-services)
-             (map compute-provider-from-definition (vals sub-services)))
-     (into {} (map #(vector % (configure/compute-service %)) sub-services)))
-   (or (and
-        service-dispatcher
-        (ensure-service-dispatch service-dispatcher))
-       (and
-        groups-for-services
-        (ensure-service-dispatch (group-dispatcher groups-for-services))))
-   environment))
+  (let [service-map
+        (if (map? sub-services)
+          (zipmap (keys sub-services)
+                  (map compute-provider-from-definition (vals sub-services)))
+          (into {} (map #(vector % (configure/compute-service %)) sub-services)))]
+    (logging/infof "sub-services for hybrid provider: %s" service-map)
+    (logging/debugf "groups-for-services map: %s" groups-for-services)
+    (HybridService.
+     service-map
+     (or (and
+          service-dispatcher
+          (ensure-service-dispatch service-dispatcher))
+         (and
+          groups-for-services
+          (ensure-service-dispatch (group-dispatcher groups-for-services))))
+     environment)))
