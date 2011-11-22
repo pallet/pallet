@@ -3,7 +3,49 @@
 #+DESCRIPTION: Release notes for pallet releases
 #+KEYWORDS: pallet palletops contribute
 
-The latest release is 0.6.5.
+The latest release is 0.6.6.
+
+* 0.6.6
+
+** features
+- Add pallet.phase/check-session-thread
+  This is a macro that can be used to add session checking in a session
+  thread pipeline.
+
+- Introduce :create-group, :destroy-group and :destroy-server phases
+  When starting and stopping groups or nodes, it is useful to be able to
+  run setup or tear-down functions.
+
+- Make the merging of keys in a group-spec open
+  Allow extensions of pallet to specify how other keys are merged by a
+  group-spec.
+
+- Add support for declarative hybrid provider definitions
+
+- Add :provider-options to the environment, and pass to run-nodes
+
+- Add :append option to user action (for adding groups)
+
+
+** fixes
+- Normalise the :node-set constructed by lift
+
+- Add missing environment test for hybrid provider
+
+- Make hybrid compute to properly merge the environments of all sub-services
+
+- Fix use of group specific environment for top level pallet keys
+
+- Fix removal of jclouds nodes that fail on bootstrap
+
+- Filter logging of empty messages from scripts
+
+- Refactor converge-node-counts
+  Make it easier to add functions to start, and stop nodes.
+
+- Add a combine-actions implementation for :nested-scope
+  Only the last script of adjacent nested scopes was being returned. Fixes
+  #97.
 
 * 0.6.5
 
