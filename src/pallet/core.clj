@@ -1518,15 +1518,16 @@
     :user            the admin-user on the nodes"
   [node-set & {:keys [compute phase prefix middleware all-node-set environment]
                :as options}]
-  (lift*
-   (->
-    options
-    (assoc :node-set (expand-cluster-groups node-set)
-           :phase-list (phase-spec phase))
-    check-arguments-map
-    (dissoc :all-node-set :phase)
-    session-with-environment
-    identify-anonymous-phases)))
+  (let [node-set (expand-cluster-groups node-set)]
+    (lift*
+     (->
+      options
+      (assoc :node-set (if (group-spec? node-set) [node-set] node-set)
+             :phase-list (phase-spec phase))
+      check-arguments-map
+      (dissoc :all-node-set :phase)
+      session-with-environment
+      identify-anonymous-phases))))
 
 
 
