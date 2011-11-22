@@ -1467,7 +1467,7 @@
   (lift*
    (->
     options
-    (assoc :node-set node-set
+    (assoc :node-set (if (group-spec? node-set) [node-set] node-set)
            :phase-list (if (sequential? phase)
                          phase
                          (if phase [phase] [:configure])))
