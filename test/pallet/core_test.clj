@@ -19,7 +19,8 @@
    [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
    [clojure.string :as string]
-   [clojure.stacktrace :as stacktrace])
+   [clojure.stacktrace :as stacktrace]
+   [clojure.tools.logging :as logging])
   (:use
    clojure.test))
 
@@ -235,32 +236,31 @@
                {:all-nodes [n] :selected-nodes [n]
                 :node-set nil :all-node-set {a #{n}}}))))))
 
-
 (deftest session-with-environment-test
   (binding [pallet.core/*middleware* :middleware]
     (testing "defaults"
-      (is (= {:executor core/default-executors
-              :environment
-              {:blobstore nil :compute nil :user utils/*admin-user*
-               :middleware :middleware
-               :algorithms core/default-algorithms}}
-             (#'core/session-with-environment {}))))
+      (is (=
+           {:blobstore nil :compute nil :user utils/*admin-user*
+            :middleware :middleware
+            :algorithms core/default-algorithms
+            :executor core/default-executor}
+           (:environment (#'core/session-with-environment {})))))
     (testing "passing a prefix"
-      (is (= {:executor core/default-executors
-              :environment
-              {:blobstore nil :compute nil :user utils/*admin-user*
-               :middleware *middleware*
-               :algorithms core/default-algorithms}
-              :prefix "prefix"}
-             (#'core/session-with-environment {:prefix "prefix"}))))
+      (let [v (#'core/session-with-environment {:prefix "prefix"})]
+        (is (= "prefix" (:prefix v)))
+        (is (= {:blobstore nil :compute nil :user utils/*admin-user*
+                :middleware *middleware*
+                :algorithms core/default-algorithms
+                :executor core/default-executor}
+               (:environment v)))))
     (testing "passing a user"
-      (let [user (utils/make-user "fred")]
-        (is (= {:executor core/default-executors
-                :environment
-                {:blobstore nil :compute nil  :user user
-                 :middleware :middleware
-                 :algorithms core/default-algorithms}}
-               (#'core/session-with-environment {:user user})))))))
+      (let [user (utils/make-user "fred")
+            v (#'core/session-with-environment {:user user})]
+        (is (= {:blobstore nil :compute nil  :user user
+                :middleware :middleware
+                :algorithms core/default-algorithms
+                :executor core/default-executor}
+               (:environment v)))))))
 
 (deftest node-spec-test
   (is (= {:image {}}
@@ -327,6 +327,7 @@
          (group-spec "tom" :node-spec {:image {:os-family :centos}}))))
 
 (deftest defnode-test
+  (logging/info "defnode-test start")
   (defnode fred {:os-family :ubuntu})
   (is (= {:group-name :fred :image {:os-family :ubuntu}} fred))
   (defnode tom "This is tom" {:os-family :centos})
@@ -354,7 +355,8 @@
       (is (= ":b\n"
              (first
               (build-actions/produce-phases
-               (assoc session :phase :configure))))))))
+               (assoc session :phase :configure)))))))
+  (logging/info "defnode-test end"))
 
 (def identity-action (action/bash-action [session x] x))
 (def identity-local-action (action/clj-action [session] session))
@@ -365,8 +367,7 @@
           {:group {:image {:os-family :ubuntu}
                    :packager :aptitude
                    :phases {:bootstrap (phase/phase-fn
-                                        (identity-action "a"))}}
-           :environment {:algorithms core/default-algorithms}})))
+                                        (identity-action "a"))}}})))
   (testing "rejects local actions"
     (is (re-find
           #":error.*local actions"
@@ -374,8 +375,7 @@
            {:group
             {:image {:os-family :ubuntu}
              :packager :aptitude
-             :phases {:bootstrap (phase/phase-fn
-                                  (identity-local-action))}}
+             :phases {:bootstrap identity-local-action}}
             :environment {:algorithms core/default-algorithms}}))))
   (testing "requires a packager"
     (is (thrown?
@@ -452,81 +452,79 @@
              {:phase-list [:a :configure]})))))
 
 (deftest lift-test
+  (logging/info "lift-test begin")
   (testing "node-list"
     (let [local (group-spec "local")
           [localf seen?] (seen-fn "lift-test")
           localhost (node-list/make-localhost-node :group-name "local")
           service (compute/compute-service "node-list" :node-list [localhost])]
-      (is (re-find
-           #"bin"
-           (->
-            (lift
-             local
-             :phase [(phase/phase-fn (exec-script/exec-script (~lib/ls "/")))
-                     (phase/phase-fn (localf))]
-             :user (assoc utils/*admin-user*
-                     :username (test-utils/test-username)
-                     :no-sudo true)
-             :compute service)
-            :results :localhost pr-str)))
-      (is (seen?))
+      (let [session (lift
+                     local
+                     :phase [(phase/phase-fn
+                              (exec-script/exec-script (~lib/ls "/"))) localf]
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username)
+                             :no-sudo true)
+                     :compute service)]
+        (is (re-find #"bin" (-> session :results :localhost pr-str)))
+        (is (seen?)))
       (testing "invalid :phases keyword"
         (is (thrown-with-msg?
-              slingshot.Stone
-              #":phases"
+              slingshot.Stone #":phases"
               (lift local :phases []))))
       (testing "invalid keyword"
         (is (thrown-with-msg?
-              slingshot.Stone
-              #"Invalid"
+              slingshot.Stone #"Invalid"
               (lift local :abcdef []))))))
-  (testing "throw on remote bash error"
-    (let [local (group-spec
-                 "local"
-                 :phases {:configure (phase/phase-fn
-                                      (exec-script/exec-script (~lib/exit 1)))})
-          localhost (node-list/make-localhost-node :group-name "local")
-          service (compute/compute-service "node-list" :node-list [localhost])
-          thrown (atom false)]
-      (try
-        (lift
-         local
-         :user (assoc utils/*admin-user*
-                 :username (test-utils/test-username)
-                 :no-sudo true)
-         :compute service)
-        (is false "should throw")
-        (catch Exception e
-          (let [e (stacktrace/root-cause e)]
-            (is (instance? slingshot.Stone e))
-            (is (re-find #"Error executing script" (.getMessage e)))
-            (reset! thrown true))))
-      (is @thrown)))
-  (testing "throw on remote bash error after other actions"
-    (let [clj-fn (action/clj-action [session] session)
-          local (group-spec
-                 "local"
-                 :phases {:configure (phase/phase-fn
-                                      (exec-script/exec-script (~lib/exit 1))
-                                      (clj-fn)
-                                      (exec-script/exec-script (~lib/exit 1)))})
-          localhost (node-list/make-localhost-node :group-name "local")
-          service (compute/compute-service "node-list" :node-list [localhost])
-          thrown (atom false)]
-      (try
-        (lift
-         local
-         :user (assoc utils/*admin-user*
-                 :username (test-utils/test-username)
-                 :no-sudo true)
-         :compute service)
-        (is false "should throw")
-        (catch Exception e
-          (let [e (stacktrace/root-cause e)]
-            (is (instance? slingshot.Stone e))
-            (is (re-find #"Error executing script" (.getMessage e)))
-            (reset! thrown true))))
-      (is @thrown))))
+  (logutils/suppress-logging
+   (testing "throw on remote bash error"
+     (let [local (group-spec
+                  "local"
+                  :phases {:configure (phase/phase-fn
+                                       (exec-script/exec-script (~lib/exit 1)))})
+           localhost (node-list/make-localhost-node :group-name "local")
+           service (compute/compute-service "node-list" :node-list [localhost])
+           thrown (atom false)]
+       (try
+         (lift
+          local
+          :user (assoc utils/*admin-user*
+                  :username (test-utils/test-username)
+                  :no-sudo true)
+          :compute service)
+         (is false "should throw")
+         (catch Exception e
+           (let [e (stacktrace/root-cause e)]
+             (is (instance? slingshot.Stone e))
+             (is (re-find #"Error executing script" (.getMessage e)))
+             (reset! thrown true))))
+       (is @thrown)))
+   (testing "throw on remote bash error after other actions"
+     (let [clj-fn (action/clj-action [session] session)
+           local (group-spec
+                  "local"
+                  :phases {:configure (phase/phase-fn
+                                       (exec-script/exec-script (~lib/exit 1))
+                                       (clj-fn)
+                                       (exec-script/exec-script (~lib/exit 1)))})
+           localhost (node-list/make-localhost-node :group-name "local")
+           service (compute/compute-service "node-list" :node-list [localhost])
+           thrown (atom false)]
+       (try
+         (lift
+          local
+          :user (assoc utils/*admin-user*
+                  :username (test-utils/test-username)
+                  :no-sudo true)
+          :compute service)
+         (is false "should throw")
+         (catch Exception e
+           (let [e (stacktrace/root-cause e)]
+             (is (instance? slingshot.Stone e))
+             (is (re-find #"Error executing script" (.getMessage e)))
+             (reset! thrown true))))
+       (is @thrown))))
+  (logging/info "lift-test end"))
 
 (deftest lift-parallel-test
   (let [local (group-spec "local")]

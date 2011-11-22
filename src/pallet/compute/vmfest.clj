@@ -243,11 +243,13 @@
                       :no-sudo (:no-sudo image)
                       :sudo-password (:sudo-password image))
                      user)
-              {:keys [out exit]} (execute/remote-sudo
-                                  (manager/get-ip machine) init-script user
-                                  {:pty (not
-                                         (#{:arch :fedora}
-                                          (:os-family image)))})]
+              {:keys [out exit]} ;; (execute/remote-sudo
+                                 ;;  (manager/get-ip machine) init-script user
+                                 ;;  {:pty (not
+                                 ;;         (#{:arch :fedora}
+                                 ;;          (:os-family image)))})
+              nil
+              ]
           (when-not (zero? exit)
             (manager/destroy machine)
             (slingshot/throw+

@@ -41,10 +41,20 @@
   (group-name node))
 
 ;;; Actions
+
+;; TODO
+;; the executor should be passed to the compute service to allow remote
+;; execution of the init script using the executor abstraction.
+
+;; However, the executor uses the session abstraction, so that would need
+;; passing too
 (defprotocol ComputeService
   (nodes [compute] "List nodes")
-  (run-nodes [compute group-spec node-count user init-script options])
-  (reboot [compute nodes] "Reboot the specified nodes")
+  (run-nodes [compute group-spec node-count user init-script options]
+    "Start node-count nodes for group-spec, executing an init-script
+     on each, using the specified user and options.")
+  (reboot [compute nodes]
+    "Reboot the specified nodes")
   (boot-if-down
    [compute nodes]
    "Boot the specified nodes, if they are not running.")

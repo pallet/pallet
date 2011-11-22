@@ -238,7 +238,7 @@
   [(:value (f session)) session])
 
 (defn executor [m]
-  (fn [session f action-type location]
+  (fn [session {:keys [f action-type location]}]
     (let [exec-fn (get-in m [action-type location])]
       (assert exec-fn)
       (exec-fn session f))))

@@ -248,7 +248,7 @@
   (apply merge-with set/union m))
 
 (defn action-dependencies
-  "Extract an action's dependencies.  Actions are id'd with keywords,
+  "Extract an action's dependencies.  Actions are id'd with keywords
    and dependencies are declared on an action's id or function."
   [action-id-map action]
   (let [as-set (fn [x] (if (or (nil? x) (set? x)) x #{x}))
@@ -277,7 +277,7 @@
        (filter keyword? after))))))
 
 (defn action-instances
-  "Given a map of dependencies, each with an :f and maybe a :action-id,
+  "Given a map of dependencies, each with an :f and maybe a :action-id
    returns a map where the values are all matching action instances"
   [actions dependencies]
   (let [action-id-maps (reduce set/union (vals dependencies))]
@@ -375,7 +375,7 @@
   (map (fn [arg] (when arg (argument/evaluate arg session))) args))
 
 (defn- apply-action
-  "Returns a function that applies args to the function f,
+  "Returns a function that applies args to the function f
    evaluating the arguments."
   [f args]
   (fn [session]
@@ -553,10 +553,12 @@
             (nil? (second action-plan)))))
 
 (defn execute-action
-  "Execute a single action"
-  [executor session {:keys [f action-type location] :as action}]
+  "Execute a single action, catching any exception and reporting it as
+   an error map."
+  [executor session action]
+  (logging/tracef "execute-action %s %s" session action)
   (try
-    (executor session f action-type location)
+    (executor session action)
     (catch Exception e
       [{:error {:type :pallet/action-execution-error
                 :context (context/contexts)
@@ -574,7 +576,8 @@
      {:type :pallet/execute-called-on-untranslated-action-plan
       :message "Attempt to execute an untranslated action plan"}))
   (reduce
-   (fn [[results session flag] action]
+   (fn execute-fn [[results session flag] action]
+
      (case flag
        :continue (let [[result session] (execute-action
                                          executor session action)]
@@ -666,9 +669,9 @@
   (logging/tracef "execute-for-target")
   (script/with-script-context (script-template session)
     (stevedore/with-script-language :pallet.stevedore.bash/bash
-      (execute
-       (get-in session (target-path session))
-       session executor execute-status-fn))))
+      (let [path (target-path session)]
+        (logging/tracef "execute-for-target target-path %s" path)
+        (execute (get-in session path) session executor execute-status-fn)))))
 
 (defmacro checked-script
   "Return a stevedore script that uses the current context to label the

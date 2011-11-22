@@ -7,12 +7,13 @@
    [pallet.execute :as execute]
    [pallet.node :as node]
    [pallet.session :as session]
+   [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
    [clojure.tools.logging :as logging]))
 
 (def cmd "/usr/bin/rsync -e '%s' -rP --delete --copy-links -F -F %s %s@%s:%s")
 
-(action/def-clj-action rsync
+(action/def-bash-origin-action rsync
   [session from to {:keys [port]}]
   (logging/infof "rsync %s to %s" from to)
   (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
@@ -20,8 +21,9 @@
         cmd (format
              cmd ssh from (:username (session/admin-user session))
              (node/primary-ip (session/target-node session)) to)]
-    (execute/sh-script cmd)
-    session))
+    (stevedore/checked-commands
+     (format "rsync %s to %s" from to)
+     cmd)))
 
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."

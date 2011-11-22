@@ -120,6 +120,11 @@
   [[session & args] & body]
   `(action :in-sequence :script/bash :target [~session ~@args] ~@body))
 
+(defmacro bash-origin-action
+  "Define an origin executed bash action function."
+  [[session & args] & body]
+  `(action :in-sequence :script/bash :origin [~session ~@args] ~@body))
+
 (defmacro clj-action
   "Define a clojure action to be executed on the origin machine."
   [[session & args] & body]
@@ -172,6 +177,7 @@
        `(def ~name# (~'~actionfn1 [~@arglist#] ~meta-map# ~@body#)))))
 
 (def-action-def def-bash-action pallet.action/bash-action)
+(def-action-def def-bash-origin-action pallet.action/bash-origin-action)
 (def-action-def def-clj-action pallet.action/clj-action)
 (def-action-def def-aggregated-action pallet.action/aggregated-action)
 (def-action-def def-collected-action pallet.action/collected-action)

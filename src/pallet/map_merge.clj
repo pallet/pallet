@@ -52,3 +52,11 @@
 (defmethod merge-key :merge-union
   [_ _ val-in-result val-in-latter]
   (set/union val-in-result val-in-latter))
+
+(defmethod merge-key :concat
+  [_ _ val-in-result val-in-latter]
+  (concat val-in-result val-in-latter))
+
+(defmethod merge-key :concat-distinct
+  [_ _ val-in-result val-in-latter]
+  (distinct (concat val-in-result val-in-latter)))

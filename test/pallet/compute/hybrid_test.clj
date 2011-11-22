@@ -15,7 +15,10 @@
   (:import
    pallet.compute.node_list.Node))
 
+
 (def *compute-service* ["stub" "" "" ])
+
+(use-fixtures :once (logutils/logging-threshold-fixture))
 
 (use-fixtures
  :once (logutils/logging-threshold-fixture)

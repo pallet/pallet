@@ -9,6 +9,7 @@
    [pallet.compute :as compute]
    [pallet.core :as core]
    [pallet.execute :as execute]
+   [pallet.local.execute :as local]
    [pallet.phase :as phase]
    [pallet.action.exec-script :as exec-script]
    [pallet.action.file :as file]
@@ -102,8 +103,7 @@
                {{:group-name :local} (test-utils/make-localhost-node)}
                :phase #(remote-file % (.getPath tmp) :content "xxx")
                :compute nil
-               :middleware [core/translate-action-plan
-                            execute/execute-target-on-localhost])
+               :middleware [core/translate-action-plan])
               :results :localhost second second first :out)))
       (is (= "xxx\n" (slurp (.getPath tmp))))))
 
@@ -119,8 +119,7 @@
              {{:group-name :local} (test-utils/make-localhost-node)}
              :phase #(remote-file % (.getPath tmp) :content "xxx")
              :compute nil
-             :middleware [core/translate-action-plan
-                          execute/execute-target-on-localhost])
+             :middleware [core/translate-action-plan])
             :results :localhost second second first :out)))
       (is (= "xxx\n" (slurp (.getPath tmp))))))
 
@@ -210,7 +209,7 @@
                       :mode "0666" :flag-on-changed :changed)
              :user user)
             (is (.canRead target-tmp))
-            (is (= (:out (execute/sh-script "hostname"))
+            (is (= (:out (local/local-script "hostname"))
                    (slurp (.getPath target-tmp)))))
           (testing "content unchanged"
             (is
@@ -230,7 +229,7 @@
                 :user user)
                :results :localhost second second first :out)))
             (is (.canRead target-tmp))
-            (is (= (:out (execute/sh-script "hostname"))
+            (is (= (:out (local/local-script "hostname"))
                    (slurp (.getPath target-tmp)))))
           (testing "content changed"
             (is
@@ -355,7 +354,6 @@
                          % check-content (.getPath remote-file)
                          "text" path-atom)
                :user user
-               :middleware [core/translate-action-plan
-                            execute/execute-target-on-localhost])
+               :middleware [core/translate-action-plan])
               (is @path-atom)
               (is (not= (.getPath remote-file) (.getPath @path-atom))))))))))

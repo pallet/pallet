@@ -312,3 +312,12 @@
 
 (fwd-to-configure admin-user-from-config-var)
 (fwd-to-configure admin-user-from-config)
+
+(defn compare-and-swap!
+  "Compare and swap, returning old and new values"
+  [a f & args]
+  (loop [old-val @a]
+    (let [new-val (apply f old-val args)]
+      (if (compare-and-set! a old-val new-val)
+        [old-val new-val]
+        (recur @a)))))

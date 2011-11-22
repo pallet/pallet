@@ -37,7 +37,7 @@
           :environment
           {:user user
            :middleware core/*middleware*
-           :executor core/default-executors
+           :executor core/default-executor
            :algorithms (assoc core/default-algorithms
                          :lift-fn core/sequential-lift)}})
         (let [target-tmp (java.io.File.
@@ -57,7 +57,7 @@
           :environment
           {:user user
            :middleware core/*middleware*
-           :executor core/default-executors
+           :executor core/default-executor
            :algorithms (assoc core/default-algorithms
                          :lift-fn core/sequential-lift)}})
         (let [target-tmp (java.io.File.

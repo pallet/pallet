@@ -1,10 +1,13 @@
 (ns pallet.compute.jclouds-test
   (:use clojure.test)
   (:require
+   [pallet.common.logging.logutils :as logutils]
    [pallet.compute.jclouds :as jclouds]
    [pallet.compute :as compute]
    [pallet.node :as node])
   (:import [org.jclouds.compute.domain NodeState OsFamily OperatingSystem]))
+
+(use-fixtures :once (logutils/logging-threshold-fixture))
 
 (deftest supported-providers-test
   (is (jclouds/supported-providers)))

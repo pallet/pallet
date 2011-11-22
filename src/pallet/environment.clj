@@ -20,10 +20,11 @@
    `merge-key-algorithm`."
   (:require
    [pallet.common.deprecate :as deprecate]
-   [pallet.execute :as execute]
+   [pallet.local.execute :as local]
    [pallet.map-merge :as map-merge]
    [pallet.utils :as utils]
    [slingshot.core :as slingshot]
+   [clojure.set :as set]
    [clojure.tools.logging :as logging]
    [clojure.walk :as walk])
   (:use
@@ -44,10 +45,12 @@
    :blobstore :replace
    :count :merge
    :algorithms :merge
-   :executor :merge
+   :executor :replace
    :middleware :replace
    :groups :merge-environments
-   :tags :merge-environments})
+   :tags :merge-environments
+   ;; :executors :concat
+   })
 
 
 (def ^{:doc "node specific environment keys"}
@@ -107,7 +110,7 @@
   (reduce
    (fn [m kwd]
      (if (kwd m)
-       (update-in m [kwd] execute/local-script-expand)
+       (update-in m [kwd] local/local-script-expand)
        m))
    user-map keys))
 
@@ -160,6 +163,33 @@
   ([session keys default]
      (get-in (:environment session) keys default)))
 
+;; (def current-executors (atom #{}))
+
+;; (defn track-executors
+;;   "Add executors to the set of tracked executors."
+;;   [executors]
+;;   (swap! current-executors set/union (set executors)))
+
+;; (defn release-executors
+;;   "Release executors from the set of tracked executors."
+;;   []
+;;   (let [[executors _] (utils/compare-and-swap!
+;;                        current-executors (constantly #{}))]
+;;     (logging/debugf "release-executors: closing %s executors" (count executors))
+;;     (doseq [executor executors]
+;;       (logging/debugf "release-executors: closing %s" executor)
+;;       (execute/close executor))))
+
+;; (defmacro with-managed-executors
+;;   "Provides a scope where all executors are closed on exit."
+;;   [& body]
+;;   `(try
+;;      ~@body
+;;      (finally
+;;       (logging/debugf
+;;        "with-managed-executors: closing %s" (count @current-executors))
+;;       (release-executors))))
+
 (defn session-with-environment
   "Returns an updated `session` map, containing the keys for the specified
    `environment` map.
@@ -191,13 +221,13 @@
         session (assoc-in session [:environment]
                           (utils/dissoc-keys environment node-keys))
         session (if (:server session)
-                  (let [group (-> session :server :group-name)]
+                  (let [group-name (-> session :server :group-name)]
                     (assoc session
                       :server (merge-environments
                                (:server session)
                                (select-keys environment node-keys)
-                               (-?> environment :tags group) ; deprecated
-                               (-?> environment :groups group))))
+                               (-?> environment :tags group-name) ; deprecated
+                               (-?> environment :groups group-name))))
                   session)
         session (if (:group session)
                   (let [group (-> session :group :group-name)]
@@ -207,5 +237,11 @@
                               (select-keys environment node-keys)
                               (-?> environment :tags group) ; deprecated
                               (-?> environment :groups group))))
-                  session)]
+                  session)
+        ;; session (assoc session
+        ;;           :executor (reduce
+        ;;                      merge
+        ;;                      (map execute/executor-map (:executors session))))
+        ]
+    ;; (track-executors (:executors session))
     session))

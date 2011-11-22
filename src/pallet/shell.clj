@@ -10,11 +10,13 @@
 ; You must not remove this notice, or any other, from this software.
 
 (ns
-  ^{:author "Chris Houser, Stuart Halloway, Hugo Duncan",
+  ^{:author "Chris Houser, Stuart Halloway, Hugo Duncan"
     :doc "Conveniently launch a sub-process providing its stdin and
 collecting its stdout"}
   pallet.shell
   (:use [clojure.java.io :only (as-file copy)])
+  (:require
+   [clojure.tools.logging :as logging])
   (:import (java.io OutputStreamWriter ByteArrayOutputStream StringWriter)
            (java.nio.charset Charset)))
 
@@ -103,7 +105,7 @@ collecting its stdout"}
            in a byte array and returned.  Defaults to UTF-8.
   :async   If true, returns a map with :out, :err and :proc keys, and
            the caller is responsible for reading these and
-           the sxit status.
+           the exit status.
   :env     override the process env with a map (or the underlying Java
            String[] if you are a masochist).
   :dir     override the process dir with a String or java.io.File.
@@ -119,7 +121,7 @@ collecting its stdout"}
   [& args]
   (let [[cmd opts] (parse-args args)
         proc (.exec (Runtime/getRuntime)
-                    ^"[Ljava.lang.String;" (into-array cmd)
+                    ^"[Ljava.lang.String;" (into-array String cmd)
                     (as-env-strings (:env opts))
                     (as-file (:dir opts)))
         {:keys [in in-enc out-enc async]} opts]
@@ -143,17 +145,63 @@ collecting its stdout"}
               exit-code (.waitFor proc)]
           {:exit exit-code :out @out :err @err})))))
 
-(comment
+;;; Pallet specific functionality
+(def
+  ^{:doc "Specifies the buffer size used to read the output stream.
+    Defaults to 10K"}
+  output-buffer-size (atom (* 1024 10)))
 
-(println (sh "ls" "-l"))
-(println (sh "ls" "-l" "/no-such-thing"))
-(println (sh "sed" "s/[aeiou]/oo/g" :in "hello there\n"))
-(println (sh "cat" :in "x\u25bax\n"))
-(println (sh "echo" "x\u25bax"))
-(println
- (sh "echo" "x\u25bax" :out-enc "ISO-8859-1")) ; reads 4 single-byte chars
-(println
- (sh "cat" "myimage.png" :out-enc :bytes)) ; reads binary file into bytes[]
-(println (sh "cmd" "/c dir 1>&2"))
+(def
+  ^{:doc "Specifies the polling period for retrieving command output.
+    Defaults to 1000ms."}
+  output-poll-period (atom 1000))
 
-)
+(defn read-buffer [stream output-f]
+  (let [buffer-size @output-buffer-size
+        bytes (byte-array buffer-size)
+        sb (StringBuilder.)]
+    {:sb sb
+     :reader (fn []
+               (when (pos? (.available stream))
+                 (let [num-read (.read stream bytes 0 buffer-size)
+                       s (String. bytes 0 num-read "UTF-8")]
+                   (output-f s)
+                   (.append sb s)
+                   s)))}))
+
+(defn sh-script
+  "Run a script on local machine.
+
+   Command:
+     :execv  sequence of command and arguments to be run (default /bin/bash).
+     :in     standard input for the process.
+   Options:
+     :output-f  function to incrementally process output"
+  [{:keys [execv in] :as command}
+   {:keys [output-f] :as options}]
+  (logging/tracef "sh-script %s" command)
+  (if output-f
+    (try
+      (let [{:keys [out err proc]} (apply
+                                    sh
+                                    (concat
+                                     (or execv ["/bin/bash"]) ;; TODO generalise
+                                     [:in in :async true]))
+            out-reader (read-buffer out output-f)
+            err-reader (read-buffer err output-f)
+            period @output-poll-period
+            read-out (:reader out-reader)
+            read-err (:reader err-reader)]
+        (with-open [out out err err]
+          (while (not (try (.exitValue proc)
+                           (catch IllegalThreadStateException _)))
+            (Thread/sleep period)
+            (read-out)
+            (read-err))
+          (while (read-out))
+          (while (read-err))
+          (let [exit (.exitValue proc)]
+            {:exit exit
+             :out (str (:sb out-reader))
+             :err (str (:sb err-reader))}))))
+    (apply sh (concat (or execv ["/bin/bash"]) [:in in]))))

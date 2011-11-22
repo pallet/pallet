@@ -35,6 +35,7 @@
    [pallet.context :as context]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
+   [pallet.executors :as executors]
    [pallet.futures :as futures]
    [pallet.map-merge :as map-merge]
    [pallet.node :as node]
@@ -357,81 +358,32 @@
      (-> session :server :packager))
     (handler session)))
 
-
-;;; executor
-
-(defn- executor [session f action-type location]
-  (let [exec-fn (get-in session [:executor action-type location])]
-    (when-not exec-fn
-      (slingshot/throw+
-       {:type :missing-executor-fn
-        :fn-for [action-type location]
-        :message (format
-                  "Missing executor function for %s %s"
-                  action-type location)}))
-    (exec-fn session f)))
-
-(let [raise (fn [message]
-              (fn [_ _]
-                (slingshot/throw+ {:type :executor-error :message message})))]
-  (def ^{:doc "Default executor map"}
-    default-executors
-    {:script/bash
-     {:origin execute/bash-on-origin
-      :target (raise
-               (str ":script/bash on :target not implemented.\n"
-                    "Add middleware to enable remote execution."))}
-     :fn/clojure
-     {:origin execute/clojure-on-origin
-      :target (raise ":fn/clojure on :target not supported")}
-     :transfer/to-local
-     {:origin (raise
-               (str ":transfer/to-local on :origin not implemented.\n"
-                    "Add middleware to enable transfers."))
-      :target (raise ":transfer/to-local on :target not supported")}
-     :transfer/from-local
-     {:origin (raise
-               (str ":transfer/to-local on :origin not implemented.\n"
-                    "Add middleware to enable transfers."))
-      :target (raise ":transfer/from-local on :target not supported")}}))
-
 ;;; bootstrap functions
+(declare default-algorithms)
 (defn- bootstrap-script
   [session]
   {:pre [(get-in session [:group :image :os-family])
          (get-in session [:group :packager])]}
-  (let [error-fn (fn [message]
-                   (fn [_ _]
-                     (slingshot/throw+
-                      {:type :booststrap-contains-non-remote-actions
-                       :message message})))
+  (let [session (->
+                 (assoc session
+                   :phase :bootstrap
+                   :target-type :node
+                   :target-id :bootstrap-id
+                   :server (assoc (:group session)
+                             :node-id :bootstrap-id))
+                 (environment/session-with-environment
+                   (environment/merge-environments
+                    {:algorithms default-algorithms}
+                    (:environment session))))
+        _ (logging/infof "bootstrap-script session %s" session)
         [result session] (->
                           session
-                          (assoc
-                              :phase :bootstrap
-                              :target-type :node
-                              :target-id :bootstrap-id
-                              :server (assoc (:group session)
-                                        :node-id :bootstrap-id))
-                          (assoc-in
-                           [:executor :script/bash :target]
-                           execute/echo-bash)
-                          (assoc-in
-                           [:executor :transfer/to-local :origin]
-                           (error-fn "Bootstrap can not contain transfers"))
-                          (assoc-in
-                           [:executor :transfer/from-local :origin]
-                           (error-fn "Bootstrap can not contain transfers"))
-                          (assoc-in
-                           [:executor :fn/clojure :origin]
-                           (error-fn "Bootstrap can not contain local actions"))
                           add-session-keys-for-0-4-compatibility
                           action-plan/build-for-target
                           action-plan/translate-for-target
                           (action-plan/execute-for-target
-                           executor
-                           (environment/get-for
-                            session [:algorithms :execute-status-fn])))]
+                           #(executors/bootstrap-executor %1 %2)
+                           (get-in session [:algorithms :execute-status-fn])))]
     (string/join \newline result)))
 
 (defn log-session
@@ -486,7 +438,7 @@
   "Execute the action plan"
   [session]
   (action-plan/execute-for-target
-   session executor
+   session #((:executor session) %1 %2)
    (environment/get-for session [:algorithms :execute-status-fn])))
 
 ;;; middleware
@@ -515,8 +467,6 @@
 (def ^{:dynamic true}
   *middleware*
   [translate-action-plan
-   execute/ssh-user-credentials
-   execute/execute-with-ssh
    raise-on-error])
 
 (defmacro with-middleware
@@ -627,12 +577,11 @@
   "Apply a phase to a node session"
   [session]
   {:pre [(:server session) (:phase session)]}
-  (logging/infof
-   "apply-phase-to-node: phase %s group %s target %s session %s"
+  (logging/debugf
+   "apply-phase-to-node: phase %s group %s target %s"
    (:phase session)
    (-> session :group :group-name)
-   (node/primary-ip (-> session :server :node))
-   session)
+   (node/primary-ip (-> session :server :node)))
   (context/with-context
     :apply-phase ["Apply phase %s to %s %s"
                   (:phase session)
@@ -652,20 +601,19 @@
   "Apply a phase to a group"
   [session]
   {:pre [(:group session) (:phase session)]}
-  (logging/infof
+  (logging/debugf
    "apply-phase-to-group: phase %s group %s"
    (:phase session)
    (-> session :group :group-name))
   (logutils/with-context [:phase (:phase session)
                           :group (-> session :group :group-name)]
-    ((middleware-handler execute)
-     session)))
+    ((middleware-handler execute) session)))
 
 (defmulti sequential-apply-phase-to-target :target-type)
 
 (defmethod sequential-apply-phase-to-target :node
   [session]
-  (logging/infof
+  (logging/debugf
    "sequential-apply-phase-to-target :node  %s for %s with %d nodes"
    (:phase session)
    (-> session :group :group-name)
@@ -678,7 +626,7 @@
 
 (defmethod sequential-apply-phase-to-target :group
   [session]
-  (logging/infof
+  (logging/debugf
    "sequential-apply-phase-to-target :group  %s for %s"
    (:phase session) (-> session :group :group-name))
   (let [session (assoc session :target-id (-> session :group :group-name))]
@@ -688,7 +636,7 @@
 (defn sequential-apply-phase
   "Apply a phase to a sequence of nodes"
   [session]
-  (logging/infof
+  (logging/debugf
    "sequential-apply-phase %s for %s"
    (:phase session) (-> session :group :group-name))
   (sequential-apply-phase-to-target session))
@@ -697,7 +645,7 @@
 
 (defmethod parallel-apply-phase-to-target :node
   [session]
-  (logging/infof
+  (logging/debugf
    "parallel-apply-phase-to-target :node  %s for %s with %d nodes"
    (:phase session)
    (-> session :group :group-name)
@@ -710,7 +658,7 @@
 
 (defmethod parallel-apply-phase-to-target :group
   [session]
-  (logging/infof
+  (logging/debugf
    "parallel-apply-phase-to-target :group  %s for %s"
    (:phase session) (-> session :group :group-name))
   (let [session (assoc session :target-id (-> session :group :group-name))]
@@ -720,7 +668,7 @@
 (defn parallel-apply-phase
   "Apply a phase to a sequence of nodes"
   [session]
-  (logging/infof
+  (logging/debugf
    "parallel-apply-phase %s for %s"
    (:phase session) (-> session :group :group-name))
   (futures/add (parallel-apply-phase-to-target session)))
@@ -1283,6 +1231,7 @@
   [session]
   (logging/debugf "pallet version: %s" (version))
   (logging/tracef "lift* phases %s" (vec (:phase-list session)))
+  ;;environment/with-managed-executors
   (->
    session
    session-with-all-nodes
@@ -1303,6 +1252,7 @@
   (logging/debugf "pallet version: %s" (version))
   (logging/tracef "converge* phases %s" (vec (:phase-list session)))
   (logging/tracef "converge* node-set %s" (vec (:node-set session)))
+  ;;environment/with-managed-executors
   (->
    session
    session-with-all-nodes
@@ -1346,6 +1296,10 @@
    :converge-fn parallel-adjust-node-counts
    :execute-status-fn stop-execution-on-error})
 
+(def
+  ^{:doc "Default executor instance"}
+  default-executor executors/default-executor)
+
 (defn default-environment
   "Specify the built-in default environment"
   []
@@ -1353,7 +1307,8 @@
    :compute nil
    :user utils/*admin-user*
    :middleware *middleware*
-   :algorithms default-algorithms})
+   :algorithms default-algorithms
+   :executor default-executor})
 
 (defn- effective-environment
   "Build the effective environment for the session map.
@@ -1370,7 +1325,9 @@
     (:environment session))))                                 ; session default
 
 (def ^{:doc "args that are really part of the environment"}
-  environment-args [:compute :blobstore :user :middleware :provider-options])
+  environment-args
+  [:compute :blobstore :user :middleware :provider-options
+   :executors :executor])
 
 (defn- session-with-environment
   "Build a session map from the given options, combining the service specific
@@ -1381,7 +1338,6 @@
    (update-in                           ; ensure backwards compatable
     [:environment]
     merge (select-keys options environment-args))
-   (assoc :executor default-executors)
    (utils/dissoc-keys environment-args)
    (effective-environment)))
 
@@ -1390,7 +1346,7 @@
   argument-keywords
   #{:compute :blobstore :phase :user :prefix :middleware :all-node-set
     :all-nodes :parameters :environment :node-set :phase-list
-    :node-set-selector :provider-options})
+    :node-set-selector :provider-options :executors})
 
 (defn- check-arguments-map
   "Check an arguments map for errors."

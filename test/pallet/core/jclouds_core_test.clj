@@ -12,6 +12,7 @@
    [pallet.compute.jclouds-test-utils :as jclouds-test-utils]
    [pallet.core :as core]
    [pallet.execute :as execute]
+   [pallet.executors :as executors]
    [pallet.mock :as mock]
    [pallet.node :as node]
    [pallet.parameter :as parameter]
@@ -84,7 +85,7 @@
   []
   {:compute (jclouds-test-utils/compute)
    :middleware [core/translate-action-plan raise-on-error]
-   :executor core/default-executors
+   :executor core/default-executor
    :algorithms
    (assoc core/default-algorithms
      :converge-fn #'pallet.core/serial-adjust-node-counts
@@ -518,8 +519,9 @@
         node (group-spec "c-t" :phases {:configure hi})
         session (converge {node 2}
                           :compute (jclouds-test-utils/compute)
-                          :middleware [core/translate-action-plan
-                                       execute/execute-echo])]
+                          :middleware [core/translate-action-plan]
+                          :environment
+                          {:executor executors/echo-executor})]
     (is (map? session))
     (is (map? (-> session :results)))
     (is (map? (-> session :results first second)))
@@ -534,8 +536,8 @@
     (testing "remove some instances"
       (let [session (converge {node 1}
                               :compute (jclouds-test-utils/compute)
-                              :middleware [core/translate-action-plan
-                                           execute/execute-echo])]
+                              :middleware [core/translate-action-plan]
+                              :environment {:executor executors/echo-executor})]
         (is (= 1 (count (running-nodes (:all-nodes session)))))
         (is (= 1 (count (running-nodes
                          (compute/nodes
@@ -547,8 +549,8 @@
       (let [session (converge {node 1}
                               :compute (jclouds-test-utils/compute)
                               :node-set-selector #'core/new-node-set-selector
-                              :middleware [core/translate-action-plan
-                                           execute/execute-echo])]
+                              :middleware [core/translate-action-plan]
+                              :environment {:executor executors/echo-executor})]
         (is (= 1 (count (running-nodes (:all-nodes session)))))
         (is (= 1 (count (running-nodes
                          (compute/nodes
@@ -561,14 +563,14 @@
                               :phase [:non-configure]
                               :compute (jclouds-test-utils/compute)
                               :node-set-selector #'core/new-node-set-selector
-                              :middleware [core/translate-action-plan
-                                           execute/execute-echo])]
+                              :middleware [core/translate-action-plan]
+                              :environment {:executor executors/echo-executor})]
         (is (= [:settings :configure :non-configure] (:phase-list session)))))
     (testing "remove all instances"
       (let [session (converge {node 0}
                               :compute (jclouds-test-utils/compute)
-                              :middleware [core/translate-action-plan
-                                           execute/execute-echo])]
+                              :middleware [core/translate-action-plan]
+                              :environment {:executor executors/echo-executor})]
         (is (= 0 (count (running-nodes (:all-nodes session)))))))))
 
 

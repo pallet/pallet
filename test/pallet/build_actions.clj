@@ -6,7 +6,9 @@
    [pallet.compute :as compute]
    [pallet.core :as core]
    [pallet.core :as core]
+   [pallet.environment :as environment]
    [pallet.execute :as execute]
+   [pallet.executors :as executors]
    [pallet.phase :as phase]
    [pallet.script :as script]
    [pallet.test-utils :as test-utils]
@@ -24,11 +26,10 @@
   "Join the result of execute-action-plan, executing local actions.
    Useful for testing."
   [session]
-  (let [execute
-        (fn [session]
-          (let [[result session] (apply-phase-to-node
-                                  session)]
-            [(string/join "" result) session]))]
+  (letfn [(execute
+            [session]
+            (let [[result session] (apply-phase-to-node session)]
+              [(string/join "" result) session]))]
     (binding [action-plan/*defining-context* (context/phase-contexts)]
       (reduce
        (fn [[results session] phase]
@@ -36,11 +37,12 @@
            [(str results result) session]))
        ["" (->
             session
-            (assoc :middleware
-              [core/translate-action-plan
-               execute/execute-echo]
-              :executor core/default-executors
-              :environment {:algorithms core/default-algorithms})
+            (environment/session-with-environment
+              (environment/merge-environments
+               (:environment session)
+               {:algorithms core/default-algorithms
+                :executor executors/echo-executor
+                :middleware [core/translate-action-plan]}))
             action-plan/build-for-target)]
        (phase/all-phases-for-phase (:phase session))))))
 

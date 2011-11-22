@@ -12,6 +12,7 @@
    [pallet.common.logging.logutils :as logutils]
    [pallet.core :as core]
    [pallet.execute :as execute]
+   [pallet.local.execute :as local]
    [pallet.script :as script]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -110,8 +111,8 @@ EOF
 deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             tmp)
       (is (= {:exit 0, :out "", :err ""}
-             (execute/sh-script
-              (add-scope* "deb" "multiverse" (.getPath tmp)))))
+             (local/local-script
+              ~(add-scope* "deb" "multiverse" (.getPath tmp)))))
       (is
        (=
         (str "deb http://archive.ubuntu.com/ubuntu/ karmic main restricted  "
