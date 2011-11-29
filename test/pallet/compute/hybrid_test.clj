@@ -1,5 +1,6 @@
 (ns pallet.compute.hybrid-test
   (:require
+   [pallet.common.logging.logutils :as logutils]
    [pallet.compute.hybrid :as hybrid]
    [pallet.compute.jclouds :as jclouds]
    [pallet.compute.jclouds-ssh-test :as ssh-test]
@@ -17,11 +18,12 @@
 (def *compute-service* ["stub" "" "" ])
 
 (use-fixtures
-  :each
-  (jclouds-test-utils/compute-service-fixture
-   *compute-service*
-   :extensions
-   [(ssh-test/ssh-test-client ssh-test/no-op-ssh-client)]))
+ :once (logutils/logging-threshold-fixture)
+ :each
+ (jclouds-test-utils/compute-service-fixture
+  *compute-service*
+  :extensions
+  [(ssh-test/ssh-test-client ssh-test/no-op-ssh-client)]))
 
 (deftest supported-providers-test
   (is (hybrid/supported-providers)))

@@ -1,9 +1,12 @@
 (ns pallet.environment-test
   (:require
+   [pallet.common.logging.logutils :as logutils]
    [pallet.environment :as environment]
    [clojure.java.io :as io])
   (:use
    clojure.test))
+
+(use-fixtures :once (logutils/logging-threshold-fixture))
 
 (deftest merge-environments-test
   (testing "single argument"

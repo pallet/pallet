@@ -6,7 +6,6 @@
    [pallet.argument :as argument]
    [pallet.build-actions :as build-actions]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
    [pallet.core :as core]
