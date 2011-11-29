@@ -2,7 +2,8 @@
   (:use clojure.test)
   (:require
    [pallet.compute.jclouds :as jclouds]
-   [pallet.compute :as compute])
+   [pallet.compute :as compute]
+   [pallet.node :as node])
   (:import [org.jclouds.compute.domain NodeState OsFamily OperatingSystem]))
 
 (deftest supported-providers-test

@@ -459,7 +459,7 @@
                             :servers-to-remove [{:node a}])})]
       (is (seq (:old-nodes session)))
       (is (= 1 (count (:old-nodes session))))
-      (is (= "a" (compute/tag (first (:old-nodes session))))))))
+      (is (= "a" (node/group-name (first (:old-nodes session))))))))
 
 (deftest converge*-test
   (logging/info "converge*-test")
