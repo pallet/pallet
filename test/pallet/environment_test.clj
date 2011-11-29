@@ -91,6 +91,19 @@
              {:user {:username :a} :server {:group-name :t}}
              {:user {:username :b}
               :groups {:t {:image :i}}
+              :phases {:bootstrap identity}})))
+    (is (= {:user {:username :c}
+            :server {:group-name :t
+                     :image :i
+                     :user {:username :c}
+                     :phases {:bootstrap identity}}
+            :environment {:user {:username :b}
+                          :groups {:t {:image :i
+                                       :user {:username :c}}}}}
+           (environment/session-with-environment
+             {:user {:username :a} :server {:group-name :t}}
+             {:user {:username :b}
+              :groups {:t {:image :i :user {:username :c}}}
               :phases {:bootstrap identity}}))))
   (testing "user data merge"
     (is (= {:environment {:a {:a :b}}}
