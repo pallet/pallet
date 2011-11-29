@@ -18,13 +18,6 @@ different cloud providers.
 
 Some basic [documentation](http://pallet.github.com/pallet) is available.
 
-## Crates
-
-Pallet installation and configuration for various software packages is provided
-via crates.  For pallet 0.4.x through 0.6.x, the crates are in the
-[pallet-crates](https://github.com/pallet/pallet-crates) repo. For 0.7.x and
-on, each crate is in its own repository.
-
 ## Support
 
 On the [mailing list](http://groups.google.com/group/pallet-clj), or #pallet on
