@@ -1,5 +1,6 @@
 (ns pallet.utils
   "Utilities used across pallet."
+  (:refer-clojure :exclude [with-redefs])
   (:require
    [clojure.java.io :as io]
    [clojure.pprint :as pprint]
@@ -321,3 +322,9 @@
       (if (compare-and-set! a old-val new-val)
         [old-val new-val]
         (recur @a)))))
+
+(defmacro with-redefs
+  [[& bindings] & body]
+  (if (find-var 'clojure.core/with-redefs)
+    `(clojure.core/with-redefs [~@bindings] ~@body)
+    `(binding [~@bindings] ~@body)))

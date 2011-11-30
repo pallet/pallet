@@ -1,13 +1,15 @@
 (ns pallet.mock
-  (:use clojure.test))
+  (:use clojure.test)
+  (:require
+   [pallet.utils :as utils]))
 
-(def *expectations*)
+(def ^{:dynamic true} *expectations*)
 
 (defn equality-checker
   [actual expected msg]
   (is (= actual expected) msg))
 
-(def *equality-checker* equality-checker)
+(def ^{:dynamic true} *equality-checker* equality-checker)
 
 (defn verify-expectations
   [checks]
@@ -72,6 +74,6 @@
   "Binds a list of mocks, checling any expectations on exit of the block."
   [mocks & body]
   `(with-expectations
-     (binding ~(construct-bindings mocks)
+     (utils/with-redefs ~(construct-bindings mocks)
        ~@body)
      (verify-expectations *expectations*)))
