@@ -63,28 +63,28 @@
      (when-not (and session (map? session))
        (slingshot/throw+
         {:type :invalid-session
-         :message
-         "Invalid session map in phase. Check for non crate functions
+         :session session}
+        "Invalid session map in phase. Check for non crate functions
       improper crate functions, or problems in threading the session map
       in your phase definition.
 
       A crate function is a function that takes a session map and other
       arguments, and returns a modified session map. Calls to crate functions
       are often wrapped in a threading macro, -> or pallet.phase/phase-fn
-      to simplify chaining of the session map argument."}))
+      to simplify chaining of the session map argument."))
      session)
   ([session form]
      ;; we do not use a precondition in order to improve the error message
      (when-not (and session (map? session))
        (slingshot/throw+
         {:type :invalid-session
-         :message
-         (format
-          (str
-           "Invalid session map in phase session.\n"
-           "`session` is %s\n"
-           "Problem probably caused in:\n  %s ")
-          session form)}))
+         :session session}
+        (format
+         (str
+          "Invalid session map in phase session.\n"
+          "`session` is %s\n"
+          "Problem probably caused in:\n  %s ")
+         session form)))
      session))
 
 (defmacro check-session-thread

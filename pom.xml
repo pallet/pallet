@@ -48,6 +48,13 @@
       <plugin>
         <groupId>org.cloudhoist.plugin</groupId>
         <artifactId>zi</artifactId>
+        <dependencies>
+          <dependency>
+            <groupId>ritz</groupId>
+            <artifactId>ritz</artifactId>
+            <version>0.2.1-SNAPSHOT</version>
+          </dependency>
+        </dependencies>
       </plugin>
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
@@ -88,6 +95,11 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>tools.namespace</artifactId>
+      <version>0.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>algo.monads</artifactId>
       <version>0.1.0</version>
     </dependency>
     <dependency>

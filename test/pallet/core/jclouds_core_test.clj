@@ -187,8 +187,7 @@
   (logging/info "adjust-server-counts-test")
   (let [build-template org.jclouds.compute/build-template
         service (jclouds-test-utils/compute)
-        a-node (jclouds/make-node "a"
-                                  :state NodeState/RUNNING)]
+        a-node (jclouds/make-node "a" :state NodeState/RUNNING)]
     (mock/expects [(org.jclouds.compute/run-nodes
                     [tag n template compute]
                     (mock/once
@@ -198,19 +197,19 @@
                    (org.jclouds.compute/build-template
                     [compute & options]
                     (mock/times 2 (apply build-template compute options)))]
-                  (let [nodes (->
-                               (#'core/adjust-server-counts
-                                {:groups [(test-utils/group
-                                           :a :count 1 :delta-count 1
-                                           :servers [])]
-                                 :environment
-                                 {:compute service
-                                  :algorithms
-                                  (assoc core/default-algorithms
-                                    :converge-fn
-                                    #'pallet.core/serial-adjust-node-counts
-                                    :lift-fn #'pallet.core/sequential-lift)}})
-                               :all-nodes)]
+                  (let [[_ session] (#'core/adjust-server-counts
+                                     {:groups [(test-utils/group
+                                                :a :count 1 :delta-count 1
+                                                :servers [])]
+                                      :environment
+                                      {:compute service
+                                       :algorithms
+                                       (assoc core/default-algorithms
+                                         :converge-fn
+                                         #'pallet.core/serial-adjust-node-counts
+                                         :lift-fn
+                                         #'pallet.core/sequential-lift)}})
+                        nodes (:all-nodes session)]
                     (is (= 1 (count nodes)))
                     (is (= service (node/compute-service (first nodes))))
                     (is (= (compute/id a-node) (compute/id (first nodes)))))))
@@ -219,12 +218,9 @@
     (jclouds-test-utils/purge-compute-service)
     (let [build-template org.jclouds.compute/build-template
           service (jclouds-test-utils/compute)
-          a-node (jclouds/make-node "a"
-                                    :state NodeState/RUNNING)
-          b-node (jclouds/make-node "a"
-                                    :state NodeState/RUNNING)
-          c-node (jclouds/make-node "a"
-                                    :state NodeState/RUNNING)]
+          a-node (jclouds/make-node "a" :state NodeState/RUNNING)
+          b-node (jclouds/make-node "a" :state NodeState/RUNNING)
+          c-node (jclouds/make-node "a" :state NodeState/RUNNING)]
       (mock/expects [(org.jclouds.compute/run-nodes
                       [tag n template compute]
                       (mock/once
@@ -252,6 +248,7 @@
                                       :converge-fn
                                       #'pallet.core/serial-adjust-node-counts
                                       :lift-fn #'pallet.core/sequential-lift)}})
+                                 second
                                  :all-nodes)]
                       (is (= 1 (count (running-nodes nodes))))
                       (is (= service (node/compute-service (first nodes))))
@@ -283,6 +280,7 @@
                                     :converge-fn
                                     #'pallet.core/parallel-adjust-node-counts
                                     :lift-fn #'pallet.core/parallel-lift)}})
+                               second
                                :all-nodes)]
                     (is (= 1 (count nodes)))
                     (is (= service (node/compute-service (first nodes))))
@@ -519,9 +517,7 @@
         node (group-spec "c-t" :phases {:configure hi})
         session (converge {node 2}
                           :compute (jclouds-test-utils/compute)
-                          :middleware [core/translate-action-plan]
-                          :environment
-                          {:executor executors/echo-executor})]
+                          :environment {:executor executors/echo-executor})]
     (is (map? session))
     (is (map? (-> session :results)))
     (is (map? (-> session :results first second)))
@@ -536,7 +532,6 @@
     (testing "remove some instances"
       (let [session (converge {node 1}
                               :compute (jclouds-test-utils/compute)
-                              :middleware [core/translate-action-plan]
                               :environment {:executor executors/echo-executor})]
         (is (= 1 (count (running-nodes (:all-nodes session)))))
         (is (= 1 (count (running-nodes
@@ -549,7 +544,6 @@
       (let [session (converge {node 1}
                               :compute (jclouds-test-utils/compute)
                               :node-set-selector #'core/new-node-set-selector
-                              :middleware [core/translate-action-plan]
                               :environment {:executor executors/echo-executor})]
         (is (= 1 (count (running-nodes (:all-nodes session)))))
         (is (= 1 (count (running-nodes
@@ -563,13 +557,11 @@
                               :phase [:non-configure]
                               :compute (jclouds-test-utils/compute)
                               :node-set-selector #'core/new-node-set-selector
-                              :middleware [core/translate-action-plan]
                               :environment {:executor executors/echo-executor})]
         (is (= [:settings :configure :non-configure] (:phase-list session)))))
     (testing "remove all instances"
       (let [session (converge {node 0}
                               :compute (jclouds-test-utils/compute)
-                              :middleware [core/translate-action-plan]
                               :environment {:executor executors/echo-executor})]
         (is (= 0 (count (running-nodes (:all-nodes session)))))))))
 
