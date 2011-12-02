@@ -17,7 +17,7 @@
   (script/with-script-context [:ubuntu]
     (let [no-pw "/usr/bin/sudo -n"
           pw "echo \"fred\" | /usr/bin/sudo -S"
-          no-sudo "/bin/bash"]
+          no-sudo nil]
       (is (= no-pw (sudo-cmd-for {:username "fred"})))
       (is (= pw (sudo-cmd-for {:username "fred" :sudo-password "fred"})))
       (is (= no-pw
@@ -28,7 +28,7 @@
   (script/with-script-context [:centos-5.3]
     (let [no-pw "/usr/bin/sudo"
           pw "echo \"fred\" | /usr/bin/sudo -S"
-          no-sudo "/bin/bash"]
+          no-sudo nil]
       (is (= no-pw (sudo-cmd-for {:username "fred"})))
       (is (= pw (sudo-cmd-for {:username "fred" :sudo-password "fred"})))
       (is (= no-pw
@@ -36,3 +36,8 @@
               {:username "fred" :password "fred" :sudo-password false})))
       (is (= no-sudo (sudo-cmd-for {:username "root"})))
       (is (= no-sudo (sudo-cmd-for {:username "fred" :no-sudo true}))))))
+
+(deftest build-code-test
+  (script/with-script-context [:ubuntu]
+    (is (= {:execv ["/usr/bin/env" "/bin/bash"]}
+           (build-code {:user {:no-sudo true}} {:action-type :script/bash})))))

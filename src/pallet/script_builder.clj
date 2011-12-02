@@ -42,7 +42,7 @@
   "Construct a sudo command prefix for the specified user."
   [user]
   (if (or (= (:username user) "root") (:no-sudo user))
-    "/bin/bash"
+    nil
     (if-let [pw (:sudo-password user)]
       (str "echo \"" (or (:password user) pw) "\" | /usr/bin/sudo -S")
       (stevedore/script (~sudo-no-password)))))
@@ -62,22 +62,11 @@
 (defn build-code
   "Builds a code map, describing the command to execute a script."
   [session action & args]
-  ;; {:in
-  ;;  (->>
-  ;;   (concat
-  ;;    [(prefix (:script-prefix session :sudo) (:script-env session))
-  ;;     "/usr/bin/env"]
-  ;;    (map (fn [[k v]] (format "%s=\"%s\"" k v)) (:script-env session))
-  ;;    [(interpreter action)]
-  ;;    args)
-  ;;   (filter identity)
-  ;;   (interpose " ")
-  ;;   (apply str))}
   {:execv
    (->>
     (concat
-     (string/split
-      (prefix (:script-prefix session :sudo) (:script-env session)) #" ")
+     (when-let [prefix (prefix (:script-prefix session :sudo) session)]
+       (string/split prefix #" "))
      ["/usr/bin/env"]
      (map (fn [[k v]] (format "%s=\"%s\"" k v)) (:script-env session))
      [(interpreter action)]
