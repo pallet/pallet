@@ -1385,7 +1385,7 @@
     :node-set-selector :provider-options :group-spec->count :components})
 
 (defn- check-arguments-map
-  "Check an arguments map for errors."
+  "Check an arguments map for obvious errors."
   [{:as options}]
   (let [unknown (remove argument-keywords (keys options))]
     (when (and (:phases options) (not (:phase options)))
@@ -1442,47 +1442,35 @@
      (map? group-spec->count) (map group-spec-with-count group-spec->count)
      :else group-spec->count)))
 
-(defn phase-spec
-  "Take a phase, or phase-list, and turn it into a canonical phase list"
-  [phase]
-  (if (sequential? phase)
-    phase
-    (if phase [phase] [:configure])))
-
-(def ^{:doc "Normalise the converge keys"}
-  normalise-converge-keys
+(def ^{:doc "Take a phase, or sequence of phaes, from :phase and turn it into a
+  canonical :phase-list, which is a vector of phases, by default [:configure]."}
+  phase-spec
   (session-pipeline-fn
-   "normalise-converge-keys"
-   [phase (get :phase)
-    group-spec->count (get :group-spec->count)]
-   (assoc :node-set (expand-group-spec-with-counts group-spec->count)
-          :phase-list (phase-spec phase))
-   (dissoc :group-spec->count)))
+   "phase-spec"
+   [phase (get :phase)]
+   (assoc :phase-list (if (sequential? phase)
+                        phase
+                        (if phase [phase] [:configure])))
+   (dissoc :phase)))
 
-(def ^{:doc "Normalise the lift keys"}
-  normalise-lift-keys
-  (session-pipeline-fn
-   "normalise-lift-keys"
-   [phase (get :phase)
-    node-set (get :node-set)]
-   (assoc
-       :node-set (expand-cluster-groups node-set)
-       :phase-list (phase-spec phase))
-   (dissoc :all-node-set :phase)))
-
-(def process-converge-arguments
+(def
+  ^{:doc "The argument processing for converge"}
+  process-converge-arguments
   (session-pipeline-fn
    "process-converge-arguments"
    check-arguments-map
-   normalise-converge-keys
+   phase-spec
    session-with-environment
    identify-anonymous-phases))
 
-(def process-lift-arguments
+(def
+  ^{:doc "The argument processing for lift"}
+  process-lift-arguments
   (session-pipeline-fn
    "process-lift-arguments"
    check-arguments-map
-   normalise-lift-keys
+   phase-spec
+   (dissoc :all-node-set)
    session-with-environment
    identify-anonymous-phases))
 
@@ -1514,7 +1502,7 @@
   (session-pipeline
    "converge"
    options
-   (assoc :group-spec->count group-spec->count)
+   (assoc :node-set (expand-group-spec-with-counts group-spec->count))
    process-converge-arguments
    converge*))
 
@@ -1548,7 +1536,7 @@
   (session-pipeline
    "lift"
    options
-   (assoc :node-set node-set)
+   (assoc :node-set (expand-cluster-groups node-set))
    process-lift-arguments
    lift*))
 
