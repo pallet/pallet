@@ -98,13 +98,16 @@
                   "MD5 sum is 6de9439834c9147569741d3c9c9fc010 "
                   (.getPath tmp) "\n"
                   "...done\n")
-             (->
-              (pallet.core/lift
-               {{:group-name :local} (test-utils/make-localhost-node)}
-               :phase #(remote-file % (.getPath tmp) :content "xxx")
-               :compute nil
-               :middleware [core/translate-action-plan])
-              :results :localhost second second first :out)))
+             (let [session (pallet.core/lift
+                            {(core/group-spec "local")
+                             (test-utils/make-localhost-node
+                              :group-name "local")}
+                            :phase #(remote-file
+                                     % (.getPath tmp) :content "xxx")
+                            :compute nil
+                            :middleware [core/translate-action-plan])]
+               (logging/infof "r-f-t content: session %s" session)
+               (-> session :results :localhost second second first :out))))
       (is (= "xxx\n" (slurp (.getPath tmp))))))
 
   (testing "overwrite on existing content and no md5"
@@ -114,13 +117,17 @@
             (str "remote-file .*...done.")
             (bit-or java.util.regex.Pattern/MULTILINE
                     java.util.regex.Pattern/DOTALL))
-           (->
-            (pallet.core/lift
-             {{:group-name :local} (test-utils/make-localhost-node)}
-             :phase #(remote-file % (.getPath tmp) :content "xxx")
-             :compute nil
-             :middleware [core/translate-action-plan])
-            :results :localhost second second first :out)))
+           (let [session (pallet.core/lift
+                          {(core/group-spec "local")
+                           (test-utils/make-localhost-node
+                            :group-name "local")}
+                          :phase #(remote-file % (.getPath tmp) :content "xxx")
+                          :compute nil
+                          :middleware [core/translate-action-plan])]
+             (logging/infof
+              "r-f-t overwrite on existing content and no md5: session %s"
+              session)
+             (-> session :results :localhost second second first :out))))
       (is (= "xxx\n" (slurp (.getPath tmp))))))
 
   (binding [install-new-files nil]
