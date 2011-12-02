@@ -99,15 +99,37 @@ state."
                      ~'dissoc dissoc-state]
      (domonad session-m ~@body)))
 
+(defn component-symbol-fn
+  "Returns an inline function definition for a component look-up by symbol"
+  [k]
+  `(fn [session#] ((get (:components session#) '~k ~k) session#)))
+
+;; This is tricky to get right, as it could be many things other than a
+;; pipeline call.
+;; (defn component-form-fn
+;;   "Returns an inline function definition for a component look-up form a form"
+;;   [k]
+;;   `(fn [& args#]
+;;      (fn [session#]
+;;        ((apply (get (:components session#) '~(first k) ~(first k)) args#)
+;;         session#))))
+
 (defmacro chain-s
   "Defines a monadic comprehension under the session monad, where return value
   bindings can be dropped . Any vector in the arguments is expected to be of the
   form [symbol expr] and becomes part of the generated monad comprehension."
   [& args]
-  (letfn [(gen-step [f]
+  (letfn [(componentise [s]
+            (if (symbol? s)
+              (component-symbol-fn s)
+              s))
+          (gen-step [f]
             (if (vector? f)
-              f
-              [(gensym "_") f]))]
+              (vec
+               (mapcat
+                #(vector (first %) (componentise (second %)))
+                (partition 2 f)))
+              [(gensym "_") (componentise f)]))]
     `(let-s
       [~@(mapcat gen-step args)]
       nil)))

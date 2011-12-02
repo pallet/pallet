@@ -1368,20 +1368,21 @@
   "Build a session map from the given options, combining the service specific
    options with those given in the converge or lift invocation."
   [{:as options}]
-  (->
-   options
-   (update-in                           ; ensure backwards compatable
-    [:environment]
-    merge (select-keys options environment-args))
-   (utils/dissoc-keys environment-args)
-   (effective-environment)))
+  [nil (->
+        options
+        (update-in                      ; ensure backwards compatable
+         [:environment]
+         merge (select-keys options environment-args))
+        (assoc :executor default-executor)
+        (utils/dissoc-keys environment-args)
+        (effective-environment))])
 
 (def ^{:doc "A set of recognised argument keywords, used for input checking."
        :private true}
   argument-keywords
   #{:compute :blobstore :phase :user :prefix :middleware :all-node-set
     :all-nodes :parameters :environment :node-set :phase-list
-    :node-set-selector :provider-options :executors})
+    :node-set-selector :provider-options :group-spec->count :components})
 
 (defn- check-arguments-map
   "Check an arguments map for errors."
@@ -1448,25 +1449,42 @@
     phase
     (if phase [phase] [:configure])))
 
-(defn normalise-converge-keys
-  "Normalise the converge keys"
-  [group-spec->count]
+(def ^{:doc "Normalise the converge keys"}
+  normalise-converge-keys
   (session-pipeline-fn
    "normalise-converge-keys"
-   [phase (get :phase)]
+   [phase (get :phase)
+    group-spec->count (get :group-spec->count)]
    (assoc :node-set (expand-group-spec-with-counts group-spec->count)
-          :phase-list (phase-spec phase))))
+          :phase-list (phase-spec phase))
+   (dissoc :group-spec->count)))
 
-(defn normalise-lift-keys
-  "Normalise the lift keys"
-  [node-set]
+(def ^{:doc "Normalise the lift keys"}
+  normalise-lift-keys
   (session-pipeline-fn
    "normalise-lift-keys"
-   [phase (get :phase)]
+   [phase (get :phase)
+    node-set (get :node-set)]
    (assoc
        :node-set (expand-cluster-groups node-set)
        :phase-list (phase-spec phase))
    (dissoc :all-node-set :phase)))
+
+(def process-converge-arguments
+  (session-pipeline-fn
+   "process-converge-arguments"
+   check-arguments-map
+   normalise-converge-keys
+   session-with-environment
+   identify-anonymous-phases))
+
+(def process-lift-arguments
+  (session-pipeline-fn
+   "process-lift-arguments"
+   check-arguments-map
+   normalise-lift-keys
+   session-with-environment
+   identify-anonymous-phases))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
@@ -1496,10 +1514,8 @@
   (session-pipeline
    "converge"
    options
-   (normalise-converge-keys group-spec->count)
-   check-arguments-map
-   (as-session-pipeline-fn session-with-environment)
-   identify-anonymous-phases
+   (assoc :group-spec->count group-spec->count)
+   process-converge-arguments
    converge*))
 
 (defn lift
@@ -1532,10 +1548,8 @@
   (session-pipeline
    "lift"
    options
-   check-arguments-map
-   (normalise-lift-keys node-set)
-   (as-session-pipeline-fn session-with-environment)
-   identify-anonymous-phases
+   (assoc :node-set node-set)
+   process-lift-arguments
    lift*))
 
 
