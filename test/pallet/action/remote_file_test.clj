@@ -105,7 +105,9 @@
                             :phase #(remote-file
                                      % (.getPath tmp) :content "xxx")
                             :compute nil
-                            :middleware [core/translate-action-plan])]
+                            :user (assoc utils/*admin-user*
+                                    :username (test-utils/test-username)
+                                    :no-sudo true))]
                (logging/infof "r-f-t content: session %s" session)
                (-> session :results :localhost second second first :out))))
       (is (= "xxx\n" (slurp (.getPath tmp))))))
@@ -123,7 +125,9 @@
                             :group-name "local")}
                           :phase #(remote-file % (.getPath tmp) :content "xxx")
                           :compute nil
-                          :middleware [core/translate-action-plan])]
+                          :user (assoc utils/*admin-user*
+                                  :username (test-utils/test-username)
+                                  :no-sudo true))]
              (logging/infof
               "r-f-t overwrite on existing content and no md5: session %s"
               session)
