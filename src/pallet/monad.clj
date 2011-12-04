@@ -34,9 +34,9 @@
 
 (def
   ^{:doc
-    "The pallet session monad. This is fundamentally a state monad, where
-the state is the pallet session map."}
-  session-m ;; (state-t maybe-m)
+    "The pallet session monad. This is fundamentally a state monad, where the
+     state is the pallet session map."}
+  session-m
   (state-checking-t state-m check-session))
 
 ;; (def
@@ -136,23 +136,23 @@ state."
 
 (defmacro wrap-pipeline
   "Wraps a pipeline with one or more wrapping froms"
-  [[arg] & wrappings-and-pipeline]
-  `(fn [~arg]
+  [[arg & [sym & _]] & wrappings-and-pipeline]
+  `(fn ~@(when sym [sym]) [~arg]
      ~(reduce
        #(concat %2 [%1])
        (list (last wrappings-and-pipeline) arg)
        (reverse (drop-last wrappings-and-pipeline)))))
 
-(defmacro session-pipeline-fn
+(defmacro ^{:indent 1} session-pipeline-fn
   "Defines a session pipeline. This composes the body functions under the
   session-m monad. Any vector in the arguments is expected to be of the form
   [symbol expr] and becomes part of the generated monad comprehension."
   [name & args]
-  `(wrap-pipeline [session#]
-    (with-context :session-pipeline ~name)
+  `(wrap-pipeline [session# ~name]
+    (with-context :session-pipeline ~(clojure.core/name name))
     (chain-s ~@args)))
 
-(defmacro session-pipeline
+(defmacro ^{:indent 1} session-pipeline
   "Build and call a session pipeline"
   [name session & args]
   `(let [name# ~name
@@ -171,7 +171,7 @@ state."
   the state monad"
   [f] #(vector nil (f %)))
 
-(defmacro session-peek-fn
+(defmacro ^{:indent 'defun} session-peek-fn
   "Create a state-m monadic value function that examines the session, and
   returns nil."
   [[sym] & body]
