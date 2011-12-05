@@ -10,7 +10,9 @@
    [pallet.compute.node-list :as node-list]
    [clojure.java.io :as io]
    clojure.tools.logging)
-  (:use clojure.test))
+  (:use
+   clojure.test
+   [pallet.phase :only [add-session-verification-key]]))
 
 (defmacro with-private-vars [[ns fns] & tests]
   "Refers private fns from ns and runs tests in context.  From users mailing
@@ -93,7 +95,8 @@ list, Alan Dipert and MeikelBrandmeyer."
 (defn test-session
   "Build a test session"
   [& components]
-  (reduce merge components))
+  (add-session-verification-key
+   (reduce merge {:executor core/default-executor} components)))
 
 (defn server
   "Build a server for the session map"

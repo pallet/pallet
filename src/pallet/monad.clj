@@ -2,11 +2,12 @@
   "Pallet monads"
   (:use
    [clojure.algo.monads
-    :only [domonad maybe-m monad state-t state-m with-monad]]
+    :only [domonad maybe-m monad state-t state-m with-monad defmonadfn m-seq]]
    [clojure.tools.macro :only [symbol-macrolet]]
    [pallet.context :only [with-context]]
    [pallet.phase :only [check-session]]))
 
+;;; monads
 (defn state-checking-t
   "Monad transformer that transforms a state monad m into a monad that check its
   state."
@@ -18,7 +19,7 @@
                        (fn state-checking-t-mv [s]
                          (checker s)
                          (let [[_ ss :as r] ((m-bind stm f) s)]
-                           (checker ss)
+                           (checker ss {:f f :result r})
                            r))))
           m-zero   (with-monad m
                      (if (= ::undefined m-zero)
@@ -28,9 +29,7 @@
           m-plus   (with-monad m
                      (if (= ::undefined m-plus)
                        ::undefined
-                       (fn [& stms]
-                         (fn [s]
-                           (apply m-plus (map #(% s) stms))))))]))
+                       m-plus))]))
 
 (def
   ^{:doc
@@ -44,6 +43,14 @@
 ;;   session-seq-m
 ;;   (sequence-t state-m))
 
+;;; monadic functions
+(defmonadfn m-mapcat
+  "'Executes' the sequence of monadic values resulting from mapping
+   f onto the values xs. f must return a monadic value."
+  [f xs]
+  (m-seq (map f xs)))
+
+
 ;;; state accessors
 (defn update-in-state
   "Return a state-monad function that replaces the current state by the result
@@ -56,7 +63,7 @@ of f applied to the current state and that returns the old state."
 of assoc'ing the specified kw-value-pairs onto the current state, and that
 returns the old state."
   [& kw-value-pairs]
-  (fn [s]
+  (fn assoc-state [s]
     {:pre [(map? s)]}
     [s (apply assoc s kw-value-pairs)]))
 
@@ -64,13 +71,13 @@ returns the old state."
   "Return a state-monad function that removes the specified keys from the
 current state, and returns the old state"
   [& keys]
-  (fn [s] [s (apply dissoc s keys)]))
+  (fn dissoc-state [s] [s (apply dissoc s keys)]))
 
 (defn get-state
   "Return a state-monad function that gets the specified key from the current
 state."
   ([k default]
-     (fn [s] [(get s k default) s]))
+     (fn get-state [s] [(get s k default) s]))
   ([k]
      (get-state k nil)))
 
@@ -78,14 +85,14 @@ state."
   "Return a state-monad function that gets the specified key from the current
 state."
   ([ks default]
-     (fn [s] [(get-in s ks default) s]))
+     (fn get-in-state [s] [(get-in s ks default) s]))
   ([ks]
      (get-in-state ks nil)))
 
 (defn get-session
   "Return a state-monad function that gets the current sessin."
   []
-  (fn [s] [s s]))
+  (fn get-session [s] [s s]))
 
 
 ;;; comprehensions
@@ -134,7 +141,7 @@ state."
       [~@(mapcat gen-step args)]
       nil)))
 
-(defmacro wrap-pipeline
+(defmacro ^{:indent 'defun} wrap-pipeline
   "Wraps a pipeline with one or more wrapping froms"
   [[arg & [sym & _]] & wrappings-and-pipeline]
   `(fn ~@(when sym [sym]) [~arg]

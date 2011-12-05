@@ -143,7 +143,7 @@
                    %
                    (get-in session [:server :node-id])
                    (get-in session [:group :group-name])))]
-    session))
+    (phase/add-session-verification-key session)))
 
 (defn build-actions*
   "Implementation for build-actions."

@@ -1,7 +1,8 @@
 (ns pallet.phase-test
   (:use pallet.phase)
   (:use
-   clojure.test))
+   clojure.test
+   [pallet.test-utils :only [test-session]]))
 
 
 (deftest post-phase-name-test
@@ -39,8 +40,8 @@
   (is (thrown-with-msg?
         slingshot.Stone #"passed to the pipeline"
         ((phase-fn identity) 1)))
-  (is (= {} ((phase-fn identity) {})))
+  (is (= (test-session) ((phase-fn identity) (test-session))))
   (let [fgh (constantly nil)]
     (is (thrown-with-msg?
           slingshot.Stone #"fgh"
-          ((phase-fn fgh) {})))))
+          ((phase-fn fgh) (test-session))))))

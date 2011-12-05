@@ -25,7 +25,8 @@
    clojure.test
    [pallet.monad :only [session-pipeline session-pipeline-fn
                         as-session-pipeline-fn session-peek-fn
-                        get-session wrap-pipeline]]))
+                        get-session wrap-pipeline]]
+   [pallet.test-utils :only [test-session]]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
 
@@ -323,10 +324,11 @@
 (deftest bootstrap-script-test
   (is (= "a\n"
          (#'core/bootstrap-script
-          {:group {:image {:os-family :ubuntu}
-                   :packager :aptitude
-                   :phases {:bootstrap (phase/phase-fn
-                                        (identity-action "a"))}}})))
+          (test-session
+           {:group {:image {:os-family :ubuntu}
+                    :packager :aptitude
+                    :phases {:bootstrap (phase/phase-fn
+                                         (identity-action "a"))}}}))))
   (testing "rejects local actions"
     (is (re-find
           #":error.*local actions"
@@ -564,51 +566,61 @@
     (is (seeny?))))
 
 (deftest lift*-nodes-binding-test
+  (logging/error "lift*-nodes-binding-test start")
   (let [a (group-spec "a")
         b (group-spec "b")
         na (test-utils/make-node "a")
         nb (test-utils/make-node "b")
         nc (test-utils/make-node "c" :running false)]
-    (mock/expects [(sequential-apply-phase
-                    [session]
-                    (do
-                      (is (= #{na nb} (set (:selected-nodes session))))
-                      (is (= #{na nb} (set (:all-nodes session))))
-                      (is (= #{na nb} (set
-                                       (map
-                                        :node (-> session :group :servers)))))
-                      (is (= #{na nb}
-                             (set (map
-                                   :node
-                                   (-> session :groups first :servers)))))
-                      []))]
-                  (lift*
-                   {:node-set {a #{na nb nc}}
-                    :phase-list [:configure]
-                    :environment
-                    {:compute nil
-                     :user utils/*admin-user*
-                     :middleware *middleware*
-                     :algorithms {:lift-fn sequential-lift}}}))
-    (mock/expects [(sequential-apply-phase
-                    [session]
-                    (do
-                      (is (= #{na nb} (set (:selected-nodes session))))
-                      (is (= na
-                             (-> session
-                                 :groups first :servers first :node)))
-                      (is (= nb
-                             (-> session
-                                 :groups second :servers first :node)))
-                      []))]
-                  (lift*
-                   {:node-set {a #{na} b #{nb}}
-                    :phase-list [:configure]
-                    :environment
-                    {:compute nil
-                     :user utils/*admin-user*
-                     :middleware *middleware*
-                     :algorithms {:lift-fn sequential-lift}}}))))
+
+    (testing "single group"
+        (mock/expects [(sequential-apply-phase
+                        [session]
+                        (do
+                          (is (= #{na nb} (set (:selected-nodes session))))
+                          (is (= #{na nb} (set (:all-nodes session))))
+                          (is (= #{na nb} (set
+                                           (map
+                                            :node
+                                            (-> session :group :servers)))))
+                          (is (= #{na nb}
+                                 (set (map
+                                       :node
+                                       (-> session :groups first :servers)))))
+                          [[] session]))]
+                      (lift*
+                       (test-session
+                        {:node-set {a #{na nb nc}}
+                         :phase-list [:configure]
+                         :executor core/default-executor
+                         :environment
+                         {:compute nil
+                          :user utils/*admin-user*
+                          :middleware *middleware*
+                          :algorithms {:lift-fn sequential-lift}}}))))
+    (testing "single multi-group"
+      (mock/expects [(sequential-apply-phase
+                      [session]
+                      (do
+                        (is (= #{na nb} (set (:selected-nodes session))))
+                        (is (= na
+                               (-> session
+                                   :groups first :servers first :node)))
+                        (is (= nb
+                               (-> session
+                                   :groups second :servers first :node)))
+                        [[] session]))]
+                    (lift*
+                     (test-session
+                      {:node-set {a #{na} b #{nb}}
+                       :phase-list [:configure]
+                       :executor core/default-executor
+                       :environment
+                       {:compute nil
+                        :user utils/*admin-user*
+                        :middleware *middleware*
+                        :algorithms {:lift-fn sequential-lift}}})))))
+    (logging/error "lift*-nodes-binding-test end"))
 
 (deftest lift-multiple-test
   (let [a (group-spec "a")
@@ -905,4 +917,5 @@
   (let [testfn (session-pipeline-fn testfn (assoc :x 1))]
     (is (= 1
            (:x (second (core/process-lift-arguments
-                        {:components {'check-arguments-map testfn}})))))))
+                        (test-session
+                         {:components {'check-arguments-map testfn}}))))))))

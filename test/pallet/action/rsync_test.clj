@@ -30,16 +30,17 @@
         (io/copy "text" tmp)
         (.delete target-dir)
         (core/lift*
-         {:node-set {tag #{node}}
-          :phase-list [:p]
-          :inline-phases {:p (phase/phase-fn
-                              (rsync (.getPath dir) (.getPath target-dir) {}))}
-          :environment
-          {:user user
-           :middleware core/*middleware*
-           :executor core/default-executor
-           :algorithms (assoc core/default-algorithms
-                         :lift-fn core/sequential-lift)}})
+         (test-utils/test-session
+          {:node-set {tag #{node}}
+           :phase-list [:p]
+           :inline-phases {:p (phase/phase-fn
+                               (rsync (.getPath dir) (.getPath target-dir) {}))}
+           :environment
+           {:user user
+            :middleware core/*middleware*
+            :executor core/default-executor
+            :algorithms (assoc core/default-algorithms
+                          :lift-fn core/sequential-lift)}}))
         (let [target-tmp (java.io.File.
                           (str (.getPath target-dir)
                                "/" (.getName dir)
@@ -49,17 +50,18 @@
           (.delete target-tmp))
         (.delete target-dir)
         (core/lift*
-         {:node-set {tag node}
-          :phase-list [:p]
-          :inline-phases {:p (phase/phase-fn
-                              (rsync-directory
-                               (.getPath dir) (.getPath target-dir)))}
-          :environment
-          {:user user
-           :middleware core/*middleware*
-           :executor core/default-executor
-           :algorithms (assoc core/default-algorithms
-                         :lift-fn core/sequential-lift)}})
+         (test-utils/test-session
+          {:node-set {tag node}
+           :phase-list [:p]
+           :inline-phases {:p (phase/phase-fn
+                               (rsync-directory
+                                (.getPath dir) (.getPath target-dir)))}
+           :environment
+           {:user user
+            :middleware core/*middleware*
+            :executor core/default-executor
+            :algorithms (assoc core/default-algorithms
+                          :lift-fn core/sequential-lift)}}))
         (let [target-tmp (java.io.File.
                           (str (.getPath target-dir)
                                "/" (.getName dir)

@@ -52,7 +52,7 @@
    [clojure.core.incubator :only [-?>]]
    [pallet.monad :only [session-pipeline session-pipeline-fn
                         as-session-pipeline-fn session-peek-fn
-                        get-session wrap-pipeline]]
+                        get-session wrap-pipeline chain-s let-s m-mapcat]]
    [slingshot.core :only [throw+]]))
 
 (let [v (atom nil)]
@@ -560,7 +560,16 @@
   [session]
   (plan-for-group-phase session (:groups session)))
 
+(def
+  ^{:doc "Build an invocation map for specified phases and nodes.
+   This allows configuration to be accumulated in the session parameters."}
+  plan-for-phases
+  (session-pipeline-fn plan-for-phases
+    [phase-list (get :phase-list)]
+    (m-map plan-for-phase phase-list)))
+
 ;;; Phase application
+
 (defn has-phase?
   [session]
   (let [phase (:phase session)]
@@ -612,11 +621,12 @@
    (:phase session)
    (-> session :group :group-name)
    (count (-> session :group :servers)))
-  (for [server (-> session :group :servers)
-        :let [session (assoc session
-                        :server server :target-id (:node-id server))]
-        :when (has-phase? session)]
-    (apply-phase-to-node session)))
+  [(for [server (-> session :group :servers)
+          :let [session (assoc session
+                          :server server :target-id (:node-id server))]
+          :when (has-phase? session)]
+      (apply-phase-to-node session))
+   session])
 
 (defmethod sequential-apply-phase-to-target :group
   [session]
@@ -624,25 +634,44 @@
    "sequential-apply-phase-to-target :group  %s for %s"
    (:phase session) (-> session :group :group-name))
   (let [session (assoc session :target-id (-> session :group :group-name))]
-    (when (has-phase? session)
-      [(apply-phase-to-group session)])))
+    (if (has-phase? session)
+      [[(apply-phase-to-group session)] session]
+      [nil session])))
 
-(def
-  ^{:doc "Build an invocation map for specified phases and nodes.
-   This allows configuration to be accumulated in the session parameters."}
-  plan-for-phases
-  (session-pipeline-fn plan-for-phases
-    [phase-list (get :phase-list)]
-    (m-map plan-for-phase phase-list)))
+(def ^{:doc "Apply a phase to a sequence of nodes"}
+  sequential-apply-phase
+  (wrap-pipeline [session sequential-apply-phase]
+    (context/with-context :session-pipeline "sequential-apply-phase")
+    (let-s
+     [_ (session-peek-fn [session]
+          (logging/debugf
+           "sequential-apply-phase %s for %s"
+           (:phase session) (-> session :group :group-name)))
+      result sequential-apply-phase-to-target]
+     result)))
 
-;;; apply phase
-(defn sequential-apply-phase
-  "Apply a phase to a sequence of nodes"
-  [session]
-  (logging/debugf
-   "sequential-apply-phase %s for %s"
-   (:phase session) (-> session :group :group-name))
-  (sequential-apply-phase-to-target session))
+(defn- ensure-phase [phases phase-kw]
+  (if (some #{phase-kw} phases)
+    phases
+    (concat [phase-kw] phases)))
+
+(defn sequential-apply-phase-to-group
+  [group]
+  (wrap-pipeline [session sequential-apply-phase-to-group]
+    (context/with-context :session-pipeline "sequential-apply-phase-to-group")
+    (let-s
+     [_ (assoc :group group)
+      result sequential-apply-phase]
+     result)))
+
+(def ^{:doc "Sequential apply the phases."}
+  sequential-lift
+  (wrap-pipeline [session sequential-lift]
+    (context/with-context :session-pipeline "sequential-lift")
+    (let-s
+     [groups (get :groups)
+      result (m-map sequential-apply-phase-to-group groups)]
+     (apply concat result))))
 
 (defmulti parallel-apply-phase-to-target :target-type)
 
@@ -676,29 +705,17 @@
    (:phase session) (-> session :group :group-name))
   (futures/add (parallel-apply-phase-to-target session)))
 
-(defn- ensure-phase [phases phase-kw]
-  (if (some #{phase-kw} phases)
-    phases
-    (concat [phase-kw] phases)))
-
-(defn sequential-lift
-  "Sequential apply the phases."
-  [session]
-  (apply
-   concat
-   (for [group (:groups session)]
-     (sequential-apply-phase (assoc session :group group)))))
-
 (defn parallel-lift
   "Apply the phases in sequence, to nodes in parallel."
   [session]
-  (->>
-   (for [group (:groups session)]
-     (parallel-apply-phase (assoc session :group group)))
-   (reduce concat [])
-   doall                        ; make sure we start all futures before deref
-   (map deref)                  ; make sure all nodes complete before next phase
-   doall))                      ; make sure we force the deref
+  [(->>
+    (for [group (:groups session)]
+      (parallel-apply-phase (assoc session :group group)))
+    (reduce concat [])
+    doall                       ; make sure we start all futures before deref
+    (map deref)                 ; make sure all nodes complete before next phase
+    doall)
+   session])                    ; make sure we force the deref
 
 (defn- reduce-node-results
   "Combine the node execution results."
@@ -722,20 +739,21 @@
 
 (defn lift-phase*
   [phase sub-phase]
-  (session-pipeline-fn lift-nodes-for-phase*
+  (session-pipeline-fn lift-phase*
     (assoc :phase phase)
     plan-for-target
     (assoc :phase sub-phase)
     [session (get-session)
      lift-fn (fn [session]
-               [(environment/get-for session [:algorithms :lift-fn]) session])]
-    (reduce-node-results (lift-fn session))))
+               [(environment/get-for session [:algorithms :lift-fn]) session])
+     results lift-fn]
+    (reduce-node-results results)))
 
 (def ^{:docs "Lift nodes in target-node-map for the specified phases.
    Builds the commands for the phase, then executes pre-phase, phase, and
    after-phase"}
   lift-phase
-  (session-pipeline-fn lift-nodes-for-phase
+  (session-pipeline-fn lift-phase
     [phase (get :phase)]
     (m-map (partial lift-phase* phase) (phase/all-phases-for-phase phase))))
 
@@ -1368,7 +1386,8 @@
   argument-keywords
   #{:compute :blobstore :phase :user :prefix :middleware :all-node-set
     :all-nodes :parameters :environment :node-set :phase-list
-    :node-set-selector :provider-options :group-spec->count :components})
+    :node-set-selector :provider-options :group-spec->count :components
+    phase/session-verification-key})
 
 (defn- check-arguments-map
   "Check an arguments map for obvious errors."
@@ -1483,7 +1502,7 @@
                                all-nodes all-node-set environment]
                         :as options}]
   (session-pipeline converge
-    options
+    (phase/add-session-verification-key options)
     (assoc :node-set (expand-group-spec-with-counts group-spec->count))
     process-converge-arguments
     converge*))
@@ -1515,12 +1534,11 @@
     :user            the admin-user on the nodes"
   [node-set & {:keys [compute phase prefix middleware all-node-set environment]
                :as options}]
-  (session-pipeline
-   lift
-   options
-   (assoc :node-set (expand-cluster-groups node-set))
-   process-lift-arguments
-   lift*))
+  (session-pipeline lift
+    (phase/add-session-verification-key options)
+    (assoc :node-set (expand-cluster-groups node-set))
+    process-lift-arguments
+    lift*))
 
 
 

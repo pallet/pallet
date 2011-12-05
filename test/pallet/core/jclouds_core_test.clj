@@ -24,7 +24,8 @@
    [clojure.tools.logging :as logging]
    [clojure.string :as string])
   (:use
-   clojure.test)
+   clojure.test
+   [pallet.test-utils :only [test-session]])
   (:import [org.jclouds.compute.domain NodeState OperatingSystem OsFamily]))
 
 ;; Allow running against other compute services if required
@@ -104,11 +105,12 @@
                   :phases {:destroy-server action}}]]
     (is (= 1 (count nodes)))
     (let [session (#'core/lift-destroy-server
-                   {:groups [(core/group-spec
-                              :a
-                              :servers servers
-                              :servers-to-remove servers)]
-                    :environment (serial-environment-no-ssh)})]
+                   (test-session
+                    {:groups [(core/group-spec
+                               :a
+                               :servers servers
+                               :servers-to-remove servers)]
+                     :environment (serial-environment-no-ssh)}))]
       (is (seen?))
       (logging/info "lift-destroy-server-test end"))))
 
@@ -150,7 +152,7 @@
                              :phases {:destroy-group action}
                              :delta-count -1)]
                    :environment (serial-environment-no-ssh)}
-          session (-> session
+          session (-> (test-session session)
                       core/destroy-servers
                       core/lift-destroy-group)]
       (is (seen?))
@@ -166,7 +168,7 @@
                              :delta-count 1
                              :phases {:create-group action})]
                    :environment (serial-environment-no-ssh)}
-          session (-> session
+          session (-> (test-session session)
                       core/lift-create-group)]
       (is (seen?))
       (logging/info "lift-create-group-test end"))))
@@ -177,8 +179,9 @@
   (let [service (jclouds-test-utils/compute)]
     (is (= 0 (count (running-nodes (compute/nodes service)))))
     (let [session (#'core/create-servers
-                   {:groups [(core/group-spec :a :delta-count 1)]
-                    :environment (serial-environment-no-ssh)})]
+                   (test-session
+                    {:groups [(core/group-spec :a :delta-count 1)]
+                     :environment (serial-environment-no-ssh)}))]
       (is (= 1 (count (running-nodes (compute/nodes service)))))
       (is (= 1 (count (:new-nodes session))))
       (logging/info "create-servers-test end"))))
@@ -198,17 +201,18 @@
                     [compute & options]
                     (mock/times 2 (apply build-template compute options)))]
                   (let [[_ session] (#'core/adjust-server-counts
-                                     {:groups [(test-utils/group
-                                                :a :count 1 :delta-count 1
-                                                :servers [])]
-                                      :environment
-                                      {:compute service
-                                       :algorithms
-                                       (assoc core/default-algorithms
-                                         :converge-fn
-                                         #'pallet.core/serial-adjust-node-counts
-                                         :lift-fn
-                                         #'pallet.core/sequential-lift)}})
+                                     (test-session
+                                      {:groups [(test-utils/group
+                                                 :a :count 1 :delta-count 1
+                                                 :servers [])]
+                                       :environment
+                                       {:compute service
+                                        :algorithms
+                                        (assoc core/default-algorithms
+                                          :converge-fn
+                                          #'pallet.core/serial-adjust-node-counts
+                                          :lift-fn
+                                          #'pallet.core/sequential-lift)}}))
                         nodes (:all-nodes session)]
                     (is (= 1 (count nodes)))
                     (is (= service (node/compute-service (first nodes))))
@@ -236,20 +240,19 @@
                      (org.jclouds.compute/build-template
                       [compute & options]
                       (mock/times 2 (apply build-template compute options)))]
-                    (let [nodes (->
-                                 (#'core/adjust-server-counts
-                                  {:groups [(test-utils/group
-                                             :a :count 3 :delta-count 3
-                                             :servers [])]
-                                   :environment
-                                   {:compute service
-                                    :algorithms
-                                    (assoc core/default-algorithms
-                                      :converge-fn
-                                      #'pallet.core/serial-adjust-node-counts
-                                      :lift-fn #'pallet.core/sequential-lift)}})
-                                 second
-                                 :all-nodes)]
+                    (let [[_ session] (#'core/adjust-server-counts
+                                       (test-session
+                                        {:groups [(test-utils/group
+                                                   :a :count 3 :delta-count 3
+                                                   :servers [])]
+                                         :environment
+                                         {:compute service
+                                          :algorithms
+                                          (assoc core/default-algorithms
+                                            :converge-fn
+                                            #'pallet.core/serial-adjust-node-counts
+                                            :lift-fn #'pallet.core/sequential-lift)}}))
+                          nodes (:all-nodes session)]
                       (is (= 1 (count (running-nodes nodes))))
                       (is (= service (node/compute-service (first nodes))))
                       (is (= (compute/id a-node)
@@ -272,14 +275,15 @@
                     (mock/times 2 (apply build-template compute options)))]
                   (let [nodes (->
                                (#'core/adjust-server-counts
-                                {:groups [(test-utils/group :a :delta-count 1)]
-                                 :environment
-                                 {:compute service
-                                  :algorithms
-                                  (assoc core/default-algorithms
-                                    :converge-fn
-                                    #'pallet.core/parallel-adjust-node-counts
-                                    :lift-fn #'pallet.core/parallel-lift)}})
+                                (test-session
+                                 {:groups [(test-utils/group :a :delta-count 1)]
+                                  :environment
+                                  {:compute service
+                                   :algorithms
+                                   (assoc core/default-algorithms
+                                     :converge-fn
+                                     #'pallet.core/parallel-adjust-node-counts
+                                     :lift-fn #'pallet.core/parallel-lift)}}))
                                second
                                :all-nodes)]
                     (is (= 1 (count nodes)))
@@ -369,17 +373,18 @@
                              (set (map
                                    :node
                                    (-> session :groups first :servers)))))
-                      []))]
+                      [[] session]))]
                   (lift*
-                   {:node-set {a #{na nb nc}}
-                    :phase-list [:configure]
-                    :environment
-                    {:compute nil
-                     :user utils/*admin-user*
-                     :middleware *middleware*
-                     :algorithms
-                     {:converge-fn #'pallet.core/serial-adjust-node-counts
-                      :lift-fn sequential-lift}}}))
+                   (test-session
+                    {:node-set {a #{na nb nc}}
+                     :phase-list [:configure]
+                     :environment
+                     {:compute nil
+                      :user utils/*admin-user*
+                      :middleware *middleware*
+                      :algorithms
+                      {:converge-fn #'pallet.core/serial-adjust-node-counts
+                       :lift-fn sequential-lift}}})))
     (mock/expects [(sequential-apply-phase
                     [session]
                     (do
@@ -390,17 +395,18 @@
                       (is (= nb
                              (-> session
                                  :groups second :servers first :node)))
-                      []))]
+                      [[] session]))]
                   (lift*
-                   {:node-set {a #{na} b #{nb}}
-                    :phase-list [:configure]
-                    :environment
-                    {:compute nil
-                     :user utils/*admin-user*
-                     :middleware *middleware*
-                     :algorithms
-                     {:converge-fn #'pallet.core/serial-adjust-node-counts
-                      :lift-fn sequential-lift}}}))))
+                   (test-session
+                    {:node-set {a #{na} b #{nb}}
+                     :phase-list [:configure]
+                     :environment
+                     {:compute nil
+                      :user utils/*admin-user*
+                      :middleware *middleware*
+                      :algorithms
+                      {:converge-fn #'pallet.core/serial-adjust-node-counts
+                       :lift-fn sequential-lift}}})))))
 
 ;; need to mock protocol function :
 ;; (deftest lift-multiple-test
@@ -473,17 +479,18 @@
                       (is (=
                            #{"a" "b"}
                            (set (map compute/group-name (:all-nodes session)))))
-                      []))
+                      [[] session]))
                    (org.jclouds.compute/nodes-with-details [_] [na nb nb2])]
                   (converge*
-                   {:node-set [(assoc a :count 1) (assoc b :count 1)]
-                    :phase-list [:configure]
-                    :environment
-                    {:compute (jclouds-test-utils/compute)
-                     :middleware *middleware*
-                     :algorithms
-                     {:converge-fn #'pallet.core/serial-adjust-node-counts
-                      :lift-fn sequential-lift}}})))
+                   (test-session
+                    {:node-set [(assoc a :count 1) (assoc b :count 1)]
+                     :phase-list [:configure]
+                     :environment
+                     {:compute (jclouds-test-utils/compute)
+                      :middleware *middleware*
+                      :algorithms
+                      {:converge-fn #'pallet.core/serial-adjust-node-counts
+                       :lift-fn sequential-lift}}}))))
   (logging/info "converge*-test end"))
 
 (deftest converge-with-environment-test
@@ -498,17 +505,18 @@
                       (update-in session [:new-nodes]
                                  conj (jclouds/make-node "a"))))]
                   (converge*
-                   {:node-set [(assoc a :count 1)]
-                    :phase-list [:configure]
-                    :environment
-                    {:compute (jclouds-test-utils/compute)
-                     :middleware *middleware*
-                     :algorithms
-                     {:converge-fn #'pallet.core/serial-adjust-node-counts
-                      :lift-fn sequential-lift
-                      :execute-status-fn stop-execution-on-error}
-                     :groups {:a {:image {:os-family :centos}}}
-                     :user (utils/make-user "fred")}}))))
+                   (test-session
+                    {:node-set [(assoc a :count 1)]
+                     :phase-list [:configure]
+                     :environment
+                     {:compute (jclouds-test-utils/compute)
+                      :middleware *middleware*
+                      :algorithms
+                      {:converge-fn #'pallet.core/serial-adjust-node-counts
+                       :lift-fn sequential-lift
+                       :execute-status-fn stop-execution-on-error}
+                      :groups {:a {:image {:os-family :centos}}}
+                      :user (utils/make-user "fred")}})))))
 
 (deftest converge-test
   (jclouds-test-utils/purge-compute-service)
