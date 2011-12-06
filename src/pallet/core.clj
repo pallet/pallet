@@ -30,7 +30,6 @@
    [pallet.common.deprecate :as deprecate]
    [pallet.common.logging.logutils :as logutils]
    [pallet.common.map-utils :as map-utils]
-   [pallet.common.resource :as resource]
    [pallet.compute :as compute]
    [pallet.context :as context]
    [pallet.environment :as environment]
@@ -44,6 +43,7 @@
    [pallet.script :as script]
    [pallet.thread-expr :as thread-expr]
    [pallet.utils :as utils]
+   [clojure.java.io :as io]
    [clojure.tools.logging :as logging]
    [clojure.set :as set]
    [clojure.string :as string])
@@ -62,7 +62,7 @@
     (or
      @v
      (reset! v (System/getProperty "pallet.version"))
-     (reset! v (if-let [version (resource/slurp "pallet-version")]
+     (reset! v (if-let [version (slurp (io/resource "pallet-version"))]
                        (string/trim version))))))
 
 ;; Set the agent string for http requests.
