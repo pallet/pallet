@@ -142,29 +142,36 @@ state."
       nil)))
 
 (defmacro ^{:indent 'defun} wrap-pipeline
-  "Wraps a pipeline with one or more wrapping froms"
-  [[arg & [sym & _]] & wrappings-and-pipeline]
-  `(fn ~@(when sym [sym]) [~arg]
+  "Wraps a pipeline with one or more wrapping forms. Makes the &session symbol
+   available withing the bindings"
+  [sym & wrappers-and-pipeline]
+  `(fn ~sym [~'&session]
      ~(reduce
        #(concat %2 [%1])
-       (list (last wrappings-and-pipeline) arg)
-       (reverse (drop-last wrappings-and-pipeline)))))
+       (list (last wrappers-and-pipeline) '&session)
+       (reverse (drop-last wrappers-and-pipeline)))))
 
-(defmacro ^{:indent 1} session-pipeline-fn
+(defmacro ^{:indent 2} session-pipeline-fn
   "Defines a session pipeline. This composes the body functions under the
   session-m monad. Any vector in the arguments is expected to be of the form
   [symbol expr] and becomes part of the generated monad comprehension."
-  [name & args]
-  `(wrap-pipeline [session# ~name]
-    (with-context :session-pipeline ~(clojure.core/name name))
-    (chain-s ~@args)))
+  [pipeline-name event & args]
+  (let [line (-> &form meta :line)]
+    `(wrap-pipeline ~pipeline-name
+       (with-context
+           ~(merge {:kw (list 'quote pipeline-name)
+                    :msg (name pipeline-name)
+                    :ns (list 'quote (ns-name *ns*))
+                    :line line}
+                   event))
+       (chain-s ~@args))))
 
-(defmacro ^{:indent 1} session-pipeline
+(defmacro ^{:indent 2} session-pipeline
   "Build and call a session pipeline"
-  [name session & args]
+  [name event session & args]
   `(let [name# ~name
          session# ~session]
-     (second ((session-pipeline-fn ~name ~@args) session#))))
+     (second ((session-pipeline-fn name# ~event ~@args) session#))))
 
 
 ;; (defmacro for-s

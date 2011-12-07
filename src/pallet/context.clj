@@ -3,7 +3,9 @@
   (:require
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
-   [pallet.common.context :as context]))
+   [pallet.common.context :as context]
+   [pallet.common.logging.logutils :as logutils]
+   [pallet.event :as event]))
 
 (defn kw-context-entries
   "Return the :kw context entries for a context"
@@ -22,13 +24,17 @@
 
 (defmacro with-context
   "Specifies a context for pallet implementation code."
-  [context-kw context-msg & body]
-  `(context/with-context
-     {:kw ~context-kw :msg ~(possibly-formatted-msg context-msg)}
-     {:scope :pallet/pallet
-      :on-enter (context/context-history {})
-      :format :msg}
-     ~@body))
+  [context & body]
+  (let [line (-> &form meta :line)]
+    `(context/with-context
+       ~(merge {:ns (list 'quote (ns-name *ns*)) :line line} context)
+       {:scope :pallet/pallet
+        :on-enter (context/context-history {})
+        :format :msg}
+       (event/publish ~context)
+       (logutils/with-context
+         [~@(mapcat identity (dissoc context :kw :msg))]
+         ~@body))))
 
 (defn contexts
   "Returns all pallet contexts"

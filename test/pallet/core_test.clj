@@ -914,7 +914,7 @@
              (core/expand-group-spec-with-counts {c2 2})))))
 
 (deftest component-test
-  (let [testfn (session-pipeline-fn testfn (assoc :x 1))]
+  (let [testfn (session-pipeline-fn testfn {} (assoc :x 1))]
     (is (= 1
            (:x (second (core/process-lift-arguments
                         (test-session
