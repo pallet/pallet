@@ -1382,7 +1382,7 @@
        :private true}
   argument-keywords
   #{:compute :blobstore :phase :user :prefix :middleware :all-node-set
-    :all-nodes :parameters :environment :node-set :phase-list
+    :all-nodes :parameters :environment :node-set :phase-list :executor
     :node-set-selector :provider-options :group-spec->count :components
     phase/session-verification-key})
 

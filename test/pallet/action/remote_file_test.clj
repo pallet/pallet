@@ -18,6 +18,7 @@
    [pallet.stevedore :as stevedore]
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
+   [pallet.test-executors :as test-executors]
    [pallet.utils :as utils]
    [clojure.java.io :as io]
    [clojure.tools.logging :as logging]))
@@ -113,6 +114,8 @@
       (is (= "xxx\n" (slurp (.getPath tmp))))))
 
   (testing "overwrite on existing content and no md5"
+    ;; note that the lift has to run with the same user as the java
+    ;; process, otherwise there will be permission errors
     (utils/with-temporary [tmp (utils/tmpfile)]
       (let [session (pallet.core/lift
                      {(core/group-spec "local")
@@ -122,7 +125,8 @@
                      :compute nil
                      :user (assoc utils/*admin-user*
                              :username (test-utils/test-username)
-                             :no-sudo true))]
+                             :no-sudo true)
+                     :executor test-executors/test-executor)]
         (logging/infof
          "r-f-t overwrite on existing content and no md5: session %s"
          session)
