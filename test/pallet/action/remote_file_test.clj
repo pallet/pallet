@@ -114,25 +114,27 @@
 
   (testing "overwrite on existing content and no md5"
     (utils/with-temporary [tmp (utils/tmpfile)]
-      (is (re-matches
+      (let [session (pallet.core/lift
+                     {(core/group-spec "local")
+                      (test-utils/make-localhost-node
+                       :group-name "local")}
+                     :phase #(remote-file % (.getPath tmp) :content "xxx")
+                     :compute nil
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username)
+                             :no-sudo true))]
+        (logging/infof
+         "r-f-t overwrite on existing content and no md5: session %s"
+         session)
+        (is (re-matches
            (java.util.regex.Pattern/compile
             (str "remote-file .*...done.")
             (bit-or java.util.regex.Pattern/MULTILINE
                     java.util.regex.Pattern/DOTALL))
-           (let [session (pallet.core/lift
-                          {(core/group-spec "local")
-                           (test-utils/make-localhost-node
-                            :group-name "local")}
-                          :phase #(remote-file % (.getPath tmp) :content "xxx")
-                          :compute nil
-                          :user (assoc utils/*admin-user*
-                                  :username (test-utils/test-username)
-                                  :no-sudo true))]
-             (logging/infof
-              "r-f-t overwrite on existing content and no md5: session %s"
-              session)
-             (-> session :results :localhost second second first :out))))
-      (is (= "xxx\n" (slurp (.getPath tmp))))))
+           (-> session :results :localhost second second first :out))
+        (is (= "xxx\n"
+               (slurp (.getPath tmp)))
+            (-> session :results :localhost))))))
 
   (binding [install-new-files nil]
     (script/with-script-context [:ubuntu]
