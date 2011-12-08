@@ -566,7 +566,7 @@
     (is (seeny?))))
 
 (deftest lift*-nodes-binding-test
-  (logging/error "lift*-nodes-binding-test start")
+  (logging/info "lift*-nodes-binding-test start")
   (let [a (group-spec "a")
         b (group-spec "b")
         na (test-utils/make-node "a")
@@ -620,7 +620,7 @@
                         :user utils/*admin-user*
                         :middleware *middleware*
                         :algorithms {:lift-fn sequential-lift}}})))))
-    (logging/error "lift*-nodes-binding-test end"))
+    (logging/info "lift*-nodes-binding-test end"))
 
 (deftest lift-multiple-test
   (let [a (group-spec "a")

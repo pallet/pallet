@@ -52,7 +52,7 @@
    [clojure.algo.monads :only [m-seq m-map]]
    [clojure.core.incubator :only [-?>]]
    [pallet.environment :only [get-environment]]
-   [pallet.event :only [session-event]]
+   [pallet.event :only [publish session-event]]
    [pallet.monad :only [session-pipeline session-pipeline-fn
                         as-session-pipeline-fn session-peek-fn
                         get-session wrap-pipeline chain-s let-s m-mapcat]]
@@ -475,14 +475,13 @@
   (fn [session]
     (let [[results session] (handler session)
           errors (seq (filter :error results))]
-      (if errors
-        (do
-          ((session-event
-            {:log-level :error
-             :msg (pr-str (first errors))
-             :kw :error})
-           session))
-        [results session]))))
+      (when errors
+        (publish
+         {:log-level :error
+          :msg (pr-str (first errors))
+          :kw :error
+          :errors errors}))
+      [results session])))
 
 (def ^{:dynamic true}
   *middleware*
@@ -1401,8 +1400,10 @@
     [((resolve install-fn) session) session]))
 
 (def load-plugins
-  (session-pipeline-fn load-plugins {:msg "Load and configure plugins"}
-    [install-plugins (get-environment [:install-plugins])]
+  (session-pipeline-fn load-plugins
+      {:msg "Load and configure plugins"
+       :plugins (environment/get-for &session [:install-plugins] nil)}
+    [install-plugins (get-environment [:install-plugins] nil)]
     (fn [session] [(plugin/load-plugins) session])
     [_ (m-map configure-plugin install-plugins)]))
 
