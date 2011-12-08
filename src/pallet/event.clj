@@ -5,27 +5,27 @@
   [clojure.tools.logging :as logging]))
 
 ;; should be part of session
-(defonce ^{:private true} publishers (atom #{}))
+(defonce ^{:private true} publishers (atom {}))
 
 (defn add-publisher
   "Add a publisher from the list notified by each call to publish."
-  [publisher]
-  (swap! publishers conj publisher))
+  [kw publisher]
+  (swap! publishers assoc kw publisher))
 
 (defn remove-publisher
   "Remove a publisher from the list notified by each call to publish."
-  [publisher]
-  (swap! publishers disj publisher))
+  [kw]
+  (swap! publishers dissoc kw))
 
 (defn remove-publishers
   "Remove all publisher from the list notified by each call to publish."
   []
-  (reset! publishers #{}))
+  (reset! publishers {}))
 
 (defn publish
   "Publish a pallet event."
   [m]
-  (doseq [publisher @publishers]
+  (doseq [[_ publisher] @publishers]
     (publisher m)))
 
 (defn log-publisher
@@ -44,4 +44,10 @@
         " " (map #(format "%s: %s" (first %) (second %)) kw-vals))))
     (when-let [ns (:ns m)] (format " [%s:%s]" ns (:line m))))))
 
-(add-publisher #'log-publisher)
+(add-publisher :log #'log-publisher)
+
+(defn session-event
+  "Session event publisher"
+  [event]
+  (fn session-event-fn [session]
+    [(publish event) session]))

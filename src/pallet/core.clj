@@ -40,6 +40,7 @@
    [pallet.node :as node]
    [pallet.parameter :as parameter]
    [pallet.phase :as phase]
+   [pallet.plugin :as plugin]
    [pallet.script :as script]
    [pallet.thread-expr :as thread-expr]
    [pallet.utils :as utils]
@@ -50,6 +51,8 @@
   (:use
    [clojure.algo.monads :only [m-seq m-map]]
    [clojure.core.incubator :only [-?>]]
+   [pallet.environment :only [get-environment]]
+   [pallet.event :only [session-event]]
    [pallet.monad :only [session-pipeline session-pipeline-fn
                         as-session-pipeline-fn session-peek-fn
                         get-session wrap-pipeline chain-s let-s m-mapcat]]
@@ -463,14 +466,28 @@
     (let [[results session] (handler session)
           errors (seq (filter :error results))]
       (if errors
+        (throw+ (assoc (:error (first errors)) :all-errors errors))
+        [results session]))))
+
+(defn event-on-error
+  "Middleware that publishes an event on an error."
+  [handler]
+  (fn [session]
+    (let [[results session] (handler session)
+          errors (seq (filter :error results))]
+      (if errors
         (do
-          (logging/errorf "errors found %s" (vec (map :error errors)))
-          (throw+ (assoc (:error (first errors)) :all-errors errors)))
+          ((session-event
+            {:log-level :error
+             :msg (pr-str (first errors))
+             :kw :error})
+           session))
         [results session]))))
 
 (def ^{:dynamic true}
   *middleware*
   [translate-action-plan
+   event-on-error
    raise-on-error])
 
 (defmacro with-middleware
@@ -1363,7 +1380,7 @@
 (def ^{:doc "args that are really part of the environment"}
   environment-args
   [:compute :blobstore :user :middleware :provider-options
-   :executors :executor])
+   :executors :executor :install-plugins])
 
 (defn- session-with-environment
   "Build a session map from the given options, combining the service specific
@@ -1378,13 +1395,24 @@
         (utils/dissoc-keys environment-args)
         (effective-environment))])
 
+(defn configure-plugin
+  [install-fn]
+  (fn [session]
+    [((resolve install-fn) session) session]))
+
+(def load-plugins
+  (session-pipeline-fn load-plugins {:msg "Load and configure plugins"}
+    [install-plugins (get-environment [:install-plugins])]
+    (fn [session] [(plugin/load-plugins) session])
+    [_ (m-map configure-plugin install-plugins)]))
+
 (def ^{:doc "A set of recognised argument keywords, used for input checking."
        :private true}
   argument-keywords
   #{:compute :blobstore :phase :user :prefix :middleware :all-node-set
     :all-nodes :parameters :environment :node-set :phase-list :executor
     :node-set-selector :provider-options :group-spec->count :components
-    phase/session-verification-key})
+    :install-plugins phase/session-verification-key})
 
 (defn- check-arguments-map
   "Check an arguments map for obvious errors."
@@ -1462,7 +1490,8 @@
     check-arguments-map
     phase-spec
     session-with-environment
-    identify-anonymous-phases))
+    identify-anonymous-phases
+    load-plugins))
 
 (def
   ^{:doc "The argument processing for lift"}
@@ -1472,7 +1501,8 @@
     phase-spec
     (dissoc :all-node-set)
     session-with-environment
-    identify-anonymous-phases))
+    identify-anonymous-phases
+    load-plugins))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
@@ -1503,7 +1533,9 @@
     (phase/add-session-verification-key options)
     (assoc :node-set (expand-group-spec-with-counts group-spec->count))
     process-converge-arguments
-    converge*))
+    converge*
+    (session-event
+     {:log-level :info :kw :converge-finished :msg "Converge completed"})))
 
 (defn lift
   "Lift the running nodes in the specified node-set by applying the specified
@@ -1536,7 +1568,9 @@
     (phase/add-session-verification-key options)
     (assoc :node-set (expand-cluster-groups node-set))
     process-lift-arguments
-    lift*))
+    lift*
+    (session-event
+     {:log-level :info :kw :lift-finished :msg "Lift completed"})))
 
 
 

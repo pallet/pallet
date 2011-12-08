@@ -123,9 +123,7 @@
                        :group-name "local")}
                      :phase #(remote-file % (.getPath tmp) :content "xxx")
                      :compute nil
-                     :user (assoc utils/*admin-user*
-                             :username (test-utils/test-username)
-                             :no-sudo true)
+                     :user (assoc utils/*admin-user* :no-sudo true)
                      :executor test-executors/test-executor)]
         (logging/infof
          "r-f-t overwrite on existing content and no md5: session %s"

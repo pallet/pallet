@@ -162,7 +162,8 @@ state."
            ~(merge {:kw (list 'quote pipeline-name)
                     :msg (name pipeline-name)
                     :ns (list 'quote (ns-name *ns*))
-                    :line line}
+                    :line line
+                    :log-level :debug}
                    event))
        (chain-s ~@args))))
 

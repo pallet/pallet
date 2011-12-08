@@ -49,6 +49,7 @@
    :middleware :replace
    :groups :merge-environments
    :tags :merge-environments
+   :install-plugins :concat
    ;; :executors :concat
    })
 
@@ -163,32 +164,14 @@
   ([session keys default]
      (get-in (:environment session) keys default)))
 
-;; (def current-executors (atom #{}))
-
-;; (defn track-executors
-;;   "Add executors to the set of tracked executors."
-;;   [executors]
-;;   (swap! current-executors set/union (set executors)))
-
-;; (defn release-executors
-;;   "Release executors from the set of tracked executors."
-;;   []
-;;   (let [[executors _] (utils/compare-and-swap!
-;;                        current-executors (constantly #{}))]
-;;     (logging/debugf "release-executors: closing %s executors" (count executors))
-;;     (doseq [executor executors]
-;;       (logging/debugf "release-executors: closing %s" executor)
-;;       (execute/close executor))))
-
-;; (defmacro with-managed-executors
-;;   "Provides a scope where all executors are closed on exit."
-;;   [& body]
-;;   `(try
-;;      ~@body
-;;      (finally
-;;       (logging/debugf
-;;        "with-managed-executors: closing %s" (count @current-executors))
-;;       (release-executors))))
+(defn get-environment
+  "Monadic environment accessor"
+  ([keys]
+     (fn get-env [session]
+       [(get-for session keys) session]))
+    ([keys default]
+     (fn get-env [session]
+       [(get-for session keys default) session])))
 
 (defn session-with-environment
   "Returns an updated `session` map, containing the keys for the specified
