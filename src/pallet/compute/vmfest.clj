@@ -406,7 +406,7 @@
                  parallel-create-nodes)
          target-machines-to-create server (:node-path locations)
          group-spec @images image-id
-         {:micro (machine-model template)}
+         {:micro (machine-model (@images image-id))}
          group-name init-script user))))
 
   (reboot
