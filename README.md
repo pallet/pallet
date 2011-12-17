@@ -1,3 +1,5 @@
+# 2-day Official Pallet Training scheduled for March 14 and 15 at Clojure/West. [Register Now!](http://clojurewest.squarespace.com/training-pallet)
+
 ![pallet logo](https://github.com/downloads/pallet/pallet/pallet-logo.png)
 
 [Pallet](http://palletops.com) is used to provision and maintain servers on
