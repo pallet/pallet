@@ -1472,7 +1472,7 @@
                          phase
                          (if phase [phase] [:configure])))
     check-arguments-map
-    (dissoc :all-node-set :phase)
+    (dissoc :phase)
     session-with-environment
     identify-anonymous-phases)))
 
