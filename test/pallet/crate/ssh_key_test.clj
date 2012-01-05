@@ -17,18 +17,20 @@
    [pallet.stevedore :as stevedore]
    [pallet.template :as template]
    [pallet.utils :as utils]
-   [clojure.contrib.logging :as logging]
+   [clojure.tools.logging :as logging]
    [clojure.string :as string])
-  (:use clojure.test
-        pallet.test-utils))
+  (:use
+   clojure.test
+   pallet.test-utils
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]]))
 
-(use-fixtures :once with-ubuntu-script-template)
-
+(use-fixtures
+ :once with-ubuntu-script-template (logging-threshold-fixture))
 
 (deftest authorize-key-test
   (is (= (first
           (context/with-phase-context
-           :authorize-key "Authorize SSH key on user fred"
+            {:kw :authorize-key :msg "authorize-key"}
            (build-actions/build-actions
             {}
             (directory/directory
@@ -55,7 +57,7 @@
 (deftest install-key-test
   (is (= (first
           (context/with-phase-context
-            :install-key ["Install SSH key for user fred"]
+            {:kw :install-key :msg "install-key"}
             (build-actions/build-actions
              {}
              (directory/directory
@@ -72,7 +74,7 @@
            {} (install-key "fred" "id" "private" "public")))))
   (is (= (first
           (context/with-phase-context
-            :install-key ["Install SSH key for user fred"]
+            {:kw :install-key :msg "install-key"}
             (build-actions/build-actions
              {}
              (directory/directory
@@ -92,7 +94,7 @@
 (deftest generate-key-test
   (is (= (first
           (pallet.context/with-phase-context
-            :generate-key "Generate SSH key for user fred"
+            {:kw :generate-key :msg "generate-key"}
             (build-actions/build-actions
              {}
              (directory/directory
@@ -119,7 +121,7 @@
 
   (is (= (first
           (pallet.context/with-phase-context
-            :generate-key "Generate SSH key for user fred"
+            {:kw :generate-key :msg "generate-key"}
             (build-actions/build-actions
              {}
              (directory/directory
@@ -145,7 +147,7 @@
 
   (is (= (first
           (pallet.context/with-phase-context
-            :generate-key "Generate SSH key for user fred"
+            {:kw :generate-key :msg "generate-key"}
             (build-actions/build-actions
              {}
              (directory/directory
@@ -171,7 +173,7 @@
 
   (is (= (first
           (pallet.context/with-phase-context
-            :generate-key "Generate SSH key for user fred"
+            {:kw :generate-key :msg "generate-key"}
             (build-actions/build-actions
              {}
              (exec-script/exec-checked-script
@@ -195,46 +197,52 @@
 
 (deftest authorize-key-for-localhost-test
   (is (= (first
-          (build-actions/build-actions
-           {}
-           (directory/directory
-            "$(getent passwd fred | cut -d: -f6)/.ssh/"
-            :owner "fred" :mode "755")
-           (file/file
-            "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
-            :owner "fred" :mode "644")
-           (exec-script/exec-checked-script
-            "authorize-key"
-            (var key_file "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
-            (var auth_file
-                 "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
-            (if-not (grep (quoted @(cat @key_file)) @auth_file)
-              (do
-                (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
-                (cat @key_file ">>" @auth_file))))))
+          (pallet.context/with-phase-context
+            {:kw :generate-key :msg "authorize-key-for-localhost"}
+            (build-actions/build-actions
+             {}
+             (directory/directory
+              "$(getent passwd fred | cut -d: -f6)/.ssh/"
+              :owner "fred" :mode "755")
+             (file/file
+              "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
+              :owner "fred" :mode "644")
+             (exec-script/exec-checked-script
+              "authorize-key"
+              (var key_file
+                   "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
+              (var auth_file
+                   "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
+              (if-not (grep (quoted @(cat @key_file)) @auth_file)
+                (do
+                  (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
+                  (cat @key_file ">>" @auth_file)))))))
          (first
           (build-actions/build-actions
            {}
            (authorize-key-for-localhost "fred" "id_dsa.pub")))))
 
   (is (= (first
-          (build-actions/build-actions
-           {}
-           (directory/directory
-            "$(getent passwd tom | cut -d: -f6)/.ssh/"
-            :owner "tom" :mode "755")
-           (file/file
-            "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys"
-            :owner "tom" :mode "644")
-           (exec-script/exec-checked-script
-            "authorize-key"
-            (var key_file "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
-            (var auth_file
-                 "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys")
-            (if-not (grep (quoted @(cat @key_file)) @auth_file)
-              (do
-                (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
-                (cat @key_file ">>" @auth_file))))))
+          (pallet.context/with-phase-context
+            {:kw :generate-key :msg "authorize-key-for-localhost"}
+            (build-actions/build-actions
+             {}
+             (directory/directory
+              "$(getent passwd tom | cut -d: -f6)/.ssh/"
+              :owner "tom" :mode "755")
+             (file/file
+              "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys"
+              :owner "tom" :mode "644")
+             (exec-script/exec-checked-script
+              "authorize-key"
+              (var key_file
+                   "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
+              (var auth_file
+                   "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys")
+              (if-not (grep (quoted @(cat @key_file)) @auth_file)
+                (do
+                  (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
+                  (cat @key_file ">>" @auth_file)))))))
          (first
           (build-actions/build-actions
            {}

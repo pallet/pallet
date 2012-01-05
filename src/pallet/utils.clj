@@ -35,6 +35,10 @@
    (keyword? arg) (name arg)
    :else (str arg)))
 
+(defmacro apply-map
+  [& args]
+  `(apply ~@(drop-last args) (apply concat ~(last args))))
+
 (defn resource-path [name]
   (let [loader (.getContextClassLoader (Thread/currentThread))
         resource (. loader getResource name)]

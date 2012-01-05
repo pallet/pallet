@@ -14,26 +14,34 @@
    [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
    [clojure.tools.logging :as logging]
-   [clojure.string :as string]))
+   [clojure.string :as string])
+  (:use
+   [pallet.context :only [with-phase-context]]
+   [pallet.session-verify :only [check-session add-session-verification-key]]
+   [pallet.monad :only [let-s]]))
 
 (defn- apply-phase-to-node
   "Apply a phase to a node session"
   [session]
   {:pre [(:phase session)]}
+  (check-session session)
   ((#'core/middleware-handler #'core/execute) session))
 
 (defn produce-phases
   "Join the result of execute-action-plan, executing local actions.
    Useful for testing."
   [session]
-  (letfn [(execute
+  (letfn [(execute-join
             [session]
             (let [[result session] (apply-phase-to-node session)]
-              [(string/join "" result) session]))]
+              (logging/tracef "result %s session %s" result session)
+              [(string/join \newline result) session]))]
     (binding [action-plan/*defining-context* (context/phase-contexts)]
       (reduce
        (fn [[results session] phase]
-         (let [[result session] (execute (assoc session :phase phase))]
+         (logging/tracef "results %s session %s phase %s" results session phase)
+         (let [[result session] (execute-join (assoc session :phase phase))]
+           (logging/tracef "new result %s session %s" result session)
            [(str results result) session]))
        ["" (->
             session
@@ -41,9 +49,10 @@
               (environment/merge-environments
                (:environment session)
                {:algorithms core/default-algorithms
-                :executor executors/echo-executor
+                :executor #'executors/echo-executor
                 :middleware [core/translate-action-plan]}))
-            action-plan/build-for-target)]
+            action-plan/build-for-target
+            second)];; drop the phase result
        (phase/all-phases-for-phase (:phase session))))))
 
 (defn- convert-0-4-5-compatible-keys
@@ -143,7 +152,7 @@
                    %
                    (get-in session [:server :node-id])
                    (get-in session [:group :group-name])))]
-    (phase/add-session-verification-key session)))
+    (add-session-verification-key session)))
 
 (defn build-actions*
   "Implementation for build-actions."
@@ -158,7 +167,10 @@
                   ((#'core/add-session-keys-for-0-4-compatibility
                     identity)
                    session))]
-    (produce-phases session)))
+    (if-let [phase-context (:phase-context session)]
+      (with-phase-context {:msg phase-context}
+        (produce-phases session))
+      (produce-phases session))))
 
 (defmacro build-actions
   "Outputs the remote actions specified in the body for the specified phases.
@@ -172,3 +184,16 @@
       (logging/warn
        "Use of vector for session in build-actions is deprecated."))
     (build-actions* (phase/phase-fn ~@body) session#)))
+
+(defmacro ^{:indent 1} let-actions
+  "Outputs the remote actions specified in the body for the specified phases.
+   This is useful in testing.
+
+   `session` should be a map (but was historically a vector of keyword
+   pairs).  See `build-session`."
+  [session & body]
+  `(let [session# ~session]
+    (when-not (map? session#)
+      (logging/warn
+       "Use of vector for session in build-actions is deprecated."))
+    (build-actions* (let-s ~@body) session#)))

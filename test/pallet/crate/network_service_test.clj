@@ -1,8 +1,12 @@
 (ns pallet.crate.network-service-test
-  (:use clojure.test)
+  (:use
+   clojure.test
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]])
   (:require
    [pallet.build-actions :as build-actions]
    [pallet.crate.network-service :as network-service]))
+
+(use-fixtures :once (logging-threshold-fixture))
 
 (deftest wait-for-port-listen-test
   (is

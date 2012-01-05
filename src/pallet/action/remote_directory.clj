@@ -10,7 +10,11 @@
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.thread-expr :as thread-expr]
-   [clojure.java.io :as io]))
+   [clojure.java.io :as io])
+  (:use
+   [clojure.algo.monads :only [m-when]]
+   [pallet.monad :only [let-s phase-pipeline]]
+   [pallet.utils :only [apply-map]]))
 
 (def ^{:private true}
   directory* (action/action-fn directory/directory))
@@ -115,18 +119,18 @@
        (remote-directory session path
           :url \"http://a.com/path/file.\"
           :unpack :unzip)"
-  [session path & {:keys [action url local-file remote-file
-                          unpack tar-options unzip-options jar-options
-                          strip-components md5 md5-url owner group recursive
-                          force-overwrite
-                          local-file-options]
-                   :or {action :create
-                        tar-options "xz"
-                        unzip-options "-o"
-                        jar-options "xf"
-                        strip-components 1
-                        recursive true}
-                   :as options}]
+  [path & {:keys [action url local-file remote-file
+                  unpack tar-options unzip-options jar-options
+                  strip-components md5 md5-url owner group recursive
+                  force-overwrite
+                  local-file-options]
+           :or {action :create
+                tar-options "xz"
+                unzip-options "-o"
+                jar-options "xf"
+                strip-components 1
+                recursive true}
+           :as options}]
   (when-let [f (and local-file (io/file local-file))]
     (when (not (and (.exists f) (.isFile f) (.canRead f)))
       (throw (IllegalArgumentException.
@@ -134,17 +138,17 @@
                (str "'%s' does not exist, is a directory, or is unreadable; "
                     "cannot register it for transfer.")
                local-file)))))
-  (->
-   session
-   (thread-expr/when-> local-file
-           ;; transfer local file to remote system if required
-           (remote-file/transfer-file
-            local-file
-            (str path "-content")
-            local-file-options))
-   (action/with-precedence local-file-options
-     (thread-expr/apply-map->
-      remote-directory-action path
-      (merge
-       {:overwrite-changes force-overwrite} ;; capture the value of the flag
-       options)))))
+  (let-s
+    [_ (m-when local-file
+               ;; transfer local file to remote system if required
+               (remote-file/transfer-file
+                local-file
+                (str path "-content")
+                local-file-options))
+     f (action/with-precedence local-file-options
+         (apply-map
+          remote-directory-action path
+          (merge
+           {:overwrite-changes force-overwrite} ;; capture the value of the flag
+           options)))]
+    f))

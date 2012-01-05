@@ -1,7 +1,9 @@
 (ns pallet.action.remote-directory-test
   (:use pallet.action.remote-directory)
-  (:use clojure.test
-        pallet.test-utils)
+  (:use
+   clojure.test
+   pallet.test-utils
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]])
   (:require
    [pallet.action :as action]
    [pallet.action.directory :as directory]
@@ -13,7 +15,8 @@
 (use-fixtures
  :once
  with-ubuntu-script-template
- with-bash-script-language)
+ with-bash-script-language
+ (logging-threshold-fixture))
 
 (def directory* (action/action-fn directory/directory))
 (def remote-file* (action/action-fn remote-file/remote-file-action))

@@ -41,14 +41,15 @@
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
-   [slingshot.core :as slingshot]
    [vmfest.manager :as manager]
    [vmfest.virtualbox.enums :as enums]
    [vmfest.virtualbox.image :as image]
    [vmfest.virtualbox.machine :as machine]
    [vmfest.virtualbox.model :as model]
    [vmfest.virtualbox.session :as session]
-   [vmfest.virtualbox.virtualbox :as virtualbox]))
+   [vmfest.virtualbox.virtualbox :as virtualbox])
+  (:use
+   [slingshot.slingshot :only [throw+ try+]]))
 
 (defn supported-providers []
   ["virtualbox"])
@@ -74,7 +75,7 @@
   (ssh-port [node] 22)
   (primary-ip
     [node]
-    (slingshot/try+
+    (try+
      (manager/get-ip node)
      (catch clojure.contrib.condition.Condition _
          (manager/get-extra-data node ip-tag))))
@@ -228,7 +229,7 @@
     (logging/trace "Waiting for ip")
     (when (string/blank? (wait-for-ip machine))
       (manager/destroy machine)
-      (slingshot/throw+
+      (throw+
        {:type :no-ip-available
         :message "Could not determine IP address of new node"}))
     (Thread/sleep 4000)
@@ -252,7 +253,7 @@
               ]
           (when-not (zero? exit)
             (manager/destroy machine)
-            (slingshot/throw+
+            (throw+
              {:message (format "Bootstrap failed: %s" out)
               :type :pallet/bootstrap-failure
               :group-spec node-spec})))))
@@ -487,7 +488,7 @@
                  "Could not find image %s. Known images are %s."
                  image-kw (keys @images))]
         (logging/error msg)
-        (slingshot/throw+
+        (throw+
          {:type :pallet/unkown-image
           :image image-kw
           :known-images (keys @images)

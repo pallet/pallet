@@ -1,34 +1,75 @@
 (ns pallet.crate.crontab-test
   (:use pallet.crate.crontab)
   (:require
-   [pallet.build-actions :as build-actions]
    [pallet.action.exec-script :as exec-script]
-   [pallet.action.remote-file :as remote-file])
-  (:use clojure.test
-        pallet.test-utils))
+   [pallet.action.remote-file :as remote-file]
+   [pallet.live-test :as live-test])
+  (:use
+   clojure.test
+   pallet.test-utils
+   [pallet.action.remote-file :only [remote-file-content]]
+   [pallet.core :only [lift]]
+   [pallet.build-actions :only [build-actions]]
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [pallet.monad :only [let-s]]
+   [pallet.phase :only [phase-fn]]
+   [pallet.script.lib :only [user-home]]
+   [pallet.session :only [admin-user]]
+   [pallet.stevedore :only [script]]))
 
-(deftest crontab-test
+(use-fixtures :once (logging-threshold-fixture))
+
+(deftest user-crontab-test
   (is (= (first
-          (build-actions/build-actions
-           {}
-           (remote-file/remote-file
-            "$(getent passwd user | cut -d: -f6)/crontab.in"
-            :content "contents" :owner "fred" :mode "0600")
-           (exec-script/exec-checked-script
-            "Load crontab"
-            ("crontab -u fred"
-             "$(getent passwd user | cut -d: -f6)/crontab.in\n"))))
+          (build-actions
+              {:phase-context "user-crontabs: create-user-crontab"}
+            (remote-file/remote-file
+             "$(getent passwd fred | cut -d: -f6)/crontab.in"
+             :content "contents" :owner "fred" :mode "0600")
+            (exec-script/exec-checked-script
+             "Load crontab"
+             ("crontab -u fred"
+              "$(getent passwd fred | cut -d: -f6)/crontab.in\n"))))
          (first
-          (build-actions/build-actions
-           {} (crontab "fred" :content "contents"))))))
+          (build-actions {}
+            (user-settings "fred" {:content "contents"})
+            (user-crontabs))))))
 
 (deftest system-crontab-test
   (is (= (first
-          (build-actions/build-actions
-           {}
-           (remote-file/remote-file
-            "/etc/cron.d/fred"
-            :content "contents" :owner "root" :group "root" :mode "0644")))
+          (build-actions
+              {:phase-context "system-crontabs: create-system-crontab"}
+            (remote-file/remote-file
+             "/etc/cron.d/fred"
+             :content "contents" :owner "root" :group "root" :mode "0644")))
          (first
-          (build-actions/build-actions
-           {} (system-crontab "fred" :content "contents"))))))
+          (build-actions {}
+            (system-settings "fred" {:content "contents"})
+            (system-crontabs))))))
+
+(deftest live-test
+  (live-test/test-for
+   [image live-test/*images*]
+   (live-test/test-nodes
+    [compute node-map node-types]
+    {:crontab
+     (merge
+      with-crontab
+      {:image image
+       :count 1
+       :phases
+       {:settings (phase-fn
+                    [user (admin-user)]
+                    (user-settings (:username user) {:contents "fred"}))
+        :verify (let-s
+                  [user (admin-user)]
+                  (do
+                    (is (= "fred"
+                           (remote-file-content
+                            (str
+                             (script (~user-home ~(:username user)))
+                             "/crontab.in")))
+                        "Remote file matches")))}})}
+    (lift (:crontab node-types)
+          :phase [:verify]
+          :compute compute))))

@@ -23,9 +23,8 @@
    [clojure.tools.logging :as logging])
   (:use
    clojure.test
-   [pallet.monad :only [session-pipeline session-pipeline-fn
-                        as-session-pipeline-fn session-peek-fn
-                        get-session wrap-pipeline]]
+   [pallet.monad :only [phase-pipeline session-pipeline
+                        as-session-pipeline-fn session-peek-fn]]
    [pallet.test-utils :only [test-session]]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
@@ -298,31 +297,32 @@
   (let [test-component (action/bash-action [session arg] (str arg))
         node-with-phases (make-node
                           "node-with-phases" (tom :image)
-                          :bootstrap #(test-component % :a)
-                          :configure  #(test-component % :b))]
+                          :bootstrap (test-component :a)
+                          :configure  (test-component :b))]
     (is (= #{:bootstrap :configure} (set (keys (node-with-phases :phases)))))
-    (let [session {:server {:node-id :id
-                            :group-name :group-name
-                            :packager :yum
-                            :image {}
-                            :node (test-utils/make-node "group-name" :id "id")
-                            :phases (:phases node-with-phases)}
-                   :target-id :id :target-type :node}]
-      (is (= ":a\n"
+    (let [session (test-utils/test-session
+                   {:server {:node-id :id
+                             :group-name :group-name
+                             :packager :yum
+                             :image {}
+                             :node (test-utils/make-node "group-name" :id "id")
+                             :phases (:phases node-with-phases)}
+                    :target-id :id :target-type :node})]
+      (is (= ":a"
              (first
               (build-actions/produce-phases
                (assoc session :phase :bootstrap)))))
-      (is (= ":b\n"
+      (is (= ":b"
              (first
               (build-actions/produce-phases
                (assoc session :phase :configure)))))))
   (logging/info "defnode-test end"))
 
 (def identity-action (action/bash-action [session x] x))
-(def identity-local-action (action/clj-action [session] session))
+(def identity-local-action (action/clj-action [session] [session session]))
 
 (deftest bootstrap-script-test
-  (is (= "a\n"
+  (is (= "a"
          (#'core/bootstrap-script
           (test-session
            {:group {:image {:os-family :ubuntu}
@@ -331,23 +331,24 @@
                                          (identity-action "a"))}}}))))
   (testing "rejects local actions"
     (is (re-find
-          #":error.*local actions"
-          (#'core/bootstrap-script
+         #":error.*local actions"
+         (#'core/bootstrap-script
+          (test-session
            {:group
             {:image {:os-family :ubuntu}
              :packager :aptitude
-             :phases {:bootstrap identity-local-action}}
-            :environment {:algorithms core/default-algorithms}}))))
+             :phases {:bootstrap (identity-local-action)}}
+            :environment {:algorithms core/default-algorithms}})))))
   (testing "requires a packager"
     (is (thrown?
          java.lang.AssertionError
          (#'core/bootstrap-script
-          {:group {:image {:os-family :ubuntu}}}))))
+          (test-session {:group {:image {:os-family :ubuntu}}})))))
   (testing "requires an os-family"
     (is (thrown?
          java.lang.AssertionError
          (#'core/bootstrap-script
-          {:group {:packager :yum}})))))
+          (test-session {:group {:packager :yum}}))))))
 
 (defn seen-fn
   "Generate a local function, which uses an atom to record when it is called."
@@ -362,8 +363,8 @@
        (reset! seen true)
        (is (:server session))
        (is (:group session))
-       session)
-      seen?]))
+       [session session])
+     seen?]))
 
 (deftest warn-on-undefined-phase-test
   (testing "return value"
@@ -422,7 +423,7 @@
       (let [session (lift
                      local
                      :phase [(phase/phase-fn
-                              (exec-script/exec-script (~lib/ls "/"))) localf]
+                              (exec-script/exec-script (~lib/ls "/"))) (localf)]
                      :user (assoc utils/*admin-user*
                              :username (test-utils/test-username)
                              :no-sudo true)
@@ -431,11 +432,11 @@
         (is (seen?)))
       (testing "invalid :phases keyword"
         (is (thrown-with-msg?
-              slingshot.Stone #":phases"
+              slingshot.ExceptionInfo #":phases"
               (lift local :phases []))))
       (testing "invalid keyword"
         (is (thrown-with-msg?
-              slingshot.Stone #"Invalid"
+              slingshot.ExceptionInfo #"Invalid"
               (lift local :abcdef []))))))
   (logutils/suppress-logging
    (testing "throw on remote bash error"
@@ -456,12 +457,12 @@
          (is false "should throw")
          (catch Exception e
            (let [e (stacktrace/root-cause e)]
-             (is (instance? slingshot.Stone e))
+             (is (instance? slingshot.ExceptionInfo e))
              (is (re-find #"Error executing script" (.getMessage e)))
              (reset! thrown true))))
        (is @thrown)))
    (testing "throw on remote bash error after other actions"
-     (let [clj-fn (action/clj-action [session] session)
+     (let [clj-fn (action/clj-action [session] [session session])
            local (group-spec
                   "local"
                   :phases {:configure (phase/phase-fn
@@ -481,7 +482,7 @@
          (is false "should throw")
          (catch Exception e
            (let [e (stacktrace/root-cause e)]
-             (is (instance? slingshot.Stone e))
+             (is (instance? slingshot.ExceptionInfo e))
              (is (re-find #"Error executing script" (.getMessage e)))
              (reset! thrown true))))
        (is @thrown))))
@@ -510,12 +511,12 @@
         (is (seen?))
         (testing "invalid :phases keyword"
           (is (thrown-with-msg?
-                slingshot.Stone
+                slingshot.ExceptionInfo
                 #":phases"
                 (lift local :phases []))))
         (testing "invalid keyword"
           (is (thrown-with-msg?
-                slingshot.Stone
+                slingshot.ExceptionInfo
                 #"Invalid"
                 (lift local :abcdef []))))))))
 
@@ -530,8 +531,8 @@
                              (node-list/make-localhost-node
                               :group-name "y1" :name "y1" :id "y1"
                               :os-family :ubuntu)])
-        x1 (group-spec :x1 :phases {:configure localf})
-        y1 (group-spec :y1 :phases {:configure localfy})]
+        x1 (group-spec :x1 :phases {:configure (localf)})
+        y1 (group-spec :y1 :phases {:configure (localfy)})]
     (is (map?
          (lift [x1 y1]
                :user (assoc utils/*admin-user*
@@ -552,8 +553,8 @@
                              (node-list/make-localhost-node
                               :group-name "y1" :name "y1" :id "y1"
                               :os-family :ubuntu)])
-        x1 (group-spec :x1 :phases {:configure localf})
-        y1 (group-spec :y1 :phases {:configure localfy})]
+        x1 (group-spec :x1 :phases {:configure (localf)})
+        y1 (group-spec :y1 :phases {:configure (localfy)})]
     (is (map?
          (lift [x1 y1]
                :user (assoc utils/*admin-user*
@@ -646,11 +647,12 @@
                   (lift [a b] :compute compute :parameters {:x 1}))))
 
 (deftest lift-with-runtime-params-test
-  ;; test that parameters set at execution time are propogated
+  ;; test that parameters set at execution time are propagated
   ;; between phases
   (let [assoc-runtime-param (action/clj-action
                              [session]
-                             (parameter/assoc-for-target session [:x] "x"))
+                             [session
+                              (parameter/assoc-for-target session [:x] "x")])
 
         get-runtime-param (action/bash-action
                            [session]
@@ -659,11 +661,11 @@
         node (group-spec
                 "localhost"
                 :phases
-                {:configure assoc-runtime-param
+                {:configure (assoc-runtime-param)
                  :configure2 (fn [session]
                                (is (= (parameter/get-for-target session [:x])
                                       "x"))
-                               (get-runtime-param session))})
+                               ((get-runtime-param) session))})
         localhost (node-list/make-localhost-node :group-name "localhost")]
     (testing "serial"
       (let [compute (compute/compute-service "node-list" :node-list [localhost])
@@ -707,37 +709,36 @@
           (is (zero? exit)))))))
 
 (action/def-clj-action dummy-local-resource
-  [session arg] session)
+  [session arg] [session session])
 
 (deftest lift-with-delayed-argument-test
   ;; test that delayed arguments correcly see parameter updates
   ;; within the same phase
-  (let [add-slave (fn [session]
-                    (let [target-node (session/target-node session)
-                          hostname (compute/hostname target-node)
-                          target-ip (compute/primary-ip target-node)]
-                      (parameter/update-for-service
-                       session
-                       [:slaves]
-                       (fn [v]
-                         (conj (or v #{}) (str hostname "-" target-ip))))))
+  (let [add-slave (phase-pipeline add-slave {}
+                    [target-node session/target-node]
+                    (parameter/update-service
+                     [:slaves]
+                     (fn [v]
+                       (conj (or v #{})
+                             (str (compute/hostname target-node) "-"
+                                  (compute/primary-ip target-node))))))
         seen (atom false)
         get-slaves (fn [session]
                      (reset! seen true)
                      (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
                             (parameter/get-for-service session [:slaves]))))
-        master (group-spec
-                "master"
-                :phases {:configure (fn [session]
-                                      (dummy-local-resource
-                                       session
-                                       (argument/delayed
-                                        [session]
-                                        (get-slaves session))))})
+        get-slave (phase-pipeline get-slave {}
+                    (dummy-local-resource
+                     (argument/delayed [session]
+                      (get-slaves session))))
+        master (group-spec "master" :phases {:configure get-slave})
         slave (group-spec "slave" :phases {:configure add-slave})
-        slaves [(test-utils/make-localhost-node :name "a" :id "a" :group-name "slave")
-                (test-utils/make-localhost-node :name "b" :id "b" :group-name "slave")]
-        master-node (test-utils/make-localhost-node :name "c" :group-name "master")
+        slaves [(test-utils/make-localhost-node
+                 :name "a" :id "a" :group-name "slave")
+                (test-utils/make-localhost-node
+                 :name "b" :id "b" :group-name "slave")]
+        master-node (test-utils/make-localhost-node
+                     :name "c" :group-name "master")
         compute (compute/compute-service
                  "node-list" :node-list (conj slaves master-node))]
     (testing "serial"
@@ -781,21 +782,20 @@
   [session]
   (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
          (parameter/get-for-service session [:slaves])))
-  session)
+  [session session])
 
 
 (deftest lift-post-phase-test
   (testing
       "test that parameter updates are correctly seen in the post phase"
-    (let [add-slave (fn [session]
-                      (let [target-node (session/target-node session)
-                            hostname (compute/hostname target-node)
-                            target-ip (compute/primary-ip target-node)]
-                        (parameter/update-for-service
-                         session
-                         [:slaves]
-                         (fn [v]
-                           (conj (or v #{}) (str hostname "-" target-ip))))))
+    (let [add-slave (phase-pipeline add-slave {}
+                      [target-node session/target-node]
+                      (parameter/update-service
+                       [:slaves]
+                       (fn [v]
+                         (conj (or v #{})
+                               (str (compute/hostname target-node) "-"
+                                    (compute/primary-ip target-node))))))
           slave (group-spec "slave" :phases {:configure add-slave})
           slaves [(test-utils/make-localhost-node
                    :name "a" :id "a" :group-name "slave")
@@ -812,11 +812,11 @@
                       "master"
                       :phases {:configure (phase/phase-fn
                                            (phase/schedule-in-pre-phase
-                                            checking-set
-                                            localf-pre)
+                                            (checking-set)
+                                            (localf-pre))
                                            (phase/schedule-in-post-phase
-                                            checking-set
-                                            localf-post))})
+                                            (checking-set)
+                                            (localf-post)))})
 
               session (lift
                        [master slave]
@@ -836,11 +836,11 @@
                       "master"
                       :phases {:configure (phase/phase-fn
                                            (phase/schedule-in-pre-phase
-                                            checking-set
-                                            localf-pre)
+                                            (checking-set)
+                                            (localf-pre))
                                            (phase/schedule-in-post-phase
-                                            checking-set
-                                            localf-post))})
+                                            (checking-set)
+                                            (localf-post)))})
 
               session (lift
                        [slave master]
@@ -860,11 +860,11 @@
                       "master"
                       :phases {:configure (phase/phase-fn
                                            (phase/schedule-in-pre-phase
-                                            checking-set
-                                            localf-pre)
+                                            (checking-set)
+                                            (localf-pre))
                                            (phase/schedule-in-post-phase
-                                            checking-set
-                                            localf-post))})
+                                            (checking-set)
+                                            (localf-post)))})
 
               session (lift
                        [master slave]
@@ -914,7 +914,7 @@
              (core/expand-group-spec-with-counts {c2 2})))))
 
 (deftest component-test
-  (let [testfn (session-pipeline-fn testfn {} (assoc :x 1))]
+  (let [testfn (session-pipeline testfn {} (assoc :x 1))]
     (is (= 1
            (:x (second (core/process-lift-arguments
                         (test-session

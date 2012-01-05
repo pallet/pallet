@@ -2,27 +2,26 @@
   "Conditional action execution."
   (:refer-clojure :exclude [when when-not])
   (:require
-   [pallet.action :as action]
    [pallet.action.exec-script :as exec-script])
   (:use
-   clojure.tools.logging))
+   clojure.tools.logging
+   [pallet.action-plan :only [if-action enter-scope leave-scope]]
+   [pallet.monad :only [phase-pipeline]]))
 
-(defmacro when
-  [session condition & crate-fns-or-actions]
-  `(->
-    ~session
-    (action/enter-scope)
-    (exec-script/exec-script ("if [" ~condition "]; then"))
-    ~@crate-fns-or-actions
-    (exec-script/exec-script "fi")
-    (action/leave-scope)))
+(defmacro pipeline-when
+  [condition & crate-fns-or-actions]
+  `(phase-pipeline when-fn {:condition ~(list 'quote condition)}
+     (if-action ~condition)
+     enter-scope
+     ~@crate-fns-or-actions
+     leave-scope))
 
-(defmacro when-not
+(defmacro pipeline-when-not
   [session condition & crate-fns-or-actions]
-  `(->
-    ~session
-    (action/enter-scope)
-    (exec-script/exec-script ("if [ !" ~condition "]; then"))
-    ~@crate-fns-or-actions
-    (exec-script/exec-script "fi")
-    (action/leave-scope)))
+  `(phase-pipeline when-not-fn {:condition ~(list 'quote condition)}
+     (if-action ~condition)
+     enter-scope
+     leave-scope
+     enter-scope
+     ~@crate-fns-or-actions
+     leave-scope))

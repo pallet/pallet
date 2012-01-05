@@ -1,7 +1,10 @@
 (ns pallet.action.remote-file-test
   (:use pallet.action.remote-file)
-  (:use [pallet.stevedore :only [script]]
-        clojure.test)
+  (:use
+   [pallet.action :only [schedule-clj-fn]]
+   [pallet.node-value :only [node-value]]
+   [pallet.stevedore :only [script]]
+   clojure.test)
   (:require
    [pallet.action :as action]
    [pallet.build-actions :as build-actions]
@@ -30,6 +33,10 @@
  (logutils/logging-threshold-fixture))
 
 (def remote-file* (action/action-fn remote-file-action))
+
+(defn- local-test-user
+  []
+  (assoc utils/*admin-user* :username (test-utils/test-username) :no-sudo true))
 
 (deftest remote-file*-test
   (is remote-file*)
@@ -103,12 +110,9 @@
                             {(core/group-spec "local")
                              (test-utils/make-localhost-node
                               :group-name "local")}
-                            :phase #(remote-file
-                                     % (.getPath tmp) :content "xxx")
+                            :phase (remote-file (.getPath tmp) :content "xxx")
                             :compute nil
-                            :user (assoc utils/*admin-user*
-                                    :username (test-utils/test-username)
-                                    :no-sudo true))]
+                            :user (local-test-user))]
                (logging/infof "r-f-t content: session %s" session)
                (-> session :results :localhost second second first :out))))
       (is (= "xxx\n" (slurp (.getPath tmp))))))
@@ -121,22 +125,22 @@
                      {(core/group-spec "local")
                       (test-utils/make-localhost-node
                        :group-name "local")}
-                     :phase #(remote-file % (.getPath tmp) :content "xxx")
+                     :phase (remote-file (.getPath tmp) :content "xxx")
                      :compute nil
-                     :user (assoc utils/*admin-user* :no-sudo true)
+                     :user (local-test-user)
                      :executor test-executors/test-executor)]
         (logging/infof
          "r-f-t overwrite on existing content and no md5: session %s"
          session)
         (is (re-matches
-           (java.util.regex.Pattern/compile
-            (str "remote-file .*...done.")
-            (bit-or java.util.regex.Pattern/MULTILINE
-                    java.util.regex.Pattern/DOTALL))
-           (-> session :results :localhost second second first :out))
-        (is (= "xxx\n"
-               (slurp (.getPath tmp)))
-            (-> session :results :localhost))))))
+             (java.util.regex.Pattern/compile
+              (str "remote-file .*...done.")
+              (bit-or java.util.regex.Pattern/MULTILINE
+                      java.util.regex.Pattern/DOTALL))
+             (-> session :results :localhost second second first :out))
+            (is (= "xxx\n"
+                   (slurp (.getPath tmp)))
+                (-> session :results :localhost))))))
 
   (binding [install-new-files nil]
     (script/with-script-context [:ubuntu]
@@ -152,26 +156,22 @@
 
 (deftest remote-file-test
   (core/with-admin-user
-    (assoc utils/*admin-user* :username (test-utils/test-username))
+    (local-test-user)
     (is (thrown-with-msg? RuntimeException
           #".*/some/non-existing/file.*does not exist, is a directory, or is unreadable.*"
           (build-actions/build-actions
            {} (remote-file
                "file1" :local-file "/some/non-existing/file" :owner "user1"))))
-
     (is (=
          (str
           "{:error {:type :pallet/action-execution-error, "
           ":context nil, "
-          ":message \"Unexpected exception: java.lang.RuntimeException: "
-          "java.lang.RuntimeException: java.lang.IllegalArgumentException: "
+          ":message \"Unexpected exception: "
           "remote-file file1 specified without content.\", :cause "
-          "#<RuntimeException java.lang.RuntimeException: "
-          "java.lang.RuntimeException: java.lang.RuntimeException: "
-          "java.lang.IllegalArgumentException: remote-file file1 specified "
-          "without content.>}}")
-           (first (build-actions/build-actions
-                   {} (remote-file "file1" :owner "user1")))))
+          "#<IllegalArgumentException java.lang.IllegalArgumentException: "
+          "remote-file file1 specified without content.>}}")
+         (first (build-actions/build-actions
+                 {} (remote-file "file1" :owner "user1")))))
 
     (utils/with-temporary [tmp (utils/tmpfile)]
       (is (re-find #"mv -f --backup=\"numbered\" file1.new file1"
@@ -183,11 +183,11 @@
     (utils/with-temporary [tmp (utils/tmpfile)
                            target-tmp (utils/tmpfile)]
       ;; this is convoluted to get around the "t" sticky bit on temp dirs
-      (let [user (assoc utils/*admin-user*
-                   :username (test-utils/test-username) :no-sudo true)
+      (let [user (local-test-user)
             log-action (action/clj-action
                         [session]
-                        (logging/info "local-file test"))]
+                        (logging/info "local-file test")
+                        [nil session])]
         (.delete target-tmp)
         (io/copy "text" tmp)
         (let [local (core/group-spec "local")
@@ -195,11 +195,12 @@
           (testing "local-file"
             (let [result (core/lift
                           {local node}
-                          :phase [log-action
-                                  #(remote-file
-                                    % (.getPath target-tmp)
-                                    :local-file (.getPath tmp)
-                                    :mode "0666")]
+                          :phase (phase/phase-fn
+                                  (log-action)
+                                  (remote-file
+                                   (.getPath target-tmp)
+                                   :local-file (.getPath tmp)
+                                   :mode "0666"))
                           :user user)]
               (is (some #(= node %) (:all-nodes result))))
             (is (.canRead target-tmp))
@@ -209,69 +210,67 @@
               (logging/info "remote-file test: local-file with md5 guard")
               (let [result (core/lift
                             {local node}
-                            :phase [log-action
-                                    #(remote-file
-                                      % (.getPath target-tmp)
-                                      :local-file (.getPath tmp)
-                                      :mode "0666")]
+                            :phase [(log-action)
+                                    (remote-file
+                                     (.getPath target-tmp)
+                                     :local-file (.getPath tmp)
+                                     :mode "0666")]
                             :user user)]
                 (is (some #(= node %) (:all-nodes result))))))
           (testing "content"
             (core/lift
              {local node}
-             :phase #(remote-file
-                      % (.getPath target-tmp) :content "$(hostname)"
-                      :mode "0666" :flag-on-changed :changed)
+             :phase (remote-file (.getPath target-tmp) :content "$(hostname)"
+                                 :mode "0666" :flag-on-changed :changed)
              :user user)
             (is (.canRead target-tmp))
             (is (= (:out (local/local-script "hostname"))
                    (slurp (.getPath target-tmp)))))
           (testing "content unchanged"
-            (is
-             (re-find
-              #"correctly unchanged"
-              (->
-               (core/lift
-                {local node}
-                :phase (phase/phase-fn
-                        (remote-file
-                         (.getPath target-tmp) :content "$(hostname)"
-                         :mode "0666" :flag-on-changed :changed)
-                        (exec-script/exec-script
-                         (if (== (~lib/flag? :changed) "1")
-                           (println "incorrect!" (~lib/flag? :changed) "!")
-                           (println "correctly unchanged"))))
-                :user user)
-               :results :localhost second second first :out)))
-            (is (.canRead target-tmp))
-            (is (= (:out (local/local-script "hostname"))
-                   (slurp (.getPath target-tmp)))))
+            (let [a (atom nil)]
+              (core/lift
+               {local node}
+               :phase (phase/phase-fn
+                       [nv (remote-file
+                            (.getPath target-tmp) :content "$(hostname)"
+                            :mode "0666" :flag-on-changed :changed)]
+                       (schedule-clj-fn
+                        (fn [session nv]
+                          (reset! a true)
+                          (is (nil? (:flags nv)))
+                          [nil session])
+                        nv))
+               :user user)
+              (is @a)
+              (is (.canRead target-tmp))
+              (is (= (:out (local/local-script "hostname"))
+                     (slurp (.getPath target-tmp))))))
           (testing "content changed"
-            (is
-             (re-find
-              #"correctly changed"
-              (->
-               (core/lift
-                {local node}
-                :phase (phase/phase-fn
-                        (remote-file
-                         (.getPath target-tmp) :content "abc"
-                         :mode "0666" :flag-on-changed :changed)
-                        (exec-script/exec-script
-                         (if (== (~lib/flag? :changed) "1")
-                           (println "correctly changed")
-                           (println "incorrect!" (~lib/flag? :changed) "!"))))
-                :user user)
-               :results :localhost second second first :out)))
+            (let [a (atom nil)]
+              (core/lift
+               {local node}
+               :phase (phase/phase-fn
+                       [nv (remote-file
+                            (.getPath target-tmp) :content "abc"
+                            :mode "0666" :flag-on-changed :changed)]
+                       (schedule-clj-fn
+                        (fn [session nv]
+                          (reset! a true)
+                          (is (:flags nv))
+                          (is ((:flags nv) :changed))
+                          [nil session])
+                        nv))
+               :user user)
+              (is @a))
             (is (.canRead target-tmp))
             (is (= "abc\n"
                    (slurp (.getPath target-tmp)))))
           (testing "content"
             (core/lift
              {local node}
-             :phase #(remote-file
-                      % (.getPath target-tmp) :content "$text123" :literal true
-                      :mode "0666")
+             :phase (remote-file
+                     (.getPath target-tmp) :content "$text123" :literal true
+                     :mode "0666")
              :user user)
             (is (.canRead target-tmp))
             (is (= "$text123\n" (slurp (.getPath target-tmp)))))
@@ -279,9 +278,9 @@
             (io/copy "text" tmp)
             (core/lift
              {local node}
-             :phase #(remote-file
-                      % (.getPath target-tmp) :remote-file (.getPath tmp)
-                      :mode "0666")
+             :phase (remote-file
+                     (.getPath target-tmp) :remote-file (.getPath tmp)
+                     :mode "0666")
              :user user)
             (is (.canRead target-tmp))
             (is (= "text" (slurp (.getPath target-tmp)))))
@@ -289,10 +288,10 @@
             (io/copy "urltext" tmp)
             (core/lift
              {local node}
-             :phase #(remote-file
-                      % (.getPath target-tmp)
-                      :url (str "file://" (.getPath tmp))
-                      :mode "0666")
+             :phase (remote-file
+                     (.getPath target-tmp)
+                     :url (str "file://" (.getPath tmp))
+                     :mode "0666")
              :user user)
             (is (.canRead target-tmp))
             (is (= "urltext" (slurp (.getPath target-tmp)))))
@@ -300,11 +299,11 @@
             (io/copy "urlmd5text" tmp)
             (core/lift
              {local node}
-             :phase #(remote-file
-                      % (.getPath target-tmp)
-                      :url (str "file://" (.getPath tmp))
-                      :md5 (stevedore/script @(~lib/md5sum ~(.getPath tmp)))
-                      :mode "0666")
+             :phase (remote-file
+                     (.getPath target-tmp)
+                     :url (str "file://" (.getPath tmp))
+                     :md5 (stevedore/script @(~lib/md5sum ~(.getPath tmp)))
+                     :mode "0666")
              :user user)
             (is (.canRead target-tmp))
             (is (= "urlmd5text" (slurp (.getPath target-tmp)))))
@@ -329,7 +328,7 @@
             (.createNewFile target-tmp)
             (core/lift
              {local node}
-             :phase #(remote-file % (.getPath target-tmp) :action :delete)
+             :phase (remote-file (.getPath target-tmp) :action :delete)
              :user user)
             (is (not (.exists target-tmp)))))))))
 
@@ -337,14 +336,27 @@
   [session path content path-atom]
   (is (= content (slurp path)))
   (reset! path-atom path)
-  session)
+  [path session])
+
+(deftest transfer-file-to-local-test
+  (utils/with-temporary [remote-file (utils/tmpfile)
+                         local-file (utils/tmpfile)]
+    (let [user (local-test-user)
+          local (core/group-spec
+                 "local"
+                 :phases {:configure (transfer-file-to-local
+                                      remote-file local-file)})]
+      (io/copy "text" remote-file)
+      (testing "with local ssh"
+        (let [node (test-utils/make-localhost-node)]
+          (testing "with-remote-file"
+            (core/lift {local node} :user user)
+            (is (= "text" (slurp local-file)))))))))
 
 (deftest with-remote-file-test
-  (core/with-admin-user (assoc utils/*admin-user*
-                          :username (test-utils/test-username))
+  (core/with-admin-user (local-test-user)
     (utils/with-temporary [remote-file (utils/tmpfile)]
-      (let [user (assoc utils/*admin-user*
-                   :username (test-utils/test-username) :no-sudo true)
+      (let [user (local-test-user)
             local (core/group-spec "local")]
         (io/copy "text" remote-file)
         (testing "with local ssh"
@@ -353,9 +365,8 @@
             (testing "with-remote-file"
               (core/lift
                {local node}
-               :phase #(with-remote-file
-                         % check-content (.getPath remote-file)
-                         "text" path-atom)
+               :phase (with-remote-file
+                        check-content (.getPath remote-file) "text" path-atom)
                :user user)
               (is @path-atom)
               (is (not= (.getPath remote-file) (.getPath @path-atom))))))
@@ -365,9 +376,8 @@
             (testing "with-remote-file"
               (core/lift
                {local node}
-               :phase #(with-remote-file
-                         % check-content (.getPath remote-file)
-                         "text" path-atom)
+               :phase (with-remote-file
+                        check-content (.getPath remote-file) "text" path-atom)
                :user user
                :middleware [core/translate-action-plan])
               (is @path-atom)

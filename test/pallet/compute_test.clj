@@ -1,6 +1,7 @@
 (ns pallet.compute-test
   (:use pallet.compute)
-  (:use clojure.test))
+  (:use clojure.test)
+  (:import slingshot.ExceptionInfo))
 
 (deftest packager-test
   (is (= :aptitude (packager {:os-family :ubuntu})))
@@ -24,5 +25,5 @@
   (is (= :linux (testos {:server {:image {:os-family :arch}}})))
   (is (= :rh-base (testos {:server {:image {:os-family :centos}}})))
   (is (= :debian (testos {:server {:image {:os-family :debian}}})))
-  (is (thrown? slingshot.Stone
+  (is (thrown? slingshot.ExceptionInfo
                (testos {:server {:image {:os-family :unspecified}}}))))

@@ -9,7 +9,9 @@
    [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
-   [clojure.tools.logging :as logging]))
+   [clojure.tools.logging :as logging])
+  (:use
+   [pallet.monad :only [phase-pipeline]]))
 
 (def cmd "/usr/bin/rsync -e '%s' -rP --delete --copy-links -F -F %s %s@%s:%s")
 
@@ -19,19 +21,16 @@
   (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
                  (if port (format "-p %s" port)))
         cmd (format
-             cmd ssh from (:username (session/admin-user session))
-             (node/primary-ip (session/target-node session)) to)]
+             cmd ssh from (:username (first (session/admin-user session)))
+             (node/primary-ip (first (session/target-node session))) to)]
     (stevedore/checked-commands
      (format "rsync %s to %s" from to)
      cmd)))
 
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
-  [session from to & {:keys [owner group mode port] :as options}]
-  (context/with-phase-context
-    :rsync-directory "rsync directory"
-    (->
-     session
-     (package/package "rsync")
-     (directory/directory to :owner owner :group group :mode mode)
-     (rsync from to options))))
+  [from to & {:keys [owner group mode port] :as options}]
+  (phase-pipeline rsync-directory-fn {:name :rsync-directory}
+    (package/package "rsync")
+    (directory/directory to :owner owner :group group :mode mode)
+    (rsync from to options)))

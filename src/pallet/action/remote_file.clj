@@ -20,10 +20,14 @@
    [pallet.utils :as utils]
    [clojure.java.io :as io])
   (:use
-   pallet.thread-expr))
+   [clojure.algo.monads :only [m-when]]
+   pallet.thread-expr
+   [pallet.action.exec-script :only [exec-script]]
+   [pallet.monad :only [let-s phase-pipeline]]
+   [pallet.utils :only [apply-map]]))
 
-(def install-new-files true)
-(def force-overwrite false)
+(def ^{:dynamic true} install-new-files true)
+(def ^{:dynamic true} force-overwrite false)
 
 (defn set-install-new-files
   "Set boolean flag to control installation of new files"
@@ -86,41 +90,47 @@
   [_ & args]
   args)
 
-(defn- delete-local-path
-  [session local-path]
-  (.delete local-path)
-  session)
+(defn delete-local-path
+  "Action to delete a local file"
+  [file]
+  (let [action-fn (fn delete-local-path-fn [session local-path]
+                    (.delete local-path)
+                    [local-path session])
+        action (action-plan/action-map
+                action-fn {} [(io/file file)] :in-sequence :fn/clojure :origin)]
+    #(action-plan/schedule-action % action)))
+
+(defn transfer-file-to-local
+  "Transfer a remote file to a local path"
+  [file local-path]
+  (let [action (action-plan/action-map
+                arg-vector {} [(.getPath (io/file file))
+                               (.getPath (io/file local-path))]
+                :in-sequence :transfer/to-local :origin)]
+    #(action-plan/schedule-action % action)))
 
 (defn with-remote-file
   "Function to call f with a local copy of the sessioned remote path.
    f should be a function taking [session local-path & _], where local-path will
    be a File with a copy of the remote file (which will be unlinked after
    calling f."
-  [session f path & args]
+  [f path & args]
   (let [local-path (utils/tmpfile)]
-    (->
-     session
-     (action/schedule-action
-      arg-vector
-      {}
-      [path (.getPath local-path)]
-      :in-sequence :transfer/to-local :origin)
-     (apply-> f local-path args)
-     (action/schedule-action
-      delete-local-path
-      {}
-      [local-path]
-      :in-sequence :fn/clojure :origin))))
+    (phase-pipeline with-remote-file-fn {:local-path local-path}
+      (transfer-file-to-local path local-path)
+      (apply f local-path args)
+      (delete-local-path local-path))))
 
 (defn transfer-file
   "Function to transfer a local file."
-  [session local-path remote-path {:as options}]
-  (action/schedule-action
-   session
-   arg-vector
-   options
-   [local-path remote-path]
-   :in-sequence :transfer/from-local :origin))
+  [local-path remote-path {:as options}]
+  (fn [session]
+    (let [action (action-plan/action-map
+                  arg-vector
+                  options
+                  [local-path remote-path]
+                  :in-sequence :transfer/from-local :origin)]
+      (action-plan/schedule-action session action))))
 
 (action/def-bash-action remote-file-action
   [session path & {:keys [action url local-file remote-file link
@@ -337,16 +347,16 @@ downloads and to verify the download.
 Content can also be copied from a blobstore.
     (remote-file session \"remote/path\"
       :blob {:container \"container\" :path \"blob\"})"
-  [session path & {:keys [action url local-file remote-file link
-                          content literal
-                          template values
-                          md5 md5-url
-                          owner group mode force
-                          blob blobstore
-                          overwrite-changes no-versioning max-versions
-                          flag-on-changed
-                          local-file-options]
-                   :as options}]
+  [path & {:keys [action url local-file remote-file link
+                  content literal
+                  template values
+                  md5 md5-url
+                  owner group mode force
+                  blob blobstore
+                  overwrite-changes no-versioning max-versions
+                  flag-on-changed
+                  local-file-options]
+           :as options}]
   (when-let [f (and local-file (io/file local-file))]
     (when (not (and (.exists f) (.isFile f) (.canRead f)))
       (throw (IllegalArgumentException.
@@ -354,14 +364,24 @@ Content can also be copied from a blobstore.
                (str "'%s' does not exist, is a directory, or is unreadable; "
                     "cannot register it for transfer.")
                local-file)))))
-  (->
-   session
-   (when-> local-file
-           ;; transfer local file to remote system if required
-           (transfer-file local-file (str path ".new") local-file-options))
-   (action/with-precedence local-file-options
-     (apply-map->
-      remote-file-action path
-      (merge
-       {:overwrite-changes force-overwrite} ;; capture the value of the flag
-       options)))))
+  (let-s
+    [_ (m-when
+        local-file
+        ;; transfer local file to remote system if required
+        (transfer-file local-file (str path ".new") local-file-options))
+     f (action/with-precedence local-file-options
+         (let-s
+           [v (apply-map
+               remote-file-action path
+               (merge
+                {:overwrite-changes force-overwrite} ; capture the bound value
+                options))]
+           v))]
+    f))
+
+(defn remote-file-content
+  "Return the content of a file."
+  [path]
+  (let-s
+    [r (exec-script (~lib/cat ~path))]
+    {:out r}))

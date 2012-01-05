@@ -33,8 +33,7 @@
          (test-utils/test-session
           {:node-set {tag #{node}}
            :phase-list [:p]
-           :inline-phases {:p (phase/phase-fn
-                               (rsync (.getPath dir) (.getPath target-dir) {}))}
+           :inline-phases {:p (rsync (.getPath dir) (.getPath target-dir) {})}
            :environment
            {:user user
             :middleware core/*middleware*
@@ -53,9 +52,9 @@
          (test-utils/test-session
           {:node-set {tag node}
            :phase-list [:p]
-           :inline-phases {:p (phase/phase-fn
-                               (rsync-directory
-                                (.getPath dir) (.getPath target-dir)))}
+           :inline-phases {:p
+                           (rsync-directory
+                            (.getPath dir) (.getPath target-dir))}
            :environment
            {:user user
             :middleware core/*middleware*

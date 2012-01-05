@@ -25,8 +25,9 @@
   (:require
    [pallet.action :as action]
    [pallet.argument :as argument]
-   [pallet.compute :as compute]
-   [slingshot.core :as slingshot]))
+   [pallet.compute :as compute])
+  (:use
+   [slingshot.slingshot :only [throw+]]))
 
 (defn from-map
   "Initialise parameters based on the given keys, which are used to merge maps
@@ -50,7 +51,7 @@
                              (get-in (:parameters session) % ::not-set)
                              ::not-set)
                            (rest (reductions conj [] keys)))]
-           (slingshot/throw+
+           (throw+
             {:type :parameter-not-found
              :message (format
                        (str
@@ -80,6 +81,26 @@
   ([session keys default]
      (get-for
       session (concat [:host (-> session :server :node-id)] keys) default)))
+
+(defn get-target
+  "Retrieve the host parameter for the current target at the path specified by
+   keys.  When no default value is specified, then raise a :parameter-not-found
+   if no parameter is set.
+
+       (get-for-target
+         {:parameters {:host {:id1 {:a {:b 1} {:d 2}}}}
+          :target-id :id1} [:a :b])
+         => 1"
+  ([keys]
+     (fn [session]
+       [(get-for session (concat [:host (-> session :server :node-id)] keys))
+        session]))
+  ([keys default]
+     (fn [session]
+       [(get-for
+         session
+         (concat [:host (-> session :server :node-id)] keys) default)
+        session])))
 
 (defn get-for-service
   "Retrieve the service parameter for the service and path specified by
@@ -117,6 +138,26 @@
       [:host (-> session :server :node-id) facility (or instance-id :default)]
       default)))
 
+(defn get-settings
+  "Retrieve the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility. If passed a nil
+   `instance-id`, then `:default` is used"
+  ([facility instance-id]
+     (fn [session]
+       [(get-for
+         session
+         [:host (-> session :server :node-id)
+          facility (or instance-id :default)])
+        session]))
+  ([facility instance-id default]
+     (fn [session]
+       [(get-for
+         session
+         [:host (-> session :server :node-id)
+          facility (or instance-id :default)]
+         default)
+        session])))
+
 (defn- assoc-for-prefix
   "Set the values in a map at the paths specified with prefix prepended to each
    path.
@@ -146,6 +187,18 @@
   (assoc-for-prefix
    session [:parameters :host (-> session :server :node-id)] keys-value-pairs))
 
+(defn assoc-target
+  "Set the host parameter values at the paths specified.
+
+       (assoc-for-target {:target-id :id1} [:a :b] 1 [:a :d] 2)
+         => {:parameters {:host {:id1 {:a {:b 1} {:d 2}}}}}"
+  [& {:as keys-value-pairs}]
+  (fn [session]
+    [session
+     (assoc-for-prefix
+      session
+      [:parameters :host (-> session :server :node-id)] keys-value-pairs)]))
+
 (defn assoc-for-service
   "Set the service parameter values at the paths specified.
 
@@ -164,6 +217,18 @@
    session
    [:host (-> session :server :node-id) facility (or instance-id :default)]
    values))
+
+(defn assoc-settings
+  "Set the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility (the default is
+   :default)."
+  [facility instance-id values]
+  (fn [session]
+    [session
+     (assoc-for
+      session
+      [:host (-> session :server :node-id) facility (or instance-id :default)]
+      values)]))
 
 (defn- update-for-prefix
   "Update a map at the path given by the prefix and keys.
@@ -211,6 +276,20 @@
   [session keys f & args]
   (update-for-prefix session [:parameters :service] keys f args))
 
+(defn update-service
+  "Update serivce parameters for the pecified service at the path given by keys.
+   The value is set to the value return by calling f with the current
+   value and the given args.
+
+       (update-for-service
+          {:parameters {:service {:proxy {:a {:b 1}}}}}
+          [:proxy :a :b] + 2)
+         => {:parameters {:service {:proxy {:a {:b 3}}}}}"
+  [keys f & args]
+  (fn [session]
+    [session
+     (update-for-prefix session [:parameters :service] keys f args)]))
+
 (defn update-target-settings
   "Update the settings for the specified host facility. The instance-id allows
    the specification of specific instance of the facility (the default is
@@ -221,6 +300,19 @@
    session
    [:host (-> session :server :node-id) facility (or instance-id :default)]
    f args))
+
+(defn update-settings
+  "Update the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility (the default is
+   :default)."
+  [facility instance-id f & args]
+  (fn [session]
+    [session
+     (apply
+      update-for
+      session
+      [:host (-> session :server :node-id) facility (or instance-id :default)]
+      f args)]))
 
 ;;; Delayed parameter evaluation
 (deftype ParameterLookup
@@ -260,8 +352,9 @@
 (action/def-clj-action parameters
   "An action to set parameters"
   [session & {:as keyvector-value-pairs}]
-  (assoc session
-    :parameters (reduce
-                 #(apply assoc-in %1 %2)
-                 (:parameters session)
-                 keyvector-value-pairs)))
+  [keyvector-value-pairs
+   (assoc session
+     :parameters (reduce
+                  #(apply assoc-in %1 %2)
+                  (:parameters session)
+                  keyvector-value-pairs))])

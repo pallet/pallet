@@ -25,7 +25,8 @@
    [clojure.string :as string])
   (:use
    clojure.test
-   [pallet.test-utils :only [test-session]])
+   [pallet.test-utils :only [test-session]]
+   [pallet.action-plan :only [stop-execution-on-error]])
   (:import [org.jclouds.compute.domain NodeState OperatingSystem OsFamily]))
 
 ;; Allow running against other compute services if required
@@ -50,7 +51,7 @@
        (clojure.tools.logging/info (format "Seenfn %s" name))
        (is (not @seen))
        (reset! seen true)
-       session)
+       [session session])
       seen?]))
 
 (defn running-nodes [nodes]
@@ -102,7 +103,7 @@
         [action seen?] (seen-fn "lift-destroy-server-test")
         servers [{:node node
                   :node-id (keyword (node/id node))
-                  :phases {:destroy-server action}}]]
+                  :phases {:destroy-server (action)}}]]
     (is (= 1 (count nodes)))
     (let [session (#'core/lift-destroy-server
                    (test-session
@@ -149,7 +150,7 @@
                              :a
                              :servers servers
                              :servers-to-remove servers
-                             :phases {:destroy-group action}
+                             :phases {:destroy-group (action)}
                              :delta-count -1)]
                    :environment (serial-environment-no-ssh)}
           session (-> (test-session session)
@@ -166,7 +167,7 @@
     (let [session {:groups [(core/group-spec
                              :a
                              :delta-count 1
-                             :phases {:create-group action})]
+                             :phases {:create-group (action)})]
                    :environment (serial-environment-no-ssh)}
           session (-> (test-session session)
                       core/lift-create-group)]
@@ -344,8 +345,8 @@
 (deftest lift2-test
   (let [[localf seen?] (seen-fn "lift2-test")
         [localfy seeny?] (seen-fn "lift2-test y")
-        x1 (group-spec :x1 :phases {:configure localf})
-        y1 (group-spec :y1 :phases {:configure localfy})]
+        x1 (group-spec :x1 :phases {:configure (localf)})
+        y1 (group-spec :y1 :phases {:configure (localfy)})]
     (is (map?
          (lift {x1 (jclouds/make-unmanaged-node "x" "localhost")
                 y1 (jclouds/make-unmanaged-node "y" "localhost")}
@@ -522,7 +523,7 @@
   (jclouds-test-utils/purge-compute-service)
   (let [hi (action/bash-action [session] "Hi")
         id "c-t"
-        node (group-spec "c-t" :phases {:configure hi})
+        node (group-spec "c-t" :phases {:configure (hi)})
         session (converge {node 2}
                           :compute (jclouds-test-utils/compute)
                           :environment {:executor executors/echo-executor})]
@@ -531,7 +532,7 @@
     (is (map? (-> session :results first second)))
     (is (:configure (-> session :results first second)))
     (is (some
-         #(= "Hi\n" %)
+         #(= "Hi" %)
          (:configure (-> session :results first second))))
     (is (= 2 (count (:all-nodes session))))
     (is (= 2
@@ -546,7 +547,7 @@
                          (compute/nodes
                           (jclouds-test-utils/compute))))))
         (is (some
-             #(= "Hi\n" %)
+             #(= "Hi" %)
              (:configure (-> session :results first second))))))
     (testing "no instance count change with new-node-selector"
       (let [session (converge {node 1}
@@ -558,7 +559,7 @@
                          (compute/nodes
                           (jclouds-test-utils/compute))))))
         (is (not (some
-                  #(= "Hi\n" %)
+                  #(= "Hi" %)
                   (:configure (-> session :results first second)))))))
     (testing ":settings and :configure phases are enforced"
       (let [session (converge {node 1}
@@ -622,7 +623,8 @@
   ;; between phases
   (let [assoc-runtime-param (action/clj-action
                              [session]
-                             (parameter/assoc-for-target session [:x] "x"))
+                             [session
+                              (parameter/assoc-for-target session [:x] "x")])
 
         get-runtime-param (action/bash-action
                            [session]
@@ -631,11 +633,11 @@
         node (group-spec
               "localhost"
               :phases
-              {:configure assoc-runtime-param
+              {:configure (assoc-runtime-param)
                :configure2 (fn [session]
                              (is (= (parameter/get-for-target session [:x])
                                     "x"))
-                             (get-runtime-param session))})
+                             ((get-runtime-param) session))})
         session (lift {node (jclouds/make-localhost-node)}
                       :phase [:configure :configure2]
                       :user (assoc utils/*admin-user*

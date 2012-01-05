@@ -1,23 +1,33 @@
 (ns pallet.monad
-  "Pallet monads"
+  "# Pallet monads
+
+Pallet uses monads for both internal core code, and for action and phase code
+used in crates. The two uses are both fundamentally an application of the state
+monad, but are each use a different context."
   (:use
    [clojure.algo.monads
-    :only [domonad maybe-m monad state-t state-m with-monad defmonadfn m-seq]]
-   [clojure.tools.macro :only [symbol-macrolet]]
-   [pallet.context :only [with-context]]
-   [pallet.phase :only [check-session]]))
+    :only [defmonad defmonadfn domonad m-map m-when m-when-not monad state-m
+           with-monad]]
+   [pallet.context :only [with-context with-phase-context]]
+   pallet.monad.state-accessors
+   [pallet.session-verify :only [check-session]]))
 
-;;; monads
-(defn state-checking-t
+;;; ## Pallet Monads and Monad Transformers
+
+;;; The session-m monad is a state monad, where the state is pallet's session
+;;; map. The state monad is modified to check the validity of the session map,
+;;; before and after each monadic call.
+
+(defn- state-checking-t
   "Monad transformer that transforms a state monad m into a monad that check its
-  state."
+  state using the specified `checker` argument."
   [m checker]
   (monad [m-result (with-monad m
                      m-result)
           m-bind   (with-monad m
                      (fn m-bind-state-checking-t [stm f]
                        (fn state-checking-t-mv [s]
-                         (checker s)
+                         (checker s {:f f})
                          (let [[_ ss :as r] ((m-bind stm f) s)]
                            (checker ss {:f f :result r})
                            r))))
@@ -38,112 +48,102 @@
   session-m
   (state-checking-t state-m check-session))
 
-;; (def
-;;   ^{:doc "The pallet session sequence monad"}
-;;   session-seq-m
-;;   (sequence-t state-m))
+;;; ## Comprehensions
 
-;;; monadic functions
-(defmonadfn m-mapcat
-  "'Executes' the sequence of monadic values resulting from mapping
-   f onto the values xs. f must return a monadic value."
-  [f xs]
-  (m-seq (map f xs)))
+;; ### Rewriting of core symbols to monadic equivalents.
 
+;; This is alpha at present. It could give rise to unexpected behaviour. The aim
+;; is to make the monadic code look more like plain clojure code, and simplify
+;; the number of new functions that must be learned.
+(def ^{:doc
+       "A map of symbols that will be translated when they appear as the
+        monadic function in a `let-s` monadic comprehension."
+       :private true}
+  top-level-replacements
+  {'update-in `update-in-state
+   'assoc `assoc-state
+   'assoc-in `assoc-in-state
+   'get `get-state
+   'get-in `get-in-state
+   'dissoc `dissoc-state
+   'map `m-map
+   'when `m-when
+   'when-not `m-when-not
+   `update-in `update-in-state
+   `assoc `assoc-state
+   `assoc-in `assoc-in-state
+   `get `get-state
+   `get-in `get-in-state
+   `dissoc `dissoc-state
+   `map `m-map
+   `when `m-when
+   `when-not `m-when-not})
 
-;;; state accessors
-(defn update-in-state
-  "Return a state-monad function that replaces the current state by the result
-of f applied to the current state and that returns the old state."
-  [ks f & args]
-  (fn [s] [s (apply update-in s ks f args)]))
+(defn- replace-in-top-level-form
+  "Replace top level monadic function symbols."
+  [form]
+  (if (and (sequential? form) (not (vector? form)))
+    (list* (get top-level-replacements (first form) (first form)) (rest form))
+    form))
 
-(defn assoc-state
-  "Return a state-monad function that replaces the current state by the result
-of assoc'ing the specified kw-value-pairs onto the current state, and that
-returns the old state."
-  [& kw-value-pairs]
-  (fn assoc-state [s]
-    {:pre [(map? s)]}
-    [s (apply assoc s kw-value-pairs)]))
+(defn replace-in-top-level-forms
+  "Replace some top level function names with their monadic equivalents."
+  [forms]
+  (vec
+   (mapcat
+    #(list (first %) (replace-in-top-level-form (second %)))
+    (partition 2 forms))))
 
-(defn dissoc-state
-  "Return a state-monad function that removes the specified keys from the
-current state, and returns the old state"
-  [& keys]
-  (fn dissoc-state [s] [s (apply dissoc s keys)]))
-
-(defn get-state
-  "Return a state-monad function that gets the specified key from the current
-state."
-  ([k default]
-     (fn get-state [s] [(get s k default) s]))
-  ([k]
-     (get-state k nil)))
-
-(defn get-in-state
-  "Return a state-monad function that gets the specified key from the current
-state."
-  ([ks default]
-     (fn get-in-state [s] [(get-in s ks default) s]))
-  ([ks]
-     (get-in-state ks nil)))
-
-(defn get-session
-  "Return a state-monad function that gets the current sessin."
-  []
-  (fn get-session [s] [s s]))
-
-
-;;; comprehensions
-(defmacro let-s
-  "A monadic comprehension using the session monad."
-  [& body]
-  `(symbol-macrolet [~'update-in update-in-state
-                     ~'assoc assoc-state
-                     ~'get get-state
-                     ~'get-in get-in-state
-                     ~'dissoc dissoc-state]
-     (domonad session-m ~@body)))
-
+;; ### Components
+;; In order to allow replacement of parts of Pallet's algorithms, each symbol in
+;; a pipeline is looked up int the :components key of the session map.
 (defn component-symbol-fn
   "Returns an inline function definition for a component look-up by symbol"
   [k]
   `(fn [session#] ((get (:components session#) '~k ~k) session#)))
 
-;; This is tricky to get right, as it could be many things other than a
-;; pipeline call.
-;; (defn component-form-fn
-;;   "Returns an inline function definition for a component look-up form a form"
-;;   [k]
-;;   `(fn [& args#]
-;;      (fn [session#]
-;;        ((apply (get (:components session#) '~(first k) ~(first k)) args#)
-;;         session#))))
-
-(defmacro chain-s
-  "Defines a monadic comprehension under the session monad, where return value
-  bindings can be dropped . Any vector in the arguments is expected to be of the
-  form [symbol expr] and becomes part of the generated monad comprehension."
-  [& args]
+(defn componentise-top-level-forms
+  [forms]
   (letfn [(componentise [s]
             (if (symbol? s)
               (component-symbol-fn s)
-              s))
-          (gen-step [f]
-            (if (vector? f)
-              (vec
-               (mapcat
-                #(vector (first %) (componentise (second %)))
-                (partition 2 f)))
-              [(gensym "_") (componentise f)]))]
-    `(let-s
-      [~@(mapcat gen-step args)]
-      nil)))
+              s))]
+    (vec
+     (mapcat
+      #(vector (first %) (componentise (second %)))
+      (partition 2 forms)))))
 
-(defmacro ^{:indent 'defun} wrap-pipeline
+;; ### Let Comprehension
+(defmacro let-s
+  "A monadic comprehension using the session-m monad. Provides some translation
+   of functions used (see `top-level-replacements`), and adds lookup of
+   components"
+  [& body]
+  `(domonad session-m
+            ~(->
+              (first body)
+              replace-in-top-level-forms
+              componentise-top-level-forms)
+            ~@(rest body)))
+
+;; ### Pipelines
+(defmacro chain-s
+  "Defines a monadic comprehension under the session monad, where return value
+  bindings not specified. Any vector in the arguments is expected to be of the
+  form [symbol expr] and becomes part of the generated monad comprehension."
+  [& args]
+  (letfn [(gen-step [f]
+            (if (vector? f)
+              f
+              [(gensym "_") f]))]
+    `(let-s
+       [~@(mapcat gen-step args)]
+       nil)))
+
+(defmacro wrap-pipeline
   "Wraps a pipeline with one or more wrapping forms. Makes the &session symbol
-   available withing the bindings"
+   available withing the bindings."
+  {:indent 'defun}
   [sym & wrappers-and-pipeline]
   `(fn ~sym [~'&session]
      ~(reduce
@@ -151,10 +151,13 @@ state."
        (list (last wrappers-and-pipeline) '&session)
        (reverse (drop-last wrappers-and-pipeline)))))
 
-(defmacro ^{:indent 2} session-pipeline-fn
+;;; ## Session Pipeline
+;;; The session pipeline is used in pallet core code.
+(defmacro session-pipeline
   "Defines a session pipeline. This composes the body functions under the
   session-m monad. Any vector in the arguments is expected to be of the form
   [symbol expr] and becomes part of the generated monad comprehension."
+  {:indent 2}
   [pipeline-name event & args]
   (let [line (-> &form meta :line)]
     `(wrap-pipeline ~pipeline-name
@@ -167,27 +170,81 @@ state."
                    event))
        (chain-s ~@args))))
 
-(defmacro ^{:indent 2} session-pipeline
-  "Build and call a session pipeline"
-  [name event session & args]
-  `(let [name# ~name
-         session# ~session]
-     (second ((session-pipeline-fn name# ~event ~@args) session#))))
+(defmacro let-session
+  "Defines a session comprehension."
+  {:indent 2}
+  [comprehension-name event & args]
+  (let [line (-> &form meta :line)]
+    `(wrap-pipeline ~comprehension-name
+       (with-context
+           ~(merge {:kw (list 'quote comprehension-name)
+                    :msg (name comprehension-name)
+                    :ns (list 'quote (ns-name *ns*))
+                    :line line
+                    :log-level :debug}
+                   event))
+       (let-s ~@args))))
 
+;;; ## Phase Pipeline
 
-;; (defmacro for-s
-;;   "A for comprehension, for use within the session monad."
-;;   [& body]
-;;   `(monads/domonad session-seq-m ~@body))
+;;; The phase pipeline is used in actions and crate functions. The phase
+;;; pipeline automatically sets up the phase context, which is available
+;;; (for logging, etc) at phase execution time.
+(defmacro phase-pipeline
+  "Defines a session pipeline. This composes the body functions under the
+  session-m monad. Any vector in the arguments is expected to be of the form
+  [symbol expr] and becomes part of the generated monad comprehension.
 
-;;; helpers
+  The resulting function is wrapped in a named anonymous function to improve
+  stack traces.
+
+  A context is automatically added."
+  {:indent 2}
+  [pipeline-name event & args]
+  (let [line (-> &form meta :line)]
+    `(wrap-pipeline ~pipeline-name
+       (with-phase-context
+           (merge {:kw ~(list 'quote pipeline-name)
+                   :msg ~(name pipeline-name)
+                   :ns ~(list 'quote (ns-name *ns*))
+                   :line ~line
+                   :log-level :debug}
+                  ~event))
+       (chain-s ~@args))))
+
+(defmacro phase-pipeline-no-context
+  "Similar to `phase-pipeline`, but without the context."
+  {:indent 2}
+  [pipeline-name event & args]
+  (let [line (-> &form meta :line)]
+    `(wrap-pipeline ~pipeline-name
+       (chain-s ~@args))))
+
+;;; ## Helpers
+(defn exec-s
+  "Call a session-m state monad function, returning only the session map."
+  [pipeline session]
+  (second (pipeline session)))
+
 (defn as-session-pipeline-fn
   "Converts a function of session -> session and makes it a monadic value under
   the state monad"
   [f] #(vector nil (f %)))
 
-(defmacro ^{:indent 'defun} session-peek-fn
+(defmacro session-peek-fn
   "Create a state-m monadic value function that examines the session, and
   returns nil."
+  {:indent 'defun}
   [[sym] & body]
-  `(fn [~sym] ~@body [nil ~sym]))
+  `(fn session-peek-fn [~sym]
+     ~@body
+     [nil ~sym]))
+
+(defmacro local-env
+  "Return the local environment as a map of keyword value pairs."
+  []
+  (letfn [(not-gensym? [sym] #(not (.contains (name sym) "__")))]
+    (into {}
+          (map
+           #(vector (keyword (name %)) %)
+           (filter not-gensym? (keys &env))))))

@@ -1,7 +1,9 @@
 (ns pallet.action.package-test
   (:use pallet.action.package)
-  (:use [pallet.stevedore :only [script]]
-        clojure.test)
+  (:use
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [pallet.stevedore :only [script]]
+   clojure.test)
   (:require
    [pallet.action :as action]
    [pallet.action.exec-script :as exec-script]
@@ -9,7 +11,6 @@
    [pallet.action.package :as package]
    [pallet.action.remote-file :as remote-file]
    [pallet.build-actions :as build-actions]
-   [pallet.common.logging.logutils :as logutils]
    [pallet.core :as core]
    [pallet.execute :as execute]
    [pallet.local.execute :as local]
@@ -28,7 +29,7 @@
 
 (use-fixtures
  :once
- (logutils/logging-threshold-fixture))
+ (logging-threshold-fixture))
 
 (def remote-file* (action/action-fn remote-file/remote-file-action))
 (def sed* (action/action-fn file/sed))

@@ -1,10 +1,13 @@
 (ns pallet.crate.etc-hosts-test
  (:use
-  clojure.test)
+  clojure.test
+  [pallet.common.logging.logutils :only [logging-threshold-fixture]])
  (:require
   [pallet.build-actions :as build-actions]
   [pallet.crate.etc-hosts :as etc-hosts]
   [pallet.test-utils :as test-utils]))
+
+(use-fixtures :once (logging-threshold-fixture))
 
 (deftest format-hosts*-test
   (is (= "1.2.3.4 some-host\n1.2.3.5 some-other-host"
@@ -16,4 +19,4 @@
   (is (build-actions/build-actions
        {:server {:node (test-utils/make-node "g")}}
        (etc-hosts/hosts-for-group :g)
-       (etc-hosts/hosts))))
+       etc-hosts/hosts)))

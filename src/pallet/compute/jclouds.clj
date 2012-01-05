@@ -10,8 +10,9 @@
    [pallet.script :as script]
    [pallet.utils :as utils]
    [pallet.execute :as execute]
-   [slingshot.core :as slingshot]
    [clojure.tools.logging :as logging])
+  (:use
+   [slingshot.slingshot :only [throw+]])
   (:import
    [org.jclouds.compute.domain.internal HardwareImpl ImageImpl NodeMetadataImpl]
    org.jclouds.compute.util.ComputeServiceUtils
@@ -416,7 +417,7 @@
                        str keyword)]
         (logging/infof "OS is %s" (pr-str family))
         (when (or (nil? family) (= family OsFamily/UNRECOGNIZED))
-          (slingshot/throw+
+          (throw+
            {:type :unable-to-determine-os-type
             :message (format
                       (str "jclouds was unable to determine the os-family "

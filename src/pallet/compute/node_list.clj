@@ -5,9 +5,10 @@
    [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
    [pallet.environment :as environment]
-   [slingshot.core :as slingshot]
    [pallet.node :as node]
-   [clojure.string :as string]))
+   [clojure.string :as string])
+  (:use
+   [slingshot.slingshot :only [throw+]]))
 
 
 (defn supported-providers []
@@ -57,7 +58,7 @@
   (ensure-os-family
     [compute-service group-spec]
     (when (not (-> group-spec :image :os-family))
-      (slingshot/throw+
+      (throw+
        {:type :no-os-family-specified
         :message "Node list contains a node without os-family"})))
   ;; Not implemented

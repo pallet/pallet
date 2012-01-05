@@ -6,9 +6,8 @@
    [pallet.script.lib :as lib]))
 
 (defn loop-until
-  [session service-name condition max-retries standoff]
+  [service-name condition max-retries standoff]
   (exec-script/exec-checked-script
-   session
    (format "Wait for %s" service-name)
    (group (chain-or (let x 0) true))
    (while (not ~condition)
@@ -24,10 +23,8 @@
        (sleep ~standoff)))))
 
 (defmacro retry-until
-  [session {:keys [max-retries standoff service-name]
-            :or {max-retries 5 standoff 2}}
+  [{:keys [max-retries standoff service-name]
+    :or {max-retries 5 standoff 2}}
    condition]
   (let [service-name (or service-name "retryable")]
-    `(->
-      ~session
-      (loop-until ~service-name ~condition ~max-retries ~standoff))))
+    `(loop-until ~service-name ~condition ~max-retries ~standoff)))

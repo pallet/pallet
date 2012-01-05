@@ -7,7 +7,8 @@
   "Echo a bash action. Do not execute."
   [session {:keys [f] :as action}]
   (logging/trace "echo-bash")
-  [(:value (f session)) session])
+  (let [{:keys [value session]} (f session)]
+    [value session]))
 
 (defn echo-clojure
   "Echo a clojure action (which returns nil)"

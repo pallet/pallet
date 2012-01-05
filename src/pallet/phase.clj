@@ -3,10 +3,13 @@
    calls to crate functions or actions. A phase has an implicitly
    defined pre and post phase."
   (:require
-   [slingshot.core :as slingshot]
    [pallet.context :as context])
   (:use
-   [pallet.common.context :only [throw-map]]))
+   [clojure.tools.macro :only [name-with-attributes]]
+   [pallet.common.context :only [throw-map]]
+   [pallet.monad :only [phase-pipeline phase-pipeline-no-context
+                        session-pipeline local-env]]
+   [pallet.session-verify :only [check-session]]))
 
 (defn pre-phase-name
   "Return the name for the pre-phase for the given `phase`."
@@ -36,65 +39,21 @@
 
 (defmacro schedule-in-pre-phase
   "Specify that the body should be executed in the pre-phase."
-  [session & body]
-  `(let [session# ~session
-         phase# (:phase session#)]
-     (->
-      (assoc session# :phase (pre-phase-name phase#))
-      ~@body
-      (assoc :phase phase#))))
+  [& body]
+  `(session-pipeline schedule-in-pre-phase {}
+     [phase# (get :phase)]
+     (assoc :phase (pre-phase-name phase#))
+     ~@body
+     (assoc :phase phase#)))
 
 (defmacro schedule-in-post-phase
   "Specify that the body should be executed in the post-phase."
-  [session & body]
-  `(let [session# ~session
-         phase# (:phase session#)]
-     (->
-      (assoc session# :phase (post-phase-name phase#))
-      ~@body
-      (assoc :phase phase#))))
-
-(def session-verification-key :pallet.phase/session-verification)
-
-(defn add-session-verification-key
-  [session]
-  (assoc session session-verification-key true))
-
-(defn check-session
-  "Function that can check a session map to ensure it is a valid part of
-   phase definiton. It returns the session map.
-
-   If this fails, then it is likely that you have an incorrect crate function
-   which is failing to return its session map properly, or you have a non crate
-   function in the phase defintion."
-  ([session]
-     ;; we do not use a precondition in order to improve the error message
-     (when-not (and session (map? session) (session-verification-key session))
-       (throw-map
-        "Invalid session map in phase. Check for non crate functions
-      improper crate functions, or problems in threading the session map
-      in your phase definition.
-
-      A crate function is a function that takes a session map and other
-      arguments, and returns a modified session map. Calls to crate functions
-      are often wrapped in a threading macro, -> or pallet.phase/phase-fn
-      to simplify chaining of the session map argument."
-        {:type :invalid-session
-         :session session}))
-     session)
-  ([session form]
-     ;; we do not use a precondition in order to improve the error message
-     (when-not (and session (map? session) (session-verification-key session))
-       (throw-map
-        (format
-         (str
-          "Invalid session map in phase session.\n"
-          "`session` is %s\n"
-          "Problem probably caused in:\n  %s ")
-         session form)
-        {:type :invalid-session
-         :session session}))
-     session))
+  [& body]
+  `(session-pipeline schedule-in-post-phase {}
+     [phase# (get :phase)]
+     (assoc :phase (post-phase-name phase#))
+     ~@body
+     (assoc :phase phase#)))
 
 (defmacro check-session-thread
   "Add session checking to a sequence of calls which thread a session
@@ -133,7 +92,45 @@
                    (file \"/some-file\")
                    (file \"/other-file\"))) "
   [& body]
-  `(fn [session#]
-     (->
-      session#
-      (check-session-thread ~@body))))
+  ;; `(fn [session#]
+  ;;    (->
+  ;;     session#
+  ;;     (check-session-thread ~@body)))
+  `(session-pipeline a-phase-fn {}
+     ~@body))
+
+
+(defmacro ^{:indent 'defun} defcrate
+  "Define a crate function."
+  [sym & body]
+  (let [docstring (when (string? (first body)) (first body))
+        body (if docstring (rest body) body)
+        sym (if docstring (vary-meta sym assoc :doc docstring) sym)]
+    `(def ~sym
+       (let [locals# (local-env)]
+         (phase-pipeline
+             ~(symbol (str (name sym) "-cfn"))
+             {:msg ~(str sym) :kw ~(keyword sym) :locals locals#}
+           ~@body)))))
+
+(defmacro ^{:indent 'defun} def-crate-fn
+  "Define a crate function."
+  [sym & body]
+  (letfn [(output-body [[args & body]]
+            (let [p (if (and (sequential? (last body))
+                             (symbol? (first (last body)))
+                             (= sym (symbol (name (first (last body))))))
+                      `phase-pipeline-no-context ; ends in recursive call
+                      `phase-pipeline)]
+              `(~args
+                (let [locals# (local-env)]
+                  (~p
+                      ~(symbol (str (name sym) "-cfn"))
+                      {:msg ~(str sym) :kw ~(keyword sym) :locals locals#}
+                    ~@body)))))]
+    (let [[sym rest] (name-with-attributes sym body)]
+      (if (vector? (first rest))
+        `(defn ~sym
+           ~@(output-body rest))
+        `(defn ~sym
+           ~@(map output-body rest))))))

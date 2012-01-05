@@ -23,12 +23,12 @@
    [pallet.local.execute :as local]
    [pallet.map-merge :as map-merge]
    [pallet.utils :as utils]
-   [slingshot.core :as slingshot]
    [clojure.set :as set]
    [clojure.tools.logging :as logging]
    [clojure.walk :as walk])
   (:use
-   [clojure.core.incubator :only [-?>]]))
+   [clojure.core.incubator :only [-?>]]
+   [slingshot.slingshot :only [throw+]]))
 
 (defprotocol Environment
   "A protocol for accessing an environment."
@@ -154,7 +154,7 @@
   ([session keys]
      (let [result (get-in (:environment session) keys ::not-set)]
        (when (= ::not-set result)
-         (slingshot/throw+
+         (throw+
           {:type :environment-not-found
            :message (format
                      "Could not find keys %s in session :environment"

@@ -1,5 +1,6 @@
 (ns pallet.test-utils
   (:require
+   [pallet.action-plan :as action-plan]
    [pallet.core :as core]
    [pallet.common.deprecate :as deprecate]
    [pallet.execute :as execute]
@@ -12,7 +13,7 @@
    clojure.tools.logging)
   (:use
    clojure.test
-   [pallet.phase :only [add-session-verification-key]]))
+   [pallet.session-verify :only [add-session-verification-key]]))
 
 (defmacro with-private-vars [[ns fns] & tests]
   "Refers private fns from ns and runs tests in context.  From users mailing
@@ -53,17 +54,20 @@ list, Alan Dipert and MeikelBrandmeyer."
 
 (defn with-ubuntu-script-template
   [f]
+  "A test fixture for selection ubuntu as the script context"
   (script/with-script-context [:ubuntu]
     (f)))
 
 (defn with-bash-script-language
   [f]
+  "A test fixture for selection bash as the output language"
   (stevedore/with-script-language :pallet.stevedore.bash/bash
     (f)))
 
 (defn with-null-defining-context
+  "A test fixture for binding null context"
   [f]
-  (binding [pallet.action-plan/*defining-context* nil]
+  (binding [action-plan/*defining-context* nil]
     f))
 
 (defn make-node

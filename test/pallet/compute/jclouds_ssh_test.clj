@@ -8,6 +8,22 @@
    org.jclouds.net.IPSocket
    org.jclouds.ssh.SshClient))
 
+(defn jclouds-features
+  []
+  (let [has-login-credentials
+        (try
+          (Class/forName "org.jclouds.domain.LoginCredentials")
+          true
+          (catch ClassNotFoundException _))
+        bootstrap-expects-zero-response
+        (try
+          (Class/forName
+           "org.jclouds.compute.callables.BlockUntilInitScriptStatusIsZeroThenReturnOutput")
+          true
+          (catch ClassNotFoundException _))]
+    (hash-map
+     :has-login-credentials has-login-credentials
+     :bootstrap-expects-zero-response bootstrap-expects-zero-response)))
 
 (defn instantiate [impl-class & args]
   (let [constructor (first
@@ -25,13 +41,20 @@
   (when f
     (apply f args)))
 
+(defmacro bootstrap-success-return-const
+  []
+  (let [features (jclouds-features)]
+    (if (:bootstrap-expects-zero-response features)
+      `(hash-map :exit 0 :out "")
+      `(hash-map :exit 1 :out "[]"))))
+
 (defn default-exec
-  "Default exec function - replies to ./runscript status by returning 1"
+  "Default exec function - replies to ./runscript status by returning success"
   [cmd]
   (merge
    {:exit 0 :err "stderr" :out "stdout"}
    (condp = cmd
-       "./bootstrap status" {:exit 1 :out "[]"}
+       "./bootstrap status" (bootstrap-success-return-const)
        {})))
 
 (deftype NoOpClient
@@ -52,7 +75,6 @@
 (defn no-op-ssh-client
   [socket username password]
   (NoOpClient. socket username password))
-
 
 (deftype SshClientFactory
     [factory-fn]

@@ -3,7 +3,10 @@
   (:require
    [pallet.action.package :as package]
    [pallet.parameter :as parameter]
-   [pallet.session :as session]))
+   [pallet.session :as session])
+  (:use
+   [pallet.monad :only [let-s]]
+   [pallet.phase :only [def-crate-fn]]))
 
 (def ^{:private true} centos-repo
   "http://mirror.centos.org/centos/%s/%s/%s/repodata/repomd.xml")
@@ -11,22 +14,22 @@
 (def ^{:private true} centos-repo-key
   "http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-%s")
 
-(defn arch
-  "Return the centos package architecture for the target node."
-  [session]
-  (if (session/is-64bit? session) "x86_64" "i386"))
+(def ^{:doc "Return the centos package architecture for the target node."}
+  arch
+  (let-s
+    [is64bit session/is-64bit?]
+    (if is64bit "x86_64" "i386")))
 
-(defn add-repository
+(def-crate-fn add-repository
   "Add a centos repository. By default, ensure that it has a lower than default
   priority."
-  [session & {:keys [version repository enabled priority]
-              :or {version "5.5" repository "os" enabled 0 priority 50}}]
-  (->
-   session
-   (package/package "yum-priorities")
-   (package/package-source
-    (format "Centos %s %s %s" version repository (arch session))
-    :yum {:url (format centos-repo version repository (arch session))
-          :gpgkey (format centos-repo-key (str (first version)))
-          :priority priority
-          :enabled enabled})))
+  [& {:keys [version repository enabled priority]
+      :or {version "5.5" repository "os" enabled 0 priority 50}}]
+  [arch-str arch]
+  (package/package "yum-priorities")
+  (package/package-source
+   (format "Centos %s %s %s" version repository arch-str)
+   :yum {:url (format centos-repo version repository arch-str)
+         :gpgkey (format centos-repo-key (str (first version)))
+         :priority priority
+         :enabled enabled}))

@@ -1,6 +1,9 @@
 (ns pallet.action.service
   "Service control."
-  (:use clojure.tools.logging)
+  (:use
+   clojure.tools.logging
+   [pallet.monad :only [phase-pipeline]]
+   [pallet.utils :only [apply-map]])
   (:require
    [pallet.action :as action]
    [pallet.action-plan :as action-plan]
@@ -48,23 +51,23 @@
 
 (defmacro with-restart
   "Stop the given service, execute the body, and then restart."
-  [session service-name & body]
+  [service-name & body]
   `(let [service# ~service-name]
-     (-> ~session
-         (service service# :action :stop)
-         ~@body
-         (service service# :action :start))))
+     (phase-pipeline with-restart {:service service#}
+       (service service# :action :stop)
+       ~@body
+       (service service# :action :start))))
 
 (defn init-script
   "Install an init script.  Sources as for remote-file."
-  [session service-name & {:keys [action url local-file remote-file link
-                                  content literal template values md5 md5-url
-                                  force]
-                           :or {action :create}
-                           :as options}]
-  (apply
-   remote-file/remote-file
-   session
-   (init-script-path service-name)
-   :action action :owner "root" :group "root" :mode "0755"
-   (apply concat options)))
+  [service-name & {:keys [action url local-file remote-file link
+                          content literal template values md5 md5-url
+                          force]
+                   :or {action :create}
+                   :as options}]
+  (phase-pipeline init-script {}
+    (apply-map
+     remote-file/remote-file
+     (init-script-path service-name)
+     :action action :owner "root" :group "root" :mode "0755"
+     options)))

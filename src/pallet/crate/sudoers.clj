@@ -7,24 +7,24 @@
    [pallet.template :as template]
    [pallet.utils :as utils]
    [clojure.tools.logging :as logging]
-   [clojure.string :as string]))
+   [clojure.string :as string])
+  (:use
+   [pallet.phase :only [def-crate-fn]]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
 ;; TODO - dsl for sudoers, eg. (alias "user1" "user2" :as :ADMINS)
 
-(defn install
-  [session & {:keys [package-name action]
-              :or {package-name "sudo" action :install}}]
-  (->
-   session
-   (package/package-manager :update)
-   (package/package package-name :action action)))
+(def-crate-fn install
+  [& {:keys [package-name action]
+      :or {package-name "sudo" action :install}}]
+  (package/package-manager :update)
+  (package/package package-name :action action))
 
 (defn- default-specs [session]
   (array-map
    "root" {:ALL {:run-as-user :ALL}}
-   (str "%" (session/admin-group session))
+   (str "%" (first (session/admin-group session)))
    {:ALL {:run-as-user :ALL}}))
 
 (defn- param-string [[key value]]
@@ -161,7 +161,7 @@ specs [ { [\"user1\" \"user2\"]
   [session args]
   (logging/trace "apply-sudoers")
   (context/with-phase-context
-    :sudoers "Write sudoers config"
+    {:kw :sudoers :msg "Write sudoers config"}
     (template/apply-templates
      sudoer-templates
      (sudoer-merge

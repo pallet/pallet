@@ -62,7 +62,7 @@
     <appender-ref ref="CONSOLE" />
   </root>
 
-  <!-- <logger name="pallet.action-plan" level="TRACE"/> -->
+  <logger name="pallet.action-plan" level="DEBUG"/>
   <!-- <logger name="pallet.execute.default-executor" level="TRACE"/> -->
 
 </configuration>

@@ -6,6 +6,7 @@
    [pallet.thread-expr :as thread-expr]
    [clojure.string :as string]))
 
+;;; basic
 (defn- translate-options
   [options translations]
   (reduce
@@ -759,15 +760,23 @@
 (script/defimpl pkg-sbin [:brew] [] "/usr/local/sbin")
 
 
+;;; #Flags#
+;;; Flags are used to communicate state from the node to the origin
+
 ;;; Register changed files
 
 (script/defscript file-changed [path])
 (script/defimpl file-changed :default [path]
   (assoc! changed_files path 1))
 
-(script/defscript set-flag [path])
-(script/defimpl set-flag :default [path]
-  (assoc! flags_hash ~(name path) 1))
+;; (script/defscript set-flag [path])
+;; (script/defimpl set-flag :default [path]
+;;   (assoc! flags_hash ~(name path) 1))
+
+(script/defscript set-flag [flag-name])
+(script/defimpl set-flag :default [flag-name]
+  (println "SETFLAG:" ~flag-name ":SETFLAG"))
+
 
 (script/defscript flag? [path])
 (script/defimpl flag? :default [path]

@@ -3,9 +3,12 @@
    [pallet.compute.node-list :as node-list]
    [pallet.compute :as compute])
   (:use
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    clojure.test)
   (:import
    pallet.compute.node_list.Node))
+
+(use-fixtures :once (logging-threshold-fixture))
 
 (deftest supported-providers-test
   (is (node-list/supported-providers)))

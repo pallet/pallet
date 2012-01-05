@@ -4,7 +4,7 @@
    org.jclouds.compute
    pallet.compute))
 
-(def *compute*)
+(def ^{:dynamic true} *compute*)
 
 (defn compute
   "Return the current compute service."

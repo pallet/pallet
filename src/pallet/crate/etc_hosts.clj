@@ -11,41 +11,30 @@
    [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
-   [clojure.string :as string]))
+   [clojure.string :as string])
+ (:use
+  [pallet.parameter :only [update-settings]]
+  [pallet.phase :only [def-crate-fn defcrate]]))
 
 (defn- format-entry
   [entry]
   (format "%s %s"  (key entry) (name (val entry))))
 
-(defn host
+(def-crate-fn host
   "Declare a host entry"
-  [session address names]
-  (->
-   session
-   (parameter/update-for-target [:hosts] merge {address names})))
+  [address names]
+  (update-settings :hosts nil merge {address names}))
 
-(defn hosts-for-group
+(def-crate-fn hosts-for-group
   "Declare host entries for all nodes of a group"
-  [session group-name & {:keys [private-ip]}]
-  (let [ip (if private-ip compute/private-ip compute/primary-ip)]
-    (->
-     session
-     (parameter/update-for-target
-      [:hosts]
-      merge
-      (into
-       {}
-       (map #(vector (ip %) (compute/hostname %))
-            (session/nodes-in-group session group-name)))))))
-
-(defn hosts-for-tag
-  "Declare host entries for all nodes of a tag"
-  {:deprecated "0.5.0"}
-  [session tag & {:keys [private-ip] :as opts}]
-  (deprecate/deprecated
-   (deprecate/rename
-    'pallet.crate.etc-hosts-for-tag 'pallet.crate.etc-hosts/hosts-for-group))
-  (apply hosts-for-group session tag (apply concat opts)))
+  [group-name & {:keys [private-ip]}]
+  [ip (m-result (if private-ip compute/private-ip compute/primary-ip))
+   group-nodes (session/nodes-in-group group-name)]
+  (update-settings :hosts nil
+   merge
+   (into
+    {}
+    (map #(vector (ip %) (compute/hostname %)) group-nodes))))
 
 (def ^{:private true} localhost
   {"127.0.0.1" "localhost localhost.localdomain"})
@@ -57,14 +46,12 @@
 (defn- format-hosts
   [session]
   (format-hosts*
-   (conj localhost (parameter/get-for-target session [:hosts] nil))))
+   (conj localhost (parameter/get-target-settings session :hosts nil nil))))
 
-(defn hosts
+(defcrate hosts
   "Writes the hosts files"
-  [session]
-  (-> session
-      (remote-file/remote-file
-       (stevedore/script (~lib/etc-hosts))
-       :owner "root:root"
-       :mode 644
-       :content (argument/delayed [session] (format-hosts session)))))
+  (remote-file/remote-file
+   (stevedore/script (~lib/etc-hosts))
+   :owner "root:root"
+   :mode 644
+   :content (argument/delayed [session] (format-hosts session))))

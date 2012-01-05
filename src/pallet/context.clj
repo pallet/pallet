@@ -51,13 +51,14 @@
 
 (defmacro with-phase-context
   "Specifies a context inside a phase function"
-  [context-kw context-msg & body]
-  `(context/with-context
-     {:kw ~context-kw :msg ~(possibly-formatted-msg context-msg)}
-     {:scope :pallet/phase
-      :on-enter (context/context-history {})
-      :format :msg}
-     ~@body))
+  [context & body]
+  (let [line (-> &form meta :line)]
+    `(context/with-context
+       (merge {:ns ~(list 'quote (ns-name *ns*)) :line ~line} ~context)
+       {:scope :pallet/phase
+        :on-enter (context/context-history {})
+        :format :msg}
+       ~@body)))
 
 (defmacro phase-context
   "Specifies a context in a threaded phase function"

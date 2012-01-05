@@ -5,7 +5,10 @@
   (:require
    [pallet.compute :as compute]
    [pallet.node :as node]
-   [pallet.utils :as utils]))
+   [pallet.utils :as utils])
+  (:use
+   [pallet.monad :only [let-s]]
+   [clojure.algo.monads :only [m-map]]))
 
 (defn safe-id
   "Computes a configuration and filesystem safe identifier corresponding to a
@@ -16,33 +19,32 @@
 (defn phase
   "Current phase"
   [session]
-  (:phase session))
+  [(:phase session) session])
 
 (defn target-node
   "Target compute service node."
   [session]
-  (-> session :server :node))
-
+  [(-> session :server :node) session])
 
 (defn target-name
   "Name of the target-node."
   [session]
-  (node/hostname (target-node session)))
+  [(node/hostname (target-node session)) session])
 
 (defn target-id
   "Id of the target-node (unique for provider)."
   [session]
-  (-> session :server :node-id))
+  [(-> session :server :node-id) session])
 
 (defn target-ip
   "IP of the target-node."
   [session]
-  (node/primary-ip (target-node session)))
+  [(node/primary-ip (target-node session)) session])
 
 (defn target-roles
   "Roles of the target server."
   [session]
-  (-> session :server :roles))
+  [(-> session :server :roles) session])
 
 (defn base-distribution
   "Base distribution of the target-node."
@@ -52,63 +54,73 @@
 (defn os-family
   "OS-Family of the target-node."
   [session]
-  (-> session :server :image :os-family))
+  [(-> session :server :image :os-family) session])
 
 (defn os-version
   "OS-Family of the target-node."
   [session]
-  (-> session :server :image :os-version))
+  [(-> session :server :image :os-version) session])
 
 (defn group-name
   "Group name of the target-node."
   [session]
-  (-> session :server :group-name))
+  [(-> session :server :group-name) session])
 
 (defn safe-name
   "Safe name for target machine.
    Some providers don't allow for node names, only node ids, and there is
    no guarantee on the id format."
   [session]
-  (format
-   "%s%s"
-   (name (group-name session)) (safe-id (name (target-id session)))))
+  [(format
+     "%s%s"
+     (name (group-name session)) (safe-id (name (target-id session))))
+   session])
 
 (defn nodes-in-group
   "All nodes in the same tag as the target-node, or with the specified tag."
-  ([session] (nodes-in-group session (group-name session)))
-  ([session group-name]
-     (filter
-      #(= (name group-name) (node/group-name %))
-      (:all-nodes session))))
+  ([]
+     (let-s
+       [group-name group-name
+        all-nodes (get :all-nodes)]
+       (filter #(= (name group-name) (node/group-name %)) all-nodes)))
+  ([group-name]
+     (let-s
+       [all-nodes (get :all-nodes)]
+       (filter #(= (name group-name) (node/group-name %)) all-nodes))))
 
 (defn groups-with-role
   "All target groups with the specified role."
-  [session role]
-  (->>
-   (:node-set session)
-   (filter #(when-let [roles (:roles %)] (roles role)))
-   (map :group-name)))
+  [role]
+  (fn [session]
+    [(->>
+      (:node-set session)
+      (filter #(when-let [roles (:roles %)] (roles role)))
+      (map :group-name))
+     session]))
 
 (defn nodes-with-role
   "All target nodes with the specified role."
-  [session role]
-  (mapcat #(nodes-in-group session %) (groups-with-role session role)))
+  [role]
+  (let-s
+    [groups (groups-with-role role)
+     nodes (m-map nodes-in-group groups)]
+    (apply concat nodes)))
 
 (defn packager
   [session]
-  (get-in session [:server :packager]))
+  [(get-in session [:server :packager]) session])
 
 (defn admin-user
   "User that remote commands are run under"
   [session]
-  (:user session))
+  [(:user session) session])
 
 (defn admin-group
   "User that remote commands are run under"
   [session]
-  (compute/admin-group (:server session)))
+  [(compute/admin-group (:server session)) session])
 
 (defn is-64bit?
   "Predicate for a 64 bit target"
   [session]
-  (node/is-64bit? (target-node session)))
+  [(node/is-64bit? (-> session :server :node)) session])

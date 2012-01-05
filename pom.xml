@@ -52,9 +52,12 @@
           <dependency>
             <groupId>ritz</groupId>
             <artifactId>ritz</artifactId>
-            <version>0.2.1-SNAPSHOT</version>
+            <version>${ritz.version}</version>
           </dependency>
         </dependencies>
+        <configuration>
+          <codoxTargetDirectory>doc/codox</codoxTargetDirectory>
+        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
@@ -96,6 +99,11 @@
       <groupId>org.clojure</groupId>
       <artifactId>tools.namespace</artifactId>
       <version>0.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>tools.macro</artifactId>
+      <version>0.1.1</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
@@ -144,7 +152,7 @@
     <dependency>
       <groupId>clj-ssh</groupId>
       <artifactId>clj-ssh</artifactId>
-      <version>0.3.0</version>
+      <version>0.3.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -180,12 +188,12 @@
       <version>2.0.10</version>
       <optional>true</optional>
     </dependency>
-    <dependency>
-      <groupId>vmfest</groupId>
-      <artifactId>vmfest</artifactId>
-      <version>0.2.3</version>
-      <optional>true</optional>
-    </dependency>
+    <!-- <dependency> -->
+    <!--   <groupId>vmfest</groupId> -->
+    <!--   <artifactId>vmfest</artifactId> -->
+    <!--   <version>0.2.4-SNAPSHOT</version> -->
+    <!--   <optional>true</optional> -->
+    <!-- </dependency> -->
   </dependencies>
 
   <profiles>
@@ -324,6 +332,37 @@
         </plugins>
       </build>
     </profile>
+
+    <profile>
+      <id>live-test</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.cloudhoist.plugin</groupId>
+            <artifactId>zi</artifactId>
+            <version>0.4.3</version>
+            <configuration>
+              <initScript>
+                (System/setProperty "pallet.test.live" "true")
+                (System/setProperty "pallet.test.service-name" "${pallet.test.service-name}")
+                (System/setProperty "pallet.test.cleanup-nodes" "${pallet.test.cleanup-nodes}")
+                (System/setProperty "pallet.test.image-list" "${pallet.test.image-list}")
+                (System/setProperty "pallet.test.parallel" "${pallet.test.parallel}")
+                (System/setProperty "pallet.test.session-type" "${pallet.test.session-type}")
+              </initScript>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+      <properties>
+        <pallet.test.service-name>live-test</pallet.test.service-name>
+        <pallet.test.cleanup-nodes>true</pallet.test.cleanup-nodes>
+        <pallet.test.parallel>false</pallet.test.parallel>
+        <pallet.test.image-list />
+        <pallet.test.session-type />
+      </properties>
+    </profile>
+
   </profiles>
 
   <developers>

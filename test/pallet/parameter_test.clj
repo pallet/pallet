@@ -1,12 +1,15 @@
 (ns pallet.parameter-test
   (:use pallet.parameter)
-  (:use clojure.test pallet.test-utils)
+  (:use
+   clojure.test
+   pallet.test-utils
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]])
   (:require
    pallet.argument
    [pallet.action :as action]
-   [pallet.build-actions :as build-actions])
-  (:import
-   slingshot.Stone))
+   [pallet.build-actions :as build-actions]))
+
+(use-fixtures :once (logging-threshold-fixture))
 
 ;; (use-fixtures :each reset-default-parameters)
 
@@ -39,7 +42,7 @@
   (let [p {:parameters {:a 1 :b { :c 2}}}]
     (is (= 1 (get-for p [:a])))
     (is (= 2 (get-for p [:b :c])))
-    (is (thrown? Stone (get-for p [:b :c :d])))
+    (is (thrown? slingshot.ExceptionInfo (get-for p [:b :c :d])))
     (is (= ::abc (get-for p [:b :c :d] ::abc)))))
 
 
@@ -48,7 +51,7 @@
   (str a))
 
 (deftest lookup-test
-  (is (= "9\n"
+  (is (= "9"
          (first (build-actions/build-actions
                  {:parameters {:a 1 :b 9}}
                  (lookup-test-action (lookup :b)))))))
@@ -65,7 +68,7 @@
                (if (seq keys)
                  (get-in param-value keys)
                  param-value))))))
-  session)
+  [nil session])
 
 (deftest set-parameters-test
   (let [[res session] (build-actions/build-actions

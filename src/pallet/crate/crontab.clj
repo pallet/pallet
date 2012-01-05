@@ -2,6 +2,7 @@
   "crontab management"
   (:refer-clojure :exclude [alias])
   (:require
+   [clojure.tools.logging :as logging]
    [pallet.action.exec-script :as exec-script]
    [pallet.action.file :as file]
    [pallet.action.remote-file :as remote-file]
@@ -9,45 +10,119 @@
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils])
-  (:use pallet.thread-expr))
+  (:use
+   [pallet.core :only [server-spec]]
+   [pallet.monad :only [session-peek-fn]]
+   [pallet.parameter :only [assoc-settings get-settings update-settings]]
+   [pallet.phase :only [defcrate def-crate-fn phase-fn]]
+   [pallet.utils :only [apply-map]]))
 
 (def system-cron-dir "/etc/cron.d")
 
-(defn crontab
-  "Manage a user's crontab file. Valid actions are :create or :remove.
-   Options are as for remote-file."
-  [session user & {:keys [action] :or {action :create} :as options}]
-  (let [in-file (str (stevedore/script (~lib/user-home user)) "/crontab.in")]
-    (case action
-      :create (->
-               session
-               (apply->
-                remote-file/remote-file
-                in-file :owner user :mode "0600"
-                (apply
-                 concat
-                 (select-keys options remote-file/content-options)))
-               (exec-script/exec-checked-script
-                "Load crontab"
-                ("crontab" -u ~user ~in-file)))
-      :remove (->
-               session
-               (file/file in-file :action :delete)
-               (exec-script/exec-checked-script
-                "Remove crontab"
-                ("crontab" -u ~user -r))))))
+(def-crate-fn settings
+  "Define the crontab settings.  The settings are a map from user name to a map
+   of keyword argument values for remote-file content (under :user) and a map
+   from system facility name to a map of keyword argument values for remote-file
+   content"
+  [settings]
+  (assoc-settings :crontab nil settings))
 
-(defn system-crontab
-  "Manage a system crontab file. Valid actions are :create or :remove.
-Options are as for remote-file."
-  [session name & options]
-  (let [options (apply hash-map options)
-        cron-file (str system-cron-dir "/" name)]
-    (condp = (get options :action :create)
-        :create (apply
-                 remote-file/remote-file session cron-file
-                 :owner "root" :group "root" :mode "0644"
-                 (apply
-                  concat
-                  (select-keys options remote-file/content-options)))
-        :remove (file/file session cron-file :action :delete))))
+(def-crate-fn empty-settings
+  "Define empty crontab settings. This can be used to ensure that settings are
+   available for crontab, independently of whether any are specified elsewhere."
+  []
+  (update-settings :crontab nil identity))
+
+(def-crate-fn user-settings
+  "Define the user's crontab settings.  The settings are a map of keyword
+  argument values for remote-file content."
+  [user settings-map]
+  (update-settings :crontab nil assoc-in [:user user] settings-map))
+
+(def-crate-fn system-settings
+  "Define the system's crontab settings.  The settings are a map of keyword
+  argument values for remote-file content."
+  [name settings-map]
+  (update-settings :crontab nil assoc-in [:system name] settings-map))
+
+(defn- in-file [user]
+  "Create a path for a crontab.in file for the given user"
+  (str (stevedore/script (~lib/user-home ~user)) "/crontab.in"))
+
+(def-crate-fn create-user-crontab
+  "Create user crontab for the given user."
+  [user]
+  [in-file (m-result (in-file user))
+   settings (get-settings :crontab nil)]
+  (session-peek-fn [session]
+    (logging/debugf "create-user-crontab %s" (get (:user settings) user)))
+  (apply-map
+   remote-file/remote-file
+   in-file :owner user :mode "0600"
+   (select-keys
+    (get (:user settings) user) remote-file/content-options))
+  (exec-script/exec-checked-script
+   "Load crontab"
+   ("crontab" -u ~user ~in-file)))
+
+(def-crate-fn remove-user-crontab
+  "Remove user crontab for the specified user"
+  [user]
+  [in-file (m-result (in-file user))
+   settings (get-settings :crontab nil)]
+  (file/file in-file :action :delete)
+  (exec-script/exec-checked-script
+   "Remove crontab"
+   ("crontab" -u ~user -r)))
+
+(def-crate-fn user-crontabs
+  "Write all user crontab files."
+  [& {:keys [action] :or {action :create}}]
+  [settings (get-settings :crontab nil)]
+  (map
+   (case action
+     :create create-user-crontab
+     :remove remove-user-crontab)
+   (keys (:user settings))))
+
+(defn- system-cron-file
+  "Path to system cron file for `name`"
+  [name]
+  (str system-cron-dir "/" name))
+
+(def-crate-fn create-system-crontab
+  "Create system crontab for the given name."
+  [system]
+  [path (m-result (system-cron-file system))
+   settings (get-settings :crontab nil)]
+  (session-peek-fn [session]
+    (logging/debugf "create-system-crontab %s" (get (:system settings) system)))
+  (apply-map
+   remote-file/remote-file
+   path :owner "root" :group "root" :mode "0644"
+   (select-keys
+    (get (:system settings) system) remote-file/content-options)))
+
+(def-crate-fn remove-system-crontab
+  "Remove system crontab for the given name"
+  [system]
+  [path (m-result (system-cron-file system))
+   settings (get-settings :crontab nil)]
+  (file/file path :action :delete))
+
+(def-crate-fn system-crontabs
+  "Write all system crontab files."
+  [& {:keys [action] :or {action :create}}]
+  [settings (get-settings :crontab nil)]
+  (map
+   (case action
+     :create create-system-crontab
+     :remove remove-system-crontab)
+   (keys (:system settings))))
+
+(def with-crontab
+  (server-spec
+   :settings (empty-settings)
+   :configure (phase-fn
+                (system-crontabs :action :create)
+                (user-crontabs :action :create))))

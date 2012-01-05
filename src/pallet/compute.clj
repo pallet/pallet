@@ -4,8 +4,9 @@
    [pallet.common.deprecate :as deprecate]
    [pallet.compute.implementation :as implementation]
    [pallet.node :as node]
-   [pallet.utils :as utils]
-   [slingshot.core :as slingshot]))
+   [pallet.utils :as utils])
+  (:use
+   [slingshot.slingshot :only [throw+]]))
 
 ;;; Meta
 (defn supported-providers
@@ -122,7 +123,7 @@
        :hierarchy #'os-hierarchy)
 
      (defmethod ~name :default [~@args]
-       (slingshot/throw+
+       (throw+
         {:message (format
                   "%s does not support %s"
                   ~name (-> ~(first args) :server :image :os-family))
@@ -142,7 +143,7 @@
       (#{:suse} os-family) :zypper
       (#{:gentoo} os-family) :portage
       (#{:darwin :os-x} os-family) :brew
-      :else (slingshot/throw+
+      :else (throw+
              {:type :unknown-packager
               :message (format
                         "Unknown packager for %s - :image %s"
@@ -161,7 +162,7 @@
       (#{:suse} os-family) :suse
       (#{:gentoo} os-family) :gentoo
       (#{:darwin :os-x} os-family) :os-x
-      :else (slingshot/throw+
+      :else (throw+
              {:type :unknown-packager
               :message (format
                         "Unknown base-distribution for %s - target is %s"

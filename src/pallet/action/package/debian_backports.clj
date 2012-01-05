@@ -5,13 +5,13 @@
    [pallet.parameter :as parameter]
    [pallet.script.lib :as lib]
    [pallet.session :as session]
-   [pallet.stevedore :as stevedore]))
+   [pallet.stevedore :as stevedore])
+  (:use
+   [pallet.phase :only [defcrate]]))
 
-(defn add-debian-backports
+(defcrate add-debian-backports
   "Add debian backport package repository"
-  [session]
   (package/package-source
-   session
    "debian-backports"
    :aptitude {:url "http://backports.debian.org/debian-backports"
               :release (str

@@ -21,11 +21,11 @@
 
 (defmacro exec-script
   "Execute a bash script remotely"
-  [session & script]
-  `(exec-script* ~session (stevedore/script ~@script)))
+  [& script]
+  `(exec-script* (stevedore/script ~@script)))
 
 (defmacro exec-checked-script
   "Execute a bash script remotely, throwing if any element of the
    script fails."
-  [session name & script]
-  `(exec-script* ~session (checked-script ~name ~@script)))
+  [name & script]
+  `(exec-script* (checked-script ~name ~@script)))

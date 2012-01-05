@@ -1,10 +1,13 @@
 (ns pallet.action.package.epel-test
   (:use
    pallet.action.package.epel
-   clojure.test)
+   clojure.test
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]])
   (:require
    [pallet.action.package :as package]
    [pallet.build-actions :as build-actions]))
+
+(use-fixtures :once (logging-threshold-fixture))
 
 (deftest epel-test
   (is

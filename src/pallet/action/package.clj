@@ -28,7 +28,7 @@
 
 (defmulti adjust-packages
   (fn [session & _]
-    (session/packager session)))
+    (first (session/packager session))))
 
 ;; aptitude can install, remove and purge all in one command, so we just need to
 ;; split by enable/disable options.
@@ -157,7 +157,7 @@
   (->
    session
    (for->
-    [package-name (options (session/packager session))]
+       [package-name (options (first (session/packager session)))]
     (package package-name))))
 
 (def source-location
@@ -199,7 +199,7 @@
 (defn package-source*
   "Add a packager source."
   [session name & {:as options}]
-  (let [packager (session/packager session)]
+  (let [[packager _] (session/packager session)]
     (action-plan/checked-commands
      "Package source"
      (let [key-url (-> options :aptitude :url)]
@@ -371,7 +371,7 @@
 (defn package-manager*
   "Package management."
   [session action & options]
-  (let [packager (session/packager session)]
+  (let [[packager _] (session/packager session)]
     (action-plan/checked-commands
      (format "package-manager %s %s" (name action) (string/join " " options))
      (case action
@@ -425,7 +425,7 @@
   "Add minimal packages for pallet to function"
   [session]
   {:always-before #{`package-manager `package-source `package}}
-  (let [os-family (session/os-family session)]
+  (let [[os-family _] (session/os-family session)]
     (cond
      (#{:ubuntu :debian} os-family) (action-plan/checked-script
                                      "Add minimal packages"

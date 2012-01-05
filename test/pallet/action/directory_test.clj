@@ -7,12 +7,14 @@
    [pallet.utils :as utils])
   (:use
    clojure.test
-   pallet.build-actions))
+   pallet.build-actions
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]]))
 
 (use-fixtures
  :once
  test-utils/with-ubuntu-script-template
- test-utils/with-bash-script-language)
+ test-utils/with-bash-script-language
+ (logging-threshold-fixture))
 
 (def directory* (action/action-fn directory))
 
@@ -58,8 +60,7 @@
           (binding [pallet.action-plan/*defining-context* nil]
             (stevedore/chain-commands
              (directory* {} "d1" :owner "o")
-             (directory* {} "d2" :owner "o")))
-          \newline)
+             (directory* {} "d2" :owner "o"))))
          (first
           (build-actions
            {}

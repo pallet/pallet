@@ -47,8 +47,8 @@
                      [p (str "resources/" p)]))]
     (concat
      (variants tag)
-     (variants (name (or (session/os-family session) "unknown")))
-     (variants (name (or (session/packager session) "unknown")))
+     (variants (name (or (-> session :server :image :os-family) "unknown")))
+     (variants (name (or (get-in session [:server :packager]) "unknown")))
      (variants nil))))
 
 (defn find-template

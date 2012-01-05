@@ -2,30 +2,19 @@
   (:require
    [clojure.tools.logging :as logging]
    [pallet.context :as context]
-   [pallet.common.logging.logutils :as logutils]
-   [slingshot.core :as slingshot])
+   [pallet.common.logging.logutils :as logutils])
   (:use
-   clojure.test))
+   clojure.test
+   [slingshot.slingshot :only [try+]]))
 
 (deftest phase-context-test
-  (is (= "1\n"
-         (with-out-str
-           (-> 1
-               (context/phase-context :ctxkw "ctx" (println))))))
-  (is (= "info ctx: 1\n"
-         (logutils/logging-to-string
-          (-> 1
-              (context/phase-context
-               :ctxkw "ctx"
-               ((fn [session]
-                  (context/infof "%s" session))))))))
   (is (= ["ctx"]
-           (context/with-phase-context :ctxkw "ctx"
+         (context/with-phase-context {:kw :ctxkw :msg "ctx"}
             (context/phase-contexts))))
-  (slingshot/try+
+  (try+
    (-> 1
        (context/phase-context
-        :ctxkw "ctx"
+        {:kw :ctxkw :msg "ctx"}
         ((fn [session] (throw (Exception. "msg"))))))
    (catch map? e
      (is (:context e)))))

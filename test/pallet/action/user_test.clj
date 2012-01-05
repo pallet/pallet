@@ -1,6 +1,8 @@
 (ns pallet.action.user-test
-  (:use [pallet.stevedore :only [script]]
-        clojure.test)
+  (:use
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [pallet.stevedore :only [script]]
+   clojure.test)
   (:require
    [pallet.test-utils :as test-utils]
    [pallet.action.user :as user]
@@ -10,7 +12,8 @@
 (use-fixtures
  :once
  test-utils/with-ubuntu-script-template
- test-utils/with-bash-script-language)
+ test-utils/with-bash-script-language
+ (logging-threshold-fixture))
 
 (deftest user*-create-test
   (is (= (str "if ! getent passwd user1;"
@@ -41,12 +44,12 @@
          (user/user* {} "user1" :action :remove))))
 
 (deftest group-create-test
-  (is (= "if ! getent group group11; then /usr/sbin/groupadd group11;fi\n"
+  (is (= "if ! getent group group11; then /usr/sbin/groupadd group11;fi"
          (first (build-actions/build-actions
                  {}
                  (user/group "group11" :action :create)))))
   (testing "system on rh"
-    (is (= "if ! getent group group11; then /usr/sbin/groupadd -r group11;fi\n"
+    (is (= "if ! getent group group11; then /usr/sbin/groupadd -r group11;fi"
            (first (build-actions/build-actions
                    {:server {:image {:os-family :centos}}}
                    (user/group "group11" :action :create :system true)))))))
