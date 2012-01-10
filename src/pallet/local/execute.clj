@@ -45,7 +45,8 @@
            "bash-on-origin: Could not chmod script file: %s"
            (:out result))))
       (let [cmd (script-builder/build-code session action (.getPath tmpfile))
-            result (transport/exec cmd {:output-f #(logging/spy %)})]
+            result (transport/exec cmd {:output-f #(logging/spy %)})
+            [session result] (execute/parse-shell-result session result)]
         (verify-sh-return "for origin cmd" value result)
         [result session])
       (finally  (.delete tmpfile)))))

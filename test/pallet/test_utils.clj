@@ -13,6 +13,9 @@
    clojure.tools.logging)
   (:use
    clojure.test
+   [pallet.action :only [def-clj-action]]
+   [pallet.common.context :only [throw-map]]
+   [pallet.execute :only [target-flag?]]
    [pallet.session-verify :only [add-session-verification-key]]))
 
 (defmacro with-private-vars [[ns fns] & tests]
@@ -127,3 +130,21 @@ list, Alan Dipert and MeikelBrandmeyer."
   (if (find-var 'clojure.core/with-redefs)
     `(with-redefs [~@bindings] ~@body)
     `(binding [~@bindings] ~@body)))
+
+(def-clj-action verify-flag-set
+  "Verify that the specified flag is set for the current target."
+  [session flag]
+  (when-not (target-flag? session flag)
+    (throw-map
+     (format "Verification that flag %s was set failed" flag)
+     {:flag flag}))
+  [flag session])
+
+(def-clj-action verify-flag-not-set
+  "Verify that the specified flag is set for the current target."
+  [session flag]
+  (when (target-flag? session flag)
+    (throw-map
+     (format "Verification that flag %s was not set failed" flag)
+     {:flag flag}))
+  [flag session])

@@ -57,18 +57,6 @@
        (finally
         (transport/close ~connection)))))
 
-(defn parse-flags
-  [result]
-  (if-let [out (:out result)]
-    (let [flags-set (map
-                     (comp keyword second)
-                     (re-seq #"(?:SETFLAG: )([^:]+)(?: :SETFLAG)" out))]
-      (logging/debugf "flags-set %s" (vec flags-set))
-      (if (seq flags-set)
-        (assoc-in result [:flags] (set flags-set))
-        result))
-    result))
-
 (defn ssh-script-on-target
   "Execute a bash action on the target via ssh."
   [session {:keys [f node-value-path] :as action}]
@@ -88,7 +76,7 @@
                     connection
                     (script-builder/build-code session action tmpfile)
                     {:output-f output-f})
-            result (parse-flags result)
+            [session result] (execute/parse-shell-result session result)
             ;; Set the node-value to the result of execution, rather than
             ;; the script.
             session (assoc-in session [:node-values node-value-path] result)]

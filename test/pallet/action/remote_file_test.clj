@@ -4,6 +4,7 @@
    [pallet.action :only [schedule-clj-fn]]
    [pallet.node-value :only [node-value]]
    [pallet.stevedore :only [script]]
+   [pallet.test-utils :only [verify-flag-not-set verify-flag-set]]
    clojure.test)
   (:require
    [pallet.action :as action]
@@ -234,6 +235,7 @@
                        [nv (remote-file
                             (.getPath target-tmp) :content "$(hostname)"
                             :mode "0666" :flag-on-changed :changed)]
+                       (verify-flag-not-set :changed)
                        (schedule-clj-fn
                         (fn [session nv]
                           (reset! a true)
@@ -253,6 +255,7 @@
                        [nv (remote-file
                             (.getPath target-tmp) :content "abc"
                             :mode "0666" :flag-on-changed :changed)]
+                       (verify-flag-set :changed)
                        (schedule-clj-fn
                         (fn [session nv]
                           (reset! a true)
