@@ -133,7 +133,8 @@
   [name actionfn1]
   `(defmacro ~name
      {:arglists '(~'[name [session & args] & body]
-                  ~'[name [session & args] meta? & body])}
+                  ~'[name [session & args] meta? & body])
+      :indent '~'defun}
      [name# ~'& args#]
      (let [[name# args#] (ccdef/name-with-attributes name# args#)
            arglist# (first args#)
