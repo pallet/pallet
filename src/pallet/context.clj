@@ -24,6 +24,7 @@
 
 (defmacro with-context
   "Specifies a context for pallet implementation code."
+  {:indent 1}
   [context & body]
   (let [line (-> &form meta :line)]
     `(context/with-context
@@ -47,7 +48,7 @@
   "Returns all phase contexts"
   []
   (when (bound? #'pallet.common.context/*current-context*)
-    (context/scope-formatted-context-entries :pallet/phase)))
+    (seq (context/scope-formatted-context-entries :pallet/phase))))
 
 (defmacro with-phase-context
   "Specifies a context inside a phase function"
@@ -66,6 +67,24 @@
   `(let [session# ~session]
      (with-phase-context ~context-kw ~context-msg
        (-> session# ~@body))))
+
+(defn phase-context-scope
+  "Returns all phase contexts"
+  []
+  (when (bound? #'pallet.common.context/*current-context*)
+    (context/scope-context-entries :pallet/phase)))
+
+(defmacro in-phase-context-scope
+  {:indent 1}
+  [context & body]
+  `(if (bound? #'pallet.common.context/*current-context*)
+     (context/in-context
+       ~context
+       {:scope :pallet/phase
+        :on-enter (context/context-history {})
+        :format :msg}
+       ~@body)
+     (do ~@body)))
 
 ;;; exceptions
 (defmacro invalid-argument

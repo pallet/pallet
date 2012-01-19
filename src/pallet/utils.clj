@@ -332,3 +332,19 @@
   (if (find-var 'clojure.core/with-redefs)
     `(clojure.core/with-redefs [~@bindings] ~@body)
     `(binding [~@bindings] ~@body)))
+
+(defmacro compiler-exception
+  "Create a compiler exception that wraps a cause and includes source location."
+  [exception]
+  `(clojure.lang.Compiler$CompilerException.
+    ~*file*
+    ~(-> &form meta :line)
+    ~exception))
+
+(defmacro macro-compiler-exception
+  "Create a compiler exception that wraps a cause and includes source location."
+  [exception]
+  `(clojure.lang.Compiler$CompilerException.
+    *file*
+    (-> ~'&form meta :line)
+    ~exception))

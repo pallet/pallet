@@ -1,13 +1,12 @@
 (ns pallet.crate.etc-default
   "Generation and installation of /etc/default-style files."
- (:require
+  (:require
    [pallet.stevedore :as stevedore]
-   [pallet.action.file :as file]
-   [pallet.action.remote-file :as remote-file]
    [pallet.script.lib :as lib]
    [clojure.string :as string])
- (:use
-  [pallet.phase :only [def-crate-fn]]))
+  (:use
+   [pallet.actions :only [remote-file]]
+   [pallet.phase :only [def-crate-fn]]))
 
 (def-crate-fn write
   "Writes a KEY=value file to /etc/default/~{filename}, or ~{filename} if
@@ -20,8 +19,8 @@
   [filename & key-value-pairs]
   [file (m-result (if (= \/ (first filename))
                     filename
-                    (str (stevedore/script (~lib/etc-default)) "/" filename)))]
-  (remote-file/remote-file
+                   (str (stevedore/script (~lib/etc-default)) "/" filename)))]
+  (remote-file
    file
    :owner "root:root"
    :mode 644

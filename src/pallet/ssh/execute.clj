@@ -59,14 +59,13 @@
 
 (defn ssh-script-on-target
   "Execute a bash action on the target via ssh."
-  [session {:keys [f node-value-path] :as action}]
+  [session {:keys [node-value-path] :as  action} action-type script]
   (logging/info "ssh-script-on-target")
   (with-connection session [connection]
     (let [{:keys [endpoint authentication]} connection
-          {:keys [value session]} (f session)
-          script (script-builder/build-script value action)
+          script (script-builder/build-script script action-type)
           tmpfile (ssh-mktemp connection "pallet")]
-      (logging/infof "Target %s cmd\n%s via %s" endpoint value tmpfile)
+      (logging/infof "Target %s cmd\n%s via %s" endpoint script tmpfile)
       (transport/send-text connection script tmpfile)
       (let [clean-f (comp
                      #(execute/strip-sudo-password % (:user authentication))
@@ -74,7 +73,7 @@
             output-f (comp #(logging/spy %) clean-f)
             result (transport/exec
                     connection
-                    (script-builder/build-code session action tmpfile)
+                    (script-builder/build-code session action-type tmpfile)
                     {:output-f output-f})
             [session result] (execute/parse-shell-result session result)
             ;; Set the node-value to the result of execution, rather than
@@ -100,10 +99,9 @@
 
 (defn ssh-from-local
   "Transfer a file from the origin machine to the target via ssh."
-  [session {:keys [f] :as action}]
+  [session value]
   (with-connection session [connection]
-    (let [{:keys [endpoint authentication]} connection
-          {:keys [value session]} (f session)]
+    (let [{:keys [endpoint authentication]} connection]
       (let [[file remote-name] value
             remote-md5-name (-> remote-name
                                 (string/replace #"\.new$" ".md5")
@@ -123,7 +121,8 @@
                ((~lib/md5sum ~file) ">" ~(.getPath local-md5-file))
                (~lib/normalise-md5 ~(.getPath local-md5-file)))
               (let [local-md5 (slurp local-md5-file)]
-                (logging/debugf "md5 check - remote: %s local: %s" md5 local-md5)
+                (logging/debugf
+                 "md5 check - remote: %s local: %s" md5 local-md5)
                 (if (not=
                      (first (string/split md5 #" "))
                      (first (string/split local-md5 #" ")) )
@@ -136,10 +135,9 @@
 
 (defn ssh-to-local
   "Transfer a file from the origin machine to the target via ssh."
-  [session {:keys [f] :as action}]
+  [session value]
   (with-connection session [connection]
-    (let [{:keys [endpoint authentication]} connection
-          {:keys [value session]} (f session)]
+    (let [{:keys [endpoint authentication]} connection]
       (let [[remote-file local-file] value]
         (logging/infof
          "Transferring file %s from node to %s" remote-file local-file)

@@ -2,7 +2,6 @@
   (:use pallet.core)
   (:require
    [pallet.action :as action]
-   [pallet.action.exec-script :as exec-script]
    [pallet.argument :as argument]
    [pallet.build-actions :as build-actions]
    [pallet.common.logging.logutils :as logutils]
@@ -23,9 +22,10 @@
    [clojure.tools.logging :as logging])
   (:use
    clojure.test
+   [pallet.actions :only [exec-script]]
    [pallet.monad :only [phase-pipeline session-pipeline
                         as-session-pipeline-fn session-peek-fn]]
-   [pallet.test-utils :only [test-session]]))
+   [pallet.test-utils :only [bash-action clj-action test-session]]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
 
@@ -294,7 +294,7 @@
   (is (= "This is tom" (:doc (meta #'tom))))
   (defnode harry (tom :image))
   (is (= {:group-name :harry :image {:os-family :centos}} harry))
-  (let [test-component (action/bash-action [session arg] (str arg))
+  (let [test-component (clj-action [session arg] [(str arg) session])
         node-with-phases (make-node
                           "node-with-phases" (tom :image)
                           :bootstrap (test-component :a)
@@ -318,8 +318,8 @@
                (assoc session :phase :configure)))))))
   (logging/info "defnode-test end"))
 
-(def identity-action (action/bash-action [session x] x))
-(def identity-local-action (action/clj-action [session] [session session]))
+(def identity-action (bash-action [session x] [x session]))
+(def identity-local-action (clj-action [session] [session session]))
 
 (deftest bootstrap-script-test
   (is (= "a"
@@ -327,8 +327,7 @@
           (test-session
            {:group {:image {:os-family :ubuntu}
                     :packager :aptitude
-                    :phases {:bootstrap (phase/phase-fn
-                                         (identity-action "a"))}}}))))
+                    :phases {:bootstrap (identity-action "a")}}}))))
   (testing "rejects local actions"
     (is (re-find
          #":error.*local actions"
@@ -355,15 +354,15 @@
   [name]
   (let [seen (atom nil)
         seen? (fn [] @seen)]
-    [(action/clj-action
+    [(clj-action
        [session]
-       (clojure.tools.logging/info (format "Seenfn %s" name))
+       (logging/infof "Seenfn %s" name)
        (testing (format "not already seen %s" name)
          (is (not @seen)))
        (reset! seen true)
        (is (:server session))
        (is (:group session))
-       [session session])
+       [@seen session])
      seen?]))
 
 (deftest warn-on-undefined-phase-test
@@ -423,7 +422,7 @@
       (let [session (lift
                      local
                      :phase [(phase/phase-fn
-                              (exec-script/exec-script (~lib/ls "/"))) (localf)]
+                              (exec-script (~lib/ls "/"))) (localf)]
                      :user (assoc utils/*admin-user*
                              :username (test-utils/test-username)
                              :no-sudo true)
@@ -443,7 +442,7 @@
      (let [local (group-spec
                   "local"
                   :phases {:configure (phase/phase-fn
-                                       (exec-script/exec-script (~lib/exit 1)))})
+                                       (exec-script (~lib/exit 1)))})
            localhost (node-list/make-localhost-node :group-name "local")
            service (compute/compute-service "node-list" :node-list [localhost])
            thrown (atom false)]
@@ -462,13 +461,13 @@
              (reset! thrown true))))
        (is @thrown)))
    (testing "throw on remote bash error after other actions"
-     (let [clj-fn (action/clj-action [session] [session session])
+     (let [clj-fn (clj-action [session] [session session])
            local (group-spec
                   "local"
                   :phases {:configure (phase/phase-fn
-                                       (exec-script/exec-script (~lib/exit 1))
+                                       (exec-script (~lib/exit 1))
                                        (clj-fn)
-                                       (exec-script/exec-script (~lib/exit 1)))})
+                                       (exec-script (~lib/exit 1)))})
            localhost (node-list/make-localhost-node :group-name "local")
            service (compute/compute-service "node-list" :node-list [localhost])
            thrown (atom false)]
@@ -499,7 +498,7 @@
              #"bin"
              (->
               (lift local
-                    :phase [(phase/phase-fn (exec-script/exec-script (ls "/")))
+                    :phase [(phase/phase-fn (exec-script (~lib/ls "/")))
                             (phase/phase-fn (localf))]
                     :user (assoc utils/*admin-user*
                             :username (test-utils/test-username)
@@ -649,23 +648,22 @@
 (deftest lift-with-runtime-params-test
   ;; test that parameters set at execution time are propagated
   ;; between phases
-  (let [assoc-runtime-param (action/clj-action
-                             [session]
-                             [session
-                              (parameter/assoc-for-target session [:x] "x")])
+  (let [assoc-runtime-param (clj-action [session]
+                              [session
+                               (parameter/assoc-for-target session [:x] "x")])
 
-        get-runtime-param (action/bash-action
-                           [session]
-                           (format
-                            "echo %s" (parameter/get-for-target session [:x])))
+        get-runtime-param (bash-action [session]
+                            [(format
+                              "echo %s" (parameter/get-for-target session [:x]))
+                             session])
         node (group-spec
-                "localhost"
-                :phases
-                {:configure (assoc-runtime-param)
-                 :configure2 (fn [session]
-                               (is (= (parameter/get-for-target session [:x])
-                                      "x"))
-                               ((get-runtime-param) session))})
+              "localhost"
+              :phases
+              {:configure (assoc-runtime-param)
+               :configure2 (fn [session]
+                             (is (= (parameter/get-for-target session [:x])
+                                    "x"))
+                             ((get-runtime-param) session))})
         localhost (node-list/make-localhost-node :group-name "localhost")]
     (testing "serial"
       (let [compute (compute/compute-service "node-list" :node-list [localhost])
@@ -708,8 +706,8 @@
           (is (string/blank? err))
           (is (zero? exit)))))))
 
-(action/def-clj-action dummy-local-resource
-  [session arg] [session session])
+(def dummy-local-resource
+  (clj-action [session arg] [session session]))
 
 (deftest lift-with-delayed-argument-test
   ;; test that delayed arguments correcly see parameter updates
@@ -778,12 +776,11 @@
         (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
                (parameter/get-for-service session [:slaves])))))))
 
-(action/def-clj-action checking-set
-  [session]
-  (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
-         (parameter/get-for-service session [:slaves])))
-  [session session])
-
+(def checking-set
+  (clj-action [session]
+    (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
+           (parameter/get-for-service session [:slaves])))
+    [session session]))
 
 (deftest lift-post-phase-test
   (testing

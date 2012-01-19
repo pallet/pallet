@@ -114,10 +114,19 @@ monad, but are each use a different context."
       (partition 2 forms)))))
 
 ;; ### Let Comprehension
+(defmacro let-state
+  "A monadic comprehension using the state-m monad. Adds lookup of components."
+  [& body]
+  `(domonad state-m
+            ~(->
+              (first body)
+              componentise-top-level-forms)
+            ~@(rest body)))
+
 (defmacro let-s
   "A monadic comprehension using the session-m monad. Provides some translation
    of functions used (see `top-level-replacements`), and adds lookup of
-   components"
+   components."
   [& body]
   `(domonad session-m
             ~(->

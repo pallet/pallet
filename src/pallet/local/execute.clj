@@ -29,10 +29,9 @@
 
 (defn bash-on-origin
   "Execute a bash action on the origin"
-  [session {:keys [f] :as action}]
+  [session action action-type value]
   (logging/trace "bash-on-origin")
-  (let [{:keys [value session]} (f session)
-        script (script-builder/build-script value action)
+  (let [script (script-builder/build-script value action-type)
         tmpfile (java.io.File/createTempFile "pallet" "script")]
     (try
       (logging/tracef "bash-on-origin script\n%s" script)
@@ -44,7 +43,8 @@
           (logging/warnf
            "bash-on-origin: Could not chmod script file: %s"
            (:out result))))
-      (let [cmd (script-builder/build-code session action (.getPath tmpfile))
+      (let [cmd (script-builder/build-code
+                 session action-type (.getPath tmpfile))
             result (transport/exec cmd {:output-f #(logging/spy %)})
             [session result] (execute/parse-shell-result session result)]
         (verify-sh-return "for origin cmd" value result)
@@ -53,10 +53,9 @@
 
 (defn clojure-on-origin
   "Execute a clojure function on the origin"
-  [session {:keys [f] :as action}]
-  (logging/trace "clojure-on-origin")
-  (let [{:keys [value session]} (f session)]
-    [value session]))
+  [session f]
+  (logging/debugf "clojure-on-origin %s" f)
+  (f session))
 
 (defmacro local-script-context
   "Run a script on the local machine, setting up stevedore to produce the

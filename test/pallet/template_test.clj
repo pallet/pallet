@@ -10,12 +10,16 @@
    [pallet.test-utils :as test-utils])
   (:use
    clojure.test
-   pallet.test-utils))
+   pallet.test-utils
+   [pallet.actions :only [remote-file]]
+   [pallet.build-actions :only [build-actions]]
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]]))
 
 (use-fixtures
  :once
  with-ubuntu-script-template
- test-utils/with-bash-script-language)
+ test-utils/with-bash-script-language
+ (logging-threshold-fixture))
 
 (deftest path-components-test
   (is (= ["a/b/c" "d" "e"] (path-components "a/b/c/d.e")))
@@ -64,19 +68,16 @@ chown user ${file}"
                                  "some content"])))))
 
 (deftest apply-template-file-test
-  (is (= (str
-          (stevedore/checked-script
-           "Write file /etc/file"
-           "file=/etc/file"
-           (~lib/heredoc @file "some content" {}))
-          (stevedore/checked-script
-           "Write file /etc/file2"
-           "file=/etc/file2"
-           (~lib/heredoc @file "some content2" {})))
-         (binding [pallet.action-plan/*defining-context* nil]
-           (apply-templates (fn [] {{:path "/etc/file"} "some content"
-                                    {:path "/etc/file2"} "some content2"})
-                            nil)))))
+  (is (= (first
+          (build-actions {}
+            (remote-file "/etc/file" :content "some content")
+            (remote-file "/etc/file2" :content "some content2")))
+         (first
+          (build-actions {}
+            (apply-templates
+             (fn [] {{:path "/etc/file"} "some content"
+                     {:path "/etc/file2"} "some content2"})
+             nil))))))
 
 (deftest find-template-test
   (let [a (core/group-spec "a" :image {:os-family :ubuntu})]

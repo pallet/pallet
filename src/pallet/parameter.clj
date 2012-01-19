@@ -347,14 +347,3 @@
    See also `pallet.argument`."
   [& keys]
   (ParameterLookupTarget. keys))
-
-;;; Actions
-(action/def-clj-action parameters
-  "An action to set parameters"
-  [session & {:as keyvector-value-pairs}]
-  [keyvector-value-pairs
-   (assoc session
-     :parameters (reduce
-                  #(apply assoc-in %1 %2)
-                  (:parameters session)
-                  keyvector-value-pairs))])

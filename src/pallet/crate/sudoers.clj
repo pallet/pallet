@@ -1,7 +1,6 @@
 (ns pallet.crate.sudoers
   (:require
    [pallet.action :as action]
-   [pallet.action.package :as package]
    [pallet.context :as context]
    [pallet.session :as session]
    [pallet.template :as template]
@@ -9,7 +8,10 @@
    [clojure.tools.logging :as logging]
    [clojure.string :as string])
   (:use
-   [pallet.phase :only [def-crate-fn]]))
+   [pallet.actions :only [package package-manager]]
+   [pallet.monad.state-accessors :only [get-session]]
+   [pallet.monad :only [as-session-pipeline-fn phase-pipeline]]
+   [pallet.phase :only [def-crate-fn def-aggregate-crate-fn]]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
@@ -18,8 +20,8 @@
 (def-crate-fn install
   [& {:keys [package-name action]
       :or {package-name "sudo" action :install}}]
-  (package/package-manager :update)
-  (package/package package-name :action action))
+  (package-manager :update)
+  (package package-name :action action))
 
 (defn- default-specs [session]
   (array-map
@@ -64,7 +66,9 @@
        "\n"))
 
 (defn- aliases-for [aliases key type]
-  (apply str (map #(write-aliases type (name (first %)) (second %)) (aliases key))))
+  (apply
+   str
+   (map #(write-aliases type (name (first %)) (second %)) (aliases key))))
 
 (defn- aliases [aliases]
   (apply str
@@ -122,22 +126,59 @@
    (and (vector? m1) (vector? m2))
    (apply vector (concat m1 m2))
    :else
-   (throw (IllegalArgumentException. "do not know how to merge mixed style user specs"))))
+   (throw
+    (IllegalArgumentException.
+     "do not know how to merge mixed style user specs"))))
 
 (defn- sudoer-merge [initial args]
   (letfn [(merge-fn [m initial-keys args-keys]
                     (let [additional-keys
-                          (filter #(not-any? (fn [x] (= x %)) initial-keys) args-keys)]
+                          (filter
+                           #(not-any? (fn [x] (= x %)) initial-keys) args-keys)]
                       (apply array-map
-                       (apply concat (map #(vector % (m %))
-                                          (concat initial-keys additional-keys))))))]
+                       (apply
+                        concat
+                        (map
+                         #(vector % (m %))
+                         (concat initial-keys additional-keys))))))]
     (reduce (fn [v1 v2]
               (map #(merge-fn
                      (merge-with merge-user-spec %1 %2) (keys %1) (keys %2))
                    v1 v2))
             initial args)))
 
-(action/def-aggregated-action sudoers
+;; (action/def-aggregated-action sudoers
+;;   "Sudo configuration. Generates a sudoers file.
+;; By default, root and an admin group are already present.
+
+;; Examples of the arguments are:
+
+;; aliases { :user { :ADMINS [ \"user1\" \"user2\" ] }
+;;           :host { :TRUSTED [ \"host1\" ] }
+;;           :run-as-user { :OP [ \"root\" \"sysop\" ] }
+;;           :cmnd { :KILL [ \"kill\" ]
+;;                   :SHELLS [ \"/usr/bin/sh\" \"/usr/bin/csh\" \"/usr/bin/ksh\"]}}
+;; default-map { :default { :fqdn true }
+;;               :host { \"host\" { :lecture false } }
+;;               :user { \"user\" { :lecture false } }
+;;               :run-as-user { \"sysop\" { :lecture false } } }
+;; specs [ { [\"user1\" \"user2\"]
+;;           { :host :TRUSTED
+;;             :KILL { :run-as-user \"operator\" :tags :NOPASSWORD }
+;;             [\"/usr/bin/*\" \"/usr/local/bin/*\"]
+;;             { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }"
+;;   {:arglists '([aliases defaults specs])}
+;;   [session args]
+;;   (logging/trace "apply-sudoers")
+;;   (context/with-phase-context
+;;     {:kw :sudoers :msg "Write sudoers config"}
+;;     (template/apply-templates
+;;      sudoer-templates
+;;      (sudoer-merge
+;;       [(array-map) (array-map) (default-specs session)]
+;;       args))))
+
+(def-aggregate-crate-fn sudoers
   "Sudo configuration. Generates a sudoers file.
 By default, root and an admin group are already present.
 
@@ -157,13 +198,13 @@ specs [ { [\"user1\" \"user2\"]
             :KILL { :run-as-user \"operator\" :tags :NOPASSWORD }
             [\"/usr/bin/*\" \"/usr/local/bin/*\"]
             { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }"
-  {:arglists '([aliases defaults specs])}
-  [session args]
-  (logging/trace "apply-sudoers")
-  (context/with-phase-context
-    {:kw :sudoers :msg "Write sudoers config"}
-    (template/apply-templates
-     sudoer-templates
-     (sudoer-merge
-      [(array-map) (array-map) (default-specs session)]
-      args))))
+  [aliases defaults specs]
+  (fn [& args]
+    (logging/trace "apply-sudoers")
+    (phase-pipeline sudoers {}
+      [session (get-session)]
+      (template/apply-templates
+       sudoer-templates
+       (sudoer-merge
+        [(array-map) (array-map) (default-specs session)]
+        args)))))

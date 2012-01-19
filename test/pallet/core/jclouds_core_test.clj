@@ -2,8 +2,6 @@
   (:use pallet.core)
   (require
    [pallet.action :as action]
-   [pallet.action.exec-script :as exec-script]
-   [pallet.action.file :as file]
    [pallet.build-actions :as build-actions]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
@@ -25,7 +23,8 @@
    [clojure.string :as string])
   (:use
    clojure.test
-   [pallet.test-utils :only [test-session]]
+   [pallet.actions :only [exec-script]]
+   [pallet.test-utils :only [bash-action clj-action test-session]]
    [pallet.action-plan :only [stop-execution-on-error]])
   (:import [org.jclouds.compute.domain NodeState OperatingSystem OsFamily]))
 
@@ -46,13 +45,12 @@
   [name]
   (let [seen (atom nil)
         seen? (fn [] @seen)]
-    [(action/clj-action
-       [session]
+    [(clj-action [session]
        (clojure.tools.logging/info (format "Seenfn %s" name))
        (is (not @seen))
        (reset! seen true)
        [session session])
-      seen?]))
+     seen?]))
 
 (defn running-nodes [nodes]
   (filter (complement compute/terminated?) nodes))
@@ -324,7 +322,7 @@
     (is (not (#'core/node-in-types? [a b] (jclouds/make-node "c"))))))
 
 (def test-component
-  (action/bash-action [session arg] (str arg)))
+  (bash-action [session arg] [(str arg) session]))
 
 (deftest lift-test
   (testing "jclouds"
@@ -334,7 +332,7 @@
            "bin"
            (with-out-str
              (lift {local (jclouds/make-localhost-node)}
-                   :phase [(phase/phase-fn (exec-script/exec-script (ls "/")))
+                   :phase [(phase/phase-fn (exec-script (ls "/")))
                            (phase/phase-fn (localf))]
                    :user (assoc utils/*admin-user*
                            :username (test-utils/test-username)
@@ -521,7 +519,7 @@
 
 (deftest converge-test
   (jclouds-test-utils/purge-compute-service)
-  (let [hi (action/bash-action [session] "Hi")
+  (let [hi (bash-action [session] ["Hi" session])
         id "c-t"
         node (group-spec "c-t" :phases {:configure (hi)})
         session (converge {node 2}
@@ -621,15 +619,16 @@
 (deftest lift-with-runtime-params-test
   ;; test that parameters set at execution time are propogated
   ;; between phases
-  (let [assoc-runtime-param (action/clj-action
+  (let [assoc-runtime-param (clj-action
                              [session]
                              [session
                               (parameter/assoc-for-target session [:x] "x")])
 
-        get-runtime-param (action/bash-action
+        get-runtime-param (bash-action
                            [session]
-                           (format
-                            "echo %s" (parameter/get-for-target session [:x])))
+                           [(format
+                            "echo %s" (parameter/get-for-target session [:x]))
+                            session])
         node (group-spec
               "localhost"
               :phases

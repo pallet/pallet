@@ -6,10 +6,13 @@
    [pallet.context :as context])
   (:use
    [clojure.tools.macro :only [name-with-attributes]]
+   [clojure.algo.monads :only [m-result]]
+   [pallet.action :only [declare-aggregated-crate-action declare-action]]
    [pallet.common.context :only [throw-map]]
    [pallet.monad :only [phase-pipeline phase-pipeline-no-context
                         session-pipeline local-env]]
-   [pallet.session-verify :only [check-session]]))
+   [pallet.session-verify :only [check-session]]
+   [pallet.utils :only [compiler-exception]]))
 
 (defn pre-phase-name
   "Return the name for the pre-phase for the given `phase`."
@@ -100,8 +103,9 @@
      ~@body))
 
 
-(defmacro ^{:indent 'defun} defcrate
+(defmacro defcrate
   "Define a crate function."
+  {:indent 'defun}
   [sym & body]
   (let [docstring (when (string? (first body)) (first body))
         body (if docstring (rest body) body)
@@ -113,8 +117,10 @@
              {:msg ~(str sym) :kw ~(keyword sym) :locals locals#}
            ~@body)))))
 
-(defmacro ^{:indent 'defun} def-crate-fn
+(defmacro def-crate-fn
   "Define a crate function."
+  {:arglists '[[name doc-string? attr-map? [params*] body]]
+   :indent 'defun}
   [sym & body]
   (letfn [(output-body [[args & body]]
             (let [p (if (and (sequential? (last body))
@@ -134,3 +140,27 @@
            ~@(output-body rest))
         `(defn ~sym
            ~@(map output-body rest))))))
+
+(defmacro def-aggregate-crate-fn
+  "Define a crate function where arguments on successive calls are conjoined,
+   and passed to the function specified in the body."
+  {:arglists '[[name doc-string? attr-map? [params*] f]]
+   :indent 'defun}
+  [sym & args]
+  (let [[sym [args f & rest]] (name-with-attributes sym args)
+        id (gensym (name sym))]
+    (when (seq rest)
+      (throw (compiler-exception
+              (IllegalArgumentException.
+               (format
+                "Extra arguments passed to def-aggregate-crate-fn: %s"
+                (vec rest))))))
+    `(let [action# (declare-aggregated-crate-action '~sym ~f)]
+       (def-crate-fn ~sym
+         ;; ~(merge
+         ;;   {:execution :aggregated-crate-fn
+         ;;    :crate-fn-id (list 'quote id)
+         ;;    :action-name (list 'quote sym)}
+         ;;   (meta sym))
+         [~@args]
+         (action# ~@args)))))

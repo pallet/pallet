@@ -53,7 +53,7 @@
    [clojure.core.incubator :only [-?>]]
    [pallet.environment :only [get-environment]]
    [pallet.event :only [publish session-event]]
-   [pallet.monad :only [exec-s let-session session-pipeline
+   [pallet.monad :only [exec-s let-session let-state session-pipeline
                         as-session-pipeline-fn session-peek-fn]]
    [pallet.session-verify :only [session-verification-key
                                  add-session-verification-key]]
@@ -382,18 +382,24 @@
                  (environment/session-with-environment
                    (environment/merge-environments
                     {:algorithms default-algorithms}
-                    (:environment session))))
+                    (:environment session)))
+                 add-session-keys-for-0-4-compatibility)
         _ (logging/infof "bootstrap-script session %s" session)
-        [result session] (->
-                          session
-                          add-session-keys-for-0-4-compatibility
-                          action-plan/build-for-target)
-        [result session] (->
-                          session
-                          action-plan/translate-for-target
-                          (action-plan/execute-for-target
-                           #(executors/bootstrap-executor %1 %2)
-                           (get-in session [:algorithms :execute-status-fn])))]
+        [result session] ((let-state
+                            [phase #(vector (:phase %) %)
+                             _ (action-plan/reset-for-target
+                                (phase/all-phases-for-phase phase))
+                             _ action-plan/build-for-target
+                             _ (as-session-pipeline-fn
+                                action-plan/translate-for-target)
+                             r (fn [s]
+                                 (action-plan/execute-for-target
+                                  s
+                                  #(executors/bootstrap-executor %1 %2)
+                                  (get-in
+                                   session [:algorithms :execute-status-fn])))]
+                            r)
+                          session)]
     (string/join \newline result)))
 
 (defn log-session
@@ -518,6 +524,8 @@
         (environment/merge-environments
          (:environment %)
          (:environment server))))
+    [phase #(vector (:phase %) %)]
+    (action-plan/reset-for-target (phase/all-phases-for-phase phase))
     action-plan/build-for-target))
 
 (def
@@ -557,6 +565,8 @@
         (environment/merge-environments
          (:environment %)
          (:environment group))))
+    [phase #(vector (:phase %) %)]
+    (action-plan/reset-for-target (phase/all-phases-for-phase phase))
     action-plan/build-for-target))
 
 (def ^{:doc "Build an invocation map for specified groups map."}

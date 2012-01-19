@@ -40,4 +40,4 @@
 (deftest build-code-test
   (script/with-script-context [:ubuntu]
     (is (= {:execv ["/usr/bin/env" "/bin/bash"]}
-           (build-code {:user {:no-sudo true}} {:action-type :script/bash})))))
+           (build-code {:user {:no-sudo true}} :script/bash)))))

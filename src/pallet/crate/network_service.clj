@@ -1,9 +1,9 @@
 (ns pallet.crate.network-service
   "Crate for working with network services"
   (:require
-   [pallet.action.exec-script :as exec-script]
    [pallet.script.lib :as lib])
   (:use
+   [pallet.actions :only [exec-checked-script]]
    [pallet.phase :only [def-crate-fn]]))
 
 (def-crate-fn wait-for-port-listen
@@ -17,7 +17,7 @@
   [port & {:keys [max-retries standoff service-name]
            :or {max-retries 5 standoff 2
                 service-name (str "port " port)}}]
-  (exec-script/exec-checked-script
+  (exec-checked-script
    (format "Wait for %s to be in a listen state" service-name)
    (group (chain-or (let x 0) true))
    (while
@@ -44,7 +44,7 @@
   [url status & {:keys [max-retries standoff url-name cookie]
                  :or {max-retries 5 standoff 2
                       url-name url}}]
-  (exec-script/exec-checked-script
+  (exec-checked-script
    (format "Wait for %s to return a %s status" url-name status)
 
    (if (~lib/has-command? wget)
@@ -95,7 +95,7 @@
    & {:keys [host timeout max-retries standoff service-name]
       :or {host "localhost" max-retries 5 standoff 2 timeout 2
            service-name (str "port " port)}}]
-  (exec-script/exec-checked-script
+  (exec-checked-script
    (format
     "Wait for %s to return a response %s to message %s"
     service-name response-regex message)

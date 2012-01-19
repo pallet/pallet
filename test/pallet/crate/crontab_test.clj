@@ -1,13 +1,11 @@
 (ns pallet.crate.crontab-test
   (:use pallet.crate.crontab)
   (:require
-   [pallet.action.exec-script :as exec-script]
-   [pallet.action.remote-file :as remote-file]
    [pallet.live-test :as live-test])
   (:use
    clojure.test
    pallet.test-utils
-   [pallet.action.remote-file :only [remote-file-content]]
+   [pallet.actions :only [exec-checked-script remote-file remote-file-content]]
    [pallet.core :only [lift]]
    [pallet.build-actions :only [build-actions]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
@@ -23,10 +21,10 @@
   (is (= (first
           (build-actions
               {:phase-context "user-crontabs: create-user-crontab"}
-            (remote-file/remote-file
+            (remote-file
              "$(getent passwd fred | cut -d: -f6)/crontab.in"
              :content "contents" :owner "fred" :mode "0600")
-            (exec-script/exec-checked-script
+            (exec-checked-script
              "Load crontab"
              ("crontab -u fred"
               "$(getent passwd fred | cut -d: -f6)/crontab.in\n"))))
@@ -39,7 +37,7 @@
   (is (= (first
           (build-actions
               {:phase-context "system-crontabs: create-system-crontab"}
-            (remote-file/remote-file
+            (remote-file
              "/etc/cron.d/fred"
              :content "contents" :owner "root" :group "root" :mode "0644")))
          (first

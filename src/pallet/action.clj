@@ -1,160 +1,247 @@
 (ns pallet.action
-  "Actions implement the conversion of phase functions to script and other
-   execution code.
+  "Actions are the primitives that are called by crate functions.
 
-   An action has a :action-type. Known types include :script/bash
-   and :fn/clojure.
+   Actions can have multiple implementations, but by default most are
+   implemented as script to be executed on the remote node.
 
-   An action has a :location, :origin for execution on the node running
-   pallet, and :target for the target node.
+   An action has an :execution, which is one of :aggregated, :in-sequence,
+   :collected, :delayed-crate-fn or :aggregated-crate-fn.
 
-   An action has an :execution, which is one of :aggregated, :in-sequence or
-   :collected. Calls to :aggregated actions will be grouped, and run before
+   Calls to :aggregated actions will be grouped, and run before
    :in-sequence actions. Calls to :collected actions will be grouped, and run
-   after :in-sequence actions."
-  {:author "Hugo Duncan"}
-  (:require
-   [pallet.action-plan :as action-plan]
-   [pallet.argument :as argument]
-   [pallet.common.def :as ccdef]
-   [clojure.tools.logging :as logging]
-   [clojure.set :as set]
-   [clojure.string :as string])
-  (:use
-   [pallet.monad :only [phase-pipeline let-s]]
-   [pallet.action-plan :only [schedule-action]]))
+   after :in-sequence actions.
 
-;;; action defining functions
-(def ^{:no-doc true} precedence-key :action-precedence)
+   Calls to :delayed-crate-fn and :aggregated-crate-fn actions are evaluated
+   at action plan translation time, which provides a mechanism for calling
+   crate functions after all other crate functions have been called."
+  {:author "Hugo Duncan"}
+  (:use
+   [clojure.tools.macro :only [name-with-attributes]]
+   [pallet.action-plan :only [schedule-action-map action-map]]
+   [pallet.common.context :only [throw-map]]
+   [pallet.monad :only [phase-pipeline let-s]]
+   [pallet.utils :only [compiler-exception]]
+   pallet.action-impl))
+
+;;; # Session precedence
+
+;;; Precedence for actions can be overridden by setting the precedence map
+;;; on the session.
+(def ^{:no-doc true :private true} precedence-key ::action-precedence)
+
+(defn session-precedence
+  "Return any precedence modifiers defined on the session."
+  [session]
+  (get session precedence-key))
+
+(defn get-session-precedence
+  "Return any precedence modifiers defined on the session."
+  [session]
+  [(get session precedence-key) session])
+
+(defn update-session-precedence
+  "Update any precedence modifiers defined on the session"
+  [m]
+  (fn update-session-precedence [session]
+    [m (update-in session [precedence-key] merge m)]))
+
+(defn assoc-session-precedence
+  "Set precedence modifiers defined on the session."
+  [m]
+  (fn assoc-session-precedence [session]
+    [m (assoc session precedence-key m)]))
 
 (defmacro ^{:indent 1} with-precedence
   "Set up local precedence relations between actions"
   [m & body]
   `(let-s
-     [p# (~'get-in [precedence-key])
-      _# (~'update-in [precedence-key] merge ~m)
+     [p# get-session-precedence
+      _# (update-session-precedence ~m)
       v# ~@body
-      _# (~'assoc-in [precedence-key] p#)]
+      _# (assoc-session-precedence p#)]
      v#))
 
-(defn- force-set [x] (if (or (set? x) (nil? x)) x #{x}))
+;;; ## Actions
 
-(defn ^{:no-doc true}
-  action-metadata
-  "Compute action metadata from precedence specification in session"
-  [session f]
-  (merge-with
-   #(set/union
-     (force-set %1)
-     (force-set %2))
-   (:meta f)
-   (precedence-key session)))
+;;; Actions are primitives that may be called in a phase or crate function. An
+;;; action can have multiple implementations. At this level, actions are
+;;; represented by the function that inserts an action map for the action into
+;;; the action plan.  This inserter function has the action on it's :action
+;;; metadata key.
 
-(defmacro action
-  "Define an anonymous action"
-  [execution action-type location [session & args] & body]
-  (let [meta-map (when (and (map? (first body)) (> (count body) 1))
-                   (first body))
-        body (if meta-map (rest body) body)]
-    `(let [f# (vary-meta
-               (fn ~@(when-let [an (:action-name meta-map)]
-                       [(symbol (str an "-action-fn"))])
-                 [~session ~@args] ~@body) merge ~meta-map)]
-       (vary-meta
-        (fn [& [~@args :as argv#]]
-          (fn [session#]
-            (let [action# (action-plan/action-map
-                           f#
-                           (action-metadata session# f#)
-                           argv#
-                           ~execution ~action-type ~location)]
-              (schedule-action session# action#))))
-        merge
-        ~meta-map
-        {::action-fn f#}))))
+(defn- action-inserter-fn
+  "Return an action inserter function. This is used for anonymous actions. The
+  argument list is not enforced."
+  [action]
+  ^{:action action}
+  (fn action-fn [& argv]
+    (fn action-inserter [session]
+      (schedule-action-map
+       session (action-map action argv (session-precedence session))))))
+
+(defn declare-action
+  "Declare an action. The action-name is a symbol (not necessarily referring to
+  a Var).
+
+   The execution model can be specified using the :execution key in `metadata`,
+   with one of the following possible values:
+
+   :in-sequence - The generated action will be applied to the node
+        \"in order\", as it is defined lexically in the source crate.
+        This is the default.
+   :aggregated - All aggregated actions are applied to the node
+        in the order they are defined, but before all :in-sequence
+        actions. Note that all of the arguments to any given
+        action function are gathered such that there is only ever one
+        invocation of each fn within each phase.
+   :collected - All collected actions are applied to the node
+        in the order they are defined, but after all :in-sequence
+        action. Note that all of the arguments to any given
+        action function are gathered such that there is only ever one
+        invocation of each fn within each phase.
+   :delayed-crate-fn - delayed crate functions are phase functions that
+        are executed at action-plan translation time.
+   :aggregated-crate-fn - aggregate crate functions are phase functions that are
+        executed at action-plan translation time, with aggregated arguments, as
+        for :aggregated."
+  [action-symbol metadata]
+  (let [action (make-action
+                action-symbol
+                (:execution metadata :in-sequence)
+                (dissoc metadata :execution))]
+    (action-inserter-fn action)))
+
+(defn- args-with-map-as
+  "Ensures that an argument map contains an :as element, by which the map can be
+  referenced."
+  [args]
+  (map #(if (map? %) (merge {:as (gensym "as")} %) %) args))
+
+(defn- arg-values
+  "Converts a symbolic argument list into a compatible argument vector for
+   passing to a function with the same signature."
+  [symbolic-args]
+  (let [{:keys [args &-seen] :as result}
+        (reduce
+         (fn [{:keys [args &-seen] :as result} arg]
+           (cond
+             (= arg '&) (assoc result :&-seen true)
+             (map? arg) (if &-seen
+                          (update-in
+                           result [:args] conj (list `apply `concat (:as arg)))
+                          (update-in result [:args] conj (:as arg)))
+             :else (update-in result [:args] conj arg)))
+         {:args [] :&-seen false}
+         symbolic-args)]
+    (concat (if &-seen [`apply `vector] [`vector]) args)))
+
+
+;; This doesn't use declare-action, so that the action inserter function
+;; gets the correct signature.
+(defmacro defaction
+  "Declares a named action."
+  {:arglists '[[action-name attr-map? [params*]]]
+   :indent 'defun}
+  [action-name & body]
+  (let [[action-name [args & body]] (name-with-attributes action-name body)
+        action-name (vary-meta
+                     action-name assoc :arglists (list 'quote [args]))
+        action-symbol (symbol
+                       (or (namespace action-name) (name (ns-name *ns*)))
+                       (name action-name))
+        metadata (meta action-name)
+        args (args-with-map-as args)]
+    `(let [action# (make-action
+                    '~action-symbol
+                    ~(:execution metadata :in-sequence)
+                    ~(select-keys metadata [:always-before :always-after]))]
+       (defonce ~action-name
+         ^{:action action#}
+         (fn ~action-name
+           [~@args]
+           (fn ~(symbol (str (name action-name) "-inserter")) [session#]
+             (schedule-action-map
+              session#
+              (action-map
+               action#
+               ~(arg-values args)
+               (session-precedence session#)))))))))
+
+(defn implement-action*
+  "Define an implementation of an action given the `action-inserter` function."
+  [action-inserter dispatch-val metadata f]
+  {:pre [(fn? action-inserter) (-> action-inserter meta :action) (fn? f)]}
+  (let [action (-> action-inserter meta :action)]
+    (when-not (keyword? dispatch-val)
+      (throw
+       (compiler-exception
+        (IllegalArgumentException.
+         (format
+          "Attempting to implement action %s with invalid dispatch value %s"
+          (action-symbol action) dispatch-val)))))
+    (add-action-implementation! action dispatch-val metadata f)))
+
+(defmacro implement-action
+  "Define an implementation of an action. The dispatch-val is used to dispatch
+  on."
+  {:arglists '[[action-name dispatch-val attr-map? [params*]]]
+   :indent 2}
+  [action-inserter dispatch-val & body]
+  (let [[impl-name [args & body]] (name-with-attributes action-inserter body)]
+    `(let [inserter# ~action-inserter]
+       ;; (when-not (-> inserter# meta :action)
+       ;;   (throw
+       ;;    (compiler-exception
+       ;;     (IllegalArgumentException.
+       ;;      "action-inserter has no :action metadata"))))
+       (implement-action*
+        inserter# ~dispatch-val
+        ~(meta impl-name)
+        (fn ~(symbol (str impl-name "-" (name dispatch-val)))
+          [~@args] ~@body)))))
+
+(defn implementation
+  "Returns the metadata and function for an implementation of an action from an
+  action map."
+  [{:keys [action] :as action-map} dispatch-val]
+  (let [m (action-implementation action dispatch-val)]
+    (if m
+      m
+      (throw-map
+       (format
+        "No implementation of type %s found for action %s"
+        dispatch-val (action-symbol action))
+       {:dispatch-val dispatch-val
+        :action-name (action-symbol action)
+        :action-map action-map}))))
 
 (defn action-fn
-  "Retrieve the action-fn that is used to execute the specified action."
-  [action]
-  (::action-fn (meta action)))
+  "Returns the function for an implementation of an action from an action
+   inserter."
+  [action-inserter dispatch-val]
+  (let [action (-> action-inserter meta :action)
+        m (action-implementation action dispatch-val)]
+    (if m
+      (:f m)
+      (throw-map
+       (format
+        "No implementation of type %s found for action %s"
+        dispatch-val (action-symbol action))
+       {:dispatch-val dispatch-val
+        :action action}))))
 
-;;; Convenience action definers for common cases
-(defmacro bash-action
-  "Define a remotely executed bash action function."
-  [[session & args] & body]
-  `(action :in-sequence :script/bash :target [~session ~@args] ~@body))
+(defn declare-delayed-crate-action
+  "Declare an action for a delayed crate function. A delayed crate function
+   becomes an action with a single, :default, implementation."
+  [sym f]
+  (let [action (declare-action sym {:execution :delayed-crate-fn})]
+    (implement-action* action :default {} f)
+    action))
 
-(defmacro bash-origin-action
-  "Define an origin executed bash action function."
-  [[session & args] & body]
-  `(action :in-sequence :script/bash :origin [~session ~@args] ~@body))
-
-(defmacro clj-action
-  "Define a clojure action to be executed on the origin machine. The function
-   should return a vector with two elements, the return value and the session."
-  [[session & args] & body]
-  `(action :in-sequence :fn/clojure :origin [~session ~@args] ~@body))
-
-(defmacro aggregated-action
-  "Define a remotely executed aggregated action function, which will
-   be executed before :in-sequence actions."
-  [[session & args] & body]
-  `(action :aggregated :script/bash :target [~session ~@args] ~@body))
-
-(defmacro collected-action
-  "Define a remotely executed collected action function, which will
-   be executed after :in-sequence actions."
-  [[session & args] & body]
-  `(action :collected :script/bash :target [~session ~@args] ~@body))
-
-(defmacro as-clj-action
-  "An adaptor for using a normal function as a local action function"
-  ([f [session & args]]
-     `(clj-action
-       [~session ~@(map (comp symbol name) args)]
-       [(~f ~session ~@(map (comp symbol name) args)) ~session]))
-  ([f]
-     `(as-clj-action
-       ~f [~@(first (:arglists (meta (resolve f))))])))
-
-(defn schedule-clj-fn
-  "Schedule a clojure action function. action-fn is a function. It's first
-  argument is a session and the remaining arguments are forwarded from args.
-
-  Note that args are possibly evaluated at execution time, which makes this
-  different to having action-fn close over it's additional arguments."
-  [action-fn & args]
-  (let [action (action-plan/action-map
-                action-fn {} args :in-sequence :fn/clojure :origin)]
-    #(action-plan/schedule-action % action)))
-
-(defmacro def-action-def
-  "Define a macro for definining action defining vars"
-  [name actionfn1]
-  `(defmacro ~name
-     {:arglists '(~'[name [session & args] & body]
-                  ~'[name [session & args] meta? & body])
-      :indent '~'defun}
-     [name# ~'& args#]
-     (let [[name# args#] (ccdef/name-with-attributes name# args#)
-           arglist# (first args#)
-           body# (rest args#)
-           [meta-map# body#] (if (and (map? (first body#))
-                                        (> (count body#) 1))
-                               [(merge
-                                 {:action-name (name name#)} (first body#))
-                                (rest body#)]
-                               [{:action-name (name name#)} body#])
-           name# (vary-meta
-                  name#
-                  #(merge
-                    {:arglists (list 'quote (list arglist#))}
-                    meta-map#
-                    %))]
-       `(def ~name# (~'~actionfn1 [~@arglist#] ~meta-map# ~@body#)))))
-
-(def-action-def def-bash-action pallet.action/bash-action)
-(def-action-def def-bash-origin-action pallet.action/bash-origin-action)
-(def-action-def def-clj-action pallet.action/clj-action)
-(def-action-def def-aggregated-action pallet.action/aggregated-action)
-(def-action-def def-collected-action pallet.action/collected-action)
+(defn declare-aggregated-crate-action
+  "Declare an action for an aggregated crate function. A delayed crate function
+   becomes an action with a single, :default, implementation."
+  [sym f]
+  (let [action (declare-action sym {:execution :aggregated-crate-fn})]
+    (implement-action* action :default {} f)
+    action))

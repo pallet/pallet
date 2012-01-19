@@ -70,8 +70,10 @@
   (instance? NodeValue v))
 
 (defn set-node-value
-  [session v]
-  (assoc-in session [:node-values (:current-node-value-path session)] v))
+  ([session v node-value-path]
+     (assoc-in session [:node-values node-value-path] v))
+  ([session v]
+     (set-node-value session v (:current-node-value-path session))))
 
 (defn assign-node-value
   [nv v]

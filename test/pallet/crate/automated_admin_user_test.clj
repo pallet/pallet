@@ -3,8 +3,6 @@
   (:require
    [pallet.build-actions :as build-actions]
    [pallet.action :as action]
-   [pallet.action.exec-script :as exec-script]
-   [pallet.action.user :as user]
    [pallet.context :as context]
    [pallet.core :as core]
    [pallet.crate.automated-admin-user :as automated-admin-user]
@@ -17,6 +15,7 @@
   (:use
    clojure.test
    pallet.test-utils
+   [pallet.actions :only [user exec-checked-script]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.monad :only [wrap-pipeline]]))
 
@@ -25,20 +24,17 @@
 (deftest automated-admin-user-test
   (testing "with defaults"
     (is (= (first
-            (context/with-phase-context
-              {:kw :automated-admin-user :msg "automated-admin-user"}
-              (build-actions/build-actions
-               {}
-               (sudoers/install)
-               (user/user "fred" :create-home true :shell :bash)
-               (sudoers/sudoers
-                {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-               (wrap-pipeline authorize-user-key
-                 (context/with-phase-context
-                   {:kw :authorize-user-key :msg "authorize-user-key"})
-                 (ssh-key/authorize-key
-                  "fred" (slurp (pallet.utils/default-public-key-path))))
-               )))
+            (build-actions/build-actions
+             {:phase-context "automated-admin-user"}
+             (sudoers/install)
+             (user "fred" :create-home true :shell :bash)
+             (sudoers/sudoers
+              {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+             (wrap-pipeline authorize-user-key
+               (context/with-phase-context
+                 {:kw :authorize-user-key :msg "authorize-user-key"})
+               (ssh-key/authorize-key
+                "fred" (slurp (pallet.utils/default-public-key-path))))))
            (first
             (build-actions/build-actions
              {}
@@ -46,19 +42,17 @@
 
   (testing "with path"
     (is (= (first
-            (context/with-phase-context
-              {:kw :automated-admin-user :msg "automated-admin-user"}
-              (build-actions/build-actions
-               {}
-               (sudoers/install)
-               (user/user "fred" :create-home true :shell :bash)
-               (sudoers/sudoers
-                {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-               (wrap-pipeline authorize-user-key
-                 (context/with-phase-context
-                   {:kw :authorize-user-key :msg "authorize-user-key"})
-                 (ssh-key/authorize-key
-                  "fred" (slurp (pallet.utils/default-public-key-path)))))))
+            (build-actions/build-actions
+             {:phase-context "automated-admin-user"}
+             (sudoers/install)
+             (user "fred" :create-home true :shell :bash)
+             (sudoers/sudoers
+              {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+             (wrap-pipeline authorize-user-key
+               (context/with-phase-context
+                 {:kw :authorize-user-key :msg "authorize-user-key"})
+               (ssh-key/authorize-key
+                "fred" (slurp (pallet.utils/default-public-key-path))))))
            (first
             (build-actions/build-actions
              {}
@@ -67,18 +61,16 @@
 
   (testing "with byte array"
     (is (= (first
-            (context/with-phase-context
-              {:kw :automated-admin-user :msg "automated-admin-user"}
-              (build-actions/build-actions
-               {}
-               (sudoers/install)
-               (user/user "fred" :create-home true :shell :bash)
-               (sudoers/sudoers
-                {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-               (wrap-pipeline authorize-user-key
-                 (context/with-phase-context
-                   {:kw :authorize-user-key :msg "authorize-user-key"})
-                 (ssh-key/authorize-key "fred" "abc")))))
+            (build-actions/build-actions
+             {:phase-context "automated-admin-user"}
+             (sudoers/install)
+             (user "fred" :create-home true :shell :bash)
+             (sudoers/sudoers
+              {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+             (wrap-pipeline authorize-user-key
+               (context/with-phase-context
+                 {:kw :authorize-user-key :msg "authorize-user-key"})
+               (ssh-key/authorize-key "fred" "abc"))))
            (first
             (build-actions/build-actions
              {}
@@ -87,19 +79,19 @@
   (testing "with default username"
     (let [user-name (. System getProperty "user.name")]
       (is (= (first
-              (context/with-phase-context
-                {:kw :automated-admin-user :msg "automated-admin-user"}
-                (build-actions/build-actions
-                 {}
-                 (sudoers/install)
-                 (user/user user-name :create-home true :shell :bash)
-                 (sudoers/sudoers
-                  {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-                 (wrap-pipeline authorize-user-key
-                   (context/with-phase-context
-                     {:kw :authorize-user-key :msg "authorize-user-key"})
-                   (ssh-key/authorize-key
-                    user-name (slurp (pallet.utils/default-public-key-path)))))))
+
+              (build-actions/build-actions
+               {:phase-context "automated-admin-user"}
+               (sudoers/install)
+               (user user-name :create-home true :shell :bash)
+               (sudoers/sudoers
+                {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+               (wrap-pipeline authorize-user-key
+                 (context/with-phase-context
+                   {:kw :authorize-user-key :msg "authorize-user-key"})
+                 (ssh-key/authorize-key
+                  user-name
+                  (slurp (pallet.utils/default-public-key-path))))))
              (first
               (build-actions/build-actions
                {:user (utils/make-user user-name)}
@@ -107,19 +99,18 @@
   (testing "with session username"
     (let [user-name "fredxxx"]
       (is (= (first
-              (context/with-phase-context
-                {:kw :automated-admin-user :msg "automated-admin-user"}
-                (build-actions/build-actions
-                 {}
-                 (sudoers/install)
-                 (user/user user-name :create-home true :shell :bash)
-                 (sudoers/sudoers
-                  {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-                 (wrap-pipeline authorize-user-key
-                   (context/with-phase-context
-                     {:kw :authorize-user-key :msg "authorize-user-key"})
-                   (ssh-key/authorize-key
-                    user-name (slurp (pallet.utils/default-public-key-path)))))))
+              (build-actions/build-actions
+               {:phase-context "automated-admin-user"}
+               (sudoers/install)
+               (user user-name :create-home true :shell :bash)
+               (sudoers/sudoers
+                {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+               (wrap-pipeline authorize-user-key
+                 (context/with-phase-context
+                   {:kw :authorize-user-key :msg "authorize-user-key"})
+                 (ssh-key/authorize-key
+                  user-name
+                  (slurp (pallet.utils/default-public-key-path))))))
              (first
               (build-actions/build-actions
                {:user (utils/make-user user-name)}
@@ -141,7 +132,7 @@
                         (context/with-phase-context
                           {:kw :automated-admin-user
                            :msg "Check Automated admin user"}
-                          (exec-script/exec-checked-script
+                          (exec-checked-script
                            "is functional"
                            (pipe (echo @SUDO_USER) (grep "fred")))))}
       :count 1

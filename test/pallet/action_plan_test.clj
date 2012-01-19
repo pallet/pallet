@@ -5,35 +5,41 @@
    [pallet.core :as core])
   (:use
    clojure.test
+   pallet.action-impl
    pallet.action-plan
+   [pallet.action :only [declare-action implement-action*]]
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [pallet.context :only [with-phase-context]]
    [pallet.node-value
     :only [make-node-value node-value node-value? set-node-value]]
    [pallet.argument :only [delayed]]))
 
-(def add-action #'action-plan/add-action)
+(use-fixtures :once (logging-threshold-fixture))
+
+(def add-action-map #'action-plan/add-action-map)
 (def push-block #'action-plan/push-block)
 (def pop-block #'action-plan/pop-block)
 
 (deftest action-plan-test
-  (let [b (add-action nil 1)
-        c (add-action b 2)]
+  (let [b (add-action-map nil 1)
+        c (add-action-map b 2)]
     (is (= '((1) nil) b))
     (is (= '((2 1) nil) c))))
 
 (deftest push-block-test
   (testing "default initial block"
-    (let [c (add-action nil 2)
-          d (add-action c 3)
+    (let [c (add-action-map nil 2)
+          d (add-action-map c 3)
           e (pop-block d)
           ]
       (is (= '((2) nil) c))
       (is (= '((3 2) nil) d))
       (is (= '(2 3) e))))
   (testing "with additional block"
-    (let [a (add-action nil {:v 1})
+    (let [a (add-action-map nil {:v 1})
           b (push-block a)
-          c (add-action b {:v 2})
-          d (add-action c {:v 3})
+          c (add-action-map b {:v 2})
+          d (add-action-map c {:v 3})
           e (pop-block d)
           f (pop-block e)]
       (is (= '(({:v 1}) nil) a))
@@ -43,13 +49,13 @@
       (is (= '(({:v 1 :blocks [({:v 2} {:v 3})]}) nil) e))
       (is (= '({:v 1 :blocks [({:v 2} {:v 3})]}) f))))
   (testing "with adjacent blocks"
-    (let [a (add-action nil {:v 1})
+    (let [a (add-action-map nil {:v 1})
           b (push-block a)
-          c (add-action b {:v 2})
-          d (add-action c {:v 3})
+          c (add-action-map b {:v 2})
+          d (add-action-map c {:v 3})
           e (pop-block d)
           f (push-block e)
-          g (add-action f {:v 4})
+          g (add-action-map f {:v 4})
           h (pop-block g)
           i (pop-block h)]
       (is (= '(({:v 1}) nil) a))
@@ -63,9 +69,14 @@
       (is (= '({:v 1, :blocks [({:v 2} {:v 3}) ({:v 4})]}) i)))))
 
 (deftest action-map-test
-  (let [action (action-map identity {:action-id 1} [] :a :b :l)]
-    (is (= {:f identity :action-id 1 :args [] :action-type :b :execution :a
-            :location :l :context nil}))))
+  (let [action (make-action 'n :aggregated {:action-id 1})
+        action-map (action-map action [] {:action-id 1})]
+    (is (= {:action action :action-id 1 :args [] :context nil}
+           action-map))))
+
+(deftest action-map-execution-test
+  (is (= :aggregated
+         (action-map-execution {:action (make-action 'a :aggregated {})}))))
 
 (deftest walk-action-plan-test
   (let [nested-identity (fn [a b] (assoc a :blocks b))]
@@ -92,248 +103,92 @@
               identity identity nested-identity action-plan))))))
 
 (deftest group-by-function-test
-  (is (= '({:f 1 :args ((0 1 2) [:a :b]) :other :a :context nil}
-           {:f 3 :args ((\f \o \o)) :other :c :context nil}
-           {:f 2 :args ((0 1 2) ["bar baz"]) :other :b :context nil})
+  (is (= '({:action 1 :args ((0 1 2) [:a :b]) :other :a :context nil}
+           {:action 3 :args ((\f \o \o)) :other :c :context nil}
+           {:action 2 :args ((0 1 2) ["bar baz"]) :other :b :context nil})
          (#'action-plan/group-by-function
-          [{:f 1 :args (range 3) :other :a}
-           {:f 3 :args (seq "foo") :other :c}
-           {:f 2 :args (range 3) :other :b}
-           {:f 2 :args ["bar baz"] :other :b}
-           {:f 1 :args [:a :b] :other :a}]))))
-
+          [{:action 1 :args (range 3) :other :a}
+           {:action 3 :args (seq "foo") :other :c}
+           {:action 2 :args (range 3) :other :b}
+           {:action 2 :args ["bar baz"] :other :b}
+           {:action 1 :args [:a :b] :other :a}]))))
 
 (deftest transform-executions-test
   (testing "aggregated"
-    (is (=
-         [{:f identity
-           :args [[1] [2]]
-           :location :target
-           :action-type :script/bash
-           :execution :aggregated
-           :context ["[a]" "[b]"]}]
-         (#'action-plan/transform-executions
-          [{:f identity
-            :args [1]
-            :location :target
-            :action-type :script/bash
-            :execution :aggregated
-            :context ["a"]}
-           {:f identity
-            :args [2]
-            :location :target
-            :action-type :script/bash
-            :execution :aggregated
-            :context ["b"]}]))))
+    (let [action (make-action 'a0 :aggregated {})]
+      (is (=
+           [{:action action :args [[1] [2]] :context ["[a]" "[b]"]}]
+           (#'action-plan/transform-executions
+            [{:action action :args [1] :context ["a"]}
+             {:action action :args [2] :context ["b"]}])))))
   (testing "mixed"
-    (is (=
-         [{:f identity
-           :args [[1] [2]]
-           :location :target
-           :action-type :script/bash
-           :execution :aggregated
-           :context nil}
-          {:f identity
-           :args [3]
-           :location :target
-           :action-type :script/bash
-           :execution :in-sequence}]
-         (#'action-plan/transform-executions
-          [{:f identity
-            :args [1]
-            :location :target
-            :action-type :script/bash
-            :execution :aggregated}
-           {:f identity
-            :args [3]
-            :location :target
-            :action-type :script/bash
-            :execution :in-sequence}
-           {:f identity
-            :args [2]
-            :location :target
-            :action-type :script/bash
-            :execution :aggregated}]))))
+    (let [aggregated (make-action 'a0 :aggregated {})
+          in-sequence (make-action 'a1 :in-sequence {})]
+      (is (=
+           [{:action aggregated :args [[1] [2]] :context nil}
+            {:action in-sequence :args [3]}]
+           (#'action-plan/transform-executions
+            [{:action aggregated :args [1]}
+             {:action in-sequence :args [3]}
+             {:action aggregated :args [2]}])))))
   (testing "nested"
-    (is (=
-         [{:f identity
-           :args []
-           :blocks [[{:f identity
-                      :args [[1] [2]]
-                      :location :target
-                      :action-type :script/bash
-                      :execution :aggregated
-                      :context nil}
-                     {:f identity
-                      :args [3]
-                      :location :target
-                      :action-type :script/bash
-                      :execution :in-sequence}]]
-           :action-type :flow/if
-           :execution :in-sequence
-           :location :target}]
-         (#'action-plan/transform-executions
-          [{:f identity
-            :args []
-            :blocks [[{:f identity
-                       :args [1]
-                       :location :target
-                       :action-type :script/bash
-                       :execution :aggregated}
-                      {:f identity
-                       :args [3]
-                       :location :target
-                       :action-type :script/bash
-                       :execution :in-sequence}
-                      {:f identity
-                       :args [2]
-                       :location :target
-                       :action-type :script/bash
-                       :execution :aggregated}]]
-            :action-type :flow/if
-            :execution :in-sequence
-            :location :target}])))))
-
-
-(deftest bind-arguments-test
-  (testing "in-sequence"
-    (let [f (fn [session x] x)
-          action-plan (#'action-plan/bind-arguments
-                       [{:f f
-                         :args [1]
-                         :location :target
-                         :action-type :script/bash
-                         :execution :in-sequence}])]
-      (is (= 1 (count action-plan)))
-      (is (map? (first action-plan)))
-      (is (nil? (:args action-plan)))
-      (is (fn? (:f (first action-plan))))
-      (is (= 1 ((:f (first action-plan)) {})))))
-  (testing "aggregated"
-    (let [f (fn [session x] x)
-          action-plan (#'action-plan/bind-arguments
-                       [{:f f
-                         :args [[1] [2]]
-                         :location :target
-                         :action-type :script/bash
-                         :execution :aggregated}])]
-      (is (= 1 (count action-plan)))
-      (is (map? (first action-plan)))
-      (is (nil? (:args action-plan)))
-      (is (fn? (:f (first action-plan))))
-      (is (= [[1] [2]] ((:f (first action-plan)) {})))))
-    (testing "collected"
-    (let [f (fn [session x] x)
-          action-plan (#'action-plan/bind-arguments
-                       [{:f f
-                         :args [[1] [2]]
-                         :location :target
-                         :action-type :script/bash
-                         :execution :collected}])]
-      (is (= 1 (count action-plan)))
-      (is (map? (first action-plan)))
-      (is (nil? (:args action-plan)))
-      (is (fn? (:f (first action-plan))))
-      (is (= [[1] [2]] ((:f (first action-plan)) {}))))))
-
-(deftest augment-return-test
-  (testing "script/bash"
-    (let [f (fn [session x] (str x))
-          action-plan [{:f #(f % 1)
-                        :location :target
-                        :action-type :script/bash
-                        :execution :in-sequence
-                        :node-value-path 'nvp}]
-          action-plan (#'action-plan/augment-return-values action-plan)]
-      (is (= 1 (count action-plan)))
-      (is (map? (first action-plan)))
-      (is (nil? (:args action-plan)))
-      (is (fn? (:f (first action-plan))))
-      (is (= {:value "1"
-              :session {:a 1 :node-values {'nvp "1"}}
-              :location :target
-              :action-type :script/bash
-              :execution :in-sequence
-              :node-value-path 'nvp}
-             (->
-              {:a 1}
-              ((:f (first action-plan)))
-              (dissoc :f)))))))
+    (let [aggregated (make-action 'a0 :aggregated {})
+          in-sequence (make-action 'a1 :in-sequence {})
+          block (make-action 'ab :in-sequence {})]
+      (is (=
+           [{:action block
+             :args []
+             :blocks [[{:action aggregated
+                        :args [[1] [2]]
+                        :context nil}
+                       {:action in-sequence
+                        :args [3]}]]}]
+           (#'action-plan/transform-executions
+            [{:action block
+              :args []
+              :blocks [[{:action aggregated
+                         :args [1]}
+                        {:action in-sequence
+                         :args [3]}
+                        {:action aggregated
+                         :args [2]}]]}]))))))
 
 (deftest translate-test
-  (let [f (fn [session x] (str x))
-        a1 (action-map f {} [1] :in-sequence :script/bash :target)
-        a2 (action-map f {} [2] :in-sequence :script/bash :target)
+  (let [f (make-action 'f :in-sequence {})
+        _ (add-action-implementation!
+           f :default {} (fn [session x] [(str x) session]))
+        a1 (action-map f [1] {})
+        a2 (action-map f [2] {})
         action-plan (-> nil
-                        (add-action
+                        (add-action-map
                          (assoc a1 :node-value-path :v1))
-                        (add-action
+                        (add-action-map
                          (assoc a2 :node-value-path :v2)))
-        translated-plan (translate action-plan)]
+        translated-plan (translate action-plan {})]
     (is (=
-         [{:location :target :action-type :script/bash
-           :execution :in-sequence :context nil}
-          {:location :target :action-type :script/bash
-           :execution :in-sequence :context nil}]
-         (->> translated-plan (map #(dissoc % :f :node-value-path)))))
-    (is (=
-         {:value "1"
-          :session {:node-values {:v1 "1"}}
-          :location :target
-          :action-type :script/bash
-          :execution :in-sequence
-          :context nil}
-         (->
-          {}
-          ((-> translated-plan first :f))
-          (dissoc :f :node-value-path))))
-    (is (=
-         {:value "2"
-          :session {:node-values {:v2 "2"}}
-          :location :target
-          :action-type :script/bash
-          :execution :in-sequence
-          :context nil}
-         (->
-          {}
-          ((-> translated-plan second :f))
-          (dissoc :f :node-value-path))))))
+         [{:action f :args [1] :context nil}
+          {:action f :args [2] :context nil}]
+         (->> translated-plan (map #(dissoc % :impls :node-value-path)))))))
 
-(defn executor [m]
-  (fn [session {:keys [f action-type location] :as action}]
-    (let [exec-fn (get-in
-                   (merge
-                    {:flow/if {:local execute-if}}
-                    m)
-                   [action-type location])]
-      (assert exec-fn)
-      (exec-fn session action))))
+(defn executor
+  "An executor for running test actions."
+  [dispatch-val]
+  (fn [session {:keys [action args] :as action-map}]
+    (let [{:keys [f metadata]} (action-implementation
+                                action dispatch-val :default)]
+      (assert f)
+      (apply f session args))))
 
-(defn echo
-  "Echo the result of an action. Do not execute."
-  [session {:keys [f]}]
-  (let [rm (f session)]
-    [(:value rm) (:session rm)]))
-
-(defn null-result
-  "Echo the result of an action. Do not execute."
-  [session {:keys [f]}]
-  (let [{:keys [value session]} (f session)]
-    [nil session]))
-
-(deftest execute-action-test
-  (let [f (fn [session x] (str x))]
+(deftest execute-action-map-test
+  (let [f (fn [session] ["1" session])
+        action (make-action 'a :in-sequence {})]
+    (add-action-implementation! action :default {} f)
     (is (=
          ["1" {:node-values {'nvp "1"}}]
-         (execute-action
-          (executor {:script/bash {:target echo}})
+         (execute-action-map
+          (executor :default)
           {}
-          (augment-return
-           {:f (fn [session] "1")
-            :location :target
-            :action-type :script/bash
-            :execution :in-sequence
-            :node-value-path 'nvp}))))))
+          {:action action :node-value-path 'nvp})))))
 
 (defn dissoc-action-plan
   [[r s]]
@@ -341,152 +196,171 @@
 
 (deftest execute-test
   (testing "aggregated"
-    (let [f (fn [session x] (str (vec x)))
-          a1 (action-map
-              f {} [1] :aggregated :script/bash :target)
-          a2 (action-map
-              f {} [2] :aggregated :script/bash :target)
+    (let [f (make-action 'f :aggregated {})
+          _ (add-action-implementation!
+             f :default {} (fn [session & x] [(str (vec x)) session]))
+          a1 (action-map f [1] {})
+          a2 (action-map f [2] {})
           action-plan (->
                        nil
-                       (add-action
+                       (add-action-map
                         (assoc a1 :node-value-path :v1))
-                       (add-action
+                       (add-action-map
                         (assoc a2 :node-value-path :v2)))]
       (is (=
            [["[(1) (2)]"] {:a 1 :node-values {:v1 "[(1) (2)]"}}]
            (-> (execute
-                (translate action-plan)
+                (translate action-plan {})
                 {:a 1}
-                (executor {:script/bash {:target echo}})
+                (executor :default)
                 stop-execution-on-error)
                (dissoc-action-plan))))))
   (testing "if"
-    (let [f (fn [session x] (str (vec x)))
+    (let [f (make-action 'f :aggregated {})
+          _ (add-action-implementation!
+             f :default {} (fn [session & x] [(str (vec x)) session]))
+          fi (make-action 'fi :in-sequence {})
+          _ (add-action-implementation!
+             fi :default {} (fn [session x] [(str x) session]))
           bv (atom true)
-          expr-t (fn [session x] x)
-          a0 (action-map
-              expr-t {} [(delayed [_] @bv)] :in-sequence :flow/if :local)
-          a1 (action-map
-              f {} [1] :aggregated :script/bash :target)
-          a2 (action-map
-              f {} [2] :aggregated :script/bash :target)
-          a3 (action-map
-              f {} [3] :aggregated :script/bash :target)
-          a4 (action-map
-              f {} [[4]] :in-sequence :script/bash :target)
+          b (make-action 'b :in-sequence {})
+          _ (add-action-implementation!
+             b :default {} (fn [session x] [x session]))
+          a0 (action-map b [(delayed [_] @bv)] {})
+          a1 (action-map f [1] {})
+          a2 (action-map f [2] {})
+          a3 (action-map f [3] {})
+          a4 (action-map fi [[4]] {})
           action-plan (-> nil
-                          (add-action
-                           (assoc a0 :node-value-path :v0))
+                          (add-action-map (assoc a0 :node-value-path :v0))
                           push-block
-                          (add-action
-                           (assoc a1 :node-value-path :v1))
-                          (add-action
-                           (assoc a2 :node-value-path :v2))
+                          (add-action-map (assoc a1 :node-value-path :v1))
+                          (add-action-map (assoc a2 :node-value-path :v2))
                           pop-block
-                          (add-action
-                           (assoc a3 :node-value-path :v3))
-                          (add-action
-                           (assoc a4 :node-value-path :v4)))]
+                          (add-action-map (assoc a3 :node-value-path :v3))
+                          (add-action-map (assoc a4 :node-value-path :v4)))]
       (testing "then"
         (is (=
-             [["[(3)]" "[(1) (2)]" "[4]"]
+             [["[(3)]" true "[4]"] ; "[(1) (2)]"
               {:a 1
-               :node-values {:v0 true :v1 "[(1) (2)]" :v3 "[(3)]" :v4 "[4]"}}]
+               :node-values {:v0 true :v3 "[(3)]" :v4 "[4]"}}] ; :v1 "[(1) (2)]"
              (->
               (execute
-               (translate action-plan)
+               (translate action-plan {})
                {:a 1}
-               (executor {:script/bash {:target echo}})
+               (executor :default)
                stop-execution-on-error)
               (dissoc-action-plan)))))
       (testing "else"
         (reset! bv false)
         (is (=
-             [["[(3)]" nil "[4]"]
+             [["[(3)]" false "[4]"]
               {:a 1 :node-values {:v0 false :v3 "[(3)]" :v4 "[4]"}}]
              (->
               (execute
-               (translate action-plan)
+               (translate action-plan {})
                {:a 1}
-               (executor {:script/bash {:target echo}})
+               (executor :default)
                stop-execution-on-error)
               (dissoc-action-plan)))))))
   (testing "node-value"
-    (let [f (fn [session] [1 session])
-          a (action-map
-             f {} [] :in-sequence :fn/clojure :target)
+    (let [f (make-action 'f :in-sequence {})
+          _ (add-action-implementation!
+             f :default {} (fn [session] [1 session]))
+          a (action-map f [] {})
           action-plan (->
                        nil
-                       (add-action (assoc a :node-value-path :v)))]
+                       (add-action-map (assoc a :node-value-path :v)))]
       (is (map? a))
       (let [[rv session :as all-rv]
             (execute
-             (translate action-plan)
+             (translate action-plan {})
              {:a 1}
-             (executor {:fn/clojure {:target echo}})
+             (executor :default)
              stop-execution-on-error)
             nv (make-node-value :v)]
         (is (= 1 (node-value nv session)))))))
 
 ;;; stubs for action precedence testing
-(def f (fn [session x] (str (vec x))))
-(def fx ^{:pallet.action/action-fn f} {})
-(def g (fn [session x] (str (vec x))))
-(def gx ^{:pallet.action/action-fn g} {})
-(def h (fn [session x] (str (vec x))))
-(def hx ^{:pallet.action/action-fn h} {})
+(def fx (declare-action 'f {}))
+(def f (fn [session x] [(str (vec x)) session]))
+(implement-action* fx :default {} f)
 
-(deftest symbol-action-fn-test
-  (is (= f (#'action-plan/symbol-action-fn `fx)))
-  (is (= g (#'action-plan/symbol-action-fn `gx))))
+(def gx (declare-action 'g {}))
+(def g (fn [session & x] [(str (vec x)) session]))
+(implement-action* gx :default {} g)
 
-(deftest collect-action-id-test
-  (is (= {:j 1 :k 2}
-         (#'action-plan/collect-action-id
-          {:k 2} {:action-id :j :always-before :fred :f 1}))))
+(def hx (declare-action 'h {}))
+(def h (fn [session x] [(str (vec x)) session]))
+(implement-action* hx :default {} h)
+
+(deftest assoc-action-id-test
+  (is (= {:j 'a :k 2}
+         (#'action-plan/assoc-action-id
+          {:k 2}
+          {:action-id :j :always-before :fred
+           :action (make-action 'a :in-sequence {})}))))
+
+(defn test-action-and-map
+  [metadata]
+  (let [inserter (declare-action 'test-action-map (dissoc metadata :action-id))
+        action (-> inserter meta :action)]
+    [action
+     (action-map action [] metadata)]))
 
 (defn test-action-map
-  [f meta]
-  (action-map f meta [] :in-sequence :script/bash :target))
+  [action-inserter metadata & args]
+  (let [action (-> action-inserter meta :action)]
+    (action-map
+     action
+     (or args [])
+     metadata)))
 
 (deftest action-dependencies-test
-  (let [b (fn [])]
-    (is (= {{:f b :action-id :id-b} #{{:f g} {:f 'gg :action-id :id-g}}
-            {:action-id :id-f :f 'ff} #{{:f b :action-id :id-b}}
-            {:f f} #{{:f b :action-id :id-b}}}
+  (let [[bx b] (test-action-and-map {:always-before #{:id-f fx}
+                                     :always-after #{:id-g gx}
+                                     :action-id :id-b})]
+    (is (= :id-b (:action-id b)))
+    (is (= {{:action-id :id-b :action-symbol (action-symbol bx)}
+            #{{:action-symbol 'g} {:action-symbol 'gg :action-id :id-g}}
+
+            {:action-symbol 'ff :action-id :id-f}
+            #{{:action-symbol (action-symbol bx) :action-id :id-b}}
+
+            {:action-symbol 'f}
+            #{{:action-symbol (action-symbol bx) :action-id :id-b}}}
            (#'action-plan/action-dependencies
             {:id-f 'ff :id-g 'gg}
-            (test-action-map
-             b {:always-before #{:id-f `fx}
-                :always-after #{:id-g `gx}
-                :action-id :id-b}))))))
+            b)))))
 
 (deftest action-scope-dependencies-test
-  (let [action-f (test-action-map
-                  f {:always-after #{`gx}
-                     :action-id :id-f})
-        action-g (test-action-map g {})
+  (let [action-f (test-action-map fx {:always-after #{gx} :action-id :id-f})
+        action-g (test-action-map gx {})
         action-h (test-action-map
-                  h {:always-after #{`gx}
-                     :always-before #{:id-f}
-                     :action-id :id-h})
+                  hx
+                  {:always-after #{gx}
+                   :always-before #{:id-f}
+                   :action-id :id-h})
         actions [action-f action-g action-h]]
-    (is (= [{:id-h h :id-f f}
-            {{:f h :action-id :id-h} #{{:f g}}
-             {:action-id :id-f :f f} #{{:f h :action-id :id-h}{:f g}}}
-            {{:f h :action-id :id-h} #{action-h}
-             {:f g} #{action-g}}
-            {{:f h :action-id :id-h} #{action-g}
-             {:action-id :id-f :f f} #{action-h action-g}}]
+    (is (= :id-f (:action-id action-f)))
+    (is (action-symbol (:action action-f)))
+    (is (= [{:id-h 'h :id-f 'f}
+            {{:action-symbol 'h :action-id :id-h} #{{:action-symbol 'g}}
+             {:action-id :id-f :action-symbol 'f}
+             #{{:action-symbol 'h :action-id :id-h} {:action-symbol 'g}}}
+            {{:action-symbol 'h :action-id :id-h} #{action-h}
+             {:action-symbol 'g} #{action-g}}
+            {{:action-symbol 'h :action-id :id-h} #{action-g}
+             {:action-id :id-f :action-symbol 'f} #{action-h action-g}}]
            (#'action-plan/action-scope-dependencies actions)))))
 
 (deftest enforce-scope-dependencies-test
   (let [action-f (test-action-map
-                  f {:always-after #{`gx}
+                  fx {:always-after #{gx}
                      :action-id :id-f})
-        action-g (test-action-map g {})
+        action-g (test-action-map gx {})
         action-h (test-action-map
-                  h {:always-after #{`gx}
+                  hx {:always-after #{gx}
                      :always-before #{:id-f}})
         actions [action-f action-g action-h]]
     (is (= [action-g action-h action-f]
@@ -494,46 +368,115 @@
 
 (deftest enforce-precedence-test
   (testing "reordering across execution-type"
-    (let [g (fn [session x] (str x))
-          a1 (action-map
-              f {} [2] :aggregated :script/bash :target)
-          a2 (action-map
-              g  {:always-before `fx}
-              [1] :in-sequence :script/bash :target)
+    (let [f (fn [session & x] [(str x) session])
+          fa (declare-action 'fa {:execution :aggregated})
+          _ (implement-action* fa :default {} f)
+          a1 (action-map (-> fa meta :action) [2] {})
+          a2 (test-action-map gx {:always-before fa} 1)
           action-plan (-> nil
-                          (add-action (assoc a1 :node-value-path :v1))
-                          (add-action (assoc a2 :node-value-path :v2)))]
+                          (add-action-map (assoc a1 :node-value-path :v1))
+                          (add-action-map (assoc a2 :node-value-path :v2)))]
       (is (=
-           [["1" "[(2)]"] {:node-values {:v1 "[(2)]" :v2 "1"}}]
+           [["[1]" "((2))"] {:node-values {:v1 "((2))" :v2 "[1]"}}]
            (->
             (execute
-             (translate action-plan)
+             (translate action-plan {})
              {}
-             (executor {:script/bash {:target echo}})
+             (executor :default)
              stop-execution-on-error)
             (dissoc-action-plan)))))))
 
 (deftest delayed-argument-test
   (testing "delayed arguments"
-    (let [g (fn [session x] (str x))
+    (let [g (make-action 'g :aggregated {})
+          _ (add-action-implementation!
+             g :default {} (fn [session & x] [(str x) session]))
           a (action-map
-             f {}
+             g
              [(pallet.argument/delayed [session] 1)]
-             :aggregated :script/bash :target)
+             {})
           action-plan (->
                        nil
-                       (add-action (assoc a :node-value-path :v)))]
+                       (add-action-map (assoc a :node-value-path :v)))]
       (is (=
-           [["[(1)]"] {:node-values {:v "[(1)]"}}]
+           [["((1))"] {:node-values {:v "((1))"}}]
            (->
             (execute
-             (translate action-plan)
+             (translate action-plan {})
              {}
-             (executor {:script/bash {:target echo}})
+             (executor :default)
              stop-execution-on-error)
             (dissoc-action-plan)))))))
 
-(deftest schedule-action-test
-  ;;; TODO
-  ;;; check aggregated actions return the same node-value
-  )
+(deftest translate-execution-test
+  (is (= :aggregated (#'action-plan/translate-execution :aggregated)))
+  (is (= :aggregated (#'action-plan/translate-execution :aggregated-crate-fn)))
+  (is (= :in-sequence (#'action-plan/translate-execution :in-sequence)))
+  (is (= :in-sequence (#'action-plan/translate-execution :delayed-crate-fn))))
+
+
+(deftest execute-delayed-crate-fn-test
+  (let [fa (declare-action 'fa {:execution :in-sequence})]
+    (testing "delayed-crate-fn"
+      (let [g (make-action 'g :delayed-crate-fn {})
+            _ (add-action-implementation! g :default {} fa)]
+        (testing "without context"
+          (let [a (action-map g [1] {})
+                action-plan (->
+                             nil
+                             (add-action-map (assoc a :node-value-path :v)))]
+            (is (=
+                 [{:action (-> fa meta :action) :args [1] :context nil}]
+                 (map
+                  #(dissoc % :node-value-path)
+                  (translate action-plan {:target-id :id :phase :p}))))))
+        (testing "with context"
+          (let [a (with-phase-context {:kw :k :msg "m"}
+                    (with-phase-context {:kw :k :msg "n"}
+                      (action-map g [1] {})))
+                action-plan (->
+                             nil
+                             (add-action-map (assoc a :node-value-path :v)))]
+            (is (= [{:kw :k :msg "m"}]
+                   (map #(dissoc % :ns :line) (:context a))))
+            (is (=
+                 [{:action (-> fa meta :action) :args [1] :context ["m"]}]
+                 (map
+                  #(dissoc % :node-value-path)
+                  (translate action-plan {:target-id :id :phase :p}))))))))
+    (testing "aggregated-crate-fn"
+      (let [g (make-action 'g :aggregated-crate-fn {})
+            _ (add-action-implementation! g :default {} fa)
+            ha (make-action 'h :in-sequence {})
+            h1 (action-map ha [1] {})
+            h2 (action-map ha [2] {})]
+        (testing "without context"
+          (let [a (action-map g [1] {})
+                action-plan (->
+                             nil
+                             (add-action-map (assoc h1 :node-value-path :h1))
+                             (add-action-map (assoc a :node-value-path :v))
+                             (add-action-map (assoc h2 :node-value-path :h2)))]
+            (is (=
+                 [{:action (-> fa meta :action) :args [[1]] :context nil}
+                  {:action ha :args [1] :context nil}
+                  {:action ha :args [2] :context nil}]
+                 (map
+                  #(dissoc % :node-value-path)
+                  (translate action-plan {:target-id :id :phase :p}))))))
+        (testing "with context"
+          (let [a (with-phase-context {:kw :k :msg "m"}
+                    (with-phase-context {:kw :k :msg "n"}
+                      (action-map g [1] {})))
+                action-plan (->
+                             nil
+                             (add-action-map (assoc h1 :node-value-path :h1))
+                             (add-action-map (assoc a :node-value-path :v))
+                             (add-action-map (assoc h2 :node-value-path :h2)))]
+            (is (=
+                 [{:action (-> fa meta :action) :args [[1]] :context ["m"]}
+                  {:action ha :args [1] :context nil}
+                  {:action ha :args [2] :context nil}]
+                 (map
+                  #(dissoc % :node-value-path)
+                  (translate action-plan {:target-id :id :phase :p}))))))))))

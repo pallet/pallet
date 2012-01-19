@@ -10,23 +10,23 @@
 
 (defmulti prolog
   "A prologue adds script environment, etc, at the start of a script."
-  (fn [action] (:action-type action)))
-(defmethod prolog :default [action])
+  (fn [action-type] action-type))
+(defmethod prolog :default [_])
 (defmethod prolog :script/bash
-  [action]
+  [_]
   (str "#!/usr/bin/env bash\n" bash/hashlib))
 
 (defmulti epilog
   "An epilogue adds content at the end of a script."
-  (fn [action] (:action-type action)))
-(defmethod epilog :default [action])
+  (fn [action-type] action-type))
+(defmethod epilog :default [_])
 (defmethod epilog :script/bash
-  [action]
+  [_]
   "\nexit $?")
 
 (defmulti interpreter
   "The interprester used to run a script."
-  (fn [{:keys [action-type]}] action-type))
+  (fn [action-type] action-type))
 (defmethod interpreter :default [_] nil)
 (defmethod interpreter :script/bash [_] "/bin/bash")
 
@@ -56,12 +56,12 @@
 
 (defn build-script
   "Builds a script with a prologue"
-  [script {:keys [action-type] :as action}]
-  (str (prolog action) script (epilog action)))
+  [script action-type]
+  (str (prolog action-type) script (epilog action-type)))
 
 (defn build-code
   "Builds a code map, describing the command to execute a script."
-  [session action & args]
+  [session action-type & args]
   {:execv
    (->>
     (concat
@@ -69,6 +69,6 @@
        (string/split prefix #" "))
      ["/usr/bin/env"]
      (map (fn [[k v]] (format "%s=\"%s\"" k v)) (:script-env session))
-     [(interpreter action)]
+     [(interpreter action-type)]
      args)
     (filter identity))})

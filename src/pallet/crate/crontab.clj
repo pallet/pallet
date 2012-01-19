@@ -3,14 +3,12 @@
   (:refer-clojure :exclude [alias])
   (:require
    [clojure.tools.logging :as logging]
-   [pallet.action.exec-script :as exec-script]
-   [pallet.action.file :as file]
-   [pallet.action.remote-file :as remote-file]
-   [pallet.action.user :as user]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils])
   (:use
+   [pallet.actions
+    :only [exec-checked-script file remote-file content-options]]
    [pallet.core :only [server-spec]]
    [pallet.monad :only [session-peek-fn]]
    [pallet.parameter :only [assoc-settings get-settings update-settings]]
@@ -57,11 +55,11 @@
   (session-peek-fn [session]
     (logging/debugf "create-user-crontab %s" (get (:user settings) user)))
   (apply-map
-   remote-file/remote-file
+   remote-file
    in-file :owner user :mode "0600"
    (select-keys
-    (get (:user settings) user) remote-file/content-options))
-  (exec-script/exec-checked-script
+    (get (:user settings) user) content-options))
+  (exec-checked-script
    "Load crontab"
    ("crontab" -u ~user ~in-file)))
 
@@ -70,8 +68,8 @@
   [user]
   [in-file (m-result (in-file user))
    settings (get-settings :crontab nil)]
-  (file/file in-file :action :delete)
-  (exec-script/exec-checked-script
+  (file in-file :action :delete)
+  (exec-checked-script
    "Remove crontab"
    ("crontab" -u ~user -r)))
 
@@ -98,17 +96,17 @@
   (session-peek-fn [session]
     (logging/debugf "create-system-crontab %s" (get (:system settings) system)))
   (apply-map
-   remote-file/remote-file
+   remote-file
    path :owner "root" :group "root" :mode "0644"
    (select-keys
-    (get (:system settings) system) remote-file/content-options)))
+    (get (:system settings) system) content-options)))
 
 (def-crate-fn remove-system-crontab
   "Remove system crontab for the given name"
   [system]
   [path (m-result (system-cron-file system))
    settings (get-settings :crontab nil)]
-  (file/file path :action :delete))
+  (file path :action :delete))
 
 (def-crate-fn system-crontabs
   "Write all system crontab files."

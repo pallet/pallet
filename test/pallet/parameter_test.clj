@@ -46,9 +46,9 @@
     (is (= ::abc (get-for p [:b :c :d] ::abc)))))
 
 
-(action/def-bash-action lookup-test-action
-  [session a]
-  (str a))
+(def lookup-test-action
+  (bash-action [session a]
+    [(str a) session]))
 
 (deftest lookup-test
   (is (= "9"
@@ -56,19 +56,21 @@
                  {:parameters {:a 1 :b 9}}
                  (lookup-test-action (lookup :b)))))))
 
-(action/def-clj-action parameters-test
-  "An action that tests parameter values for equality with the argument
-   supplied values."
-  [session & {:as options}]
-  (let [parameters (:parameters session)]
-    (doseq [[[key & keys] value] options]
-      (is (= value
-             (let [param-value (get parameters key ::not-set)]
-               (is (not= ::not-set param-value))
-               (if (seq keys)
-                 (get-in param-value keys)
-                 param-value))))))
-  [nil session])
+(def
+  ^{:doc "An action that tests parameter values for equality with the argument
+          supplied values."}
+  parameters-test
+  (clj-action
+      [session & {:as options}]
+    (let [parameters (:parameters session)]
+      (doseq [[[key & keys] value] options]
+        (is (= value
+               (let [param-value (get parameters key ::not-set)]
+                 (is (not= ::not-set param-value))
+                 (if (seq keys)
+                   (get-in param-value keys)
+                   param-value))))))
+    [nil session]))
 
 (deftest set-parameters-test
   (let [[res session] (build-actions/build-actions

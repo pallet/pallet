@@ -11,9 +11,14 @@
   <artifactId>pallet</artifactId>
   <version>0.7.0-SNAPSHOT</version>
   <packaging>jar</packaging>
-  <name>pallet</name>
+  <name>Pallet</name>
   <description>
-    Pallet - agile provisioning and configuration of compute nodes. A devops tool.
+    DevOps for the JVM.
+
+    Pallet is a platform for agile and programmatic automation of infrastructure
+    in the cloud, on server racks or directly on virtual machines. Pallet
+    provides cloud provider and operating system independence, and allows for an
+    unprecedented level of customization.
   </description>
   <url>http://palletops.com</url>
   <inceptionYear>2010</inceptionYear>

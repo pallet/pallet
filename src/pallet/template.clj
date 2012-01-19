@@ -10,7 +10,11 @@
    [pallet.target :as target]
    [pallet.utils :as utils]
    [clojure.string :as string]
-   [clojure.tools.logging :as logging]))
+   [clojure.tools.logging :as logging])
+  (:use
+   [pallet.actions :only [remote-file]]
+   [pallet.monad :only [phase-pipeline-no-context]]
+   [pallet.utils :only [apply-map]]))
 
 (defn get-resource
   "Loads a resource. Returns a URI."
@@ -76,22 +80,25 @@
      ~m))
 
 (defn- apply-template-file [[file-spec content]]
-  (logging/trace (str "apply-template-file " file-spec \newline content))
-  (let [path (:path file-spec)]
-    (string/join
-     ""
-     (filter (complement nil?)
-             [(action-plan/checked-script
-               (str "Write file " path)
-               (var file ~path)
-               (~lib/heredoc @file ~content {}))
-              (when-let [mode (:mode file-spec)]
-                (stevedore/script (do (chmod ~mode @file))))
-              (when-let [group (:group file-spec)]
-                (stevedore/script (do (chgrp ~group @file))))
-              (when-let [owner (:owner file-spec)]
-                (stevedore/script (do (chown ~owner @file))))]))))
+  (phase-pipeline-no-context apply-template-file {}
+    ;; (logging/trace (str "apply-template-file " file-spec \newline content))
+    (apply-map remote-file (:path file-spec) :content content file-spec)
+    ;; (let [path (:path file-spec)]
+    ;;   (string/join
+    ;;    ""
+    ;;    (filter (complement nil?)
+    ;;            [(action-plan/checked-script
+    ;;              (str "Write file " path)
+    ;;              (var file ~path)
+    ;;              (~lib/heredoc @file ~content {}))
+    ;;             (when-let [mode (:mode file-spec)]
+    ;;               (stevedore/script (do (chmod ~mode @file))))
+    ;;             (when-let [group (:group file-spec)]
+    ;;               (stevedore/script (do (chgrp ~group @file))))
+    ;;             (when-let [owner (:owner file-spec)]
+    ;;               (stevedore/script (do (chown ~owner @file))))])))
+    ))
 
-;; TODO - add chmod, owner, group
 (defn apply-templates [template-fn args]
-  (string/join "" (map apply-template-file (apply template-fn args))))
+  (phase-pipeline-no-context apply-templates {}
+    (map apply-template-file (apply template-fn args))))

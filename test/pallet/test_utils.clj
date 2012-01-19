@@ -13,7 +13,7 @@
    clojure.tools.logging)
   (:use
    clojure.test
-   [pallet.action :only [def-clj-action]]
+   [pallet.action :only [declare-action implement-action]]
    [pallet.common.context :only [throw-map]]
    [pallet.execute :only [target-flag?]]
    [pallet.session-verify :only [add-session-verification-key]]))
@@ -131,20 +131,60 @@ list, Alan Dipert and MeikelBrandmeyer."
     `(with-redefs [~@bindings] ~@body)
     `(binding [~@bindings] ~@body)))
 
-(def-clj-action verify-flag-set
-  "Verify that the specified flag is set for the current target."
-  [session flag]
-  (when-not (target-flag? session flag)
-    (throw-map
-     (format "Verification that flag %s was set failed" flag)
-     {:flag flag}))
-  [flag session])
 
-(def-clj-action verify-flag-not-set
-  "Verify that the specified flag is set for the current target."
-  [session flag]
+(defmacro clj-action
+  "Creates a clojure action with a :direct implementation."
+  {:indent 1}
+  [args & impl]
+  (let [action-sym (gensym "clj-action")]
+    `(let [action# (declare-action '~action-sym {})]
+       (implement-action action# :direct
+         {:action-type :fn/clojure :location :origin}
+         ~args
+         [(fn ~action-sym [~(first args)] ~@impl) ~(first args)])
+       action#)))
+
+(defmacro bash-action
+  "Creates a clojure action with a :direct implementation."
+  {:indent 1}
+  [args & impl]
+  (let [action-sym (gensym "clj-action")]
+    `(let [action# (declare-action '~action-sym {})]
+       (implement-action action# :direct
+         {:action-type :script/bash :location :target}
+         ~args
+         ~@impl)
+       action#)))
+
+(def
+  ^{:doc "Verify that the specified flag is set for the current target."}
+  verify-flag-set
+  (clj-action
+    [session flag]
+    (when-not (target-flag? session flag)
+      (throw-map
+       (format "Verification that flag %s was set failed" flag)
+       {:flag flag}))
+    [flag session]))
+
+(def
+  ^{:doc "Verify that the specified flag is not set for the current target."}
+  verify-flag-not-set
+  (clj-action
+   [session flag]
   (when (target-flag? session flag)
     (throw-map
      (format "Verification that flag %s was not set failed" flag)
      {:flag flag}))
-  [flag session])
+  [flag session]))
+
+;;; Actions
+(def ^{:doc "An action to set parameters"}
+  parameters
+  (clj-action [session & {:as keyvector-value-pairs}]
+    [keyvector-value-pairs
+     (assoc session
+       :parameters (reduce
+                    #(apply assoc-in %1 %2)
+                    (:parameters session)
+                    keyvector-value-pairs))]))

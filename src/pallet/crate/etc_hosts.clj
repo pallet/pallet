@@ -1,8 +1,6 @@
 (ns pallet.crate.etc-hosts
   "/etc/hosts file."
  (:require
-   [pallet.action.file :as file]
-   [pallet.action.remote-file :as remote-file]
    [pallet.argument :as argument]
    [pallet.common.deprecate :as deprecate]
    [pallet.compute :as compute]
@@ -13,6 +11,7 @@
    [pallet.utils :as utils]
    [clojure.string :as string])
  (:use
+  [pallet.actions :only [remote-file]]
   [pallet.parameter :only [update-settings]]
   [pallet.phase :only [def-crate-fn defcrate]]))
 
@@ -50,7 +49,7 @@
 
 (defcrate hosts
   "Writes the hosts files"
-  (remote-file/remote-file
+  (remote-file
    (stevedore/script (~lib/etc-hosts))
    :owner "root:root"
    :mode 644

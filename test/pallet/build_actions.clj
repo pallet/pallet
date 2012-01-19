@@ -18,7 +18,7 @@
   (:use
    [pallet.context :only [with-phase-context]]
    [pallet.session-verify :only [check-session add-session-verification-key]]
-   [pallet.monad :only [let-s]]))
+   [pallet.monad :only [let-s wrap-pipeline]]))
 
 (defn- apply-phase-to-node
   "Apply a phase to a node session"
@@ -161,16 +161,18 @@
                   session-arg
                   (convert-0-4-5-compatible-keys (apply hash-map session-arg)))
         session (build-session session)
+        f (if-let [phase-context (:phase-context session)]
+            (wrap-pipeline build-action-with-context
+              (with-phase-context {:msg phase-context})
+              f)
+            f)
         session (assoc-in session [:server :phases (:phase session)] f)
         session (if (map? session-arg)  ; historical compatibility
                   session
                   ((#'core/add-session-keys-for-0-4-compatibility
                     identity)
                    session))]
-    (if-let [phase-context (:phase-context session)]
-      (with-phase-context {:msg phase-context}
-        (produce-phases session))
-      (produce-phases session))))
+    (produce-phases session)))
 
 (defmacro build-actions
   "Outputs the remote actions specified in the body for the specified phases.
@@ -180,10 +182,10 @@
    pairs).  See `build-session`."
   [session & body]
   `(let [session# ~session]
-    (when-not (map? session#)
-      (logging/warn
-       "Use of vector for session in build-actions is deprecated."))
-    (build-actions* (phase/phase-fn ~@body) session#)))
+     (when-not (map? session#)
+       (logging/warn
+        "Use of vector for session in build-actions is deprecated."))
+     (build-actions* (phase/phase-fn ~@body) session#)))
 
 (defmacro ^{:indent 1} let-actions
   "Outputs the remote actions specified in the body for the specified phases.
@@ -193,7 +195,7 @@
    pairs).  See `build-session`."
   [session & body]
   `(let [session# ~session]
-    (when-not (map? session#)
-      (logging/warn
-       "Use of vector for session in build-actions is deprecated."))
-    (build-actions* (let-s ~@body) session#)))
+     (when-not (map? session#)
+       (logging/warn
+        "Use of vector for session in build-actions is deprecated."))
+     (build-actions* (let-s ~@body) session#)))
