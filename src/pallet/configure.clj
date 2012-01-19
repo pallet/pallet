@@ -51,7 +51,8 @@
     (use '[pallet.configure :only [defpallet]])
     (load-file file)
     config
-    (catch java.io.FileNotFoundException _)))
+    (catch java.io.FileNotFoundException _)
+    (catch java.lang.RuntimeException _))) ;; clojure 1.3 wraps the FileNotFound
 
 (defn- home-dir
   "Returns full path to Pallet home dir ($PALLET_HOME or $HOME/.pallet)"
