@@ -74,6 +74,6 @@
   "Binds a list of mocks, checling any expectations on exit of the block."
   [mocks & body]
   `(with-expectations
-     (utils/with-redefs ~(construct-bindings mocks)
+     (utils/with-redef ~(construct-bindings mocks)
        ~@body)
      (verify-expectations *expectations*)))

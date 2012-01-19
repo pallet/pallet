@@ -23,8 +23,8 @@
   "Find the available providers."
   []
   (try
-    (utils/with-redefs [cp/classpath utils/classpath
-                        cp/classpath-jarfiles utils/classpath-jarfiles]
+    (utils/with-redef [cp/classpath utils/classpath
+                       cp/classpath-jarfiles utils/classpath-jarfiles]
       (->> (namespace/find-namespaces-on-classpath)
            (filter #(re-find compute-regex (name %)))
            (remove #(re-find exclude-regex (name %)))
