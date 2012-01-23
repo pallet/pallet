@@ -699,7 +699,7 @@
                images)))
 
 ;;;; Compute seyrvice
-(defmethod implementation/service :virtualbox
+(defmethod implementation/service :vmfest
   [_ {:keys [url identity credential images node-path model-path locations
              environment default-network-type default-bridged-interface
              default-local-interface hardware-models]
