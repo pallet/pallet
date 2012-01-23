@@ -38,6 +38,17 @@
     </encoder>
   </appender>
 
+  <appender name="VMFESTFILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logs/vmfest.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/old/vmfest.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>3</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%date %level [%thread] %logger{10} %msg%n</pattern>
+    </encoder>
+  </appender>
+
   <logger name="jclouds.headers" level="DEBUG">
     <appender-ref ref="WIREFILE" />
   </logger>
@@ -56,6 +67,10 @@
 
   <logger name="pallet" level="DEBUG">
     <appender-ref ref="PALLETFILE" />
+  </logger>
+
+  <logger name="vmfest" level="DEBUG">
+    <appender-ref ref="VMFESTFILE" />
   </logger>
 
   <root level="INFO">

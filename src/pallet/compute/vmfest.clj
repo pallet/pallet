@@ -302,8 +302,10 @@
   The node will be named 'machine-name', and will be built according
   to the supplied 'model'. This node will boot from the supplied
   'image' and will belong to the supplied 'group' "
-  [compute node-path node-spec machine-name image model group-name init-script user]
-  (logging/tracef "Creating node from image: %s and hardware model %s" image model)
+  [compute node-path node-spec machine-name image model group-name init-script
+   user]
+  (logging/tracef
+   "Creating node from image: %s and hardware model %s" image model)
   (let [machine (manager/instance*
                  compute machine-name image model node-path)]
     (manager/set-extra-data machine image-meta-tag (pr-str image))
@@ -314,8 +316,8 @@
                     ;; is first possible.
                     (get-in node-spec [:image :session-type])
                     default-vm-session-type))
-;;    (logging/trace "Wait to allow boot")
-;;    (Thread/sleep 15000)                ; wait minimal time for vm to boot
+    ;;    (logging/trace "Wait to allow boot")
+    ;;    (Thread/sleep 15000)                ; wait minimal time for vm to boot
     (logging/trace "Waiting for ip")
     (when (string/blank? (wait-for-ip machine))
       (manager/destroy machine)
@@ -721,24 +723,28 @@
                                (vals hardware-models))))
         available-host-interfaces (manager/find-usable-network-interface
                                    (manager/server url identity credential))
-        bridged-interface (or default-bridged-interface
-                              (do
-                                (logging/infof
-                                 "No Host Interface defined. Will chose from these options: %s"
-                                 (apply str (interpose "," available-host-interfaces)))
-                                (first available-host-interfaces)))
-        local-interface (or default-local-interface
-                            (do
-                              (logging/info
-                               "No Local Interface defined. Using vboxnet0")
-                              "vboxnet0"))] ;; todo. Automatically discover this
-
+        bridged-iface (or
+                       default-bridged-interface
+                       (do
+                         (logging/info
+                          (str
+                           "No :default-bridged-interface defined. "
+                           "Will chose from these options: "
+                           (apply
+                            str (interpose ", " available-host-interfaces))))
+                         (first available-host-interfaces)))
+        local-iface (or default-local-interface
+                        (do
+                          (logging/info
+                           "No Local Interface defined. Using vboxnet0")
+                          "vboxnet0"))] ;; todo. Automatically discover this
     (logging/infof "Loaded images: %s" (keys images))
-    (logging/infof "Using '%s' networking via interface '%s' as defaults for new machines"
-                   (name default-network-type)
-                   (if (= default-network-type :local)
-                     local-interface
-                     bridged-interface))
+    (logging/infof
+     "Using '%s' networking via interface '%s' as defaults for new machines"
+     (name default-network-type)
+     (if (= default-network-type :local)
+       local-iface
+       bridged-iface))
     (doseq [[name model] models]
       (logging/infof "loaded model %s = %s" name model))
     (VmfestService.
@@ -746,8 +752,8 @@
      (atom images)
      (val (first locations))
      default-network-type
-     local-interface
-     bridged-interface
+     local-iface
+     bridged-iface
      environment
      models)))
 

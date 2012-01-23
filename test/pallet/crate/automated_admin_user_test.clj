@@ -120,8 +120,7 @@
   ;; tests a node specific admin user
   (live-test/test-for
    [image (live-test/images)]
-   (logging/trace
-    (format "automated-admin-user live test: image %s" (pr-str image)))
+   (logging/debugf "automated-admin-user live test: image %s" (pr-str image))
    (live-test/test-nodes
     [compute node-map node-types]
     {:aau

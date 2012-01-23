@@ -881,6 +881,9 @@
 (defn- deltas-for-converge-to-count
   "Find the difference between the required and actual node counts by group."
   [group]
+  (logging/debugf
+   "deltas-for-converge-to-count %s target: %s actual: %s"
+   (:group-name group) (:count group) (count (:servers group)))
   (assoc group :delta-count (- (:count group) (count (:servers group)))))
 
 (defn- deltas-for-delta-count
@@ -898,7 +901,7 @@
                    (environment/merge-environments
                     (:environment session)
                     (:environment group))))]
-    (logging/infof "adjust-server-count %s" (:group-name group))
+    (logging/infof "adjust-node-count %s" (:group-name group))
     (op session)))
 
 (defn- server-with-packager
