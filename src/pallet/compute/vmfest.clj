@@ -174,7 +174,7 @@
     [node]
     (try+
      (manager/get-ip node)
-     (catch clojure.contrib.condition.Condition _
+     (catch Exception _
        ;; fallback to the ip stored in the node's extra parameters
        (manager/get-extra-data node ip-tag))))
   (private-ip [node] nil)
@@ -246,21 +246,20 @@
   ([machine timeout]
      (let [timeout (+ (current-time-millis) timeout)]
        (loop []
-         (try
-           (let [ip (try (manager/get-ip machine)
-                         (catch RuntimeException e
-                           (logging/warnf
-                            "wait-for-ip: Machine %s not started yet..."
-                            machine))
-                         (catch clojure.contrib.condition.Condition e
-                           (logging/warnf
-                            "wait-for-ip: Machine %s is not accessible yet..."
-                            machine)))]
-             (if (and (string/blank? ip) (< (current-time-millis) timeout))
-               (do
-                 (Thread/sleep 2000)
-                 (recur))
-               ip)))))))
+         (let [ip (try (manager/get-ip machine)
+                       (catch RuntimeException e
+                         (logging/warnf
+                          "wait-for-ip: Machine %s not started yet..."
+                          machine))
+                       (catch Exception e
+                         (logging/warnf
+                          "wait-for-ip: Machine %s is not accessible yet..."
+                          machine)))]
+           (if (and (string/blank? ip) (< (current-time-millis) timeout))
+             (do
+               (Thread/sleep 2000)
+               (recur))
+             ip))))))
 
 
 (defn machine-name
