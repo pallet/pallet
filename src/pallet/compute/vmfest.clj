@@ -119,6 +119,7 @@
    [pallet.futures :as futures]
    [pallet.node :as node]
    [pallet.script :as script]
+   [pallet.ssh.execute :as ssh]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
    [vmfest.manager :as manager]
@@ -337,13 +338,11 @@
                       :no-sudo (:no-sudo image)
                       :sudo-password (:sudo-password image))
                      user)
-              {:keys [out exit]} ;; (execute/remote-sudo
-                                 ;;  (manager/get-ip machine) init-script user
-                                 ;;  {:pty (not
-                                 ;;         (#{:arch :fedora}
-                                 ;;          (:os-family image)))})
-              nil
-              ]
+              [{:keys [out exit]} session] (ssh/ssh-script-on-target
+                                            {:server {:node machine} :user user}
+                                            {:node-value-path (gensym "vmfest")}
+                                            :script/bash
+                                            init-script)]
           (when-not (zero? exit)
             (manager/destroy machine)
             (throw+
