@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html><head><link href="css/default.css" rel="stylesheet" type="text/css"><script src="js/jquery.min.js" type="text/javascript"></script><script src="js/page_effects.js" type="text/javascript"></script><title>pallet.core documentation</title></head><body><div id="header"><h1><a href="index.html">Pallet 0.6.7-SNAPSHOT API documentation</a></h1></div><div class="sidebar" id="namespaces"><h3>Namespaces</h3><ul><li><a href="pallet.action.html">pallet.action</a></li><li><a href="pallet.action.conditional.html">pallet.action.conditional</a></li><li><a href="pallet.action.directory.html">pallet.action.directory</a></li><li><a href="pallet.action.environment.html">pallet.action.environment</a></li><li><a href="pallet.action.exec-script.html">pallet.action.exec-script</a></li><li><a href="pallet.action.file.html">pallet.action.file</a></li><li><a href="pallet.action.filesystem.html">pallet.action.filesystem</a></li><li><a href="pallet.action.package.html">pallet.action.package</a></li><li><a href="pallet.action.package.centos.html">pallet.action.package.centos</a></li><li><a href="pallet.action.package.debian-backports.html">pallet.action.package.debian-backports</a></li><li><a href="pallet.action.package.epel.html">pallet.action.package.epel</a></li><li><a href="pallet.action.package.jpackage.html">pallet.action.package.jpackage</a></li><li><a href="pallet.action.package.rpmforge.html">pallet.action.package.rpmforge</a></li><li><a href="pallet.action.remote-directory.html">pallet.action.remote-directory</a></li><li><a href="pallet.action.remote-file.html">pallet.action.remote-file</a></li><li><a href="pallet.action.retry.html">pallet.action.retry</a></li><li><a href="pallet.action.rsync.html">pallet.action.rsync</a></li><li><a href="pallet.action.service.html">pallet.action.service</a></li><li><a href="pallet.action.user.html">pallet.action.user</a></li><li><a href="pallet.action-plan.html">pallet.action-plan</a></li><li><a href="pallet.argument.html">pallet.argument</a></li><li><a href="pallet.blobstore.html">pallet.blobstore</a></li><li><a href="pallet.blobstore.implementation.html">pallet.blobstore.implementation</a></li><li><a href="pallet.blobstore.jclouds.html">pallet.blobstore.jclouds</a></li><li><a href="pallet.blobstore.url-blobstore.html">pallet.blobstore.url-blobstore</a></li><li><a href="pallet.command-line.html">pallet.command-line</a></li><li><a href="pallet.command-script.html">pallet.command-script</a></li><li><a href="pallet.compute.html">pallet.compute</a></li><li><a href="pallet.compute.hybrid.html">pallet.compute.hybrid</a></li><li><a href="pallet.compute.implementation.html">pallet.compute.implementation</a></li><li><a href="pallet.compute.jclouds.html">pallet.compute.jclouds</a></li><li><a href="pallet.compute.jvm.html">pallet.compute.jvm</a></li><li><a href="pallet.compute.node-list.html">pallet.compute.node-list</a></li><li><a href="pallet.compute.vmfest.html">pallet.compute.vmfest</a></li><li><a href="pallet.config-file.format.html">pallet.config-file.format</a></li><li><a href="pallet.configure.html">pallet.configure</a></li><li class="current"><a href="pallet.core.html">pallet.core</a></li><li><a href="pallet.crate.network-service.html">pallet.crate.network-service</a></li><li><a href="pallet.debug.html">pallet.debug</a></li><li><a href="pallet.enlive.html">pallet.enlive</a></li><li><a href="pallet.environment.html">pallet.environment</a></li><li><a href="pallet.execute.html">pallet.execute</a></li><li><a href="pallet.futures.html">pallet.futures</a></li><li><a href="pallet.main.html">pallet.main</a></li><li><a href="pallet.main-invoker.html">pallet.main-invoker</a></li><li><a href="pallet.map-merge.html">pallet.map-merge</a></li><li><a href="pallet.maven.html">pallet.maven</a></li><li><a href="pallet.md5crypt.html">pallet.md5crypt</a></li><li><a href="pallet.node.html">pallet.node</a></li><li><a href="pallet.parameter.html">pallet.parameter</a></li><li><a href="pallet.phase.html">pallet.phase</a></li><li><a href="pallet.repl.html">pallet.repl</a></li><li><a href="pallet.request-map.html">pallet.request-map</a></li><li><a href="pallet.resource.html">pallet.resource</a></li><li><a href="pallet.resource.directory.html">pallet.resource.directory</a></li><li><a href="pallet.resource.exec-script.html">pallet.resource.exec-script</a></li><li><a href="pallet.resource.file.html">pallet.resource.file</a></li><li><a href="pallet.resource.filesystem.html">pallet.resource.filesystem</a></li><li><a href="pallet.resource.filesystem-layout.html">pallet.resource.filesystem-layout</a></li><li><a href="pallet.resource.format.html">pallet.resource.format</a></li><li><a href="pallet.resource.hostinfo.html">pallet.resource.hostinfo</a></li><li><a href="pallet.resource.lib.html">pallet.resource.lib</a></li><li><a href="pallet.resource.network-service.html">pallet.resource.network-service</a></li><li><a href="pallet.resource.package.html">pallet.resource.package</a></li><li><a href="pallet.resource.remote-directory.html">pallet.resource.remote-directory</a></li><li><a href="pallet.resource.remote-file.html">pallet.resource.remote-file</a></li><li><a href="pallet.resource.resource-when.html">pallet.resource.resource-when</a></li><li><a href="pallet.resource.rsync.html">pallet.resource.rsync</a></li><li><a href="pallet.resource.service.html">pallet.resource.service</a></li><li><a href="pallet.resource.shell.html">pallet.resource.shell</a></li><li><a href="pallet.resource.user.html">pallet.resource.user</a></li><li><a href="pallet.script.lib.html">pallet.script.lib</a></li><li><a href="pallet.session.html">pallet.session</a></li><li><a href="pallet.shell.html">pallet.shell</a></li><li><a href="pallet.strint.html">pallet.strint</a></li><li><a href="pallet.target.html">pallet.target</a></li><li><a href="pallet.task.add-service.html">pallet.task.add-service</a></li><li><a href="pallet.task.containers.html">pallet.task.containers</a></li><li><a href="pallet.task.converge.html">pallet.task.converge</a></li><li><a href="pallet.task.converge-cluster.html">pallet.task.converge-cluster</a></li><li><a href="pallet.task.describe-node.html">pallet.task.describe-node</a></li><li><a href="pallet.task.destroy-cluster.html">pallet.task.destroy-cluster</a></li><li><a href="pallet.task.help.html">pallet.task.help</a></li><li><a href="pallet.task.images.html">pallet.task.images</a></li><li><a href="pallet.task.lift.html">pallet.task.lift</a></li><li><a href="pallet.task.new-project.html">pallet.task.new-project</a></li><li><a href="pallet.task.nodes.html">pallet.task.nodes</a></li><li><a href="pallet.task.providers.html">pallet.task.providers</a></li><li><a href="pallet.task.to-blob.html">pallet.task.to-blob</a></li><li><a href="pallet.task.version.html">pallet.task.version</a></li><li><a href="pallet.task.vmfest-script.html">pallet.task.vmfest-script</a></li><li><a href="pallet.template.html">pallet.template</a></li><li><a href="pallet.template.properties.html">pallet.template.properties</a></li><li><a href="pallet.utils.html">pallet.utils</a></li></ul></div><div class="sidebar" id="vars"><h3>Public Vars</h3><ul><li><a href="pallet.core.html#var-*warn-on-undefined-phase*">*warn-on-undefined-phase*</a></li><li><a href="pallet.core.html#var-adjust-session-for-nodes">adjust-session-for-nodes</a></li><li><a href="pallet.core.html#var-admin-user">admin-user</a></li><li><a href="pallet.core.html#var-all-node-set-selector">all-node-set-selector</a></li><li><a href="pallet.core.html#var-cluster-groups">cluster-groups</a></li><li><a href="pallet.core.html#var-cluster-spec">cluster-spec</a></li><li><a href="pallet.core.html#var-converge">converge</a></li><li><a href="pallet.core.html#var-converge*">converge*</a></li><li><a href="pallet.core.html#var-converge-cluster">converge-cluster</a></li><li><a href="pallet.core.html#var-default-algorithms">default-algorithms</a></li><li><a href="pallet.core.html#var-default-environment">default-environment</a></li><li><a href="pallet.core.html#var-default-executors">default-executors</a></li><li><a href="pallet.core.html#var-defnode">defnode</a></li><li><a href="pallet.core.html#var-destroy-cluster">destroy-cluster</a></li><li><a href="pallet.core.html#var-environment-args">environment-args</a></li><li><a href="pallet.core.html#var-group-spec">group-spec</a></li><li><a href="pallet.core.html#var-groups-with-servers">groups-with-servers</a></li><li><a href="pallet.core.html#var-lift">lift</a></li><li><a href="pallet.core.html#var-lift*">lift*</a></li><li><a href="pallet.core.html#var-lift-cluster">lift-cluster</a></li><li><a href="pallet.core.html#var-lift-nodes">lift-nodes</a></li><li><a href="pallet.core.html#var-lift-phase">lift-phase</a></li><li><a href="pallet.core.html#var-log-message">log-message</a></li><li><a href="pallet.core.html#var-log-session">log-session</a></li><li><a href="pallet.core.html#var-make-node">make-node</a></li><li><a href="pallet.core.html#var-merge-spec-algorithm">merge-spec-algorithm</a></li><li><a href="pallet.core.html#var-middleware-handler">middleware-handler</a></li><li><a href="pallet.core.html#var-name-with-attributes">name-with-attributes</a></li><li><a href="pallet.core.html#var-new-node-set-selector">new-node-set-selector</a></li><li><a href="pallet.core.html#var-node-spec">node-spec</a></li><li><a href="pallet.core.html#var-nodes-in-set">nodes-in-set</a></li><li><a href="pallet.core.html#var-parallel-adjust-node-counts">parallel-adjust-node-counts</a></li><li><a href="pallet.core.html#var-parallel-apply-phase">parallel-apply-phase</a></li><li><a href="pallet.core.html#var-parallel-lift">parallel-lift</a></li><li><a href="pallet.core.html#var-raise-on-error">raise-on-error</a></li><li><a href="pallet.core.html#var-reduce-adjust-nodes">reduce-adjust-nodes</a></li><li><a href="pallet.core.html#var-select-node-set">select-node-set</a></li><li><a href="pallet.core.html#var-sequential-apply-phase">sequential-apply-phase</a></li><li><a href="pallet.core.html#var-sequential-lift">sequential-lift</a></li><li><a href="pallet.core.html#var-serial-adjust-node-counts">serial-adjust-node-counts</a></li><li><a href="pallet.core.html#var-server">server</a></li><li><a href="pallet.core.html#var-server-spec">server-spec</a></li><li><a href="pallet.core.html#var-session-with-all-nodes">session-with-all-nodes</a></li><li><a href="pallet.core.html#var-session-with-groups">session-with-groups</a></li><li><a href="pallet.core.html#var-show-target-keys">show-target-keys</a></li><li><a href="pallet.core.html#var-stop-execution-on-error">stop-execution-on-error</a></li><li><a href="pallet.core.html#var-version">version</a></li><li><a href="pallet.core.html#var-with-admin-user">with-admin-user</a></li><li><a href="pallet.core.html#var-with-middleware">with-middleware</a></li></ul></div><div class="namespace-docs" id="content"><h2>pallet.core documentation</h2><pre class="doc">Core functionality is provided in `lift` and `converge`.
+
+- node           :: A node in the compute service
+- node-spec      :: A specification for a node. The node-spec provides an image
+                    hardware, location and network template for starting new
+                    nodes.
+- server-spec    :: A specification for a server. This is a map of phases and
+                    a default node-spec. A server-spec has the following keys
+                    :phase, :packager and node-spec keys.
+- group-spec     :: A group of identically configured nodes, represented as a
+                    map with :group-name, :count and server-spec keys.
+                    The group-name is used to link running nodes to their
+                    configuration (via pallet.node.Node/group-name)
+- group          :: A group of identically configured nodes, represented as a
+                    group-spec, together with the servers that are running
+                    for that group-spec.
+- group name     :: The name used to identify a group.
+- server         :: A map used to descibe the node, image, etc of a single
+                    node running as part of a group. A server has the
+                    following keys :group-name, :node, :node-id and server-spec
+                    keys.
+- phase list     :: A list of phases to be used
+- action plan    :: A list of actions that should be run.</pre><div class="public" id="var-*warn-on-undefined-phase*"><h3>*warn-on-undefined-phase*</h3><div class="usage"></div><pre class="doc">Flag to control output of warnings about undefined phases in calls to lift
+and converge.</pre></div><div class="public" id="var-adjust-session-for-nodes"><h3>adjust-session-for-nodes</h3><div class="usage"><code>(adjust-session-for-nodes session)</code></div><pre class="doc">Take :new-nodes and :old-nodes, and adjust :original-nodes and :all-nodes
+</pre></div><div class="public" id="var-admin-user"><h3>admin-user</h3><div class="usage"><code>(admin-user user)</code><code>(admin-user username &amp; {:keys [public-key-path private-key-path passphrase password sudo-password no-sudo], :as options})</code></div><pre class="doc">Set the root binding for the admin user.
+The user arg is a map as returned by make-user, or a username.  When passing
+a username the options can be specified as in `pallet.utils/make-user`.
+
+This is mainly for use at the repl, since the admin user can be specified
+functionally using the :user key in a lift or converge call, or in the
+environment.</pre></div><div class="public" id="var-all-node-set-selector"><h3>all-node-set-selector</h3><div class="usage"><code>(all-node-set-selector session)</code></div><pre class="doc">Select all nodes for groups in the node-set for processing
+</pre></div><div class="public" id="var-cluster-groups"><h3>cluster-groups</h3><div class="usage"><code>(cluster-groups cluster)</code></div><pre class="doc">Return the groups in the passed cluster or sequence of clusters.
+</pre></div><div class="public" id="var-cluster-spec"><h3>cluster-spec</h3><div class="usage"><code>(cluster-spec cluster-name &amp; {:keys [extends groups phases node-spec environment], :as options})</code></div><pre class="doc">Create a cluster-spec.
+
+`name` is used as a prefix for all groups in the cluster.
+
+- :groups    specify a sequence of groups that define the cluster
+
+- :extends   specify a server-spec, a group-spec, or sequence thereof,
+             for all groups in the cluster
+
+- :phases    define phases on all groups.
+
+- :node-spec default node-spec for the nodes in the cluster
+
+- :roles     roles for the group-spec</pre></div><div class="public" id="var-converge"><h3>converge</h3><div class="usage"><code>(converge group-spec-&gt;count &amp; {:keys [compute blobstore user phase prefix middleware all-nodes all-node-set environment], :as options})</code></div><pre class="doc">Converge the existing compute resources with the counts specified in
+`group-spec-&gt;count`. New nodes are started, or nodes are destroyed,
+to obtain the specified node counts.
+
+`group-spec-&gt;count` can be a map from group-spec to node count, or can be a
+sequence of group-specs containing a :count key.
+
+The compute service may be supplied as an option, otherwise the bound
+compute-service is used.
+
+
+This applies the bootstrap phase to all new nodes and the configure phase to
+all running nodes whose group-name matches a key in the node map.  Additional
+phases can also be specified in the options, and will be applied to all
+matching nodes.  The :configure phase is always applied, by default as the
+first (post bootstrap) phase.  You can change the order in which
+the :configure phase is applied by explicitly listing it.
+
+An optional group-name prefix may be specified. This will be used to modify
+the group-name for each group-spec, allowing you to build multiple discrete
+clusters from a single set of group-specs.</pre></div><div class="public" id="var-converge*"><h3>converge*</h3><div class="usage"><code>(converge* session)</code></div><pre class="doc">Converge the node counts of each node-spec in `:node-set`, executing each of
+the configuration phases on all the group-names in `:node-set`. The
+phase-functions are also executed, but not applied, for any other nodes in
+`:all-node-set`</pre></div><div class="public" id="var-converge-cluster"><h3>converge-cluster</h3><div class="usage"><code>(converge-cluster cluster &amp; options)</code></div><pre class="doc">Converge the specified cluster. As for `converge`, but takes a cluster-spec
+or sequence of cluster-specs.</pre></div><div class="public" id="var-default-algorithms"><h3>default-algorithms</h3><div class="usage"></div><pre class="doc">Algorithms to use when none specified
+</pre></div><div class="public" id="var-default-environment"><h3>default-environment</h3><div class="usage"><code>(default-environment)</code></div><pre class="doc">Specify the built-in default environment
+</pre></div><div class="public" id="var-default-executors"><h3>default-executors</h3><div class="usage"></div><pre class="doc">Default executor map
+</pre></div><div class="public" id="var-defnode"><h3>defnode</h3><div class="usage"><code>(defnode tag doc-str? attr-map? image &amp; phasekw-phasefn-pairs)</code></div><pre class="doc">Define a node type.  The name is used for the group name.
+
+image defines the image selector template.  This is a vector of keyword or
+       keyword value pairs that are used to filter the image list to select
+       an image.
+Options are used to define phases. Standard phases are:
+  :bootstrap    run on first boot
+  :configure    defines the configuration of the node.</pre></div><div class="public" id="var-destroy-cluster"><h3>destroy-cluster</h3><div class="usage"><code>(destroy-cluster cluster &amp; options)</code></div><pre class="doc">Destroy the specified cluster. As for `converge`, but takes a cluster-spec
+or sequence of cluster-specs.</pre></div><div class="public" id="var-environment-args"><h3>environment-args</h3><div class="usage"></div><pre class="doc">args that are really part of the environment
+</pre></div><div class="public" id="var-group-spec"><h3>group-spec</h3><div class="usage"><code>(group-spec name &amp; {:keys [extends count image phases packager node-spec roles], :as options})</code></div><pre class="doc">Create a group-spec.
+
+`name` is used for the group name, which is set on each node and links a node
+to it's node-spec
+
+- :extends  specify a server-spec, a group-spec, or sequence thereof,
+            and is used to inherit phases, etc.
+
+- :phases used to define phases. Standard phases are:
+  - :bootstrap    run on first boot of a new node
+  - :configure    defines the configuration of the node.
+
+- :count    specify the target number of nodes for this node-spec
+- :packager override the choice of packager to use
+- :node-spec      default node-spec for this server-spec</pre></div><div class="public" id="var-groups-with-servers"><h3>groups-with-servers</h3><div class="usage"><code>(groups-with-servers node-map execute-node?)</code></div><pre class="doc">Takes a map from node-spec to sequence of nodes, and converts it to a
+sequence of group definitions, containing a server for each node in then
+:servers key of each group.  The server will contain the node-spec,
+updated with any information that was available from the node.
+
+    (groups-with-servers {(node-spec &quot;spec&quot; {}) [a b c]})
+      =&gt; [{:group-name &quot;spec&quot;
+           :servers [{:group-name &quot;spec&quot; :node a}
+                     {:group-name &quot;spec&quot; :node b}
+                     {:group-name &quot;spec&quot; :node c}]}]
+
+`options` allows adding extra keys to the servers.</pre></div><div class="public" id="var-lift"><h3>lift</h3><div class="usage"><code>(lift node-set &amp; {:keys [compute phase prefix middleware all-node-set environment], :as options})</code></div><pre class="doc">Lift the running nodes in the specified node-set by applying the specified
+phases.  The compute service may be supplied as an option, otherwise the
+bound compute-service is used.  The configure phase is applied by default
+unless other phases are specified.
+
+node-set can be a node type, a sequence of node types, or a map
+of node type to nodes. Examples:
+           [node-type1 node-type2 {node-type #{node1 node2}}]
+           node-type
+           {node-type #{node1 node2}}
+
+options can also be keywords specifying the phases to apply, or an immediate
+phase specified with the phase macro, or a function that will be called with
+each matching node.
+
+Options:
+ :compute         a jclouds compute service
+ :compute-service a map of :provider, :identity, :credential, and
+                  optionally :extensions for constructing a jclouds compute
+                  service.
+ :phase           a phase keyword, phase function, or sequence of these
+ :middleware      the middleware to apply to the configuration pipeline
+ :prefix          a prefix for the group-name names
+ :user            the admin-user on the nodes</pre></div><div class="public" id="var-lift*"><h3>lift*</h3><div class="usage"><code>(lift* session)</code></div><pre class="doc">Lift the nodes specified in the session :node-set key.
+- :node-set     - a specification of nodes to lift
+- :all-nodes    - a sequence of all known nodes
+- :all-node-set - a specification of nodes to invoke (but not lift)</pre></div><div class="public" id="var-lift-cluster"><h3>lift-cluster</h3><div class="usage"><code>(lift-cluster cluster &amp; options)</code></div><pre class="doc">Lift the specified cluster.  As for `lift`, but takes a cluster-spec
+or sequence of cluster-specs.</pre></div><div class="public" id="var-lift-nodes"><h3>lift-nodes</h3><div class="usage"><code>(lift-nodes session)</code></div><pre class="doc">Lift nodes in target-node-map for the specified phases.
+</pre></div><div class="public" id="var-lift-phase"><h3>lift-phase</h3><div class="usage"><code>(lift-phase session)</code></div><pre class="doc">Lift nodes in target-node-map for the specified phases.
+
+Builds the commands for the phase, then executes pre-phase, phase, and
+after-phase</pre></div><div class="public" id="var-log-message"><h3>log-message</h3><div class="usage"><code>(log-message msg)</code></div><pre class="doc">Log the message
+</pre></div><div class="public" id="var-log-session"><h3>log-session</h3><div class="usage"><code>(log-session msg)</code></div><pre class="doc">Log the session state
+</pre></div><div class="public" id="var-make-node"><h3>make-node</h3><div class="usage"><code>(make-node name image &amp; {:as phase-map})</code></div><pre class="doc">Create a node definition.  See defnode.
+</pre></div><div class="public" id="var-merge-spec-algorithm"><h3>merge-spec-algorithm</h3><div class="usage"></div><pre class="doc">Map from key to merge algorithm. Specifies how specs are merged.
+</pre></div><div class="public" id="var-middleware-handler"><h3>middleware-handler</h3><div class="usage"><code>(middleware-handler handler)</code></div><pre class="doc">Build a middleware processing pipeline from the specified middleware.
+The result is a middleware.</pre></div><div class="public" id="var-name-with-attributes"><h3>name-with-attributes</h3><div class="usage"><code>(name-with-attributes name macro-args)</code></div><pre class="doc">Modified version, of that found in contrib, to handle the image map.
+</pre></div><div class="public" id="var-new-node-set-selector"><h3>new-node-set-selector</h3><div class="usage"><code>(new-node-set-selector session)</code></div><pre class="doc">Select all new nodes for groups in the node-set for processing
+</pre></div><div class="public" id="var-node-spec"><h3>node-spec</h3><div class="usage"><code>(node-spec &amp; {:keys [image hardware location network qos], :as options})</code></div><pre class="doc">Create a node-spec.
+
+Defines the compute image and hardware selector template.
+
+This is used to filter a cloud provider's image and hardware list to select
+an image and hardware for nodes created for this node-spec.
+
+:image     a map descirbing a predicate for matching an image:
+           os-family os-name-matches os-version-matches
+           os-description-matches os-64-bit
+           image-version-matches image-name-matches
+           image-description-matches image-id
+
+:location  a map describing a predicate for matching location:
+           location-id
+:hardware  a map describing a predicate for matching harware:
+           min-cores min-ram smallest fastest biggest architecture
+           hardware-id
+:network   a map for network connectivity options:
+           inbound-ports
+:qos       a map for quality of service options:
+           spot-price enable-monitoring</pre></div><div class="public" id="var-nodes-in-set"><h3>nodes-in-set</h3><div class="usage"><code>(nodes-in-set node-set prefix nodes)</code></div><pre class="doc">Build a map of node-spec to nodes for the given `node-set`.
+A node set can be a node spec, a map from node-spec to a sequence of nodes,
+or a sequence of these.
+
+The prefix is applied to the group-name of each node-spec in the result.
+This allows you to build seperate clusters based on the same node-spec's.
+
+The return value is a map of node-spec to node sequence.
+
+Example node sets:
+    node-spec-1
+    [node-spec1 node-spec-2]
+    {node-spec #{node1 node2}}
+    [node-spec1 node-spec-2 {node-spec #{node1 node2}}]</pre></div><div class="public" id="var-parallel-adjust-node-counts"><h3>parallel-adjust-node-counts</h3><div class="usage"><code>(parallel-adjust-node-counts session op groups)</code></div><pre class="doc">Start or stop the specified number of nodes.
+</pre></div><div class="public" id="var-parallel-apply-phase"><h3>parallel-apply-phase</h3><div class="usage"><code>(parallel-apply-phase session)</code></div><pre class="doc">Apply a phase to a sequence of nodes
+</pre></div><div class="public" id="var-parallel-lift"><h3>parallel-lift</h3><div class="usage"><code>(parallel-lift session)</code></div><pre class="doc">Apply the phases in sequence, to nodes in parallel.
+</pre></div><div class="public" id="var-raise-on-error"><h3>raise-on-error</h3><div class="usage"><code>(raise-on-error handler)</code></div><pre class="doc">Middleware that raises a condition on an error.
+</pre></div><div class="public" id="var-reduce-adjust-nodes"><h3>reduce-adjust-nodes</h3><div class="usage"><code>(reduce-adjust-nodes session session-adjust)</code></div><pre class="doc">reduce the result of an adjust-node onto a session
+</pre></div><div class="public" id="var-select-node-set"><h3>select-node-set</h3><div class="usage"><code>(select-node-set session)</code></div><pre class="doc">Select a node-set of nodes to be passed to lift
+</pre></div><div class="public" id="var-sequential-apply-phase"><h3>sequential-apply-phase</h3><div class="usage"><code>(sequential-apply-phase session)</code></div><pre class="doc">Apply a phase to a sequence of nodes
+</pre></div><div class="public" id="var-sequential-lift"><h3>sequential-lift</h3><div class="usage"><code>(sequential-lift session)</code></div><pre class="doc">Sequential apply the phases.
+</pre></div><div class="public" id="var-serial-adjust-node-counts"><h3>serial-adjust-node-counts</h3><div class="usage"><code>(serial-adjust-node-counts session op groups)</code></div><pre class="doc">Start or stop the specified number of nodes.
+</pre></div><div class="public" id="var-server"><h3>server</h3><div class="usage"><code>(server group node options)</code></div><pre class="doc">Take a `group` and a `node`, an `options` map and combine them to produce
+a server.
+
+The group os-family, os-version, are replaced with the details form the
+node. The :node key is set to `node`, and the :node-id and :packager keys
+are set.
+
+`options` allows adding extra keys on the server.</pre></div><div class="public" id="var-server-spec"><h3>server-spec</h3><div class="usage"><code>(server-spec &amp; {:keys [phases packager node-spec extends roles], :as options})</code></div><pre class="doc">Create a server-spec.
+
+- :phases a hash-map used to define phases. Standard phases are:
+  - :bootstrap    run on first boot of a new node
+  - :configure    defines the configuration of the node
+- :extends        takes a server-spec, or sequence thereof, and is used to
+                  inherit phases, etc.
+- :roles          defines a sequence of roles for the server-spec
+- :node-spec      default node-spec for this server-spec
+- :packager       override the choice of packager to use</pre></div><div class="public" id="var-session-with-all-nodes"><h3>session-with-all-nodes</h3><div class="usage"><code>(session-with-all-nodes session)</code></div><pre class="doc">If the :all-nodes key is not set, then the nodes are retrieved from the
+compute service if possible.</pre></div><div class="public" id="var-session-with-groups"><h3>session-with-groups</h3><div class="usage"><code>(session-with-groups session)</code></div><pre class="doc">Takes the :selected-nodes, :all-nodes. :node-set and :prefix keys and compute
+the groups for the session, updating the :selected-nodes, :all-nodes
+and :groups keys of the session.
+
+The :groups key is set to a sequence of groups, each containing its
+list of servers on the :servers key.</pre></div><div class="public" id="var-show-target-keys"><h3>show-target-keys</h3><div class="usage"><code>(show-target-keys handler)</code></div><pre class="doc">Middleware that is useful in debugging.
+</pre></div><div class="public" id="var-stop-execution-on-error"><h3>stop-execution-on-error</h3><div class="usage"><code>(stop-execution-on-error result flag)</code></div><pre class="doc">:execute-status-fn algorithm to stop execution on an error
+</pre></div><div class="public" id="var-version"><h3>version</h3><div class="usage"><code>(version)</code></div><pre class="doc">Returns the pallet version.
+</pre></div><div class="public" id="var-with-admin-user"><h3>with-admin-user</h3><div class="usage"><code>(with-admin-user user &amp; body)</code><code>(with-admin-user [username &amp; {:keys [public-key-path private-key-path passphrase password sudo-password no-sudo], :as options}] &amp; body)</code></div><pre class="doc">Specify the admin user for running remote commands.  The user is specified
+either as pallet.utils.User record (see the pallet.utils/make-user
+convenience fn) or as an argument list that will be passed to make-user.
+
+This is mainly for use at the repl, since the admin user can be specified
+functionally using the :user key in a lift or converge call, or in the
+environment.</pre></div><div class="public" id="var-with-middleware"><h3>with-middleware</h3><div class="usage"><code>(with-middleware f &amp; body)</code></div><pre class="doc">Wrap node execution in the given middleware. A middleware is a function of
+one argument (a handler function, that is the next middleware to call) and
+returns a dunction of one argument (the session map).  Middleware can be
+composed with the pipe macro.</pre></div></div></body></html>
