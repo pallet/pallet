@@ -62,6 +62,7 @@
         </dependencies>
         <configuration>
           <codoxTargetDirectory>autodoc/api/${pallet.doc.version}</codoxTargetDirectory>
+          <codoxApiVersion>${pallet.doc.version}</codoxApiVersion>
         </configuration>
       </plugin>
       <plugin>
