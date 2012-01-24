@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.4.5</version>
+    <version>0.4.6-SNAPSHOT</version>
     <relativePath>../pallet-pom/pom.xml</relativePath>
   </parent>
   <groupId>org.cloudhoist</groupId>
@@ -51,6 +51,13 @@
       </testResource>
     </testResources>
     <plugins>
+      <plugin>
+        <groupId>org.cloudhoist.plugin</groupId>
+        <artifactId>zi</artifactId>
+        <configuration>
+          <codoxTargetDirectory>autodoc/api/${pallet.doc.version}</codoxTargetDirectory>
+        </configuration>
+      </plugin>
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
         <executions>
@@ -351,17 +358,6 @@
       </roles>
       <timezone>-5</timezone>
     </developer>
-    <developer>
-      <name>Adrian Cole</name>
-      <id>ferncam1</id>
-      <email>adrian -at- jclouds -dot- org</email>
-      <organization>jclouds</organization>
-      <roles>
-        <role>Developer</role>
-      </roles>
-      <url>http://www.jclouds.org</url>
-      <timezone>-8</timezone>
-    </developer>
   </developers>
 
   <contributors>
@@ -394,5 +390,9 @@
       <url>http://oss.sonatype.org/content/repositories/snapshots</url>
     </repository>
   </repositories>
+
+  <properties>
+    <pallet.doc.version>0.6</pallet.doc.version>
+  </properties>
 
 </project>
