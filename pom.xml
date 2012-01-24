@@ -61,7 +61,7 @@
           </dependency>
         </dependencies>
         <configuration>
-          <codoxTargetDirectory>doc/codox</codoxTargetDirectory>
+          <codoxTargetDirectory>autodoc/api/${pallet.doc.version}</codoxTargetDirectory>
         </configuration>
       </plugin>
       <plugin>
@@ -425,6 +425,7 @@
   <properties>
     <jclouds.version>1.2.1</jclouds.version>
     <clojure.version>1.3.0</clojure.version>
+    <pallet.doc.version>0.7</pallet.doc.version>
   </properties>
 
 </project>
