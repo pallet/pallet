@@ -18,7 +18,7 @@ code, and from the command line.
 It uses [jclouds](https://github.com/jclouds/jclouds) to gain portable access to
 different cloud providers.
 
-Some basic [documentation](http://pallet.github.com/pallet) is available.
+Some basic [documentation](http://palletops.com/doc) is available.
 
 ## Support
 
@@ -33,9 +33,9 @@ showing a basic node configuration, and starting and stopping a node.
 ## Quickstart
 
 See the
-[basic usage](https://github.com/pallet/pallet-examples/blob/master/basic/src/demo.clj)
+[basic usage](https://github.com/pallet/pallet-examples/blob/develop/basic/src/demo.clj)
 example in the
-[pallet-examples basic](https://github.com/pallet/pallet-examples/tree/master/basic/)
+[pallet-examples basic](https://github.com/pallet/pallet-examples/tree/develop/basic/)
 project.
 
 For general help getting started with Clojure, see this
