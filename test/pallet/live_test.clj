@@ -54,9 +54,11 @@
    :debian-lenny [{:os-family :debian :os-version-matches "5.0.7"
                    :os-64-bit false}]
    :debian-squeeze [{:os-family :debian :os-version-matches "6.0.1"
-                   :os-64-bit true}]
+                     :os-64-bit true}]
    :centos-5-3 [{:os-family :centos :os-version-matches "5.3"
                  :os-64-bit false}]
+   :centos-5-3-64 [{:os-family :centos :os-version-matches "5.3"
+                    :os-64-bit true}]
    :centos-5-5 [{:os-family :centos :os-version-matches "5.5"
                  :os-64-bit true}]
    :arch-2010-05 [{:os-family :arch :os-version-matches "2010.05"
