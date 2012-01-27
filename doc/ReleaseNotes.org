@@ -3,7 +3,23 @@
 #+DESCRIPTION: Release notes for pallet releases
 #+KEYWORDS: pallet palletops contribute
 
-The latest release is 0.6.6.
+The latest release is 0.6.7.
+
+* 0.6.7
+** feautures
+- Add codox configuration
+
+** fixes
+- Add a 64 bit centos 5.3 image to live-test image lists
+
+- Allow all-node-set in lift
+
+- Use image selected by template for creating new images instead of using the
+  template it's self
+  This had the effect of causing the bridged-network parameter (amongst
+  others) to be dropped from the image specification making it impossable
+  to use anything other than the default bridged network device. This
+  change allows pallet to use vmfest on ubuntu.
 
 * 0.6.6
 
