@@ -57,6 +57,7 @@
         <configuration>
           <codoxTargetDirectory>autodoc/api/${pallet.doc.version}</codoxTargetDirectory>
           <codoxApiVersion>${pallet.doc.version}</codoxApiVersion>
+          <marginaliaTargetDirectory>autodoc/marginalia</marginaliaTargetDirectory>
         </configuration>
       </plugin>
       <plugin>
