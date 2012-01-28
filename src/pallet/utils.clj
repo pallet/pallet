@@ -34,6 +34,15 @@
    (keyword? arg) (name arg)
    :else (str arg)))
 
+(defmacro apply-map
+  "Applies fn f to the argument list formed by prepending args to
+  (apply concat argmap). Similar to clojure.core/apply, but taking a final map
+  instead of a sequence."
+  {:arglists '([f args* argmap])
+   :added "0.6.8"}
+  [& args]
+  `(apply ~@(drop-last args) (apply concat ~(last args))))
+
 (defn resource-path [name]
   (let [loader (.getContextClassLoader (Thread/currentThread))
         resource (. loader getResource name)]
