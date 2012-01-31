@@ -31,16 +31,16 @@
         <div class="doc"><p>Actions implement the conversion of phase functions to script and other
 execution code.</p>
 
-<p>An action has a :action-type. Known types include :script/bash
-and :fn/clojure.</p>
+<p>An action has an <code>:action-type</code>. Known types include <code>:script/bash</code>
+and <code>:fn/clojure</code>.</p>
 
-<p>An action has a :location, :origin for execution on the node running
-pallet, and :target for the target node.</p>
+<p>An action has a <code>:location</code>, with a value of <code>:origin</code> for execution on the
+node running pallet, and <code>:target</code> for the target node.</p>
 
-<p>An action has an :execution, which is one of :aggregated, :in-sequence or
-:collected. Calls to :aggregated actions will be grouped, and run before
-:in-sequence actions. Calls to :collected actions will be grouped, and run
-after :in-sequence actions.</p>
+<p>An action has an <code>:execution</code>, which is one of <code>:aggregated</code>, <code>:in-sequence</code>
+or <code>:collected</code>. Calls to <code>:aggregated</code> actions will be grouped, and run
+before <code>:in-sequence</code> actions. Calls to <code>:collected</code> actions will be grouped,
+and run after <code>:in-sequence</code> actions.</p>
 </div>
         <div class="ns-vars">
           <div class="public">
@@ -134,28 +134,35 @@ when the action plan is executed.</p>
 <p>The action can be scheduled within one of three 'executions'
 (conceptually, sub-phases):</p>
 
-<p>:in-sequence - The generated action will be applied to the node
-     "in order", as it is defined lexically in the source crate.
-     This is the default.
-:aggregated - All aggregated actions are applied to the node
-     in the order they are defined, but before all :in-sequence
-     actions. Note that all of the arguments to any given
-     action function are gathered such that there is only ever one
-     invocation of each fn within each phase.
-:collected - All collected actions are applied to the node
-     in the order they are defined, but after all :in-sequence
-     action. Note that all of the arguments to any given
-     action function are gathered such that there is only ever one
-     invocation of each fn within each phase.</p>
+<p><code>:in-sequence</code>
+: The generated action will be applied to the node "in order", as it is
+     defined lexically in the source crate.  This is the default.</p>
+
+<p><code>:aggregated</code>
+: All aggregated actions are applied to the node in the order they are
+     defined, but before all :in-sequence actions. Note that all of the
+     arguments to any given action function are gathered such that there is
+     only ever one invocation of each fn within each phase.</p>
+
+<p><code>:collected</code>
+: All collected actions are applied to the node in the order they are
+     defined, but after all :in-sequence action. Note that all of the
+     arguments to any given action function are gathered such that there is
+     only ever one invocation of each fn within each phase.</p>
 
 <p>The action-type determines how the action should be handled:</p>
 
-<p>:script/bash - action produces bash script for execution on remote machine
-:fn/clojure  - action is a function for local execution
-:transfer/to-local - action is a function specifying remote source
-                     and local destination.
-:transfer/from-local - action is a function specifying local source
-                       and remote destination.</p>
+<p><code>:script/bash</code>
+: action produces bash script for execution on remote machine</p>
+
+<p><code>:fn/clojure</code>
+: action is a function for local execution</p>
+
+<p><code>:transfer/to-local</code>
+: action is a function specifying remote source and local destination.</p>
+
+<p><code>:transfer/from-local</code>
+: action is a function specifying local source and remote destination.</p>
 </div>
           </div><div class="public">
             <h3 id="var-with-precedence">with-precedence</h3>

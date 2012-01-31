@@ -22,8 +22,13 @@
     <article>
       <div id="content" class="namespace-index">
         <h2 class="project-title">Pallet 0.6 API documentation</h2>
-        <h3>PALLET!</h3>
-        <div class="doc"><p>Pallet - agile provisioning and configuration of compute nodes. A devops tool.</p>
+        <div class="doc"><p>Pallet, DevOps for the JVM</p>
+
+<pre><code>Pallet is a platform for agile and programmatic automation of infrastructure
+in the cloud, on server racks or directly on virtual machines. Pallet
+provides cloud provider and operating system independence, and allows for an
+unprecedented level of customization.
+</code></pre>
 </div>
         <div class="project-namespaces">
           <div class="namespace">
@@ -31,16 +36,16 @@
             <div class="doc"><p>Actions implement the conversion of phase functions to script and other
 execution code.</p>
 
-<p>An action has a :action-type. Known types include :script/bash
-and :fn/clojure.</p>
+<p>An action has an <code>:action-type</code>. Known types include <code>:script/bash</code>
+and <code>:fn/clojure</code>.</p>
 
-<p>An action has a :location, :origin for execution on the node running
-pallet, and :target for the target node.</p>
+<p>An action has a <code>:location</code>, with a value of <code>:origin</code> for execution on the
+node running pallet, and <code>:target</code> for the target node.</p>
 
-<p>An action has an :execution, which is one of :aggregated, :in-sequence or
-:collected. Calls to :aggregated actions will be grouped, and run before
-:in-sequence actions. Calls to :collected actions will be grouped, and run
-after :in-sequence actions.</p>
+<p>An action has an <code>:execution</code>, which is one of <code>:aggregated</code>, <code>:in-sequence</code>
+or <code>:collected</code>. Calls to <code>:aggregated</code> actions will be grouped, and run
+before <code>:in-sequence</code> actions. Calls to <code>:collected</code> actions will be grouped,
+and run after <code>:in-sequence</code> actions.</p>
 </div>
             <div class="index ns-var-links">
               <p>Public variables and functions:</p>
@@ -55,7 +60,7 @@ after :in-sequence actions.</p>
             <div class="index ns-var-links">
               <p>Public variables and functions:</p>
               <ul>
-                
+                <li class="ns-var-link"><a href="pallet.action.conditional.html#var-when">when</a></li><li class="ns-var-link"><a href="pallet.action.conditional.html#var-when-not">when-not</a></li>
               </ul>
             </div>
           </div><div class="namespace">
