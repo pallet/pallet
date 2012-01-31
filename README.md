@@ -13,7 +13,7 @@ command line.
 
 It uses [jclouds][jclouds] to gain portable access to different cloud providers.
 
-Some basic [documentation][docs] is available.
+[Documentation][docs] is available.
 
 ## Support
 
@@ -21,13 +21,16 @@ On the [mailing list][ml], or #pallet on freenode irc.
 
 ## Usage
 
-There is an introductory [screencast](http://www.youtube.com/hugoduncan#p/u/1/adzMkR0d0Uk),
-showing a basic node configuration, and starting and stopping a node.
+The main [documentation][docs] is on the [PalletOps][palletops] site.
+
+There is a (somewhat dated) introductory [screencast][screencast], showing a
+basic node configuration, and starting and stopping a node.
 
 ## Quickstart
 
-See the
-[basic usage][basicdemo] example in the [pallet-examples basic][basic] project.
+See the [basic usage][basicdemo] example in the [pallet-examples basic][basic]
+project.  Other examples show usage for infrastructure automation, application
+deployment and cloudops.
 
 For general help getting started with Clojure, see this [guide][cljstart].
 
@@ -95,7 +98,7 @@ Copyright 2010, 2011, 2012  Hugo Duncan.
 [ml]: http://groups.google.com/group/pallet-clj "Pallet mailing list"
 [basicdemo]: https://github.com/pallet/pallet-examples/blob/develop/basic/src/demo.clj "Basic interactive usage of Pallet"
 [basic]: https://github.com/pallet/pallet-examples/tree/develop/basic/ "Basic Pallet Examples"
-
+[screencast]: http://www.youtube.com/hugoduncan#p/u/1/adzMkR0d0Uk "Pallet Screencast"
 [clojure]: http://clojure.org "Clojure"
 [cljstart]: http://dev.clojure.org/display/doc/Getting+Started "Getting started with clojure"
 [sonatype]: http://oss.sonatype.org/content/repositories/releases/org/cloudhoist "Sonatype Maven Repository"
