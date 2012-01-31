@@ -1,160 +1,17 @@
-<?xml version="1.0" encoding="iso-8859-1"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
-               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"
-lang="en" xml:lang="en">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
 <head>
-<title>Pallet - Phases</title>
-<meta http-equiv="Content-Type" content="text/html;charset=iso-8859-1"/>
-<meta name="generator" content="Org-mode"/>
-<meta name="generated" content="2011-01-10 12:34:58 EST"/>
-<meta name="author" content="Hugo Duncan"/>
-<meta name="description" content="Pallet Phases"/>
-<meta name="keywords" content="pallet phase phases configuration crates"/>
-<style type="text/css">
- <!--/*--><![CDATA[/*><!--*/
-  html { font-family: Times, serif; font-size: 12pt; }
-  .title  { text-align: center; }
-  .todo   { color: red; }
-  .done   { color: green; }
-  .tag    { background-color: #add8e6; font-weight:normal }
-  .target { }
-  .timestamp { color: #bebebe; }
-  .timestamp-kwd { color: #5f9ea0; }
-  .right  {margin-left:auto; margin-right:0px;  text-align:right;}
-  .left   {margin-left:0px;  margin-right:auto; text-align:left;}
-  .center {margin-left:auto; margin-right:auto; text-align:center;}
-  p.verse { margin-left: 3% }
-  pre {
-	border: 1pt solid #AEBDCC;
-	background-color: #F3F5F7;
-	padding: 5pt;
-	font-family: courier, monospace;
-        font-size: 90%;
-        overflow:auto;
-  }
-  table { border-collapse: collapse; }
-  td, th { vertical-align: top;  }
-  th.right  { text-align:center;  }
-  th.left   { text-align:center;   }
-  th.center { text-align:center; }
-  td.right  { text-align:right;  }
-  td.left   { text-align:left;   }
-  td.center { text-align:center; }
-  dt { font-weight: bold; }
-  div.figure { padding: 0.5em; }
-  div.figure p { text-align: center; }
-  textarea { overflow-x: auto; }
-  .linenr { font-size:smaller }
-  .code-highlighted {background-color:#ffff00;}
-  .org-info-js_info-navigation { border-style:none; }
-  #org-info-js_console-label { font-size:10px; font-weight:bold;
-                               white-space:nowrap; }
-  .org-info-js_search-highlight {background-color:#ffff00; color:#000000;
-                                 font-weight:bold; }
-  /*]]>*/-->
-</style>
-<link rel="stylesheet" type="text/css" href="doc.css" /><link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Molengo"/>
-<link rel="stylesheet" type="text/css" href="../doc.css" /><link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Molengo"/>
-<script type="text/javascript">
-<!--/*--><![CDATA[/*><!--*/
- function CodeHighlightOn(elem, id)
- {
-   var target = document.getElementById(id);
-   if(null != target) {
-     elem.cacheClassElem = elem.className;
-     elem.cacheClassTarget = target.className;
-     target.className = "code-highlighted";
-     elem.className   = "code-highlighted";
-   }
- }
- function CodeHighlightOff(elem, id)
- {
-   var target = document.getElementById(id);
-   if(elem.cacheClassElem)
-     elem.className = elem.cacheClassElem;
-   if(elem.cacheClassTarget)
-     target.className = elem.cacheClassTarget;
- }
-/*]]>*///-->
-</script>
-
-</head>
-<body>
-<div id="content">
-<div id="org-div-home-and-up" style="text-align:right;font-size:70%;white-space:nowrap;">
- <a accesskey="h" href="index.html"> UP </a>
- |
- <a accesskey="H" href="../index.html"> HOME </a>
-</div>
-
-<h1 class="title">Pallet - Phases</h1>
-
-<p>A phase specifies a sequence of crates to be executed.  A phase can be defined
-as part of a <a href="node_types.html">node type</a>, or inline in a <a href="operations.html"><code>configure</code> or <code>lift</code> invocation</a>, using
-the <code>phase</code> macro.
+<title>This page has moved! | Pallet, DevOps for the JVM</title>
+<meta http-equiv="REFRESH" content="1;url=http://palletops.com/doc/reference/phases">
+<META HTTP-EQUIV="CACHE-CONTROL" CONTENT="NO-CACHE">
+</HEAD>
+<BODY>
+<p>
+This page has moved.
 </p>
-
-<div id="outline-container-1" class="outline-2">
-<h2 id="sec-1">:bootstrap </h2>
-<div class="outline-text-2" id="text-1">
-
 
 <p>
-The <code>:bootstrap</code> phase is applied whenever pallet starts a new node.
-</p>
-</div>
-
-</div>
-
-<div id="outline-container-2" class="outline-2">
-<h2 id="sec-2">:configure </h2>
-<div class="outline-text-2" id="text-2">
-
-
-<p>
-The <code>:configue</code> phase is applied by default by both the <code>converge</code> and the
-<code>lift</code> commands.
-</p>
-</div>
-
-</div>
-
-<div id="outline-container-3" class="outline-2">
-<h2 id="sec-3"><code>phase</code> macro </h2>
-<div class="outline-text-2" id="text-3">
-
-
-<p>
-The <code>phase</code> macro can be used to carry out ad-hoc configuration or
-administration tasks. In this example we install <code>curl</code> on all running <code>mytag</code>
-nodes.
-</p>
-
-
-
-<pre class="src src-clojure">(<span style="color: #0000ff;">require</span> 'pallet.core)
-(<span style="color: #0000ff;">require</span> 'pallet.compute)
-(<span style="color: #0000ff;">require</span> 'pallet.resource)
-(<span style="color: #0000ff;">require</span> 'pallet.resource.package)
-
-(<span style="color: #4682b4;">def</span> <span style="color: #0000ff;">service</span> (pallet.compute/compute-service-from-config-file))
-(pallet.core/defnode mytag {})
-(pallet.core/lift mytag service
-  (pallet.resource/phase (pallet.resource.package/package <span style="color: #f4a460;">"curl"</span>)))
-</pre>
-
-
-
-
-</div>
-</div>
-<div id="postamble">
-<p class="author"> Author: Hugo Duncan
-</p>
-<p class="date"> Date: 2011-01-10 12:34:58 EST</p>
-<p class="creator">HTML generated by org-mode 7.4 in emacs 24</p>
-</div>
-</div>
-</body>
-</html>
+You will be redirected shortly. If you have not been redirected in a
+few seconds, click <a href="http://palletops.com/doc/reference/phases">here</a>.
+</BODY>
+</HTML>
