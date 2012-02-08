@@ -8,6 +8,7 @@
    clojure.tools.logging))
 
 (defmacro when
+  "A when statement that takes a script condtion."
   [session condition & crate-fns-or-actions]
   `(->
     ~session
@@ -18,6 +19,7 @@
     (action/leave-scope)))
 
 (defmacro when-not
+  "A when statement that takes a script condtion."
   [session condition & crate-fns-or-actions]
   `(->
     ~session
