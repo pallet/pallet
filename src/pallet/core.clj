@@ -203,6 +203,44 @@
    (dissoc :extends :node-spec)
    (assoc :group-name (keyword name))))
 
+(defn expand-cluster-groups
+  "Expand a node-set into its groups"
+  [node-set]
+  (cond
+   (sequential? node-set) (mapcat expand-cluster-groups node-set)
+   (map? node-set) (if-let [groups (:groups node-set)]
+                     (mapcat expand-cluster-groups groups)
+                     [node-set])
+   :else [node-set]))
+
+(defn expand-group-spec-with-counts
+  "Expand a converge node spec into its groups"
+  ([node-set spec-count]
+     (letfn [(*1 [x y] (* (or x 1) y))
+             (scale-spec [spec factor]
+               (update-in spec [:count] *1 factor))
+             (set-spec [node-spec]
+               (mapcat
+                (fn [[node-spec spec-count]]
+                  (if-let [groups (:groups node-spec)]
+                    (expand-group-spec-with-counts groups spec-count)
+                    [(assoc node-spec :count spec-count)]))
+                node-set))]
+       (cond
+        (sequential? node-set) (mapcat
+                                #(expand-group-spec-with-counts % spec-count)
+                                node-set)
+        (map? node-set) (if-let [groups (:groups node-set)]
+                          (let [spec (scale-spec node-set spec-count)]
+                            (mapcat
+                             #(expand-group-spec-with-counts % (:count spec))
+                             groups))
+                          (if (:group-name node-set)
+                            [(scale-spec node-set spec-count)]
+                            (set-spec node-spec)))
+        :else [(scale-spec node-set spec-count)])))
+  ([node-set] (expand-group-spec-with-counts node-set 1)))
+
 (defn cluster-spec
   "Create a cluster-spec.
 
@@ -210,7 +248,7 @@
 
    - :groups    specify a sequence of groups that define the cluster
 
-   - :extends   specify a server-spec, a group-spec, or sequence thereof,
+   - :extends   specify a server-spec, a group-spec, or sequence thereof
                 for all groups in the cluster
 
    - :phases    define phases on all groups.
@@ -238,7 +276,7 @@
                     (extend-specs extends)
                     (extend-specs [{:phases phases}])
                     (extend-specs [(select-keys group-spec [:phases])])))
-                 group-specs)))
+                 (expand-group-spec-with-counts group-specs 1))))
    (dissoc :extends :node-spec)
    (assoc :cluster-cluster-name (keyword cluster-name))))
 
@@ -1173,11 +1211,13 @@
                      (do
                        (logging/info "retrieving nodes")
                        (compute/nodes compute))
-                     (filter
-                      node/node?
-                      (mapcat
-                       #(let [v (val %)] (if (seq? v) v [v]))
-                       (:node-set session))))))]
+                     (->>
+                      (:node-set session)
+                      (filter #(and (map? %) (every? map? (keys %))))
+                      (mapcat vals)
+                      (mapcat #(if (seq? %) % [%]))
+                      (filter node/node?)
+                      (distinct)))))]
     (assoc session :all-nodes nodes :selected-nodes nodes)))
 
 (defn session-with-groups
@@ -1429,7 +1469,7 @@
   (converge*
    (->
     options
-    (assoc :node-set (node-set-for-converge group-spec->count)
+    (assoc :node-set (expand-group-spec-with-counts group-spec->count)
            :phase-list (if (sequential? phase)
                          phase
                          (if phase [phase] [:configure])))
@@ -1467,7 +1507,7 @@
   (lift*
    (->
     options
-    (assoc :node-set (if (group-spec? node-set) [node-set] node-set)
+    (assoc :node-set (expand-cluster-groups node-set)
            :phase-list (if (sequential? phase)
                          phase
                          (if phase [phase] [:configure])))
