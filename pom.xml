@@ -59,6 +59,7 @@
       <plugin>
         <groupId>org.cloudhoist.plugin</groupId>
         <artifactId>zi</artifactId>
+        <version>${zi.version}</version>
         <configuration>
           <codoxTargetDirectory>autodoc/api/${pallet.doc.version}</codoxTargetDirectory>
           <codoxApiVersion>${pallet.doc.version}</codoxApiVersion>
@@ -148,7 +149,7 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>stevedore</artifactId>
-      <version>0.7.0</version>
+      <version>0.7.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>commons-codec</groupId>
@@ -158,7 +159,7 @@
     <dependency>
       <groupId>clj-ssh</groupId>
       <artifactId>clj-ssh</artifactId>
-      <version>0.3.0</version>
+      <version>0.3.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -331,6 +332,7 @@
   </repositories>
 
   <properties>
+    <zi.version>0.4.4</zi.version>
     <clojure.version>1.2.1</clojure.version>
     <pallet.doc.version>0.6</pallet.doc.version>
   </properties>
