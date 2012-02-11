@@ -21,19 +21,19 @@
   (:use
    pallet.thread-expr))
 
-(def install-new-files true)
-(def force-overwrite false)
+(def ^{:dynamic true} *install-new-files* true)
+(def ^{:dynamic true} *force-overwrite* false)
 
 (defn set-install-new-files
   "Set boolean flag to control installation of new files"
   [flag]
-  (alter-var-root #'install-new-files (fn [_] flag)))
+  (alter-var-root #'*install-new-files* (fn [_] flag)))
 
 (defn set-force-overwrite
   "Globally force installation of new files, even if content on node has
   changed."
   [flag]
-  (alter-var-root #'force-overwrite (fn [_] flag)))
+  (alter-var-root #'*force-overwrite* (fn [_] flag)))
 
 (def
   ^{:doc "A vector of the options accepted by remote-file.  Can be used for
@@ -212,9 +212,9 @@
                 (str "remote-file " path " specified without content."))))
 
        ;; process the new file accordingly
-       (when install-new-files
+       (when *install-new-files*
          (stevedore/chain-commands
-          (if (or overwrite-changes no-versioning force-overwrite)
+          (if (or overwrite-changes no-versioning *force-overwrite*)
             (stevedore/script
              (if (file-exists? ~new-path)
                (do
@@ -362,5 +362,5 @@ Content can also be copied from a blobstore.
      (apply-map->
       remote-file-action path
       (merge
-       {:overwrite-changes force-overwrite} ;; capture the value of the flag
+       {:overwrite-changes *force-overwrite*} ;; capture the value of the flag
        options)))))

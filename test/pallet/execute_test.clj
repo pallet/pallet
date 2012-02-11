@@ -21,8 +21,8 @@
  :each
  test-utils/with-bash-script-language
  (fn bind-default-agent [f]
-   (binding [default-agent-atom (atom nil)]
-     (f))))
+   (reset! default-agent-atom nil)
+   (f)))
 
 (deftest sudo-cmd-for-test
   (script/with-template [:ubuntu]

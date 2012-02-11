@@ -519,7 +519,7 @@
           (throw+ (assoc (:error (first errors)) :all-errors errors)))
         [results session]))))
 
-(def *middleware*
+(def ^{:dynamic true} *middleware*
   [translate-action-plan
    execute/ssh-user-credentials
    execute/execute-with-ssh
@@ -1074,7 +1074,8 @@
 (def
   ^{:doc
     "Flag to control output of warnings about undefined phases in calls to lift
-     and converge."}
+     and converge."
+    :dynamic true}
   *warn-on-undefined-phase* true)
 
 (defn- warn-on-undefined-phase

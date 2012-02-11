@@ -148,7 +148,8 @@
    root permissions.  The default admin user is taken from the
    pallet.admin.username property.  If not specified then the user.name property
    is used. The admin user can also be specified in config.clj when running
-   tasks from the command line."}
+   tasks from the command line."
+    :dynamic true}
   *admin-user*
   (make-user (or (. System getProperty "pallet.admin.username")
                  (. System getProperty "user.name"))))
@@ -320,3 +321,9 @@
 
 (fwd-to-configure admin-user-from-config-var)
 (fwd-to-configure admin-user-from-config)
+
+(defmacro with-redef
+  [[& bindings] & body]
+  (if (find-var 'clojure.core/with-redefs)
+    `(clojure.core/with-redefs [~@bindings] ~@body)
+    `(binding [~@bindings] ~@body)))
