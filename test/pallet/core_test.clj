@@ -22,7 +22,8 @@
    [clojure.string :as string]
    [clojure.stacktrace :as stacktrace])
   (:use
-   clojure.test))
+   clojure.test
+   pallet.common.slingshot-test-util))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
 
@@ -369,16 +370,14 @@
                                         (identity-action "a"))}}
            :environment {:algorithms core/default-algorithms}})))
   (testing "rejects local actions"
-    (is (thrown-with-msg?
-          clojure.contrib.condition.Condition
-          #"local actions"
-          (#'core/bootstrap-script
-           {:group
-            {:image {:os-family :ubuntu}
-             :packager :aptitude
-             :phases {:bootstrap (phase/phase-fn
-                                  (identity-local-action))}}
-            :environment {:algorithms core/default-algorithms}}))))
+    (is-thrown-with-msg-slingshot?
+      #"local actions"
+      (#'core/bootstrap-script
+       {:group
+        {:image {:os-family :ubuntu}
+         :packager :aptitude
+         :phases {:bootstrap identity-local-action}}
+        :environment {:algorithms core/default-algorithms}})))
   (testing "requires a packager"
     (is (thrown?
          java.lang.AssertionError
@@ -473,15 +472,13 @@
             :results :localhost pr-str)))
       (is (seen?))
       (testing "invalid :phases keyword"
-        (is (thrown-with-msg?
-              clojure.contrib.condition.Condition
-              #":phases"
-              (lift local :phases []))))
+        (is-thrown-with-msg-slingshot?
+          #":phases"
+          (lift local :phases [])))
       (testing "invalid keyword"
-        (is (thrown-with-msg?
-              clojure.contrib.condition.Condition
-              #"Invalid"
-              (lift local :abcdef []))))))
+        (is-thrown-with-msg-slingshot?
+          #"Invalid"
+          (lift local :abcdef [])))))
   (testing "throw on remote bash error"
     (let [local (group-spec
                  "local"
@@ -500,8 +497,10 @@
         (is false "should throw")
         (catch Exception e
           (let [e (stacktrace/root-cause e)]
-            (is (instance? clojure.contrib.condition.Condition e))
-            (is (re-find #"Error executing script"  (:message @(.state e))))
+            (is (instance? (slingshot-exception-class) e))
+            (is (re-find
+                 #"Error executing script"
+                 (:message (slingshot-object e))))
             (reset! thrown true))))
       (is @thrown)))
   (testing "throw on remote bash error after other actions"
@@ -525,8 +524,10 @@
         (is false "should throw")
         (catch Exception e
           (let [e (stacktrace/root-cause e)]
-            (is (instance? clojure.contrib.condition.Condition e))
-            (is (re-find #"Error executing script"  (:message @(.state e))))
+            (is (instance? (slingshot-exception-class) e))
+            (is (re-find
+                 #"Error executing script"
+                 (:message (slingshot-object e))))
             (reset! thrown true))))
       (is @thrown))))
 
@@ -552,15 +553,13 @@
               :results :localhost pr-str)))
         (is (seen?))
         (testing "invalid :phases keyword"
-          (is (thrown-with-msg?
-                clojure.contrib.condition.Condition
-                #":phases"
-                (lift local :phases []))))
+          (is-thrown-with-msg-slingshot?
+            #":phases"
+            (lift local :phases [])))
         (testing "invalid keyword"
-          (is (thrown-with-msg?
-                clojure.contrib.condition.Condition
-                #"Invalid"
-                (lift local :abcdef []))))))))
+          (is-thrown-with-msg-slingshot?
+            #"Invalid"
+            (lift local :abcdef [])))))))
 
 (deftest lift2-test
   (let [[localf seen?] (seen-fn "x")

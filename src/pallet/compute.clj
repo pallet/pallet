@@ -4,8 +4,13 @@
    [pallet.common.deprecate :as deprecate]
    [pallet.compute.implementation :as implementation]
    [pallet.node :as node]
-   [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]))
+   [pallet.utils :as utils]))
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 ;;; Meta
 (defn supported-providers
@@ -78,17 +83,17 @@
    (:packager target)
    (let [os-family (:os-family target)]
      (cond
-      (#{:ubuntu :debian :jeos} os-family) :aptitude
-      (#{:centos :rhel :amzn-linux :fedora} os-family) :yum
-      (#{:arch} os-family) :pacman
-      (#{:suse} os-family) :zypper
-      (#{:gentoo} os-family) :portage
-      (#{:darwin :os-x} os-family) :brew
-      :else (condition/raise
-             :type :unknown-packager
-             :message (format
-                       "Unknown packager for %s - :image %s"
-                       os-family target))))))
+       (#{:ubuntu :debian :jeos} os-family) :aptitude
+       (#{:centos :rhel :amzn-linux :fedora} os-family) :yum
+       (#{:arch} os-family) :pacman
+       (#{:suse} os-family) :zypper
+       (#{:gentoo} os-family) :portage
+       (#{:darwin :os-x} os-family) :brew
+       :else (throw+
+              {:type :unknown-packager
+               :message (format
+                         "Unknown packager for %s - :image %s"
+                         os-family target)})))))
 
 (defn base-distribution
   "Base distribution for the target."
@@ -97,17 +102,17 @@
    (:base-distribution target)
    (let [os-family (:os-family target)]
      (cond
-      (#{:ubuntu :debian :jeos} os-family) :debian
-      (#{:centos :rhel :amzn-linux :fedora} os-family) :rh
-      (#{:arch} os-family) :arch
-      (#{:suse} os-family) :suse
-      (#{:gentoo} os-family) :gentoo
-      (#{:darwin :os-x} os-family) :os-x
-      :else (condition/raise
-             :type :unknown-packager
-             :message (format
-                       "Unknown base-distribution for %s - target is %s"
-                       os-family target))))))
+       (#{:ubuntu :debian :jeos} os-family) :debian
+       (#{:centos :rhel :amzn-linux :fedora} os-family) :rh
+       (#{:arch} os-family) :arch
+       (#{:suse} os-family) :suse
+       (#{:gentoo} os-family) :gentoo
+       (#{:darwin :os-x} os-family) :os-x
+       :else (throw+
+              {:type :unknown-packager
+               :message (format
+                         "Unknown base-distribution for %s - target is %s"
+                         os-family target)})))))
 
 (defn admin-group
   "User that remote commands are run under"

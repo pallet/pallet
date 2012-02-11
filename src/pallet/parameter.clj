@@ -25,8 +25,13 @@
   (:require
    [pallet.action :as action]
    [pallet.argument :as argument]
-   [pallet.compute :as compute]
-   [clojure.contrib.condition :as condition]))
+   [pallet.compute :as compute]))
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 (defn from-map
   "Initialise parameters based on the given keys, which are used to merge maps
@@ -50,18 +55,18 @@
                              (get-in (:parameters session) % ::not-set)
                              ::not-set)
                            (rest (reductions conj [] keys)))]
-           (condition/raise
-            :type :parameter-not-found
-            :message (format
-                      (str
-                       "Could not find keys %s in session :parameters. "
-                       "Found keys %s with values %s")
-                      (if (sequential? keys) (vec keys) keys)
-                      (vec found-keys)
-                      (if (seq found-keys)
-                        (get-in (:parameters session) (vec found-keys))
-                        (:parameters session)))
-            :key-not-set keys)))
+           (throw+
+            {:type :parameter-not-found
+             :message (format
+                       (str
+                        "Could not find keys %s in session :parameters. "
+                        "Found keys %s with values %s")
+                       (if (sequential? keys) (vec keys) keys)
+                       (vec found-keys)
+                       (if (seq found-keys)
+                         (get-in (:parameters session) (vec found-keys))
+                         (:parameters session)))
+             :key-not-set keys})))
        result))
   ([session keys default]
        (get-in (:parameters session) keys default)))

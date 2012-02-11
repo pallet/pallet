@@ -16,10 +16,15 @@
    [pallet.phase :as phase]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
-   [clojure.contrib.condition :as condition]
    [clojure.tools.logging :as logging]
    [clojure.set :as set]
    [clojure.string :as string]))
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 ;; The action plan is a stack of actions, where the action could itself
 ;; be a stack of actions (ie a tree of stacks)
@@ -540,9 +545,9 @@
   [action-plan session executor execute-status-fn]
   (logging/tracef "execute %s actions" (count action-plan))
   (when-not (translated? action-plan)
-    (condition/raise
-     :type :pallet/execute-called-on-untranslated-action-plan
-     :message "Attempt to execute an action plan that has not been translated"))
+    (throw+
+     {:type :pallet/execute-called-on-untranslated-action-plan
+      :message "Attempt to execute an untranslated action plan"}))
   (reduce
    (fn [[results session flag] action]
      (case flag

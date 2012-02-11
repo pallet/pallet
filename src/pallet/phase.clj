@@ -1,9 +1,13 @@
 (ns pallet.phase
   "A phase is a function of a single `session` argument, that contains
    calls to crate functions or actions. A phase has an implicitly
-   defined pre and post phase."
-  (:require
-   [clojure.contrib.condition :as condition]))
+   defined pre and post phase.")
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 (defn pre-phase-name
   "Return the name for the pre-phase for the given `phase`."
@@ -61,30 +65,30 @@
   ([session]
      ;; we do not use a precondition in order to improve the error message
      (when-not (and session (map? session))
-       (condition/raise
-        :type :invalid-session
-        :message
-        "Invalid session map in phase. Check for non crate functions,
+       (throw+
+        {:type :invalid-session
+         :message
+         "Invalid session map in phase. Check for non crate functions,
       improper crate functions, or problems in threading the session map
       in your phase definition.
 
       A crate function is a function that takes a session map and other
       arguments, and returns a modified session map. Calls to crate functions
       are often wrapped in a threading macro, -> or pallet.phase/phase-fn,
-      to simplify chaining of the session map argument."))
+      to simplify chaining of the session map argument."}))
      session)
   ([session form]
      ;; we do not use a precondition in order to improve the error message
      (when-not (and session (map? session))
-       (condition/raise
-        :type :invalid-session
-        :message
-        (format
-         (str
-          "Invalid session map in phase session.\n"
-          "`session` is %s\n"
-          "Problem probably caused in:\n  %s ")
-         session form)))
+       (throw+
+        {:type :invalid-session
+         :message
+         (format
+          (str
+           "Invalid session map in phase session.\n"
+           "`session` is %s\n"
+           "Problem probably caused in:\n  %s ")
+          session form)}))
      session))
 
 (defmacro check-session-thread

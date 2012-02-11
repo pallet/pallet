@@ -16,7 +16,6 @@
   (:require
    [pallet.action-plan :as action-plan]
    [pallet.argument :as argument]
-   [clojure.contrib.condition :as condition]
    [pallet.common.def :as ccdef]
    [clojure.tools.logging :as logging]
    [clojure.set :as set]

@@ -23,13 +23,11 @@
   "Find the available providers."
   []
   (try
-    (binding [cp/classpath utils/classpath
-              cp/classpath-jarfiles utils/classpath-jarfiles]
-      (->> (namespace/find-namespaces-on-classpath)
-           (filter #(re-find compute-regex (name %)))
-           (remove #(re-find exclude-regex (name %)))
-           (remove exclude-compute-ns)
-           (set)))
+    (->> (namespace/find-namespaces-on-classpath)
+         (filter #(re-find compute-regex (name %)))
+         (remove #(re-find exclude-regex (name %)))
+         (remove exclude-compute-ns)
+         (set))
     (catch java.io.FileNotFoundException _)))
 
 (defn load-providers

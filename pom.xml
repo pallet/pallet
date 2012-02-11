@@ -4,12 +4,11 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.4.6</version>
-    <relativePath>../pallet-pom/pom.xml</relativePath>
+    <version>0.7.1-SNAPSHOT</version>
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
-  <version>0.6.8-SNAPSHOT</version>
+  <version>0.7.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>pallet</name>
   <description>
@@ -79,35 +78,9 @@
         </executions>
         <configuration>
           <excludes>
-            <exclude>log4j.xml</exclude>
-            <exclude>logback.xml</exclude>
             <exclude>logback-test.xml</exclude>
           </excludes>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>com.theoryinpractise</groupId>
-        <artifactId>clojure-maven-plugin</artifactId>
-        <configuration>
-          <autodocTargetDirectory>autodoc/autodoc</autodocTargetDirectory>
-          <marginaliaTargetDirectory>autodoc/marginalia</marginaliaTargetDirectory>
-        </configuration>
-        <executions>
-          <execution>
-            <id>compile-clojure</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>test-clojure</id>
-            <phase>test</phase>
-            <goals>
-              <goal>test</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
@@ -116,10 +89,6 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.clojure</groupId>
-      <artifactId>clojure-contrib</artifactId>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
@@ -134,7 +103,12 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>tools.namespace</artifactId>
-      <version>0.1.0</version>
+      <version>0.1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>java.classpath</artifactId>
+      <version>0.2.0</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
@@ -170,22 +144,14 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-core</artifactId>
-      <version>0.9.29</version>
-      <optional>true</optional>
+      <version>1.0.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>0.9.29</version>
-      <optional>true</optional>
+      <version>1.0.0</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>jline</groupId>
-      <artifactId>jline</artifactId>
-      <version>0.9.94</version>
-      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>enlive</groupId>
@@ -204,27 +170,6 @@
       <version>2.0.10</version>
       <optional>true</optional>
     </dependency>
-    <dependency>
-      <groupId>vmfest</groupId>
-      <artifactId>vmfest</artifactId>
-      <version>0.2.3</version>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>swank-clojure</groupId>
-      <artifactId>swank-clojure</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>autodoc</groupId>
-      <artifactId>autodoc</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>marginalia</groupId>
-      <artifactId>marginalia</artifactId>
-      <optional>true</optional>
-    </dependency>
   </dependencies>
 
   <profiles>
@@ -233,10 +178,12 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>com.theoryinpractise</groupId>
-            <artifactId>clojure-maven-plugin</artifactId>
+            <groupId>org.cloudhoist.plugin</groupId>
+            <artifactId>zi</artifactId>
             <configuration>
-              <clojureOptions>-Xmx512m -Djava.awt.headless=true -XX:MaxPermSize=256m -Dssh.username=testuser</clojureOptions>
+              <initScript>
+                (System/setProperty "ssh.username" "testuser")
+              </initScript>
             </configuration>
           </plugin>
         </plugins>
@@ -334,7 +281,7 @@
   <properties>
     <zi.version>0.4.4</zi.version>
     <clojure.version>1.2.1</clojure.version>
-    <pallet.doc.version>0.6</pallet.doc.version>
+    <pallet.doc.version>0.7</pallet.doc.version>
   </properties>
 
 </project>

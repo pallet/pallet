@@ -23,11 +23,16 @@
    [pallet.execute :as execute]
    [pallet.map-merge :as map-merge]
    [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]
    [clojure.tools.logging :as logging]
    [clojure.walk :as walk])
   (:use
    [clojure.core.incubator :only [-?>]]))
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 (defprotocol Environment
   "A protocol for accessing an environment."
@@ -150,15 +155,15 @@
   ([session keys]
      (let [result (get-in (:environment session) keys ::not-set)]
        (when (= ::not-set result)
-         (condition/raise
-          :type :environment-not-found
-          :message (format
-                    "Could not find keys %s in session :environment"
-                    (if (sequential? keys) (vec keys) keys))
-          :key-not-set keys))
+         (throw+
+          {:type :environment-not-found
+           :message (format
+                     "Could not find keys %s in session :environment"
+                     (if (sequential? keys) (vec keys) keys))
+           :key-not-set keys}))
        result))
   ([session keys default]
-       (get-in (:environment session) keys default)))
+     (get-in (:environment session) keys default)))
 
 (defn session-with-environment
   "Returns an updated `session` map, containing the keys for the specified

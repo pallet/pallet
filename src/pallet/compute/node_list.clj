@@ -18,10 +18,15 @@
    [pallet.compute.implementation :as implementation]
    [pallet.environment :as environment]
    [pallet.node :as node]
-   [clojure.contrib.condition :as condition]
    [clojure.string :as string])
   (:use
    [pallet.utils :only [apply-map]]))
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 (defrecord Node
     [name group-name ip os-family os-version id ssh-port private-ip is-64bit
@@ -66,9 +71,9 @@
   (ensure-os-family
     [compute-service group-spec]
     (when (not (-> group-spec :image :os-family))
-      (condition/raise
-       :type :no-os-family-specified
-       :message "Node list contains a node without os-family")))
+      (throw+
+       {:type :no-os-family-specified
+        :message "Node list contains a node without os-family"})))
   ;; Not implemented
   ;; (run-nodes [node-type node-count request init-script options])
   ;; (reboot "Reboot the specified nodes")

@@ -42,12 +42,17 @@
    [pallet.script :as script]
    [pallet.thread-expr :as thread-expr]
    [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]
    [clojure.tools.logging :as logging]
    [clojure.set :as set]
    [clojure.string :as string])
   (:use
    [clojure.core.incubator :only [-?>]]))
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 (let [v (atom nil)]
   (defn version
@@ -362,17 +367,17 @@
 (defn- executor [session f action-type location]
   (let [exec-fn (get-in session [:executor action-type location])]
     (when-not exec-fn
-      (condition/raise
-       :type :missing-executor-fn
-       :fn-for [action-type location]
-       :message (format
-                 "Missing executor function for %s %s"
-                 action-type location)))
+      (throw+
+       {:type :missing-executor-fn
+        :fn-for [action-type location]
+        :message (format
+                  "Missing executor function for %s %s"
+                  action-type location)}))
     (exec-fn session f)))
 
 (let [raise (fn [message]
               (fn [_ _]
-                (condition/raise :type :executor-error :message message)))]
+                (throw+ {:type :executor-error :message message})))]
   (def ^{:doc "Default executor map"}
     default-executors
     {:script/bash
@@ -401,9 +406,9 @@
          (get-in session [:group :packager])]}
   (let [error-fn (fn [message]
                    (fn [_ _]
-                     (condition/raise
-                      :type :booststrap-contains-non-remote-actions
-                      :message message)))
+                     (throw+
+                      {:type :booststrap-contains-non-remote-actions
+                       :message message})))
         [result session] (->
                           session
                           (assoc
@@ -431,6 +436,8 @@
                            executor
                            (environment/get-for
                             session [:algorithms :execute-status-fn])))]
+    (when-let [error (some :error result)]
+      (throw+ error))
     (string/join \newline result)))
 
 
@@ -509,7 +516,7 @@
       (if errors
         (do
           (logging/errorf "errors found %s" (vec (map :error errors)))
-          (condition/raise (assoc (:error (first errors)) :all-errors errors)))
+          (throw+ (assoc (:error (first errors)) :all-errors errors)))
         [results session]))))
 
 (def *middleware*
@@ -818,10 +825,10 @@
                    compute (:group session) count (:user session) init-script
                    (-> session :environment :provider-options))]
     (when-not (seq new-nodes)
-      (condition/raise
-       :message "No additional nodes could be started"
-       :group (:group session)
-       :type :pallet/could-not-start-new-nodes))
+      (throw+
+       {:message "No additional nodes could be started"
+        :group (:group session)
+        :type :pallet/could-not-start-new-nodes}))
     (->
      session
      (assoc-in [:groups-new-nodes (-> session :group :group-name)] new-nodes)
@@ -1390,17 +1397,17 @@
   [{:as options}]
   (let [unknown (remove argument-keywords (keys options))]
     (when (and (:phases options) (not (:phase options)))
-      (condition/raise
-       :type :invalid-argument
-       :message (str
-                 "Please pass :phase and not :phases. :phase takes a single "
-                 "phase or a sequence of phases.")
-       :invalid-keys unknown))
+      (throw+
+       {:type :invalid-argument
+        :message (str
+                  "Please pass :phase and not :phases. :phase takes a single "
+                  "phase or a sequence of phases.")
+        :invalid-keys unknown}))
     (when (seq unknown)
-      (condition/raise
-       :type :invalid-argument
-       :message (format "Invalid argument keywords %s" (vec unknown))
-       :invalid-keys unknown)))
+      (throw+
+       {:type :invalid-argument
+        :message (format "Invalid argument keywords %s" (vec unknown))
+        :invalid-keys unknown})))
   options)
 
 (defn- identify-anonymous-phases
