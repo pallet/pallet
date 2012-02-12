@@ -4,12 +4,11 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.7.1-SNAPSHOT</version>
-    <relativePath>../pallet-pom/pom.xml</relativePath>
+    <version>0.7.1</version>
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
-  <version>0.7.0-SNAPSHOT</version>
+  <version>0.8.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Pallet</name>
   <description>
@@ -30,8 +29,6 @@
   </scm>
 
   <build>
-    <sourceDirectory>src</sourceDirectory>
-    <testSourceDirectory>test</testSourceDirectory>
     <resources>
       <resource>
         <directory>resources</directory>
@@ -44,22 +41,10 @@
         <filtering>true</filtering>
       </resource>
     </resources>
-    <testResources>
-      <testResource>
-        <directory>test-resources</directory>
-      </testResource>
-    </testResources>
     <plugins>
       <plugin>
         <groupId>org.cloudhoist.plugin</groupId>
         <artifactId>zi</artifactId>
-        <dependencies>
-          <dependency>
-            <groupId>ritz</groupId>
-            <artifactId>ritz</artifactId>
-            <version>${ritz.version}</version>
-          </dependency>
-        </dependencies>
         <configuration>
           <codoxTargetDirectory>autodoc/api/${pallet.doc.version}</codoxTargetDirectory>
           <codoxApiVersion>${pallet.doc.version}</codoxApiVersion>
@@ -77,8 +62,6 @@
         </executions>
         <configuration>
           <excludes>
-            <exclude>log4j.xml</exclude>
-            <exclude>logback.xml</exclude>
             <exclude>logback-test.xml</exclude>
           </excludes>
         </configuration>
@@ -292,32 +275,7 @@
         <pallet.test.session-type />
       </properties>
     </profile>
-
   </profiles>
-
-  <developers>
-    <developer>
-      <name>Hugo Duncan</name>
-      <id>hugoduncan</id>
-      <email>hugo -at- hugoduncan -dot- org</email>
-      <roles>
-        <role>PMC</role>
-        <role>Developer</role>
-      </roles>
-      <timezone>-5</timezone>
-    </developer>
-  </developers>
-
-  <contributors>
-    <contributor>
-      <name>Chas Emerick</name>
-      <email>cemerick -at- snowtide -dot- com</email>
-      <organization>Snowtide Informatics</organization>
-      <organizationUrl>http://snowtide.com</organizationUrl>
-      <timezone>-5</timezone>
-      <url>http://cemerick.com</url>
-    </contributor>
-  </contributors>
 
   <!-- make sure we can find the parent pom -->
   <repositories>
@@ -329,19 +287,11 @@
       <name>Sonatype Nexus Releases</name>
       <url>http://oss.sonatype.org/content/repositories/releases</url>
     </repository>
-    <repository>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <id>sonatype-nexus-snapshots</id>
-      <name>Sonatype Nexus Snapshots</name>
-      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
-    </repository>
   </repositories>
 
   <properties>
     <clojure.version>1.3.0</clojure.version>
-    <pallet.doc.version>0.7</pallet.doc.version>
+    <pallet.doc.version>0.8</pallet.doc.version>
   </properties>
 
 </project>
