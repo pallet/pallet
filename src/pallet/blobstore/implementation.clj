@@ -1,15 +1,16 @@
 (ns pallet.blobstore.implementation
   "Implementation details"
   (:require
-   [pallet.utils :as utils]
-   [clojure.tools.namespace :as namespace]))
+   [pallet.utils :as utils])
+  (:use
+   [chiba.plugin :only [plugins]]))
 
 (defmulti service
   "Instantiate a blobstore. Providers should implement a method for this.
    See pallet.blobstore/blobstore-service."
   (fn [provider-name & _] (keyword provider-name)))
 
-(def blobstore-regex #"^pallet\.blobstore\.[a-z-]+")
+(def blobstore-prefix "pallet.blobstore.")
 (def exclude-blobstore-ns
   #{'pallet.blobstore.implementation})
 (def exclude-regex #".*test.*")
@@ -18,14 +19,8 @@
 (defn- providers
   "Find the available providers."
   []
-  (try
-    (binding [clojure.java.classpath/classpath utils/classpath]
-      (->> (namespace/find-namespaces-on-classpath)
-           (filter #(re-find blobstore-regex (name %)))
-           (remove #(re-find exclude-regex (name %)))
-           (remove exclude-blobstore-ns)
-           (set)))
-    (catch java.io.FileNotFoundException _)))
+  (->> (plugins blobstore-prefix exclude-regex)
+       (remove exclude-blobstore-ns)))
 
 (defn load-providers
   "Require all providers, ensuring no errors if individual providers can not be
