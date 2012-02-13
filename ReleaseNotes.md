@@ -1,15 +1,10 @@
-#+SETUPFILE: org-templates/level-0.org
-#+TITLE:     Pallet - Release Notes
-#+DESCRIPTION: Release notes for pallet releases
-#+KEYWORDS: pallet palletops contribute
-
 The latest release is 0.6.7.
 
-* 0.6.7
-** feautures
+# 0.6.7
+## feautures
 - Add codox configuration
 
-** fixes
+## fixes
 - Add a 64 bit centos 5.3 image to live-test image lists
 
 - Allow all-node-set in lift
@@ -21,9 +16,9 @@ The latest release is 0.6.7.
   to use anything other than the default bridged network device. This
   change allows pallet to use vmfest on ubuntu.
 
-* 0.6.6
+# 0.6.6
 
-** features
+## features
 - Add pallet.phase/check-session-thread
   This is a macro that can be used to add session checking in a session
   thread pipeline.
@@ -43,7 +38,7 @@ The latest release is 0.6.7.
 - Add :append option to user action (for adding groups)
 
 
-** fixes
+## fixes
 - Normalise the :node-set constructed by lift
 
 - Add missing environment test for hybrid provider
@@ -63,9 +58,9 @@ The latest release is 0.6.7.
   Only the last script of adjacent nested scopes was being returned. Fixes
   #97.
 
-* 0.6.5
+# 0.6.5
 
-** Features
+## Features
 - Add cause to unexpected action execution exception
 
 - Add hybrid provider
@@ -79,7 +74,7 @@ The latest release is 0.6.7.
   In order to allow ~ and environment variables in paths in config.clj,
   expand the paths in the shell using echo
 
-** Fixes
+## Fixes
 - Fix password option for user action
 
 - Fix missing require
@@ -154,13 +149,13 @@ The latest release is 0.6.7.
 
 - Improve error reporting on failed ssh authentication
 
-* 0.6.4
-** Fixes
+# 0.6.4
+## Fixes
 - Fix the automatic addition of :configure to the converge phase-list
   :configure was not being added if another phase was specified
 
-* 0.6.3
-** Features
+# 0.6.3
+## Features
 - Allow specification of a cookie in wait-for-http-status
 
 - Add script.lib/selinux-bool to setsebool values
@@ -225,7 +220,7 @@ The latest release is 0.6.7.
 - Upgrade to stevedore 0.7.0
 
 
-** Fixes
+## Fixes
 
 - Update logging of errors
   Ensure only the error message is logged, not the whole result
@@ -273,8 +268,8 @@ The latest release is 0.6.7.
   jsch seems to be leaking threads, which prevented a clean shutdown of
   lein tasks.
 
-* 0.6.2
-** Features
+# 0.6.2
+## Features
 - Add settings functions to parameters
   In order to simplify the use of the :settings phase, adds
   assoc-target-settings, update-target-settings, get-target-settings and
@@ -285,7 +280,7 @@ The latest release is 0.6.7.
 - Enable :local-file and remote-file options in action.remote-directory
   Also adds an :unpack :jar option
 
-** Fixes
+## Fixes
 - Fixed the closing parentheses at the end of pallet.core/group-spec example
 
 - Ensure environment from group-spec is evaluated if required
@@ -298,12 +293,12 @@ The latest release is 0.6.7.
 
 - Fix remote-file with :blob source
 
-* 0.6.1
-** Install
+# 0.6.1
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Fixes
+## Fixes
 
 - Identify script output with server address
   In order to provide clear provenance of script output when executing with
@@ -335,21 +330,21 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
 - Fix lib/sed-file for string experession with no restriction
 
-* 0.6.0
-** Install
+# 0.6.0
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Features
+## Features
 
 Update to jclouds 1.0.0.
 
-* 0.5.1
-** Install
+# 0.5.1
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Features
+## Features
 - Add core/destroy-cluster and destroy-cluster task
 
 - Add converge-cluster task
@@ -449,7 +444,7 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
   cake repl or swank server, merge :environment from cake/*project* in
   compute-service-from-config and compute-service-from-settings
 
-** Fixes and Improvements
+## Fixes and Improvements
 - Fix a race in shutting down vmfest nodes
 
 - Improved pallet.execute logging, and checking of blank server address
@@ -493,12 +488,12 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 - Fix for fedora to use yum
 
 
-* 0.5.0
-** Install
+# 0.5.0
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Features
+## Features
 
 - Switch to release versions of pallet-common and stevedore
 
@@ -653,24 +648,24 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
 
 
-* 0.4.18
-** Install
+# 0.4.18
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Changes
+## Changes
 
 - Ensure :target-packager is removed after producing resources
   The :target-packager key is not overwritten if it exists, so needs to be
   removed after every node in order for it to be set correctly when using
   nodes with mixed os's.
 
-* 0.4.17
-** Install
+# 0.4.17
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Changes
+## Changes
 - More efficient implementation of for->, without the need to call reverse on
   the list comprehension.
   we now reduce with an initial value of arg and the #(%2 %1) function
@@ -690,12 +685,12 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
   For this to work, the images to be used can not be bound at compile time,
   so the pallet.live-test/images function is added.
 
-* 0.4.16
-** Install
+# 0.4.16
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Changes
+## Changes
 - Improve robustness of classpath discovery in presence of corrupt jars
   If a jar on the classpath can not be read for some reason, we should not
   give up, but just ignore that jar file
@@ -716,15 +711,15 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
   config.clj when invoked through lein or cake
 
 
-* 0.4.15
-** Known issues
+# 0.4.15
+## Known issues
 - Pallet can not find compute service in config.clj when invoked through lein or cake
-** Install
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
 
-** Changes
+## Changes
 - Update jpackage functions to use jpackage-utils-compat-el5-0.0.1-1
   Add a compatability package to allow jpackge to work with it's own
   jpackage-utils
@@ -738,13 +733,13 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
 - Add pallet.thread-arg/arg-> for exposing the threaded argument
 
-* 0.4.14
-** Install
+# 0.4.14
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
 
-** Changes
+## Changes
 - Add logging of unexpected exceptions in pallet-task
 
 - Alter logging format for ssh output to prepend newline
@@ -783,7 +778,7 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
   before attempting to mount it again. Also update it to accept an :fs-type
   arg to set the filesystem type. Updated and added unit tests.
 
-** Fixes
+## Fixes
 
 - Ensure pallet.config/service is used if no service specified on command
   line
@@ -799,24 +794,24 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
 
 
-* 0.4.13
-** Install
+# 0.4.13
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Fixes
+## Fixes
 - Fix issues with cross-node configuration
   When using delayed arguments or the post phase, to access parameters set
   in a phase, there were several issues that masked the parameters. This
   also adds tests for these use cases.
-* 0.4.12
-** Known issues
+# 0.4.12
+## Known issues
 - has an issue with propogation of parameters between phases.
-** Install
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Fixes
+## Fixes
 - Build and execute phases one by one
   Fix a regression that prevented execution time additions to parameters
   from being propogated to the next phase. This re-enables use case such as
@@ -824,12 +819,12 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
 - Add exclusion of log4j.xml from jar (was in pallet-pom)
 
-* 0.4.11
-** Install
+# 0.4.11
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Fixes
+## Fixes
 - Pass any :environment key in project.clj to the converge and lif tasks
   In order to allow environment definitions in project.clj, and to enable
   environments to be supplied by the cake context feature, the :environment
@@ -849,21 +844,21 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
 - Add an exclusion of clojure to the enlive dependency
 
-* 0.4.10
-** Install
+# 0.4.10
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Fixes
+## Fixes
 - Switch from jclouds/node-tag (removed in beta 9), and fix use of
   :environment at the service level
 
-* 0.4.9
-** Install
+# 0.4.9
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Fixes
+## Fixes
 
 - Filter for running nodes in compute/run-nodes for jclouds
   In order to work around an issue 501 in jclouds, the return value of
@@ -873,12 +868,12 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
 - Switch to pallet-pom 0.4.1 and enlive 1.0
 
-* 0.4.8
-** Install
+# 0.4.8
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Fixes
+## Fixes
 
 - Use the node image spec to construct the virtualbox machine definition
   In order to allow control of the vmfest hardware and network
@@ -897,13 +892,13 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
   Handle arguments with spaces like:
   (pallet.resource.user/user "nexus" :comment "Sonatype Nexus system user")
 
-* 0.4.7
+# 0.4.7
 
-** Install
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Fixes
+## Fixes
 
 - Documentation fixes for provider dependencies and :services
 
@@ -911,13 +906,13 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
 - Make compute/vmfest use the :sudo-password option for the user
 
-* 0.4.6
+# 0.4.6
 
-** Install
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Enhancements
+## Enhancements
 
 - Add a :proxy entry to the environment for specifying a proxy for use by
   remote-file
@@ -927,13 +922,13 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
       :environment {:proxy "http://192.168.2.37:3128"}
 
-* 0.4.5
+# 0.4.5
 
-** Install
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Enhancements
+## Enhancements
 
 - Add a parallel converge, and a lift that applies phases in series,
   and nodes in parallel.
@@ -965,13 +960,13 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
   pallet.live-test/test-for to enable this.
 
 
-* 0.4.4
+# 0.4.4
 
-** Install
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Enhancements
+## Enhancements
 - Add an environment concept
   The environment concept allows passing of external data to pallet, and
   allows project, service, or command line overrides of pallet algorithms
@@ -981,26 +976,26 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
   config.clj file at the global and service scope. A project specific
   environment maybe be specified in pallet.config/environment.
 
-* 0.4.3
+# 0.4.3
 
-** Install
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Fixes
+## Fixes
 
 - Remove extra keys from request in converge and lift tasks
 
   lein and cake plugins were triggering the new keyword argument checking in
   lift and converge
 
-* 0.4.2
+# 0.4.2
 
-** Install
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Enhancements
+## Enhancements
 
 - Speeds up creating and destroying virtualbox vms using vmfest.
 
@@ -1008,30 +1003,30 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
   alternative
 
 
-* 0.4.1
+# 0.4.1
 
-** Install
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** Enhancements
+## Enhancements
 
 - This targets vmfest 0.2.1, adding support for virtualbox 4.0.2.
 
 - Adds handling of inaccessible virtual box machines
 
-** Fixes
+## Fixes
 
 - Fixes handling of the case where a new machine fails to get an IP address
   assigned
 
-* 0.4.0
+# 0.4.0
 
-** Install
+## Install
 
 The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cloudhoist/pallet][sonatype]].
 
-** General
+## General
 
 The pallet crates have been moved into the pallet-crates project.
 
@@ -1046,13 +1041,13 @@ There is also preliminary support for virtualbox via vmfest.
 
 
 
-** Lein and cake
+## Lein and cake
 - Fix reporting of unexpected error stack traces in pallet.main
 
 - Fix pallet.main/report-unexpected-exception, and add test for it
 
 
-** Fixes
+## Fixes
 
 - Fix bug in pallet.script/add-to-scripts
   The add-to-scripts function was referencing *scripts*, which was
@@ -1116,7 +1111,7 @@ There is also preliminary support for virtualbox via vmfest.
   arguments
 
 
-** Enhancements
+## Enhancements
 
 - Add a timeout to vmfest/wait-for-ip
 
@@ -1310,19 +1305,19 @@ There is also preliminary support for virtualbox via vmfest.
 - Change maven settings keys to match jclouds
 
 
-* 0.3.0
+# 0.3.0
 
-** Install
+## Install
 
 The release is on [[http://clojars.org/org.cloudhoist/pallet][clojars]].
 
-** Known Issues
+## Known Issues
 
 pallet.thread-expr/if-> incorrectly returns nil if there is no else expression.
 
 pallet.main/-main goes into an infinite recursion if called without arguments.
 
-** General
+## General
 
 Now using [[http://jclouds.org/][jclouds]] beta 8.
 
@@ -1343,7 +1338,7 @@ The project.clj file has been removed to prevent mismatch with pom.xml
 In general, support for RHEL based distros (centos, amzn-linux) should now be
 much better.
 
-** Lein and Cake tasks
+## Lein and Cake tasks
 
 The pallet-lein plugin for lein is now released to version 0.2.0.  It includes
 passing of project.clj to the tasks
@@ -1369,11 +1364,11 @@ Added tomcat task to do simple tomcat deploy without any configuration.
 Added to-blob task to enable upload of files to a blobstore.
 
 
-** New Crates
+## New Crates
 
 squeak, etc-hosts, postgresql (thanks David Santiago)
 
-** Enhancements
+## Enhancements
 
 pallet.compute
   Added compute/private-ip, compute/hostname
@@ -1403,7 +1398,7 @@ pallet.thread-expr
 pallet.crate.etc-default
   a path can now be specified, allowing use elsewhere in the filesystem
 
-** Fixes
+## Fixes
 
 pallet.resource.file
   sed will regenerate the file md5, unless :no-md5 is specified
