@@ -124,7 +124,6 @@
 
 ;;; forward moved functions
 ;;;   compute-service-from-map
-;;;   compute-service-from-settings
 ;;;   compute-service-from-config-var
 ;;;   compute-service-from-property
 ;;;   compute-service-from-config
@@ -132,7 +131,6 @@
 ;;;   service -> configure/compute-service
 
 (utils/fwd-to-configure compute-service-from-map)
-(utils/fwd-to-configure compute-service-from-settings)
 (utils/fwd-to-configure compute-service-from-config-var)
 (utils/fwd-to-configure compute-service-from-property)
 (utils/fwd-to-configure compute-service-from-config)

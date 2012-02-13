@@ -31,11 +31,9 @@
 
 ;;; Add deprecated forwarding functions
 ;;;  blobstore-from-map
-;;;  blobstore-from-settings
 ;;;  blobstore-from-config
 ;;;  blobstore-from-config-file
 
 (utils/fwd-to-configure blobstore-from-map)
-(utils/fwd-to-configure blobstore-from-settings)
 (utils/fwd-to-configure blobstore-from-config)
 (utils/fwd-to-configure blobstore-from-config-file)

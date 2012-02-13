@@ -168,24 +168,6 @@
   (compute-service-from-map
    (compute-service-properties config profiles)))
 
-(defn compute-service-from-settings
-  "Create a compute service from maven property settings.
-   In Maven's settings.xml you can define a profile, that contains
-   pallet.compute.provider, pallet.compute.identity and
-   pallet.compute.credential values."
-  [& profiles]
-  (try
-    (require 'pallet.maven)             ; allow running without maven jars
-    (when-let [f (ns-resolve 'pallet.maven 'credentials)]
-      (when-let [service (compute-service-from-map (f profiles))]
-        (deprecate/warn
-         (str
-          "Use of settings.xml for pallet configuration is "
-          "deprecated. Please change to use config.clj."))
-        service))
-    (catch ClassNotFoundException _)
-    (catch clojure.lang.Compiler$CompilerException _)))
-
 (defn compute-service-from-config-var
   "Checks to see if pallet.config/service is a var, and if so returns its
   value."
@@ -237,12 +219,10 @@
      (or
       (compute-service-from-property)
       (compute-service-from-config-var)
-      (compute-service-from-config-file)
-      (compute-service-from-settings)))
+      (compute-service-from-config-file)))
   ([service-name]
      (or
-      (compute-service-from-config-file service-name)
-      (compute-service-from-settings service-name)))
+      (compute-service-from-config-file service-name)))
   ([provider-name
     & {:keys [identity credential extensions node-list endpoint environment]
        :as options}]
@@ -272,21 +252,6 @@
                    (:identity credentials))
      :credential (or (:blobstore-credential credentials)
                      (:credential credentials)))))
-
-(defn blobstore-from-settings
-  "Create a blobstore service from ~/.m2/settings.xml propery settings."
-  [& profiles]
-  (try
-    (require 'pallet.maven)             ; allow running without maven jars
-    (when-let [f (ns-resolve 'pallet.maven 'credentials)]
-      (when-let [service (blobstore-from-map (f profiles))]
-        (deprecate/warn
-         (str
-          "Use of settings.xml for pallet configuration is "
-          "deprecated. Please change to use config.clj."))
-        service))
-    (catch ClassNotFoundException _)
-    (catch clojure.lang.Compiler$CompilerException _)))
 
 (defn blobstore-from-config
   "Create a blobstore service form a configuration map."
