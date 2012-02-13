@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.7.1-SNAPSHOT</version>
+    <version>0.7.1</version>
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
@@ -29,12 +29,7 @@
   </scm>
 
   <build>
-    <sourceDirectory>src</sourceDirectory>
-    <testSourceDirectory>test</testSourceDirectory>
     <resources>
-      <resource>
-        <directory>src</directory>
-      </resource>
       <resource>
         <directory>resources</directory>
         <excludes>
@@ -46,14 +41,6 @@
         <filtering>true</filtering>
       </resource>
     </resources>
-    <testResources>
-      <testResource>
-        <directory>test</directory>
-      </testResource>
-      <testResource>
-        <directory>test-resources</directory>
-      </testResource>
-    </testResources>
     <plugins>
       <plugin>
         <groupId>org.cloudhoist.plugin</groupId>
@@ -97,12 +84,11 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>tools.logging</artifactId>
-      <version>0.1.2</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>chiba</artifactId>
-      <version>0.1.0-SNAPSHOT</version>
+      <version>0.1.0</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
@@ -112,12 +98,12 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>pallet-common</artifactId>
-      <version>0.2.2-SNAPSHOT</version>
+      <version>0.2.2</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>stevedore</artifactId>
-      <version>0.7.1-SNAPSHOT</version>
+      <version>0.7.1</version>
     </dependency>
     <dependency>
       <groupId>commons-codec</groupId>
@@ -127,24 +113,22 @@
     <dependency>
       <groupId>clj-ssh</groupId>
       <artifactId>clj-ssh</artifactId>
-      <version>0.3.1-SNAPSHOT</version>
+      <version>0.3.1</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>1.6.1</version>
-      <optional>true</optional>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-core</artifactId>
-      <version>1.0.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.0.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -177,74 +161,7 @@
         </plugins>
       </build>
     </profile>
-
-    <profile>
-      <id>clojure-1.3</id>
-      <properties>
-        <clojure.version>1.3.0</clojure.version>
-      </properties>
-    </profile>
-
-    <profile>
-      <id>distribution</id>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-assembly-plugin</artifactId>
-            <executions>
-              <!-- override the default execution inherited from project -->
-              <execution>
-                <id>jar-with-dependencies</id>
-                <phase>package</phase>
-                <goals>
-                  <goal>single</goal>
-                </goals>
-                <configuration>
-                  <descriptors>
-                    <descriptor>core-jar-with-dependencies-descriptor.xml</descriptor>
-                  </descriptors>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <artifactId>maven-jar-plugin</artifactId>
-            <configuration>
-              <excludes>
-                <exclude>log4j.xml</exclude>
-                <exclude>logback.xml</exclude>
-                <exclude>logback_test.xml</exclude>
-              </excludes>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
   </profiles>
-
-  <developers>
-    <developer>
-      <name>Hugo Duncan</name>
-      <id>hugoduncan</id>
-      <email>hugo -at- hugoduncan -dot- org</email>
-      <roles>
-        <role>PMC</role>
-        <role>Developer</role>
-      </roles>
-      <timezone>-5</timezone>
-    </developer>
-  </developers>
-
-  <contributors>
-    <contributor>
-      <name>Chas Emerick</name>
-      <email>cemerick -at- snowtide -dot- com</email>
-      <organization>Snowtide Informatics</organization>
-      <organizationUrl>http://snowtide.com</organizationUrl>
-      <timezone>-5</timezone>
-      <url>http://cemerick.com</url>
-    </contributor>
-  </contributors>
 
   <!-- make sure we can find the parent pom -->
   <repositories>
@@ -255,14 +172,6 @@
       <id>sonatype-nexus-releases</id>
       <name>Sonatype Nexus Releases</name>
       <url>http://oss.sonatype.org/content/repositories/releases</url>
-    </repository>
-    <repository>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <id>sonatype-nexus-snapshots</id>
-      <name>Sonatype Nexus Snapshots</name>
-      <url>http://oss.sonatype.org/content/repositories/snapshots</url>
     </repository>
   </repositories>
 
