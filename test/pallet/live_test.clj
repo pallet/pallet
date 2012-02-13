@@ -180,8 +180,7 @@
   []
   (or
    @service
-   (set-service! (compute/compute-service-from-config-file service-name))
-   (set-service! (compute/compute-service-from-settings service-name))))
+   (set-service! (compute/compute-service-from-config-file service-name))))
 
 (defn- effective-group-name
   [group-name spec]

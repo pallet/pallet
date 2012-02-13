@@ -40,8 +40,7 @@
   [defaults project profiles]
   (or
    (configure/compute-service-from-config (:pallet project) profiles)
-   (configure/compute-service-from-config defaults profiles)
-   (apply configure/compute-service-from-settings profiles)))
+   (configure/compute-service-from-config defaults profiles)))
 
 (defn find-compute-service
   "Look for a compute service in the following sequence:
@@ -70,8 +69,7 @@
   (or
    (configure/blobstore-from-map options)
    (configure/blobstore-from-config (:pallet project) profiles)
-   (configure/blobstore-from-config defaults profiles)
-   (apply configure/blobstore-from-settings profiles)))
+   (configure/blobstore-from-config defaults profiles)))
 
 (defn invoke
   [options task params]
