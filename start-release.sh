@@ -19,5 +19,5 @@ echo ""
 echo ""
 echo "Now edit ReleaseNotes and README"
 
-$EDITOR ../pallet-wiki/doc/ReleaseNotes.org
+$EDITOR ReleaseNotes.md
 $EDITOR README.md

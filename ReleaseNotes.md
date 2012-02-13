@@ -1,4 +1,31 @@
 The latest release is 0.6.7.
+The latest development release is 0.7.0-beta.
+
+# 0.7.0 beta
+
+## features
+- Remove support for configuration in maven settings.xml file
+
+- Make pallet clojure 1.3 compatible
+
+- Remove use of clojure.contrib.condition
+  This was the last use of monolithic contrib
+
+- Allow clusters as arguments to lift and converge
+
+- Extract vmfest provider into separate project
+
+- Extract jclouds provider into separate project
+
+- Add deprecation metadata to forward-fns
+
+- Add pallet.compute.node-list/node-list-service
+  Adds a node-list specific compute-service constructor, to simplify
+  node-list instructions for people not interested in generic service
+  construction.
+
+- Add pallet.utils/apply-map
+
 
 # 0.6.7
 ## feautures
