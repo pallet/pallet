@@ -86,6 +86,10 @@
       <artifactId>tools.logging</artifactId>
     </dependency>
     <dependency>
+      <groupId>slingshot</groupId>
+      <artifactId>slingshot</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>chiba</artifactId>
       <version>0.1.0</version>
