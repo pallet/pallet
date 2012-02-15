@@ -155,7 +155,7 @@
   [a b]
   (map-merge/merge-keys merge-spec-algorithm a b))
 
-(defn- extend-specs
+(defn extend-specs
   "Merge in the inherited specs"
   [spec inherits]
   (if inherits
@@ -699,6 +699,7 @@
 
 (defmethod parallel-apply-phase-to-target :node
   [session]
+  {:pre [(map? session)]}
   (logging/debugf
    "parallel-apply-phase-to-target :node  %s for %s with %d nodes"
    (:phase session)
@@ -739,7 +740,7 @@
     doall)
    session])                    ; make sure we force the deref
 
-(defn- reduce-node-results
+(defn reduce-node-results
   "Combine the node execution results."
   [results]
   (fn [session]
