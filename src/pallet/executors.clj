@@ -54,7 +54,7 @@
       [:script/bash :target] (ssh/ssh-script-on-target
                               session action action-type script)
       [:fn/clojure :origin] (local/clojure-on-origin session script)
-      [:flow/if :origin] (execute-if session action)
+      [:flow/if :origin] (execute-if session action script)
       [:transfer/from-local :origin] (ssh/ssh-from-local session script)
       [:transfer/to-local :origin] (ssh/ssh-to-local session script)
       (throw+
