@@ -36,22 +36,38 @@
 (defmacro pipeline-when
   "Execute the crate-fns-or-actions, only when condition is true."
   [condition & crate-fns-or-actions]
-  `(phase-pipeline pipeline-when {:condition ~(list 'quote condition)}
-     (if-action ~condition)
-     enter-scope
-     ~@crate-fns-or-actions
-     leave-scope))
+  (let [mv (gensym "mv")
+        is-stevedore? (and (sequential? condition)
+                           (= (resolve (first condition)) #'stevedore/script))
+        is-script? (or (string? condition) is-stevedore?)]
+    `(phase-pipeline pipeline-when {:condition ~(list 'quote condition)}
+       [~@(when is-script?
+            [mv `(exec-script ("test" ~@(if is-stevedore?
+                                         (rest condition)
+                                         [condition])))])]
+       (if-action ~(if is-script? `(= {:err ~mv} 0) condition))
+       enter-scope
+       ~@crate-fns-or-actions
+       leave-scope)))
 
 (defmacro pipeline-when-not
   "Execute the crate-fns-or-actions, only when condition is false."
   [condition & crate-fns-or-actions]
-  `(phase-pipeline pipeline-when-not {:condition ~(list 'quote condition)}
-     (if-action ~condition)
-     enter-scope
-     leave-scope
-     enter-scope
-     ~@crate-fns-or-actions
-     leave-scope))
+  (let [mv (gensym "mv")
+        is-stevedore? (and (sequential? condition)
+                           (= (resolve (first condition)) #'stevedore/script))
+        is-script? (or (string? condition) is-stevedore?)]
+    `(phase-pipeline pipeline-when-not {:condition ~(list 'quote condition)}
+       [~@(when is-script?
+            [mv `(exec-script ("test" ~@(if is-stevedore?
+                                         (rest condition)
+                                         [condition])))])]
+       (if-action ~(if is-script? `(not= {:err ~mv} 0) condition))
+       enter-scope
+       leave-scope
+       enter-scope
+       ~@crate-fns-or-actions
+       leave-scope)))
 
 ;;; # Aggregation
 ;; (defn aggregate-args
