@@ -5,7 +5,9 @@
    [clojure.string :as string]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
-   [pallet.stevedore.bash :as bash]))
+   [pallet.stevedore.bash :as bash])
+  (:use
+   [pallet.script.lib :only [mkdir]]))
 
 
 (defmulti prolog
@@ -14,7 +16,7 @@
 (defmethod prolog :default [_])
 (defmethod prolog :script/bash
   [_]
-  (str "#!/usr/bin/env bash\n" bash/hashlib))
+  (str "#!/usr/bin/env bash\n"))
 
 (defmulti epilog
   "An epilogue adds content at the end of a script."
@@ -56,16 +58,26 @@
 
 (defn build-script
   "Builds a script with a prologue"
-  [script action-type]
-  (str (prolog action-type) script (epilog action-type)))
+  [script {:keys [script-dir] :as action} action-type]
+  (str
+   (prolog action-type)
+   (if script-dir
+     (stevedore/script
+      (~mkdir ~script-dir :path true)
+      (cd ~script-dir))
+     "")
+   script
+   (epilog action-type)))
 
 (defn build-code
   "Builds a code map, describing the command to execute a script."
-  [session action-type & args]
+  [session {:keys [script-prefix script-dir] :as action} action-type & args]
   {:execv
    (->>
     (concat
-     (when-let [prefix (prefix (:script-prefix session :sudo) session)]
+     (when-let [prefix (prefix
+                        (:script-prefix session (or script-prefix :sudo))
+                        session)]
        (string/split prefix #" "))
      ["/usr/bin/env"]
      (map (fn [[k v]] (format "%s=\"%s\"" k v)) (:script-env session))

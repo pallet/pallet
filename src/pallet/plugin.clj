@@ -4,7 +4,7 @@
 (defn load-plugins
   "Load pallet plugins"
   []
-  (let [plugin-namespaces (plugins #"pallet.plugin\..*")]
+  (let [plugin-namespaces (plugins "pallet.plugin." #".*test.*")]
     (doseq [plugin plugin-namespaces]
       (require plugin))
     plugin-namespaces))

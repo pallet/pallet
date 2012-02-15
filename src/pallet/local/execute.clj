@@ -31,7 +31,7 @@
   "Execute a bash action on the origin"
   [session action action-type value]
   (logging/trace "bash-on-origin")
-  (let [script (script-builder/build-script value action-type)
+  (let [script (script-builder/build-script value action action-type)
         tmpfile (java.io.File/createTempFile "pallet" "script")]
     (try
       (logging/tracef "bash-on-origin script\n%s" script)
@@ -44,7 +44,7 @@
            "bash-on-origin: Could not chmod script file: %s"
            (:out result))))
       (let [cmd (script-builder/build-code
-                 session action-type (.getPath tmpfile))
+                 session action action-type (.getPath tmpfile))
             result (transport/exec cmd {:output-f #(logging/spy %)})
             [session result] (execute/parse-shell-result session result)]
         (verify-sh-return "for origin cmd" value result)
