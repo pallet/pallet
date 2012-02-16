@@ -308,7 +308,7 @@
                              :image {}
                              :node (test-utils/make-node "group-name" :id "id")
                              :phases (:phases node-with-phases)}
-                    :target-id :id :target-type :node})]
+                    :target-id :id :target-type :server})]
       (is (= ":a"
              (first
               (build-actions/produce-phases

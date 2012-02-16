@@ -151,7 +151,13 @@
                  #(or
                    %
                    (get-in session [:server :node-id])
-                   (get-in session [:group :group-name])))]
+                   (get-in session [:group :group-name])))
+        session (update-in
+                 session [:target-type]
+                 #(or
+                   %
+                   (and (get-in session [:server :node-id]) :server)
+                   (and (get-in session [:group :group-name]) :group)))]
     (add-session-verification-key session)))
 
 (defn build-actions*

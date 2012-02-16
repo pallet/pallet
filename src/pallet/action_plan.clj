@@ -701,11 +701,12 @@
 (defn phase-for-target
   "Return the phase function for the target phase."
   [session]
-  (let [phase (:phase session)]
+  {:pre [(:phase session) (:target-type session)]}
+  (let [phase (:phase session)
+        target-type (:target-type session)]
     (or
-     (phase (-> session :server :phases))
-     (phase (:inline-phases session))
-     (phase (-> session :group :phases)))))
+     (phase (-> session target-type :phases))
+     (phase (:inline-phases session)))))
 
 (defn build-for-target
   "Create the action plan by calling the current phase for the target group."

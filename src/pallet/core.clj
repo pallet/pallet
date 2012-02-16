@@ -375,7 +375,7 @@
   (let [session (->
                  (assoc session
                    :phase :bootstrap
-                   :target-type :node
+                   :target-type :server
                    :target-id :bootstrap-id
                    :server (assoc (:group session)
                              :node-id :bootstrap-id))
@@ -578,7 +578,7 @@
 
 (defmulti plan-for-target :target-type)
 
-(defmethod plan-for-target :node
+(defmethod plan-for-target :server
   [session]
   (plan-for-groups session))
 
@@ -603,7 +603,7 @@
     (action-plan/phase-for-target
      (assoc session :phase (or (phase/subphase-for phase) phase)))))
 
-(defn- apply-phase-to-node
+(defn apply-phase-to-node
   "Apply a phase to a node session"
   [session]
   {:pre [(:server session) (:phase session)]}
@@ -642,7 +642,7 @@
 
 (defmulti sequential-apply-phase-to-target :target-type)
 
-(defmethod sequential-apply-phase-to-target :node
+(defmethod sequential-apply-phase-to-target :server
   [session]
   (logging/debugf
    "sequential-apply-phase-to-target :node  %s for %s with %d nodes"
@@ -697,7 +697,7 @@
 
 (defmulti parallel-apply-phase-to-target :target-type)
 
-(defmethod parallel-apply-phase-to-target :node
+(defmethod parallel-apply-phase-to-target :server
   [session]
   {:pre [(map? session)]}
   (logging/debugf
@@ -746,7 +746,7 @@
   (fn [session]
     [nil (reduce
           (fn reduce-node-results-fn [session [result req :as arg]]
-            (let [target-id (-> req :server :node-id)
+            (let [target-id (-> req :target-id)
                   param-keys [:parameters]]
               (logging/tracef "reduce-node-results %s" req)
               (->
@@ -793,7 +793,7 @@
       {:phase-list (vec (:phase-list &session))
        :group-names (vec (map :group-name (:groups &session)))}
     [phase-list (get :phase-list)]
-    (assoc :target-type :node)
+    (assoc :target-type :server)
     (m-map lift-nodes* phase-list)))
 
 (defn- lift-group-phase
