@@ -86,11 +86,6 @@
                       (~'echo @~'?))))])]
        (if-action ~(if is-script?
                      `(delayed [s#]
-                        (logging/tracef
-                         "Check %s had value %s (%s)"
-                         (str ~condition)
-                         (pr-str (-> (node-value ~nv s#) :flag-values ~nv-kw))
-                         (node-value ~nv s#))
                         (= (-> (node-value ~nv s#) :flag-values ~nv-kw) "0"))
                      condition))
        enter-scope

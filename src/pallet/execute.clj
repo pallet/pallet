@@ -81,7 +81,7 @@
                      (re-seq setflag-regex output)
                      (map (comp keyword second))
                      set)]
-      (logging/debugf "flags-set %s" flags-set)
+      (logging/tracef "flags-set %s" flags-set)
       flags-set)))
 
 (defn parse-flag-values
@@ -91,7 +91,7 @@
     (let [flag-values (into {} (map
                                 #(vector (keyword (second %)) (nth % 2))
                                 (re-seq setvalue-regex output)))]
-      (logging/debugf "flag-values %s" flag-values)
+      (logging/tracef "flag-values %s" flag-values)
       flag-values)))
 
 (defn parse-shell-result
