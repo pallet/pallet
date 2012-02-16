@@ -38,6 +38,7 @@
 ;;; # Flow Control
 (defmacro pipeline-when
   "Execute the crate-fns-or-actions, only when condition is true."
+  {:indent 1}
   [condition & crate-fns-or-actions]
   (let [nv (gensym "nv")
         nv-kw (keyword (name nv))
@@ -65,6 +66,7 @@
 
 (defmacro pipeline-when-not
   "Execute the crate-fns-or-actions, only when condition is false."
+  {:indent 1}
   [condition & crate-fns-or-actions]
   (let [nv (gensym "nv")
         nv-kw (keyword (name nv))
