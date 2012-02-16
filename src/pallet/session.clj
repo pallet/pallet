@@ -124,3 +124,13 @@
   "Predicate for a 64 bit target"
   [session]
   [(node/is-64bit? (-> session :server :node)) session])
+
+(defn print-errors
+  "Display errors from the session results."
+  [session]
+  (doseq [[target phase-results] (:results session)
+          [phase results] phase-results
+          result (filter
+                  #(or (:error %) (and (:exit %) (not= 0 (:exit %))))
+                  results)]
+    (println target phase (:err result))))
