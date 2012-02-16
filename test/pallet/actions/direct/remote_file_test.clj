@@ -250,7 +250,7 @@
                        ((clj-action
                             [session nv]
                           (reset! a true)
-                          (is (nil? (:flags nv)))
+                          (is (nil? (seq (:flags nv))))
                           [nil session])
                         nv))
                :user user)

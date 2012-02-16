@@ -76,7 +76,7 @@
                     (script-builder/build-code
                      session action action-type tmpfile)
                     {:output-f output-f})
-            [session result] (execute/parse-shell-result session result)
+            [result session] (execute/parse-shell-result session result)
             ;; Set the node-value to the result of execution, rather than
             ;; the script.
             session (assoc-in session [:node-values node-value-path] result)]

@@ -777,6 +777,9 @@
 (script/defimpl set-flag :default [flag-name]
   (println "SETFLAG:" ~flag-name ":SETFLAG"))
 
+(script/defscript set-flag-value [flag-name flag-value])
+(script/defimpl set-flag-value :default [flag-name flag-value]
+  (println "SETVALUE:" ~flag-name ~flag-value ":SETVALUE"))
 
 (script/defscript flag? [path])
 (script/defimpl flag? :default [path]

@@ -39,6 +39,24 @@
        :private true}
   setflag-regex #"(?:SETFLAG: )([^:]+)(?: :SETFLAG)")
 
+(def ^{:doc "Regex used to match SETFLAG text in action output."
+       :private true}
+  setvalue-regex #"(?:SETVALUE: )([^ ]+) ([^:]+)(?: :SETVALUE)")
+
+(defn set-target-flags
+  "Set flags for target."
+  [session flags]
+  (if (seq flags)
+    (update-for-target session [:flags] union flags)
+    session))
+
+(defn set-target-flag-values
+  "Set flag valuess for target."
+  [session flag-values]
+  (if (seq flag-values)
+    (update-for-target session [:flag-values] union flag-values)
+    session))
+
 (defn set-target-flags
   "Set flags for target."
   [session flags]
@@ -52,22 +70,37 @@
 (defn target-flag?
   "Predicate to test if the specified flag is set for target."
   [session flag]
-  ((get-for-target session [:flags] #{}) flag))
+  (when-let [flags (get-for-target session [:flags] #{})]
+    (flags flag)))
 
 (defn parse-flags
   "Parse flags from the output stream of an action."
   [output]
   (when output
-    (let [flags-set (map (comp keyword second) (re-seq setflag-regex output))]
-      (logging/debugf "flags-set %s" (vec flags-set))
-      (when (seq flags-set)
-        (set flags-set)))))
+    (let [flags-set (->>
+                     (re-seq setflag-regex output)
+                     (map (comp keyword second))
+                     set)]
+      (logging/debugf "flags-set %s" flags-set)
+      flags-set)))
+
+(defn parse-flag-values
+  "Parse flags with values from the output stream of an action."
+  [output]
+  (when output
+    (let [flag-values (into {} (map
+                                #(vector (keyword (second %)) (nth % 2))
+                                (re-seq setvalue-regex output)))]
+      (logging/debugf "flag-values %s" flag-values)
+      flag-values)))
 
 (defn parse-shell-result
   "Sets the :flags key in a shell result map for any flags set by an action."
   [session {:keys [out] :as result}]
-  (if-let [flags (parse-flags out)]
-    (let [flags (set flags)]
-      [(set-target-flags session flags)
-       (assoc result :flags flags)])
-    [session result]))
+  (let [flags (parse-flags out)
+        values (parse-flag-values out)]
+    [(assoc result :flags flags :flag-values values)
+     (->
+      session
+      (set-target-flags flags)
+      (set-target-flag-values values))]))
