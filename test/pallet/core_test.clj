@@ -23,6 +23,7 @@
   (:use
    clojure.test
    [pallet.actions :only [exec-script]]
+   [pallet.executors :only [force-target-via-ssh-executor]]
    [pallet.monad :only [phase-pipeline session-pipeline
                         as-session-pipeline-fn session-peek-fn]]
    [pallet.test-utils :only [bash-action clj-action test-session]]))
@@ -452,7 +453,8 @@
           :user (assoc utils/*admin-user*
                   :username (test-utils/test-username)
                   :no-sudo true)
-          :compute service)
+          :compute service
+          :environment {:executor force-target-via-ssh-executor})
          (is false "should throw")
          (catch Exception e
            (let [e (stacktrace/root-cause e)]
@@ -477,7 +479,8 @@
           :user (assoc utils/*admin-user*
                   :username (test-utils/test-username)
                   :no-sudo true)
-          :compute service)
+          :compute service
+          :environment {:executor force-target-via-ssh-executor})
          (is false "should throw")
          (catch Exception e
            (let [e (stacktrace/root-cause e)]

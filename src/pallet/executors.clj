@@ -28,6 +28,7 @@
   (:use
    [pallet.action-plan :only [execute-if stop-execution-on-error]]
    [pallet.action :only [implementation]]
+   [pallet.node :only [primary-ip]]
    [slingshot.slingshot :only [throw+]]))
 
 
@@ -43,7 +44,35 @@
     [script action-type location session]))
 
 (defn default-executor
-  "The standard direct executor for pallet"
+  "The standard direct executor for pallet. Target actions for localhost
+   are executed via shell, rather than via ssh."
+  [session action]
+  (let [[script action-type location session] (direct-script session action)
+        localhost? (fn [session]
+                     (let [ip (-> session :server :node primary-ip)]
+                       (#{"127.0.0.1"} ip)))]
+    (logging/tracef "default-executor %s %s" action-type location)
+    (logging/tracef "default-executor script %s" script)
+    (case [action-type location]
+      [:script/bash :origin] (local/bash-on-origin
+                              session action action-type script)
+      [:script/bash :target] (if (localhost? session)
+                               (local/bash-on-origin
+                                session action action-type script)
+                               (ssh/ssh-script-on-target
+                                session action action-type script))
+      [:fn/clojure :origin] (local/clojure-on-origin session script)
+      [:flow/if :origin] (execute-if session action script)
+      [:transfer/from-local :origin] (ssh/ssh-from-local session script)
+      [:transfer/to-local :origin] (ssh/ssh-to-local session script)
+      (throw+
+       {:type :pallet/no-executor-for-action
+        :action action
+        :executor 'DefaultExector}
+       "No suitable executor found"))))
+
+(defn force-target-via-ssh-executor
+  "Direct executor where target actions are always over ssh."
   [session action]
   (let [[script action-type location session] (direct-script session action)]
     (logging/tracef "default-executor %s %s" action-type location)
