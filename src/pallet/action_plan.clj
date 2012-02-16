@@ -590,8 +590,7 @@
 ;;; ### Node Values
 (defn- set-node-value-with-return-value
   [node-value-path [rv session]]
-  (logging/debugf
-   "set-node-value %s %s %s" node-value-path rv session)
+  (logging/tracef "set-node-value %s %s" node-value-path rv)
   [rv (set-node-value session rv node-value-path)])
 
 ;;; ### Defining context
