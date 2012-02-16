@@ -1,6 +1,7 @@
 (ns pallet.actions
   "Pallet's action primitives."
   (:require
+   [clojure.tools.logging :as logging]
    [pallet.script.lib :as lib]
    [pallet.session :as session]
    [pallet.stevedore :as stevedore])
@@ -10,7 +11,9 @@
    [pallet.action-plan :only [enter-scope leave-scope]]
    [pallet.argument :only [delayed]]
    [pallet.monad :only [let-s phase-pipeline]]
+   [pallet.node-value :only [node-value]]
    [pallet.parameter :only [get-for-target]]
+   [pallet.script.lib :only [set-flag-value]]
    [pallet.utils :only [apply-map tmpfile]]))
 
 ;;; # Direct Script Execution
@@ -36,16 +39,26 @@
 (defmacro pipeline-when
   "Execute the crate-fns-or-actions, only when condition is true."
   [condition & crate-fns-or-actions]
-  (let [mv (gensym "mv")
+  (let [nv (gensym "nv")
+        nv-kw (keyword (name nv))
         is-stevedore? (and (sequential? condition)
                            (= (resolve (first condition)) #'stevedore/script))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-pipeline pipeline-when {:condition ~(list 'quote condition)}
        [~@(when is-script?
-            [mv `(exec-script ("test" ~@(if is-stevedore?
-                                         (rest condition)
-                                         [condition])))])]
-       (if-action ~(if is-script? `(= {:err ~mv} 0) condition))
+            [nv `(exec-checked-script
+                  (str "Check " ~condition)
+                  (~(list 'unquote `set-flag-value)
+                   ~(name nv-kw)
+                   @(do
+                      ("test" ~@(if is-stevedore?
+                                  (list* `deref (rest condition))
+                                  [condition]))
+                      (~'echo @~'?))))])]
+       (if-action ~(if is-script?
+                     `(delayed [s#]
+                        (= (-> (node-value ~nv s#) :flag-values ~nv-kw) "0"))
+                     condition))
        enter-scope
        ~@crate-fns-or-actions
        leave-scope)))
@@ -53,16 +66,31 @@
 (defmacro pipeline-when-not
   "Execute the crate-fns-or-actions, only when condition is false."
   [condition & crate-fns-or-actions]
-  (let [mv (gensym "mv")
+  (let [nv (gensym "nv")
+        nv-kw (keyword (name nv))
         is-stevedore? (and (sequential? condition)
                            (= (resolve (first condition)) #'stevedore/script))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-pipeline pipeline-when-not {:condition ~(list 'quote condition)}
        [~@(when is-script?
-            [mv `(exec-script ("test" ~@(if is-stevedore?
-                                         (rest condition)
-                                         [condition])))])]
-       (if-action ~(if is-script? `(not= {:err ~mv} 0) condition))
+            [nv `(exec-checked-script
+                  (str "Check not " ~condition)
+                  (~(list `unquote `set-flag-value)
+                   ~(name nv-kw)
+                   @(do
+                      ("test" ~@(if is-stevedore?
+                                  (rest condition)
+                                  [condition]))
+                      (~'echo @~'?))))])]
+       (if-action ~(if is-script?
+                     `(delayed [s#]
+                        (logging/tracef
+                         "Check %s had value %s (%s)"
+                         (str ~condition)
+                         (pr-str (-> (node-value ~nv s#) :flag-values ~nv-kw))
+                         (node-value ~nv s#))
+                        (= (-> (node-value ~nv s#) :flag-values ~nv-kw) "0"))
+                     condition))
        enter-scope
        leave-scope
        enter-scope
