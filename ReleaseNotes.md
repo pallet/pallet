@@ -1,7 +1,7 @@
 The latest release is 0.6.7.
-The latest development release is 0.7.0-beta.
+The latest development release is 0.7.0-beta.1.
 
-# 0.7.0 beta
+# 0.7.0-beta.1
 
 ## features
 - Remove support for configuration in maven settings.xml file
