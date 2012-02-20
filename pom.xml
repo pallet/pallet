@@ -131,9 +131,9 @@
       <version>0.1.2</version>
     </dependency>
     <dependency>
-      <groupId>org.clojure</groupId>
-      <artifactId>tools.namespace</artifactId>
-      <version>0.1.0</version>
+      <groupId>org.cloudhoist</groupId>
+      <artifactId>chiba</artifactId>
+      <version>0.1.1</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
