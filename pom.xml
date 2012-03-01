@@ -50,6 +50,7 @@
           <codoxApiVersion>${pallet.doc.version}</codoxApiVersion>
           <codoxWriter>codox-md.writer/write-docs</codoxWriter>
           <marginaliaTargetDirectory>autodoc/marginalia</marginaliaTargetDirectory>
+          <excludeTestNamespacesMatching>pallet.utils-test-bad-ns</excludeTestNamespacesMatching>
         </configuration>
       </plugin>
       <plugin>
@@ -180,7 +181,6 @@
   </repositories>
 
   <properties>
-    <zi.version>0.4.4</zi.version>
     <clojure.version>1.2.1</clojure.version>
     <pallet.doc.version>0.7</pallet.doc.version>
   </properties>
