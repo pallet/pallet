@@ -62,6 +62,11 @@
            (java.io.File. (System/getProperty "user.home") ".pallet"))
      .mkdirs)))
 
+(defn ^java.io.File config-file-path
+  "Returns a java.io.File for the user's config.clj file"
+  []
+  (java-io/file (home-dir) "config.clj"))
+
 (defn pallet-config
   "Read pallet configuration from config.clj and services/*.clj files. The
    files are taken from ~/.pallet or $PALLET_HOME if set."
@@ -69,7 +74,7 @@
   (reduce
    (fn [config service]
      (assoc-in config [:services (key (first service))] (val (first service))))
-   (read-config (.getAbsolutePath (java-io/file (home-dir) "config.clj")))
+   (read-config (.getAbsolutePath (config-file-path)))
    (for [file (filter
                #(and (.isFile %) (.endsWith (.getName %) ".clj"))
                (file-seq (java-io/file (home-dir) "services")))]

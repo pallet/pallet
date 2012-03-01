@@ -1,12 +1,12 @@
 (ns pallet.task.add-service
-  "Add a service definition to pallet.
-
-   This doesn't work, see:
-   http://stackoverflow.com/questions/3790889/clojure-lein-read-line-stdin-woes"
+  "Add a service definition to pallet."
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
-   [pallet.compute :as compute]))
+   [pallet.compute :as compute])
+  (:use
+   [pallet.configure :only [config-file-path]]
+   [pallet.task.config :only [write-config-clj-unless-exists]]))
 
 (defn warn-on-invalid-provider-name
   [provider-name available-services]
@@ -24,9 +24,11 @@
 (defn write-service
   [file service-name provider-name identity credential]
   (.. (java.io.File. (.getParent file)) mkdirs)
-  (spit file (pr-str {(keyword service-name) {:provider provider-name
-                                              :identity identity
-                                              :credential credential}})))
+  (spit file (pr-str {(keyword service-name)
+                      (into {}
+                            (filter val {:provider provider-name
+                                         :identity identity
+                                         :credential credential}))})))
 
 (defn add-service*
   [file service-name provider-name identity credential]
@@ -38,28 +40,31 @@
 (defn usage []
   (binding [*out* *err*]
     (println "incorrect arguments:")
-    (println "  lein pallet service-name provider-name identity credential")))
+    (println "  lein pallet service-name provider-name [identity credential]")))
 
 (defn
   ^{:no-service-required true}
   add-service
   "Add a service provider definition to your pallet configuration.
-       lein pallet add-serivce name [provider [identity [credential]]]
-   This will create ~/.pallet/services/name.clj"
-  [ & [service-name provider-name identity credential & _]]
-  (if (and service-name provider-name identity credential)
-    (let [service-name (name service-name)
-          path (io/file
-                (System/getProperty "user.home")
-                ".pallet" "services" service-name)]
-      (if (.exists path)
-        (do
-          (println
-           "Service configuration file" (.getPath path) "already exists")
-          1)
-        (add-service*
-         path service-name
-         (name provider-name)
-         (name identity)
-         (name credential))))
-    (usage)))
+This will create ~/.pallet/services/service-name.clj"
+  ([service-name]
+     (add-service service-name service-name))
+  ([service-name provider-name]
+     (add-service service-name provider-name nil nil))
+  ([service-name provider-name identity credential]
+     (write-config-clj-unless-exists)
+     (if (and service-name provider-name)
+       (let [service-name (name service-name)
+             path (io/file
+                   (.getParent (config-file-path)) "services" service-name)]
+         (if (.exists path)
+           (do
+             (println
+              "Service configuration file" (.getPath path) "already exists")
+             1)
+           (add-service*
+            path service-name
+            (name provider-name)
+            (and identity (name identity))
+            (and credential (name credential)))))
+       (usage))))
