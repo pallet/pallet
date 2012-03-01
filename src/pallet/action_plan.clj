@@ -581,10 +581,13 @@
   [server]
   (let [family (-> server :image :os-family)]
     (filter identity
-            [family
-             (:packager server)
+            (concat
+             [family
+              (:packager server)]
              (when-let [version (-> server :image :os-version)]
-               (keyword (format "%s-%s" (name family) version)))])))
+               (map
+                #(keyword (format "%s-%s" (name family) %))
+                (reductions #(str %1 "." %2) (string/split version #"\."))))))))
 
 (defn script-template
   "Return the script template for the current group node."
