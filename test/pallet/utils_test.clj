@@ -27,7 +27,17 @@
     (is (= 1 @(find-var-with-require 'pallet.utils-test-ns 'sym-atom)))
     (testing "no reload of existing ns"
       (swap! (find-var-with-require 'pallet.utils-test-ns 'sym-atom) inc)
-      (is (= 2 @(find-var-with-require 'pallet.utils-test-ns 'sym-atom))))))
+      (is (= 2 @(find-var-with-require 'pallet.utils-test-ns 'sym-atom)))))
+  (testing "non-existing namespace"
+    (is (nil? (find-var-with-require 'pallet.utils-test.non-existant/sym))))
+  (testing "non-compiling namespace"
+    (remove-ns 'pallet.utils-test-bad-ns)
+    (is (thrown? Exception
+                 (find-var-with-require 'pallet.utils-test-bad-ns 'sym)))
+    ;; test twice to exercice issue with require still creating a namespace on
+    ;; failure
+    (is (thrown? Exception
+                 (find-var-with-require 'pallet.utils-test-bad-ns 'sym)))))
 
 (deftest make-user-test
   (let [username "userfred"
