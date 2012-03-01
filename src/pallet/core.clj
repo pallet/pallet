@@ -810,6 +810,13 @@
   [session]
   {:pre [(map? (:group session))]}
   (let [group (:group session)]
+    (when-not (seq (-> group :image))
+      (throw+
+       {:message (format
+                  "No :image specified in node-spec for group %s"
+                  (:group-name group))
+        :group (:group session)
+        :type :pallet/could-not-start-new-nodes}))
     (logging/infof
      "Starting %s nodes for %s, os-family %s"
      (:delta-count group) (:group-name group) (-> group :image :os-family)))
