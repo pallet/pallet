@@ -21,7 +21,9 @@
                               password shell comment groups remove force append]
                        :or {action :manage}
                        :as options}]
-  (let [opts (merge options {:shell (get shell-names shell shell)})]
+  (let [opts (if-let [shell (get shell-names shell shell)]
+               (merge options {:shell shell})
+               options)]
     (case action
       :create
       (stevedore/script
@@ -31,16 +33,17 @@
                                         :create-home :password :shell
                                         :group :groups]))))
       :manage
-      (stevedore/script
-       (if (~lib/user-exists? ~username)
-         (~lib/modify-user
-          ~username ~(select-keys
-                      opts [:home :shell :comment :group :groups :password
-                            :append]))
-         (~lib/create-user
-          ~username ~(select-keys opts [:base-dir :home :system :comment
-                                        :create-home :password :shell
-                                        :group :groups]))))
+      (let [mod-keys (select-keys opts [:home :shell :comment :group :groups
+                                        :password :append])]
+        (stevedore/script
+         (if (~lib/user-exists? ~username)
+           ~(if (seq mod-keys)
+              (stevedore/script (~lib/modify-user ~username ~mod-keys))
+              ":")
+           (~lib/create-user
+            ~username ~(select-keys opts [:base-dir :home :system :comment
+                                          :create-home :password :shell
+                                          :group :groups])))))
       :lock
       (stevedore/script
        (if (~lib/user-exists? ~username)
