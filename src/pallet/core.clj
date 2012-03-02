@@ -512,11 +512,16 @@
   [handler]
   (fn [session]
     (let [[results session] (handler session)
-          errors (seq (filter :error results))]
+          errors (seq (filter :error results))
+          error (:error (first errors))]
       (if errors
-        (do
+        ;; &throw-context is used by slingshot to get the cause
+        (let [&throw-context {:throwable (:cause error)}]
           (logging/errorf "errors found %s" (vec (map :error errors)))
-          (throw+ (assoc (:error (first errors)) :all-errors errors)))
+          (throw+
+           (assoc error :all-errors errors)
+           "Error prevented completion of phase: %s"
+           (:message error)))
         [results session]))))
 
 (def ^{:dynamic true} *middleware*
