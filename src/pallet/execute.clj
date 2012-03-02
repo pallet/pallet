@@ -247,7 +247,7 @@
     (if (pos? (chmod-result :exit))
       (logging/error (str "Couldn't chmod script : "  (chmod-result :err)))))
   (let [cmd (str (sudo-cmd-for user) "./" tmpfile)
-        _ (logging/infof "Running %s" cmd)
+        _ (logging/infof "Running %s" (strip-sudo-password cmd user))
         [shell stream] (ssh/ssh
                         ssh-session
                         ;; using :in forces a shell ssh-session, rather than
