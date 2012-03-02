@@ -53,9 +53,9 @@
 
 (defn clojure-on-origin
   "Execute a clojure function on the origin"
-  [session f]
+  [session {:keys [script-dir] :as action} f]
   (logging/debugf "clojure-on-origin %s" f)
-  (f session))
+  (f (assoc session :script-dir script-dir)))
 
 (defmacro local-script-context
   "Run a script on the local machine, setting up stevedore to produce the
