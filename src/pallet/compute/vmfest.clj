@@ -364,9 +364,9 @@
             _ (logging/infof "Template %s" template)
             image-id (or (image-from-template @images template)
                          (throw (RuntimeException.
-                                 (format "No matching image for %s in"
+                                 (format "No matching image for %s in %s"
                                          (pr-str (:image group-spec))
-                                         (@images)))))
+                                         @images))))
             group-name (name (:group-name group-spec))
             machines (filter
                       #(session/with-no-session % [vb-m] (.getAccessible vb-m))
