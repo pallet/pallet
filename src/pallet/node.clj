@@ -27,6 +27,7 @@
 
 (defn node-address
   [node]
-  (if (string? node)
-    node
-    (primary-ip node)))
+  (cond
+    (string? node) node
+    (primary-ip node) (primary-ip node)
+    :else (private-ip node)))
