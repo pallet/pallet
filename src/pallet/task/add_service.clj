@@ -57,7 +57,7 @@ This will create ~/.pallet/services/service-name.clj"
        (let [service-name (name service-name)
              path (io/file
                    (.getParent
-                    (config-file-path)) "services" service-name ".clj")]
+                    (config-file-path)) "services" (str service-name ".clj"))]
          (if (.exists path)
            (do
              (println
