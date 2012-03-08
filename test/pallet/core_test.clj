@@ -26,6 +26,7 @@
    [pallet.executors :only [force-target-via-ssh-executor]]
    [pallet.monad :only [phase-pipeline session-pipeline
                         as-session-pipeline-fn session-peek-fn]]
+   [pallet.monad.state-accessors :only [assoc-in-state]]
    [pallet.test-utils :only [bash-action clj-action test-session]]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
@@ -192,10 +193,10 @@
                    :all-nodes [n]
                    :selected-nodes [n]
                    :node-set nil
-                   :all-node-set {a #{n}}}]
+                   :all-node-set [{a #{n}}]}]
              (session-with-groups
                {:all-nodes [n] :selected-nodes [n]
-                :node-set nil :all-node-set {a #{n}}}))))))
+                :node-set nil :all-node-set [{a #{n}}]}))))))
 
 (deftest session-with-environment-test
   (binding [pallet.core/*middleware* :middleware]
@@ -919,3 +920,55 @@
            (:x (second (core/process-lift-arguments
                         (test-session
                          {:components {'check-arguments-map testfn}}))))))))
+
+(defn seen-phase-fn
+  [name]
+  (let [a (atom nil)]
+    [(fn [session]
+       (reset! a true)
+       [nil session])
+     (fn [] @a)]))
+
+(deftest lift-all-node-set-test
+  (let [local (group-spec "local")
+        localhost (node-list/make-localhost-node :group-name "local")
+        service (compute/compute-service "node-list" :node-list [localhost])]
+    (testing "without all-node-set"
+      (let [[localf seen?] (seen-fn "lift-test")]
+        (lift
+         local
+         :phase (localf)
+         :user (assoc utils/*admin-user*
+                 :username (test-utils/test-username) :no-sudo true)
+         :compute service)
+        (is (seen?))))
+    (testing "all-node-set (sequential)"
+      (let [[localf seen?] (seen-fn "lift-test")
+            [pf seen-phase?] (seen-phase-fn "lift-test")
+            session (lift
+                     nil
+                     :all-node-set [local]
+                     :phase (phase/phase-fn
+                             pf
+                             (localf))
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username) :no-sudo true)
+                     :compute service
+                     :environment {:algorithms {:lift-fn sequential-lift}})]
+        (is (seen-phase?))
+        (is (not (seen?)))))
+    (testing "all-node-set (parallel)"
+      (let [[localf seen?] (seen-fn "lift-test")
+            [pf seen-phase?] (seen-phase-fn "lift-test")
+            session (lift
+                     nil
+                     :all-node-set [local]
+                     :phase (phase/phase-fn
+                             pf
+                             (localf))
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username) :no-sudo true)
+                     :compute service
+                     :environment {:algorithms {:lift-fn parallel-lift}})]
+        (is (seen-phase?))
+        (is (not (seen?)))))))
