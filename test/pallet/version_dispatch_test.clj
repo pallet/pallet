@@ -1,0 +1,62 @@
+(ns pallet.version-dispatch-test
+  (:use
+   clojure.test
+   pallet.version-dispatch
+   [pallet.compute :only [os-hierarchy]]))
+
+(deftest compare-match-test
+  (testing "strings"
+    (is (false? (compare-match
+                 os-hierarchy
+                 [{:os :ubuntu :os-version [1 2] :version [1 1]} :unused]
+                 [{:os :ubuntu :os-version [1 2] :version [1 1]} :unused])))
+    (is (true? (compare-match
+               os-hierarchy
+               [{:os :ubuntu :os-version [1 2] :version [1 1]} :unused]
+               [{:os :ubuntu :os-version [1 3] :version [1 1]} :unused])))
+    (is (false? (compare-match
+               os-hierarchy
+               [{:os :ubuntu :os-version [1 3] :version [1 1]} :unused]
+               [{:os :ubuntu :os-version [1 2] :version [1 1]} :unused])))))
+
+(defmulti-version os-ver [os os-ver ver arg] #'os-hierarchy)
+
+(multi-version-method
+    os-ver {:os :rhel :os-version [1 0] :version nil}
+    [id os-version version arg]
+  [arg 1])
+(multi-version-method
+    os-ver {:os :rh-base :os-version [[2 0] nil] :version [2 1]}
+    [os os-version version arg]
+  [arg 2])
+(multi-version-method
+    os-ver {:os :centos :os-version [nil [1 0]] :version [nil [3 1]]}
+    [os os-version version arg]
+  [arg 3])
+(multi-version-method
+    os-ver {:os :debian :os-version [[1 0] [2 0]] :version [[4 1] [4 3]]}
+    [os os-version version arg]
+  [arg 4])
+(multi-version-method
+    os-ver {:os :ubuntu :os-version [[1 0] [2 0]] :version [[4 1] [4 3]]}
+    [os os-version version arg]
+  [arg 5])
+(multi-version-method
+    os-ver {:os :ubuntu :os-version [[1 2] [1 3]] :version [[4 1] [4 3]]}
+    [os os-version version arg]
+  [arg 6])
+(multi-version-method
+    os-ver {:os :ubuntu :os-version [[1 1] [1 4]] :version [[4 1] [4 3]]}
+    [os os-version version arg]
+  [arg 7])
+
+(deftest basic
+  (is (:hierarchy (meta #'os-ver)))
+  (is (:methods (meta #'os-ver)))
+  (testing "basic dispatch"
+    (is (= [::arg 1]  (os-ver :rhel [1 0] [9 9] ::arg)))
+    (is (= [::arg 2]  (os-ver :rhel [3 0] [2 1] ::arg)))
+    (is (= [::arg 3]  (os-ver :centos [0 9 1] [3 1] ::arg)))
+    (is (= [::arg 4]  (os-ver :debian [1 9 1] [4 3] ::arg))))
+  (testing "overlapped dispatch"
+    (is (= [::arg 6]  (os-ver :ubuntu [1 2 5] [4 2] ::arg)))))
