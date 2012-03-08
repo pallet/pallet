@@ -231,10 +231,10 @@
               :all-nodes [n]
               :selected-nodes [n]
               :node-set nil
-              :all-node-set {a #{n}}}
+              :all-node-set [{a #{n}}]}
              (session-with-groups
                {:all-nodes [n] :selected-nodes [n]
-                :node-set nil :all-node-set {a #{n}}}))))))
+                :node-set nil :all-node-set [{a #{n}}]}))))))
 
 
 (deftest session-with-environment-test
@@ -909,3 +909,45 @@
           (is (seen-post?) "checking-set should be called")
           (is (= #{"a-127.0.0.1" "b-127.0.0.1"}
                  (parameter/get-for-service session [:slaves]))))))))
+
+(deftest lift-all-node-set-test
+  (let [local (group-spec "local")
+        localhost (node-list/make-localhost-node :group-name "local")
+        service (compute/compute-service "node-list" :node-list [localhost])]
+    (testing "without all-node-set"
+      (let [[localf seen?] (seen-fn "lift-test")]
+        (lift
+         local
+         :phase localf
+         :user (assoc utils/*admin-user*
+                 :username (test-utils/test-username) :no-sudo true)
+         :compute service)
+        (is (seen?))))
+    (testing "all-node-set (sequential)"
+      (let [[localf seen?] (seen-fn "lift-test")
+            session (lift
+                     nil
+                     :all-node-set [local]
+                     :phase (phase/phase-fn
+                             (parameter/assoc-for [:fred] 1)
+                             (localf))
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username) :no-sudo true)
+                     :compute service
+                     :environment {:algorithms {:lift-fn sequential-lift}})]
+        (is (= 1 (-> session :parameters :fred)))
+        (is (not (seen?)))))
+    (testing "all-node-set (parallel)"
+      (let [[localf seen?] (seen-fn "lift-test")
+            session (lift
+                     nil
+                     :all-node-set [local]
+                     :phase (phase/phase-fn
+                             (parameter/assoc-for [:fred] 1)
+                             (localf))
+                     :user (assoc utils/*admin-user*
+                             :username (test-utils/test-username) :no-sudo true)
+                     :compute service
+                     :environment {:algorithms {:lift-fn parallel-lift}})]
+        (is (= 1 (-> session :parameters :fred)))
+        (is (not (seen?)))))))

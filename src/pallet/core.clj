@@ -627,6 +627,7 @@
    (-> session :group :group-name)
    (count (-> session :group :servers)))
   (for [server (-> session :group :servers)
+        :when (not (:invoke-only server))
         :let [session (assoc session
                         :server server :target-id (:node-id server))]
         :when (has-phase? session)]
@@ -659,6 +660,7 @@
    (-> session :group :group-name)
    (count (-> session :group :servers)))
   (for [server (-> session :group :servers)
+        :when (not (:invoke-only server))
         :let [session (assoc session
                         :server server :target-id (:node-id server))]
         :when (has-phase? session)]
@@ -1193,7 +1195,11 @@
         all-targets (nodes-in-set
                      (:node-set session) (:prefix session) all-nodes)
         targets (nodes-in-set (:node-set session) (:prefix session) nodes)
-        plan-targets (if-let [all-node-set (:all-node-set session)]
+        nodes (or (or (seq nodes)
+                      (filter
+                       node/running?
+                       (reduce concat (vals targets)))))
+        plan-targets (when-let [all-node-set (seq (:all-node-set session))]
                        (-> (nodes-in-set all-node-set nil all-nodes)
                            (utils/dissoc-keys (keys targets))))]
     (->
@@ -1205,10 +1211,7 @@
                              concat
                              (concat
                               (vals all-targets) (vals plan-targets))))))
-     (assoc :selected-nodes (or (seq nodes)
-                                (filter
-                                 node/running?
-                                 (reduce concat (vals targets)))))
+     (assoc :selected-nodes nodes)
      (assoc :groups (concat
                      (groups-with-servers targets (set nodes))
                      (groups-with-servers plan-targets (constantly false)))))))
