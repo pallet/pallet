@@ -6,3 +6,4 @@ target
 snippets
 autodoc/**
 sitemap.org
+.ritz-exception-filters
