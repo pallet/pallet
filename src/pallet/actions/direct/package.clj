@@ -140,10 +140,12 @@
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
-  {:action-type :script/bash
+  {:action-type :script
    :location :target}
   [session & args]
-  [(adjust-packages session (map #(apply package-map session %) args)) session])
+  [[{:language :bash}
+    (adjust-packages session (map #(apply package-map session %) args))]
+   session])
 
 (def source-location
   {:aptitude "/etc/apt/sources.list.d/%s.list"
@@ -237,10 +239,11 @@
        (package-source \"Partner\"
          :aptitude {:url \"http://archive.canonical.com/\"
                     :scopes [\"partner\"]})"
-  {:action-type :script/bash :location :target}
+  {:action-type :script :location :target}
   [session & args]
-  [(stevedore/do-script*
-    (map (fn [x] (apply package-source* session x)) args))
+  [[{:language :bash}
+    (stevedore/do-script*
+     (map (fn [x] (apply package-source* session x)) args))]
    session])
 
 (defn add-scope*
@@ -393,46 +396,49 @@
 
    To enable non-free on debian:
        (package-manager session :add-scope :scope :non-free)"
-  {:action-type :script/bash :location :target}
+  {:action-type :script :location :target}
   [session & package-manager-args]
   (logging/debugf "package-manager-args %s" (vec package-manager-args))
-  [(stevedore/do-script*
-    (map #(apply package-manager* session %) (distinct package-manager-args)))
+  [[{:language :bash}
+    (stevedore/do-script*
+     (map #(apply package-manager* session %) (distinct package-manager-args)))]
    session])
 
 (implement-action add-rpm :direct
   "Add an rpm.  Source options are as for remote file."
-  {:action-type :script/bash :location :target}
+  {:action-type :script :location :target}
   [session rpm-name & {:as options}]
-  [(stevedore/do-script
-    (first (remote-file* session rpm-name options))
-    (checked-script
-     (format "Install rpm %s" rpm-name)
-     (if-not (rpm -q @(rpm -pq ~rpm-name) > "/dev/null" "2>&1")
-       (do (rpm -U --quiet ~rpm-name)))))
+  [[{:language :bash}
+    (stevedore/do-script
+     (first (remote-file* session rpm-name options))
+     (checked-script
+      (format "Install rpm %s" rpm-name)
+      (if-not (rpm -q @(rpm -pq ~rpm-name) > "/dev/null" "2>&1")
+        (do (rpm -U --quiet ~rpm-name)))))]
    session])
 
 (implement-action minimal-packages :direct
   "Add minimal packages for pallet to function"
-  {:action-type :script/bash :location :target}
+  {:action-type :script :location :target}
   [session]
   (let [[os-family _] (session/os-family session)]
-    [(cond
-       (#{:ubuntu :debian} os-family) (checked-script
-                                       "Add minimal packages"
-                                       (~lib/update-package-list)
-                                       (~lib/install-package "coreutils")
-                                       (~lib/install-package "sudo"))
-       (= :arch os-family) (checked-script
-                            "Add minimal packages"
-                            ("{" pacman-db-upgrade "||" true "; } "
-                             "2> /dev/null")
-                            (~lib/update-package-list)
-                            (~lib/upgrade-package "pacman")
-                            (println "  checking for pacman-db-upgrade")
-                            ("{" pacman-db-upgrade
-                             "&&" (~lib/update-package-list)
-                             "||" true "; } "
-                             "2> /dev/null")
-                            (~lib/install-package "sudo")))
+    [[{:language :bash}
+      (cond
+        (#{:ubuntu :debian} os-family) (checked-script
+                                        "Add minimal packages"
+                                        (~lib/update-package-list)
+                                        (~lib/install-package "coreutils")
+                                        (~lib/install-package "sudo"))
+        (= :arch os-family) (checked-script
+                             "Add minimal packages"
+                             ("{" pacman-db-upgrade "||" true "; } "
+                              "2> /dev/null")
+                             (~lib/update-package-list)
+                             (~lib/upgrade-package "pacman")
+                             (println "  checking for pacman-db-upgrade")
+                             ("{" pacman-db-upgrade
+                              "&&" (~lib/update-package-list)
+                              "||" true "; } "
+                              "2> /dev/null")
+                             (~lib/install-package "sudo")))]
      session]))

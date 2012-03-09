@@ -400,7 +400,11 @@
                                    session [:algorithms :execute-status-fn])))]
                             r)
                           session)]
-    (string/join \newline result)))
+    (string/join \newline (map
+                           #(if (= {:language :bash} (first %))
+                              (second %)
+                              %)
+                           result))))
 
 (defn log-session
   "Log the session state"

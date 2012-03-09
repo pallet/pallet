@@ -59,13 +59,13 @@
 
 (defn ssh-script-on-target
   "Execute a bash action on the target via ssh."
-  [session {:keys [node-value-path] :as action} action-type script]
+  [session {:keys [node-value-path] :as action} action-type [options script]]
   (logging/info "ssh-script-on-target")
   (with-connection session [connection]
     (let [{:keys [endpoint authentication]} connection
-          script (script-builder/build-script script action action-type)
+          script (script-builder/build-script options script action)
           tmpfile (ssh-mktemp connection "pallet")]
-      (logging/infof "Target %s cmd\n%s via %s" endpoint script tmpfile)
+      (logging/debugf "Target %s cmd\n%s via %s" endpoint script tmpfile)
       (transport/send-text connection script tmpfile)
       (let [clean-f (comp
                      #(execute/strip-sudo-password % (:user authentication))
@@ -73,8 +73,7 @@
             output-f (comp #(logging/spy %) clean-f)
             result (transport/exec
                     connection
-                    (script-builder/build-code
-                     session action action-type tmpfile)
+                    (script-builder/build-code session action tmpfile)
                     {:output-f output-f})
             [result session] (execute/parse-shell-result session result)
             ;; Set the node-value to the result of execution, rather than

@@ -144,14 +144,14 @@ list, Alan Dipert and MeikelBrandmeyer."
          [(fn ~action-sym [~(first args)] ~@impl) ~(first args)])
        action#)))
 
-(defmacro bash-action
+(defmacro script-action
   "Creates a clojure action with a :direct implementation."
   {:indent 1}
   [args & impl]
   (let [action-sym (gensym "clj-action")]
     `(let [action# (declare-action '~action-sym {})]
        (implement-action action# :direct
-         {:action-type :script/bash :location :target}
+         {:action-type :script :location :target}
          ~args
          ~@impl)
        action#)))

@@ -1,7 +1,7 @@
 (ns pallet.executors
   "Action executors for pallet.
 
-   An action has a :action-type. Known types include :script/bash
+   An action has a :action-type. Known types include :script
    and :fn/clojure.
 
    An action has a :location, :origin for execution on the node running
@@ -9,7 +9,7 @@
 
    The action-type determines how the action should be handled:
 
-   :script/bash - action produces bash script for execution on remote machine
+   :script - action produces script for execution on remote machine
    :fn/clojure  - action is a function for local execution
    :transfer/to-local - action is a function specifying remote source
                         and local destination.
@@ -54,13 +54,13 @@
     (logging/tracef "default-executor %s %s" action-type location)
     (logging/tracef "default-executor script %s" script)
     (case [action-type location]
-      [:script/bash :origin] (local/bash-on-origin
-                              session action action-type script)
-      [:script/bash :target] (if (localhost? session)
-                               (local/bash-on-origin
-                                session action action-type script)
-                               (ssh/ssh-script-on-target
-                                session action action-type script))
+      [:script :origin] (local/script-on-origin
+                         session action action-type script)
+      [:script :target] (if (localhost? session)
+                          (local/script-on-origin
+                           session action action-type script)
+                          (ssh/ssh-script-on-target
+                           session action action-type script))
       [:fn/clojure :origin] (local/clojure-on-origin session action script)
       [:flow/if :origin] (execute-if session action script)
       [:transfer/from-local :origin] (ssh/ssh-from-local session script)
@@ -78,10 +78,10 @@
     (logging/tracef "default-executor %s %s" action-type location)
     (logging/tracef "default-executor script %s" script)
     (case [action-type location]
-      [:script/bash :origin] (local/bash-on-origin
-                              session action action-type script)
-      [:script/bash :target] (ssh/ssh-script-on-target
-                              session action action-type script)
+      [:script :origin] (local/script-on-origin
+                         session action action-type script)
+      [:script :target] (ssh/ssh-script-on-target
+                         session action action-type script)
       [:fn/clojure :origin] (local/clojure-on-origin session action script)
       [:flow/if :origin] (execute-if session action script)
       [:transfer/from-local :origin] (ssh/ssh-from-local session script)
@@ -96,7 +96,7 @@
   [session action]
   (let [[script action-type location session] (direct-script session action)]
     (case [action-type location]
-      [:script/bash :target] (echo/echo-bash session script)
+      [:script :target] (echo/echo-bash session script)
       (throw+
        {:type :pallet/no-executor-for-action
         :action action
@@ -110,8 +110,8 @@
     (logging/tracef
      "echo-executor %s %s %s" (:name action) action-type location)
     (case [action-type location]
-      [:script/bash :target] (echo/echo-bash session script)
-      [:script/bash :origin] (echo/echo-bash session script)
+      [:script :target] (echo/echo-bash session script)
+      [:script :origin] (echo/echo-bash session script)
       [:fn/clojure :origin] (echo/echo-clojure session script)
       [:flow/if :origin] (execute-if session action script)
       [:transfer/from-local :origin] (echo/echo-transfer session script)

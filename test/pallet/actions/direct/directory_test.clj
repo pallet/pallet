@@ -22,7 +22,7 @@
 (deftest directory*-test
   (is (= (stevedore/checked-commands "Directory file1" "mkdir -p file1")
          (binding [pallet.action-plan/*defining-context* nil]
-           (first (directory* {} "file1"))))))
+           (-> (directory* {} "file1") first second)))))
 
 (deftest directory-test
   (is (= (stevedore/checked-commands "Directory file1" "mkdir -p file1")
@@ -33,9 +33,9 @@
           "chown --recursive u file1"
           "chgrp --recursive g file1"
           "chmod 0755 file1")
-         (first (build-actions
-                 {}
-                 (directory "file1" :owner "u" :group "g" :mode "0755")))))
+         (first
+          (build-actions {}
+            (directory "file1" :owner "u" :group "g" :mode "0755")))))
   (testing "non-recursive"
     (is (= (stevedore/checked-commands
             "Directory file1"
@@ -44,17 +44,16 @@
             "chgrp g file1"
             "chmod 0755 file1")
            (first
-            (build-actions
-             {}
-             (directory
-              "file1" :owner "u" :group "g" :mode "0755" :recursive false))))))
+            (build-actions {}
+              (directory
+               "file1" :owner "u" :group "g" :mode "0755" :recursive false))))))
   (testing "delete"
     (is (= (stevedore/checked-script
             "Delete directory file1"
             "rm --recursive --force file1")
-           (first (build-actions
-                   {}
-                   (directory "file1" :action :delete :recursive true)))))))
+           (first
+            (build-actions {}
+              (directory "file1" :action :delete :recursive true)))))))
 
 (deftest directories-test
   (is (= (str
@@ -63,6 +62,5 @@
              (first (directory* {} "d1" :owner "o"))
              (first (directory* {} "d2" :owner "o")))))
          (first
-          (build-actions
-           {}
+          (build-actions {}
            (directories ["d1" "d2"] :owner "o"))))))

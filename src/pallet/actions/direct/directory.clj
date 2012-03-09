@@ -35,30 +35,32 @@
    (adjust-directory dir-path opts)))
 
 (implement-action directory :direct
-  {:action-type :script/bash :location :target}
+  {:action-type :script :location :target}
   [session dir-path & {:keys [action recursive force path mode verbose owner
                               group]
                        :or {action :create recursive true force true path true}
                        :as options}]
-  [(case action
-     :delete (action-plan/checked-script
-              (str "Delete directory " dir-path)
-              (~lib/rm ~dir-path :recursive ~recursive :force ~force))
-     :create (make-directory
+  [[{:language :bash}
+    (case action
+      :delete (action-plan/checked-script
+               (str "Delete directory " dir-path)
+               (~lib/rm ~dir-path :recursive ~recursive :force ~force))
+      :create (make-directory
+               dir-path
+               :path path :mode mode :verbose verbose
+               :owner owner :group group :recursive recursive)
+      :touch (make-directory
               dir-path
               :path path :mode mode :verbose verbose
-              :owner owner :group group :recursive recursive)
-     :touch (make-directory
-             dir-path
-             :path path :mode mode :verbose verbose
-             :owner owner :group group :recursive recursive))
+              :owner owner :group group :recursive recursive))]
    session])
 
 (implement-action directories :direct
-  {:action-type :script/bash :location :target}
+  {:action-type :script :location :target}
   [session paths & options]
-  [(stevedore/chain-commands*
-    (map
-     #(first (apply (action-fn directory :direct) session % options))
-     paths))
+  [[{:language :bash}
+    (stevedore/chain-commands*
+      (map
+       #(first (apply (action-fn directory :direct) session % options))
+       paths))]
    session])

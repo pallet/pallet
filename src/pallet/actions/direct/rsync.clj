@@ -16,7 +16,7 @@
   cmd "/usr/bin/rsync -e '%s' -rP --delete --copy-links -F -F %s %s@%s:%s")
 
 (implement-action rsync :direct
-  {:action-type :script/bash :location :origin}
+  {:action-type :script :location :origin}
   [session from to {:keys [port]}]
   (logging/infof "rsync %s to %s" from to)
   (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
@@ -24,5 +24,6 @@
         cmd (format
              cmd ssh from (:username (first (session/admin-user session)))
              (primary-ip (first (session/target-node session))) to)]
-    [(stevedore/checked-commands (format "rsync %s to %s" from to) cmd)
+    [[{:language :bash}
+      (stevedore/checked-commands (format "rsync %s to %s" from to) cmd)]
      session]))

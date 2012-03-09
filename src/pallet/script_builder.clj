@@ -7,30 +7,16 @@
    [pallet.stevedore :as stevedore]
    [pallet.stevedore.bash :as bash])
   (:use
-   [pallet.script.lib :only [mkdir]]))
+   [pallet.script.lib :only [mkdir make-temp-file heredoc]]))
 
-
-(defmulti prolog
-  "A prologue adds script environment, etc, at the start of a script."
-  (fn [action-type] action-type))
-(defmethod prolog :default [_])
-(defmethod prolog :script/bash
-  [_]
-  (str "#!/usr/bin/env bash\n"))
-
-(defmulti epilog
-  "An epilogue adds content at the end of a script."
-  (fn [action-type] action-type))
-(defmethod epilog :default [_])
-(defmethod epilog :script/bash
-  [_]
-  "\nexit $?")
+(def prolog (str "#!/usr/bin/env bash\n"))
+(def epilog "\nexit $?")
 
 (defmulti interpreter
   "The interprester used to run a script."
-  (fn [action-type] action-type))
+  (fn [{:keys [language]}] language))
 (defmethod interpreter :default [_] nil)
-(defmethod interpreter :script/bash [_] "/bin/bash")
+(defmethod interpreter :bash [_] "/bin/bash")
 
 (script/defscript sudo-no-password [])
 (script/defimpl sudo-no-password :default []
@@ -57,21 +43,36 @@
   (sudo-cmd-for (:user env)))
 
 (defn build-script
-  "Builds a script with a prologue"
-  [script {:keys [script-dir] :as action} action-type]
+  "Builds a script. The script is wrapped in a shell script to set
+up the working directory (and possibly environment variables in the
+future)."
+  [{:keys [language version interpreter] :or {language :bash} :as options}
+   script
+   {:keys [script-dir] :as action}]
   (str
-   (prolog action-type)
+   prolog
    (if script-dir
      (stevedore/script
       (~mkdir ~script-dir :path true)
       (cd ~script-dir))
      "")
-   script
-   (epilog action-type)))
+   (if (= language :bash)
+     script
+     (let [interpreter (or interpreter
+                           (pallet.script-builder/interpreter options))]
+       (stevedore/script
+        (var t (~make-temp-file "pallet"))
+        (~heredoc @t ~script {:literal true})
+        ((str ~interpreter) @t)
+        (var r @?)
+        (rm @t)
+        (exit @r))))
+   epilog))
 
 (defn build-code
   "Builds a code map, describing the command to execute a script."
-  [session {:keys [script-prefix script-dir] :as action} action-type & args]
+  [session {:keys [script-prefix script-dir] :as action}
+   & args]
   {:execv
    (->>
     (concat
@@ -81,6 +82,6 @@
        (string/split prefix #" "))
      ["/usr/bin/env"]
      (map (fn [[k v]] (format "%s=\"%s\"" k v)) (:script-env session))
-     [(interpreter action-type)]
+     [(interpreter {:language :bash})]
      args)
     (filter identity))})

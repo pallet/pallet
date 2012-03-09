@@ -80,23 +80,23 @@
 
 (deftest walk-action-plan-test
   (let [nested-identity (fn [a b] (assoc a :blocks b))]
-    (let [action-plan [{:f identity :args [1] :action-type :script/bash}]]
+    (let [action-plan [{:f identity :args [1] :action-type :script}]]
       (is (= action-plan
              (#'action-plan/walk-action-plan
               identity identity nested-identity action-plan))))
-    (let [action-plan [{:f identity :args [1] :action-type :script/bash}
-                       {:f identity :args [2] :action-type :script/bash}]]
+    (let [action-plan [{:f identity :args [1] :action-type :script}
+                       {:f identity :args [2] :action-type :script}]]
       (is (= action-plan
              (#'action-plan/walk-action-plan
               identity identity nested-identity action-plan))))
-    (let [action-plan [{:f identity :args [1] :action-type :script/bash}
-                       {:f identity :args [2] :action-type :script/bash}
+    (let [action-plan [{:f identity :args [1] :action-type :script}
+                       {:f identity :args [2] :action-type :script}
                        {:f identity
                         :args [1]
                         :blocks [[{:f identity :args [1]
-                                   :action-type :script/bash}
+                                   :action-type :script}
                                   {:f identity :args [2]
-                                   :action-type :script/bash}]]
+                                   :action-type :script}]]
                         :action-type :flow/if}]]
       (is (= action-plan
              (#'action-plan/walk-action-plan

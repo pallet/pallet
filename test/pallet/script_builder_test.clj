@@ -40,8 +40,8 @@
 (deftest build-code-test
   (script/with-script-context [:ubuntu]
     (is (= {:execv ["/usr/bin/sudo" "-n" "/usr/bin/env" "/bin/bash"]}
-           (build-code {:user {}} {} :script/bash)))
+           (build-code {:user {}} {})))
     (is (= {:execv ["/usr/bin/env" "/bin/bash"]}
-           (build-code {:user {:no-sudo true}} {} :script/bash)))
+           (build-code {:user {:no-sudo true}} {})))
     (is (= {:execv ["/usr/bin/env" "/bin/bash"]}
-           (build-code {:user {}} {:script-prefix :no-prefix} :script/bash)))))
+           (build-code {:user {}} {:script-prefix :no-prefix})))))

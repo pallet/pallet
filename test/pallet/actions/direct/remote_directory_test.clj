@@ -24,18 +24,21 @@
   (is (= (binding [pallet.action-plan/*defining-context* nil]
            (stevedore/checked-commands
             "remote-directory"
-            (first (directory* {} "/path" :owner "fred" :recursive false))
-            (first (remote-file*
-                    {}
-                    "${TMPDIR-/tmp}/file.tgz"
-                    {:url "http://site.com/a/file.tgz" :md5 nil}))
+            (-> (directory* {} "/path" :owner "fred" :recursive false)
+                first second)
+            (-> (remote-file*
+                 {}
+                 "${TMPDIR-/tmp}/file.tgz"
+                 {:url "http://site.com/a/file.tgz" :md5 nil})
+                first second)
             (stevedore/checked-script
              "Untar ${TMPDIR-/tmp}/file.tgz"
              (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
              (cd "/path")
              (tar xz "--strip-components=1" -f "${rdf}")
              (cd -))
-            (first (directory* {} "/path" :owner "fred" :recursive true))))
+            (-> (directory* {} "/path" :owner "fred" :recursive true)
+                first second)))
          (first (build-actions/build-actions
                  {}
                  (remote-directory
@@ -46,10 +49,12 @@
   (is (= (binding [pallet.action-plan/*defining-context* nil]
            (stevedore/checked-commands
             "remote-directory"
-            (first (directory* {} "/path" :owner "fred" :recursive false))
-            (first (remote-file*
-                    {} "${TMPDIR-/tmp}/file.tgz"
-                    {:url "http://site.com/a/file.tgz" :md5 nil}))
+            (-> (directory* {} "/path" :owner "fred" :recursive false)
+                first second)
+            (-> (remote-file*
+                 {} "${TMPDIR-/tmp}/file.tgz"
+                 {:url "http://site.com/a/file.tgz" :md5 nil})
+                first second)
             (stevedore/checked-script
              "Untar ${TMPDIR-/tmp}/file.tgz"
              (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))

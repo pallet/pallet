@@ -20,6 +20,13 @@
 
 ;;; Sometimes pallet's other actions will not suffice for what you would like to
 ;;; achieve, so the exec-script actions allow you to execute arbitrary script.
+(defaction exec
+  "Execute script on the target node. The `script` is a plain string. `type`
+   specifies the script language (default :bash). You can override the
+   interpreter path using the `:interpreter` option."
+  [{:keys [language interpreter version] :or {language :bash}} script])
+
+
 (defaction exec-script*
   "Execute script on the target node. The script is a plain string."
   [script])

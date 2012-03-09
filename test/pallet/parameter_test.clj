@@ -47,8 +47,8 @@
 
 
 (def lookup-test-action
-  (bash-action [session a]
-    [(str a) session]))
+  (script-action [session a]
+    [[{:language :bash} (str a)] session]))
 
 (deftest lookup-test
   (is (= "9"

@@ -27,7 +27,7 @@
    [pallet.monad :only [phase-pipeline session-pipeline
                         as-session-pipeline-fn session-peek-fn]]
    [pallet.monad.state-accessors :only [assoc-in-state]]
-   [pallet.test-utils :only [bash-action clj-action test-session]]))
+   [pallet.test-utils :only [script-action clj-action test-session]]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
 
@@ -320,7 +320,8 @@
                (assoc session :phase :configure)))))))
   (logging/info "defnode-test end"))
 
-(def identity-action (bash-action [session x] [x session]))
+(def identity-action
+  (script-action [session x] [[{:language :bash} x] session]))
 (def identity-local-action (clj-action [session] [session session]))
 
 (deftest bootstrap-script-test
@@ -656,9 +657,11 @@
                               [session
                                (parameter/assoc-for-target session [:x] "x")])
 
-        get-runtime-param (bash-action [session]
-                            [(format
-                              "echo %s" (parameter/get-for-target session [:x]))
+        get-runtime-param (script-action [session]
+                            [[{:language :bash}
+                              (format
+                               "echo %s"
+                               (parameter/get-for-target session [:x]))]
                              session])
         node (group-spec
               "localhost"

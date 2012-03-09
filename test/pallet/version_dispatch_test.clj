@@ -4,21 +4,6 @@
    pallet.version-dispatch
    [pallet.compute :only [os-hierarchy]]))
 
-(deftest compare-match-test
-  (testing "strings"
-    (is (false? (compare-match
-                 os-hierarchy
-                 [{:os :ubuntu :os-version [1 2] :version [1 1]} :unused]
-                 [{:os :ubuntu :os-version [1 2] :version [1 1]} :unused])))
-    (is (true? (compare-match
-               os-hierarchy
-               [{:os :ubuntu :os-version [1 2] :version [1 1]} :unused]
-               [{:os :ubuntu :os-version [1 3] :version [1 1]} :unused])))
-    (is (false? (compare-match
-               os-hierarchy
-               [{:os :ubuntu :os-version [1 3] :version [1 1]} :unused]
-               [{:os :ubuntu :os-version [1 2] :version [1 1]} :unused])))))
-
 (defmulti-version os-ver [os os-ver ver arg] #'os-hierarchy)
 
 (multi-version-method

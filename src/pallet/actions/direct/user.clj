@@ -59,34 +59,36 @@
 
 
 (implement-action user :direct
-  {:action-type :script/bash :location :target}
+  {:action-type :script :location :target}
   [session & user-args]
-  [(string/join \newline (map #(apply user* session %) user-args))
+  [[{:language :bash}
+    (string/join \newline (map #(apply user* session %) user-args))]
    session])
 
 
 (implement-action group :direct
-  {:action-type :script/bash :location :target}
+  {:action-type :script :location :target}
   [session groupname & {:keys [action system gid password]
                         :or {action :manage}
                         :as options}]
-  [(case action
-     :create
-     (stevedore/script
-      (if-not (~lib/group-exists? ~groupname)
-        (~lib/create-group
-         ~groupname ~(select-keys options [:system :gid :password]))))
-     :manage
-     (stevedore/script
-      (if (~lib/group-exists? ~groupname)
-        (~lib/modify-group
-         ~groupname ~(select-keys options [:gid :password]))
-        (~lib/create-group
-         ~groupname ~(select-keys options [:system :gid :password]))))
-     :remove
-     (stevedore/script
-      (if (~lib/group-exists? ~groupname)
-        (~lib/remove-group ~groupname {})))
-     (throw (IllegalArgumentException.
-             (str action " is not a valid action for group action"))))
+  [[{:language :bash}
+    (case action
+      :create
+      (stevedore/script
+       (if-not (~lib/group-exists? ~groupname)
+         (~lib/create-group
+          ~groupname ~(select-keys options [:system :gid :password]))))
+      :manage
+      (stevedore/script
+       (if (~lib/group-exists? ~groupname)
+         (~lib/modify-group
+          ~groupname ~(select-keys options [:gid :password]))
+         (~lib/create-group
+          ~groupname ~(select-keys options [:system :gid :password]))))
+      :remove
+      (stevedore/script
+       (if (~lib/group-exists? ~groupname)
+         (~lib/remove-group ~groupname {})))
+      (throw (IllegalArgumentException.
+              (str action " is not a valid action for group action"))))]
    session])

@@ -17,25 +17,26 @@
    [clojure.string :as string]))
 
 (implement-action service :direct
-  {:action-type :script/bash :location :target}
+  {:action-type :script :location :target}
   [session service-name & {:keys [action if-flag if-stopped]
                            :or {action :start}
                            :as options}]
-  [(if (#{:enable :disable :start-stop} action)
-     (action-plan/checked-script
-      (format "Configure service %s" service-name)
-      (~lib/configure-service ~service-name ~action ~options))
-     (if if-flag
-       (stevedore/script
-        (println ~(name action) ~service-name "if config changed")
-        (if (== "1" (~lib/flag? ~if-flag))
-          (~(init-script-path service-name) ~(name action))))
-       (if if-stopped
-         (stevedore/script
-          (println ~(name action) ~service-name "if stopped")
-          (if-not (~(init-script-path service-name) status)
-            (~(init-script-path service-name) ~(name action))))
-         (stevedore/script
-          (println ~(name action) ~service-name)
-          (~(init-script-path service-name) ~(name action))))))
+  [[{:language :bash}
+    (if (#{:enable :disable :start-stop} action)
+      (action-plan/checked-script
+       (format "Configure service %s" service-name)
+       (~lib/configure-service ~service-name ~action ~options))
+      (if if-flag
+        (stevedore/script
+         (println ~(name action) ~service-name "if config changed")
+         (if (== "1" (~lib/flag? ~if-flag))
+           (~(init-script-path service-name) ~(name action))))
+        (if if-stopped
+          (stevedore/script
+           (println ~(name action) ~service-name "if stopped")
+           (if-not (~(init-script-path service-name) status)
+             (~(init-script-path service-name) ~(name action))))
+          (stevedore/script
+           (println ~(name action) ~service-name)
+           (~(init-script-path service-name) ~(name action))))))]
    session])

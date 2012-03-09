@@ -35,7 +35,12 @@
             [session]
             (let [[result session] (apply-phase-to-node session)]
               (logging/tracef "result %s session %s" result session)
-              [(string/join \newline result) session]))]
+              [(string/join
+                \newline
+                (map
+                 #(if (= {:language :bash} (first %))
+                    (second %) %)
+                 result)) session]))]
     (binding [action-plan/*defining-context* (context/phase-contexts)]
       (reduce
        (fn [[results session] phase]

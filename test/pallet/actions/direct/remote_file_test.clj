@@ -52,11 +52,12 @@
                (do
                  (mv -f "path.new" path)))))
            (binding [pallet.action-plan/*defining-context* nil]
-             (first
+             (->
               (remote-file*
                {} "path"
                {:url "http://a.com/b" :no-versioning true
-                :install-new-files true}))))))
+                :install-new-files true})
+              first second)))))
   (testing "url with proxy"
     (is (= (stevedore/checked-commands
             "remote-file path"
@@ -67,11 +68,12 @@
                (do
                  (mv -f "path.new" path)))))
            (binding [pallet.action-plan/*defining-context* nil]
-             (first
+             (->
               (remote-file*
                {:environment {:proxy "http://proxy/"}}
                "path" {:url "http://a.com/b" :no-versioning true
-                       :install-new-files true}))))))
+                       :install-new-files true})
+              first second)))))
 
   (testing "no-versioning"
     (is (= (stevedore/checked-commands
@@ -82,9 +84,10 @@
                (do
                  (~lib/mv "path.new" path :force true)))))
            (binding [pallet.action-plan/*defining-context* nil]
-             (first
+             (->
               (remote-file* {} "path" {:content "xxx" :no-versioning true
-                                       :install-new-files true}))))))
+                                       :install-new-files true})
+              first second)))))
 
   (testing "no-versioning with owner, group and mode"
     (is (= (stevedore/checked-commands
@@ -98,18 +101,20 @@
              (~lib/chgrp "g" "path")
              (~lib/chmod "m" "path")))
            (binding [pallet.action-plan/*defining-context* nil]
-             (first
+             (->
               (remote-file*
                {} "path" {:content "xxx" :owner "o" :group "g" :mode "m"
-                          :no-versioning true :install-new-files true}))))))
+                          :no-versioning true :install-new-files true})
+              first second)))))
 
   (testing "delete"
     (is (= (stevedore/checked-script
             "delete remote-file path"
             ("rm" "--force" "path"))
            (binding [pallet.action-plan/*defining-context* nil]
-             (first
-              (remote-file* {} "path" {:action :delete :force true}))))))
+             (->
+              (remote-file* {} "path" {:action :delete :force true})
+              first second)))))
 
   (testing "content"
     (utils/with-temporary [tmp (utils/tmpfile)]
@@ -159,12 +164,13 @@
           "remote-file path"
           (~lib/heredoc "path.new" "a 1\n" {}))
          (binding [pallet.action-plan/*defining-context* nil]
-           (first
+           (->
             (remote-file*
              {:server {:group-name :n :image {:os-family :ubuntu}}}
              "path"
              {:template "template/strint" :values {'a 1}
-              :no-versioning true :install-new-files nil})))))))
+              :no-versioning true :install-new-files nil})
+            first second))))))
 
 (deftest remote-file-test
   (core/with-admin-user

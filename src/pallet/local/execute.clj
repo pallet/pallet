@@ -27,24 +27,23 @@
               :script-err (:err result)
               :server "localhost"})))
 
-(defn bash-on-origin
-  "Execute a bash action on the origin"
-  [session action action-type value]
-  (logging/trace "bash-on-origin")
-  (let [script (script-builder/build-script value action action-type)
+(defn script-on-origin
+  "Execute a script action on the origin"
+  [session action action-type [options value]]
+  (logging/trace "script-on-origin")
+  (let [script (script-builder/build-script options value action)
         tmpfile (java.io.File/createTempFile "pallet" "script")]
     (try
-      (logging/tracef "bash-on-origin script\n%s" script)
+      (logging/debugf "script-on-origin script\n%s" script)
       (spit tmpfile script)
       (let [result (transport/exec
                     {:execv ["/bin/chmod" "+x" (.getPath tmpfile)]}
                     nil)]
         (when-not (zero? (:exit result))
           (logging/warnf
-           "bash-on-origin: Could not chmod script file: %s"
+           "script-on-origin: Could not chmod script file: %s"
            (:out result))))
-      (let [cmd (script-builder/build-code
-                 session action action-type (.getPath tmpfile))
+      (let [cmd (script-builder/build-code session action (.getPath tmpfile))
             result (transport/exec cmd {:output-f #(logging/spy %)})
             [result session] (execute/parse-shell-result session result)]
         (verify-sh-return "for origin cmd" value result)
