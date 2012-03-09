@@ -194,12 +194,13 @@
          (stevedore/chain-commands
           (stevedore/script (~lib/install-package "python-software-properties"))
           (stevedore/script (add-apt-repository ~key-url)))
-         (first
+         (->
           (remote-file*
            session
            (format (source-location packager) name)
            {:content (format-source packager name (packager options))
-            :literal (= packager :yum)}))))
+            :literal (= packager :yum)})
+          first second)))
      (if (and (-> options :aptitude :key-id)
               (= packager :aptitude))
        (stevedore/script
@@ -209,11 +210,12 @@
      (if (and (-> options :aptitude :key-url)
               (= packager :aptitude))
        (stevedore/chain-commands
-        (first
+        (->
          (remote-file*
           session
           "aptkey.tmp"
-          {:url (-> options :aptitude :key-url)}))
+          {:url (-> options :aptitude :key-url)})
+         first second)
         (stevedore/script (apt-key add aptkey.tmp))))
      (when-let [key (and (= packager :yum) (-> options :yum :gpgkey))]
        (stevedore/script (rpm "--import" ~key))))))
@@ -300,7 +302,7 @@
 
 (defmethod configure-package-manager :aptitude
   [session packager {:keys [priority prox] :or {priority 50} :as options}]
-  (first
+  (->
    (remote-file*
     session
     (format "/etc/apt/apt.conf.d/%spallet" priority)
@@ -309,12 +311,13 @@
                (map
                 #(package-manager-option session packager (key %) (val %))
                 (dissoc options :priority)))
-     :literal true})))
+     :literal true})
+   first second))
 
 (defmethod configure-package-manager :yum
   [session packager {:keys [proxy] :as options}]
   (stevedore/chain-commands
-   (first
+   (->
     (remote-file*
      session
      "/etc/yum.pallet.conf"
@@ -323,7 +326,8 @@
                 (map
                  #(package-manager-option session packager (key %) (val %))
                  (dissoc options :priority)))
-      :literal true}))
+      :literal true})
+    first second)
    ;; include yum.pallet.conf from yum.conf
    (stevedore/script
     (if (not @("fgrep" "yum.pallet.conf" "/etc/yum.conf"))
@@ -335,7 +339,7 @@
 (defmethod configure-package-manager :pacman
   [session packager {:keys [proxy] :as options}]
   (stevedore/chain-commands
-   (first
+   (->
     (remote-file*
      session
      "/etc/pacman.pallet.conf"
@@ -344,16 +348,18 @@
                 (map
                  #(package-manager-option session packager (key %) (val %))
                  (dissoc options :priority)))
-      :literal true}))
+      :literal true})
+    first second)
    ;; include pacman.pallet.conf from pacman.conf
    (stevedore/script
     (if (not @("fgrep" "pacman.pallet.conf" "/etc/pacman.conf"))
       (do
-        ~(first (sed*
-                 session
-                 "/etc/pacman.conf"
-                 "a Include = /etc/pacman.pallet.conf"
-                 :restriction "/\\[options\\]/")))))))
+        ~(-> (sed*
+              session
+              "/etc/pacman.conf"
+              "a Include = /etc/pacman.pallet.conf"
+              :restriction "/\\[options\\]/")
+             first second))))))
 
 (defmethod configure-package-manager :default
   [session packager {:as options}]
@@ -410,7 +416,7 @@
   [session rpm-name & {:as options}]
   [[{:language :bash}
     (stevedore/do-script
-     (first (remote-file* session rpm-name options))
+     (-> (remote-file* session rpm-name options) first second)
      (checked-script
       (format "Install rpm %s" rpm-name)
       (if-not (rpm -q @(rpm -pq ~rpm-name) > "/dev/null" "2>&1")
