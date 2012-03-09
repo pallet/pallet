@@ -137,7 +137,11 @@
    (:packager target)
    (let [os-family (:os-family target)]
      (cond
-      (#{:ubuntu :debian :jeos} os-family) :aptitude
+      (#{:debian :jeos} os-family) :aptitude
+      (#{:ubuntu} os-family) (let [version (:os-version target)]
+                               (if (= "11.10" version)
+                                 :apt
+                                 :aptitude))
       (#{:centos :rhel :amzn-linux :fedora} os-family) :yum
       (#{:arch} os-family) :pacman
       (#{:suse} os-family) :zypper

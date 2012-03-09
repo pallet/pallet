@@ -31,8 +31,8 @@
   (fn [session & _]
     (first (session/packager session))))
 
-;; aptitude can install, remove and purge all in one command, so we just need to
-;; split by enable/disable options.
+;; aptitude and apt can install, remove and purge all in one command, so we just
+;; need to split by enable/disable options.
 (defmethod adjust-packages :aptitude
   [session packages]
   (checked-commands
@@ -46,6 +46,36 @@
       (stevedore/script
        (aptitude
         install -q -y
+        ~(string/join " " (map #(str "-t " %) (:enable opts)))
+        ~(string/join
+          " "
+          (for [[action packages] (group-by :action packages)
+                {:keys [package force purge]} packages]
+            (case action
+              :install (format "%s+" package)
+              :remove (if purge
+                        (format "%s_" package)
+                        (format "%s-" package))
+              :upgrade (format "%s+" package)
+              (throw
+               (IllegalArgumentException.
+                (str
+                 action " is not a valid action for package action"))))))))))
+   (stevedore/script (~lib/list-installed-packages))))
+
+(defmethod adjust-packages :apt
+  [session packages]
+  (checked-commands
+   "Packages"
+   (stevedore/script (~lib/package-manager-non-interactive))
+   (stevedore/chain-commands*
+    (for [[opts packages] (->>
+                           packages
+                           (group-by #(select-keys % [:enable]))
+                           (sort-by #(apply min (map :priority (second %)))))]
+      (stevedore/script
+       (apt-get
+        -q -y install
         ~(string/join " " (map #(str "-t " %) (:enable opts)))
         ~(string/join
           " "
@@ -149,6 +179,7 @@
 
 (def source-location
   {:aptitude "/etc/apt/sources.list.d/%s.list"
+   :apt "/etc/apt/sources.list.d/%s.list"
    :yum "/etc/yum.repos.d/%s.repo"})
 
 (defmulti format-source
@@ -163,6 +194,10 @@
    (:url options)
    (:release options (stevedore/script (~lib/os-version-name)))
    (string/join " " (:scopes options ["main"]))))
+
+(defmethod format-source :apt
+  [_ name options]
+  (format-source :aptitude name options))
 
 (defmethod format-source :yum
   [_ name {:keys [url mirrorlist gpgcheck gpgkey priority failovermethod
@@ -189,7 +224,7 @@
   (let [[packager _] (session/packager session)]
     (checked-commands
      "Package source"
-     (let [key-url (-> options :aptitude :url)]
+     (let [key-url (or (-> options :aptitude :url) (-> options :apt :url))]
        (if (and key-url (.startsWith key-url "ppa:"))
          (stevedore/chain-commands
           (stevedore/script (~lib/install-package "python-software-properties"))
@@ -201,22 +236,18 @@
            {:content (format-source packager name (packager options))
             :literal (= packager :yum)})
           first second)))
-     (if (and (-> options :aptitude :key-id)
-              (= packager :aptitude))
-       (stevedore/script
-        (apt-key adv
-                 "--keyserver subkeys.pgp.net --recv-keys"
-                 ~(-> options :aptitude :key-id))))
-     (if (and (-> options :aptitude :key-url)
-              (= packager :aptitude))
+     (if-let [key-id (or (-> options :aptitude :key-id)
+                         (-> options :apt :key-id))]
+       (if (#{:aptitude :apt} packager)
+         (stevedore/script
+          (apt-key adv "--keyserver subkeys.pgp.net --recv-keys" ~key-id))))
+     (if-let [key-url (or (-> options :aptitude :key-url)
+                          (-> options :apt :key-url))]
+       (if (#{:aptitude :apt} packager)
        (stevedore/chain-commands
         (->
-         (remote-file*
-          session
-          "aptkey.tmp"
-          {:url (-> options :aptitude :key-url)})
-         first second)
-        (stevedore/script (apt-key add aptkey.tmp))))
+         (remote-file* session "aptkey.tmp" {:url key-url}) first second)
+        (stevedore/script (apt-key add aptkey.tmp)))))
      (when-let [key (and (= packager :yum) (-> options :yum :gpgkey))]
        (stevedore/script (rpm "--import" ~key))))))
 
@@ -279,6 +310,10 @@
   [session packager proxy proxy-url]
   (format "ACQUIRE::http::proxy \"%s\";" proxy-url))
 
+(defmethod package-manager-option [:apt :proxy]
+  [session packager proxy proxy-url]
+  (package-manager-option session :aptitude proxy proxy-url))
+
 (defmethod package-manager-option [:yum :proxy]
   [session packager proxy proxy-url]
   (format "proxy=%s" proxy-url))
@@ -313,6 +348,10 @@
                 (dissoc options :priority)))
      :literal true})
    first second))
+
+(defmethod configure-package-manager :apt
+  [session packager {:as options}]
+  (configure-package-manager session :aptitude options))
 
 (defmethod configure-package-manager :yum
   [session packager {:keys [proxy] :as options}]
@@ -378,7 +417,7 @@
        :add-scope (add-scope (apply hash-map options))
        :multiverse (add-scope (apply hash-map :scope "multiverse" options))
        :universe (add-scope (apply hash-map :scope "universe" options))
-       :debconf (if (= :aptitude packager)
+       :debconf (if (#{:aptitude :apt} packager)
                   (stevedore/script
                    (apply ~lib/debconf-set-selections ~options)))
        :configure (configure-package-manager session packager options)

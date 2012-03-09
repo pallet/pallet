@@ -384,7 +384,7 @@
                     {:algorithms default-algorithms}
                     (:environment session)))
                  add-session-keys-for-0-4-compatibility)
-        _ (logging/infof "bootstrap-script session %s" session)
+        _ (logging/debugf "bootstrap-script session %s" session)
         [result session] ((let-state
                             [phase #(vector (:phase %) %)
                              _ (action-plan/reset-for-target
