@@ -113,7 +113,7 @@
 
 (defrecord User
   [username public-key-path private-key-path passphrase
-   password sudo-password no-sudo])
+   password sudo-password no-sudo sudo-user])
 
 (defn user? [user]
   (instance? pallet.utils.User user))
@@ -131,8 +131,8 @@
     - :sudo-password (defaults to :password)
     - :no-sudo"
   [username & {:keys [public-key-path private-key-path passphrase
-                      password sudo-password no-sudo] :as options}]
-  (merge (User. username nil nil nil nil nil nil)
+                      password sudo-password no-sudo sudo-user] :as options}]
+  (merge (User. username nil nil nil nil nil nil nil)
     {:private-key-path (default-private-key-path)
      :public-key-path (default-public-key-path)
      :sudo-password (:password options)}

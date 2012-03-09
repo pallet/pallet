@@ -44,4 +44,10 @@
     (is (= {:execv ["/usr/bin/env" "/bin/bash"]}
            (build-code {:user {:no-sudo true}} {})))
     (is (= {:execv ["/usr/bin/env" "/bin/bash"]}
-           (build-code {:user {}} {:script-prefix :no-prefix})))))
+           (build-code {:user {}} {:script-prefix :no-prefix})))
+    (is (= {:execv
+            ["/usr/bin/sudo" "-n" "-u" "fred" "/usr/bin/env" "/bin/bash"]}
+           (build-code {:user {}} {:sudo-user "fred"})))
+    (is (= {:execv
+            ["/usr/bin/sudo" "-n" "-u" "fred" "/usr/bin/env" "/bin/bash"]}
+           (build-code {:user {:sudo-user "fred"}} {})))))

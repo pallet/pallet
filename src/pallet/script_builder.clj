@@ -29,18 +29,23 @@
 (defn sudo-cmd-for
   "Construct a sudo command prefix for the specified user."
   [user]
-  (if (or (= (:username user) "root") (:no-sudo user))
+  (if (or (and (= (:username user) "root") (not (:sudo-user user)))
+          (:no-sudo user))
     nil
-    (if-let [pw (:sudo-password user)]
-      (str "echo \"" (or (:password user) pw) "\" | /usr/bin/sudo -S")
-      (stevedore/script (~sudo-no-password)))))
+    (str
+     (if-let [pw (:sudo-password user)]
+       (str "echo \"" (or (:password user) pw) "\" | /usr/bin/sudo -S")
+       (stevedore/script (~sudo-no-password)))
+     (if-let [su (:sudo-user user)]
+       (str " -u " su)
+       ""))))
 
 (defmulti prefix
   "The executable used to prefix the interpreter (eg. sudo, chroot, etc)."
-  (fn [kw env] kw))
-(defmethod prefix :default [_ _] nil)
-(defmethod prefix :sudo [_ env]
-  (sudo-cmd-for (:user env)))
+  (fn [kw session action] kw))
+(defmethod prefix :default [_ _ _] nil)
+(defmethod prefix :sudo [_ session action]
+  (sudo-cmd-for (merge (:user session) action)))
 
 (defn build-script
   "Builds a script. The script is wrapped in a shell script to set
@@ -71,14 +76,15 @@ future)."
 
 (defn build-code
   "Builds a code map, describing the command to execute a script."
-  [session {:keys [script-prefix script-dir] :as action}
+  [session {:keys [script-prefix script-dir sudo-user] :as action}
    & args]
   {:execv
    (->>
     (concat
      (when-let [prefix (prefix
                         (:script-prefix session (or script-prefix :sudo))
-                        session)]
+                        session
+                        action)]
        (string/split prefix #" "))
      ["/usr/bin/env"]
      (map (fn [[k v]] (format "%s=\"%s\"" k v)) (:script-env session))
