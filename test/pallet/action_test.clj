@@ -86,14 +86,14 @@
     (is (= f (:f (action-implementation action :default))))
     (is (= f (action-fn inserter :default)))))
 
-(deftest with-precedence-test
+(deftest with-action-options-test
   (testing "precedence across execution model"
     (let [agg (declare-action 'agg {:execution :aggregated})
           ins (declare-action 'ins {})
           session (test-session
                    {:phase :fred :target-id :id :server {:node-id :id}})
           p (let-s [_ (agg "hello")
-                    _ (with-precedence {:always-before #{agg}}
+                    _ (with-action-options {:always-before #{agg}}
                         (ins "a"))]
                    nil)
           [_ session] (p session)

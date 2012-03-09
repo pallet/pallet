@@ -5,7 +5,7 @@
    [pallet.session :as session]
    [pallet.thread-expr :as thread-expr])
   (:use
-   [pallet.action :only [with-precedence]]
+   [pallet.action :only [with-action-options]]
    [pallet.actions :only [add-rpm package package-manager package-source]]
    [pallet.phase :only [def-crate-fn defcrate]]))
 
@@ -32,7 +32,7 @@
     (and
      (#{:rhel :centos} os-family)
      (re-matches #"5\.[0-5]" os-version)))
-   (with-precedence {:action-id ::install-jpackage-compat}
+   (with-action-options {:action-id ::install-jpackage-compat}
      (add-rpm
       "jpackage-utils-compat-el5-0.0.1-1"
       :url jpackage-utils-compat-rpm

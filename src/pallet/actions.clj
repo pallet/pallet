@@ -7,7 +7,7 @@
    [pallet.stevedore :as stevedore])
   (:use
    pallet.actions-impl
-   [pallet.action :only [defaction with-precedence]]
+   [pallet.action :only [defaction with-action-options]]
    [pallet.action-plan :only [enter-scope leave-scope]]
    [pallet.argument :only [delayed]]
    [pallet.monad :only [let-s phase-pipeline]]
@@ -322,7 +322,7 @@ Content can also be copied from a blobstore.
   (let-s
     [_ (when local-file
          (transfer-file local-file (str path ".new")))
-     f (with-precedence local-file-options
+     f (with-action-options local-file-options
          (let-s
            [v (remote-file-action path
                                   (merge
@@ -404,7 +404,7 @@ Content can also be copied from a blobstore.
   (let-s
     [_ (when local-file
          (transfer-file local-file (str path "-content")))
-     f (with-precedence local-file-options
+     f (with-action-options local-file-options
          (let-s
            [v (remote-directory-action path options)]
            v))]

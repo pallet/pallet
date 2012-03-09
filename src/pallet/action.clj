@@ -27,38 +27,39 @@
 
 ;;; Precedence for actions can be overridden by setting the precedence map
 ;;; on the session.
-(def ^{:no-doc true :private true} precedence-key ::action-precedence)
+(def ^{:no-doc true :private true} action-options-key ::action-precedence)
 
-(defn session-precedence
+(defn action-options
   "Return any precedence modifiers defined on the session."
   [session]
-  (get session precedence-key))
+  (get session action-options-key))
 
-(defn get-session-precedence
+(defn get-action-options
   "Return any precedence modifiers defined on the session."
   [session]
-  [(get session precedence-key) session])
+  [(get session action-options-key) session])
 
-(defn update-session-precedence
+(defn update-action-options
   "Update any precedence modifiers defined on the session"
   [m]
-  (fn update-session-precedence [session]
-    [m (update-in session [precedence-key] merge m)]))
+  (fn update-action-options [session]
+    [m (update-in session [action-options-key] merge m)]))
 
-(defn assoc-session-precedence
+(defn assoc-action-options
   "Set precedence modifiers defined on the session."
   [m]
-  (fn assoc-session-precedence [session]
-    [m (assoc session precedence-key m)]))
+  (fn assoc-action-options [session]
+    [m (assoc session action-options-key m)]))
 
-(defmacro ^{:indent 1} with-precedence
-  "Set up local precedence relations between actions"
+(defmacro ^{:indent 1} with-action-options
+  "Set up local precedence relations between actions, and allows override
+   of user options, :script-dir and :script-prefix."
   [m & body]
   `(let-s
-     [p# get-session-precedence
-      _# (update-session-precedence ~m)
+     [p# get-action-options
+      _# (update-action-options ~m)
       v# ~@body
-      _# (assoc-session-precedence p#)]
+      _# (assoc-action-options p#)]
      v#))
 
 ;;; ## Actions
@@ -77,7 +78,7 @@
   (fn action-fn [& argv]
     (fn action-inserter [session]
       (schedule-action-map
-       session (action-map action argv (session-precedence session))))))
+       session (action-map action argv (action-options session))))))
 
 (defn declare-action
   "Declare an action. The action-name is a symbol (not necessarily referring to
@@ -165,7 +166,7 @@
               (action-map
                action#
                ~(arg-values args)
-               (session-precedence session#)))))))))
+               (action-options session#)))))))))
 
 (defn implement-action*
   "Define an implementation of an action given the `action-inserter` function."

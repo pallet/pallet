@@ -3,7 +3,7 @@
   (:require
    [pallet.stevedore :as stevedore])
   (:use
-   [pallet.action :only [action-fn with-precedence]]
+   [pallet.action :only [action-fn with-action-options]]
    [pallet.actions :only [exec-checked-script package package-manager]]
    [pallet.actions-impl :only [remote-file-action]]
    [pallet.monad :only [phase-pipeline-no-context]]
@@ -23,7 +23,7 @@
   "Add the rpmforge repository"
   [& {:keys [version distro arch]
       :or {version "0.5.2-2" distro "el5" arch "i386"}}]
-  (with-precedence {:always-before #{package-manager package}}
+  (with-action-options {:always-before #{package-manager package}}
     (phase-pipeline-no-context add-rpmforge {}
       [session (get-session)]
       (exec-checked-script
