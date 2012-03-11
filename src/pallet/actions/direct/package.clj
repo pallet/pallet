@@ -19,7 +19,7 @@
    [pallet.action-plan :only [checked-commands checked-script]]
    [pallet.actions
     :only [add-rpm package package-manager package-source minimal-packages
-           exec-script remote-file sed]]
+           exec-script remote-file sed install-deb]]
    [pallet.actions-impl :only [remote-file-action]]))
 
 (def ^{:private true}
@@ -421,6 +421,18 @@
       (format "Install rpm %s" rpm-name)
       (if-not (rpm -q @(rpm -pq ~rpm-name) > "/dev/null" "2>&1")
         (do (rpm -U --quiet ~rpm-name)))))]
+   session])
+
+(implement-action install-deb :direct
+  "Install a deb file.  Source options are as for remote file."
+  {:action-type :script :location :target}
+  [session deb-name & {:as options}]
+  [[{:language :bash}
+    (stevedore/do-script
+     (-> (remote-file* session deb-name (apply concat options)) first second)
+     (checked-script
+      (format "Install deb %s" deb-name)
+      (dpkg -i --skip-same-version ~deb-name)))]
    session])
 
 (implement-action minimal-packages :direct

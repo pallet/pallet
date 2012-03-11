@@ -489,6 +489,10 @@ Content can also be copied from a blobstore.
   "Add an rpm.  Source options are as for remote file."
   [rpm-name & {:as options}])
 
+(defaction install-deb
+  "Add a deb.  Source options are as for remote file."
+  [deb-name & {:as options}])
+
 (defaction minimal-packages
   "Add minimal packages for pallet to function"
   {:always-before #{package-manager package-source package}}
