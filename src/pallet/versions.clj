@@ -16,6 +16,19 @@ version vector."
   [version]
   (if (string? version) (version-vector version) version))
 
+(defn version-string
+  "Convert a a vector of version numbers to a dotted version string.
+E.g.,
+    (version-vector [1 2]) => \"1.2\""
+  [version-vector]
+  (string/join "." version-vector))
+
+(defn as-version-string
+  "Take a version, as either a string or a version vector, and returns a
+version string."
+  [version]
+  (if (string? version) version (version-string version)))
+
 (defn version-less
   "Compare two version vectors."
   [v1 v2]
