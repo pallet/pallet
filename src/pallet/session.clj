@@ -51,15 +51,25 @@
   [session]
   (compute/base-distribution (-> session :server :image)))
 
+(defn os-family*
+  "OS-Family of the target-node."
+  [session]
+  (-> session :server :image :os-family))
+
 (defn os-family
   "OS-Family of the target-node."
   [session]
-  [(-> session :server :image :os-family) session])
+  [(os-family* session) session])
+
+(defn os-version*
+  "OS-Family of the target-node."
+  [session]
+  (-> session :server :image :os-version))
 
 (defn os-version
   "OS-Family of the target-node."
   [session]
-  [(-> session :server :image :os-version) session])
+  [(os-version* session) session])
 
 (defn group-name
   "Group name of the target-node."
