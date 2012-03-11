@@ -11,9 +11,14 @@ open end to the range.
 
 The basic idea is that you wish to dispatch on hierarchy where the dispatched
 data may provide a version."
+  (:require
+   [clojure.string :as string])
   (:use
+   [pallet.compute :only [os-hierarchy]]
+   [pallet.monad :only [phase-pipeline]]
+   [pallet.session :only [os-family* os-version*]]
    [pallet.versions
-    :only [version-less version-matches? version-spec-less]]))
+    :only [as-version-vector version-less version-matches? version-spec-less]]))
 
 (defn ^{:internal true} hierarchy-vals
   "Returns all values in a hierarchy, whether parents or children."
@@ -39,7 +44,7 @@ data may provide a version."
       :else (version-spec-less versioni versionj))))
 
 (defn ^{:internal true} dispatch-version
-  [os os-version version args hierarchy methods]
+  [sym os os-version version args hierarchy methods]
   (letfn [(matches? [[i _]]
             (and (isa? hierarchy os (:os i))
                  (version-matches? os-version (:os-version i))
@@ -51,7 +56,8 @@ data may provide a version."
       (if-let [f (:default methods)]
         (apply f os os-version version args)
         (throw (IllegalArgumentException.
-                (str "No method for " os " " os-version " " version)))))))
+                (str "No " sym " method for "
+                     os " " os-version " " version)))))))
 
 (defmacro defmulti-version
   "Defines a multi-version funtion used to abstract over an operating system
@@ -66,7 +72,7 @@ refers to a software package version of some sort, on the specified `os` and
        (defn ~name
          {:hierarchy h# :methods m#}
          [~os ~os-version ~version ~@args]
-         (dispatch-version
+         (dispatch-version '~name
           ~os ~os-version ~version [~@args] (var-get h#) @m#)))))
 
 (defmacro multi-version-method
@@ -80,5 +86,49 @@ refers to a software package version of some sort, on the specified `os` and
     (when-not ((hierarchy-vals h) os)
       (throw (Exception. (str os " is not part of the hierarchy"))))
     `(swap! (:methods (meta (var ~multi-version))) assoc ~dispatch-value
-            (fn ~(symbol (str (name os) "-" os-version "-" version)) [~@args]
+            (fn
+              ~(symbol
+                (str (name os) "-" os-version "-" (string/join "" version)))
+              [~@args]
               ~@body))))
+
+
+
+(defmacro defmulti-version-crate
+  "Defines a multi-version funtion used to abstract over an operating system
+hierarchy, where dispatch includes an optional `os-version`. The `version`
+refers to a software package version of some sort, on the specified `os` and
+`os-version`."
+  {:indent 2}
+  [name [session version & args]]
+  `(do
+     (let [h# #'os-hierarchy
+           m# (atom {})]
+       (defn ~name
+         {:hierarchy h# :methods m#}
+         [~session ~version ~@args]
+         (dispatch-version
+          '~name
+          (os-family* ~session)
+          (as-version-vector (os-version* ~session))
+          (as-version-vector ~version) [~@args] (var-get h#) @m#)))))
+
+(defmacro multi-version-crate-method
+  "Adds a method to the specified multi-version function for the specified
+`dispatch-value`."
+  {:indent 3}
+  [multi-version {:keys [os os-version version] :as dispatch-value}
+   [& args] & body]
+  (let [{:keys [hierarchy methods]} (meta (resolve multi-version))
+        h (var-get hierarchy)]
+    (when-not ((hierarchy-vals h) os)
+      (throw (Exception. (str os " is not part of the hierarchy"))))
+    `(swap! (:methods (meta (var ~multi-version))) assoc ~dispatch-value
+            (fn ~(symbol
+                  (str (name os) "-" os-version "-" (string/join "" version)))
+              [~@args]
+              (phase-pipeline
+                  ~(symbol
+                    (str (name os) "-" os-version "-" (string/join "" version)))
+                  {}
+                ~@body)))))
