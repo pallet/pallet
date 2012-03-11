@@ -145,9 +145,10 @@ monad, but are each use a different context."
             (if (vector? f)
               f
               [(gensym "_") f]))]
-    `(let-s
-       [~@(mapcat gen-step args)]
-       nil)))
+    (let [bindings (mapcat gen-step args)]
+      `(let-s
+         [~@bindings]
+         ~(last (drop-last bindings))))))
 
 (defmacro wrap-pipeline
   "Wraps a pipeline with one or more wrapping forms. Makes the &session symbol
