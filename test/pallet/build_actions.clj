@@ -118,6 +118,8 @@
                            #(or % :configure))
         session (update-in session [:server :image :os-family]
                            #(or % :ubuntu))
+        session (update-in session [:server :image :os-version]
+                           #(or % "11.10"))
         session (update-in session [:server :group-name]
                            #(or % :id))
         session (update-in session [:server :node-id]
