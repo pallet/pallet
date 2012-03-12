@@ -95,10 +95,6 @@
                    (file \"/some-file\")
                    (file \"/other-file\"))) "
   [& body]
-  ;; `(fn [session#]
-  ;;    (->
-  ;;     session#
-  ;;     (check-session-thread ~@body)))
   `(session-pipeline a-phase-fn {}
      ~@body))
 
