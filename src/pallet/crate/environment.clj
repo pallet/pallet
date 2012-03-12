@@ -34,10 +34,13 @@
        (stevedore/script
         (defn pallet_set_env [k v s]
           (if (not @(grep (quoted @s) ~path))
-            (sed -i
-                 -e (quoted "/${k}/ d")
-                 -e (quoted "$ a \\\\\n${s}")
-                 ~path)))))))
+            (do
+              (chain-or
+               ("sed" -i
+                -e (quoted "/${k}/ d")
+                -e (quoted "$ a \\\\\n${s}")
+                ~path)
+               (exit 1)))))))))
     (remote-file
      path
      :owner "root"
