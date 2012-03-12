@@ -601,8 +601,7 @@
 (def
   ^{:doc "Phase contexts when action was called in a phase"
     :dynamic true
-    :no-doc true
-    :privat true}
+    :no-doc true}
   *defining-context*)
 
 (defn defining-context-string
@@ -754,13 +753,15 @@
      ~name)
     ~@script))
 
-(defn checked-commands*
+(defmacro checked-commands*
   "Return a stevedore script that uses the current context to label the
    action"
   [name scripts]
-  (stevedore/checked-commands*
-   (str (context-string *defining-context*) name)
-   scripts))
+  `(stevedore/checked-commands*
+    (str
+     (context-string (if (bound? #'*defining-context*) *defining-context* []))
+     ~name)
+    ~scripts))
 
 (defn checked-commands
   "Return a stevedore script that uses the current context to label the
