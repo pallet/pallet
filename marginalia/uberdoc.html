@@ -1,5 +1,10 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8" content="text/html" http-equiv="Content-Type" /><meta content="Pallet - agile provisioning and configuration of compute nodes. A devops tool." name="description" /><style type="text/css">/**
+<html><head><meta charset="utf-8" content="text/html" http-equiv="Content-Type" /><meta content="Pallet, DevOps for the JVM
+
+    Pallet is a platform for agile and programmatic automation of infrastructure
+    in the cloud, on server racks or directly on virtual machines. Pallet
+    provides cloud provider and operating system independence, and allows for an
+    unprecedented level of customization." name="description" /><style type="text/css">/**
  * SyntaxHighlighter
  * http://alexgorbatchev.com/SyntaxHighlighter
  *
@@ -2526,8 +2531,14 @@ $(document).ready(function() {
     ul.css('margin-top', '0px')
 
 })
-</script><title>pallet -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">pallet</h1><h2 class="project-version">0.6.8-SNAPSHOT</h2><br /><p>Pallet - agile provisioning and configuration of compute nodes. A devops tool.</p>
-</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.2.1</td></tr><tr><td class="dep-name">org.clojure/clojure-contrib</td><td class="dotted"><hr /></td><td class="dep-version">1.2.0</td></tr><tr><td class="dep-name">org.clojure/core.incubator</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">org.clojure/tools.logging</td><td class="dotted"><hr /></td><td class="dep-version">0.1.2</td></tr><tr><td class="dep-name">org.clojure/tools.namespace</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">org.cloudhoist/thread-expr</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr><tr><td class="dep-name">org.cloudhoist/pallet-common</td><td class="dotted"><hr /></td><td class="dep-version">0.2.1</td></tr><tr><td class="dep-name">org.cloudhoist/stevedore</td><td class="dotted"><hr /></td><td class="dep-version">0.7.0</td></tr><tr><td class="dep-name">commons-codec</td><td class="dotted"><hr /></td><td class="dep-version">1.4</td></tr><tr><td class="dep-name">clj-ssh</td><td class="dotted"><hr /></td><td class="dep-version">0.3.0</td></tr><tr><td class="dep-name">org.slf4j/slf4j-api</td><td class="dotted"><hr /></td><td class="dep-version">1.6.1</td></tr><tr><td class="dep-name">jline</td><td class="dotted"><hr /></td><td class="dep-version">0.9.94</td></tr><tr><td class="dep-name">enlive</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr><tr><td class="dep-name">org.apache.maven/maven-settings</td><td class="dotted"><hr /></td><td class="dep-version">2.0.10</td></tr><tr><td class="dep-name">vmfest</td><td class="dotted"><hr /></td><td class="dep-version">0.2.3</td></tr><tr><td class="dep-name">swank-clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.2.1</td></tr><tr><td class="dep-name">autodoc</td><td class="dotted"><hr /></td><td class="dep-version">0.7.1</td></tr><tr><td class="dep-name">marginalia</td><td class="dotted"><hr /></td><td class="dep-version">0.6.0</td></tr><tr><td class="dep-name">org.jclouds/jclouds-compute</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr><tr><td class="dep-name">org.jclouds/jclouds-blobstore</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr><tr><td class="dep-name">org.jclouds/jclouds-all</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr><tr><td class="dep-name">org.jclouds.driver/jclouds-jsch</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr><tr><td class="dep-name">org.jclouds.driver/jclouds-slf4j</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr></table></div><div class="dependencies"><h3>dev dependencies</h3><table><tr><td class="dep-name">ch.qos.logback/logback-core</td><td class="dotted"><hr /></td><td class="dep-version">0.9.29</td></tr><tr><td class="dep-name">ch.qos.logback/logback-classic</td><td class="dotted"><hr /></td><td class="dep-version">0.9.29</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#pallet.action.conditional">pallet.action.conditional</a></li><li><a href="#pallet.action.directory">pallet.action.directory</a></li><li><a href="#pallet.action.environment">pallet.action.environment</a></li><li><a href="#pallet.action.exec-script">pallet.action.exec-script</a></li><li><a href="#pallet.action.file">pallet.action.file</a></li><li><a href="#pallet.action.filesystem">pallet.action.filesystem</a></li><li><a href="#pallet.action.package.centos">pallet.action.package.centos</a></li><li><a href="#pallet.action.package.debian-backports">pallet.action.package.debian-backports</a></li><li><a href="#pallet.action.package.epel">pallet.action.package.epel</a></li><li><a href="#pallet.action.package.jpackage">pallet.action.package.jpackage</a></li><li><a href="#pallet.action.package.rpmforge">pallet.action.package.rpmforge</a></li><li><a href="#pallet.action.package">pallet.action.package</a></li><li><a href="#pallet.action.remote-directory">pallet.action.remote-directory</a></li><li><a href="#pallet.action.remote-file">pallet.action.remote-file</a></li><li><a href="#pallet.action.retry">pallet.action.retry</a></li><li><a href="#pallet.action.rsync">pallet.action.rsync</a></li><li><a href="#pallet.action.service">pallet.action.service</a></li><li><a href="#pallet.action.user">pallet.action.user</a></li><li><a href="#pallet.action">pallet.action</a></li><li><a href="#pallet.action-plan">pallet.action-plan</a></li><li><a href="#pallet.argument">pallet.argument</a></li><li><a href="#pallet.blobstore.implementation">pallet.blobstore.implementation</a></li><li><a href="#pallet.blobstore.jclouds">pallet.blobstore.jclouds</a></li><li><a href="#pallet.blobstore.url-blobstore">pallet.blobstore.url-blobstore</a></li><li><a href="#pallet.blobstore">pallet.blobstore</a></li><li><a href="#pallet.command-line">pallet.command-line</a></li><li><a href="#pallet.command-script">pallet.command-script</a></li><li><a href="#pallet.compute.hybrid">pallet.compute.hybrid</a></li><li><a href="#pallet.compute.implementation">pallet.compute.implementation</a></li><li><a href="#pallet.compute.jclouds">pallet.compute.jclouds</a></li><li><a href="#pallet.compute.jvm">pallet.compute.jvm</a></li><li><a href="#pallet.compute.node-list">pallet.compute.node-list</a></li><li><a href="#pallet.compute.vmfest">pallet.compute.vmfest</a></li><li><a href="#pallet.compute">pallet.compute</a></li><li><a href="#pallet.config-file.format">pallet.config-file.format</a></li><li><a href="#pallet.configure">pallet.configure</a></li><li><a href="#pallet.core">pallet.core</a></li><li><a href="#pallet.crate.network-service">pallet.crate.network-service</a></li><li><a href="#pallet.debug">pallet.debug</a></li><li><a href="#pallet.enlive">pallet.enlive</a></li><li><a href="#pallet.environment">pallet.environment</a></li><li><a href="#pallet.execute">pallet.execute</a></li><li><a href="#pallet.futures">pallet.futures</a></li><li><a href="#pallet.main">pallet.main</a></li><li><a href="#pallet.main-invoker">pallet.main-invoker</a></li><li><a href="#pallet.map-merge">pallet.map-merge</a></li><li><a href="#pallet.maven">pallet.maven</a></li><li><a href="#pallet.md5crypt">pallet.md5crypt</a></li><li><a href="#pallet.node">pallet.node</a></li><li><a href="#pallet.parameter">pallet.parameter</a></li><li><a href="#pallet.phase">pallet.phase</a></li><li><a href="#pallet.repl">pallet.repl</a></li><li><a href="#pallet.request-map">pallet.request-map</a></li><li><a href="#pallet.resource.directory">pallet.resource.directory</a></li><li><a href="#pallet.resource.exec-script">pallet.resource.exec-script</a></li><li><a href="#pallet.resource.file">pallet.resource.file</a></li><li><a href="#pallet.resource.filesystem">pallet.resource.filesystem</a></li><li><a href="#pallet.resource.filesystem-layout">pallet.resource.filesystem-layout</a></li><li><a href="#pallet.resource.format">pallet.resource.format</a></li><li><a href="#pallet.resource.hostinfo">pallet.resource.hostinfo</a></li><li><a href="#pallet.resource.lib">pallet.resource.lib</a></li><li><a href="#pallet.resource.network-service">pallet.resource.network-service</a></li><li><a href="#pallet.resource.package">pallet.resource.package</a></li><li><a href="#pallet.resource.remote-directory">pallet.resource.remote-directory</a></li><li><a href="#pallet.resource.remote-file">pallet.resource.remote-file</a></li><li><a href="#pallet.resource.resource-when">pallet.resource.resource-when</a></li><li><a href="#pallet.resource.rsync">pallet.resource.rsync</a></li><li><a href="#pallet.resource.service">pallet.resource.service</a></li><li><a href="#pallet.resource.shell">pallet.resource.shell</a></li><li><a href="#pallet.resource.user">pallet.resource.user</a></li><li><a href="#pallet.resource">pallet.resource</a></li><li><a href="#pallet.script.lib">pallet.script.lib</a></li><li><a href="#pallet.session">pallet.session</a></li><li><a href="#pallet.shell">pallet.shell</a></li><li><a href="#pallet.strint">pallet.strint</a></li><li><a href="#pallet.target">pallet.target</a></li><li><a href="#pallet.task.add-service">pallet.task.add-service</a></li><li><a href="#pallet.task.containers">pallet.task.containers</a></li><li><a href="#pallet.task.converge">pallet.task.converge</a></li><li><a href="#pallet.task.converge-cluster">pallet.task.converge-cluster</a></li><li><a href="#pallet.task.describe-node">pallet.task.describe-node</a></li><li><a href="#pallet.task.destroy-cluster">pallet.task.destroy-cluster</a></li><li><a href="#pallet.task.help">pallet.task.help</a></li><li><a href="#pallet.task.images">pallet.task.images</a></li><li><a href="#pallet.task.lift">pallet.task.lift</a></li><li><a href="#pallet.task.new-project">pallet.task.new-project</a></li><li><a href="#pallet.task.nodes">pallet.task.nodes</a></li><li><a href="#pallet.task.providers">pallet.task.providers</a></li><li><a href="#pallet.task.to-blob">pallet.task.to-blob</a></li><li><a href="#pallet.task.version">pallet.task.version</a></li><li><a href="#pallet.task.vmfest-script">pallet.task.vmfest-script</a></li><li><a href="#pallet.template.properties">pallet.template.properties</a></li><li><a href="#pallet.template">pallet.template</a></li><li><a href="#pallet.utils">pallet.utils</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.action.conditional" name="pallet.action.conditional"><h1 class="project-name">pallet.action.conditional</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Conditional action execution.</p>
+</script><title>pallet -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">pallet</h1><h2 class="project-version">0.7.0-SNAPSHOT</h2><br /><p>Pallet, DevOps for the JVM</p>
+
+<pre><code>Pallet is a platform for agile and programmatic automation of infrastructure
+in the cloud, on server racks or directly on virtual machines. Pallet
+provides cloud provider and operating system independence, and allows for an
+unprecedented level of customization.
+</code></pre>
+</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.2.1</td></tr><tr><td class="dep-name">org.clojure/core.incubator</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">org.clojure/tools.logging</td><td class="dotted"><hr /></td><td class="dep-version">0.1.2</td></tr><tr><td class="dep-name">org.cloudhoist/chiba</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0-SNAPSHOT</td></tr><tr><td class="dep-name">org.cloudhoist/thread-expr</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr><tr><td class="dep-name">org.cloudhoist/pallet-common</td><td class="dotted"><hr /></td><td class="dep-version">0.2.2-SNAPSHOT</td></tr><tr><td class="dep-name">org.cloudhoist/stevedore</td><td class="dotted"><hr /></td><td class="dep-version">0.7.1-SNAPSHOT</td></tr><tr><td class="dep-name">commons-codec</td><td class="dotted"><hr /></td><td class="dep-version">1.4</td></tr><tr><td class="dep-name">clj-ssh</td><td class="dotted"><hr /></td><td class="dep-version">0.3.1-20120210.004410-3</td></tr><tr><td class="dep-name">org.slf4j/slf4j-api</td><td class="dotted"><hr /></td><td class="dep-version">1.6.1</td></tr><tr><td class="dep-name">enlive</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr></table></div><div class="dependencies"><h3>dev dependencies</h3><table><tr><td class="dep-name">ch.qos.logback/logback-core</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr><tr><td class="dep-name">ch.qos.logback/logback-classic</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#pallet.action.conditional">pallet.action.conditional</a></li><li><a href="#pallet.action.directory">pallet.action.directory</a></li><li><a href="#pallet.action.environment">pallet.action.environment</a></li><li><a href="#pallet.action.exec-script">pallet.action.exec-script</a></li><li><a href="#pallet.action.file">pallet.action.file</a></li><li><a href="#pallet.action.filesystem">pallet.action.filesystem</a></li><li><a href="#pallet.action.package.centos">pallet.action.package.centos</a></li><li><a href="#pallet.action.package.debian-backports">pallet.action.package.debian-backports</a></li><li><a href="#pallet.action.package.epel">pallet.action.package.epel</a></li><li><a href="#pallet.action.package.jpackage">pallet.action.package.jpackage</a></li><li><a href="#pallet.action.package.rpmforge">pallet.action.package.rpmforge</a></li><li><a href="#pallet.action.package">pallet.action.package</a></li><li><a href="#pallet.action.remote-directory">pallet.action.remote-directory</a></li><li><a href="#pallet.action.remote-file">pallet.action.remote-file</a></li><li><a href="#pallet.action.retry">pallet.action.retry</a></li><li><a href="#pallet.action.rsync">pallet.action.rsync</a></li><li><a href="#pallet.action.service">pallet.action.service</a></li><li><a href="#pallet.action.user">pallet.action.user</a></li><li><a href="#pallet.action">pallet.action</a></li><li><a href="#pallet.action-plan">pallet.action-plan</a></li><li><a href="#pallet.argument">pallet.argument</a></li><li><a href="#pallet.blobstore.implementation">pallet.blobstore.implementation</a></li><li><a href="#pallet.blobstore.url-blobstore">pallet.blobstore.url-blobstore</a></li><li><a href="#pallet.blobstore">pallet.blobstore</a></li><li><a href="#pallet.command-line">pallet.command-line</a></li><li><a href="#pallet.command-script">pallet.command-script</a></li><li><a href="#pallet.compute.hybrid">pallet.compute.hybrid</a></li><li><a href="#pallet.compute.implementation">pallet.compute.implementation</a></li><li><a href="#pallet.compute.jvm">pallet.compute.jvm</a></li><li><a href="#pallet.compute.node-list">pallet.compute.node-list</a></li><li><a href="#pallet.compute">pallet.compute</a></li><li><a href="#pallet.config-file.format">pallet.config-file.format</a></li><li><a href="#pallet.configure">pallet.configure</a></li><li><a href="#pallet.core">pallet.core</a></li><li><a href="#pallet.crate.network-service">pallet.crate.network-service</a></li><li><a href="#pallet.debug">pallet.debug</a></li><li><a href="#pallet.enlive">pallet.enlive</a></li><li><a href="#pallet.environment">pallet.environment</a></li><li><a href="#pallet.execute">pallet.execute</a></li><li><a href="#pallet.feature">pallet.feature</a></li><li><a href="#pallet.futures">pallet.futures</a></li><li><a href="#pallet.main">pallet.main</a></li><li><a href="#pallet.main-invoker">pallet.main-invoker</a></li><li><a href="#pallet.map-merge">pallet.map-merge</a></li><li><a href="#pallet.md5crypt">pallet.md5crypt</a></li><li><a href="#pallet.node">pallet.node</a></li><li><a href="#pallet.parameter">pallet.parameter</a></li><li><a href="#pallet.phase">pallet.phase</a></li><li><a href="#pallet.repl">pallet.repl</a></li><li><a href="#pallet.request-map">pallet.request-map</a></li><li><a href="#pallet.resource.directory">pallet.resource.directory</a></li><li><a href="#pallet.resource.exec-script">pallet.resource.exec-script</a></li><li><a href="#pallet.resource.file">pallet.resource.file</a></li><li><a href="#pallet.resource.filesystem">pallet.resource.filesystem</a></li><li><a href="#pallet.resource.filesystem-layout">pallet.resource.filesystem-layout</a></li><li><a href="#pallet.resource.format">pallet.resource.format</a></li><li><a href="#pallet.resource.hostinfo">pallet.resource.hostinfo</a></li><li><a href="#pallet.resource.lib">pallet.resource.lib</a></li><li><a href="#pallet.resource.network-service">pallet.resource.network-service</a></li><li><a href="#pallet.resource.package">pallet.resource.package</a></li><li><a href="#pallet.resource.remote-directory">pallet.resource.remote-directory</a></li><li><a href="#pallet.resource.remote-file">pallet.resource.remote-file</a></li><li><a href="#pallet.resource.resource-when">pallet.resource.resource-when</a></li><li><a href="#pallet.resource.rsync">pallet.resource.rsync</a></li><li><a href="#pallet.resource.service">pallet.resource.service</a></li><li><a href="#pallet.resource.shell">pallet.resource.shell</a></li><li><a href="#pallet.resource.user">pallet.resource.user</a></li><li><a href="#pallet.resource">pallet.resource</a></li><li><a href="#pallet.script.lib">pallet.script.lib</a></li><li><a href="#pallet.session">pallet.session</a></li><li><a href="#pallet.shell">pallet.shell</a></li><li><a href="#pallet.strint">pallet.strint</a></li><li><a href="#pallet.target">pallet.target</a></li><li><a href="#pallet.task.add-service">pallet.task.add-service</a></li><li><a href="#pallet.task.containers">pallet.task.containers</a></li><li><a href="#pallet.task.converge">pallet.task.converge</a></li><li><a href="#pallet.task.converge-cluster">pallet.task.converge-cluster</a></li><li><a href="#pallet.task.describe-node">pallet.task.describe-node</a></li><li><a href="#pallet.task.destroy-cluster">pallet.task.destroy-cluster</a></li><li><a href="#pallet.task.help">pallet.task.help</a></li><li><a href="#pallet.task.images">pallet.task.images</a></li><li><a href="#pallet.task.lift">pallet.task.lift</a></li><li><a href="#pallet.task.new-project">pallet.task.new-project</a></li><li><a href="#pallet.task.nodes">pallet.task.nodes</a></li><li><a href="#pallet.task.providers">pallet.task.providers</a></li><li><a href="#pallet.task.to-blob">pallet.task.to-blob</a></li><li><a href="#pallet.task.version">pallet.task.version</a></li><li><a href="#pallet.template.properties">pallet.template.properties</a></li><li><a href="#pallet.template">pallet.template</a></li><li><a href="#pallet.utils">pallet.utils</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.action.conditional" name="pallet.action.conditional"><h1 class="project-name">pallet.action.conditional</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Conditional action execution.</p>
 </td><td class="codes" /><pre class="brush: clojure">(ns pallet.action.conditional
   (:refer-clojure :exclude [when when-not])
   (:require
@@ -2536,6 +2547,7 @@ $(document).ready(function() {
   (:use
    clojure.tools.logging))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defmacro when
+  &quot;A when statement that takes a script condtion.&quot;
   [session condition &amp; crate-fns-or-actions]
   `(-&gt;
     ~session
@@ -2545,6 +2557,7 @@ $(document).ready(function() {
     (exec-script/exec-script &quot;fi&quot;)
     (action/leave-scope)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defmacro when-not
+  &quot;A when statement that takes a script condtion.&quot;
   [session condition &amp; crate-fns-or-actions]
   `(-&gt;
     ~session
@@ -3587,17 +3600,17 @@ split by enable/disable options and by command.  We install before removing.</p>
    [clojure.java.io :as io])
   (:use
    pallet.thread-expr))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def install-new-files true)
-(def force-overwrite false)</pre></tr><tr><td class="docs">
+</td><td class="codes" /><pre class="brush: clojure">(def ^{:dynamic true} *install-new-files* true)
+(def ^{:dynamic true} *force-overwrite* false)</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn set-install-new-files
   &quot;Set boolean flag to control installation of new files&quot;
   [flag]
-  (alter-var-root #'install-new-files (fn [_] flag)))</pre></tr><tr><td class="docs">
+  (alter-var-root #'*install-new-files* (fn [_] flag)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn set-force-overwrite
   &quot;Globally force installation of new files, even if content on node has
   changed.&quot;
   [flag]
-  (alter-var-root #'force-overwrite (fn [_] flag)))</pre></tr><tr><td class="docs">
+  (alter-var-root #'*force-overwrite* (fn [_] flag)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(def
   ^{:doc &quot;A vector of the options accepted by remote-file.  Can be used for
           option forwarding when calling remote-file from other crates.&quot;}
@@ -3765,9 +3778,9 @@ split by enable/disable options and by command.  We install before removing.</p>
                (IllegalArgumentException.
                 (str &quot;remote-file &quot; path &quot; specified without content.&quot;))))
        ;; process the new file accordingly
-       (when install-new-files
+       (when *install-new-files*
          (stevedore/chain-commands
-          (if (or overwrite-changes no-versioning force-overwrite)
+          (if (or overwrite-changes no-versioning *force-overwrite*)
             (stevedore/script
              (if (file-exists? ~new-path)
                (do
@@ -3901,7 +3914,7 @@ Content can also be copied from a blobstore.
      (apply-map-&gt;
       remote-file-action path
       (merge
-       {:overwrite-changes force-overwrite} ;; capture the value of the flag
+       {:overwrite-changes *force-overwrite*} ;; capture the value of the flag
        options)))))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.action.retry" name="pallet.action.retry"><h1 class="project-name">pallet.action.retry</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Provides an action that can be repeated if it fails</p>
 </td><td class="codes" /><pre class="brush: clojure">(ns pallet.action.retry
   (:require
@@ -4109,32 +4122,31 @@ Content can also be copied from a blobstore.
             (str action &quot; is not a valid action for group action&quot;)))))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.action" name="pallet.action"><h1 class="project-name">pallet.action</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Actions implement the conversion of phase functions to script and other
    execution code.</p>
 
-<p>   An action has a :action-type. Known types include :script/bash
-   and :fn/clojure.</p>
+<p>   An action has an <code>:action-type</code>. Known types include <code>:script/bash</code>
+   and <code>:fn/clojure</code>.</p>
 
-<p>   An action has a :location, :origin for execution on the node running
-   pallet, and :target for the target node.</p>
+<p>   An action has a <code>:location</code>, with a value of <code>:origin</code> for execution on the
+   node running pallet, and <code>:target</code> for the target node.</p>
 
-<p>   An action has an :execution, which is one of :aggregated, :in-sequence or
-   :collected. Calls to :aggregated actions will be grouped, and run before
-   :in-sequence actions. Calls to :collected actions will be grouped, and run
-   after :in-sequence actions.</p>
+<p>   An action has an <code>:execution</code>, which is one of <code>:aggregated</code>, <code>:in-sequence</code>
+   or <code>:collected</code>. Calls to <code>:aggregated</code> actions will be grouped, and run
+   before <code>:in-sequence</code> actions. Calls to <code>:collected</code> actions will be grouped,
+   and run after <code>:in-sequence</code> actions.</p>
 </td><td class="codes" /><pre class="brush: clojure">(ns pallet.action
   &quot;Actions implement the conversion of phase functions to script and other
    execution code.
-   An action has a :action-type. Known types include :script/bash
-   and :fn/clojure.
-   An action has a :location, :origin for execution on the node running
-   pallet, and :target for the target node.
-   An action has an :execution, which is one of :aggregated, :in-sequence or
-   :collected. Calls to :aggregated actions will be grouped, and run before
-   :in-sequence actions. Calls to :collected actions will be grouped, and run
-   after :in-sequence actions.&quot;
+   An action has an `:action-type`. Known types include `:script/bash`
+   and `:fn/clojure`.
+   An action has a `:location`, with a value of `:origin` for execution on the
+   node running pallet, and `:target` for the target node.
+   An action has an `:execution`, which is one of `:aggregated`, `:in-sequence`
+   or `:collected`. Calls to `:aggregated` actions will be grouped, and run
+   before `:in-sequence` actions. Calls to `:collected` actions will be grouped,
+   and run after `:in-sequence` actions.&quot;
   {:author &quot;Hugo Duncan&quot;}
   (:require
    [pallet.action-plan :as action-plan]
    [pallet.argument :as argument]
-   [clojure.contrib.condition :as condition]
    [pallet.common.def :as ccdef]
    [clojure.tools.logging :as logging]
    [clojure.set :as set]
@@ -4146,28 +4158,30 @@ Content can also be copied from a blobstore.
    when the action plan is executed.
    The action can be scheduled within one of three 'executions'
    (conceptually, sub-phases):
-   :in-sequence - The generated action will be applied to the node
-        \&quot;in order\&quot;, as it is defined lexically in the source crate.
-        This is the default.
-   :aggregated - All aggregated actions are applied to the node
-        in the order they are defined, but before all :in-sequence
-        actions. Note that all of the arguments to any given
-        action function are gathered such that there is only ever one
-        invocation of each fn within each phase.
-   :collected - All collected actions are applied to the node
-        in the order they are defined, but after all :in-sequence
-        action. Note that all of the arguments to any given
-        action function are gathered such that there is only ever one
-        invocation of each fn within each phase.
+   `:in-sequence`
+   : The generated action will be applied to the node \&quot;in order\&quot;, as it is
+        defined lexically in the source crate.  This is the default.
+   `:aggregated`
+   : All aggregated actions are applied to the node in the order they are
+        defined, but before all :in-sequence actions. Note that all of the
+        arguments to any given action function are gathered such that there is
+        only ever one invocation of each fn within each phase.
+   `:collected`
+   : All collected actions are applied to the node in the order they are
+        defined, but after all :in-sequence action. Note that all of the
+        arguments to any given action function are gathered such that there is
+        only ever one invocation of each fn within each phase.
    The action-type determines how the action should be handled:
-   :script/bash - action produces bash script for execution on remote machine
-   :fn/clojure  - action is a function for local execution
-   :transfer/to-local - action is a function specifying remote source
-                        and local destination.
-   :transfer/from-local - action is a function specifying local source
-                          and remote destination.&quot;
-  [session action-fn metadata args execution action-type location]
-  {:pre [session
+   `:script/bash`
+   : action produces bash script for execution on remote machine
+   `:fn/clojure`
+   : action is a function for local execution
+   `:transfer/to-local`
+   : action is a function specifying remote source and local destination.
+   `:transfer/from-local`
+   : action is a function specifying local source and remote destination.&quot;
+                          [session action-fn metadata args execution action-type
+                          location] {:pre [session
          (keyword? (:phase session))
          (keyword? (:target-id session))]}
   (update-in
@@ -4307,10 +4321,13 @@ Content can also be copied from a blobstore.
    [pallet.phase :as phase]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
-   [clojure.contrib.condition :as condition]
    [clojure.tools.logging :as logging]
    [clojure.set :as set]
-   [clojure.string :as string]))</pre></tr><tr><td class="docs"><p>The action plan is a stack of actions, where the action could itself
+   [clojure.string :as string]))</pre></tr><tr><td class="docs"><p>slingshot version compatibility</p>
+</td><td class="codes" /><pre class="brush: clojure">(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))</pre></tr><tr><td class="docs"><p>The action plan is a stack of actions, where the action could itself
 be a stack of actions (ie a tree of stacks)</p>
 </td><td class="codes" /></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn push-block
@@ -4758,9 +4775,9 @@ with :nested-scope types</p>
   [action-plan session executor execute-status-fn]
   (logging/tracef &quot;execute %s actions&quot; (count action-plan))
   (when-not (translated? action-plan)
-    (condition/raise
-     :type :pallet/execute-called-on-untranslated-action-plan
-     :message &quot;Attempt to execute an action plan that has not been translated&quot;))
+    (throw+
+     {:type :pallet/execute-called-on-untranslated-action-plan
+      :message &quot;Attempt to execute an untranslated action plan&quot;}))
   (reduce
    (fn [[results session flag] action]
      (case flag
@@ -4868,13 +4885,14 @@ with :nested-scope types</p>
   `(DelayedFunction. (fn [~session-sym] ~@body)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.blobstore.implementation" name="pallet.blobstore.implementation"><h1 class="project-name">pallet.blobstore.implementation</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Implementation details</p>
 </td><td class="codes" /><pre class="brush: clojure">(ns pallet.blobstore.implementation
   (:require
-   [pallet.utils :as utils]
-   [clojure.tools.namespace :as namespace]))</pre></tr><tr><td class="docs">
+   [pallet.utils :as utils])
+  (:use
+   [chiba.plugin :only [plugins]]))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defmulti service
   &quot;Instantiate a blobstore. Providers should implement a method for this.
    See pallet.blobstore/blobstore-service.&quot;
   (fn [provider-name &amp; _] (keyword provider-name)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def blobstore-regex #&quot;^pallet\.blobstore\.[a-z-]+&quot;)
+</td><td class="codes" /><pre class="brush: clojure">(def blobstore-prefix &quot;pallet.blobstore.&quot;)
 (def exclude-blobstore-ns
   #{'pallet.blobstore.implementation})
 (def exclude-regex #&quot;.*test.*&quot;)
@@ -4882,14 +4900,8 @@ with :nested-scope types</p>
 </td><td class="codes" /><pre class="brush: clojure">(defn- providers
   &quot;Find the available providers.&quot;
   []
-  (try
-    (binding [clojure.java.classpath/classpath utils/classpath]
-      (-&gt;&gt; (namespace/find-namespaces-on-classpath)
-           (filter #(re-find blobstore-regex (name %)))
-           (remove #(re-find exclude-regex (name %)))
-           (remove exclude-blobstore-ns)
-           (set)))
-    (catch java.io.FileNotFoundException _)))</pre></tr><tr><td class="docs">
+  (-&gt;&gt; (plugins blobstore-prefix exclude-regex)
+       (remove exclude-blobstore-ns)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn load-providers
   &quot;Require all providers, ensuring no errors if individual providers can not be
    loaded&quot;
@@ -4915,55 +4927,7 @@ with :nested-scope types</p>
       (when-let [providers (ns-resolve provider 'supported-providers)]
         (@providers))))
    (filter identity)
-   (apply concat)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.blobstore.jclouds" name="pallet.blobstore.jclouds"><h1 class="project-name">pallet.blobstore.jclouds</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>jclouds blobstore implementation</p>
-</td><td class="codes" /><pre class="brush: clojure">(ns pallet.blobstore.jclouds
-  (:require
-   [org.jclouds.blobstore :as jclouds-blobstore]
-   [org.jclouds.blobstore2 :as jclouds-blobstore2]
-   pallet.blobstore
-   [pallet.blobstore.implementation :as implementation]
-   [pallet.compute.jvm :as jvm]))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn default-jclouds-extensions
-  &quot;Default extensions&quot;
-  []
-  (if (jvm/log4j?)
-    [:log4j]
-    []))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defmethod implementation/service :default
-  [provider {:keys [identity credential extensions]
-             :or {identity &quot;&quot;
-                  credential &quot;&quot;
-                  extensions (default-jclouds-extensions)}}]
-  (apply jclouds-blobstore/blobstore
-         provider identity credential extensions))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(extend-type org.jclouds.blobstore.BlobStore
-  pallet.blobstore/Blobstore
-
-  (sign-blob-request [blobstore container path request-map]
-    (let [request (jclouds-blobstore/sign-blob-request
-                   container path request-map blobstore)]
-      {:endpoint (.getEndpoint request)
-       :headers (.. request getHeaders entries)}))
-
-  (put-file [blobstore container path file]
-    (when-not (jclouds-blobstore/container-exists? container blobstore)
-      (jclouds-blobstore/create-container container nil blobstore))
-    (jclouds-blobstore2/put-blob
-     blobstore container
-     (jclouds-blobstore2/blob path :payload (java.io.File. file))
-     :multipart? true))
-
-  (put [blobstore container path payload]
-    (when-not (jclouds-blobstore/container-exists? container blobstore)
-      (jclouds-blobstore/create-container container nil blobstore))
-    (jclouds-blobstore2/put-blob
-     blobstore container
-     (jclouds-blobstore2/blob path :payload payload)
-     :multipart? false))
-
-  (containers [blobstore] (jclouds-blobstore/containers blobstore))
-
-  (close [blobstore] (.. blobstore getContext close)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.blobstore.url-blobstore" name="pallet.blobstore.url-blobstore"><h1 class="project-name">pallet.blobstore.url-blobstore</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A url based blobstore implementation.</p>
+   (apply concat)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.blobstore.url-blobstore" name="pallet.blobstore.url-blobstore"><h1 class="project-name">pallet.blobstore.url-blobstore</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A url based blobstore implementation.</p>
 </td><td class="codes" /><pre class="brush: clojure">(ns pallet.blobstore.url-blobstore
   (:require
    [pallet.blobstore :as blobstore]
@@ -5008,12 +4972,10 @@ with :nested-scope types</p>
    [blobstore]
    &quot;Close the blobstore&quot;))</pre></tr><tr><td class="docs"><p>Add deprecated forwarding functions
 blobstore-from-map
-blobstore-from-settings
 blobstore-from-config
 blobstore-from-config-file</p>
 </td><td class="codes" /></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(utils/fwd-to-configure blobstore-from-map)
-(utils/fwd-to-configure blobstore-from-settings)
 (utils/fwd-to-configure blobstore-from-config)
 (utils/fwd-to-configure blobstore-from-config-file)</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.command-line" name="pallet.command-line"><h1 class="project-name">pallet.command-line</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Taken from clojure.contrib</p>
 </td><td class="codes" /></tr><tr><td class="docs"><p>Process command-line arguments according to a given cmdspec</p>
@@ -5509,14 +5471,14 @@ mvn repo</p>
 </td><td class="codes" /><pre class="brush: clojure">(ns pallet.compute.implementation
   (:require
    [pallet.utils :as utils]
-   [clojure.tools.namespace :as namespace]
-   [clojure.tools.logging :as logging]
-   [clojure.java.classpath :as cp]))</pre></tr><tr><td class="docs">
+   [clojure.tools.logging :as logging])
+  (:use
+   [chiba.plugin :only [plugins]]))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defmulti service
   &quot;Instantiate a compute service. Providers should implement a method for this.
    See pallet.compute/compute-service.&quot;
   (fn [provider-name &amp; _] (keyword provider-name)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def compute-regex #&quot;^pallet\.compute\.[a-z-]+&quot;)
+</td><td class="codes" /><pre class="brush: clojure">(def compute-prefix &quot;pallet.compute&quot;)
 (def exclude-compute-ns
   #{'pallet.compute.jvm
     'pallet.compute.implementation})
@@ -5525,15 +5487,8 @@ mvn repo</p>
 </td><td class="codes" /><pre class="brush: clojure">(defn- providers
   &quot;Find the available providers.&quot;
   []
-  (try
-    (binding [cp/classpath utils/classpath
-              cp/classpath-jarfiles utils/classpath-jarfiles]
-      (-&gt;&gt; (namespace/find-namespaces-on-classpath)
-           (filter #(re-find compute-regex (name %)))
-           (remove #(re-find exclude-regex (name %)))
-           (remove exclude-compute-ns)
-           (set)))
-    (catch java.io.FileNotFoundException _)))</pre></tr><tr><td class="docs">
+  (-&gt;&gt; (plugins compute-prefix exclude-regex)
+       (remove exclude-compute-ns)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn load-providers
   &quot;Require all providers, ensuring no errors if individual providers can not be
    loaded&quot;
@@ -5563,549 +5518,7 @@ mvn repo</p>
       (when-let [providers (ns-resolve provider 'supported-providers)]
         (@providers))))
    (filter identity)
-   (apply concat)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.compute.jclouds" name="pallet.compute.jclouds"><h1 class="project-name">pallet.compute.jclouds</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>jclouds compute service implementation.</p>
-</td><td class="codes" /><pre class="brush: clojure">(ns pallet.compute.jclouds
-  (:require
-   [org.jclouds.compute :as jclouds]
-   [pallet.compute.implementation :as implementation]
-   [pallet.compute.jvm :as jvm]
-   [pallet.compute :as compute]
-   [pallet.environment :as environment]
-   [pallet.node :as node]
-   [pallet.script :as script]
-   [pallet.utils :as utils]
-   [pallet.execute :as execute]
-   [clojure.contrib.condition :as condition]
-   [clojure.tools.logging :as logging])
-  (:import
-   [org.jclouds.compute.domain.internal HardwareImpl ImageImpl NodeMetadataImpl]
-   org.jclouds.compute.util.ComputeServiceUtils
-   org.jclouds.compute.ComputeService
-   org.jclouds.compute.options.RunScriptOptions
-   org.jclouds.compute.options.TemplateOptions
-   [org.jclouds.compute.domain
-    NodeState NodeMetadata Image OperatingSystem OsFamily Hardware Template]
-   org.jclouds.domain.Location
-   org.jclouds.io.Payload
-   org.jclouds.scriptbuilder.domain.Statement
-   com.google.common.base.Predicate))</pre></tr><tr><td class="docs"><p>Meta</p>
-</td><td class="codes" /><pre class="brush: clojure">(defn supported-providers []
-  (ComputeServiceUtils/getSupportedProviders))</pre></tr><tr><td class="docs"><p>Compute service</p>
-</td><td class="codes" /><pre class="brush: clojure">(defn default-jclouds-extensions
-  &quot;Default extensions&quot;
-  [provider]
-  (concat
-   (if (jvm/log4j?) [:log4j] [])
-   (if (jvm/slf4j?) [:slf4j] [])
-   (if (= (name provider) &quot;stub&quot;)
-     (try
-       (require 'pallet.compute.jclouds-ssh-test)
-       (when-let [f (ns-resolve
-                     'pallet.compute.jclouds-ssh-test 'ssh-test-client)]
-         [(f (ns-resolve 'pallet.compute.jclouds-ssh-test 'no-op-ssh-client))])
-       (catch java.io.FileNotFoundException _))
-     [:ssh])))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def ^{:private true :doc &quot;translate option names&quot;}
-  option-keys
-  {:endpoint :jclouds.endpoint})</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn option-key
-  [provider key]
-  (case key
-    :endpoint (keyword (format (str provider &quot;.endpoint&quot;)))
-    (option-keys key key)))</pre></tr><tr><td class="docs"><p>Node utilities</p>
-</td><td class="codes" /><pre class="brush: clojure">(defmacro impl-fns
-  []
-  (let [hw-ctors (.getDeclaredConstructors HardwareImpl)
-        nm-ctors (.getDeclaredConstructors NodeMetadataImpl)
-        ;; jclouds beta-9c introduced tags
-        has-tags (= 11 (count (.getParameterTypes (first hw-ctors))))
-        ;; jclouds 1.1.0 introduced hostname
-        has-hostname (= 18 (count (.getParameterTypes (first nm-ctors))))]
-    `(do
-       (defn hardware-impl
-         [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
-          ~'processors ~'ram ~'volumes ~'image-supported-fn]
-         ~(if has-tags
-            '(HardwareImpl.
-              provider-id name id location uri user-metadata tags
-              processors ram volumes image-supported-fn)
-            '(HardwareImpl.
-              provider-id name id location uri user-metadata
-              processors ram volumes image-supported-fn)))
-       (defn node-metadata-impl
-         [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
-          ~'group-name ~'hardware ~'image-id ~'os ~'state ~'login-port
-          ~'public-ips ~'private-ips ~'admin-password ~'credentials ~'hostname]
-         ~(if has-hostname
-            '(NodeMetadataImpl.
-              provider-id name id location uri user-metadata tags
-              group-name hardware image-id os state login-port
-              public-ips private-ips admin-password credentials hostname)
-            (if has-tags
-              '(NodeMetadataImpl.
-                provider-id name id location uri user-metadata tags
-                group-name hardware image-id os state login-port
-                public-ips private-ips admin-password credentials)
-              '(NodeMetadataImpl.
-                provider-id name id location uri user-metadata
-                group-name hardware image-id os state login-port
-                public-ips private-ips admin-password credentials))))
-       (defn image-impl
-         [~'provider-id ~'name ~'id ~'location ~'uri ~'user-metadata ~'tags
-          ~'os ~'description ~'version ~'admin-password ~'credentials]
-         ~(if has-tags
-            '(ImageImpl.
-              provider-id name id location uri user-metadata tags
-              os description version admin-password credentials)
-            '(ImageImpl.
-              provider-id name id location uri user-metadata
-              os description version admin-password credentials))))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(impl-fns)</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn make-operating-system
-  [{:keys [family name version arch description is-64bit]
-    :or {family OsFamily/UBUNTU
-         name &quot;Ubuntu&quot;
-         version &quot;Some version&quot;
-         arch &quot;Some arch&quot;
-         description &quot;Desc&quot;
-         is-64bit true}}]
-  (OperatingSystem. family name version arch description is-64bit))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def jvm-os-family-map
-  {&quot;AIX&quot; OsFamily/AIX
-   &quot;ARCH&quot; OsFamily/ARCH
-   &quot;Mac OS&quot; OsFamily/DARWIN
-   &quot;Mac OS X&quot; OsFamily/DARWIN
-   &quot;FreeBSD&quot; OsFamily/FREEBSD
-   &quot;HP UX&quot; OsFamily/HPUX
-   &quot;Linux&quot;   OsFamily/UBUNTU ;; guess for now
-   &quot;Solaris&quot; OsFamily/SOLARIS
-   &quot;Windows 2000&quot; OsFamily/WINDOWS
-   &quot;Windows 7&quot; OsFamily/WINDOWS
-   &quot;Windows 95&quot; OsFamily/WINDOWS
-   &quot;Windows 98&quot; OsFamily/WINDOWS
-   &quot;Windows NT&quot; OsFamily/WINDOWS
-   &quot;Windows Vista&quot; OsFamily/WINDOWS
-   &quot;Windows XP&quot; OsFamily/WINDOWS})</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn local-operating-system
-  &quot;Create an OperatingSystem object for the local host&quot;
-  []
-  (let [os-name (System/getProperty &quot;os.name&quot;)]
-    (make-operating-system
-     {:family (or (jvm-os-family-map (jvm/os-name)) OsFamily/UNRECOGNIZED)
-      :name os-name
-      :description os-name
-      :version (System/getProperty &quot;os.version&quot;)
-      :arch (System/getProperty &quot;os.arch&quot;)
-      :is-64bit (= &quot;64&quot; (System/getProperty &quot;sun.arch.data.model&quot;))})))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn make-hardware
-  [{:keys [provider-id name id location uri user-metadata processors ram
-           volumes supports-image tags]
-    :or {provider-id &quot;provider-hardware-id&quot;
-         name &quot;Some Hardware&quot;
-         id &quot;Some id&quot;
-         user-metadata {}
-         processors []
-         ram 512
-         volumes []
-         supports-image (fn [&amp;] true)
-         tags (java.util.HashSet.)}}]
-  (let [image-supported-fn (reify com.google.common.base.Predicate
-                             (apply [_ i] (supports-image i))
-                             (equals [_ i] (= supports-image i)))]
-    (hardware-impl provider-id name id location uri user-metadata tags
-                   processors ram volumes image-supported-fn)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn local-hardware
-  &quot;Create an Hardware object for the local host&quot;
-  []
-  (let [os-name (System/getProperty &quot;os.name&quot;)]
-    (make-hardware {})))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn make-image
-  [id &amp; options]
-  (let [options (apply hash-map options)
-        meta (dissoc options :name :location :uri :user-metadata
-                     :version :operating-system :default-credentials
-                     :description)]
-    (image-impl
-     id ; providerId
-     (options :name)
-     id
-     (options :location)
-     (options :uri)
-     (merge (get options :user-metadata {}) meta)
-     (options :tags #{})
-     (options :operating-system)
-     (options :description &quot;image description&quot;)
-     (options :version &quot;image version&quot;)
-     (options :admin-password)
-     (options :default-credentials))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn compute-node? [object]
-  (instance? NodeMetadata object))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(deftype JcloudsNode
-    [^org.jclouds.compute.domain.NodeMetadata node service]
-  pallet.node/Node
-  (ssh-port
-    [node]
-    (let [md (into {} (.getUserMetadata node))
-          port (:ssh-port md)]
-      (if port (Integer. port))))
-  (primary-ip [node] (first (jclouds/public-ips node)))
-  (private-ip [node] (first (jclouds/private-ips node)))
-  (is-64bit? [node] (.. node getOperatingSystem is64Bit))
-  (group-name [node] (jclouds/tag node))
-  (os-family
-    [node]
-    (when-let [operating-system (.getOperatingSystem node)]
-      (keyword (str (.getFamily operating-system)))))
-  (os-version
-    [node]
-    (when-let [operating-system (.getOperatingSystem node)]
-      (.getVersion operating-system)))
-  (hostname [node] (.getName node))
-  (id [node] (.getId node))
-  (running? [node] (jclouds/running? node))
-  (terminated? [node] (jclouds/terminated? node))
-  (compute-service [node] service)
-  org.jclouds.compute.domain.NodeMetadata
-  ;; ResourceMetadata
-  (getType [_] (.getType node))
-  (getProviderId [_] (.getProviderId node))
-  (getName [_] (.getName node))
-  (getLocation [_] (.getLocation node))
-  (getUri [_] (.getUri node))
-  (getUserMetadata [_] (.getUserMetadata node))
-  ;; ComputeMetadata
-  (getId [_] (.getId node))
-  (getTags [_] (.getTags node))
-  ;; NodeMetadata
-  ;; (getHostname [_] (.getHostname node))
-  (getGroup [_] (.getGroup node))
-  (getHardware [_] (.getHardware node))
-  (getImageId [_] (.getImageId node))
-  (getOperatingSystem [_] (.getOperatingSystem node))
-  (getState [_] (.getState node))
-  (getLoginPort [_] (.getLoginPort node))
-  (getAdminPassword [_] (.getAdminPassword node))
-  (getCredentials [_] (.getCredentials node))
-  (getPublicAddresses [_] (.getPublicAddresses node))
-  (getPrivateAddresses [_] (.getPrivateAddresses node)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn jclouds-node-&gt;node [service node]
-  (JcloudsNode. node service))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn make-node [group-name &amp; options]
-  (let [options (apply hash-map options)]
-    (jclouds-node-&gt;node
-     (:service options)
-     (node-metadata-impl
-      (options :provider-id (options :id group-name))
-      (options :name group-name)        ; name
-      (options :id group-name)          ; id
-      (options :location)
-      (java.net.URI. group-name)        ; uri
-      (options :user-metadata {})
-      (options :tags #{})
-      group-name
-      (if-let [hardware (options :hardware)]
-        (if (map? hardware) (make-hardware hardware) hardware)
-        (make-hardware {}))
-      (options :image-id)
-      (if-let [os (options :operating-system)]
-        (if (map? os) (make-operating-system os) os)
-        (make-operating-system {}))
-      (options :state NodeState/RUNNING)
-      (options :login-port 22)
-      (options :public-ips [])
-      (options :private-ips [])
-      (options :admin-password)
-      (options :credentials nil)
-      (options :hostname (str (gensym group-name)))))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn make-unmanaged-node
-  &quot;Make a node that is not created by pallet's node management.
-   This can be used to manage configuration of any machine accessable over
-   ssh, including virtual machines.&quot;
-  [group-name host-or-ip &amp; options]
-  (let [options (apply hash-map options)
-        meta (dissoc options :location :user-metadata :state :login-port
-                     :public-ips :private-ips :extra :admin-password
-                     :credentials)]
-    (jclouds-node-&gt;node
-     (:service options)
-     (node-metadata-impl
-      (options :provider-id (options :id group-name))
-      (options :name group-name)
-      (options :id (str group-name (rand-int 65000)))
-      (options :location)
-      (java.net.URI. group-name)        ; uri
-      (merge (get options :user-metadata {}) meta)
-      (options :tags #{})
-      group-name
-      (if-let [hardware (options :hardware)]
-        (if (map? hardware) (make-hardware hardware) hardware)
-        (make-hardware {}))
-      (options :image-id)
-      (if-let [os (options :operating-system)]
-        (if (map? os) (make-operating-system os) os)
-        (make-operating-system {}))
-      (get options :state NodeState/RUNNING)
-      (options :login-port 22)
-      (conj (get options :public-ips []) host-or-ip)
-      (options :private-ips [])
-      (options :admin-password)
-      (options :credentials nil)
-      (options :hostname (str (gensym group-name)))))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn- build-node-template
-  &quot;Build the template for specified target node and compute context&quot;
-  [compute group public-key-path init-script]
-  {:pre [(map? group) (:group-name group)]}
-  (logging/info
-   (str &quot;building node template for &quot; (:group-name group)))
-  (when public-key-path
-    (logging/info (str &quot;  authorizing &quot; public-key-path)))
-  (when init-script
-    (logging/debug (str &quot;  init script\n&quot; init-script)))
-  (let [options (-&gt;&gt; [:image :hardware :location :network :qos]
-                     (select-keys group)
-                     vals
-                     (reduce merge))
-        options (if (:default-os-family group)
-                  (dissoc options :os-family) ; remove if we added in
-                                              ; ensure-os-family
-                  options)]
-    (logging/info (str &quot;  options &quot; options))
-    (let [options (if (and public-key-path
-                           (not (:authorize-public-key options)))
-                    (assoc options
-                      :authorize-public-key (slurp public-key-path))
-                    options)
-          options (if (not (:run-script options))
-                    (if init-script
-                      (assoc options :run-script (.getBytes init-script))
-                      options)
-                    options)]
-      (jclouds/build-template compute options))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(deftype JcloudsService
-    [^org.jclouds.compute.ComputeService compute environment]
-  ;; implement jclouds ComputeService by forwarding
-  org.jclouds.compute.ComputeService
-  (getContext [_] (.getContext compute))
-  (templateBuilder [_] (.templateBuilder compute))
-  (templateOptions [_] (.templateOptions compute))
-  (listHardwareProfiles [_] (.listHardwareProfiles compute))
-  (listImages [_] (.listImages compute))
-  (listNodes [_] (.listNodes compute))
-  (listAssignableLocations [_] (.listAssignableLocations compute))
-  ;; (createNodesInGroup [_ group count template]
-  ;;                     (.createNodesInGroup compute group count template))
-  ;; (createNodesInGroup [_ group count]
-  ;;                     (.createNodesInGroup compute group count))
-  (^java.util.Set runNodesWithTag
-    [_ ^String group ^int count ^Template template]
-    (.createNodesInGroup compute group count template))
-  (^java.util.Set runNodesWithTag
-    [_ ^String group ^int count ^TemplateOptions template-options]
-    (.createNodesInGroup compute group count template-options))
-  (^java.util.Set runNodesWithTag
-    [_ ^String group ^int count]
-    (.createNodesInGroup compute group count))
-  (resumeNode [_ id] (.resumeNode compute id))
-  (resumeNodesMatching [_ predicate] (.resumeNodesMatching compute predicate))
-  (suspendNode [_ id] (.suspendNode compute id))
-  (suspendNodesMatching [_ predicate] (.suspendNodesMatching compute predicate))
-  (rebootNode [_ id] (.rebootNode compute id))
-  (rebootNodesMatching [_ predicate] (.rebootNodesMatching compute predicate))
-  (getNodeMetadata [_ id] (.getNodeMetadata compute id))
-  (listNodesDetailsMatching [_ predicate]
-    (.listNodesDetailsMatching compute predicate))
-  (^java.util.Map runScriptOnNodesMatching
-    [_ ^Predicate predicate ^Payload script]
-    (.runScriptOnNodesMatching compute predicate script))
-  (^java.util.Map runScriptOnNodesMatching
-    [_ ^Predicate predicate ^Payload script ^RunScriptOptions options]
-    (.runScriptOnNodesMatching compute predicate script options))
-  ;; (^java.util.Map runScriptOnNodesMatching
-  ;;  [_ ^Predicate predicate ^String script]
-  ;;  (.runScriptOnNodesMatching compute predicate script))
-  ;; (^java.util.Map runScriptOnNodesMatching
-  ;;  [_ ^Predicate predicate ^String script ^RunScriptOptions options]
-  ;;  (.runScriptOnNodesMatching compute predicate script options))
-  ;; (^java.util.Map runScriptOnNodesMatching
-  ;;  [_ ^Predicate predicate ^Statement script]
-  ;;  (.runScriptOnNodesMatching compute predicate script))
-  ;; (^java.util.Map runScriptOnNodesMatching
-  ;;  [_ ^Predicate predicate ^Statement script ^RunScriptOptions options]
-  ;;  (.runScriptOnNodesMatching compute predicate script options))
-  pallet.compute.ComputeService
-  (nodes
-    [service]
-    (map
-     (partial jclouds-node-&gt;node service)
-     (jclouds/nodes-with-details compute)))
-  (ensure-os-family
-    [_ group]
-    (if (-&gt; group :image :os-family)
-      group
-      (let [template (jclouds/build-template compute (:image group))
-            family (-&gt; (.. template getImage getOperatingSystem getFamily)
-                       str keyword)]
-        (logging/infof &quot;OS is %s&quot; (pr-str family))
-        (when (or (nil? family) (= family OsFamily/UNRECOGNIZED))
-          (condition/raise
-           :type :unable-to-determine-os-type
-           :message (format
-                     (str &quot;jclouds was unable to determine the os-family &quot;
-                          &quot;of the template %s&quot;)
-                     (pr-str (:image group)))))
-        (-&gt;
-         group
-         (assoc-in [:image :os-family] family)
-         (assoc-in [:default-os-family] true)))))
-  (run-nodes
-    [service group-spec node-count user init-script options]
-    (letfn [(process-failed-start-nodes
-              [e]
-              (let [bad-nodes (.getNodeErrors e)]
-                (logging/warnf
-                 &quot;Failed to start %s of %s nodes for group %s&quot;
-                 (count bad-nodes)
-                 node-count
-                 (:group-name group-spec))
-                (doseq [node (keys bad-nodes)]
-                  (try
-                    (compute/destroy-node service node)
-                    (catch Exception e
-                      (logging/warnf
-                       e
-                       &quot;Exception while trying to remove failed nodes for %s&quot;
-                       (:group-name group-spec)))))
-                (-&gt;&gt;
-                 (.getSuccessfulNodes e)
-                 (map (partial jclouds-node-&gt;node service))
-                 (filter compute/running?))))]
-      (try
-        (-&gt;&gt;
-         (jclouds/run-nodes
-          (name (:group-name group-spec))
-          node-count
-          (build-node-template
-           compute
-           group-spec
-           (:public-key-path user)
-           init-script)
-          compute)
-         (map (partial jclouds-node-&gt;node service))
-         ;; The following is a workaround for terminated nodes.
-         ;; See http://code.google.com/p/jclouds/issues/detail?id=501
-         (filter compute/running?))
-        (catch org.jclouds.compute.RunNodesException e
-          (process-failed-start-nodes e)))))
-  (reboot
-    [_ nodes]
-    (doseq [node nodes]
-      (jclouds/reboot-node node compute)))
-  (boot-if-down
-    [_ nodes]
-    (map #(jclouds/reboot-node % compute)
-         (filter jclouds/terminated? nodes)))
-  (shutdown-node
-    [_ node user]
-    (let [ip (node/primary-ip node)]
-      (if ip
-        (execute/remote-sudo ip &quot;shutdown -h 0&quot; user {:pty false}))))
-  (shutdown
-    [self nodes user]
-    (doseq [node nodes]
-      (compute/shutdown-node self node user)))
-  (destroy-nodes-in-group
-    [_ group-name]
-    (jclouds/destroy-nodes-with-tag (name group-name) compute))
-  (destroy-node
-    [_ node]
-    (jclouds/destroy-node (compute/id node) compute))
-  (images [_] (jclouds/images compute))
-  (close [_] (.. compute getContext close))
-  pallet.environment.Environment
-  (environment [_] environment))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn node-locations
-  &quot;Return locations of a node as a seq.&quot;
-  [#^NodeMetadata node]
-  (letfn [(loc [#^Location l]
-               (when l (cons l (loc (.getParent l)))))]
-    (loc (.getLocation node))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn image-string
-  [#^Image image]
-  (when image
-    (let [name (.getName image)
-          description (.getDescription image)]
-      (format &quot;%s %s %s %s&quot;
-              (.getFamily (.getOperatingSystem image))
-              (.getArch (.getOperatingSystem image))
-              name
-              (if (= name description)  description)))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn os-string
-  [#^OperatingSystem os]
-  (when os
-    (let [name (.getName os)
-          description (.getDescription os)]
-      (format &quot;%s %s %s %s&quot;
-              (.getFamily os)
-              (.getArch os)
-              name
-              (if (= name description)  description)))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn location-string
-  [#^Location location]
-  (when location
-    (format &quot;%s/%s&quot; (.getScope location) (.getId location))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defmethod clojure.core/print-method Location
-  [location writer]
-  (.write writer (location-string location)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defmethod clojure.core/print-method NodeMetadata
-  [node writer]
-  (.write
-   writer
-   (format
-    &quot;%14s\t %s %s\n\t\t %s\n\t\t %s\n\t\t public: %s  private: %s&quot;
-    (jclouds/tag node)
-    (apply str (interpose &quot;.&quot; (map location-string (node-locations node))))
-    (let [location (.getLocation node)]
-      (when (and location
-                 (not (= (.getDescription location) (.getId location))))
-        (.getDescription location)))
-    (os-string (.getOperatingSystem node))
-    (.getState node)
-    (apply
-     str (interpose &quot;, &quot; (.getPublicAddresses node)))
-    (apply
-     str (interpose &quot;, &quot; (.getPrivateAddresses node))))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def jvm-os-map
-     { &quot;Mac OS X&quot; :os-x })</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn make-localhost-node
-  &quot;Make a node representing the local host&quot;
-  []
-  (make-node &quot;localhost&quot;
-             :public-ips [&quot;127.0.0.1&quot;]
-             :operating-system (local-operating-system)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn local-session
-  &quot;Create a session map for localhost&quot;
-  []
-  (let [node (make-localhost-node)]
-    {:all-nodes [node]
-     :server {:image [(get jvm-os-map (System/getProperty &quot;os.name&quot;))]
-              :node node}}))</pre></tr><tr><td class="docs"><p>service factory implementation for jclouds</p>
-</td><td class="codes" /><pre class="brush: clojure">(defmethod implementation/service :default
-  [provider {:keys [identity credential extensions endpoint environment]
-             :or {extensions (default-jclouds-extensions provider)}
-             :as options}]
-  (logging/debugf &quot;extensions %s&quot; (pr-str extensions))
-  (let [options (dissoc
-                 options
-                 :identity :credential :extensions :blobstore :environment)]
-    (JcloudsService.
-     (apply
-      jclouds/compute-service
-      (name provider) identity credential
-      :extensions extensions
-      (interleave
-       (map #(option-key provider %) (keys options))
-       (vals options)))
-     environment)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.compute.jvm" name="pallet.compute.jvm"><h1 class="project-name">pallet.compute.jvm</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Information from local jvm</p>
+   (apply concat)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.compute.jvm" name="pallet.compute.jvm"><h1 class="project-name">pallet.compute.jvm</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Information from local jvm</p>
 </td><td class="codes" /><pre class="brush: clojure">(ns pallet.compute.jvm)</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(def jvm-os-map
   {&quot;Mac OS X&quot; :os-x})</pre></tr><tr><td class="docs">
@@ -6159,10 +5572,13 @@ mvn repo</p>
    [pallet.compute.implementation :as implementation]
    [pallet.environment :as environment]
    [pallet.node :as node]
-   [clojure.contrib.condition :as condition]
    [clojure.string :as string])
   (:use
-   [pallet.utils :only [apply-map]]))</pre></tr><tr><td class="docs">
+   [pallet.utils :only [apply-map]]))</pre></tr><tr><td class="docs"><p>slingshot version compatibility</p>
+</td><td class="codes" /><pre class="brush: clojure">(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defrecord Node
     [name group-name ip os-family os-version id ssh-port private-ip is-64bit
      running service]
@@ -6203,9 +5619,9 @@ mvn repo</p>
   (ensure-os-family
     [compute-service group-spec]
     (when (not (-&gt; group-spec :image :os-family))
-      (condition/raise
-       :type :no-os-family-specified
-       :message &quot;Node list contains a node without os-family&quot;)))
+      (throw+
+       {:type :no-os-family-specified
+        :message &quot;Node list contains a node without os-family&quot;})))
   ;; Not implemented
   ;; (run-nodes [node-type node-count request init-script options])
   ;; (reboot &quot;Reboot the specified nodes&quot;)
@@ -6275,515 +5691,17 @@ mvn repo</p>
   {:added &quot;0.6.8&quot;}
   [node-list &amp; {:keys [environment] :as options}]
   (apply-map
-   compute/compute-service :node-list (assoc options :node-list node-list)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.compute.vmfest" name="pallet.compute.vmfest"><h1 class="project-name">pallet.compute.vmfest</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A vmfest provider.</p>
-
-<p>   An example service configuration in ~/.pallet/config.clj</p>
-
-<pre><code>   :vb {:provider "virtualbox"
-        :images {:centos-5-3 {:description "CentOS 5.3 32bit"
-                              :uuid "4697bdf7-7acf-4a20-8c28-e20b6bb58e25"
-                              :os-family :centos
-                              :os-version "5.3"
-                              :os-type-id "RedHat"}
-                 :ubuntu-10-04 {:description "Ubuntu 10.04 32bit"
-                                :uuid "8a31e3aa-0d46-41a5-936d-25130dcb16b7"
-                                :os-family :ubuntu
-                                :os-version "10.04"
-                                :os-type-id "Ubuntu"
-                                :username
-                                :password}}
-        :model-path "/Volumes/My Book/vms/disks"
-        :node-path "/Volumes/My Book/vms/nodes"}
-</code></pre>
-
-<p>   The uuid's can be found using vboxmanage
-       vboxmanage list hdds</p>
-
-<p>   The images are disks that are immutable.  The virtualbox extensions need
-   to be installed on the image.</p>
-</td><td class="codes" /><pre class="brush: clojure">(ns pallet.compute.vmfest
-  &quot;A vmfest provider.
-   An example service configuration in ~/.pallet/config.clj
-       :vb {:provider \&quot;virtualbox\&quot;
-            :images {:centos-5-3 {:description \&quot;CentOS 5.3 32bit\&quot;
-                                  :uuid \&quot;4697bdf7-7acf-4a20-8c28-e20b6bb58e25\&quot;
-                                  :os-family :centos
-                                  :os-version \&quot;5.3\&quot;
-                                  :os-type-id \&quot;RedHat\&quot;}
-                     :ubuntu-10-04 {:description \&quot;Ubuntu 10.04 32bit\&quot;
-                                    :uuid \&quot;8a31e3aa-0d46-41a5-936d-25130dcb16b7\&quot;
-                                    :os-family :ubuntu
-                                    :os-version \&quot;10.04\&quot;
-                                    :os-type-id \&quot;Ubuntu\&quot;
-                                    :username
-                                    :password}}
-            :model-path \&quot;/Volumes/My Book/vms/disks\&quot;
-            :node-path \&quot;/Volumes/My Book/vms/nodes\&quot;}
-   The uuid's can be found using vboxmanage
-       vboxmanage list hdds
-   The images are disks that are immutable.  The virtualbox extensions need
-   to be installed on the image.&quot;
-  (:require
-   [clojure.contrib.condition :as condition]
-   [clojure.java.io :as io]
-   [clojure.string :as string]
-   [clojure.tools.logging :as logging]
-   [pallet.action-plan :as action-plan]
-   [pallet.blobstore :as blobstore]
-   [pallet.common.filesystem :as filesystem]
-   [pallet.compute :as compute]
-   [pallet.compute.implementation :as implementation]
-   [pallet.compute.jvm :as jvm]
-   [pallet.environment :as environment]
-   [pallet.execute :as execute]
-   [pallet.futures :as futures]
-   [pallet.node :as node]
-   [pallet.script :as script]
-   [pallet.stevedore :as stevedore]
-   [pallet.utils :as utils]
-   [vmfest.manager :as manager]
-   [vmfest.virtualbox.enums :as enums]
-   [vmfest.virtualbox.image :as image]
-   [vmfest.virtualbox.machine :as machine]
-   [vmfest.virtualbox.model :as model]
-   [vmfest.virtualbox.session :as session]
-   [vmfest.virtualbox.virtualbox :as virtualbox]))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn supported-providers []
-  [&quot;virtualbox&quot;])</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def os-family-name
-  {:ubuntu &quot;Ubuntu&quot;
-   :centos &quot;RedHat&quot;
-   ;:rhel &quot;RedHat&quot;
-   :rhel &quot;RedHat_64&quot;})</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def ip-tag &quot;/pallet/ip&quot;)
-(def group-name-tag &quot;/pallet/group-name&quot;)
-(def os-family-tag &quot;/pallet/os-family&quot;)
-(def os-version-tag &quot;/pallet/os-version&quot;)</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def *vm-session-type* &quot;headless&quot;) ; gui, headless or sdl</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def os-family-from-name
-  (zipmap (vals os-family-name) (keys os-family-name)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(extend-type vmfest.virtualbox.model.Machine
-  pallet.node/Node
-  (ssh-port [node] 22)
-  (primary-ip
-   [node]
-   (condition/handler-case
-    :type
-    (manager/get-ip node)
-    (handle :vbox-runtime
-      (manager/get-extra-data node ip-tag))))
-  (private-ip [node] nil)
-  (is-64bit?
-   [node]
-   (let [os-type-id (session/with-no-session node [m] (.getOSTypeId m))]
-     (boolean (re-find #&quot;_64&quot; os-type-id))))
-  (group-name
-   [node]
-   (let [group-name (manager/get-extra-data node group-name-tag)]
-     (if (string/blank? group-name)
-       (manager/get-extra-data node group-name-tag)
-       group-name)))
-  (hostname
-   [node]
-   (session/with-no-session node [m]
-     (.getName m)))
-  (os-family
-   [node]
-   (let [os-name (session/with-no-session node [m] (.getOSTypeId m))]
-     (or
-      (when-let [os-family (manager/get-extra-data node os-family-tag)]
-        (when-not (string/blank? os-family)
-          (keyword os-family)))
-      (os-family-from-name os-name os-name)
-      :centos) ;; hack!
-     ))
-  (os-version
-   [node]
-   (or
-    (manager/get-extra-data node os-version-tag)
-    &quot;5.3&quot;))
-  (running?
-   [node]
-   (and
-    (session/with-no-session node [vb-m] (.getAccessible vb-m))
-    (= :running (manager/state node))))
-  (terminated? [node] false)
-  (id [node] (:id node)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn nil-if-blank [x]
-  (if (string/blank? x) nil x))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn- current-time-millis []
-  (System/currentTimeMillis))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn wait-for-ip
-  &quot;Wait for the machines IP to become available.&quot;
-  ([machine] (wait-for-ip machine 300000))
-  ([machine timeout]
-     (let [timeout (+ (current-time-millis) timeout)]
-       (loop []
-         (try
-           (let [ip (try (manager/get-ip machine)
-                         (catch org.virtualbox_4_0.VBoxException e
-                           (logging/warnf
-                            &quot;wait-for-ip: Machine %s not started yet...&quot;
-                            machine))
-                         (catch clojure.contrib.condition.Condition e
-                           (logging/warnf
-                            &quot;wait-for-ip: Machine %s is not accessible yet...&quot;
-                            machine)))]
-             (if (and (string/blank? ip) (&lt; (current-time-millis) timeout))
-               (do
-                 (Thread/sleep 2000)
-                 (recur))
-               ip)))))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn machine-name
-  &quot;Generate a machine name&quot;
-  [group-name n]
-  (format &quot;%s-%s&quot; group-name n))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defprotocol VirtualBoxService
-  (os-families [compute] &quot;Return supported os-families&quot;)
-  (medium-formats [compute] &quot;Return supported medium-formats&quot;))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn node-data [m]
-  (let [attributes (session/with-no-session m [im]
-                     [(.getName im)
-                      (.getDescription im)
-                      (.getSessionState im)])
-        open? (= :open
-                 (session/with-no-session m [im]
-                   (enums/session-state-to-key
-                    (.getSessionState im))))
-        ip (when open? (manager/get-ip m))
-        group-name (when open? (manager/get-extra-data m group-name-tag))]
-    (into attributes {:ip ip :group-name group-name}) ))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn node-infos [compute-service]
-  (let [nodes (manager/machines compute-service)]
-    (map node-data nodes)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn add-sata-controller [m]
-  {:pre [(model/IMachine? m)]}
-  (machine/add-storage-controller m &quot;SATA Controller&quot; :sata))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn basic-config [m {:keys [memory-size cpu-count] :as parameters}]
-  (let [parameters (merge {:memory-size 512 :cpu-count 1} parameters)]
-    (manager/configure-machine m parameters)
-    (manager/set-bridged-network m &quot;en1: AirPort&quot;)
-    (manager/add-ide-controller m)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def hardware-parameters
-  {:min-ram :memory-size
-   :min-cores :cpu-count})</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def hardware-config
-  {:bridged-network (fn [m iface] (manager/set-bridged-network m iface))})</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn machine-model-with-parameters
-  &quot;Set a machine basic parameters and default configuration&quot;
-  [m image]
-  (let [hw-keys (filter hardware-parameters (keys image))]
-    (basic-config
-     m (zipmap (map hardware-parameters hw-keys) (map image hw-keys)))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn machine-model
-  &quot;Construct a machine model function from a node image spec&quot;
-  [image]
-  (fn [m]
-    (logging/debugf &quot;Machine model for %s&quot; image)
-    (machine-model-with-parameters m image)
-    (doseq [kw (filter hardware-config (keys image))]
-      ((hardware-config kw) m (image kw)))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn create-node
-  [compute node-path node-spec machine-name images image-id machine-models
-   group-name init-script user]
-  {:pre [image-id]}
-  (logging/tracef &quot;Creating node from image-id: %s&quot; image-id)
-  (let [machine (binding [manager/*images* images
-                          manager/*machine-models* machine-models]
-                  (manager/instance
-                   compute machine-name image-id :micro node-path))
-        image (image-id images)]
-    (manager/set-extra-data machine group-name-tag group-name)
-    (manager/set-extra-data machine os-family-tag (name (:os-family image)))
-    (manager/set-extra-data machine os-version-tag (:os-version image))
-    ;; (manager/add-startup-command machine 1 init-script )
-    (manager/start
-     machine
-     :session-type (or
-                    (:session-type node-spec)
-                    *vm-session-type*))
-    (logging/trace &quot;Wait to allow boot&quot;)
-    (Thread/sleep 15000)                ; wait minimal time for vm to boot
-    (logging/trace &quot;Waiting for ip&quot;)
-    (when (string/blank? (wait-for-ip machine))
-      (manager/destroy machine)
-      (condition/raise
-       :type :no-ip-available
-       :message &quot;Could not determine IP address of new node&quot;))
-    (Thread/sleep 4000)
-    (logging/tracef &quot;Bootstrapping %s&quot; (manager/get-ip machine))
-    (script/with-script-context
-      (action-plan/script-template-for-server {:image image})
-      (stevedore/with-script-language :pallet.stevedore.bash/bash
-        (let [user (if (:username image)
-                     (pallet.utils/make-user
-                      (:username image)
-                      :password (:password image)
-                      :no-sudo (:no-sudo image)
-                      :sudo-password (:sudo-password image))
-                     user)
-              {:keys [out exit]} (execute/remote-sudo
-                                  (manager/get-ip machine) init-script user
-                                  {:pty (not
-                                         (#{:arch :fedora}
-                                          (:os-family image)))})]
-          (when-not (zero? exit)
-            (manager/destroy machine)
-            (condition/raise
-             :message (format &quot;Bootstrap failed: %s&quot; out)
-             :type :pallet/bootstrap-failure
-             :group-spec node-spec)))))
-    machine))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn- equality-match
-  [image-properties kw arg]
-  (= (image-properties kw) arg))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn- regexp-match
-  [image-properties kw arg]
-  (when-let [value (image-properties kw)]
-    (re-matches (re-pattern arg) value)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def template-matchers
-  {:os-version-matches (fn [image-properties kw arg]
-                         (regexp-match image-properties :os-version arg))})</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn image-from-template
-  &quot;Use the template to select an image from the image map.&quot;
-  [images template]
-  (let [template-to-match (utils/dissoc-keys
-                           template
-                           (concat
-                            [:image-id :inbound-ports]
-                            (keys hardware-config)
-                            (keys hardware-parameters)))]
-    (logging/debugf &quot;Looking for %s in %s&quot; template-to-match images)
-    (if-let [image-id (:image-id template)]
-      (image-id images)
-      (-&gt;
-       (filter
-        (fn image-matches? [[image-name image-properties]]
-          (every?
-           #(((first %) template-matchers equality-match)
-             image-properties (first %) (second %))
-           template-to-match))
-        images)
-       ffirst))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn serial-create-nodes
-  &quot;Create all nodes for a group in parallel.&quot;
-  [target-machines-to-create server node-path node-spec images image-id
-   machine-models group-name init-script user]
-  (doall
-   (for [name target-machines-to-create]
-     (create-node
-      server node-path node-spec name images image-id machine-models group-name
-      init-script user))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn parallel-create-nodes
-  &quot;Create all nodes for a group in parallel.&quot;
-  [target-machines-to-create server node-path node-spec images image-id
-   machine-models group-name init-script user]
-  ;; the doseq ensures that all futures are completed before
-  ;; returning
-  (-&gt;&gt;
-   (for [name target-machines-to-create]
-     (future
-       (create-node
-        server node-path node-spec name images image-id
-        machine-models group-name init-script user)))
-   doall ;; doall forces creation of all futures before any deref
-   futures/add
-   (map #(futures/deref-with-logging % &quot;Start of node&quot;))
-   (filter identity)
-   doall))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def
-  ^{:dynamic true
-    :doc (str &quot;The buffer size (in bytes) for the piped stream used to implement
-    the :stream option for :out. If your ssh commands generate a high volume of
-    output, then this buffer size can become a bottleneck. You might also
-    increase the frequency with which you read the output stream if this is an
-    issue.&quot;)}
-  *piped-stream-buffer-size* (* 1024 1024))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn- piped-streams
-  []
-  (let [os (java.io.PipedOutputStream.)]
-    [os (java.io.PipedInputStream. os *piped-stream-buffer-size*)]))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn gzip [from to]
-  (with-open [input (io/input-stream from)
-              output (java.util.zip.GZIPOutputStream. (io/output-stream to))]
-    (io/copy input output)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defprotocol ImageManager
-  (install-image [service url {:as options}]
-    &quot;Install the image from the specified `url`&quot;)
-  (publish-image [service image blobstore container {:keys [path] :as options}]
-    &quot;Publish the image to the specified blobstore container&quot;)
-  (has-image? [service image-key]
-    &quot;Predicate to test for the presence of a specific image&quot;))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(deftype VmfestService
-    [server images locations environment]
-  pallet.compute/ComputeService
-  (nodes [compute-service] (manager/machines server))
-  (ensure-os-family [compute-service group] group)
-  (run-nodes
-    [compute-service group-spec node-count user init-script options]
-    (try
-      (let [template (-&gt;&gt; [:image :hardware :location :network :qos]
-                          (select-keys group-spec)
-                          vals
-                          (reduce merge))
-            _ (logging/infof &quot;Template %s&quot; template)
-            image-id (or (image-from-template @images template)
-                         (throw (RuntimeException.
-                                 (format &quot;No matching image for %s in&quot;
-                                         (pr-str (:image group-spec))
-                                         (@images)))))
-            group-name (name (:group-name group-spec))
-            machines (filter
-                      #(session/with-no-session % [vb-m] (.getAccessible vb-m))
-                      (manager/machines server))
-            current-machines-in-group (filter
-                                       #(= group-name
-                                           (manager/get-extra-data
-                                            % group-name-tag))
-                                       machines)
-            current-machine-names (into #{}
-                                        (map
-                                         #(session/with-no-session % [m]
-                                            (.getName m))
-                                         current-machines-in-group))
-            target-indices (range (+ node-count
-                                     (count current-machines-in-group)))
-            target-machine-names (into #{}
-                                       (map
-                                        #(machine-name group-name %)
-                                        target-indices))
-            target-machines-already-existing (clojure.set/intersection
-                                              current-machine-names
-                                              target-machine-names)
-            target-machines-to-create (clojure.set/difference
-                                       target-machine-names
-                                       target-machines-already-existing)]
-        (logging/debug (str &quot;current-machine-names &quot; current-machine-names))
-        (logging/debug (str &quot;target-machine-names &quot; target-machine-names))
-        (logging/debug (str &quot;target-machines-already-existing &quot;
-                            target-machines-already-existing))
-        (logging/debug (str &quot;target-machines-to-create&quot;
-                            target-machines-to-create))
-        ((get-in environment [:algorithms :vmfest :create-nodes-fn]
-                 parallel-create-nodes)
-         target-machines-to-create server (:node-path locations)
-         group-spec @images image-id
-         {:micro (machine-model (@images image-id))}
-         group-name init-script user))))
-  (reboot
-    [compute nodes]
-    (compute/shutdown server nodes nil)
-    (compute/boot-if-down server nodes))
-  (boot-if-down
-    [compute nodes]
-    (doseq [node nodes]
-      (manager/start node)))
-  (shutdown-node
-    [compute node _]
-    ;; todo: wait for completion
-    (logging/infof &quot;Shutting down %s&quot; (pr-str node))
-    (manager/power-down node)
-    (if-let [state (manager/wait-for-machine-state node [:powered-off] 300000)]
-      (logging/infof &quot;Machine state is %s&quot; state)
-      (logging/warn &quot;Failed to wait for power down completion&quot;))
-    (manager/wait-for-lockable-session-state node 2000))
-  (shutdown
-    [compute nodes user]
-    (doseq [node nodes]
-      (compute/shutdown-node server node user)))
-  (destroy-nodes-in-group
-    [compute group-name]
-    (let [nodes (locking compute ;; avoid disappearing machines
-                  (filter
-                   #(and
-                     (node/running? %)
-                     (= group-name (manager/get-extra-data % group-name-tag)))
-                   (manager/machines server)))]
-      (doseq [machine nodes]
-        (compute/destroy-node compute machine))))
-  (destroy-node
-    [compute node]
-    {:pre [node]}
-    (compute/shutdown-node compute node nil)
-    (manager/destroy node))
-  (images [compute]
-    @images)
-  (close [compute])
-  pallet.environment.Environment
-  (environment [_] environment)
-  ImageManager
-  (install-image
-    [compute url {:as options}]
-    (logging/infof &quot;installing image to %s&quot; (:model-path locations))
-    (when-let [job (image/setup-model
-                    url server :models-dir (:model-path locations))]
-      (swap! images merge (:meta job))))
-  (publish-image [service image-kw blobstore container {:keys [path]}]
-    (if-let [image (image-kw @images)]
-      (session/with-vbox server [_ vbox]
-        (let [medium (virtualbox/find-medium vbox (:uuid image))
-              file (java.io.File. (.getLocation medium))]
-          (filesystem/with-temp-file [gzip-file]
-            (logging/infof &quot;gzip to %s&quot; (.getPath gzip-file))
-            (gzip file gzip-file)
-            (logging/infof &quot;put gz %s&quot; (.getPath gzip-file))
-            (try
-              (blobstore/put
-               blobstore container (or path (str (.getName file) &quot;.gz&quot;))
-               gzip-file)
-              (catch Exception e
-                (logging/error e &quot;Upload failed&quot;))))
-          (logging/info &quot;put meta&quot;)
-          (blobstore/put
-           blobstore container
-           (string/replace (or path (.getName file)) #&quot;\.vdi.*&quot; &quot;.meta&quot;)
-           (pr-str {image-kw (dissoc image :uuid)}))))
-      (let [msg (format
-                 &quot;Could not find image %s. Known images are %s.&quot;
-                 image-kw (keys @images))]
-        (logging/error msg)
-        (condition/raise
-         {:type :pallet/unkown-image
-          :image image-kw
-          :known-images (keys @images)
-          :message msg}))))
-  (has-image? [_ image-kw]
-    ((or @images {}) image-kw)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn add-image [compute url &amp; {:as options}]
-  (install-image compute url options))</pre></tr><tr><td class="docs"><p>Compute service</p>
-</td><td class="codes" /><pre class="brush: clojure">(defmethod implementation/service :virtualbox
-  [_ {:keys [url identity credential images node-path model-path locations
-             environment]
-      :or {url &quot;http://localhost:18083/&quot;
-           identity &quot;test&quot;
-           credential &quot;test&quot;
-           model-path (manager/default-model-path)
-           node-path (manager/default-node-path)}
-      :as options}]
-  (let [locations (or locations
-                      {:local {:node-path node-path :model-path model-path}})
-        images (merge (manager/load-models :model-path model-path) images)]
-    (VmfestService.
-     (vmfest.virtualbox.model.Server. url identity credential)
-     (atom images)
-     (val (first locations))
-     environment)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defmethod clojure.core/print-method vmfest.virtualbox.model.Machine
-  [node writer]
-  (.write
-   writer
-   (format
-    &quot;%14s\t %14s\t public: %s&quot;
-    (try (node/hostname node) (catch Throwable e &quot;unknown&quot;))
-    (try (node/group-name node) (catch Throwable e &quot;unknown&quot;))
-    (try (node/primary-ip node) (catch Throwable e &quot;unknown&quot;)))))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.compute" name="pallet.compute"><h1 class="project-name">pallet.compute</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Abstraction of the compute interface</p>
+   compute/compute-service :node-list (assoc options :node-list node-list)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.compute" name="pallet.compute"><h1 class="project-name">pallet.compute</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Abstraction of the compute interface</p>
 </td><td class="codes" /><pre class="brush: clojure">(ns pallet.compute
   (:require
    [pallet.common.deprecate :as deprecate]
    [pallet.compute.implementation :as implementation]
    [pallet.node :as node]
-   [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]))</pre></tr><tr><td class="docs"><p>Meta</p>
+   [pallet.utils :as utils]))</pre></tr><tr><td class="docs"><p>slingshot version compatibility</p>
+</td><td class="codes" /><pre class="brush: clojure">(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))</pre></tr><tr><td class="docs"><p>Meta</p>
 </td><td class="codes" /><pre class="brush: clojure">(defn supported-providers
   &quot;A list of supported provider names.  Each name is suitable to be passed
    to compute-service.&quot;
@@ -6843,17 +5761,17 @@ mvn repo</p>
    (:packager target)
    (let [os-family (:os-family target)]
      (cond
-      (#{:ubuntu :debian :jeos} os-family) :aptitude
-      (#{:centos :rhel :amzn-linux :fedora} os-family) :yum
-      (#{:arch} os-family) :pacman
-      (#{:suse} os-family) :zypper
-      (#{:gentoo} os-family) :portage
-      (#{:darwin :os-x} os-family) :brew
-      :else (condition/raise
-             :type :unknown-packager
-             :message (format
-                       &quot;Unknown packager for %s - :image %s&quot;
-                       os-family target))))))</pre></tr><tr><td class="docs">
+       (#{:ubuntu :debian :jeos} os-family) :aptitude
+       (#{:centos :rhel :amzn-linux :fedora} os-family) :yum
+       (#{:arch} os-family) :pacman
+       (#{:suse} os-family) :zypper
+       (#{:gentoo} os-family) :portage
+       (#{:darwin :os-x} os-family) :brew
+       :else (throw+
+              {:type :unknown-packager
+               :message (format
+                         &quot;Unknown packager for %s - :image %s&quot;
+                         os-family target)})))))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn base-distribution
   &quot;Base distribution for the target.&quot;
   [target]
@@ -6861,17 +5779,17 @@ mvn repo</p>
    (:base-distribution target)
    (let [os-family (:os-family target)]
      (cond
-      (#{:ubuntu :debian :jeos} os-family) :debian
-      (#{:centos :rhel :amzn-linux :fedora} os-family) :rh
-      (#{:arch} os-family) :arch
-      (#{:suse} os-family) :suse
-      (#{:gentoo} os-family) :gentoo
-      (#{:darwin :os-x} os-family) :os-x
-      :else (condition/raise
-             :type :unknown-packager
-             :message (format
-                       &quot;Unknown base-distribution for %s - target is %s&quot;
-                       os-family target))))))</pre></tr><tr><td class="docs">
+       (#{:ubuntu :debian :jeos} os-family) :debian
+       (#{:centos :rhel :amzn-linux :fedora} os-family) :rh
+       (#{:arch} os-family) :arch
+       (#{:suse} os-family) :suse
+       (#{:gentoo} os-family) :gentoo
+       (#{:darwin :os-x} os-family) :os-x
+       :else (throw+
+              {:type :unknown-packager
+               :message (format
+                         &quot;Unknown base-distribution for %s - target is %s&quot;
+                         os-family target)})))))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn admin-group
   &quot;User that remote commands are run under&quot;
   [target]
@@ -6880,7 +5798,6 @@ mvn repo</p>
     :rhel &quot;wheel&quot;
     &quot;adm&quot;))</pre></tr><tr><td class="docs"><p>forward moved functions
 compute-service-from-map
-compute-service-from-settings
 compute-service-from-config-var
 compute-service-from-property
 compute-service-from-config
@@ -6888,7 +5805,6 @@ compute-service-from-config-file
 service -> configure/compute-service</p>
 </td><td class="codes" /></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(utils/fwd-to-configure compute-service-from-map)
-(utils/fwd-to-configure compute-service-from-settings)
 (utils/fwd-to-configure compute-service-from-config-var)
 (utils/fwd-to-configure compute-service-from-property)
 (utils/fwd-to-configure compute-service-from-config)
@@ -7084,23 +6000,6 @@ service -> configure/compute-service</p>
   (check-deprecations config)
   (compute-service-from-map
    (compute-service-properties config profiles)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn compute-service-from-settings
-  &quot;Create a compute service from maven property settings.
-   In Maven's settings.xml you can define a profile, that contains
-   pallet.compute.provider, pallet.compute.identity and
-   pallet.compute.credential values.&quot;
-  [&amp; profiles]
-  (try
-    (require 'pallet.maven)             ; allow running without maven jars
-    (when-let [f (ns-resolve 'pallet.maven 'credentials)]
-      (when-let [service (compute-service-from-map (f profiles))]
-        (deprecate/warn
-         (str
-          &quot;Use of settings.xml for pallet configuration is &quot;
-          &quot;deprecated. Please change to use config.clj.&quot;))
-        service))
-    (catch ClassNotFoundException _)
-    (catch clojure.lang.Compiler$CompilerException _)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn compute-service-from-config-var
   &quot;Checks to see if pallet.config/service is a var, and if so returns its
   value.&quot;
@@ -7145,12 +6044,10 @@ service -> configure/compute-service</p>
      (or
       (compute-service-from-property)
       (compute-service-from-config-var)
-      (compute-service-from-config-file)
-      (compute-service-from-settings)))
+      (compute-service-from-config-file)))
   ([service-name]
      (or
-      (compute-service-from-config-file service-name)
-      (compute-service-from-settings service-name)))
+      (compute-service-from-config-file service-name)))
   ([provider-name
     &amp; {:keys [identity credential extensions node-list endpoint environment]
        :as options}]
@@ -7177,20 +6074,6 @@ service -> configure/compute-service</p>
                    (:identity credentials))
      :credential (or (:blobstore-credential credentials)
                      (:credential credentials)))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn blobstore-from-settings
-  &quot;Create a blobstore service from ~/.m2/settings.xml propery settings.&quot;
-  [&amp; profiles]
-  (try
-    (require 'pallet.maven)             ; allow running without maven jars
-    (when-let [f (ns-resolve 'pallet.maven 'credentials)]
-      (when-let [service (blobstore-from-map (f profiles))]
-        (deprecate/warn
-         (str
-          &quot;Use of settings.xml for pallet configuration is &quot;
-          &quot;deprecated. Please change to use config.clj.&quot;))
-        service))
-    (catch ClassNotFoundException _)
-    (catch clojure.lang.Compiler$CompilerException _)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn blobstore-from-config
   &quot;Create a blobstore service form a configuration map.&quot;
   [config profiles]
@@ -7376,12 +6259,15 @@ service -> configure/compute-service</p>
    [pallet.script :as script]
    [pallet.thread-expr :as thread-expr]
    [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]
    [clojure.tools.logging :as logging]
    [clojure.set :as set]
    [clojure.string :as string])
   (:use
-   [clojure.core.incubator :only [-?&gt;]]))</pre></tr><tr><td class="docs">
+   [clojure.core.incubator :only [-?&gt;]]))</pre></tr><tr><td class="docs"><p>slingshot version compatibility</p>
+</td><td class="codes" /><pre class="brush: clojure">(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(let [v (atom nil)]
   (defn version
     &quot;Returns the pallet version.&quot;
@@ -7513,11 +6399,47 @@ service -> configure/compute-service</p>
    (extend-specs extends)
    (dissoc :extends :node-spec)
    (assoc :group-name (keyword name))))</pre></tr><tr><td class="docs">
+</td><td class="codes" /><pre class="brush: clojure">(defn expand-cluster-groups
+  &quot;Expand a node-set into its groups&quot;
+  [node-set]
+  (cond
+   (sequential? node-set) (mapcat expand-cluster-groups node-set)
+   (map? node-set) (if-let [groups (:groups node-set)]
+                     (mapcat expand-cluster-groups groups)
+                     [node-set])
+   :else [node-set]))</pre></tr><tr><td class="docs">
+</td><td class="codes" /><pre class="brush: clojure">(defn expand-group-spec-with-counts
+  &quot;Expand a converge node spec into its groups&quot;
+  ([node-set spec-count]
+     (letfn [(*1 [x y] (* (or x 1) y))
+             (scale-spec [spec factor]
+               (update-in spec [:count] *1 factor))
+             (set-spec [node-spec]
+               (mapcat
+                (fn [[node-spec spec-count]]
+                  (if-let [groups (:groups node-spec)]
+                    (expand-group-spec-with-counts groups spec-count)
+                    [(assoc node-spec :count spec-count)]))
+                node-set))]
+       (cond
+        (sequential? node-set) (mapcat
+                                #(expand-group-spec-with-counts % spec-count)
+                                node-set)
+        (map? node-set) (if-let [groups (:groups node-set)]
+                          (let [spec (scale-spec node-set spec-count)]
+                            (mapcat
+                             #(expand-group-spec-with-counts % (:count spec))
+                             groups))
+                          (if (:group-name node-set)
+                            [(scale-spec node-set spec-count)]
+                            (set-spec node-spec)))
+        :else [(scale-spec node-set spec-count)])))
+  ([node-set] (expand-group-spec-with-counts node-set 1)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn cluster-spec
   &quot;Create a cluster-spec.
    `name` is used as a prefix for all groups in the cluster.
    - :groups    specify a sequence of groups that define the cluster
-   - :extends   specify a server-spec, a group-spec, or sequence thereof,
+   - :extends   specify a server-spec, a group-spec, or sequence thereof
                 for all groups in the cluster
    - :phases    define phases on all groups.
    - :node-spec default node-spec for the nodes in the cluster
@@ -7542,7 +6464,7 @@ service -> configure/compute-service</p>
                     (extend-specs extends)
                     (extend-specs [{:phases phases}])
                     (extend-specs [(select-keys group-spec [:phases])])))
-                 group-specs)))
+                 (expand-group-spec-with-counts group-specs 1))))
    (dissoc :extends :node-spec)
    (assoc :cluster-cluster-name (keyword cluster-name))))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn make-node
@@ -7619,16 +6541,16 @@ service -> configure/compute-service</p>
 </td><td class="codes" /><pre class="brush: clojure">(defn- executor [session f action-type location]
   (let [exec-fn (get-in session [:executor action-type location])]
     (when-not exec-fn
-      (condition/raise
-       :type :missing-executor-fn
-       :fn-for [action-type location]
-       :message (format
-                 &quot;Missing executor function for %s %s&quot;
-                 action-type location)))
+      (throw+
+       {:type :missing-executor-fn
+        :fn-for [action-type location]
+        :message (format
+                  &quot;Missing executor function for %s %s&quot;
+                  action-type location)}))
     (exec-fn session f)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(let [raise (fn [message]
               (fn [_ _]
-                (condition/raise :type :executor-error :message message)))]
+                (throw+ {:type :executor-error :message message})))]
   (def ^{:doc &quot;Default executor map&quot;}
     default-executors
     {:script/bash
@@ -7655,9 +6577,9 @@ service -> configure/compute-service</p>
          (get-in session [:group :packager])]}
   (let [error-fn (fn [message]
                    (fn [_ _]
-                     (condition/raise
-                      :type :booststrap-contains-non-remote-actions
-                      :message message)))
+                     (throw+
+                      {:type :booststrap-contains-non-remote-actions
+                       :message message})))
         [result session] (-&gt;
                           session
                           (assoc
@@ -7685,6 +6607,8 @@ service -> configure/compute-service</p>
                            executor
                            (environment/get-for
                             session [:algorithms :execute-status-fn])))]
+    (when-let [error (some :error result)]
+      (throw+ error))
     (string/join \newline result)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn log-session
   &quot;Log the session state&quot;
@@ -7752,9 +6676,9 @@ service -> configure/compute-service</p>
       (if errors
         (do
           (logging/errorf &quot;errors found %s&quot; (vec (map :error errors)))
-          (condition/raise (assoc (:error (first errors)) :all-errors errors)))
+          (throw+ (assoc (:error (first errors)) :all-errors errors)))
         [results session]))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def *middleware*
+</td><td class="codes" /><pre class="brush: clojure">(def ^{:dynamic true} *middleware*
   [translate-action-plan
    execute/ssh-user-credentials
    execute/execute-with-ssh
@@ -8026,10 +6950,10 @@ service -> configure/compute-service</p>
                    compute (:group session) count (:user session) init-script
                    (-&gt; session :environment :provider-options))]
     (when-not (seq new-nodes)
-      (condition/raise
-       :message &quot;No additional nodes could be started&quot;
-       :group (:group session)
-       :type :pallet/could-not-start-new-nodes))
+      (throw+
+       {:message &quot;No additional nodes could be started&quot;
+        :group (:group session)
+        :type :pallet/could-not-start-new-nodes}))
     (-&gt;
      session
      (assoc-in [:groups-new-nodes (-&gt; session :group :group-name)] new-nodes)
@@ -8250,7 +7174,8 @@ service -> configure/compute-service</p>
 </td><td class="codes" /><pre class="brush: clojure">(def
   ^{:doc
     &quot;Flag to control output of warnings about undefined phases in calls to lift
-     and converge.&quot;}
+     and converge.&quot;
+    :dynamic true}
   *warn-on-undefined-phase* true)</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn- warn-on-undefined-phase
   &quot;Generate a warning for the elements of the session's :phase-list that are not
@@ -8375,11 +7300,13 @@ service -> configure/compute-service</p>
                      (do
                        (logging/info &quot;retrieving nodes&quot;)
                        (compute/nodes compute))
-                     (filter
-                      node/node?
-                      (mapcat
-                       #(let [v (val %)] (if (seq? v) v [v]))
-                       (:node-set session))))))]
+                     (-&gt;&gt;
+                      (:node-set session)
+                      (filter #(and (map? %) (every? map? (keys %))))
+                      (mapcat vals)
+                      (mapcat #(if (seq? %) % [%]))
+                      (filter node/node?)
+                      (distinct)))))]
     (assoc session :all-nodes nodes :selected-nodes nodes)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn session-with-groups
   &quot;Takes the :selected-nodes, :all-nodes. :node-set and :prefix keys and compute
@@ -8534,17 +7461,17 @@ service -> configure/compute-service</p>
   [{:as options}]
   (let [unknown (remove argument-keywords (keys options))]
     (when (and (:phases options) (not (:phase options)))
-      (condition/raise
-       :type :invalid-argument
-       :message (str
-                 &quot;Please pass :phase and not :phases. :phase takes a single &quot;
-                 &quot;phase or a sequence of phases.&quot;)
-       :invalid-keys unknown))
+      (throw+
+       {:type :invalid-argument
+        :message (str
+                  &quot;Please pass :phase and not :phases. :phase takes a single &quot;
+                  &quot;phase or a sequence of phases.&quot;)
+        :invalid-keys unknown}))
     (when (seq unknown)
-      (condition/raise
-       :type :invalid-argument
-       :message (format &quot;Invalid argument keywords %s&quot; (vec unknown))
-       :invalid-keys unknown)))
+      (throw+
+       {:type :invalid-argument
+        :message (format &quot;Invalid argument keywords %s&quot; (vec unknown))
+        :invalid-keys unknown})))
   options)</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn- identify-anonymous-phases
   &quot;For all inline phase defintions in the session's :phase-list,
@@ -8604,7 +7531,7 @@ service -> configure/compute-service</p>
   (converge*
    (-&gt;
     options
-    (assoc :node-set (node-set-for-converge group-spec-&gt;count)
+    (assoc :node-set (expand-group-spec-with-counts group-spec-&gt;count)
            :phase-list (if (sequential? phase)
                          phase
                          (if phase [phase] [:configure])))
@@ -8638,7 +7565,7 @@ service -> configure/compute-service</p>
   (lift*
    (-&gt;
     options
-    (assoc :node-set (if (group-spec? node-set) [node-set] node-set)
+    (assoc :node-set (expand-cluster-groups node-set)
            :phase-list (if (sequential? phase)
                          phase
                          (if phase [phase] [:configure])))
@@ -8889,11 +7816,14 @@ service -> configure/compute-service</p>
    [pallet.execute :as execute]
    [pallet.map-merge :as map-merge]
    [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]
    [clojure.tools.logging :as logging]
    [clojure.walk :as walk])
   (:use
-   [clojure.core.incubator :only [-?&gt;]]))</pre></tr><tr><td class="docs">
+   [clojure.core.incubator :only [-?&gt;]]))</pre></tr><tr><td class="docs"><p>slingshot version compatibility</p>
+</td><td class="codes" /><pre class="brush: clojure">(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defprotocol Environment
   &quot;A protocol for accessing an environment.&quot;
   (environment [_] &quot;Returns an environment map&quot;))</pre></tr><tr><td class="docs">
@@ -9001,15 +7931,15 @@ service -> configure/compute-service</p>
   ([session keys]
      (let [result (get-in (:environment session) keys ::not-set)]
        (when (= ::not-set result)
-         (condition/raise
-          :type :environment-not-found
-          :message (format
-                    &quot;Could not find keys %s in session :environment&quot;
-                    (if (sequential? keys) (vec keys) keys))
-          :key-not-set keys))
+         (throw+
+          {:type :environment-not-found
+           :message (format
+                     &quot;Could not find keys %s in session :environment&quot;
+                     (if (sequential? keys) (vec keys) keys))
+           :key-not-set keys}))
        result))
   ([session keys default]
-       (get-in (:environment session) keys default)))</pre></tr><tr><td class="docs">
+     (get-in (:environment session) keys default)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn session-with-environment
   &quot;Returns an updated `session` map, containing the keys for the specified
    `environment` map.
@@ -9070,10 +8000,13 @@ service -> configure/compute-service</p>
    [pallet.utils :as utils]
    [clj-ssh.ssh :as ssh]
    [clojure.string :as string]
-   [clojure.contrib.condition :as condition]
    [clojure.java.io :as io]
    [pallet.shell :as ccshell]
-   [clojure.tools.logging :as logging]))</pre></tr><tr><td class="docs">
+   [clojure.tools.logging :as logging]))</pre></tr><tr><td class="docs"><p>slingshot version compatibility</p>
+</td><td class="codes" /><pre class="brush: clojure">(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(def prolog
   (str &quot;#!/usr/bin/env bash\n&quot; bash/hashlib))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn- normalise-eol
@@ -9247,13 +8180,13 @@ session
                 :return-map true)]
     (if (zero? (:exit result))
       (string/trim (result :out))
-      (condition/raise
-       :type :remote-execution-failure
-       :message (format
-                 &quot;Failed to generate remote temporary file %s&quot; (:err result))
-       :exit (:exit result)
-       :err (:err result)
-       :out (:out result)))))</pre></tr><tr><td class="docs">
+      (throw+
+       {:type :remote-execution-failure
+        :message (format
+                  &quot;Failed to generate remote temporary file %s&quot; (:err result))
+        :exit (:exit result)
+        :err (:err result)
+        :out (:out result)}))))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn remote-sudo-cmd
   &quot;Execute remote command.
    Copies `command` to `tmpfile` on the remote node using the `sftp-channel`
@@ -9261,8 +8194,8 @@ session
   [server ssh-session sftp-channel user tmpfile command
    {:keys [pty] :or {pty true} :as options}]
   (when (not (ssh/connected? ssh-session))
-    (condition/raise :type :no-ssh-session
-                     :message (format&quot;No ssh session for %s&quot; server)))
+    (throw+ {:type :no-ssh-session
+             :message (format&quot;No ssh session for %s&quot; server)}))
   (let [response (ssh/sftp sftp-channel
                            :put (java.io.ByteArrayInputStream.
                                  (.getBytes
@@ -9360,11 +8293,11 @@ session
         (and server
              (if (string? server) (not (string/blank? server)) true)
              user)
-      (condition/raise
-       :type :session-missing-middleware
-       :message (str
-                 &quot;The session is missing server ssh connection details.\n&quot;
-                 &quot;Add middleware to enable ssh.&quot;)))
+      (throw+
+       {:type :session-missing-middleware
+        :message (str
+                  &quot;The session is missing server ssh connection details.\n&quot;
+                  &quot;Add middleware to enable ssh.&quot;)}))
     (let [ssh-session (or ssh-session
                           (ssh/session
                            server
@@ -9377,13 +8310,13 @@ session
               (try
                 (ssh/connect ssh-session)
                 (catch Exception e
-                  (condition/raise
-                   :type :pallet/ssh-connection-failure
-                   :message (format
-                             &quot;ssh-fail: server %s, port %s, user %s, group %s&quot;
-                             server (or port 22) (:username user)
-                             (-&gt; session :server :group-name))
-                   :cause e))))
+                  (throw+
+                   {:type :pallet/ssh-connection-failure
+                    :message (format
+                              &quot;ssh-fail: server %s, port %s, user %s, group %s&quot;
+                              server (or port 22) (:username user)
+                              (-&gt; session :server :group-name))
+                    :cause e}))))
           tmpfile (or tmpfile (ssh-mktemp ssh-session &quot;sudocmd&quot;))
           tmpcpy (or tmpcpy (ssh-mktemp ssh-session &quot;tfer&quot;))
           sftp-channel (or sftp-channel (ssh/ssh-sftp ssh-session))
@@ -9623,7 +8556,17 @@ session
        &quot;Admin user %s %s&quot; (:username user) (:private-key-path user))
       (possibly-add-identity
        (default-agent) (:private-key-path user) (:passphrase user)))
-    (handler session)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.futures" name="pallet.futures"><h1 class="project-name">pallet.futures</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Keep track of operations started by pallet</p>
+    (handler session)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.feature" name="pallet.feature"><h1 class="project-name">pallet.feature</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Pallet feature recognition.</p>
+
+<p>   A feature is implemented as a function within the pallet.feature namespace</p>
+</td><td class="codes" /><pre class="brush: clojure">(ns pallet.feature
+  &quot;Pallet feature recognition.
+   A feature is implemented as a function within the pallet.feature namespace&quot;)</pre></tr><tr><td class="docs">
+</td><td class="codes" /><pre class="brush: clojure">(defmacro has-feature?
+  &quot;Predicate to test for feature availability&quot;
+  [feature]
+  (when-let [f (ns-resolve 'pallet.feature feature)]
+    (f)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.futures" name="pallet.futures"><h1 class="project-name">pallet.futures</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Keep track of operations started by pallet</p>
 </td><td class="codes" /><pre class="brush: clojure">(ns pallet.futures
   (:require
    [clojure.stacktrace :as stacktrace]
@@ -9848,8 +8791,7 @@ session
   [defaults project profiles]
   (or
    (configure/compute-service-from-config (:pallet project) profiles)
-   (configure/compute-service-from-config defaults profiles)
-   (apply configure/compute-service-from-settings profiles)))</pre></tr><tr><td class="docs">
+   (configure/compute-service-from-config defaults profiles)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn find-compute-service
   &quot;Look for a compute service in the following sequence:
      Check pallet.config.service property
@@ -9876,8 +8818,7 @@ session
   (or
    (configure/blobstore-from-map options)
    (configure/blobstore-from-config (:pallet project) profiles)
-   (configure/blobstore-from-config defaults profiles)
-   (apply configure/blobstore-from-settings profiles)))</pre></tr><tr><td class="docs">
+   (configure/blobstore-from-config defaults profiles)))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn invoke
   [options task params]
   (let [default-config (or (:defaults options) (configure/pallet-config))
@@ -9968,54 +8909,7 @@ session
   (merge-with comp val-in-latter val-in-result))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defmethod merge-key :merge-union
   [_ _ val-in-result val-in-latter]
-  (set/union val-in-result val-in-latter))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.maven" name="pallet.maven"><h1 class="project-name">pallet.maven</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Maven interaction</p>
-</td><td class="codes" /><pre class="brush: clojure">(ns pallet.maven
-  (:import
-   [org.apache.maven.settings Settings MavenSettingsBuilder]
-   [org.codehaus.plexus.embed Embedder]))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def key-map
-  {:pallet.compute.provider :provider
-   :pallet.compute.identity :identity
-   :pallet.compute.credential :credential
-   :pallet.compute.extensions :extensions
-   :pallet.blobstore.provider :blobstore-provider
-   :pallet.blobstore.identity :blobstore-identity
-   :pallet.blobstore.credential :blobstore-credential
-   :pallet.blobstore.extensions :blobstore-extensions
-   :pallet.endpoint :endpoint
-   :jclouds.compute.provider :provider
-   :jclouds.compute.identity :identity
-   :jclouds.compute.credential :credential
-   :jclouds.compute.extensions :extensions
-   :jclouds.blobstore.provider :blobstore-provider
-   :jclouds.blobstore.identity :blobstore-identity
-   :jclouds.blobstore.credential :blobstore-credential
-   :jclouds.endpoint :endpoint})</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def container (.getContainer (doto (Embedder.) (.start))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn- make-settings []
-  (.buildSettings (.lookup container MavenSettingsBuilder/ROLE)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn properties
-  &quot;Read maven's settings.xml file, and extract properties from active profiles
-   as a map.&quot;
-  [profiles]
-  (let [settings (make-settings)
-        properties (apply
-                    merge
-                    (map #(into {} (.getProperties (val %)))
-                         (select-keys
-                          (into {} (.getProfilesAsMap settings))
-                          (if (seq profiles)
-                            profiles
-                            (.getActiveProfiles settings)))))]
-    (zipmap (map keyword (keys properties)) (vals properties))))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn credentials
-  &quot;Read maven's settings.xml file, and extract credentials.  &quot;
-  [profiles]
-  (into {}
-        (filter identity
-                (map
-                 #(if-let [k (key-map (key %))] [k (val %)])
-                 (properties profiles)))))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.md5crypt" name="pallet.md5crypt"><h1 class="project-name">pallet.md5crypt</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+  (set/union val-in-result val-in-latter))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.md5crypt" name="pallet.md5crypt"><h1 class="project-name">pallet.md5crypt</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(ns pallet.md5crypt
   (:import [java.security NoSuchAlgorithmException MessageDigest]))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defonce salt-chars
@@ -10202,8 +9096,11 @@ session
   (:require
    [pallet.action :as action]
    [pallet.argument :as argument]
-   [pallet.compute :as compute]
-   [clojure.contrib.condition :as condition]))</pre></tr><tr><td class="docs">
+   [pallet.compute :as compute]))</pre></tr><tr><td class="docs"><p>slingshot version compatibility</p>
+</td><td class="codes" /><pre class="brush: clojure">(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn from-map
   &quot;Initialise parameters based on the given keys, which are used to merge maps
    from m.&quot;
@@ -10224,18 +9121,18 @@ session
                              (get-in (:parameters session) % ::not-set)
                              ::not-set)
                            (rest (reductions conj [] keys)))]
-           (condition/raise
-            :type :parameter-not-found
-            :message (format
-                      (str
-                       &quot;Could not find keys %s in session :parameters. &quot;
-                       &quot;Found keys %s with values %s&quot;)
-                      (if (sequential? keys) (vec keys) keys)
-                      (vec found-keys)
-                      (if (seq found-keys)
-                        (get-in (:parameters session) (vec found-keys))
-                        (:parameters session)))
-            :key-not-set keys)))
+           (throw+
+            {:type :parameter-not-found
+             :message (format
+                       (str
+                        &quot;Could not find keys %s in session :parameters. &quot;
+                        &quot;Found keys %s with values %s&quot;)
+                       (if (sequential? keys) (vec keys) keys)
+                       (vec found-keys)
+                       (if (seq found-keys)
+                         (get-in (:parameters session) (vec found-keys))
+                         (:parameters session)))
+             :key-not-set keys})))
        result))
   ([session keys default]
        (get-in (:parameters session) keys default)))</pre></tr><tr><td class="docs">
@@ -10408,9 +9305,11 @@ session
                  keyvector-value-pairs)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.phase" name="pallet.phase"><h1 class="project-name">pallet.phase</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A phase is a function of a single <code>session</code> argument, that contains
    calls to crate functions or actions. A phase has an implicitly
    defined pre and post phase.</p>
-</td><td class="codes" /><pre class="brush: clojure">(ns pallet.phase
-  (:require
-   [clojure.contrib.condition :as condition]))</pre></tr><tr><td class="docs">
+</td><td class="codes" /><pre class="brush: clojure">(ns pallet.phase)</pre></tr><tr><td class="docs"><p>slingshot version compatibility</p>
+</td><td class="codes" /><pre class="brush: clojure">(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn pre-phase-name
   &quot;Return the name for the pre-phase for the given `phase`.&quot;
   [phase]
@@ -10460,29 +9359,29 @@ session
   ([session]
      ;; we do not use a precondition in order to improve the error message
      (when-not (and session (map? session))
-       (condition/raise
-        :type :invalid-session
-        :message
-        &quot;Invalid session map in phase. Check for non crate functions,
+       (throw+
+        {:type :invalid-session
+         :message
+         &quot;Invalid session map in phase. Check for non crate functions,
       improper crate functions, or problems in threading the session map
       in your phase definition.
       A crate function is a function that takes a session map and other
       arguments, and returns a modified session map. Calls to crate functions
       are often wrapped in a threading macro, -&gt; or pallet.phase/phase-fn,
-      to simplify chaining of the session map argument.&quot;))
+      to simplify chaining of the session map argument.&quot;}))
      session)
   ([session form]
      ;; we do not use a precondition in order to improve the error message
      (when-not (and session (map? session))
-       (condition/raise
-        :type :invalid-session
-        :message
-        (format
-         (str
-          &quot;Invalid session map in phase session.\n&quot;
-          &quot;`session` is %s\n&quot;
-          &quot;Problem probably caused in:\n  %s &quot;)
-         session form)))
+       (throw+
+        {:type :invalid-session
+         :message
+         (format
+          (str
+           &quot;Invalid session map in phase session.\n&quot;
+           &quot;`session` is %s\n&quot;
+           &quot;Problem probably caused in:\n  %s &quot;)
+          session form)}))
      session))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defmacro check-session-thread
   &quot;Add session checking to a sequence of calls which thread a session
@@ -10521,10 +9420,6 @@ session
   when working at the clojure REPL.</p>
 </td><td class="codes" /><pre class="brush: clojure">(ns pallet.repl
   (:use
-   [org.jclouds.compute
-    :exclude [destroy-node nodes run-nodes destroy-nodes-with-tag
-              destroy-nodes-in-group images
-              terminated? id running? tag hostname compute-service]]
    pallet.utils
    [pallet.compute :exclude [make-node]]
    pallet.core
@@ -10536,10 +9431,6 @@ session
   []
   '(do
      (clojure.core/use
-      '[org.jclouds.compute
-        :exclude [destroy-node nodes run-nodes destroy-nodes-with-tag
-                  destroy-nodes-in-group images
-                  terminated? id running? tag hostname compute-service]]
       'pallet.utils
       '[pallet.compute :exclude [make-node]]
       'pallet.core
@@ -10579,6 +9470,7 @@ session
    [pallet.utils :as utils]))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(utils/forward-to-script-lib rmdir mkdir make-temp-dir)</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(deprecate/forward-fns
+ &quot;0.5.0&quot;
  pallet.action.directory
  adjust-directory
  make-directory
@@ -11625,8 +10517,8 @@ collecting its stdout&quot;}
   (:use [clojure.java.io :only (as-file copy)])
   (:import (java.io OutputStreamWriter ByteArrayOutputStream StringWriter)
            (java.nio.charset Charset)))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def *sh-dir* nil)
-(def *sh-env* nil)</pre></tr><tr><td class="docs">
+</td><td class="codes" /><pre class="brush: clojure">(def ^{:dynamic true} *sh-dir* nil)
+(def ^{:dynamic true} *sh-env* nil)</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defmacro with-sh-dir
   &quot;Sets the directory for use with sh, see sh for details.&quot;
   {:added &quot;1.2&quot;}
@@ -12231,22 +11123,7 @@ collecting its stdout&quot;}
   []
   (println &quot;Pallet&quot; (System/getProperty &quot;pallet.version&quot;)
            &quot;on Java&quot; (System/getProperty &quot;java.version&quot;)
-           (System/getProperty &quot;java.vm.name&quot;)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.task.vmfest-script" name="pallet.task.vmfest-script"><h1 class="project-name">pallet.task.vmfest-script</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A task for running vmfest scripts</p>
-</td><td class="codes" /><pre class="brush: clojure">(ns pallet.task.vmfest-script
-  (:require
-   [pallet.compute :as compute]
-   [pallet.compute.vmfest :as vmfest]
-   [pallet.core :as core]))</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(def ^{:dynamic true} *vmfest*)</pre></tr><tr><td class="docs">
-</td><td class="codes" /><pre class="brush: clojure">(defn vmfest-script
-  &quot;A task for running vmfest scripts.
-       lein pallet vmfest-script filename
-   The file should be a clojure script that will be executed. *vmfest* is
-   bound to the vmfest compute service&quot;
-  [request filename]
-  (binding [*vmfest* (compute/compute-service :virtualbox)
-            *ns* (the-ns 'pallet.task.vmfest-script)]
-    (load-file (name filename))))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.template.properties" name="pallet.template.properties"><h1 class="project-name">pallet.template.properties</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A template for writing properties style config files.</p>
+           (System/getProperty &quot;java.vm.name&quot;)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.template.properties" name="pallet.template.properties"><h1 class="project-name">pallet.template.properties</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>A template for writing properties style config files.</p>
 </td><td class="codes" /><pre class="brush: clojure">(ns pallet.template.properties
   (:use [pallet.utils :only [as-string]]))</pre></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(defn property-section [[name settings]]
@@ -12474,7 +11351,8 @@ collecting its stdout&quot;}
    root permissions.  The default admin user is taken from the
    pallet.admin.username property.  If not specified then the user.name property
    is used. The admin user can also be specified in config.clj when running
-   tasks from the command line.&quot;}
+   tasks from the command line.&quot;
+    :dynamic true}
   *admin-user*
   (make-user (or (. System getProperty &quot;pallet.admin.username&quot;)
                  (. System getProperty &quot;user.name&quot;))))</pre></tr><tr><td class="docs">
@@ -12621,5 +11499,10 @@ admin-user-from-config-var
 admin-user-from-config</p>
 </td><td class="codes" /></tr><tr><td class="docs">
 </td><td class="codes" /><pre class="brush: clojure">(fwd-to-configure admin-user-from-config-var)
-(fwd-to-configure admin-user-from-config)</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/fogus/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a><div id="floating-toc"><ul><li class="floating-toc-li" id="floating-toc_pallet.action.conditional">pallet.action.conditional</li><li class="floating-toc-li" id="floating-toc_pallet.action.directory">pallet.action.directory</li><li class="floating-toc-li" id="floating-toc_pallet.action.environment">pallet.action.environment</li><li class="floating-toc-li" id="floating-toc_pallet.action.exec-script">pallet.action.exec-script</li><li class="floating-toc-li" id="floating-toc_pallet.action.file">pallet.action.file</li><li class="floating-toc-li" id="floating-toc_pallet.action.filesystem">pallet.action.filesystem</li><li class="floating-toc-li" id="floating-toc_pallet.action.package.centos">pallet.action.package.centos</li><li class="floating-toc-li" id="floating-toc_pallet.action.package.debian-backports">pallet.action.package.debian-backports</li><li class="floating-toc-li" id="floating-toc_pallet.action.package.epel">pallet.action.package.epel</li><li class="floating-toc-li" id="floating-toc_pallet.action.package.jpackage">pallet.action.package.jpackage</li><li class="floating-toc-li" id="floating-toc_pallet.action.package.rpmforge">pallet.action.package.rpmforge</li><li class="floating-toc-li" id="floating-toc_pallet.action.package">pallet.action.package</li><li class="floating-toc-li" id="floating-toc_pallet.action.remote-directory">pallet.action.remote-directory</li><li class="floating-toc-li" id="floating-toc_pallet.action.remote-file">pallet.action.remote-file</li><li class="floating-toc-li" id="floating-toc_pallet.action.retry">pallet.action.retry</li><li class="floating-toc-li" id="floating-toc_pallet.action.rsync">pallet.action.rsync</li><li class="floating-toc-li" id="floating-toc_pallet.action.service">pallet.action.service</li><li class="floating-toc-li" id="floating-toc_pallet.action.user">pallet.action.user</li><li class="floating-toc-li" id="floating-toc_pallet.action">pallet.action</li><li class="floating-toc-li" id="floating-toc_pallet.action-plan">pallet.action-plan</li><li class="floating-toc-li" id="floating-toc_pallet.argument">pallet.argument</li><li class="floating-toc-li" id="floating-toc_pallet.blobstore.implementation">pallet.blobstore.implementation</li><li class="floating-toc-li" id="floating-toc_pallet.blobstore.jclouds">pallet.blobstore.jclouds</li><li class="floating-toc-li" id="floating-toc_pallet.blobstore.url-blobstore">pallet.blobstore.url-blobstore</li><li class="floating-toc-li" id="floating-toc_pallet.blobstore">pallet.blobstore</li><li class="floating-toc-li" id="floating-toc_pallet.command-line">pallet.command-line</li><li class="floating-toc-li" id="floating-toc_pallet.command-script">pallet.command-script</li><li class="floating-toc-li" id="floating-toc_pallet.compute.hybrid">pallet.compute.hybrid</li><li class="floating-toc-li" id="floating-toc_pallet.compute.implementation">pallet.compute.implementation</li><li class="floating-toc-li" id="floating-toc_pallet.compute.jclouds">pallet.compute.jclouds</li><li class="floating-toc-li" id="floating-toc_pallet.compute.jvm">pallet.compute.jvm</li><li class="floating-toc-li" id="floating-toc_pallet.compute.node-list">pallet.compute.node-list</li><li class="floating-toc-li" id="floating-toc_pallet.compute.vmfest">pallet.compute.vmfest</li><li class="floating-toc-li" id="floating-toc_pallet.compute">pallet.compute</li><li class="floating-toc-li" id="floating-toc_pallet.config-file.format">pallet.config-file.format</li><li class="floating-toc-li" id="floating-toc_pallet.configure">pallet.configure</li><li class="floating-toc-li" id="floating-toc_pallet.core">pallet.core</li><li class="floating-toc-li" id="floating-toc_pallet.crate.network-service">pallet.crate.network-service</li><li class="floating-toc-li" id="floating-toc_pallet.debug">pallet.debug</li><li class="floating-toc-li" id="floating-toc_pallet.enlive">pallet.enlive</li><li class="floating-toc-li" id="floating-toc_pallet.environment">pallet.environment</li><li class="floating-toc-li" id="floating-toc_pallet.execute">pallet.execute</li><li class="floating-toc-li" id="floating-toc_pallet.futures">pallet.futures</li><li class="floating-toc-li" id="floating-toc_pallet.main">pallet.main</li><li class="floating-toc-li" id="floating-toc_pallet.main-invoker">pallet.main-invoker</li><li class="floating-toc-li" id="floating-toc_pallet.map-merge">pallet.map-merge</li><li class="floating-toc-li" id="floating-toc_pallet.maven">pallet.maven</li><li class="floating-toc-li" id="floating-toc_pallet.md5crypt">pallet.md5crypt</li><li class="floating-toc-li" id="floating-toc_pallet.node">pallet.node</li><li class="floating-toc-li" id="floating-toc_pallet.parameter">pallet.parameter</li><li class="floating-toc-li" id="floating-toc_pallet.phase">pallet.phase</li><li class="floating-toc-li" id="floating-toc_pallet.repl">pallet.repl</li><li class="floating-toc-li" id="floating-toc_pallet.request-map">pallet.request-map</li><li class="floating-toc-li" id="floating-toc_pallet.resource.directory">pallet.resource.directory</li><li class="floating-toc-li" id="floating-toc_pallet.resource.exec-script">pallet.resource.exec-script</li><li class="floating-toc-li" id="floating-toc_pallet.resource.file">pallet.resource.file</li><li class="floating-toc-li" id="floating-toc_pallet.resource.filesystem">pallet.resource.filesystem</li><li class="floating-toc-li" id="floating-toc_pallet.resource.filesystem-layout">pallet.resource.filesystem-layout</li><li class="floating-toc-li" id="floating-toc_pallet.resource.format">pallet.resource.format</li><li class="floating-toc-li" id="floating-toc_pallet.resource.hostinfo">pallet.resource.hostinfo</li><li class="floating-toc-li" id="floating-toc_pallet.resource.lib">pallet.resource.lib</li><li class="floating-toc-li" id="floating-toc_pallet.resource.network-service">pallet.resource.network-service</li><li class="floating-toc-li" id="floating-toc_pallet.resource.package">pallet.resource.package</li><li class="floating-toc-li" id="floating-toc_pallet.resource.remote-directory">pallet.resource.remote-directory</li><li class="floating-toc-li" id="floating-toc_pallet.resource.remote-file">pallet.resource.remote-file</li><li class="floating-toc-li" id="floating-toc_pallet.resource.resource-when">pallet.resource.resource-when</li><li class="floating-toc-li" id="floating-toc_pallet.resource.rsync">pallet.resource.rsync</li><li class="floating-toc-li" id="floating-toc_pallet.resource.service">pallet.resource.service</li><li class="floating-toc-li" id="floating-toc_pallet.resource.shell">pallet.resource.shell</li><li class="floating-toc-li" id="floating-toc_pallet.resource.user">pallet.resource.user</li><li class="floating-toc-li" id="floating-toc_pallet.resource">pallet.resource</li><li class="floating-toc-li" id="floating-toc_pallet.script.lib">pallet.script.lib</li><li class="floating-toc-li" id="floating-toc_pallet.session">pallet.session</li><li class="floating-toc-li" id="floating-toc_pallet.shell">pallet.shell</li><li class="floating-toc-li" id="floating-toc_pallet.strint">pallet.strint</li><li class="floating-toc-li" id="floating-toc_pallet.target">pallet.target</li><li class="floating-toc-li" id="floating-toc_pallet.task.add-service">pallet.task.add-service</li><li class="floating-toc-li" id="floating-toc_pallet.task.containers">pallet.task.containers</li><li class="floating-toc-li" id="floating-toc_pallet.task.converge">pallet.task.converge</li><li class="floating-toc-li" id="floating-toc_pallet.task.converge-cluster">pallet.task.converge-cluster</li><li class="floating-toc-li" id="floating-toc_pallet.task.describe-node">pallet.task.describe-node</li><li class="floating-toc-li" id="floating-toc_pallet.task.destroy-cluster">pallet.task.destroy-cluster</li><li class="floating-toc-li" id="floating-toc_pallet.task.help">pallet.task.help</li><li class="floating-toc-li" id="floating-toc_pallet.task.images">pallet.task.images</li><li class="floating-toc-li" id="floating-toc_pallet.task.lift">pallet.task.lift</li><li class="floating-toc-li" id="floating-toc_pallet.task.new-project">pallet.task.new-project</li><li class="floating-toc-li" id="floating-toc_pallet.task.nodes">pallet.task.nodes</li><li class="floating-toc-li" id="floating-toc_pallet.task.providers">pallet.task.providers</li><li class="floating-toc-li" id="floating-toc_pallet.task.to-blob">pallet.task.to-blob</li><li class="floating-toc-li" id="floating-toc_pallet.task.version">pallet.task.version</li><li class="floating-toc-li" id="floating-toc_pallet.task.vmfest-script">pallet.task.vmfest-script</li><li class="floating-toc-li" id="floating-toc_pallet.template.properties">pallet.template.properties</li><li class="floating-toc-li" id="floating-toc_pallet.template">pallet.template</li><li class="floating-toc-li" id="floating-toc_pallet.utils">pallet.utils</li></ul></div></div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;
+(fwd-to-configure admin-user-from-config)</pre></tr><tr><td class="docs">
+</td><td class="codes" /><pre class="brush: clojure">(defmacro with-redef
+  [[&amp; bindings] &amp; body]
+  (if (find-var 'clojure.core/with-redefs)
+    `(clojure.core/with-redefs [~@bindings] ~@body)
+    `(binding [~@bindings] ~@body)))</pre></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/fogus/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a><div id="floating-toc"><ul><li class="floating-toc-li" id="floating-toc_pallet.action.conditional">pallet.action.conditional</li><li class="floating-toc-li" id="floating-toc_pallet.action.directory">pallet.action.directory</li><li class="floating-toc-li" id="floating-toc_pallet.action.environment">pallet.action.environment</li><li class="floating-toc-li" id="floating-toc_pallet.action.exec-script">pallet.action.exec-script</li><li class="floating-toc-li" id="floating-toc_pallet.action.file">pallet.action.file</li><li class="floating-toc-li" id="floating-toc_pallet.action.filesystem">pallet.action.filesystem</li><li class="floating-toc-li" id="floating-toc_pallet.action.package.centos">pallet.action.package.centos</li><li class="floating-toc-li" id="floating-toc_pallet.action.package.debian-backports">pallet.action.package.debian-backports</li><li class="floating-toc-li" id="floating-toc_pallet.action.package.epel">pallet.action.package.epel</li><li class="floating-toc-li" id="floating-toc_pallet.action.package.jpackage">pallet.action.package.jpackage</li><li class="floating-toc-li" id="floating-toc_pallet.action.package.rpmforge">pallet.action.package.rpmforge</li><li class="floating-toc-li" id="floating-toc_pallet.action.package">pallet.action.package</li><li class="floating-toc-li" id="floating-toc_pallet.action.remote-directory">pallet.action.remote-directory</li><li class="floating-toc-li" id="floating-toc_pallet.action.remote-file">pallet.action.remote-file</li><li class="floating-toc-li" id="floating-toc_pallet.action.retry">pallet.action.retry</li><li class="floating-toc-li" id="floating-toc_pallet.action.rsync">pallet.action.rsync</li><li class="floating-toc-li" id="floating-toc_pallet.action.service">pallet.action.service</li><li class="floating-toc-li" id="floating-toc_pallet.action.user">pallet.action.user</li><li class="floating-toc-li" id="floating-toc_pallet.action">pallet.action</li><li class="floating-toc-li" id="floating-toc_pallet.action-plan">pallet.action-plan</li><li class="floating-toc-li" id="floating-toc_pallet.argument">pallet.argument</li><li class="floating-toc-li" id="floating-toc_pallet.blobstore.implementation">pallet.blobstore.implementation</li><li class="floating-toc-li" id="floating-toc_pallet.blobstore.url-blobstore">pallet.blobstore.url-blobstore</li><li class="floating-toc-li" id="floating-toc_pallet.blobstore">pallet.blobstore</li><li class="floating-toc-li" id="floating-toc_pallet.command-line">pallet.command-line</li><li class="floating-toc-li" id="floating-toc_pallet.command-script">pallet.command-script</li><li class="floating-toc-li" id="floating-toc_pallet.compute.hybrid">pallet.compute.hybrid</li><li class="floating-toc-li" id="floating-toc_pallet.compute.implementation">pallet.compute.implementation</li><li class="floating-toc-li" id="floating-toc_pallet.compute.jvm">pallet.compute.jvm</li><li class="floating-toc-li" id="floating-toc_pallet.compute.node-list">pallet.compute.node-list</li><li class="floating-toc-li" id="floating-toc_pallet.compute">pallet.compute</li><li class="floating-toc-li" id="floating-toc_pallet.config-file.format">pallet.config-file.format</li><li class="floating-toc-li" id="floating-toc_pallet.configure">pallet.configure</li><li class="floating-toc-li" id="floating-toc_pallet.core">pallet.core</li><li class="floating-toc-li" id="floating-toc_pallet.crate.network-service">pallet.crate.network-service</li><li class="floating-toc-li" id="floating-toc_pallet.debug">pallet.debug</li><li class="floating-toc-li" id="floating-toc_pallet.enlive">pallet.enlive</li><li class="floating-toc-li" id="floating-toc_pallet.environment">pallet.environment</li><li class="floating-toc-li" id="floating-toc_pallet.execute">pallet.execute</li><li class="floating-toc-li" id="floating-toc_pallet.feature">pallet.feature</li><li class="floating-toc-li" id="floating-toc_pallet.futures">pallet.futures</li><li class="floating-toc-li" id="floating-toc_pallet.main">pallet.main</li><li class="floating-toc-li" id="floating-toc_pallet.main-invoker">pallet.main-invoker</li><li class="floating-toc-li" id="floating-toc_pallet.map-merge">pallet.map-merge</li><li class="floating-toc-li" id="floating-toc_pallet.md5crypt">pallet.md5crypt</li><li class="floating-toc-li" id="floating-toc_pallet.node">pallet.node</li><li class="floating-toc-li" id="floating-toc_pallet.parameter">pallet.parameter</li><li class="floating-toc-li" id="floating-toc_pallet.phase">pallet.phase</li><li class="floating-toc-li" id="floating-toc_pallet.repl">pallet.repl</li><li class="floating-toc-li" id="floating-toc_pallet.request-map">pallet.request-map</li><li class="floating-toc-li" id="floating-toc_pallet.resource.directory">pallet.resource.directory</li><li class="floating-toc-li" id="floating-toc_pallet.resource.exec-script">pallet.resource.exec-script</li><li class="floating-toc-li" id="floating-toc_pallet.resource.file">pallet.resource.file</li><li class="floating-toc-li" id="floating-toc_pallet.resource.filesystem">pallet.resource.filesystem</li><li class="floating-toc-li" id="floating-toc_pallet.resource.filesystem-layout">pallet.resource.filesystem-layout</li><li class="floating-toc-li" id="floating-toc_pallet.resource.format">pallet.resource.format</li><li class="floating-toc-li" id="floating-toc_pallet.resource.hostinfo">pallet.resource.hostinfo</li><li class="floating-toc-li" id="floating-toc_pallet.resource.lib">pallet.resource.lib</li><li class="floating-toc-li" id="floating-toc_pallet.resource.network-service">pallet.resource.network-service</li><li class="floating-toc-li" id="floating-toc_pallet.resource.package">pallet.resource.package</li><li class="floating-toc-li" id="floating-toc_pallet.resource.remote-directory">pallet.resource.remote-directory</li><li class="floating-toc-li" id="floating-toc_pallet.resource.remote-file">pallet.resource.remote-file</li><li class="floating-toc-li" id="floating-toc_pallet.resource.resource-when">pallet.resource.resource-when</li><li class="floating-toc-li" id="floating-toc_pallet.resource.rsync">pallet.resource.rsync</li><li class="floating-toc-li" id="floating-toc_pallet.resource.service">pallet.resource.service</li><li class="floating-toc-li" id="floating-toc_pallet.resource.shell">pallet.resource.shell</li><li class="floating-toc-li" id="floating-toc_pallet.resource.user">pallet.resource.user</li><li class="floating-toc-li" id="floating-toc_pallet.resource">pallet.resource</li><li class="floating-toc-li" id="floating-toc_pallet.script.lib">pallet.script.lib</li><li class="floating-toc-li" id="floating-toc_pallet.session">pallet.session</li><li class="floating-toc-li" id="floating-toc_pallet.shell">pallet.shell</li><li class="floating-toc-li" id="floating-toc_pallet.strint">pallet.strint</li><li class="floating-toc-li" id="floating-toc_pallet.target">pallet.target</li><li class="floating-toc-li" id="floating-toc_pallet.task.add-service">pallet.task.add-service</li><li class="floating-toc-li" id="floating-toc_pallet.task.containers">pallet.task.containers</li><li class="floating-toc-li" id="floating-toc_pallet.task.converge">pallet.task.converge</li><li class="floating-toc-li" id="floating-toc_pallet.task.converge-cluster">pallet.task.converge-cluster</li><li class="floating-toc-li" id="floating-toc_pallet.task.describe-node">pallet.task.describe-node</li><li class="floating-toc-li" id="floating-toc_pallet.task.destroy-cluster">pallet.task.destroy-cluster</li><li class="floating-toc-li" id="floating-toc_pallet.task.help">pallet.task.help</li><li class="floating-toc-li" id="floating-toc_pallet.task.images">pallet.task.images</li><li class="floating-toc-li" id="floating-toc_pallet.task.lift">pallet.task.lift</li><li class="floating-toc-li" id="floating-toc_pallet.task.new-project">pallet.task.new-project</li><li class="floating-toc-li" id="floating-toc_pallet.task.nodes">pallet.task.nodes</li><li class="floating-toc-li" id="floating-toc_pallet.task.providers">pallet.task.providers</li><li class="floating-toc-li" id="floating-toc_pallet.task.to-blob">pallet.task.to-blob</li><li class="floating-toc-li" id="floating-toc_pallet.task.version">pallet.task.version</li><li class="floating-toc-li" id="floating-toc_pallet.template.properties">pallet.template.properties</li><li class="floating-toc-li" id="floating-toc_pallet.template">pallet.template</li><li class="floating-toc-li" id="floating-toc_pallet.utils">pallet.utils</li></ul></div></div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;
        SyntaxHighlighter.all()</script></body></html>
