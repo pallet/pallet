@@ -21,3 +21,11 @@ git add ReleaseNotes.md README.md \
 && mvn release:perform \
 && mvn nexus:staging-close \
 && mvn nexus:staging-promote
+
+mvn site
+
+echo "=========================="
+echo "Now update lein-pallet-new"
+echo "            pallet-examples"
+echo "            website"
+echo "            push to gh-pages"
