@@ -463,3 +463,17 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
         (build-actions/build-actions
          {:server {:packager :yum}}
          (add-rpm "jpackage-utils-compat" :url "http:url"))))))
+
+(deftest install-deb-test
+  (is (=
+       (first
+        (build-actions/build-actions
+         {:server {:packager :aptitude}}
+         (remote-file/remote-file "jpackage-utils-compat" :url "http:url")
+         (exec-script/exec-checked-script
+          "Install deb jpackage-utils-compat"
+          (dpkg -i --skip-same-version "jpackage-utils-compat"))))
+       (first
+        (build-actions/build-actions
+         {:server {:packager :aptitude}}
+         (install-deb "jpackage-utils-compat" :url "http:url"))))))

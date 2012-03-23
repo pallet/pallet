@@ -420,6 +420,15 @@
     (if-not (rpm -q @(rpm -pq ~rpm-name) > "/dev/null" "2>&1")
       (do (rpm -U --quiet ~rpm-name))))))
 
+(action/def-bash-action install-deb
+  "Install a deb file.  Source options are as for remote file."
+  [request deb-name & {:as options}]
+  (stevedore/do-script
+   (apply remote-file* request deb-name (apply concat options))
+   (stevedore/checked-script
+    (format "Install deb %s" deb-name)
+    (dpkg -i --skip-same-version ~deb-name))))
+
 (action/def-bash-action minimal-packages
   "Add minimal packages for pallet to function"
   [session]
