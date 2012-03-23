@@ -7,7 +7,7 @@
 
 (defn write-config-clj
   [^java.io.File file]
-  (.mkdirs (.getParent file))
+  (.mkdirs (.getParentFile file))
   (spit file
         "(defpallet
   ;; you can specify global data in the :environment key here
