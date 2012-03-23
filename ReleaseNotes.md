@@ -1,5 +1,51 @@
 The latest release is 0.6.7.
-The latest development release is 0.7.0-beta.1.
+The latest development release is 0.7.0-beta.2.
+
+# 0.7.0-beta.2
+
+- Fix config task
+
+- Fix :all-node-set
+  The groups in :all-node-set will have all phases' phase functions run on
+  them, but none of the phases will actually be executed. This allows
+  picking up of settings without having any on node changes.
+
+- Fix add-service task to generate files with .clj extension
+  Take 2
+
+- Add missing test file for find-var-with-require-test
+
+- Fix add-service task to generate files with .clj extension
+
+- Add template for codox
+
+- Try harder to get the cause of an exception into raise-on-error
+  The cause of the error thrown in raise-on-error was not being shown in
+  the debugger. This should ensure that the cause is set on the slingshot
+  exception.
+
+- Remove sudo password from echo'd ssh command in logs
+  Fixes #99
+
+- Don't run usermod if no arguments would be used
+  Fixes #83
+
+- Fix find-var-with-require for case of non-loadable, existing namespace
+  Fixes #113
+
+- Fix sudoers test failures under clojure 1.3.0
+
+- Add config task for writing basic config.clj, and update arg handling
+
+- Add improved exception when no :image is specified in the node-spec
+
+- Correct ms5sum-verify for debian 6
+
+- Add all variants of a version to the script template
+  eg. debian 6.0.2 will result in :debian-6, :debian-6.0 and :debian-6.0.2
+  being added to the script template
+
+- Update parent pom to allow groupId override for clojure
 
 # 0.7.0-beta.1
 
