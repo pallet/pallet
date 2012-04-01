@@ -222,7 +222,8 @@
                   "Failed to generate remote temporary file %s" (:err result))
         :exit (:exit result)
         :err (:err result)
-        :out (:out result)}))))
+        :out (:out result)
+        :cmd (stevedore/script (println (~lib/make-temp-file ~prefix)))}))))
 
 (defn remote-sudo-cmd
   "Execute remote command.
