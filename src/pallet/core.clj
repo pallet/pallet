@@ -890,7 +890,7 @@
      (update-in [:old-nodes] concat nodes))))
 
 ;;; deltas-fn's, for calculating node counts to add or remove
-(defn- deltas-for-converge-to-count
+(defn deltas-for-converge-to-count
   "Find the difference between the required and actual node counts by group."
   [group]
   (logging/debugf
@@ -1150,7 +1150,7 @@
   [phase-list]
   (if (seq phase-list) phase-list [:settings :configure]))
 
-(defn- session-with-configure-phase
+(defn session-with-configure-phase
   "Add the configure phase to the session's :phase-list if not present."
   [session]
   [nil (update-in session [:phase-list] phase-list-with-configure)])
@@ -1405,18 +1405,18 @@
   [:compute :blobstore :user :middleware :provider-options
    :executors :executor :install-plugins])
 
-(defn- session-with-environment
+(defn session-with-environment
   "Build a session map from the given options, combining the service specific
    options with those given in the converge or lift invocation."
   [{:as options}]
-  [nil (->
-        options
-        (update-in                      ; ensure backwards compatable
-         [:environment]
-         merge (select-keys options environment-args))
-        (assoc :executor default-executor)
-        (utils/dissoc-keys environment-args)
-        (effective-environment))])
+  (->
+   options
+   (update-in                      ; ensure backwards compatable
+    [:environment]
+    merge (select-keys options environment-args))
+   (assoc :executor default-executor)
+   (utils/dissoc-keys environment-args)
+   (effective-environment)))
 
 (defn configure-plugin
   [install-fn]
@@ -1514,7 +1514,7 @@
   (session-pipeline process-converge-arguments {}
     check-arguments-map
     phase-spec
-    session-with-environment
+    (as-session-pipeline-fn session-with-environment)
     identify-anonymous-phases
     load-plugins))
 
@@ -1524,7 +1524,7 @@
   (session-pipeline process-lift-arguments {}
     check-arguments-map
     phase-spec
-    session-with-environment
+    (as-session-pipeline-fn session-with-environment)
     identify-anonymous-phases
     load-plugins))
 

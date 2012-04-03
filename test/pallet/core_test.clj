@@ -207,7 +207,7 @@
                    :executor core/default-executor}
               (:environment (#'core/session-with-environment {}))])))
     (testing "passing a prefix"
-      (let [[_ v] (#'core/session-with-environment {:prefix "prefix"})]
+      (let [v (#'core/session-with-environment {:prefix "prefix"})]
         (is (= "prefix" (:prefix v)))
         (is (= {:blobstore nil :compute nil :user utils/*admin-user*
                 :middleware *middleware*
@@ -216,7 +216,7 @@
                (:environment v)))))
     (testing "passing a user"
       (let [user (utils/make-user "fred")
-            [_ v] (#'core/session-with-environment {:user user})]
+            v (#'core/session-with-environment {:user user})]
         (is (= {:blobstore nil :compute nil  :user user
                 :middleware :middleware
                 :algorithms core/default-algorithms
