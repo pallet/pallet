@@ -1241,8 +1241,10 @@
   (let [nodes (filter
                node/running?
                (or (:all-nodes session) ; empty list is ok
-                   (if-let [compute (environment/get-for
-                                     session [:compute] nil)]
+                   (if-let [compute (or
+                                     (environment/get-for
+                                      session [:compute] nil)
+                                     (:compute session))]
                      (do
                        (logging/info "retrieving nodes")
                        (compute/nodes compute))
