@@ -9,7 +9,7 @@
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
-  <version>0.6.8-SNAPSHOT</version>
+  <version>0.6.8</version>
   <packaging>jar</packaging>
   <name>pallet</name>
   <description>
@@ -143,7 +143,7 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>pallet-common</artifactId>
-      <version>0.2.2-SNAPSHOT</version>
+      <version>0.2.2</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
