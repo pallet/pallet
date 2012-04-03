@@ -3,7 +3,28 @@
 #+DESCRIPTION: Release notes for pallet releases
 #+KEYWORDS: pallet palletops contribute
 
-The latest release is 0.6.7.
+The latest release is 0.6.8.
+
+* 0.6.8
+** Features
+
+- Add pallet.compute.node-list/node-list-service
+  Adds a node-list specific compute-service constructor, to simplify
+  node-list instructions for people not interested in generic service
+  construction.
+
+** Fixes
+- Fix :all-node-set
+  The groups in :all-node-set will have all phases' phase functions run on
+  them, but none of the phases will actually be executed. This allows
+  picking up of settings without having any on node changes.
+
+- Fix error in vmfest provider error message
+
+- Switch provider discovery to use chiba
+  This should prevent issues with lein-newnew.
+
+- Add deprecation metadata to forward-fns
 
 * 0.6.7
 ** feautures
