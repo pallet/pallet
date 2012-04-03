@@ -1090,6 +1090,7 @@
   adjust-server-counts
   (session-pipeline adjust-server-counts
       {}
+    (update-in [:groups] (partial map deltas-for-converge-to-count))
     (update-in [:groups] (partial map servers-to-remove))
     (as-session-pipeline-fn lift-destroy-server)
     (as-session-pipeline-fn destroy-servers)
@@ -1334,7 +1335,6 @@
     session-with-all-nodes
     session-with-groups
     session-with-configure-phase
-    (update-in [:groups] (partial map deltas-for-converge-to-count))
     adjust-server-counts
     lift*))
 
