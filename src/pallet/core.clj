@@ -1420,18 +1420,21 @@
    (utils/dissoc-keys environment-args)
    (effective-environment)))
 
-(defn configure-plugin
-  [install-fn]
+(defn load-plugin
+  [[plugin-name config]]
   (fn [session]
-    [((resolve install-fn) session) session]))
+    (let [plugin-name (name plugin-name)
+          ns-sym (symbol (str "pallet.plugin." plugin-name))]
+      (require ns-sym)
+      (let [s (ns-resolve ns-sym (symbol plugin-name))]
+        [nil (s session config)]))))
 
 (def load-plugins
   (session-pipeline load-plugins
       {:msg "Load and configure plugins"
-       :plugins (environment/get-for &session [:install-plugins] nil)}
-    [install-plugins (get-environment [:install-plugins] nil)]
-    (fn [session] [(plugin/load-plugins) session])
-    [_ (m-map configure-plugin install-plugins)]))
+       :plugins (environment/get-for &session [:plugins] nil)}
+    [plugins-map (get-environment [:plugins] nil)]
+    (m-map load-plugin plugins-map)))
 
 (def ^{:doc "A set of recognised argument keywords, used for input checking."
        :private true}
