@@ -152,17 +152,22 @@
 
 (defn- merge-specs
   "Merge specs, using comp for :phases"
-  [a b]
-  (map-merge/merge-keys merge-spec-algorithm a b))
+  [algorithms a b]
+  (map-merge/merge-keys algorithms a b))
 
 (defn extend-specs
   "Merge in the inherited specs"
-  [spec inherits]
-  (if inherits
-    (merge-specs
-     (if (map? inherits) inherits (reduce merge-specs inherits))
-     spec)
-    spec))
+  ([spec inherits algorithms]
+     (if inherits
+       (merge-specs
+        algorithms
+        (if (map? inherits)
+          inherits
+          (reduce (partial merge-specs algorithms) inherits))
+        spec)
+       spec))
+  ([spec inherits]
+     (extend-specs spec inherits merge-spec-algorithm)))
 
 (defn server-spec
   "Create a server-spec.
