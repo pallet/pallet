@@ -1388,7 +1388,7 @@
 (def ^{:doc "args that are really part of the environment"}
   environment-args [:compute :blobstore :user :middleware :provider-options])
 
-(defn- session-with-environment
+(defn session-with-environment
   "Build a session map from the given options, combining the service specific
    options with those given in the converge or lift invocation."
   [{:as options}]
