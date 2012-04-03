@@ -23,7 +23,7 @@
 
 (deftest user*-modify-test
   (is (= (str "if getent passwd user1;"
-              " then /usr/sbin/usermod user1;else /usr/sbin/useradd user1;fi")
+              " then :;else /usr/sbin/useradd user1;fi")
          (user* {} "user1" :action :manage)))
   (is (= (str
           "if getent passwd user1;"
