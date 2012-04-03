@@ -246,3 +246,28 @@
   (let [action (declare-action sym {:execution :aggregated-crate-fn})]
     (implement-action* action :default {} f)
     action))
+
+(defmacro clj-action-fn
+  "Creates a clojure action with a :direct implementation. The first argument
+will be the session. The clojure code can not return a modified session (use a
+full action to do that."
+  {:indent 1} [args & impl]
+  (let [action-sym (gensym "clj-action")]
+    `(let [action# (declare-action '~action-sym {})]
+       (implement-action action# :direct
+         {:action-type :fn/clojure :location :origin}
+         ~args
+         [(fn ~action-sym [~(first args)] ~@impl) ~(first args)])
+       action#)))
+
+(defmacro clj-action
+  "Creates a clojure action with a :direct implementation. The clojure code
+can not return a modified session (use a full action to do that)."
+  [& impl]
+  (let [action-sym (gensym "clj-action")]
+    `(let [action# (declare-action '~action-sym {})]
+       (implement-action action# :direct
+         {:action-type :fn/clojure :location :origin}
+         [session#]
+         [(fn ~action-sym [session#] ~@impl) session#])
+       action#)))
