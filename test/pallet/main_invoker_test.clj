@@ -9,7 +9,7 @@
 
 (deftest compute-environment-test
   (main-invoker/invoke
-   {:provider :node-list}
+   {:provider :node-list :defaults {}}
    (fn [options]
      (is (instance? pallet.compute.node_list.NodeList (:compute options)))
      (is (nil? (:environment options))))
