@@ -11,14 +11,13 @@ open end to the range.
 
 The basic idea is that you wish to dispatch on hierarchy where the dispatched
 data may provide a version."
-  (:require
-   [clojure.string :as string])
   (:use
    [pallet.compute :only [os-hierarchy]]
-   [pallet.monad :only [phase-pipeline]]
-   [pallet.session :only [os-family* os-version*]]
+   [pallet.session :only [os-family os-version]]
    [pallet.versions
-    :only [as-version-vector version-less version-matches? version-spec-less]]))
+    :only [as-version-vector version-less version-matches? version-spec-less]])
+  (:require
+   [clojure.string :as string]))
 
 (defn ^{:internal true} hierarchy-vals
   "Returns all values in a hierarchy, whether parents or children."
@@ -92,8 +91,6 @@ refers to a software package version of some sort, on the specified `os` and
               [~@args]
               ~@body))))
 
-
-
 (defmacro defmulti-version-crate
   "Defines a multi-version funtion used to abstract over an operating system
 hierarchy, where dispatch includes an optional `os-version`. The `version`
@@ -109,16 +106,16 @@ refers to a software package version of some sort, on the specified `os` and
          [~session ~version ~@args]
          (dispatch-version
           '~name
-          (os-family* ~session)
-          (as-version-vector (os-version* ~session))
+          (os-family ~session)
+          (os-version ~session)
           (as-version-vector ~version) [~@args] (var-get h#) @m#)))))
 
-(defmacro multi-version-crate-method
+(defmacro multi-version-session-method
   "Adds a method to the specified multi-version function for the specified
 `dispatch-value`."
   {:indent 3}
   [multi-version {:keys [os os-version version] :as dispatch-value}
-   [& args] & body]
+   [session & args] & body]
   (let [{:keys [hierarchy methods]} (meta (resolve multi-version))
         h (var-get hierarchy)]
     (when-not ((hierarchy-vals h) os)
@@ -126,9 +123,5 @@ refers to a software package version of some sort, on the specified `os` and
     `(swap! (:methods (meta (var ~multi-version))) assoc ~dispatch-value
             (fn ~(symbol
                   (str (name os) "-" os-version "-" (string/join "" version)))
-              [~@args]
-              (phase-pipeline
-                  ~(symbol
-                    (str (name os) "-" os-version "-" (string/join "" version)))
-                  {}
-                ~@body)))))
+              [~session ~@args]
+              ~@body))))
