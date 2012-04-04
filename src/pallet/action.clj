@@ -71,9 +71,22 @@
    (action-plan/action-map
     action-fn metadata args execution action-type location)))
 
-(def precedence-key :action-precedence)
+(def ^{:no-doc true :private true} action-options-key ::action-precedence)
 
-(defmacro with-precedence
+(defmacro with-action-options
+  "Set up local precedence relations between actions"
+  [request m & body]
+  `(let [request# ~request]
+     (->
+      request#
+      (update-in [precedence-key] merge ~m)
+      ~@body
+      (assoc-in [precedence-key] (get-in request# [precedence-key])))))
+
+(def ^{:deprecated "0.7.0"}
+  precedence-key action-options-key)
+
+(defmacro ^{:deprecated "0.7.0"} with-precedence
   "Set up local precedence relations between actions"
   [request m & body]
   `(let [request# ~request]
