@@ -290,7 +290,24 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             :aptitude {:url "http://somewhere/apt"
                        :scopes ["main"]
                        :key-id 1234}
-            :yum {:url "http://somewhere/yum"})))))
+            :yum {:url "http://somewhere/yum"})))
+    (testing "key-server"
+      (is (= (stevedore/checked-commands
+            "Package source"
+            (remote-file*
+             {:server a}
+             "/etc/apt/sources.list.d/source1.list"
+             :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
+            (stevedore/script
+             (apt-key adv "--keyserver" keys.ubuntu.com "--recv-keys" 1234)))
+           (package-source*
+            {:server a}
+            "source1"
+            :aptitude {:url "http://somewhere/apt"
+                       :scopes ["main"]
+                       :key-server "keys.ubuntu.com"
+                       :key-id 1234}
+            :yum {:url "http://somewhere/yum"}))))))
 
 (deftest package-source-test
   (let [a (core/group-spec "a" :packager :aptitude)

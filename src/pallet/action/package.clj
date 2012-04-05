@@ -195,13 +195,15 @@
      (format "enabled=%s" enabled)
      ""])))
 
+(def ^{:dynamic true} *default-apt-keyserver* "subkeys.pgp.net")
+
 (defn package-source*
   "Add a packager source."
-  [session name & {:as options}]
+  [session name & {:keys [aptitude yum] :as options}]
   (let [packager (session/packager session)]
     (stevedore/checked-commands
      "Package source"
-     (let [key-url (-> options :aptitude :url)]
+     (let [key-url (:url aptitude)]
        (if (and key-url (.startsWith key-url "ppa:"))
          (stevedore/chain-commands
           (stevedore/script (~lib/install-package "python-software-properties"))
@@ -211,21 +213,22 @@
           (format (source-location packager) name)
           :content (format-source packager name (packager options))
           :literal (= packager :yum))))
-     (if (and (-> options :aptitude :key-id)
+     (if (and (:key-id aptitude)
               (= packager :aptitude))
        (stevedore/script
-        (apt-key adv
-                 "--keyserver subkeys.pgp.net --recv-keys"
-                 ~(-> options :aptitude :key-id))))
-     (if (and (-> options :aptitude :key-url)
+        (apt-key
+         adv
+         "--keyserver" ~(:key-server aptitude *default-apt-keyserver*)
+         "--recv-keys" ~(:key-id aptitude))))
+     (if (and (:key-url aptitude)
               (= packager :aptitude))
        (stevedore/chain-commands
         (remote-file*
          session
          "aptkey.tmp"
-         :url (-> options :aptitude :key-url))
+         :url (:key-url aptitude))
         (stevedore/script (apt-key add aptkey.tmp))))
-     (when-let [key (and (= packager :yum) (-> options :yum :gpgkey))]
+     (when-let [key (and (= packager :yum) (:gpgkey yum))]
        (stevedore/script (rpm "--import" ~key))))))
 
 (declare package-manager)
@@ -240,7 +243,8 @@
      - :url url              - repository url
      - :scopes seq           - scopes to enable for repository
      - :key-url url          - url for key
-     - :key-id id            - id for key to look it up from keyserver
+     - :key-id id            - id for key to look it up from key server
+     - :key-server           - the hostname of the key server to lookup keys
 
    :yum
      - :name                 - repository name
