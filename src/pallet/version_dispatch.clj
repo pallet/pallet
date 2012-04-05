@@ -87,7 +87,8 @@ refers to a software package version of some sort, on the specified `os` and
     `(swap! (:methods (meta (var ~multi-version))) assoc ~dispatch-value
             (fn
               ~(symbol
-                (str (name os) "-" os-version "-" (string/join "" version)))
+                (str (name multi-version) "-"
+                     (name os) "-" os-version "-" (string/join "" version)))
               [~@args]
               ~@body))))
 
@@ -97,7 +98,7 @@ hierarchy, where dispatch includes an optional `os-version`. The `version`
 refers to a software package version of some sort, on the specified `os` and
 `os-version`."
   {:indent 2}
-  [name [session version & args]]
+  [name [version session & args]]
   `(do
      (let [h# #'os-hierarchy
            m# (atom {})]
@@ -107,8 +108,9 @@ refers to a software package version of some sort, on the specified `os` and
          (dispatch-version
           '~name
           (os-family ~session)
-          (os-version ~session)
-          (as-version-vector ~version) [~@args] (var-get h#) @m#)))))
+          (as-version-vector (os-version ~session))
+          (as-version-vector ~version)
+          [~session ~@args] (var-get h#) @m#)))))
 
 (defmacro multi-version-session-method
   "Adds a method to the specified multi-version function for the specified
@@ -122,6 +124,7 @@ refers to a software package version of some sort, on the specified `os` and
       (throw (Exception. (str os " is not part of the hierarchy"))))
     `(swap! (:methods (meta (var ~multi-version))) assoc ~dispatch-value
             (fn ~(symbol
-                  (str (name os) "-" os-version "-" (string/join "" version)))
+                  (str (name multi-version) "-"
+                       (name os) "-" os-version "-" (string/join "" version)))
               [~session ~@args]
               ~@body))))
