@@ -638,12 +638,11 @@
   "Apply a phase to a node session"
   [session]
   {:pre [(:server session) (:phase session)]}
-  (logging/infof
-   "apply-phase-to-node: phase %s group %s target %s session %s"
+  (logging/debugf
+   "apply-phase-to-node: phase %s group %s target %s"
    (:phase session)
    (-> session :group :group-name)
-   (node/primary-ip (-> session :server :node))
-   session)
+   (node/primary-ip (-> session :server :node)))
   (logutils/with-context [:target (node/primary-ip
                                    (-> session :server :node))
                           :phase (:phase session)
@@ -658,7 +657,7 @@
   "Apply a phase to a group"
   [session]
   {:pre [(:group session) (:phase session)]}
-  (logging/infof
+  (logging/debugf
    "apply-phase-to-group: phase %s group %s"
    (:phase session)
    (-> session :group :group-name))

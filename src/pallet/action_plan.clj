@@ -622,7 +622,7 @@
   (if-let [f (phase-for-target session)]
     (script/with-script-context (script-template session)
       (stevedore/with-script-language :pallet.stevedore.bash/bash
-        (logging/tracef "build-for-target building phase")
+        (logging/trace "build-for-target building phase")
         (f (reset-for-target session))))
     session))
 
