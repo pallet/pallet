@@ -75,6 +75,7 @@
 
 (defmacro with-action-options
   "Set up local precedence relations between actions"
+  {:indent 1}
   [request m & body]
   `(let [request# ~request]
      (->
