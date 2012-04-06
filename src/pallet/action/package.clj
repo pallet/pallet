@@ -39,11 +39,13 @@
    (stevedore/chain-commands*
     (for [[opts packages] (->>
                            packages
-                           (group-by #(select-keys % [:enable]))
+                           (group-by
+                            #(select-keys % [:enable :allow-untrusted]))
                            (sort-by #(apply min (map :priority (second %)))))]
       (stevedore/script
        (aptitude
         install -q -y
+        ~(if (:allow-untrusted opts) "--allow-untrusted" "")
         ~(string/join " " (map #(str "-t " %) (:enable opts)))
         ~(string/join
           " "
@@ -59,7 +61,21 @@
                (IllegalArgumentException.
                 (str
                  action " is not a valid action for package action"))))))))))
-   (stevedore/script (~lib/list-installed-packages))))
+   ;; aptitude doesn't report failed installed in its exit code
+   ;; so explicitly check for success
+   (stevedore/chain-commands*
+    (for [{:keys [package action]} packages]
+      (cond
+        (#{:install :upgrade} action)
+        (stevedore/script
+         (pipe (aptitude
+                search (quoted (str "?and(?installed, ?name(^" ~package "$))")))
+               (grep (quoted ~package))))
+        (= :remove action)
+        (stevedore/script
+         (pipe (aptitude
+                search (quoted (str "?and(?installed, ?name(^" ~package "$))")))
+               (grep -v (quoted ~package)))))))))
 
 (def ^{:private true :doc "Define the order of actions"}
   action-order {:install 10 :remove 20 :upgrade 30})
@@ -169,12 +185,14 @@
 
 (defmethod format-source :aptitude
   [_ name options]
-  (format
-   "%s %s %s %s\n"
-   (:source-type options "deb")
-   (:url options)
-   (:release options (stevedore/script (~lib/os-version-name)))
-   (string/join " " (:scopes options ["main"]))))
+  (str
+   (format
+    "%s %s %s"
+    (:source-type options "deb")
+    (:url options)
+    (:release options (stevedore/script (~lib/os-version-name))))
+   (when-let [scopes (:scopes options ["main"])]
+     (str " " (string/join " " scopes)))))
 
 (defmethod format-source :yum
   [_ name {:keys [url mirrorlist gpgcheck gpgkey priority failovermethod

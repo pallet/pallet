@@ -40,7 +40,18 @@
               "Packages"
               (~lib/package-manager-non-interactive)
               "aptitude install -q -y java+ rubygems+ git- ruby_"
-              (aptitude search (quoted "~i")))))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^java$))"))
+                    (grep (quoted "java")))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^rubygems$))"))
+                    (grep (quoted "rubygems")))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^git$))"))
+                    (grep -v (quoted "git")))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^ruby$))"))
+                    (grep -v (quoted "ruby"))))))
            (first
             (build-actions/build-actions
              {}
@@ -240,7 +251,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           (remote-file*
            {:server a}
            "/etc/apt/sources.list.d/source1.list"
-           :content "deb http://somewhere/apt $(lsb_release -c -s) main\n"))
+           :content "deb http://somewhere/apt $(lsb_release -c -s) main"))
          (package-source*
           {:server a}
           "source1"
@@ -281,7 +292,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (remote-file*
              {:server a}
              "/etc/apt/sources.list.d/source1.list"
-             :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
+             :content "deb http://somewhere/apt $(lsb_release -c -s) main")
             (stevedore/script
              (apt-key adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
            (package-source*
@@ -297,7 +308,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (remote-file*
              {:server a}
              "/etc/apt/sources.list.d/source1.list"
-             :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
+             :content "deb http://somewhere/apt $(lsb_release -c -s) main")
             (stevedore/script
              (apt-key adv "--keyserver" keys.ubuntu.com "--recv-keys" 1234)))
            (package-source*
@@ -317,7 +328,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (remote-file*
              {:server a}
              "/etc/apt/sources.list.d/source1.list"
-             :content "deb http://somewhere/apt $(lsb_release -c -s) main\n"))
+             :content "deb http://somewhere/apt $(lsb_release -c -s) main"))
            (first (build-actions/build-actions
                    {:server a}
                    (package-source
@@ -409,7 +420,17 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               "Packages"
               (~lib/package-manager-non-interactive)
               (aptitude install -q -y p1- p4_ p2+ p3+)
-              (aptitude search (quoted "~i")))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^p1$))"))
+                    (grep -v (quoted "p1")))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^p2$))"))
+                    (grep (quoted "p2")))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^p3$))"))
+                    (grep (quoted "p3")))
+              (pipe (aptitude search (quoted "?and(?installed, ?name(^p4$))"))
+                    (grep -v (quoted "p4"))))
              (adjust-packages
               {:server {:packager :aptitude}}
               [{:package "p1" :action :remove}
@@ -423,7 +444,12 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               (~lib/package-manager-non-interactive)
               (aptitude install -q -y -t r1 p2+)
               (aptitude install -q -y p1+)
-              (aptitude search (quoted "~i")))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^p1$))"))
+                    (grep (quoted "p1")))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^p2$))"))
+                    (grep (quoted "p2"))))
              (adjust-packages
               {:server {:packager :aptitude}}
               [{:package "p1" :action :install :priority 20}
