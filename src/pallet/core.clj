@@ -392,8 +392,6 @@
         _ (logging/debugf "bootstrap-script session %s" session)
         [result session] ((let-state
                             [phase #(vector (:phase %) %)
-                             _ (action-plan/reset-for-target
-                                (phase/all-phases-for-phase phase))
                              _ action-plan/build-for-target
                              action-plan action/get-action-plan
                              _ (fn [session]
@@ -540,7 +538,6 @@
          (:environment %)
          (:environment server))))
     [phase #(vector (:phase %) %)]
-    ;; (action-plan/reset-for-target (phase/all-phases-for-phase phase))
     action-plan/build-for-target
     [action-plan action/get-action-plan]
     (fn [session]
@@ -585,8 +582,11 @@
          (:environment %)
          (:environment group))))
     [phase #(vector (:phase %) %)]
-    (action-plan/reset-for-target (phase/all-phases-for-phase phase))
-    action-plan/build-for-target))
+    action-plan/build-for-target
+    [action-plan action/get-action-plan]
+    (fn [session]
+      [nil
+       (assoc-in session (action-plan/target-path session) action-plan)])))
 
 (def ^{:doc "Build an invocation map for specified groups map."}
   plan-for-group-phase

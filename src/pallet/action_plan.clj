@@ -674,17 +674,6 @@
       assoc ::executor executor ::execute-status-fn execute-status-fn))))
 
 ;;; ## Action Plan Functions Based on Session
-(defn reset-for-target
-  "Reset the action plan for the current phase and target."
-  [phases]
-  (fn [session]
-    {:pre [(:phase session) (:target-id session)]}
-    [nil
-     (reduce
-      #(assoc-in %1 (target-path* %2 (-> session :target-id)) nil)
-      session
-      phases)]))
-
 (defn phase-for-target
   "Return the phase function for the target phase."
   [session]
