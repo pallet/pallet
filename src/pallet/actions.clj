@@ -7,8 +7,7 @@
    [pallet.stevedore :as stevedore])
   (:use
    pallet.actions-impl
-   [pallet.action :only [defaction with-action-options]]
-   [pallet.action-plan :only [enter-scope leave-scope]]
+   [pallet.action :only [defaction with-action-options enter-scope leave-scope]]
    [pallet.argument :only [delayed]]
    [pallet.monad :only [let-s phase-pipeline]]
    [pallet.node-value :only [node-value]]

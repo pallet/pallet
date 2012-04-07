@@ -6,6 +6,7 @@
    [pallet.action-plan :only [translate]]
    [pallet.monad :only [let-s]]
    [pallet.node-value :only [node-value?]]
+   [pallet.session.action-plan :only [get-action-plan]]
    [pallet.test-utils :only [test-session]]))
 
 (deftest declare-action-test
@@ -20,7 +21,7 @@
         (is (= {:always-before :a} (action-precedence action))))
       (testing "inserter"
         (let [[nv session] ((inserter 1) {})
-              [action-plan session] (get-action-plan session)
+              action-plan (get-action-plan session)
               action-map (ffirst action-plan)]
           (is (node-value? nv))
           (is (seq action-plan))
@@ -43,7 +44,7 @@
     (testing "inserter"
       (is (fn? a1))
       (let [[nv session] ((a1 1) {})
-            [action-plan session] (get-action-plan session)
+            action-plan (get-action-plan session)
             action-map (ffirst action-plan)]
         (is (node-value? nv))
         (is (seq action-plan))
@@ -95,7 +96,7 @@
                         (ins "a"))]
                    nil)
           [_ session] (p session)
-          [action-plan session] (get-action-plan session)
+          action-plan (get-action-plan session)
           [a1 a2] (#'pallet.action-plan/pop-block action-plan)]
       (is (= 'agg (action-symbol (:action a1))))
       (is (= 'ins (action-symbol (:action a2))))

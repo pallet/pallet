@@ -17,8 +17,6 @@
 (use-fixtures :once (logging-threshold-fixture))
 
 (def add-action-map #'action-plan/add-action-map)
-(def push-block #'action-plan/push-block)
-(def pop-block #'action-plan/pop-block)
 
 (deftest action-plan-test
   (let [b (add-action-map nil 1)

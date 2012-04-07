@@ -18,6 +18,7 @@
   (:use
    [pallet.context :only [with-phase-context]]
    [pallet.session-verify :only [check-session add-session-verification-key]]
+   [pallet.session.action-plan :only [target-path]]
    [pallet.monad :only [let-s wrap-pipeline]]))
 
 (defn- apply-phase-to-node
@@ -57,12 +58,7 @@
                 :executor #'executors/echo-executor
                 :middleware [core/translate-action-plan]}))
             core/build-for-target
-            second ;; drop the phase result
-            ((fn [session]
-               (-> session
-                   (assoc-in (core/target-path session)
-                             (:pallet.action/action-plan session))
-                   (dissoc :pallet.action/action-plan)))))]
+            second)]  ; drop the phase result
        (phase/all-phases-for-phase (:phase session))))))
 
 (defn- convert-0-4-5-compatible-keys

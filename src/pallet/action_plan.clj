@@ -27,6 +27,7 @@
    [pallet.context :only [with-context in-phase-context-scope]]
    [pallet.node-value :only [make-node-value set-node-value]]
    [pallet.script :only [with-script-context]]
+   [pallet.session.action-plan :only [get-session-action-plan]]
    [slingshot.slingshot :only [throw+]]
    pallet.action-impl))
 
@@ -36,12 +37,12 @@
 ;;; be a stack of action-maps (ie a tree of stacks). Branches are transformed
 ;;; into :blocks of the parent action map.
 
-(defn- push-block
+(defn push-block
   "Push a block onto the action-plan"
   [action-plan]
   (conj (or action-plan '(nil nil)) nil))
 
-(defn- pop-block
+(defn pop-block
   "Take the last block and add it to the :blocks key of the scope below it in
   the stack.  The block is reversed to put it into the order in which elements
   were added."
@@ -311,9 +312,7 @@
                                 (f session))))
                           f)
                       [_ session] (f session)
-
-                      action-plan (:pallet.action/action-plan session)
-                      session (dissoc session :pallet.action/action-plan)
+                      [action-plan session] (get-session-action-plan session)
                       sub-plan (pop-block action-plan)]
                   ;; return the local action-plan
                   (logging/tracef "action plan is %s" sub-plan)
@@ -665,13 +664,3 @@
    action"
   [name & script]
   (checked-commands* name script))
-
-(defn enter-scope
-  "Enter a new action scope."
-  [session]
-  [nil (update-in session [:pallet.action/action-plan] push-block)])
-
-(defn leave-scope
-  "Leave the current action scope."
-  [session]
-  [nil (update-in session [:pallet.action/action-plan] pop-block)])

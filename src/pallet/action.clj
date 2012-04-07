@@ -17,9 +17,12 @@
   {:author "Hugo Duncan"}
   (:use
    [clojure.tools.macro :only [name-with-attributes]]
-   [pallet.action-plan :only [schedule-action-map action-map]]
+   [pallet.action-plan
+    :only [schedule-action-map action-map pop-block push-block]]
    [pallet.common.context :only [throw-map]]
    [pallet.monad :only [phase-pipeline let-s]]
+   [pallet.session.action-plan
+    :only [assoc-action-plan get-action-plan update-action-plan]]
    [pallet.utils :only [compiler-exception]]
    pallet.action-impl))
 
@@ -78,14 +81,8 @@
   [session action-map]
   {:pre [session (map? session)]}
   (let [[node-value action-plan] (schedule-action-map
-                                  (::action-plan session) action-map)]
-    [node-value (assoc session ::action-plan action-plan)]))
-
-(def
-  ^{:doc "Retrieves the current action plan, and resets it"}
-  get-action-plan
-  (fn [session]
-    [(::action-plan session) (dissoc session ::action-plan)]))
+                                  (get-action-plan session) action-map)]
+    [node-value (assoc-action-plan session action-plan)]))
 
 (defn- action-inserter-fn
   "Return an action inserter function. This is used for anonymous actions. The
@@ -288,3 +285,13 @@ can not return a modified session (use a full action to do that)."
          [session#]
          [(fn ~action-sym [session#] ~@impl) session#])
        action#)))
+
+(defn enter-scope
+  "Enter a new action scope."
+  [session]
+  [nil (update-action-plan session push-block)])
+
+(defn leave-scope
+  "Leave the current action scope."
+  [session]
+  [nil (update-action-plan session pop-block)])
