@@ -286,37 +286,6 @@
    assoc-blocks
    action-plan))
 
-;;; ## Target specific functions
-(defn- target-path*
-  "Return the vector path of the action plan for the specified phase an
-  target-id."
-  [phase target-id]
-  [:action-plan phase target-id])
-
-(defn target-path
-  "Return the vector path of the action plan for the current session target
-   node, or target group."
-  [session]
-  {:pre [(keyword? (:phase session))
-         (keyword? (:target-id session))]}
-  (target-path* (:phase session) (-> session :target-id)))
-
-(defn script-template-for-server
-  "Return the script template for the specified server."
-  [server]
-  (let [family (-> server :image :os-family)]
-    (filter identity
-            [family
-             (:packager server)
-             (when-let [version (-> server :image :os-version)]
-               (keyword (format "%s-%s" (name family) version)))])))
-
-(defn script-template
-  "Return the script template for the current group node."
-  [session]
-  (when-let [server (:server session)]
-    (script-template-for-server server)))
-
 ;;; ## Delayed Crate Functions
 
 ;;; Delayed crate functions are called at action-plan translation time.
@@ -500,15 +469,12 @@
    This is equivalent to using an identity monad with a monadic value
    that is a tree of action maps."
   [action-plan session]
-  (with-script-context (script-template session)
-    (stevedore/with-script-language :pallet.stevedore.bash/bash
-      ;; script context required for execute-delayed-crate-fns
-      (->
-       action-plan
-       pop-block ;; pop the default block
-       transform-executions
-       (execute-delayed-crate-fns session)
-       enforce-precedence))))
+  (->
+   action-plan
+   pop-block ;; pop the default block
+   transform-executions
+   (execute-delayed-crate-fns session)
+   enforce-precedence))
 
 ;;; ## Node Value Path Lookup
 (defn- find-node-value-path
@@ -672,50 +638,6 @@
      (update-in
       session [:action-plan]
       assoc ::executor executor ::execute-status-fn execute-status-fn))))
-
-;;; ## Action Plan Functions Based on Session
-(defn phase-for-target
-  "Return the phase function for the target phase."
-  [session]
-  {:pre [(:phase session) (:target-type session)]}
-  (let [phase (:phase session)
-        target-type (:target-type session)]
-    (or
-     (phase (-> session target-type :phases))
-     (phase (:inline-phases session)))))
-
-(defn build-for-target
-  "Create the action plan by calling the current phase for the target group."
-  [session]
-  {:pre [(:phase session)]}
-  (if-let [f (phase-for-target session)]
-    (with-script-context (script-template session)
-      (stevedore/with-script-language :pallet.stevedore.bash/bash
-        (logging/tracef "build-for-target building phase")
-        (f session)))
-    [nil session]))
-
-(defn get-for-target
-  "Get the action plan for the current phase and target node."
-  [session]
-  (get-in session (target-path session)))
-
-(defn translate-for-target
-  "Build the action plan and translate for the current phase and target node."
-  [session]
-  {:pre [(:phase session)]}
-  (update-in session (target-path session) translate session))
-
-(defn execute-for-target
-  "Execute the translated action plan for the current target."
-  [session executor execute-status-fn]
-  {:pre [(:phase session)]}
-  (logging/tracef "execute-for-target")
-  (with-script-context (script-template session)
-    (stevedore/with-script-language :pallet.stevedore.bash/bash
-      (let [path (target-path session)]
-        (logging/tracef "execute-for-target target-path %s" path)
-        (execute (get-in session path) session executor execute-status-fn)))))
 
 ;;; ## Scope and Context Functions
 (defmacro checked-script

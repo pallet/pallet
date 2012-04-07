@@ -56,11 +56,11 @@
                {:algorithms core/default-algorithms
                 :executor #'executors/echo-executor
                 :middleware [core/translate-action-plan]}))
-            action-plan/build-for-target
+            core/build-for-target
             second ;; drop the phase result
             ((fn [session]
                (-> session
-                   (assoc-in (action-plan/target-path session)
+                   (assoc-in (core/target-path session)
                              (:pallet.action/action-plan session))
                    (dissoc :pallet.action/action-plan)))))]
        (phase/all-phases-for-phase (:phase session))))))

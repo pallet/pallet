@@ -12,7 +12,6 @@
    [pallet.argument :only [delayed]]
    [pallet.monad :only [let-s phase-pipeline]]
    [pallet.node-value :only [node-value]]
-   [pallet.parameter :only [get-for-target]]
    [pallet.script.lib :only [set-flag-value]]
    [pallet.utils :only [apply-map tmpfile]]))
 
@@ -100,19 +99,6 @@
        enter-scope
        ~@crate-fns-or-actions
        leave-scope)))
-
-;;; # Aggregation
-;; (defn aggregate-args
-;;   "Aggregate arguments and store them in the session."
-;;   [key args]
-;;   (phase-pipeline aggregate-args {}
-;;     (update-in [::aggregate-args key] #(conj (or % []) args))))
-
-;; (defn get-aggregate-args
-;;   [key]
-;;   (delayed
-;;    [session]
-;;    (get-for-target session [::aggregate-args key] nil)))
 
 ;;; # Simple File Management
 (defaction file

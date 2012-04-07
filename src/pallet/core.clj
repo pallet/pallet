@@ -55,8 +55,10 @@
    [pallet.event :only [publish session-event]]
    [pallet.monad :only [exec-s let-session let-state session-pipeline
                         as-session-pipeline-fn session-peek-fn]]
+   [pallet.script :only [with-script-context]]
    [pallet.session-verify :only [session-verification-key
                                  add-session-verification-key]]
+   [pallet.stevedore :only [with-script-language]]
    [slingshot.slingshot :only [throw+]]))
 
 (let [v (atom nil)]
@@ -371,6 +373,87 @@
      (-> session :server :packager))
     (handler session)))
 
+;;; ## Phase function execution
+(defn phase-for-target
+  "Return the phase function for the target phase."
+  [session]
+  {:pre [(:phase session) (:target-type session)]}
+  (let [phase (:phase session)
+        target-type (:target-type session)]
+    (or
+     (phase (-> session target-type :phases))
+     (phase (:inline-phases session)))))
+
+(defn has-phase?
+  [session]
+  (let [phase (:phase session)]
+    (phase-for-target
+     (assoc session :phase (or (phase/subphase-for phase) phase)))))
+
+;;; ## Target specific functions
+(defn- target-path*
+  "Return the vector path of the action plan for the specified phase an
+  target-id."
+  [phase target-id]
+  [:action-plan phase target-id])
+
+(defn target-path
+  "Return the vector path of the action plan for the current session target
+   node, or target group."
+  [session]
+  {:pre [(keyword? (:phase session))
+         (keyword? (:target-id session))]}
+  (target-path* (:phase session) (-> session :target-id)))
+
+(defn script-template-for-server
+  "Return the script template for the specified server."
+  [server]
+  (let [family (-> server :image :os-family)]
+    (filter identity
+            [family
+             (:packager server)
+             (when-let [version (-> server :image :os-version)]
+               (keyword (format "%s-%s" (name family) version)))])))
+
+(defn script-template
+  "Return the script template for the current group node."
+  [session]
+  (when-let [server (:server session)]
+    (script-template-for-server server)))
+
+;;; ## Action Plan Functions Based on Session
+(defn build-for-target
+  "Create the action plan by calling the current phase for the target group."
+  [session]
+  {:pre [(:phase session)]}
+  (if-let [f (phase-for-target session)]
+    (with-script-context (script-template session)
+      (with-script-language :pallet.stevedore.bash/bash
+        (logging/tracef "build-for-target building phase")
+        (f session)))
+    [nil session]))
+
+(defn translate-for-target
+  "Build the action plan and translate for the current phase and target node."
+  [session]
+  {:pre [(:phase session)]}
+  (with-script-context (script-template session)
+    (with-script-language :pallet.stevedore.bash/bash
+      ;; script context required for execute-delayed-crate-fns
+      (update-in session (target-path session) action-plan/translate session))))
+
+(defn execute-for-target
+  "Execute the translated action plan for the current target."
+  [session executor execute-status-fn]
+  {:pre [(:phase session)]}
+  (logging/tracef "execute-for-target")
+  (with-script-context (script-template session)
+    (with-script-language :pallet.stevedore.bash/bash
+      (let [path (target-path session)]
+        (logging/tracef "execute-for-target target-path %s" path)
+        (action-plan/execute
+         (get-in session path) session executor execute-status-fn)))))
+
 ;;; bootstrap functions
 (declare default-algorithms)
 (defn- bootstrap-script
@@ -392,17 +475,16 @@
         _ (logging/debugf "bootstrap-script session %s" session)
         [result session] ((let-state
                             [phase #(vector (:phase %) %)
-                             _ action-plan/build-for-target
+                             _ build-for-target
                              action-plan action/get-action-plan
                              _ (fn [session]
                                  [nil
                                   (assoc-in
-                                   session (action-plan/target-path session)
+                                   session (target-path session)
                                    action-plan)])
-                             _ (as-session-pipeline-fn
-                                action-plan/translate-for-target)
+                             _ (as-session-pipeline-fn translate-for-target)
                              r (fn [s]
-                                 (action-plan/execute-for-target
+                                 (execute-for-target
                                   s
                                   #(executors/bootstrap-executor %1 %2)
                                   (get-in
@@ -454,7 +536,7 @@
 (defn translate-action-plan
   [handler]
   (fn [session]
-    (handler (action-plan/translate-for-target session))))
+    (handler (translate-for-target session))))
 
 (defn middleware-handler
   "Build a middleware processing pipeline from the specified middleware.
@@ -466,7 +548,7 @@
 (defn- execute
   "Execute the action plan"
   [session]
-  (action-plan/execute-for-target
+  (execute-for-target
    session
    (fn execute-fn [session action]
      ((:executor session) session action))
@@ -538,11 +620,10 @@
          (:environment %)
          (:environment server))))
     [phase #(vector (:phase %) %)]
-    action-plan/build-for-target
+    build-for-target
     [action-plan action/get-action-plan]
     (fn [session]
-      [nil
-       (assoc-in session (action-plan/target-path session) action-plan)])))
+      [nil (assoc-in session (target-path session) action-plan)])))
 
 (def
   ^{:doc "Build an action plan for the specified servers."}
@@ -582,11 +663,10 @@
          (:environment %)
          (:environment group))))
     [phase #(vector (:phase %) %)]
-    action-plan/build-for-target
+    build-for-target
     [action-plan action/get-action-plan]
     (fn [session]
-      [nil
-       (assoc-in session (action-plan/target-path session) action-plan)])))
+      [nil (assoc-in session (target-path session) action-plan)])))
 
 (def ^{:doc "Build an invocation map for specified groups map."}
   plan-for-group-phase
@@ -615,13 +695,6 @@
     (m-map plan-for-phase phase-list)))
 
 ;;; Phase application
-
-(defn has-phase?
-  [session]
-  (let [phase (:phase session)]
-    (action-plan/phase-for-target
-     (assoc session :phase (or (phase/subphase-for phase) phase)))))
-
 (defn apply-phase-to-node
   "Apply a phase to a node session"
   [session]
