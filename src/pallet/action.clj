@@ -70,6 +70,23 @@
 ;;; the action plan.  This inserter function has the action on it's :action
 ;;; metadata key.
 
+(defn insert-action
+  "Registers an action map in the action plan for execution. This function is
+   responsible for creating a node-value (as node-value-path's have to be unique
+   for all instances of an aggregated action) as a handle to the value that will
+   be returned when the action map is executed."
+  [session action-map]
+  {:pre [session (map? session)]}
+  (let [[node-value action-plan] (schedule-action-map
+                                  (::action-plan session) action-map)]
+    [node-value (assoc session ::action-plan action-plan)]))
+
+(def
+  ^{:doc "Retrieves the current action plan, and resets it"}
+  get-action-plan
+  (fn [session]
+    [(::action-plan session) (dissoc session ::action-plan)]))
+
 (defn- action-inserter-fn
   "Return an action inserter function. This is used for anonymous actions. The
   argument list is not enforced."
@@ -77,7 +94,7 @@
   ^{:action action}
   (fn action-fn [& argv]
     (fn action-inserter [session]
-      (schedule-action-map
+      (insert-action
        session (action-map action argv (action-options session))))))
 
 (defn declare-action
@@ -161,7 +178,7 @@
          (fn ~action-name
            [~@args]
            (fn ~(symbol (str (name action-name) "-inserter")) [session#]
-             (schedule-action-map
+             (insert-action
               session#
               (action-map
                action#

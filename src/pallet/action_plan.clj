@@ -116,34 +116,30 @@
                  (drop-last (context/phase-context-scope))
                  (context/phase-contexts))})))
 
-(declare target-path)
-(declare find-node-value-path)
-
 (defn action-map-execution
   "Helper to return the execution of the action associated with an action-map."
   [action-map]
   {:pre [(map? action-map) (:action action-map)]}
   (action-execution (:action action-map)))
 
+;;; ## Schedule an action map in an action plan
+(declare find-node-value-path)
+
 (defn schedule-action-map
   "Registers an action map in the action plan for execution. This function is
    responsible for creating a node-value (as node-value-path's have to be unique
    for all instances of an aggregated action) as a handle to the value that will
    be returned when the action map is executed."
-  [session action-map]
-  {:pre [session
-         (keyword? (:phase session))
-         (keyword? (:target-id session))]}
-  (let [target-path (target-path session)
-        node-value-path (if (= :aggregated (action-map-execution action-map))
-                          (or (find-node-value-path
-                               (get-in session target-path) action-map)
+  [action-plan action-map]
+  {:pre [(or (nil? action-plan)
+             (instance? clojure.lang.IPersistentStack action-plan))]}
+  (let [node-value-path (if (= :aggregated (action-map-execution action-map))
+                          (or (find-node-value-path action-plan action-map)
                               (gensym "nv"))
                           (gensym "nv"))]
     [(make-node-value node-value-path)
-     (update-in
-      session target-path
-      add-action-map (assoc action-map :node-value-path node-value-path))]))
+     (add-action-map
+      action-plan (assoc action-map :node-value-path node-value-path))]))
 
 ;;; ## Utilities
 (defn multi-context-string
@@ -171,38 +167,6 @@
                (map? action-plan)))
     true
     (logging/errorf "action-plan? failed: %s" action-plan)))
-
-;;; ## Target specific functions
-(defn- target-path*
-  "Return the vector path of the action plan for the specified phase an
-  target-id."
-  [phase target-id]
-  [:action-plan phase target-id])
-
-(defn target-path
-  "Return the vector path of the action plan for the current session target
-   node, or target group."
-  [session]
-  {:pre [(keyword? (:phase session))
-         (keyword? (:target-id session))]}
-  (target-path* (:phase session) (-> session :target-id)))
-
-(defn script-template-for-server
-  "Return the script template for the specified server."
-  [server]
-  (let [family (-> server :image :os-family)]
-    (filter identity
-            [family
-             (:packager server)
-             (when-let [version (-> server :image :os-version)]
-               (keyword (format "%s-%s" (name family) version)))])))
-
-(defn script-template
-  "Return the script template for the current group node."
-  [session]
-  (when-let [server (:server session)]
-    (script-template-for-server server)))
-
 
 ;;; ## Action Plan Transformation
 
@@ -322,6 +286,37 @@
    assoc-blocks
    action-plan))
 
+;;; ## Target specific functions
+(defn- target-path*
+  "Return the vector path of the action plan for the specified phase an
+  target-id."
+  [phase target-id]
+  [:action-plan phase target-id])
+
+(defn target-path
+  "Return the vector path of the action plan for the current session target
+   node, or target group."
+  [session]
+  {:pre [(keyword? (:phase session))
+         (keyword? (:target-id session))]}
+  (target-path* (:phase session) (-> session :target-id)))
+
+(defn script-template-for-server
+  "Return the script template for the specified server."
+  [server]
+  (let [family (-> server :image :os-family)]
+    (filter identity
+            [family
+             (:packager server)
+             (when-let [version (-> server :image :os-version)]
+               (keyword (format "%s-%s" (name family) version)))])))
+
+(defn script-template
+  "Return the script template for the current group node."
+  [session]
+  (when-let [server (:server session)]
+    (script-template-for-server server)))
+
 ;;; ## Delayed Crate Functions
 
 ;;; Delayed crate functions are called at action-plan translation time.
@@ -336,13 +331,8 @@
               (logging/tracef "ex-action-map %s" session)
               (logging/tracef "ex-action-map %s" action-map)
               (if (delayed-execution? (action-execution action))
-                ;; set up the seesion with a local action-plan
-                (let [id (:target-id session)
-                      local-id (keyword (name (gensym "localid")))
-                      session (assoc session :target-id local-id)
-
-                      ;; execute the delayed phase function
-                      f (-> (action-implementation action :default) :f)
+                ;; execute the delayed phase function
+                (let [f (-> (action-implementation action :default) :f)
                       f (apply f args)
                       f (if (seq context)
                           (fn ex-with-context [session]
@@ -351,18 +341,11 @@
                               (in-phase-context-scope context
                                 (f session))))
                           f)
-                      [_ session] (with-script-context
-                                      (script-template session)
-                                    (stevedore/with-script-language
-                                      :pallet.stevedore.bash/bash
-                                      (f session)))
+                      [_ session] (f session)
 
-                      ;; restore the original target
-                      session (assoc session :target-id id)
-                      sub-plan (pop-block
-                                (get-in
-                                 session
-                                 (target-path* (:phase session) local-id)))]
+                      action-plan (:pallet.action/action-plan session)
+                      session (dissoc session :pallet.action/action-plan)
+                      sub-plan (pop-block action-plan)]
                   ;; return the local action-plan
                   (logging/tracef "action plan is %s" sub-plan)
                   sub-plan)
@@ -517,12 +500,15 @@
    This is equivalent to using an identity monad with a monadic value
    that is a tree of action maps."
   [action-plan session]
-  (->
-   action-plan
-   pop-block ;; pop the default block
-   transform-executions
-   (execute-delayed-crate-fns session)
-   enforce-precedence))
+  (with-script-context (script-template session)
+    (stevedore/with-script-language :pallet.stevedore.bash/bash
+      ;; script context required for execute-delayed-crate-fns
+      (->
+       action-plan
+       pop-block ;; pop the default block
+       transform-executions
+       (execute-delayed-crate-fns session)
+       enforce-precedence))))
 
 ;;; ## Node Value Path Lookup
 (defn- find-node-value-path
@@ -772,26 +758,9 @@
 (defn enter-scope
   "Enter a new action scope."
   [session]
-  [nil
-   (update-in
-    session (target-path session) push-block)])
+  [nil (update-in session [:pallet.action/action-plan] push-block)])
 
 (defn leave-scope
   "Leave the current action scope."
   [session]
-  [nil
-   (update-in
-    session (target-path session) pop-block)])
-
-;; ;;; ## Flow actions
-;; ;;; Flow actions allow flow control over nested scopes.
-;; (defn if-action
-;;   "Insert a :flow/if action that will claim the next one or two nested scopes."
-;;   [condition]
-;;   (fn [session]
-;;     (schedule-action-map
-;;      session
-;;      (action-map
-;;       :flow/if ; (fn [session value] value)
-;;       {} [condition] :in-sequence ;; :flow/if :origin
-;;       ))))
+  [nil (update-in session [:pallet.action/action-plan] pop-block)])

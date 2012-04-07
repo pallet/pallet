@@ -3,7 +3,7 @@
    clojure.test
    pallet.action
    pallet.action-impl
-   [pallet.action-plan :only [target-path translate]]
+   [pallet.action-plan :only [translate]]
    [pallet.monad :only [let-s]]
    [pallet.node-value :only [node-value?]]
    [pallet.test-utils :only [test-session]]))
@@ -19,13 +19,13 @@
         (is (= :in-sequence (action-execution action)))
         (is (= {:always-before :a} (action-precedence action))))
       (testing "inserter"
-        (let [[nv session] ((inserter 1) {:target-id :id :phase :p})
-              action-plan (get-in session (target-path session))
+        (let [[nv session] ((inserter 1) {})
+              [action-plan session] (get-action-plan session)
               action-map (ffirst action-plan)]
           (is (node-value? nv))
-          (is (= :id (:target-id session)))
           (is (seq action-plan))
           (is (map? action-map))
+          (is (nil? (:pallet.action/action-plan session)))
           (is (= action (:action action-map)))
           (is (= [1] (:args action-map)))))))
   (testing "explicit execution"
@@ -42,11 +42,10 @@
       (is (= :in-sequence (action-execution action))))
     (testing "inserter"
       (is (fn? a1))
-      (let [[nv session] ((a1 1) {:target-id :id :phase :p})
-            action-plan (get-in session (target-path session))
+      (let [[nv session] ((a1 1) {})
+            [action-plan session] (get-action-plan session)
             action-map (ffirst action-plan)]
         (is (node-value? nv))
-        (is (= :id (:target-id session)))
         (is (seq action-plan))
         (is (map? action-map))
         (is (= action (:action action-map)))
@@ -90,14 +89,13 @@
   (testing "precedence across execution model"
     (let [agg (declare-action 'agg {:execution :aggregated})
           ins (declare-action 'ins {})
-          session (test-session
-                   {:phase :fred :target-id :id :server {:node-id :id}})
+          session (test-session {})
           p (let-s [_ (agg "hello")
                     _ (with-action-options {:always-before #{agg}}
                         (ins "a"))]
                    nil)
           [_ session] (p session)
-          action-plan (get-in session (target-path session))
+          [action-plan session] (get-action-plan session)
           [a1 a2] (#'pallet.action-plan/pop-block action-plan)]
       (is (= 'agg (action-symbol (:action a1))))
       (is (= 'ins (action-symbol (:action a2))))

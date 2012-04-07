@@ -395,6 +395,12 @@
                              _ (action-plan/reset-for-target
                                 (phase/all-phases-for-phase phase))
                              _ action-plan/build-for-target
+                             action-plan action/get-action-plan
+                             _ (fn [session]
+                                 [nil
+                                  (assoc-in
+                                   session (action-plan/target-path session)
+                                   action-plan)])
                              _ (as-session-pipeline-fn
                                 action-plan/translate-for-target)
                              r (fn [s]
@@ -534,8 +540,12 @@
          (:environment %)
          (:environment server))))
     [phase #(vector (:phase %) %)]
-    (action-plan/reset-for-target (phase/all-phases-for-phase phase))
-    action-plan/build-for-target))
+    ;; (action-plan/reset-for-target (phase/all-phases-for-phase phase))
+    action-plan/build-for-target
+    [action-plan action/get-action-plan]
+    (fn [session]
+      [nil
+       (assoc-in session (action-plan/target-path session) action-plan)])))
 
 (def
   ^{:doc "Build an action plan for the specified servers."}

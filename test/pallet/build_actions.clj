@@ -57,7 +57,12 @@
                 :executor #'executors/echo-executor
                 :middleware [core/translate-action-plan]}))
             action-plan/build-for-target
-            second)];; drop the phase result
+            second ;; drop the phase result
+            ((fn [session]
+               (-> session
+                   (assoc-in (action-plan/target-path session)
+                             (:pallet.action/action-plan session))
+                   (dissoc :pallet.action/action-plan)))))]
        (phase/all-phases-for-phase (:phase session))))))
 
 (defn- convert-0-4-5-compatible-keys
