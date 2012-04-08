@@ -58,7 +58,8 @@
    [pallet.script :only [with-script-context]]
    [pallet.session-verify :only [session-verification-key
                                  add-session-verification-key]]
-   [pallet.session.action-plan :only [mv-session-action-plan target-path]]
+   [pallet.session.action-plan
+    :only [assoc-action-plan get-session-action-plan target-path]]
    [pallet.stevedore :only [with-script-language]]
    [slingshot.slingshot :only [throw+]]))
 
@@ -396,7 +397,7 @@
 (defn script-template-for-server
   "Return the script template for the specified server."
   [server]
-  (let [family (-> server :image :os-family)]
+  (when-let [family (-> server :image :os-family)]
     (filter identity
             [family
              (:packager server)
@@ -409,38 +410,70 @@
   (when-let [server (:server session)]
     (script-template-for-server server)))
 
+(defmacro with-script-for-server
+  "Set up the script context for a server"
+  [server & body]
+  `(with-script-context (script-template-for-server ~server)
+     (with-script-language :pallet.stevedore.bash/bash
+       ~@body)))
+
 ;;; ## Action Plan Functions Based on Session
+
+;;; ### Session Opaque Functions
+
+;;; The action-plan is passed specifically, and no session details are used by
+;;; the action-plan mechanism. Of course, the executed plans may depend on state
+;;; in the session.
+
+(defn build-plan
+  "Create the action plan by calling the phase for a server.
+
+Returns an [action-plan session] vector."
+  [session server plan-f]
+  (with-script-for-server server
+    (let [[_ session] (plan-f session)]
+      (get-session-action-plan session))))
+
+(defn translate-plan
+  "Translate the specified action-plan. Returns the translated action plan."
+  [action-plan session server]
+  (with-script-for-server server
+    (action-plan/translate action-plan session)))
+
+(defn execute-plan
+  "Execute the given translated action plan. Returns a vector with a results
+vector, and a session."
+  [action-plan session server executor execute-status-fn]
+  (with-script-for-server server
+    (action-plan/execute action-plan session executor execute-status-fn)))
+
+;;; ### Session Specific Functions
 (defn build-for-target
   "Create the action plan by calling the current phase for the target group."
   [session]
   {:pre [(:phase session)]}
-  (if-let [f (phase-for-target session)]
-    (with-script-context (script-template session)
-      (with-script-language :pallet.stevedore.bash/bash
-        (logging/tracef "build-for-target building phase")
-        (-> (f session) second mv-session-action-plan)))
+  (if-let [plan-f (phase-for-target session)]
+    (let [[action-plan session] (build-plan session (:server session) plan-f)]
+      [action-plan (assoc-in session (target-path session) action-plan)])
     [nil session]))
 
 (defn translate-for-target
-  "Build the action plan and translate for the current phase and target node."
+  "Translate the action-plan for the current phase and target node."
   [session]
   {:pre [(:phase session)]}
-  (with-script-context (script-template session)
-    (with-script-language :pallet.stevedore.bash/bash
-      ;; script context required for execute-delayed-crate-fns
-      (update-in session (target-path session) action-plan/translate session))))
+  (let [path (target-path session)
+        [action-plan session] (translate-plan
+                               (get-in session path)
+                               session (:server session))]
+    (assoc-in session path action-plan)))
 
 (defn execute-for-target
   "Execute the translated action plan for the current target."
   [session executor execute-status-fn]
   {:pre [(:phase session)]}
-  (logging/tracef "execute-for-target")
-  (with-script-context (script-template session)
-    (with-script-language :pallet.stevedore.bash/bash
-      (let [path (target-path session)]
-        (logging/tracef "execute-for-target target-path %s" path)
-        (action-plan/execute
-         (get-in session path) session executor execute-status-fn)))))
+  (execute-plan
+   (get-in session (target-path session))
+   session (:server session) executor execute-status-fn))
 
 ;;; bootstrap functions
 (declare default-algorithms)

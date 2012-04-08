@@ -160,7 +160,9 @@
   [action-name & body]
   (let [[action-name [args & body]] (name-with-attributes action-name body)
         action-name (vary-meta
-                     action-name assoc :arglists (list 'quote [args]))
+                     action-name assoc
+                     :arglists (list 'quote [args])
+                     :defonce true)
         action-symbol (symbol
                        (or (namespace action-name) (name (ns-name *ns*)))
                        (name action-name))

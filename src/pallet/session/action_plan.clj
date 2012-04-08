@@ -13,11 +13,11 @@ Encapsulates the location of the action-plans in the session.")
   [session action-plan]
   (assoc session ::action-plan action-plan))
 
-(def
-  ^{:doc "Retrieves the current action plan, and resets it"}
-  get-session-action-plan
-  (fn [session]
-    [(::action-plan session) (dissoc session ::action-plan)]))
+(defn get-session-action-plan
+  "Retrieves the current action plan, and resets it"
+  [session]
+  {:pre [(map? session)]}
+  [(::action-plan session) (dissoc session ::action-plan)])
 
 (defn- target-path*
   "Return the vector path of the action plan for the specified phase an
@@ -33,16 +33,15 @@ Encapsulates the location of the action-plans in the session.")
          (keyword? (:target-id session))]}
   (target-path* (:phase session) (-> session :target-id)))
 
-(def
-  ^{:doc "Move the session action-plan into it's target specific location"}
-  mv-session-action-plan
-  (fn [session]
-    (let [action-plan (::action-plan session)]
-      [action-plan
-       (->
-        session
-        (assoc-in (target-path session) action-plan)
-        (dissoc ::action-plan))])))
+;; (defn mv-session-action-plan
+;;   "Move the session action-plan into it's target specific location"
+;;   [session]
+;;   (let [action-plan (::action-plan session)]
+;;     [action-plan
+;;      (->
+;;       session
+;;       (assoc-in (target-path session) action-plan)
+;;       (dissoc ::action-plan))]))
 
 (defn update-action-plan
   "Session action plan update applier"

@@ -26,7 +26,6 @@
    [clojure.stacktrace :only [print-cause-trace]]
    [pallet.context :only [with-context in-phase-context-scope]]
    [pallet.node-value :only [make-node-value set-node-value]]
-   [pallet.script :only [with-script-context]]
    [pallet.session.action-plan :only [get-session-action-plan]]
    [slingshot.slingshot :only [throw+]]
    pallet.action-impl))
@@ -468,12 +467,13 @@
    This is equivalent to using an identity monad with a monadic value
    that is a tree of action maps."
   [action-plan session]
-  (->
-   action-plan
-   pop-block ;; pop the default block
-   transform-executions
-   (execute-delayed-crate-fns session)
-   enforce-precedence))
+  [(->
+    action-plan
+    pop-block ;; pop the default block
+    transform-executions
+    (execute-delayed-crate-fns session)
+    enforce-precedence)
+   session])
 
 ;;; ## Node Value Path Lookup
 (defn- find-node-value-path

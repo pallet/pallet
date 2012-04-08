@@ -100,7 +100,7 @@
           [a1 a2] (#'pallet.action-plan/pop-block action-plan)]
       (is (= 'agg (action-symbol (:action a1))))
       (is (= 'ins (action-symbol (:action a2))))
-      (let [action-plan (translate action-plan session)
+      (let [[action-plan _] (translate action-plan session)
             [a1 a2] action-plan]
         (is (= 'ins (action-symbol (:action a1))))
         (is (= 'agg (action-symbol (:action a2))))))))
