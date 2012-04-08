@@ -56,10 +56,10 @@
    [pallet.monad :only [exec-s let-session let-state session-pipeline
                         as-session-pipeline-fn session-peek-fn]]
    [pallet.script :only [with-script-context]]
-   [pallet.session-verify :only [session-verification-key
-                                 add-session-verification-key]]
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan target-path]]
+   [pallet.session.verify
+    :only [session-verification-key add-session-verification-key]]
    [pallet.stevedore :only [with-script-language]]
    [slingshot.slingshot :only [throw+]]))
 

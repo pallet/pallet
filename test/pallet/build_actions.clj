@@ -17,8 +17,8 @@
    [clojure.string :as string])
   (:use
    [pallet.context :only [with-phase-context]]
-   [pallet.session-verify :only [check-session add-session-verification-key]]
    [pallet.session.action-plan :only [target-path]]
+   [pallet.session.verify :only [check-session add-session-verification-key]]
    [pallet.monad :only [let-s wrap-pipeline]]))
 
 (defn- apply-phase-to-node

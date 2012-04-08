@@ -16,7 +16,7 @@
    [pallet.action :only [declare-action implement-action]]
    [pallet.common.context :only [throw-map]]
    [pallet.execute :only [target-flag?]]
-   [pallet.session-verify :only [add-session-verification-key]]))
+   [pallet.session.verify :only [add-session-verification-key]]))
 
 (defmacro with-private-vars [[ns fns] & tests]
   "Refers private fns from ns and runs tests in context.  From users mailing

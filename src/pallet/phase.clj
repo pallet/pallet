@@ -11,7 +11,7 @@
    [pallet.common.context :only [throw-map]]
    [pallet.monad :only [phase-pipeline phase-pipeline-no-context
                         session-pipeline local-env]]
-   [pallet.session-verify :only [check-session]]
+   [pallet.session.verify :only [check-session]]
    [pallet.utils :only [compiler-exception]]))
 
 (defn pre-phase-name

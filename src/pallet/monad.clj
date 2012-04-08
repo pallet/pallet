@@ -10,7 +10,7 @@ monad, but are each use a different context."
            with-monad]]
    [pallet.context :only [with-context with-phase-context]]
    pallet.monad.state-accessors
-   [pallet.session-verify :only [check-session]]))
+   [pallet.session.verify :only [check-session]]))
 
 ;;; ## Pallet Monads and Monad Transformers
 

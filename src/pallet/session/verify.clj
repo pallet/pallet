@@ -1,4 +1,4 @@
-(ns pallet.session-verify
+(ns pallet.session.verify
   (:use
    [pallet.common.context :only [throw-map]]))
 
