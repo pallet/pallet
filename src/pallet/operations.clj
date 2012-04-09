@@ -43,7 +43,7 @@
 (defmacro operation
   "Define an operation. Arguments `args` are keywords."
   {:indent 2}
-  [op-name [& args] & steps]
+  [op-name [& args] steps result]
   (letfn [(quote-if-symbol [s] (if (symbol s) (list 'quote s) s))
           (gen-step [f]
             (if (vector? f)
@@ -51,7 +51,7 @@
               [(gensym "_") f]))]
     (let [quoted-args (vec (map #(list 'quote %) args))
           steps (->> steps
-                     (mapcat gen-step)
+                     ;; (mapcat gen-step)
                      (partition 2)
                      (map #(vector
                             (list 'quote (first %))
@@ -63,4 +63,5 @@
                      vec)]
       `{:op-name '~op-name
         :args ~quoted-args
-        :steps ~steps})))
+        :steps ~steps
+        :result-sym '~result})))
