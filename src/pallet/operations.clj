@@ -2,7 +2,8 @@
   "The pallet operations DSL"
   (:use
    [clojure.set :only [union]]
-   [clojure.algo.monads :only [state-m domonad]]))
+   [clojure.algo.monads :only [state-m domonad]]
+   [clojure.walk :only [postwalk]]))
 
 (def operation-m state-m)
 
@@ -37,6 +38,25 @@
 ;;            ((chain-ops ~@steps)
 ;;             (zipmap ~quoted-args [~@args])))
 
+(defn replace-syms
+  "Recursively transforms form by replacing symbols with a look-up in an 'env
+  map, returning the unquoted symbol if the symbol isn't in the map."
+  [map-sym form]
+  (postwalk (fn [x]
+              (if (symbol? x)
+                `(let [v# (~map-sym '~x ::nf)]
+                   (if (= v# ::nf)
+                     (eval '~x)
+                     v#))
+                x)) form))
+
+(defn eval-in-env-fn
+  "Give a form, return a function of a single `env` argument and that evaluates
+the form in the given environment."
+  [form]
+  `(fn [~'env]
+     ~(replace-syms 'env form)))
+
 ;; should the operation be a defn-like macro that specifies arguments
 ;; or just a data map? should there be a def-operation ?
 (defmacro operation
@@ -44,21 +64,19 @@
   {:indent 2}
   [op-name [& args] steps result]
   (letfn [(quote-if-symbol [s] (if (symbol? s) (list 'quote s) s))
-          (gen-step [f]
-            (if (vector? f)
-              f
-              [(gensym "_") f]))]
+          ;; (gen-step [f]
+          ;;   (if (vector? f)
+          ;;     f
+          ;;     [(gensym "_") f]))
+          ]
     (let [quoted-args (vec (map #(list 'quote %) args))
           steps (->> steps
                      ;; (mapcat gen-step)
                      (partition 2)
-                     (map #(vector
-                            (list 'quote (first %))
-                            (map quote-if-symbol (second %))))
                      (map #(hash-map
-                            :result-sym (first %)
-                            :op-sym (-> % second first)
-                            :args (-> % second rest vec)))
+                            :result-sym (list 'quote (first %))
+                            :op-sym (list 'quote (second %))
+                            :f (eval-in-env-fn (second %))))
                      vec)]
       `{:op-name '~op-name
         :args ~quoted-args

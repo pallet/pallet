@@ -27,10 +27,10 @@ be called for the transition."
    [clojure.tools.logging :as logging])
   (:use
    [clojure.pprint :only [pprint]]
-   [pallet.environment :only [environment]]
    [pallet.computation.event-machine :only [event-machine]]
    [pallet.computation.fsm-dsl
-    :only [event-handler event-machine-config initial-state on-enter on-exit
+    :only [event-handler event-machine-config fsm-name initial-state
+           on-enter on-exit
            state valid-transitions configured-states using-fsm-features]]
    [pallet.computation.fsm-utils :only [swap!!]]
    [pallet.map-merge :only [merge-keys merge-key]]
@@ -75,23 +75,8 @@ be called for the transition."
 ;;; ## Operation Step Processing
 (defn- step-fsm
   "Generate a fsm for an operation step."
-  [environment {:keys [result-sym op-sym args] :as step}]
-  (if-let [f (resolve op-sym)]
-    (let [lookup (fn [s]
-                   (if (symbol? s)
-                     (let [v (environment s ::not-set)]
-                       (if (= v ::not-set)
-                         (throw+
-                          {:reason :could-not-resolve-var :var s}
-                          "Could not resolve var %s in operation %s"
-                          s op-sym)
-                         v))
-                     s))]
-      (assoc step :fsm (apply f (map lookup args))))
-    (throw+
-     {:reason :could-not-resolve-operation-step
-      :operation-step op-sym}
-     "Failed to resolve operation step %s" op-sym)))
+  [environment {:keys [result-sym op-sym f] :as step}]
+  (assoc step :fsm (f environment)))
 
 (def ^{:doc "Base FSM for primitive FSM."
        :private true}
@@ -146,7 +131,7 @@ be called for the transition."
   {:pre [step result-sym]}
   (let [fsm-config (step-fsm (op-env-key state-data) step)
         fsm-config (wire-step-fsm (:em state) fsm-config)
-        _ (logging/debugf "run-step config %s" fsm-config)
+        _ (logging/tracef "run-step config %s" fsm-config)
         {:keys [event] :as fsm} (event-machine (:fsm fsm-config))
         state-data (-> (:state-data state)
                        (update-in [op-todo-steps-key] pop)
@@ -201,17 +186,13 @@ be called for the transition."
 
 (defn- operate-step-failed
   [state event event-data]
+  (logging/debugf "operate-step-failed event %s" event)
   (case event
     :fail (assoc state :state-kw :failed)))
 
 (defn- operate-on-step-failed
   [state]
   ((-> state :em :event) :fail nil))
-
-(defn- operate-step-failed
-  [state event event-data]
-  (case event
-    :fail (comment start next step)))
 
 (defn- operate-on-running
   [state]
@@ -231,6 +212,7 @@ be called for the transition."
   (let [{:keys [event] :as op-fsm}
         (event-machine
          (event-machine-config
+           (fsm-name "operate-fsm")
            (initial-state :init)
            (state :init
              (valid-transitions :running :completed)
@@ -274,6 +256,7 @@ be called for the transition."
   (abort [_] "Abort the operation.")
   (status [_] "Return the status of the operation.")
   (complete? [_] "Predicate to test if operation is complete.")
+  (failed? [_] "Predicate to test if operation is failed.")
   (wait-for [_] "wait on the result of the completed operation"))
 
 ;; Represents a running operation
@@ -283,6 +266,7 @@ be called for the transition."
   (abort [_] ((:event fsm) :abort nil))
   (status [_] ((:state fsm)))
   (complete? [_] (= :completed (:state-kw ((:state fsm)))))
+  (failed? [_] (= :failed (:state-kw ((:state fsm)))))
   (wait-for [_] @completed-promise)
   clojure.lang.IDeref
   (deref [_] @completed-promise))
@@ -334,11 +318,12 @@ be called for the transition."
             (logging/debug "delay-for timed out, completed.")
             ((:transition em) #(assoc % :state-kw :completed)))]
     (event-machine-config
+      (fsm-name "delay-for")
       (state :init
         (valid-transitions :running)
         (event-handler init))
       (state :running
-        (valid-transitions :completed :aborted :timed-out)
+        (valid-transitions :completed :failed :timed-out :aborted)
         (event-handler do-nothing-event-handler))
       (state :timed-out
         (valid-transitions :completed :aborted)
@@ -348,6 +333,7 @@ be called for the transition."
 ;;; ## Higher order primitives
 (def scheduled-executor (executor {:prefix "op-sched"
                                    :thread-group-name "pallet-operate"
+                                   :scheduled true
                                    :pool-size 3}))
 
 (defn execute-after
@@ -361,25 +347,30 @@ be called for the transition."
   state. Any transition out of a state will cancel the timeout."
   [fsm-config delay delay-units]
   (letfn [(add-timeout [timeout-name]
-            (fn add-timeout [{:keys [fsm state-data] :as state}]
+            (fn add-timeout [{:keys [em state-data] :as state}]
               (let [f (execute-after
-                       #((:transition fsm)
-                         (update-state
-                          state :failed
-                          assoc op-fail-reason-key {:reason :timed-out})))]
+                       #((:transition em)
+                         (fn [state]
+                           (update-state
+                            state :failed
+                            assoc op-fail-reason-key {:reason :timed-out})))
+                       delay
+                       delay-units)]
                 (swap!
                  (op-timeouts-key state-data)
                  assoc timeout-name f))))
           (remove-timeout [timeout-name]
             (fn remove-timeout [{:keys [state-data] :as state}]
-              (let [[to-map _] (swap!!
-                                (op-timeouts-key state-data)
-                                dissoc timeout-name)]
-                (try
-                  (future-cancel (timeout-name to-map))
-                  (catch Exception e
-                    (logging/warnf
-                     e "Problem cancelling timeout %s" timeout-name))))))
+              ;; timeouts aren't necessarily in the :init state-data
+              (when-let [timeouts (op-timeouts-key state-data)]
+                (let [[to-map _] (swap!!
+                                  timeouts
+                                  dissoc timeout-name)]
+                  (try
+                    (future-cancel (timeout-name to-map))
+                    (catch Exception e
+                      (logging/warnf
+                       e "Problem cancelling timeout %s" timeout-name)))))))
           (add-timeout-transitions [state-kw]
             (let [timeout-name (gensym (str "to-" (name state-kw)))]
               (event-machine-config
@@ -388,7 +379,7 @@ be called for the transition."
                   (on-exit (remove-timeout timeout-name))))))]
     (->>
      (configured-states fsm-config)
-     (remove #{:completed :failed})
+     (remove #{:completed :failed :timed-out})
      (map add-timeout-transitions)
      (reduce merge-fsms fsm-config))))
 
@@ -405,6 +396,6 @@ be called for the transition."
         (state :init
           (valid-transitions :running))
         (state :running
-          (valid-transitions :completed :aborted)
+          (valid-transitions :completed :failed :aborted)
           (on-enter start-fsms)
           (event-handler running))))))

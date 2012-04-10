@@ -39,11 +39,12 @@
                           (/ delay-length 2) :ms)]
                       _)
           ;; start operation
-          [op t] (time-body (let [operation (operate operation 1000)]
+          [op t] (time-body (let [op (operate operation 1000)]
                               (is (instance? pallet.operate.Operation op))
                               (is (not (complete? op)))
                               (is (nil? @op))
                               op))]
-      (is (complete? op))
+      (is (not (complete? op)))
+      (is (failed? op))
       ;; if this fails, check the volume of debugging info being logged
       (is (< (- t 500) 400)))))
