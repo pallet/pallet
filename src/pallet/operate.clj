@@ -20,6 +20,10 @@ state.
 The :init, :completed, :aborted and :failed states will be implicitly added if
 not declared.
 
+The result should be placed on the :result key of the state-data.
+
+A failure reason should be placed on the :fail-reason key of the state-data.
+
 State event functions (on-enter and on-exit) should return true if they do
 anything to change the state of the FSM, and further event functions should not
 be called for the transition."
@@ -38,14 +42,27 @@ be called for the transition."
    [slingshot.slingshot :only [throw+]]))
 
 
-(def operate-executor (executor {:prefix "operate"
-                                 :thread-group-name "pallet-operate"}))
+;;; ## thread pools
+(defonce operate-executor (executor {:prefix "operate"
+                                     :thread-group-name "pallet-operate"}))
 
 (defn execute
   "Execute a function in the operate-executor thread pool."
   [f]
   (pallet.thread/execute operate-executor f))
 
+(defonce scheduled-executor (executor {:prefix "op-sched"
+                                       :thread-group-name "pallet-operate"
+                                       :scheduled true
+                                       :pool-size 3}))
+
+(defn execute-after
+  "Execute a function after a specified delay in the scheduled-executor thread
+  pool. Returns a ScheduledFuture."
+  [f delay delay-units]
+  (pallet.thread/execute-after scheduled-executor f delay delay-units))
+
+;;; ## state keys
 (def op-env-key ::env)
 (def op-steps-key ::steps)
 (def op-todo-steps-key ::todo-steps)
@@ -54,7 +71,6 @@ be called for the transition."
 (def op-compute-service-key ::compute)
 (def op-result-sym-key ::result)
 (def op-timeouts-key ::timeouts)
-(def op-fail-reason-key ::fail-reason)
 
 ;;; ## FSM helpers
 (defn update-state
@@ -169,13 +185,21 @@ be called for the transition."
                       state :step-completed (partial merge-keys {})
                       (update-in event-data [op-env-key]
                                  assoc result-sym result)))
-    :step-fail (update-state state :step-failed merge event-data)))
+
+    :step-fail (let [reason (get-in event-data [:state-data :fail-reason])
+                     result-sym (get-in
+                                 event-data
+                                 [:state-data op-result-sym-key])]
+                 (update-state
+                      state :step-failed (partial merge-keys {})
+                      (update-in event-data [op-env-key]
+                                 assoc result-sym reason)))))
 
 (defn- operate-step-completed
   [state event event-data]
   (case event
     :run-next-step (let [next-step (next-step state)]
-                     (run-step next-step))
+                     (run-step state next-step))
     :complete (assoc state :state-kw :completed)))
 
 (defn- operate-on-step-completed
@@ -302,6 +326,50 @@ be called for the transition."
 
 
 ;;; ## Fundamental primitives
+(defn fail
+  "An operation primitive that does nothing but fail immediately."
+  ([reason]
+     (letfn [(init [state event event-data]
+               (case event
+                 :start (assoc state
+                          :state-kw :failed
+                          :state-data (assoc event-data :fail-reason reason))))]
+       (event-machine-config
+         (fsm-name "fail")
+         (state :init
+           (valid-transitions :failed)
+           (event-handler init)))))
+  ([] (fail nil)))
+
+;; Not sure if we need this - or just let result take no arguments
+(defn succeed
+  "An operation primitive that does nothing but succeed immediately."
+  []
+  (letfn [(init [state event event-data]
+            (case event
+              :start (assoc state :state-kw :completed
+                            :state-data event-data)))]
+    (event-machine-config
+      (fsm-name "succeed")
+      (state :init
+        (valid-transitions :completed)
+        (event-handler init)))))
+
+(defn result
+  "An operation primitive that does nothing but succeed immediately with the
+   specified result `value`."
+  [value]
+  (letfn [(init [state event event-data]
+            (case event
+              :start (assoc state
+                       :state-kw :completed
+                       :state-data (assoc event-data :result value))))]
+    (event-machine-config
+      (fsm-name "result")
+      (state :init
+        (valid-transitions :completed)
+        (event-handler init)))))
+
 (defn delay-for
   "An operation primitive that does nothing for the given `delay`. This uses the
   stateful-fsm's timeout mechanism. Not the timeout primitive. The primitive
@@ -331,16 +399,6 @@ be called for the transition."
 
 
 ;;; ## Higher order primitives
-(def scheduled-executor (executor {:prefix "op-sched"
-                                   :thread-group-name "pallet-operate"
-                                   :scheduled true
-                                   :pool-size 3}))
-
-(defn execute-after
-  "Execute a function after a specified delay in the scheduled-executor thread
-  pool. Returns a ScheduledFuture."
-  [f delay delay-units]
-  (pallet.thread/execute-after scheduled-executor f delay delay-units))
 
 (defn timeout
   "Execute an expression with a timeout. The timeout is applied to each
@@ -353,7 +411,7 @@ be called for the transition."
                          (fn [state]
                            (update-state
                             state :failed
-                            assoc op-fail-reason-key {:reason :timed-out})))
+                            assoc :fail-reason {:reason :timed-out})))
                        delay
                        delay-units)]
                 (swap!

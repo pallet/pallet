@@ -46,7 +46,12 @@
               (if (symbol? x)
                 `(let [v# (~map-sym '~x ::nf)]
                    (if (= v# ::nf)
-                     (eval '~x)
+                     (if-let [w# (ns-resolve '~(ns-name *ns*) '`~~x)]
+                       w#
+                       (throw
+                        (Exception.
+                         (str "failed to resolve " '`~~x
+                              " in " '~(ns-name *ns*)))))
                      v#))
                 x)) form))
 
