@@ -1,8 +1,5 @@
 (ns pallet.operation.primitives
-  "Base operation primitives for pallet.
-
-An operation should produce a FSM specification. The FSM must respond to
-the :start event."
+  "Base operation primitives for pallet."
   (:require
    [clojure.tools.logging :as logging])
   (:use
@@ -12,23 +9,18 @@ the :start event."
      state-driver valid-transitions]]
    [pallet.operate :only [execute op-compute-service-key]]))
 
-;;; Provide a base fsm, with init, start, completed etc
-
 ;;; Provide support for controlling retry count, standoff, etc
-
 
 (defn available-nodes
   "Define an operation that builds a representation of the available nodes."
   [compute groups]
-  (letfn [(init [state event event-data]
-            (case event
-              :start (assoc state :state-kw :querying :state-data event-data)))
-          (querying [state event event-data]
+  (letfn [(running [state event event-data]
             (case event
               :success (-> state
                           (assoc :state-kw :completed)
                           (assoc-in [:state-data :result] event-data))
-              :fail (assoc state :state-kw :failed)))
+              :fail (assoc state :state-kw :failed)
+              :abort (assoc state :state-kw :aborted)))
           (query [{:keys [em state-data] :as state}]
             (let [event (:event em)]
               (execute
@@ -40,35 +32,42 @@ the :start event."
                     (logging/warn e "query-nodes failed")
                     (event :fail {:exception e}))))))]
     (event-machine-config
-      (initial-state :init)
-      (state :init
-        (valid-transitions :querying)
-        (event-handler init))
-      (state :querying
-        (valid-transitions :completed)
+      (state :running
+        (valid-transitions :completed :aborted)
         (on-enter query)
-        (event-handler querying))
-      (state :completed)
-      (state :failed))))
+        (event-handler running)))))
 
-(comment
-  (defn converge-node-counts
-    "Define an operation the adjust node counts to target numbers"
-    []
-    (letfn [(init [state event event-data]
-              (case event
-                :start (assoc state
-                         :state-kw :converging :state-data event-data)))
-            (converging [state event event-data]
-              (case event
-                :start (assoc state :state-kw :querying)))]
-      (event-machine-config
-        (initial-state :init)
-        (state :init
-          (valid-transitions :converging)
-          (event-handler init))
-        (state :converging
-          (valid-transitions :completed)
-          (event-handler querying)
-          (state-driver query))
-        (state :completed)))))
+(defn run-phase-on-node
+  "Runs a phase on the specified nodes. The node has to have the phase
+from each group it belongs to run on it."
+  [node phase-fns]
+  (letfn [(running [state event event-data]
+            (case event
+              :success (-> state
+                          (assoc :state-kw :completed)
+                          (assoc-in [:state-data :result] event-data))
+              :fail (assoc state :state-kw :failed)
+              :abort (assoc state :state-kw :aborted)))
+          (run-phase-on-nodes [{:keys [em state-data] :as state}]
+            (let [event (:event em)]
+              (execute
+               #(try
+                  (let [node-groups (query-nodes compute groups)]
+                    (logging/debugf "query-nodes returned: %s" node-groups)
+                    (event :success node-groups))
+                  (catch Exception e
+                    (logging/warn e "query-nodes failed")
+                    (event :fail {:exception e}))))))]
+    (event-machine-config
+      (state :running
+        (valid-transitions :completed :aborted)
+        (on-enter run-phase-on-nodes)
+        (event-handler running)))))
+
+
+(defn run-phase
+  "Runs a phase on a specified set of nodes. Each node has to have the phase
+from each group it belongs to run on it. Collects a set of run-phase-on-node
+primitives"
+  [nodes phase groups]
+  (collect (map #(run-phase-on-node (phase-fns % phase groups)) nodes)))

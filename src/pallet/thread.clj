@@ -25,8 +25,8 @@
   "Returns the named thread group in the current-thread-group"
   [thread-group-name]
   (let [current-tg (current-thread-group)
-        thread-groups (make-array
-                       ThreadGroup (* 2 (.activeGroupCount current-tg)))
+        ^"[Ljava.lang.ThreadGroup;" thread-groups
+        (make-array ThreadGroup (* 2 (.activeGroupCount current-tg)))
         name-matches? (fn [^ThreadGroup tg]
                         (and tg (= thread-group-name (.getName tg))))]
     (.enumerate current-tg thread-groups)
@@ -89,9 +89,9 @@
                                      thread-factory))
                   :else (if scheduled
                                     (Executors/newScheduledThreadPool
-                                     (Integer. pool-size) thread-factory)
+                                     (int pool-size) thread-factory)
                                     (Executors/newFixedThreadPool
-                                     (Integer. pool-size) thread-factory)))
+                                     (int pool-size) thread-factory)))
       scheduled (throw
                  (Exception. "Must specify pool size for scheduled executors"))
       :else (Executors/newCachedThreadPool thread-factory))))
@@ -138,7 +138,7 @@ a delay specified by `delay`. `delay-units` is one of :days, :hours, :mins,
      (let [time-unit (time-units delay-units)]
        (when-not time-unit
          (throw (Exception. (str "Unknown delay-units: " delay-units))))
-       (.schedule executor f (Long. delay) time-unit)))
+       (.schedule executor f (long delay) time-unit)))
   ([executor f delay]
      (execute-after executor f delay :ms)))
 
@@ -151,9 +151,10 @@ with a period specified by `period`. An `initial-delay` may be specified.
      (let [time-unit (time-units delay-units)]
        (when-not time-unit
          (throw (Exception. (str "Unknown delay-units: " delay-units))))
-       (.scheduleAtFixedRate executor f initial-delay period time-unit)))
+       (.scheduleAtFixedRate
+        executor f (long initial-delay) (long period) time-unit)))
   ([executor f period delay-units]
-     (execute-every executor f period delay-units 0)))
+     (execute-fixed-rate executor f period delay-units 0)))
 
 (defn ^ScheduledFuture execute-fixed-delay
   "Execute the given function `f` on the executor service `executor` regularly
@@ -164,6 +165,7 @@ with a delay specified by `delay`. An `initial-delay` may be specified.
      (let [time-unit (time-units delay-units)]
        (when-not time-unit
          (throw (Exception. (str "Unknown delay-units: " delay-units))))
-       (.scheduleWithFixedDelay executor f initial-delay delay time-unit)))
+       (.scheduleWithFixedDelay
+        executor f (long initial-delay) (long delay) time-unit)))
   ([executor f period delay-units]
-     (execute-every executor f period delay-units 0)))
+     (execute-fixed-delay executor f period delay-units 0)))

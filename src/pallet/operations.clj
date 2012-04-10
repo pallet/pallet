@@ -2,8 +2,7 @@
   "The pallet operations DSL"
   (:use
    [clojure.set :only [union]]
-   [clojure.algo.monads :only [state-m domonad]]
-   [pallet.operate :only [implement-operation]]))
+   [clojure.algo.monads :only [state-m domonad]]))
 
 (def operation-m state-m)
 
@@ -13,21 +12,21 @@
   `(domonad operation-m
      ~@body))
 
-(defmacro chain-ops
-  "Defines a monadic comprehension under the operation-m monad, where return
-  value bindings not specified. Any vector in the arguments is expected to be of
-  the form [symbol expr] and becomes part of the generated monad comprehension."
-  [& args]
-  (letfn [(gen-step [f]
-            (if (vector? f)
-              f
-              [(gensym "_") f]))
-          (translate-step [[sym f]]
-            [sym `(implement-operation ~f)])]
-    (let [bindings (->> args (map gen-step) (mapcat translate-step))]
-      `(let-ops
-         [~@bindings]
-         ~(last (drop-last bindings))))))
+;; (defmacro chain-ops
+;;   "Defines a monadic comprehension under the operation-m monad, where return
+;;   value bindings not specified. Any vector in the arguments is expected to be of
+;;   the form [symbol expr] and becomes part of the generated monad comprehension."
+;;   [& args]
+;;   (letfn [(gen-step [f]
+;;             (if (vector? f)
+;;               f
+;;               [(gensym "_") f]))
+;;           (translate-step [[sym f]]
+;;             [sym `(implement-operation ~f)])]
+;;     (let [bindings (->> args (map gen-step) (mapcat translate-step))]
+;;       `(let-ops
+;;          [~@bindings]
+;;          ~(last (drop-last bindings))))))
 
 (defmacro operations
   "Define a sequence of operations."
@@ -44,7 +43,7 @@
   "Define an operation. Arguments `args` are keywords."
   {:indent 2}
   [op-name [& args] steps result]
-  (letfn [(quote-if-symbol [s] (if (symbol s) (list 'quote s) s))
+  (letfn [(quote-if-symbol [s] (if (symbol? s) (list 'quote s) s))
           (gen-step [f]
             (if (vector? f)
               f

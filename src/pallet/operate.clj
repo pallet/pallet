@@ -1,14 +1,39 @@
 (ns pallet.operate
-  "Operations"
+  "Operations
+
+## Operation primitive FSM contract
+
+An operation primitive must produce a FSM specification.
+
+The FSM must respond to the :start event in it's initial state. The event data
+sent with the :start event will be the current global state. The default initial
+state is :init. The default response for the :start event in the :init state is
+to set the primitive's :state-data to the global state, and to transition to
+the :running state.
+
+The FSM must have a :completed and a :failed state.
+
+It must respond to the :abort event, which is sent on a user initiated abort
+of an operation. The :abort event should cause the FSM to end in the :aborted
+state.
+
+The :init, :completed, :aborted and :failed states will be implicitly added if
+not declared.
+
+State event functions (on-enter and on-exit) should return true if they do
+anything to change the state of the FSM, and further event functions should not
+be called for the transition."
   (:require
    [clojure.tools.logging :as logging])
   (:use
+   [clojure.pprint :only [pprint]]
    [pallet.environment :only [environment]]
    [pallet.computation.event-machine :only [event-machine]]
    [pallet.computation.fsm-dsl
-    :only [event-handler event-machine-config initial-state on-enter state
-           valid-transitions]]
-   [pallet.map-merge :only [merge-keys]]
+    :only [event-handler event-machine-config initial-state on-enter on-exit
+           state valid-transitions configured-states using-fsm-features]]
+   [pallet.computation.fsm-utils :only [swap!!]]
+   [pallet.map-merge :only [merge-keys merge-key]]
    [pallet.thread :only [executor]]
    [slingshot.slingshot :only [throw+]]))
 
@@ -28,68 +53,119 @@
 (def op-fsm-machines-key ::machines)
 (def op-compute-service-key ::compute)
 (def op-result-sym-key ::result)
+(def op-timeouts-key ::timeouts)
+(def op-fail-reason-key ::fail-reason)
 
-(defn update-state [state state-kw f & args]
+;;; ## FSM helpers
+(defn update-state
+  "Convenience update function."
+  [state state-kw f & args]
   (-> (apply update-in state [:state-data] f args)
       (assoc :state-kw state-kw)))
 
-(defn step-fsm
+(defn default-init-event-handler
+  "Default event handler for the :init state"
+  [state event event-data]
+  (case event
+    :start (assoc state :state-kw :running :state-data event-data)
+    :abort (assoc state :state-kw :aborted :state-data event-data)))
+
+(defn do-nothing-event-handler [state _ _] state)
+
+;;; ## Operation Step Processing
+(defn- step-fsm
   "Generate a fsm for an operation step."
   [environment {:keys [result-sym op-sym args] :as step}]
   (if-let [f (resolve op-sym)]
-    (let [lookup (fn [s] (let [v (environment s ::not-set)]
-                           (if (= v ::not-set)
-                             (throw+
-                              {:reason :could-not-resolve-var :var s}
-                              "Could not resolve var %s in operation %s"
-                              s op-sym)
-                             v)))]
+    (let [lookup (fn [s]
+                   (if (symbol? s)
+                     (let [v (environment s ::not-set)]
+                       (if (= v ::not-set)
+                         (throw+
+                          {:reason :could-not-resolve-var :var s}
+                          "Could not resolve var %s in operation %s"
+                          s op-sym)
+                         v))
+                     s))]
       (assoc step :fsm (apply f (map lookup args))))
     (throw+
      {:reason :could-not-resolve-operation-step
       :operation-step op-sym}
      "Failed to resolve operation step %s" op-sym)))
 
-(defn wire-step-fsm
+(def ^{:doc "Base FSM for primitive FSM."
+       :private true}
+  default-primitive-fsm
+  (event-machine-config
+    (initial-state :init)
+    (state :init
+      (valid-transitions :aborted :running)
+      (event-handler default-init-event-handler))
+    (state :completed
+      (event-handler do-nothing-event-handler))
+    (state :aborted
+      (event-handler do-nothing-event-handler))
+    (state :failed
+      (event-handler do-nothing-event-handler))))
+
+(defmethod merge-key ::merge-guarded-chain
+  [_ _ val-in-result val-in-latter]
+  (fn [state] (when-not (val-in-result state)
+                (val-in-latter state))))
+
+(defn merge-fsms
+  "Merge operation primitve FSM's."
+  [& fsm-configs]
+  (apply
+   merge-keys
+   {:on-enter ::merge-guarded-chain
+    :on-exit ::merge-guarded-chain
+    :fsm/fsm-features :merge-union}
+   fsm-configs))
+
+(defn- wire-step-fsm
+  "Wire a fsm configuration to the controlling fsm."
   [{:keys [event] :as op-fsm} step-fsm]
   (assert event)
   (update-in step-fsm [:fsm]
              (fn [fsm]
-               (merge-keys
-                {}
-                (event-machine-config
-                  (initial-state :init))
+               (merge-fsms
+                default-primitive-fsm
                 fsm
                 (event-machine-config
                   (state :completed
                     (on-enter (fn op-step-completed [state]
                                 (event :step-complete state))))
-                  (state :aborted
-                    (on-enter (fn op-step-aborted [state]
-                                (event :step-abort state)))))))))
+                  (state :failed
+                    (on-enter (fn op-step-failed [state]
+                                (event :step-fail state)))))))))
 
-(defn run-step
+(defn- run-step
+  "Run an operation step based on the operation primitive."
   [{:keys [state-data] :as state} {:keys [result-sym] :as step}]
   {:pre [step result-sym]}
   (let [fsm-config (step-fsm (op-env-key state-data) step)
         fsm-config (wire-step-fsm (:em state) fsm-config)
+        _ (logging/debugf "run-step config %s" fsm-config)
         {:keys [event] :as fsm} (event-machine (:fsm fsm-config))
         state-data (-> (:state-data state)
                        (update-in [op-todo-steps-key] pop)
                        (update-in [op-fsm-machines-key] conj fsm)
                        (assoc-in [op-result-sym-key] result-sym))]
     (execute (fn run-step-f []
-               (logging/debugf
+               (logging/tracef
                 "Starting operation step: %s result in %s"
                 (:op-sym step) result-sym)
                (event :start state-data)))
     (assoc state :state-kw :running :state-data state-data)))
 
-(defn next-step
+(defn- next-step
+  "Return the next primitive to be executed in the operation."
   [state]
   (peek (get-in state [:state-data op-todo-steps-key])))
 
-(defn operate-init
+;;; ## Operation controller FSM
+(defn- operate-init
   [state event event-data]
   (case event
     :start (let [state (assoc state :state-data event-data)]
@@ -97,7 +173,7 @@
                (run-step state next-step)
                (assoc state :state-kw :completed)))))
 
-(defn operate-running
+(defn- operate-running
   [state event event-data]
   (case event
     :step-complete (let [result (get-in event-data [:state-data :result])
@@ -108,40 +184,40 @@
                       state :step-completed (partial merge-keys {})
                       (update-in event-data [op-env-key]
                                  assoc result-sym result)))
-    :step-abort (update-state state :step-aborted merge event-data)))
+    :step-fail (update-state state :step-failed merge event-data)))
 
-(defn operate-step-completed
+(defn- operate-step-completed
   [state event event-data]
   (case event
     :run-next-step (let [next-step (next-step state)]
                      (run-step next-step))
     :complete (assoc state :state-kw :completed)))
 
-(defn operate-on-step-completed
+(defn- operate-on-step-completed
   [state]
   (if-let [next-step (next-step state)]
     ((-> state :em :event) :run-next-step nil)
     ((-> state :em :event) :complete nil)))
 
-(defn operate-step-aborted
+(defn- operate-step-failed
   [state event event-data]
   (case event
-    :abort (assoc state :state-kw :aborted)))
+    :fail (assoc state :state-kw :failed)))
 
-(defn operate-on-step-aborted
+(defn- operate-on-step-failed
   [state]
-  ((-> state :em :event) :abort nil))
+  ((-> state :em :event) :fail nil))
 
-(defn operate-step-aborted
+(defn- operate-step-failed
   [state event event-data]
   (case event
-    :abort (comment start next step)))
+    :fail (comment start next step)))
 
-(defn operate-on-running
+(defn- operate-on-running
   [state]
   (comment TODO main loop for running the operation))
 
-(defn operate-on-completed
+(defn- operate-on-completed
   [state]
   (deliver
    (get-in state [:state-data op-promise-key])
@@ -149,7 +225,7 @@
     state
     [:state-data op-env-key (get-in state [:state-data op-result-sym-key])])))
 
-(defn operate-fsm
+(defn- operate-fsm
   "Construct a fsm for coordinating the steps of the operation."
   [operation initial-environment]
   (let [{:keys [event] :as op-fsm}
@@ -160,21 +236,24 @@
              (valid-transitions :running :completed)
              (event-handler operate-init))
            (state :running
-             (valid-transitions :step-completed :step-aborted)
+             (valid-transitions :step-completed :step-failed)
              (on-enter operate-on-running)
              (event-handler operate-running))
            (state :step-completed
              (valid-transitions :completed :running)
              (on-enter operate-on-step-completed)
              (event-handler operate-step-completed))
-           (state :step-aborted
-             (valid-transitions :aborted)
-             (on-enter operate-on-step-aborted)
-             (event-handler operate-step-aborted))
+           (state :step-failed
+             (valid-transitions :failed)
+             (on-enter operate-on-step-failed)
+             (event-handler operate-step-failed))
            (state :completed
              (valid-transitions :completed)
              (on-enter operate-on-completed))
-           (state :aborted
+           (state :failed
+             (valid-transitions :failed)
+             (on-enter operate-on-completed))
+           (state :failed
              (valid-transitions :aborted)
              (on-enter operate-on-completed))))
         step-fsms (:steps operation)
@@ -183,28 +262,15 @@
                     op-steps-key step-fsms
                     op-todo-steps-key (vec step-fsms)
                     op-promise-key op-promise
-                    op-fsm-machines-key []}]
+                    op-fsm-machines-key []
+                    op-timeouts-key (atom {})}]
     (logging/debug "Starting operation fsm")
     (event :start state-data)
     [op-fsm op-promise]))
 
-;; (defn operate-step
-;;   "Perform a step in an operation"
-;;   []
-;;   ;; For each group, instantiate the FSM for the specified operation.
-;;   (comment build group specific fsms)
-;;   ;; instantiate a group co-ordination FSM
-;;   (comment build group coordination fsm)
-
-;; )
-
-;; (defn implement-operation [f]
-;;   (fn implement-operation [state]
-;;     state))
-
-
+;;; ## User visible interface
 (defprotocol Control
-  "Operation control protocol"
+  "Operation control protocol."
   (abort [_] "Abort the operation.")
   (status [_] "Return the status of the operation.")
   (complete? [_] "Predicate to test if operation is complete.")
@@ -221,27 +287,21 @@
   clojure.lang.IDeref
   (deref [_] @completed-promise))
 
-(defn execute-operation [op args]
+(defn operate
+  "Start the specified `operation` on the given arguments. The call returns an
+  object that implements the Control protocol."
+  [operation & args]
   (let [[{:keys [event] :as fsm} completed-promise]
-        (operate-fsm op (zipmap (:args op) args))]
-    (assert (= (count (:args op)) (count args)))
+        (operate-fsm operation (zipmap (:args operation) args))]
+    (when-not (= (count (:args operation)) (count args))
+      (throw
+       (IllegalArgumentException.
+        (str "Operation " (:op-name operation)
+             " expects " (vec (:args operation))))))
     (Operation. fsm completed-promise)))
 
-;; (defn operate
-;;   "Start the specified `operation` on the given groups. `operation` is a keyword
-;;   specifiying a key in the environment operations map."
-;;   [operation & args]
-;;   ;; Build the effective environment for each group. The config.clj global
-;;   ;; environment should already be in the compute service's environment, so
-;;   ;; do not read the config file again.
-;;   (if-let [op (-> (environment compute) :operations (get operation))]
-;;     (execute-operation op args)
-;;     (throw+
-;;      {:reason :operation-not-found
-;;       :operation operation}
-;;      "operate called for unknown operation %s" operation)))
-
 (defn report-operation
+  "Print a report on the status of an operation."
   [operation]
   (println "------------------------------")
   (let [status (status operation)
@@ -252,5 +312,99 @@
     (doseq [[step machine] (map vector steps (op-fsm-machines-key state-data))
             :let [state ((:state machine))]]
       (println step (:state-kw state)))
-    (println "env:" (op-env-key state-data)))
+    (println "env:")
+    (pprint (op-env-key state-data)))
   (println "------------------------------"))
+
+
+;;; ## Fundamental primitives
+(defn delay-for
+  "An operation primitive that does nothing for the given `delay`. This uses the
+  stateful-fsm's timeout mechanism. Not the timeout primitive. The primitive
+  transitions to :completed after the given delay."
+  [delay delay-units]
+  (letfn [(init [state event event-data]
+            (logging/debugf "delay-for init: event %s" event)
+            (case event
+              :start (assoc state
+                       :state-kw :running
+                       :timeout {delay-units delay}
+                       :state-data event-data)))
+          (timed-out [{:keys [em] :as state}]
+            (logging/debug "delay-for timed out, completed.")
+            ((:transition em) #(assoc % :state-kw :completed)))]
+    (event-machine-config
+      (state :init
+        (valid-transitions :running)
+        (event-handler init))
+      (state :running
+        (valid-transitions :completed :aborted :timed-out)
+        (event-handler do-nothing-event-handler))
+      (state :timed-out
+        (valid-transitions :completed :aborted)
+        (on-enter timed-out)))))
+
+
+;;; ## Higher order primitives
+(def scheduled-executor (executor {:prefix "op-sched"
+                                   :thread-group-name "pallet-operate"
+                                   :pool-size 3}))
+
+(defn execute-after
+  "Execute a function after a specified delay in the scheduled-executor thread
+  pool. Returns a ScheduledFuture."
+  [f delay delay-units]
+  (pallet.thread/execute-after scheduled-executor f delay delay-units))
+
+(defn timeout
+  "Execute an expression with a timeout. The timeout is applied to each
+  state. Any transition out of a state will cancel the timeout."
+  [fsm-config delay delay-units]
+  (letfn [(add-timeout [timeout-name]
+            (fn add-timeout [{:keys [fsm state-data] :as state}]
+              (let [f (execute-after
+                       #((:transition fsm)
+                         (update-state
+                          state :failed
+                          assoc op-fail-reason-key {:reason :timed-out})))]
+                (swap!
+                 (op-timeouts-key state-data)
+                 assoc timeout-name f))))
+          (remove-timeout [timeout-name]
+            (fn remove-timeout [{:keys [state-data] :as state}]
+              (let [[to-map _] (swap!!
+                                (op-timeouts-key state-data)
+                                dissoc timeout-name)]
+                (try
+                  (future-cancel (timeout-name to-map))
+                  (catch Exception e
+                    (logging/warnf
+                     e "Problem cancelling timeout %s" timeout-name))))))
+          (add-timeout-transitions [state-kw]
+            (let [timeout-name (gensym (str "to-" (name state-kw)))]
+              (event-machine-config
+                (state state-kw
+                  (on-enter (add-timeout timeout-name))
+                  (on-exit (remove-timeout timeout-name))))))]
+    (->>
+     (configured-states fsm-config)
+     (remove #{:completed :failed})
+     (map add-timeout-transitions)
+     (reduce merge-fsms fsm-config))))
+
+(comment
+  (defn collect
+    "Execute a set of fsms"
+    [fsm-configs]
+    (letfn [(start-fsms [{:keys [em] :as state}]
+              (doseq [fsm-config fsm-configs
+                      :let [fsm-config (wire-colleted em fsm-config)
+                            {:keys [event] :as fsm} (event-machine fsm-config)]]
+                (event :start state)))]
+      (event-machine-config
+        (state :init
+          (valid-transitions :running))
+        (state :running
+          (valid-transitions :completed :aborted)
+          (on-enter start-fsms)
+          (event-handler running))))))

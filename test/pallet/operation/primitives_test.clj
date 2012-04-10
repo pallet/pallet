@@ -9,14 +9,10 @@
    [pallet.operations :only [operations operation]]))
 
 (deftest available-nodes-test
-  ;; (testing "fsm config"
-  ;;   (let [config (available-nodes)]
-  ;;     (is (map? config))))
   (testing "operation"
-    (let [operations (operations
-                       (operation list-nodes [compute groups]
-                         [node-groups (available-nodes compute groups)]
-                         node-groups))
+    (let [list-nodes (operation list-nodes [compute groups]
+                       [node-groups (available-nodes compute groups)]
+                       node-groups)
           ;; build a compute service
           [n1 n2] [(make-node "n1" "g1" "192.168.1.1" :linux)
                    (make-node "n2" "g1" "192.168.1.2" :linux)]
@@ -24,11 +20,8 @@
           service (node-list-service
                    [n1 n2]
                    :environment {:operations operations})
-          op (execute-operation (operations 'list-nodes) [service [g1]])]
-      (is op)
+          ;; start operation
+          op (operate list-nodes service g1)]
       (is (instance? pallet.operate.Operation op))
-      ;; (clojure.pprint/pprint (status op))
-      ;; (Thread/sleep 1000)
-      (report-operation op)
-      (is (= (query-nodes service [g1]) @op))
-      (report-operation op))))
+      ;; wait for result
+      (is (= (query-nodes service [g1]) @op)))))

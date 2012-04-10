@@ -78,6 +78,7 @@
   </root>
 
   <logger name="pallet.action-plan" level="DEBUG"/>
+  <logger name="pallet.computation" level="WARN"/>
   <!-- <logger name="pallet.execute.default-executor" level="TRACE"/> -->
 
 </configuration>
