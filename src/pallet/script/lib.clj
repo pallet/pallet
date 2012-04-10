@@ -785,13 +785,18 @@
 
 ;;; selinux
 
+(script/defscript selinux-enforced? [])
+(script/defimpl selinux-enforced? :default
+  []
+  (&& (directory? "/etc/selinux") (file-exists? "/selinux/enforce")))
+
 (script/defscript selinux-file-type
   "Set the selinux file type"
   [path type])
 
 (script/defimpl selinux-file-type :default
   [path type]
-  (if (&& (~has-command? chcon) (directory? "/etc/selinux"))
+  (if (&& (~has-command? chcon) (~selinux-enforced?))
     (chcon -Rv ~(str "--type=" type) ~path)))
 
 (script/defscript selinux-bool
@@ -800,6 +805,5 @@
 
 (script/defimpl selinux-bool :default
   [flag value & {:keys [persist]}]
-  (if (&& (&& (~has-command? setsebool) (directory? "/etc/selinux"))
-          (file-exists? "/selinux/enforce"))
+  (if (&& (~has-command? setsebool) (~selinux-enforced?))
     (setsebool ~(if persist "-P" "") ~(name flag) ~value)))
