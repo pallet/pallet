@@ -141,6 +141,7 @@ be called for the transition."
                     (on-enter (fn op-step-failed [state]
                                 (event :step-fail state)))))))))
 
+;; this is similar to a monadic bind function
 (defn- run-step
   "Run an operation step based on the operation primitive."
   [{:keys [state-data] :as state} {:keys [result-sym] :as step}]
@@ -360,6 +361,7 @@ be called for the transition."
    specified result `value`."
   [value]
   (letfn [(init [state event event-data]
+            (logging/debugf "result - init: %s" event)
             (case event
               :start (assoc state
                        :state-kw :completed
@@ -428,7 +430,7 @@ be called for the transition."
                     (future-cancel (timeout-name to-map))
                     (catch Exception e
                       (logging/warnf
-                       e "Problem cancelling timeout %s" timeout-name)))))))
+                       e "Problem canceling timeout %s" timeout-name)))))))
           (add-timeout-transitions [state-kw]
             (let [timeout-name (gensym (str "to-" (name state-kw)))]
               (event-machine-config
@@ -441,19 +443,125 @@ be called for the transition."
      (map add-timeout-transitions)
      (reduce merge-fsms fsm-config))))
 
-(comment
-  (defn collect
-    "Execute a set of fsms"
-    [fsm-configs]
-    (letfn [(start-fsms [{:keys [em] :as state}]
-              (doseq [fsm-config fsm-configs
-                      :let [fsm-config (wire-colleted em fsm-config)
-                            {:keys [event] :as fsm} (event-machine fsm-config)]]
-                (event :start state)))]
-      (event-machine-config
-        (state :init
-          (valid-transitions :running))
-        (state :running
-          (valid-transitions :completed :failed :aborted)
-          (on-enter start-fsms)
-          (event-handler running))))))
+(defn seq*
+  "Execute a sequence of fsms."
+  [fsm-configs]
+  ;; TODO
+  ;; this is essentially the top level operate-fsm
+  )
+
+(defn map*
+  "Execute a set of fsms"
+  [fsm-configs]
+  (letfn [(patch-fsm [event]
+            (letfn [(op-completed [state]
+                      (logging/debug "map* op-completed")
+                      (event :op-complete state))
+                    (op-failed [state]
+                      (logging/debug "map* op-failed")
+                      (event :op-fail state))]
+              (event-machine-config
+                (state :completed
+                  (on-enter op-completed))
+                (state :failed
+                  (on-enter op-failed)))))
+          (wire-fsms [{:keys [em] :as state}]
+            (let [{:keys [event]} em
+                  patch-fsm (patch-fsm event)]
+              (for [fsm-config fsm-configs]
+                (merge-fsms
+                 default-primitive-fsm
+                 fsm-config
+                 patch-fsm))))
+          (init [state event event-data]
+            (logging/debug "map* init: event %s" event)
+            (logging/debugf "init has em %s" (:em event-data))
+            (case event
+              :start
+              (let [configs (wire-fsms state)
+                    fsms (map event-machine configs)]
+                (update-state
+                 state :running
+                 merge event-data {::fsms fsms ::pending-fsms (set fsms)}))))
+          (on-running [{:keys [state-data] :as state}]
+            (logging/debug "map* on running")
+            (let [fsms (::fsms state-data)]
+              (logging/debugf "map* on-running starting %s fsms" (count fsms))
+              (doseq [{:keys [event] :as fsm} fsms]
+                (execute #(event :start state)))))
+          (maybe-finish [{:keys [state-data] :as state}]
+            (logging/debugf
+             "maybe-finish pending count %s"
+             (count (::pending-fsms state-data)))
+            (if (seq (::pending-fsms state-data))
+              state
+              (assoc state :state-kw :ops-complete)))
+          (running [{:keys [state-data] :as state} event event-data]
+            (logging/debugf
+             "running pending count %s"
+             (count (::pending-fsms state-data)))
+            (logging/debugf "running has em %s" (:em state))
+            (case event
+              :op-complete
+              (let [{:keys [em]} event-data
+                    state-data (-> state-data
+                                   (update-in [::pending-fsms] disj em)
+                                   (update-in [::completed-states]
+                                              conj event-data))]
+                (logging/debugf "op-complete result: %s"
+                                (-> event-data state-data :result))
+                (maybe-finish (assoc state :state-data state-data)))
+              :op-fail
+              (let [{:keys [em]} event-data
+                    state-data (-> state-data
+                                   (update-in [::pending-fsms] disj em)
+                                   (update-in [::failed-states]
+                                              conj event-data))]
+                (maybe-finish (assoc state :state-data state-data)))))
+          (ops-complete [{:keys [state-data] :as state} event event-data]
+            (logging/debugf "ops-complete has em %s" (:em state))
+            (logging/debugf
+             "ops-complete - result: %s"
+             (-> state :state-data op-result-sym-key))
+            (case event
+              :abort (update-state state :aborted assoc :fail-reason event-data)
+              :fail (update-state
+                     state :failed
+                     assoc :fail-reason
+                     {:reason :failed-ops
+                      :failed-reasons (map (comp :fail-reason :state-data)
+                                           (::failed-states state-data))
+                      :failed-states (::failed-states state-data)
+                      :completed-states (::completed-states state-data)})
+              :complete (do
+                          (logging/debugf
+                           "complete result: %s %s"
+                           (op-result-sym-key state-data)
+                           (vec (map (comp :result :state-data)
+                                     (::completed-states state-data))))
+                          (update-state
+                           state :completed
+                           assoc :result
+                           (map (comp :result :state-data)
+                                (::completed-states state-data))))))
+          (on-ops-complete [{:keys [em state-data] :as state}]
+            (logging/debugf
+             "on-ops-complete - result: %s"
+             (-> state :state-data op-result-sym-key))
+            (let [{:keys [event]} em]
+              (if (seq (::failed-states state-data))
+                (event :fail nil)
+                (event :complete nil))))]
+    (event-machine-config
+      (fsm-name "map*")
+      (state :init
+        (valid-transitions :running)
+        (event-handler init))
+      (state :running
+        (valid-transitions :running :ops-complete :failed :aborted)
+        (event-handler running)
+        (on-enter on-running))
+      (state :ops-complete
+        (valid-transitions :completed :failed :aborted)
+        (event-handler ops-complete)
+        (on-enter on-ops-complete)))))

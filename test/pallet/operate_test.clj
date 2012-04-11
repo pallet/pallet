@@ -1,4 +1,6 @@
 (ns pallet.operate-test
+  (:require
+   [clojure.tools.logging :as logging])
   (:use
    clojure.test
    pallet.operate
@@ -139,3 +141,23 @@
       (is (not (failed? op)))
       ;; if this fails, check the volume of debugging info being logged
       (is (< (- t 500) 400)))))
+
+(deftest map*-test
+  (testing "map* with result tasks"
+    (let [operation (operation map*-success [n]
+                      [x (map* (repeat n (result 1)))]
+                      x)]
+      (testing "one task"
+        (let [op (operate operation 1)]
+          (report-operation op)
+          (is (= [1] @op))
+          (report-operation op)
+          (is (complete? op))
+          (is (not (failed? op)))))
+      (testing "three tasks"
+        (let [op (operate operation 3)]
+          (report-operation op)
+          (is (= [1 1 1] @op))
+          (report-operation op)
+          (is (complete? op))
+          (is (not (failed? op))))))))
