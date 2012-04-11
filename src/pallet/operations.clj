@@ -62,6 +62,26 @@ the form in the given environment."
   `(fn [~'env]
      ~(replace-syms 'env form)))
 
+(defmacro locals-map
+  []
+  (zipmap (map #(list 'quote %) (keys &env)) (keys &env)))
+
+(defn set-in-env-fn
+  "Give an expression that is a valid lhs in a binding, return a function of an
+  `env` argument and a value that assigns the results of destructuring into
+  `env`."
+  [expr]
+  (let [env (gensym "env") result (gensym "result")]
+    `(fn [~env ~result]
+       (let [~expr ~result
+             locals# (locals-map)]
+         (merge
+          ~env
+          (apply
+           dissoc locals# '~env '~result
+           (->> (keys locals#)
+                (remove #(not (re-matches #".*__[0-9]+" (name %)))))))))))
+
 ;; should the operation be a defn-like macro that specifies arguments
 ;; or just a data map? should there be a def-operation ?
 (defmacro operation
@@ -80,6 +100,7 @@ the form in the given environment."
                      (partition 2)
                      (map #(hash-map
                             :result-sym (list 'quote (first %))
+                            :result-f (set-in-env-fn (first %))
                             :op-sym (list 'quote (second %))
                             :f (eval-in-env-fn (second %))))
                      vec)]

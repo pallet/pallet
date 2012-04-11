@@ -71,6 +71,14 @@
       (is (= :ok @op))
       (is (complete? op))
       (is (not (failed? op)))))
+  (testing "result destructuring"
+    (let [operation (operation result [v]
+                      [[x y] (result v)]
+                     x)
+          op (operate operation [:ok 1])]
+      (is (= :ok @op))
+      (is (complete? op))
+      (is (not (failed? op)))))
   (testing "result, fail"
     (let [operation (operation result [v]
                       [x (result v)

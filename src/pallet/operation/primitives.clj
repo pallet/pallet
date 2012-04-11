@@ -1,9 +1,9 @@
 (ns pallet.operation.primitives
   "Base operation primitives for pallet."
   (:require
-   [clojure.tools.logging :as logging])
+   [clojure.tools.logging :as logging]
+   [pallet.core.api :as api])
   (:use
-   [pallet.core.api :only [query-nodes]]
    [pallet.computation.fsm-dsl :only
     [event-handler event-machine-config state initial-state on-enter
      state-driver valid-transitions]]
@@ -11,7 +11,7 @@
 
 ;;; Provide support for controlling retry count, standoff, etc
 
-(defn available-nodes
+(defn service-state
   "Define an operation that builds a representation of the available nodes."
   [compute groups]
   (letfn [(running [state event event-data]
@@ -25,11 +25,11 @@
             (let [event (:event em)]
               (execute
                #(try
-                  (let [node-groups (query-nodes compute groups)]
-                    (logging/debugf "query-nodes returned: %s" node-groups)
+                  (let [node-groups (api/service-state compute groups)]
+                    (logging/debugf "service-state returned: %s" node-groups)
                     (event :success node-groups))
                   (catch Exception e
-                    (logging/warn e "query-nodes failed")
+                    (logging/warn e "service-state failed")
                     (event :fail {:exception e}))))))]
     (event-machine-config
       (state :running
@@ -37,31 +37,30 @@
         (on-enter query)
         (event-handler running)))))
 
-(defn run-phase-on-node
-  "Runs a phase on the specified nodes. The node has to have the phase
-from each group it belongs to run on it."
-  [node phase-fns]
+(defn execute-action-plan
+  "Executes an action-plan on the specified node."
+  [node action-plan]
   (letfn [(running [state event event-data]
             (case event
-              :success (-> state
-                          (assoc :state-kw :completed)
-                          (assoc-in [:state-data :result] event-data))
-              :fail (assoc state :state-kw :failed)
-              :abort (assoc state :state-kw :aborted)))
-          (run-phase-on-nodes [{:keys [em state-data] :as state}]
+              :success (update-state
+                        state :completed
+                        assoc-in [:state-data :result] event-data)
+              :fail (update-state
+                     state :failed assoc-in :fail-reason event-data)
+              :abort (update-state
+                      state :aborted assoc-in :fail-reason event-data)))
+          (execute-action-plan [{:keys [em state-data] :as state}]
             (let [event (:event em)]
               (execute
                #(try
-                  (let [node-groups (query-nodes compute groups)]
-                    (logging/debugf "query-nodes returned: %s" node-groups)
-                    (event :success node-groups))
+                  (api/execute-action-plan node action-plan)
                   (catch Exception e
-                    (logging/warn e "query-nodes failed")
+                    (logging/warn e "execute-action-plan failed")
                     (event :fail {:exception e}))))))]
     (event-machine-config
       (state :running
         (valid-transitions :completed :aborted)
-        (on-enter run-phase-on-nodes)
+        (on-enter run-phase-on-node)
         (event-handler running)))))
 
 

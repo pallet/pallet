@@ -69,7 +69,8 @@ be called for the transition."
 (def op-promise-key ::promise)
 (def op-fsm-machines-key ::machines)
 (def op-compute-service-key ::compute)
-(def op-result-sym-key ::result)
+(def op-result-fn-key ::result-fn)
+(def op-overall-result-sym-key ::overall-result-sym)
 (def op-timeouts-key ::timeouts)
 
 ;;; ## FSM helpers
@@ -91,7 +92,7 @@ be called for the transition."
 ;;; ## Operation Step Processing
 (defn- step-fsm
   "Generate a fsm for an operation step."
-  [environment {:keys [result-sym op-sym f] :as step}]
+  [environment {:keys [f] :as step}]
   (assoc step :fsm (f environment)))
 
 (def ^{:doc "Base FSM for primitive FSM."
@@ -144,8 +145,8 @@ be called for the transition."
 ;; this is similar to a monadic bind function
 (defn- run-step
   "Run an operation step based on the operation primitive."
-  [{:keys [state-data] :as state} {:keys [result-sym] :as step}]
-  {:pre [step result-sym]}
+  [{:keys [state-data] :as state} {:keys [result-f] :as step}]
+  {:pre [step result-f]}
   (let [fsm-config (step-fsm (op-env-key state-data) step)
         fsm-config (wire-step-fsm (:em state) fsm-config)
         _ (logging/tracef "run-step config %s" fsm-config)
@@ -153,11 +154,8 @@ be called for the transition."
         state-data (-> (:state-data state)
                        (update-in [op-todo-steps-key] pop)
                        (update-in [op-fsm-machines-key] conj fsm)
-                       (assoc-in [op-result-sym-key] result-sym))]
+                       (assoc-in [op-result-fn-key] result-f))]
     (execute (fn run-step-f []
-               (logging/tracef
-                "Starting operation step: %s result in %s"
-                (:op-sym step) result-sym)
                (event :start state-data)))
     (assoc state :state-kw :running :state-data state-data)))
 
@@ -178,23 +176,18 @@ be called for the transition."
 (defn- operate-running
   [state event event-data]
   (case event
-    :step-complete (let [result (get-in event-data [:state-data :result])
-                         result-sym (get-in
-                                     event-data
-                                     [:state-data op-result-sym-key])]
-                     (update-state
-                      state :step-completed (partial merge-keys {})
-                      (update-in event-data [op-env-key]
-                                 assoc result-sym result)))
+    :step-complete
+    (let [result (get-in event-data [:state-data :result])
+          result-fn (get-in event-data [:state-data op-result-fn-key])]
+      (update-state
+       state :step-completed
+       (partial merge-keys {})
+       (update-in event-data [op-env-key] result-fn result)))
 
-    :step-fail (let [reason (get-in event-data [:state-data :fail-reason])
-                     result-sym (get-in
-                                 event-data
-                                 [:state-data op-result-sym-key])]
-                 (update-state
-                      state :step-failed (partial merge-keys {})
-                      (update-in event-data [op-env-key]
-                                 assoc result-sym reason)))))
+    :step-fail
+    (update-state
+     state :step-failed
+     (partial merge-keys {}) (:state-data event-data))))
 
 (defn- operate-step-completed
   [state event event-data]
@@ -219,17 +212,18 @@ be called for the transition."
   [state]
   ((-> state :em :event) :fail nil))
 
-(defn- operate-on-running
-  [state]
-  (comment TODO main loop for running the operation))
-
 (defn- operate-on-completed
-  [state]
+  [{:keys [state-kw] :as state}]
   (deliver
    (get-in state [:state-data op-promise-key])
-   (get-in
-    state
-    [:state-data op-env-key (get-in state [:state-data op-result-sym-key])])))
+   ((get-in state [:state-data op-env-key])
+    (get-in state [:state-data op-overall-result-sym-key]))))
+
+(defn- operate-on-failed
+  [{:keys [state-kw] :as state}]
+  (deliver
+   (get-in state [:state-data op-promise-key])
+   (get-in state [:state-data :fail-reason])))
 
 (defn- operate-fsm
   "Construct a fsm for coordinating the steps of the operation."
@@ -244,7 +238,6 @@ be called for the transition."
              (event-handler operate-init))
            (state :running
              (valid-transitions :step-completed :step-failed)
-             (on-enter operate-on-running)
              (event-handler operate-running))
            (state :step-completed
              (valid-transitions :completed :running)
@@ -259,10 +252,10 @@ be called for the transition."
              (on-enter operate-on-completed))
            (state :failed
              (valid-transitions :failed)
-             (on-enter operate-on-completed))
+             (on-enter operate-on-failed))
            (state :failed
              (valid-transitions :aborted)
-             (on-enter operate-on-completed))))
+             (on-enter operate-on-failed))))
         step-fsms (:steps operation)
         op-promise (promise)
         state-data {op-env-key initial-environment
@@ -270,7 +263,8 @@ be called for the transition."
                     op-todo-steps-key (vec step-fsms)
                     op-promise-key op-promise
                     op-fsm-machines-key []
-                    op-timeouts-key (atom {})}]
+                    op-timeouts-key (atom {})
+                    op-overall-result-sym-key (:result-sym operation)}]
     (logging/debug "Starting operation fsm")
     (event :start state-data)
     [op-fsm op-promise]))
