@@ -17,9 +17,6 @@
    [clojure.tools.logging :as logging]))
 
 
-(defmacro using-bash [& body]
-  `(format "bash -c '%s'" (stevedore/script ~@body)))
-
 ;; slingshot version compatibility
 (try
   (use '[slingshot.slingshot :only [throw+]])
@@ -39,6 +36,11 @@
   [#^String s user]
   (string/replace
    s (format "\"%s\"" (or (:password user) (:sudo-password user))) "XXXXXXX"))
+
+(defn bash-command
+  "Adds an explicit bash invocation to a script command string."
+  [expr]
+  (format "/usr/bin/env bash -c '%s'" expr))
 
 (script/defscript sudo-no-password [])
 (script/defimpl sudo-no-password :default []
@@ -216,7 +218,8 @@
   [ssh-session prefix]
   (let [result (ssh/ssh
                 ssh-session
-                (using-bash (println (~lib/make-temp-file ~prefix)))
+                (bash-command
+                 (stevedore/script (println (~lib/make-temp-file ~prefix))))
                 :return-map true)]
     (if (zero? (:exit result))
       (string/trim (result :out))
@@ -248,7 +251,9 @@
     (logging/infof
      "Transfering commands to %s:%s : %s" server tmpfile response))
   (let [chmod-result (ssh/ssh
-                      ssh-session (using-bash (str "chmod 755 " tmpfile)) :return-map true)]
+                      ssh-session
+                      (bash-command (str "chmod 755 " tmpfile))
+                      :return-map true)]
     (if (pos? (chmod-result :exit))
       (logging/error (str "Couldn't chmod script : "  (chmod-result :err)))))
   (let [cmd (str (sudo-cmd-for user) "./" tmpfile)
@@ -281,7 +286,7 @@
       (read-ouput))
     (while (read-ouput))
     (.close stream)
-    (ssh/ssh ssh-session (using-bash (str "rm " tmpfile)))
+    (ssh/ssh ssh-session (bash-command (str "rm " tmpfile)))
     (let [exit (.getExitStatus shell)
           stdout (str sb)]
       (if (zero? exit)
