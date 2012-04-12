@@ -16,6 +16,10 @@
    [pallet.shell :as ccshell]
    [clojure.tools.logging :as logging]))
 
+
+(defmacro using-bash [& body]
+  `(format "bash -c '%s'" (stevedore/script ~@body)))
+
 ;; slingshot version compatibility
 (try
   (use '[slingshot.slingshot :only [throw+]])
@@ -212,14 +216,14 @@
   [ssh-session prefix]
   (let [result (ssh/ssh
                 ssh-session
-                (stevedore/script (println (~lib/make-temp-file ~prefix)))
+                (using-bash (println (~lib/make-temp-file ~prefix)))
                 :return-map true)]
     (if (zero? (:exit result))
       (string/trim (result :out))
       (throw+
        {:type :remote-execution-failure
         :message (format
-                  "Failed to generate remote temporary file %s" (:err result))
+                  "Failed to generate remote temporary file: %s" (:err result))
         :exit (:exit result)
         :err (:err result)
         :out (:out result)
@@ -244,7 +248,7 @@
     (logging/infof
      "Transfering commands to %s:%s : %s" server tmpfile response))
   (let [chmod-result (ssh/ssh
-                      ssh-session (str "chmod 755 " tmpfile) :return-map true)]
+                      ssh-session (using-bash (str "chmod 755 " tmpfile)) :return-map true)]
     (if (pos? (chmod-result :exit))
       (logging/error (str "Couldn't chmod script : "  (chmod-result :err)))))
   (let [cmd (str (sudo-cmd-for user) "./" tmpfile)
@@ -277,7 +281,7 @@
       (read-ouput))
     (while (read-ouput))
     (.close stream)
-    (ssh/ssh ssh-session (str "rm " tmpfile))
+    (ssh/ssh ssh-session (using-bash (str "rm " tmpfile)))
     (let [exit (.getExitStatus shell)
           stdout (str sb)]
       (if (zero? exit)
