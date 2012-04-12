@@ -29,6 +29,19 @@
   (fn [session & _]
     (session/packager session)))
 
+;; http://algebraicthunk.net/~dburrows/projects/aptitude/doc/en/ch02s03s01.html
+(def ^{:private true} aptitude-escape-map
+  {\+ "\\+"
+   \- "\\-"
+   \. "\\."
+   \( "\\"
+   \) "\\)"
+   \| "\\|"
+   \[ "\\["
+   \] "\\]"
+   \^ "\\^"
+   \$ "\\$"})
+
 ;; aptitude can install, remove and purge all in one command, so we just need to
 ;; split by enable/disable options.
 (defmethod adjust-packages :aptitude
@@ -64,17 +77,22 @@
    ;; aptitude doesn't report failed installed in its exit code
    ;; so explicitly check for success
    (stevedore/chain-commands*
-    (for [{:keys [package action]} packages]
+    (for [{:keys [package action]} packages
+          :let [escaped-package (string/escape package aptitude-escape-map)]]
       (cond
         (#{:install :upgrade} action)
         (stevedore/script
          (pipe (aptitude
-                search (quoted (str "?and(?installed, ?name(^" ~package "$))")))
+                search
+                (quoted
+                 (str "?and(?installed, ?name(^" ~escaped-package "$))")))
                (grep (quoted ~package))))
         (= :remove action)
         (stevedore/script
          (pipe (aptitude
-                search (quoted (str "?and(?installed, ?name(^" ~package "$))")))
+                search
+                (quoted
+                 (str "?and(?installed, ?name(^" ~escaped-package "$))")))
                (grep -v (quoted ~package)))))))))
 
 (def ^{:private true :doc "Define the order of actions"}

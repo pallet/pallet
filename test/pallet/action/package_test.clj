@@ -429,7 +429,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               (pipe (aptitude
                      search (quoted "?and(?installed, ?name(^p3$))"))
                     (grep (quoted "p3")))
-              (pipe (aptitude search (quoted "?and(?installed, ?name(^p4$))"))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^p4$))"))
                     (grep -v (quoted "p4"))))
              (adjust-packages
               {:server {:packager :aptitude}}
@@ -454,6 +455,18 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               {:server {:packager :aptitude}}
               [{:package "p1" :action :install :priority 20}
                {:package "p2" :action :install :enable ["r1"] :priority 2}])))))
+  (testing "aptitude with package name needing escaping"
+    (script/with-script-context [:aptitude]
+      (is (= (stevedore/checked-script
+              "Packages"
+              (~lib/package-manager-non-interactive)
+              (aptitude install -q -y sql+++)
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^sql\\+\\+$))"))
+                    (grep (quoted "sql++"))))
+             (adjust-packages
+              {:server {:packager :aptitude}}
+              [{:package "sql++" :action :install}])))))
   (testing "yum"
     (is (= (stevedore/checked-script
             "Packages"
