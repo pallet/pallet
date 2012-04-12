@@ -13,7 +13,7 @@
  test-utils/with-bash-script-language)
 
 (deftest user*-create-test
-  (is (= (str "if ! getent passwd user1;"
+  (is (= (str "if ! ( getent passwd user1 );"
               " then /usr/sbin/useradd --shell \"/bin/bash\" user1;fi")
          (user/user* {} "user1" :action :create :shell :bash))))
 
@@ -41,12 +41,14 @@
          (user/user* {} "user1" :action :remove))))
 
 (deftest group-create-test
-  (is (= "if ! getent group group11; then /usr/sbin/groupadd group11;fi\n"
+  (is (= "if ! ( getent group group11 ); then /usr/sbin/groupadd group11;fi\n"
          (first (build-actions/build-actions
                  {}
                  (user/group "group11" :action :create)))))
   (testing "system on rh"
-    (is (= "if ! getent group group11; then /usr/sbin/groupadd -r group11;fi\n"
-           (first (build-actions/build-actions
-                   {:server {:image {:os-family :centos}}}
-                   (user/group "group11" :action :create :system true)))))))
+    (is
+     (=
+      "if ! ( getent group group11 ); then /usr/sbin/groupadd -r group11;fi\n"
+      (first (build-actions/build-actions
+              {:server {:image {:os-family :centos}}}
+              (user/group "group11" :action :create :system true)))))))

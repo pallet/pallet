@@ -164,7 +164,7 @@
                             :insecure ~insecure)
                            (~lib/normalise-md5 @newmd5path)
                            (if (|| (not (file-exists? ~md5-path))
-                                   (~lib/diff @newmd5path ~md5-path))
+                                   (not (~lib/diff @newmd5path ~md5-path)))
                              (do
                                (~lib/download-file
                                 ~url ~new-path :proxy ~proxy
