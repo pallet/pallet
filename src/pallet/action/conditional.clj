@@ -13,7 +13,7 @@
   `(->
     ~session
     (action/enter-scope)
-    (exec-script/exec-script ("if [" ~condition "]; then"))
+    (exec-script/exec-script ("if" ~condition "; then"))
     ~@crate-fns-or-actions
     (exec-script/exec-script "fi")
     (action/leave-scope)))
@@ -24,7 +24,7 @@
   `(->
     ~session
     (action/enter-scope)
-    (exec-script/exec-script ("if [ !" ~condition "]; then"))
+    (exec-script/exec-script ("if ! (" ~condition "); then"))
     ~@crate-fns-or-actions
     (exec-script/exec-script "fi")
     (action/leave-scope)))

@@ -108,7 +108,7 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>stevedore</artifactId>
-      <version>0.7.1</version>
+      <version>0.7.2-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>commons-codec</groupId>

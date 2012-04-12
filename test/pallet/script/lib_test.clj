@@ -211,3 +211,14 @@
   (mktest :centos etc-default "/etc/sysconfig")
   (mktest :fedora etc-default "/etc/sysconfig")
   (mktest :os-x etc-default "/etc/defaults"))
+
+
+;;; selinux tests
+
+(deftest selinux-file-type-test
+  (is (= "if hash chcon 2>&- && [ -d /etc/selinux ] && [ -e /selinux/enforce ]; then chcon -Rv --type=atype apath;fi"
+         (script (~selinux-file-type "apath" "atype")))))
+
+(deftest selinux-file-type-test
+  (is (= "if hash setsebool 2>&- && [ -d /etc/selinux ] && [ -e /selinux/enforce ]; then setsebool aflag avalue;fi"
+         (script (~selinux-bool "aflag" "avalue")))))

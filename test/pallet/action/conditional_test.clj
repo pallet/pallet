@@ -10,26 +10,26 @@
    pallet.test-utils))
 
 (deftest when-test
-  (is (= "if [ \\( \"a\" == \"b\" \\) ]; then\nc\nfi\n"
+  (is (= "if [ \"a\" == \"b\" ] ; then\nc\nfi\n"
          (first (build-actions
                  {}
                  (when (== "a" "b")
                    (exec-script/exec-script "c"))))))
   (is (=
-       (str "if [ 1 -eq 1 ]; then\ntouch /root/my-touch1\nfi\n"
-            "if [ 1 -eq 1 ]; then\ntouch /root/my-touch2\nfi\n")
+       (str "if [ 1 -eq 1 ] ; then\ntouch /root/my-touch1\nfi\n"
+            "if [ 1 -eq 1 ] ; then\ntouch /root/my-touch2\nfi\n")
        (first
         (build-actions
          {}
-         (when "1 -eq 1"
+         (when "[ 1 -eq 1 ]"
            (exec-script/exec-script
             ("touch /root/my-touch1")))
-         (when "1 -eq 1"
+         (when "[ 1 -eq 1 ]"
            (exec-script/exec-script
             ("touch /root/my-touch2"))))))))
 
 (deftest when-not-test
-  (is (= "if [ ! \\( \"a\" == \"b\" \\) ]; then\nc\nfi\n"
+  (is (= "if ! ( [ \"a\" == \"b\" ] ); then\nc\nfi\n"
          (first (build-actions
                  {}
                  (when-not
