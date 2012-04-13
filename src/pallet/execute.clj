@@ -385,9 +385,9 @@
     (if ssh
       (do
         (when sftp-channel
-          ;; remove tmpfile, tmpcpy
           (ssh/disconnect sftp-channel))
         (when ssh-session
+          (ssh/ssh ssh-session (bash-command (str "rm -f " tmpfile " " tmpcpy)))
           (ssh/disconnect ssh-session))
         [results (dissoc session :ssh) flag])
       [results session flag])))
