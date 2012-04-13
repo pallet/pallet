@@ -14,9 +14,11 @@
       (println (quoted ~test-name))
       (~'let "failcount" 0))
      ~@body
-     (script (when-not (= 0 (deref "failcount"))
-               (println (deref "failcount") " test failures")
-               (~'exit 1)))]))
+     (script
+      (when-not (= 0 (deref "failcount"))
+        (println "' '")
+        (println (deref "failcount") " test failures")
+        (~'exit 1)))]))
 
 (defmacro is=
   "Test for equality"
@@ -25,9 +27,9 @@
        (var "expected" ~expected)
        (var "actual" ~actual)
        (when-not (= (deref "expected") (deref "actual"))
-         ~(if msg `(println ~msg) "")
-         (println (str "'Expected \\(= " ~expected " " ~actual "\\)'"))
-         (println (str "Actual \\(not \\(= "
+         (println ~(if msg (str "FAIL: " msg) "FAIL"))
+         (println (str "'  Expected \\(= " ~expected " " ~actual "\\)'"))
+         (println (str "'  Actual   ' \\(not \\(= "
                        (deref "expected") " "
                        (deref "actual") "\\)\\)"))
          (let "failcount" (+ "failcount" 1)))))
@@ -41,9 +43,9 @@
        ("(" ~actual ")" )
        (var "actual" (deref "?"))
        (when-not (= (deref "actual") "0")
-         ~(if msg `(println ~msg) "")
-         (println (str "'Expected " ~actual "'"))
-         (println (str "Actual \\(not " (deref "actual") "\\)"))
+         (println ~(if msg (str "FAIL: " msg) "FAIL"))
+         (println (str "'  Expected " ~actual "'"))
+         (println (str "'  Actual   '" (deref "actual")))
          (let "failcount" (+ "failcount" 1)))))
   ([actual]
      `(is actual nil)))
