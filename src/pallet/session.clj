@@ -98,6 +98,14 @@
        [all-nodes (get :all-nodes)]
        (filter #(= (name group-name) (node/group-name %)) all-nodes))))
 
+(defn node-group-index
+  "Yields the node's index within its group"
+  [session]
+  (let [indexes (->> (nodes-in-group session)
+                  (map-indexed #(hash-map %2 %1))
+                  (reduce merge))]
+    (get indexes (target-node session))))
+
 (defn groups-with-role
   "All target groups with the specified role."
   [role]
