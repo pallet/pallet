@@ -26,7 +26,46 @@ A failure reason should be placed on the :fail-reason key of the state-data.
 
 State event functions (on-enter and on-exit) should return true if they do
 anything to change the state of the FSM, and further event functions should not
-be called for the transition."
+be called for the transition.
+
+
+## The FSM definition monad
+
+monadic value:
+a FSM spec map (alternatively, a function returning an fsm spec)
+
+m-result:
+a function that takes a value and returns a fsm spec that produces
+that value as it result.
+
+m-bind:
+a function that takes a fsm spec and a function, and returns a fsm spec.
+
+
+## The FSM runtime monad
+
+The FSM runtime monad is a form of state monad, where the state is a map that
+contains an environment map from symbol to value. The state is updated based on
+the result of running a FSM.
+
+ {:env {sym1 val1}
+  :status :ok}
+
+ {:env {sym1 val1}
+  :status :fail
+  :fail-reason {:msg \"some reason\"}
+
+monadic value:
+a function, that given some state, returns a FSM description
+
+m-result:
+a function that takes a value and returns a fsm spec that produces
+that value as it's result
+
+m-bind:
+
+
+"
   (:require
    [clojure.tools.logging :as logging])
   (:use
@@ -40,6 +79,7 @@ be called for the transition."
    [pallet.map-merge :only [merge-keys merge-key]]
    [pallet.thread :only [executor]]
    [slingshot.slingshot :only [throw+]]))
+
 
 
 ;;; ## thread pools

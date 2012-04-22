@@ -1,29 +1,37 @@
 (ns pallet.core.api
   "Base level API for pallet"
-  (:require
-   [pallet.node :as node])
   (:use
-   [pallet.compute :only [nodes]]))
+   [pallet.compute :only [nodes]]
+   [pallet.session.action-plan
+    :only [assoc-action-plan get-session-action-plan]]
+   pallet.core.api-impl))
 
-(defn node-has-group-name?
-  "Returns a predicate to check if a node has the specified group name."
-  [group-name]
-  (fn has-group-name? [node]
-    (= group-name (node/group-name node))))
+(defn service-state
+  "Query the available nodes in a `compute-service`, filtering for nodes in the
+  specified `groups`. Returns a map that contains all the nodes, nodes for each
+  group, and groups for each node. Also the service environment."
+  [compute-service groups]
+  (map (partial node->server groups) (nodes compute-service)))
 
-(defn node-in-group?
-  "Check if a node satisfies a group's node-predicate."
-  [node group]
-  ((:node-predicate group (node-has-group-name? (:group-name node))) node))
+(defn build-action-plan
+  "Build the action plan for the specified `plan-fn` on the given `node`, within
+  the context of the `service-state`."
+  [service-state group-state environment node phase-fn]
+  (with-script-for-node node
+    (let [session {:service-state service-state
+                   :target {:node node}
+                   :group-state group-state}
+          [rv session] (plan-f session)
+          [action-plan session] (action-plan/translate
+                                 (:action-plan session) session)]
+      (conj ((juxt :service-state :group-state :action-plan) session) rv))))
 
-(defn node->server
-  "Build a server map from a node and a list of groups"
-  [groups node]
-  (let [groups (filter (partial node-in-group? node) groups)]
-    {:node node
-     :groups groups}))
-
-(defn query-nodes
-  "Query the available nodes"
-  [compute groups]
-  (map (partial node->server groups) (nodes compute)))
+(defn execute-action-plan
+  "Execute the `action-plan` on the `node`."
+  [service-state group-state environment node action-plan]
+  (with-script-for-node node
+    (let [session {:service-state service-state
+                   :target {:node node}
+                   :group-state group-state}
+          (action-plan/execute action-plan session executor execute-status-fn)]
+      (conj ((juxt :service-state :group-state :action-plan) session) rv))))
