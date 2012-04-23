@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.7.2</version>
+    <version>0.7.3-SNAPSHOT</version>
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
@@ -167,18 +167,6 @@
       </build>
     </profile>
   </profiles>
-
-  <!-- make sure we can find the parent pom -->
-  <repositories>
-    <repository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>sonatype-nexus-releases</id>
-      <name>Sonatype Nexus Releases</name>
-      <url>http://oss.sonatype.org/content/repositories/releases</url>
-    </repository>
-  </repositories>
 
   <properties>
     <clojure.version>1.2.1</clojure.version>
