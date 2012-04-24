@@ -1,6 +1,11 @@
 (ns pallet.operate
   "Operations
 
+Operate provides orchestration. It assumes that operations can succeed, fail,
+time-out or be aborted. It assumes some things happen in parallel, and that some
+things need to be sequenced.
+
+
 ## Operation primitive FSM contract
 
 An operation primitive must produce a FSM specification.
@@ -29,41 +34,11 @@ anything to change the state of the FSM, and further event functions should not
 be called for the transition.
 
 
-## The FSM definition monad
+## The `operation` FSM comprehension
 
-monadic value:
-a FSM spec map (alternatively, a function returning an fsm spec)
-
-m-result:
-a function that takes a value and returns a fsm spec that produces
-that value as it result.
-
-m-bind:
-a function that takes a fsm spec and a function, and returns a fsm spec.
-
-
-## The FSM runtime monad
-
-The FSM runtime monad is a form of state monad, where the state is a map that
-contains an environment map from symbol to value. The state is updated based on
-the result of running a FSM.
-
- {:env {sym1 val1}
-  :status :ok}
-
- {:env {sym1 val1}
-  :status :fail
-  :fail-reason {:msg \"some reason\"}
-
-monadic value:
-a function, that given some state, returns a FSM description
-
-m-result:
-a function that takes a value and returns a fsm spec that produces
-that value as it's result
-
-m-bind:
-
+An expression under the `operation` FSM comprehension results in a compound
+FSM. It is returned as a function, that takes a state, and returns a map of
+functions to control the resulting FSM.
 
 "
   (:require
@@ -300,7 +275,7 @@ m-bind:
         op-promise (promise)
         state-data {op-env-key initial-environment
                     op-steps-key step-fsms
-                    op-todo-steps-key (vec step-fsms)
+                    op-todo-steps-key (vec (reverse step-fsms))
                     op-promise-key op-promise
                     op-fsm-machines-key []
                     op-timeouts-key (atom {})
@@ -542,8 +517,9 @@ m-bind:
                                    (update-in [::pending-fsms] disj em)
                                    (update-in [::completed-states]
                                               conj event-data))]
-                (logging/debugf "op-complete result: %s"
-                                (-> event-data state-data :result))
+                (logging/debugf
+                 "op-complete result: %s"
+                 (-> event-data :state-data :result))
                 (maybe-finish (assoc state :state-data state-data)))
               :op-fail
               (let [{:keys [em]} event-data
@@ -554,9 +530,9 @@ m-bind:
                 (maybe-finish (assoc state :state-data state-data)))))
           (ops-complete [{:keys [state-data] :as state} event event-data]
             (logging/debugf "ops-complete has em %s" (:em state))
-            (logging/debugf
-             "ops-complete - result: %s"
-             (-> state :state-data op-result-sym-key))
+            ;; (logging/debugf
+            ;;  "ops-complete - result: %s"
+            ;;  (-> state :state-data op-result-sym-key))
             (case event
               :abort (update-state state :aborted assoc :fail-reason event-data)
               :fail (update-state
@@ -568,20 +544,20 @@ m-bind:
                       :failed-states (::failed-states state-data)
                       :completed-states (::completed-states state-data)})
               :complete (do
-                          (logging/debugf
-                           "complete result: %s %s"
-                           (op-result-sym-key state-data)
-                           (vec (map (comp :result :state-data)
-                                     (::completed-states state-data))))
+                          ;; (logging/debugf
+                          ;;  "complete result: %s %s"
+                          ;;  (op-result-sym-key state-data)
+                          ;;  (vec (map (comp :result :state-data)
+                          ;;            (::completed-states state-data))))
                           (update-state
                            state :completed
                            assoc :result
                            (map (comp :result :state-data)
                                 (::completed-states state-data))))))
           (on-ops-complete [{:keys [em state-data] :as state}]
-            (logging/debugf
-             "on-ops-complete - result: %s"
-             (-> state :state-data op-result-sym-key))
+            ;; (logging/debugf
+            ;;  "on-ops-complete - result: %s"
+            ;;  (-> state :state-data op-result-sym-key))
             (let [{:keys [event]} em]
               (if (seq (::failed-states state-data))
                 (event :fail nil)

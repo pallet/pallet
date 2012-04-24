@@ -87,7 +87,16 @@
           op (operate operation :ok)]
       (is (= :bad @op))
       (is (not (complete? op)))
-      (is (failed? op)))))
+      (is (failed? op))))
+  (testing "ordering of steps"
+    (let [operation (operation result [v]
+                      [x (result 1)
+                       x (result (+ x 2))]
+                     x)
+          op (operate operation :ok)]
+      (is (= 3 @op))
+      (is (complete? op))
+      (is (not (failed? op))))))
 
 (defmacro time-body
   "Evaluates body and returns a vector of the expression's result, and the time
@@ -157,15 +166,11 @@
                       x)]
       (testing "one task"
         (let [op (operate operation 1)]
-          (report-operation op)
           (is (= [1] @op))
-          (report-operation op)
           (is (complete? op))
           (is (not (failed? op)))))
       (testing "three tasks"
         (let [op (operate operation 3)]
-          (report-operation op)
           (is (= [1 1 1] @op))
-          (report-operation op)
           (is (complete? op))
           (is (not (failed? op))))))))

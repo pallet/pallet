@@ -130,6 +130,23 @@
         :type :pallet/unsupported-os}))))
 
 ;;; target mapping
+(defn packager-for-os
+  "Package manager"
+  [os-family os-version]
+  (cond
+    (#{:debian :jeos} os-family) :aptitude
+    (#{:ubuntu} os-family) (if (= "11.10" os-version)
+                             :apt
+                             :aptitude)
+    (#{:centos :rhel :amzn-linux :fedora} os-family) :yum
+    (#{:arch} os-family) :pacman
+    (#{:suse} os-family) :zypper
+    (#{:gentoo} os-family) :portage
+    (#{:darwin :os-x} os-family) :brew
+    :else (throw+
+           {:type :unknown-packager
+            :message (format
+                      "Unknown packager for %s %s" os-family os-version)})))
 (defn packager
   "Package manager"
   [target]

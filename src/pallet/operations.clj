@@ -1,17 +1,19 @@
 (ns pallet.operations
   "The pallet operations DSL"
+  (:require
+   [clojure.tools.logging :as logging])
   (:use
-   [clojure.set :only [union]]
    [clojure.algo.monads :only [state-m domonad]]
+   [clojure.set :only [union]]
    [clojure.walk :only [postwalk]]))
 
-(def operation-m state-m)
+;; (def operation-m state-m)
 
-(defmacro let-ops
-  "A monadic comprehension using the operation-m monad."
-  [& body]
-  `(domonad operation-m
-     ~@body))
+;; (defmacro let-ops
+;;   "A monadic comprehension using the operation-m monad."
+;;   [& body]
+;;   `(domonad operation-m
+;;      ~@body))
 
 ;; (defmacro chain-ops
 ;;   "Defines a monadic comprehension under the operation-m monad, where return
@@ -48,25 +50,29 @@
                    (if (= v# ::nf)
                      (if-let [w# (ns-resolve '~(ns-name *ns*) '`~~x)]
                        w#
-                       (throw
-                        (Exception.
-                         (str "failed to resolve " '`~~x
-                              " in " '~(ns-name *ns*)))))
+                       (do
+                         (println
+                          "Failed to resolve %s in %s, env is %s"
+                          '`~~x '~(ns-name *ns*) ~map-sym)
+                         (throw
+                          (Exception.
+                           (str "Failed to resolve " '`~~x
+                                " in " '~(ns-name *ns*))))))
                      v#))
                 x)) form))
 
-(defn eval-in-env-fn
+(defn ^{:internal true} eval-in-env-fn
   "Give a form, return a function of a single `env` argument and that evaluates
 the form in the given environment."
   [form]
   `(fn [~'env]
      ~(replace-syms 'env form)))
 
-(defmacro locals-map
+(defmacro ^{:internal true} locals-map
   []
   (zipmap (map #(list 'quote %) (keys &env)) (keys &env)))
 
-(defn set-in-env-fn
+(defn ^{:internal true} set-in-env-fn
   "Give an expression that is a valid lhs in a binding, return a function of an
   `env` argument and a value that assigns the results of destructuring into
   `env`."
@@ -82,21 +88,18 @@ the form in the given environment."
            (->> (keys locals#)
                 (remove #(not (re-matches #".*__[0-9]+" (name %)))))))))))
 
-;; should the operation be a defn-like macro that specifies arguments
-;; or just a data map? should there be a def-operation ?
 (defmacro operation
-  "Define an operation. Arguments `args` are keywords."
+  "Define an operation. Arguments `args` are keywords. `steps` are a sequence of
+valid bindings. The second argument to each binding should be a FSM primitive (a
+FSM specification).
+
+An expression under the `operation` FSM comprehension results in a compound
+FSM specification. It is returned as a data map."
   {:indent 2}
   [op-name [& args] steps result]
-  (letfn [(quote-if-symbol [s] (if (symbol? s) (list 'quote s) s))
-          ;; (gen-step [f]
-          ;;   (if (vector? f)
-          ;;     f
-          ;;     [(gensym "_") f]))
-          ]
+  (letfn [(quote-if-symbol [s] (if (symbol? s) (list 'quote s) s))]
     (let [quoted-args (vec (map #(list 'quote %) args))
           steps (->> steps
-                     ;; (mapcat gen-step)
                      (partition 2)
                      (map #(hash-map
                             :result-sym (list 'quote (first %))

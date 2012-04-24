@@ -36,6 +36,7 @@
   (terminated? [node] (not running))
   (os-family [node] os-family)
   (os-version [node] os-version)
+  (packager [node] (compute/packager-for-os os-family os-version))
   (hostname [node] name)
   (id [node] id)
   (compute-service [node] service))

@@ -20,14 +20,19 @@
   [node group]
   ((:node-predicate group (node-has-group-name? (:group-name node))) node))
 
-(defn node->server
-  "Build a server map from a node and a list of groups"
+(defn node->groups
+  "Build a map entry from a node and a list of groups"
   {:internal true}
-  [groups node]
-  (let [groups (filter (partial node-in-group? node) groups)]
-    {:node node
-     :groups groups}))
+  [groups]
+  (fn [node]
+    [node (filter (partial node-in-group? node) groups)]))
 
+(defn group->nodes
+  "Build a map entry from a group and a list of nodes"
+  {:internal true}
+  [nodes]
+  (fn [group]
+    [group (filter #(node-in-group? % group) nodes)]))
 
 (defn script-template-for-node
   [node]
