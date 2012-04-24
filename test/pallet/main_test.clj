@@ -10,7 +10,7 @@
 (deftest parse-as-qualified-symbol-test
   (is (nil? (parse-as-qualified-symbol "a")))
   (is (nil? (parse-as-qualified-symbol "a.b")))
-  (are ['a.b 'a.b.c] (= (parse-as-qualified-symbol "a.b/c"))))
+  (is (= ['a.b 'a.b/c] (parse-as-qualified-symbol "a.b/c"))))
 
 (deftest map-and-resolve-symbols-test
   (is (= {'pallet.main-test-ns/x 1}
