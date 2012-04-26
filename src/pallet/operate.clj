@@ -208,7 +208,12 @@ functions to control the resulting FSM.
   [state event event-data]
   (case event
     :run-next-step (let [next-step (next-step state)]
-                     (run-step state next-step))
+                     (try
+                       (run-step state next-step)
+                       (catch Exception e
+                         (update-state
+                          state :failed
+                          assoc :fail-reason {:exception e}))))
     :complete (assoc state :state-kw :completed)))
 
 (defn- operate-on-step-completed
@@ -255,11 +260,11 @@ functions to control the resulting FSM.
              (valid-transitions :step-completed :step-failed)
              (event-handler operate-running))
            (state :step-completed
-             (valid-transitions :completed :running)
+             (valid-transitions :completed :running :failed :aborted)
              (on-enter operate-on-step-completed)
              (event-handler operate-step-completed))
            (state :step-failed
-             (valid-transitions :failed)
+             (valid-transitions :failed :aborted)
              (on-enter operate-on-step-failed)
              (event-handler operate-step-failed))
            (state :completed
@@ -483,15 +488,17 @@ functions to control the resulting FSM.
                  fsm-config
                  patch-fsm))))
           (init [state event event-data]
-            (logging/debug "map* init: event %s" event)
+            (logging/debugf "map* init: event %s" event)
             (logging/debugf "init has em %s" (:em event-data))
             (case event
               :start
               (let [configs (wire-fsms state)
                     fsms (map event-machine configs)]
-                (update-state
-                 state :running
-                 merge event-data {::fsms fsms ::pending-fsms (set fsms)}))))
+                (if (seq fsms)
+                  (update-state
+                   state :running
+                   merge event-data {::fsms fsms ::pending-fsms (set fsms)})
+                  (assoc state :state-kw :completed :state-data event-data)))))
           (on-running [{:keys [state-data] :as state}]
             (logging/debug "map* on running")
             (let [fsms (::fsms state-data)]
@@ -565,7 +572,7 @@ functions to control the resulting FSM.
     (event-machine-config
       (fsm-name "map*")
       (state :init
-        (valid-transitions :running)
+        (valid-transitions :running :completed)
         (event-handler init))
       (state :running
         (valid-transitions :running :ops-complete :failed :aborted)

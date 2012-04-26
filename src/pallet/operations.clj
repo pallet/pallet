@@ -40,6 +40,9 @@
 ;;            ((chain-ops ~@steps)
 ;;             (zipmap ~quoted-args [~@args])))
 
+;; note the symbols in the symbol table are known apriori, so we can set up an
+;; outer let scope with these - doing this enables the use of proper scoping
+;; within RHS expressions.
 (defn replace-syms
   "Recursively transforms form by replacing symbols with a look-up in an 'env
   map, returning the unquoted symbol if the symbol isn't in the map."
