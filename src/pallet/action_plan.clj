@@ -605,9 +605,9 @@
   "Execute an if action"
   [session {:keys [blocks] :as action} value]
   (let [;; {:keys [value session]} (f session)
-        executor (get-in session [:action-plan ::executor])
+        executor (get-in session [:action-plans ::executor])
         _ (assert executor)
-        execute-status-fn (get-in session [:action-plan ::execute-status-fn])
+        execute-status-fn (get-in session [:action-plans ::execute-status-fn])
         _ (assert execute-status-fn)
         exec-action (exec-action executor execute-status-fn)]
     (logging/tracef "execute-if value %s" (pr-str value))
@@ -635,7 +635,7 @@
      ;; the executor and execute-status-fn are put into the session map in order
      ;; to allow access to them in flow action execution
      (update-in
-      session [:action-plan]
+      session [:action-plans]
       assoc ::executor executor ::execute-status-fn execute-status-fn))))
 
 ;;; ## Scope and Context Functions

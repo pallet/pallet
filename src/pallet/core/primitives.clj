@@ -1,4 +1,4 @@
-(ns pallet.operation.primitives
+(ns pallet.core.primitives
   "Base operation primitives for pallet."
   (:require
    [clojure.tools.logging :as logging]
@@ -7,7 +7,7 @@
    [pallet.computation.fsm-dsl :only
     [event-handler event-machine-config fsm-name initial-state on-enter state
      state-driver valid-transitions]]
-   [pallet.operate :only [execute op-compute-service-key update-state map*]]))
+   [pallet.algo.fsmop :only [execute update-state map*]]))
 
 ;;; Provide support for controlling retry count, standoff, etc,
 ;;; Although this can be added externally.

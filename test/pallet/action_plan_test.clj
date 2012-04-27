@@ -190,7 +190,7 @@
 
 (defn dissoc-action-plan
   [[r s]]
-  [r (dissoc s :action-plan)])
+  [r (dissoc s :action-plans)])
 
 (deftest execute-test
   (testing "aggregated"

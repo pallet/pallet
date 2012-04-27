@@ -25,7 +25,7 @@ Encapsulates the location of the action-plans in the session.")
   "Return the vector path of the action plan for the specified phase an
   target-id."
   [phase target-id]
-  [:action-plan phase target-id])
+  [:action-plans phase target-id])
 
 (defn target-path
   "Return the vector path of the action plan for the current session target

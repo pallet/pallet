@@ -158,20 +158,7 @@
        "execute-action-plan returning %s" [(:plan-state session) result])
       [(:plan-state session) result])))
 
-;; (defn execute-action-plan-for-group
-;;   "Execute the `action-plan` on the `group`."
-;;   [service-state plan-state environment action-plan group]
-;;   (let [executor (get-in environment [:algorithms :executor] default-executor)
-;;         execute-status-fn (get-in environment [:algorithms :execute-status-fn]
-;;                                   #'stop-execution-on-error)
-;;         session {:service-state service-state
-;;                  :group group
-;;                  :plan-state plan-state
-;;                  :user pallet.utils/*admin-user*}
-;;         [result session] (execute
-;;                           action-plan session executor execute-status-fn)]
-;;     [(:plan-state session) result]))
-
+;;; ## Calculation of node count adjustments
 (defn group-delta
   "Calculate actual and required counts for a group"
   [service-state group]
@@ -237,22 +224,7 @@
          group-deltas
          (filter #(when (pos? (:delta (val %))) [(key %) (:delta (val %))])))))
 
-;; (defn group-adjustments
-;;   "Build a map with the various adjustments to make for the groups. This is a
-;;   convenience for use in higher level code."
-;;   [service-state groups]
-;;   (let [group-deltas (group-deltas service-state groups)
-;;         groups-to-create (groups-to-create group-deltas)
-;;         groups-to-remove (groups-to-remove group-deltas)
-;;         nodes-to-add (nodes-to-add group-deltas)
-;;         nodes-to-remove (nodes-to-remove service-state group-deltas)]
-;;     {:group-deltas group-deltas
-;;      :groups-to-create groups-to-create
-;;      :groups-to-remove groups-to-remove
-;;      :nodes-to-add nodes-to-add
-;;      :nodes-to-remove nodes-to-remove}))
-
-
+;;; ## Node creation and removal
 (defn create-nodes
   "Create `count` nodes for a `group`."
   [compute-service environment group count]
@@ -267,23 +239,3 @@
   (if all
     (destroy-nodes-in-group compute-service (name (:group-name group)))
     (doseq [node nodes] (destroy-node compute-service node))))
-
-
-
-
-;; (defn adjust-node-count
-;;   "Adjust actual and required count for a group"
-;;   [compute-service {:keys [delta]} group]
-;;   (cond
-;;     (pos? delta) (create-nodes group delta)
-;;     (neg? delta) (destroy-nodes group delta)))
-
-;; (reduce
-;;  (fn [{:keys plan-state action-plans} node]
-;;    (let [[plan-state action-plan] (action-plan
-;;                                    service-state plan-state environment
-;;                                    node plan-fn)]
-;;      {:plan-state plan-state
-;;       :action-plans (conj action-plans action-plan)}))
-;;  {:plan-state plan-state :action-plans []}
-;;  (nodes-in-group service-state group))

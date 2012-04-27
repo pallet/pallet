@@ -152,7 +152,7 @@
     "Map from key to merge algorithm. Specifies how specs are merged."}
   merge-spec-algorithm
   {:phases :merge-comp
-   :roles :merge-union})
+   :roles :union})
 
 (defn- merge-specs
   "Merge specs, using comp for :phases"
