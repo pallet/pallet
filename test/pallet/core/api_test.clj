@@ -15,7 +15,7 @@
           service (node-list-service [n1 n2])]
       (is (= {:node->groups {n1 (list g1) n2 (list g1)}
               :group->nodes {g1 (list n1 n2)}}
-               (service-state service [g1])))))
+             (service-state service [g1])))))
   (testing "custom groups"
     (let [[n1 n2] [(make-node "n1" "g1" "192.168.1.1" :linux)
                    (make-node "n2" "g1" "192.168.1.2" :linux)]
@@ -25,4 +25,23 @@
           service (node-list-service [n1 n2])]
       (is (= {:node->groups {n1 [] n2 [g1]}
               :group->nodes {g1 [n2]}}
-               (service-state service [g1]))))))
+             (service-state service [g1]))))))
+
+(deftest group-deltas-test
+  (let [[n1 n2] [(make-node "n1" "g1" "192.168.1.1" :linux)
+                 (make-node "n2" "g1" "192.168.1.2" :linux)]
+        g1 (group-spec :g1 :count 1)
+        service (node-list-service [n1 n2])]
+    (is (= {g1 {:actual 2 :target 1 :delta -1}}
+           (group-deltas (service-state service [g1]) [g1])))))
+
+(deftest nodes-to-remove-test
+  (let [[n1 n2] [(make-node "n1" "g1" "192.168.1.1" :linux)
+                 (make-node "n2" "g1" "192.168.1.2" :linux)]
+        g1 (group-spec :g1 :count 1)
+        service (node-list-service [n1 n2])
+        service-state (service-state service [g1])]
+    (is (= {g1 {:nodes [n1] :all false}}
+           (nodes-to-remove
+            service-state
+            (group-deltas service-state [g1]))))))

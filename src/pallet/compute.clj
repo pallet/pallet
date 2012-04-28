@@ -53,7 +53,6 @@
   (nodes [compute] "List nodes")
   (run-nodes
     [compute group-spec node-count user init-script options]
-    [compute group-spec node-count options]
     "Start node-count nodes for group-spec, executing an init-script
      on each, using the specified user and options.")
   (reboot [compute nodes]

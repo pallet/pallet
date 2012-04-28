@@ -11,6 +11,7 @@
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :only [add-session-verification-key]]
+   [pallet.utils :only [*admin-user*]]
    pallet.core.api-impl
    [slingshot.slingshot :only [throw+]]))
 
@@ -21,8 +22,7 @@
 
   Also the service environment."
   [compute-service groups]
-  (let [nodes (nodes compute-service)
-         ]
+  (let [nodes (remove pallet.node/terminated? (nodes compute-service))]
     {:node->groups (into {} (map (node->groups groups) nodes))
      :group->nodes (into {} (map (group->nodes nodes) groups))}))
 
@@ -162,6 +162,9 @@
 (defn group-delta
   "Calculate actual and required counts for a group"
   [service-state group]
+  (logging/debugf
+   "group-delta %s %s %s"
+   service-state group (vec (-> service-state :group->nodes (get group))))
   (let [existing-count (count (-> service-state :group->nodes (get group)))
         target-count (:count group ::not-specified)]
     (when (= target-count ::not-specified)
@@ -176,6 +179,7 @@
   "Calculate actual and required counts for a sequence of groups. Returns a map
   from group to a map with :actual and :target counts."
   [service-state groups]
+  (logging/debugf "group-deltas %s %s" service-state groups)
   (into
    {}
    (map
@@ -207,8 +211,10 @@
   (letfn [(pick-servers [[group {:keys [delta target]}]]
             (vector
              group
-             {:nodes (take (- delta) (-> service-state :group->nodes group))
+             {:nodes (take (- delta)
+                           (-> service-state :group->nodes (get group)))
               :all (zero? target)}))]
+    (logging/debugf "nodes-to-remove %s" group-deltas)
     (into {}
           (->>
            group-deltas
@@ -230,12 +236,15 @@
   [compute-service environment group count]
   (run-nodes
    compute-service group count
+   (get-for environment [:user] *admin-user*)
+   nil
    (get-for environment [:provider-options] nil)))
 
 (defn remove-nodes
   "Removes `nodes` from `group`. If `all` is true, then all nodes for the group
   are being removed."
   [compute-service group {:keys [nodes all]}]
+  (logging/infof "remove-nodes")
   (if all
     (destroy-nodes-in-group compute-service (name (:group-name group)))
     (doseq [node nodes] (destroy-node compute-service node))))

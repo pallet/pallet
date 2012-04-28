@@ -17,21 +17,17 @@
 (defn action-plans-builder
   [compute-service groups phase]
   (dofsm action-plans-builder
-    [service-state (primitives/service-state compute-service groups)
-     [action-plans service-state] (result
-                                   ((api/action-plans-for-phase
-                                     service-state (environment compute-service)
-                                     groups phase)
-                                    {}))]
-    action-plans))
+    [service-state (primitives/service-state compute-service groups)]
+    ((api/action-plans-for-phase
+      service-state (environment compute-service) groups phase)
+     {})))
 
 (defn group-delta-calculator
   "Calculate node deltas"
-  [compute-service groups plan-state]
+  [compute-service groups]
   (dofsm node-count-adjuster
-    [service-state        (primitives/service-state compute-service groups)
-     group-deltas         (result (api/group-deltas service-state groups))]
-    group-deltas))
+    [service-state (primitives/service-state compute-service groups)]
+    (api/group-deltas service-state groups)))
 
 ;;; Basic operations - probably too low level for most
 
