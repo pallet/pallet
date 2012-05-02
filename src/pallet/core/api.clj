@@ -28,6 +28,8 @@
      :group->nodes (into {} (map (group->nodes nodes) groups))}))
 
 (defn service-state-with-nodes
+  "Add the specified nodes to the service-state. `new-nodes` must be a map from
+  a group to a sequence of new nodes in that group."
   [service-state new-nodes]
   (-> service-state
       (update-in [:group->nodes] (partial merge-with concat) new-nodes)
@@ -37,6 +39,26 @@
                               (fn [[g ns]]
                                 (map vector ns (repeat [g])))
                               new-nodes)))))
+
+(defn filtered-service-state
+  "Applies a filter to the nodes in a service-state."
+  [service-state node-predicate]
+  (-> service-state
+      (update-in
+       [:group->nodes] (fn [m]
+                         (into {}
+                               (map
+                                #(vector
+                                  (first %)
+                                  (remove
+                                   (complement node-predicate) (second %)))
+                                m))))
+      (update-in
+       [:node->groups] (fn [m]
+                         (into {}
+                               (remove
+                                (comp (complement node-predicate) first)
+                                m))))))
 
 ;;; ## Action Plan Building
 (defn action-plan
