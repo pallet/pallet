@@ -18,7 +18,8 @@
   "Check if a node satisfies a group's node-predicate."
   {:internal true}
   [node group]
-  ((:node-predicate group (node-has-group-name? (:group-name node))) node))
+  ((:node-predicate group (node-has-group-name? (name (node/group-name node))))
+   node))
 
 (defn node->groups
   "Build a map entry from a node and a list of groups"

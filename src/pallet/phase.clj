@@ -95,7 +95,7 @@
                    (file \"/some-file\")
                    (file \"/other-file\"))) "
   [& body]
-  `(session-pipeline a-phase-fn {}
+  `(session-pipeline ~(gensym "a-phase-fn") {}
      ~@body))
 
 

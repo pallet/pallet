@@ -11,6 +11,8 @@
   (os-family [node] "Return a node's os-family, or nil if not available.")
   (os-version [node] "Return a node's os-version, or nil if not available.")
   (packager [node] "The packager to use on the node")
+  (tag [node tag-name] "Return the specified tag")
+  (image-user [node] "Return the user that is defined by the image.")
   (running? [node] "Predicate to test if node is running.")
   (terminated? [node] "Predicate to test if node is terminated.")
   (id [node])

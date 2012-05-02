@@ -8,6 +8,7 @@
    [pallet.compute :only [destroy-nodes-in-group destroy-node nodes run-nodes]]
    [pallet.core :only [default-executor]]
    [pallet.environment :only [get-for]]
+   [pallet.node :only [image-user]]
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :only [add-session-verification-key]]
@@ -25,6 +26,17 @@
   (let [nodes (remove pallet.node/terminated? (nodes compute-service))]
     {:node->groups (into {} (map (node->groups groups) nodes))
      :group->nodes (into {} (map (group->nodes nodes) groups))}))
+
+(defn service-state-with-nodes
+  [service-state new-nodes]
+  (-> service-state
+      (update-in [:group->nodes] (partial merge-with concat) new-nodes)
+      (update-in [:node->groups]
+                 merge (into {}
+                             (mapcat
+                              (fn [[g ns]]
+                                (map vector ns (repeat [g])))
+                              new-nodes)))))
 
 ;;; ## Action Plan Building
 (defn action-plan
@@ -66,9 +78,11 @@
 ;; all the settings, etc, for all groups.
 (defmethod action-plans :group-nodes
   [service-state environment phase target-type group]
-  (action-plans-for-nodes
-   service-state environment phase group
-   (-> service-state :group->nodes (get group))))
+  (let [group-nodes (-> service-state :group->nodes (get group))]
+    (logging/debugf "action-plans :group-nodes service-state %s" service-state)
+    (logging/debugf "action-plans :group-nodes nodes %s" (vec group-nodes))
+    (action-plans-for-nodes
+     service-state environment phase group group-nodes)))
 
 ;; Build action plans for the specified `phase` on all nodes in the given
 ;; `group`, within the context of the `service-state`. The `plan-state` contains
@@ -83,11 +97,13 @@
 (defmethod action-plans :group
   [service-state environment phase target-type group]
   (if-let [plan-fn (-> group :phases phase)]
-    (with-monad state-m
-      (domonad
-       [action-plan (action-plan
-                     service-state environment plan-fn {:group group})]
-       action-plan))
+    (action-plan service-state environment plan-fn {:group group})
+;; (with-monad state-m
+;;       (domonad
+;;        [[action-plan plan-state] (action-plan
+;;                                   service-state environment plan-fn
+;;                                   {:group group})]
+;;        [action-plan plan-state]))
     (fn [plan-state] [nil plan-state])))
 
 (defn action-plans-for-phase
@@ -101,13 +117,17 @@
   : specifies the type of target to run the phase on, :group, :group-nodes,
   or :group-node-list."
   [service-state environment target-type targets phase]
+  (logging/debugf "action-plans-for-phase %s %s %s" target-type phase targets)
   (with-monad state-m
     (domonad
      [action-plans (m-map
                     (partial
                      action-plans
                      service-state environment phase target-type)
-                    targets)]
+                    targets)
+      _ (fn [plan-state] (logging/debugf
+                          "action-plans-for-phase plans %s"
+                          (vec action-plans)))]
      (apply merge-with comp action-plans))))
 
 (defn action-plans-for-phases
@@ -140,23 +160,40 @@
   [target-type target]
   {:group target})
 
+(defn environment-execution-settings
+  "Returns execution settings based purely on the environment"
+  [environment]
+  (fn [_]
+    {:user(:user environment pallet.utils/*admin-user*)
+     :executor (get-in environment [:algorithms :executor] default-executor)
+     :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
+                                 #'stop-execution-on-error)}))
+
+(defn environment-image-execution-settings
+  "Returns execution settings based on the environment and the image user."
+  [environment]
+  (fn [node]
+    {:user (or (image-user node) (:user environment pallet.utils/*admin-user*))
+     :executor (get-in environment [:algorithms :executor] default-executor)
+     :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
+                                 #'stop-execution-on-error)}))
+
 (defn execute-action-plan
   "Execute the `action-plan` on the `node`."
-  [service-state plan-state environment action-plan target-type target]
+  [service-state plan-state user executor execute-status-fn action-plan
+   target-type target]
+  (logging/debugf "execute-action-plan")
   (with-script-for-node target
-    (let [executor (get-in environment [:algorithms :executor] default-executor)
-          execute-status-fn (get-in environment [:algorithms :execute-status-fn]
-                                    #'stop-execution-on-error)
-          session (merge
+    (let [session (merge
                    (session-target-map target-type target)
                    {:service-state service-state
                     :plan-state plan-state
-                    :user pallet.utils/*admin-user*})
+                    :user user})
           [result session] (execute
                             action-plan session executor execute-status-fn)]
       (logging/debugf
        "execute-action-plan returning %s" [(:plan-state session) result])
-      [(:plan-state session) result])))
+      {:target target :plan-state (:plan-state session) :result result})))
 
 ;;; ## Calculation of node count adjustments
 (defn group-delta

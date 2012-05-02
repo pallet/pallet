@@ -27,6 +27,21 @@
               :group->nodes {g1 [n2]}}
              (service-state service [g1]))))))
 
+(deftest service-state-with-nodes-test
+  (let [[n1 n2 n3] [(make-node "n1" "g1" "192.168.1.1" :linux)
+                    (make-node "n2" "g1" "192.168.1.2" :linux)
+                    (make-node "n3" "g1" "192.168.1.3" :linux)]
+        g1 (group-spec :g1)
+        service (node-list-service [n1 n2])]
+    (is (= {:node->groups {n1 [g1] n2 [g1]}
+            :group->nodes {g1 [n1 n2]}}
+           (service-state-with-nodes {} {g1 [n1 n2]})))
+    (is (= {:node->groups {n1 [g1] n2 [g1] n3 [g1]}
+            :group->nodes {g1 [n3 n1 n2]}}
+           (service-state-with-nodes
+             {:node->groups {n3 [g1]} :group->nodes {g1 [n3]}}
+             {g1 [n1 n2]})))))
+
 (deftest group-deltas-test
   (let [[n1 n2] [(make-node "n1" "g1" "192.168.1.1" :linux)
                  (make-node "n2" "g1" "192.168.1.2" :linux)]
