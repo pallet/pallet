@@ -213,7 +213,7 @@
             (logging/debugf "local-file is %s" (.getPath tmp))
             (let [result (core/lift
                           {local node}
-                          :phase (phase/phase-fn
+                          :phase (phase/plan-fn
                                   (log-action)
                                   (remote-file
                                    (.getPath target-tmp)
@@ -248,7 +248,7 @@
             (let [a (atom nil)]
               (core/lift
                {local node}
-               :phase (phase/phase-fn
+               :phase (phase/plan-fn
                        [nv (remote-file
                             (.getPath target-tmp) :content "$(hostname)"
                             :mode "0666" :flag-on-changed :changed)]
@@ -268,7 +268,7 @@
             (let [a (atom nil)]
               (core/lift
                {local node}
-               :phase (phase/phase-fn
+               :phase (phase/plan-fn
                        [nv (remote-file
                             (.getPath target-tmp) :content "abc"
                             :mode "0666" :flag-on-changed :changed)]
@@ -333,7 +333,7 @@
             (let [md5path (str (.getPath tmp) ".md5")]
               (core/lift
                {local node}
-               :phase (phase/phase-fn
+               :phase (phase/plan-fn
                        (exec-script
                         ((~lib/md5sum ~(.getPath tmp)) > ~md5path))
                        (remote-file

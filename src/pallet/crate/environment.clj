@@ -7,9 +7,9 @@
    [pallet.stevedore :as stevedore])
   (:use
    [pallet.actions :only [exec-script* remote-file]]
-   [pallet.phase :as phase]))
+   [pallet.phase :only [def-plan-fn]]))
 
-(def-crate-fn system-environment
+(def-plan-fn system-environment
   "Define system wide default environment.
    On redhat based systems, this is set in /etc/profile.d, so is only
    valid within a login shell. On debian based systems, /etc/environment

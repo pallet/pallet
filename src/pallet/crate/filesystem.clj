@@ -5,9 +5,9 @@
   (:use
    pallet.thread-expr
    [pallet.actions :only [directory exec-checked-script]]
-   [pallet.phase :only [def-crate-fn]]))
+   [pallet.phase :only [def-plan-fn]]))
 
-(def-crate-fn make-xfs-filesytem
+(def-plan-fn make-xfs-filesytem
   "Format a device as an XFS filesystem."
   [device]
   (exec-checked-script
@@ -33,7 +33,7 @@
       ""
       (str "-o " option-string))))
 
-(def-crate-fn mount
+(def-plan-fn mount
   "Mount a device."
   [device mount-point
    & {:keys [fs-type device-type automount no-automount dump-frequency

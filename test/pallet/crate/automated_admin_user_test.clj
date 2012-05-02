@@ -125,9 +125,9 @@
     [compute node-map node-types]
     {:aau
      (core/server-spec
-      :phases {:bootstrap (phase/phase-fn
+      :phases {:bootstrap (phase/plan-fn
                            (automated-admin-user/automated-admin-user))
-               :verify (phase/phase-fn
+               :verify (phase/plan-fn
                         (context/with-phase-context
                           {:kw :automated-admin-user
                            :msg "Check Automated admin user"}

@@ -13,18 +13,18 @@
  (:use
   [pallet.actions :only [remote-file]]
   [pallet.parameter :only [update-settings]]
-  [pallet.phase :only [def-crate-fn defcrate]]))
+  [pallet.phase :only [def-plan-fn defplan]]))
 
 (defn- format-entry
   [entry]
   (format "%s %s"  (key entry) (name (val entry))))
 
-(def-crate-fn host
+(def-plan-fn host
   "Declare a host entry"
   [address names]
   (update-settings :hosts nil merge {address names}))
 
-(def-crate-fn hosts-for-group
+(def-plan-fn hosts-for-group
   "Declare host entries for all nodes of a group"
   [group-name & {:keys [private-ip]}]
   [ip (m-result (if private-ip compute/private-ip compute/primary-ip))
@@ -47,7 +47,7 @@
   (format-hosts*
    (conj localhost (parameter/get-target-settings session :hosts nil nil))))
 
-(defcrate hosts
+(defplan hosts
   "Writes the hosts files"
   (remote-file
    (stevedore/script (~lib/etc-hosts))

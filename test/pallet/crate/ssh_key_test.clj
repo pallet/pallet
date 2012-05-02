@@ -269,13 +269,13 @@
        {:image image
         :count 1
         :phases
-        {:bootstrap (phase/phase-fn
+        {:bootstrap (phase/plan-fn
                      (automated-admin-user)
                      (user "testuser"))
-         :configure (phase/phase-fn (generate-key "testuser"))
-         :verify1 (phase/phase-fn
+         :configure (phase/plan-fn (generate-key "testuser"))
+         :verify1 (phase/plan-fn
                    (record-public-key "testuser"))
-         :verify2 (phase/phase-fn
+         :verify2 (phase/plan-fn
                    (check-public-key))}}}
       (core/lift (:ssh-key node-types)
                  :phase [:verify1 :verify2]

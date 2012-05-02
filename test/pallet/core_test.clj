@@ -424,7 +424,7 @@
           service (compute/compute-service "node-list" :node-list [localhost])]
       (let [session (lift
                      local
-                     :phase [(phase/phase-fn
+                     :phase [(phase/plan-fn
                               (exec-script (~lib/ls "/"))) (localf)]
                      :user (assoc utils/*admin-user*
                              :username (test-utils/test-username)
@@ -444,7 +444,7 @@
    (testing "throw on remote bash error"
      (let [local (group-spec
                   "local"
-                  :phases {:configure (phase/phase-fn
+                  :phases {:configure (phase/plan-fn
                                        (exec-script (~lib/exit 1)))})
            localhost (node-list/make-localhost-node :group-name "local")
            service (compute/compute-service "node-list" :node-list [localhost])
@@ -468,7 +468,7 @@
      (let [clj-fn (clj-action [session] [session session])
            local (group-spec
                   "local"
-                  :phases {:configure (phase/phase-fn
+                  :phases {:configure (phase/plan-fn
                                        (exec-script (~lib/exit 1))
                                        (clj-fn)
                                        (exec-script (~lib/exit 1)))})
@@ -503,8 +503,8 @@
              #"bin"
              (->
               (lift local
-                    :phase [(phase/phase-fn (exec-script (~lib/ls "/")))
-                            (phase/phase-fn (localf))]
+                    :phase [(phase/plan-fn (exec-script (~lib/ls "/")))
+                            (phase/plan-fn (localf))]
                     :user (assoc utils/*admin-user*
                             :username (test-utils/test-username)
                             :no-sudo true)
@@ -814,7 +814,7 @@
               [localf-post seen-post?] (seen-fn "lift-post-phase-test post")
               master (group-spec
                       "master"
-                      :phases {:configure (phase/phase-fn
+                      :phases {:configure (phase/plan-fn
                                            (phase/schedule-in-pre-phase
                                             (checking-set)
                                             (localf-pre))
@@ -838,7 +838,7 @@
               [localf-post seen-post?] (seen-fn "lift-post-phase-test post")
               master (group-spec
                       "master"
-                      :phases {:configure (phase/phase-fn
+                      :phases {:configure (phase/plan-fn
                                            (phase/schedule-in-pre-phase
                                             (checking-set)
                                             (localf-pre))
@@ -862,7 +862,7 @@
               [localf-post seen-post?] (seen-fn "lift-post-phase-test post")
               master (group-spec
                       "master"
-                      :phases {:configure (phase/phase-fn
+                      :phases {:configure (phase/plan-fn
                                            (phase/schedule-in-pre-phase
                                             (checking-set)
                                             (localf-pre))
@@ -924,7 +924,7 @@
                         (test-session
                          {:components {'check-arguments-map testfn}}))))))))
 
-(defn seen-phase-fn
+(defn seen-plan-fn
   [name]
   (let [a (atom nil)]
     [(fn [session]
@@ -947,11 +947,11 @@
         (is (seen?))))
     (testing "all-node-set (sequential)"
       (let [[localf seen?] (seen-fn "lift-test")
-            [pf seen-phase?] (seen-phase-fn "lift-test")
+            [pf seen-phase?] (seen-plan-fn "lift-test")
             session (lift
                      nil
                      :all-node-set [local]
-                     :phase (phase/phase-fn
+                     :phase (phase/plan-fn
                              pf
                              (localf))
                      :user (assoc utils/*admin-user*
@@ -962,11 +962,11 @@
         (is (not (seen?)))))
     (testing "all-node-set (parallel)"
       (let [[localf seen?] (seen-fn "lift-test")
-            [pf seen-phase?] (seen-phase-fn "lift-test")
+            [pf seen-phase?] (seen-plan-fn "lift-test")
             session (lift
                      nil
                      :all-node-set [local]
-                     :phase (phase/phase-fn
+                     :phase (phase/plan-fn
                              pf
                              (localf))
                      :user (assoc utils/*admin-user*

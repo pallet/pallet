@@ -25,7 +25,7 @@
 
       A crate function is a function that takes a session map and other
       arguments, and returns a modified session map. Calls to crate functions
-      are often wrapped in a threading macro, -> or pallet.phase/phase-fn
+      are often wrapped in a threading macro, -> or pallet.phase/plan-fn
       to simplify chaining of the session map argument."
         {:type :invalid-session
          :session session}))

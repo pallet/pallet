@@ -41,13 +41,13 @@
 ;;; These are failing due to the side effects of the state-checking-t
 ;;; being bypassed by the (= lr expr) optimisation in monad-expr in
 ;;; c.algo.monads
-;; (deftest phase-fn-test
+;; (deftest plan-fn-test
 ;;   (letfn [(id [s] [nil s])]
 ;;     (is (thrown-with-msg?
 ;;           slingshot.ExceptionInfo #"in phase session"
-;;           ((phase-fn id) 1)))
-;;     (is (= [nil (test-session)] ((phase-fn id) (test-session))))
+;;           ((plan-fn id) 1)))
+;;     (is (= [nil (test-session)] ((plan-fn id) (test-session))))
 ;;     (let [fgh (fn fgh [_] nil)]
 ;;       (is (thrown-with-msg?
 ;;             slingshot.ExceptionInfo #"Problem probably caused in"
-;;             ((phase-fn fgh) (test-session)))))))
+;;             ((plan-fn fgh) (test-session)))))))

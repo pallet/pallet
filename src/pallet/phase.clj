@@ -80,11 +80,11 @@
     (check-session "The session passed to the pipeline")
     ~@(mapcat (fn [form] [form `(check-session '~form)]) body)))
 
-(defmacro phase-fn
+(defmacro plan-fn
   "Create a phase function from a sequence of crate invocations with
    an ommited session parameter.
 
-   eg. (phase-fn
+   eg. (plan-fn
          (file \"/some-file\")
          (file \"/other-file\"))
 
@@ -95,11 +95,11 @@
                    (file \"/some-file\")
                    (file \"/other-file\"))) "
   [& body]
-  `(session-pipeline ~(gensym "a-phase-fn") {}
+  `(session-pipeline ~(gensym "a-plan-fn") {}
      ~@body))
 
 
-(defmacro defcrate
+(defmacro defplan
   "Define a crate function."
   {:indent 'defun}
   [sym & body]
@@ -113,7 +113,7 @@
              {:msg ~(str sym) :kw ~(keyword sym) :locals locals#}
            ~@body)))))
 
-(defmacro def-crate-fn
+(defmacro def-plan-fn
   "Define a crate function."
   {:arglists '[[name doc-string? attr-map? [params*] body]]
    :indent 'defun}
@@ -137,7 +137,7 @@
         `(defn ~sym
            ~@(map output-body rest))))))
 
-(defmacro def-aggregate-crate-fn
+(defmacro def-aggregate-plan-fn
   "Define a crate function where arguments on successive calls are conjoined,
    and passed to the function specified in the body."
   {:arglists '[[name doc-string? attr-map? [params*] f]]
@@ -152,7 +152,7 @@
                 "Extra arguments passed to def-aggregate-crate-fn: %s"
                 (vec rest))))))
     `(let [action# (declare-aggregated-crate-action '~sym ~f)]
-       (def-crate-fn ~sym
+       (def-plan-fn ~sym
          ;; ~(merge
          ;;   {:execution :aggregated-crate-fn
          ;;    :crate-fn-id (list 'quote id)

@@ -11,13 +11,13 @@
    [pallet.actions :only [package package-manager]]
    [pallet.monad.state-accessors :only [get-session]]
    [pallet.monad :only [as-session-pipeline-fn phase-pipeline]]
-   [pallet.phase :only [def-crate-fn def-aggregate-crate-fn]]))
+   [pallet.phase :only [def-plan-fn def-aggregate-crate-fn]]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
 ;; TODO - dsl for sudoers, eg. (alias "user1" "user2" :as :ADMINS)
 
-(def-crate-fn install
+(def-plan-fn install
   [& {:keys [package-name action]
       :or {package-name "sudo" action :install}}]
   (package-manager :update)

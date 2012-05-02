@@ -14,12 +14,12 @@
   (:use
    [pallet.actions
     :only [directory exec-checked-script file remote-file with-remote-file]]
-   [pallet.phase :only [def-crate-fn]]))
+   [pallet.phase :only [def-plan-fn]]))
 
 (defn user-ssh-dir [user]
   (str (stevedore/script (~lib/user-home ~user)) "/.ssh/"))
 
-(def-crate-fn authorize-key
+(def-plan-fn authorize-key
   "Authorize a public key on the specified user."
   [user public-key-string & {:keys [authorize-for-user]}]
   [target-user (m-result (or authorize-for-user user))
@@ -36,7 +36,7 @@
    "Set selinux permissions"
    (~lib/selinux-file-type ~dir "user_home_t")))
 
-(def-crate-fn authorize-key-for-localhost
+(def-plan-fn authorize-key-for-localhost
   "Authorize a user's public key on the specified user, for ssh access to
   localhost.  The :authorize-for-user option can be used to specify the
   user to who's authorized_keys file is modified."
@@ -56,7 +56,7 @@
        (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
        (cat @key_file ">>" @auth_file)))))
 
-(def-crate-fn install-key
+(def-plan-fn install-key
   "Install a ssh private key."
   [user key-name private-key-string public-key-string]
   [ssh-dir (m-result (user-ssh-dir user))]
@@ -75,7 +75,7 @@
       "rsa" "id_rsa"
       "dsa" "id_dsa"})
 
-(def-crate-fn generate-key
+(def-plan-fn generate-key
   "Generate an ssh key pair for the given user, unless one already
    exists. Options are:
      :filename path -- output file name (within ~user/.ssh directory)
@@ -106,7 +106,7 @@
   (file path :owner user :mode "0600")
   (file (str path ".pub") :owner user :mode "0644"))
 
-(def-crate-fn record-public-key
+(def-plan-fn record-public-key
   "Record a public key"
   [user & {:keys [filename type parameter-path]
            :or {type "rsa"} :as options}]
@@ -132,8 +132,8 @@
 
 #_
 (pallet.core/defnode a {}
-  :bootstrap (pallet.phase/phase-fn
+  :bootstrap (pallet.phase/plan-fn
               (pallet.crate.automated-admin-user/automated-admin-user))
-  :configure (pallet.phase/phase-fn
+  :configure (pallet.phase/plan-fn
               (pallet.crate.ssh-key/generate-key "duncan")
               (pallet.crate.ssh-key/record-public-key "duncan")))

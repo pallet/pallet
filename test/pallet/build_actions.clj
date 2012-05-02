@@ -199,7 +199,7 @@
      (when-not (map? session#)
        (logging/warn
         "Use of vector for session in build-actions is deprecated."))
-     (build-actions* (phase/phase-fn ~@body) session#)))
+     (build-actions* (phase/plan-fn ~@body) session#)))
 
 (defmacro ^{:indent 1} let-actions
   "Outputs the remote actions specified in the body for the specified phases.

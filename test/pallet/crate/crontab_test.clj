@@ -10,7 +10,7 @@
    [pallet.build-actions :only [build-actions]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.monad :only [let-s]]
-   [pallet.phase :only [phase-fn]]
+   [pallet.phase :only [plan-fn]]
    [pallet.script.lib :only [user-home]]
    [pallet.session :only [admin-user]]
    [pallet.stevedore :only [script]]))
@@ -56,7 +56,7 @@
       {:image image
        :count 1
        :phases
-       {:settings (phase-fn
+       {:settings (plan-fn
                     [user (admin-user)]
                     (user-settings (:username user) {:contents "fred"}))
         :verify (let-s

@@ -6,9 +6,9 @@
    [clojure.string :as string])
   (:use
    [pallet.actions :only [remote-file]]
-   [pallet.phase :only [def-crate-fn]]))
+   [pallet.phase :only [def-plan-fn]]))
 
-(def-crate-fn write
+(def-plan-fn write
   "Writes a KEY=value file to /etc/default/~{filename}, or ~{filename} if
    filename starts with a /.  Note that all values are quoted, and quotes in
    values are escaped, but otherwise, values are written literally.

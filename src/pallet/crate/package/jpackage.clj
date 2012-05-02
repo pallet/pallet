@@ -7,7 +7,7 @@
   (:use
    [pallet.action :only [with-action-options]]
    [pallet.actions :only [add-rpm package package-manager package-source]]
-   [pallet.phase :only [def-crate-fn defcrate]]))
+   [pallet.phase :only [def-plan-fn defplan]]))
 
 ;; The source for this rpm is available here:
 ;; http://plone.lucidsolutions.co.nz/linux/centos/
@@ -18,7 +18,7 @@
   (str "https://github.com/downloads/pallet/pallet/"
        "jpackage-utils-compat-el5-0.0.1-1.noarch.rpm"))
 
-(defcrate jpackage-utils
+(defplan jpackage-utils
   "Add jpackge-utils. Due to incompatibilities on RHEL derived distributions,
    a compatability package is required.
 
@@ -46,7 +46,7 @@
   [dist type release]
   (format jpackage-mirror-fmt dist type release))
 
-(def-crate-fn add-jpackage
+(def-plan-fn add-jpackage
   "Add the jpackage repository.  component should be one of:
      fedora
      redhat-el
@@ -120,7 +120,7 @@
            :enabled enabled}))
   (parameter/assoc-target [:jpackage-repos] jpackage-repos))
 
-(defcrate package-manager-update-jpackage
+(defplan package-manager-update-jpackage
   "Update the package lists for the jpackage repositories"
   [jpackage-repos (parameter/get-target [:jpackage-repos])]
   (package-manager
