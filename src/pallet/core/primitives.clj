@@ -5,7 +5,7 @@
    [pallet.core.api :as api])
   (:use
    [pallet.algo.fsmop :only [dofsm execute update-state map*]]
-   [pallet.computation.fsm-dsl :only
+   [pallet.algo.fsm.fsm-dsl :only
     [event-handler event-machine-config fsm-name initial-state on-enter state
      state-driver valid-transitions]]
    [pallet.map-merge :only [merge-keys]]))
