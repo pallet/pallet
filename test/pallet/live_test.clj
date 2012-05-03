@@ -19,7 +19,9 @@
    [pallet.core :as core]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
-   [clojure.string :as string]))
+   [clojure.string :as string])
+  (:use
+   [pallet.core.operations :only [converge]]))
 
 (def
   ^{:doc "The default images for testing"}
@@ -50,6 +52,8 @@
    :ubuntu-lucid [{:os-family :ubuntu :os-version-matches "10.04"
                    :os-64-bit false}]
    :ubuntu-maverick [{:os-family :ubuntu :os-version-matches "10.10"
+                      :os-64-bit true}]
+   :ubuntu-11-10 [{:os-family :ubuntu :os-version-matches "11.10"
                       :os-64-bit true}]
    :debian-lenny [{:os-family :debian :os-version-matches "5.0.7"
                    :os-64-bit false}]
@@ -211,7 +215,7 @@
   (let [counts (counts specs)]
     (select-keys
      (->>
-      (core/converge counts :phase phases :compute service)
+      (converge counts :phase phases :compute service)
       :all-nodes
       (group-by compute/group-name)
       (map #(vector (keyword (first %)) (second %)))
@@ -249,8 +253,8 @@
                           [~@(or phases [:configure])])]
            ~@body)
          (finally
-          (when *cleanup-nodes*
-            (destroy-nodes ~'compute (keys ~'node-types))))))))
+           (when *cleanup-nodes*
+             (destroy-nodes ~'compute (keys ~'node-types))))))))
 
 (defmacro test-for
   "Loop over tests, in parallel or serial, depending on pallet.test.parallel."

@@ -10,21 +10,23 @@
   (hostname [node] "TODO make this work on ec2")
   (os-family [node] "Return a node's os-family, or nil if not available.")
   (os-version [node] "Return a node's os-version, or nil if not available.")
-  (packager [node] "The packager to use on the node")
-  (tag [node tag-name] "Return the specified tag")
-  (image-user [node] "Return the user that is defined by the image.")
   (running? [node] "Predicate to test if node is running.")
   (terminated? [node] "Predicate to test if node is terminated.")
   (id [node])
   (compute-service [node]
-    "Return the service provider the node was provided by."))
+    "Return the service provider the node was provided by.")
+
+  (packager [node] "The packager to use on the node")
+  (image-user [node] "Return the user that is defined by the image.")
+
+  (tag [node tag-name] "Return the specified tag.")
+  (tag! [node tag-name value] "Set a value on the given tag-name."))
 
 (defn node?
   "Predicate to test whether an object implements the Node protocol"
   [obj]
   (instance? pallet.node.Node obj))
 
-(defn tag [node] (group-name node))
 (defn node-in-group? [group-name node]
   (= (clojure.core/name group-name) (pallet.node/group-name node)))
 

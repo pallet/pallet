@@ -5,60 +5,8 @@
    [pallet.core.api :as api])
   (:use
    [pallet.environment :only [environment]]
-   [pallet.algo.fsmop :only [dofsm result reduce*]]
+   [pallet.algo.fsmop :only [dofsm reduce* result succeed]]
    [pallet.utils :only [apply-map]]))
-
-;;; Some maybe not so useful operations
-(defn service-state-builder
-  [compute-service groups]
-  (dofsm service-state-builder
-    [service-state (primitives/service-state compute-service groups)]
-    service-state))
-
-(defn action-plans-builder
-  [compute-service groups phase]
-  (dofsm action-plans-builder
-    [service-state (primitives/service-state compute-service groups)]
-    ((api/action-plans-for-phase
-      service-state (environment compute-service) groups phase)
-     {})))
-
-(defn group-delta-calculator
-  "Calculate node deltas"
-  [compute-service groups]
-  (dofsm node-count-adjuster
-    [service-state (primitives/service-state compute-service groups)]
-    (api/group-deltas service-state groups)))
-
-;;; Basic operations - probably too low level for most
-
-(defn phase-executor
-  "Execute a single phase across all the specified groups."
-  [service-state plan-state environment groups phase]
-  (dofsm phase-executor
-    [[action-plans plan-state] (result
-                                ((api/action-plans-for-phase
-                                  service-state environment
-                                  :group-nodes groups phase)
-                                 plan-state))
-     results (primitives/execute-action-plans
-              service-state plan-state environment
-              :group-nodes action-plans)]
-    results))
-
-(defn phases-executor
-  "Execute multiple phases in parallel across all the specified groups."
-  [compute-service plan-state groups phases]
-  (dofsm phases-executor
-    [service-state (primitives/service-state compute-service groups)
-     [action-plans plan-state] (result
-                                ((api/action-plans-for-phases
-                                  service-state (environment compute-service)
-                                  groups phases)
-                                 plan-state))
-     results (primitives/execute-action-plans
-              service-state plan-state environment action-plans)]
-    results))
 
 (defn node-count-adjuster
   "Adjusts node counts. Groups are expected to have node counts on them."
@@ -69,33 +17,38 @@
      nodes-to-remove      (result (api/nodes-to-remove
                                    service-state group-deltas))
      nodes-to-add         (result (api/nodes-to-add group-deltas))
-     [results plan-state] (primitives/build-and-execute-phase
-                           service-state plan-state environment
-                           (api/environment-execution-settings
-                            environment)
-                           :group-node-list nodes-to-remove
-                           :destroy-server)
-     results              (primitives/remove-group-nodes
-                           compute-service nodes-to-remove)
-     [results plan-state] (primitives/build-and-execute-phase
-                           service-state plan-state environment
-                           (api/environment-execution-settings environment)
-                           :group (api/groups-to-remove group-deltas)
-                           :destroy-group)
-     [results plan-state] (primitives/build-and-execute-phase
-                           service-state plan-state environment
-                           (api/environment-execution-settings environment)
-                           :group (api/groups-to-create group-deltas)
-                           :create-group)
+     [results1 plan-state] (primitives/build-and-execute-phase
+                            service-state plan-state environment
+                            (api/environment-execution-settings
+                             environment)
+                            :group-node-list nodes-to-remove
+                            :destroy-server)
+     _              (primitives/remove-group-nodes
+                             compute-service nodes-to-remove)
+     [results2 plan-state] (primitives/build-and-execute-phase
+                            service-state plan-state environment
+                            (api/environment-execution-settings environment)
+                            :group (api/groups-to-remove group-deltas)
+                            :destroy-group)
+     [results3 plan-state] (primitives/build-and-execute-phase
+                            service-state plan-state environment
+                            (api/environment-execution-settings environment)
+                            :group (api/groups-to-create group-deltas)
+                            :create-group)
      new-nodes            (primitives/create-group-nodes
                            compute-service (environment compute-service)
                            nodes-to-add)]
-    [new-nodes
-     (api/service-state-with-nodes
-      service-state (zipmap (keys nodes-to-add) new-nodes))
-     plan-state]))
+    {:new-nodes new-nodes
+     :old-nodes nodes-to-remove
+     :service-state (->
+                     service-state
+                     (api/service-state-with-nodes
+                       (zipmap (keys nodes-to-add) new-nodes))
+                     (api/service-state-without-nodes nodes-to-remove))
+     :plan-state plan-state
+     :results (concat results1 results2 results3)}))
 
-;;; Top level operations
+;;; ## Top level operations
 (defn lift
   [node-set & {:keys [compute phase prefix middleware all-node-set environment]
                :as options}]
@@ -119,16 +72,6 @@
                              (remove #{:settings} phases))]
       results)))
 
-(defn execute-phase-with-image-user
-  [service-state environment groups plan-state phase]
-  (dofsm execute-phase-with-image-user
-    [[results plan-state] (primitives/build-and-execute-phase
-                           service-state plan-state environment
-                           (api/environment-image-execution-settings
-                            environment)
-                           :group-nodes groups phase)]
-  results))
-
 (defn converge
   [group-spec->count & {:keys [compute blobstore user phase prefix middleware
                                all-nodes all-node-set environment]
@@ -136,11 +79,45 @@
   (let [groups (if (map? group-spec->count)
                  [group-spec->count]
                  group-spec->count)
+        phases (if (keyword phase) [phase] [:configure])
         settings-groups (concat groups all-node-set)
         environment (pallet.environment/environment compute)]
     (dofsm converge
-      [[new-nodes service-state plan-state] (node-count-adjuster
-                                             compute groups {})
-       result (execute-phase-with-image-user service-state environment
-                groups plan-state :bootstrap)]
-      [service-state result])))
+      [{:keys [new-nodes old-nodes service-state plan-state results]}
+       (node-count-adjuster compute groups {})
+
+       [results1 plan-state] (primitives/build-and-execute-phase
+                              service-state plan-state environment
+                              (api/environment-execution-settings environment)
+                              :group-nodes settings-groups :settings)
+       _ (succeed
+          (not (some :errors results1))
+          {:phase-errors true :phase :settings :results results1})
+
+       [results2 plan-state] (primitives/execute-on-unflagged
+                              service-state
+                              #(primitives/execute-phase-with-image-user
+                                 % environment groups plan-state :bootstrap)
+                              :bootstrapped)
+       _ (succeed
+          (not (some :errors results2))
+          {:phase-errors true :phase :bootstrap :results results2})
+
+       [results3 plan-state] (reduce*
+                              (fn reducer [[result plan-state] phase]
+                                (dofsm reduce-phases
+                                  [[r ps] (primitives/build-and-execute-phase
+                                           service-state plan-state environment
+                                           (api/environment-execution-settings
+                                            environment)
+                                           :group-nodes groups phase)
+                                   _ (succeed
+                                      (not (some :errors r))
+                                      {:phase-errors true
+                                       :phase phase
+                                       :results (concat result r)})]
+                                  [r ps]))
+                              [[] {}]
+                              (remove #{:settings} phases))]
+      {:results (concat results results1 results2 results3)
+       :service-state service-state})))

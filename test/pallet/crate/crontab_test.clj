@@ -4,11 +4,13 @@
    [pallet.live-test :as live-test])
   (:use
    clojure.test
-   pallet.test-utils
+   ;;pallet.test-utils
+   [pallet.action :only [clj-action]]
    [pallet.actions :only [exec-checked-script remote-file remote-file-content]]
    [pallet.core :only [lift]]
    [pallet.build-actions :only [build-actions]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [pallet.live-test :only [test-for test-nodes images]]
    [pallet.monad :only [let-s]]
    [pallet.phase :only [plan-fn]]
    [pallet.script.lib :only [user-home]]
@@ -46,28 +48,26 @@
             (system-crontabs))))))
 
 (deftest live-test
-  (live-test/test-for
-   [image live-test/*images*]
-   (live-test/test-nodes
-    [compute node-map node-types]
-    {:crontab
-     (merge
-      with-crontab
-      {:image image
-       :count 1
-       :phases
-       {:settings (plan-fn
-                    [user (admin-user)]
-                    (user-settings (:username user) {:contents "fred"}))
-        :verify (let-s
-                  [user (admin-user)]
-                  (do
-                    (is (= "fred"
-                           (remote-file-content
-                            (str
-                             (script (~user-home ~(:username user)))
-                             "/crontab.in")))
-                        "Remote file matches")))}})}
-    (lift (:crontab node-types)
-          :phase [:verify]
-          :compute compute))))
+  (test-for [image (images)]
+    (test-nodes [compute node-map node-types]
+      {:crontab
+       (merge
+        with-crontab
+        {:image image
+         :count 1
+         :phases
+         {:settings (plan-fn
+                      [user admin-user]
+                      (user-settings (:username user) {:contents "fred"}))
+          :verify (let-s
+                    [user admin-user]
+                    (clj-action
+                        (is (= "fred"
+                               (remote-file-content
+                                (str
+                                 (script (~user-home ~(:username user)))
+                                 "/crontab.in")))
+                            "Remote file matches")))}})}
+      (lift (:crontab node-types)
+            :phase [:verify]
+            :compute compute))))

@@ -10,8 +10,10 @@
      state-driver valid-transitions]]
    [pallet.map-merge :only [merge-keys]]))
 
-;;; Provide support for controlling retry count, standoff, etc,
-;;; Although this can be added externally.
+;;; ## Wrap non-FSM functions in simple FSM
+
+;;; TODO: Provide support for controlling retry count, standoff, etc, although
+;;; this might be better added externally.
 (defn async-fsm
   "Returns a FSM specification for running the specified function in a future.
   Assumes failures in the underlying function cause an exception to be thrown,
@@ -45,38 +47,51 @@
           (on-enter run-async)
           (event-handler running))))))
 
+;;; ## Node state
+(defn set-state-for-node
+  "Sets the boolean `state-name` flag on `node`."
+  [state-name node]
+  (async-fsm (partial api/set-state-for-node state-name node)))
+
+(defn set-state-for-nodes
+  "Sets the boolean `state-name` flag on `nodes`."
+  [state-name nodes]
+  (map* (map (partial set-state-for-node state-name) nodes)))
+
+;;; ## Compute service state
 (defn service-state
   "Define an operation that builds a representation of the available nodes."
   [compute groups]
   (async-fsm (partial api/service-state compute groups)))
 
+
+;;; ## Action plan execution
 (defn execute-action-plan
   "Executes an action-plan on the specified node."
-  [service-state plan-state execution-settings-f target-type
-   [target action-plan]]
+  [service-state plan-state execution-settings-f
+   {:keys [action-plan phase target-type target] :as action-plan-map}]
+  {:pre [action-plan-map action-plan target-type target]}
   (let [{:keys [user executor executor-status-fn]} (execution-settings-f
                                                     target)]
     (async-fsm
      (partial
       api/execute-action-plan
-      service-state plan-state user executor executor-status-fn action-plan
-      target-type target))))
+      service-state
+      plan-state user executor executor-status-fn action-plan-map))))
 
 (defn execute-action-plans
-  "Execute `action-plans` a map from an instance for target-type and an
-  action-plan"
-  [service-state plan-state execution-settings-f target-type
-  action-plans]
-  (logging/debugf "execute-action-plans %s" (keys action-plans))
+  "Execute `action-plans`, a sequence of action-plan maps.
+   `execution-settings-f` is a function of target, that returns a map with
+   :user, :executor and :executor-status-fn keys."
+  [service-state plan-state execution-settings-f action-plans]
   (dofsm execute-action-plans
     [results (map*
               (map
                (partial
                 execute-action-plan service-state plan-state
-                execution-settings-f target-type)
+                execution-settings-f)
                action-plans))]
-    [(reduce #(apply assoc %1 %2) {} (map (juxt :target :result) results))
-     (reduce (partial merge-keys {}) (map :plan-state results))]))
+    [results (reduce (partial merge-keys {}) (map :plan-state results))]))
 
 (defn build-and-execute-phase
   "Build and execute the specified phase.
@@ -87,17 +102,55 @@
   [service-state plan-state environment execution-settings-f
    target-type targets phase]
   {:pre [phase]}
-  (logging/debugf "build-and-execute-phase %s %s" phase targets)
+  (logging/debugf
+   "build-and-execute-phase %s on %s target(s)" phase (count targets))
   (let [[action-plans plan-state]
         ((api/action-plans-for-phase
           service-state environment target-type targets phase)
-         plan-state)
-        target-type (if (= :group target-type) :group :node)]
+         plan-state)]
     (logging/debugf
      "build-and-execute-phase execute %s %s" action-plans plan-state)
     (execute-action-plans
-     service-state plan-state execution-settings-f target-type action-plans)))
+     service-state plan-state execution-settings-f action-plans)))
 
+(defn execute-phase-with-image-user
+  [service-state environment groups plan-state phase]
+  (dofsm execute-phase-with-image-user
+    [[results plan-state] (build-and-execute-phase
+                           service-state plan-state environment
+                           (api/environment-image-execution-settings
+                            environment)
+                           :group-nodes groups phase)]
+    [results plan-state]))
+
+(defn execute-on-unflagged
+  "Execute a function of service-state on nodes that don't have the specified
+  state flag set. On successful completion the nodes have the state flag set."
+  [service-state execute-f state-flag]
+  (dofsm execute-on-unflagged
+    [[results plan-state] (execute-f
+                           (api/filtered-service-state
+                            service-state
+                            (complement (api/has-state-flag? state-flag))))
+     _ (pallet.algo.fsmop/result
+        (logging/debugf
+         "execute-on-unflagged service-state %s"
+         (api/filtered-service-state
+          service-state (complement (api/has-state-flag? state-flag)))))
+     _ (pallet.algo.fsmop/result
+        (logging/debugf "execute-on-unflagged %s" (vec results)))
+     _ (set-state-for-nodes
+        state-flag (map :target (remove :errors results)))]
+    [results plan-state]))
+
+;;; ## Result predicates
+(defn successful-result?
+  "Filters `target-results`, a map from target to result map, for successful
+  results."
+  [result]
+  (not (:errors result)))
+
+;;; ## Node count adjustment
 (defn create-nodes
   "Create `count` nodes for a `group`."
   [compute-service environment group count]

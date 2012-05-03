@@ -4,11 +4,12 @@
    [clojure.tools.logging :as logging])
   (:use
    [clojure.algo.monads :only [domonad m-map state-m with-monad]]
+   [clojure.string :only [blank?]]
    [pallet.action-plan :only [execute stop-execution-on-error translate]]
    [pallet.compute :only [destroy-nodes-in-group destroy-node nodes run-nodes]]
    [pallet.core :only [default-executor]]
    [pallet.environment :only [get-for]]
-   [pallet.node :only [image-user]]
+   [pallet.node :only [image-user tag tag!]]
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :only [add-session-verification-key]]
@@ -40,6 +41,21 @@
                                 (map vector ns (repeat [g])))
                               new-nodes)))))
 
+(defn service-state-without-nodes
+  "Add the specified nodes to the service-state. `new-nodes` must be a map from
+  a group to a sequence of new nodes in that group."
+  [service-state old-nodes]
+  (-> service-state
+      (update-in [:group->nodes]
+                 (partial merge-with #(remove (set (:nodes %2)) %1)) old-nodes)
+      (update-in [:node->groups]
+                 #(into {}
+                        (remove
+                         (comp
+                          (set (mapcat (comp :nodes val) old-nodes))
+                          key)
+                         %)))))
+
 (defn filtered-service-state
   "Applies a filter to the nodes in a service-state."
   [service-state node-predicate]
@@ -64,18 +80,25 @@
 (defn action-plan
   "Build the action plan for the specified `plan-fn` on the given `node`, within
   the context of the `service-state`. The `plan-state` contains all the
-  settings, etc, for all groups."
-  [service-state environment plan-fn target]
+  settings, etc, for all groups. `target-map` is a map for the session
+  describing the target."
+  [service-state environment plan-fn target-map]
   (fn action-plan [plan-state]
-    (with-script-for-node (-> target :server :node)
-      (let [session (add-session-verification-key
-                     (merge
-                      target
-                      {:service-state service-state
-                       :plan-state plan-state}))
-            [rv session] (plan-fn session)
-            [action-plan session] (translate (:action-plan session) session)]
-        [action-plan (:plan-state session)]))))
+    (let [session (add-session-verification-key
+                   (merge
+                    target-map
+                    {:service-state service-state
+                     :plan-state plan-state}))
+          [rv session] (plan-fn session)
+          [action-plan session] (translate (:action-plan session) session)]
+      [action-plan (:plan-state session)])))
+
+;;; ### Action plans for a group
+(defmulti action-plans
+  "Build action plans for the specified `phase` on all nodes or groups in the
+  given `target`, within the context of the `service-state`. The `plan-state`
+  contains all the settings, etc, for all groups."
+  (fn [service-state environment phase target-type target] target-type))
 
 (defn- action-plans-for-nodes
   [service-state environment phase group nodes]
@@ -83,17 +106,19 @@
     (with-monad state-m
       (domonad
        [action-plans (m-map
-                      #(action-plan
-                        service-state environment plan-fn {:server {:node %}})
+                      (fn [node]
+                        {:pre [node]}
+                        (fn [plan-state]
+                          (with-script-for-node node
+                            ((action-plan
+                              service-state environment plan-fn
+                              {:server {:node node}})
+                             plan-state))))
                       nodes)]
-       (zipmap nodes action-plans)))
+       (map
+        #(hash-map :target %1 :target-type :node :phase phase :action-plan %2)
+        nodes action-plans)))
     (fn [plan-state] [nil plan-state])))
-
-(defmulti action-plans
-  "Build action plans for the specified `phase` on all nodes or groups in the
-  given `target`, within the context of the `service-state`. The `plan-state`
-  contains all the settings, etc, for all groups."
-  (fn [service-state environment phase target-type target] target-type))
 
 ;; Build action plans for the specified `phase` on all nodes in the given
 ;; `group`, within the context of the `service-state`. The `plan-state` contains
@@ -101,10 +126,7 @@
 (defmethod action-plans :group-nodes
   [service-state environment phase target-type group]
   (let [group-nodes (-> service-state :group->nodes (get group))]
-    (logging/debugf "action-plans :group-nodes service-state %s" service-state)
-    (logging/debugf "action-plans :group-nodes nodes %s" (vec group-nodes))
-    (action-plans-for-nodes
-     service-state environment phase group group-nodes)))
+    (action-plans-for-nodes service-state environment phase group group-nodes)))
 
 ;; Build action plans for the specified `phase` on all nodes in the given
 ;; `group`, within the context of the `service-state`. The `plan-state` contains
@@ -119,15 +141,16 @@
 (defmethod action-plans :group
   [service-state environment phase target-type group]
   (if-let [plan-fn (-> group :phases phase)]
-    (action-plan service-state environment plan-fn {:group group})
-;; (with-monad state-m
-;;       (domonad
-;;        [[action-plan plan-state] (action-plan
-;;                                   service-state environment plan-fn
-;;                                   {:group group})]
-;;        [action-plan plan-state]))
+    (with-monad state-m
+      (domonad
+       [plan (action-plan service-state environment plan-fn {:group group})]
+       [{:action-plan plan
+         :target group
+         :target-type :group
+         :phase phase}]))
     (fn [plan-state] [nil plan-state])))
 
+;;; ### Action plans for phases
 (defn action-plans-for-phase
   "Build action plans for the specified `phase` on the given `groups`, within
   the context of the `service-state`. The `plan-state` contains all the
@@ -137,7 +160,10 @@
 
   `target-type`
   : specifies the type of target to run the phase on, :group, :group-nodes,
-  or :group-node-list."
+  or :group-node-list.
+
+  Returns a sequence of maps, where each map has :phase, :action-plan :target
+  and :target-type keys"
   [service-state environment target-type targets phase]
   (logging/debugf "action-plans-for-phase %s %s %s" target-type phase targets)
   (with-monad state-m
@@ -146,11 +172,8 @@
                     (partial
                      action-plans
                      service-state environment phase target-type)
-                    targets)
-      _ (fn [plan-state] (logging/debugf
-                          "action-plans-for-phase plans %s"
-                          (vec action-plans)))]
-     (apply merge-with comp action-plans))))
+                    targets)]
+     (apply concat action-plans))))
 
 (defn action-plans-for-phases
   "Build action plans for the specified `phase` on the given `groups`, within
@@ -166,22 +189,9 @@
                      action-plans-for-phase
                      target-type service-state environment groups)
                     phases)]
-     (apply merge-with comp action-plans))))
-
+     action-plans)))
 
 ;;; ## Action Plan Execution
-(defmulti session-target-map
-  (fn [target-type target]
-    target-type))
-
-(defmethod session-target-map :node
-  [target-type target]
-  {:server {:node target}})
-
-(defmethod session-target-map :group
-  [target-type target]
-  {:group target})
-
 (defn environment-execution-settings
   "Returns execution settings based purely on the environment"
   [environment]
@@ -200,22 +210,47 @@
      :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
                                  #'stop-execution-on-error)}))
 
-(defn execute-action-plan
-  "Execute the `action-plan` on the `node`."
-  [service-state plan-state user executor execute-status-fn action-plan
-   target-type target]
-  (logging/debugf "execute-action-plan")
+
+(defn execute-action-plan*
+  "Execute the `action-plan` on the `target`."
+  [session executor execute-status-fn
+   {:keys [action-plan phase target-type target]}]
+  (logging/debugf "execute-action-plan* %s %s" phase target-type)
+  (let [[result session] (execute
+                          action-plan session executor execute-status-fn)]
+    {:target target
+     :target-type target-type
+     :plan-state (:plan-state session)
+     :result result
+     :phase phase
+     :errors (seq (remove (complement :error) result))}))
+
+(defmulti execute-action-plan
+  "Execute the `action-plan` on the `target`."
+  (fn [service-state plan-state user executor execute-status-fn
+       {:keys [action-plan phase target-type target]}]
+    target-type))
+
+(defmethod execute-action-plan :node
+  [service-state plan-state user executor execute-status-fn
+   {:keys [action-plan phase target-type target] :as action-plan-map}]
   (with-script-for-node target
-    (let [session (merge
-                   (session-target-map target-type target)
-                   {:service-state service-state
-                    :plan-state plan-state
-                    :user user})
-          [result session] (execute
-                            action-plan session executor execute-status-fn)]
-      (logging/debugf
-       "execute-action-plan returning %s" [(:plan-state session) result])
-      {:target target :plan-state (:plan-state session) :result result})))
+    (execute-action-plan*
+     {:server {:node target}
+      :service-state service-state
+      :plan-state plan-state
+      :user user}
+     executor execute-status-fn action-plan-map)))
+
+(defmethod execute-action-plan :group
+  [service-state plan-state user executor execute-status-fn
+   {:keys [action-plan phase target-type target] :as action-plan-map}]
+  (execute-action-plan*
+   {:group target
+    :service-state service-state
+    :plan-state plan-state
+    :user user}
+   executor execute-status-fn action-plan-map))
 
 ;;; ## Calculation of node count adjustments
 (defn group-delta
@@ -307,3 +342,28 @@
   (if all
     (destroy-nodes-in-group compute-service (name (:group-name group)))
     (doseq [node nodes] (destroy-node compute-service node))))
+
+;;; # Node state tagging
+
+(def state-tag-name "pallet/state")
+
+(defn read-or-empty-map
+  [s]
+  (if (blank? s)
+    {}
+    (read-string s)))
+
+(defn set-state-for-node
+  "Sets the boolean `state-name` flag on `node`."
+  [state-name node]
+  (let [current (read-or-empty-map (tag node state-tag-name))
+        val (assoc current (keyword (name state-name)) true)]
+    (tag! node state-tag-name (pr-str val))))
+
+(defn has-state-flag?
+  "Return a predicate to test for a state-flag having been set."
+  [state-name]
+  (fn [node]
+    (get
+     (read-or-empty-map (tag node state-tag-name))
+     (keyword (name state-name)))))
