@@ -89,11 +89,11 @@
                (grep (quoted ~package))))
         (= :remove action)
         (stevedore/script
-         (pipe (aptitude
-                search
-                (quoted
-                 (str "?and(?installed, ?name(^" ~escaped-package "$))")))
-               (grep -v (quoted ~package)))))))))
+         (not (pipe (aptitude
+                     search
+                     (quoted
+                      (str "?and(?installed, ?name(^" ~escaped-package "$))")))
+                    (grep (quoted ~package))))))))))
 
 (def ^{:private true :doc "Define the order of actions"}
   action-order {:install 10 :remove 20 :upgrade 30})

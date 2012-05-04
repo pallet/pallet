@@ -46,12 +46,12 @@
               (pipe (aptitude
                      search (quoted "?and(?installed, ?name(^rubygems$))"))
                     (grep (quoted "rubygems")))
-              (pipe (aptitude
-                     search (quoted "?and(?installed, ?name(^git$))"))
-                    (grep -v (quoted "git")))
-              (pipe (aptitude
-                     search (quoted "?and(?installed, ?name(^ruby$))"))
-                    (grep -v (quoted "ruby"))))))
+              (not (pipe (aptitude
+                          search (quoted "?and(?installed, ?name(^git$))"))
+                         (grep (quoted "git"))))
+              (not (pipe (aptitude
+                          search (quoted "?and(?installed, ?name(^ruby$))"))
+                         (grep (quoted "ruby")))))))
            (first
             (build-actions/build-actions
              {}
@@ -420,18 +420,18 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               "Packages"
               (~lib/package-manager-non-interactive)
               (aptitude install -q -y p1- p4_ p2+ p3+)
-              (pipe (aptitude
-                     search (quoted "?and(?installed, ?name(^p1$))"))
-                    (grep -v (quoted "p1")))
+              (not (pipe (aptitude
+                          search (quoted "?and(?installed, ?name(^p1$))"))
+                         (grep (quoted "p1"))))
               (pipe (aptitude
                      search (quoted "?and(?installed, ?name(^p2$))"))
                     (grep (quoted "p2")))
               (pipe (aptitude
                      search (quoted "?and(?installed, ?name(^p3$))"))
                     (grep (quoted "p3")))
-              (pipe (aptitude
-                     search (quoted "?and(?installed, ?name(^p4$))"))
-                    (grep -v (quoted "p4"))))
+              (not (pipe (aptitude
+                          search (quoted "?and(?installed, ?name(^p4$))"))
+                         (grep (quoted "p4")))))
              (adjust-packages
               {:server {:packager :aptitude}}
               [{:package "p1" :action :remove}
