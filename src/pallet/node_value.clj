@@ -79,3 +79,7 @@
   [nv v]
   (fn [session]
     [v (assoc-in session [:node-values (.path nv)] v)]))
+
+(defn get-node-value
+  [nv]
+  (fn [session] [(node-value nv session) session]))

@@ -5,7 +5,7 @@
   (:use
    pallet.thread-expr
    [pallet.actions :only [directory exec-checked-script]]
-   [pallet.phase :only [def-plan-fn]]))
+   [pallet.crate :only [def-plan-fn]]))
 
 (def-plan-fn make-xfs-filesytem
   "Format a device as an XFS filesystem."

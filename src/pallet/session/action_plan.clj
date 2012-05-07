@@ -15,6 +15,11 @@ Encapsulates the location of the action-plans in the session.")
   [session action-plan]
   (assoc session action-plan-key action-plan))
 
+(defn dissoc-action-plan
+  "Set the session action-plan"
+  [session]
+  (dissoc session action-plan-key))
+
 (defn get-session-action-plan
   "Retrieves the current action plan, and resets it"
   [session]

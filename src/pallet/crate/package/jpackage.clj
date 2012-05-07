@@ -1,13 +1,12 @@
 (ns pallet.crate.package.jpackage
   "Actions for working with the jpackage repository"
   (:require
-   [pallet.parameter :as parameter]
    [pallet.session :as session]
    [pallet.thread-expr :as thread-expr])
   (:use
    [pallet.action :only [with-action-options]]
    [pallet.actions :only [add-rpm package package-manager package-source]]
-   [pallet.phase :only [def-plan-fn defplan]]))
+   [pallet.crate :only [def-plan-fn defplan assoc-settings get-settings]]))
 
 ;; The source for this rpm is available here:
 ;; http://plone.lucidsolutions.co.nz/linux/centos/
@@ -118,11 +117,11 @@
            :failovermethod "priority"
            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
            :enabled enabled}))
-  (parameter/assoc-target [:jpackage-repos] jpackage-repos))
+  (assoc-settings :jpackage-repos jpackage-repos))
 
 (defplan package-manager-update-jpackage
   "Update the package lists for the jpackage repositories"
-  [jpackage-repos (parameter/get-target [:jpackage-repos])]
+  [jpackage-repos (get-settings :jpackage-repos)]
   (package-manager
    :update
    :disable ["*"]

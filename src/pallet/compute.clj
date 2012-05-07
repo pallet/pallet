@@ -192,23 +192,10 @@
 
 (defn admin-group
   "User that remote commands are run under"
-  [target]
-  (case (-> target :image :os-family)
-    :centos "wheel"
-    :rhel "wheel"
-    "adm"))
-
-;;; forward moved functions
-;;;   compute-service-from-map
-;;;   compute-service-from-config-var
-;;;   compute-service-from-property
-;;;   compute-service-from-config
-;;;   compute-service-from-config-file
-;;;   service -> configure/compute-service
-
-(utils/fwd-to-configure compute-service-from-map)
-(utils/fwd-to-configure compute-service-from-config-var)
-(utils/fwd-to-configure compute-service-from-property)
-(utils/fwd-to-configure compute-service-from-config)
-(utils/fwd-to-configure compute-service-from-config-file)
-(utils/fwd-to-configure service compute-service)
+  ([target]
+     (admin-group (-> target :image :os-family) nil))
+  ([os-family os-version]
+     (case os-family
+       :centos "wheel"
+       :rhel "wheel"
+       "adm")))

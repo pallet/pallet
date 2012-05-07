@@ -7,7 +7,6 @@
    [pallet.core :as core]
    [pallet.context :as context]
    [pallet.live-test :as live-test]
-   [pallet.parameter :as parameter]
    [pallet.phase :as phase]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -19,7 +18,8 @@
    clojure.test
    pallet.test-utils
    [pallet.actions :only [directory exec-checked-script file remote-file user]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]))
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [pallet.crate :only [get-settings]]))
 
 (use-fixtures
  :once with-ubuntu-script-template (logging-threshold-fixture))
@@ -254,7 +254,7 @@
   [request]
   (logging/trace (format "check-public-key request is %s" request))
   (is (string?
-       (parameter/get-for-target request [:user :testuser :id_rsa])))
+       (get-settings request [:user :testuser :id_rsa])))
   request)
 
 (deftest live-test

@@ -298,7 +298,8 @@
   (apply
    update-for
    session
-   [:host (-> session :server :node-id) facility (or instance-id :default)]
+   [:host (node/id (-> session :server :node))
+    facility (or instance-id :default)]
    f args))
 
 (defn update-settings

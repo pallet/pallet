@@ -1,8 +1,7 @@
 (ns pallet.action-plan-test
   (:require
    [pallet.action-plan :as action-plan]
-   [pallet.argument :as argument]
-   [pallet.core :as core])
+   [pallet.argument :as argument])
   (:use
    clojure.test
    pallet.action-impl
@@ -193,6 +192,26 @@
   [r (dissoc s :action-plans)])
 
 (deftest execute-test
+  (testing "aggregated with one action call"
+    (let [f (make-action 'f :aggregated {})
+          _ (add-action-implementation!
+             f :default {} (fn [session & x] [(str (vec x)) session]))
+          a1 (action-map f [1] {})
+          a2 (action-map f [2] {})
+          action-plan (->
+                       nil
+                       (add-action-map
+                        (assoc a1 :node-value-path :v1)))]
+      (is (=
+           [["[(1)]"] {:a 1 :node-values {:v1 "[(1)]"}}]
+           (-> (translate action-plan {})
+               first
+               ((fn [x] (is (= 1 (count x))) x))
+               (execute
+                {:a 1}
+                (executor :default)
+                stop-execution-on-error)
+               (dissoc-action-plan))))))
   (testing "aggregated"
     (let [f (make-action 'f :aggregated {})
           _ (add-action-implementation!
@@ -209,6 +228,32 @@
            [["[(1) (2)]"] {:a 1 :node-values {:v1 "[(1) (2)]"}}]
            (-> (translate action-plan {})
                first
+               ((fn [x] (is (= 1 (count x))) x))
+               (execute
+                {:a 1}
+                (executor :default)
+                stop-execution-on-error)
+               (dissoc-action-plan))))))
+    (testing "aggregated and non-aggregated"
+    (let [f (make-action 'f :aggregated {})
+          _ (add-action-implementation!
+             f :default {} (fn [session & x] [(str (vec x)) session]))
+          g (make-action 'g :in-sequence {})
+          _ (add-action-implementation!
+             g :default {} (fn [session x] [(str x) session]))
+          a1 (action-map f [1] {})
+          a2 (action-map g [2] {})
+          action-plan (->
+                       nil
+                       (add-action-map
+                        (assoc a1 :node-value-path :v1))
+                       (add-action-map
+                        (assoc a2 :node-value-path :v2)))]
+      (is (=
+           [["[(1)]" "2"] {:node-values {:v2 "2", :v1 "[(1)]"}, :a 1}]
+           (-> (translate action-plan {})
+               first
+               ((fn [x] (is (= 2 (count x))) x))
                (execute
                 {:a 1}
                 (executor :default)

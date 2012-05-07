@@ -15,7 +15,8 @@
    [clojure.tools.logging :as logging])
   (:use
    [clojure.set :only [union]]
-   [pallet.parameter :only [update-for-target get-for-target]]))
+   [pallet.core.plan-state :only [update-settings get-settings]]
+   [pallet.core.session :only [target-id]]))
 
 (defn normalise-eol
   "Convert eol into platform specific value"
@@ -47,30 +48,40 @@
   "Set flags for target."
   [session flags]
   (if (seq flags)
-    (update-for-target session [:flags] union flags)
+    (update-in
+     session [:plan-state]
+     update-settings (target-id session) :flags union [flags] {})
     session))
 
 (defn set-target-flag-values
   "Set flag valuess for target."
   [session flag-values]
   (if (seq flag-values)
-    (update-for-target session [:flag-values] union flag-values)
+    (update-in
+     session [:plan-state]
+     update-settings (target-id session) :flag-values union [flag-values] {})
     session))
 
 (defn set-target-flags
   "Set flags for target."
   [session flags]
-  (update-for-target session [:flags] union flags))
+  (if (seq flags)
+    (update-in
+     session [:plan-state]
+     update-settings (target-id session) :flags union [flags] {})
+    session))
 
 (defn clear-target-flag
   "Clear flag for target."
   [session flag]
-  (update-for-target session [:flags] disj flag))
+  (update-in
+   session [:plan-state]
+   update-settings (target-id session) :flags disj [flag] {}))
 
 (defn target-flag?
   "Predicate to test if the specified flag is set for target."
   [session flag]
-  (when-let [flags (get-for-target session [:flags] #{})]
+  (when-let [flags (get-settings (:plan-state session) :flags {:default #{}})]
     (flags flag)))
 
 (defn parse-flags

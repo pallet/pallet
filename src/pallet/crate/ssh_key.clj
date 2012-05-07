@@ -1,20 +1,14 @@
 (ns pallet.crate.ssh-key
   "Crate functions for manipulating SSH-keys"
   (:require
-   [pallet.action :as action]
-   [pallet.action-plan :as action-plan]
-   [pallet.context :as context]
-   [pallet.parameter :as parameter]
+   [clojure.string :as string]
    [pallet.script.lib :as lib]
    [pallet.script :as script]
-   [pallet.stevedore :as stevedore]
-   [pallet.thread-expr :as thread-expr]
-   [pallet.utils :as utils]
-   [clojure.string :as string])
+   [pallet.stevedore :as stevedore])
   (:use
    [pallet.actions
     :only [directory exec-checked-script file remote-file with-remote-file]]
-   [pallet.phase :only [def-plan-fn]]))
+   [pallet.crate :only [def-plan-fn]]))
 
 (defn user-ssh-dir [user]
   (str (stevedore/script (~lib/user-home ~user)) "/.ssh/"))

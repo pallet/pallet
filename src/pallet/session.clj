@@ -34,7 +34,7 @@
 (defn target-id
   "Id of the target-node (unique for provider)."
   [session]
-  [(-> session :server :node-id) session])
+  [(node/id (-> session :server :node)) session])
 
 (defn target-ip
   "IP of the target-node."
@@ -118,7 +118,7 @@
 
 (defn packager
   [session]
-  [(get-in session [:server :packager]) session])
+  [(node/packager (get-in session [:server :node])) session])
 
 (defn admin-user
   "User that remote commands are run under"

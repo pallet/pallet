@@ -6,7 +6,7 @@
    clojure.test
    pallet.core.primitives
    [pallet.compute.node-list :only [make-node node-list-service]]
-   [pallet.core :only [group-spec]]
+   [pallet.api :only [group-spec]]
    [pallet.algo.fsmop :only [dofsm operate status report-operation]]))
 
 (deftest available-nodes-test

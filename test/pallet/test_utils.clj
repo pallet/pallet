@@ -1,22 +1,22 @@
 (ns pallet.test-utils
   (:require
    [pallet.action-plan :as action-plan]
-   [pallet.core :as core]
    [pallet.common.deprecate :as deprecate]
    [pallet.execute :as execute]
    [pallet.target :as target]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
-   [pallet.parameter :as parameter]
    [pallet.compute.node-list :as node-list]
    [clojure.java.io :as io]
    clojure.tools.logging)
   (:use
    clojure.test
+   [pallet.api :only [group-spec server-spec]]
    [pallet.action :only [declare-action implement-action]]
    [pallet.common.context :only [throw-map]]
    [pallet.execute :only [target-flag?]]
-   [pallet.session.verify :only [add-session-verification-key]]))
+   [pallet.session.verify :only [add-session-verification-key]]
+   [pallet.utils :only [*admin-user*]]))
 
 (defmacro with-private-vars [[ns fns] & tests]
   "Refers private fns from ns and runs tests in context.  From users mailing
@@ -103,27 +103,27 @@ list, Alan Dipert and MeikelBrandmeyer."
   "Build a test session"
   [& components]
   (add-session-verification-key
-   (reduce merge {:executor core/default-executor} components)))
+   (reduce merge {:user *admin-user*} components)))
 
 (defn server
   "Build a server for the session map"
   [& {:as options}]
-  (apply core/server-spec (apply concat options)))
+  (apply server-spec (apply concat options)))
 
 (defn target-server
   "Build the target server for the session map"
   [& {:as options}]
-  {:server (apply core/server-spec (apply concat options))})
+  {:server (apply server-spec (apply concat options))})
 
 (defn group
   "Build a group for the session map"
   [name & {:as options}]
-  (apply core/group-spec name (apply concat options)))
+  (apply group-spec name (apply concat options)))
 
 (defn target-group
   "Build the target group for the session map"
   [name & {:as options}]
-  {:group (apply core/group-spec name (apply concat options))})
+  {:group (apply group-spec name (apply concat options))})
 
 (defmacro redef
   [ [& bindings] & body ]
@@ -179,12 +179,12 @@ list, Alan Dipert and MeikelBrandmeyer."
   [flag session]))
 
 ;;; Actions
-(def ^{:doc "An action to set parameters"}
-  parameters
-  (clj-action [session & {:as keyvector-value-pairs}]
-    [keyvector-value-pairs
-     (assoc session
-       :parameters (reduce
-                    #(apply assoc-in %1 %2)
-                    (:parameters session)
-                    keyvector-value-pairs))]))
+;; (def ^{:doc "An action to set parameters"}
+;;   parameters
+;;   (clj-action [session & {:as keyvector-value-pairs}]
+;;     [keyvector-value-pairs
+;;      (assoc session
+;;        :parameters (reduce
+;;                     #(apply assoc-in %1 %2)
+;;                     (:parameters session)
+;;                     keyvector-value-pairs))]))

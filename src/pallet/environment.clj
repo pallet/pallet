@@ -152,6 +152,7 @@
        (get-for {:p {:a {:b 1} {:d 2}}} [:p :a :d])
          => 2"
   ([session keys]
+     {:pre [(sequential? keys)]}
      (let [result (get-in (:environment session) keys ::not-set)]
        (when (= ::not-set result)
          (throw+

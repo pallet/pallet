@@ -5,7 +5,7 @@
    [pallet.stevedore :as stevedore])
   (:use
    [pallet.actions :only [package-source]]
-   [pallet.phase :only [defplan]]))
+   [pallet.crate :only [defplan]]))
 
 (defplan add-debian-backports
   "Add debian backport package repository"

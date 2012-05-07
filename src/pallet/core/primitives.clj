@@ -68,7 +68,7 @@
 ;;; ## Action plan execution
 (defn execute-action-plan
   "Executes an action-plan on the specified node."
-  [service-state plan-state execution-settings-f
+  [service-state plan-state environment execution-settings-f
    {:keys [action-plan phase target-type target] :as action-plan-map}]
   {:pre [action-plan-map action-plan target-type target]}
   (let [{:keys [user executor executor-status-fn]} (execution-settings-f
@@ -77,21 +77,23 @@
      (partial
       api/execute-action-plan
       service-state
-      plan-state user executor executor-status-fn action-plan-map))))
+      plan-state environment user
+      executor executor-status-fn action-plan-map))))
 
 (defn execute-action-plans
   "Execute `action-plans`, a sequence of action-plan maps.
    `execution-settings-f` is a function of target, that returns a map with
    :user, :executor and :executor-status-fn keys."
-  [service-state plan-state execution-settings-f action-plans]
+  [service-state plan-state environment execution-settings-f action-plans]
   (dofsm execute-action-plans
     [results (map*
               (map
                (partial
                 execute-action-plan service-state plan-state
-                execution-settings-f)
+                environment execution-settings-f)
                action-plans))]
-    [results (reduce (partial merge-keys {}) (map :plan-state results))]))
+    [results
+     (reduce (partial merge-keys {}) plan-state (map :plan-state results))]))
 
 (defn build-and-execute-phase
   "Build and execute the specified phase.
@@ -102,19 +104,23 @@
   [service-state plan-state environment execution-settings-f
    target-type targets phase]
   {:pre [phase]}
-  (logging/debugf
+  (logging/tracef
    "build-and-execute-phase %s on %s target(s)" phase (count targets))
+  (logging/tracef "build-and-execute-phase plan-state %s" plan-state)
   (let [[action-plans plan-state]
         ((api/action-plans-for-phase
           service-state environment target-type targets phase)
          plan-state)]
-    (logging/debugf
-     "build-and-execute-phase execute %s %s" action-plans plan-state)
+    (logging/tracef
+     "build-and-execute-phase execute %s actions %s"
+     (vec (map (comp count :action-plan) action-plans)) plan-state)
+    (logging/tracef "build-and-execute-phase plan-state %s" plan-state)
     (execute-action-plans
-     service-state plan-state execution-settings-f action-plans)))
+     service-state plan-state environment execution-settings-f action-plans)))
 
 (defn execute-phase-with-image-user
   [service-state environment groups plan-state phase]
+  (logging/tracef "execute-phase-with-image-user plan-state %s" plan-state)
   (dofsm execute-phase-with-image-user
     [[results plan-state] (build-and-execute-phase
                            service-state plan-state environment
@@ -132,13 +138,6 @@
                            (api/filtered-service-state
                             service-state
                             (complement (api/has-state-flag? state-flag))))
-     _ (pallet.algo.fsmop/result
-        (logging/debugf
-         "execute-on-unflagged service-state %s"
-         (api/filtered-service-state
-          service-state (complement (api/has-state-flag? state-flag)))))
-     _ (pallet.algo.fsmop/result
-        (logging/debugf "execute-on-unflagged %s" (vec results)))
      _ (set-state-for-nodes
         state-flag (map :target (remove :errors results)))]
     [results plan-state]))

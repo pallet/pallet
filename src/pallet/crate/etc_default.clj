@@ -1,12 +1,12 @@
 (ns pallet.crate.etc-default
   "Generation and installation of /etc/default-style files."
   (:require
+   [clojure.string :as string]
    [pallet.stevedore :as stevedore]
-   [pallet.script.lib :as lib]
-   [clojure.string :as string])
+   [pallet.script.lib :as lib])
   (:use
    [pallet.actions :only [remote-file]]
-   [pallet.phase :only [def-plan-fn]]))
+   [pallet.crate :only [def-plan-fn]]))
 
 (def-plan-fn write
   "Writes a KEY=value file to /etc/default/~{filename}, or ~{filename} if

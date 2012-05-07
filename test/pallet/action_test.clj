@@ -33,8 +33,8 @@
     (let [inserter (declare-action 'a0 {:execution :aggregated})]
       (is (= :aggregated (action-execution (-> inserter meta :action)))))))
 
+(defaction a1 {:always-before :a} [arg])
 (deftest defaction-test
-  (defaction a1 {:always-before :a} [arg])
   (let [action (-> a1 meta :action)]
     (testing "action"
       (is (map? action))
@@ -60,8 +60,8 @@
         (is (= {} (action-precedence action)))
         (is (= :aggregated (action-execution action)))))))
 
+(defaction iat-action [arg])
 (deftest implement-action-test
-  (defaction iat-action [arg])
   (testing "implement-action*"
     (let [f (fn [session arg] [arg session])]
       (implement-action* iat-action :x {:y 1} f)

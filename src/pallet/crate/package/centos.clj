@@ -5,7 +5,7 @@
   (:use
    [pallet.actions :only [package package-source]]
    [pallet.monad :only [let-s]]
-   [pallet.phase :only [def-plan-fn]]))
+   [pallet.crate :only [def-plan-fn]]))
 
 (def ^{:private true} centos-repo
   "http://mirror.centos.org/centos/%s/%s/%s/repodata/repomd.xml")

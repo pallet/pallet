@@ -4,7 +4,7 @@
    [pallet.script.lib :as lib])
   (:use
    [pallet.actions :only [exec-checked-script]]
-   [pallet.phase :only [def-plan-fn]]))
+   [pallet.crate :only [def-plan-fn]]))
 
 (def-plan-fn wait-for-port-listen
   "Wait for the network port `port` to be in a listening state.

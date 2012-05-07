@@ -8,7 +8,7 @@
    [pallet.actions-impl :only [remote-file-action]]
    [pallet.monad :only [phase-pipeline-no-context]]
    [pallet.monad.state-accessors :only [get-session]]
-   [pallet.phase :only [def-plan-fn]]))
+   [pallet.crate :only [def-plan-fn]]))
 
 ;;; TODO remove this and use pipeline-when
 (def ^{:private true}

@@ -241,15 +241,6 @@ monad, but are each use a different context."
   the state monad"
   [f] #(vector nil (f %)))
 
-(defmacro session-peek-fn
-  "Create a state-m monadic value function that examines the session, and
-  returns nil."
-  {:indent 'defun}
-  [[sym] & body]
-  `(fn session-peek-fn [~sym]
-     ~@body
-     [nil ~sym]))
-
 (defmacro local-env
   "Return the local environment as a map of keyword value pairs."
   []

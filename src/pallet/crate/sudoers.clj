@@ -1,17 +1,14 @@
 (ns pallet.crate.sudoers
   (:require
-   [pallet.action :as action]
-   [pallet.context :as context]
-   [pallet.session :as session]
-   [pallet.template :as template]
-   [pallet.utils :as utils]
    [clojure.tools.logging :as logging]
-   [clojure.string :as string])
+   [clojure.string :as string]
+   [pallet.action :as action]
+   [pallet.template :as template]
+   [pallet.utils :as utils])
   (:use
    [pallet.actions :only [package package-manager]]
-   [pallet.monad.state-accessors :only [get-session]]
-   [pallet.monad :only [as-session-pipeline-fn phase-pipeline]]
-   [pallet.phase :only [def-plan-fn def-aggregate-crate-fn]]))
+   [pallet.crate :only [admin-group def-plan-fn defplan def-aggregate-plan-fn]]
+   [pallet.monad :only [as-session-pipeline-fn phase-pipeline]]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
@@ -20,14 +17,14 @@
 (def-plan-fn install
   [& {:keys [package-name action]
       :or {package-name "sudo" action :install}}]
-  (package-manager :update)
   (package package-name :action action))
 
-(defn- default-specs [session]
-  (array-map
-   "root" {:ALL {:run-as-user :ALL}}
-   (str "%" (first (session/admin-group session)))
-   {:ALL {:run-as-user :ALL}}))
+(defplan default-specs
+  [admin-group (admin-group)]
+  (m-result (array-map
+             "root" {:ALL {:run-as-user :ALL}}
+             (str "%" admin-group)
+             {:ALL {:run-as-user :ALL}})))
 
 (defn- param-string [[key value]]
   (cond
@@ -178,7 +175,7 @@
 ;;       [(array-map) (array-map) (default-specs session)]
 ;;       args))))
 
-(def-aggregate-crate-fn sudoers
+(def-aggregate-plan-fn sudoers
   "Sudo configuration. Generates a sudoers file.
 By default, root and an admin group are already present.
 
@@ -202,9 +199,9 @@ specs [ { [\"user1\" \"user2\"]
   (fn [& args]
     (logging/trace "apply-sudoers")
     (phase-pipeline sudoers {}
-      [session (get-session)]
+      [specs default-specs]
       (template/apply-templates
        sudoer-templates
        (sudoer-merge
-        [(array-map) (array-map) (default-specs session)]
+        [(array-map) (array-map) specs]
         args)))))

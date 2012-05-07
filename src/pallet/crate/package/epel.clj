@@ -6,7 +6,7 @@
    [pallet.action :only [with-action-options]]
    [pallet.actions :only [exec-checked-script package package-manager]]
    [pallet.monad :only [phase-pipeline-no-context]]
-   [pallet.phase :only [def-plan-fn]]))
+   [pallet.crate :only [def-plan-fn]]))
 
 (def-plan-fn add-epel
   "Add the EPEL repository"

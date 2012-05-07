@@ -31,6 +31,19 @@
   (fn [session & _]
     (first (session/packager session))))
 
+;; http://algebraicthunk.net/~dburrows/projects/aptitude/doc/en/ch02s03s01.html
+(def ^{:private true} aptitude-escape-map
+  {\+ "\\+"
+   \- "\\-"
+   \. "\\."
+   \( "\\"
+   \) "\\)"
+   \| "\\|"
+   \[ "\\["
+   \] "\\]"
+   \^ "\\^"
+   \$ "\\$"})
+
 ;; aptitude and apt can install, remove and purge all in one command, so we just
 ;; need to split by enable/disable options.
 (defmethod adjust-packages :aptitude
@@ -61,7 +74,26 @@
                (IllegalArgumentException.
                 (str
                  action " is not a valid action for package action"))))))))))
-   (stevedore/script (~lib/list-installed-packages))))
+   ;; aptitude doesn't report failed installed in its exit code
+   ;; so explicitly check for success
+   (stevedore/chain-commands*
+    (for [{:keys [package action]} packages
+          :let [escaped-package (string/escape package aptitude-escape-map)]]
+      (cond
+        (#{:install :upgrade} action)
+        (stevedore/script
+         (pipe (aptitude
+                search
+                (quoted
+                 (str "?and(?installed, ?name(^" ~escaped-package "$))")))
+               (grep (quoted ~package))))
+        (= :remove action)
+        (stevedore/script
+         (not (pipe (aptitude
+                     search
+                     (quoted
+                      (str "?and(?installed, ?name(^" ~escaped-package "$))")))
+                    (grep (quoted ~package))))))))))
 
 (defmethod adjust-packages :apt
   [session packages]
@@ -149,6 +181,7 @@
   "Convert the args into a single map"
   [session package-name
    & {:keys [action y force purge priority enable disable] :as options}]
+  (logging/tracef "package-map %s" package-name)
   (letfn [(as-seq [x] (if (or (string? x) (symbol? x) (keyword? x))
                         [(name x)] x))]
     (->
@@ -449,7 +482,7 @@
        (package-manager session :add-scope :scope :non-free)"
   {:action-type :script :location :target}
   [session & package-manager-args]
-  (logging/debugf "package-manager-args %s" (vec package-manager-args))
+  (logging/tracef "package-manager-args %s" (vec package-manager-args))
   [[{:language :bash}
     (stevedore/do-script*
      (map #(apply package-manager* session %) (distinct package-manager-args)))]

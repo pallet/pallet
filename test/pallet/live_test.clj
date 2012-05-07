@@ -16,12 +16,14 @@
    The image list to be used can be selected using `pallet.test.image-list`
    and should specify one of the keys in `image-lists`."
   (:require
-   [pallet.core :as core]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
+   [pallet.configure :as configure]
    [clojure.string :as string])
   (:use
-   [pallet.core.operations :only [converge]]))
+   [pallet.algo.fsmop :only [operate complete?]]
+   [pallet.core.operations :only [converge]]
+   [slingshot.slingshot :only [throw+]]))
 
 (def
   ^{:doc "The default images for testing"}
@@ -79,12 +81,14 @@
       (read-string property)
       property)))
 
-(def ^{:doc "Guard execution of the live tests. Used to enable the tests."
-       :dynamic true}
+(defonce
+  ^{:doc "Guard execution of the live tests. Used to enable the tests."
+    :dynamic true
+    :defonce true}
   *live-tests*
   (read-property "pallet.test.live"))
 
-(def ^{:doc "Name used to find the service in config.clj or settings.xml."}
+(defonce ^{:doc "Name used to find the service in config.clj or settings.xml."}
   service-name
   (if-let [name (System/getProperty "pallet.test.service-name")]
     (keyword name)
@@ -184,7 +188,7 @@
   []
   (or
    @service
-   (set-service! (compute/compute-service-from-config-file service-name))))
+   (set-service! (configure/compute-service service-name))))
 
 (defn- effective-group-name
   [group-name spec]
@@ -207,16 +211,23 @@
 (defn- counts
   "Build a map of node defintion to count suitable for passing to `converge`."
   [specs]
-  (into {} (map #(vector (node-spec %) (:count (val %))) specs)))
+  (map node-spec specs))
 
 (defn build-nodes
   "Build nodes using the node-types specs"
   [service node-types specs phases]
-  (let [counts (counts specs)]
+  (let [counts (counts specs)
+        op (operate (converge counts nil phases service {} {}))]
+    @op
+    (when (or (not (complete? op)) (some :error (:result @op)))
+      (throw+
+       {:reason :live-test-failed-to-build-nodes
+        :fail-reason @op}
+       "live-test build-nodes failed: %s" @op))
     (select-keys
      (->>
-      (converge counts :phase phases :compute service)
-      :all-nodes
+      @op
+      :service-state :node->groups keys
       (group-by compute/group-name)
       (map #(vector (keyword (first %)) (second %)))
       (into {}))

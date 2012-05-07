@@ -2,7 +2,8 @@
   "Built in operations"
   (:require
    [pallet.core.primitives :as primitives]
-   [pallet.core.api :as api])
+   [pallet.core.api :as api]
+   [clojure.tools.logging :as logging])
   (:use
    [pallet.environment :only [environment]]
    [pallet.algo.fsmop :only [dofsm reduce* result succeed]]
@@ -50,12 +51,8 @@
 
 ;;; ## Top level operations
 (defn lift
-  [node-set & {:keys [compute phase prefix middleware all-node-set environment]
-               :as options}]
-  (let [groups (if (map? node-set) [node-set] node-set)
-        phases (if (keyword phase) [phase] [:configure])
-        settings-groups (concat groups all-node-set)
-        environment (pallet.environment/environment compute)]
+  [groups settings-groups phases compute environment plan-state]
+  (let [settings-groups (concat groups settings-groups)]
     (dofsm lift
       [service-state (primitives/service-state compute settings-groups)
        [results plan-state] (primitives/build-and-execute-phase
@@ -63,47 +60,6 @@
                              (api/environment-execution-settings environment)
                              :group-nodes settings-groups :settings)
        [results plan-state] (reduce*
-                             (fn reducer [[result plan-state] phase]
-                               (primitives/build-and-execute-phase
-                                service-state plan-state environment
-                                (api/environment-execution-settings environment)
-                                :group-nodes groups phase))
-                             [[] {}]
-                             (remove #{:settings} phases))]
-      results)))
-
-(defn converge
-  [group-spec->count & {:keys [compute blobstore user phase prefix middleware
-                               all-nodes all-node-set environment]
-                        :as options}]
-  (let [groups (if (map? group-spec->count)
-                 [group-spec->count]
-                 group-spec->count)
-        phases (if (keyword phase) [phase] [:configure])
-        settings-groups (concat groups all-node-set)
-        environment (pallet.environment/environment compute)]
-    (dofsm converge
-      [{:keys [new-nodes old-nodes service-state plan-state results]}
-       (node-count-adjuster compute groups {})
-
-       [results1 plan-state] (primitives/build-and-execute-phase
-                              service-state plan-state environment
-                              (api/environment-execution-settings environment)
-                              :group-nodes settings-groups :settings)
-       _ (succeed
-          (not (some :errors results1))
-          {:phase-errors true :phase :settings :results results1})
-
-       [results2 plan-state] (primitives/execute-on-unflagged
-                              service-state
-                              #(primitives/execute-phase-with-image-user
-                                 % environment groups plan-state :bootstrap)
-                              :bootstrapped)
-       _ (succeed
-          (not (some :errors results2))
-          {:phase-errors true :phase :bootstrap :results results2})
-
-       [results3 plan-state] (reduce*
                               (fn reducer [[result plan-state] phase]
                                 (dofsm reduce-phases
                                   [[r ps] (primitives/build-and-execute-phase
@@ -119,5 +75,55 @@
                                   [r ps]))
                               [[] {}]
                               (remove #{:settings} phases))]
+      results)))
+
+(defn converge
+  [groups settings-groups phases compute environment plan-state]
+  (logging/debugf
+   "converge :phase %s :groups %s :settings-groups %s"
+   (vec phases)
+   (vec (map :group-name groups))
+   (vec (map :group-name settings-groups)))
+  (let [settings-groups (concat groups settings-groups)]
+    (dofsm converge
+      [{:keys [new-nodes old-nodes service-state plan-state results]}
+       (node-count-adjuster compute groups plan-state)
+
+       [results1 plan-state] (primitives/build-and-execute-phase
+                              service-state plan-state environment
+                              (api/environment-execution-settings environment)
+                              :group-nodes settings-groups :settings)
+       _ (succeed
+          (not (some :errors results1))
+          {:phase-errors true :phase :settings :results results1})
+
+       [results2 plan-state] (primitives/execute-on-unflagged
+                              service-state
+                              #(primitives/execute-phase-with-image-user
+                                 % environment groups plan-state :bootstrap)
+                              :bootstrapped)
+
+       _ (succeed
+          (not (some :errors results2))
+          {:phase-errors true :phase :bootstrap
+           :results (concat results1 results2)})
+
+       [results3 plan-state] (reduce*
+                              (fn reducer [[result plan-state] phase]
+                                (dofsm reduce-phases
+                                  [[r ps] (primitives/build-and-execute-phase
+                                           service-state plan-state environment
+                                           (api/environment-execution-settings
+                                            environment)
+                                           :group-nodes groups phase)
+                                   _ (succeed
+                                      (not (some :errors r))
+                                      {:phase-errors true
+                                       :phase phase
+                                       :results (concat result r)})]
+                                  [r ps]))
+                              [[] plan-state]
+                              (remove #{:settings :bootstrap} phases))]
       {:results (concat results results1 results2 results3)
-       :service-state service-state})))
+       :service-state service-state
+       :plan-state plan-state})))

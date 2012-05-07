@@ -302,8 +302,7 @@
               (logging/tracef "ex-action-map %s" action-map)
               (if (delayed-execution? (action-execution action))
                 ;; execute the delayed phase function
-                (let [session (dissoc-action-plan session)
-                      f (-> (action-implementation action :default) :f)
+                (let [f (-> (action-implementation action :default) :f)
                       f (apply f args)
                       f (if (seq context)
                           (fn ex-with-context [session]
@@ -316,7 +315,7 @@
                       [action-plan session] (get-session-action-plan session)
                       sub-plan (pop-block action-plan)]
                   ;; return the local action-plan
-                  (logging/tracef "action plan is %s" sub-plan)
+                  (logging/tracef "local action plan is %s" (vec sub-plan))
                   sub-plan)
                 ;; return the unmodified action in a vector
                 [action-map]))
@@ -469,13 +468,14 @@
    This is equivalent to using an identity monad with a monadic value
    that is a tree of action maps."
   [action-plan session]
+  (logging/tracef "translate %s" (count action-plan))
   [(->
     action-plan
     pop-block ;; pop the default block
     transform-executions
     (execute-delayed-crate-fns session)
     enforce-precedence)
-   session])
+   (dissoc-action-plan session)])
 
 ;;; ## Node Value Path Lookup
 (defn- find-node-value-path
@@ -624,13 +624,16 @@
 ;;; ### Action Plan Execution
 (defn execute
   [action-plan session executor execute-status-fn]
-  (logging/tracef "execute %s actions" (count action-plan))
+  (logging/tracef
+   "execute %s actions with %s %s"
+   (count action-plan) executor execute-status-fn)
   (when-not (translated? action-plan)
     (throw+
      {:type :pallet/execute-called-on-untranslated-action-plan
       :message "Attempt to execute an untranslated action plan"}))
   (letfn [(exec-action [action]
             (fn execute-with-error-check [session]
+              (logging/tracef "execute-with-error-check")
               (execute-status-fn
                (execute-action-map executor session action))))]
     ((domonad action-exec-m [v (m-map exec-action action-plan)] v)

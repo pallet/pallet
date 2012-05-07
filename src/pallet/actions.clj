@@ -330,11 +330,12 @@ Content can also be copied from a blobstore.
       (delete-local-path local-path))))
 
 (defn remote-file-content
-  "Return the content of a file."
+  "Return a function that returns the content of a file, when used inside
+   another action."
   [path]
   (let-s
     [r (exec-script (~lib/cat ~path))]
-    {:out r}))
+    (fn [session] (:out (node-value r session)))))
 
 ;;; # Remote Directory Content
 

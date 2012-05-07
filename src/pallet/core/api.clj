@@ -7,12 +7,12 @@
    [clojure.string :only [blank?]]
    [pallet.action-plan :only [execute stop-execution-on-error translate]]
    [pallet.compute :only [destroy-nodes-in-group destroy-node nodes run-nodes]]
-   [pallet.core :only [default-executor]]
    [pallet.environment :only [get-for]]
+   [pallet.executors :only [default-executor]]
    [pallet.node :only [image-user tag tag!]]
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
-   [pallet.session.verify :only [add-session-verification-key]]
+   [pallet.session.verify :only [add-session-verification-key check-session]]
    [pallet.utils :only [*admin-user*]]
    pallet.core.api-impl
    [slingshot.slingshot :only [throw+]]))
@@ -83,14 +83,23 @@
   settings, etc, for all groups. `target-map` is a map for the session
   describing the target."
   [service-state environment plan-fn target-map]
+  {:pre [(not (map? plan-fn)) (fn? plan-fn)
+         (map? target-map)
+         (or (nil? environment) (map? environment))]}
   (fn action-plan [plan-state]
+    (logging/tracef "action-plan plan-state %s" plan-state)
     (let [session (add-session-verification-key
                    (merge
+                    {:user (:user environment *admin-user*)
+                     ;; :environment environment
+                     }
                     target-map
                     {:service-state service-state
                      :plan-state plan-state}))
           [rv session] (plan-fn session)
-          [action-plan session] (translate (:action-plan session) session)]
+          _ (check-session session '(plan-fn session))
+          [action-plan session] (get-session-action-plan session)
+          [action-plan session] (translate action-plan session)]
       [action-plan (:plan-state session)])))
 
 ;;; ### Action plans for a group
@@ -112,7 +121,8 @@
                           (with-script-for-node node
                             ((action-plan
                               service-state environment plan-fn
-                              {:server {:node node}})
+                              {:server {:node node}
+                               :group group})
                              plan-state))))
                       nodes)]
        (map
@@ -165,7 +175,6 @@
   Returns a sequence of maps, where each map has :phase, :action-plan :target
   and :target-type keys"
   [service-state environment target-type targets phase]
-  (logging/debugf "action-plans-for-phase %s %s %s" target-type phase targets)
   (with-monad state-m
     (domonad
      [action-plans (m-map
@@ -180,7 +189,7 @@
   the context of the `service-state`. The `plan-state` contains all the
   settings, etc, for all groups."
   [target-type service-state environment groups phases]
-  (logging/debugf
+  (logging/tracef
    "groups %s phases %s" (vec (map :group-name groups)) (vec phases))
   (with-monad state-m
     (domonad
@@ -196,7 +205,7 @@
   "Returns execution settings based purely on the environment"
   [environment]
   (fn [_]
-    {:user(:user environment pallet.utils/*admin-user*)
+    {:user (:user environment pallet.utils/*admin-user*)
      :executor (get-in environment [:algorithms :executor] default-executor)
      :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
                                  #'stop-execution-on-error)}))
@@ -215,7 +224,7 @@
   "Execute the `action-plan` on the `target`."
   [session executor execute-status-fn
    {:keys [action-plan phase target-type target]}]
-  (logging/debugf "execute-action-plan* %s %s" phase target-type)
+  (logging/tracef "execute-action-plan*")
   (let [[result session] (execute
                           action-plan session executor execute-status-fn)]
     {:target target
@@ -227,38 +236,39 @@
 
 (defmulti execute-action-plan
   "Execute the `action-plan` on the `target`."
-  (fn [service-state plan-state user executor execute-status-fn
+  (fn [service-state plan-state environment user executor execute-status-fn
        {:keys [action-plan phase target-type target]}]
     target-type))
 
 (defmethod execute-action-plan :node
-  [service-state plan-state user executor execute-status-fn
+  [service-state plan-state environment user executor execute-status-fn
    {:keys [action-plan phase target-type target] :as action-plan-map}]
+  (logging/tracef "execute-action-plan :node")
   (with-script-for-node target
     (execute-action-plan*
      {:server {:node target}
       :service-state service-state
       :plan-state plan-state
-      :user user}
+      :user user
+      :environment environment}
      executor execute-status-fn action-plan-map)))
 
 (defmethod execute-action-plan :group
-  [service-state plan-state user executor execute-status-fn
+  [service-state plan-state environment user executor execute-status-fn
    {:keys [action-plan phase target-type target] :as action-plan-map}]
+  (logging/tracef "execute-action-plan :group")
   (execute-action-plan*
    {:group target
     :service-state service-state
     :plan-state plan-state
-    :user user}
+    :user user
+    :environment environment}
    executor execute-status-fn action-plan-map))
 
 ;;; ## Calculation of node count adjustments
 (defn group-delta
   "Calculate actual and required counts for a group"
   [service-state group]
-  (logging/debugf
-   "group-delta %s %s %s"
-   service-state group (vec (-> service-state :group->nodes (get group))))
   (let [existing-count (count (-> service-state :group->nodes (get group)))
         target-count (:count group ::not-specified)]
     (when (= target-count ::not-specified)
@@ -273,7 +283,6 @@
   "Calculate actual and required counts for a sequence of groups. Returns a map
   from group to a map with :actual and :target counts."
   [service-state groups]
-  (logging/debugf "group-deltas %s %s" service-state groups)
   (into
    {}
    (map
@@ -308,7 +317,6 @@
              {:nodes (take (- delta)
                            (-> service-state :group->nodes (get group)))
               :all (zero? target)}))]
-    (logging/debugf "nodes-to-remove %s" group-deltas)
     (into {}
           (->>
            group-deltas
