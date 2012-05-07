@@ -26,7 +26,8 @@
    [clojure.stacktrace :only [print-cause-trace]]
    [pallet.context :only [with-context in-phase-context-scope]]
    [pallet.node-value :only [make-node-value set-node-value]]
-   [pallet.session.action-plan :only [get-session-action-plan]]
+   [pallet.session.action-plan
+    :only [dissoc-action-plan get-session-action-plan]]
    [slingshot.slingshot :only [throw+]]
    pallet.action-impl))
 
@@ -301,7 +302,8 @@
               (logging/tracef "ex-action-map %s" action-map)
               (if (delayed-execution? (action-execution action))
                 ;; execute the delayed phase function
-                (let [f (-> (action-implementation action :default) :f)
+                (let [session (dissoc-action-plan session)
+                      f (-> (action-implementation action :default) :f)
                       f (apply f args)
                       f (if (seq context)
                           (fn ex-with-context [session]
