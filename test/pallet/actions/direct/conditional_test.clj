@@ -27,7 +27,7 @@
                     (pipeline-when nv
                       (exec-script "c")))))
         "true node-value causes when block to run")
-    (is (= ""  ;; failing due to when being clobbered in p.m
+    (is (= "" ;; failing due to when being clobbered in p.m
            (first (build-actions {}
                     (assign-node-value nv nil)
                     (pipeline-when nv

@@ -16,7 +16,7 @@ data may provide a version."
   (:use
    [pallet.compute :only [os-hierarchy]]
    [pallet.monad :only [phase-pipeline]]
-   [pallet.session :only [os-family* os-version*]]
+   [pallet.core.session :only [os-family os-version]]
    [pallet.versions
     :only [as-version-vector version-less version-matches? version-spec-less]]))
 
@@ -109,8 +109,8 @@ refers to a software package version of some sort, on the specified `os` and
          [~session ~version ~@args]
          (dispatch-version
           '~name
-          (os-family* ~session)
-          (as-version-vector (os-version* ~session))
+          (os-family ~session)
+          (as-version-vector (os-version ~session))
           (as-version-vector ~version) [~@args] (var-get h#) @m#)))))
 
 (defmacro multi-version-crate-method

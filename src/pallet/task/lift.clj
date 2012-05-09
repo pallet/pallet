@@ -1,8 +1,9 @@
 (ns pallet.task.lift
   "Apply configuration."
   (:require
-   [pallet.core :as core]
-   [clojure.tools.logging :as logging]))
+   [clojure.tools.logging :as logging])
+  (:use
+   [pallet.api :only [lift]]))
 
 (defn- build-args [args]
   (loop [args args
@@ -30,7 +31,7 @@
    The node-types should be namespace qualified."
   [request & args]
   (let [args (build-args args)]
-    (apply core/lift
+    (apply lift
            (concat args
                    (apply concat
                           (->

@@ -38,10 +38,6 @@
   [session]
   (node/primary-ip (target-node session)))
 
-
-
-
-
 (comment
 (defn target-roles
   "Roles of the target server."
@@ -52,29 +48,17 @@
   "Base distribution of the target-node."
   [session]
   (compute/base-distribution (-> session :server :image)))
-(defn os-family*
-  "OS-Family of the target-node."
-  [session]
-  (-> session :server :image :os-family))
 )
-
 
 (defn os-family
   "OS-Family of the target-node."
   [session]
   (node/os-family (target-node session)))
 
-(comment
-   (defn os-version*
-     "OS-Family of the target-node."
-     [session]
-     (-> session :server :image :os-version))
-
-   (defn os-version
-     "OS-Family of the target-node."
-     [session]
-     [(os-version* session) session])
-)
+(defn os-version
+  "OS-Family of the target-node."
+  [session]
+  (node/os-version (target-node session)))
 
 (defn group-name
   "Group name of the target-node."
@@ -119,14 +103,14 @@
   [session role]
   (->>
    (-> session :service-state :group->nodes)
-   (filter #(when-let [roles (:roles (key %))] (when (roles role) (val %))))
-   (apply concat)))
+   (filter (fn [[group nodes]]
+             (when-let [roles (:roles group)]
+               (roles role))))
+   (mapcat val)))
 
- (comment
-   (defn packager
-     [session]
-     [(node/packager (get-in session [:server :node])) session])
-   )
+(defn packager
+  [session]
+  (node/packager (get-in session [:server :node])))
 
 (defn admin-user
   "User that remote commands are run under"
@@ -141,12 +125,12 @@
    (node/os-family (target-node session))
    (node/os-version (target-node session))))
 
-(comment
-  (defn is-64bit?
-    "Predicate for a 64 bit target"
-    [session]
-    [(node/is-64bit? (-> session :server :node)) session])
+(defn is-64bit?
+  "Predicate for a 64 bit target"
+  [session]
+  (node/is-64bit? (target-node session)))
 
+(comment
   (defn print-errors
     "Display errors from the session results."
     [session]

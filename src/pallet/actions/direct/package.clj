@@ -8,7 +8,6 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.script.lib :as lib]
-   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    pallet.actions.direct.exec-script
    pallet.actions.direct.file
@@ -20,7 +19,8 @@
    [pallet.actions
     :only [add-rpm package package-manager package-source minimal-packages
            exec-script remote-file sed install-deb]]
-   [pallet.actions-impl :only [remote-file-action]]))
+   [pallet.actions-impl :only [remote-file-action]]
+   [pallet.core.session :only [packager os-family]]))
 
 (def ^{:private true}
   remote-file* (action-fn remote-file-action :direct))
@@ -29,7 +29,7 @@
 
 (defmulti adjust-packages
   (fn [session & _]
-    (first (session/packager session))))
+    (packager session)))
 
 ;; http://algebraicthunk.net/~dburrows/projects/aptitude/doc/en/ch02s03s01.html
 (def ^{:private true} aptitude-escape-map
@@ -256,7 +256,7 @@
 (defn package-source*
   "Add a packager source."
   [session name & {:keys [apt aptitude yum] :as options}]
-  (let [[packager _] (session/packager session)]
+  (let [packager (packager session)]
     (checked-commands
      "Package source"
      (let [key-url (or (:url aptitude) (:url apt))]
@@ -446,7 +446,7 @@
 (defn package-manager*
   "Package management."
   [session action & options]
-  (let [[packager _] (session/packager session)]
+  (let [packager (packager session)]
     (checked-commands
      (format "package-manager %s %s" (name action) (string/join " " options))
      (case action
@@ -517,7 +517,7 @@
   "Add minimal packages for pallet to function"
   {:action-type :script :location :target}
   [session]
-  (let [[os-family _] (session/os-family session)]
+  (let [[os-family _] (os-family session)]
     [[{:language :bash}
       (cond
         (#{:ubuntu :debian} os-family) (checked-script

@@ -126,8 +126,8 @@
 
 #_
 (pallet.core/defnode a {}
-  :bootstrap (pallet.phase/plan-fn
+  :bootstrap (pallet.api/plan-fn
               (pallet.crate.automated-admin-user/automated-admin-user))
-  :configure (pallet.phase/plan-fn
+  :configure (pallet.api/plan-fn
               (pallet.crate.ssh-key/generate-key "duncan")
               (pallet.crate.ssh-key/record-public-key "duncan")))

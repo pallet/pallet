@@ -44,7 +44,7 @@
             (str "(ns " project-ns
                  "\n  \"Admin and provisioning for FIXME:project.\" "
                  "\n  (:require"
-                 "\n    [pallet.core :as core]))\n"))
+                 "\n    [pallet.api :as api]))\n"))
       (.mkdirs (.getParentFile (file project-dir "test" test-clj)))
       (spit (file project-dir "test" test-clj)
             (str "(ns " (str project-ns "-test")

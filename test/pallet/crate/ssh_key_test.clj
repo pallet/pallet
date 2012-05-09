@@ -4,7 +4,6 @@
    [pallet.action :as action]
    [pallet.build-actions :as build-actions]
    [pallet.crate.automated-admin-user :as automated-admin-user]
-   [pallet.core :as core]
    [pallet.context :as context]
    [pallet.live-test :as live-test]
    [pallet.phase :as phase]
@@ -18,6 +17,7 @@
    clojure.test
    pallet.test-utils
    [pallet.actions :only [directory exec-checked-script file remote-file user]]
+   [pallet.api :only [lift plan-fn]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.crate :only [get-settings]]))
 
@@ -269,14 +269,14 @@
        {:image image
         :count 1
         :phases
-        {:bootstrap (phase/plan-fn
+        {:bootstrap (plan-fn
                      (automated-admin-user)
                      (user "testuser"))
-         :configure (phase/plan-fn (generate-key "testuser"))
-         :verify1 (phase/plan-fn
+         :configure (plan-fn (generate-key "testuser"))
+         :verify1 (plan-fn
                    (record-public-key "testuser"))
-         :verify2 (phase/plan-fn
+         :verify2 (plan-fn
                    (check-public-key))}}}
-      (core/lift (:ssh-key node-types)
+      (lift (:ssh-key node-types)
                  :phase [:verify1 :verify2]
                  :compute compute)))))

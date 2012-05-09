@@ -102,6 +102,12 @@
       <groupId>slingshot</groupId>
       <artifactId>slingshot</artifactId>
     </dependency>
+    <dependency>
+      <groupId>midje</groupId>
+      <artifactId>midje</artifactId>
+      <version>1.4.0-beta2</version>
+      <scope>test</scope>
+    </dependency>
 
     <dependency>
       <groupId>org.cloudhoist</groupId>

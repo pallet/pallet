@@ -5,12 +5,10 @@
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore])
   (:use
-   [pallet.actions
-    :only [exec-checked-script file remote-file content-options]]
+   [pallet.actions :only [exec-checked-script file remote-file content-options]]
    [pallet.api :only [server-spec plan-fn]]
    [pallet.crate
-    :only [def-plan-fn session-peek-fn
-           assoc-settings get-settings update-settings]]
+    :only [def-plan-fn assoc-settings get-settings update-settings]]
    [pallet.utils :only [apply-map]]))
 
 (def system-cron-dir "/etc/cron.d")

@@ -75,7 +75,9 @@
                                   [r ps]))
                               [[] {}]
                               (remove #{:settings} phases))]
-      results)))
+      {:results results
+       :service-state service-state
+       :plan-state plan-state})))
 
 (defn converge
   [groups settings-groups phases compute environment plan-state]

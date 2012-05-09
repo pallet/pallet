@@ -2,13 +2,12 @@
   (:require
    [clojure.tools.logging :as logging]
    [clojure.string :as string]
-   [pallet.action :as action]
    [pallet.template :as template]
    [pallet.utils :as utils])
   (:use
    [pallet.actions :only [package package-manager]]
    [pallet.crate :only [admin-group def-plan-fn defplan def-aggregate-plan-fn]]
-   [pallet.monad :only [as-session-pipeline-fn phase-pipeline]]))
+   [pallet.monad :only [phase-pipeline]]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
@@ -20,7 +19,7 @@
   (package package-name :action action))
 
 (defplan default-specs
-  [admin-group (admin-group)]
+  [admin-group admin-group]
   (m-result (array-map
              "root" {:ALL {:run-as-user :ALL}}
              (str "%" admin-group)
@@ -143,37 +142,6 @@
                      (merge-with merge-user-spec %1 %2) (keys %1) (keys %2))
                    v1 v2))
             initial args)))
-
-;; (action/def-aggregated-action sudoers
-;;   "Sudo configuration. Generates a sudoers file.
-;; By default, root and an admin group are already present.
-
-;; Examples of the arguments are:
-
-;; aliases { :user { :ADMINS [ \"user1\" \"user2\" ] }
-;;           :host { :TRUSTED [ \"host1\" ] }
-;;           :run-as-user { :OP [ \"root\" \"sysop\" ] }
-;;           :cmnd { :KILL [ \"kill\" ]
-;;                   :SHELLS [ \"/usr/bin/sh\" \"/usr/bin/csh\" \"/usr/bin/ksh\"]}}
-;; default-map { :default { :fqdn true }
-;;               :host { \"host\" { :lecture false } }
-;;               :user { \"user\" { :lecture false } }
-;;               :run-as-user { \"sysop\" { :lecture false } } }
-;; specs [ { [\"user1\" \"user2\"]
-;;           { :host :TRUSTED
-;;             :KILL { :run-as-user \"operator\" :tags :NOPASSWORD }
-;;             [\"/usr/bin/*\" \"/usr/local/bin/*\"]
-;;             { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }"
-;;   {:arglists '([aliases defaults specs])}
-;;   [session args]
-;;   (logging/trace "apply-sudoers")
-;;   (context/with-phase-context
-;;     {:kw :sudoers :msg "Write sudoers config"}
-;;     (template/apply-templates
-;;      sudoer-templates
-;;      (sudoer-merge
-;;       [(array-map) (array-map) (default-specs session)]
-;;       args))))
 
 (def-aggregate-plan-fn sudoers
   "Sudo configuration. Generates a sudoers file.

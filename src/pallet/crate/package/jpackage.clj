@@ -1,12 +1,13 @@
 (ns pallet.crate.package.jpackage
   "Actions for working with the jpackage repository"
   (:require
-   [pallet.session :as session]
    [pallet.thread-expr :as thread-expr])
   (:use
    [pallet.action :only [with-action-options]]
-   [pallet.actions :only [add-rpm package package-manager package-source]]
-   [pallet.crate :only [def-plan-fn defplan assoc-settings get-settings]]))
+   [pallet.actions :only [add-rpm package package-manager package-source
+                          pipeline-when pipeline-when-not]]
+   [pallet.crate :only [def-plan-fn defplan assoc-settings get-settings
+                        os-family os-version]]))
 
 ;; The source for this rpm is available here:
 ;; http://plone.lucidsolutions.co.nz/linux/centos/
@@ -23,19 +24,19 @@
 
    https://bugzilla.redhat.com/show_bug.cgi?id=260161
    https://bugzilla.redhat.com/show_bug.cgi?id=497213"
-  [os-family session/os-family
-   os-version session/os-version]
-  (when
-   (or
-    (= :fedora os-family)
-    (and
-     (#{:rhel :centos} os-family)
-     (re-matches #"5\.[0-5]" os-version)))
-   (with-action-options {:action-id ::install-jpackage-compat}
-     (add-rpm
-      "jpackage-utils-compat-el5-0.0.1-1"
-      :url jpackage-utils-compat-rpm
-      :insecure true))) ;; github's ssl doesn't validate
+  [os-family os-family
+   os-version os-version]
+  (pipeline-when
+      (or
+       (= :fedora os-family)
+       (and
+        (#{:rhel :centos} os-family)
+        (re-matches #"5\.[0-5]" os-version)))
+    (with-action-options {:action-id ::install-jpackage-compat}
+      (add-rpm
+       "jpackage-utils-compat-el5-0.0.1-1"
+       :url jpackage-utils-compat-rpm
+       :insecure true))) ;; github's ssl doesn't validate
   (package "jpackage-utils"))
 
 (def jpackage-mirror-fmt
@@ -57,8 +58,8 @@
            releasever "$releasever"
            version "5.0"
            enabled 0}}]
-  [os-family session/os-family
-   os-version session/os-version
+  [os-family os-family
+   os-version os-version
    no-updates (m-result (and            ; missing updates for fedora 13, 14
                          (= version "5.0")
                          (= :fedora os-family)
@@ -107,7 +108,7 @@
          :failovermethod "priority"
          ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
          :enabled enabled})
-  (when-not no-updates
+  (pipeline-when-not no-updates
     (package-source
      (format "jpackage-%s-updates" component)
      :yum {:mirrorlist (mirrorlist

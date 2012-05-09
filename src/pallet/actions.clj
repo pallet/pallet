@@ -3,12 +3,12 @@
   (:require
    [clojure.tools.logging :as logging]
    [pallet.script.lib :as lib]
-   [pallet.session :as session]
    [pallet.stevedore :as stevedore])
   (:use
    pallet.actions-impl
    [pallet.action :only [defaction with-action-options enter-scope leave-scope]]
    [pallet.argument :only [delayed]]
+   [pallet.crate :only [packager]]
    [pallet.monad :only [let-s phase-pipeline]]
    [pallet.node-value :only [node-value]]
    [pallet.script.lib :only [set-flag-value]]
@@ -423,7 +423,7 @@ Content can also be copied from a blobstore.
          :aptitude [\"git-core\" \"git-email\"])"
   [& {:keys [yum aptitude pacman brew] :as options}]
   (phase-pipeline packages {}
-    [packager session/packager]
+    [packager packager]
     (map package (options packager))))
 
 (defaction package-manager

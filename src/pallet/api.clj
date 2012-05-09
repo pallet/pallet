@@ -214,6 +214,30 @@
 ;;; ## Operations
 ;;;
 
+(defn- process-phases
+  "Process phases. Returns a phase list and a phase-map. Functions specified in
+  `phases` are identified with a keyword and a map from keyword to function.
+  The return vector contains a sequence of phase keywords and the map
+  identifying the anonymous phases."
+  [phases]
+  (let [phases (if (or (keyword? phases) (fn? phases)) [phases] phases)]
+    (reduce
+     (fn [[phase-kws phase-map] phase]
+       (if (keyword? phase)
+         [(conj phase-kws phase) phase-map]
+         (let [phase-kw (-> (gensym "phase")
+                            name keyword)]
+           [(conj phase-kws phase-kw)
+            (assoc phase-map phase-kw phase)])))
+     [[] {}] phases)))
+
+(defn- groups-with-phases
+  "Adds the phases from phase-map into each group in the sequence `groups`."
+  [groups phase-map]
+  (letfn [(add-phases [group]
+            (update-in group [:phases] merge phase-map))]
+    (map add-phases groups)))
+
 (defn converge
   "Converge the existing compute resources with the counts specified in
    `group-spec->count`. New nodes are started, or nodes are destroyed
@@ -238,11 +262,11 @@
    clusters from a single set of group-specs."
   [group-spec->count & {:keys [compute blobstore user phase prefix middleware
                                all-nodes all-node-set environment]
+                        :or {phase [:configure]}
                         :as options}]
-  (let [groups (if (map? group-spec->count)
-                 [group-spec->count]
-                 group-spec->count)
-        phases (if (keyword phase) [phase] [:configure])
+  (let [[phases phase-map] (process-phases phase)
+        groups (if (map? group-spec->count)
+                 [group-spec->count])
         settings-groups (concat groups all-node-set)
         environment (pallet.environment/environment compute)]
     (operate
@@ -275,29 +299,48 @@
     :prefix          a prefix for the group-name names
     :user            the admin-user on the nodes"
   [node-set & {:keys [compute phase prefix middleware all-node-set environment]
+               :or {phase [:configure]}
                :as options}]
-  (let [groups (if (map? node-set) [node-set] node-set)
-        phases (if (keyword phase) [phase] [:configure])
-        environment (pallet.environment/environment compute)
+  (let [[phases phase-map] (process-phases phase)
+        groups (if (map? node-set) [node-set] node-set)
+        groups (groups-with-phases groups phase-map)
+        environment (merge-environments
+                     (and compute (pallet.environment/environment compute))
+                     environment)
         plan-state {}]
     (operate
      (ops/lift groups all-node-set phases compute environment plan-state))))
 
 ;;; ### plan functions
 (defmacro plan-fn
-  "Create a phase function from a sequence of crate invocations with
-   an ommited session parameter.
+  "Create a plan function from a sequence of plan function invocations.
 
    eg. (plan-fn
          (file \"/some-file\")
          (file \"/other-file\"))
 
-   which generates a function with a session argument, that is thread
-   through the function calls. The example is thus equivalent to:
-
-   (fn [session] (-> session
-                   (file \"/some-file\")
-                   (file \"/other-file\"))) "
+   This generates a new plan function."
   [& body]
   `(session-pipeline ~(gensym "a-plan-fn") {}
      ~@body))
+
+
+;;; ### Admin user
+(defmacro with-admin-user
+  "Specify the admin user for running remote commands.  The user is specified
+   either as pallet.utils.User record (see the pallet.utils/make-user
+   convenience fn) or as an argument list that will be passed to make-user.
+
+   This is mainly for use at the repl, since the admin user can be specified
+   functionally using the :user key in a lift or converge call, or in the
+   environment."
+  {:arglists
+   '([user & body]
+     [[username & {:keys [public-key-path private-key-path passphrase password
+                          sudo-password no-sudo] :as options}] & body])}
+  [user & exprs]
+  `(let [user# ~user]
+     (binding [utils/*admin-user* (if (utils/user? user#)
+                                    user#
+                                    (apply utils/make-user user#))]
+       ~@exprs)))

@@ -9,17 +9,16 @@
            add-rpm package package-manager package-source minimal-packages
            packages]]
    [pallet.actions-impl :only [remote-file-action]]
+   [pallet.api :only [group-spec lift]]
    [pallet.build-actions :only [build-actions]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.stevedore :only [script]])
   (:require
-   [pallet.core :as core]
    [pallet.execute :as execute]
    [pallet.local.execute :as local]
    [pallet.script :as script]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [pallet.target :as target]
    [pallet.test-utils :as test-utils]
    [clojure.java.io :as io]))
 
@@ -239,8 +238,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   (package-manager :update))))))
 
 (deftest package-source*-test
-  (let [a (core/group-spec "a" :packager :aptitude)
-        b (core/group-spec "b" :packager :yum)]
+  (let [a (group-spec "a" :packager :aptitude)
+        b (group-spec "b" :packager :yum)]
     (is (=
          (stevedore/checked-commands
           "Package source"
@@ -321,8 +320,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               :yum {:url "http://somewhere/yum"})))))))
 
 (deftest package-source-test
-  (let [a (core/group-spec "a" :packager :aptitude)
-        b (core/group-spec "b" :packager :yum)]
+  (let [a (group-spec "a" :packager :aptitude)
+        b (group-spec "b" :packager :yum)]
     (is (= (stevedore/checked-commands
             "Package source"
             (remote-file*
@@ -352,8 +351,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                      :yum {:url "http://somewhere/yum"})))))))
 
 (deftest packages-test
-  (let [a (core/group-spec "a" :packager :aptitude)
-        b (core/group-spec "b" :packager :yum)]
+  (let [a (group-spec "a" :packager :aptitude)
+        b (group-spec "b" :packager :yum)]
     (is (= (first
             (build-actions
              {:server a}

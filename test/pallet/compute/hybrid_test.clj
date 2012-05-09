@@ -5,7 +5,6 @@
    [pallet.compute.node-list :as node-list]
    [pallet.configure :as configure]
    [pallet.compute :as compute]
-   [pallet.core :as core]
    [pallet.utils :as utils])
   (:use
    clojure.test)
@@ -60,7 +59,7 @@
 ;;   (jclouds-test-utils/purge-compute-service)
 ;;   (let [jc (jclouds-test-utils/compute)
 ;;         nl (compute/compute-service "node-list")
-;;         gs (core/group-spec :gs)]
+;;         gs (group-spec :gs)]
 ;;     (let [hybrid (compute/compute-service
 ;;                   "hybrid" :sub-services {:jc jc :nl nl})]
 ;;       (is (thrown? RuntimeException

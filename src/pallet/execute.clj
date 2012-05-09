@@ -81,7 +81,9 @@
 (defn target-flag?
   "Predicate to test if the specified flag is set for target."
   [session flag]
-  (when-let [flags (get-settings (:plan-state session) :flags {:default #{}})]
+  (when-let [flags (get-settings
+                    (:plan-state session) (target-id session) :flags
+                    {:default #{}})]
     (flags flag)))
 
 (defn parse-flags

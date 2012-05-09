@@ -4,6 +4,8 @@
    [pallet.build-actions :only [build-actions let-actions]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.actions :only [exec-script* exec-script exec-checked-script exec]]
+   [pallet.api :only [group-spec lift]]
+   [pallet.node :only [hostname]]
    [pallet.node-value :only [node-value]]
    [pallet.script.lib :only [ls]]
    [pallet.script-builder :only [interpreter]]
@@ -13,7 +15,6 @@
    pallet.actions.direct.exec-script
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
-   [pallet.core :as core]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]))
 
@@ -61,23 +62,30 @@
   (let [rv (let-actions {}
              [nv (exec {:language :python} "print 'Hello, world!'")]
              nv)]
-    (is (= "[{:language :python} \"print 'Hello, world!'\"]" (first rv)))))
+    (is (= "print 'Hello, world!'" (first rv)))))
 
 (def print-action
   (script-action [session x]
     [[{:language :python} (str "print '" x "'")] session]))
 
 (deftest lift-all-node-set-test
-  (let [local (core/group-spec
+  (let [local (group-spec
                "local"
                :phases {:configure (print-action "hello")})
         localhost (node-list/make-localhost-node :group-name "local")
         service (compute/compute-service "node-list" :node-list [localhost])]
     (testing "python"
-      (let [session (core/lift
-                     local
-                     :user (assoc utils/*admin-user*
-                             :username (test-username) :no-sudo true)
-                     :compute service)]
-        (is (= "hello\n"
-               (-> session :results :localhost :configure first :out)))))))
+      (let [session @(lift
+                      local
+                      :user (assoc utils/*admin-user*
+                              :username (test-username) :no-sudo true)
+                      :compute service)]
+        (is (= ["hello\n"]
+               (->>
+                session
+                :results
+                (filter
+                 #(and (= "localhost" (hostname (:target %)))
+                       (= :configure (:phase %))))
+                (mapcat :result)
+                (map :out))))))))

@@ -3,7 +3,6 @@
    [pallet.action-plan :as action-plan]
    [pallet.common.deprecate :as deprecate]
    [pallet.execute :as execute]
-   [pallet.target :as target]
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.compute.node-list :as node-list]
@@ -16,7 +15,7 @@
    [pallet.common.context :only [throw-map]]
    [pallet.execute :only [target-flag?]]
    [pallet.session.verify :only [add-session-verification-key]]
-   [pallet.utils :only [*admin-user*]]))
+   [pallet.utils :only [*admin-user* apply-map]]))
 
 (defmacro with-private-vars [[ns fns] & tests]
   "Refers private fns from ns and runs tests in context.  From users mailing
@@ -75,17 +74,24 @@ list, Alan Dipert and MeikelBrandmeyer."
 
 (defn make-node
   "Simple node for testing"
-  [tag & {:as options}]
-  (apply
+  [node-name & {:as options}]
+  (apply-map
    node-list/make-node
-   tag (:group-name options (:tag options tag))
-   (:ip options "1.2.3.4") (:os-family options :ubuntu)
-   (apply concat options)))
+   node-name
+   (:group-name options)
+   (:ip options "1.2.3.4")
+   (:os-family options :ubuntu)
+   (dissoc options :group-name :ip :os-family)))
 
 (defn make-localhost-node
   "Simple localhost node for testing"
   [& {:as options}]
-  (apply node-list/make-localhost-node (apply concat options)))
+  (apply-map node-list/make-localhost-node options))
+
+(defn make-localhost-compute
+  [& {:as options}]
+  (node-list/node-list-service
+   [(apply-map make-localhost-node options)]))
 
 (defmacro build-resources
   "Forwarding definition"
@@ -103,7 +109,10 @@ list, Alan Dipert and MeikelBrandmeyer."
   "Build a test session"
   [& components]
   (add-session-verification-key
-   (reduce merge {:user *admin-user*} components)))
+   (reduce
+    merge
+    {:user *admin-user* :server {:node (make-node :id)}}
+    components)))
 
 (defn server
   "Build a server for the session map"
@@ -130,7 +139,6 @@ list, Alan Dipert and MeikelBrandmeyer."
   (if (find-var 'clojure.core/with-redefs)
     `(with-redefs [~@bindings] ~@body)
     `(binding [~@bindings] ~@body)))
-
 
 (defmacro clj-action
   "Creates a clojure action with a :direct implementation."
@@ -188,3 +196,8 @@ list, Alan Dipert and MeikelBrandmeyer."
 ;;                     #(apply assoc-in %1 %2)
 ;;                     (:parameters session)
 ;;                     keyvector-value-pairs))]))
+
+(defn bash
+  "Create a bash literal string as returned by an action function"
+  [& bash-strings]
+  [{:language :bash} (apply str bash-strings)])

@@ -37,7 +37,7 @@
 
 (defplan format-hosts
   [settings (get-settings :hosts)]
-  (format-hosts* (merge settings localhost)))
+  (m-result (format-hosts* (merge settings localhost))))
 
 (defplan hosts
   "Writes the hosts files"
@@ -46,4 +46,4 @@
    (stevedore/script (~lib/etc-hosts))
    :owner "root:root"
    :mode 644
-   :content ))
+   :content content))

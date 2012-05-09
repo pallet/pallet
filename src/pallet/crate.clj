@@ -99,6 +99,11 @@
   [session]
   [(session/os-family session) session])
 
+(defn os-version
+  "OS-Family of the target-node."
+  [session]
+  [(session/os-version session) session])
+
 (defn group-name
   "Group-Name of the target-node."
   [session]
@@ -126,11 +131,19 @@
   (fn [session]
     [(session/nodes-with-role session role) session]))
 
+(defn packager
+  [session]
+  [(session/packager session) session])
+
 (defn admin-group
   "User that remote commands are run under"
-  []
-  (fn [session]
-    [(session/admin-group session) session]))
+  [session]
+  [(session/admin-group session) session])
+
+(defn is-64bit?
+  "Predicate for a 64 bit target"
+  [session]
+  [(session/is-64bit? session) session])
 
 ;;; ## Settings
 (defn get-settings

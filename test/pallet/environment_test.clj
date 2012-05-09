@@ -65,10 +65,10 @@
       (is (= (.getAbsolutePath (io/file (System/getProperty "user.home") "a"))
              (-> (environment/eval-environment env) :user :public-key-path)))))
   (testing "arguments"
-    (let [env {:algorithms {:lift-fn 'pallet.core/parallel-apply-phase}}
+    (let [env {:algorithms {:lift-fn 'pallet.core.operations/lift}}
           f (-> (environment/eval-environment env) :algorithms :lift-fn)]
-      (is (find-var 'pallet.core/parallel-apply-phase))
-      (is (= (var-get (find-var 'pallet.core/parallel-apply-phase)) f)))))
+      (is (find-var 'pallet.core.operations/lift))
+      (is (= (var-get (find-var 'pallet.core.operations/lift)) f)))))
 
 (deftest session-with-environment-test
   (testing "basic merge"

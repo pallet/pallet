@@ -3,9 +3,7 @@
   when working at the clojure REPL."
   (:use
    pallet.utils
-   [pallet.compute :exclude [make-node service]]
-   pallet.core
-   pallet.phase
+   pallet.api
    pallet.actions
    clj-ssh.ssh))
 
@@ -15,8 +13,6 @@
   '(do
      (clojure.core/use
       'pallet.utils
-      '[pallet.compute :exclude [make-node service]]
-      'pallet.core
-      'pallet.phase
+      'pallet.api
       'pallet.actions
       'clj-ssh.ssh)))

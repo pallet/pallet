@@ -181,7 +181,7 @@
         action (make-action 'a :in-sequence {})]
     (add-action-implementation! action :default {} f)
     (is (=
-         ["1" {:node-values {'nvp "1"}}]
+         ["1" {:plan-state {:node-values {'nvp "1"}}}]
          (execute-action-map
           (executor :default)
           {}
@@ -203,7 +203,7 @@
                        (add-action-map
                         (assoc a1 :node-value-path :v1)))]
       (is (=
-           [["[(1)]"] {:a 1 :node-values {:v1 "[(1)]"}}]
+           [["[(1)]"] {:a 1 :plan-state {:node-values {:v1 "[(1)]"}}}]
            (-> (translate action-plan {})
                first
                ((fn [x] (is (= 1 (count x))) x))
@@ -225,7 +225,7 @@
                        (add-action-map
                         (assoc a2 :node-value-path :v2)))]
       (is (=
-           [["[(1) (2)]"] {:a 1 :node-values {:v1 "[(1) (2)]"}}]
+           [["[(1) (2)]"] {:a 1 :plan-state {:node-values {:v1 "[(1) (2)]"}}}]
            (-> (translate action-plan {})
                first
                ((fn [x] (is (= 1 (count x))) x))
@@ -250,7 +250,7 @@
                        (add-action-map
                         (assoc a2 :node-value-path :v2)))]
       (is (=
-           [["[(1)]" "2"] {:node-values {:v2 "2", :v1 "[(1)]"}, :a 1}]
+           [["[(1)]" "2"] {:plan-state {:node-values {:v2 "2", :v1 "[(1)]"}}, :a 1}]
            (-> (translate action-plan {})
                first
                ((fn [x] (is (= 2 (count x))) x))
@@ -287,7 +287,8 @@
         (is (=
              [["[(3)]" true "[4]"]      ; "[(1) (2)]"
               {:a 1
-               :node-values {:v0 true :v3 "[(3)]" :v4 "[4]"}}] ; :v1 "[(1) (2)]"
+               :plan-state
+               {:node-values {:v0 true :v3 "[(3)]" :v4 "[4]"}}}] ; :v1 "[(1) (2)]"
              (->
               (translate action-plan {})
               first
@@ -300,7 +301,7 @@
         (reset! bv false)
         (is (=
              [["[(3)]" false "[4]"]
-              {:a 1 :node-values {:v0 false :v3 "[(3)]" :v4 "[4]"}}]
+              {:a 1 :plan-state {:node-values {:v0 false :v3 "[(3)]" :v4 "[4]"}}}]
              (->
               (translate action-plan {})
               first
@@ -425,7 +426,7 @@
                           (add-action-map (assoc a1 :node-value-path :v1))
                           (add-action-map (assoc a2 :node-value-path :v2)))]
       (is (=
-           [["[1]" "((2))"] {:node-values {:v1 "((2))" :v2 "[1]"}}]
+           [["[1]" "((2))"] {:plan-state {:node-values {:v1 "((2))" :v2 "[1]"}}}]
            (->
             (translate action-plan {})
             first
@@ -448,7 +449,7 @@
                        nil
                        (add-action-map (assoc a :node-value-path :v)))]
       (is (=
-           [["((1))"] {:node-values {:v "((1))"}}]
+           [["((1))"] {:plan-state {:node-values {:v "((1))"}}}]
            (->
             (translate action-plan {})
             first

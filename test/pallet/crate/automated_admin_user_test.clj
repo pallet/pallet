@@ -4,7 +4,6 @@
    [pallet.build-actions :as build-actions]
    [pallet.action :as action]
    [pallet.context :as context]
-   [pallet.core :as core]
    [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.crate.sudoers :as sudoers]
@@ -16,6 +15,7 @@
    clojure.test
    pallet.test-utils
    [pallet.actions :only [user exec-checked-script]]
+   [pallet.api :only [lift node-spec plan-fn server-spec]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.monad :only [wrap-pipeline]]))
 
@@ -124,10 +124,10 @@
    (live-test/test-nodes
     [compute node-map node-types]
     {:aau
-     (core/server-spec
-      :phases {:bootstrap (phase/plan-fn
+     (server-spec
+      :phases {:bootstrap (plan-fn
                            (automated-admin-user/automated-admin-user))
-               :verify (phase/plan-fn
+               :verify (plan-fn
                         (context/with-phase-context
                           {:kw :automated-admin-user
                            :msg "Check Automated admin user"}
@@ -135,8 +135,8 @@
                            "is functional"
                            (pipe (echo @SUDO_USER) (grep "fred")))))}
       :count 1
-      :node-spec (core/node-spec :image image)
+      :node-spec (node-spec :image image)
       :environment {:user {:username "fred"}})}
     (is
-     (core/lift
+     (lift
       (val (first node-types)) :phase [:verify] :compute compute)))))

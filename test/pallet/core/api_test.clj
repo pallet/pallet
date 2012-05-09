@@ -6,6 +6,7 @@
    [pallet.action :only [clj-action]]
    [pallet.actions :only [exec-script]]
    [pallet.action-plan :only [stop-execution-on-error]]
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.compute.node-list
     :only [make-node make-localhost-node node-list-service]]
    [pallet.api :only [group-spec plan-fn]]
@@ -13,6 +14,8 @@
    [pallet.executors :only [default-executor]]
    [pallet.utils :only [*admin-user*]]
    pallet.core.api))
+
+(use-fixtures :once (logging-threshold-fixture))
 
 (deftest service-state-test
   (testing "default groups"
@@ -155,9 +158,9 @@
 
             {:keys [result phase plan-state errors target target-type]}
             (execute-action-plan
-             service-state plan-state *admin-user* default-executor
+             service-state plan-state {} *admin-user* default-executor
              stop-execution-on-error action-plan)]
-        (is (= {:ps 1} plan-state))
+        (is (= {:ps 1} (dissoc plan-state :node-values)))
         (is (= n1 target))
         (is (= :node target-type))
         (is (= :p phase))
@@ -171,9 +174,9 @@
 
             {:keys [result phase plan-state errors target target-type]}
             (execute-action-plan
-             service-state plan-state *admin-user* default-executor
+             service-state plan-state {} *admin-user* default-executor
              stop-execution-on-error action-plan)]
-        (is (= {:ps 1} plan-state))
+        (is (= {:ps 1} (dissoc plan-state :node-values)))
         (is (= g1 target))
         (is (= :group target-type))
         (is (= :g phase))
