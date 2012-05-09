@@ -4,6 +4,7 @@
    [pallet.environment :as environment]
    [clojure.java.io :as io])
   (:use
+   [pallet.core.user :only [user?]]
    clojure.test))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
@@ -52,16 +53,12 @@
       (is (nil? (environment/eval-environment env)))))
   (testing "user"
     (let [env {:user {:username "u"}}]
-      (is (instance?
-           pallet.utils.User
-           (:user (environment/eval-environment env))))
+      (is (user? (:user (environment/eval-environment env))))
       (is (= "u"
              (-> (environment/eval-environment env) :user :username)))))
   (testing "user with shell expand"
     (let [env {:user {:username "u" :public-key-path "~/a"}}]
-      (is (instance?
-           pallet.utils.User
-           (:user (environment/eval-environment env))))
+      (is (user? (:user (environment/eval-environment env))))
       (is (= (.getAbsolutePath (io/file (System/getProperty "user.home") "a"))
              (-> (environment/eval-environment env) :user :public-key-path)))))
   (testing "arguments"

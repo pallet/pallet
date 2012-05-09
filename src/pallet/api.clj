@@ -5,6 +5,7 @@
   (:require
    [pallet.compute :as compute]
    [pallet.configure :as configure]
+   [pallet.core.user :as user]
    [pallet.core.operations :as ops])
   (:use
    [pallet.algo.fsmop :only [operate]]
@@ -324,8 +325,29 @@
   `(session-pipeline ~(gensym "a-plan-fn") {}
      ~@body))
 
-
 ;;; ### Admin user
+(defn make-user
+  "Creates a User record with the given username and options. Generally used
+   in conjunction with *admin-user* and pallet.api/with-admin-user, or passed
+   to `lift` or `converge` as the named :user argument.
+
+   Options:
+    - :public-key-path (defaults to ~/.ssh/id_rsa.pub)
+    - :private-key-path (defaults to ~/.ssh/id_rsa)
+    - :passphrase
+    - :password
+    - :sudo-password (defaults to :password)
+    - :no-sudo"
+  [username & {:keys [public-key-path private-key-path passphrase
+                      password sudo-password no-sudo sudo-user] :as options}]
+  (user/make-user
+   username
+   (merge
+    {:private-key-path (user/default-private-key-path)
+     :public-key-path (user/default-public-key-path)
+     :sudo-password (:password options)}
+    options)))
+
 (defmacro with-admin-user
   "Specify the admin user for running remote commands.  The user is specified
    either as pallet.utils.User record (see the pallet.utils/make-user
@@ -334,13 +356,6 @@
    This is mainly for use at the repl, since the admin user can be specified
    functionally using the :user key in a lift or converge call, or in the
    environment."
-  {:arglists
-   '([user & body]
-     [[username & {:keys [public-key-path private-key-path passphrase password
-                          sudo-password no-sudo] :as options}] & body])}
   [user & exprs]
-  `(let [user# ~user]
-     (binding [utils/*admin-user* (if (utils/user? user#)
-                                    user#
-                                    (apply utils/make-user user#))]
-       ~@exprs)))
+  `(binding [user/*admin-user* ~user]
+    ~@exprs))

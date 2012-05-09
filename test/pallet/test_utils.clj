@@ -13,9 +13,10 @@
    [pallet.api :only [group-spec server-spec]]
    [pallet.action :only [declare-action implement-action]]
    [pallet.common.context :only [throw-map]]
+   [pallet.core.user :only [*admin-user*]]
    [pallet.execute :only [target-flag?]]
    [pallet.session.verify :only [add-session-verification-key]]
-   [pallet.utils :only [*admin-user* apply-map]]))
+   [pallet.utils :only [apply-map]]))
 
 (defmacro with-private-vars [[ns fns] & tests]
   "Refers private fns from ns and runs tests in context.  From users mailing

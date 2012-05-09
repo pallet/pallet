@@ -5,6 +5,7 @@
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.actions :only [exec-script* exec-script exec-checked-script exec]]
    [pallet.api :only [group-spec lift]]
+   [pallet.core.user :only [*admin-user*]]
    [pallet.node :only [hostname]]
    [pallet.node-value :only [node-value]]
    [pallet.script.lib :only [ls]]
@@ -77,7 +78,7 @@
     (testing "python"
       (let [session @(lift
                       local
-                      :user (assoc utils/*admin-user*
+                      :user (assoc *admin-user*
                               :username (test-username) :no-sudo true)
                       :compute service)]
         (is (= ["hello\n"]

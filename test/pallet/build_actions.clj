@@ -17,6 +17,7 @@
    [pallet.api :only [group-spec plan-fn]]
    [pallet.core.api :only [action-plan execute-action-plan]]
    [pallet.core.api-impl :only [with-script-for-node]]
+   [pallet.core.user :only [*admin-user*]]
    [pallet.context :only [with-phase-context]]
    [pallet.executors :only [echo-executor]]
    [pallet.session.action-plan :only [target-path]]
@@ -41,7 +42,7 @@
              (:service-state session)
              plan-state
              (:environment (:environment session))
-             (:user session utils/*admin-user*)
+             (:user session *admin-user*)
              echo-executor
              stop-execution-on-error
              {:action-plan action-plan

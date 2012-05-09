@@ -28,6 +28,7 @@
    [clojure.walk :as walk])
   (:use
    [clojure.core.incubator :only [-?>]]
+   [pallet.core.user :only [make-user]]
    [slingshot.slingshot :only [throw+]]))
 
 (defprotocol Environment
@@ -128,8 +129,7 @@
                   (if-let [username (:username user)]
                     (assoc
                         env-map :user
-                        (apply
-                         utils/make-user username (mapcat identity user)))
+                        (make-user username user))
                     env-map)
                   env-map)
         env-map (if-let [phases (:phases env-map)]

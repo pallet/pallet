@@ -39,61 +39,6 @@
     (is (thrown? Exception
                  (find-var-with-require 'pallet.utils-test-bad-ns 'sym)))))
 
-(deftest make-user-test
-  (let [username "userfred"
-        password "pw"
-        private-key-path "pri"
-        public-key-path "pub"
-        passphrase "key-passphrase"]
-    (is (= {:username username
-            :password password
-            :private-key-path private-key-path
-            :public-key-path public-key-path
-            :passphrase passphrase
-            :sudo-password password
-            :no-sudo nil
-            :sudo-user nil}
-          (into {} (make-user username
-                     :password password
-                     :private-key-path private-key-path
-                     :public-key-path public-key-path
-                     :passphrase passphrase))))
-    (is (= {:username username
-            :password nil
-            :private-key-path (default-private-key-path)
-            :public-key-path (default-public-key-path)
-            :passphrase nil
-            :sudo-password nil
-            :no-sudo nil
-            :sudo-user nil}
-           (into {} (make-user username))))
-    (is (= {:username username
-            :password nil
-            :private-key-path (default-private-key-path)
-            :public-key-path (default-public-key-path)
-            :passphrase nil
-            :sudo-password password
-            :no-sudo nil
-            :sudo-user nil}
-           (into {} (make-user username :sudo-password password))))
-    (is (= {:username username
-            :password nil
-            :private-key-path (default-private-key-path)
-            :public-key-path (default-public-key-path)
-            :passphrase nil
-            :sudo-password nil
-            :no-sudo true
-            :sudo-user nil}
-           (into {} (make-user username :no-sudo true))))
-    (is (= {:username username
-            :password nil
-            :private-key-path (default-private-key-path)
-            :public-key-path (default-public-key-path)
-            :passphrase nil
-            :sudo-password nil
-            :no-sudo nil
-            :sudo-user "fred"}
-           (into {} (make-user username :sudo-user "fred"))))))
 
 (deftest middleware-test
   (let [f1 (fn [c] (fn [x] (c (inc x))))

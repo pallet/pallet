@@ -18,7 +18,8 @@
    [clojure.tools.logging :as logging]
    [clojure.walk :as walk])
   (:use
-   [clojure.core.incubator :only [-?>]]))
+   [clojure.core.incubator :only [-?>]]
+   [pallet.core.user :only [make-user]]))
 
 (def ^{:private true
        :doc "A var to be set by defpallet, so that it may be loaded from any
@@ -352,7 +353,7 @@
   "Set the admin user based on a config map"
   [config]
   (when-let [admin-user (:admin-user config)]
-    (apply utils/make-user (:username admin-user) (apply concat admin-user))))
+    (make-user (:username admin-user) admin-user)))
 
 (defn admin-user-from-config-file
   "Create an admin user form a configuration map."

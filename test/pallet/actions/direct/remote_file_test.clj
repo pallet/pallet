@@ -8,6 +8,7 @@
    [pallet.algo.fsmop :only [complete? failed?]]
    [pallet.api :only [group-spec lift plan-fn with-admin-user]]
    [pallet.compute :only [nodes]]
+   [pallet.core.user :only [*admin-user*]]
    [pallet.node-value :only [node-value]]
    [pallet.stevedore :only [script]]
    [pallet.test-utils
@@ -42,7 +43,7 @@
 
 (defn- local-test-user
   []
-  (assoc utils/*admin-user* :username (test-utils/test-username) :no-sudo true))
+  (assoc *admin-user* :username (test-utils/test-username) :no-sudo true))
 
 (deftest remote-file*-test
   (is remote-file*)

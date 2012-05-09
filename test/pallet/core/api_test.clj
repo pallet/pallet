@@ -11,8 +11,8 @@
     :only [make-node make-localhost-node node-list-service]]
    [pallet.api :only [group-spec plan-fn]]
    [pallet.core.api-impl :only [with-script-for-node]]
+   [pallet.core.user :only [*admin-user*]]
    [pallet.executors :only [default-executor]]
-   [pallet.utils :only [*admin-user*]]
    pallet.core.api))
 
 (use-fixtures :once (logging-threshold-fixture))

@@ -4,6 +4,7 @@
    [pallet.actions :only [rsync rsync-directory]]
    [pallet.algo.fsmop :only [complete?]]
    [pallet.api :only [group-spec lift with-admin-user]]
+   [pallet.core.user :only [*admin-user*]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.stevedore :only [script]]
    [pallet.test-utils :only [make-localhost-compute test-username]])
@@ -18,13 +19,13 @@
 (use-fixtures :once (logging-threshold-fixture))
 
 (deftest rsync-test
-  (with-admin-user (assoc utils/*admin-user*
+  (with-admin-user (assoc *admin-user*
                      :username (test-username))
     (utils/with-temporary [dir (utils/tmpdir)
                            tmp (utils/tmpfile dir)
                            target-dir (utils/tmpdir)]
       ;; this is convoluted to get around the "t" sticky bit on temp dirs
-      (let [user (assoc utils/*admin-user*
+      (let [user (assoc *admin-user*
                    :username (test-username) :no-sudo true)
             compute (make-localhost-compute :group-name "tag")
             tag (group-spec "tag" :packager :no-packages)]

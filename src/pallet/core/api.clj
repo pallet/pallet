@@ -13,8 +13,8 @@
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :only [add-session-verification-key check-session]]
-   [pallet.utils :only [*admin-user*]]
    pallet.core.api-impl
+   [pallet.core.user :only [*admin-user*]]
    [slingshot.slingshot :only [throw+]]))
 
 (defn service-state
@@ -205,7 +205,7 @@
   "Returns execution settings based purely on the environment"
   [environment]
   (fn [_]
-    {:user (:user environment pallet.utils/*admin-user*)
+    {:user (:user environment *admin-user*)
      :executor (get-in environment [:algorithms :executor] default-executor)
      :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
                                  #'stop-execution-on-error)}))
@@ -214,7 +214,7 @@
   "Returns execution settings based on the environment and the image user."
   [environment]
   (fn [node]
-    {:user (or (image-user node) (:user environment pallet.utils/*admin-user*))
+    {:user (or (image-user node) (:user environment *admin-user*))
      :executor (get-in environment [:algorithms :executor] default-executor)
      :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
                                  #'stop-execution-on-error)}))
