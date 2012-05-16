@@ -68,7 +68,33 @@
                       "ls"
                       (assoc user :no-sudo true)
                       {})]
-          (is (zero? (:exit result))))))))
+          (is (zero? (:exit result)))))))
+  (testing "No ssh agent forwarding"
+    (reset! default-agent-atom nil)
+    (let [user (assoc utils/*admin-user* :username (test-username))]
+    (binding [utils/*admin-user* user]
+      (possibly-add-identity
+       (default-agent) (:private-key-path user) (:passphrase user))
+      (script/with-template [(jvm/os-family)]
+        (let [result (remote-sudo
+                      "localhost"
+                      "ssh-add -l"
+                      (assoc user :no-sudo true)
+                      {:agent-forwarding false})]
+          (is (pos? (:exit result))))))))
+  (testing "With ssh agent forwarding"
+    (reset! default-agent-atom nil)
+    (let [user (assoc utils/*admin-user* :username (test-username))]
+    (binding [utils/*admin-user* user]
+      (possibly-add-identity
+       (default-agent) (:private-key-path user) (:passphrase user))
+      (script/with-template [(jvm/os-family)]
+        (let [result (remote-sudo
+                      "localhost"
+                      "ssh-add -l"
+                      (assoc user :no-sudo true)
+                      {:agent-forwarding true})]
+          (is (zero? (:exit result)))))))))
 
 (deftest execute-with-ssh-test
   (let [user (assoc utils/*admin-user* :username (test-username) :no-sudo true)]

@@ -242,7 +242,8 @@
    Copies `command` to `tmpfile` on the remote node using the `sftp-channel`
    and executes the `tmpfile` as the specified `user`."
   [server ssh-session sftp-channel user tmpfile command
-   {:keys [pty] :or {pty true} :as options}]
+   {:keys [pty agent-forwarding]
+    :or {pty true} :as options}]
   (when (not (ssh/connected? ssh-session))
     (throw+ {:type :no-ssh-session
              :message (format"No ssh session for %s" server)}))
@@ -272,7 +273,8 @@
                         :in cmd
                         :out :stream
                         :return-map true
-                        :pty pty)
+                        :pty pty
+                        :agent-forwarding agent-forwarding)
         sb (StringBuilder.)
         buffer-size @ssh-output-buffer-size
         period @output-poll-period
@@ -309,7 +311,8 @@
 
 (defn remote-sudo
   "Run a sudo command on a server."
-  [#^String server #^String command user {:keys [pty] :as options}]
+  [#^String server #^String command user
+   {:keys [pty agent-forwarding] :as options}]
   (ssh/with-ssh-agent [(default-agent)]
     (possibly-add-identity
      ssh/*ssh-agent* (:private-key-path user) (:passphrase user))
@@ -465,7 +468,10 @@
         {:keys [server ssh-session sftp-channel tmpfile tmpcpy user]} ssh
         {:keys [value session]} (f session)]
     (logging/infof "Target %s cmd\n%s" server value)
-    [(remote-sudo-cmd server ssh-session sftp-channel user tmpfile value {})
+    [(remote-sudo-cmd
+      server ssh-session sftp-channel user tmpfile value
+      {:agent-forwarding
+       (get-in session [:environment :agent-forwarding] true)})
      session]))
 
 (defn- ssh-upload
