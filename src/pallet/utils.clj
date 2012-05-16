@@ -7,10 +7,8 @@
   (:use
    clojure.tools.logging)
   (:import
-   (java.security
-    NoSuchAlgorithmException
-    MessageDigest)
-   (org.apache.commons.codec.binary Base64)))
+   (java.security NoSuchAlgorithmException MessageDigest)
+   (org.apache.commons.codec.binary Base64 Hex)))
 
 (defn pprint-lines
   "Pretty print a multiline string"
@@ -251,16 +249,26 @@
       `(-> ~handler ~@middlewares)
       handler)))
 
-(defn base64-md5
-  "Computes the base64 encoding of the md5 of a string"
-  [#^String unsafe-id]
+(defn md5
+  "Computes md5 of a string"
+  [^String s]
   (let [alg (doto (MessageDigest/getInstance "MD5")
               (.reset)
-              (.update (.getBytes unsafe-id)))]
+              (.update (.getBytes s)))]
     (try
-      (Base64/encodeBase64URLSafeString (.digest alg))
+      (.digest alg)
       (catch NoSuchAlgorithmException e
         (throw (new RuntimeException e))))))
+
+(defn base64-md5
+  "Computes the base64 encoding of the md5 of a string"
+  [^String s]
+  (Base64/encodeBase64URLSafeString (md5 s)))
+
+(defn hex-md5
+  "Computes the hex encoding of the md5 of a string"
+  [^String s]
+  (Hex/encodeHex (md5 s)))
 
 (defmacro middleware
   "Build a middleware processing pipeline from the specified forms.
