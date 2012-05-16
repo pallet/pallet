@@ -204,7 +204,8 @@
              (fn [agent]
                (if agent
                  agent
-                 (ssh/create-ssh-agent false))))))
+                 (or (ssh/ssh-agent)
+                     (ssh/create-ssh-agent false)))))))
 
 (defn possibly-add-identity
   [agent private-key-path passphrase]
