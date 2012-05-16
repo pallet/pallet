@@ -209,9 +209,13 @@
 
 (defn possibly-add-identity
   [agent private-key-path passphrase]
-  (if passphrase
-    (ssh/add-identity agent private-key-path passphrase)
-    (ssh/add-identity-with-keychain agent private-key-path)))
+  (try
+    (locking agent
+      (if passphrase
+        (ssh/add-identity agent private-key-path passphrase)
+        (ssh/add-identity-with-keychain agent private-key-path)))
+    (catch Exception e
+      (logging/warnf e "Add identity failed"))))
 
 (defn- ssh-mktemp
   "Create a temporary remote file using the `ssh-session` and the filename
