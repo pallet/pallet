@@ -928,7 +928,7 @@
    group
    (update-in [:image :os-family] (fn [f] (or (node/os-family node) f)))
    (update-in [:image :os-version] (fn [f] (or (node/os-version node) f)))
-   (update-in [:node-id] (fn [id] (or (keyword (node/id node)) id)))
+   (update-in [:node-id] (fn [id] (or (keyword (str (node/id node))) id)))
    (assoc :node node)
    server-with-packager
    (merge options)))
