@@ -138,8 +138,8 @@
               :server {:node-id :id}}
              (f {:phase :fred :target-id :id :server {:node-id :id}})))))
   (testing "with implied args"
-    (is (fn? (action/as-clj-action identity)))
-    (let [f (action/as-clj-action identity)]
+    (is (fn? (action/as-clj-action identity [session])))
+    (let [f (action/as-clj-action identity [session])]
       (is (fn? (action/action-fn f)))
       (is (= {:a 1} ((action/action-fn f) {:a 1})))
       (is (= {:action-plan

@@ -10,6 +10,7 @@
 (utils/forward-to-script-lib rmdir mkdir make-temp-dir)
 
 (deprecate/forward-fns
+ "0.5.0"
  pallet.action.directory
  adjust-directory
  make-directory

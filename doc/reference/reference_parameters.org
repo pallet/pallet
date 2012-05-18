@@ -1,8 +1,0 @@
-#+SETUPFILE: ../org-templates/level-1.org
-#+TITLE:     Parameters
-#+DESCRIPTION: The pallet parameters allows passing of data between crates
-#+KEYWORDS: pallet parameters
-
-The pallet parameter allows passing of data between crates.
-
-Provides host and service scopes.

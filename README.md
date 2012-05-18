@@ -48,14 +48,17 @@ For general help getting started with Clojure, see this
 
 ## Installation
 
-Pallet is distributed as a jar, and is available in the [sonatype repository](http://oss.sonatype.org/content/repositories/releases/org/cloudhoist).
+Pallet is distributed as a jar, and is available in the
+[sonatype repository](http://oss.sonatype.org/content/repositories/releases/org/cloudhoist).
 
 Installation is with maven or your favourite maven repository aware build tool.
 
+See also the [first steps](http://palletops.com/doc/first-steps) documentation
+for instructions on how to create a project with a `lein new` template.
+
 ### lein/cake project.clj
 
-    :dependencies [[org.cloudhoist/pallet "0.6.4"]
-                   [org.cloudhoist/pallet-crates-all "0.5.0"]]
+    :dependencies [[org.cloudhoist/pallet "0.7.0"]]
     :repositories {"sonatype"
                    "http://oss.sonatype.org/content/repositories/releases"
                    "sonatype-snapshots"
@@ -67,12 +70,7 @@ Installation is with maven or your favourite maven repository aware build tool.
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>pallet</artifactId>
-        <version>0.6.4</version>
-      </dependency>
-      <dependency>
-        <groupId>org.cloudhoist</groupId>
-        <artifactId>pallet-crates-all</artifactId>
-        <version>0.5.0</version>
+        <version>0.7.0</version>
       </dependency>
     <dependencies>
 

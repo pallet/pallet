@@ -60,3 +60,30 @@
                   :environment {:image {:os-family :ubuntu}}}}
              :environment {:image {:os-version "101"}}}
             [:a])))))
+
+;;; define service in pallet.config
+(ns pallet.config)
+(def service :service)
+(in-ns 'pallet.configure-test)
+
+(deftest compute-service-from-config-var-test
+  (is (= :service (compute-service-from-config-var))))
+
+(def property-service :property-service)
+(deftest compute-service-from-property-test
+  (System/setProperty
+   "pallet.config.service" "pallet.configure-test/property-service")
+  (is (= :property-service (compute-service-from-property))))
+
+;;; define user in pallet.config
+(in-ns 'pallet.config)
+(def admin-user (pallet.utils/make-user "fred"))
+(in-ns 'pallet.configure-test)
+
+(deftest admin-user-from-config-var-test
+  (let [admin-user (admin-user-from-config-var)]
+    (is (= "fred" (:username admin-user)))))
+
+(deftest admin-user-from-config-test
+  (let [admin-user (admin-user-from-config {:admin-user {:username "fred"}})]
+    (is (= "fred" (:username admin-user)))))

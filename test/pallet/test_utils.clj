@@ -1,5 +1,6 @@
 (ns pallet.test-utils
   (:require
+   [pallet.action :as action]
    [pallet.core :as core]
    [pallet.common.deprecate :as deprecate]
    [pallet.execute :as execute]
@@ -109,3 +110,15 @@ list, Alan Dipert and MeikelBrandmeyer."
   "Build the target group for the session map"
   [name & {:as options}]
   {:group (apply core/group-spec name (apply concat options))})
+
+(defmacro redef
+  [ [& bindings] & body ]
+  (if (find-var 'clojure.core/with-redefs)
+    `(with-redefs [~@bindings] ~@body)
+    `(binding [~@bindings] ~@body)))
+
+(defmacro bash-action [& args]
+  `(action/bash-action ~@args))
+
+(defmacro clj-action [& args]
+  `(action/bash-action ~@args))

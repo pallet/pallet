@@ -54,9 +54,11 @@
    :debian-lenny [{:os-family :debian :os-version-matches "5.0.7"
                    :os-64-bit false}]
    :debian-squeeze [{:os-family :debian :os-version-matches "6.0.1"
-                   :os-64-bit true}]
+                     :os-64-bit true}]
    :centos-5-3 [{:os-family :centos :os-version-matches "5.3"
                  :os-64-bit false}]
+   :centos-5-3-64 [{:os-family :centos :os-version-matches "5.3"
+                    :os-64-bit true}]
    :centos-5-5 [{:os-family :centos :os-version-matches "5.5"
                  :os-64-bit true}]
    :arch-2010-05 [{:os-family :arch :os-version-matches "2010.05"
@@ -75,7 +77,8 @@
       (read-string property)
       property)))
 
-(def ^{:doc "Guard execution of the live tests. Used to enable the tests."}
+(def ^{:doc "Guard execution of the live tests. Used to enable the tests."
+       :dynamic true}
   *live-tests*
   (read-property "pallet.test.live"))
 
@@ -85,25 +88,29 @@
     (keyword name)
     :live-test))
 
-(def ^{:doc "Flag to control cleanup of generated nodes"}
+(def ^{:doc "Flag to control cleanup of generated nodes"
+       :dynamic true}
   *cleanup-nodes*
   (let [cleanup (read-property "pallet.test.cleanup-nodes")]
     (if (nil? cleanup) true cleanup)))
 
-(def ^{:doc "Flag for tests in parallel"}
+(def ^{:doc "Flag for tests in parallel"
+       :dynamic true}
   *parallel*
   (let [parallel (System/getProperty "pallet.test.parallel")]
     (if (string/blank? parallel)
       false
       (read-string parallel))))
 
-(def ^{:doc "Vbox session type. Set this to gui to debug boot issues."}
+(def ^{:doc "Vbox session type. Set this to gui to debug boot issues."
+       :dynamic true}
   *vbox-session-type*
   (let [session-type (System/getProperty "pallet.test.session-type")]
     (when (not (string/blank? session-type))
       session-type)))
 
-(def ^{:doc "List of images to test with" :deprecated "0.4.17"}
+(def ^{:doc "List of images to test with" :deprecated "0.4.17"
+       :dynamic true}
   *images*
   (let [image-list (System/getProperty "pallet.test.image-list")]
     (if (string/blank? image-list)
@@ -175,8 +182,7 @@
   []
   (or
    @service
-   (set-service! (compute/compute-service-from-config-file service-name))
-   (set-service! (compute/compute-service-from-settings service-name))))
+   (set-service! (compute/compute-service-from-config-file service-name))))
 
 (defn- effective-group-name
   [group-name spec]

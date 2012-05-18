@@ -6,6 +6,16 @@
    [pallet.thread-expr :as thread-expr]
    [clojure.string :as string]))
 
+(defn- translate-options
+  [options translations]
+  (reduce
+   (fn [options [from to]]
+     (-> options
+         (assoc to (from options))
+         (dissoc from)))
+   options
+   translations))
+
 (script/defscript exit [value])
 (script/defimpl exit :default [value]
   (exit ~value))
@@ -153,7 +163,9 @@
      (quoted (str "  " @(pipe (basename ~file) (sed -e "s/.md5//"))))
      ">>" ~file)))
 
+
 (script/defscript md5sum-verify [file & {:as options}])
+
 (script/defimpl md5sum-verify :default
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
   ("(" (chain-and
@@ -161,13 +173,21 @@
         (md5sum
          ~(stevedore/map-to-arg-string {:quiet quiet :check check})
          @(basename ~file))) ")"))
-(script/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel :fedora}]
+
+(script/defimpl md5sum-verify [#{:debian-6}]
+  [file & {:keys [quiet check] :or {quiet true check true} :as options}]
+  (md5sum
+   ~(stevedore/map-to-arg-string {:quiet quiet :check check})
+   ~file))
+
+(script/defimpl md5sum-verify [#{:centos :debian-5 :amzn-linux :rhel :fedora}]
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
   ("(" (chain-and
         (cd @(dirname ~file))
         (md5sum
          ~(stevedore/map-to-arg-string {:status quiet :check check})
          @(basename ~file))) ")"))
+
 (script/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
   (chain-and
    (var testfile @(~cut ~file :delimiter " " :fields 2))
@@ -244,7 +264,7 @@
      " "
      (map (fn dlr-fmt [e] (format "-H \"%s: %s\"" (key e) (val e)))
           (:headers request)))
-   (quoted ~(:endpoint request))))
+   (quoted ~(str (:endpoint request)))))
 
 (script/defscript tmp-dir [])
 (script/defimpl tmp-dir :default []
@@ -352,14 +372,18 @@
 (script/defimpl user-exists? :default [username]
   (getent passwd ~username))
 
+(defn group-seq->string
+  [groups]
+  (if (not (string? groups))
+    (string/join "," groups)
+    groups))
+
 (script/defimpl create-user :default [username options]
   ("/usr/sbin/useradd"
    ~(-> options
         (thread-expr/when->
          (:groups options)
-         (update-in [:groups] (fn [groups]
-                                (if (and (seq? groups) (not (string? groups)))
-                                  (string/join "," groups)))))
+         (update-in [:groups] group-seq->string))
         (thread-expr/when->
          (:group options)
          (assoc :g (:group options))
@@ -371,38 +395,31 @@
   [username options]
   ("/usr/sbin/useradd"
    ~(-> options
-        (assoc :r (:system options))
-        (dissoc :system)
         (thread-expr/when->
          (:groups options)
-         (update-in [:groups] (fn [groups]
-                                (if (and (seq? groups) (not (string? groups)))
-                                  (string/join "," groups)))))
-        (thread-expr/when->
-         (:group options)
-         (assoc :g (:group options))
-         (dissoc :group))
+         (update-in [:groups] group-seq->string))
+        (translate-options {:system :r :group :g :password :p :groups :G})
         stevedore/map-to-arg-string)
    ~username))
 
 (script/defimpl modify-user :default [username options]
-  ("/usr/sbin/usermod" ~(stevedore/map-to-arg-string options) ~username))
+  ("/usr/sbin/usermod"
+   ~(stevedore/map-to-arg-string
+     (-> options
+         (thread-expr/when->
+          (:groups options)
+          (update-in [:groups] group-seq->string))))
+   ~username))
 
 (script/defimpl modify-user [#{:rhel :centos :amzn-linux :fedora}]
   [username options]
   ("/usr/sbin/usermod"
    ~(-> options
-        (assoc :r (:system options))
-        (dissoc :system)
         (thread-expr/when->
          (:groups options)
-         (update-in [:groups] (fn [groups]
-                                (if (and (seq? groups) (not (string? groups)))
-                                  (string/join "," groups)))))
-        (thread-expr/when->
-         (:group options)
-         (assoc :g (:group options))
-         (dissoc :group))
+         (update-in [:groups] group-seq->string))
+        (translate-options
+         {:system :r :group :g :password :p :append :a :groups :G})
         stevedore/map-to-arg-string)
    ~username))
 
@@ -768,13 +785,18 @@
 
 ;;; selinux
 
+(script/defscript selinux-enforced? [])
+(script/defimpl selinux-enforced? :default
+  []
+  (&& (directory? "/etc/selinux") (file-exists? "/selinux/enforce")))
+
 (script/defscript selinux-file-type
   "Set the selinux file type"
   [path type])
 
 (script/defimpl selinux-file-type :default
   [path type]
-  (if (&& (~has-command? chcon) (directory? "/etc/selinux"))
+  (if (&& (~has-command? chcon) (~selinux-enforced?))
     (chcon -Rv ~(str "--type=" type) ~path)))
 
 (script/defscript selinux-bool
@@ -783,6 +805,5 @@
 
 (script/defimpl selinux-bool :default
   [flag value & {:keys [persist]}]
-  (if (&& (&& (~has-command? setsebool) (directory? "/etc/selinux"))
-          (file-exists? "/selinux/enforce"))
+  (if (&& (~has-command? setsebool) (~selinux-enforced?))
     (setsebool ~(if persist "-P" "") ~(name flag) ~value)))

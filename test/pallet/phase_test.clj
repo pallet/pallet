@@ -1,7 +1,9 @@
 (ns pallet.phase-test
-  (:use pallet.phase)
   (:use
-   clojure.test))
+   pallet.phase)
+  (:use
+   clojure.test
+   pallet.common.slingshot-test-util))
 
 
 (deftest post-phase-name-test
@@ -34,3 +36,13 @@
   (testing "pre, post added"
     (is (= [:pallet.phase/pre-fred :fred :pallet.phase/post-fred]
              (all-phases-for-phase :fred)))))
+
+(deftest phase-fn-test
+  (is-thrown-with-msg-slingshot?
+    #"passed to the pipeline"
+    ((phase-fn identity) 1))
+  (is (= {} ((phase-fn identity) {})))
+  (let [fgh (constantly nil)]
+    (is-thrown-with-msg-slingshot?
+      #"fgh"
+      ((phase-fn fgh) {}))))

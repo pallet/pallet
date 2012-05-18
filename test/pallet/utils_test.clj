@@ -27,7 +27,17 @@
     (is (= 1 @(find-var-with-require 'pallet.utils-test-ns 'sym-atom)))
     (testing "no reload of existing ns"
       (swap! (find-var-with-require 'pallet.utils-test-ns 'sym-atom) inc)
-      (is (= 2 @(find-var-with-require 'pallet.utils-test-ns 'sym-atom))))))
+      (is (= 2 @(find-var-with-require 'pallet.utils-test-ns 'sym-atom)))))
+  (testing "non-existing namespace"
+    (is (nil? (find-var-with-require 'pallet.utils-test.non-existant/sym))))
+  (testing "non-compiling namespace"
+    (remove-ns 'pallet.utils-test-bad-ns)
+    (is (thrown? Exception
+                 (find-var-with-require 'pallet.utils-test-bad-ns 'sym)))
+    ;; test twice to exercice issue with require still creating a namespace on
+    ;; failure
+    (is (thrown? Exception
+                 (find-var-with-require 'pallet.utils-test-bad-ns 'sym)))))
 
 (deftest make-user-test
   (let [username "userfred"
@@ -71,18 +81,6 @@
             :sudo-password nil
             :no-sudo true}
            (into {} (make-user username :no-sudo true))))))
-
-(in-ns 'pallet.config)
-(def admin-user (pallet.utils/make-user "fred"))
-(in-ns 'pallet.utils-test)
-
-(deftest admin-user-from-config-var-test
-  (let [admin-user (admin-user-from-config-var)]
-    (is (= "fred" (:username admin-user)))))
-
-(deftest admin-user-from-config-test
-  (let [admin-user (admin-user-from-config {:admin-user {:username "fred"}})]
-    (is (= "fred" (:username admin-user)))))
 
 (deftest middleware-test
   (let [f1 (fn [c] (fn [x] (c (inc x))))

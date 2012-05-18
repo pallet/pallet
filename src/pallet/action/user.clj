@@ -1,27 +1,29 @@
 (ns pallet.action.user
   "User management action."
   (:use
-   [pallet.script :only [defscript]]
-   [clojure.contrib.def :only [defvar-]])
+   [pallet.script :only [defscript]])
   (:require
    [pallet.action :as action]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [clojure.contrib.string :as string]))
+   [clojure.string :as string]))
 
 
-(defvar- shell-names
+(def
+  ^{:doc "Map for looking up shell path based on keyword." :private true}
+  shell-names
   {:bash "/bin/bash" :csh "/bin/csh" :ksh "/bin/ksh" :rsh "/bin/rsh"
-   :sh "/bin/sh" :tcsh "/bin/tcsh" :zsh "/bin/zsh" :false "/bin/false"}
-  "Map for looking up shell path based on keyword.")
+   :sh "/bin/sh" :tcsh "/bin/tcsh" :zsh "/bin/zsh" :false "/bin/false"})
 
 (defn user*
   "Require a user"
   [session username & {:keys [action shell base-dir home system create-home
-                              password shell comment groups remove force]
+                              password shell comment groups remove force append]
                        :or {action :manage}
                        :as options}]
-  (let [opts (merge options {:shell (get shell-names shell shell)})]
+  (let [opts (if-let [shell (get shell-names shell shell)]
+               (merge options {:shell shell})
+               options)]
     (case action
       :create
       (stevedore/script
@@ -31,14 +33,17 @@
                                         :create-home :password :shell
                                         :group :groups]))))
       :manage
-      (stevedore/script
-       (if (~lib/user-exists? ~username)
-         (~lib/modify-user
-          ~username ~(select-keys opts [:home :shell :comment :group :groups]))
-         (~lib/create-user
-          ~username ~(select-keys opts [:base-dir :home :system :comment
-                                        :create-home :pasword :shell
-                                        :group :groups]))))
+      (let [mod-keys (select-keys opts [:home :shell :comment :group :groups
+                                        :password :append])]
+        (stevedore/script
+         (if (~lib/user-exists? ~username)
+           ~(if (seq mod-keys)
+              (stevedore/script (~lib/modify-user ~username ~mod-keys))
+              ":")
+           (~lib/create-user
+            ~username ~(select-keys opts [:base-dir :home :system :comment
+                                          :create-home :password :shell
+                                          :group :groups])))))
       :lock
       (stevedore/script
        (if (~lib/user-exists? ~username)

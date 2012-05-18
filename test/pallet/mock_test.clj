@@ -1,28 +1,31 @@
 (ns pallet.mock-test
-  (:use pallet.mock)
-  (:use clojure.test)
-  (:require
-   [clojure.contrib.condition :as condition]))
+  (:use
+   pallet.mock
+   pallet.common.slingshot-test-util)
+  (:use clojure.test))
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 (deftest verify-expectations-test
-  (is (thrown?
-       clojure.contrib.condition.Condition
-       (verify-expectations [(fn [] (condition/raise :error 1))])))
+  (is-thrown-slingshot?
+   (verify-expectations [(fn [] (throw+ {:error 1}))]))
   (is (nil?
        (verify-expectations [(fn [] true)]))))
 
 (deftest once-test
   (with-expectations
     (let [f (once 'v1 [] `((once 1)))]
-      (is (thrown?
-           clojure.contrib.condition.Condition
-           ((first *expectations*))))
+      (is-thrown-slingshot?
+       ((first *expectations*)))
       (is (= 1 (f)))
       (is (nil? ((first *expectations*)))))
     (let [f (once 'v1 [x] `((once (inc x))))]
-      (is (thrown?
-           clojure.contrib.condition.Condition
-           ((first *expectations*))))
+      (is-thrown-slingshot?
+       ((first *expectations*)))
       (is (= 1 (f 0)))
       (is (nil? ((first *expectations*)))))))
 

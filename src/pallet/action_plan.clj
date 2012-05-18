@@ -15,12 +15,16 @@
    [pallet.argument :as argument]
    [pallet.phase :as phase]
    [pallet.script :as script]
-   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
-   [clojure.contrib.condition :as condition]
    [clojure.tools.logging :as logging]
    [clojure.set :as set]
    [clojure.string :as string]))
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 ;; The action plan is a stack of actions, where the action could itself
 ;; be a stack of actions (ie a tree of stacks)
@@ -423,6 +427,11 @@
   (assoc (first actions)
     :f (fn [session] (script-join (map #((:f %) session) actions)))))
 
+(defmethod combine-actions :nested-scope
+  [actions]
+  (assoc (first actions)
+    :f (fn [session] (script-join (map #((:f %) session) actions)))))
+
 (defmethod combine-actions :transfer/to-local
   [actions]
   (assoc (first actions)
@@ -526,17 +535,19 @@
     (executor session f action-type location)
     (catch Exception e
       [{:error {:message (format "Unexpected exception: %s" (.getMessage e))
-                :type :pallet/action-excution-error}}
+                :type :pallet/action-execution-error
+                :cause e}}
        session])))
 
 (defn execute
   "Execute actions by passing the un-evaluated actions to the `executor`
    function (a function with an arglist of [session f action-type location])."
   [action-plan session executor execute-status-fn]
+  (logging/tracef "execute %s actions" (count action-plan))
   (when-not (translated? action-plan)
-    (condition/raise
-     :type :pallet/execute-called-on-untranslated-action-plan
-     :message "Attempt to execute an action plan that has not been translated"))
+    (throw+
+     {:type :pallet/execute-called-on-untranslated-action-plan
+      :message "Attempt to execute an untranslated action plan"}))
   (reduce
    (fn [[results session flag] action]
      (case flag
@@ -545,7 +556,7 @@
                    [(conj results result)
                     session
                     (execute-status-fn result flag)])
-       [[results session] action flag]))
+       [results session flag]))
    [[] session :continue]
    action-plan))
 
@@ -559,50 +570,61 @@
 
 (defn target-path
   "Return the vector path of the action plan for the current session target
-   node."
+   node, or target group."
   [session]
-  {:pre [(keyword? (session/phase session))
-         (keyword? (session/target-id session))]}
-  (target-path* (session/phase session) (session/target-id session)))
+  {:pre [(keyword? (:phase session))
+         (keyword? (:target-id session))]}
+  (target-path* (:phase session) (-> session :target-id)))
 
 (defn script-template-for-server
   "Return the script template for the specified server."
   [server]
   (let [family (-> server :image :os-family)]
     (filter identity
-            [family
-             (:packager server)
+            (concat
+             [family
+              (:packager server)]
              (when-let [version (-> server :image :os-version)]
-               (keyword (format "%s-%s" (name family) version)))])))
+               (map
+                #(keyword (format "%s-%s" (name family) %))
+                (reductions #(str %1 "." %2) (string/split version #"\."))))))))
 
 (defn script-template
   "Return the script template for the current group node."
   [session]
-  (script-template-for-server (:server session)))
+  (when-let [server (:server session)]
+    (script-template-for-server server)))
 
 ;;; action plan functions based on session
 
 (defn reset-for-target
-  "Reset the action plan for the current phase and target node."
+  "Reset the action plan for the current phase and target."
   [session]
-  {:pre [(:phase session)]}
+  {:pre [(:phase session) (:target-id session)]}
   (reduce
-   #(assoc-in %1 (target-path* %2 (session/target-id session)) nil)
+   #(assoc-in %1 (target-path* %2 (-> session :target-id)) nil)
    session
    (phase/all-phases-for-phase (:phase session))))
+
+(defn phase-for-target
+  "Return the phase for the target"
+  [session]
+  (let [phase (:phase session)]
+    (or
+     (phase (-> session :server :phases))
+     (phase (:inline-phases session))
+     (phase (-> session :group :phases)))))
 
 (defn build-for-target
   "Create the action plan by calling the current phase for the target group."
   [session]
   {:pre [(:phase session)]}
-  (let [phase (:phase session)]
-    (if-let [f (or
-                (phase (-> session :server :phases))
-                (phase (:inline-phases session)))]
-      (script/with-script-context (script-template session)
-        (stevedore/with-script-language :pallet.stevedore.bash/bash
-          (f (reset-for-target session))))
-      session)))
+  (if-let [f (phase-for-target session)]
+    (script/with-script-context (script-template session)
+      (stevedore/with-script-language :pallet.stevedore.bash/bash
+        (logging/trace "build-for-target building phase")
+        (f (reset-for-target session))))
+    session))
 
 (defn get-for-target
   "Get the action plan for the current phase and target node."
@@ -619,6 +641,7 @@
   "Execute the translated action plan for the current target."
   [session executor execute-status-fn]
   {:pre [(:phase session)]}
+  (logging/tracef "execute-for-target")
   (script/with-script-context (script-template session)
     (stevedore/with-script-language :pallet.stevedore.bash/bash
       (execute

@@ -1,21 +1,37 @@
 (ns pallet.compute.node-list
-  "A simple node list provider"
+  "A simple node list provider.
+
+   The node-list provider enables pallet to work with a server rack or existing
+   virtual machines. It works by maintaining a list of nodes. Each node
+   minimally provides an IP address, a host name, a group name and an operating
+   system. Nodes are constructed using `make-node`.
+
+   An instance of the node-list provider can be built using
+   `node-list-service`.
+
+       (node-list-service
+         [[\"host1\" \"fullstack\" \"192.168.1.101\" :ubuntu]
+          [\"host2\" \"fullstack\" \"192.168.1.102\" :ubuntu]])"
   (:require
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
    [pallet.environment :as environment]
-   [clojure.contrib.condition :as condition]
-   [clojure.string :as string]))
+   [pallet.node :as node]
+   [clojure.string :as string])
+  (:use
+   [pallet.utils :only [apply-map]]))
 
-
-(defn supported-providers []
-  ["node-list"])
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 (defrecord Node
     [name group-name ip os-family os-version id ssh-port private-ip is-64bit
-     running]
-  pallet.compute.Node
+     running service]
+  pallet.node.Node
   (ssh-port [node] ssh-port)
   (primary-ip [node] ip)
   (private-ip [node] private-ip)
@@ -26,13 +42,15 @@
   (os-family [node] os-family)
   (os-version [node] os-version)
   (hostname [node] name)
-  (id [node] id))
+  (id [node] id)
+  (compute-service [node] service))
 
 ;;; Node utilities
-(defn make-node [name group-name ip os-family
-                 & {:keys [id ssh-port private-ip is-64bit running os-version]
-                    :or {ssh-port 22 is-64bit true running true}
-                    :as options}]
+(defn make-node
+  "Returns a node, suitable for use in a node-list."
+  [name group-name ip os-family
+   & {:keys [id ssh-port private-ip is-64bit running os-version service]
+      :or {ssh-port 22 is-64bit true running true service (atom nil)}}]
   (Node.
    name
    group-name
@@ -43,7 +61,8 @@
    ssh-port
    private-ip
    is-64bit
-   running))
+   running
+   service))
 
 (deftype NodeList
     [node-list environment]
@@ -52,11 +71,11 @@
   (ensure-os-family
     [compute-service group-spec]
     (when (not (-> group-spec :image :os-family))
-      (condition/raise
-       :type :no-os-family-specified
-       :message "Node list contains a node without os-family")))
+      (throw+
+       {:type :no-os-family-specified
+        :message "Node list contains a node without os-family"})))
   ;; Not implemented
-  ;; (run-nodes [node-type node-count request init-script])
+  ;; (run-nodes [node-type node-count request init-script options])
   ;; (reboot "Reboot the specified nodes")
   (boot-if-down [compute nodes] nil)
   ;; (shutdown-node "Shutdown a node.")
@@ -64,7 +83,7 @@
 
   ;; this forgets about the nodes
   (destroy-nodes-in-group [_ group]
-    (swap! node-list (fn [nl] (remove #(= (compute/group-name %) group) nl))))
+    (swap! node-list (fn [nl] (remove #(= (node/group-name %) group) nl))))
 
   (close [compute])
   pallet.environment.Environment
@@ -86,7 +105,13 @@
     (:id node))))
 
 (defn make-localhost-node
-  "Make a node representing the local host"
+  "Make a node representing the local host. This calls `make-node` with values
+   inferred for the local host. Takes options as for `make-node`.
+
+       :name \"localhost\"
+       :group-name \"local\"
+       :ip \"127.0.0.1\"
+       :os-family (pallet.compute.jvm/os-family)"
   [& {:keys [name group-name ip os-family id]
       :or {name "localhost"
            group-name "local"
@@ -98,14 +123,38 @@
    (apply concat (merge {:id "localhost"} options))))
 
 
-;;;; Compute service
+;;;; Compute Service SPI
+(defn supported-providers
+  {:no-doc true
+   :doc "Returns a sequence of providers that are supported"}
+  [] ["node-list"])
+
 (defmethod implementation/service :node-list
   [_ {:keys [node-list environment]}]
-  (NodeList.
-   (atom (vec
-          (map
-           #(if (vector? %)
-              (apply make-node %)
-              %)
-           node-list)))
-   environment))
+  (let [nodes (atom (vec
+                     (map
+                      #(if (vector? %)
+                         (apply make-node %)
+                         %)
+                      node-list)))
+        nodelist (NodeList. nodes environment)]
+    (swap! nodes
+           #(map
+             (fn [node]
+               (reset! (node/compute-service node) nodelist)
+               node)
+             %))
+    nodelist))
+
+;;;; Compute service constructor
+(defn node-list-service
+  "Create a node-list compute service, based on a sequence of nodes. Each
+   node is passed as either a node object constructed with `make-node`,
+   or as a vector of arguments for `make-node`.
+
+   Optionally, an environment map can be passed using the :environment keyword.
+   See `pallet.environment`."
+  {:added "0.6.8"}
+  [node-list & {:keys [environment] :as options}]
+  (apply-map
+   compute/compute-service :node-list (assoc options :node-list node-list)))

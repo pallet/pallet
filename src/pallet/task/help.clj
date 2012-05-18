@@ -1,5 +1,7 @@
 (ns pallet.task.help
-  "Display a list of tasks or help for a given task.")
+  "Display a list of tasks or help for a given task."
+  (:require
+   [clojure.string :as string]))
 
 (def impl-ns #"^pallet\.task\.")
 (def task-list (atom nil))
@@ -8,9 +10,9 @@
   "Find the available tasks."
   []
   (try
-   (require 'clojure.contrib.find-namespaces)
+   (require 'clojure.tools.namespace)
    (let [find-namespaces-on-classpath
-         (find-var 'clojure.contrib.find-namespaces/find-namespaces-on-classpath)]
+         (find-var 'clojure.tools.namespace/find-namespaces-on-classpath)]
      (or @task-list
          (reset! task-list
                  (set (filter #(re-find impl-ns (name %))
@@ -22,12 +24,20 @@
 (defn help-for
   "Help for a task is stored in its docstring, or if that's not present
   in its namespace."
-  [task]
-  (let [task-ns (symbol (str "pallet.task." task))
+  [task-name]
+  (let [task-ns (symbol (str "pallet.task." task-name))
         _ (require task-ns)
-        task (ns-resolve task-ns (symbol task))]
-    (or (:doc (meta task))
-        (:doc (meta (find-ns task-ns))))))
+        task (ns-resolve task-ns (symbol task-name))
+        doc (or (:doc (meta task))
+                (:doc (meta (find-ns task-ns))))
+        arglists (or (:help-arglists (meta task))
+                     (:arglists (meta task)))]
+    (str doc
+         (apply str
+                (map
+                 #(str \newline "  lein pallet " task-name " "
+                       (string/join " " %))
+                 arglists)))))
 
 ;; affected by clojure ticket #130: bug of AOT'd namespaces losing metadata
 (defn help-summary-for [task-ns]

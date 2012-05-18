@@ -21,8 +21,8 @@
  :each
  test-utils/with-bash-script-language
  (fn bind-default-agent [f]
-   (binding [default-agent-atom (atom nil)]
-     (f))))
+   (reset! default-agent-atom nil)
+   (f)))
 
 (deftest sudo-cmd-for-test
   (script/with-template [:ubuntu]
@@ -80,6 +80,8 @@
                      :server {:node-id :localhost
                               :node node
                               :image {:os-family (compute/os-family node)}}
+                     :target-id :localhost
+                     :target-type :node
                      :action-plan
                      {:configure
                       {:localhost (action-plan/add-action
@@ -109,6 +111,8 @@
                      :server {:node-id :localhost
                               :node node
                               :image {:os-family (compute/os-family node)}}
+                     :target-type :node
+                     :target-id :localhost
                      :action-plan
                      {:configure
                       {:localhost (action-plan/add-action
@@ -136,6 +140,9 @@
 
 (deftest local-script-test
   (is (zero? (:exit (local-script "ls")))))
+
+(deftest local-script-expand-test
+  (is (= (System/getProperty "user.home") (local-script-expand "~"))))
 
 (deftest local-checked-script-test
   (is (zero? (:exit (local-checked-script "ls should work" "ls")))))

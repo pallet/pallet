@@ -1,6 +1,0 @@
-#+SETUPFILE: ../org-templates/level-1.org
-#+TITLE:     Actions
-#+DESCRIPTION: The pallet actions are the basic building blocks for configuration in pallet
-#+KEYWORDS: pallet parameters
-
-The actions provide the basic building blocks for pallet.

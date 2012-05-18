@@ -18,7 +18,7 @@
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
    [pallet.utils :as utils]
-   [clojure.contrib.io :as io]
+   [clojure.java.io :as io]
    [clojure.tools.logging :as logging]))
 
 (use-fixtures
@@ -118,7 +118,7 @@
             :results :localhost second second first :out)))
       (is (= "xxx\n" (slurp (.getPath tmp))))))
 
-  (binding [install-new-files nil]
+  (binding [*install-new-files* nil]
     (script/with-script-context [:ubuntu]
       (is (=
            (stevedore/checked-script
@@ -138,12 +138,14 @@
            {} (remote-file
                "file1" :local-file "/some/non-existing/file" :owner "user1"))))
 
-    (is (=
-         (str
-          "{:error {:message \"Unexpected exception: "
-          "java.lang.RuntimeException: java.lang.RuntimeException: "
-          "java.lang.IllegalArgumentException: remote-file file1 specified "
-          "without content.\", :type :pallet/action-excution-error}}")
+    (is (re-find
+         (re-pattern
+          (str
+          "\\{:error \\{:message \"Unexpected exception: "
+          ".*remote-file file1 specified without content.\".*"
+          ":cause .*"
+          "remote-file file1 specified without content.>"
+          "\\}\\}"))
            (first (build-actions/build-actions
                    {} (remote-file "file1" :owner "user1")))))
 

@@ -8,21 +8,23 @@
    clojure.tools.logging))
 
 (defmacro when
+  "A when statement that takes a script condtion."
   [session condition & crate-fns-or-actions]
   `(->
     ~session
     (action/enter-scope)
-    (exec-script/exec-script ("if [" ~condition "]; then"))
+    (exec-script/exec-script ("if" ~condition "; then"))
     ~@crate-fns-or-actions
     (exec-script/exec-script "fi")
     (action/leave-scope)))
 
 (defmacro when-not
+  "A when statement that takes a script condtion."
   [session condition & crate-fns-or-actions]
   `(->
     ~session
     (action/enter-scope)
-    (exec-script/exec-script ("if [ !" ~condition "]; then"))
+    (exec-script/exec-script ("if ! (" ~condition "); then"))
     ~@crate-fns-or-actions
     (exec-script/exec-script "fi")
     (action/leave-scope)))

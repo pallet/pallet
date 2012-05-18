@@ -1,13 +1,10 @@
 (ns pallet.execute
   "Exectute commands.  At the moment the only available transport is ssh."
   (:require
-   [pallet.action-plan :as action-plan]
-   [pallet.action.file :as file]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.shell :as shell]
    [pallet.compute :as compute]
    [pallet.compute.jvm :as jvm]
-   [pallet.environment :as environment]
    [pallet.script :as script]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -15,10 +12,16 @@
    [pallet.utils :as utils]
    [clj-ssh.ssh :as ssh]
    [clojure.string :as string]
-   [clojure.contrib.condition :as condition]
    [clojure.java.io :as io]
    [pallet.shell :as ccshell]
    [clojure.tools.logging :as logging]))
+
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 (def prolog
   (str "#!/usr/bin/env bash\n" bash/hashlib))
@@ -33,6 +36,11 @@
   [#^String s user]
   (string/replace
    s (format "\"%s\"" (or (:password user) (:sudo-password user))) "XXXXXXX"))
+
+(defn bash-command
+  "Adds an explicit bash invocation to a script command string."
+  [expr]
+  (format "/usr/bin/env bash -c '%s'" expr))
 
 (script/defscript sudo-no-password [])
 (script/defimpl sudo-no-password :default []
@@ -96,16 +104,23 @@
                                     "bash" (.getPath tmp) :async true)
             out-reader (read-buffer out)
             err-reader (read-buffer err)
-            period @output-poll-period]
+            period @output-poll-period
+            read-out #(let [out ((:reader out-reader))]
+                        (when (not (string/blank? out))
+                          (logging/spy out))
+                        out)
+            read-err #(let [err ((:reader err-reader))]
+                        (when (not (string/blank? err))
+                          (logging/spy err))
+                        err)]
         (with-open [out out err err]
           (while (not (try (.exitValue proc)
                            (catch IllegalThreadStateException _)))
             (Thread/sleep period)
-            (logging/spy ((:reader out-reader)))
-            (logging/spy ((:reader err-reader))))
-
-          (while (logging/spy ((:reader out-reader))))
-          (while (logging/spy ((:reader err-reader))))
+            (read-out)
+            (read-err))
+          (while (read-out))
+          (while (read-err))
           (let [exit (.exitValue proc)]
             (when-not (zero? exit)
               (logging/errorf
@@ -126,6 +141,11 @@
        (sh-script
         (stevedore/script
          ~@body)))))
+
+(defn local-script-expand
+  "Expand a script expression."
+  [expr]
+  (string/trim (:out (local-script (echo ~expr)))))
 
 (defn verify-sh-return
   "Verify the return code of a sh execution"
@@ -151,28 +171,28 @@
      (let [cmd# (stevedore/checked-script ~msg ~@body)]
        (verify-sh-return ~msg cmd# (sh-script cmd#)))))
 
-(defn local-sh-cmds
-  "Execute cmds for the session.
-   Runs locally as the current user, so useful for testing."
-  [{:keys [root-path] :or {root-path "/tmp/"} :as session}]
-  (if (seq (action-plan/get-for-target session))
-    (letfn [(execute-bash
-             [cmdstring]
-             (logging/infof "Cmd %s" cmdstring)
-             (sh-script cmdstring))
-            (transfer
-             [transfers]
-             (logging/infof "Local transfer")
-             (doseq [[from to] transfers]
-               (logging/infof "Copying %s to %s" from to)
-               (io/copy (io/file from) (io/file to))))]
-      (action-plan/execute-for-target
-       session
-       {:script/bash execute-bash
-        :fn/clojure (fn [& _])
-        :transfer/to-local transfer
-        :transfer/from-local transfer}))
-    [nil session]))
+;; (defn local-sh-cmds
+;;   "Execute cmds for the session.
+;;    Runs locally as the current user, so useful for testing."
+;;   [{:keys [root-path] :or {root-path "/tmp/"} :as session}]
+;;   (if (seq (action-plan/get-for-target session))
+;;     (letfn [(execute-bash
+;;              [cmdstring]
+;;              (logging/infof "Cmd %s" cmdstring)
+;;              (sh-script cmdstring))
+;;             (transfer
+;;              [transfers]
+;;              (logging/infof "Local transfer")
+;;              (doseq [[from to] transfers]
+;;                (logging/infof "Copying %s to %s" from to)
+;;                (io/copy (io/file from) (io/file to))))]
+;;       (action-plan/execute-for-target
+;;        session
+;;        {:script/bash execute-bash
+;;         :fn/clojure (fn [& _])
+;;         :transfer/to-local transfer
+;;         :transfer/from-local transfer}))
+;;     [nil session]))
 
 ;;; ssh
 
@@ -198,17 +218,19 @@
   [ssh-session prefix]
   (let [result (ssh/ssh
                 ssh-session
-                (stevedore/script (println (~lib/make-temp-file ~prefix)))
+                (bash-command
+                 (stevedore/script (println (~lib/make-temp-file ~prefix))))
                 :return-map true)]
     (if (zero? (:exit result))
       (string/trim (result :out))
-      (condition/raise
-       :type :remote-execution-failure
-       :message (format
-                 "Failed to generate remote temporary file %s" (:err result))
-       :exit (:exit result)
-       :err (:err result)
-       :out (:out result)))))
+      (throw+
+       {:type :remote-execution-failure
+        :message (format
+                  "Failed to generate remote temporary file: %s" (:err result))
+        :exit (:exit result)
+        :err (:err result)
+        :out (:out result)
+        :cmd (stevedore/script (println (~lib/make-temp-file ~prefix)))}))))
 
 (defn remote-sudo-cmd
   "Execute remote command.
@@ -217,8 +239,8 @@
   [server ssh-session sftp-channel user tmpfile command
    {:keys [pty] :or {pty true} :as options}]
   (when (not (ssh/connected? ssh-session))
-    (condition/raise :type :no-ssh-session
-                     :message (format"No ssh session for %s" server)))
+    (throw+ {:type :no-ssh-session
+             :message (format"No ssh session for %s" server)}))
   (let [response (ssh/sftp sftp-channel
                            :put (java.io.ByteArrayInputStream.
                                  (.getBytes
@@ -229,11 +251,13 @@
     (logging/infof
      "Transfering commands to %s:%s : %s" server tmpfile response))
   (let [chmod-result (ssh/ssh
-                      ssh-session (str "chmod 755 " tmpfile) :return-map true)]
+                      ssh-session
+                      (bash-command (str "chmod 755 " tmpfile))
+                      :return-map true)]
     (if (pos? (chmod-result :exit))
       (logging/error (str "Couldn't chmod script : "  (chmod-result :err)))))
   (let [cmd (str (sudo-cmd-for user) "./" tmpfile)
-        _ (logging/infof "Running %s" cmd)
+        _ (logging/infof "Running %s" (strip-sudo-password cmd user))
         [shell stream] (ssh/ssh
                         ssh-session
                         ;; using :in forces a shell ssh-session, rather than
@@ -262,7 +286,7 @@
       (read-ouput))
     (while (read-ouput))
     (.close stream)
-    (ssh/ssh ssh-session (str "rm " tmpfile))
+    (ssh/ssh ssh-session (bash-command (str "rm " tmpfile)))
     (let [exit (.getExitStatus shell)
           stdout (str sb)]
       (if (zero? exit)
@@ -319,20 +343,30 @@
         (and server
              (if (string? server) (not (string/blank? server)) true)
              user)
-      (condition/raise
-       :type :session-missing-middleware
-       :message (str
-                 "The session is missing server ssh connection details.\n"
-                 "Add middleware to enable ssh.")))
+      (throw+
+       {:type :session-missing-middleware
+        :message (str
+                  "The session is missing server ssh connection details.\n"
+                  "Add middleware to enable ssh.")}))
     (let [ssh-session (or ssh-session
-                      (ssh/session
-                       server
-                       :username (:username user)
-                       :strict-host-key-checking :no
-                       :port port
-                       :password (:password user)))
+                          (ssh/session
+                           server
+                           :username (:username user)
+                           :strict-host-key-checking :no
+                           :port port
+                           :password (:password user)))
           _ (.setDaemonThread ssh-session true)
-          _ (when-not (ssh/connected? ssh-session) (ssh/connect ssh-session))
+          _ (when-not (ssh/connected? ssh-session)
+              (try
+                (ssh/connect ssh-session)
+                (catch Exception e
+                  (throw+
+                   {:type :pallet/ssh-connection-failure
+                    :message (format
+                              "ssh-fail: server %s, port %s, user %s, group %s"
+                              server (or port 22) (:username user)
+                              (-> session :server :group-name))
+                    :cause e}))))
           tmpfile (or tmpfile (ssh-mktemp ssh-session "sudocmd"))
           tmpcpy (or tmpcpy (ssh-mktemp ssh-session "tfer"))
           sftp-channel (or sftp-channel (ssh/ssh-sftp ssh-session))
@@ -351,9 +385,9 @@
     (if ssh
       (do
         (when sftp-channel
-          ;; remove tmpfile, tmpcpy
           (ssh/disconnect sftp-channel))
         (when ssh-session
+          (ssh/ssh ssh-session (bash-command (str "rm -f " tmpfile " " tmpcpy)))
           (ssh/disconnect ssh-session))
         [results (dissoc session :ssh) flag])
       [results session flag])))
@@ -529,29 +563,34 @@
 (defn execute-with-ssh
   "Execute cmds for the session. Also accepts an IP or hostname as address."
   [handler]
-  (fn execute-with-ssh-fn [{:keys [target-node user] :as session}]
-    (logging/infof
-     "execute-with-ssh on %s %s"
-     (compute/group-name target-node)
-     (pr-str (compute/node-address target-node)))
-    (ssh/with-ssh-agent [(default-agent)]
-      (try
-        (->
-         session
-         (assoc :ssh {:port (compute/ssh-port target-node)
-                      :server (compute/node-address target-node)
-                      :user user})
-         (assoc-in [:executor :script/bash :target] ssh-bash-on-target)
-         (assoc-in [:executor :transfer/to-local :origin] ssh-to-local)
-         (assoc-in [:executor :transfer/from-local :origin] ssh-from-local)
-         handler
-         close-ssh-connection)
-        (catch Exception e
-          (logging/error
-           e
-           "Unexpected exception in execute-with-ssh: probable connection leak")
-          (close-ssh-connection session)
-          (throw e))))))
+  (fn execute-with-ssh-fn [{:keys [target-type user] :as session}]
+    (if (= :node target-type)
+      (let [target-node (-> session :server :node)]
+        (logging/infof
+         "execute-with-ssh on %s %s"
+         (compute/group-name target-node)
+         (pr-str (compute/node-address target-node)))
+        (ssh/with-ssh-agent [(default-agent)]
+          (try
+            (->
+             session
+             (assoc :ssh {:port (compute/ssh-port target-node)
+                          :server (compute/node-address target-node)
+                          :user user})
+             (assoc-in [:executor :script/bash :target] ssh-bash-on-target)
+             (assoc-in [:executor :transfer/to-local :origin] ssh-to-local)
+             (assoc-in [:executor :transfer/from-local :origin] ssh-from-local)
+             handler
+             close-ssh-connection)
+            (catch Exception e
+              (logging/error
+               e
+               "Unexpected exception in execute-with-ssh: probable connection leak")
+              (close-ssh-connection session)
+              (throw e)))))
+      (do
+        (logging/infof "execute-with-ssh no-ssh for target-type %s" target-type)
+        (handler session)))))
 
 (defn execute-target-on-localhost
   "Execute cmds for target on the local machine"

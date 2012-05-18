@@ -132,7 +132,13 @@
                       (#{:centos :rhel} os-family) :yum
                       (#{:arch} os-family) :pacman
                       (#{:suse} os-family) :zypper
-                      (#{:gentoo} os-family) :portage))))]
+                      (#{:gentoo} os-family) :portage))))
+        session (update-in
+                 session [:target-id]
+                 #(or
+                   %
+                   (get-in session [:server :node-id])
+                   (get-in session [:group :group-name])))]
     session))
 
 (defn build-actions*
@@ -157,9 +163,8 @@
    `session` should be a map (but was historically a vector of keyword
    pairs).  See `build-session`."
   [session & body]
-  `(do
-     (let [session# ~session]
-       (when-not (map? session#)
-         (logging/warn
-          "Use of vector for session in build-actions is deprecated."))
-       (build-actions* (phase/phase-fn ~@body) session#))))
+  `(let [session# ~session]
+    (when-not (map? session#)
+      (logging/warn
+       "Use of vector for session in build-actions is deprecated."))
+    (build-actions* (phase/phase-fn ~@body) session#)))

@@ -3,8 +3,8 @@
    [pallet.action :as action]
    [pallet.action.directory :as directory]
    [pallet.action.package :as package]
-   [pallet.compute :as compute]
    [pallet.execute :as execute]
+   [pallet.node :as node]
    [pallet.session :as session]
    [pallet.utils :as utils]
    [clojure.tools.logging :as logging]))
@@ -18,7 +18,7 @@
                  (if port (format "-p %s" port)))
         cmd (format
              cmd ssh from (:username (session/admin-user session))
-             (compute/primary-ip (session/target-node session)) to)]
+             (node/primary-ip (session/target-node session)) to)]
     (execute/sh-script cmd)
     session))
 

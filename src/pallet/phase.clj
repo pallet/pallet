@@ -1,9 +1,13 @@
 (ns pallet.phase
   "A phase is a function of a single `session` argument, that contains
    calls to crate functions or actions. A phase has an implicitly
-   defined pre and post phase."
-  (:require
-   [clojure.contrib.condition :as condition]))
+   defined pre and post phase.")
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 (defn pre-phase-name
   "Return the name for the pre-phase for the given `phase`."
@@ -19,6 +23,17 @@
   "Return a sequence including the implicit pre and post phases for a phase."
   [phase]
   [(pre-phase-name phase) phase (post-phase-name phase)])
+
+(defn subphase-for
+  "Return the phase this is a subphase for, or nil if not a subphase"
+  [phase]
+  (when (= (namespace phase) "pallet.phase")
+    (let [n (name phase)
+          [_ pre] (re-matches #"pre-(.*)" n)
+          [_ post] (re-matches #"post-(.*)" n)
+          p (or pre post)]
+      (when p
+        (keyword p)))))
 
 (defmacro schedule-in-pre-phase
   "Specify that the body should be executed in the pre-phase."
@@ -50,31 +65,53 @@
   ([session]
      ;; we do not use a precondition in order to improve the error message
      (when-not (and session (map? session))
-       (condition/raise
-        :type :invalid-session
-        :message
-        "Invalid session map in phase. Check for non crate functions,
+       (throw+
+        {:type :invalid-session
+         :message
+         "Invalid session map in phase. Check for non crate functions,
       improper crate functions, or problems in threading the session map
       in your phase definition.
 
       A crate function is a function that takes a session map and other
       arguments, and returns a modified session map. Calls to crate functions
       are often wrapped in a threading macro, -> or pallet.phase/phase-fn,
-      to simplify chaining of the session map argument."))
+      to simplify chaining of the session map argument."}))
      session)
   ([session form]
      ;; we do not use a precondition in order to improve the error message
      (when-not (and session (map? session))
-       (condition/raise
-        :type :invalid-session
-        :message
-        (format
-         (str
-          "Invalid session map in phase session.\n"
-          "`session` is %s\n"
-          "Problem probably caused in:\n  %s ")
-         session form)))
+       (throw+
+        {:type :invalid-session
+         :message
+         (format
+          (str
+           "Invalid session map in phase session.\n"
+           "`session` is %s\n"
+           "Problem probably caused in:\n  %s ")
+          session form)}))
      session))
+
+(defmacro check-session-thread
+  "Add session checking to a sequence of calls which thread a session
+   map. e.g.
+
+       (->
+         session
+         (check-session-thread
+           (file \"/some-file\")
+           (file \"/other-file\")))
+
+   The example is thus equivalent to:
+
+       (-> session
+         (check-session \"The session passed to the pipeline\")
+         (check-session (file \"/some-file\"))
+         (check-session (file \"/other-file\")))"
+  [arg & body]
+  `(->
+    ~arg
+    (check-session "The session passed to the pipeline")
+    ~@(mapcat (fn [form] [form `(check-session '~form)]) body)))
 
 (defmacro phase-fn
   "Create a phase function from a sequence of crate invocations with
@@ -94,5 +131,4 @@
   `(fn [session#]
      (->
       session#
-      (check-session "The session passed to the pipeline")
-      ~@(mapcat (fn [form] [form `(check-session '~form)]) body))))
+      (check-session-thread ~@body))))

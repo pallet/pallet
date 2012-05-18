@@ -29,6 +29,19 @@
   (fn [session & _]
     (session/packager session)))
 
+;; http://algebraicthunk.net/~dburrows/projects/aptitude/doc/en/ch02s03s01.html
+(def ^{:private true} aptitude-escape-map
+  {\+ "\\+"
+   \- "\\-"
+   \. "\\."
+   \( "\\"
+   \) "\\)"
+   \| "\\|"
+   \[ "\\["
+   \] "\\]"
+   \^ "\\^"
+   \$ "\\$"})
+
 ;; aptitude can install, remove and purge all in one command, so we just need to
 ;; split by enable/disable options.
 (defmethod adjust-packages :aptitude
@@ -39,11 +52,13 @@
    (stevedore/chain-commands*
     (for [[opts packages] (->>
                            packages
-                           (group-by #(select-keys % [:enable]))
+                           (group-by
+                            #(select-keys % [:enable :allow-untrusted]))
                            (sort-by #(apply min (map :priority (second %)))))]
       (stevedore/script
        (aptitude
         install -q -y
+        ~(if (:allow-untrusted opts) "--allow-untrusted" "")
         ~(string/join " " (map #(str "-t " %) (:enable opts)))
         ~(string/join
           " "
@@ -59,7 +74,26 @@
                (IllegalArgumentException.
                 (str
                  action " is not a valid action for package action"))))))))))
-   (stevedore/script (~lib/list-installed-packages))))
+   ;; aptitude doesn't report failed installed in its exit code
+   ;; so explicitly check for success
+   (stevedore/chain-commands*
+    (for [{:keys [package action]} packages
+          :let [escaped-package (string/escape package aptitude-escape-map)]]
+      (cond
+        (#{:install :upgrade} action)
+        (stevedore/script
+         (pipe (aptitude
+                search
+                (quoted
+                 (str "?and(?installed, ?name(^" ~escaped-package "$))")))
+               (grep (quoted ~package))))
+        (= :remove action)
+        (stevedore/script
+         (not (pipe (aptitude
+                     search
+                     (quoted
+                      (str "?and(?installed, ?name(^" ~escaped-package "$))")))
+                    (grep (quoted ~package))))))))))
 
 (def ^{:private true :doc "Define the order of actions"}
   action-order {:install 10 :remove 20 :upgrade 30})
@@ -169,12 +203,14 @@
 
 (defmethod format-source :aptitude
   [_ name options]
-  (format
-   "%s %s %s %s\n"
-   (:source-type options "deb")
-   (:url options)
-   (:release options (stevedore/script (~lib/os-version-name)))
-   (string/join " " (:scopes options ["main"]))))
+  (str
+   (format
+    "%s %s %s"
+    (:source-type options "deb")
+    (:url options)
+    (:release options (stevedore/script (~lib/os-version-name))))
+   (when-let [scopes (:scopes options ["main"])]
+     (str " " (string/join " " scopes)))))
 
 (defmethod format-source :yum
   [_ name {:keys [url mirrorlist gpgcheck gpgkey priority failovermethod
@@ -195,13 +231,15 @@
      (format "enabled=%s" enabled)
      ""])))
 
+(def ^{:dynamic true} *default-apt-keyserver* "subkeys.pgp.net")
+
 (defn package-source*
   "Add a packager source."
-  [session name & {:as options}]
+  [session name & {:keys [aptitude yum] :as options}]
   (let [packager (session/packager session)]
     (stevedore/checked-commands
      "Package source"
-     (let [key-url (-> options :aptitude :url)]
+     (let [key-url (:url aptitude)]
        (if (and key-url (.startsWith key-url "ppa:"))
          (stevedore/chain-commands
           (stevedore/script (~lib/install-package "python-software-properties"))
@@ -211,21 +249,22 @@
           (format (source-location packager) name)
           :content (format-source packager name (packager options))
           :literal (= packager :yum))))
-     (if (and (-> options :aptitude :key-id)
+     (if (and (:key-id aptitude)
               (= packager :aptitude))
        (stevedore/script
-        (apt-key adv
-                 "--keyserver subkeys.pgp.net --recv-keys"
-                 ~(-> options :aptitude :key-id))))
-     (if (and (-> options :aptitude :key-url)
+        (apt-key
+         adv
+         "--keyserver" ~(:key-server aptitude *default-apt-keyserver*)
+         "--recv-keys" ~(:key-id aptitude))))
+     (if (and (:key-url aptitude)
               (= packager :aptitude))
        (stevedore/chain-commands
         (remote-file*
          session
          "aptkey.tmp"
-         :url (-> options :aptitude :key-url))
+         :url (:key-url aptitude))
         (stevedore/script (apt-key add aptkey.tmp))))
-     (when-let [key (and (= packager :yum) (-> options :yum :gpgkey))]
+     (when-let [key (and (= packager :yum) (:gpgkey yum))]
        (stevedore/script (rpm "--import" ~key))))))
 
 (declare package-manager)
@@ -240,7 +279,8 @@
      - :url url              - repository url
      - :scopes seq           - scopes to enable for repository
      - :key-url url          - url for key
-     - :key-id id            - id for key to look it up from keyserver
+     - :key-id id            - id for key to look it up from key server
+     - :key-server           - the hostname of the key server to lookup keys
 
    :yum
      - :name                 - repository name
@@ -419,6 +459,15 @@
     (format "Install rpm %s" rpm-name)
     (if-not (rpm -q @(rpm -pq ~rpm-name) > "/dev/null" "2>&1")
       (do (rpm -U --quiet ~rpm-name))))))
+
+(action/def-bash-action install-deb
+  "Install a deb file.  Source options are as for remote file."
+  [request deb-name & {:as options}]
+  (stevedore/do-script
+   (apply remote-file* request deb-name (apply concat options))
+   (stevedore/checked-script
+    (format "Install deb %s" deb-name)
+    (dpkg -i --skip-same-version ~deb-name))))
 
 (action/def-bash-action minimal-packages
   "Add minimal packages for pallet to function"

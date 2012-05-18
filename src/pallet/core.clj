@@ -11,7 +11,7 @@
 - group-spec     :: A group of identically configured nodes, represented as a
                     map with :group-name, :count and server-spec keys.
                     The group-name is used to link running nodes to their
-                    configuration (via pallet.compute.Node/group-name)
+                    configuration (via pallet.node.Node/group-name)
 - group          :: A group of identically configured nodes, represented as a
                     group-spec, together with the servers that are running
                     for that group-spec.
@@ -29,23 +29,30 @@
    [pallet.blobstore :as blobstore]
    [pallet.common.deprecate :as deprecate]
    [pallet.common.logging.logutils :as logutils]
+   [pallet.common.map-utils :as map-utils]
    [pallet.common.resource :as resource]
    [pallet.compute :as compute]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
    [pallet.futures :as futures]
+   [pallet.map-merge :as map-merge]
+   [pallet.node :as node]
    [pallet.parameter :as parameter]
    [pallet.phase :as phase]
    [pallet.script :as script]
    [pallet.thread-expr :as thread-expr]
    [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]
    [clojure.tools.logging :as logging]
-   [clojure.contrib.map-utils :as map-utils]
    [clojure.set :as set]
    [clojure.string :as string])
   (:use
-   [clojure.contrib.core :only [-?>]]))
+   [clojure.core.incubator :only [-?>]]))
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 (let [v (atom nil)]
   (defn version
@@ -131,19 +138,17 @@
   {:pre [(or (nil? image) (map? image))]}
   options)
 
+(def
+  ^{:doc
+    "Map from key to merge algorithm. Specifies how specs are merged."}
+  merge-spec-algorithm
+  {:phases :merge-comp
+   :roles :merge-union})
+
 (defn- merge-specs
   "Merge specs, using comp for :phases"
   [a b]
-  (let [phases (merge-with #(comp %2 %1) (:phases a) (:phases b))
-        roles (set/union (:roles a) (:roles b))]
-    (->
-     (merge a b)
-     (thread-expr/when-not->
-      (empty? phases)
-      (assoc :phases phases))
-     (thread-expr/when-not->
-      (empty? roles)
-      (assoc :roles roles)))))
+  (map-merge/merge-keys merge-spec-algorithm a b))
 
 (defn- extend-specs
   "Merge in the inherited specs"
@@ -203,6 +208,44 @@
    (dissoc :extends :node-spec)
    (assoc :group-name (keyword name))))
 
+(defn expand-cluster-groups
+  "Expand a node-set into its groups"
+  [node-set]
+  (cond
+   (sequential? node-set) (mapcat expand-cluster-groups node-set)
+   (map? node-set) (if-let [groups (:groups node-set)]
+                     (mapcat expand-cluster-groups groups)
+                     [node-set])
+   :else [node-set]))
+
+(defn expand-group-spec-with-counts
+  "Expand a converge node spec into its groups"
+  ([node-set spec-count]
+     (letfn [(*1 [x y] (* (or x 1) y))
+             (scale-spec [spec factor]
+               (update-in spec [:count] *1 factor))
+             (set-spec [node-spec]
+               (mapcat
+                (fn [[node-spec spec-count]]
+                  (if-let [groups (:groups node-spec)]
+                    (expand-group-spec-with-counts groups spec-count)
+                    [(assoc node-spec :count spec-count)]))
+                node-set))]
+       (cond
+        (sequential? node-set) (mapcat
+                                #(expand-group-spec-with-counts % spec-count)
+                                node-set)
+        (map? node-set) (if-let [groups (:groups node-set)]
+                          (let [spec (scale-spec node-set spec-count)]
+                            (mapcat
+                             #(expand-group-spec-with-counts % (:count spec))
+                             groups))
+                          (if (:group-name node-set)
+                            [(scale-spec node-set spec-count)]
+                            (set-spec node-spec)))
+        :else [(scale-spec node-set spec-count)])))
+  ([node-set] (expand-group-spec-with-counts node-set 1)))
+
 (defn cluster-spec
   "Create a cluster-spec.
 
@@ -210,7 +253,7 @@
 
    - :groups    specify a sequence of groups that define the cluster
 
-   - :extends   specify a server-spec, a group-spec, or sequence thereof,
+   - :extends   specify a server-spec, a group-spec, or sequence thereof
                 for all groups in the cluster
 
    - :phases    define phases on all groups.
@@ -238,7 +281,7 @@
                     (extend-specs extends)
                     (extend-specs [{:phases phases}])
                     (extend-specs [(select-keys group-spec [:phases])])))
-                 group-specs)))
+                 (expand-group-spec-with-counts group-specs 1))))
    (dissoc :extends :node-spec)
    (assoc :cluster-cluster-name (keyword cluster-name))))
 
@@ -304,7 +347,6 @@
   (-> session
       (assoc :node-type (:group session))
       (assoc :target-packager (-> session :server :packager))
-      (assoc :target-id (-> session :server :node-id))
       (assoc :target-node (-> session :server :node))))
 
 (defn show-target-keys
@@ -325,17 +367,17 @@
 (defn- executor [session f action-type location]
   (let [exec-fn (get-in session [:executor action-type location])]
     (when-not exec-fn
-      (condition/raise
-       :type :missing-executor-fn
-       :fn-for [action-type location]
-       :message (format
-                 "Missing executor function for %s %s"
-                 action-type location)))
+      (throw+
+       {:type :missing-executor-fn
+        :fn-for [action-type location]
+        :message (format
+                  "Missing executor function for %s %s"
+                  action-type location)}))
     (exec-fn session f)))
 
 (let [raise (fn [message]
               (fn [_ _]
-                (condition/raise :type :executor-error :message message)))]
+                (throw+ {:type :executor-error :message message})))]
   (def ^{:doc "Default executor map"}
     default-executors
     {:script/bash
@@ -364,13 +406,15 @@
          (get-in session [:group :packager])]}
   (let [error-fn (fn [message]
                    (fn [_ _]
-                     (condition/raise
-                      :type :booststrap-contains-non-remote-actions
-                      :message message)))
+                     (throw+
+                      {:type :booststrap-contains-non-remote-actions
+                       :message message})))
         [result session] (->
                           session
                           (assoc
                               :phase :bootstrap
+                              :target-type :node
+                              :target-id :bootstrap-id
                               :server (assoc (:group session)
                                         :node-id :bootstrap-id))
                           (assoc-in
@@ -392,120 +436,10 @@
                            executor
                            (environment/get-for
                             session [:algorithms :execute-status-fn])))]
+    (when-let [error (some :error result)]
+      (throw+ error))
     (string/join \newline result)))
 
-(defn- create-nodes
-  "Create count nodes based on the template for the group.
-   Returns a map with updated server node lists."
-  [count session]
-  {:pre [(map? (:group session))]}
-  (logging/info
-   (str "Starting " count " nodes for " (-> session :group :group-name)
-        " os-family " (-> session :group :image :os-family)))
-  (let [compute (:compute session)
-        session (update-in session [:group]
-                           #(compute/ensure-os-family compute %))
-        session (assoc-in session [:group :packager]
-                          (compute/packager (-> session :group :image)))
-        init-script (bootstrap-script session)
-        _ (logging/tracef "Bootstrap script:\n%s" init-script)
-        new-nodes (compute/run-nodes
-                   compute (:group session) count (:user session) init-script)]
-    {:new-nodes new-nodes}))
-
-(defn- destroy-nodes
-  "Destroys the specified number of nodes with the given group.  Nodes are
-   selected at random. Returns a map containing removed nodes."
-  [destroy-count session]
-  (logging/info
-   (str "destroying " destroy-count " nodes for "
-        (-> session :group :group-name)))
-  (let [compute (:compute session)
-        group (:group session)
-        servers (:servers group)]
-    (if (= destroy-count (count servers))
-      (do
-        (compute/destroy-nodes-in-group compute (name (:group-name group)))
-        {:old-nodes (map :node servers)})
-      (let [nodes (map :node servers)]
-        (doseq [node (take destroy-count nodes)]
-          (compute/destroy-node compute node))
-        {:old-nodes (vec (take destroy-count nodes))}))))
-
-(defn- node-count-difference
-  "Find the difference between the required and actual node counts by group."
-  [groups]
-  (->>
-   groups
-   (map
-    (fn [group]
-      (vector
-       (:group-name group) (- (:count group) (count (:servers group))))))
-   (into {})))
-
-(defn- adjust-node-count
-  "Adjust the node by delta nodes."
-  [{:keys [group-name environment servers] :as group} delta session]
-  (let [session (environment/session-with-environment
-                  (assoc session :group group)
-                  (environment/merge-environments
-                   (:environment session) environment))]
-    (logging/infof "adjust-node-count %s %d" group-name delta)
-    (cond
-     (pos? delta) (create-nodes delta session)
-     (neg? delta) (destroy-nodes (- delta) session))))
-
-(defn serial-adjust-node-counts
-  "Start or stop the specified number of nodes."
-  [delta-map session]
-  (logging/trace (str "serial-adjust-node-counts" delta-map))
-  (->>
-   (:groups session)
-   (map
-    (fn [group]
-      (adjust-node-count group ((:group-name group) delta-map 0) session)))
-   (reduce #(merge-with concat %1 %2))))
-
-(defn parallel-adjust-node-counts
-  "Start or stop the specified number of nodes."
-  [delta-map session]
-  (logging/trace (str "parallel-adjust-node-counts" delta-map))
-  (->>
-   (:groups session)
-   (map
-    (fn p-a-n-c-future [group]
-      (future
-        (adjust-node-count group ((:group-name group) delta-map 0) session))))
-   futures/add
-   doall ;; force generation of all futures
-   (map
-    (fn p-a-n-c-deref [f] (futures/deref-with-logging f "Adjust node count")))
-   (reduce (fn p-a-n-c-r [m1 m2] (merge-with concat m1 m2)) {})))
-
-(defn- converge-node-counts
-  "Converge the nodes counts, given a compute facility and a reference number of
-   instances. Returns a session object with :original-nodes, :all-nodes,
-   :new-nodes and :old-nodes keys."
-  [session]
-  (logging/info "converging nodes")
-  (let [delta-nodes ((environment/get-for session [:algorithms :converge-fn])
-                     (node-count-difference (:groups session))
-                     session)]
-    (->
-     session
-     (assoc :original-nodes (:all-nodes session))
-     (update-in [:all-nodes]
-                #(vec (->>
-                       %
-                       (concat (:new-nodes delta-nodes))
-                       (remove
-                        (fn [node] (some
-                                    (fn [n] (identical? n node))
-                                    (:old-nodes delta-nodes)))))))
-     (assoc-in [:new-nodes] (vec (:new-nodes delta-nodes)))
-     (assoc-in [:old-nodes] (vec (:old-nodes delta-nodes))))))
-
-;;; middleware
 
 (defn log-session
   "Log the session state"
@@ -562,19 +496,7 @@
    session executor
    (environment/get-for session [:algorithms :execute-status-fn])))
 
-(defn- apply-phase-to-node
-  "Apply a phase to a node session"
-  [session]
-  {:pre [(:server session) (:phase session)]}
-  (logutils/with-context [:target (compute/primary-ip
-                                   (-> session :server :node))
-                          :phase (:phase session)
-                          :group (-> session :group :group-name)]
-    ((middleware-handler execute)
-     (->
-      session
-      apply-environment
-      add-session-keys-for-0-4-compatibility))))
+;;; middleware
 
 (defn stop-execution-on-error
   ":execute-status-fn algorithm to stop execution on an error"
@@ -590,14 +512,19 @@
   [handler]
   (fn [session]
     (let [[results session] (handler session)
-          errors (seq (filter :error results))]
+          errors (seq (filter :error results))
+          error (:error (first errors))]
       (if errors
-        (do
+        ;; &throw-context is used by slingshot to get the cause
+        (let [&throw-context {:throwable (:cause error)}]
           (logging/errorf "errors found %s" (vec (map :error errors)))
-          (condition/raise (assoc (:error (first errors)) :all-errors errors)))
+          (throw+
+           (assoc error :all-errors errors)
+           "Error prevented completion of phase: %s"
+           (:message error)))
         [results session]))))
 
-(def *middleware*
+(def ^{:dynamic true} *middleware*
   [translate-action-plan
    execute/ssh-user-credentials
    execute/execute-with-ssh
@@ -612,12 +539,13 @@
   `(binding [*middleware* ~f]
      ~@body))
 
-(defn- reduce-node-results
-  "Combine the node execution results."
+;;; results
+(defn- reduce-phase-results
+  "Combine the phase execution results."
   [session results]
   (reduce
-   (fn reduce-node-results-fn [session [result req :as arg]]
-     (let [target-id (-> req :server :node-id)
+   (fn reduce-phase-results-fn [session [result req :as arg]]
+     (let [target-id (-> req :target-id)
            param-keys [:parameters]]
        (->
         session
@@ -630,17 +558,19 @@
    session
    results))
 
+;;; action plan
 (defn- plan-for-server
   "Build an action plan for the specified server."
   [session server]
   {:pre [(:node server) (:node-id server)]}
-  (logutils/with-context [:target (compute/primary-ip (:node server))]
+  (logutils/with-context [:target (node/primary-ip (:node server))]
     (logging/debugf "p-f-s server environment %s" (:environment server))
     (action-plan/build-for-target
      (->
       session
       (assoc :server server)
       add-session-keys-for-0-4-compatibility
+      (assoc :target-id (:node-id server))
       (environment/session-with-environment
         (environment/merge-environments
          (:environment session)
@@ -670,40 +600,142 @@
        (plan-for-groups (assoc session :phase phase) (:groups session))))
    session (:phase-list session)))
 
+
+(defn- plan-for-group-phase
+  "Build an invocation map for specified groups map."
+  [session groups]
+  (reduce
+   (fn [session group]
+     (logutils/with-context [:group (:group-name group)]
+       (action-plan/build-for-target
+        (->
+         session
+         (assoc :target-id (:group-name group) :group group)
+         (environment/session-with-environment
+           (environment/merge-environments
+            (:environment session)
+            (:environment group)))))))
+   session groups))
+
+(defmulti plan-for-target :target-type)
+
+(defmethod plan-for-target :node
+  [session]
+  (plan-for-groups session (:groups session)))
+
+(defmethod plan-for-target :group
+  [session]
+  (plan-for-group-phase session (:groups session)))
+
+;;; Phase application
+(defn has-phase?
+  [session]
+  (let [phase (:phase session)]
+    (action-plan/phase-for-target
+     (assoc session :phase (or (phase/subphase-for phase) phase)))))
+
+(defn- apply-phase-to-node
+  "Apply a phase to a node session"
+  [session]
+  {:pre [(:server session) (:phase session)]}
+  (logging/debugf
+   "apply-phase-to-node: phase %s group %s target %s"
+   (:phase session)
+   (-> session :group :group-name)
+   (node/primary-ip (-> session :server :node)))
+  (logutils/with-context [:target (node/primary-ip
+                                   (-> session :server :node))
+                          :phase (:phase session)
+                          :group (-> session :group :group-name)]
+    ((middleware-handler execute)
+     (->
+      session
+      apply-environment
+      add-session-keys-for-0-4-compatibility))))
+
+(defn- apply-phase-to-group
+  "Apply a phase to a group"
+  [session]
+  {:pre [(:group session) (:phase session)]}
+  (logging/debugf
+   "apply-phase-to-group: phase %s group %s"
+   (:phase session)
+   (-> session :group :group-name))
+  (logutils/with-context [:phase (:phase session)
+                          :group (-> session :group :group-name)]
+    ((middleware-handler execute)
+     session)))
+
+(defmulti sequential-apply-phase-to-target :target-type)
+
+(defmethod sequential-apply-phase-to-target :node
+  [session]
+  (logging/infof
+   "sequential-apply-phase-to-target :node  %s for %s with %d nodes"
+   (:phase session)
+   (-> session :group :group-name)
+   (count (-> session :group :servers)))
+  (for [server (-> session :group :servers)
+        :when (not (:invoke-only server))
+        :let [session (assoc session
+                        :server server :target-id (:node-id server))]
+        :when (has-phase? session)]
+    (apply-phase-to-node session)))
+
+(defmethod sequential-apply-phase-to-target :group
+  [session]
+  (logging/infof
+   "sequential-apply-phase-to-target :group  %s for %s"
+   (:phase session) (-> session :group :group-name))
+  (let [session (assoc session :target-id (-> session :group :group-name))]
+    (when (has-phase? session)
+      [(apply-phase-to-group session)])))
+
 (defn sequential-apply-phase
   "Apply a phase to a sequence of nodes"
-  [session servers]
+  [session]
   (logging/infof
-   "apply-phase %s for %s with %d nodes"
-   (:phase session) (-> session :group :group-name) (count servers))
-  (for [server servers]
-    (apply-phase-to-node (assoc session :server server))))
+   "sequential-apply-phase %s for %s"
+   (:phase session) (-> session :group :group-name))
+  (sequential-apply-phase-to-target session))
+
+(defmulti parallel-apply-phase-to-target :target-type)
+
+(defmethod parallel-apply-phase-to-target :node
+  [session]
+  (logging/infof
+   "parallel-apply-phase-to-target :node  %s for %s with %d nodes"
+   (:phase session)
+   (-> session :group :group-name)
+   (count (-> session :group :servers)))
+  (for [server (-> session :group :servers)
+        :when (not (:invoke-only server))
+        :let [session (assoc session
+                        :server server :target-id (:node-id server))]
+        :when (has-phase? session)]
+    (future (apply-phase-to-node session))))
+
+(defmethod parallel-apply-phase-to-target :group
+  [session]
+  (logging/infof
+   "parallel-apply-phase-to-target :group  %s for %s"
+   (:phase session) (-> session :group :group-name))
+  (let [session (assoc session :target-id (-> session :group :group-name))]
+    (when (has-phase? session)
+      [(future (apply-phase-to-group session))])))
 
 (defn parallel-apply-phase
   "Apply a phase to a sequence of nodes"
-  [session servers]
+  [session]
   (logging/infof
-   "apply-phase %s for %s with %d nodes"
-   (:phase session) (-> session :group :group-name) (count servers))
-  (->>
-   servers
-   (map (fn [server]
-          (future (apply-phase-to-node (assoc session :server server)))))
-   futures/add))
+   "parallel-apply-phase %s for %s"
+   (:phase session) (-> session :group :group-name))
+  (futures/add (parallel-apply-phase-to-target session)))
 
 (defn- ensure-phase [phases phase-kw]
   (if (some #{phase-kw} phases)
     phases
     (concat [phase-kw] phases)))
-
-(defn- identify-anonymous-phases
-  [session phases]
-  (reduce #(if (keyword? %2)
-             [(first %1)
-              (conj (second %1) %2)]
-             (let [phase (keyword (name (gensym "phase")))]
-               [(assoc-in (first %1) [:phases phase] %2)
-                (conj (second %1) phase)])) [session []] phases))
 
 (defn sequential-lift
   "Sequential apply the phases."
@@ -711,20 +743,20 @@
   (apply
    concat
    (for [group (:groups session)]
-     (sequential-apply-phase (assoc session :group group) (:servers group)))))
+     (sequential-apply-phase (assoc session :group group)))))
 
 (defn parallel-lift
   "Apply the phases in sequence, to nodes in parallel."
   [session]
   (->>
    (for [group (:groups session)]
-     (parallel-apply-phase (assoc session :group group) (:servers group)))
+     (parallel-apply-phase (assoc session :group group)))
    (reduce concat [])
    doall                        ; make sure we start all futures before deref
    (map deref)                  ; make sure all nodes complete before next phase
    doall))                      ; make sure we force the deref
 
-(defn lift-nodes-for-phase
+(defn lift-phase
   "Lift nodes in target-node-map for the specified phases.
 
    Builds the commands for the phase, then executes pre-phase, phase, and
@@ -737,9 +769,9 @@
        (let [session (->
                       session
                       (assoc :phase phase)
-                      (plan-for-groups (:groups session))
+                      plan-for-target
                       (assoc :phase sub-phase))]
-         (reduce-node-results session (lift-fn session))))
+         (reduce-phase-results session (lift-fn session))))
      session
      (phase/all-phases-for-phase phase))))
 
@@ -755,15 +787,308 @@
      (->
       session
       (assoc :phase phase)
-      (plan-for-groups (:groups session))
-      lift-nodes-for-phase))
-   session
+      plan-for-target
+      lift-phase))
+   (assoc session :target-type :node)
    (:phase-list session)))
+
+(defn- lift-group-phase
+  [session]
+  (logging/infof
+   "lift-group-phase phases %s, groups %s"
+   (vec (:phase-list session))
+   (vec (map :group-name (:groups session))))
+  (reduce
+   (fn [session phase]
+     (->
+      session
+      (assoc :phase phase)
+      plan-for-target
+      lift-phase))
+   (assoc session :target-type :group)
+   (:phase-list session)))
+
+;;; node create/destroy
+
+(defn- create-nodes
+  "Create count nodes based on the template for the group.
+   Returns a map with updated server node lists."
+  [session]
+  {:pre [(map? (:group session))]}
+  (let [group (:group session)]
+    (when-not (seq (-> group :image))
+      (throw+
+       {:message (format
+                  "No :image specified in node-spec for group %s"
+                  (:group-name group))
+        :group (:group session)
+        :type :pallet/could-not-start-new-nodes}))
+    (logging/infof
+     "Starting %s nodes for %s, os-family %s"
+     (:delta-count group) (:group-name group) (-> group :image :os-family)))
+  (let [compute (:compute session)
+        count (-> session :group :delta-count)
+        session (update-in session [:group]
+                           #(compute/ensure-os-family compute %))
+        session (assoc-in session [:group :packager]
+                          (compute/packager (-> session :group :image)))
+        init-script (bootstrap-script session)
+        _ (logging/tracef "Bootstrap script:\n%s" init-script)
+        new-nodes (compute/run-nodes
+                   compute (:group session) count (:user session) init-script
+                   (-> session :environment :provider-options))]
+    (when-not (seq new-nodes)
+      (throw+
+       {:message "No additional nodes could be started"
+        :group (:group session)
+        :type :pallet/could-not-start-new-nodes}))
+    (->
+     session
+     (assoc-in [:groups-new-nodes (-> session :group :group-name)] new-nodes)
+     (update-in [:new-nodes] concat new-nodes))))
+
+(defn- servers-to-remove
+  "Finds the specified number of nodes to be removed from the given group.
+   Nodes are selected at random. Update the :groups-with-servers-to-remove key
+   of the session."
+  [group]
+  (let [destroy-count (- (:delta-count group 0))]
+    (if (pos? destroy-count)
+      (do
+        (logging/infof
+         "Select %s nodes for destruction in group %s"
+         destroy-count (:group-name group))
+        (assoc group
+          :servers-to-remove (take destroy-count (:servers group))))
+      group)))
+
+(defn- remove-nodes
+  "Destroys the specified number of nodes with the given group.  Nodes are
+   selected at random. Returns a map containing removed nodes."
+  [session]
+  (let [compute (:compute session)
+        group (:group session)
+        servers (:servers-to-remove group)
+        nodes (map :node servers)]
+    (logging/infof
+     "destroying %s nodes for %s, remove-group %s"
+     (count servers) (:group-name group) (:remove-group group))
+    (if (:remove-group group)
+      (compute/destroy-nodes-in-group compute (name (:group-name group)))
+      (doseq [node nodes] (compute/destroy-node compute node)))
+    (->
+     session
+     (assoc-in [:groups-old-nodes (:group-name group)] nodes)
+     (update-in [:old-nodes] concat nodes))))
+
+;;; deltas-fn's, for calculating node counts to add or remove
+(defn- deltas-for-converge-to-count
+  "Find the difference between the required and actual node counts by group."
+  [group]
+  (assoc group :delta-count (- (:count group) (count (:servers group)))))
+
+(defn- deltas-for-delta-count
+  "Find the difference between the required and actual node counts by group."
+  [group]
+  (assoc group :delta-count (:count group)))
+
+(defn- adjust-node-count
+  "Adjust the server count by :delta-count nodes."
+  [session op group]
+  (let [session (->
+                 session
+                 (assoc :group group)
+                 (environment/session-with-environment
+                   (environment/merge-environments
+                    (:environment session)
+                    (:environment group))))]
+    (logging/infof "adjust-server-count %s" (:group-name group))
+    (op session)))
+
+(defn- server-with-packager
+  "Add the target packager to the session"
+  [server]
+  (update-in server [:packager]
+             (fn [p] (or p
+                         (-> server :image :packager)
+                         (compute/packager (:image server))))))
+
+
+(defn server
+  "Take a `group` and a `node`, an `options` map and combine them to produce
+   a server.
+
+   The group os-family, os-version, are replaced with the details form the
+   node. The :node key is set to `node`, and the :node-id and :packager keys
+   are set.
+
+   `options` allows adding extra keys on the server."
+  [group node options]
+  (->
+   group
+   (update-in [:image :os-family] (fn [f] (or (node/os-family node) f)))
+   (update-in [:image :os-version] (fn [f] (or (node/os-version node) f)))
+   (update-in [:node-id] (fn [id] (or (keyword (node/id node)) id)))
+   (assoc :node node)
+   server-with-packager
+   (merge options)))
+
+(defn update-group-servers
+  [groups old-nodes new-nodes]
+  (map
+   (fn [{:keys [group-name] :as group}]
+     (->
+      group
+      (update-in [:servers] (fn [servers]
+                              (remove
+                               (comp (set (get old-nodes group-name)) :node)
+                               servers)))
+      (update-in [:servers] concat
+                 (map #(server group % nil) (get new-nodes group-name)))))
+   groups))
+
+(defn reduce-adjust-nodes
+  "reduce the result of an adjust-node onto a session"
+  [session session-adjust]
+  (->
+   session
+   (update-in [:new-nodes] concat (:new-nodes session-adjust))
+   (update-in [:old-nodes] concat (:old-nodes session-adjust))
+   (update-in [:groups-old-nodes] merge (:groups-old-nodes session-adjust))
+   (update-in [:groups-new-nodes] merge (:groups-new-nodes session-adjust))))
+
+(defn adjust-session-for-nodes
+  "Take :new-nodes and :old-nodes, and adjust :original-nodes and :all-nodes"
+  [session]
+  (->
+   session
+   (assoc :original-nodes (:all-nodes session))
+   (update-in [:all-nodes]
+              #(vec (->>
+                     %
+                     (concat (:new-nodes session))
+                     (remove
+                      (fn [node] (some
+                                  (fn [n] (identical? n node))
+                                  (:old-nodes session)))))))
+   (update-in [:groups]
+              update-group-servers
+              (:groups-old-nodes session)
+              (:groups-new-nodes session))))
+
+(defn serial-adjust-node-counts
+  "Start or stop the specified number of nodes."
+  [session op groups]
+  (logging/tracef "serial-adjust-node-counts")
+  (adjust-session-for-nodes
+   (reduce
+    (fn [session group] (adjust-node-count session op group))
+    session
+    groups)))
+
+(defn parallel-adjust-node-counts
+  "Start or stop the specified number of nodes."
+  [session op groups]
+  (logging/tracef "parallel-adjust-node-counts")
+  (->>
+   groups
+   (map
+    (fn p-a-n-c-future [group]
+      (future (adjust-node-count session op group))))
+   futures/add
+   doall ;; force generation of all futures
+   (map
+    (fn p-a-n-c-deref [f]
+      (futures/deref-with-logging f "Adjust node count")))
+   (reduce reduce-adjust-nodes session)
+   adjust-session-for-nodes))
+
+(defn lift-with-alternative-groups-and-phases
+  [session f]
+  (assoc (f session)
+    :groups (:groups session)
+    :phase-list (:phase-list session)))
+
+(defn lift-destroy-server
+  [session]
+  (lift-with-alternative-groups-and-phases
+    session
+    (fn [session]
+      (lift-nodes
+       (-> session
+           (update-in [:groups]
+                      #(->>
+                        (filter :servers-to-remove %)
+                        (map (fn [group]
+                               (assoc group
+                                 :servers (:servers-to-remove group))))))
+           (assoc :phase-list [:destroy-server]))))))
+
+(defn destroy-servers
+  [session]
+  ((environment/get-for session [:algorithms :converge-fn])
+   session
+   remove-nodes
+   (filter :servers-to-remove (:groups session))))
+
+(defn lift-destroy-group
+  [session]
+  (lift-with-alternative-groups-and-phases
+    session
+    (fn [session]
+      (lift-group-phase
+       (-> session
+           (update-in [:groups]
+                      #(->> %
+                            (filter (comp neg? (fn [g] (:delta-count g 0))))
+                            (filter (comp empty? :servers))))
+           (assoc :phase-list [:destroy-group]))))))
+
+(defn lift-create-group
+  [session]
+  (lift-with-alternative-groups-and-phases
+    session
+    (fn [session]
+      (lift-group-phase
+       (-> session
+           (update-in [:groups]
+                      #(->> %
+                            (filter (comp pos? (fn [g] (:delta-count g 0))))
+                            (filter (comp empty? :servers))))
+           (assoc :phase-list [:create-group]))))))
+
+(defn create-servers
+  [session]
+  ((environment/get-for session [:algorithms :converge-fn])
+   session
+   create-nodes
+   (filter (comp pos? :delta-count) (:groups session))))
+
+(defn- adjust-server-counts
+  "Adjust the server counts, given a compute facility and a map of ops and
+   number of instances. Returns a session object with :original-nodes
+   :all-nodes, :new-nodes and :old-nodes keys.
+
+   - for nodes to be removed, select the nodes to be removed.
+   - for nodes to be removed, run :destroy-server phase on each.
+   - destroy any nodes required
+   - for groups with no nodes left, run :destroy-group on each.
+   - for groups with no nodes, that should have nodes started, run :create-group
+   - create any nodes required"
+  [session]
+  (-> session
+      (update-in [:groups] (partial map servers-to-remove))
+      lift-destroy-server
+      destroy-servers
+      lift-destroy-group
+      lift-create-group
+      create-servers))
 
 (def
   ^{:doc
     "Flag to control output of warnings about undefined phases in calls to lift
-     and converge."}
+     and converge."
+    :dynamic true}
   *warn-on-undefined-phase* true)
 
 (defn- warn-on-undefined-phase
@@ -829,13 +1154,13 @@
 (defn- node-in-types?
   "Predicate for matching a node belonging to a set of node types"
   [node-types node]
-  (some #(= (compute/group-name node) (name (% :group-name))) node-types))
+  (some #(= (node/group-name node) (name (% :group-name))) node-types))
 
 (defn- nodes-for-group
   "Return the nodes that have a group-name that matches one of the node types"
   [nodes group]
   (let [group-name (name (:group-name group))]
-    (filter #(compute/node-in-group? group-name %) nodes)))
+    (filter #(node/node-in-group? group-name %) nodes)))
 
 (defn- group-spec?
   "Predicate for testing if argument is a node-spec.
@@ -873,32 +1198,6 @@
             #(merge-with concat %1 %2) {}
             (map #(nodes-in-set % prefix nodes) node-set)))))
 
-(defn- server-with-packager
-  "Add the target packager to the session"
-  [server]
-  (update-in server [:packager]
-             (fn [p] (or p
-                         (-> server :image :packager)
-                         (compute/packager (:image server))))))
-
-(defn server
-  "Take a `group` and a `node`, an `options` map and combine them to produce
-   a server.
-
-   The group os-family, os-version, are replaced with the details form the
-   node. The :node key is set to `node`, and the :node-id and :packager keys
-   are set.
-
-   `options` allows adding extra keys on the server."
-  [group node options]
-  (->
-   group
-   (update-in [:image :os-family] (fn [f] (or (compute/os-family node) f)))
-   (update-in [:image :os-version] (fn [f] (or (compute/os-version node) f)))
-   (update-in [:node-id] (fn [id] (or (keyword (compute/id node)) id)))
-   (assoc :node node)
-   server-with-packager
-   (merge options)))
 
 (defn groups-with-servers
   "Takes a map from node-spec to sequence of nodes, and converts it to a
@@ -919,25 +1218,27 @@
       :servers (map
                 (fn [node]
                   (server group node {:invoke-only (not (execute-node? node))}))
-                (filter compute/running? nodes)))))
+                (filter node/running? nodes)))))
 
 (defn session-with-all-nodes
   "If the :all-nodes key is not set, then the nodes are retrieved from the
    compute service if possible."
   [session]
   (let [nodes (filter
-               compute/running?
+               node/running?
                (or (:all-nodes session) ; empty list is ok
                    (if-let [compute (environment/get-for
                                      session [:compute] nil)]
                      (do
                        (logging/info "retrieving nodes")
                        (compute/nodes compute))
-                     (filter
-                      compute/node?
-                      (mapcat
-                       #(let [v (val %)] (if (seq? v) v [v]))
-                       (:node-set session))))))]
+                     (->>
+                      (:node-set session)
+                      (filter #(and (map? %) (every? map? (keys %))))
+                      (mapcat vals)
+                      (mapcat #(if (seq? %) % [%]))
+                      (filter node/node?)
+                      (distinct)))))]
     (assoc session :all-nodes nodes :selected-nodes nodes)))
 
 (defn session-with-groups
@@ -953,22 +1254,23 @@
         all-targets (nodes-in-set
                      (:node-set session) (:prefix session) all-nodes)
         targets (nodes-in-set (:node-set session) (:prefix session) nodes)
-        plan-targets (if-let [all-node-set (:all-node-set session)]
+        nodes (or (or (seq nodes)
+                      (filter
+                       node/running?
+                       (reduce concat (vals targets)))))
+        plan-targets (when-let [all-node-set (seq (:all-node-set session))]
                        (-> (nodes-in-set all-node-set nil all-nodes)
                            (utils/dissoc-keys (keys targets))))]
     (->
      session
      (assoc :all-nodes (or (seq all-nodes)
                            (filter
-                            compute/running?
+                            node/running?
                             (reduce
                              concat
                              (concat
                               (vals all-targets) (vals plan-targets))))))
-     (assoc :selected-nodes (or (seq nodes)
-                                (filter
-                                 compute/running?
-                                 (reduce concat (vals targets)))))
+     (assoc :selected-nodes nodes)
      (assoc :groups (concat
                      (groups-with-servers targets (set nodes))
                      (groups-with-servers plan-targets (constantly false)))))))
@@ -1021,7 +1323,8 @@
    session-with-all-nodes
    session-with-groups
    session-with-configure-phase
-   converge-node-counts
+   (update-in [:groups] (partial map deltas-for-converge-to-count))
+   adjust-server-counts
    lift*))
 
 (defmacro or-fn [& args]
@@ -1082,9 +1385,9 @@
     (:environment session))))                                 ; session default
 
 (def ^{:doc "args that are really part of the environment"}
-  environment-args [:compute :blobstore :user :middleware])
+  environment-args [:compute :blobstore :user :middleware :provider-options])
 
-(defn- session-with-environment
+(defn session-with-environment
   "Build a session map from the given options, combining the service specific
    options with those given in the converge or lift invocation."
   [{:as options}]
@@ -1102,24 +1405,24 @@
   argument-keywords
   #{:compute :blobstore :phase :user :prefix :middleware :all-node-set
     :all-nodes :parameters :environment :node-set :phase-list
-    :node-set-selector})
+    :node-set-selector :provider-options})
 
 (defn- check-arguments-map
   "Check an arguments map for errors."
   [{:as options}]
   (let [unknown (remove argument-keywords (keys options))]
     (when (and (:phases options) (not (:phase options)))
-      (condition/raise
-       :type :invalid-argument
-       :message (str
-                 "Please pass :phase and not :phases. :phase takes a single "
-                 "phase or a sequence of phases.")
-       :invalid-keys unknown))
+      (throw+
+       {:type :invalid-argument
+        :message (str
+                  "Please pass :phase and not :phases. :phase takes a single "
+                  "phase or a sequence of phases.")
+        :invalid-keys unknown}))
     (when (seq unknown)
-      (condition/raise
-       :type :invalid-argument
-       :message (format "Invalid argument keywords %s" (vec unknown))
-       :invalid-keys unknown)))
+      (throw+
+       {:type :invalid-argument
+        :message (format "Invalid argument keywords %s" (vec unknown))
+        :invalid-keys unknown})))
   options)
 
 (defn- identify-anonymous-phases
@@ -1188,7 +1491,7 @@
   (converge*
    (->
     options
-    (assoc :node-set (node-set-for-converge group-spec->count)
+    (assoc :node-set (expand-group-spec-with-counts group-spec->count)
            :phase-list (if (sequential? phase)
                          phase
                          (if phase [phase] [:configure])))
@@ -1226,12 +1529,12 @@
   (lift*
    (->
     options
-    (assoc :node-set node-set
+    (assoc :node-set (expand-cluster-groups node-set)
            :phase-list (if (sequential? phase)
                          phase
                          (if phase [phase] [:configure])))
     check-arguments-map
-    (dissoc :all-node-set :phase)
+    (dissoc :phase)
     session-with-environment
     identify-anonymous-phases)))
 

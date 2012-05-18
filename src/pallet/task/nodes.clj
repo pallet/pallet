@@ -2,7 +2,7 @@
   "list nodes."
   (:require
    [pallet.compute :as compute]
-   [clojure.contrib.pprint :as pprint])
+   [clojure.pprint :as pprint])
   (:use clojure.tools.logging))
 
 (defn nodes

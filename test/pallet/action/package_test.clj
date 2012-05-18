@@ -17,7 +17,7 @@
    [pallet.stevedore :as stevedore]
    [pallet.target :as target]
    [pallet.test-utils :as test-utils]
-   [clojure.contrib.io :as io]))
+   [clojure.java.io :as io]))
 
 (use-fixtures
  :each
@@ -40,7 +40,18 @@
               "Packages"
               (~lib/package-manager-non-interactive)
               "aptitude install -q -y java+ rubygems+ git- ruby_"
-              (aptitude search (quoted "~i")))))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^java$))"))
+                    (grep (quoted "java")))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^rubygems$))"))
+                    (grep (quoted "rubygems")))
+              (not (pipe (aptitude
+                          search (quoted "?and(?installed, ?name(^git$))"))
+                         (grep (quoted "git"))))
+              (not (pipe (aptitude
+                          search (quoted "?and(?installed, ?name(^ruby$))"))
+                         (grep (quoted "ruby")))))))
            (first
             (build-actions/build-actions
              {}
@@ -240,7 +251,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           (remote-file*
            {:server a}
            "/etc/apt/sources.list.d/source1.list"
-           :content "deb http://somewhere/apt $(lsb_release -c -s) main\n"))
+           :content "deb http://somewhere/apt $(lsb_release -c -s) main"))
          (package-source*
           {:server a}
           "source1"
@@ -281,7 +292,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (remote-file*
              {:server a}
              "/etc/apt/sources.list.d/source1.list"
-             :content "deb http://somewhere/apt $(lsb_release -c -s) main\n")
+             :content "deb http://somewhere/apt $(lsb_release -c -s) main")
             (stevedore/script
              (apt-key adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
            (package-source*
@@ -290,7 +301,24 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             :aptitude {:url "http://somewhere/apt"
                        :scopes ["main"]
                        :key-id 1234}
-            :yum {:url "http://somewhere/yum"})))))
+            :yum {:url "http://somewhere/yum"})))
+    (testing "key-server"
+      (is (= (stevedore/checked-commands
+            "Package source"
+            (remote-file*
+             {:server a}
+             "/etc/apt/sources.list.d/source1.list"
+             :content "deb http://somewhere/apt $(lsb_release -c -s) main")
+            (stevedore/script
+             (apt-key adv "--keyserver" keys.ubuntu.com "--recv-keys" 1234)))
+           (package-source*
+            {:server a}
+            "source1"
+            :aptitude {:url "http://somewhere/apt"
+                       :scopes ["main"]
+                       :key-server "keys.ubuntu.com"
+                       :key-id 1234}
+            :yum {:url "http://somewhere/yum"}))))))
 
 (deftest package-source-test
   (let [a (core/group-spec "a" :packager :aptitude)
@@ -300,7 +328,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (remote-file*
              {:server a}
              "/etc/apt/sources.list.d/source1.list"
-             :content "deb http://somewhere/apt $(lsb_release -c -s) main\n"))
+             :content "deb http://somewhere/apt $(lsb_release -c -s) main"))
            (first (build-actions/build-actions
                    {:server a}
                    (package-source
@@ -392,7 +420,18 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               "Packages"
               (~lib/package-manager-non-interactive)
               (aptitude install -q -y p1- p4_ p2+ p3+)
-              (aptitude search (quoted "~i")))
+              (not (pipe (aptitude
+                          search (quoted "?and(?installed, ?name(^p1$))"))
+                         (grep (quoted "p1"))))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^p2$))"))
+                    (grep (quoted "p2")))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^p3$))"))
+                    (grep (quoted "p3")))
+              (not (pipe (aptitude
+                          search (quoted "?and(?installed, ?name(^p4$))"))
+                         (grep (quoted "p4")))))
              (adjust-packages
               {:server {:packager :aptitude}}
               [{:package "p1" :action :remove}
@@ -406,11 +445,28 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               (~lib/package-manager-non-interactive)
               (aptitude install -q -y -t r1 p2+)
               (aptitude install -q -y p1+)
-              (aptitude search (quoted "~i")))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^p1$))"))
+                    (grep (quoted "p1")))
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^p2$))"))
+                    (grep (quoted "p2"))))
              (adjust-packages
               {:server {:packager :aptitude}}
               [{:package "p1" :action :install :priority 20}
                {:package "p2" :action :install :enable ["r1"] :priority 2}])))))
+  (testing "aptitude with package name needing escaping"
+    (script/with-script-context [:aptitude]
+      (is (= (stevedore/checked-script
+              "Packages"
+              (~lib/package-manager-non-interactive)
+              (aptitude install -q -y sql+++)
+              (pipe (aptitude
+                     search (quoted "?and(?installed, ?name(^sql\\+\\+$))"))
+                    (grep (quoted "sql++"))))
+             (adjust-packages
+              {:server {:packager :aptitude}}
+              [{:package "sql++" :action :install}])))))
   (testing "yum"
     (is (= (stevedore/checked-script
             "Packages"
@@ -463,3 +519,17 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
         (build-actions/build-actions
          {:server {:packager :yum}}
          (add-rpm "jpackage-utils-compat" :url "http:url"))))))
+
+(deftest install-deb-test
+  (is (=
+       (first
+        (build-actions/build-actions
+         {:server {:packager :aptitude}}
+         (remote-file/remote-file "jpackage-utils-compat" :url "http:url")
+         (exec-script/exec-checked-script
+          "Install deb jpackage-utils-compat"
+          (dpkg -i --skip-same-version "jpackage-utils-compat"))))
+       (first
+        (build-actions/build-actions
+         {:server {:packager :aptitude}}
+         (install-deb "jpackage-utils-compat" :url "http:url"))))))

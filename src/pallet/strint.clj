@@ -1,6 +1,6 @@
 (ns pallet.strint
  "Runtime string interpolation built on top of clojure.contrib.strint."
- (:use clojure.contrib.strint)
+ (:use pallet.common.strint)
  (:require
    clojure.walk))
 
@@ -18,4 +18,4 @@
                             (if (seq x)
                               (eval (clojure.walk/prewalk-replace value-map x))
                               x)))
-                  (#'clojure.contrib.strint/interpolate f))))
+                  (#'pallet.common.strint/interpolate f))))

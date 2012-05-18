@@ -1,7 +1,7 @@
 (ns pallet.resource-test
   (:use pallet.resource)
   (:require
-   [clojure.contrib.string :as string]
+   [clojure.string :as string]
    [pallet.common.logging.logutils :as logutils])
   (:use
    clojure.test))

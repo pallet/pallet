@@ -17,49 +17,48 @@
    [pallet.stevedore :as stevedore]
    [pallet.template :as templates]
    [pallet.utils :as utils]
-   [clojure.contrib.def :as def]
    [clojure.java.io :as io])
   (:use
    pallet.thread-expr))
 
-(def install-new-files true)
-(def force-overwrite false)
+(def ^{:dynamic true} *install-new-files* true)
+(def ^{:dynamic true} *force-overwrite* false)
 
 (defn set-install-new-files
   "Set boolean flag to control installation of new files"
   [flag]
-  (alter-var-root #'install-new-files (fn [_] flag)))
+  (alter-var-root #'*install-new-files* (fn [_] flag)))
 
 (defn set-force-overwrite
   "Globally force installation of new files, even if content on node has
   changed."
   [flag]
-  (alter-var-root #'force-overwrite (fn [_] flag)))
+  (alter-var-root #'*force-overwrite* (fn [_] flag)))
 
-(def/defvar
+(def
+  ^{:doc "A vector of the options accepted by remote-file.  Can be used for
+          option forwarding when calling remote-file from other crates."}
   content-options
   [:local-file :remote-file :url :md5 :content :literal :template :values
-   :action :blob :blobstore :insecure]
-  "A vector of the options accepted by remote-file.  Can be used for option
-  forwarding when calling remote-file from other crates.")
+   :action :blob :blobstore :insecure])
 
-(def/defvar
+(def
+  ^{:doc "A vector of options for controlling versions. Can be used for option
+          forwarding when calling remote-file from other crates."}
   version-options
-  [:overwrite-changes :no-versioning :max-versions :flag-on-changed]
-  "A vector of options for controlling versions. Can be used for option
-  forwarding when calling remote-file from other crates.")
+  [:overwrite-changes :no-versioning :max-versions :flag-on-changed])
 
-(def/defvar
+(def
+  ^{:doc "A vector of options for controlling ownership. Can be used for option
+          forwarding when calling remote-file from other crates."}
   ownership-options
-  [:owner :group :mode]
-  "A vector of options for controlling ownership. Can be used for option
-  forwarding when calling remote-file from other crates.")
+  [:owner :group :mode])
 
-(def/defvar
+(def
+  ^{:doc "A vector of the options accepted by remote-file.  Can be used for
+          option forwarding when calling remote-file from other crates."}
   all-options
-  (concat content-options version-options ownership-options)
-  "A vector of the options accepted by remote-file.  Can be used for option
-  forwarding when calling remote-file from other crates.")
+  (concat content-options version-options ownership-options))
 
 (defn- get-session
   "Build a curl or wget command from the specified session object."
@@ -165,7 +164,7 @@
                             :insecure ~insecure)
                            (~lib/normalise-md5 @newmd5path)
                            (if (|| (not (file-exists? ~md5-path))
-                                   (~lib/diff @newmd5path ~md5-path))
+                                   (not (~lib/diff @newmd5path ~md5-path)))
                              (do
                                (~lib/download-file
                                 ~url ~new-path :proxy ~proxy
@@ -213,9 +212,9 @@
                 (str "remote-file " path " specified without content."))))
 
        ;; process the new file accordingly
-       (when install-new-files
+       (when *install-new-files*
          (stevedore/chain-commands
-          (if (or overwrite-changes no-versioning force-overwrite)
+          (if (or overwrite-changes no-versioning *force-overwrite*)
             (stevedore/script
              (if (file-exists? ~new-path)
                (do
@@ -363,5 +362,5 @@ Content can also be copied from a blobstore.
      (apply-map->
       remote-file-action path
       (merge
-       {:overwrite-changes force-overwrite} ;; capture the value of the flag
+       {:overwrite-changes *force-overwrite*} ;; capture the value of the flag
        options)))))

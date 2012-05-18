@@ -4,6 +4,7 @@
    This is the official crate API for extracting information from the session."
   (:require
    [pallet.compute :as compute]
+   [pallet.node :as node]
    [pallet.utils :as utils]))
 
 (defn safe-id
@@ -30,7 +31,7 @@
 (defn target-name
   "Name of the target-node."
   [session]
-  (compute/hostname (target-node session)))
+  (node/hostname (target-node session)))
 
 (defn target-id
   "Id of the target-node (unique for provider)."
@@ -40,7 +41,7 @@
 (defn target-ip
   "IP of the target-node."
   [session]
-  (compute/primary-ip (target-node session)))
+  (node/primary-ip (target-node session)))
 
 (defn target-roles
   "Roles of the target server."
@@ -81,7 +82,7 @@
   ([session] (nodes-in-group session (group-name session)))
   ([session group-name]
      (filter
-      #(= (name group-name) (compute/group-name %))
+      #(= (name group-name) (node/group-name %))
       (:all-nodes session))))
 
 (defn groups-with-role
@@ -114,4 +115,4 @@
 (defn is-64bit?
   "Predicate for a 64 bit target"
   [session]
-  (compute/is-64bit? (target-node session)))
+  (node/is-64bit? (target-node session)))

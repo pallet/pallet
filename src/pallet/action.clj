@@ -2,25 +2,22 @@
   "Actions implement the conversion of phase functions to script and other
    execution code.
 
-   An action has a :action-type. Known types include :script/bash
-   and :fn/clojure.
+   An action has an `:action-type`. Known types include `:script/bash`
+   and `:fn/clojure`.
 
-   An action has a :location, :origin for execution on the node running
-   pallet, and :target for the target node.
+   An action has a `:location`, with a value of `:origin` for execution on the
+   node running pallet, and `:target` for the target node.
 
-   An action has an :execution, which is one of :aggregated, :in-sequence or
-   :collected. Calls to :aggregated actions will be grouped, and run before
-   :in-sequence actions. Calls to :collected actions will be grouped, and run
-   after :in-sequence actions."
+   An action has an `:execution`, which is one of `:aggregated`, `:in-sequence`
+   or `:collected`. Calls to `:aggregated` actions will be grouped, and run
+   before `:in-sequence` actions. Calls to `:collected` actions will be grouped,
+   and run after `:in-sequence` actions."
   {:author "Hugo Duncan"}
   (:require
    [pallet.action-plan :as action-plan]
    [pallet.argument :as argument]
-   [pallet.session :as session]
-   [clojure.contrib.condition :as condition]
-   [clojure.contrib.def :as ccdef]
+   [pallet.common.def :as ccdef]
    [clojure.tools.logging :as logging]
-   [clojure.contrib.seq :as seq]
    [clojure.set :as set]
    [clojure.string :as string]))
 
@@ -34,32 +31,39 @@
    The action can be scheduled within one of three 'executions'
    (conceptually, sub-phases):
 
-   :in-sequence - The generated action will be applied to the node
-        \"in order\", as it is defined lexically in the source crate.
-        This is the default.
-   :aggregated - All aggregated actions are applied to the node
-        in the order they are defined, but before all :in-sequence
-        actions. Note that all of the arguments to any given
-        action function are gathered such that there is only ever one
-        invocation of each fn within each phase.
-   :collected - All collected actions are applied to the node
-        in the order they are defined, but after all :in-sequence
-        action. Note that all of the arguments to any given
-        action function are gathered such that there is only ever one
-        invocation of each fn within each phase.
+   `:in-sequence`
+   : The generated action will be applied to the node \"in order\", as it is
+        defined lexically in the source crate.  This is the default.
+
+   `:aggregated`
+   : All aggregated actions are applied to the node in the order they are
+        defined, but before all :in-sequence actions. Note that all of the
+        arguments to any given action function are gathered such that there is
+        only ever one invocation of each fn within each phase.
+
+   `:collected`
+   : All collected actions are applied to the node in the order they are
+        defined, but after all :in-sequence action. Note that all of the
+        arguments to any given action function are gathered such that there is
+        only ever one invocation of each fn within each phase.
 
    The action-type determines how the action should be handled:
 
-   :script/bash - action produces bash script for execution on remote machine
-   :fn/clojure  - action is a function for local execution
-   :transfer/to-local - action is a function specifying remote source
-                        and local destination.
-   :transfer/from-local - action is a function specifying local source
-                          and remote destination."
-  [session action-fn metadata args execution action-type location]
-  {:pre [session
-         (keyword? (session/phase session))
-         (keyword? (session/target-id session))]}
+   `:script/bash`
+   : action produces bash script for execution on remote machine
+
+   `:fn/clojure`
+   : action is a function for local execution
+
+   `:transfer/to-local`
+   : action is a function specifying remote source and local destination.
+
+   `:transfer/from-local`
+   : action is a function specifying local source and remote destination."
+                          [session action-fn metadata args execution action-type
+                          location] {:pre [session
+         (keyword? (:phase session))
+         (keyword? (:target-id session))]}
   (update-in
    session
    (action-plan/target-path session)
@@ -67,9 +71,23 @@
    (action-plan/action-map
     action-fn metadata args execution action-type location)))
 
-(def precedence-key :action-precedence)
+(def ^{:no-doc true :private true} action-options-key ::action-precedence)
 
-(defmacro with-precedence
+(defmacro with-action-options
+  "Set up local precedence relations between actions"
+  {:indent 1}
+  [request m & body]
+  `(let [request# ~request]
+     (->
+      request#
+      (update-in [precedence-key] merge ~m)
+      ~@body
+      (assoc-in [precedence-key] (get-in request# [precedence-key])))))
+
+(def ^{:deprecated "0.7.0"}
+  precedence-key action-options-key)
+
+(defmacro ^{:deprecated "0.7.0"} with-precedence
   "Set up local precedence relations between actions"
   [request m & body]
   `(let [request# ~request]
