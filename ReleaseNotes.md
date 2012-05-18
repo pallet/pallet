@@ -1,5 +1,85 @@
-The latest release is 0.6.7.
-The latest development release is 0.7.0-beta.2.
+The latest release is 0.7.0
+
+# 0.7.0
+
+- Fix test for succesful aptitude package removal
+  The shell script to test the removal was incorrect. Fixes #127
+
+- Fix test case to check correct slingshot exception class
+
+- Fix broken test case
+  The test wasn't being evaluated
+
+- Delete temporary files on the target node
+  Fixes #118
+
+- Add simple script testing macros
+  The pallet.scipt-test macros provide a simple framework for verifying 
+  pallet phases on the node.
+
+- Check for /selinux/enforce consistently
+
+- Update to latest stevedore
+  Use the simplified conditional generation in the latest stevedore.
+
+- Refactor support for forcing bash in script execution support commands
+  pallet.execute was assuming bash was the login shell when setting up a
+  script for remote execution. This forces the use of bash for these
+  commands.
+
+- added a simple macro to make sure that bash is used even on systems where
+  it's not the default.
+
+- Escape package names for aptitude search
+  The checks for installed packages were failing when the package name
+  included regex characters that shoul have been escaped. Fixes #122.
+
+- Add pallet.crate.package-repo
+  Enable setup of a local apt repo
+
+- Fix pallet.crate.environment/system-environment
+  The generated script failed if the environment variable was already
+  present
+
+- Explicitly test package install/remove results
+  aptitude doesn't report in its exit code if a package fails to install or
+  remove, so we explicitly check the installed package list for each
+  package.
+
+- If a node has no public IP, use the private IP
+  When setting up a node that has no public IP (in a VPC), the
+  `:server` attribute of the session's `:ssh` map is empty, since
+  `node-address` returns only the public IP. This patch returns the private
+  IP if no public IP could be found.
+
+- Add :key-server option for :aptitude in package-source
+  Allows specification of the key server to be used when retrieving keys. 
+  Also adds
+  *default-apt-keyserver* to allow global override of the keyserver.
+
+  Fixes #119
+
+- Rename pallet.action.with-precedence to with-action-options
+  precedence-key is also renamed action-options-key
+
+- Move pallet.action.environment to pallet.crate.environment
+
+- Add install-deb action for installing a .deb file
+
+- Add defmulti-version-crate and mulit-version-crate-method
+
+- Add a facility to create functions dispatched on versions
+  pallet.version-dispatch/defmulti-version allows for creation of methods
+  dispatched on operating system, operating system version, and a product
+  version.  This should allow open coding of decisions in crates, etc.
+
+- Add an os hierarchy and compute/defmulti-os
+  compute/defmulti-os defines a multimethod dispatched on the target os 
+  take from its first (session map) argument. It is meant to provide an
+  abstraction to simplify crate writing.
+
+- Log command used for failed tempfile name retrieval
+
 
 # 0.7.0-beta.2
 
