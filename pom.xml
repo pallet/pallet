@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.7.3-SNAPSHOT</version>
+    <version>0.7.3</version>
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
@@ -98,17 +98,17 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>thread-expr</artifactId>
-      <version>1.2.0-SNAPSHOT</version>
+      <version>1.2.0</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>pallet-common</artifactId>
-      <version>0.2.3-SNAPSHOT</version>
+      <version>0.2.3</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>stevedore</artifactId>
-      <version>0.7.2-SNAPSHOT</version>
+      <version>0.7.2</version>
     </dependency>
     <dependency>
       <groupId>commons-codec</groupId>
