@@ -17,9 +17,12 @@
   {:author "Hugo Duncan"}
   (:use
    [clojure.tools.macro :only [name-with-attributes]]
-   [pallet.action-plan :only [schedule-action-map action-map]]
+   [pallet.action-plan
+    :only [schedule-action-map action-map pop-block push-block]]
    [pallet.common.context :only [throw-map]]
    [pallet.monad :only [phase-pipeline let-s]]
+   [pallet.session.action-plan
+    :only [assoc-action-plan get-action-plan update-action-plan]]
    [pallet.utils :only [compiler-exception]]
    pallet.action-impl))
 
@@ -70,6 +73,17 @@
 ;;; the action plan.  This inserter function has the action on it's :action
 ;;; metadata key.
 
+(defn insert-action
+  "Registers an action map in the action plan for execution. This function is
+   responsible for creating a node-value (as node-value-path's have to be unique
+   for all instances of an aggregated action) as a handle to the value that will
+   be returned when the action map is executed."
+  [session action-map]
+  {:pre [session (map? session)]}
+  (let [[node-value action-plan] (schedule-action-map
+                                  (get-action-plan session) action-map)]
+    [node-value (assoc-action-plan session action-plan)]))
+
 (defn- action-inserter-fn
   "Return an action inserter function. This is used for anonymous actions. The
   argument list is not enforced."
@@ -77,7 +91,7 @@
   ^{:action action}
   (fn action-fn [& argv]
     (fn action-inserter [session]
-      (schedule-action-map
+      (insert-action
        session (action-map action argv (action-options session))))))
 
 (defn declare-action
@@ -146,7 +160,9 @@
   [action-name & body]
   (let [[action-name [args & body]] (name-with-attributes action-name body)
         action-name (vary-meta
-                     action-name assoc :arglists (list 'quote [args]))
+                     action-name assoc
+                     :arglists (list 'quote [args])
+                     :defonce true)
         action-symbol (symbol
                        (or (namespace action-name) (name (ns-name *ns*)))
                        (name action-name))
@@ -161,7 +177,7 @@
          (fn ~action-name
            [~@args]
            (fn ~(symbol (str (name action-name) "-inserter")) [session#]
-             (schedule-action-map
+             (insert-action
               session#
               (action-map
                action#
@@ -261,13 +277,23 @@ full action to do that."
        action#)))
 
 (defmacro clj-action
-  "Creates a clojure action with a :direct implementation. The clojure code
-can not return a modified session (use a full action to do that)."
-  [& impl]
+  "Creates a clojure action with a :direct implementation."
+  {:indent 1}
+  [args & impl]
   (let [action-sym (gensym "clj-action")]
     `(let [action# (declare-action '~action-sym {})]
        (implement-action action# :direct
          {:action-type :fn/clojure :location :origin}
-         [session#]
-         [(fn ~action-sym [session#] ~@impl) session#])
+         ~args
+         [(fn ~action-sym [~(first args)] ~@impl) ~(first args)])
        action#)))
+
+(defn enter-scope
+  "Enter a new action scope."
+  [session]
+  [nil (update-action-plan session push-block)])
+
+(defn leave-scope
+  "Leave the current action scope."
+  [session]
+  [nil (update-action-plan session pop-block)])

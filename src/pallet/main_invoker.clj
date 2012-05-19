@@ -2,6 +2,8 @@
   "Invoke tasks requiring a compute service.  This decouples main from anything
    pallet, jclouds or maven specific, and ensures compiling main doesn't compile
    the world."
+  (:use
+   [pallet.core.user :only [*admin-user*]])
   (:require
    [clojure.tools.logging :as logging]
    [pallet.blobstore :as blobstore]
@@ -34,7 +36,7 @@
    (configure/admin-user-from-config (:pallet project))
    (configure/admin-user-from-config defaults)
    (configure/admin-user-from-config-var)
-   utils/*admin-user*))
+   *admin-user*))
 
 (defn compute-service-from-config-files
   [defaults project profiles]

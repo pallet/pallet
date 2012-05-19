@@ -9,6 +9,12 @@
 
 (use-fixtures :once (logging-threshold-fixture))
 
+(deftest default-specs-test
+  (let [session (test-session {:server {:node (make-node :g1)}})
+        [r s] (#'pallet.crate.sudoers/default-specs session)]
+    (is (instance? clojure.lang.PersistentArrayMap r))
+    (is (= session s))))
+
 (with-private-vars [pallet.crate.sudoers
                     [default-specs
                      param-string
@@ -18,8 +24,6 @@
                      write-cmd-spec write-spec specs
                      sudoer-merge merge-user-spec]]
 
-  (deftest default-specs-test
-    (is (instance? clojure.lang.PersistentArrayMap (default-specs {}))))
 
   (deftest merge-user-spec-test
     (is (= {:a 1 :b 2} (merge-user-spec {:a 1} {:b 2})))
@@ -28,38 +32,42 @@
 
 
   (deftest sudoer-merge
-    (is (= [{} {} (default-specs {})]
-           (sudoer-merge [{} {} (default-specs {})] [])))
+    (let [session (test-session {:server {:node (make-node :g1)}})
+          [default-specs s] (#'pallet.crate.sudoers/default-specs session)]
+      (is (= [{} {} default-specs]
+               (sudoer-merge [{} {} default-specs] []))))
     (is (= [{} {} {"user" {:ALL {}}}]
-           (sudoer-merge [{} {} {}] [[{} {} {"user" {:ALL {}}}]])))
+             (sudoer-merge [{} {} {}] [[{} {} {"user" {:ALL {}}}]])))
     (is (= [{} {} {"user" {["/bin/ls"] {} :ALL {:run-as :ALL}}}]
-           (sudoer-merge [{} {} {"user" {["/bin/ls"] {}}}]
-                         [[{} {} {"user" {:ALL {:run-as :ALL}}}]])))
+             (sudoer-merge [{} {} {"user" {["/bin/ls"] {}}}]
+                           [[{} {} {"user" {:ALL {:run-as :ALL}}}]])))
     (is (= [{} {} (array-map "user1" {} "user2" {})]
-           (sudoer-merge [{} {} (array-map "user1" {})]
-                         [[{} {} (array-map "user2" {})]])))
+             (sudoer-merge [{} {} (array-map "user1" {})]
+                           [[{} {} (array-map "user2" {})]])))
     (is (= [{} {} (array-map
                    "user2" {} "user1" {} "user3" {} "user4" {}
                    "user5" {} "user6" {} "user7" {} "user8" {} "user0" {})]
-           (sudoer-merge [{} {} (array-map "user2" {})]
-                         [[{} {} (array-map "user1" {})]
-                          [{} {} (array-map "user3" {})]
-                          [{} {} (array-map "user4" {})]
-                          [{} {} (array-map "user5" {})]
-                          [{} {} (array-map "user6" {})]
-                          [{} {} (array-map "user7" {})]
-                          [{} {} (array-map "user8" {})]
-                          [{} {} (array-map "user0" {})]]))))
+             (sudoer-merge [{} {} (array-map "user2" {})]
+                           [[{} {} (array-map "user1" {})]
+                            [{} {} (array-map "user3" {})]
+                            [{} {} (array-map "user4" {})]
+                            [{} {} (array-map "user5" {})]
+                            [{} {} (array-map "user6" {})]
+                            [{} {} (array-map "user7" {})]
+                            [{} {} (array-map "user8" {})]
+                            [{} {} (array-map "user0" {})]]))))
 
   (deftest merge-test
     (is (= [{} {} (array-map "root" {:ALL {:run-as-user :ALL}}
                              "%adm" {:ALL {:run-as-user :ALL}}
                              "user1" [{:host "h1" :ALL {}}]
                              "user2" {:host "h2" :ALL {}})]
-           (sudoer-merge
-            [{} {} (default-specs {})]
-            [[{} {} (array-map "user1" [{:host "h1" :ALL {}}])]
-             [{} {} (array-map "user2" {:host "h2" :ALL {}})]]))))
+             (let [session (test-session {:server {:node (make-node :g1)}})
+                   [default-specs s] (#'pallet.crate.sudoers/default-specs session)]
+               (sudoer-merge
+                [{} {} default-specs]
+                [[{} {} (array-map "user1" [{:host "h1" :ALL {}}])]
+                 [{} {} (array-map "user2" {:host "h2" :ALL {}})]])))))
 
   (deftest test-param-string
     (is (= "fqdn" (param-string [:fqdn true])))

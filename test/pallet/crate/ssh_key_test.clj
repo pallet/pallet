@@ -4,10 +4,8 @@
    [pallet.action :as action]
    [pallet.build-actions :as build-actions]
    [pallet.crate.automated-admin-user :as automated-admin-user]
-   [pallet.core :as core]
    [pallet.context :as context]
    [pallet.live-test :as live-test]
-   [pallet.parameter :as parameter]
    [pallet.phase :as phase]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -19,7 +17,9 @@
    clojure.test
    pallet.test-utils
    [pallet.actions :only [directory exec-checked-script file remote-file user]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]))
+   [pallet.api :only [lift plan-fn]]
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [pallet.crate :only [get-settings]]))
 
 (use-fixtures
  :once with-ubuntu-script-template (logging-threshold-fixture))
@@ -254,7 +254,7 @@
   [request]
   (logging/trace (format "check-public-key request is %s" request))
   (is (string?
-       (parameter/get-for-target request [:user :testuser :id_rsa])))
+       (get-settings request [:user :testuser :id_rsa])))
   request)
 
 (deftest live-test
@@ -269,14 +269,14 @@
        {:image image
         :count 1
         :phases
-        {:bootstrap (phase/phase-fn
+        {:bootstrap (plan-fn
                      (automated-admin-user)
                      (user "testuser"))
-         :configure (phase/phase-fn (generate-key "testuser"))
-         :verify1 (phase/phase-fn
+         :configure (plan-fn (generate-key "testuser"))
+         :verify1 (plan-fn
                    (record-public-key "testuser"))
-         :verify2 (phase/phase-fn
+         :verify2 (plan-fn
                    (check-public-key))}}}
-      (core/lift (:ssh-key node-types)
+      (lift (:ssh-key node-types)
                  :phase [:verify1 :verify2]
                  :compute compute)))))

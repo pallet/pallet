@@ -36,7 +36,7 @@
   ;; (node-value! [_ new-value] (reset! value new-value))
   NodeValueAccessor
   (node-value [_ session]
-    (let [rv (get-in session [:node-values path] ::not-set)]
+    (let [rv (get-in session [:plan-state :node-values path] ::not-set)]
       (if (= rv ::not-set)
         (throw-map
        "Invalid access of a node-value that has yet to be set by an action."
@@ -71,11 +71,15 @@
 
 (defn set-node-value
   ([session v node-value-path]
-     (assoc-in session [:node-values node-value-path] v))
+     (assoc-in session [:plan-state :node-values node-value-path] v))
   ([session v]
      (set-node-value session v (:current-node-value-path session))))
 
 (defn assign-node-value
   [nv v]
   (fn [session]
-    [v (assoc-in session [:node-values (.path nv)] v)]))
+    [v (assoc-in session [:plan-state :node-values (.path nv)] v)]))
+
+(defn get-node-value
+  [nv]
+  (fn [session] [(node-value nv session) session]))

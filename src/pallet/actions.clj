@@ -3,16 +3,14 @@
   (:require
    [clojure.tools.logging :as logging]
    [pallet.script.lib :as lib]
-   [pallet.session :as session]
    [pallet.stevedore :as stevedore])
   (:use
    pallet.actions-impl
-   [pallet.action :only [defaction with-action-options]]
-   [pallet.action-plan :only [enter-scope leave-scope]]
+   [pallet.action :only [defaction with-action-options enter-scope leave-scope]]
    [pallet.argument :only [delayed]]
+   [pallet.crate :only [packager]]
    [pallet.monad :only [let-s phase-pipeline]]
    [pallet.node-value :only [node-value]]
-   [pallet.parameter :only [get-for-target]]
    [pallet.script.lib :only [set-flag-value]]
    [pallet.utils :only [apply-map tmpfile]]))
 
@@ -100,19 +98,6 @@
        enter-scope
        ~@crate-fns-or-actions
        leave-scope)))
-
-;;; # Aggregation
-;; (defn aggregate-args
-;;   "Aggregate arguments and store them in the session."
-;;   [key args]
-;;   (phase-pipeline aggregate-args {}
-;;     (update-in [::aggregate-args key] #(conj (or % []) args))))
-
-;; (defn get-aggregate-args
-;;   [key]
-;;   (delayed
-;;    [session]
-;;    (get-for-target session [::aggregate-args key] nil)))
 
 ;;; # Simple File Management
 (defaction file
@@ -345,11 +330,12 @@ Content can also be copied from a blobstore.
       (delete-local-path local-path))))
 
 (defn remote-file-content
-  "Return the content of a file."
+  "Return a function that returns the content of a file, when used inside
+   another action."
   [path]
   (let-s
     [r (exec-script (~lib/cat ~path))]
-    {:out r}))
+    (fn [session] (:out (node-value r session)))))
 
 ;;; # Remote Directory Content
 
@@ -437,7 +423,7 @@ Content can also be copied from a blobstore.
          :aptitude [\"git-core\" \"git-email\"])"
   [& {:keys [yum aptitude pacman brew] :as options}]
   (phase-pipeline packages {}
-    [packager session/packager]
+    [packager packager]
     (map package (options packager))))
 
 (defaction package-manager

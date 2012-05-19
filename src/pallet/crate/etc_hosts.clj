@@ -1,39 +1,32 @@
 (ns pallet.crate.etc-hosts
   "/etc/hosts file."
  (:require
-   [pallet.argument :as argument]
-   [pallet.common.deprecate :as deprecate]
-   [pallet.compute :as compute]
-   [pallet.parameter :as parameter]
+   [clojure.string :as string]
+   [pallet.node :as node]
    [pallet.script.lib :as lib]
-   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
-   [pallet.utils :as utils]
-   [clojure.string :as string])
+   [pallet.utils :as utils])
  (:use
   [pallet.actions :only [remote-file]]
-  [pallet.parameter :only [update-settings]]
-  [pallet.phase :only [def-crate-fn defcrate]]))
+  [pallet.crate
+   :only [def-plan-fn defplan get-settings update-settings nodes-in-group]]))
 
 (defn- format-entry
   [entry]
   (format "%s %s"  (key entry) (name (val entry))))
 
-(def-crate-fn host
+(def-plan-fn host
   "Declare a host entry"
   [address names]
-  (update-settings :hosts nil merge {address names}))
+  (update-settings :hosts merge {address names}))
 
-(def-crate-fn hosts-for-group
+(def-plan-fn hosts-for-group
   "Declare host entries for all nodes of a group"
   [group-name & {:keys [private-ip]}]
-  [ip (m-result (if private-ip compute/private-ip compute/primary-ip))
-   group-nodes (session/nodes-in-group group-name)]
-  (update-settings :hosts nil
-   merge
-   (into
-    {}
-    (map #(vector (ip %) (compute/hostname %)) group-nodes))))
+  [ip (m-result (if private-ip node/private-ip node/primary-ip))
+   group-nodes (nodes-in-group group-name)]
+  (update-settings
+   :hosts merge (into {} (map #(vector (ip %) (node/hostname %)) group-nodes))))
 
 (def ^{:private true} localhost
   {"127.0.0.1" "localhost localhost.localdomain"})
@@ -42,15 +35,15 @@
   [entries]
   (string/join "\n" (map format-entry entries)))
 
-(defn- format-hosts
-  [session]
-  (format-hosts*
-   (conj localhost (parameter/get-target-settings session :hosts nil nil))))
+(defplan format-hosts
+  [settings (get-settings :hosts)]
+  (m-result (format-hosts* (merge settings localhost))))
 
-(defcrate hosts
+(defplan hosts
   "Writes the hosts files"
+  [content format-hosts]
   (remote-file
    (stevedore/script (~lib/etc-hosts))
    :owner "root:root"
    :mode 644
-   :content (argument/delayed [session] (format-hosts session))))
+   :content content))

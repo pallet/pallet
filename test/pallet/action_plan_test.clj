@@ -1,8 +1,7 @@
 (ns pallet.action-plan-test
   (:require
    [pallet.action-plan :as action-plan]
-   [pallet.argument :as argument]
-   [pallet.core :as core])
+   [pallet.argument :as argument])
   (:use
    clojure.test
    pallet.action-impl
@@ -17,8 +16,6 @@
 (use-fixtures :once (logging-threshold-fixture))
 
 (def add-action-map #'action-plan/add-action-map)
-(def push-block #'action-plan/push-block)
-(def pop-block #'action-plan/pop-block)
 
 (deftest action-plan-test
   (let [b (add-action-map nil 1)
@@ -164,7 +161,7 @@
                          (assoc a1 :node-value-path :v1))
                         (add-action-map
                          (assoc a2 :node-value-path :v2)))
-        translated-plan (translate action-plan {})]
+        [translated-plan _] (translate action-plan {})]
     (is (=
          [{:action f :args [1] :context nil}
           {:action f :args [2] :context nil}]
@@ -184,7 +181,7 @@
         action (make-action 'a :in-sequence {})]
     (add-action-implementation! action :default {} f)
     (is (=
-         ["1" {:node-values {'nvp "1"}}]
+         ["1" {:plan-state {:node-values {'nvp "1"}}}]
          (execute-action-map
           (executor :default)
           {}
@@ -192,9 +189,29 @@
 
 (defn dissoc-action-plan
   [[r s]]
-  [r (dissoc s :action-plan)])
+  [r (dissoc s :action-plans)])
 
 (deftest execute-test
+  (testing "aggregated with one action call"
+    (let [f (make-action 'f :aggregated {})
+          _ (add-action-implementation!
+             f :default {} (fn [session & x] [(str (vec x)) session]))
+          a1 (action-map f [1] {})
+          a2 (action-map f [2] {})
+          action-plan (->
+                       nil
+                       (add-action-map
+                        (assoc a1 :node-value-path :v1)))]
+      (is (=
+           [["[(1)]"] {:a 1 :plan-state {:node-values {:v1 "[(1)]"}}}]
+           (-> (translate action-plan {})
+               first
+               ((fn [x] (is (= 1 (count x))) x))
+               (execute
+                {:a 1}
+                (executor :default)
+                stop-execution-on-error)
+               (dissoc-action-plan))))))
   (testing "aggregated"
     (let [f (make-action 'f :aggregated {})
           _ (add-action-implementation!
@@ -208,9 +225,36 @@
                        (add-action-map
                         (assoc a2 :node-value-path :v2)))]
       (is (=
-           [["[(1) (2)]"] {:a 1 :node-values {:v1 "[(1) (2)]"}}]
-           (-> (execute
-                (translate action-plan {})
+           [["[(1) (2)]"] {:a 1 :plan-state {:node-values {:v1 "[(1) (2)]"}}}]
+           (-> (translate action-plan {})
+               first
+               ((fn [x] (is (= 1 (count x))) x))
+               (execute
+                {:a 1}
+                (executor :default)
+                stop-execution-on-error)
+               (dissoc-action-plan))))))
+    (testing "aggregated and non-aggregated"
+    (let [f (make-action 'f :aggregated {})
+          _ (add-action-implementation!
+             f :default {} (fn [session & x] [(str (vec x)) session]))
+          g (make-action 'g :in-sequence {})
+          _ (add-action-implementation!
+             g :default {} (fn [session x] [(str x) session]))
+          a1 (action-map f [1] {})
+          a2 (action-map g [2] {})
+          action-plan (->
+                       nil
+                       (add-action-map
+                        (assoc a1 :node-value-path :v1))
+                       (add-action-map
+                        (assoc a2 :node-value-path :v2)))]
+      (is (=
+           [["[(1)]" "2"] {:plan-state {:node-values {:v2 "2", :v1 "[(1)]"}}, :a 1}]
+           (-> (translate action-plan {})
+               first
+               ((fn [x] (is (= 2 (count x))) x))
+               (execute
                 {:a 1}
                 (executor :default)
                 stop-execution-on-error)
@@ -241,12 +285,14 @@
                           (add-action-map (assoc a4 :node-value-path :v4)))]
       (testing "then"
         (is (=
-             [["[(3)]" true "[4]"] ; "[(1) (2)]"
+             [["[(3)]" true "[4]"]      ; "[(1) (2)]"
               {:a 1
-               :node-values {:v0 true :v3 "[(3)]" :v4 "[4]"}}] ; :v1 "[(1) (2)]"
+               :plan-state
+               {:node-values {:v0 true :v3 "[(3)]" :v4 "[4]"}}}] ; :v1 "[(1) (2)]"
              (->
+              (translate action-plan {})
+              first
               (execute
-               (translate action-plan {})
                {:a 1}
                (executor :default)
                stop-execution-on-error)
@@ -255,10 +301,11 @@
         (reset! bv false)
         (is (=
              [["[(3)]" false "[4]"]
-              {:a 1 :node-values {:v0 false :v3 "[(3)]" :v4 "[4]"}}]
+              {:a 1 :plan-state {:node-values {:v0 false :v3 "[(3)]" :v4 "[4]"}}}]
              (->
+              (translate action-plan {})
+              first
               (execute
-               (translate action-plan {})
                {:a 1}
                (executor :default)
                stop-execution-on-error)
@@ -273,11 +320,13 @@
                        (add-action-map (assoc a :node-value-path :v)))]
       (is (map? a))
       (let [[rv session :as all-rv]
-            (execute
+            (->
              (translate action-plan {})
-             {:a 1}
-             (executor :default)
-             stop-execution-on-error)
+             first
+             (execute
+              {:a 1}
+              (executor :default)
+              stop-execution-on-error))
             nv (make-node-value :v)]
         (is (= 1 (node-value nv session)))))))
 
@@ -377,10 +426,11 @@
                           (add-action-map (assoc a1 :node-value-path :v1))
                           (add-action-map (assoc a2 :node-value-path :v2)))]
       (is (=
-           [["[1]" "((2))"] {:node-values {:v1 "((2))" :v2 "[1]"}}]
+           [["[1]" "((2))"] {:plan-state {:node-values {:v1 "((2))" :v2 "[1]"}}}]
            (->
+            (translate action-plan {})
+            first
             (execute
-             (translate action-plan {})
              {}
              (executor :default)
              stop-execution-on-error)
@@ -399,10 +449,11 @@
                        nil
                        (add-action-map (assoc a :node-value-path :v)))]
       (is (=
-           [["((1))"] {:node-values {:v "((1))"}}]
+           [["((1))"] {:plan-state {:node-values {:v "((1))"}}}]
            (->
+            (translate action-plan {})
+            first
             (execute
-             (translate action-plan {})
              {}
              (executor :default)
              stop-execution-on-error)
@@ -429,7 +480,8 @@
                  [{:action (-> fa meta :action) :args [1] :context nil}]
                  (map
                   #(dissoc % :node-value-path)
-                  (translate action-plan {:target-id :id :phase :p}))))))
+                  (first
+                   (translate action-plan {:target-id :id :phase :p})))))))
         (testing "with context"
           (let [a (with-phase-context {:kw :k :msg "m"}
                     (with-phase-context {:kw :k :msg "n"}
@@ -443,7 +495,8 @@
                  [{:action (-> fa meta :action) :args [1] :context ["m"]}]
                  (map
                   #(dissoc % :node-value-path)
-                  (translate action-plan {:target-id :id :phase :p}))))))))
+                  (first
+                   (translate action-plan {:target-id :id :phase :p})))))))))
     (testing "aggregated-crate-fn"
       (let [g (make-action 'g :aggregated-crate-fn {})
             _ (add-action-implementation! g :default {} fa)
@@ -463,7 +516,8 @@
                   {:action ha :args [2] :context nil}]
                  (map
                   #(dissoc % :node-value-path)
-                  (translate action-plan {:target-id :id :phase :p}))))))
+                  (first
+                   (translate action-plan {:target-id :id :phase :p})))))))
         (testing "with context"
           (let [a (with-phase-context {:kw :k :msg "m"}
                     (with-phase-context {:kw :k :msg "n"}
@@ -479,4 +533,5 @@
                   {:action ha :args [2] :context nil}]
                  (map
                   #(dissoc % :node-value-path)
-                  (translate action-plan {:target-id :id :phase :p}))))))))))
+                  (first
+                   (translate action-plan {:target-id :id :phase :p})))))))))))

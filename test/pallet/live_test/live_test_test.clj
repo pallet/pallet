@@ -2,7 +2,6 @@
   (:use clojure.test)
   (:require
    [pallet.live-test :as live-test]
-   [pallet.core :as core]
    [pallet.compute :as compute]))
 
 (deftest exclude-images-test

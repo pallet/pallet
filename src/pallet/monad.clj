@@ -10,7 +10,7 @@ monad, but are each use a different context."
            with-monad]]
    [pallet.context :only [with-context with-phase-context]]
    pallet.monad.state-accessors
-   [pallet.session-verify :only [check-session]]))
+   [pallet.session.verify :only [check-session]]))
 
 ;;; ## Pallet Monads and Monad Transformers
 
@@ -240,15 +240,6 @@ monad, but are each use a different context."
   "Converts a function of session -> session and makes it a monadic value under
   the state monad"
   [f] #(vector nil (f %)))
-
-(defmacro session-peek-fn
-  "Create a state-m monadic value function that examines the session, and
-  returns nil."
-  {:indent 'defun}
-  [[sym] & body]
-  `(fn session-peek-fn [~sym]
-     ~@body
-     [nil ~sym]))
 
 (defmacro local-env
   "Return the local environment as a map of keyword value pairs."

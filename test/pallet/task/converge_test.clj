@@ -1,15 +1,15 @@
 (ns pallet.task.converge-test
   (:use pallet.task.converge)
-  (:require [pallet.core :as core])
   (:use
    clojure.test
-   pallet.test-utils))
+   pallet.test-utils
+   [pallet.api :only [group-spec lift]]))
 
 
 (with-private-vars [pallet.task.converge [build-args]]
   (deftest build-args-test
-    (let [a (core/group-spec "a")
-          b (core/group-spec "b")]
+    (let [a (group-spec "a")
+          b (group-spec "b")]
       (is (= [{a 1} :phase []] (build-args [a 1])))
       (is (= [{a 1 b 2} :phase []] (build-args [a 1 b 2])))
       (is (= [{a 1} :phase [:b]] (build-args [a 1 :b])))

@@ -2,13 +2,13 @@
   (:require
    [pallet.context :as context]
    [pallet.execute :as execute]
-   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    [pallet.utils :as utils]
    [clojure.tools.logging :as logging])
   (:use
    [pallet.action :only [implement-action]]
    [pallet.actions :only [rsync]]
+   [pallet.core.session :only [admin-user target-ip]]
    [pallet.monad :only [phase-pipeline]]
    [pallet.node :only [primary-ip]]))
 
@@ -22,8 +22,8 @@
   (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
                  (if port (format "-p %s" port)))
         cmd (format
-             cmd ssh from (:username (first (session/admin-user session)))
-             (primary-ip (first (session/target-node session))) to)]
+             cmd ssh from (:username (admin-user session))
+             (target-ip session) to)]
     [[{:language :bash}
       (stevedore/checked-commands (format "rsync %s to %s" from to) cmd)]
      session]))

@@ -78,7 +78,8 @@
             [result session] (execute/parse-shell-result session result)
             ;; Set the node-value to the result of execution, rather than
             ;; the script.
-            session (assoc-in session [:node-values node-value-path] result)]
+            session (assoc-in
+                     session [:plan-state :node-values node-value-path] result)]
         [(update-in result [:out] clean-f) session]))))
 
 (defn- ssh-upload

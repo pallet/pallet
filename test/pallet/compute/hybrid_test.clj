@@ -5,7 +5,6 @@
    [pallet.compute.node-list :as node-list]
    [pallet.configure :as configure]
    [pallet.compute :as compute]
-   [pallet.core :as core]
    [pallet.utils :as utils])
   (:use
    clojure.test)
@@ -60,17 +59,17 @@
 ;;   (jclouds-test-utils/purge-compute-service)
 ;;   (let [jc (jclouds-test-utils/compute)
 ;;         nl (compute/compute-service "node-list")
-;;         gs (core/group-spec :gs)]
+;;         gs (group-spec :gs)]
 ;;     (let [hybrid (compute/compute-service
 ;;                   "hybrid" :sub-services {:jc jc :nl nl})]
 ;;       (is (thrown? RuntimeException
-;;                    (compute/run-nodes hybrid gs 1 utils/*admin-user* "" nil)))
+;;                    (compute/run-nodes hybrid gs 1 *admin-user* "" nil)))
 ;;       "throw if group is not dispatched to a service")
 ;;     (let [hybrid (compute/compute-service
 ;;                   "hybrid" :sub-services {:jc jc :nl nl}
 ;;                   :groups-for-services {:jc #{:gs}})]
 ;;       (is (= 1
-;;              (count (compute/run-nodes hybrid gs 1 utils/*admin-user* "" nil)))
+;;              (count (compute/run-nodes hybrid gs 1 *admin-user* "" nil)))
 ;;           "Starts a node in a mapped group")
 ;;       (is (= 1 (count (filter compute/running? (compute/nodes hybrid))))
 ;;           "Starts a node in a mapped group")
@@ -79,7 +78,7 @@
 ;;       (is (= 0 (count (filter compute/running? (compute/nodes hybrid))))
 ;;           "destroys a node")
 ;;       (is (= 1
-;;              (count (compute/run-nodes hybrid gs 1 utils/*admin-user* "" nil)))
+;;              (count (compute/run-nodes hybrid gs 1 *admin-user* "" nil)))
 ;;           "Starts a node in a mapped group")
 ;;       (compute/destroy-nodes-in-group hybrid :gs)
 ;;       (is (= 0 (count (filter compute/running? (compute/nodes hybrid))))

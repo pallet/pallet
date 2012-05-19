@@ -1,11 +1,10 @@
 (ns pallet.crate.package.centos
   "Actions for working with the centos repositories"
-  (:require
-   [pallet.session :as session])
   (:use
    [pallet.actions :only [package package-source]]
+   [pallet.crate :only [is-64bit?]]
    [pallet.monad :only [let-s]]
-   [pallet.phase :only [def-crate-fn]]))
+   [pallet.crate :only [def-plan-fn]]))
 
 (def ^{:private true} centos-repo
   "http://mirror.centos.org/centos/%s/%s/%s/repodata/repomd.xml")
@@ -16,10 +15,10 @@
 (def ^{:doc "Return the centos package architecture for the target node."}
   arch
   (let-s
-    [is64bit session/is-64bit?]
+    [is64bit is-64bit?]
     (if is64bit "x86_64" "i386")))
 
-(def-crate-fn add-repository
+(def-plan-fn add-repository
   "Add a centos repository. By default, ensure that it has a lower than default
   priority."
   [& {:keys [version repository enabled priority]

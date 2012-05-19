@@ -9,7 +9,6 @@
    [pallet.local.transport :as transport]
    [pallet.script :as script]
    [pallet.script-builder :as script-builder]
-   [pallet.session :as session]
    [pallet.stevedore :as stevedore]))
 
 (defn verify-sh-return

@@ -3,19 +3,18 @@
   (:require
    [clojure.string :as string]
    [pallet.action-plan :as action-plan]
-   [pallet.session :as session]
    [pallet.stevedore :as stevedore])
   (:use
    [pallet.actions :only [exec-script* remote-file]]
-   [pallet.phase :as phase]))
+   [pallet.crate :only [def-plan-fn os-family]]))
 
-(def-crate-fn system-environment
+(def-plan-fn system-environment
   "Define system wide default environment.
    On redhat based systems, this is set in /etc/profile.d, so is only
    valid within a login shell. On debian based systems, /etc/environment
    is used."
   [env-name key-value-pairs & {:keys [path shared] :as options}]
-  [os-family session/os-family
+  [os-family os-family
    [path shared] (m-result (if (and path shared)
                              [path shared]
                              (if (#{:rhel :centos :fedora} os-family)

@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet-pom</artifactId>
-    <version>0.7.2</version>
+    <version>0.7.3-SNAPSHOT</version>
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
@@ -97,10 +97,18 @@
       <artifactId>algo.monads</artifactId>
       <version>0.1.0</version>
     </dependency>
+
     <dependency>
       <groupId>slingshot</groupId>
       <artifactId>slingshot</artifactId>
     </dependency>
+    <dependency>
+      <groupId>midje</groupId>
+      <artifactId>midje</artifactId>
+      <version>1.4.0-beta2</version>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>chiba</artifactId>
@@ -109,7 +117,7 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>thread-expr</artifactId>
-      <version>1.0.0</version>
+      <version>1.2.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
@@ -129,8 +137,24 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>stevedore</artifactId>
-      <version>0.7.1</version>
+      <version>0.7.2-SNAPSHOT</version>
     </dependency>
+    <dependency>
+      <groupId>pallet-fsm</groupId>
+      <artifactId>pallet-fsm</artifactId>
+      <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>pallet-fsmop</groupId>
+      <artifactId>pallet-fsmop</artifactId>
+      <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>pallet-map-merge</groupId>
+      <artifactId>pallet-map-merge</artifactId>
+      <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
@@ -262,18 +286,6 @@
       </properties>
     </profile>
   </profiles>
-
-  <!-- make sure we can find the parent pom -->
-  <repositories>
-    <repository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>sonatype-nexus-releases</id>
-      <name>Sonatype Nexus Releases</name>
-      <url>http://oss.sonatype.org/content/repositories/releases</url>
-    </repository>
-  </repositories>
 
   <properties>
     <clojure.version>1.3.0</clojure.version>

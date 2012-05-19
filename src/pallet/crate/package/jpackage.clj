@@ -1,13 +1,13 @@
 (ns pallet.crate.package.jpackage
   "Actions for working with the jpackage repository"
   (:require
-   [pallet.parameter :as parameter]
-   [pallet.session :as session]
    [pallet.thread-expr :as thread-expr])
   (:use
    [pallet.action :only [with-action-options]]
-   [pallet.actions :only [add-rpm package package-manager package-source]]
-   [pallet.phase :only [def-crate-fn defcrate]]))
+   [pallet.actions :only [add-rpm package package-manager package-source
+                          pipeline-when pipeline-when-not]]
+   [pallet.crate :only [def-plan-fn defplan assoc-settings get-settings
+                        os-family os-version]]))
 
 ;; The source for this rpm is available here:
 ;; http://plone.lucidsolutions.co.nz/linux/centos/
@@ -18,25 +18,25 @@
   (str "https://github.com/downloads/pallet/pallet/"
        "jpackage-utils-compat-el5-0.0.1-1.noarch.rpm"))
 
-(defcrate jpackage-utils
+(defplan jpackage-utils
   "Add jpackge-utils. Due to incompatibilities on RHEL derived distributions,
    a compatability package is required.
 
    https://bugzilla.redhat.com/show_bug.cgi?id=260161
    https://bugzilla.redhat.com/show_bug.cgi?id=497213"
-  [os-family session/os-family
-   os-version session/os-version]
-  (when
-   (or
-    (= :fedora os-family)
-    (and
-     (#{:rhel :centos} os-family)
-     (re-matches #"5\.[0-5]" os-version)))
-   (with-action-options {:action-id ::install-jpackage-compat}
-     (add-rpm
-      "jpackage-utils-compat-el5-0.0.1-1"
-      :url jpackage-utils-compat-rpm
-      :insecure true))) ;; github's ssl doesn't validate
+  [os-family os-family
+   os-version os-version]
+  (pipeline-when
+      (or
+       (= :fedora os-family)
+       (and
+        (#{:rhel :centos} os-family)
+        (re-matches #"5\.[0-5]" os-version)))
+    (with-action-options {:action-id ::install-jpackage-compat}
+      (add-rpm
+       "jpackage-utils-compat-el5-0.0.1-1"
+       :url jpackage-utils-compat-rpm
+       :insecure true))) ;; github's ssl doesn't validate
   (package "jpackage-utils"))
 
 (def jpackage-mirror-fmt
@@ -46,7 +46,7 @@
   [dist type release]
   (format jpackage-mirror-fmt dist type release))
 
-(def-crate-fn add-jpackage
+(def-plan-fn add-jpackage
   "Add the jpackage repository.  component should be one of:
      fedora
      redhat-el
@@ -58,8 +58,8 @@
            releasever "$releasever"
            version "5.0"
            enabled 0}}]
-  [os-family session/os-family
-   os-version session/os-version
+  [os-family os-family
+   os-version os-version
    no-updates (m-result (and            ; missing updates for fedora 13, 14
                          (= version "5.0")
                          (= :fedora os-family)
@@ -108,7 +108,7 @@
          :failovermethod "priority"
          ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
          :enabled enabled})
-  (when-not no-updates
+  (pipeline-when-not no-updates
     (package-source
      (format "jpackage-%s-updates" component)
      :yum {:mirrorlist (mirrorlist
@@ -118,11 +118,11 @@
            :failovermethod "priority"
            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
            :enabled enabled}))
-  (parameter/assoc-target [:jpackage-repos] jpackage-repos))
+  (assoc-settings :jpackage-repos jpackage-repos))
 
-(defcrate package-manager-update-jpackage
+(defplan package-manager-update-jpackage
   "Update the package lists for the jpackage repositories"
-  [jpackage-repos (parameter/get-target [:jpackage-repos])]
+  [jpackage-repos (get-settings :jpackage-repos)]
   (package-manager
    :update
    :disable ["*"]

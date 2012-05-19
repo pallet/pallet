@@ -4,7 +4,6 @@
    [pallet.build-actions :as build-actions]
    [pallet.action :as action]
    [pallet.context :as context]
-   [pallet.core :as core]
    [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.crate.sudoers :as sudoers]
@@ -16,7 +15,9 @@
    clojure.test
    pallet.test-utils
    [pallet.actions :only [user exec-checked-script]]
+   [pallet.api :only [lift make-user node-spec plan-fn server-spec]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [pallet.core.user :only [default-public-key-path default-private-key-path]]
    [pallet.monad :only [wrap-pipeline]]))
 
 (use-fixtures :once (logging-threshold-fixture))
@@ -34,7 +35,7 @@
                (context/with-phase-context
                  {:kw :authorize-user-key :msg "authorize-user-key"})
                (ssh-key/authorize-key
-                "fred" (slurp (pallet.utils/default-public-key-path))))))
+                "fred" (slurp (default-public-key-path))))))
            (first
             (build-actions/build-actions
              {}
@@ -52,12 +53,12 @@
                (context/with-phase-context
                  {:kw :authorize-user-key :msg "authorize-user-key"})
                (ssh-key/authorize-key
-                "fred" (slurp (pallet.utils/default-public-key-path))))))
+                "fred" (slurp (default-public-key-path))))))
            (first
             (build-actions/build-actions
              {}
              (automated-admin-user
-              "fred" (pallet.utils/default-public-key-path)))))))
+              "fred" (default-public-key-path)))))))
 
   (testing "with byte array"
     (is (= (first
@@ -91,10 +92,10 @@
                    {:kw :authorize-user-key :msg "authorize-user-key"})
                  (ssh-key/authorize-key
                   user-name
-                  (slurp (pallet.utils/default-public-key-path))))))
+                  (slurp (default-public-key-path))))))
              (first
               (build-actions/build-actions
-               {:user (utils/make-user user-name)}
+               {:user (make-user user-name)}
                (automated-admin-user)))))))
   (testing "with session username"
     (let [user-name "fredxxx"]
@@ -110,10 +111,10 @@
                    {:kw :authorize-user-key :msg "authorize-user-key"})
                  (ssh-key/authorize-key
                   user-name
-                  (slurp (pallet.utils/default-public-key-path))))))
+                  (slurp (default-public-key-path))))))
              (first
               (build-actions/build-actions
-               {:user (utils/make-user user-name)}
+               {:user (make-user user-name)}
                (automated-admin-user))))))))
 
 (deftest live-test
@@ -124,10 +125,10 @@
    (live-test/test-nodes
     [compute node-map node-types]
     {:aau
-     (core/server-spec
-      :phases {:bootstrap (phase/phase-fn
+     (server-spec
+      :phases {:bootstrap (plan-fn
                            (automated-admin-user/automated-admin-user))
-               :verify (phase/phase-fn
+               :verify (plan-fn
                         (context/with-phase-context
                           {:kw :automated-admin-user
                            :msg "Check Automated admin user"}
@@ -135,8 +136,8 @@
                            "is functional"
                            (pipe (echo @SUDO_USER) (grep "fred")))))}
       :count 1
-      :node-spec (core/node-spec :image image)
+      :node-spec (node-spec :image image)
       :environment {:user {:username "fred"}})}
     (is
-     (core/lift
+     (lift
       (val (first node-types)) :phase [:verify] :compute compute)))))

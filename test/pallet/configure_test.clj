@@ -1,8 +1,9 @@
 (ns pallet.configure-test
-  (:use pallet.configure)
   (:use
-   clojure.test)
+   clojure.test
+   pallet.configure)
   (:require
+   pallet.api
    [pallet.common.logging.logutils :as logutils]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
@@ -77,7 +78,7 @@
 
 ;;; define user in pallet.config
 (in-ns 'pallet.config)
-(def admin-user (pallet.utils/make-user "fred"))
+(def admin-user (pallet.api/make-user "fred"))
 (in-ns 'pallet.configure-test)
 
 (deftest admin-user-from-config-var-test

@@ -6,9 +6,9 @@
    [pallet.action :only [with-action-options]]
    [pallet.actions :only [exec-checked-script package package-manager]]
    [pallet.monad :only [phase-pipeline-no-context]]
-   [pallet.phase :only [def-crate-fn]]))
+   [pallet.crate :only [def-plan-fn]]))
 
-(def-crate-fn add-epel
+(def-plan-fn add-epel
   "Add the EPEL repository"
   [& {:keys [version] :or {version "5-4"}}]
   (with-action-options {:always-before #{package-manager package}}

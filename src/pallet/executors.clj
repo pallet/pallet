@@ -47,12 +47,13 @@
   "The standard direct executor for pallet. Target actions for localhost
    are executed via shell, rather than via ssh."
   [session action]
+  (logging/debugf "default-executor")
   (let [[script action-type location session] (direct-script session action)
         localhost? (fn [session]
                      (let [ip (-> session :server :node primary-ip)]
                        (#{"127.0.0.1"} ip)))]
     (logging/tracef "default-executor %s %s" action-type location)
-    (logging/tracef "default-executor script %s" script)
+    (logging/debugf "default-executor script %s" script)
     (case [action-type location]
       [:script :origin] (local/script-on-origin
                          session action action-type script)

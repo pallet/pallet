@@ -8,7 +8,7 @@
    [pallet.actions-impl :only [remote-file-action]]
    [pallet.monad :only [phase-pipeline-no-context]]
    [pallet.monad.state-accessors :only [get-session]]
-   [pallet.phase :only [def-crate-fn]]))
+   [pallet.crate :only [def-plan-fn]]))
 
 ;;; TODO remove this and use pipeline-when
 (def ^{:private true}
@@ -19,7 +19,7 @@
   "http://packages.sw.be/rpmforge-release/rpmforge-release-%s.%s.rf.%s.rpm")
 
 ;; this is an aggregate so that it can come before the aggragate package-manager
-(def-crate-fn add-rpmforge
+(def-plan-fn add-rpmforge
   "Add the rpmforge repository"
   [& {:keys [version distro arch]
       :or {version "0.5.2-2" distro "el5" arch "i386"}}]

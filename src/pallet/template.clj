@@ -4,15 +4,14 @@
    [pallet.action-plan :as action-plan]
    [pallet.compute :as compute]
    [pallet.script.lib :as lib]
-   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    [pallet.strint :as strint]
-   [pallet.target :as target]
    [pallet.utils :as utils]
    [clojure.string :as string]
    [clojure.tools.logging :as logging])
   (:use
    [pallet.actions :only [remote-file]]
+   [pallet.core.session :only [group-name packager os-family]]
    [pallet.monad :only [phase-pipeline-no-context]]
    [pallet.utils :only [apply-map]]))
 
@@ -41,7 +40,7 @@
 
 (defn- candidate-templates
   "Generate a prioritised list of possible template paths."
-  [path tag session]
+  [path group-name session]
   (let [[dirpath base ext] (path-components path)
         variants (fn [specifier]
                    (let [p (pathname
@@ -50,9 +49,9 @@
                             ext)]
                      [p (str "resources/" p)]))]
     (concat
-     (variants tag)
-     (variants (name (or (-> session :server :image :os-family) "unknown")))
-     (variants (name (or (get-in session [:server :packager]) "unknown")))
+     (variants group-name)
+     (variants (name (or (os-family session) "unknown")))
+     (variants (name (or (packager session) "unknown")))
      (variants nil))))
 
 (defn find-template
@@ -62,8 +61,7 @@
   {:pre [(map? session) (session :server)]}
   (some
    get-resource
-   (candidate-templates
-    path (-> session :server :group-name) session)))
+   (candidate-templates path (group-name session) session)))
 
 (defn interpolate-template
   "Interpolate the given template."

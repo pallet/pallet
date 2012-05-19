@@ -631,10 +631,13 @@
   (brew update ~(stevedore/option-args options)))
 
 (script/defimpl upgrade-all-packages [#{:brew}] [& options]
-  (comment "No command to do this"))
+  (brew upgrade ~(stevedore/option-args options)))
 
 (script/defimpl install-package [#{:brew}] [package & options]
-  (brew install -y ~(stevedore/option-args options) ~package))
+  (chain-or
+   ;; brew install complains if already installed
+   (brew ls ~package > "/dev/null" "2>&1")
+   (brew install -y ~(stevedore/option-args options) ~package)))
 
 (script/defimpl remove-package [#{:brew}] [package & options]
   (brew uninstall ~(stevedore/option-args options) ~package))

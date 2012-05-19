@@ -8,7 +8,6 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.script.lib :as lib]
-   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    pallet.actions.direct.exec-script
    pallet.actions.direct.file
@@ -20,7 +19,8 @@
    [pallet.actions
     :only [add-rpm package package-manager package-source minimal-packages
            exec-script remote-file sed install-deb]]
-   [pallet.actions-impl :only [remote-file-action]]))
+   [pallet.actions-impl :only [remote-file-action]]
+   [pallet.core.session :only [packager os-family]]))
 
 (def ^{:private true}
   remote-file* (action-fn remote-file-action :direct))
@@ -29,7 +29,20 @@
 
 (defmulti adjust-packages
   (fn [session & _]
-    (first (session/packager session))))
+    (packager session)))
+
+;; http://algebraicthunk.net/~dburrows/projects/aptitude/doc/en/ch02s03s01.html
+(def ^{:private true} aptitude-escape-map
+  {\+ "\\+"
+   \- "\\-"
+   \. "\\."
+   \( "\\"
+   \) "\\)"
+   \| "\\|"
+   \[ "\\["
+   \] "\\]"
+   \^ "\\^"
+   \$ "\\$"})
 
 ;; aptitude and apt can install, remove and purge all in one command, so we just
 ;; need to split by enable/disable options.
@@ -61,7 +74,26 @@
                (IllegalArgumentException.
                 (str
                  action " is not a valid action for package action"))))))))))
-   (stevedore/script (~lib/list-installed-packages))))
+   ;; aptitude doesn't report failed installed in its exit code
+   ;; so explicitly check for success
+   (stevedore/chain-commands*
+    (for [{:keys [package action]} packages
+          :let [escaped-package (string/escape package aptitude-escape-map)]]
+      (cond
+        (#{:install :upgrade} action)
+        (stevedore/script
+         (pipe (aptitude
+                search
+                (quoted
+                 (str "?and(?installed, ?name(^" ~escaped-package "$))")))
+               (grep (quoted ~package))))
+        (= :remove action)
+        (stevedore/script
+         (not (pipe (aptitude
+                     search
+                     (quoted
+                      (str "?and(?installed, ?name(^" ~escaped-package "$))")))
+                    (grep (quoted ~package))))))))))
 
 (defmethod adjust-packages :apt
   [session packages]
@@ -149,6 +181,7 @@
   "Convert the args into a single map"
   [session package-name
    & {:keys [action y force purge priority enable disable] :as options}]
+  (logging/tracef "package-map %s" package-name)
   (letfn [(as-seq [x] (if (or (string? x) (symbol? x) (keyword? x))
                         [(name x)] x))]
     (->
@@ -223,7 +256,7 @@
 (defn package-source*
   "Add a packager source."
   [session name & {:keys [apt aptitude yum] :as options}]
-  (let [[packager _] (session/packager session)]
+  (let [packager (packager session)]
     (checked-commands
      "Package source"
      (let [key-url (or (:url aptitude) (:url apt))]
@@ -413,7 +446,7 @@
 (defn package-manager*
   "Package management."
   [session action & options]
-  (let [[packager _] (session/packager session)]
+  (let [packager (packager session)]
     (checked-commands
      (format "package-manager %s %s" (name action) (string/join " " options))
      (case action
@@ -449,7 +482,7 @@
        (package-manager session :add-scope :scope :non-free)"
   {:action-type :script :location :target}
   [session & package-manager-args]
-  (logging/debugf "package-manager-args %s" (vec package-manager-args))
+  (logging/tracef "package-manager-args %s" (vec package-manager-args))
   [[{:language :bash}
     (stevedore/do-script*
      (map #(apply package-manager* session %) (distinct package-manager-args)))]
@@ -484,7 +517,7 @@
   "Add minimal packages for pallet to function"
   {:action-type :script :location :target}
   [session]
-  (let [[os-family _] (session/os-family session)]
+  (let [[os-family _] (os-family session)]
     [[{:language :bash}
       (cond
         (#{:ubuntu :debian} os-family) (checked-script
