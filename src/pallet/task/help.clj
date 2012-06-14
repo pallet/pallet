@@ -83,5 +83,5 @@
          (println "      pallet.compute.credential,")
          (println "\n  the pallet.config/service is used if it exists."))
        (do
-         (println "Run the new-project task to create a pallet project.\n")))
-     (println "\nSee http://github.com/hugoduncan/pallet.")))
+         (println "Run the `lein new pallet` to create a pallet project.\n")))
+     (println "\nSee https://palletops.com.")))

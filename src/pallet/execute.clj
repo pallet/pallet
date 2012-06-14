@@ -204,16 +204,19 @@
              (fn [agent]
                (if agent
                  agent
-                 (or (ssh/ssh-agent)
-                     (ssh/create-ssh-agent false)))))))
+                 (ssh/ssh-agent {}))))))
 
 (defn possibly-add-identity
   [agent private-key-path passphrase]
   (try
     (locking agent
       (if passphrase
-        (ssh/add-identity agent private-key-path passphrase)
-        (ssh/add-identity-with-keychain agent private-key-path)))
+        (ssh/add-identity
+         {:agent agent
+          :private-key-path private-key-path
+          :passphrase passphrase})
+        (ssh/add-identity-with-keychain
+          {:agent agent :private-key-path private-key-path})))
     (catch Exception e
       (logging/warnf e "Add identity failed"))))
 
@@ -223,9 +226,9 @@
   [ssh-session prefix]
   (let [result (ssh/ssh
                 ssh-session
-                (bash-command
-                 (stevedore/script (println (~lib/make-temp-file ~prefix))))
-                :return-map true)]
+                {:cmd (bash-command
+                       (stevedore/script
+                        (println (~lib/make-temp-file ~prefix))))})]
     (if (zero? (:exit result))
       (string/trim (result :out))
       (throw+
@@ -247,54 +250,53 @@
   (when (not (ssh/connected? ssh-session))
     (throw+ {:type :no-ssh-session
              :message (format"No ssh session for %s" server)}))
-  (let [response (ssh/sftp sftp-channel
+  (let [response (ssh/sftp sftp-channel {}
                            :put (java.io.ByteArrayInputStream.
                                  (.getBytes
                                   (str prolog command \newline)))
-                           tmpfile
-                           :return-map true)
-        response2 (ssh/sftp sftp-channel :ls)]
+                           tmpfile)
+        response2 (ssh/sftp sftp-channel {} :ls)]
     (logging/infof
      "Transfering commands to %s:%s : %s" server tmpfile response))
   (let [chmod-result (ssh/ssh
                       ssh-session
-                      (bash-command (str "chmod 755 " tmpfile))
-                      :return-map true)]
+                      {:cmd (bash-command (str "chmod 755 " tmpfile))})]
     (if (pos? (chmod-result :exit))
       (logging/error (str "Couldn't chmod script : "  (chmod-result :err)))))
   (let [cmd (str (sudo-cmd-for user) "./" tmpfile)
         _ (logging/infof "Running %s" (strip-sudo-password cmd user))
-        [shell stream] (ssh/ssh
-                        ssh-session
-                        ;; using :in forces a shell ssh-session, rather than
-                        ;; exec; some services check for a shell ssh-session
-                        ;; before detaching (couchdb being one prime
-                        ;; example)
-                        :in cmd
-                        :out :stream
-                        :return-map true
-                        :pty pty
-                        :agent-forwarding agent-forwarding)
+        {:keys [channel out-stream]}
+        (ssh/ssh
+         ssh-session
+         ;; using :in forces a shell ssh-session, rather than
+         ;; exec; some services check for a shell ssh-session
+         ;; before detaching (couchdb being one prime
+         ;; example)
+         {:in cmd
+          :out :stream
+          :return-map true
+          :pty pty
+          :agent-forwarding agent-forwarding})
         sb (StringBuilder.)
         buffer-size @ssh-output-buffer-size
         period @output-poll-period
         bytes (byte-array buffer-size)
         read-ouput (fn []
-                     (when (pos? (.available stream))
-                       (let [num-read (.read stream bytes 0 buffer-size)
+                     (when (pos? (.available out-stream))
+                       (let [num-read (.read out-stream bytes 0 buffer-size)
                              s (normalise-eol
                                 (strip-sudo-password
                                  (String. bytes 0 num-read "UTF-8") user))]
                          (logging/infof "Output: %s\n%s" server s)
                          (.append sb s)
                          s)))]
-    (while (ssh/connected? shell)
+    (while (ssh/connected-channel? channel)
       (Thread/sleep period)
       (read-ouput))
     (while (read-ouput))
-    (.close stream)
-    (ssh/ssh ssh-session (bash-command (str "rm " tmpfile)))
-    (let [exit (.getExitStatus shell)
+    (.close out-stream)
+    (ssh/ssh ssh-session {:cmd (bash-command (str "rm " tmpfile))})
+    (let [exit (.getExitStatus channel)
           stdout (str sb)]
       (if (zero? exit)
         {:out stdout :exit exit}
@@ -313,31 +315,31 @@
   "Run a sudo command on a server."
   [#^String server #^String command user
    {:keys [pty agent-forwarding] :as options}]
-  (ssh/with-ssh-agent [(default-agent)]
-    (possibly-add-identity
-     ssh/*ssh-agent* (:private-key-path user) (:passphrase user))
-    (let [ssh-session (ssh/session server
-                               :username (:username user)
-                               :password (:password user)
-                               :strict-host-key-checking :no)]
+  (let [agent (default-agent)]
+    (possibly-add-identity agent (:private-key-path user) (:passphrase user))
+    (let [ssh-session (ssh/session
+                       agent server
+                       {:username (:username user)
+                        :password (:password user)
+                        :strict-host-key-checking :no})]
       (ssh/with-connection ssh-session
         (let [tmpfile (ssh-mktemp ssh-session "remotesudo")
               sftp-channel (ssh/ssh-sftp ssh-session)]
           (logging/infof "Cmd %s" command)
-          (ssh/with-connection sftp-channel
+          (ssh/with-channel-connection sftp-channel
             (remote-sudo-cmd
              server ssh-session sftp-channel user tmpfile command options)))))))
 
 (defn remote-exec
   "Run an ssh exec command on a server."
   [#^String server #^String command user]
-  (ssh/with-ssh-agent [(default-agent)]
-    (possibly-add-identity
-     ssh/*ssh-agent* (:private-key-path user) (:passphrase user))
-    (let [ssh-session (ssh/session server
-                               :username (:username user)
-                               :password (:password user)
-                               :strict-host-key-checking :no)]
+  (let [agent (default-agent)]
+    (possibly-add-identity agent (:private-key-path user) (:passphrase user))
+    (let [ssh-session (ssh/session
+                       agent server
+                       {:username (:username user)
+                        :password (:password user)
+                        :strict-host-key-checking :no})]
       (ssh/with-connection ssh-session
         (logging/infof "Exec %s" command)
         (ssh/ssh-exec ssh-session command nil "UTF-8" nil)))))
@@ -356,13 +358,14 @@
         :message (str
                   "The session is missing server ssh connection details.\n"
                   "Add middleware to enable ssh.")}))
-    (let [ssh-session (or ssh-session
+    (let [agent (default-agent)
+          ssh-session (or ssh-session
                           (ssh/session
-                           server
-                           :username (:username user)
-                           :strict-host-key-checking :no
-                           :port port
-                           :password (:password user)))
+                           agent server
+                           {:username (:username user)
+                            :strict-host-key-checking :no
+                            :port port
+                            :password (:password user)}))
           _ (.setDaemonThread ssh-session true)
           _ (when-not (ssh/connected? ssh-session)
               (try
@@ -378,7 +381,8 @@
           tmpfile (or tmpfile (ssh-mktemp ssh-session "sudocmd"))
           tmpcpy (or tmpcpy (ssh-mktemp ssh-session "tfer"))
           sftp-channel (or sftp-channel (ssh/ssh-sftp ssh-session))
-          _ (when-not (ssh/connected? sftp-channel) (ssh/connect sftp-channel))]
+          _ (when-not (ssh/connected-channel? sftp-channel)
+              (ssh/connect-channel sftp-channel))]
       (update-in session [:ssh] merge
                  {:ssh-session ssh-session
                   :tmpfile tmpfile
@@ -393,9 +397,10 @@
     (if ssh
       (do
         (when sftp-channel
-          (ssh/disconnect sftp-channel))
+          (ssh/disconnect-channel sftp-channel))
         (when ssh-session
-          (ssh/ssh ssh-session (bash-command (str "rm -f " tmpfile " " tmpcpy)))
+          (ssh/ssh ssh-session
+                   {:cmd (bash-command (str "rm -f " tmpfile " " tmpcpy))})
           (ssh/disconnect ssh-session))
         [results (dissoc session :ssh) flag])
       [results session flag])))
@@ -480,9 +485,8 @@
   (logging/infof
    "Transferring %s to %s:%s via %s" file server remote-name tmpcpy)
   (ssh/sftp
-   sftp-channel
-   :put (-> file java.io.FileInputStream. java.io.BufferedInputStream.)
-   tmpcpy)
+   sftp-channel {}
+   :put (-> file java.io.FileInputStream. java.io.BufferedInputStream.) tmpcpy)
   (remote-sudo-cmd
    server ssh-session sftp-channel user tmpfile
    (stevedore/script
@@ -504,10 +508,8 @@
       (let [md5 (try
                   (filesystem/with-temp-file [md5-copy]
                     (ssh/sftp
-                     sftp-channel
-                     :get
-                     remote-md5-name
-                     (.getPath md5-copy))
+                     sftp-channel {}
+                     :get remote-md5-name (.getPath md5-copy))
                     (slurp md5-copy))
                   (catch Exception _ nil))]
         (if md5
@@ -544,10 +546,10 @@
        (stevedore/script
         (cp -f ~remote-file ~tmpcpy))
        {})
-      (ssh/sftp sftp-channel
-                :get tmpcpy
-                (-> local-file java.io.FileOutputStream.
-                    java.io.BufferedOutputStream.)))
+      (ssh/sftp
+       sftp-channel {}
+       :get tmpcpy
+       (-> local-file java.io.FileOutputStream. java.io.BufferedOutputStream.)))
     [value session]))
 
 (defn echo-bash
@@ -581,7 +583,7 @@
          "execute-with-ssh on %s %s"
          (compute/group-name target-node)
          (pr-str (compute/node-address target-node)))
-        (ssh/with-ssh-agent [(default-agent)]
+        (let [agent (default-agent)]
           (try
             (->
              session
