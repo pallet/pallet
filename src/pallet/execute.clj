@@ -207,16 +207,12 @@
                  (ssh/ssh-agent {}))))))
 
 (defn possibly-add-identity
-  [agent private-key-path passphrase]
+  [agent {:keys [private-key-path public-key-path passphrase] :as options}]
   (try
     (locking agent
       (if passphrase
-        (ssh/add-identity
-         {:agent agent
-          :private-key-path private-key-path
-          :passphrase passphrase})
-        (ssh/add-identity-with-keychain
-          {:agent agent :private-key-path private-key-path})))
+        (ssh/add-identity agent options)
+        (ssh/add-identity-with-keychain agent options)))
     (catch Exception e
       (logging/warnf e "Add identity failed"))))
 
@@ -316,7 +312,7 @@
   [#^String server #^String command user
    {:keys [pty agent-forwarding] :as options}]
   (let [agent (default-agent)]
-    (possibly-add-identity agent (:private-key-path user) (:passphrase user))
+    (possibly-add-identity agent user)
     (let [ssh-session (ssh/session
                        agent server
                        {:username (:username user)
@@ -334,7 +330,7 @@
   "Run an ssh exec command on a server."
   [#^String server #^String command user]
   (let [agent (default-agent)]
-    (possibly-add-identity agent (:private-key-path user) (:passphrase user))
+    (possibly-add-identity agent user)
     (let [ssh-session (ssh/session
                        agent server
                        {:username (:username user)
@@ -637,7 +633,7 @@
   (fn [session]
     (let [user (:user session)]
       (logging/infof
-       "Admin user %s %s" (:username user) (:private-key-path user))
-      (possibly-add-identity
-       (default-agent) (:private-key-path user) (:passphrase user)))
+       "Admin user %s %s %s"
+       (:username user) (:private-key-path user) (:public-key-path user))
+      (possibly-add-identity (default-agent) user))
     (handler session)))

@@ -60,8 +60,7 @@
 (deftest remote-sudo-test
   (let [user (assoc utils/*admin-user* :username (test-username))]
     (binding [utils/*admin-user* user]
-      (possibly-add-identity
-       (default-agent) (:private-key-path user) (:passphrase user))
+      (possibly-add-identity (default-agent) user)
       (script/with-template [(jvm/os-family)]
         (let [result (remote-sudo
                       "localhost"
@@ -73,8 +72,7 @@
     (reset! default-agent-atom nil)
     (let [user (assoc utils/*admin-user* :username (test-username))]
     (binding [utils/*admin-user* user]
-      (possibly-add-identity
-       (default-agent) (:private-key-path user) (:passphrase user))
+      (possibly-add-identity (default-agent) user)
       (script/with-template [(jvm/os-family)]
         (let [result (remote-sudo
                       "localhost"
@@ -86,8 +84,7 @@
     (reset! default-agent-atom nil)
     (let [user (assoc utils/*admin-user* :username (test-username))]
     (binding [utils/*admin-user* user]
-      (possibly-add-identity
-       (default-agent) (:private-key-path user) (:passphrase user))
+      (possibly-add-identity (default-agent) user)
       (script/with-template [(jvm/os-family)]
         (let [result (remote-sudo
                       "localhost"
@@ -99,8 +96,7 @@
 (deftest execute-with-ssh-test
   (let [user (assoc utils/*admin-user* :username (test-username) :no-sudo true)]
     (binding [utils/*admin-user* user]
-      (possibly-add-identity
-       (default-agent) (:private-key-path user) (:passphrase user))
+      (possibly-add-identity (default-agent) user)
       (let [node (test-utils/make-localhost-node)
             session {:phase :configure
                      :server {:node-id :localhost
@@ -130,8 +126,7 @@
 (deftest with-ssh-tunnel-test
   (let [user (assoc utils/*admin-user* :username (test-username) :no-sudo true)]
     (binding [utils/*admin-user* user]
-      (possibly-add-identity
-       (default-agent) (:private-key-path user) (:passphrase user))
+      (possibly-add-identity (default-agent) user)
       (let [node (test-utils/make-localhost-node)
             session {:phase :configure
                      :server {:node-id :localhost
