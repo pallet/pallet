@@ -574,6 +574,28 @@
 (script/defimpl list-installed-packages [#{:yum}] [& options]
   (yum list installed))
 
+;;; apt
+(script/defimpl update-package-list [#{:apt}] [& {:keys [] :as options}]
+  (apt-get -qq ~(stevedore/map-to-arg-string options) update))
+
+(script/defimpl upgrade-all-packages [#{:apt}] [& options]
+  (apt-get -qq -y ~(stevedore/option-args options) upgrade))
+
+(script/defimpl install-package [#{:apt}] [package & options]
+  (apt-get -qq -y ~(stevedore/option-args options) install ~package))
+
+(script/defimpl upgrade-package [#{:apt}] [package & options]
+  (apt-get -qq -y ~(stevedore/option-args options)  install ~package))
+
+(script/defimpl remove-package [#{:apt}] [package & options]
+  (apt-get -qq -y ~(stevedore/option-args options) remove ~package))
+
+(script/defimpl purge-package [#{:apt}] [package & options]
+  (apt-get -qq -y ~(stevedore/option-args options) remove ~package))
+
+(script/defimpl list-installed-packages [#{:apt}] [& options]
+  (dpkg --get-selections))
+
 ;;; zypper
 (script/defimpl update-package-list [#{:zypper}] [& options]
   (zypper refresh ~(stevedore/option-args options)))

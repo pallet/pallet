@@ -18,7 +18,8 @@
    [pallet.utils :as utils]
    [clojure.string :as string])
   (:use
-   pallet.thread-expr))
+   pallet.thread-expr
+   [pallet.stevedore :only [checked-commands]]))
 
 (def ^{:private true}
   remote-file* (action/action-fn remote-file/remote-file-action))
@@ -94,6 +95,36 @@
                      (quoted
                       (str "?and(?installed, ?name(^" ~escaped-package "$))")))
                     (grep (quoted ~package))))))))))
+
+(defmethod adjust-packages :apt
+  [session packages]
+  (checked-commands
+   "Packages"
+   (stevedore/script (~lib/package-manager-non-interactive))
+   (stevedore/chain-commands*
+    (for [[opts packages] (->>
+                           packages
+                           (group-by #(select-keys % [:enable]))
+                           (sort-by #(apply min (map :priority (second %)))))]
+      (stevedore/script
+       (apt-get
+        -q -y install
+        ~(string/join " " (map #(str "-t " %) (:enable opts)))
+        ~(string/join
+          " "
+          (for [[action packages] (group-by :action packages)
+                {:keys [package force purge]} packages]
+            (case action
+              :install (format "%s+" package)
+              :remove (if purge
+                        (format "%s_" package)
+                        (format "%s-" package))
+              :upgrade (format "%s+" package)
+              (throw
+               (IllegalArgumentException.
+                (str
+                 action " is not a valid action for package action"))))))))))
+   (stevedore/script (~lib/list-installed-packages))))
 
 (def ^{:private true :doc "Define the order of actions"}
   action-order {:install 10 :remove 20 :upgrade 30})
@@ -195,6 +226,7 @@
 
 (def source-location
   {:aptitude "/etc/apt/sources.list.d/%s.list"
+   :apt "/etc/apt/sources.list.d/%s.list"
    :yum "/etc/yum.repos.d/%s.repo"})
 
 (defmulti format-source
@@ -211,6 +243,10 @@
     (:release options (stevedore/script (~lib/os-version-name))))
    (when-let [scopes (:scopes options ["main"])]
      (str " " (string/join " " scopes)))))
+
+(defmethod format-source :apt
+  [_ name options]
+  (format-source :aptitude name options))
 
 (defmethod format-source :yum
   [_ name {:keys [url mirrorlist gpgcheck gpgkey priority failovermethod
@@ -235,35 +271,34 @@
 
 (defn package-source*
   "Add a packager source."
-  [session name & {:keys [aptitude yum] :as options}]
+  [session name & {:keys [apt aptitude yum] :as options}]
   (let [packager (session/packager session)]
     (stevedore/checked-commands
      "Package source"
-     (let [key-url (:url aptitude)]
+     (let [key-url (or (:url aptitude) (:url apt))]
        (if (and key-url (.startsWith key-url "ppa:"))
          (stevedore/chain-commands
           (stevedore/script (~lib/install-package "python-software-properties"))
-          (stevedore/script (add-apt-repository ~key-url)))
+          (stevedore/script (add-apt-repository -y ~key-url)))
          (remote-file*
           session
           (format (source-location packager) name)
           :content (format-source packager name (packager options))
           :literal (= packager :yum))))
-     (if (and (:key-id aptitude)
-              (= packager :aptitude))
-       (stevedore/script
-        (apt-key
-         adv
-         "--keyserver" ~(:key-server aptitude *default-apt-keyserver*)
-         "--recv-keys" ~(:key-id aptitude))))
-     (if (and (:key-url aptitude)
-              (= packager :aptitude))
-       (stevedore/chain-commands
-        (remote-file*
-         session
-         "aptkey.tmp"
-         :url (:key-url aptitude))
-        (stevedore/script (apt-key add aptkey.tmp))))
+     (if-let [key-id (or (:key-id aptitude) (:key-id apt))]
+       (if (#{:aptitude :apt} packager)
+         (let [key-server (or (:key-server aptitude) (:key-server apt)
+                              *default-apt-keyserver*)]
+           (stevedore/script
+            (apt-key
+             adv
+             "--keyserver" ~key-server
+             "--recv-keys" ~(:key-id aptitude))))))
+     (if-let [key-url (or (:key-url aptitude) (:key-url apt))]
+       (if (#{:aptitude :apt} packager)
+         (stevedore/chain-commands
+          (remote-file* session "aptkey.tmp" :url (:key-url aptitude))
+          (stevedore/script (apt-key add aptkey.tmp)))))
      (when-let [key (and (= packager :yum) (:gpgkey yum))]
        (stevedore/script (rpm "--import" ~key))))))
 
@@ -328,6 +363,10 @@
   [session packager proxy proxy-url]
   (format "ACQUIRE::http::proxy \"%s\";" proxy-url))
 
+(defmethod package-manager-option [:apt :proxy]
+  [session packager proxy proxy-url]
+  (package-manager-option session :aptitude proxy proxy-url))
+
 (defmethod package-manager-option [:yum :proxy]
   [session packager proxy proxy-url]
   (format "proxy=%s" proxy-url))
@@ -360,6 +399,10 @@
               #(package-manager-option session packager (key %) (val %))
               (dissoc options :priority)))
    :literal true))
+
+(defmethod configure-package-manager :apt
+  [session packager {:as options}]
+  (configure-package-manager session :aptitude options))
 
 (defmethod configure-package-manager :yum
   [session packager {:keys [proxy] :as options}]
