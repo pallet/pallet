@@ -68,6 +68,18 @@
                  param-value))))))
   session)
 
+(action/def-clj-action settings-test
+  "An action that tests settings values for equality with the argument
+   supplied values."
+  [session facility instance-id & {:as kw-vals}]
+  (let [settings (get-target-settings session facility instance-id)]
+    (doseq [[key value] kw-vals]
+      (is (= value
+             (let [param-value (get settings key ::not-set)]
+               (is (not= ::not-set param-value))
+               param-value)))))
+  session)
+
 (deftest set-parameters-test
   (let [[res session] (build-actions/build-actions
                        {}
