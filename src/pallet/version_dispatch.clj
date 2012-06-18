@@ -42,6 +42,21 @@ data may provide a version."
       (version-spec-less os-versionj os-versioni) false
       :else (version-spec-less versioni versionj))))
 
+(defn ^{:internal true} dispatch-os
+  [sym os os-version args hierarchy methods]
+  (letfn [(matches? [[i _]]
+            (and (isa? hierarchy os (:os i))
+                 (version-matches? os-version (:os-version i))))]
+    (if-let [[_ f] (first (sort
+                           (comparator (partial match-less hierarchy))
+                           (filter matches? methods)))]
+      (apply f os os-version args)
+      (if-let [f (:default methods)]
+        (apply f os os-version args)
+        (throw (IllegalArgumentException.
+                (str "No " sym " method for os: " os
+                     "os-version: " os-version)))))))
+
 (defn ^{:internal true} dispatch-version
   [sym os os-version version args hierarchy methods]
   (letfn [(matches? [[i _]]
@@ -57,6 +72,38 @@ data may provide a version."
         (throw (IllegalArgumentException.
                 (str "No " sym " method for "
                      os " " os-version " " version)))))))
+
+(defmacro defmulti-os
+  "Defines a multi-version funtion used to abstract over an operating system
+hierarchy, where dispatch includes an optional `os-version`. The `version`
+refers to a software package version of some sort, on the specified `os` and
+`os-version`."
+  {:indent 2}
+  [name [os os-version & args] hierarchy-place]
+  `(do
+     (let [h# ~hierarchy-place
+           m# (atom {})]
+       (defn ~name
+         {:hierarchy h# :methods m#}
+         [~os ~os-version ~@args]
+         (dispatch-version '~name
+          ~os ~os-version [~@args] (var-get h#) @m#)))))
+
+(defmacro multi-os-method
+  "Adds a method to the specified multi-os function for the specified
+`dispatch-value`."
+  {:indent 3}
+  [multi-version {:keys [os os-version] :as dispatch-value}
+   [& args] & body]
+  (let [{:keys [hierarchy methods]} (meta (resolve multi-version))
+        h (var-get hierarchy)]
+    (when-not ((hierarchy-vals h) os)
+      (throw (Exception. (str os " is not part of the hierarchy"))))
+    `(swap! (:methods (meta (var ~multi-version))) assoc ~dispatch-value
+            (fn
+              ~(symbol (str (name multi-version) "-" (name os) "-" os-version))
+              [~@args]
+              ~@body))))
 
 (defmacro defmulti-version
   "Defines a multi-version funtion used to abstract over an operating system
@@ -90,6 +137,41 @@ refers to a software package version of some sort, on the specified `os` and
                 (str (name multi-version) "-"
                      (name os) "-" os-version "-" (string/join "" version)))
               [~@args]
+              ~@body))))
+
+(defmacro defmulti-os-crate
+  "Defines a multi-os funtion used to abstract over an operating system
+hierarchy, where dispatch includes an optional `os-version`. The `version`
+refers to a software package version of some sort, on the specified `os` and
+`os-version`."
+  {:indent 2}
+  [name [session & args]]
+  `(do
+     (let [h# #'os-hierarchy
+           m# (atom {})]
+       (defn ~name
+         {:hierarchy h# :methods m#}
+         [~session ~@args]
+         (dispatch-os
+          '~name
+          (os-family ~session)
+          (as-version-vector (os-version ~session))
+          [~session ~@args] (var-get h#) @m#)))))
+
+(defmacro multi-os-session-method
+  "Adds a method to the specified multi-version function for the specified
+`dispatch-value`."
+  {:indent 3}
+  [multi-version {:keys [os os-version] :as dispatch-value}
+   [session & args] & body]
+  (let [{:keys [hierarchy methods]} (meta (resolve multi-version))
+        h (var-get hierarchy)]
+    (when-not ((hierarchy-vals h) os)
+      (throw (Exception. (str os " is not part of the hierarchy"))))
+    `(swap! (:methods (meta (var ~multi-version))) assoc ~dispatch-value
+            (fn ~(symbol
+                  (str (name multi-version) "-" (name os) "-" os-version))
+              [~session ~@args]
               ~@body))))
 
 (defmacro defmulti-version-crate
