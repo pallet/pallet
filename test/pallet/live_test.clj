@@ -58,6 +58,8 @@
                       :os-64-bit true}]
    :ubuntu-11-10 [{:os-family :ubuntu :os-version-matches "11.10"
                       :os-64-bit true}]
+   :ubuntu-precise [{:os-family :ubuntu :os-version-matches "12.04"
+                      :os-64-bit true}]
    :debian-lenny [{:os-family :debian :os-version-matches "5.0.7"
                    :os-64-bit false}]
    :debian-squeeze [{:os-family :debian :os-version-matches "6.0.1"
