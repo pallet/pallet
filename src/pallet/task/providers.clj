@@ -26,7 +26,8 @@
 
 (defmacro jclouds-providers-fn
   []
-  (if (Class/forName "org.jclouds.providers.Providers")
+  (if (try (Class/forName "org.jclouds.providers.Providers")
+           (catch ClassNotFoundException _))
     `(defn jclouds-providers
        []
        (for [provider# (org.jclouds.providers.Providers/viewableAs
