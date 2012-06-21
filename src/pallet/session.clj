@@ -89,7 +89,8 @@
   "All target groups with the specified role."
   [session role]
   (->>
-   (:all-node-set session)
+   (concat (:node-set session) (:all-node-set session))
+   (distinct)
    (filter #(when-let [roles (:roles %)] (roles role)))
    (map :group-name)))
 
