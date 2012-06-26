@@ -467,12 +467,15 @@
   [session f]
   (let [{:keys [ssh] :as session} (ensure-ssh-connection session)
         {:keys [server ssh-session sftp-channel tmpfile tmpcpy user]} ssh
-        {:keys [value session]} (f session)]
-    (logging/infof "Target %s cmd\n%s" server value)
+        {:keys [value session]} (f session)
+        options {:agent-forwarding (get-in
+                                    session
+                                    [:environment :agent-forwarding] true)
+                 :pty (get-in session [:environment :pty] true)}]
+    (logging/infof "Target %s options %s cmd\n%s" server value)
     [(remote-sudo-cmd
       server ssh-session sftp-channel user tmpfile value
-      {:agent-forwarding
-       (get-in session [:environment :agent-forwarding] true)})
+      options)
      session]))
 
 (defn- ssh-upload
