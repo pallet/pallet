@@ -202,7 +202,9 @@
 (defn node-types
   "Build node types according to the specs"
   [specs]
-  (into {} (map #((juxt :group-name identity) (node-spec %)) specs)))
+  (into {} (map
+            (fn node-types [m] ((juxt :group-name identity) (node-spec m)))
+            specs)))
 
 (defn- counts
   "Build a map of node defintion to count suitable for passing to `converge`."
