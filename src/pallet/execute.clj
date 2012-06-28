@@ -472,7 +472,7 @@
                                     session
                                     [:environment :agent-forwarding] true)
                  :pty (get-in session [:environment :pty] true)}]
-    (logging/infof "Target %s options %s cmd\n%s" server value)
+    (logging/infof "Target %s options %s cmd\n%s" server options value)
     [(remote-sudo-cmd
       server ssh-session sftp-channel user tmpfile value
       options)
