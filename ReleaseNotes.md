@@ -1,4 +1,57 @@
-The latest release is 0.7.0
+The latest release is 0.7.1
+
+# 0.7.1
+
+## Features
+
+- Add :type metadata to node-, server-, group- and cluster-spec
+  Allows for simple testing of whether a value is a node-spec, etc. The
+  types are
+  ::node-spec, ::server-spec, ::group-spec and ::cluster-spec in the
+  pallet.core namespace.
+
+- Split out debian-backports-repository
+
+- Add support for using apt for package management
+
+- Add action for testing settings
+
+- Add image list for ubuntu precise
+
+- Add defmulti for os dispatch
+
+- Update to latest releases
+  pallet-pom 0.7.3, thread-expr 1.2.0, pallet-common 0.2.3, stevedore
+  0.7.2, clj-ssh 0.4.0
+
+- Support ssh-agent forwarding
+  This is enabled by default. Set :agent-forwarding in the environment to 
+  control whether agent forwarding occurs.
+
+- Add pallet.utils/hex-md5
+  Util function for calculating the md5 of a string as a hex string
+
+- Use the system ssh-agent
+  When using keys with passphrases, integrating with the system's ssh-agent 
+  makes using palet much more secure.  This commit adds initial support for 
+  running agains ssh-agent on linux and pageant on windows.
+
+## Fixes
+
+- Forward pty options
+
+- Merge pull request #134 from pyr/support/0.7.x
+  look for roles in both :node-set and :all-node-set
+
+- allow nodes-with-role to query invoke-only nodes
+
+- Add support for jclouds Providers API in providers task
+  Jclouds 1.5 and greater has a Providers interface for discovering
+  providers in place of the previous properties file.
+
+- Propogate the user's public-key-path for ssh
+
+- Ensure node id is a string
 
 # 0.7.0
 
