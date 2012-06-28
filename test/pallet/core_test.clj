@@ -268,7 +268,9 @@
   (is (= {:image {}}
          (node-spec :image {})))
   (is (= {:hardware {}}
-         (node-spec :hardware {}))))
+         (node-spec :hardware {})))
+  (testing "type"
+    (is (= :pallet.core/node-spec (type (node-spec :hardware {}))))))
 
 (deftest server-spec-test
   (is (= {:phases {:a 1}}
@@ -287,7 +289,9 @@
           :extends (server-spec :phases {:a 1} :node-spec {:image {:b 2}})))
       "extends a server-spec")
   (is (= {:roles #{:r1}} (server-spec :roles :r1)) "Allow roles as keyword")
-  (is (= {:roles #{:r1}} (server-spec :roles [:r1])) "Allow roles as sequence"))
+  (is (= {:roles #{:r1}} (server-spec :roles [:r1])) "Allow roles as sequence")
+  (testing "type"
+    (is (= :pallet.core/server-spec (type (server-spec :roles :r1))))))
 
 (deftest group-spec-test
   (is (= {:group-name :gn :phases {:a 1}}
@@ -302,7 +306,9 @@
           "gn"
           :roles :r1
           :extends [(server-spec :phases {:a 1} :roles :r2)
-                    (server-spec :node-spec {:image {:b 2}} :roles [:r3])]))))
+                    (server-spec :node-spec {:image {:b 2}} :roles [:r3])])))
+  (testing "type"
+    (is (= :pallet.core/group-spec (type (group-spec "gn"))))))
 
 (deftest cluster-spec-test
   (let [x (fn [x] (update-in x [:x] inc))
@@ -320,7 +326,9 @@
     (testing ":phases on nodes are propogated"
       (is (= {:o 1} ((-> cluster :groups second :phases :o) {}))))
     (testing ":phases on cluster are merged"
-      (is (= {:x 2} ((-> cluster :groups first :phases :x) {}))))))
+      (is (= {:x 2} ((-> cluster :groups first :phases :x) {}))))
+    (testing "type"
+      (is (= :pallet.core/cluster-spec (type cluster))))))
 
 (deftest make-node-test
   (is (= {:group-name :fred :image {:os-family :ubuntu}}
