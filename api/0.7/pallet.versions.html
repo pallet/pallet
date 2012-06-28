@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.action.package documentation</title>
+    <title>pallet.versions documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript" src="js/page_effects.js"></script>
@@ -21,164 +21,65 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-link"><a href="pallet.action.package.html#var-add-rpm">add-rpm</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-add-scope">add-scope</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-add-scope*">add-scope*</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-configure-package-manager">configure-package-manager</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-format-source">format-source</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-install-deb">install-deb</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-minimal-packages">minimal-packages</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-package">package</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-package-manager">package-manager</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-package-manager*">package-manager*</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-package-manager-option">package-manager-option</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-package-source">package-source</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-package-source*">package-source*</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-packages">packages</a></li>
+          <li class="ns-var-link"><a href="pallet.versions.html#var-as-version-string">as-version-string</a></li><li class="ns-var-link"><a href="pallet.versions.html#var-as-version-vector">as-version-vector</a></li><li class="ns-var-link"><a href="pallet.versions.html#var-version-less">version-less</a></li><li class="ns-var-link"><a href="pallet.versions.html#var-version-matches%3F">version-matches?</a></li><li class="ns-var-link"><a href="pallet.versions.html#var-version-string">version-string</a></li><li class="ns-var-link"><a href="pallet.versions.html#var-version-vector">version-vector</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.action.package documentation</h2>
-        <div class="doc"><p>Package management action.</p>
-
-<p><code>package</code> is used to install or remove a package.</p>
-
-<p><code>package-source</code> is used to specify a non-standard source for packages.</p>
+        <h2 class="namespace-title">pallet.versions documentation</h2>
+        <div class="doc"><p>Version handling for pallet</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3 id="var-add-rpm">add-rpm</h3>
-            <div class="usage">[request rpm-name &amp; {:as options}]</div>
+            <h3 id="var-as-version-string">as-version-string</h3>
+            <div class="usage">[version]</div>
             
             
-            <div class="doc"><p>Add an rpm.  Source options are as for remote file.</p>
+            <div class="doc"><p>Take a version, as either a string or a version vector, and returns a
+version string.</p>
 </div>
           </div><div class="public">
-            <h3 id="var-add-scope">add-scope</h3>
-            <div class="usage">[opts]</div>
+            <h3 id="var-as-version-vector">as-version-vector</h3>
+            <div class="usage">[version]</div>
             
             
-            <div class="doc"><p>Add a scope to an apt source</p>
+            <div class="doc"><p>Take a version, as either a string or a version vector, and returns a
+version vector.</p>
 </div>
           </div><div class="public">
-            <h3 id="var-add-scope*">add-scope*</h3>
-            <div class="usage">[type scope file]</div>
+            <h3 id="var-version-less">version-less</h3>
+            <div class="usage">[v1 v2]</div>
             
             
-            <div class="doc"><p>Add a scope to all the existing package sources. Aptitude specific.</p>
+            <div class="doc"><p>Compare two version vectors.</p>
 </div>
           </div><div class="public">
-            <h3 id="var-configure-package-manager">configure-package-manager</h3>
+            <h3 id="var-version-matches%3F">version-matches?</h3>
+            <div class="usage">[version spec]</div>
             
             
-            
-            <div class="doc"><p>Configure the package manager</p>
+            <div class="doc"><p>Predicate to test if a version matches a version spec. A version spec is a
+version, or two (possibly nil) versions in a vector, to specify a version
+range.</p>
 </div>
           </div><div class="public">
-            <h3 id="var-format-source">format-source</h3>
+            <h3 id="var-version-string">version-string</h3>
+            <div class="usage">[version-vector]</div>
             
             
-            
-            <div class="doc"><p>Format a package source definition</p>
+            <div class="doc"><p>Convert a a vector of version numbers to a dotted version string.
+E.g.,
+    (version-vector [1 2]) =&gt; "1.2"</p>
 </div>
           </div><div class="public">
-            <h3 id="var-install-deb">install-deb</h3>
-            <div class="usage">[request deb-name &amp; {:as options}]</div>
+            <h3 id="var-version-vector">version-vector</h3>
+            <div class="usage">[version-string]</div>
             
             
-            <div class="doc"><p>Install a deb file.  Source options are as for remote file.</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-minimal-packages">minimal-packages</h3>
-            <div class="usage">[session]</div>
-            
-            
-            <div class="doc"><p>Add minimal packages for pallet to function</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-package">package</h3>
-            <div class="usage">[session package-name &amp; {:keys [action y force purge enable disable priority], :or {action :install, y true, priority 50}, :as options}]</div>
-            
-            
-            <div class="doc"><p>Install or remove a package.</p>
-
-<p>Options
- - :action [:install | :remove | :upgrade]
- - :purge [true|false]         when removing, whether to remove all config
- - :enable [repo|(seq repo)]   enable specific repository
- - :disable [repo|(seq repo)]  disable specific repository
- - :priority n                 priority (0-100, default 50)</p>
-
-<p>Package management occurs in one shot, so that the package manager can
-maintain a consistent view.</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-package-manager">package-manager</h3>
-            <div class="usage">[session package-manager-args]</div>
-            
-            
-            <div class="doc"><p>Package manager controls.</p>
-
-<p><code>action</code> is one of the following:
-- :update          - update the list of available packages
-- :list-installed  - output a list of the installed packages
-- :add-scope       - enable a scope (eg. multiverse, non-free)</p>
-
-<p>To refresh the list of packages known to the pakage manager:
-    (package-manager session :update)</p>
-
-<p>To enable multiverse on ubuntu:
-    (package-manager session :add-scope :scope :multiverse)</p>
-
-<p>To enable non-free on debian:
-    (package-manager session :add-scope :scope :non-free)</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-package-manager*">package-manager*</h3>
-            <div class="usage">[session action &amp; options]</div>
-            
-            
-            <div class="doc"><p>Package management.</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-package-manager-option">package-manager-option</h3>
-            
-            
-            
-            <div class="doc"><p>Provide packager specific options</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-package-source">package-source</h3>
-            
-            
-            
-            <div class="doc"><p>Control package sources.
-Options are the package manager keywords, each specifying a map of
-packager specific options.</p>
-
-<p>:aptitude
-  - :source-type string   - source type (deb)
-  - :url url              - repository url
-  - :scopes seq           - scopes to enable for repository
-  - :key-url url          - url for key
-  - :key-id id            - id for key to look it up from key server
-  - :key-server           - the hostname of the key server to lookup keys</p>
-
-<p>:yum
-  - :name                 - repository name
-  - :url url          - repository base url
-  - :gpgkey url           - gpg key url for repository</p>
-
-<p>Example
-    (package-source "Partner"
-      :aptitude {:url "http://archive.canonical.com/"
-                 :scopes ["partner"]})</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-package-source*">package-source*</h3>
-            <div class="usage">[session name &amp; {:keys [apt aptitude yum], :as options}]</div>
-            
-            
-            <div class="doc"><p>Add a packager source.</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-packages">packages</h3>
-            <div class="usage">[session &amp; {:keys [yum aptitude pacman brew], :as options}]</div>
-            
-            
-            <div class="doc"><p>Install a list of packages keyed on packager.
-(packages session
-  :yum ["git" "git-email"]
-  :aptitude ["git-core" "git-email"])</p>
+            <div class="doc"><p>Convert a dotted version string to a vector of version numbers.
+E.g.,
+    (version-vector "1.2") =&gt; [1 2]</p>
 </div>
           </div>
         </div>

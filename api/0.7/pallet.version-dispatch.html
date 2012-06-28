@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.action.package documentation</title>
+    <title>pallet.version-dispatch documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript" src="js/page_effects.js"></script>
@@ -21,164 +21,105 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-link"><a href="pallet.action.package.html#var-add-rpm">add-rpm</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-add-scope">add-scope</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-add-scope*">add-scope*</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-configure-package-manager">configure-package-manager</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-format-source">format-source</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-install-deb">install-deb</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-minimal-packages">minimal-packages</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-package">package</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-package-manager">package-manager</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-package-manager*">package-manager*</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-package-manager-option">package-manager-option</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-package-source">package-source</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-package-source*">package-source*</a></li><li class="ns-var-link"><a href="pallet.action.package.html#var-packages">packages</a></li>
+          <li class="ns-var-link"><a href="pallet.version-dispatch.html#var-defmulti-os">defmulti-os</a></li><li class="ns-var-link"><a href="pallet.version-dispatch.html#var-defmulti-os-crate">defmulti-os-crate</a></li><li class="ns-var-link"><a href="pallet.version-dispatch.html#var-defmulti-version">defmulti-version</a></li><li class="ns-var-link"><a href="pallet.version-dispatch.html#var-defmulti-version-crate">defmulti-version-crate</a></li><li class="ns-var-link"><a href="pallet.version-dispatch.html#var-hierarchy-vals">hierarchy-vals</a></li><li class="ns-var-link"><a href="pallet.version-dispatch.html#var-multi-os-method">multi-os-method</a></li><li class="ns-var-link"><a href="pallet.version-dispatch.html#var-multi-os-session-method">multi-os-session-method</a></li><li class="ns-var-link"><a href="pallet.version-dispatch.html#var-multi-version-method">multi-version-method</a></li><li class="ns-var-link"><a href="pallet.version-dispatch.html#var-multi-version-session-method">multi-version-session-method</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.action.package documentation</h2>
-        <div class="doc"><p>Package management action.</p>
+        <h2 class="namespace-title">pallet.version-dispatch documentation</h2>
+        <div class="doc"><p>Dispatch that is version aware.</p>
 
-<p><code>package</code> is used to install or remove a package.</p>
+<p>A version is a dotted string, eg. "1.0.3", which is represented as a vector
+<code>[1 0 3]</code>.</p>
 
-<p><code>package-source</code> is used to specify a non-standard source for packages.</p>
+<p>A version specification is either a version vector, which matches a single
+version (and all point versions thereof), or a vector of two elements,
+specifying an inclusive version range. A nil in the version vector signifies an
+open end to the range.</p>
+
+<p>The basic idea is that you wish to dispatch on hierarchy where the dispatched
+data may provide a version.</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3 id="var-add-rpm">add-rpm</h3>
-            <div class="usage">[request rpm-name &amp; {:as options}]</div>
+            <h3 id="var-defmulti-os">defmulti-os</h3>
+            <div class="usage">[name [os os-version &amp; args] hierarchy-place]</div>
             
             
-            <div class="doc"><p>Add an rpm.  Source options are as for remote file.</p>
+            <div class="doc"><p>Defines a multi-version funtion used to abstract over an operating system
+hierarchy, where dispatch includes an optional <code>os-version</code>. The <code>version</code>
+refers to a software package version of some sort, on the specified <code>os</code> and
+<code>os-version</code>.</p>
 </div>
           </div><div class="public">
-            <h3 id="var-add-scope">add-scope</h3>
-            <div class="usage">[opts]</div>
+            <h3 id="var-defmulti-os-crate">defmulti-os-crate</h3>
+            <div class="usage">[name [session &amp; args]]</div>
             
             
-            <div class="doc"><p>Add a scope to an apt source</p>
+            <div class="doc"><p>Defines a multi-os funtion used to abstract over an operating system
+hierarchy, where dispatch includes an optional <code>os-version</code>. The <code>version</code>
+refers to a software package version of some sort, on the specified <code>os</code> and
+<code>os-version</code>.</p>
 </div>
           </div><div class="public">
-            <h3 id="var-add-scope*">add-scope*</h3>
-            <div class="usage">[type scope file]</div>
+            <h3 id="var-defmulti-version">defmulti-version</h3>
+            <div class="usage">[name [os os-version version &amp; args] hierarchy-place]</div>
             
             
-            <div class="doc"><p>Add a scope to all the existing package sources. Aptitude specific.</p>
+            <div class="doc"><p>Defines a multi-version funtion used to abstract over an operating system
+hierarchy, where dispatch includes an optional <code>os-version</code>. The <code>version</code>
+refers to a software package version of some sort, on the specified <code>os</code> and
+<code>os-version</code>.</p>
 </div>
           </div><div class="public">
-            <h3 id="var-configure-package-manager">configure-package-manager</h3>
+            <h3 id="var-defmulti-version-crate">defmulti-version-crate</h3>
+            <div class="usage">[name [version session &amp; args]]</div>
             
             
-            
-            <div class="doc"><p>Configure the package manager</p>
+            <div class="doc"><p>Defines a multi-version funtion used to abstract over an operating system
+hierarchy, where dispatch includes an optional <code>os-version</code>. The <code>version</code>
+refers to a software package version of some sort, on the specified <code>os</code> and
+<code>os-version</code>.</p>
 </div>
           </div><div class="public">
-            <h3 id="var-format-source">format-source</h3>
+            <h3 id="var-hierarchy-vals">hierarchy-vals</h3>
+            <div class="usage">[hierarchy]</div>
             
             
-            
-            <div class="doc"><p>Format a package source definition</p>
+            <div class="doc"><p>Returns all values in a hierarchy, whether parents or children.</p>
 </div>
           </div><div class="public">
-            <h3 id="var-install-deb">install-deb</h3>
-            <div class="usage">[request deb-name &amp; {:as options}]</div>
+            <h3 id="var-multi-os-method">multi-os-method</h3>
+            <div class="usage">[multi-version {:keys [os os-version], :as dispatch-value} [&amp; args] &amp; body]</div>
             
             
-            <div class="doc"><p>Install a deb file.  Source options are as for remote file.</p>
+            <div class="doc"><p>Adds a method to the specified multi-os function for the specified
+<code>dispatch-value</code>.</p>
 </div>
           </div><div class="public">
-            <h3 id="var-minimal-packages">minimal-packages</h3>
-            <div class="usage">[session]</div>
+            <h3 id="var-multi-os-session-method">multi-os-session-method</h3>
+            <div class="usage">[multi-version {:keys [os os-version], :as dispatch-value} [session &amp; args] &amp; body]</div>
             
             
-            <div class="doc"><p>Add minimal packages for pallet to function</p>
+            <div class="doc"><p>Adds a method to the specified multi-version function for the specified
+<code>dispatch-value</code>.</p>
 </div>
           </div><div class="public">
-            <h3 id="var-package">package</h3>
-            <div class="usage">[session package-name &amp; {:keys [action y force purge enable disable priority], :or {action :install, y true, priority 50}, :as options}]</div>
+            <h3 id="var-multi-version-method">multi-version-method</h3>
+            <div class="usage">[multi-version {:keys [os os-version version], :as dispatch-value} [&amp; args] &amp; body]</div>
             
             
-            <div class="doc"><p>Install or remove a package.</p>
-
-<p>Options
- - :action [:install | :remove | :upgrade]
- - :purge [true|false]         when removing, whether to remove all config
- - :enable [repo|(seq repo)]   enable specific repository
- - :disable [repo|(seq repo)]  disable specific repository
- - :priority n                 priority (0-100, default 50)</p>
-
-<p>Package management occurs in one shot, so that the package manager can
-maintain a consistent view.</p>
+            <div class="doc"><p>Adds a method to the specified multi-version function for the specified
+<code>dispatch-value</code>.</p>
 </div>
           </div><div class="public">
-            <h3 id="var-package-manager">package-manager</h3>
-            <div class="usage">[session package-manager-args]</div>
+            <h3 id="var-multi-version-session-method">multi-version-session-method</h3>
+            <div class="usage">[multi-version {:keys [os os-version version], :as dispatch-value} [session &amp; args] &amp; body]</div>
             
             
-            <div class="doc"><p>Package manager controls.</p>
-
-<p><code>action</code> is one of the following:
-- :update          - update the list of available packages
-- :list-installed  - output a list of the installed packages
-- :add-scope       - enable a scope (eg. multiverse, non-free)</p>
-
-<p>To refresh the list of packages known to the pakage manager:
-    (package-manager session :update)</p>
-
-<p>To enable multiverse on ubuntu:
-    (package-manager session :add-scope :scope :multiverse)</p>
-
-<p>To enable non-free on debian:
-    (package-manager session :add-scope :scope :non-free)</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-package-manager*">package-manager*</h3>
-            <div class="usage">[session action &amp; options]</div>
-            
-            
-            <div class="doc"><p>Package management.</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-package-manager-option">package-manager-option</h3>
-            
-            
-            
-            <div class="doc"><p>Provide packager specific options</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-package-source">package-source</h3>
-            
-            
-            
-            <div class="doc"><p>Control package sources.
-Options are the package manager keywords, each specifying a map of
-packager specific options.</p>
-
-<p>:aptitude
-  - :source-type string   - source type (deb)
-  - :url url              - repository url
-  - :scopes seq           - scopes to enable for repository
-  - :key-url url          - url for key
-  - :key-id id            - id for key to look it up from key server
-  - :key-server           - the hostname of the key server to lookup keys</p>
-
-<p>:yum
-  - :name                 - repository name
-  - :url url          - repository base url
-  - :gpgkey url           - gpg key url for repository</p>
-
-<p>Example
-    (package-source "Partner"
-      :aptitude {:url "http://archive.canonical.com/"
-                 :scopes ["partner"]})</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-package-source*">package-source*</h3>
-            <div class="usage">[session name &amp; {:keys [apt aptitude yum], :as options}]</div>
-            
-            
-            <div class="doc"><p>Add a packager source.</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-packages">packages</h3>
-            <div class="usage">[session &amp; {:keys [yum aptitude pacman brew], :as options}]</div>
-            
-            
-            <div class="doc"><p>Install a list of packages keyed on packager.
-(packages session
-  :yum ["git" "git-email"]
-  :aptitude ["git-core" "git-email"])</p>
+            <div class="doc"><p>Adds a method to the specified multi-version function for the specified
+<code>dispatch-value</code>.</p>
 </div>
           </div>
         </div>
