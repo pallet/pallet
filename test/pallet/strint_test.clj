@@ -1,10 +1,10 @@
 (ns pallet.strint-test
-  (:use clojure.contrib.strint pallet.strint)
+  (:use pallet.common.strint pallet.strint)
   (:use clojure.test
         pallet.test-utils))
 
 (deftest interpolate-test
-  (is (= '("a " a "") (#'clojure.contrib.strint/interpolate "a ~{a}"))))
+  (is (= '("a " a "") (#'pallet.common.strint/interpolate "a ~{a}"))))
 
 (deftest <<-test
   (testing "docstring examples"

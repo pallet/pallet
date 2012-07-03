@@ -1,8 +1,13 @@
 (ns pallet.environment-test
   (:require
-   [pallet.environment :as environment])
+   [pallet.common.logging.logutils :as logutils]
+   [pallet.environment :as environment]
+   [clojure.java.io :as io])
   (:use
+   [pallet.core.user :only [user?]]
    clojure.test))
+
+(use-fixtures :once (logutils/logging-threshold-fixture))
 
 (deftest merge-environments-test
   (testing "single argument"
@@ -48,16 +53,19 @@
       (is (nil? (environment/eval-environment env)))))
   (testing "user"
     (let [env {:user {:username "u"}}]
-      (is (instance?
-           pallet.utils.User
-           (:user (environment/eval-environment env))))
+      (is (user? (:user (environment/eval-environment env))))
       (is (= "u"
              (-> (environment/eval-environment env) :user :username)))))
+  (testing "user with shell expand"
+    (let [env {:user {:username "u" :public-key-path "~/a"}}]
+      (is (user? (:user (environment/eval-environment env))))
+      (is (= (.getAbsolutePath (io/file (System/getProperty "user.home") "a"))
+             (-> (environment/eval-environment env) :user :public-key-path)))))
   (testing "arguments"
-    (let [env {:algorithms {:lift-fn 'pallet.core/parallel-apply-phase}}
+    (let [env {:algorithms {:lift-fn 'pallet.core.operations/lift}}
           f (-> (environment/eval-environment env) :algorithms :lift-fn)]
-      (is (find-var 'pallet.core/parallel-apply-phase))
-      (is (= (var-get (find-var 'pallet.core/parallel-apply-phase)) f)))))
+      (is (find-var 'pallet.core.operations/lift))
+      (is (= (var-get (find-var 'pallet.core.operations/lift)) f)))))
 
 (deftest session-with-environment-test
   (testing "basic merge"
@@ -80,6 +88,19 @@
              {:user {:username :a} :server {:group-name :t}}
              {:user {:username :b}
               :groups {:t {:image :i}}
+              :phases {:bootstrap identity}})))
+    (is (= {:user {:username :c}
+            :server {:group-name :t
+                     :image :i
+                     :user {:username :c}
+                     :phases {:bootstrap identity}}
+            :environment {:user {:username :b}
+                          :groups {:t {:image :i
+                                       :user {:username :c}}}}}
+           (environment/session-with-environment
+             {:user {:username :a} :server {:group-name :t}}
+             {:user {:username :b}
+              :groups {:t {:image :i :user {:username :c}}}
               :phases {:bootstrap identity}}))))
   (testing "user data merge"
     (is (= {:environment {:a {:a :b}}}

@@ -1,8 +1,9 @@
 (ns pallet.task.converge-cluster
   "Adjust node counts for a cluster."
   (:require
-   [pallet.core :as core]
-   [clojure.tools.logging :as logging]))
+   [clojure.tools.logging :as logging])
+  (:use
+   [pallet.api :only [converge]]))
 
 (defn- build-args [args]
   (loop [args args
@@ -27,7 +28,7 @@
    The cluster name should be namespace qualified."
   [request & args]
   (let [args (build-args args)]
-    (apply core/converge-cluster
+    (apply converge-cluster
            (concat args
                    (apply concat
                           (->

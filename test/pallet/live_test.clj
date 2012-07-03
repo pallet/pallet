@@ -16,10 +16,14 @@
    The image list to be used can be selected using `pallet.test.image-list`
    and should specify one of the keys in `image-lists`."
   (:require
-   [pallet.core :as core]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
-   [clojure.string :as string]))
+   [pallet.configure :as configure]
+   [clojure.string :as string])
+  (:use
+   [pallet.algo.fsmop :only [operate complete?]]
+   [pallet.core.operations :only [converge]]
+   [slingshot.slingshot :only [throw+]]))
 
 (def
   ^{:doc "The default images for testing"}
@@ -51,6 +55,8 @@
                    :os-64-bit false}]
    :ubuntu-maverick [{:os-family :ubuntu :os-version-matches "10.10"
                       :os-64-bit true}]
+   :ubuntu-11-10 [{:os-family :ubuntu :os-version-matches "11.10"
+                      :os-64-bit true}]
    :debian-lenny [{:os-family :debian :os-version-matches "5.0.7"
                    :os-64-bit false}]
    :debian-squeeze [{:os-family :debian :os-version-matches "6.0.1"
@@ -75,35 +81,42 @@
       (read-string property)
       property)))
 
-(def ^{:doc "Guard execution of the live tests. Used to enable the tests."}
+(defonce
+  ^{:doc "Guard execution of the live tests. Used to enable the tests."
+    :dynamic true
+    :defonce true}
   *live-tests*
   (read-property "pallet.test.live"))
 
-(def ^{:doc "Name used to find the service in config.clj or settings.xml."}
+(defonce ^{:doc "Name used to find the service in config.clj or settings.xml."}
   service-name
   (if-let [name (System/getProperty "pallet.test.service-name")]
     (keyword name)
     :live-test))
 
-(def ^{:doc "Flag to control cleanup of generated nodes"}
+(def ^{:doc "Flag to control cleanup of generated nodes"
+       :dynamic true}
   *cleanup-nodes*
   (let [cleanup (read-property "pallet.test.cleanup-nodes")]
     (if (nil? cleanup) true cleanup)))
 
-(def ^{:doc "Flag for tests in parallel"}
+(def ^{:doc "Flag for tests in parallel"
+       :dynamic true}
   *parallel*
   (let [parallel (System/getProperty "pallet.test.parallel")]
     (if (string/blank? parallel)
       false
       (read-string parallel))))
 
-(def ^{:doc "Vbox session type. Set this to gui to debug boot issues."}
+(def ^{:doc "Vbox session type. Set this to gui to debug boot issues."
+       :dynamic true}
   *vbox-session-type*
   (let [session-type (System/getProperty "pallet.test.session-type")]
     (when (not (string/blank? session-type))
       session-type)))
 
-(def ^{:doc "List of images to test with" :deprecated "0.4.17"}
+(def ^{:doc "List of images to test with" :deprecated "0.4.17"
+       :dynamic true}
   *images*
   (let [image-list (System/getProperty "pallet.test.image-list")]
     (if (string/blank? image-list)
@@ -175,8 +188,7 @@
   []
   (or
    @service
-   (set-service! (compute/compute-service-from-config-file service-name))
-   (set-service! (compute/compute-service-from-settings service-name))))
+   (set-service! (configure/compute-service service-name))))
 
 (defn- effective-group-name
   [group-name spec]
@@ -199,16 +211,23 @@
 (defn- counts
   "Build a map of node defintion to count suitable for passing to `converge`."
   [specs]
-  (into {} (map #(vector (node-spec %) (:count (val %))) specs)))
+  (map node-spec specs))
 
 (defn build-nodes
   "Build nodes using the node-types specs"
   [service node-types specs phases]
-  (let [counts (counts specs)]
+  (let [counts (counts specs)
+        op (operate (converge counts nil phases service {} {}))]
+    @op
+    (when (or (not (complete? op)) (some :error (:result @op)))
+      (throw+
+       {:reason :live-test-failed-to-build-nodes
+        :fail-reason @op}
+       "live-test build-nodes failed: %s" @op))
     (select-keys
      (->>
-      (core/converge counts :phase phases :compute service)
-      :all-nodes
+      @op
+      :service-state :node->groups keys
       (group-by compute/group-name)
       (map #(vector (keyword (first %)) (second %)))
       (into {}))
@@ -245,8 +264,8 @@
                           [~@(or phases [:configure])])]
            ~@body)
          (finally
-          (when *cleanup-nodes*
-            (destroy-nodes ~'compute (keys ~'node-types))))))))
+           (when *cleanup-nodes*
+             (destroy-nodes ~'compute (keys ~'node-types))))))))
 
 (defmacro test-for
   "Loop over tests, in parallel or serial, depending on pallet.test.parallel."

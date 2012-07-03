@@ -22,9 +22,13 @@
   "Add a sequence of futures to the list of pending operations. Returns
    its argument."
   [futures]
-  (do
-    (swap! pending-futures #(concat (remove-done %1) %2) futures)
-    futures))
+  (swap! pending-futures #(concat (remove-done %1) %2) futures)
+  futures)
+
+(defn remove-completed
+  "Remove completed futures."
+  []
+  (swap! pending-futures remove-done))
 
 (defn cancel-all
   "Cancel all pending parallel operations"
@@ -46,5 +50,4 @@
       (let [cause (stacktrace/root-cause e)]
         (logging/errorf
          cause "%s exception: %s" operation-label (.getMessage cause)))
-      (logging/debugf
-       (.getCause e) "%s exception" operation-label))))
+      (logging/debugf (.getCause e) "%s exception" operation-label))))

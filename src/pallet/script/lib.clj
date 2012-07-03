@@ -6,6 +6,17 @@
    [pallet.thread-expr :as thread-expr]
    [clojure.string :as string]))
 
+;;; basic
+(defn- translate-options
+  [options translations]
+  (reduce
+   (fn [options [from to]]
+     (-> options
+         (assoc to (from options))
+         (dissoc from)))
+   options
+   translations))
+
 (script/defscript exit [value])
 (script/defimpl exit :default [value]
   (exit ~value))
@@ -244,7 +255,7 @@
      " "
      (map (fn dlr-fmt [e] (format "-H \"%s: %s\"" (key e) (val e)))
           (:headers request)))
-   (quoted ~(:endpoint request))))
+   (quoted ~(str (:endpoint request)))))
 
 (script/defscript tmp-dir [])
 (script/defimpl tmp-dir :default []
@@ -352,14 +363,18 @@
 (script/defimpl user-exists? :default [username]
   (getent passwd ~username))
 
+(defn group-seq->string
+  [groups]
+  (if (not (string? groups))
+    (string/join "," groups)
+    groups))
+
 (script/defimpl create-user :default [username options]
   ("/usr/sbin/useradd"
    ~(-> options
         (thread-expr/when->
          (:groups options)
-         (update-in [:groups] (fn [groups]
-                                (if (and (seq? groups) (not (string? groups)))
-                                  (string/join "," groups)))))
+         (update-in [:groups] group-seq->string))
         (thread-expr/when->
          (:group options)
          (assoc :g (:group options))
@@ -371,38 +386,31 @@
   [username options]
   ("/usr/sbin/useradd"
    ~(-> options
-        (assoc :r (:system options))
-        (dissoc :system)
         (thread-expr/when->
          (:groups options)
-         (update-in [:groups] (fn [groups]
-                                (if (and (seq? groups) (not (string? groups)))
-                                  (string/join "," groups)))))
-        (thread-expr/when->
-         (:group options)
-         (assoc :g (:group options))
-         (dissoc :group))
+         (update-in [:groups] group-seq->string))
+        (translate-options {:system :r :group :g :password :p :groups :G})
         stevedore/map-to-arg-string)
    ~username))
 
 (script/defimpl modify-user :default [username options]
-  ("/usr/sbin/usermod" ~(stevedore/map-to-arg-string options) ~username))
+  ("/usr/sbin/usermod"
+   ~(stevedore/map-to-arg-string
+     (-> options
+         (thread-expr/when->
+          (:groups options)
+          (update-in [:groups] group-seq->string))))
+   ~username))
 
 (script/defimpl modify-user [#{:rhel :centos :amzn-linux :fedora}]
   [username options]
   ("/usr/sbin/usermod"
    ~(-> options
-        (assoc :r (:system options))
-        (dissoc :system)
         (thread-expr/when->
          (:groups options)
-         (update-in [:groups] (fn [groups]
-                                (if (and (seq? groups) (not (string? groups)))
-                                  (string/join "," groups)))))
-        (thread-expr/when->
-         (:group options)
-         (assoc :g (:group options))
-         (dissoc :group))
+         (update-in [:groups] group-seq->string))
+        (translate-options
+         {:system :r :group :g :password :p :append :a :groups :G})
         stevedore/map-to-arg-string)
    ~username))
 
@@ -531,6 +539,28 @@
 (script/defimpl list-installed-packages [#{:aptitude}] [& options]
   (aptitude search (quoted "~i")))
 
+;;; apt
+(script/defimpl update-package-list [#{:apt}] [& {:keys [] :as options}]
+  (apt-get -qq ~(stevedore/map-to-arg-string options) update))
+
+(script/defimpl upgrade-all-packages [#{:apt}] [& options]
+  (apt-get -qq -y ~(stevedore/option-args options) upgrade))
+
+(script/defimpl install-package [#{:apt}] [package & options]
+  (apt-get -qq -y ~(stevedore/option-args options) install ~package))
+
+(script/defimpl upgrade-package [#{:apt}] [package & options]
+  (apt-get -qq -y ~(stevedore/option-args options)  install ~package))
+
+(script/defimpl remove-package [#{:apt}] [package & options]
+  (apt-get -qq -y ~(stevedore/option-args options) remove ~package))
+
+(script/defimpl purge-package [#{:apt}] [package & options]
+  (apt-get -qq -y ~(stevedore/option-args options) remove ~package))
+
+(script/defimpl list-installed-packages [#{:apt}] [& options]
+  (dpkg --get-selections))
+
 ;;; yum
 (script/defimpl update-package-list [#{:yum}] [& {:keys [enable disable]}]
   (yum makecache -q ~(string/join
@@ -601,10 +631,13 @@
   (brew update ~(stevedore/option-args options)))
 
 (script/defimpl upgrade-all-packages [#{:brew}] [& options]
-  (comment "No command to do this"))
+  (brew upgrade ~(stevedore/option-args options)))
 
 (script/defimpl install-package [#{:brew}] [package & options]
-  (brew install -y ~(stevedore/option-args options) ~package))
+  (chain-or
+   ;; brew install complains if already installed
+   (brew ls ~package > "/dev/null" "2>&1")
+   (brew install -y ~(stevedore/option-args options) ~package)))
 
 (script/defimpl remove-package [#{:brew}] [package & options]
   (brew uninstall ~(stevedore/option-args options) ~package))
@@ -752,15 +785,26 @@
 (script/defimpl pkg-sbin [:brew] [] "/usr/local/sbin")
 
 
+;;; #Flags#
+;;; Flags are used to communicate state from the node to the origin
+
 ;;; Register changed files
 
 (script/defscript file-changed [path])
 (script/defimpl file-changed :default [path]
   (assoc! changed_files path 1))
 
-(script/defscript set-flag [path])
-(script/defimpl set-flag :default [path]
-  (assoc! flags_hash ~(name path) 1))
+;; (script/defscript set-flag [path])
+;; (script/defimpl set-flag :default [path]
+;;   (assoc! flags_hash ~(name path) 1))
+
+(script/defscript set-flag [flag-name])
+(script/defimpl set-flag :default [flag-name]
+  (println "SETFLAG:" ~flag-name ":SETFLAG"))
+
+(script/defscript set-flag-value [flag-name flag-value])
+(script/defimpl set-flag-value :default [flag-name flag-value]
+  (println "SETVALUE:" ~flag-name ~flag-value ":SETVALUE"))
 
 (script/defscript flag? [path])
 (script/defimpl flag? :default [path]

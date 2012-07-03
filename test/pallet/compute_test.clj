@@ -1,6 +1,7 @@
 (ns pallet.compute-test
   (:use pallet.compute)
-  (:use clojure.test))
+  (:use clojure.test)
+  (:import slingshot.ExceptionInfo))
 
 (deftest packager-test
   (is (= :aptitude (packager {:os-family :ubuntu})))
@@ -14,21 +15,15 @@
   (is (= :arch (base-distribution {:os-family :arch})))
   (is (= :suse (base-distribution {:os-family :suse}))))
 
-;;; define service in pallet.config
-(ns pallet.config)
-(def service :service)
-(in-ns 'pallet.compute-test)
 
-(deftest compute-service-from-config-var-test
-  (is (= :service (compute-service-from-config-var))))
+(defmulti-os testos [session])
+(defmethod testos :linux [session] :linux)
+(defmethod testos :debian [session] :debian)
+(defmethod testos :rh-base [session] :rh-base)
 
-(def property-service :property-service)
-(deftest compute-service-from-property-test
-  (System/setProperty
-   "pallet.config.service" "pallet.compute-test/property-service")
-  (is (= :property-service (compute-service-from-property))))
-
-(deftest compute-service-from-var-test
-  (testing "catch"
-    (is (nil? (#'pallet.compute/compute-service-from-var
-               'this.does.not 'exist)))))
+(deftest defmulti-os-test
+  (is (= :linux (testos {:server {:image {:os-family :arch}}})))
+  (is (= :rh-base (testos {:server {:image {:os-family :centos}}})))
+  (is (= :debian (testos {:server {:image {:os-family :debian}}})))
+  (is (thrown? slingshot.ExceptionInfo
+               (testos {:server {:image {:os-family :unspecified}}}))))

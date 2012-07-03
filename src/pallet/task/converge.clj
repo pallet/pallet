@@ -1,8 +1,8 @@
 (ns pallet.task.converge
   "Adjust node counts."
   (:require
-   [pallet.core :as core]
-   [clojure.tools.logging :as logging]))
+   [clojure.tools.logging :as logging]
+   [pallet.api :as api]))
 
 (defn- build-args [args]
   (loop [args args
@@ -30,7 +30,7 @@
    The node-types should be namespace qualified."
   [request & args]
   (let [args (build-args args)]
-    (apply core/converge
+    (apply api/converge
            (concat args
                    (apply concat
                           (->

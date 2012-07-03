@@ -1,4 +1,4 @@
-<configuration scan="true" scanPeriod="1 seconds" debug="true">
+<configuration scan="true" scanPeriod="1 seconds" debug="false">
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
       <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
@@ -34,7 +34,18 @@
       <maxHistory>3</maxHistory>
     </rollingPolicy>
     <encoder>
-      <pattern>%date %level [%thread] %logger{10} [%file:%line] %msg%n</pattern>
+      <pattern>%date %level [%thread] %logger{10} %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="VMFESTFILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>logs/vmfest.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/old/vmfest.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>3</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%date %level [%thread] %logger{10} %msg%n</pattern>
     </encoder>
   </appender>
 
@@ -58,8 +69,17 @@
     <appender-ref ref="PALLETFILE" />
   </logger>
 
+  <logger name="vmfest" level="DEBUG">
+    <appender-ref ref="VMFESTFILE" />
+  </logger>
+
   <root level="INFO">
     <appender-ref ref="CONSOLE" />
   </root>
+
+  <logger name="pallet.action-plan" level="DEBUG"/>
+  <logger name="pallet.algo.fsm" level="WARN"/>
+  <logger name="pallet.algo.fsmop" level="WARN"/>
+  <!-- <logger name="pallet.execute.default-executor" level="TRACE"/> -->
 
 </configuration>

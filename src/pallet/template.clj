@@ -1,15 +1,19 @@
 (ns pallet.template
   "Template file writing"
   (:require
+   [pallet.action-plan :as action-plan]
    [pallet.compute :as compute]
    [pallet.script.lib :as lib]
-   [pallet.session :as session]
    [pallet.stevedore :as stevedore]
    [pallet.strint :as strint]
-   [pallet.target :as target]
    [pallet.utils :as utils]
    [clojure.string :as string]
-   [clojure.tools.logging :as logging]))
+   [clojure.tools.logging :as logging])
+  (:use
+   [pallet.actions :only [remote-file]]
+   [pallet.core.session :only [group-name packager os-family]]
+   [pallet.monad :only [phase-pipeline-no-context]]
+   [pallet.utils :only [apply-map]]))
 
 (defn get-resource
   "Loads a resource. Returns a URI."
@@ -36,7 +40,7 @@
 
 (defn- candidate-templates
   "Generate a prioritised list of possible template paths."
-  [path tag session]
+  [path group-name session]
   (let [[dirpath base ext] (path-components path)
         variants (fn [specifier]
                    (let [p (pathname
@@ -45,9 +49,9 @@
                             ext)]
                      [p (str "resources/" p)]))]
     (concat
-     (variants tag)
-     (variants (name (or (session/os-family session) "unknown")))
-     (variants (name (or (session/packager session) "unknown")))
+     (variants group-name)
+     (variants (name (or (os-family session) "unknown")))
+     (variants (name (or (packager session) "unknown")))
      (variants nil))))
 
 (defn find-template
@@ -57,8 +61,7 @@
   {:pre [(map? session) (session :server)]}
   (some
    get-resource
-   (candidate-templates
-    path (-> session :server :group-name) session)))
+   (candidate-templates path (group-name session) session)))
 
 (defn interpolate-template
   "Interpolate the given template."
@@ -75,23 +78,25 @@
      ~m))
 
 (defn- apply-template-file [[file-spec content]]
-  (logging/trace (str "apply-template-file " file-spec \newline content))
-  (let [path (:path file-spec)]
-    (string/join
-     ""
-     (filter (complement nil?)
-             [(stevedore/script
-               (var file ~path)
-               ((~lib/cat "") > @file <<EOF))
-              content
-              "\nEOF\n"
-              (when-let [mode (:mode file-spec)]
-                (stevedore/script (do (chmod ~mode @file))))
-              (when-let [group (:group file-spec)]
-                (stevedore/script (do (chgrp ~group @file))))
-              (when-let [owner (:owner file-spec)]
-                (stevedore/script (do (chown ~owner @file))))]))))
+  (phase-pipeline-no-context apply-template-file {}
+    ;; (logging/trace (str "apply-template-file " file-spec \newline content))
+    (apply-map remote-file (:path file-spec) :content content file-spec)
+    ;; (let [path (:path file-spec)]
+    ;;   (string/join
+    ;;    ""
+    ;;    (filter (complement nil?)
+    ;;            [(action-plan/checked-script
+    ;;              (str "Write file " path)
+    ;;              (var file ~path)
+    ;;              (~lib/heredoc @file ~content {}))
+    ;;             (when-let [mode (:mode file-spec)]
+    ;;               (stevedore/script (do (chmod ~mode @file))))
+    ;;             (when-let [group (:group file-spec)]
+    ;;               (stevedore/script (do (chgrp ~group @file))))
+    ;;             (when-let [owner (:owner file-spec)]
+    ;;               (stevedore/script (do (chown ~owner @file))))])))
+    ))
 
-;; TODO - add chmod, owner, group
 (defn apply-templates [template-fn args]
-  (string/join "" (map apply-template-file (apply template-fn args))))
+  (phase-pipeline-no-context apply-templates {}
+    (map apply-template-file (apply template-fn args))))

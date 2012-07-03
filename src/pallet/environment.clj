@@ -20,13 +20,16 @@
    `merge-key-algorithm`."
   (:require
    [pallet.common.deprecate :as deprecate]
+   [pallet.local.execute :as local]
+   [pallet.map-merge :as map-merge]
    [pallet.utils :as utils]
-   [clojure.contrib.condition :as condition]
+   [clojure.set :as set]
    [clojure.tools.logging :as logging]
-   [clojure.contrib.map-utils :as map-utils]
    [clojure.walk :as walk])
   (:use
-   [clojure.contrib.core :only [-?>]]))
+   [clojure.core.incubator :only [-?>]]
+   [pallet.core.user :only [make-user]]
+   [slingshot.slingshot :only [throw+]]))
 
 (defprotocol Environment
   "A protocol for accessing an environment."
@@ -43,10 +46,13 @@
    :blobstore :replace
    :count :merge
    :algorithms :merge
-   :executor :merge
+   :executor :replace
    :middleware :replace
    :groups :merge-environments
-   :tags :merge-environments})
+   :tags :merge-environments
+   :install-plugins :concat
+   ;; :executors :concat
+   })
 
 
 (def ^{:doc "node specific environment keys"}
@@ -54,10 +60,7 @@
 
 (def standard-pallet-keys (keys merge-key-algorithm))
 
-(defmulti merge-key
-  "Merge function that dispatches on the map entry key"
-  (fn [key val-in-result val-in-latter]
-    (merge-key-algorithm key :deep-merge)))
+(def user-keys-to-shell-expand [:public-key-path :private-key-path])
 
 (defn merge-environments
   "Returns a map that consists of the rest of the maps conj-ed onto
@@ -65,39 +68,9 @@
   from the latter (left-to-right) will be combined with the mapping in
   the result by calling (merge-key key val-in-result val-in-latter)."
   [& maps]
-  (when (some identity maps)
-    (let [merge-entry (fn [m e]
-                        (let [k (key e) v (val e)]
-                          (if (contains? m k)
-                            (assoc m k (merge-key k (get m k) v))
-                            (assoc m k v))))
-          merge2 (fn [m1 m2]
-                   (reduce merge-entry (or m1 {}) (seq m2)))]
-      (reduce merge2 maps))))
+  (apply map-merge/merge-keys merge-key-algorithm maps))
 
-(defmethod merge-key :replace
-  [key val-in-result val-in-latter]
-  val-in-latter)
-
-(defmethod merge-key :merge
-  [key val-in-result val-in-latter]
-  (merge val-in-result val-in-latter))
-
-(defmethod merge-key :deep-merge
-  [key val-in-result val-in-latter]
-  (let [map-or-nil? (fn [x] (or (nil? x) (map? x)))]
-    (map-utils/deep-merge-with
-     (fn deep-merge-env-fn [x y]
-       (if (and (map-or-nil? x) (map-or-nil? y))
-         (merge x y)
-         (or y x)))
-     val-in-result val-in-latter)))
-
-(defmethod merge-key :merge-comp
-  [key val-in-result val-in-latter]
-  (merge-with comp val-in-latter val-in-result))
-
-(defmethod merge-key :merge-environments
+(defmethod map-merge/merge-key :merge-environments
   [key val-in-result val-in-latter]
   (merge-environments val-in-result val-in-latter))
 
@@ -133,6 +106,16 @@
       %)
    algorithms))
 
+(defn shell-expand-keys
+  "Shell expand the values matching the specified keys"
+  [user-map keys]
+  (reduce
+   (fn [m kwd]
+     (if (kwd m)
+       (update-in m [kwd] local/local-script-expand)
+       m))
+   user-map keys))
+
 (defn eval-environment
   "Evaluate an environment literal.  This is used to replace certain keys with
    objects constructed from the map of values provided.  The keys that are
@@ -141,12 +124,12 @@
    - :phases
    - :algorithms"
   [env-map]
-  (let [env-map (if-let [user (:user env-map)]
+  (let [env-map (if-let [user (shell-expand-keys
+                               (:user env-map) user-keys-to-shell-expand)]
                   (if-let [username (:username user)]
                     (assoc
                         env-map :user
-                        (apply
-                         utils/make-user username (mapcat identity user)))
+                        (make-user username user))
                     env-map)
                   env-map)
         env-map (if-let [phases (:phases env-map)]
@@ -169,17 +152,27 @@
        (get-for {:p {:a {:b 1} {:d 2}}} [:p :a :d])
          => 2"
   ([session keys]
+     {:pre [(sequential? keys)]}
      (let [result (get-in (:environment session) keys ::not-set)]
        (when (= ::not-set result)
-         (condition/raise
-          :type :environment-not-found
-          :message (format
-                    "Could not find keys %s in session :environment"
-                    (if (sequential? keys) (vec keys) keys))
-          :key-not-set keys))
+         (throw+
+          {:type :environment-not-found
+           :message (format
+                     "Could not find keys %s in session :environment"
+                     (if (sequential? keys) (vec keys) keys))
+           :key-not-set keys}))
        result))
   ([session keys default]
-       (get-in (:environment session) keys default)))
+     (get-in (:environment session) keys default)))
+
+(defn get-environment
+  "Monadic environment accessor"
+  ([keys]
+     (fn get-env [session]
+       [(get-for session keys) session]))
+    ([keys default]
+     (fn get-env [session]
+       [(get-for session keys default) session])))
 
 (defn session-with-environment
   "Returns an updated `session` map, containing the keys for the specified
@@ -195,30 +188,44 @@
     (deprecate/warn
      (str "Use of :tags key in the environment is deprecated. "
           "Please change to use :groups.")))
-  (let [session (merge
+  (let [group (or (-> session :server :group-name)
+                  (-> session :group :group-name))
+        session (merge
                  session
-                 (->
-                  environment
-                  (select-keys standard-pallet-keys)
-                  (utils/dissoc-keys (conj node-keys :groups :tags))))
+                 (merge-environments
+                  (->
+                   environment
+                   (select-keys standard-pallet-keys)
+                   (utils/dissoc-keys (conj node-keys :groups :tags)))
+                  (when group
+                    (->
+                     (-> environment :groups group)
+                     (select-keys standard-pallet-keys)
+                     (utils/dissoc-keys (conj node-keys :groups :tags))))))
         session (assoc-in session [:environment]
                           (utils/dissoc-keys environment node-keys))
         session (if (:server session)
-                  (let [tag (-> session :server :group-name)]
+                  (let [group-name (-> session :server :group-name)]
                     (assoc session
                       :server (merge-environments
                                (:server session)
                                (select-keys environment node-keys)
-                               (-?> environment :tags tag) ; deprecated
-                               (-?> environment :groups tag))))
+                               (-?> environment :tags group-name) ; deprecated
+                               (-?> environment :groups group-name))))
                   session)
         session (if (:group session)
-                  (let [tag (-> session :group :group-name)]
+                  (let [group (-> session :group :group-name)]
                     (assoc session
                       :group (merge-environments
                               (:group session)
                               (select-keys environment node-keys)
-                              (-?> environment :tags tag) ; deprecated
-                              (-?> environment :groups tag))))
-                  session)]
+                              (-?> environment :tags group) ; deprecated
+                              (-?> environment :groups group))))
+                  session)
+        ;; session (assoc session
+        ;;           :executor (reduce
+        ;;                      merge
+        ;;                      (map execute/executor-map (:executors session))))
+        ]
+    ;; (track-executors (:executors session))
     session))

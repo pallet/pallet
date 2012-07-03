@@ -2,13 +2,10 @@
   "Utilities used across pallet."
   (:require
    [clojure.java.io :as io]
-   [clojure.contrib.jar :as jar]
-   [clojure.contrib.string :as string]
-   [clojure.contrib.pprint :as pprint]
+   [clojure.pprint :as pprint]
    [clojure.tools.logging :as logging])
   (:use
-   clojure.tools.logging
-   clojure.contrib.def)
+   clojure.tools.logging)
   (:import
    (java.security
     NoSuchAlgorithmException
@@ -36,6 +33,10 @@
    (symbol? arg) (name arg)
    (keyword? arg) (name arg)
    :else (str arg)))
+
+(defmacro apply-map
+  [& args]
+  `(apply ~@(drop-last args) (apply concat ~(last args))))
 
 (defn resource-path [name]
   (let [loader (.getContextClassLoader (Thread/currentThread))
@@ -89,73 +90,25 @@
   "Find the var for the given namespace and symbol. If the namespace does
    not exist, then it will be required.
        (find-var-with-require 'my.ns 'a-symbol)
-       (find-var-with-require 'my.ns/a-symbol)"
+       (find-var-with-require 'my.ns/a-symbol)
+
+   If the namespace exists, but can not be loaded, and exception is thrown.  If
+   the namsepace is loaded, but the symbol is not found, then nil is returned."
   ([sym]
      (find-var-with-require (symbol (namespace sym)) (symbol (name sym))))
   ([ns sym]
      (try
        (when-not (find-ns ns)
          (require ns))
+       (catch java.io.FileNotFoundException _)
+       (catch Exception e
+         ;; require on a bad namespace still instantiates the namespace
+         (remove-ns ns)
+         (throw e)))
+     (try
        (when-let [v (ns-resolve ns sym)]
          (var-get v))
        (catch Exception _))))
-
-(defn default-private-key-path
-  "Return the default private key path."
-  []
-  (str (System/getProperty "user.home") "/.ssh/id_rsa"))
-
-(defn default-public-key-path
-  "Return the default public key path"
-  []
-  (str (System/getProperty "user.home") "/.ssh/id_rsa.pub"))
-
-(defrecord User
-  [username public-key-path private-key-path passphrase
-   password sudo-password no-sudo])
-
-(defn user? [user]
-  (instance? pallet.utils.User user))
-
-(defn make-user
-  "Creates a User record with the given username and options. Generally used
-   in conjunction with *admin-user* and pallet.core/with-admin-user, or passed
-   to `lift` or `converge` as the named :user argument.
-
-   Options:
-    - :public-key-path (defaults to ~/.ssh/id_rsa.pub)
-    - :private-key-path (defaults to ~/.ssh/id_rsa)
-    - :passphrase
-    - :password
-    - :sudo-password (defaults to :password)
-    - :no-sudo"
-  [username & {:keys [public-key-path private-key-path passphrase
-                      password sudo-password no-sudo] :as options}]
-  (merge (User. username nil nil nil nil nil nil)
-    {:private-key-path (default-private-key-path)
-     :public-key-path (default-public-key-path)
-     :sudo-password (:password options)}
-    options))
-
-(defvar *admin-user*
-  (make-user (or (. System getProperty "pallet.admin.username")
-                 (. System getProperty "user.name")))
-  "The admin user is used for running remote admin commands that require root
-   permissions.  The default admin user is taken from the pallet.admin.username
-   property.  If not specified then the user.name property is used.
-   The admin user can also be specified in config.clj when running tasks
-   from the command line.")
-
-(defn admin-user-from-config-var
-  "Set the admin user based on pallet.config setup."
-  []
-  (find-var-with-require 'pallet.config 'admin-user))
-
-(defn admin-user-from-config
-  "Set the admin user based on a config map"
-  [config]
-  (when-let [admin-user (:admin-user config)]
-    (apply make-user (:username admin-user) (apply concat admin-user))))
 
 (defmacro with-temp-file
   "Create a block where `varname` is a temporary `File` containing `content`."
@@ -285,6 +238,13 @@
   []
   (map file-for-url (classpath-urls)))
 
+(defn jar-file?
+  "Returns true if file is a normal file with a .jar or .JAR extension."
+  [^java.io.File file]
+  (and (.isFile file)
+       (or (.endsWith (.getName file) ".jar")
+           (.endsWith (.getName file) ".JAR"))))
+
 (defn classpath-jarfiles
   "Returns a sequence of JarFile objects for the JAR files on classpath."
   []
@@ -295,7 +255,7 @@
        (java.util.jar.JarFile. %)
        (catch Exception _
          (logging/warnf "Unable to open jar file on classpath: %s" %)))
-    (filter jar/jar-file? (classpath)))))
+    (filter jar-file? (classpath)))))
 
 (defmacro forward-to-script-lib
   "Forward a script to the new script lib"
@@ -303,3 +263,48 @@
   `(do
      ~@(for [sym symbols]
          (list `def sym (symbol "pallet.script.lib" (name sym))))))
+
+(defmacro fwd-to-configure [name & [as-name & _]]
+  `(defn ~name [& args#]
+     (require '~'pallet.configure)
+     (let [f# (ns-resolve '~'pallet.configure '~(or as-name name))]
+       (apply f# args#))))
+
+
+;;; forward with deprecation warnings
+;;;   admin-user-from-config-var
+;;;   admin-user-from-config
+
+(fwd-to-configure admin-user-from-config-var)
+(fwd-to-configure admin-user-from-config)
+
+(defn compare-and-swap!
+  "Compare and swap, returning old and new values"
+  [a f & args]
+  (loop [old-val @a]
+    (let [new-val (apply f old-val args)]
+      (if (compare-and-set! a old-val new-val)
+        [old-val new-val]
+        (recur @a)))))
+
+(defmacro with-redef
+  [[& bindings] & body]
+  (if (find-var 'clojure.core/with-redefs)
+    `(clojure.core/with-redefs [~@bindings] ~@body)
+    `(binding [~@bindings] ~@body)))
+
+(defmacro compiler-exception
+  "Create a compiler exception that wraps a cause and includes source location."
+  [exception]
+  `(clojure.lang.Compiler$CompilerException.
+    ~*file*
+    ~(-> &form meta :line)
+    ~exception))
+
+(defmacro macro-compiler-exception
+  "Create a compiler exception that wraps a cause and includes source location."
+  [exception]
+  `(clojure.lang.Compiler$CompilerException.
+    *file*
+    (-> ~'&form meta :line)
+    ~exception))
