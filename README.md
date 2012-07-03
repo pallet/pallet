@@ -1,3 +1,7 @@
+This is the unstable development branch. See the
+[stable branch](https://github.com/pallet/pallet/tree/support/0.7.x) for
+production code.
+
 [Pallet][palletops] is used to provision and maintain servers on cloud and
 virtual machine infrastructure, and aims to solve the problem of providing a
 consistently configured running image across a range of clouds.  It is designed
@@ -23,32 +27,19 @@ On the [mailing list][ml], or #pallet on freenode irc.
 
 The main [documentation][docs] is on the [PalletOps][palletops] site.
 
-There is a (somewhat dated) introductory [screencast][screencast], showing a
-basic node configuration, and starting and stopping a node.
-
-## Quickstart
-
-See the [basic usage][basicdemo] example in the [pallet-examples basic][basic]
-project.  Other examples show usage for infrastructure automation, application
-deployment and cloudops.
-
-For general help getting started with Clojure, see this [guide][cljstart].
-
 ## Installation
 
-Pallet is distributed as a jar, and is available in the [sonatype repository][sonatype].
+Pallet is distributed as a jar, and is available in the
+[sonatype repository][sonatype].
 
 Installation is with maven or your favourite maven repository aware build tool.
 
-### lein/cake project.clj
+### lein project.clj
 
 ```clojure
-:dependencies [[org.cloudhoist/pallet "0.6.7"]
-               [org.cloudhoist/pallet-crates-all "0.5.0"]]
+:dependencies [[org.cloudhoist/pallet "0.8.0-alpha.1"]]
 :repositories {"sonatype"
-               "http://oss.sonatype.org/content/repositories/releases"
-               "sonatype-snapshots"
-               "http://oss.sonatype.org/content/repositories/snapshots"}
+               "http://oss.sonatype.org/content/repositories/releases"}
 ```
 
 ### maven pom.xml
@@ -58,12 +49,7 @@ Installation is with maven or your favourite maven repository aware build tool.
   <dependency>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet</artifactId>
-    <version>0.6.7</version>
-  </dependency>
-  <dependency>
-    <groupId>org.cloudhoist</groupId>
-    <artifactId>pallet-crates-all</artifactId>
-    <version>0.5.0</version>
+    <version>0.8.0-alpha.1</version>
   </dependency>
 <dependencies>
 
@@ -71,10 +57,6 @@ Installation is with maven or your favourite maven repository aware build tool.
   <repository>
     <id>sonatype</id>
     <url>http://oss.sonatype.org/content/repositories/releases</url>
-  </repository>
-  <repository>
-    <id>sonatype-snapshots</id>
-    <url>http://oss.sonatype.org/content/repositories/snapshots</url>
   </repository>
 </repositories>
 ```
