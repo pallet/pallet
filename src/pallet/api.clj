@@ -10,7 +10,7 @@
    [clojure.tools.logging :as logging])
   (:use
    [pallet.core.api-impl :only [merge-specs merge-spec-algorithm]]
-   [pallet.algo.fsmop :only [operate]]
+   [pallet.algo.fsmop :only [dofsm operate]]
    [pallet.environment :only [merge-environments]]
    [pallet.monad :only [session-pipeline]]
    [pallet.thread-expr :only [when->]]
@@ -229,15 +229,15 @@
     (map add-phases groups)))
 
 (defn- all-group-nodes
+  "Returns a FSM to retrieve the service state for the specified groups"
   [compute groups all-node-set]
-  @(operate
-    (ops/group-nodes
-     compute
-     (concat
-      groups
-      (map
-       (fn [g] (update-in g [:phases] select-keys [:settings]))
-       all-node-set)))))
+  (ops/group-nodes
+   compute
+   (concat
+    groups
+    (map
+     (fn [g] (update-in g [:phases] select-keys [:settings]))
+     all-node-set))))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
@@ -268,10 +268,12 @@
   (let [[phases phase-map] (process-phases phase)
         groups (if (map? group-spec->count)
                  [group-spec->count])
-        nodes-set (all-group-nodes compute groups all-node-set)
         environment (pallet.environment/environment compute)]
     (operate
-     (ops/converge groups nodes-set phases compute environment {}))))
+     (dofsm converge
+       [nodes-set (all-group-nodes compute groups all-node-set)
+        result (ops/converge groups nodes-set phases compute environment {})]
+       result))))
 
 (defn lift
   "Lift the running nodes in the specified node-set by applying the specified
@@ -307,10 +309,14 @@
         environment (merge-environments
                      (and compute (pallet.environment/environment compute))
                      environment)
-        plan-state {}
-        nodes-set (all-group-nodes compute groups all-node-set)]
+        plan-state {}]
     (operate
-     (ops/lift nodes-set phases environment plan-state))))
+     (dofsm lift
+       [nodes-set (all-group-nodes compute groups all-node-set)
+        {:keys [plan-state]} (ops/lift
+                              nodes-set [:settings] environment plan-state)
+        result (ops/lift nodes-set phases environment plan-state)]
+       result))))
 
 ;;; ### plan functions
 (defmacro plan-fn

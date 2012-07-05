@@ -54,11 +54,7 @@
   (logging/debugf
    "lift :phase %s :targets %s" (vec phases) (vec (map :group-name targets)))
   (dofsm lift
-    [[results plan-state] (primitives/build-and-execute-phase
-                           targets plan-state environment
-                           (api/environment-execution-settings environment)
-                           targets :settings)
-     [results plan-state] (reduce*
+    [[results plan-state] (reduce*
                            (fn reducer [[result plan-state] phase]
                              (dofsm reduce-phases
                                [[r ps] (primitives/build-and-execute-phase
@@ -73,7 +69,7 @@
                                     :results (concat result r)})]
                                [r ps]))
                            [[] {}]
-                           (remove #{:settings} phases))]
+                           phases)]
     {:results results
      :targets targets
      :plan-state plan-state}))
