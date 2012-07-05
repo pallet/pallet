@@ -1,4 +1,6 @@
 <configuration scan="true" scanPeriod="1 seconds" debug="false">
+  <!-- <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener" /> -->
+
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
       <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
@@ -73,13 +75,15 @@
     <appender-ref ref="VMFESTFILE" />
   </logger>
 
+  <logger name="pallet.action-plan" level="DEBUG"/>
+  <logger name="pallet.algo.fsm" level="WARN"/>
+  <logger name="pallet.algo.fsmop" level="WARN"/>
+  <logger name="pallet.core.primitives" level="DEBUG"/>
+  <!-- <logger name="pallet.execute.default-executor" level="TRACE"/> -->
+
   <root level="INFO">
     <appender-ref ref="CONSOLE" />
   </root>
 
-  <logger name="pallet.action-plan" level="DEBUG"/>
-  <logger name="pallet.algo.fsm" level="WARN"/>
-  <logger name="pallet.algo.fsmop" level="WARN"/>
-  <!-- <logger name="pallet.execute.default-executor" level="TRACE"/> -->
 
 </configuration>

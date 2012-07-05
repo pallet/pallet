@@ -119,11 +119,12 @@
      (fn [session]
        [(session/nodes-in-group) session])))
 
-(defn groups-with-role
-  "All target groups with the specified role."
-  [role]
-  (fn [session]
-    [(session/groups-with-role session role) session]))
+(comment
+  (defn groups-with-role
+    "All target groups with the specified role."
+    [role]
+    (fn [session]
+      [(session/groups-with-role session role) session])))
 
 (defn nodes-with-role
   "All target nodes with the specified role."

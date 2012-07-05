@@ -47,8 +47,7 @@
              stop-execution-on-error
              {:action-plan action-plan
               :phase (:phase session)
-              :target-type :node
-              :target (-> session :server :node)})]
+              :target (:server session)})]
         [(string/join "\n" (map second result)) result-map]))))
 
 (defn- build-session
@@ -73,13 +72,8 @@
                                    :ubuntu)
                     :id (or (-> session :server :node-id) :id)
                     :is-64bit (get-in session [:is-64bit] true))))
-        session (update-in session [:service-state]
-                           #(or % {:node->groups
-                                   {(-> session :server :node)
-                                    [(-> session :server :group)]}
-                                   :group->nodes
-                                   {(-> session :server :group)
-                                    [(-> session :server :node)]}}))
+        session (update-in session [:server] merge (:group session))
+        session (update-in session [:service-state] #(or % [(:server session)]))
         session (update-in session [:phase] #(or % :test-phase))]
     (add-session-verification-key session)))
 

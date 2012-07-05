@@ -154,7 +154,7 @@ list, Alan Dipert and MeikelBrandmeyer."
        action#)))
 
 (defmacro script-action
-  "Creates a clojure action with a :direct implementation."
+  "Creates a script action with a :direct implementation."
   {:indent 1}
   [args & impl]
   (let [action-sym (gensym "clj-action")]

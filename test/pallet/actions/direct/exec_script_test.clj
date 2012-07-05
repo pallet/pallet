@@ -86,7 +86,7 @@
                 session
                 :results
                 (filter
-                 #(and (= "localhost" (hostname (:target %)))
+                 #(and (= "localhost" (hostname (-> % :target :node)))
                        (= :configure (:phase %))))
                 (mapcat :result)
                 (map :out))))))))
