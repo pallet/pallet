@@ -3,7 +3,6 @@
   (:require
    [pallet.common.deprecate :as deprecate]
    [pallet.compute.implementation :as implementation]
-   [pallet.node :as node]
    [pallet.utils :as utils])
   (:use
    [slingshot.slingshot :only [throw+]]))
@@ -30,16 +29,6 @@
       :as options}]
   (implementation/load-providers)
   (implementation/service provider-name options))
-
-(deprecate/forward-fns
- pallet.node
- ssh-port primary-ip private-ip is-64bit? group-name hostname os-family
- os-version running? terminated? id node-in-group? node-address node?)
-
-(defn tag [node]
-  (deprecate/warn
-   "pallet.compute/tag is deprecated, use pallet.node/group-name")
-  (group-name node))
 
 ;;; Actions
 
@@ -71,16 +60,30 @@
   (images [compute])
   (close [compute]))
 
+(defprotocol NodeTagReader
+  "Provides a SPI for tagging nodes with values."
+  (node-tag [compute node tag-name] [compute node tag-name default-value]
+    "Return the specified tag on the node.")
+  (node-tags [compute node]
+    "Return the tags on the node."))
 
-(defn nodes-by-tag [nodes]
-  (reduce #(assoc %1
-             (keyword (tag %2))
-             (conj (get %1 (keyword (tag %2)) []) %2)) {} nodes))
+(defprotocol NodeTagWriter
+  "Provides a SPI for adding tags to nodes."
+  (tag-node! [compute node tag-name value]
+    "Set a value on the given tag-name on the node.")
+  (node-taggable? [compute node]
+    "Predicate to test the availability of tags on a node."))
 
-(defn node-counts-by-tag [nodes]
-  (reduce #(assoc %1
-             (keyword (tag %2))
-             (inc (get %1 (keyword (tag %2)) 0))) {} nodes))
+
+;; (defn nodes-by-tag [nodes]
+;;   (reduce #(assoc %1
+;;              (keyword (tag %2))
+;;              (conj (get %1 (keyword (tag %2)) []) %2)) {} nodes))
+
+;; (defn node-counts-by-tag [nodes]
+;;   (reduce #(assoc %1
+;;              (keyword (tag %2))
+;;              (inc (get %1 (keyword (tag %2)) 0))) {} nodes))
 
 ;;; Hierarchies
 

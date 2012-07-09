@@ -19,6 +19,7 @@
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
+   [pallet.node :as node]
    [clojure.string :as string])
   (:use
    [pallet.algo.fsmop :only [operate complete?]]

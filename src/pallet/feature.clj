@@ -40,3 +40,7 @@
 (defn run-nodes-without-bootstrap
   "Feature for creating nodes without bootstrapping them."
   [] true)
+
+(defn taggable-nodes
+  "Feature for tagging nodes."
+  [] true)

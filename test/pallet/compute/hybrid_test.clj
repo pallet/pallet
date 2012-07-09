@@ -35,7 +35,9 @@
         node-list-2 (compute/compute-service "node-list" :node-list [node-2])
         hybrid (compute/compute-service
                 "hybrid" :sub-services {:nl1 node-list-1 :nl2 node-list-2})]
-    (is (= [node-2 node-1]  (compute/nodes hybrid))
+    (is (= [(assoc node-2 :service node-list-2)
+            (assoc node-1 :service node-list-1)]
+           (compute/nodes hybrid))
         "return nodes from both sub-services")))
 
 (deftest declarative-test
