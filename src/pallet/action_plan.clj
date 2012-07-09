@@ -574,6 +574,7 @@
        action
        (evaluate-arguments session)
        (executor session)
+       ((fn [r] (logging/tracef "rv is %s" r) r))
        (set-node-value-with-return-value node-value-path)))
     (catch Exception e
       [{:error {:type :pallet/action-execution-error

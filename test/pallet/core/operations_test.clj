@@ -18,7 +18,8 @@
           group (group-spec
                  (group-name (first (nodes compute)))
                  :phases {:p (plan-fn (exec-script "ls /"))})
-          op (operate (lift [group] nil [:p] compute {} {}))]
+          node-set (group-nodes compute [group])
+          op (operate (lift node-set [:p] {} {}))]
       (is @op)
       (some
        (partial re-find #"/bin")

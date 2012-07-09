@@ -1,15 +1,15 @@
 (ns pallet.mock-test
-  (:use pallet.mock)
   (:use
+   pallet.mock
    clojure.test
    [slingshot.slingshot :only [throw+]])
+  (:require
+   slingshot.test)
   (:import
    slingshot.ExceptionInfo))
 
 (deftest verify-expectations-test
-  (is (thrown?
-       slingshot.ExceptionInfo
-       (verify-expectations [(fn [] (throw+ {:error 1}))])))
+  (is (thrown+? map? (verify-expectations [(fn [] (throw+ {:error 1}))])))
   (is (nil?
        (verify-expectations [(fn [] true)]))))
 
