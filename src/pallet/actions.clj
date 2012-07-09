@@ -57,9 +57,9 @@
                   (~(list 'unquote `set-flag-value)
                    ~(name nv-kw)
                    @(do
-                      ("test" ~@(if is-stevedore?
-                                  (list* `deref (rest condition))
-                                  [condition]))
+                      ~@(if is-stevedore?
+                          (rest condition)
+                          ["test" condition])
                       (~'echo @~'?))))])]
        (if-action ~(if is-script?
                      `(delayed [s#]
@@ -85,9 +85,9 @@
                   (~(list `unquote `set-flag-value)
                    ~(name nv-kw)
                    @(do
-                      ("test" ~@(if is-stevedore?
-                                  (rest condition)
-                                  [condition]))
+                      ~@(if is-stevedore?
+                          (rest condition)
+                          ["test" condition])
                       (~'echo @~'?))))])]
        (if-action ~(if is-script?
                      `(delayed [s#]
