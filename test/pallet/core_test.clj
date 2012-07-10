@@ -704,10 +704,11 @@
                                (is (= (parameter/get-for-target session [:x])
                                       "x"))
                                (get-runtime-param session))})
-        localhost (node-list/make-localhost-node :group-name "localhost")]
+        localhost (node-list/make-localhost-node :group-name "localhost")
+        compute (compute/compute-service "node-list" :node-list [localhost])
+        localhost (first (compute/nodes compute))]
     (testing "serial"
-      (let [compute (compute/compute-service "node-list" :node-list [localhost])
-            session (lift {node localhost}
+      (let [session (lift {node localhost}
                           :phase [:configure :configure2]
                           :user (assoc utils/*admin-user*
                                   :username (test-utils/test-username)
@@ -726,8 +727,7 @@
           (is (string/blank? err))
           (is (zero? exit)))))
     (testing "parallel"
-      (let [compute (compute/compute-service "node-list" :node-list [localhost])
-            session (lift {node localhost}
+      (let [session (lift {node localhost}
                           :phase [:configure :configure2]
                           :user (assoc utils/*admin-user*
                                   :username (test-utils/test-username)
