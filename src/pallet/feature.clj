@@ -44,3 +44,7 @@
 (defn taggable-nodes
   "Feature for tagging nodes."
   [] true)
+
+(defn core-user
+  "Feature for pallet.core.user."
+  [] true)
