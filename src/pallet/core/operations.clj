@@ -82,7 +82,7 @@
    (vec (map :group-name groups))
    (vec (map :group-name targets)))
   (dofsm converge
-    [{:keys [new-nodes old-nodes service-state plan-state results]}
+    [{:keys [new-nodes old-nodes targets service-state plan-state results]}
      (node-count-adjuster compute groups targets plan-state)
 
      [results1 plan-state] (primitives/build-and-execute-phase

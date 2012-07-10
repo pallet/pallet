@@ -227,8 +227,8 @@
     (select-keys
      (->>
       @op
-      :service-state :node->groups keys
-      (group-by compute/group-name)
+      :targets
+      (group-by node/group-name)
       (map #(vector (keyword (first %)) (second %)))
       (into {}))
      (keys node-types))))
