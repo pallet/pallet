@@ -23,7 +23,8 @@
                    (make-node "n2" "g1" "192.168.1.2" :linux)]
           g1 (group-spec :g1)
           service (node-list-service [n1 n2])]
-      (is (= [(assoc g1 :node n1) (assoc g1 :node n2)]
+      (is (= [(assoc g1 :node (assoc n1 :service service))
+              (assoc g1 :node (assoc n2 :service service))]
              (service-state service [g1])))))
   (testing "custom groups"
     (let [[n1 n2] [(make-node "n1" "g1" "192.168.1.1" :linux)
@@ -32,7 +33,7 @@
               :g1
               :node-predicate #(= "192.168.1.2" (node/primary-ip %)))
           service (node-list-service [n1 n2])]
-      (is (= [(assoc g1 :node n2)]
+      (is (= [(assoc g1 :node (assoc n2 :service service))]
              (service-state service [g1]))))))
 
 ;; (deftest service-state-with-nodes-test
@@ -75,7 +76,8 @@
         g1 (group-spec :g1 :count 1)
         service (node-list-service [n1 n2])
         service-state (service-state service [g1])]
-    (is (= {g1 {:nodes [(assoc g1 :node n1)] :all false}}
+    (is (= {g1 {:nodes [(assoc g1 :node (assoc n1 :service service))]
+                :all false}}
            (nodes-to-remove
             service-state
             (group-deltas service-state [g1]))))))
@@ -102,6 +104,7 @@
             :phases {:p (plan-fn (exec-script "ls"))
                      :g (plan-fn ((clj-action [session] 1)))})
         service (node-list-service [n1])
+        n1 (assoc n1 :service service)
         service-state (service-state service [g1])]
     (testing "nodes"
       (let [[r plan-state] ((action-plans
