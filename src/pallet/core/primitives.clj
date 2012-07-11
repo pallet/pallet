@@ -155,12 +155,15 @@
    (partial api/create-nodes compute-service environment group count)))
 
 (defn create-group-nodes
-  "Create nodes for group."
+  "Create nodes for groups."
   [compute-service environment group-counts]
-  (map*
-   (map
-    #(create-nodes compute-service environment (key %) (:delta (val %)))
-    group-counts)))
+  (dofsm create-group-nodes
+    [results (map*
+              (map
+               #(create-nodes
+                 compute-service environment (key %) (:delta (val %)))
+               group-counts))]
+    (apply concat results)))
 
 (defn remove-nodes
   "Removes `nodes` from `group`. If `all` is true, then all nodes for the group

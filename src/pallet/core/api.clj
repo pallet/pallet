@@ -105,7 +105,7 @@
   "Returns execution settings based on the environment and the image user."
   [environment]
   (fn [node]
-    {:user (or (image-user node) (:user environment *admin-user*))
+    {:user (or (image-user (:node node)) (:user environment *admin-user*))
      :executor (get-in environment [:algorithms :executor] default-executor)
      :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
                                  #'stop-execution-on-error)}))
@@ -191,8 +191,9 @@
             (and (zero? actual) (pos? target)))]
     (->>
      group-deltas
-     (filter #(when (new-group? (second %)) (first %)))
-     (map #(assoc % :target-type :group)))))
+     (filter #(new-group? (val %)))
+     (map key)
+     (map (fn [group-spec] (assoc group-spec :target-type :group))))))
 
 (defn groups-to-remove
   "Return a sequence of groups that will have nodes, but will have all nodes
@@ -236,11 +237,13 @@
 (defn create-nodes
   "Create `count` nodes for a `group`."
   [compute-service environment group count]
-  (run-nodes
-   compute-service group count
-   (get-for environment [:user] *admin-user*)
-   nil
-   (get-for environment [:provider-options] nil)))
+  (map
+   (fn [node] (assoc group :node node))
+   (run-nodes
+    compute-service group count
+    (get-for environment [:user] *admin-user*)
+    nil
+    (get-for environment [:provider-options] nil))))
 
 (defn remove-nodes
   "Removes `nodes` from `group`. If `all` is true, then all nodes for the group
