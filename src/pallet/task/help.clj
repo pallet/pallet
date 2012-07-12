@@ -75,11 +75,14 @@
   (let [task-name (last (.split (name task-ns) "\\."))
         doc (or
              (task-ns-docstring task-ns)
-             (first-line (apply task-docstring (resolve-task task-name))))]
+             (let [[task-ns task] (resolve-task task-name)]
+               (when task
+                 (first-line (task-docstring task-ns task)))))]
     (str task-name (apply str (repeat (- 16 (count task-name)) " "))
          " " doc)))
 
 (defn help
+  "Display a list of tasks or help for a given task."
   {:no-service-required true}
   ([task] (println (help-for task)))
   ([]
