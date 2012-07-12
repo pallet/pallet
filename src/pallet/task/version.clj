@@ -1,7 +1,8 @@
 (ns pallet.task.version
-  "Print Pallet's version to standard out.")
+  "Print the pallet version")
 
 (defn version
+  "Print the pallet version"
   {:no-service-required true}
   []
   (println "Pallet" (System/getProperty "pallet.version")

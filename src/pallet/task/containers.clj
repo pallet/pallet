@@ -1,10 +1,10 @@
 (ns pallet.task.containers
-  "List contianers."
+  "List blobstore contianers."
   (:require
    [pallet.blobstore :as blobstore]))
 
 (defn containers
-  "List containers."
+  "List blobstore containers."
   [request & args]
   (doseq [container (blobstore/containers (:blobstore request))
           :let [container (bean container)

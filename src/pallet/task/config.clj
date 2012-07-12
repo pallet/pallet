@@ -31,7 +31,7 @@
 (defn ^{:no-service-required true
         :help-arglists '([])}
   config
-  "Create a pallet configuration file in ~/.pallet/config.clja"
+  "Create a pallet configuration file in ~/.pallet/config.clj"
   [& _]
   (when-not (write-config-clj-unless-exists)
     (println "config file already exists at" (.getPath (config-file-path))))

@@ -21,9 +21,7 @@
       (concat [m] (if prefix [:prefix prefix] []) [:phase phases]))))
 
 (defn destroy-cluster
-  "Adjust node counts of a cluster.  Requires the name of the cluster.
-     eg. pallet converge-cluster org.mynodes/my-cluster
-   The cluster name should be namespace qualified."
+  "Remove all nodes from a cluster"
   [request & args]
   (let [args (build-args args)]
     (apply core/destroy-cluster

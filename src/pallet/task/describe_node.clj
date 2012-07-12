@@ -1,5 +1,5 @@
 (ns pallet.task.describe-node
-  "Adjust node counts."
+  "Display the node definition for the given node-types"
   (:require
    [pallet.core :as core]
    [clojure.tools.logging :as logging]))
