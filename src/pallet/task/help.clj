@@ -97,6 +97,8 @@
          (println "\nYou can write project specific tasks under the\n"
                   "pallet.task namespace.")
          (println "\nOptions:")
+         (println "  -P           name-of-service (in ~/.pallet/config.clj)")
+         (println "")
          (println "  -provider    name-of-cloud-provider")
          (println "  -identity    login for cloud service API")
          (println "  -credential  key or password for cloud service API")
