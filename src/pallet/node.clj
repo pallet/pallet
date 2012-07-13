@@ -17,9 +17,12 @@
   (terminated? [node] "Predicate to test if node is terminated.")
   (id [node])
   (compute-service [node]
-    "Return the service provider the node was provided by.")
+    "Return the service provider the node was provided by."))
 
-  (packager [node] "The packager to use on the node")
+(defprotocol NodePackager
+  (packager [node] "The packager to use on the node"))
+
+(defprotocol NodeImage
   (image-user [node] "Return the user that is defined by the image."))
 
 (defn node?

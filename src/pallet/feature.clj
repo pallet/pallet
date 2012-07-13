@@ -48,3 +48,11 @@
 (defn core-user
   "Feature for pallet.core.user."
   [] true)
+
+(defn node-packager
+  "Feature for pallet.node/NodePackager."
+  [] true)
+
+(defn node-image
+  "Feature for pallet.node/NodeImage."
+  [] true)
