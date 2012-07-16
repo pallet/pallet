@@ -231,9 +231,7 @@
      (->>
       @op
       :targets
-      (group-by node/group-name)
-      (map #(vector (keyword (first %)) (second %)))
-      (into {}))
+      (group-by (comp node/group-name :node)))
      (keys node-types))))
 
 (defn destroy-nodes
