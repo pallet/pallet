@@ -1010,7 +1010,8 @@
   [session f]
   (assoc (f session)
     :groups (:groups session)
-    :phase-list (:phase-list session)))
+    :phase-list (:phase-list session)
+    :environment (:environment session)))
 
 (defn lift-destroy-server
   [session]
