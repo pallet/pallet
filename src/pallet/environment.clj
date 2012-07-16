@@ -208,9 +208,9 @@
                   (let [group (-> session :group :group-name)]
                     (assoc session
                       :group (merge-environments
-                              (:group session)
                               (select-keys environment node-keys)
                               (-?> environment :tags group) ; deprecated
-                              (-?> environment :groups group))))
+                              (-?> environment :groups group)
+                              (:group session))))
                   session)]
     session))
