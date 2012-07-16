@@ -103,7 +103,7 @@
   or :group-node-list."
   [service-state plan-state environment execution-settings-f targets phase]
   {:pre [phase]}
-  (logging/tracef
+  (logging/debugf
    "build-and-execute-phase %s on %s target(s)" phase (count targets))
   (logging/tracef "build-and-execute-phase plan-state %s" plan-state)
   (let [[action-plans plan-state]
