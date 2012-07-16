@@ -517,7 +517,7 @@
   "Add minimal packages for pallet to function"
   {:action-type :script :location :target}
   [session]
-  (let [[os-family _] (os-family session)]
+  (let [os-family (os-family session)]
     [[{:language :bash}
       (cond
         (#{:ubuntu :debian} os-family) (checked-script
