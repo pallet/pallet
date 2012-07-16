@@ -50,7 +50,7 @@
               :target (:server session)})]
         [(string/join "\n" (map second result)) result-map]))))
 
-(defn- build-session
+(defn build-session
   "Takes the session map, and tries to add the most keys possible.
    The default session is
        {:all-nodes [nil]
@@ -70,6 +70,8 @@
                     (-> session :server :group-name)
                     :os-family (or (-> session :server :image :os-family)
                                    :ubuntu)
+                    :os-version (or (-> session :server :image :os-version)
+                                    "10.04")
                     :id (or (-> session :server :node-id) :id)
                     :is-64bit (get-in session [:is-64bit] true))))
         session (update-in session [:server] merge (:group session))
