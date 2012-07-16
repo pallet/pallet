@@ -389,7 +389,7 @@
    "installonlypkgs=%s %s" (string/join " " packages) default-installonlypkgs))
 
 (defmethod configure-package-manager :aptitude
-  [session packager {:keys [priority prox] :or {priority 50} :as options}]
+  [session packager {:keys [priority proxy] :or {priority 50} :as options}]
   (remote-file*
    session
    (format "/etc/apt/apt.conf.d/%spallet" priority)
@@ -401,7 +401,7 @@
    :literal true))
 
 (defmethod configure-package-manager :apt
-  [session packager {:as options}]
+  [session packager options]
   (configure-package-manager session :aptitude options))
 
 (defmethod configure-package-manager :yum
