@@ -155,6 +155,11 @@
       <artifactId>pallet-map-merge</artifactId>
       <version>0.1.0</version>
     </dependency>
+    <dependency>
+      <groupId>useful</groupId>
+      <artifactId>useful</artifactId>
+      <version>0.8.3-alpha7</version>
+    </dependency>
 
     <dependency>
       <groupId>commons-codec</groupId>
