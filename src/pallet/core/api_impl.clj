@@ -4,14 +4,23 @@
    [pallet.compute :as compute]
    [pallet.node :as node])
   (:use
-   [pallet.map-merge :only [merge-keys]]
+   [pallet.map-merge :only [merge-key merge-keys]]
+   [pallet.monad :only [chain-s]]
    [pallet.script :only [with-script-context]]
    [pallet.stevedore :only [with-script-language]]))
+
+(defn pipeline
+  [a b]
+  (chain-s a b ))
+
+(defmethod merge-key :merge-state-monad
+  [_ _ val-in-result val-in-latter]
+  (merge-with pipeline val-in-latter val-in-result))
 
 (def
   ^{:doc "Map from key to merge algorithm. Specifies how specs are merged."}
   merge-spec-algorithm
-  {:phases :merge-comp
+  {:phases :merge-state-monad
    :roles :union
    :group-name :union})
 
