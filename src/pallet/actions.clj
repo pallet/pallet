@@ -496,7 +496,10 @@ Content can also be copied from a blobstore.
   "Rsync from a local directory to a remote directory."
   [from to & {:keys [owner group mode port] :as options}]
   (phase-pipeline rsync-directory-fn {:name :rsync-directory}
-    (package "rsync")
+    ;; would like to ensure rsync is installed, but this requires
+    ;; root permissions, and doesn't work when this is run without
+    ;; root permision
+    ;; (package "rsync")
     (directory to :owner owner :group group :mode mode)
     (rsync from to options)))
 
