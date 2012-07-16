@@ -68,7 +68,7 @@
                                     :phase phase
                                     :results (concat result r)})]
                                [r ps]))
-                           [[] {}]
+                           [[] plan-state]
                            phases)]
     {:results results
      :targets targets
