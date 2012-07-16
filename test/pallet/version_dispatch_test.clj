@@ -45,3 +45,27 @@
     (is (= [::arg 4]  (os-ver :debian [1 9 1] [4 3] ::arg))))
   (testing "overlapped dispatch"
     (is (= [::arg 6]  (os-ver :ubuntu [1 2 5] [4 2] ::arg)))))
+
+(deftest os-map-test
+  (testing "default-value"
+    (let [m (os-map {})]
+      (is (nil? (:f m)))
+      (is (= ::x (:f m ::x)))
+      (testing "ifn lookup"
+        (is (= ::x (m :f ::x))))))
+  (testing "default"
+    (let [m (os-map {:default 1})]
+      (is (= 1 (:f m)))
+      (testing "ifn lookup"
+        (is (= 1 (m :f)))
+        (is (= 1 (m :f ::x))))))
+  (testing "exact"
+    (let [m (os-map
+             {{:os :ubuntu :os-version [12 04]} 1})
+          key {:os :ubuntu :os-version [12 04]}]
+      (is (= 1 (get m key)))
+      (testing "dissoc"
+        (is (= ::nil (get (dissoc m key) key ::nil))))
+      (testing "assoc"
+        (let [key2 {:os :debian :os-version [6]}]
+          (is (= 1 (get (assoc m key2 1) key2 ::nil))))))))
