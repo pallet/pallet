@@ -98,28 +98,28 @@ refers to a software package version of some sort, on the specified `os` and
               [~@args]
               ~@body))))
 
-
-
-(defmacro defmulti-version-crate
+(defmacro defmulti-version-plan
   "Defines a multi-version funtion used to abstract over an operating system
 hierarchy, where dispatch includes an optional `os-version`. The `version`
 refers to a software package version of some sort, on the specified `os` and
 `os-version`."
   {:indent 2}
-  [name [session version & args]]
+  [name [version & args]]
   `(do
      (let [h# #'os-hierarchy
            m# (atom {})]
        (defn ~name
          {:hierarchy h# :methods m#}
-         [~session ~version ~@args]
-         (dispatch-version
-          '~name
-          (os-family ~session)
-          (as-version-vector (os-version ~session))
-          (as-version-vector ~version) [~@args] (var-get h#) @m#)))))
+         [~version ~@args]
+         (fn [session#]
+           ((dispatch-version
+              '~name
+              (os-family session#)
+              (as-version-vector (os-version session#))
+              (as-version-vector ~version) [~@args] (var-get h#) @m#)
+            session#))))))
 
-(defmacro multi-version-crate-method
+(defmacro multi-version-plan-method
   "Adds a method to the specified multi-version function for the specified
 `dispatch-value`."
   {:indent 3}
