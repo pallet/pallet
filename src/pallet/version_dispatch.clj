@@ -56,9 +56,14 @@ data may provide a version."
       (apply f os os-version version args)
       (if-let [f (:default methods)]
         (apply f os os-version version args)
-        (throw (IllegalArgumentException.
-                (str "No " sym " method for "
-                     os " " os-version " " version)))))))
+        (throw+
+         {:reason :defmulti-version-method-missing
+          :multi-version-method sym
+          :os os
+          :os-version os-version
+          :version version}
+         "No %s method for :os %s :os-version %s :version %s"
+         sym os os-version version)))))
 
 (defmacro defmulti-version
   "Defines a multi-version funtion used to abstract over an operating system
