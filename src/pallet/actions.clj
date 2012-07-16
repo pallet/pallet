@@ -48,6 +48,7 @@
   (let [nv (gensym "nv")
         nv-kw (keyword (name nv))
         is-stevedore? (and (sequential? condition)
+                           (symbol? (first condition))
                            (= (resolve (first condition)) #'stevedore/script))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-pipeline pipeline-when {:condition ~(list 'quote condition)}
@@ -76,6 +77,7 @@
   (let [nv (gensym "nv")
         nv-kw (keyword (name nv))
         is-stevedore? (and (sequential? condition)
+                           (symbol? (first condition))
                            (= (resolve (first condition)) #'stevedore/script))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-pipeline pipeline-when-not {:condition ~(list 'quote condition)}
