@@ -21,6 +21,7 @@ version vector."
 E.g.,
     (version-vector [1 2]) => \"1.2\""
   [version-vector]
+  {:pre [(seq version-vector)]}
   (string/join "." version-vector))
 
 (defn as-version-string
