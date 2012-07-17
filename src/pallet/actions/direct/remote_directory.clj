@@ -23,14 +23,18 @@
   remote-file* (action-fn remote-file-action :direct))
 
 (defn- source-to-cmd-and-path
-  [session path url local-file remote-file md5 md5-url]
+  [session path url local-file remote-file md5 md5-url
+   install-new-files overwrite-changes]
   (cond
    url (let [tarpath (str
                       (stevedore/script (~lib/tmp-dir)) "/"
                       (.getName
                        (java.io.File. (.getFile (java.net.URL. url)))))]
          [(->
-           (remote-file* session tarpath {:url url :md5 md5 :md5-url md5-url})
+           (remote-file* session tarpath
+                         {:url url :md5 md5 :md5-url md5-url
+                          :install-new-files install-new-files
+                          :overwrite-changes overwrite-changes})
            first second)
           tarpath])
    local-file ["" (str path "-content")]
@@ -40,13 +44,15 @@
   {:action-type :script :location :target}
   [session path {:keys [action url local-file remote-file
                         unpack tar-options unzip-options jar-options
-                        strip-components md5 md5-url owner group recursive]
+                        strip-components md5 md5-url owner group recursive
+                        install-new-files overwrite-changes]
                  :or {action :create
                       tar-options "xz"
                       unzip-options "-o"
                       jar-options "xf"
                       strip-components 1
-                      recursive true}
+                      recursive true
+                      install-new-files true}
                  :as options}]
   [[{:language :bash}
     (case action
@@ -55,7 +61,8 @@
                 (when (and (or url local-file remote-file) unpack)
                   (let [[cmd tarpath] (source-to-cmd-and-path
                                        session path
-                                       url local-file remote-file md5 md5-url)]
+                                       url local-file remote-file md5 md5-url
+                                       install-new-files overwrite-changes)]
                     (checked-commands
                      "remote-directory"
                      (->

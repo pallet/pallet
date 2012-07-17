@@ -37,7 +37,7 @@
 
 (deftest with-restart-test
   (is (=
-       (str "echo stop tomcat\n/etc/init.d/tomcat stop\n\n"
+       (str "echo stop tomcat\n/etc/init.d/tomcat stop\n"
             "echo start tomcat\n/etc/init.d/tomcat start\n")
        (first (build-actions {}
                 (with-service-restart "tomcat"))))))

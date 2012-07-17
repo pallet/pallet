@@ -10,24 +10,24 @@
 (use-fixtures :once (logging-threshold-fixture))
 
 (deftest when-test
-  (is (= "c"
+  (is (= "c\n"
          (first (build-actions {}
                   (pipeline-when (= 1 1)
                     (exec-script "c")))))
       "true condition causes when block to run")
-  (is (= ""
+  (is (= "\n"
          (first (build-actions {}
                   (pipeline-when false
                     (exec-script "c")))))
       "non-true condition causes when block not to run")
   (let [nv (make-node-value 'nv)]
-    (is (= "c"
+    (is (= "c\n"
            (first (build-actions {}
                     (assign-node-value nv true)
                     (pipeline-when nv
                       (exec-script "c")))))
         "true node-value causes when block to run")
-    (is (= "" ;; failing due to when being clobbered in p.m
+    (is (= "\n" ;; failing due to when being clobbered in p.m
            (first (build-actions {}
                     (assign-node-value nv nil)
                     (pipeline-when nv
@@ -35,12 +35,12 @@
         "non-true node-value causes when block not to run")))
 
 (deftest when-not-test
-  (is (= "c"
+  (is (= "c\n"
          (first (build-actions {}
                   (pipeline-when-not false
                     (exec-script "c")))))
       "false condition causes if block to run")
-  (is (= ""
+  (is (= "\n"
          (first (build-actions {}
                   (pipeline-when-not true
                     (exec-script "c")))))

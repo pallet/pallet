@@ -311,8 +311,9 @@ Content can also be copied from a blobstore.
          (transfer-file local-file (str path ".new")))
      f (with-action-options local-file-options
          (let-s
-           [v (remote-file-action path
-                                  (merge
+           [v (remote-file-action
+               path
+               (merge
                 {:install-new-files *install-new-files*
                  :overwrite-changes *force-overwrite*} ; capture bound values
                 options))]
@@ -394,7 +395,12 @@ Content can also be copied from a blobstore.
          (transfer-file local-file (str path "-content")))
      f (with-action-options local-file-options
          (let-s
-           [v (remote-directory-action path options)]
+           [v (remote-directory-action
+               path
+               (merge
+                {:install-new-files *install-new-files*
+                 :overwrite-changes *force-overwrite*} ; capture bound values
+                options))]
            v))]
     f))
 

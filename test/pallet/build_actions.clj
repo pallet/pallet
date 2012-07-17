@@ -24,6 +24,9 @@
    [pallet.session.verify :only [check-session add-session-verification-key]]
    [pallet.monad :only [let-s wrap-pipeline]]))
 
+(defn- trim-if-string [s]
+  (when s (string/trim s)))
+
 (defn produce-phases
   "Join the result of execute-action-plan, executing local actions.
    Useful for testing."
@@ -48,7 +51,10 @@
              {:action-plan action-plan
               :phase (:phase session)
               :target (:server session)})]
-        [(string/join "\n" (map second result)) result-map]))))
+        [(str
+          (string/join "\n" (map (comp trim-if-string second) result))
+          \newline)
+         result-map]))))
 
 (defn build-session
   "Takes the session map, and tries to add the most keys possible.
@@ -72,6 +78,11 @@
                                    :ubuntu)
                     :os-version (or (-> session :server :image :os-version)
                                     "10.04")
+                    :packager (or (-> session :group :packager)
+                                  (compute/packager
+                                   {:os-family
+                                    (or (-> session :server :image :os-family)
+                                        :ubuntu)}))
                     :id (or (-> session :server :node-id) :id)
                     :is-64bit (get-in session [:is-64bit] true))))
         session (update-in session [:server] merge (:group session))
@@ -112,3 +123,8 @@
   `(let [session# ~session]
      (assert (or (nil? session#) (map? session#)))
      (build-actions* (let-s ~@body) session#)))
+
+(def ubuntu-session
+  (build-session {:server {:image {:os-family :ubuntu}}}))
+(def centos-session
+  (build-session {:server {:image {:os-family :centos}}}))

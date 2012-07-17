@@ -71,7 +71,7 @@ list, Alan Dipert and MeikelBrandmeyer."
   "A test fixture for binding null context"
   [f]
   (binding [action-plan/*defining-context* nil]
-    f))
+    (f)))
 
 (defn make-node
   "Simple node for testing"

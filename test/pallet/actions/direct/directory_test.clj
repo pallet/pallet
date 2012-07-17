@@ -59,8 +59,9 @@
   (is (= (str
           (binding [pallet.action-plan/*defining-context* nil]
             (stevedore/chain-commands
-             (first (directory* {} "d1" :owner "o"))
-             (first (directory* {} "d2" :owner "o")))))
+             (-> (directory* {} "d1" :owner "o") first second)
+             (-> (directory* {} "d2" :owner "o") first second)))
+          \newline)
          (first
           (build-actions {}
-           (directories ["d1" "d2"] :owner "o"))))))
+            (directories ["d1" "d2"] :owner "o"))))))

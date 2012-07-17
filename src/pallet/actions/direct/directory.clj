@@ -61,6 +61,7 @@
   [[{:language :bash}
     (stevedore/chain-commands*
       (map
-       #(first (apply (action-fn directory :direct) session % options))
+       #(-> (apply (action-fn directory :direct) session % options)
+            first second)
        paths))]
    session])
