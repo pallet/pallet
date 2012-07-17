@@ -58,7 +58,7 @@ data may provide a version."
         (apply f os os-version version args)
         (throw+
          {:reason :defmulti-version-method-missing
-          :multi-version-method sym
+          :multi-version sym
           :os os
           :os-version os-version
           :version version}
@@ -81,7 +81,7 @@ refers to a software package version of some sort, on the specified `os` and
          (dispatch-version '~name
           ~os ~os-version ~version [~@args] (var-get h#) @m#)))))
 
-(defmacro multi-version-method
+(defmacro defmethod-version
   "Adds a method to the specified multi-version function for the specified
 `dispatch-value`."
   {:indent 3}
@@ -119,7 +119,7 @@ refers to a software package version of some sort, on the specified `os` and
               (as-version-vector ~version) [~@args] (var-get h#) @m#)
             session#))))))
 
-(defmacro multi-version-plan-method
+(defmacro defmethod-version-plan
   "Adds a method to the specified multi-version function for the specified
 `dispatch-value`."
   {:indent 3}

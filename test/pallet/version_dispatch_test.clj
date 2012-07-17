@@ -6,31 +6,31 @@
 
 (defmulti-version os-ver [os os-ver ver arg] #'os-hierarchy)
 
-(multi-version-method
+(defmethod-version
     os-ver {:os :rhel :os-version [1 0] :version nil}
     [id os-version version arg]
   [arg 1])
-(multi-version-method
+(defmethod-version
     os-ver {:os :rh-base :os-version [[2 0] nil] :version [2 1]}
     [os os-version version arg]
   [arg 2])
-(multi-version-method
+(defmethod-version
     os-ver {:os :centos :os-version [nil [1 0]] :version [nil [3 1]]}
     [os os-version version arg]
   [arg 3])
-(multi-version-method
+(defmethod-version
     os-ver {:os :debian :os-version [[1 0] [2 0]] :version [[4 1] [4 3]]}
     [os os-version version arg]
   [arg 4])
-(multi-version-method
+(defmethod-version
     os-ver {:os :ubuntu :os-version [[1 0] [2 0]] :version [[4 1] [4 3]]}
     [os os-version version arg]
   [arg 5])
-(multi-version-method
+(defmethod-version
     os-ver {:os :ubuntu :os-version [[1 2] [1 3]] :version [[4 1] [4 3]]}
     [os os-version version arg]
   [arg 6])
-(multi-version-method
+(defmethod-version
     os-ver {:os :ubuntu :os-version [[1 1] [1 4]] :version [[4 1] [4 3]]}
     [os os-version version arg]
   [arg 7])
