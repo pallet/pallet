@@ -148,7 +148,7 @@
     <dependency>
       <groupId>pallet-fsmop</groupId>
       <artifactId>pallet-fsmop</artifactId>
-      <version>0.1.0</version>
+      <version>0.1.1</version>
     </dependency>
     <dependency>
       <groupId>pallet-map-merge</groupId>
