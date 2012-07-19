@@ -18,7 +18,7 @@
 (implement-action rsync :direct
   {:action-type :script :location :origin}
   [session from to {:keys [port]}]
-  (logging/infof "rsync %s to %s" from to)
+  (logging/debugf "rsync %s to %s" from to)
   (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
                  (if port (format "-p %s" port)))
         cmd (format

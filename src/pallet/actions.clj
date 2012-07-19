@@ -48,6 +48,7 @@
   (let [nv (gensym "nv")
         nv-kw (keyword (name nv))
         is-stevedore? (and (sequential? condition)
+                           (symbol? (first condition))
                            (= (resolve (first condition)) #'stevedore/script))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-pipeline pipeline-when {:condition ~(list 'quote condition)}
@@ -57,9 +58,9 @@
                   (~(list 'unquote `set-flag-value)
                    ~(name nv-kw)
                    @(do
-                      ("test" ~@(if is-stevedore?
-                                  (list* `deref (rest condition))
-                                  [condition]))
+                      ~@(if is-stevedore?
+                          (rest condition)
+                          ["test" condition])
                       (~'echo @~'?))))])]
        (if-action ~(if is-script?
                      `(delayed [s#]
@@ -76,6 +77,7 @@
   (let [nv (gensym "nv")
         nv-kw (keyword (name nv))
         is-stevedore? (and (sequential? condition)
+                           (symbol? (first condition))
                            (= (resolve (first condition)) #'stevedore/script))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-pipeline pipeline-when-not {:condition ~(list 'quote condition)}
@@ -85,9 +87,9 @@
                   (~(list `unquote `set-flag-value)
                    ~(name nv-kw)
                    @(do
-                      ("test" ~@(if is-stevedore?
-                                  (rest condition)
-                                  [condition]))
+                      ~@(if is-stevedore?
+                          (rest condition)
+                          ["test" condition])
                       (~'echo @~'?))))])]
        (if-action ~(if is-script?
                      `(delayed [s#]
@@ -309,8 +311,9 @@ Content can also be copied from a blobstore.
          (transfer-file local-file (str path ".new")))
      f (with-action-options local-file-options
          (let-s
-           [v (remote-file-action path
-                                  (merge
+           [v (remote-file-action
+               path
+               (merge
                 {:install-new-files *install-new-files*
                  :overwrite-changes *force-overwrite*} ; capture bound values
                 options))]
@@ -392,7 +395,12 @@ Content can also be copied from a blobstore.
          (transfer-file local-file (str path "-content")))
      f (with-action-options local-file-options
          (let-s
-           [v (remote-directory-action path options)]
+           [v (remote-directory-action
+               path
+               (merge
+                {:install-new-files *install-new-files*
+                 :overwrite-changes *force-overwrite*} ; capture bound values
+                options))]
            v))]
     f))
 
@@ -494,7 +502,10 @@ Content can also be copied from a blobstore.
   "Rsync from a local directory to a remote directory."
   [from to & {:keys [owner group mode port] :as options}]
   (phase-pipeline rsync-directory-fn {:name :rsync-directory}
-    (package "rsync")
+    ;; would like to ensure rsync is installed, but this requires
+    ;; root permissions, and doesn't work when this is run without
+    ;; root permision
+    ;; (package "rsync")
     (directory to :owner owner :group group :mode mode)
     (rsync from to options)))
 

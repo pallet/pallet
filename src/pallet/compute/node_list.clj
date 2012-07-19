@@ -36,17 +36,18 @@
   (terminated? [node] (not running))
   (os-family [node] os-family)
   (os-version [node] os-version)
-  (packager [node] (compute/packager-for-os os-family os-version))
   (hostname [node] name)
   (id [node] id)
-  (compute-service [node] service))
+  (compute-service [node] service)
+  pallet.node.NodePackager
+  (packager [node] (compute/packager-for-os os-family os-version)))
 
 ;;; Node utilities
 (defn make-node
   "Returns a node, suitable for use in a node-list."
   [name group-name ip os-family
    & {:keys [id ssh-port private-ip is-64bit running os-version service]
-      :or {ssh-port 22 is-64bit true running true service (atom nil)}}]
+      :or {ssh-port 22 is-64bit true running true}}]
   (Node.
    name
    group-name
@@ -60,8 +61,24 @@
    running
    service))
 
+(deftype NodeTagUnsupported
+    []
+  pallet.compute.NodeTagReader
+  (node-tag [_ node tag-name] nil)
+  (node-tag [_ node tag-name default-value] default-value)
+  (node-tags [_ node] nil)
+  pallet.compute.NodeTagWriter
+  (tag-node! [_ node tag-name value]
+    (throw+
+     {:reason :unsupported-operation
+      :operation :pallet.compute/node-tags}
+     "Attempt to call node-tags on a node that doesn't support mutable tags.
+You can pass a :tag-provider to the compute service constructor to enable
+support."))
+  (node-taggable? [_ node] false))
+
 (deftype NodeList
-    [node-list environment]
+    [node-list environment tag-provider]
   pallet.compute.ComputeService
   (nodes [compute-service] @node-list)
   (ensure-os-family
@@ -83,7 +100,19 @@
 
   (close [compute])
   pallet.environment.Environment
-  (environment [_] environment))
+  (environment [_] environment)
+  pallet.compute.NodeTagReader
+  (node-tag [compute node tag-name]
+    (compute/node-tag tag-provider node tag-name))
+  (node-tag [compute node tag-name default-value]
+    (compute/node-tag tag-provider node tag-name default-value))
+  (node-tags [compute node]
+    (compute/node-tags tag-provider node))
+  pallet.compute.NodeTagWriter
+  (tag-node! [compute node tag-name value]
+    (compute/tag-node! tag-provider node tag-name value))
+  (node-taggable? [compute node]
+    (compute/node-taggable? tag-provider node)))
 
 
 
@@ -126,20 +155,16 @@
   [] ["node-list"])
 
 (defmethod implementation/service :node-list
-  [_ {:keys [node-list environment]}]
+  [_ {:keys [node-list environment tag-provider]
+      :or {tag-provider (NodeTagUnsupported.)}}]
   (let [nodes (atom (vec
                      (map
                       #(if (vector? %)
                          (apply make-node %)
                          %)
                       node-list)))
-        nodelist (NodeList. nodes environment)]
-    (swap! nodes
-           #(map
-             (fn [node]
-               (reset! (node/compute-service node) nodelist)
-               node)
-             %))
+        nodelist (NodeList. nodes environment tag-provider)]
+    (swap! nodes #(map (fn [node] (assoc node :service nodelist)) %))
     nodelist))
 
 ;;;; Compute service constructor
@@ -151,6 +176,6 @@
    Optionally, an environment map can be passed using the :environment keyword.
    See `pallet.environment`."
   {:added "0.6.8"}
-  [node-list & {:keys [environment] :as options}]
+  [node-list & {:keys [environment tag-provider] :as options}]
   (apply-map
    compute/compute-service :node-list (assoc options :node-list node-list)))

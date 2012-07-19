@@ -1,4 +1,7 @@
-(ns pallet.node)
+(ns pallet.node
+  "API for nodes in pallet"
+  (:use
+   [pallet.compute :only [node-tag node-tags tag-node! node-taggable?]]))
 
 ;;; Nodes
 (defprotocol Node
@@ -14,13 +17,13 @@
   (terminated? [node] "Predicate to test if node is terminated.")
   (id [node])
   (compute-service [node]
-    "Return the service provider the node was provided by.")
+    "Return the service provider the node was provided by."))
 
-  (packager [node] "The packager to use on the node")
-  (image-user [node] "Return the user that is defined by the image.")
+(defprotocol NodePackager
+  (packager [node] "The packager to use on the node"))
 
-  (tag [node tag-name] "Return the specified tag.")
-  (tag! [node tag-name value] "Set a value on the given tag-name."))
+(defprotocol NodeImage
+  (image-user [node] "Return the user that is defined by the image."))
 
 (defn node?
   "Predicate to test whether an object implements the Node protocol"
@@ -36,3 +39,25 @@
     (string? node) node
     (primary-ip node) (primary-ip node)
     :else (private-ip node)))
+
+(defn tag
+  "Return the specified tag."
+  ([node tag-name]
+     (node-tag (compute-service node) node tag-name))
+  ([node tag-name default-value]
+     (node-tag (compute-service node) node tag-name default-value)))
+
+(defn tags
+  "Return the tags."
+  [node]
+  (node-tags (compute-service node) node))
+
+(defn tag!
+  "Set a value on the given tag-name."
+  [node tag-name value]
+  (tag-node! (compute-service node) node tag-name value))
+
+(defn taggable?
+  "Predicate to test the availability of tags."
+  [node]
+  (node-taggable? (compute-service node) node))

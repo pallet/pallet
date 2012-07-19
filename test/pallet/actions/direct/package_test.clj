@@ -5,13 +5,16 @@
     :only [add-scope* adjust-packages package-manager* package-source*]]
    [pallet.action :only [action-fn]]
    [pallet.actions
-    :only [exec-checked-script file package remote-file sed
+    :only [exec-script exec-checked-script file package remote-file sed
            add-rpm package package-manager package-source minimal-packages
            packages]]
    [pallet.actions-impl :only [remote-file-action]]
    [pallet.api :only [group-spec lift]]
-   [pallet.build-actions :only [build-actions]]
+   [pallet.build-actions
+    :only [build-actions build-session ubuntu-session centos-session]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [pallet.monad :only [phase-pipeline]]
+   [pallet.script :only [with-script-context]]
    [pallet.stevedore :only [script]])
   (:require
    [pallet.execute :as execute]
@@ -44,7 +47,10 @@
               "Packages"
               (~lib/package-manager-non-interactive)
               "aptitude install -q -y java+ rubygems+ git- ruby_"
-              (aptitude search (quoted "~i")))))
+              "aptitude search \"?and(?installed, ?name(^java$))\" | grep \"java\""
+              "aptitude search \"?and(?installed, ?name(^rubygems$))\" | grep \"rubygems\""
+              "! ( aptitude search \"?and(?installed, ?name(^git$))\" | grep \"git\" )"
+              "! ( aptitude search \"?and(?installed, ?name(^ruby$))\" | grep \"ruby\" )")))
            (first
             (build-actions
              {}
@@ -131,7 +137,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
           (mv -f @tmpfile "/etc/apt/sources.list"))
          (binding [pallet.action-plan/*defining-context* nil]
-           (package-manager* test-utils/ubuntu-session :multiverse))))
+           (package-manager* ubuntu-session :multiverse))))
   (is (= (stevedore/checked-script
           "package-manager update "
           (chain-or
@@ -139,7 +145,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            true))
          (binding [pallet.action-plan/*defining-context* nil]
            (script/with-script-context [:aptitude]
-             (package-manager* test-utils/ubuntu-session :update))))))
+             (package-manager* ubuntu-session :update))))))
 
 (deftest package-manager-update-test
   (testing "yum"
@@ -161,11 +167,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                 {}
               (exec-checked-script
                "package-manager configure :proxy http://192.168.2.37:3182"
-               ~(remote-file*
-                 {}
-                 "/etc/apt/apt.conf.d/50pallet"
-                 {:content "ACQUIRE::http::proxy \"http://192.168.2.37:3182\";"
-                  :literal true}))))
+               ~(->
+                 (remote-file*
+                  {}
+                  "/etc/apt/apt.conf.d/50pallet"
+                  {:content "ACQUIRE::http::proxy \"http://192.168.2.37:3182\";"
+                   :literal true})
+                 first second))))
            (first
             (build-actions
                 {}
@@ -177,11 +185,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                 {:server {:tag :n :image {:os-family :centos}}}
               (exec-checked-script
                "package-manager configure :proxy http://192.168.2.37:3182"
-               ~(remote-file*
-                 {}
-                 "/etc/yum.pallet.conf"
-                 {:content "proxy=http://192.168.2.37:3182"
-                  :literal true})
+               ~(->
+                 (remote-file*
+                  {}
+                  "/etc/yum.pallet.conf"
+                  {:content "proxy=http://192.168.2.37:3182"
+                   :literal true})
+                 first second)
                (if (not @("fgrep" "yum.pallet.conf" "/etc/yum.conf"))
                  (do
                    ("cat" ">>" "/etc/yum.conf" " <<'EOFpallet'")
@@ -198,21 +208,25 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                 {:server {:tag :n :image {:os-family :arch}}}
               (exec-checked-script
                "package-manager configure :proxy http://192.168.2.37:3182"
-               ~(remote-file*
-                 {}
-                 "/etc/pacman.pallet.conf"
-                 {:content (str "XferCommand = /usr/bin/wget "
-                                "-e \"http_proxy = http://192.168.2.37:3182\" "
-                                "-e \"ftp_proxy = http://192.168.2.37:3182\" "
-                                "--passive-ftp --no-verbose -c -O %o %u")
-                  :literal true})
+               ~(->
+                 (remote-file*
+                  {}
+                  "/etc/pacman.pallet.conf"
+                  {:content (str "XferCommand = /usr/bin/wget "
+                                 "-e \"http_proxy = http://192.168.2.37:3182\" "
+                                 "-e \"ftp_proxy = http://192.168.2.37:3182\" "
+                                 "--passive-ftp --no-verbose -c -O %o %u")
+                   :literal true})
+                 first second)
                (if (not @("fgrep" "pacman.pallet.conf" "/etc/pacman.conf"))
                  (do
-                   ~(sed*
-                     {}
-                     "/etc/pacman.conf"
-                     "a Include = /etc/pacman.pallet.conf"
-                     :restriction "/\\[options\\]/"))))))
+                   ~(->
+                     (sed*
+                      {}
+                      "/etc/pacman.conf"
+                      "a Include = /etc/pacman.pallet.conf"
+                      :restriction "/\\[options\\]/")
+                     first second))))))
            (first
             (build-actions
                 {:server {:tag :n :image {:os-family :arch}}}
@@ -239,17 +253,19 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
 
 (deftest package-source*-test
   (let [a (group-spec "a" :packager :aptitude)
-        b (group-spec "b" :packager :yum)]
+        b (group-spec "b" :packager :yum :image {:os-family :centos})]
     (is (=
          (stevedore/checked-commands
           "Package source"
-          (remote-file*
-           {:server a}
-           "/etc/apt/sources.list.d/source1.list"
-           :content "deb http://somewhere/apt $(lsb_release -c -s) main\n"))
+          (->
+           (remote-file*
+            ubuntu-session
+            "/etc/apt/sources.list.d/source1.list"
+            {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
+           first second))
          (binding [pallet.action-plan/*defining-context* nil]
            (package-source*
-            {:server a}
+            ubuntu-session
             "source1"
             :aptitude {:url "http://somewhere/apt" :scopes ["main"]}
             :yum {:url "http://somewhere/yum"}))))
@@ -257,15 +273,17 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
      (=
       (stevedore/checked-commands
        "Package source"
-       (remote-file*
-        {:server b}
-        "/etc/yum.repos.d/source1.repo"
-        {:content
-         "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\nenabled=1\n"
-         :literal true}))
+       (->
+        (remote-file*
+         centos-session
+         "/etc/yum.repos.d/source1.repo"
+         {:content
+          "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\nenabled=1\n"
+          :literal true})
+        first second))
       (binding [pallet.action-plan/*defining-context* nil]
         (package-source*
-         {:server b}
+         centos-session
          "source1"
          :aptitude {:url "http://somewhere/apt"
                     :scopes ["main"]}
@@ -286,15 +304,17 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                :yum {:url "http://somewhere/yum"})))))
     (is (= (stevedore/checked-commands
             "Package source"
-            (remote-file*
-             {:server a}
-             "/etc/apt/sources.list.d/source1.list"
-             {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
+            (->
+             (remote-file*
+              ubuntu-session
+              "/etc/apt/sources.list.d/source1.list"
+              {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
+             first second)
             (stevedore/script
              (apt-key adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
            (binding [pallet.action-plan/*defining-context* nil]
              (package-source*
-              {:server a}
+              ubuntu-session
               "source1"
               :aptitude {:url "http://somewhere/apt"
                          :scopes ["main"]
@@ -302,32 +322,36 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               :yum {:url "http://somewhere/yum"}))))
     (testing "key-server"
       (is (= (stevedore/checked-commands
-            "Package source"
-            (remote-file*
-             {:server a}
-             "/etc/apt/sources.list.d/source1.list"
-             {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
-            (stevedore/script
-             (apt-key adv "--keyserver" keys.ubuntu.com "--recv-keys" 1234)))
-           (binding [pallet.action-plan/*defining-context* nil]
-             (package-source*
-              {:server a}
-              "source1"
-              :aptitude {:url "http://somewhere/apt"
-                         :scopes ["main"]
-                         :key-server "keys.ubuntu.com"
-                         :key-id 1234}
-              :yum {:url "http://somewhere/yum"})))))))
+              "Package source"
+              (->
+               (remote-file*
+                ubuntu-session
+                "/etc/apt/sources.list.d/source1.list"
+                {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
+               first second)
+              (stevedore/script
+               (apt-key adv "--keyserver" keys.ubuntu.com "--recv-keys" 1234)))
+             (binding [pallet.action-plan/*defining-context* nil]
+               (package-source*
+                ubuntu-session
+                "source1"
+                :aptitude {:url "http://somewhere/apt"
+                           :scopes ["main"]
+                           :key-server "keys.ubuntu.com"
+                           :key-id 1234}
+                :yum {:url "http://somewhere/yum"})))))))
 
 (deftest package-source-test
   (let [a (group-spec "a" :packager :aptitude)
-        b (group-spec "b" :packager :yum)]
+        b (group-spec "b" :packager :yum :image {:os-family :centos})]
     (is (= (stevedore/checked-commands
             "Package source"
-            (remote-file*
-             {:server a}
-             "/etc/apt/sources.list.d/source1.list"
-             {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"}))
+            (->
+             (remote-file*
+              (build-session {:server a})
+              "/etc/apt/sources.list.d/source1.list"
+              {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
+             first second))
            (first (build-actions
                       {:server a}
                     (package-source
@@ -335,15 +359,18 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                      :aptitude {:url "http://somewhere/apt"
                                 :scopes ["main"]}
                      :yum {:url "http://somewhere/yum"})))))
-    (is (= (stevedore/checked-commands
-            "Package source"
-            (remote-file*
-             {:server b}
-             "/etc/yum.repos.d/source1.repo"
-             {:content "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\nenabled=1\n"
-              :literal true}))
-           (first (build-actions
-                      {:server b}
+    (is (= (with-script-context [:centos]
+               (stevedore/checked-commands
+                "Package source"
+                (->
+                 (remote-file*
+                  centos-session
+                  "/etc/yum.repos.d/source1.repo"
+                  {:content
+                   "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\nenabled=1\n"
+                   :literal true})
+                 first second)))
+           (first (build-actions centos-session
                     (package-source
                      "source1"
                      :aptitude {:url "http://somewhere/apt"
@@ -354,24 +381,22 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (let [a (group-spec "a" :packager :aptitude)
         b (group-spec "b" :packager :yum)]
     (is (= (first
-            (build-actions
-             {:server a}
-             (package "git-apt")
-             (package "git-apt2")))
-           (first (build-actions
-                   {}
-                   (packages
-                    :aptitude ["git-apt" "git-apt2"]
-                    :yum ["git-yum"])))))
+            (build-actions {}
+              (phase-pipeline packages {}
+                (package "git-apt")
+                (package "git-apt2"))))
+           (first (build-actions {}
+                    (packages
+                     :aptitude ["git-apt" "git-apt2"]
+                     :yum ["git-yum"])))))
     (is (= (first
-            (build-actions
-             {:server b}
-             (package "git-yum")))
-           (first (build-actions
-                   {:server b}
-                   (packages
-                    :aptitude ["git-apt"]
-                    :yum ["git-yum"])))))))
+            (build-actions centos-session
+              (phase-pipeline packages {}
+                (package "git-yum"))))
+           (first (build-actions centos-session
+                    (packages
+                     :aptitude ["git-apt"]
+                     :yum ["git-yum"])))))))
 
 (deftest ordering-test
   (testing "package-source alway precedes packages"
@@ -419,10 +444,21 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               "Packages"
               (~lib/package-manager-non-interactive)
               (aptitude install -q -y p1- p4_ p2+ p3+)
-              (aptitude search (quoted "~i")))
+              (not (pipe
+                    (aptitude search (quoted "?and(?installed, ?name(^p1$))"))
+                    (grep (quoted p1))))
+              (pipe
+               (aptitude search (quoted "?and(?installed, ?name(^p2$))"))
+               (grep (quoted p2)))
+              (pipe
+               (aptitude search (quoted "?and(?installed, ?name(^p3$))"))
+               (grep (quoted p3)))
+              (not (pipe
+                    (aptitude search (quoted "?and(?installed, ?name(^p4$))"))
+                    (grep (quoted "p4")))))
              (binding [pallet.action-plan/*defining-context* nil]
                (adjust-packages
-                {:server {:packager :aptitude}}
+                ubuntu-session
                 [{:package "p1" :action :remove}
                  {:package "p2" :action :install}
                  {:package "p3" :action :upgrade}
@@ -434,10 +470,15 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               (~lib/package-manager-non-interactive)
               (aptitude install -q -y -t r1 p2+)
               (aptitude install -q -y p1+)
-              (aptitude search (quoted "~i")))
+              (pipe
+               (aptitude search (quoted "?and(?installed, ?name(^p1$))"))
+               (grep (quoted p1)))
+              (pipe
+               (aptitude search (quoted "?and(?installed, ?name(^p2$))"))
+               (grep (quoted "p2"))))
              (binding [pallet.action-plan/*defining-context* nil]
                (adjust-packages
-                {:server {:packager :aptitude}}
+                ubuntu-session
                 [{:package "p1" :action :install :priority 20}
                  {:package "p2" :action :install :enable ["r1"] :priority 2}]))))))
   (testing "yum"
@@ -450,7 +491,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (binding [pallet.action-plan/*defining-context* nil]
              (script/with-script-context [:yum]
                (adjust-packages
-                {:server {:packager :yum}}
+                centos-session
                 [{:package "p1" :action :remove}
                  {:package "p2" :action :install}
                  {:package "p3" :action :upgrade}
@@ -464,7 +505,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (binding [pallet.action-plan/*defining-context* nil]
              (script/with-script-context [:yum]
                (adjust-packages
-                {:server {:packager :yum}}
+                centos-session
                 [{:package "p1" :action :install :priority 50}
                  {:package "p2" :action :install :disable ["r1"]
                   :priority 25}])))))
@@ -474,23 +515,20 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (yum install -q -y p1)
             (yum list installed))
            (first
-            (build-actions
-             {:packager :yum}
-             (package "p1")
-             (package "p2" :disable ["r1"] :priority 25)))))))
+            (build-actions centos-session
+              (package "p1")
+              (package "p2" :disable ["r1"] :priority 25)))))))
 
 (deftest add-rpm-test
   (is (=
        (first
-        (build-actions
-         {:server {:packager :yum}}
-         (remote-file "jpackage-utils-compat" :url "http:url")
-         (exec-checked-script
-          "Install rpm jpackage-utils-compat"
-          (if-not (rpm -q @(rpm -pq "jpackage-utils-compat")
-                       > "/dev/null" "2>&1")
-            (do (rpm -U --quiet "jpackage-utils-compat"))))))
+        (build-actions centos-session
+          (remote-file "jpackage-utils-compat" :url "http:url")
+          (exec-checked-script
+           "Install rpm jpackage-utils-compat"
+           (if-not (rpm -q @(rpm -pq "jpackage-utils-compat")
+                        > "/dev/null" "2>&1")
+             (do (rpm -U --quiet "jpackage-utils-compat"))))))
        (first
-        (build-actions
-         {:server {:packager :yum}}
-         (add-rpm "jpackage-utils-compat" :url "http:url"))))))
+        (build-actions centos-session
+          (add-rpm "jpackage-utils-compat" :url "http:url"))))))

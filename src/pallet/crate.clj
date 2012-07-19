@@ -1,15 +1,16 @@
 (ns pallet.crate
-  "# Pallet Crate Writing API
-"
+  "# Pallet Crate Writing API"
   (:require
+   [clojure.string :as string]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.session :as session])
   (:use
    [clojure.tools.macro :only [name-with-attributes]]
    [pallet.action :only [declare-aggregated-crate-action declare-action]]
    [pallet.monad :only [phase-pipeline phase-pipeline-no-context
-                        session-pipeline local-env]]
-   [pallet.utils :only [compiler-exception]]))
+                        session-pipeline local-env let-s]]
+   [pallet.utils :only [compiler-exception]]
+   [slingshot.slingshot :only [throw+]]))
 
 (defmacro defplan
   "Define a crate function."
@@ -73,6 +74,58 @@
          [~@args]
          (action# ~@args)))))
 
+;;; Multi-method for plan functions
+(defmacro defmulti-plan
+  "Declare a multimethod for plan functions"
+  {:arglists '([name docstring? attr-map? dispatch-fn & options])}
+  [name & args]
+  (let [[docstring args] (if (string? (first args))
+                           [(first args) (rest args)]
+                           [nil args])
+        [attr-map args] (if (map? (first args))
+                          [(first args) (rest args)]
+                          [nil args])
+        dispatch-fn (first args)
+        args (first (filter vector? dispatch-fn))]
+    `(let [a# (atom {})]
+       (def
+         ~name
+         ^{:dispatch-fn (fn [~@args] ~@(rest dispatch-fn))
+           :methods a#}
+         (fn [~@args]
+           (let [df# ((-> ~name meta :dispatch-fn) ~@args)]
+             (fn [session#]
+               (let [[dispatch-val# _#] (df# session#)]
+                 (if-let [f# (get @a# dispatch-val#)]
+                   ((f# ~@args) session#)
+                   (throw+
+                    {:reason :missing-method
+                     :plan-multi ~(clojure.core/name name)
+                     :session session#}
+                    "Missing plan-multi %s dispatch for %s"
+                    ~(clojure.core/name name)
+                     (pr-str dispatch-val#)))))))))))
+
+(defn
+  ^{:internal true :indent 2}
+  add-plan-method-to-multi
+  [multifn dispatch-val f]
+  (swap! (-> multifn meta :methods) assoc dispatch-val f))
+
+(defmacro defmethod-plan
+  {:indent 2}
+  [multifn dispatch-val args & body]
+  (letfn [(sanitise [v]
+            (string/replace (str v) #":" ""))]
+    `(add-plan-method-to-multi ~multifn ~dispatch-val
+       (fn [~@args]
+         (phase-pipeline
+             ~(symbol (str (name multifn) "-" (sanitise dispatch-val)))
+             {:msg ~(name multifn) :kw ~(keyword (name multifn))
+              :dispatch-val ~dispatch-val}
+           ~@body)))))
+
+;;;  helpers
 (defmacro session-peek-fn
   "Create a state-m monadic value function that examines the session, and
   returns nil."
@@ -119,11 +172,12 @@
      (fn [session]
        [(session/nodes-in-group) session])))
 
-(defn groups-with-role
-  "All target groups with the specified role."
-  [role]
-  (fn [session]
-    [(session/groups-with-role session role) session]))
+(comment
+  (defn groups-with-role
+    "All target groups with the specified role."
+    [role]
+    (fn [session]
+      [(session/groups-with-role session role) session])))
 
 (defn nodes-with-role
   "All target nodes with the specified role."

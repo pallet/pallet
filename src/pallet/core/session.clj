@@ -81,32 +81,26 @@
 (defn nodes-in-group
   "All nodes in the same tag as the target-node, or with the specified
   group-name."
-  ([session group-name]
-     (let [[group nodes] (first
-                          (filter
-                           #(= group-name (:group-name (key %)))
-                           (-> session :service-state :group->nodes)))]
-       nodes))
-  ([session]
-     (nodes-in-group session (group-name session))))
+  [session group-name]
+  (filter #((:group-name %) group-name) (:service-state session)))
 
-(defn groups-with-role
-  "All target groups with the specified role."
-  [session role]
-  (->>
-   (keys (-> session :service-state :group->nodes))
-   (filter #(when-let [roles (:roles %)] (when (roles role) %)))
-   (map :group-name)))
+(comment
+  (defn groups-with-role
+    "All target groups with the specified role."
+    [session role]
+    (->>
+     (keys (-> session :service-state :group->nodes))
+     (filter #(when-let [roles (:roles %)] (when (roles role) %)))
+     (map :group-name))))
 
 (defn nodes-with-role
   "All target nodes with the specified role."
   [session role]
-  (->>
-   (-> session :service-state :group->nodes)
-   (filter (fn [[group nodes]]
-             (when-let [roles (:roles group)]
-               (roles role))))
-   (mapcat val)))
+  (filter
+   (fn [node]
+     (when-let [roles (:roles node)]
+       (roles role)))
+   (:service-state session)))
 
 (defn packager
   [session]

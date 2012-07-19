@@ -230,7 +230,7 @@
                            :user user)]
               (is (some
                    #(= (first (nodes compute)) %)
-                   (-> result :service-state :node->groups keys))))
+                   (map :node (:targets result)))))
             (is (.canRead target-tmp))
             (is (= "text" (slurp (.getPath target-tmp))))
             (is (slurp (str (.getPath target-tmp) ".md5")))
@@ -248,7 +248,7 @@
                              :user user)]
                 (is (some
                      #(= (first (nodes compute)) %)
-                     (-> result :service-state :node->groups keys))))))
+                     (map :node (:targets result)))))))
           (testing "content"
             @(lift
               local

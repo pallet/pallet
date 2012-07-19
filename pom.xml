@@ -101,6 +101,7 @@
     <dependency>
       <groupId>slingshot</groupId>
       <artifactId>slingshot</artifactId>
+      <version>0.10.3</version>
     </dependency>
     <dependency>
       <groupId>midje</groupId>
@@ -132,7 +133,7 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>local-transport</artifactId>
-      <version>0.1.0</version>
+      <version>0.1.1</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
@@ -147,12 +148,17 @@
     <dependency>
       <groupId>pallet-fsmop</groupId>
       <artifactId>pallet-fsmop</artifactId>
-      <version>0.1.0</version>
+      <version>0.1.1</version>
     </dependency>
     <dependency>
       <groupId>pallet-map-merge</groupId>
       <artifactId>pallet-map-merge</artifactId>
       <version>0.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>useful</groupId>
+      <artifactId>useful</artifactId>
+      <version>0.8.3-alpha7</version>
     </dependency>
 
     <dependency>

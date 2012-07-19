@@ -70,7 +70,7 @@
   "Executes an action-plan on the specified node."
   [service-state plan-state environment execution-settings-f
    {:keys [action-plan phase target-type target] :as action-plan-map}]
-  {:pre [action-plan-map action-plan target-type target]}
+  {:pre [action-plan-map action-plan target]}
   (let [{:keys [user executor executor-status-fn]} (execution-settings-f
                                                     target)]
     (async-fsm
@@ -101,15 +101,13 @@
   `target-type`
   : specifies the type of target to run the phase on, :group, :group-nodes,
   or :group-node-list."
-  [service-state plan-state environment execution-settings-f
-   target-type targets phase]
+  [service-state plan-state environment execution-settings-f targets phase]
   {:pre [phase]}
-  (logging/tracef
+  (logging/debugf
    "build-and-execute-phase %s on %s target(s)" phase (count targets))
   (logging/tracef "build-and-execute-phase plan-state %s" plan-state)
   (let [[action-plans plan-state]
-        ((api/action-plans-for-phase
-          service-state environment target-type targets phase)
+        ((api/action-plans service-state environment phase targets)
          plan-state)]
     (logging/tracef
      "build-and-execute-phase execute %s actions %s"
@@ -119,25 +117,25 @@
      service-state plan-state environment execution-settings-f action-plans)))
 
 (defn execute-phase-with-image-user
-  [service-state environment groups plan-state phase]
+  [service-state environment targets plan-state phase]
   (logging/tracef "execute-phase-with-image-user plan-state %s" plan-state)
   (dofsm execute-phase-with-image-user
     [[results plan-state] (build-and-execute-phase
                            service-state plan-state environment
                            (api/environment-image-execution-settings
                             environment)
-                           :group-nodes groups phase)]
+                           targets phase)]
     [results plan-state]))
 
 (defn execute-on-unflagged
   "Execute a function of service-state on nodes that don't have the specified
   state flag set. On successful completion the nodes have the state flag set."
-  [service-state execute-f state-flag]
+  [targets execute-f state-flag]
   (dofsm execute-on-unflagged
     [[results plan-state] (execute-f
-                           (api/filtered-service-state
-                            service-state
-                            (complement (api/has-state-flag? state-flag))))
+                           (filter
+                            (complement (api/has-state-flag? state-flag))
+                            targets))
      _ (set-state-for-nodes
         state-flag (map :target (remove :errors results)))]
     [results plan-state]))
@@ -157,18 +155,21 @@
    (partial api/create-nodes compute-service environment group count)))
 
 (defn create-group-nodes
-  "Create nodes for group."
+  "Create nodes for groups."
   [compute-service environment group-counts]
-  (map*
-   (map
-    #(create-nodes compute-service environment (key %) (:delta (val %)))
-    group-counts)))
+  (dofsm create-group-nodes
+    [results (map*
+              (map
+               #(create-nodes
+                 compute-service environment (key %) (:delta (val %)))
+               group-counts))]
+    (apply concat results)))
 
 (defn remove-nodes
   "Removes `nodes` from `group`. If `all` is true, then all nodes for the group
   are being removed."
   [compute-service group {:keys [nodes all] :as remove-node-map}]
-  (logging/infof "remove-nodes %s" remove-node-map)
+  (logging/debugf "remove-nodes %s" remove-node-map)
   (async-fsm
    (partial api/remove-nodes compute-service group remove-node-map)))
 
@@ -176,5 +177,5 @@
   "Removes nodes from groups. `group-nodes` is a map from group to a sequence of
   nodes"
   [compute-service group-nodes]
-  (logging/infof "remove-group-nodes %s" group-nodes)
+  (logging/debugf "remove-group-nodes %s" group-nodes)
   (map* (map #(remove-nodes compute-service (key %) (val %)) group-nodes)))

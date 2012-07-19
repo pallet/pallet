@@ -6,11 +6,12 @@
    [pallet.compute :as compute]
    [pallet.configure :as configure]
    [pallet.core.user :as user]
-   [pallet.core.operations :as ops])
+   [pallet.core.operations :as ops]
+   [clojure.tools.logging :as logging])
   (:use
-   [pallet.algo.fsmop :only [operate]]
+   [pallet.core.api-impl :only [merge-specs merge-spec-algorithm]]
+   [pallet.algo.fsmop :only [dofsm operate]]
    [pallet.environment :only [merge-environments]]
-   [pallet.map-merge :only [merge-keys]]
    [pallet.monad :only [session-pipeline]]
    [pallet.thread-expr :only [when->]]
    [pallet.utils :only [apply-map]]))
@@ -48,18 +49,6 @@
   [& {:keys [image hardware location network qos] :as options}]
   {:pre [(or (nil? image) (map? image))]}
   options)
-
-(def
-  ^{:doc
-    "Map from key to merge algorithm. Specifies how specs are merged."}
-  merge-spec-algorithm
-  {:phases :merge-comp
-   :roles :union})
-
-(defn- merge-specs
-  "Merge specs, using comp for :phases"
-  [algorithms a b]
-  (merge-keys algorithms a b))
 
 (defn extend-specs
   "Merge in the inherited specs"
@@ -239,6 +228,17 @@
             (update-in group [:phases] merge phase-map))]
     (map add-phases groups)))
 
+(defn- all-group-nodes
+  "Returns a FSM to retrieve the service state for the specified groups"
+  [compute groups all-node-set]
+  (ops/group-nodes
+   compute
+   (concat
+    groups
+    (map
+     (fn [g] (update-in g [:phases] select-keys [:settings]))
+     all-node-set))))
+
 (defn converge
   "Converge the existing compute resources with the counts specified in
    `group-spec->count`. New nodes are started, or nodes are destroyed
@@ -268,11 +268,12 @@
   (let [[phases phase-map] (process-phases phase)
         groups (if (map? group-spec->count)
                  [group-spec->count])
-        settings-groups (concat groups all-node-set)
         environment (pallet.environment/environment compute)]
     (operate
-     (ops/converge
-      groups all-node-set phases compute environment {}))))
+     (dofsm converge
+       [nodes-set (all-group-nodes compute groups all-node-set)
+        result (ops/converge groups nodes-set phases compute environment {})]
+       result))))
 
 (defn lift
   "Lift the running nodes in the specified node-set by applying the specified
@@ -310,7 +311,12 @@
                      environment)
         plan-state {}]
     (operate
-     (ops/lift groups all-node-set phases compute environment plan-state))))
+     (dofsm lift
+       [nodes-set (all-group-nodes compute groups all-node-set)
+        {:keys [plan-state]} (ops/lift
+                              nodes-set [:settings] environment plan-state)
+        result (ops/lift nodes-set phases environment plan-state)]
+       result))))
 
 ;;; ### plan functions
 (defmacro plan-fn

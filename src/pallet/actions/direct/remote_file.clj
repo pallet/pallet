@@ -76,7 +76,8 @@
                         flag-on-changed
                         force
                         insecure]
-                 :or {action :create max-versions 5}
+                 :or {action :create max-versions 5
+                      install-new-files true}
                  :as options}]
   [[{:language :bash}
     (let [new-path (str path ".new")
@@ -167,7 +168,8 @@
                  (do
                    ~(stevedore/chain-commands
                      (stevedore/script
-                      (~lib/mv ~new-path ~path :backup ~versioning :force ~true))
+                      (~lib/mv
+                       ~new-path ~path :backup ~versioning :force ~true))
                      (if flag-on-changed
                        (stevedore/script (~lib/set-flag ~flag-on-changed)))))))
               (stevedore/script
@@ -189,7 +191,8 @@
                  (do
                    ~(stevedore/chain-commands
                      (stevedore/script
-                      (~lib/mv ~new-path ~path :force ~true :backup ~versioning))
+                      (~lib/mv
+                       ~new-path ~path :force ~true :backup ~versioning))
                      (if flag-on-changed
                        (stevedore/script (~lib/set-flag ~flag-on-changed))))))
                (if-not (file-exists? ~path)

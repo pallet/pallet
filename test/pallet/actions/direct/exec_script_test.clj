@@ -34,11 +34,11 @@
              [nv (exec-script* "ls file1")
               _ #(do (deliver v nv) [nv %])]
              nv)]
-    (is (= "ls file1" (first rv)))
+    (is (= "ls file1\n" (first rv)))
     (is (= [{:language :bash} "ls file1"] (node-value @v (second rv))))))
 
 (deftest exec-script-test
-  (is (= "ls file1"
+  (is (= "ls file1\n"
          (first (build-actions {}
                   (exec-script (~ls "file1"))))))
   (is (= "ls file1\nls file2\n"
@@ -63,7 +63,7 @@
   (let [rv (let-actions {}
              [nv (exec {:language :python} "print 'Hello, world!'")]
              nv)]
-    (is (= "print 'Hello, world!'" (first rv)))))
+    (is (= "print 'Hello, world!'\n" (first rv)))))
 
 (def print-action
   (script-action [session x]
@@ -86,7 +86,7 @@
                 session
                 :results
                 (filter
-                 #(and (= "localhost" (hostname (:target %)))
+                 #(and (= "localhost" (hostname (-> % :target :node)))
                        (= :configure (:phase %))))
                 (mapcat :result)
                 (map :out))))))))

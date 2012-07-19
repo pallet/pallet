@@ -5,7 +5,7 @@
    [pallet.action-plan :as action-plan]
    [pallet.stevedore :as stevedore])
   (:use
-   [pallet.actions :only [exec-script* remote-file]]
+   [pallet.actions :only [exec-script* pipeline-when remote-file]]
    [pallet.crate :only [def-plan-fn os-family]]))
 
 (def-plan-fn system-environment
@@ -20,7 +20,7 @@
                              (if (#{:rhel :centos :fedora} os-family)
                                ["/etc/profile.d/java.sh" false]
                                ["/etc/environment" true])))]
-  (if shared
+  (pipeline-when shared
     (exec-script*
      (action-plan/checked-commands*
       (format "Add %s environment to %s" env-name path)

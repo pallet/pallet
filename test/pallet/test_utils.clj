@@ -71,7 +71,7 @@ list, Alan Dipert and MeikelBrandmeyer."
   "A test fixture for binding null context"
   [f]
   (binding [action-plan/*defining-context* nil]
-    f))
+    (f)))
 
 (defn make-node
   "Simple node for testing"
@@ -154,7 +154,7 @@ list, Alan Dipert and MeikelBrandmeyer."
        action#)))
 
 (defmacro script-action
-  "Creates a clojure action with a :direct implementation."
+  "Creates a script action with a :direct implementation."
   {:indent 1}
   [args & impl]
   (let [action-sym (gensym "clj-action")]

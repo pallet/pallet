@@ -494,7 +494,13 @@
   [session rpm-name & {:as options}]
   [[{:language :bash}
     (stevedore/do-script
-     (-> (remote-file* session rpm-name options) first second)
+     (-> (remote-file*
+          session rpm-name
+          (merge
+           {:install-new-files pallet.actions-impl/*install-new-files*
+            :overwrite-changes pallet.actions-impl/*force-overwrite*}
+           options))
+         first second)
      (checked-script
       (format "Install rpm %s" rpm-name)
       (if-not (rpm -q @(rpm -pq ~rpm-name) > "/dev/null" "2>&1")
@@ -507,7 +513,13 @@
   [session deb-name & {:as options}]
   [[{:language :bash}
     (stevedore/do-script
-     (-> (remote-file* session deb-name (apply concat options)) first second)
+     (-> (remote-file*
+          session deb-name
+          (merge
+           {:install-new-files pallet.actions-impl/*install-new-files*
+            :overwrite-changes pallet.actions-impl/*force-overwrite*}
+           options))
+         first second)
      (checked-script
       (format "Install deb %s" deb-name)
       (dpkg -i --skip-same-version ~deb-name)))]
@@ -517,7 +529,7 @@
   "Add minimal packages for pallet to function"
   {:action-type :script :location :target}
   [session]
-  (let [[os-family _] (os-family session)]
+  (let [os-family (os-family session)]
     [[{:language :bash}
       (cond
         (#{:ubuntu :debian} os-family) (checked-script

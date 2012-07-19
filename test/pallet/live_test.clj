@@ -19,6 +19,7 @@
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
+   [pallet.node :as node]
    [clojure.string :as string])
   (:use
    [pallet.algo.fsmop :only [operate complete?]]
@@ -56,6 +57,8 @@
    :ubuntu-maverick [{:os-family :ubuntu :os-version-matches "10.10"
                       :os-64-bit true}]
    :ubuntu-11-10 [{:os-family :ubuntu :os-version-matches "11.10"
+                      :os-64-bit true}]
+   :ubuntu-precise [{:os-family :ubuntu :os-version-matches "12.04"
                       :os-64-bit true}]
    :debian-lenny [{:os-family :debian :os-version-matches "5.0.7"
                    :os-64-bit false}]
@@ -227,10 +230,8 @@
     (select-keys
      (->>
       @op
-      :service-state :node->groups keys
-      (group-by compute/group-name)
-      (map #(vector (keyword (first %)) (second %)))
-      (into {}))
+      :targets
+      (group-by (comp node/group-name :node)))
      (keys node-types))))
 
 (defn destroy-nodes

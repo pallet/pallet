@@ -4,8 +4,30 @@
    [pallet.compute :as compute]
    [pallet.node :as node])
   (:use
+   [pallet.map-merge :only [merge-key merge-keys]]
+   [pallet.monad :only [chain-s]]
    [pallet.script :only [with-script-context]]
    [pallet.stevedore :only [with-script-language]]))
+
+(defn pipeline
+  [a b]
+  (chain-s a b ))
+
+(defmethod merge-key :merge-state-monad
+  [_ _ val-in-result val-in-latter]
+  (merge-with pipeline val-in-latter val-in-result))
+
+(def
+  ^{:doc "Map from key to merge algorithm. Specifies how specs are merged."}
+  merge-spec-algorithm
+  {:phases :merge-state-monad
+   :roles :union
+   :group-name :union})
+
+(defn merge-specs
+  "Merge specs, using comp for :phases"
+  [algorithms a b]
+  (merge-keys algorithms a b))
 
 (defn node-has-group-name?
   "Returns a predicate to check if a node has the specified group name."
@@ -21,22 +43,20 @@
   ((:node-predicate group (node-has-group-name? (name (node/group-name node))))
    node))
 
-(defn node->groups
+(defn node->node-map
   "Build a map entry from a node and a list of groups"
   {:internal true}
   [groups]
   (fn [node]
-    [node (filter (partial node-in-group? node) groups)]))
-
-(defn group->nodes
-  "Build a map entry from a group and a list of nodes"
-  {:internal true}
-  [nodes]
-  (fn [group]
-    [group (filter #(node-in-group? % group) nodes)]))
+    (when-let [groups (seq (filter (partial node-in-group? node) groups))]
+      (reduce
+       (partial merge-specs merge-spec-algorithm)
+       {:node node}
+       groups))))
 
 (defn script-template-for-node
   [node]
+  {:pre [node]}
   (let [family (node/os-family node)]
     (filter identity
             [family
