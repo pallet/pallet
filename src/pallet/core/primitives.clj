@@ -169,7 +169,7 @@
   "Removes `nodes` from `group`. If `all` is true, then all nodes for the group
   are being removed."
   [compute-service group {:keys [nodes all] :as remove-node-map}]
-  (logging/infof "remove-nodes %s" remove-node-map)
+  (logging/debugf "remove-nodes %s" remove-node-map)
   (async-fsm
    (partial api/remove-nodes compute-service group remove-node-map)))
 
@@ -177,5 +177,5 @@
   "Removes nodes from groups. `group-nodes` is a map from group to a sequence of
   nodes"
   [compute-service group-nodes]
-  (logging/infof "remove-group-nodes %s" group-nodes)
+  (logging/debugf "remove-group-nodes %s" group-nodes)
   (map* (map #(remove-nodes compute-service (key %) (val %)) group-nodes)))
