@@ -196,15 +196,15 @@
      (map (fn [group-spec] (assoc group-spec :target-type :group))))))
 
 (defn groups-to-remove
-  "Return a sequence of groups that will have nodes, but will have all nodes
+  "Return a sequence of groups that have nodes, but will have all nodes
   removed."
   [group-deltas]
   (letfn [(remove-group? [{:keys [actual target]}]
             (and (zero? target) (pos? actual)))]
     (->>
      group-deltas
-     (filter #(when (remove-group? (second %)) (first %)))
-     (map #(assoc % :target-type :group)))))
+     (filter #(remove-group? (second %)))
+     (map #(assoc (first %) :target-type :group)))))
 
 (defn nodes-to-remove
   "Finds the specified number of nodes to be removed from the given groups.

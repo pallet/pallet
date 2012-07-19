@@ -38,7 +38,9 @@
                            nodes-to-add)]
     {:new-nodes new-nodes
      :old-nodes nodes-to-remove
-     :targets (->> targets (concat new-nodes) (remove (set nodes-to-remove)))
+     :targets (->> targets
+                   (concat new-nodes)
+                   (remove (set (mapcat :nodes (vals nodes-to-remove)))))
      :plan-state plan-state
      :results (concat results1 results2 results3)}))
 
