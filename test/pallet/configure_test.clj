@@ -87,3 +87,15 @@
 (deftest admin-user-from-config-test
   (let [admin-user (admin-user-from-config {:admin-user {:username "fred"}})]
     (is (= "fred" (:username admin-user)))))
+
+;;; define user in pallet.config
+(in-ns 'pallet.config)
+(def service-name :s)
+(in-ns 'pallet.configure-test)
+
+(deftest default-from-config-var-test
+  (let []
+    (is (= {:ok true}
+           (compute-service-properties
+            {:services {:a 1 :s {:ok true} :z false}}
+            [])))))

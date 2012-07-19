@@ -18,7 +18,8 @@
    [clojure.tools.logging :as logging]
    [clojure.walk :as walk])
   (:use
-   [clojure.core.incubator :only [-?>]]))
+   [clojure.core.incubator :only [-?>]]
+   [pallet.utils :only [find-var-with-require maybe-update-in]]))
 
 (def ^{:private true
        :doc "A var to be set by defpallet, so that it may be loaded from any
@@ -122,8 +123,8 @@
           [:environment]
           (fn [env] environment)))
 
-         ;; pick from specified services
-        (map? services)
+        ;; pick from specified services
+        (or (map? services) (vector? services))
         (when-let [config (or
                            (and service
                                 ;; ensure that if services is specified as a
@@ -135,11 +136,16 @@
                                    (services service))))
                            (and (not service) ; use default if service
                                         ; unspecified
-                                (when-let [service (first services)]
-                                  (-> service second))))]
+                                (if-let [service-name
+                                         (find-var-with-require
+                                           'pallet.config 'service-name)]
+                                  (or
+                                   (get services (name service-name))
+                                   (get services (keyword (name service-name))))
+                                  (-> (first services) second))))]
           ;; merge any top level environment with the service
           ;; specific environment
-          (update-in
+          (maybe-update-in
            config [:environment]
            #(environment/merge-environments
              environment
