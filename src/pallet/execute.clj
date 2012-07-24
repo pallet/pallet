@@ -79,6 +79,13 @@
         rv (doall (map execute (filter #(= :origin (first %)) commands)))]
     rv))
 
+(defn logall [title m & rest]
+  (let [lines (filter
+               #(re-find #"#>" %)
+               (clojure.string/split-lines m))]
+    (when (seq lines)
+      (doall (map #(logging/log :info %) lines)))))
+
 (defn read-buffer [stream]
   (let [buffer-size @ssh-output-buffer-size
         bytes (byte-array buffer-size)
@@ -88,7 +95,8 @@
                (when (pos? (.available stream))
                  (let [num-read (.read stream bytes 0 buffer-size)
                        s (normalise-eol (String. bytes 0 num-read "UTF-8"))]
-                   (logging/infof "Output:\n%s" s)
+                   (logall "Printing output for command" s)
+                   (logging/debugf "Output:\n%s" s)
                    (.append sb s)
                    s)))}))
 
@@ -283,7 +291,8 @@
                              s (normalise-eol
                                 (strip-sudo-password
                                  (String. bytes 0 num-read "UTF-8") user))]
-                         (logging/infof "Output: %s\n%s" server s)
+                         (logall (str "Output for: " server) s)
+                         (logging/debugf "Output: %s\n%s" server s)
                          (.append sb s)
                          s)))]
     (while (ssh/connected-channel? channel)
@@ -321,7 +330,7 @@
       (ssh/with-connection ssh-session
         (let [tmpfile (ssh-mktemp ssh-session "remotesudo")
               sftp-channel (ssh/ssh-sftp ssh-session)]
-          (logging/infof "Cmd %s" command)
+          (logging/debugf "Cmd %s" command)
           (ssh/with-channel-connection sftp-channel
             (remote-sudo-cmd
              server ssh-session sftp-channel user tmpfile command options)))))))
@@ -474,7 +483,7 @@
                                     session
                                     [:environment :agent-forwarding] true)
                  :pty (get-in session [:environment :pty] true)}]
-    (logging/infof "Target %s options %s cmd\n%s" server options value)
+    (logging/debugf "Target %s options %s cmd\n%s" server options value)
     [(remote-sudo-cmd
       server ssh-session sftp-channel user tmpfile value
       options)

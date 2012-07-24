@@ -566,7 +566,8 @@
   "Build an action plan for the specified server."
   [session server]
   {:pre [(:node server) (:node-id server)]}
-  (logutils/with-context [:target (node/primary-ip (:node server))]
+  (logutils/with-context [:target (node/primary-ip (:node server))
+                          :node (node/hostname (:node server))]
     (logging/debugf "p-f-s server environment %s" (:environment server))
     (action-plan/build-for-target
      (->
@@ -649,7 +650,8 @@
   (logutils/with-context [:target (node/primary-ip
                                    (-> session :server :node))
                           :phase (:phase session)
-                          :group (-> session :group :group-name)]
+                          :group (-> session :group :group-name)
+                          :node (node/hostname (-> session :server :node))]
     ((middleware-handler execute)
      (->
       session
@@ -706,7 +708,7 @@
 
 (defmethod parallel-apply-phase-to-target :node
   [session]
-  (logging/infof
+  (logging/debugf
    "parallel-apply-phase-to-target :node  %s for %s with %d nodes"
    (:phase session)
    (-> session :group :group-name)
@@ -720,7 +722,7 @@
 
 (defmethod parallel-apply-phase-to-target :group
   [session]
-  (logging/infof
+  (logging/debugf
    "parallel-apply-phase-to-target :group  %s for %s"
    (:phase session) (-> session :group :group-name))
   (let [session (assoc session :target-id (-> session :group :group-name))]
@@ -730,7 +732,7 @@
 (defn parallel-apply-phase
   "Apply a phase to a sequence of nodes"
   [session]
-  (logging/infof
+  (logging/debugf
    "parallel-apply-phase %s for %s"
    (:phase session) (-> session :group :group-name))
   (futures/add (parallel-apply-phase-to-target session)))
