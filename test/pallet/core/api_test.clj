@@ -166,7 +166,8 @@
         (is (= :p phase))
         (is (not errors))
         (is (seq result))
-        (is (:out (first result)))))
+        (is (:out (first result)))
+        (is (.contains (:out (first result)) "src"))))
     (testing "group"
       (let [targets [(assoc g1 :target-type :group)]
             [r plan-state] ((action-plans service-state {} :g targets) {:ps 1})

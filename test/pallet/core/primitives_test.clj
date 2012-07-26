@@ -36,12 +36,15 @@
         action (clj-action [session] [(reset! a true) session])
         g (group-spec :local :phases {:p (action)})
         targets (api/service-state service [g])
-        results @(operate
+        op (operate
                   (build-and-execute-phase
                    targets
                    {}
                    {}
                    (api/environment-execution-settings {})
                    targets
-                   :p))]
-    (is @a)))
+                   :p))
+        [results plan-state] @op]
+    (is @a)
+    (is (= [true] (-> results first :result)))
+    (is (= 1 (count (:node-values plan-state))))))
