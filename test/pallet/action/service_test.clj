@@ -37,7 +37,7 @@
              "Configure service tomcat"
              "/usr/sbin/svcadm enable tomcat")))
          (first (build-actions/build-actions
-		 {:package :pkgin}  (service "tomcat" :action :enable))))))
+		 {:packager :pkgin}  (service "tomcat" :action :enable))))))
 
 (deftest with-restart-test
   (is (= (str "echo stop tomcat\n/etc/init.d/tomcat stop\n"

@@ -748,7 +748,7 @@
                                  (:sequence-start
                                   options chkconfig-default-options))))))
 
-(script/defimpl configure-service [#{:smartos}] [name action options]
+(script/defimpl configure-service [#{:pkgin}] [name action options]
   ~(condp = action
        :disable (stevedore/script ("/usr/sbin/svcadm" disable ~name))
        :enable (stevedore/script
