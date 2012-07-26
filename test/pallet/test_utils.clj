@@ -49,6 +49,7 @@ list, Alan Dipert and MeikelBrandmeyer."
 
 (def ubuntu-session {:server {:image {:os-family :ubuntu}}})
 (def centos-session {:server {:image {:os-family :centos}}})
+(def smartos-session {:server {:image {:os-family :smartos}}})
 
 (defn with-ubuntu-script-template
   [f]

@@ -399,7 +399,7 @@
         stevedore/map-to-arg-string)
    ~username))
 
-(script/defimpl create-user [#{:rhel :centos :amzn-linux :fedora}]
+(script/defimpl create-user [#{:rhel :centos :amzn-linux :smartos :fedora}]
   [username options]
   ("/usr/sbin/useradd"
    ~(-> options
@@ -419,7 +419,7 @@
           (update-in [:groups] group-seq->string))))
    ~username))
 
-(script/defimpl modify-user [#{:rhel :centos :amzn-linux :fedora}]
+(script/defimpl modify-user [#{:rhel :centos :amzn-linux :fedora :smartos}]
   [username options]
   ("/usr/sbin/usermod"
    ~(-> options
@@ -458,7 +458,7 @@
 (script/defimpl create-group :default [groupname options]
   ("/usr/sbin/groupadd" ~(stevedore/map-to-arg-string options) ~groupname))
 
-(script/defimpl create-group [#{:rhel :centos :amzn-linux :fedora}]
+(script/defimpl create-group [#{:rhel :centos :amzn-linux :fedora :smartos}]
   [groupname options]
   ("/usr/sbin/groupadd"
    ~(-> options
@@ -673,6 +673,28 @@
    "debconf debconf/frontend select noninteractive"
    "debconf debconf/frontend seen false"))
 
+;;; pkgin
+(script/defimpl update-package-list [#{:pkgin}] [& {:keys [] :as options}]
+  (pkgin -y update ~(stevedore/option-args options)))
+
+(script/defimpl upgrade-all-packages [#{:pkgin}] [& options]
+  (pkgin -y full-upgrade ~(stevedore/option-args options)))
+
+(script/defimpl install-package [#{:pkgin}] [package & options]
+  (pkgin -y install ~(stevedore/option-args options) ~package))
+
+(script/defimpl upgrade-package [#{:pkgin}] [package & options]
+  (pkgin -y upgrade ~(stevedore/option-args options) ~package))
+
+(script/defimpl remove-package [#{:pkgin}] [package & options]
+  (pkgin -y remove ~(stevedore/option-args options) ~package))
+
+(script/defimpl purge-package [#{:pkgin}] [package & options]
+  (pkgin -y clean ~(stevedore/option-args options) ~package))
+
+(script/defimpl list-installed-packages [#{:pkgin}] [& options]
+  (pkgin list))
+
 
 ;;; Service functions
 
@@ -734,7 +756,14 @@
                                  (:sequence-start
                                   options chkconfig-default-options))))))
 
-
+(script/defimpl configure-service [#{:smartos}] [name action options]
+  ~(condp = action
+       :disable (stevedore/script ("/usr/sbin/svcadm" disable ~name))
+       :enable (stevedore/script
+                ("/usr/sbin/svcadm" enable ~name))
+       :start-stop (stevedore/script ;; start/stop
+                    ("/usr/sbin/svcadm"
+                     ~name restart))))
 
 
 ;;; Functions to return distribution specific paths.
@@ -751,7 +780,7 @@
   "/etc/default")
 (script/defimpl etc-default [#{:centos :rhel :amzn-linux :fedora}] []
   "/etc/sysconfig")
-(script/defimpl etc-default [#{:os-x :darwin}] []
+(script/defimpl etc-default [#{:os-x :darwin :smartos :system-v}] []
   "/etc/defaults")
 
 (script/defscript log-root [])
@@ -773,6 +802,7 @@
 (script/defscript etc-init [])
 (script/defimpl etc-init :default [] "/etc/init.d")
 (script/defimpl etc-init [:pacman] [] "/etc/rc.d")
+(script/defimpl etc-init [:pkgin] [] "/var/svc/manifest")
 
 ;; Some of the packagers, like brew, are "add-ons" in the sense that they are
 ;; outside of the base system.  These paths refer to locations of packager

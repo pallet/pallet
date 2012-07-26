@@ -122,7 +122,12 @@
   (testing "system on rh"
     (script/with-script-context [:centos]
       (is (= "/usr/sbin/useradd -r user1"
+             (script (~create-user "user1"  ~{:system true}))))))
+  (testing "system on smartos"
+    (script/with-script-context [:smartos]
+      (is (= "/usr/sbin/useradd -r user1"
              (script (~create-user "user1"  ~{:system true})))))))
+
 
 (deftest modify-user-test
   (is (= "/usr/sbin/usermod --home \"/home2/user1\" --shell \"/bin/bash\" user1"
@@ -210,7 +215,9 @@
   (mktest :debian etc-default "/etc/default")
   (mktest :centos etc-default "/etc/sysconfig")
   (mktest :fedora etc-default "/etc/sysconfig")
-  (mktest :os-x etc-default "/etc/defaults"))
+  (mktest :os-x etc-default "/etc/defaults")
+  (mktest :system-v etc-default "/etc/defaults")
+  (mktest :smartos etc-default "/etc/defaults"))
 
 
 ;;; selinux tests

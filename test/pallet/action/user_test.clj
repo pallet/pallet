@@ -51,4 +51,11 @@
       "if ! ( getent group group11 ); then /usr/sbin/groupadd -r group11;fi\n"
       (first (build-actions/build-actions
               {:server {:image {:os-family :centos}}}
-              (user/group "group11" :action :create :system true)))))))
+              (user/group "group11" :action :create :system true))))))
+  (testing "system on smartos")
+    (is
+     (=
+      "if ! ( getent group group11 ); then /usr/sbin/groupadd -r group11;fi\n"
+      (first (build-actions/build-actions
+              {:server {:image {:os-family :smartos}}}
+              (user/group "group11" :action :create :system true))))))
