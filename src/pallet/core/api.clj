@@ -130,13 +130,14 @@
    {:keys [action-plan phase target-type target]}]
   (logging/tracef "execute-action-plan*")
   (let [[result session] (execute
-                          action-plan session executor execute-status-fn)]
-    {:target target
-     :target-type target-type
-     :plan-state (:plan-state session)
-     :result result
-     :phase phase
-     :errors (seq (remove (complement :error) result))}))
+                          action-plan session executor execute-status-fn)
+        errors (seq (remove (complement :error) result))
+        value {:target target
+               :target-type target-type
+               :plan-state (:plan-state session)
+               :result result
+               :phase phase}]
+    (maybe-assoc value :errors errors)))
 
 (defmulti execute-action-plan
   "Execute the `action-plan` on the `target`."

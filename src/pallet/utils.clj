@@ -184,6 +184,14 @@
          (assoc-in m ks v)
          m))))
 
+(defn maybe-assoc
+  "'Assoc a value in an associative structure, where k is a key and v is the
+value to assoc. The assoc only occurs if the value is non-nil."
+  [m k v]
+  (if (nil? v)
+    m
+    (assoc m k v)))
+
 (defmacro pipe
   "Build a session processing pipeline from the specified forms."
   [& forms]
