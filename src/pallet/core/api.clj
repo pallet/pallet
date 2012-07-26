@@ -266,7 +266,7 @@
   (logging/debugf "remove-nodes")
   (if all
     (destroy-nodes-in-group compute-service (name (:group-name group)))
-    (doseq [node nodes] (destroy-node compute-service node))))
+    (doseq [node nodes] (destroy-node compute-service (:node node)))))
 
 ;;; # Node state tagging
 
