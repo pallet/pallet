@@ -69,7 +69,7 @@
                                    {:phase-errors true
                                     :phase phase
                                     :results (concat result r)})]
-                               [r ps]))
+                               [(concat result r) ps]))
                            [[] plan-state]
                            phases)]
     {:results results
@@ -119,7 +119,7 @@
                                     {:phase-errors true
                                      :phase phase
                                      :results (concat result r)})]
-                                [r ps]))
+                                [(concat result r) ps]))
                             [[] plan-state]
                             (remove #{:settings :bootstrap} phases))]
     {:results (concat results results1 results2 results3)
