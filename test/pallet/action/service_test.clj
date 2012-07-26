@@ -30,7 +30,14 @@
             "Configure service tomcat"
             "/sbin/chkconfig tomcat on --level 2345")))
          (first (build-actions/build-actions
-                 {:packager :yum} (service "tomcat" :action :enable))))))
+                 {:packager :yum} (service "tomcat" :action :enable)))))
+  (is (= (first
+          (build-actions/build-actions {}
+            (exec-script/exec-checked-script
+             "Configure service tomcat"
+             "/usr/sbin/svcadm enable tomcat")))
+         (first (build-actions/build-actions
+		 {:package :pkgin}  (service "tomcat" :action :enable))))))
 
 (deftest with-restart-test
   (is (= (str "echo stop tomcat\n/etc/init.d/tomcat stop\n"

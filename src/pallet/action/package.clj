@@ -96,6 +96,7 @@
                       (str "?and(?installed, ?name(^" ~escaped-package "$))")))
                     (grep (quoted ~package))))))))))
 
+
 (defmethod adjust-packages :apt
   [session packages]
   (checked-commands
@@ -157,6 +158,31 @@
             (distinct (map :package packages)))))))
      (stevedore/script (~lib/list-installed-packages))))))
 
+(defmethod adjust-packages :pkgin
+  [session packages]
+  (checked-commands
+   "Packages"
+   (stevedore/chain-commands*
+    (conj
+     (vec
+      (for [[action packages] (->> packages
+                                   (sort-by #(action-order (:action %)))
+                                   (group-by :action))
+            [opts packages] (->>
+                             packages
+                             (group-by
+                              #(select-keys % [:enable :disable :exclude]))
+                             (sort-by #(apply min (map :priority (second %)))))]
+        (stevedore/script
+         (pkgin
+          ~(name action) -y
+         ; ~(string/join " " (map #(str "--disablerepo=" %) (:disable opts)))
+         ; ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
+         ; ~(string/join " " (map #(str "--exclude=" %) (:exclude opts)))
+          ~(string/join
+            " "
+            (distinct (map :package packages)))))))
+     (stevedore/script (~lib/list-installed-packages))))))
 
 (defmethod adjust-packages :default
   [session packages]

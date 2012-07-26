@@ -132,6 +132,7 @@
                       (#{:centos :rhel} os-family) :yum
                       (#{:arch} os-family) :pacman
                       (#{:suse} os-family) :zypper
+		      (#{:smartos} os-family) :pkgin
                       (#{:gentoo} os-family) :portage))))
         session (update-in
                  session [:target-id]

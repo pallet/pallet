@@ -24,11 +24,17 @@
    (reset! default-agent-atom nil)
    (f)))
 
+(deftest sudo-cmd-dir-test
+  (testing "sudo cmd default"
+    (is (= (sudo-cmd-dir [:default]) "/usr/bin/sudo")))
+  (testing "sudo cmd smartos"
+         (is (= (sudo-cmd-dir [:smartos]) "/opt/local/bin/sudo"))))
+
 (deftest sudo-cmd-for-test
   (script/with-template [:ubuntu]
-    (let [no-pw "/usr/bin/sudo -n "
-          pw "echo \"fred\" | /usr/bin/sudo -S "
-          no-sudo "/bin/bash "]
+    (let [no-pw "/usr/bin/sudo -n"
+          pw "echo \"fred\" | /usr/bin/sudo -S"
+          no-sudo "/bin/bash"]
       (is (= no-pw (sudo-cmd-for (utils/make-user "fred"))))
       (is (= pw (sudo-cmd-for (utils/make-user "fred" :password "fred"))))
       (is (= pw (sudo-cmd-for (utils/make-user "fred" :sudo-password "fred"))))
@@ -38,9 +44,9 @@
       (is (= no-sudo (sudo-cmd-for (utils/make-user "root"))))
       (is (= no-sudo (sudo-cmd-for (utils/make-user "fred" :no-sudo true))))))
   (script/with-template [:centos-5.3]
-    (let [no-pw "/usr/bin/sudo "
-          pw "echo \"fred\" | /usr/bin/sudo -S "
-          no-sudo "/bin/bash "]
+    (let [no-pw "/usr/bin/sudo"
+          pw "echo \"fred\" | /usr/bin/sudo -S"
+          no-sudo "/bin/bash"]
       (is (= no-pw (sudo-cmd-for (utils/make-user "fred"))))
       (is (= pw (sudo-cmd-for (utils/make-user "fred" :password "fred"))))
       (is (= pw (sudo-cmd-for (utils/make-user "fred" :sudo-password "fred"))))
@@ -48,7 +54,18 @@
              (sudo-cmd-for
               (utils/make-user "fred" :password "fred" :sudo-password false))))
       (is (= no-sudo (sudo-cmd-for (utils/make-user "root"))))
-      (is (= no-sudo (sudo-cmd-for (utils/make-user "fred" :no-sudo true)))))))
+      (is (= no-sudo (sudo-cmd-for (utils/make-user "fred" :no-sudo true))))))
+  (script/with-script-context [:smartos]
+    (let [no-pw "/opt/local/bin/sudo"
+          pw "echo \"fred\" | /opt/local/bin/sudo -S"
+          no-sudo nil]
+      (is (= no-pw (sudo-cmd-for {:username "fred"})))
+      (is (= pw (sudo-cmd-for {:username "fred" :sudo-password "fred"})))
+      (is (= no-pw
+             (sudo-cmd-for
+              {:username "fred" :password "fred" :sudo-password false})))
+      (is (= no-sudo (sudo-cmd-for {:username "root"})))
+      (is (= no-sudo (sudo-cmd-for {:username "fred" :no-sudo true}))))))
 
 (deftest sh-script-test
   (let [res (sh-script
