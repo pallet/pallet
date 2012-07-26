@@ -57,22 +57,17 @@
 (script/defimpl sudo-no-password
   [#{:smartos :system-v}]
   []
-  ("/opt/local/bin/sud "))
+  ("/opt/local/bin/sudo" -n))
 
 (defn sudo-cmd-for
   "Construct a sudo command prefix for the specified user."
   [user]
-  (let [sudodir (sudo-cmd-dir pallet.script/*script-context*)] 
-    (if (or (and (= (:username user) "root") (not (:sudo-user user)))
-	    (:no-sudo user))
-      nil
-      (str
-       (if-let [pw (:sudo-password user)]
-	 (str "echo \"" (or (:password user) pw) "\" | " sudodir " -S")
-	 (stevedore/script (~sudo-no-password)))
-       (if-let [su (:sudo-user user)]
-	 (str " -u " su)
-	 "")))))
+  (let [sudodir (sudo-cmd-dir pallet.script/*script-context*)]
+    (if (or (= (:username user) "root") (:no-sudo user))
+      "/bin/bash "
+      (if-let [pw (:sudo-password user)]
+        (str "echo \"" (or (:password user) pw) "\" | " sudodir " -S ")
+        (str (stevedore/script (~sudo-no-password)) " ")))))
 
 ;;;
 (def
