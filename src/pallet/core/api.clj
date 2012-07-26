@@ -1,7 +1,9 @@
 (ns pallet.core.api
   "Base level API for pallet"
   (:require
-   [clojure.tools.logging :as logging])
+   [clojure.tools.logging :as logging]
+   [clojure.java.io :as io]
+   [clojure.string :as string])
   (:use
    [clojure.algo.monads :only [domonad m-map state-m with-monad]]
    [clojure.string :only [blank?]]
@@ -13,9 +15,20 @@
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :only [add-session-verification-key check-session]]
+   [pallet.utils :only [maybe-assoc]]
    pallet.core.api-impl
    [pallet.core.user :only [*admin-user*]]
    [slingshot.slingshot :only [throw+]]))
+
+(let [v (atom nil)]
+  (defn version
+    "Returns the pallet version."
+    []
+    (or
+     @v
+     (reset! v (System/getProperty "pallet.version"))
+     (reset! v (if-let [version (slurp (io/resource "pallet-version"))]
+                       (string/trim version))))))
 
 (defn service-state
   "Query the available nodes in a `compute-service`, filtering for nodes in the
