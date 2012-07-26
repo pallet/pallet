@@ -4,7 +4,14 @@
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.thread-expr :as thread-expr]
-   [clojure.string :as string]))
+   [clojure.string :as string]
+   ))
+
+;; slingshot version compatibility
+(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))
 
 (defn- translate-options
   [options translations]
@@ -371,11 +378,24 @@
 (script/defscript unlock-user [name])
 (script/defscript user-home [username])
 (script/defscript current-user [])
+(script/defscript set-password [username password])
 
 (script/defscript group-exists? [name])
 (script/defscript modify-group [name options])
 (script/defscript create-group [name options])
 (script/defscript remove-group [name options])
+
+
+(script/defimpl set-password :default [username password]
+    (throw+
+        {:message "set-password does not support default"   
+	 :type :pallet/unsupported-os}))
+
+(script/defimpl set-password [#{:smartos}] [username password]
+    (str "echo '" (str "#!/opt/local/bin/expect --\nspawn sudo passwd " ~username
+		      "\nexpect \"assword:\"\nsend \"" ~password "\r\"\nexpect \"assword:\"\nsend \"" ~password "\r\"\nexpect eof")
+	 "' > ./setpass.expect  && chmod 777 ./setpass.expect && ./setpass.expect && rm ./setpass.expect"))
+
 
 (script/defimpl user-exists? :default [username]
   (getent passwd ~username))
@@ -398,6 +418,35 @@
          (dissoc :group))
         stevedore/map-to-arg-string)
    ~username))
+
+;; smartos does not support useradd
+;; with password.  passwd needs to be
+;; called instead
+(script/defimpl create-user [#{:smartos}]
+  [username options]
+   ("/usr/sbin/useradd"
+   ~(-> options
+        (thread-expr/when->
+         (:groups options)
+         (update-in [:groups] group-seq->string))
+        (thread-expr/when->
+         (:group options)
+         (assoc :g (:group options))
+         (dissoc :group))
+  ; password will be handled via passwd
+	(thread-expr/when->
+	 (:password options)
+	 (dissoc :password))
+  ; there is no useradd for system user so
+  ; just remove the option
+  (thread-expr/when->
+   (:system options)
+   (dissoc :system))
+	(translate-options {:shell :s :group :g :groups :G})
+        stevedore/map-to-arg-string)
+   ~username ~(if-let [pass  (get options :password)] "&& " ""))
+   ~(if-let [pass (get options :password)]
+       (stevedore/script(~set-password ~username ~pass)) "" ))
 
 (script/defimpl create-user [#{:rhel :centos :amzn-linux :fedora}]
   [username options]
@@ -431,14 +480,46 @@
         stevedore/map-to-arg-string)
    ~username))
 
+(script/defimpl modify-user [#{:smartos}]
+  [username options]
+   ("/usr/sbin/usermod"
+   ~(-> options
+        (thread-expr/when->
+         (:groups options)
+         (update-in [:groups] group-seq->string))
+        (thread-expr/when->
+         (:group options)
+         (assoc :g (:group options))
+         (dissoc :group))
+  ; password will be handled via passwd
+	(thread-expr/when->
+	 (:password options)
+	 (dissoc :password))
+  ; there is no usermod for system user so
+  ; just remove the option
+  (thread-expr/when->
+   (:system options)
+   (dissoc :system))
+	(translate-options {:shell :s :group :g :groups :G :append :a})
+        stevedore/map-to-arg-string)
+   ~username ~(if-let [pass  (get options :password)] "&& " ""))
+   ~(if-let [pass (get options :password)]
+       (stevedore/script(~set-password ~username ~pass)) ""))
+
 (script/defimpl remove-user :default [username options]
   ("/usr/sbin/userdel" ~(stevedore/map-to-arg-string options) ~username))
 
 (script/defimpl lock-user :default [username]
   ("/usr/sbin/usermod" --lock ~username))
 
+(script/defimpl lock-user [#{:smartos}] [username]
+  ("/usr/bin/passwd" -l ~username))
+
 (script/defimpl unlock-user :default [username]
   ("/usr/sbin/usermod" --unlock ~username))
+
+(script/defimpl unlock-user [#{:smartos}] [username]
+  ("/usr/bin/passwd" -u ~username))
 
 (script/defimpl user-home :default [username]
   @("getent" passwd ~username | "cut" "-d:" "-f6"))
@@ -458,7 +539,7 @@
 (script/defimpl create-group :default [groupname options]
   ("/usr/sbin/groupadd" ~(stevedore/map-to-arg-string options) ~groupname))
 
-(script/defimpl create-group [#{:rhel :centos :amzn-linux :fedora}]
+(script/defimpl create-group [#{:rhel :centos :amzn-linux :fedora :smartos}]
   [groupname options]
   ("/usr/sbin/groupadd"
    ~(-> options
@@ -673,6 +754,28 @@
    "debconf debconf/frontend select noninteractive"
    "debconf debconf/frontend seen false"))
 
+;;; pkgin
+(script/defimpl update-package-list [#{:pkgin}] [& {:keys [] :as options}]
+  (pkgin -y update ~(stevedore/option-args options)))
+
+(script/defimpl upgrade-all-packages [#{:pkgin}] [& options]
+  (pkgin -y full-upgrade ~(stevedore/option-args options)))
+
+(script/defimpl install-package [#{:pkgin}] [package & options]
+  (pkgin -y install ~(stevedore/option-args options) ~package))
+
+(script/defimpl upgrade-package [#{:pkgin}] [package & options]
+  (pkgin -y upgrade ~(stevedore/option-args options) ~package))
+
+(script/defimpl remove-package [#{:pkgin}] [package & options]
+  (pkgin -y remove ~(stevedore/option-args options) ~package))
+
+(script/defimpl purge-package [#{:pkgin}] [package & options]
+  (pkgin -y clean ~(stevedore/option-args options) ~package))
+
+(script/defimpl list-installed-packages [#{:pkgin}] [& options]
+  (pkgin list))
+
 
 ;;; Service functions
 
@@ -734,7 +837,14 @@
                                  (:sequence-start
                                   options chkconfig-default-options))))))
 
-
+(script/defimpl configure-service [#{:pkgin}] [name action options]
+  ~(condp = action
+       :disable (stevedore/script ("/usr/sbin/svcadm" disable ~name))
+       :enable (stevedore/script
+                ("/usr/sbin/svcadm" enable ~name))
+       :start-stop (stevedore/script ;; start/stop
+                    ("/usr/sbin/svcadm"
+                     restart ~name))))
 
 
 ;;; Functions to return distribution specific paths.
@@ -751,7 +861,7 @@
   "/etc/default")
 (script/defimpl etc-default [#{:centos :rhel :amzn-linux :fedora}] []
   "/etc/sysconfig")
-(script/defimpl etc-default [#{:os-x :darwin}] []
+(script/defimpl etc-default [#{:os-x :darwin :smartos :system-v}] []
   "/etc/defaults")
 
 (script/defscript log-root [])
@@ -773,6 +883,7 @@
 (script/defscript etc-init [])
 (script/defimpl etc-init :default [] "/etc/init.d")
 (script/defimpl etc-init [:pacman] [] "/etc/rc.d")
+(script/defimpl etc-init [:pkgin] [] "/var/svc/manifest")
 
 ;; Some of the packagers, like brew, are "add-ons" in the sense that they are
 ;; outside of the base system.  These paths refer to locations of packager

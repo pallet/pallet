@@ -30,11 +30,21 @@
 
 (deftest user*-lock-test
   (is (= "if getent passwd user1; then /usr/sbin/usermod --lock user1;fi"
-         (user/user* {} "user1" :action :lock))))
+         (user/user* {} "user1" :action :lock)))
+    (testing "lock on smartos"
+    (is (=
+	 "if getent passwd user1; then /usr/bin/passwd -l user1;fi"
+	 (pallet.script/with-script-context [:smartos]
+	   (user/user* {} "user1" :action :lock))))))
 
 (deftest user*-unlock-test
   (is (= "if getent passwd user1; then /usr/sbin/usermod --unlock user1;fi"
-         (user/user* {} "user1" :action :unlock))))
+         (user/user* {} "user1" :action :unlock)))
+  (testing "unlock on smartos"
+    (is (=
+	 "if getent passwd user1; then /usr/bin/passwd -u user1;fi"
+	 (pallet.script/with-script-context [:smartos]
+	   (user/user* {} "user1" :action :unlock))))))
 
 (deftest user*-remove-test
   (is (= "if getent passwd user1; then /usr/sbin/userdel user1;fi"
@@ -51,4 +61,11 @@
       "if ! ( getent group group11 ); then /usr/sbin/groupadd -r group11;fi\n"
       (first (build-actions/build-actions
               {:server {:image {:os-family :centos}}}
-              (user/group "group11" :action :create :system true)))))))
+              (user/group "group11" :action :create :system true))))))
+  (testing "system on smartos")
+    (is
+     (=
+      "if ! ( getent group group11 ); then /usr/sbin/groupadd -r group11;fi\n"
+      (first (build-actions/build-actions
+              {:server {:image {:os-family :smartos}}}
+              (user/group "group11" :action :create :system true))))))

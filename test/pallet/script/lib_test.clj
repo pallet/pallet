@@ -113,6 +113,17 @@
          (script (~mkdir "dir" :path ~true)))))
 
 ;;; user management
+(def expect-password-test (str "echo '#!/opt/local/bin/expect --\n"
+    "spawn sudo passwd testing\n"
+    "expect \"assword:\"\n"
+    "send \"pass\r\"\n"
+    "expect \"assword:\"\n"
+    "send \"pass\r\"\n"
+    "expect eof' > ./setpass.expect  && chmod 777 ./setpass.expect && ./setpass.expect && rm ./setpass.expect"))
+
+(deftest set-password-test
+  (script/with-script-context [:smartos]
+    (is (= (script (~set-password "testing" "pass")) expect-password-test))))
 
 (deftest create-user-test
   (is (= "/usr/sbin/useradd --create-home user1"
@@ -122,14 +133,25 @@
   (testing "system on rh"
     (script/with-script-context [:centos]
       (is (= "/usr/sbin/useradd -r user1"
-             (script (~create-user "user1"  ~{:system true})))))))
+             (script (~create-user "user1"  ~{:system true}))))))
+  (testing "system on smartos"
+    (script/with-script-context [:smartos]
+      (is (= (str "/usr/sbin/useradd testing && \n" expect-password-test "\n")
+	     (script (~create-user "testing" ~{:password "pass"})))))
+    (script/with-script-context [:smartos]
+     (is (= "/usr/sbin/useradd testing\n"
+	     (script (~create-user "testing" ~{:system true} )))))))
 
 (deftest modify-user-test
   (is (= "/usr/sbin/usermod --home \"/home2/user1\" --shell \"/bin/bash\" user1"
          (script
           (~modify-user
-           "user1"  ~{:home "/home2/user1" :shell "/bin/bash"})))))
-
+           "user1"  ~{:home "/home2/user1" :shell "/bin/bash"}))))
+  (script/with-script-context [:smartos]
+    (is (= "/usr/sbin/usermod -s \"/bin/bash\" user1\n"
+	   (script
+	    (~modify-user
+	     "user1" ~{:shell "/bin/bash"}))))))
 
 ;;; package management
 
@@ -210,7 +232,9 @@
   (mktest :debian etc-default "/etc/default")
   (mktest :centos etc-default "/etc/sysconfig")
   (mktest :fedora etc-default "/etc/sysconfig")
-  (mktest :os-x etc-default "/etc/defaults"))
+  (mktest :os-x etc-default "/etc/defaults")
+  (mktest :system-v etc-default "/etc/defaults")
+  (mktest :smartos etc-default "/etc/defaults"))
 
 
 ;;; selinux tests
