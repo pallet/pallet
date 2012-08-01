@@ -547,6 +547,10 @@
                                      (~lib/update-package-list)
                                      (~lib/install-package "coreutils")
                                      (~lib/install-package "sudo"))
+     (#{:smartos} os-family) (stevedore/checked-script
+                              "Add minimal packages"
+                              (~lib/update-package-list)
+                              (~lib/install-package "tcl-expect"))
      (= :arch os-family) (stevedore/checked-script
                           "Add minimal packages"
                           ("{" pacman-db-upgrade "||" true "; } "

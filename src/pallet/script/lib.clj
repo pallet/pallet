@@ -422,6 +422,9 @@
 ;; smartos does not support useradd
 ;; with password.  passwd needs to be
 ;; called instead
+;; Please note for smartos modify user with a password option will rely
+;; upon expect being installed on the server.  Currently this is not done
+;; for you and you should look at minimal-packages that will install this.
 (script/defimpl create-user [#{:smartos}]
   [username options]
    ("/usr/sbin/useradd"
@@ -480,6 +483,9 @@
         stevedore/map-to-arg-string)
    ~username))
 
+;; Please note for smartos modify user with a password option will rely
+;; upon expect being installed on the server.  Currently this is not done
+;; for you.
 (script/defimpl modify-user [#{:smartos}]
   [username options]
    ("/usr/sbin/usermod"
