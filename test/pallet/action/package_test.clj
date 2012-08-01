@@ -102,9 +102,9 @@
              {:server {:tag :n :image {:os-family :smartos}}}
              (exec-script/exec-checked-script
               "Packages"
-              "pkgin install -y java rubygems"
-              "pkgin remove -y git ruby"
-              "pkgin upgrade -y maven2"
+              "pkgin -y install java rubygems"
+              "pkgin -y remove git ruby"
+              "pkgin -y upgrade maven2"
               (pkgin list))))
            (first
             (build-actions/build-actions

@@ -172,8 +172,8 @@
                               #(select-keys % [:enable :disable :exclude]))
                              (sort-by #(apply min (map :priority (second %)))))]
         (stevedore/script
-         (pkgin
-          ~(name action) -y
+         (pkgin -y
+          ~(name action)
          ; ~(string/join " " (map #(str "--disablerepo=" %) (:disable opts)))
          ; ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
          ; ~(string/join " " (map #(str "--exclude=" %) (:exclude opts)))
@@ -241,7 +241,7 @@
        (packages session
          :yum [\"git\" \"git-email\"]
          :aptitude [\"git-core\" \"git-email\"])"
-  [session & {:keys [yum aptitude pacman brew] :as options}]
+  [session & {:keys [yum aptitude pacman brew pkgin] :as options}]
   (->
    session
    (for->
