@@ -861,7 +861,7 @@
                 ("/usr/sbin/svcadm" enable ~name))
        :start-stop (stevedore/script ;; start/stop
                     ("/usr/sbin/svcadm"
-                     ~name restart))))
+                     restart ~name))))
 
 
 ;;; Functions to return distribution specific paths.
