@@ -10,9 +10,10 @@
    [clojure.tools.logging :as logging])
   (:use
    [pallet.core.api-impl :only [merge-specs merge-spec-algorithm]]
-   [pallet.algo.fsmop :only [dofsm operate]]
+   [pallet.algo.fsmop :only [dofsm operate result succeed]]
    [pallet.environment :only [merge-environments]]
    [pallet.monad :only [session-pipeline]]
+   [pallet.node :only [node?]]
    [pallet.thread-expr :only [when->]]
    [pallet.utils :only [apply-map]]))
 
@@ -228,16 +229,56 @@
             (update-in group [:phases] merge phase-map))]
     (map add-phases groups)))
 
+(defn expand-cluster-groups
+  "Expand a node-set into its groups"
+  [node-set]
+  (cond
+   (sequential? node-set) (mapcat expand-cluster-groups node-set)
+   (map? node-set) (if-let [groups (:groups node-set)]
+                     (mapcat expand-cluster-groups groups)
+                     [node-set])
+   :else [node-set]))
+
+(defn split-groups-and-targets
+  "Split a node-set into groups and targets. Returns a map with
+:groups and :targets keys"
+  [node-set]
+  (logging/debugf "split-groups-and-targets %s" (vec node-set))
+  (->
+   (group-by
+    #(if (and (map? %)
+              (every? map? (keys %))
+              (every?
+               (fn node-or-nodes? [x] (or (node? x) (sequential? x)))
+               (vals %)))
+       :targets
+       :groups)
+    node-set)
+   (update-in
+    [:targets]
+    #(mapcat
+      (fn [m]
+        (reduce
+         (fn [result [group nodes]]
+           (if (sequential? nodes)
+             (concat result (map (partial assoc group :node) nodes))
+             (conj result (assoc group :node nodes))))
+         []
+         m))
+      %))))
+
 (defn- all-group-nodes
   "Returns a FSM to retrieve the service state for the specified groups"
   [compute groups all-node-set]
-  (ops/group-nodes
-   compute
-   (concat
-    groups
-    (map
-     (fn [g] (update-in g [:phases] select-keys [:settings]))
-     all-node-set))))
+  (if compute
+    (ops/group-nodes
+     compute
+     (concat
+      groups
+      (map
+       (fn [g] (update-in g [:phases] select-keys [:settings]))
+       all-node-set)))
+    (result nil)))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
@@ -268,10 +309,24 @@
   (let [[phases phase-map] (process-phases phase)
         groups (if (map? group-spec->count)
                  [group-spec->count])
-        environment (pallet.environment/environment compute)]
+        groups (expand-group-spec-with-counts group-spec->count)
+        {:keys [groups targets]} (-> groups
+                                     expand-cluster-groups
+                                     split-groups-and-targets)
+        _ (logging/debugf "groups %s" (vec groups))
+        _ (logging/debugf "targets %s" (vec targets))
+        groups (groups-with-phases groups phase-map)
+        targets (groups-with-phases targets phase-map)
+        environment (merge-environments
+                     (pallet.environment/environment compute)
+                     environment)]
     (operate
      (dofsm converge
        [nodes-set (all-group-nodes compute groups all-node-set)
+        nodes-set (result (concat nodes-set targets))
+        _ (succeed
+           (or compute (seq nodes-set))
+           {:error :no-nodes-and-no-compute-service})
         result (ops/converge groups nodes-set phases compute environment {})]
        result))))
 
@@ -304,8 +359,13 @@
                :or {phase [:configure]}
                :as options}]
   (let [[phases phase-map] (process-phases phase)
-        groups (if (map? node-set) [node-set] node-set)
+        {:keys [groups targets]} (-> node-set
+                                     expand-cluster-groups
+                                     split-groups-and-targets)
+        _ (logging/debugf "groups %s" (vec groups))
+        _ (logging/debugf "targets %s" (vec targets))
         groups (groups-with-phases groups phase-map)
+        targets (groups-with-phases targets phase-map)
         environment (merge-environments
                      (and compute (pallet.environment/environment compute))
                      environment)
@@ -313,6 +373,10 @@
     (operate
      (dofsm lift
        [nodes-set (all-group-nodes compute groups all-node-set)
+        nodes-set (result (concat nodes-set targets))
+        _ (succeed
+           (or compute (seq nodes-set))
+           {:error :no-nodes-and-no-compute-service})
         {:keys [plan-state]} (ops/lift
                               nodes-set [:settings] environment plan-state)
         result (ops/lift nodes-set phases environment plan-state)]
