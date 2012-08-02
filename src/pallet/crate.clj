@@ -218,7 +218,7 @@
    :default)."
   ([facility kv-pairs {:keys [instance-id] :as options}]
      (fn [session]
-       [session
+       [kv-pairs
         (update-in
          session [:plan-state]
          plan-state/assoc-settings
