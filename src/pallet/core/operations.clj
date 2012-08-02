@@ -12,6 +12,7 @@
 (defn node-count-adjuster
   "Adjusts node counts. Groups are expected to have node counts on them."
   [compute-service groups targets environment plan-state]
+  {:pre [compute-service]}
   (dofsm node-count-adjuster
     [group-deltas         (result (api/group-deltas targets groups))
      nodes-to-remove      (result (api/nodes-to-remove targets group-deltas))
@@ -21,8 +22,7 @@
                             (api/environment-execution-settings environment)
                             (mapcat :nodes (vals nodes-to-remove))
                             :destroy-server)
-     _              (primitives/remove-group-nodes
-                     compute-service nodes-to-remove)
+     _ (primitives/remove-group-nodes compute-service nodes-to-remove)
      [results2 plan-state] (primitives/build-and-execute-phase
                             targets plan-state environment
                             (api/environment-execution-settings environment)
@@ -33,9 +33,8 @@
                             (api/environment-execution-settings environment)
                             (api/groups-to-create group-deltas)
                             :create-group)
-     new-nodes            (primitives/create-group-nodes
-                           compute-service (environment compute-service)
-                           nodes-to-add)]
+     new-nodes (primitives/create-group-nodes
+                compute-service environment nodes-to-add)]
     {:new-nodes new-nodes
      :old-nodes (mapcat :nodes (vals nodes-to-remove))
      :targets (->> targets
@@ -124,4 +123,6 @@
                             (remove #{:settings :bootstrap} phases))]
     {:results (concat results results1 results2 results3)
      :targets targets
-     :plan-state plan-state}))
+     :plan-state plan-state
+     :new-nodes new-nodes
+     :old-nodes old-nodes}))

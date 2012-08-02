@@ -36,6 +36,7 @@
   matching node."
   [compute-service groups]
   (let [nodes (remove pallet.node/terminated? (nodes compute-service))]
+    (logging/tracef "service-state %s" (vec nodes))
     (filter identity (map (node->node-map groups) nodes))))
 
 ;;; ## Action Plan Building

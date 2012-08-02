@@ -22,7 +22,7 @@
   merge-spec-algorithm
   {:phases :merge-state-monad
    :roles :union
-   :group-name :union})
+   :group-names :union})
 
 (defn merge-specs
   "Merge specs, using comp for :phases"
@@ -34,13 +34,13 @@
   {:internal true}
   [group-name]
   (fn has-group-name? [node]
-    (= group-name (node/group-name node))))
+    (= group-name (name (node/group-name node)))))
 
 (defn node-in-group?
   "Check if a node satisfies a group's node-predicate."
   {:internal true}
   [node group]
-  ((:node-predicate group (node-has-group-name? (name (node/group-name node))))
+  ((:node-predicate group (node-has-group-name? (name (:group-name group))))
    node))
 
 (defn node->node-map
@@ -48,7 +48,11 @@
   {:internal true}
   [groups]
   (fn [node]
-    (when-let [groups (seq (filter (partial node-in-group? node) groups))]
+    (when-let [groups (seq (->>
+                            groups
+                            (filter (partial node-in-group? node))
+                            (map #(assoc-in % [:group-names]
+                                            (set [(:group-name %)])))))]
       (reduce
        (partial merge-specs merge-spec-algorithm)
        {:node node}
