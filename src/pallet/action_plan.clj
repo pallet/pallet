@@ -80,7 +80,8 @@
 (def ^{:private true
        :no-doc true
        :doc "Set of executions that are delayed until translation time."}
-  delayed-execution? #{:delayed-crate-fn :aggregated-crate-fn})
+  delayed-execution?
+  #{:delayed-crate-fn :aggregated-crate-fn :collected-crate-fn})
 
 (defn action-map
   "Return an action map for the given `action` and `args`. The action map is an
@@ -134,7 +135,8 @@
   [action-plan action-map]
   {:pre [(or (nil? action-plan)
              (instance? clojure.lang.IPersistentStack action-plan))]}
-  (let [node-value-path (if (= :aggregated (action-map-execution action-map))
+  (let [node-value-path (if (#{:aggregated :collected}
+                             (action-map-execution action-map))
                           (or (find-node-value-path action-plan action-map)
                               (gensym "nv"))
                           (gensym "nv"))]
@@ -252,7 +254,8 @@
 
 (def ^{:private true} execution-ordering [:aggregated :in-sequence :collected])
 (def ^{:private true} execution-translations {:delayed-crate-fn :in-sequence
-                                              :aggregated-crate-fn :aggregated})
+                                              :aggregated-crate-fn :aggregated
+                                              :collected-crate-fn :collected})
 
 (defn- translate-execution
   [execution]

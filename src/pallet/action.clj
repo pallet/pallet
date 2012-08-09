@@ -263,6 +263,14 @@
     (implement-action* action :default {} f)
     action))
 
+(defn declare-collected-crate-action
+  "Declare an action for an collected crate function. A delayed crate function
+   becomes an action with a single, :default, implementation."
+  [sym f]
+  (let [action (declare-action sym {:execution :collected-crate-fn})]
+    (implement-action* action :default {} f)
+    action))
+
 (defmacro clj-action-fn
   "Creates a clojure action with a :direct implementation. The first argument
 will be the session. The clojure code can not return a modified session (use a
