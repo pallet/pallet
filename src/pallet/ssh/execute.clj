@@ -92,7 +92,7 @@
     (logging/infof
      "Transferring %s to %s:%s via %s"
      file (-> connection :endpoint :server) remote-name tmpcpy)
-    (transport/send-stream connection (io/input-stream file) tmpcpy)
+    (transport/send-stream connection (io/input-stream file) tmpcpy {})
     (transport/exec
      connection
      {:in (stevedore/script
