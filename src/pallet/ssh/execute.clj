@@ -66,7 +66,9 @@
           script (script-builder/build-script options script action)
           tmpfile (ssh-mktemp connection "pallet")]
       (logging/debugf "Target %s cmd\n%s via %s" endpoint script tmpfile)
-      (transport/send-text connection script tmpfile)
+      (transport/send-text
+       connection script tmpfile
+       :mode (if (:sudo-user action) 0644 0600))
       (let [clean-f (comp
                      #(execute/strip-sudo-password % (:user authentication))
                      execute/normalise-eol)
