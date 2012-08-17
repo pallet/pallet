@@ -12,6 +12,18 @@
  DelayedArgument
  (evaluate [x session] x))
 
+(extend-type
+ clojure.lang.PersistentHashMap
+ DelayedArgument
+ (evaluate [x session]
+   (into {} (map #(vector (key %) (evaluate (val %) session)) x))))
+
+(extend-type
+ clojure.lang.PersistentArrayMap
+ DelayedArgument
+ (evaluate [x session]
+   (into {} (map #(vector (key %) (evaluate (val %) session)) x))))
+
 (deftype DelayedFunction
   [f]
   DelayedArgument
