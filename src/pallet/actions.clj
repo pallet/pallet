@@ -6,7 +6,8 @@
    [pallet.stevedore :as stevedore])
   (:use
    pallet.actions-impl
-   [pallet.action :only [defaction with-action-options enter-scope leave-scope]]
+   [pallet.action
+    :only [clj-action defaction with-action-options enter-scope leave-scope]]
    [pallet.argument :only [delayed]]
    [pallet.crate :only [packager]]
    [pallet.monad :only [let-s phase-pipeline]]
@@ -100,6 +101,16 @@
        enter-scope
        ~@crate-fns-or-actions
        leave-scope)))
+
+(defmacro return-value-expr
+  "Creates an action that can transform return values"
+  [[& return-values] & body]
+  (let [session (gensym "session")]
+    `((clj-action [~session]
+        [(let [~@(mapcat #(vector % `(node-value ~% ~session)) return-values)]
+           (logging/warnf "return-value-expr %s" ~(vec return-values))
+           ~@body)
+         ~session]))))
 
 ;;; # Simple File Management
 (defaction file
