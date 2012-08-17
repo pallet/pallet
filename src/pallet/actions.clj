@@ -348,8 +348,11 @@ Content can also be copied from a blobstore.
    another action."
   [path]
   (let-s
-    [r (exec-script (~lib/cat ~path))]
-    (fn [session] (:out (node-value r session)))))
+    [nv (exec-script (~lib/cat ~path))
+     c (return-value-expr [nv]
+         (logging/warnf "remote-file-content %s" (:out nv))
+         (:out nv))]
+    c))
 
 ;;; # Remote Directory Content
 
