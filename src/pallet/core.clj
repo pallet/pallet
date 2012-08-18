@@ -365,6 +365,16 @@
     (handler session)))
 
 
+(defn- apply-environment
+  "Apply the effective environment"
+  [session]
+  (environment/session-with-environment
+    session
+    (environment/merge-environments
+     (:environment session)
+     (environment/eval-environment (-> session :server :environment)))))
+
+
 ;;; executor
 
 (defn- executor [session f action-type location]
@@ -420,6 +430,7 @@
                               :target-id :bootstrap-id
                               :server (assoc (:group session)
                                         :node-id :bootstrap-id))
+                          apply-environment
                           (assoc-in
                            [:executor :script/bash :target]
                            execute/echo-bash)
@@ -470,15 +481,6 @@
        session [:all-nodes :selected-nodes :new-nodes]))
      (count (:old-nodes session)))
     session))
-
-(defn- apply-environment
-  "Apply the effective environment"
-  [session]
-  (environment/session-with-environment
-    session
-    (environment/merge-environments
-     (:environment session)
-     (environment/eval-environment (-> session :server :environment)))))
 
 (defn translate-action-plan
   [handler]
