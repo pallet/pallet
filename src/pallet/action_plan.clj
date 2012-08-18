@@ -610,16 +610,11 @@
   "Return the phase for the target"
   [session]
   (let [phase-key (:phase session)
-        env-phase (-> session :environment :phases phase-key)
-        phase (or
-         (phase-key (-> session :server :phases))
-         (phase-key (:inline-phases session))
-         (phase-key (-> session :group :phases)))]
-    ;; if the environment has a definition for this phase, we need to
-    ;; mix the environment phase with the node's phase definition
-    (if env-phase
-      (comp phase env-phase)
-      phase)))
+        env-phase (-> session :environment :phases phase-key)]
+    (or
+     (phase-key (-> session :server :phases))
+     (phase-key (:inline-phases session))
+     (phase-key (-> session :group :phases)))))
 
 (defn build-for-target
   "Create the action plan by calling the current phase for the target group."
