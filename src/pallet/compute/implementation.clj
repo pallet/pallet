@@ -14,7 +14,8 @@
 
 (def compute-prefix "pallet.compute")
 (def exclude-compute-ns
-  #{'pallet.compute.jvm
+  #{'pallet.compute
+    'pallet.compute.jvm
     'pallet.compute.implementation})
 (def exclude-regex #".*test.*")
 (def provider-list (atom nil))
