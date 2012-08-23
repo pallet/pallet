@@ -56,7 +56,8 @@
                     {:user (:user environment *admin-user*)}
                     target-map
                     {:service-state service-state
-                     :plan-state plan-state}))
+                     :plan-state plan-state
+                     :environment environment}))
           [rv session] (plan-fn session)
           _ (check-session session '(plan-fn session))
           [action-plan session] (get-session-action-plan session)
