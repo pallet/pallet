@@ -48,7 +48,7 @@
   (transport/open (endpoint session) (authentication session) {}))
 
 (defmacro ^{:indent 2} with-connection
-  "Execute the body with a connection tot he current target node"
+  "Execute the body with a connection to the current target node."
   [session [connection] & body]
   `(let [session# ~session
          ~connection (get-connection session#)]
@@ -86,7 +86,7 @@
         [(update-in result [:out] clean-f) session]))))
 
 (defn- ssh-upload
-  "Upload a file to a remote location via sftp"
+  "Upload a file to a remote location via sftp."
   [connection file remote-name]
   (let [tmpcpy (ssh-mktemp connection "pallet")]
     (logging/infof
