@@ -12,7 +12,7 @@
   "Find the available tasks."
   []
   (try
-    (or @task-list (reset! task-list (plugins impl-ns)))
+    (or @task-list (reset! task-list (plugins impl-ns #".*-test")))
    (catch java.io.FileNotFoundException e
      #{'pallet.task.help})))
 
