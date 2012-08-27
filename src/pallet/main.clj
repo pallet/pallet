@@ -78,6 +78,11 @@
         symbol-map))
     symbol-map))
 
+(defn maybe-quote
+  [arg]
+  (if (and (string? arg) (re-matches #"^[/]+/^[/]+" arg))
+    arg (str \" arg \")))
+
 (defn profiles
   [profiles-string]
   (when profiles-string
@@ -119,6 +124,7 @@
             defaults (when defaults
                        (read-string defaults))
             symbol-map (reduce map-and-resolve-symbols {} args)
+            args (map maybe-quote args)
             arg-line (str "[ " (apply str (interpose " " args)) " ]")
             params (read-string arg-line)
             params (clojure.walk/prewalk-replace symbol-map params)
