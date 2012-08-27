@@ -59,7 +59,7 @@
    Returns a vector of ns and symbol"
   [arg]
   {:pre [(string? arg)]}
-  (if (.contains arg "/")
+  (if (and (.contains arg "/") (not (.contains arg "//")))
     (if-let [sym (symbol arg)]
       [(symbol (namespace sym)) sym])))
 
