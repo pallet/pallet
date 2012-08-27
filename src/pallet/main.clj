@@ -80,8 +80,11 @@
 
 (defn maybe-quote
   [arg]
-  (if (and (string? arg) (re-matches #"^[/]+/^[/]+" arg))
-    arg (str \" arg \")))
+  (if (and (string? arg)
+           (or (re-matches #"[^/]+/[^/]+" arg)
+               (re-matches #"[0-9]+" arg)))
+    arg
+    (str \" arg \")))
 
 (defn profiles
   [profiles-string]
