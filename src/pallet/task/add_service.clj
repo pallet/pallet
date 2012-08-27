@@ -44,7 +44,7 @@
   (binding [*out* *err*]
     (println "incorrect arguments:")
     (println
-     (str "  lein pallet service-name provider-name "
+     (str "  lein pallet add-service service-name provider-name "
           "[identity credential [property-name value ...]]"))))
 
 (defn
