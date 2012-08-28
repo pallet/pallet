@@ -17,15 +17,17 @@
            "1.2.3.5" :some-other-host}))))
 
 (deftest simple-test
-  (is
-   (=
-    (first (build-actions
-               {:phase-context "hosts"
-                :server {:node (test-utils/make-node "g" :group-name :grp)}}
-             (remote-file
-              "/etc/hosts" :owner "root:root" :mode "644"
-              :content "127.0.0.1 localhost localhost.localdomain\n1.2.3.4 g")))
-    (first (build-actions
-               {:server {:node (test-utils/make-node "g" :group-name :grp)}}
-             (etc-hosts/hosts-for-group :grp)
-             etc-hosts/hosts)))))
+  (testing "one node"
+    (is
+     (=
+      (first (build-actions
+                 {:phase-context "hosts"
+                  :server {:node (test-utils/make-node "g" :group-name :grp)}}
+               (remote-file
+                "/etc/hosts" :owner "root:root" :mode "644"
+                :content
+                "127.0.0.1 localhost localhost.localdomain\n1.2.3.4 g")))
+      (first (build-actions
+                 {:server {:node (test-utils/make-node "g" :group-name :grp)}}
+               (etc-hosts/hosts-for-group :grp)
+               etc-hosts/hosts))))))
