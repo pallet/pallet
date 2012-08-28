@@ -280,10 +280,10 @@
        all-node-set)))
     (result nil)))
 
-(defn converge
-  "Converge the existing compute resources with the counts specified in
-   `group-spec->count`. New nodes are started, or nodes are destroyed
-   to obtain the specified node counts.
+(defn converge*
+  "Returns a FSM to converge the existing compute resources with the counts
+   specified in `group-spec->count`. New nodes are started, or nodes are
+   destroyed to obtain the specified node counts.
 
    `group-spec->count` can be a map from group-spec to node count, or can be a
    sequence of group-specs containing a :count key.
@@ -320,21 +320,48 @@
         environment (merge-environments
                      (pallet.environment/environment compute)
                      environment)]
-    (operate
-     (dofsm converge
-       [nodes-set (all-group-nodes compute groups all-node-set)
-        nodes-set (result (concat nodes-set targets))
-        _ (succeed
-           (or compute (seq nodes-set))
-           {:error :no-nodes-and-no-compute-service})
-        result (ops/converge groups nodes-set phases compute environment {})]
-       result))))
+    (dofsm converge
+      [nodes-set (all-group-nodes compute groups all-node-set)
+       nodes-set (result (concat nodes-set targets))
+       _ (succeed
+          (or compute (seq nodes-set))
+          {:error :no-nodes-and-no-compute-service})
+       result (ops/converge groups nodes-set phases compute environment {})]
+      result)))
 
-(defn lift
-  "Lift the running nodes in the specified node-set by applying the specified
-   phases.  The compute service may be supplied as an option, otherwise the
-   bound compute-service is used.  The configure phase is applied by default
-   unless other phases are specified.
+(defn converge
+  "Converge the existing compute resources with the counts specified in
+   `group-spec->count`. New nodes are started, or nodes are destroyed
+   to obtain the specified node counts.
+
+   `group-spec->count` can be a map from group-spec to node count, or can be a
+   sequence of group-specs containing a :count key.
+
+   The compute service may be supplied as an option, otherwise the bound
+   compute-service is used.
+
+
+   This applies the bootstrap phase to all new nodes and the configure phase to
+   all running nodes whose group-name matches a key in the node map.  Additional
+   phases can also be specified in the options, and will be applied to all
+   matching nodes.  The :configure phase is always applied, by default as the
+   first (post bootstrap) phase.  You can change the order in which
+   the :configure phase is applied by explicitly listing it.
+
+   An optional group-name prefix may be specified. This will be used to modify
+   the group-name for each group-spec, allowing you to build multiple discrete
+   clusters from a single set of group-specs."
+  [group-spec->count & {:keys [compute blobstore user phase prefix middleware
+                               all-nodes all-node-set environment]
+                        :or {phase [:configure]}
+                        :as options}]
+  (operate (apply-map converge* group-spec->count options)))
+
+(defn lift*
+  "Returns a FSM to lift the running nodes in the specified node-set by applying
+   the specified phases.  The compute service may be supplied as an option,
+   otherwise the bound compute-service is used.  The configure phase is applied
+   by default unless other phases are specified.
 
    node-set can be a node type, a sequence of node types, or a map
    of node type to nodes. Examples:
@@ -370,17 +397,46 @@
                      (and compute (pallet.environment/environment compute))
                      environment)
         plan-state {}]
-    (operate
-     (dofsm lift
-       [nodes-set (all-group-nodes compute groups all-node-set)
-        nodes-set (result (concat nodes-set targets))
-        _ (succeed
-           (or compute (seq nodes-set))
-           {:error :no-nodes-and-no-compute-service})
-        {:keys [plan-state]} (ops/lift
-                              nodes-set [:settings] environment plan-state)
-        result (ops/lift nodes-set phases environment plan-state)]
-       result))))
+    (dofsm lift
+      [nodes-set (all-group-nodes compute groups all-node-set)
+       nodes-set (result (concat nodes-set targets))
+       _ (succeed
+          (or compute (seq nodes-set))
+          {:error :no-nodes-and-no-compute-service})
+       {:keys [plan-state]} (ops/lift
+                             nodes-set [:settings] environment plan-state)
+       result (ops/lift nodes-set phases environment plan-state)]
+      result)))
+
+(defn lift
+  "Lift the running nodes in the specified node-set by applying the specified
+   phases.  The compute service may be supplied as an option, otherwise the
+   bound compute-service is used.  The configure phase is applied by default
+   unless other phases are specified.
+
+   node-set can be a node type, a sequence of node types, or a map
+   of node type to nodes. Examples:
+              [node-type1 node-type2 {node-type #{node1 node2}}]
+              node-type
+              {node-type #{node1 node2}}
+
+   options can also be keywords specifying the phases to apply, or an immediate
+   phase specified with the phase macro, or a function that will be called with
+   each matching node.
+
+   Options:
+    :compute         a jclouds compute service
+    :compute-service a map of :provider, :identity, :credential, and
+                     optionally :extensions for constructing a jclouds compute
+                     service.
+    :phase           a phase keyword, phase function, or sequence of these
+    :middleware      the middleware to apply to the configuration pipeline
+    :prefix          a prefix for the group-name names
+    :user            the admin-user on the nodes"
+  [node-set & {:keys [compute phase prefix middleware all-node-set environment]
+               :or {phase [:configure]}
+               :as options}]
+  (operate (apply-map lift* node-set options)))
 
 ;;; ### plan functions
 (defmacro plan-fn
