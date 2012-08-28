@@ -112,6 +112,12 @@
            ~@body)
          ~session]))))
 
+(defaction assoc-settings
+  "Set the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility (the default is
+   :default)."
+  [facility kv-pairs])
+
 ;;; # Simple File Management
 (defaction file
   "Touch or remove a file. Can also set owner and permissions.

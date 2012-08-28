@@ -10,4 +10,5 @@
    pallet.actions.direct.remote-file
    pallet.actions.direct.rsync
    pallet.actions.direct.service
+   pallet.actions.direct.settings
    pallet.actions.direct.user))

@@ -3,7 +3,8 @@
   (:require
    [clojure.string :as string]
    [pallet.core.plan-state :as plan-state]
-   [pallet.core.session :as session])
+   [pallet.core.session :as session]
+   [pallet.node :as node])
   (:use
    [clojure.tools.macro :only [name-with-attributes]]
    [pallet.action
@@ -163,6 +164,10 @@
      [nil ~sym]))
 
 ;;; ## Session Accessors
+(defn target-node
+  "The target-node."
+  [session]
+  [(session/target-node session) session])
 
 (defn target-id
   "Id of the target-node (unique for provider)."
@@ -170,7 +175,7 @@
   [(session/target-id session) session])
 
 (defn admin-user
-  "Id of the target-node (unique for provider)."
+  "Id of the target-node."
   [session]
   [(session/admin-user session) session])
 
@@ -238,6 +243,18 @@
         session]))
   ([facility]
      (get-settings facility {})))
+
+(defn get-node-settings
+  "Retrieve the settings for the `facility` on the `node`. The instance-id
+   allows the specification of specific instance of the facility. If passed a
+   nil `instance-id`, then `:default` is used"
+  ([node facility {:keys [instance-id default] :as options}]
+     (fn [session]
+       [(plan-state/get-settings
+         (:plan-state session) (node/id node) facility options)
+        session]))
+  ([node facility]
+     (get-node-settings node facility {})))
 
 (defn assoc-settings
   "Set the settings for the specified host facility. The instance-id allows
