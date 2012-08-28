@@ -3,12 +3,15 @@
    [pallet.actions :only [assoc-settings remote-file-content]]
    [pallet.algo.fsmop :only [failed?]]
    [pallet.api :only [group-spec lift plan-fn with-admin-user]]
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.core.user :only [*admin-user*]]
    [pallet.crate :only [get-node-settings target-node]]
    [pallet.test-utils
     :only [clj-action make-localhost-compute test-username]]
    [pallet.utils :only [tmpfile with-temporary]]
-   [clojure.test :only [deftest is testing]]))
+   [clojure.test :only [deftest is testing use-fixtures]]))
+
+(use-fixtures :once (logging-threshold-fixture))
 
 (defn- local-test-user
   []
