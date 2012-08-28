@@ -82,10 +82,6 @@
   "All nodes in the same tag as the target-node, or with the specified
   group-name."
   [session group-name]
-  (clojure.tools.logging/warnf
-   "service state %s" (:service-state session))
-  (clojure.tools.logging/warnf
-   "group-name %s" group-name)
   (->>
    (:service-state session)
    (filter
