@@ -1,9 +1,10 @@
 (ns pallet.task.lift
   "Apply configuration."
   (:require
+   [pallet.api :refer [lift] :rename {lift lift2}]
    [clojure.tools.logging :as logging])
   (:use
-   [pallet.api :rename {lift lift2}]))
+   [pallet.task :only [abort maybe-resolve-symbol-string]]))
 
 (defn- build-args [args]
   (loop [args args
@@ -11,18 +12,17 @@
          m nil
          phases []]
     (if-let [a (first args)]
-      (cond
-       (and (nil? m) (symbol? a) (nil? (namespace a))) (recur
-                                                        (next args)
-                                                        (name a)
-                                                        m
-                                                        phases)
-       (not (keyword? a)) (recur
-                           (next args)
-                           prefix
-                           (conj (or m []) a)
-                           phases)
-       :else (recur (next args) prefix m (conj phases a)))
+      (let [v (maybe-resolve-symbol-string a)]
+        (cond
+          ;; non symbol as first arg
+          (and (nil? m) (not v)) (recur (next args) a m phases)
+          ;; a symbol
+          (not (.startsWith a ":"))
+          (if v
+            (recur (next args) prefix (conj (or m []) v) phases)
+            (abort (str "Could not locate node definition for " a)))
+          ;; a phase
+          :else (recur (next args) prefix m (conj phases (read-string a)))))
       (concat (if prefix [prefix] []) [(set m)] [:phase phases]))))
 
 (defn lift

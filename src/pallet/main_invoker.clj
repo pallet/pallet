@@ -11,7 +11,9 @@
    [pallet.configure :as configure]
    [pallet.environment :as environment]
    [pallet.utils :as utils]
-   [pallet.main :as main]))
+   [pallet.main :as main])
+  (:use
+   [pallet.task :only [exit-task-exception]]))
 
 (defn log-info
   [admin-user]
@@ -89,7 +91,7 @@
                            (re-find #"provider .* not configured" msg))
                         (binding [*out* *err*]
                           (println msg)
-                          (throw pallet.main/exit-task-exception))
+                          (throw exit-task-exception))
                         (throw e)))))]
     (if compute
       (try
