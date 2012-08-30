@@ -513,7 +513,7 @@
 ;;; aptitude
 (script/defimpl update-package-list [#{:aptitude}] [& {:keys [] :as options}]
   (chain-or
-   (aptitude update ~(stevedore/map-to-arg-string options)) true))
+   (aptitude update -q=2 -y ~(stevedore/map-to-arg-string options)) true))
 
 (script/defimpl upgrade-all-packages [#{:aptitude}] [& options]
   (aptitude upgrade -q -y ~(stevedore/option-args options)))

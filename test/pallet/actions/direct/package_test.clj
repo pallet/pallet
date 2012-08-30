@@ -141,7 +141,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (is (= (stevedore/checked-script
           "package-manager update "
           (chain-or
-           (aptitude update)
+           (aptitude update "-q=2" -y)
            true))
          (binding [pallet.action-plan/*defining-context* nil]
            (script/with-script-context [:aptitude]
@@ -244,7 +244,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (stevedore/checked-script
             "package-manager update "
             (chain-or
-             (aptitude update "")
+             (aptitude update "-q=2" -y "")
              true)))
           (first (build-actions
                   {}
