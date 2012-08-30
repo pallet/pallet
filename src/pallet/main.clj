@@ -5,24 +5,9 @@
    [clojure.tools.logging :as logging]
    [clojure.stacktrace :as stacktrace]
    [clojure.walk :as walk]
-   [clojure.string :as string]))
-
-(def
-  ^{:doc "An exception instance to use for terminating the task, without
-          a stack trace"}
-  exit-task-exception (Exception.))
-
-(defn report-error
-  "Report a message to *err*."
-  [msg]
-  (binding [*out* *err*]
-    (println msg)))
-
-(defn abort
-  "Abort a task, with the specified error message, and no stack trace."
-  [msg]
-  (report-error msg)
-  (throw exit-task-exception))
+   [clojure.string :as string])
+  (:use
+   [pallet.task :only [abort exit-task-exception report-error]]))
 
 (defn read-targets
   ([dir]
@@ -53,38 +38,6 @@
           error-fn)
       (catch java.io.FileNotFoundException e
         error-fn))))
-
-(defn parse-as-qualified-symbol
-  "Convert the given string into a namespace qualified symbol.
-   Returns a vector of ns and symbol"
-  [arg]
-  {:pre [(string? arg)]}
-  (if (and (.contains arg "/") (not (.contains arg "//")))
-    (if-let [sym (symbol arg)]
-      [(symbol (namespace sym)) sym])))
-
-(defn map-and-resolve-symbols
-  "Function to build a symbol->value map, requiring namespaces as needed."
-  [symbol-map arg]
-  (if-let [[ns sym] (parse-as-qualified-symbol arg)]
-    (do
-      (try
-        (require ns)
-        (catch java.io.FileNotFoundException e
-          (abort
-           (format "Could not locate node definition for %s" arg))))
-      (if-let [v (find-var sym)]
-        (assoc symbol-map sym (var-get v))
-        symbol-map))
-    symbol-map))
-
-(defn maybe-quote
-  [arg]
-  (if (and (string? arg)
-           (or (re-matches #"[^/]+/[^/]+" arg)
-               (re-matches #"[0-9]+" arg)))
-    arg
-    (str \" arg \")))
 
 (defn profiles
   [profiles-string]
@@ -126,14 +79,9 @@
                               (read-string project-options))
             defaults (when defaults
                        (read-string defaults))
-            symbol-map (reduce map-and-resolve-symbols {} args)
-            args (map maybe-quote args)
-            arg-line (str "[ " (apply str (interpose " " args)) " ]")
-            params (read-string arg-line)
-            params (clojure.walk/prewalk-replace symbol-map params)
             task (resolve-task task)
             return-value (if (:no-service-required (meta task))
-                           (apply task params)
+                           (apply task args)
                            (let [_ (require 'pallet.main-invoker)
                                  invoker (find-var
                                           'pallet.main-invoker/invoke)]
@@ -149,7 +97,7 @@
                                :defaults defaults
                                :environment environment}
                               task
-                              params)))]
+                              args)))]
         (flush)
         (if (integer? return-value) return-value 0))
       (catch Exception e
