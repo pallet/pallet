@@ -85,7 +85,7 @@
                   session)]
     session))
 
-(defn- build-session
+(defn build-session
   "Takes the session map, and tries to add the most keys possible.
    The default session is
        {:all-nodes [nil]
