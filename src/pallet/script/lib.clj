@@ -226,6 +226,10 @@
        expr-map quote-with))
    ~file))
 
+(script/defscript sed-ext [])
+(script/defimpl sed-ext :default [] "")
+(script/defimpl sed-ext [#{:darwin :os-x}] [] ".bak")
+
 (script/defscript md5sum [file & {:as options}])
 (script/defimpl md5sum :default [file & {:as options}]
   ("md5sum" ~(stevedore/map-to-arg-string options) ~file))
@@ -850,6 +854,12 @@
 (script/defscript pkg-sbin [])
 (script/defimpl pkg-sbin :default [] "/sbin")
 (script/defimpl pkg-sbin [:brew] [] "/usr/local/sbin")
+
+(script/defscript system-environment [])
+(script/defimpl system-environment :default [] "/etc/environment")
+(script/defimpl system-environment [#{:rhel :centos :fedora}] []
+  "/etc/profile.d")
+(script/defimpl system-environment [#{:darwin :os-x}] [] "/etc/profile")
 
 
 ;;; #Flags#
