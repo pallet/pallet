@@ -1,5 +1,90 @@
 Unstable development branch
 
+# 0.8.0-alpha.3
+
+- Update to ssh-transport 0.1.1
+
+- Make aptitude update quieter
+  Fixes #160
+
+- Update to pallet-fsmop 0.1.2
+
+- Quieten p.actions.direct.settings-test
+
+- Factor out lift* and converge* in pallet.api
+  The lift* and converge* fuctions return the fsms used by left and
+  converge respectively, without calling operate on them.
+
+- Improve etc-hosts docstring and tests
+
+- Add p.crate/get-node-settings and p.actions/assoc-settings
+  Allow capture of node results into settings, and query of settings across
+  nodes.
+
+- Fix nodes-in-group
+  Added to test in etc-hosts crate that exercises nodes-in-group via 
+  hosts-for-group.
+
+- Fix passing of environment to session in plan functions
+  The environment was not being passed to the session.
+
+- Merge pull request #154 from juergenhoetzel/develop
+  Fix stack overflow error in supported-providers
+- Fix remote-file-content
+
+- Extend DelayedArgument to maps
+  This allows return values to be passed as part of a map to actions.
+
+- Add return-value-expr
+  This macro allow the construction of a new action return value using the
+  value of previous action return values.
+
+- Fix send-text call to pass map for options
+
+- Fix script mode change
+  Forgot the pom change, and missed a send-stream call.
+
+- If :sudo-user is set on a script action, make script readable
+  When executing script with a different user, ensure the script file is
+  readable by 'other'.
+
+- Add a deprecated pallet.utils/make-user for compatibility
+
+- Make sudoers a collected plan function
+
+- Merge image credential with admin user
+  The key reporting from jclouds getCredential has a bug, so we just use 
+  the admin user's key
+
+- Add def-collect-plan-fn
+  Allow definition of collected plan functions
+
+- Make live-test more robust to strings vs keywords in group names
+
+- Fix stack overflow error in supported-providers
+  This was caused by a mutual recursive invocation of supported-providers
+
+- Add executed script to result map
+  Ensure the executed script is available for debugging, logging, etc.
+
+- Update assoc-settings to return values rather than session
+  The session can get very large, and having it returned as the result
+  makes debugging more difficult than it needs to be.
+
+- Update top level lift and converge to cover 0.7.x use cases
+
+- Fix node removal in p.c.operations/converge
+
+- Fix p.c.o/node-count-adjuster to correctly remove nodes
+
+- Only add a :errors key to the result when errors are present
+  When grepping logs, it is annoying to have empty :errors values.
+
+- Add version to pallet.core.api
+
+- Fix p.c.o/lift and converge to accumulate phase results
+  Only the last result was being returned.
+
 # 0.8.0-alpha.2
 
 - Use pallet-local-transport 0.1.1
