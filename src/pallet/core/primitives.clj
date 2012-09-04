@@ -157,6 +157,9 @@
 (defn create-group-nodes
   "Create nodes for groups."
   [compute-service environment group-counts]
+  (logging/debugf
+   "create-group-nodes %s %s %s"
+   compute-service environment group-counts)
   (dofsm create-group-nodes
     [results (map*
               (map

@@ -11,7 +11,8 @@
 
 (defn node-count-adjuster
   "Adjusts node counts. Groups are expected to have node counts on them."
-  [compute-service groups targets plan-state]
+  [compute-service groups targets environment plan-state]
+  {:pre [compute-service]}
   (dofsm node-count-adjuster
     [group-deltas         (result (api/group-deltas targets groups))
      nodes-to-remove      (result (api/nodes-to-remove targets group-deltas))
@@ -19,10 +20,9 @@
      [results1 plan-state] (primitives/build-and-execute-phase
                             targets plan-state environment
                             (api/environment-execution-settings environment)
-                            nodes-to-remove
+                            (mapcat :nodes (vals nodes-to-remove))
                             :destroy-server)
-     _              (primitives/remove-group-nodes
-                     compute-service nodes-to-remove)
+     _ (primitives/remove-group-nodes compute-service nodes-to-remove)
      [results2 plan-state] (primitives/build-and-execute-phase
                             targets plan-state environment
                             (api/environment-execution-settings environment)
@@ -33,11 +33,10 @@
                             (api/environment-execution-settings environment)
                             (api/groups-to-create group-deltas)
                             :create-group)
-     new-nodes            (primitives/create-group-nodes
-                           compute-service (environment compute-service)
-                           nodes-to-add)]
+     new-nodes (primitives/create-group-nodes
+                compute-service environment nodes-to-add)]
     {:new-nodes new-nodes
-     :old-nodes nodes-to-remove
+     :old-nodes (mapcat :nodes (vals nodes-to-remove))
      :targets (->> targets
                    (concat new-nodes)
                    (remove (set (mapcat :nodes (vals nodes-to-remove)))))
@@ -69,7 +68,7 @@
                                    {:phase-errors true
                                     :phase phase
                                     :results (concat result r)})]
-                               [r ps]))
+                               [(concat result r) ps]))
                            [[] plan-state]
                            phases)]
     {:results results
@@ -85,7 +84,7 @@
    (vec (map :group-name targets)))
   (dofsm converge
     [{:keys [new-nodes old-nodes targets service-state plan-state results]}
-     (node-count-adjuster compute groups targets plan-state)
+     (node-count-adjuster compute groups targets environment plan-state)
 
      [results1 plan-state] (primitives/build-and-execute-phase
                             targets plan-state environment
@@ -119,9 +118,11 @@
                                     {:phase-errors true
                                      :phase phase
                                      :results (concat result r)})]
-                                [r ps]))
+                                [(concat result r) ps]))
                             [[] plan-state]
                             (remove #{:settings :bootstrap} phases))]
     {:results (concat results results1 results2 results3)
      :targets targets
-     :plan-state plan-state}))
+     :plan-state plan-state
+     :new-nodes new-nodes
+     :old-nodes old-nodes}))

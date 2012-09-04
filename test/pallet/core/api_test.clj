@@ -23,8 +23,12 @@
                    (make-node "n2" "g1" "192.168.1.2" :linux)]
           g1 (group-spec :g1)
           service (node-list-service [n1 n2])]
-      (is (= [(assoc g1 :node (assoc n1 :service service))
-              (assoc g1 :node (assoc n2 :service service))]
+      (is (= [(assoc g1
+                :node (assoc n1 :service service)
+                :group-names #{:g1})
+              (assoc g1
+                :node (assoc n2 :service service)
+                :group-names #{:g1})]
              (service-state service [g1])))))
   (testing "custom groups"
     (let [[n1 n2] [(make-node "n1" "g1" "192.168.1.1" :linux)
@@ -33,7 +37,9 @@
               :g1
               :node-predicate #(= "192.168.1.2" (node/primary-ip %)))
           service (node-list-service [n1 n2])]
-      (is (= [(assoc g1 :node (assoc n2 :service service))]
+      (is (= [(assoc g1
+                :node (assoc n2 :service service)
+                :group-names #{:g1})]
              (service-state service [g1]))))))
 
 ;; (deftest service-state-with-nodes-test
@@ -76,7 +82,9 @@
         g1 (group-spec :g1 :count 1)
         service (node-list-service [n1 n2])
         service-state (service-state service [g1])]
-    (is (= {g1 {:nodes [(assoc g1 :node (assoc n1 :service service))]
+    (is (= {g1 {:nodes [(assoc g1
+                          :node (assoc n1 :service service)
+                          :group-names #{:g1})]
                 :all false}}
            (nodes-to-remove
             service-state
@@ -117,7 +125,7 @@
         (is (map? r1))
         (is (:action-plan r1))
         (is (= :p (:phase r1)))
-        (is (= (assoc g1 :node n1) (:target r1)))))
+        (is (= (assoc g1 :node n1 :group-names #{:g1}) (:target r1)))))
     (testing "nodes"
       (let [[r plan-state] ((action-plans service-state {} :p service-state) {})
             r1 (first r)]
@@ -127,7 +135,7 @@
         (is (map? r1))
         (is (:action-plan r1))
         (is (= :p (:phase r1)))
-        (is (= (assoc g1 :node n1) (:target r1)))))
+        (is (= (assoc g1 :node n1 :group-names #{:g1}) (:target r1)))))
     (testing "group"
       (let [[r plan-state] ((action-plans
                              service-state {} :g
@@ -144,7 +152,7 @@
         (is (= :group (-> r1 :target :target-type)))))))
 
 (deftest execute-action-plan-test
-  (let [n1 (make-localhost-node :group "g1")
+  (let [n1 (make-localhost-node :group-name "g1")
         ga (clj-action [session] [1 session])
         g1 (group-spec
             :g1
@@ -166,7 +174,8 @@
         (is (= :p phase))
         (is (not errors))
         (is (seq result))
-        (is (:out (first result)))))
+        (is (:out (first result)))
+        (is (.contains (:out (first result)) "src"))))
     (testing "group"
       (let [targets [(assoc g1 :target-type :group)]
             [r plan-state] ((action-plans service-state {} :g targets) {:ps 1})

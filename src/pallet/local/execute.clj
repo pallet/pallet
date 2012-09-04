@@ -44,7 +44,8 @@
            (:out result))))
       (let [cmd (script-builder/build-code session action (.getPath tmpfile))
             result (transport/exec cmd {:output-f #(logging/spy %)})
-            [result session] (execute/parse-shell-result session result)]
+            [result session] (execute/parse-shell-result session result)
+            result (assoc result :script script)]
         (verify-sh-return "for origin cmd" value result)
         [result session])
       (finally  (.delete tmpfile)))))

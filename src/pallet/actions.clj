@@ -6,7 +6,8 @@
    [pallet.stevedore :as stevedore])
   (:use
    pallet.actions-impl
-   [pallet.action :only [defaction with-action-options enter-scope leave-scope]]
+   [pallet.action
+    :only [clj-action defaction with-action-options enter-scope leave-scope]]
    [pallet.argument :only [delayed]]
    [pallet.crate :only [packager]]
    [pallet.monad :only [let-s phase-pipeline]]
@@ -100,6 +101,22 @@
        enter-scope
        ~@crate-fns-or-actions
        leave-scope)))
+
+(defmacro return-value-expr
+  "Creates an action that can transform return values"
+  [[& return-values] & body]
+  (let [session (gensym "session")]
+    `((clj-action [~session]
+        [(let [~@(mapcat #(vector % `(node-value ~% ~session)) return-values)]
+           (logging/warnf "return-value-expr %s" ~(vec return-values))
+           ~@body)
+         ~session]))))
+
+(defaction assoc-settings
+  "Set the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility (the default is
+   :default)."
+  [facility kv-pairs])
 
 ;;; # Simple File Management
 (defaction file
@@ -337,8 +354,11 @@ Content can also be copied from a blobstore.
    another action."
   [path]
   (let-s
-    [r (exec-script (~lib/cat ~path))]
-    (fn [session] (:out (node-value r session)))))
+    [nv (exec-script (~lib/cat ~path))
+     c (return-value-expr [nv]
+         (logging/warnf "remote-file-content %s" (:out nv))
+         (:out nv))]
+    c))
 
 ;;; # Remote Directory Content
 

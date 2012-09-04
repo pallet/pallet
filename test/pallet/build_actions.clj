@@ -6,6 +6,7 @@
    [pallet.compute :as compute]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
+   [pallet.node :as node]
    [pallet.phase :as phase]
    [pallet.script :as script]
    [pallet.test-utils :as test-utils]
@@ -67,7 +68,13 @@
         :phase :configure}"
   [session]
   (let [session (or session {})
-        session (update-in session [:group] #(or % (group-spec :id)))
+        session (update-in session [:group]
+                           #(or
+                             %
+                             (group-spec
+                              (or (when-let [node (-> session :server :node)]
+                                    (node/group-name node))
+                                  :id))))
         session (update-in
                  session [:server :node]
                  #(or

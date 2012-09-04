@@ -2,7 +2,7 @@
   "A namespace that can be used to pull in most of pallet's namespaces.  uesful
   when working at the clojure REPL."
   (:use
-   pallet.utils
+   [pallet.utils :exclude [make-user]]
    pallet.api
    pallet.actions
    clj-ssh.ssh))
@@ -12,7 +12,7 @@
   []
   '(do
      (clojure.core/use
-      'pallet.utils
+      '[pallet.utils :exclude [make-user]]
       'pallet.api
       'pallet.actions
       'clj-ssh.ssh)))

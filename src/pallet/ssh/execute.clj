@@ -66,7 +66,9 @@
           script (script-builder/build-script options script action)
           tmpfile (ssh-mktemp connection "pallet")]
       (logging/debugf "Target %s cmd\n%s via %s" endpoint script tmpfile)
-      (transport/send-text connection script tmpfile)
+      (transport/send-text
+       connection script tmpfile
+       {:mode (if (:sudo-user action) 0644 0600)})
       (let [clean-f (comp
                      #(execute/strip-sudo-password % (:user authentication))
                      execute/normalise-eol)
@@ -76,6 +78,7 @@
                     (script-builder/build-code session action tmpfile)
                     {:output-f output-f})
             [result session] (execute/parse-shell-result session result)
+            result (assoc result :script script)
             ;; Set the node-value to the result of execution, rather than
             ;; the script.
             session (assoc-in
@@ -89,7 +92,7 @@
     (logging/infof
      "Transferring %s to %s:%s via %s"
      file (-> connection :endpoint :server) remote-name tmpcpy)
-    (transport/send-stream connection (io/input-stream file) tmpcpy)
+    (transport/send-stream connection (io/input-stream file) tmpcpy {})
     (transport/exec
      connection
      {:in (stevedore/script

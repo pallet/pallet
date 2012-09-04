@@ -6,7 +6,7 @@
    [pallet.utils :as utils])
   (:use
    [pallet.actions :only [package package-manager]]
-   [pallet.crate :only [admin-group def-plan-fn defplan def-aggregate-plan-fn]]
+   [pallet.crate :only [admin-group def-plan-fn defplan def-collect-plan-fn]]
    [pallet.monad :only [phase-pipeline]]))
 
 ;; TODO - add recogintion of +key or key+
@@ -143,7 +143,7 @@
                    v1 v2))
             initial args)))
 
-(def-aggregate-plan-fn sudoers
+(def-collect-plan-fn sudoers
   "Sudo configuration. Generates a sudoers file.
 By default, root and an admin group are already present.
 

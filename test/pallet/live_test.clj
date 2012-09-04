@@ -227,12 +227,13 @@
        {:reason :live-test-failed-to-build-nodes
         :fail-reason @op}
        "live-test build-nodes failed: %s" @op))
-    (select-keys
-     (->>
-      @op
-      :targets
-      (group-by (comp node/group-name :node)))
-     (keys node-types))))
+    (let [group-nodes (->>
+                       @op :targets
+                       (group-by (comp keyword name node/group-name :node)))
+          test-groups (map (comp keyword name) (keys node-types))]
+      (clojure.tools.logging/tracef
+       "build-nodes %s %s %s" group-nodes test-groups)
+      (select-keys group-nodes test-groups))))
 
 (defn destroy-nodes
   "Build nodes using the phase and specs"

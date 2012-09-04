@@ -1,7 +1,9 @@
 (ns pallet.core.api
   "Base level API for pallet"
   (:require
-   [clojure.tools.logging :as logging])
+   [clojure.tools.logging :as logging]
+   [clojure.java.io :as io]
+   [clojure.string :as string])
   (:use
    [clojure.algo.monads :only [domonad m-map state-m with-monad]]
    [clojure.string :only [blank?]]
@@ -13,9 +15,20 @@
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :only [add-session-verification-key check-session]]
+   [pallet.utils :only [maybe-assoc]]
    pallet.core.api-impl
    [pallet.core.user :only [*admin-user*]]
    [slingshot.slingshot :only [throw+]]))
+
+(let [v (atom nil)]
+  (defn version
+    "Returns the pallet version."
+    []
+    (or
+     @v
+     (reset! v (System/getProperty "pallet.version"))
+     (reset! v (if-let [version (slurp (io/resource "pallet-version"))]
+                       (string/trim version))))))
 
 (defn service-state
   "Query the available nodes in a `compute-service`, filtering for nodes in the
@@ -23,6 +36,7 @@
   matching node."
   [compute-service groups]
   (let [nodes (remove pallet.node/terminated? (nodes compute-service))]
+    (logging/tracef "service-state %s" (vec nodes))
     (filter identity (map (node->node-map groups) nodes))))
 
 ;;; ## Action Plan Building
@@ -42,7 +56,8 @@
                     {:user (:user environment *admin-user*)}
                     target-map
                     {:service-state service-state
-                     :plan-state plan-state}))
+                     :plan-state plan-state
+                     :environment environment}))
           [rv session] (plan-fn session)
           _ (check-session session '(plan-fn session))
           [action-plan session] (get-session-action-plan session)
@@ -105,7 +120,8 @@
   "Returns execution settings based on the environment and the image user."
   [environment]
   (fn [node]
-    {:user (or (image-user (:node node)) (:user environment *admin-user*))
+    {:user (merge (:user environment *admin-user*)
+                  (into {} (filter val (image-user (:node node)))))
      :executor (get-in environment [:algorithms :executor] default-executor)
      :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
                                  #'stop-execution-on-error)}))
@@ -117,13 +133,14 @@
    {:keys [action-plan phase target-type target]}]
   (logging/tracef "execute-action-plan*")
   (let [[result session] (execute
-                          action-plan session executor execute-status-fn)]
-    {:target target
-     :target-type target-type
-     :plan-state (:plan-state session)
-     :result result
-     :phase phase
-     :errors (seq (remove (complement :error) result))}))
+                          action-plan session executor execute-status-fn)
+        errors (seq (remove (complement :error) result))
+        value {:target target
+               :target-type target-type
+               :plan-state (:plan-state session)
+               :result result
+               :phase phase}]
+    (maybe-assoc value :errors errors)))
 
 (defmulti execute-action-plan
   "Execute the `action-plan` on the `target`."
@@ -252,7 +269,7 @@
   (logging/debugf "remove-nodes")
   (if all
     (destroy-nodes-in-group compute-service (name (:group-name group)))
-    (doseq [node nodes] (destroy-node compute-service node))))
+    (doseq [node nodes] (destroy-node compute-service (:node node)))))
 
 ;;; # Node state tagging
 

@@ -5,7 +5,8 @@
    [clojure.pprint :as pprint]
    [clojure.tools.logging :as logging])
   (:use
-   clojure.tools.logging)
+   clojure.tools.logging
+   [pallet.common.deprecate :only [deprecated]])
   (:import
    (java.security
     NoSuchAlgorithmException
@@ -184,6 +185,14 @@
          (assoc-in m ks v)
          m))))
 
+(defn maybe-assoc
+  "'Assoc a value in an associative structure, where k is a key and v is the
+value to assoc. The assoc only occurs if the value is non-nil."
+  [m k v]
+  (if (nil? v)
+    m
+    (assoc m k v)))
+
 (defmacro pipe
   "Build a session processing pipeline from the specified forms."
   [& forms]
@@ -308,3 +317,22 @@
     *file*
     (-> ~'&form meta :line)
     ~exception))
+
+(defn make-user
+  "Creates a User record with the given username and options. Generally used
+   in conjunction with *admin-user* and pallet.api/with-admin-user, or passed
+   to `lift` or `converge` as the named :user argument.
+
+   Options:
+    - :public-key-path
+    - :private-key-path
+    - :passphrase
+    - :password
+    - :sudo-password (defaults to :password)
+    - :no-sudo"
+  {:deprecated "0.8.0"}
+  [username & {:keys [public-key-path private-key-path passphrase
+                      password sudo-password no-sudo] :as options}]
+  (deprecated "pallet.utils/make-user is now pallet.core.user/make-user")
+  (require 'pallet.core.user)
+  ((ns-resolve 'pallet.core.user 'make-user) username options))

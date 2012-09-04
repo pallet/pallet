@@ -134,7 +134,7 @@
 ;;; package management
 
 (deftest update-package-list-test
-  (is (= "aptitude update || true"
+  (is (= "aptitude update -q=2 -y || true"
          (script/with-script-context [:aptitude]
            (script (~update-package-list)))))
   (is (= "yum makecache -q"

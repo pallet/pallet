@@ -82,7 +82,12 @@
   "All nodes in the same tag as the target-node, or with the specified
   group-name."
   [session group-name]
-  (filter #((:group-name %) group-name) (:service-state session)))
+  (->>
+   (:service-state session)
+   (filter
+    #(or (= (:group-name %) group-name)
+         (when-let [group-names (:group-names %)] (group-names group-name))))
+   (map :node)))
 
 (comment
   (defn groups-with-role
