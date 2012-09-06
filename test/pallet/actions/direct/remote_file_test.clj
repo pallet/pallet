@@ -48,6 +48,7 @@
   []
   (assoc *admin-user* :username (test-utils/test-username) :no-sudo true))
 
+
 (deftest remote-file*-test
   (is remote-file*)
   (testing "url"
@@ -179,12 +180,12 @@
 
 (deftest remote-file-test
   (with-admin-user
-      (local-test-user)
+    (local-test-user)
     (is (thrown-with-msg? RuntimeException
           #".*/some/non-existing/file.*does not exist, is a directory, or is unreadable.*"
           (build-actions/build-actions
-           {} (remote-file
-               "file1" :local-file "/some/non-existing/file" :owner "user1"))))
+              {} (remote-file
+                  "file1" :local-file "/some/non-existing/file" :owner "user1"))))
     (is (=
          (str
           "{:error {:type :pallet/action-execution-error, "
@@ -195,7 +196,7 @@
           "remote-file file1 specified without content.>}}")
          (->
           (build-actions/build-actions
-           {} (remote-file "file1" :owner "user1"))
+              {} (remote-file "file1" :owner "user1"))
           second
           :errors
           first
@@ -205,8 +206,8 @@
       (is (re-find #"mv -f --backup=\"numbered\" file1.new file1"
                    (first
                     (build-actions/build-actions
-                     {} (remote-file
-                         "file1" :local-file (.getPath tmp)))))))
+                        {} (remote-file
+                            "file1" :local-file (.getPath tmp)))))))
 
     (utils/with-temporary [tmp (utils/tmpfile)
                            target-tmp (utils/tmpfile)]
@@ -417,9 +418,9 @@
               @(lift
                 local
                 :compute compute
-               :phase (with-remote-file
-                        check-content (.getPath remote-file) "text" path-atom)
-               :user user)
+                :phase (with-remote-file
+                         check-content (.getPath remote-file) "text" path-atom)
+                :user user)
               (is @path-atom)
               (is (not= (.getPath remote-file) (.getPath @path-atom))))))
         (testing "with local shell"
@@ -429,11 +430,11 @@
               @(lift
                 local
                 :compute compute
-               :phase (with-remote-file
-                        check-content (.getPath remote-file) "text" path-atom)
-               :user user
-               ;; :middleware [translate-action-plan]
-               )
+                :phase (with-remote-file
+                         check-content (.getPath remote-file) "text" path-atom)
+                :user user
+                ;; :middleware [translate-action-plan]
+                )
               (is @path-atom)
               (is (not= (.getPath remote-file) (.getPath @path-atom))))))))))
 
@@ -444,12 +445,12 @@
       (let [user (local-test-user)
             local (group-spec "local")
             compute (make-localhost-compute :group-name "local")]
-        (io/copy "text" tmp-file)
         (testing "with local ssh"
-          (let [node (test-utils/make-localhost-node)
-                seen (atom nil)]
-            (testing "with-remote-file"
-              (let [result
+          (let [node (test-utils/make-localhost-node)]
+            (testing "remote-file-content with explicit node-value"
+              (io/copy "text" tmp-file)
+              (let [seen (atom nil)
+                    result
                     (lift
                      local
                      :compute compute
@@ -458,14 +459,83 @@
                        [content (remote-file-content (.getPath tmp-file))
                         is-text (return-value-expr [content]
                                   (= content "text"))]
-                       (pipeline-when is-text
+                       (pipeline-when @is-text
                          [new-content (return-value-expr [content]
                                         (string/replace content "x" "s"))]
                          (m-result (reset! seen true))
                          (remote-file
-                          (.getPath tmp-file-2) :content new-content)))
+                          (.getPath tmp-file-2)
+                          :content (delayed [_] @new-content))))
                      :user user)]
                 @result
+                (is (not (failed? result)))
+                (is @seen)
+                (is (= (slurp (.getPath tmp-file-2)) "test\n"))
+                (flush)))
+            (testing "remote-file-content with deref"
+              (io/copy "text" tmp-file)
+              (let [seen (atom nil)
+                    result
+                    (lift
+                     local
+                     :compute compute
+                     :phase
+                     (plan-fn
+                       [content (remote-file-content (.getPath tmp-file))]
+                       (pipeline-when (= @content "text")
+                         [new-content (return-value-expr [content]
+                                        (string/replace content "x" "s"))]
+                         (m-result (reset! seen true))
+                         (remote-file
+                          (.getPath tmp-file-2)
+                          :content (delayed [_] @new-content))))
+                     :user user)]
+                @result
+                (is (not (failed? result)))
+                (is @seen)
+                (is (= (slurp (.getPath tmp-file-2)) "test\n"))
+                (flush)))
+            (testing "remote-file-content with deref and eval'd args"
+              (io/copy "text" tmp-file)
+              (.delete tmp-file-2)
+              (let [seen (atom nil)
+                    result
+                    (lift
+                     local
+                     :compute compute
+                     :phase
+                     (plan-fn
+                       [content (remote-file-content (.getPath tmp-file))]
+                       (pipeline-when (= @content "text")
+                         (m-result (reset! seen true))
+                         (remote-file-action
+                          (.getPath tmp-file-2)
+                          {:content (string/replace @content "x" "s")})))
+                     :user user)]
+                (is @result)
+                (is (not (failed? result)))
+                (is @seen)
+                (is (= (slurp (.getPath tmp-file-2)) "test\n"))
+                (flush)))
+            (testing "remote-file-content with deref to non-action"
+              (io/copy "text" tmp-file)
+              (.delete tmp-file-2)
+              (let [seen (atom nil)
+                    result
+                    (lift
+                     local
+                     :compute compute
+                     :phase
+                     (plan-fn
+                       [content (remote-file-content (.getPath tmp-file))]
+                       (pipeline-when (= @content "text")
+                         (m-result (reset! seen true))
+                         (remote-file
+                          (.getPath tmp-file-2)
+                          :content (delayed [s]
+                                     (string/replace @content "x" "s")))))
+                     :user user)]
+                (is @result)
                 (is (not (failed? result)))
                 (is @seen)
                 (is (= (slurp (.getPath tmp-file-2)) "test\n"))

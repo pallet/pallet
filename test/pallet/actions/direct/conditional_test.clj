@@ -24,13 +24,13 @@
     (is (= "c\n"
            (first (build-actions {}
                     (assign-node-value nv true)
-                    (pipeline-when nv
+                    (pipeline-when @nv
                       (exec-script "c")))))
         "true node-value causes when block to run")
-    (is (= "\n" ;; failing due to when being clobbered in p.m
+    (is (= "\n"
            (first (build-actions {}
                     (assign-node-value nv nil)
-                    (pipeline-when nv
+                    (pipeline-when @nv
                       (exec-script "c")))))
         "non-true node-value causes when block not to run")))
 

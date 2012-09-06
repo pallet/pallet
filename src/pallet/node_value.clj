@@ -7,7 +7,7 @@
    into the session map's :node-values key."
   (:use
    [pallet.common.context :only [throw-map]]
-   [pallet.argument :only [DelayedArgument]]))
+   [pallet.argument :only [DelayedArgument *session*]]))
 
 ;; (defprotocol SetableNodeValue
 ;;   "A protocol used to set node-values"
@@ -39,22 +39,23 @@
     (let [rv (get-in session [:plan-state :node-values path] ::not-set)]
       (if (= rv ::not-set)
         (throw-map
-       "Invalid access of a node-value that has yet to be set by an action."
-       {:type :pallet/access-of-unset-node-value
-        :path path})
-      rv)))
+         (str
+          "Invalid access of a node-value that has yet to be set by an action. "
+          "If you are using an expression involving a node-value as an "
+          "argument to a plan function, you should wrap the expression in a "
+          "`delayed` form.\n\n"
+          "    (pallet.argument/delayed [session] @node-value)")
+         {:type :pallet/access-of-unset-node-value
+          :path path})
+        rv)))
   DelayedArgument
   (evaluate [x session]
     (node-value x session))
   Object
   (toString [_] (pr-str path))
-  ;; clojure.lang.IDeref
-  ;; (deref [_]
-  ;;   (if (= @value ::not-set)
-  ;;     (throw-map
-  ;;      "Invalid access of a node-value that has yet to be set by an action."
-  ;;      {:type :pallet/access-of-unset-node-value})
-  ;;     @value))
+  clojure.lang.IDeref
+  (deref [nv]
+    (node-value nv *session*))
   clojure.lang.Associative
   (containsKey [_ key] (invalid-access 'containsKey))
   (entryAt [_ key] (invalid-access 'entryAt))

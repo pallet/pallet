@@ -8,6 +8,7 @@ monad, but are each use a different context."
    [clojure.algo.monads
     :only [defmonad defmonadfn domonad m-map m-when m-when-not monad state-m
            with-monad]]
+   [pallet.argument :only [delayed]]
    [pallet.context :only [with-context with-phase-context]]
    pallet.monad.state-accessors
    [pallet.session.verify :only [check-session]]))
@@ -113,6 +114,25 @@ monad, but are each use a different context."
       #(vector (first %) (componentise (second %)))
       (partition 2 forms)))))
 
+;; ### Action argument delay
+(defn wrap-args-if-action
+  [[fform & args :as form]]
+  (if (and (symbol? fform)
+           (when-let [v (resolve fform)]
+             (-> v meta :pallet/action)))
+    (list* fform (map (fn [arg] `(delayed [~'&session] ~arg)) args))
+    form))
+
+(defn wrap-action-args
+  "Replace arguments to actions."
+  [forms]
+  (vec
+   (mapcat
+    #(list (first %) (wrap-args-if-action (second %)))
+    (partition 2 forms))))
+
+
+
 ;; ### Let Comprehension
 (defmacro let-state
   "A monadic comprehension using the state-m monad. Adds lookup of components."
@@ -132,7 +152,8 @@ monad, but are each use a different context."
             ~(->
               (first body)
               replace-in-top-level-forms
-              componentise-top-level-forms)
+              componentise-top-level-forms
+              wrap-action-args)
             ~@(rest body)))
 
 ;; ### Pipelines
