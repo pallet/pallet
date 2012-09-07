@@ -11,7 +11,8 @@ monad, but are each use a different context."
    [pallet.argument :only [delayed]]
    [pallet.context :only [with-context with-phase-context]]
    pallet.monad.state-accessors
-   [pallet.session.verify :only [check-session]]))
+   [pallet.session.verify :only [check-session]]
+   [slingshot.slingshot :only [try+]]))
 
 ;;; ## Pallet Monads and Monad Transformers
 
@@ -118,9 +119,21 @@ monad, but are each use a different context."
 (defn wrap-args-if-action
   [[fform & args :as form]]
   (if (and (symbol? fform)
+           ;; (when-let [v (resolve fform)]
+           ;;   (-> v meta :pallet/action))
            (when-let [v (resolve fform)]
-             (-> v meta :pallet/action)))
-    (list* fform (map (fn [arg] `(delayed [~'&session] ~arg)) args))
+             (not (-> v meta :macro)))
+           )
+    (list* fform
+           (map
+            (fn [arg]
+              `(let [f# (fn [] ~arg)]
+                 ;; written like this to avoid recur across catch errors
+                 (try+
+                   (f#)
+                   (catch [:type :pallet/access-of-unset-node-value] _#
+                     (delayed [~'&session] (f#))))))
+            args))
     form))
 
 (defn wrap-action-args

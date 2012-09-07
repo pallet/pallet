@@ -517,7 +517,7 @@
                 (is @seen)
                 (is (= (slurp (.getPath tmp-file-2)) "test\n"))
                 (flush)))
-            (testing "remote-file-content with deref to non-action"
+            (testing "remote-file-content with delayed to non-action"
               (io/copy "text" tmp-file)
               (.delete tmp-file-2)
               (let [seen (atom nil)
@@ -534,6 +534,28 @@
                           (.getPath tmp-file-2)
                           :content (delayed [s]
                                      (string/replace @content "x" "s")))))
+                     :user user)]
+                (is @result)
+                (is (not (failed? result)))
+                (is @seen)
+                (is (= (slurp (.getPath tmp-file-2)) "test\n"))
+                (flush)))
+            (testing "remote-file-content with non-action"
+              (io/copy "text" tmp-file)
+              (.delete tmp-file-2)
+              (let [seen (atom nil)
+                    result
+                    (lift
+                     local
+                     :compute compute
+                     :phase
+                     (plan-fn
+                       [content (remote-file-content (.getPath tmp-file))]
+                       (pipeline-when (= @content "text")
+                         (m-result (reset! seen true))
+                         (remote-file
+                          (.getPath tmp-file-2)
+                          :content (string/replace @content "x" "s"))))
                      :user user)]
                 (is @result)
                 (is (not (failed? result)))
