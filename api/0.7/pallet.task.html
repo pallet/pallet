@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.action.remote-directory documentation</title>
+    <title>pallet.task documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript" src="js/page_effects.js"></script>
@@ -21,56 +21,52 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-link"><a href="pallet.action.remote-directory.html#var-remote-directory">remote-directory</a></li>
+          <li class="ns-var-link"><a href="pallet.task.html#var-abort">abort</a></li><li class="ns-var-link"><a href="pallet.task.html#var-exit-task-exception">exit-task-exception</a></li><li class="ns-var-link"><a href="pallet.task.html#var-maybe-resolve-symbol-string">maybe-resolve-symbol-string</a></li><li class="ns-var-link"><a href="pallet.task.html#var-parse-as-qualified-symbol">parse-as-qualified-symbol</a></li><li class="ns-var-link"><a href="pallet.task.html#var-report-error">report-error</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.action.remote-directory documentation</h2>
-        <div class="doc"><p>Action to specify the content of a remote directory.  At present the
-content can come from a downloaded tar or zip file.</p>
+        <h2 class="namespace-title">pallet.task documentation</h2>
+        <div class="doc"><p>Task helpers</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3 id="var-remote-directory">remote-directory</h3>
-            <div class="usage">[session path &amp; {:keys [action url local-file remote-file unpack tar-options unzip-options jar-options strip-components md5 md5-url owner group recursive force-overwrite local-file-options], :or {action :create, tar-options "xz", unzip-options "-o", jar-options "xf", strip-components 1, recursive true}, :as options}]</div>
+            <h3 id="var-abort">abort</h3>
+            <div class="usage">[msg]</div>
             
             
-            <div class="doc"><p>Specify the contents of remote directory.</p>
-
-<p>Options:
- - :url              - a url to download content from
- - :unpack           - how download should be extracts (default :tar)
- - :tar-options      - options to pass to tar (default "xz")
- - :unzip-options    - options to pass to unzip (default "-o")
- - :jar-options      - options to pass to unzip (default "xf")
-                       jar does not support stripping path components
- - :strip-components - number of path compnents to remove when unpacking
- - :md5              - md5 of file to unpack
- - :md5-url          - url of md5 file for file to unpack</p>
-
-<p>Ownership options:
- - :owner            - owner of files
- - :group            - group of files
- - :recursive        - flag to recursively set owner and group</p>
-
-<p>To install the content of an url pointing at a tar file, specify the :url
-option.
-    (remote-directory session path
-       :url "http://a.com/path/file.tgz")</p>
-
-<p>If there is an md5 url with the tar file's md5, you can specify that as well,
-to prevent unecessary downloads and verify the content.
-    (remote-directory session path
-       :url "http://a.com/path/file.tgz"
-       :md5-url "http://a.com/path/file.md5")</p>
-
-<p>To install the content of an url pointing at a zip file, specify the :url
-option and :unpack :unzip.
-    (remote-directory session path
-       :url "http://a.com/path/file."
-       :unpack :unzip)</p>
+            <div class="doc"><p>Abort a task, with the specified error message, and no stack trace.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-exit-task-exception">exit-task-exception</h3>
+            
+            
+            
+            <div class="doc"><p>An exception instance to use for terminating the task, without
+a stack trace</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-maybe-resolve-symbol-string">maybe-resolve-symbol-string</h3>
+            <div class="usage">[symbol-string]</div>
+            
+            
+            <div class="doc"><p>Try and resolve a symbol-string to a var value</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-parse-as-qualified-symbol">parse-as-qualified-symbol</h3>
+            <div class="usage">[symbol-string]</div>
+            
+            
+            <div class="doc"><p>Convert the given symbol-string into a namespace qualified symbol.
+Returns a vector of ns and symbol</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-report-error">report-error</h3>
+            <div class="usage">[msg]</div>
+            
+            
+            <div class="doc"><p>Report a message to <em>err</em>.</p>
 </div>
           </div>
         </div>
