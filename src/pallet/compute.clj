@@ -115,7 +115,7 @@
       (derive :arch :arch-base)
       (derive :gentoo :gentoo-base)
       (derive :darwin :bsd-base)
-      (derive :osx :bsd-base)))
+      (derive :os-x :bsd-base)))
 
 (defmacro defmulti-os
   "Defines a defmulti used to abstract over the target operating system. The
