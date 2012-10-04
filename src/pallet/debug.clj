@@ -9,19 +9,19 @@
    the supplied format string.
 
        (log-session session \"The session is %s\")"
-  ([session]
-     (log-session session "%s"))
-  ([session format-string]
-     (logging/debug (format format-string (pr-str session)))
-     session))
+  ([] (log-session "%s"))
+  ([format-string]
+     (fn [session]
+       (logging/debug (format format-string (pr-str session)))
+       [nil session])))
 
 (defn print-session
   "A crate function that will print the session map to *out*, using the supplied
    format string.
 
-       (print-session session \"The session is %s\")"
-  ([session]
-     (print-session session "%s"))
-  ([session format-string]
-     (println (format format-string (pr-str session)))
-     session))
+       (print-session \"The session is %s\")"
+  ([] (print-session "%s"))
+  ([format-string]
+     (fn [session]
+       (println (format format-string (pr-str session)))
+       [nil session])))
