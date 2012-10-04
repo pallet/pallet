@@ -59,7 +59,7 @@
         algorithms
         (if (map? inherits)
           inherits
-          (reduce (partial merge-specs algorithms) inherits))
+          (reduce #(merge-specs algorithms %1 %2) {} inherits))
         spec)
        spec))
   ([spec inherits]
