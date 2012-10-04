@@ -395,7 +395,8 @@
         targets (groups-with-phases targets phase-map)
         environment (merge-environments
                      (and compute (pallet.environment/environment compute))
-                     environment)
+                     environment
+                     (select-keys options [:user]))
         plan-state {}]
     (dofsm lift
       [nodes-set (all-group-nodes compute groups all-node-set)
