@@ -6,7 +6,9 @@
    [pallet.crate :only [get-settings defmulti-plan defmethod-plan]]
    [pallet.crate.package-repo :only [repository-packages rebuild-repository]]
    [pallet.monad :only [chain-s let-s]]
-   [pallet.utils :only [apply-map]]))
+   [pallet.utils :only [apply-map]])
+  (:require
+   [pallet.actions :as actions]))
 
 ;;; ## Install helpers
 (defmulti-plan install
@@ -26,7 +28,7 @@
   [facility instance-id]
   [{:keys [package-source packages]}
    (get-settings facility {:instance-id instance-id})]
-  (package-source (:name package-source) package-source)
+  (actions/package-source (:name package-source) package-source)
   (map package packages))
 
 ;; install based on a rpm
