@@ -83,6 +83,10 @@
             ;; the script.
             session (assoc-in
                      session [:plan-state :node-values node-value-path] result)]
+        (transport/exec
+          connection
+          {:execv [(stevedore/script (rm -f ~tmpfile))]}
+          {})
         [(update-in result [:out] clean-f) session]))))
 
 (defn- ssh-upload
