@@ -280,6 +280,9 @@
        all-node-set)))
     (result nil)))
 
+(def ^{:doc "Arguments that are forwarded to be part of the environment"}
+  environment-args [:compute :blobstore :user :middleware :provider-options])
+
 (defn converge*
   "Returns a FSM to converge the existing compute resources with the counts
    specified in `group-spec->count`. New nodes are started, or nodes are
@@ -319,7 +322,8 @@
         targets (groups-with-phases targets phase-map)
         environment (merge-environments
                      (pallet.environment/environment compute)
-                     environment)]
+                     environment
+                     (select-keys options environment-args))]
     (dofsm converge
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
@@ -395,7 +399,8 @@
         targets (groups-with-phases targets phase-map)
         environment (merge-environments
                      (and compute (pallet.environment/environment compute))
-                     environment)
+                     environment
+                     (select-keys options environment-args))
         plan-state {}]
     (dofsm lift
       [nodes-set (all-group-nodes compute groups all-node-set)
