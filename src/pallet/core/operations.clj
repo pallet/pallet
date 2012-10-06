@@ -97,7 +97,8 @@
      [results2 plan-state] (primitives/execute-on-unflagged
                             targets
                             #(primitives/execute-phase-with-image-user
-                               % environment targets plan-state :bootstrap)
+                               service-state environment % plan-state
+                               :bootstrap)
                             :bootstrapped)
 
      _ (succeed
