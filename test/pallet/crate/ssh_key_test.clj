@@ -251,11 +251,12 @@
        (generate-key "user"))))
 
 (defn check-public-key
-  [request]
-  (logging/trace (format "check-public-key request is %s" request))
-  (is (string?
-       (get-settings request [:user :testuser :id_rsa])))
-  request)
+  [key]
+  (fn [session]
+    (logging/trace (format "check-public-key session is %s" session))
+    (logging/debug (format "check-public-key key is %s" key))
+    (is (string? key))
+    [key session]))
 
 (deftest live-test
   (live-test/test-for
@@ -274,7 +275,7 @@
                      (user "testuser"))
          :configure (plan-fn (generate-key "testuser"))
          :verify1 (plan-fn
-                   (record-public-key "testuser"))
+                   [pk (public-key "testuser")])
          :verify2 (plan-fn
                    (check-public-key))}}}
       (lift (:ssh-key node-types)
