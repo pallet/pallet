@@ -6,26 +6,30 @@
   "A protocol for passing arguments, with delayed evaluation."
   (evaluate [x session]))
 
-;; By default, arguments should evaluate to themeselves
+;; By default, arguments should evaluate to themselves
 (extend-type
- Object
- DelayedArgument
- (evaluate [x session] x))
+    Object
+  DelayedArgument
+  (evaluate [x session] x))
 
 (extend-type
- clojure.lang.PersistentHashMap
- DelayedArgument
- (evaluate [x session]
-   (into {} (map #(vector (key %) (evaluate (val %) session)) x))))
+    clojure.lang.PersistentHashMap
+  DelayedArgument
+  (evaluate [x session]
+    (into {} (map
+              #(vector (key %) (when-let [v (val %)] (evaluate v session)))
+              x))))
 
 (extend-type
- clojure.lang.PersistentArrayMap
- DelayedArgument
- (evaluate [x session]
-   (into {} (map #(vector (key %) (evaluate (val %) session)) x))))
+    clojure.lang.PersistentArrayMap
+  DelayedArgument
+  (evaluate [x session]
+    (into {} (map
+              #(vector (key %) (when-let [v (val %)] (evaluate v session)))
+              x))))
 
 (deftype DelayedFunction
-  [f]
+    [f]
   DelayedArgument
   (evaluate [_ session] (f session)))
 
