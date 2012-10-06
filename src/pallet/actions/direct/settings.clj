@@ -16,10 +16,10 @@
 
 (implement-action assoc-settings :direct
   {:action-type :fn/clojure :location :origin}
-  [session facility kv-pairs]
+  [session facility kv-pairs & {:keys [instance-id] :as options}]
   [(fn [session]
      [kv-pairs (update-in
                 session [:plan-state]
                 plan-state/assoc-settings
-                (session/target-id session) facility kv-pairs {})])
+                (session/target-id session) facility kv-pairs options)])
    session])

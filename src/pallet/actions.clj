@@ -116,7 +116,7 @@
   "Set the settings for the specified host facility. The instance-id allows
    the specification of specific instance of the facility (the default is
    :default)."
-  [facility kv-pairs])
+  [facility kv-pairs & {:keys [instance-id]}])
 
 ;;; # Simple File Management
 (defaction file

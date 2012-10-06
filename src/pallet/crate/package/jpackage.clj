@@ -122,8 +122,8 @@
 
 (defplan package-manager-update-jpackage
   "Update the package lists for the jpackage repositories"
-  [jpackage-repos (get-settings :jpackage-repos)]
+  [{:keys [repos]} (get-settings :jpackage-repos)]
   (package-manager
    :update
    :disable ["*"]
-   :enable (:repos jpackage-repos)))
+   :enable repos))
