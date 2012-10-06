@@ -27,15 +27,16 @@
   {:indent 1}
   [context & body]
   (let [line (-> &form meta :line)]
-    `(context/with-context
-       ~(merge {:ns (list 'quote (ns-name *ns*)) :line line} context)
-       {:scope :pallet/pallet
-        :on-enter (context/context-history {})
-        :format :msg}
-       (event/publish ~context)
-       (logutils/with-context
-         [~@(mapcat identity (dissoc context :kw :msg))]
-         ~@body))))
+    `(let [c# (merge {:ns ~(list 'quote (ns-name *ns*)) :line ~line} ~context)]
+       (context/with-context
+         c#
+         {:scope :pallet/pallet
+          :on-enter (context/context-history {})
+          :format :msg}
+         (event/publish c#)
+         (logutils/with-context
+           [~@(mapcat identity (dissoc context :kw :msg))]
+           ~@body)))))
 
 (defn contexts
   "Returns all pallet contexts"
@@ -54,12 +55,14 @@
   "Specifies a context inside a phase function"
   [context & body]
   (let [line (-> &form meta :line)]
-    `(context/with-context
-       (merge {:ns ~(list 'quote (ns-name *ns*)) :line ~line} ~context)
-       {:scope :pallet/phase
-        :on-enter (context/context-history {})
-        :format :msg}
-       ~@body)))
+    `(let [c# (merge {:ns ~(list 'quote (ns-name *ns*)) :line ~line} ~context)]
+       (context/with-context
+         c#
+         {:scope :pallet/phase
+          :on-enter (context/context-history {})
+          :format :msg}
+         (event/publish c#)
+         ~@body))))
 
 (defmacro phase-context
   "Specifies a context in a threaded phase function"
