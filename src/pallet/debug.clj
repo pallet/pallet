@@ -15,6 +15,13 @@
        (logging/debug (format format-string (pr-str session)))
        [nil session])))
 
+(defmacro debugf
+  "Log at DEBUG level."
+  [format-string & args]
+  `(fn [session#]
+     (logging/debugf ~format-string ~@args)
+     [nil session#]))
+
 (defn print-session
   "A crate function that will print the session map to *out*, using the supplied
    format string.
