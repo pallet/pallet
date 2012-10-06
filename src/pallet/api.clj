@@ -451,10 +451,12 @@
          (file \"/some-file\")
          (file \"/other-file\"))
 
-   This generates a new plan function."
+   This generates a new plan function, and adds code to verify the state
+   around each plan function call."
   [& body]
-  `(session-pipeline ~(gensym "a-plan-fn") {}
-     ~@body))
+  (let [n (if (string? (first body)) (first body) "a-plan-fn")
+        body (if (string? (first body)) (rest body) body)]
+    `(session-pipeline ~(gensym n) {} ~@body)))
 
 ;;; ### Admin user
 (defn make-user
