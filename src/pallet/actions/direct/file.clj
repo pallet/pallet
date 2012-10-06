@@ -23,7 +23,13 @@
   "Create a .md5 file for the specified input file"
   [path md5-path]
   (stevedore/script
-   ((~lib/md5sum ~path) > ~md5-path)))
+   "("
+   (chain-and
+    (var cp @(~lib/canonical-path ~path))
+    (cd @(~lib/dirname @cp))
+    ((~lib/md5sum @(~lib/basename @cp)) > ~md5-path))
+   ")"))
+
 
 (defn touch-file [path {:keys [force] :as options}]
   (stevedore/chain-commands

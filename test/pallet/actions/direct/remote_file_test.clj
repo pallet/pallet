@@ -128,7 +128,7 @@
       (.delete tmp)
       (is (= (str "remote-file " (.getPath tmp) "...\n"
                   "MD5 sum is 6de9439834c9147569741d3c9c9fc010 "
-                  (.getPath tmp) "\n"
+                  (.getName tmp) "\n"
                   "...done\n")
              (let [compute (make-localhost-compute :group-name "local")
                    session @(lift
