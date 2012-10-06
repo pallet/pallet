@@ -147,7 +147,10 @@ monad, but are each use a different context."
               [(gensym "_") f]))]
     (let [bindings (mapcat gen-step args)]
       `(let-s
-         [~@bindings]
+        [~@bindings
+          ;; This is here so the last session is checked. Otherwise the monad
+          ;; implementation elides the last check (as a valid optimisation).
+         _# (~'m-result 1)]
          ~(last (drop-last bindings))))))
 
 (defmacro wrap-pipeline
