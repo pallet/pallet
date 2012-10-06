@@ -118,7 +118,7 @@
            :failovermethod "priority"
            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
            :enabled enabled}))
-  (assoc-settings :jpackage-repos jpackage-repos))
+  (assoc-settings :jpackage-repos {:repos jpackage-repos}))
 
 (defplan package-manager-update-jpackage
   "Update the package lists for the jpackage repositories"
@@ -126,4 +126,4 @@
   (package-manager
    :update
    :disable ["*"]
-   :enable jpackage-repos))
+   :enable (:repos jpackage-repos)))
