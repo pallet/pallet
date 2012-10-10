@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.action.package.centos documentation</title>
+    <title>pallet.crate-install documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript" src="js/page_effects.js"></script>
@@ -21,30 +21,23 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-link"><a href="pallet.action.package.centos.html#var-add-repository">add-repository</a></li><li class="ns-var-link"><a href="pallet.action.package.centos.html#var-arch">arch</a></li>
+          <li class="ns-var-link"><a href="pallet.crate-install.html#var-install-strategy">install-strategy</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.action.package.centos documentation</h2>
-        <div class="doc"><p>Actions for working with the centos repositories</p>
+        <h2 class="namespace-title">pallet.crate-install documentation</h2>
+        <div class="doc"><p>Install methods for crates</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3 id="var-add-repository">add-repository</h3>
-            <div class="usage">[session &amp; {:keys [version repository enabled priority], :or {version "5.5", repository "os", enabled 0, priority 50}}]</div>
+            <h3 id="var-install-strategy">install-strategy</h3>
+            <div class="usage">[settings]</div>
             
             
-            <div class="doc"><p>Add a centos repository. By default, ensure that it has a lower than default
-priority.</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-arch">arch</h3>
-            <div class="usage">[session]</div>
-            
-            
-            <div class="doc"><p>Return the centos package architecture for the target node.</p>
+            <div class="doc"><p>Returns the settings with :install-strategy inferred from keys present in the
+settings. Recognises :package-source, :packages, :rpm and :debs keys.</p>
 </div>
           </div>
         </div>
