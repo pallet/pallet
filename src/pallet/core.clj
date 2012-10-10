@@ -1511,11 +1511,13 @@
    bound compute-service is used.  The configure phase is applied by default
    unless other phases are specified.
 
-   node-set can be a node type, a sequence of node types, or a map
-   of node type to nodes. Examples:
-              [node-type1 node-type2 {node-type #{node1 node2}}]
-              node-type
-              {node-type #{node1 node2}}
+   node-set can be a group-spec, a sequence of group-specs, or a map
+   of group-spec to nodes (to explicitly associate nodes to a group-spec).
+
+   Examples:
+              [group-spec1 group-spec2 {group-spec #{node1 node2}}]
+              group-spec
+              {group-spec #{node1 node2}}
 
    options can also be keywords specifying the phases to apply, or an immediate
    phase specified with the phase macro, or a function that will be called with
