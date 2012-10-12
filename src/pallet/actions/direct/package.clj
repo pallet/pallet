@@ -263,7 +263,8 @@
        (if (and key-url (.startsWith key-url "ppa:"))
          (stevedore/chain-commands
           (stevedore/script (~lib/install-package "python-software-properties"))
-          (stevedore/script (add-apt-repository ~key-url)))
+          (stevedore/script (pipe (echo "") (add-apt-repository ~key-url)))
+          (stevedore/script (~lib/update-package-list)))
          (->
           (remote-file*
            session
