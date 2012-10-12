@@ -28,7 +28,7 @@
   [facility instance-id]
   [{:keys [package-source packages]}
    (get-settings facility {:instance-id instance-id})]
-  (actions/package-source (:name package-source) package-source)
+  (apply-map actions/package-source (:name package-source) package-source)
   (map package packages))
 
 ;; install based on a rpm
@@ -69,5 +69,5 @@
        debs))
      (repository-packages)
      (rebuild-repository path)))
-  (package-source (:name package-source) package-source)
+  (apply-map actions/package-source (:name package-source) package-source)
   (map package packages))
