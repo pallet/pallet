@@ -1,6 +1,6 @@
 (ns pallet.environment
-  "The environment provide a mechanism for customising Pallet and
-   Pallet crates according to some externally determined criteria.
+  "The environments provide mechanisms for customising Pallet and
+   Pallet crates according to externally determined criteria.
 
    An environment can be specified at the global, service, invocation and tag
    scopes.
