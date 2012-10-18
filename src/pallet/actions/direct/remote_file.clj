@@ -160,7 +160,7 @@
                    (str "remote-file " path " specified without content."))))
 
          ;; process the new file accordingly
-         (when install-new-files
+         (when (and install-new-files (not link))
            (stevedore/chain-commands
             (if (or overwrite-changes no-versioning)
               (stevedore/script
