@@ -105,7 +105,8 @@
 ;;; Multi-method for plan functions
 (defmacro defmulti-plan
   "Declare a multimethod for plan functions"
-  {:arglists '([name docstring? attr-map? dispatch-fn & options])}
+  {:arglists '([name docstring? attr-map? dispatch-fn
+                & {:keys [hierarchy] :as options}])}
   [name & args]
   (let [[docstring args] (if (string? (first args))
                            [(first args) (rest args)]
@@ -114,6 +115,8 @@
                           [(first args) (rest args)]
                           [nil args])
         dispatch-fn (first args)
+        {:keys [hierarchy]
+         :or {hierarchy #'clojure.core/global-hierarchy}} (rest args)
         args (first (filter vector? dispatch-fn))]
     `(let [a# (atom {})]
        (def
@@ -124,7 +127,12 @@
            (let [df# ((-> ~name meta :dispatch-fn) ~@args)]
              (fn [session#]
                (let [[dispatch-val# _#] (df# session#)]
-                 (if-let [f# (get @a# dispatch-val#)]
+                 (if-let [f# (or (get @a# dispatch-val#)
+                                 (some
+                                  (fn [[k# f#]]
+                                    (when (isa? ~hierarchy dispatch-val# k#)
+                                      f#))
+                                  @a#))]
                    ((f# ~@args) session#)
                    (throw+
                     {:reason :missing-method
@@ -132,7 +140,7 @@
                      :session session#}
                     "Missing plan-multi %s dispatch for %s"
                     ~(clojure.core/name name)
-                     (pr-str dispatch-val#)))))))))))
+                    (pr-str dispatch-val#)))))))))))
 
 (defn
   ^{:internal true :indent 2}
