@@ -141,14 +141,9 @@
       <version>0.7.2</version>
     </dependency>
     <dependency>
-      <groupId>pallet-fsm</groupId>
-      <artifactId>pallet-fsm</artifactId>
-      <version>0.1.0</version>
-    </dependency>
-    <dependency>
       <groupId>pallet-fsmop</groupId>
       <artifactId>pallet-fsmop</artifactId>
-      <version>0.1.3</version>
+      <version>0.1.4</version>
     </dependency>
     <dependency>
       <groupId>pallet-map-merge</groupId>
