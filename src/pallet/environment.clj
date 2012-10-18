@@ -1,19 +1,19 @@
 (ns pallet.environment
-  "The environment provide a mechanism for customising pallet and
-   pallet crates according to some externally determined criteria.
+  "The environments provide mechanisms for customising Pallet and
+   Pallet crates according to externally determined criteria.
 
    An environment can be specified at the global, service, invocation and tag
    scopes.
 
-   To provide a global default, specify an :environment key at the top level
+   To provide a global default, specify an `:environment` key at the top level
    of `defpallet` in `~/.pallet/config.clj`.
 
-   To provide a service spevific default, specify an :environment key at the
+   To provide a service specific default, specify an `:environment` key at the
    service level of `defpallet` in `~/.pallet/config.clj`.
 
    To provide a project specific default, define `pallet.config/environment`.
 
-   To provide a specific environment when invoking lift or converge, pass an
+   To provide a specific environment when invoking `lift` or `converge`, pass an
    environment map using the `:environment` key.
 
    The merging of values between scopes is key specific, and is determined by
@@ -37,7 +37,7 @@
 
 (def
   ^{:doc
-    "Map from key to merge algorithm. Specifies how environments are merged."}
+    "Map associating keys to merge algorithms. Specifies how environments are merged."}
   merge-key-algorithm
   {:phases :merge-comp
    :user :merge
@@ -55,7 +55,7 @@
    })
 
 
-(def ^{:doc "node specific environment keys"}
+(def ^{:doc "node-specific environment keys"}
   node-keys [:image :phases])
 
 (def standard-pallet-keys (keys merge-key-algorithm))
@@ -63,10 +63,10 @@
 (def user-keys-to-shell-expand [:public-key-path :private-key-path])
 
 (defn merge-environments
-  "Returns a map that consists of the rest of the maps conj-ed onto
+  "Returns a map that consists of the rest of the maps `conj`-ed onto
   the first.  If a key occurs in more than one map, the mapping(s)
   from the latter (left-to-right) will be combined with the mapping in
-  the result by calling (merge-key key val-in-result val-in-latter)."
+  the result by calling `(merge-key key val-in-result val-in-latter)`."
   [& maps]
   (apply map-merge/merge-keys merge-key-algorithm maps))
 
@@ -107,7 +107,7 @@
    algorithms))
 
 (defn shell-expand-keys
-  "Shell expand the values matching the specified keys"
+  "Shell-expand the values matching the specified keys"
   [user-map keys]
   (reduce
    (fn [m kwd]
@@ -120,9 +120,9 @@
   "Evaluate an environment literal.  This is used to replace certain keys with
    objects constructed from the map of values provided.  The keys that are
    evaluated are:
-   - :user
-   - :phases
-   - :algorithms"
+   - `:user`
+   - `:phases`
+   - `:algorithms`"
   [env-map]
   (let [env-map (if-let [user (shell-expand-keys
                                (:user env-map) user-keys-to-shell-expand)]
@@ -146,11 +146,11 @@
 
 (defn get-for
   "Retrieve the environment value at the path specified by keys.
-   When no default value is specified, then raise a :environment-not-found if no
-   environment value is set.
+   When no default value is specified, then raise an `:environment-not-found` if
+   no environment value is set.
 
        (get-for {:p {:a {:b 1} {:d 2}}} [:p :a :d])
-         => 2"
+       ;=> 2"
   ([session keys]
      {:pre [(sequential? keys)]}
      (let [result (get-in (:environment session) keys ::not-set)]
@@ -178,11 +178,11 @@
   "Returns an updated `session` map, containing the keys for the specified
    `environment` map.
 
-   When session includes a :server value, then the :server value is
+   When session includes a `:server` value, then the `:server` value is
    treated as an environment, and merge with any environment in the
-   `environment`'s :groups key.
+   `environment`'s `:groups` key.
 
-   The node-specific environment keys are :images and :phases."
+   The node-specific environment keys are `:images` and `:phases`."
   [session environment]
   (when (:tags environment)
     (deprecate/warn
