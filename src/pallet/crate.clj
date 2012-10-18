@@ -182,6 +182,11 @@
   [session]
   [(session/target-id session) session])
 
+(defn target-name
+  "Name of the target-node."
+  [session]
+  [(node/hostname (session/target-node session)) session])
+
 (defn admin-user
   "Id of the target-node."
   [session]
