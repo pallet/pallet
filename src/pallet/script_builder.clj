@@ -34,7 +34,7 @@
     nil
     (str
      (if-let [pw (:sudo-password user)]
-       (str "echo \"" (or (:password user) pw) "\" | /usr/bin/sudo -S")
+       (str "echo '" (or (:password user) pw) "' | /usr/bin/sudo -S")
        (stevedore/script (~sudo-no-password)))
      (if-let [su (:sudo-user user)]
        (str " -u " su)
