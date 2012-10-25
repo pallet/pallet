@@ -55,7 +55,9 @@
   ^{:doc "Selectable image lists"}
   image-lists
   {:amzn-linux [{:os-family :amzn-linux :os-64-bit true}]
-   :aws-ubuntu-10-10 [{:os-family :ubuntu :image-id "ami-08f40561"}]
+   :aws-ubuntu-10-10 [{:os-family :ubuntu :image-id "us-east-1/ami-08f40561"}]
+   :aws-ubuntu-12-04 [{:os-family :ubuntu :image-id "us-east-1/ami-3c994355"
+                       :os-64-bit true}]
    ;; individual images from default-images
    :ubuntu-lucid [{:os-family :ubuntu :os-version-matches "10.04"
                    :os-64-bit false}]
