@@ -214,7 +214,8 @@
         (ssh/add-identity agent options)
         (ssh/add-identity-with-keychain agent options)))
     (catch Exception e
-      (logging/warnf e "Add identity failed"))))
+      (logging/warnf "Add ssh identity failed for %s" private-key-path)
+      (logging/debugf e "Add identity failed"))))
 
 (defn- ssh-mktemp
   "Create a temporary remote file using the `ssh-session` and the filename
