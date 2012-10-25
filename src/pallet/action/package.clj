@@ -60,7 +60,6 @@
        (aptitude
         install -q -y
         ~(if (:allow-untrusted opts) "--allow-untrusted" "")
-        ~(string/join " " (map #(str "-t " %) (:enable opts)))
         ~(string/join
           " "
           (for [[action packages] (group-by :action packages)
@@ -109,7 +108,6 @@
       (stevedore/script
        (apt-get
         -q -y install
-        ~(string/join " " (map #(str "-t " %) (:enable opts)))
         ~(string/join
           " "
           (for [[action packages] (group-by :action packages)
