@@ -23,7 +23,7 @@
    [pallet.node :as node]
    [clojure.string :as string])
   (:use
-   [clojure.tools.logging :only [warnf tracef]]
+   [clojure.tools.logging :only [debugf errorf tracef warnf]]
    [pallet.algo.fsmop :only [operate complete?]]
    [pallet.core.operations :only [converge]]
    [pallet.core.api :only [service-state]]
@@ -238,10 +238,13 @@
                (:exception @op)
                (some #(some (comp :cause :error) (:errors %)) (:results @op)))
             &throw-context (when e (get-context e))]
+        (if e
+          (debugf e "live-test build-nodes failed: %s" @op)
+          (debugf "live-test build-nodes failed: %s" @op))
         (throw+
          {:reason :live-test-failed-to-build-nodes
           :fail-reason @op}
-         "live-test build-nodes failed: %s" @op)))
+         "live-test build-nodes failed")))
     (let [group-nodes (->>
                        @op :targets
                        (group-by (comp keyword name node/group-name :node)))
