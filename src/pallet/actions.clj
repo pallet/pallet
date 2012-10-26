@@ -110,7 +110,7 @@
   (let [session (gensym "session")]
     `((clj-action [~session]
         [(let [~@(mapcat #(vector % `(node-value ~% ~session)) return-values)]
-           (logging/warnf "return-value-expr %s" ~(vec return-values))
+           (logging/debugf "return-value-expr %s" ~(vec return-values))
            ~@body)
          ~session]))))
 
