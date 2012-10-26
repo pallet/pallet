@@ -13,6 +13,7 @@
    [pallet.script-builder :as script-builder]
    [pallet.stevedore :as stevedore])
   (:use
+   [pallet.action-plan :only [context-label]]
    [slingshot.slingshot :only [throw+]]))
 
 (defn authentication
@@ -59,12 +60,14 @@
 
 (defn ssh-script-on-target
   "Execute a bash action on the target via ssh."
-  [session {:keys [node-value-path] :as action} action-type [options script]]
-  (logging/info "ssh-script-on-target")
+  [session {:keys [context node-value-path] :as action} action-type
+   [options script]]
+  (logging/debug "ssh-script-on-target")
   (with-connection session [connection]
     (let [{:keys [endpoint authentication]} connection
           script (script-builder/build-script options script action)
           tmpfile (ssh-mktemp connection "pallet")]
+      (logging/infof "%s %s" (:server endpoint) (context-label action))
       (logging/debugf "Target %s cmd\n%s via %s" endpoint script tmpfile)
       (transport/send-text
        connection script tmpfile
