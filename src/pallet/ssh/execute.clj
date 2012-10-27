@@ -5,6 +5,7 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.common.filesystem :as filesystem]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.execute :as execute]
    [pallet.ssh.transport :as transport]
    [pallet.local.execute :as local]
@@ -14,6 +15,7 @@
    [pallet.stevedore :as stevedore])
   (:use
    [pallet.action-plan :only [context-label]]
+   [pallet.action-impl :only [action-symbol]]
    [slingshot.slingshot :only [throw+]]))
 
 (defn authentication
@@ -67,30 +69,35 @@
     (let [{:keys [endpoint authentication]} connection
           script (script-builder/build-script options script action)
           tmpfile (ssh-mktemp connection "pallet")]
-      (logging/infof "%s %s" (:server endpoint) (context-label action))
-      (logging/debugf "Target %s cmd\n%s via %s" endpoint script tmpfile)
-      (transport/send-text
-       connection script tmpfile
-       {:mode (if (:sudo-user action) 0644 0600)})
-      (let [clean-f (comp
-                     #(execute/strip-sudo-password % (:user authentication))
-                     execute/normalise-eol)
-            output-f (comp #(logging/spy %) clean-f)
-            result (transport/exec
-                    connection
-                    (script-builder/build-code session action tmpfile)
-                    {:output-f output-f})
-            [result session] (execute/parse-shell-result session result)
-            result (assoc result :script script)
-            ;; Set the node-value to the result of execution, rather than
-            ;; the script.
-            session (assoc-in
-                     session [:plan-state :node-values node-value-path] result)]
-        (transport/exec
-          connection
-          {:execv [(stevedore/script (rm -f ~tmpfile))]}
-          {})
-        [(update-in result [:out] clean-f) session]))))
+      (logutils/with-context [:target (:server endpoint)]
+        (logging/infof
+         "%s %s %s"
+         (:server endpoint) (context-label action)
+         (action-symbol (:action action)))
+        (logging/debugf "Target %s cmd\n%s via %s" endpoint script tmpfile)
+        (transport/send-text
+         connection script tmpfile
+         {:mode (if (:sudo-user action) 0644 0600)})
+        (let [clean-f (comp
+                       #(execute/strip-sudo-password % (:user authentication))
+                       execute/normalise-eol)
+              output-f (comp #(logging/spy %) clean-f)
+              result (transport/exec
+                      connection
+                      (script-builder/build-code session action tmpfile)
+                      {:output-f output-f})
+              [result session] (execute/parse-shell-result session result)
+              result (assoc result :script script)
+              ;; Set the node-value to the result of execution, rather than
+              ;; the script.
+              session (assoc-in
+                       session [:plan-state :node-values node-value-path]
+                       result)]
+          (transport/exec
+           connection
+           {:execv [(stevedore/script (rm -f ~tmpfile))]}
+           {})
+          [(update-in result [:out] clean-f) session])))))
 
 (defn- ssh-upload
   "Upload a file to a remote location via sftp"
