@@ -11,11 +11,11 @@
 
 (defn pipeline
   [a b]
-  (chain-s a b ))
+  (chain-s a b))
 
 (defmethod merge-key :merge-state-monad
   [_ _ val-in-result val-in-latter]
-  (merge-with pipeline val-in-latter val-in-result))
+  (merge-with pipeline val-in-result val-in-latter))
 
 (def
   ^{:doc "Map from key to merge algorithm. Specifies how specs are merged."}
@@ -25,7 +25,7 @@
    :group-names :union})
 
 (defn merge-specs
-  "Merge specs, using comp for :phases"
+  "Merge specs using the specified algorithms."
   [algorithms a b]
   (merge-keys algorithms a b))
 
