@@ -1,0 +1,544 @@
+<html lang="en">
+  <head>
+    <title>pallet.actions documentation</title>
+    <link href="css/default.css" type="text/css" rel="stylesheet" />
+    <script type="text/javascript" src="js/jquery.min.js"></script>
+    <script type="text/javascript" src="js/page_effects.js"></script>
+  </head>
+  <body>
+    <header>
+      <div id="header">
+        <h1 class="project-title">Pallet 0.8 API documentation</h1>
+      </div>
+    </header>
+    <navigation>
+      <div id="namespaces" class="sidebar">
+        <h3>Namespaces</h3>
+        <ul class="ns-links">
+          <li class="ns-link"><a href="pallet.action.html">pallet.action</a></li><li class="ns-link"><a href="pallet.action-impl.html">pallet.action-impl</a></li><li class="ns-link"><a href="pallet.action-plan.html">pallet.action-plan</a></li><li class="ns-link"><a href="pallet.actions.html">pallet.actions</a></li><li class="ns-link"><a href="pallet.actions.direct.html">pallet.actions.direct</a></li><li class="ns-link"><a href="pallet.actions.direct.conditional.html">pallet.actions.direct.conditional</a></li><li class="ns-link"><a href="pallet.actions.direct.directory.html">pallet.actions.direct.directory</a></li><li class="ns-link"><a href="pallet.actions.direct.exec-script.html">pallet.actions.direct.exec-script</a></li><li class="ns-link"><a href="pallet.actions.direct.file.html">pallet.actions.direct.file</a></li><li class="ns-link"><a href="pallet.actions.direct.package.html">pallet.actions.direct.package</a></li><li class="ns-link"><a href="pallet.actions.direct.remote-directory.html">pallet.actions.direct.remote-directory</a></li><li class="ns-link"><a href="pallet.actions.direct.remote-file.html">pallet.actions.direct.remote-file</a></li><li class="ns-link"><a href="pallet.actions.direct.retry.html">pallet.actions.direct.retry</a></li><li class="ns-link"><a href="pallet.actions.direct.rsync.html">pallet.actions.direct.rsync</a></li><li class="ns-link"><a href="pallet.actions.direct.service.html">pallet.actions.direct.service</a></li><li class="ns-link"><a href="pallet.actions.direct.settings.html">pallet.actions.direct.settings</a></li><li class="ns-link"><a href="pallet.actions.direct.user.html">pallet.actions.direct.user</a></li><li class="ns-link"><a href="pallet.actions-impl.html">pallet.actions-impl</a></li><li class="ns-link"><a href="pallet.api.html">pallet.api</a></li><li class="ns-link"><a href="pallet.argument.html">pallet.argument</a></li><li class="ns-link"><a href="pallet.blobstore.html">pallet.blobstore</a></li><li class="ns-link"><a href="pallet.blobstore.implementation.html">pallet.blobstore.implementation</a></li><li class="ns-link"><a href="pallet.blobstore.url-blobstore.html">pallet.blobstore.url-blobstore</a></li><li class="ns-link"><a href="pallet.cache.html">pallet.cache</a></li><li class="ns-link"><a href="pallet.cache.impl.html">pallet.cache.impl</a></li><li class="ns-link"><a href="pallet.command-line.html">pallet.command-line</a></li><li class="ns-link"><a href="pallet.compute.hybrid.html">pallet.compute.hybrid</a></li><li class="ns-link"><a href="pallet.compute.implementation.html">pallet.compute.implementation</a></li><li class="ns-link"><a href="pallet.compute.jvm.html">pallet.compute.jvm</a></li><li class="ns-link"><a href="pallet.compute.node-list.html">pallet.compute.node-list</a></li><li class="ns-link"><a href="pallet.config-file.format.html">pallet.config-file.format</a></li><li class="ns-link"><a href="pallet.configure.html">pallet.configure</a></li><li class="ns-link"><a href="pallet.context.html">pallet.context</a></li><li class="ns-link"><a href="pallet.core.html">pallet.core</a></li><li class="ns-link"><a href="pallet.core.api.html">pallet.core.api</a></li><li class="ns-link"><a href="pallet.core.api-impl.html">pallet.core.api-impl</a></li><li class="ns-link"><a href="pallet.core.operations.html">pallet.core.operations</a></li><li class="ns-link"><a href="pallet.core.plan-state.html">pallet.core.plan-state</a></li><li class="ns-link"><a href="pallet.core.primitives.html">pallet.core.primitives</a></li><li class="ns-link"><a href="pallet.core.session.html">pallet.core.session</a></li><li class="ns-link"><a href="pallet.core.user.html">pallet.core.user</a></li><li class="ns-link"><a href="pallet.crate.html">pallet.crate</a></li><li class="ns-link"><a href="pallet.crate.automated-admin-user.html">pallet.crate.automated-admin-user</a></li><li class="ns-link"><a href="pallet.crate.crontab.html">pallet.crate.crontab</a></li><li class="ns-link"><a href="pallet.crate.environment.html">pallet.crate.environment</a></li><li class="ns-link"><a href="pallet.crate.etc-default.html">pallet.crate.etc-default</a></li><li class="ns-link"><a href="pallet.crate.etc-hosts.html">pallet.crate.etc-hosts</a></li><li class="ns-link"><a href="pallet.crate.filesystem.html">pallet.crate.filesystem</a></li><li class="ns-link"><a href="pallet.crate.network-service.html">pallet.crate.network-service</a></li><li class="ns-link"><a href="pallet.crate.package.centos.html">pallet.crate.package.centos</a></li><li class="ns-link"><a href="pallet.crate.package.debian-backports.html">pallet.crate.package.debian-backports</a></li><li class="ns-link"><a href="pallet.crate.package.epel.html">pallet.crate.package.epel</a></li><li class="ns-link"><a href="pallet.crate.package.jpackage.html">pallet.crate.package.jpackage</a></li><li class="ns-link"><a href="pallet.crate.package.rpmforge.html">pallet.crate.package.rpmforge</a></li><li class="ns-link"><a href="pallet.crate.package-repo.html">pallet.crate.package-repo</a></li><li class="ns-link"><a href="pallet.crate.ssh-key.html">pallet.crate.ssh-key</a></li><li class="ns-link"><a href="pallet.crate.sudoers.html">pallet.crate.sudoers</a></li><li class="ns-link"><a href="pallet.crate-install.html">pallet.crate-install</a></li><li class="ns-link"><a href="pallet.debug.html">pallet.debug</a></li><li class="ns-link"><a href="pallet.echo.execute.html">pallet.echo.execute</a></li><li class="ns-link"><a href="pallet.enlive.html">pallet.enlive</a></li><li class="ns-link"><a href="pallet.environment.html">pallet.environment</a></li><li class="ns-link"><a href="pallet.event.html">pallet.event</a></li><li class="ns-link"><a href="pallet.execute.html">pallet.execute</a></li><li class="ns-link"><a href="pallet.executors.html">pallet.executors</a></li><li class="ns-link"><a href="pallet.feature.html">pallet.feature</a></li><li class="ns-link"><a href="pallet.futures.html">pallet.futures</a></li><li class="ns-link"><a href="pallet.local.execute.html">pallet.local.execute</a></li><li class="ns-link"><a href="pallet.main.html">pallet.main</a></li><li class="ns-link"><a href="pallet.main-invoker.html">pallet.main-invoker</a></li><li class="ns-link"><a href="pallet.md5crypt.html">pallet.md5crypt</a></li><li class="ns-link"><a href="pallet.monad.html">pallet.monad</a></li><li class="ns-link"><a href="pallet.monad.state-accessors.html">pallet.monad.state-accessors</a></li><li class="ns-link"><a href="pallet.node-value.html">pallet.node-value</a></li><li class="ns-link"><a href="pallet.phase.html">pallet.phase</a></li><li class="ns-link"><a href="pallet.plugin.html">pallet.plugin</a></li><li class="ns-link"><a href="pallet.repl.html">pallet.repl</a></li><li class="ns-link"><a href="pallet.script.lib.html">pallet.script.lib</a></li><li class="ns-link"><a href="pallet.script-builder.html">pallet.script-builder</a></li><li class="ns-link"><a href="pallet.script-exec.html">pallet.script-exec</a></li><li class="ns-link"><a href="pallet.session.action-plan.html">pallet.session.action-plan</a></li><li class="ns-link"><a href="pallet.session.verify.html">pallet.session.verify</a></li><li class="ns-link"><a href="pallet.ssh.execute.html">pallet.ssh.execute</a></li><li class="ns-link"><a href="pallet.strint.html">pallet.strint</a></li><li class="ns-link"><a href="pallet.task.add-service.html">pallet.task.add-service</a></li><li class="ns-link"><a href="pallet.task.config.html">pallet.task.config</a></li><li class="ns-link"><a href="pallet.task.containers.html">pallet.task.containers</a></li><li class="ns-link"><a href="pallet.task.converge.html">pallet.task.converge</a></li><li class="ns-link"><a href="pallet.task.converge-cluster.html">pallet.task.converge-cluster</a></li><li class="ns-link"><a href="pallet.task.describe-node.html">pallet.task.describe-node</a></li><li class="ns-link"><a href="pallet.task.destroy-cluster.html">pallet.task.destroy-cluster</a></li><li class="ns-link"><a href="pallet.task.help.html">pallet.task.help</a></li><li class="ns-link"><a href="pallet.task.images.html">pallet.task.images</a></li><li class="ns-link"><a href="pallet.task.new-project.html">pallet.task.new-project</a></li><li class="ns-link"><a href="pallet.task.nodes.html">pallet.task.nodes</a></li><li class="ns-link"><a href="pallet.task.providers.html">pallet.task.providers</a></li><li class="ns-link"><a href="pallet.task.to-blob.html">pallet.task.to-blob</a></li><li class="ns-link"><a href="pallet.task.version.html">pallet.task.version</a></li><li class="ns-link"><a href="pallet.template.html">pallet.template</a></li><li class="ns-link"><a href="pallet.template.properties.html">pallet.template.properties</a></li><li class="ns-link"><a href="pallet.utils.html">pallet.utils</a></li><li class="ns-link"><a href="pallet.version-dispatch.html">pallet.version-dispatch</a></li><li class="ns-link"><a href="pallet.versions.html">pallet.versions</a></li>
+        </ul>
+      </div>
+      <div id="vars" class="sidebar">
+        <h3>Public Vars</h3>
+        <ul class="ns-var-links">
+          <li class="ns-var-link"><a href="pallet.actions.html#var-add-rpm">add-rpm</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-all-options">all-options</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-assoc-settings">assoc-settings</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-content-options">content-options</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-delete-local-path">delete-local-path</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-directories">directories</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-directory">directory</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-exec">exec</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-exec-checked-script">exec-checked-script</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-exec-script">exec-script</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-exec-script*">exec-script*</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-fifo">fifo</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-file">file</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-group">group</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-init-script">init-script</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-install-deb">install-deb</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-minimal-packages">minimal-packages</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-ownership-options">ownership-options</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-package">package</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-package-manager">package-manager</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-package-source">package-source</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-packages">packages</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-pipeline-when">pipeline-when</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-pipeline-when-not">pipeline-when-not</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-remote-directory">remote-directory</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-remote-file">remote-file</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-remote-file-content">remote-file-content</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-retry-until">retry-until</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-return-value-expr">return-value-expr</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-rsync">rsync</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-rsync-directory">rsync-directory</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-sed">sed</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-service">service</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-set-force-overwrite">set-force-overwrite</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-set-install-new-files">set-install-new-files</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-symbolic-link">symbolic-link</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-transfer-file">transfer-file</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-transfer-file-to-local">transfer-file-to-local</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-user">user</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-version-options">version-options</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-with-remote-file">with-remote-file</a></li><li class="ns-var-link"><a href="pallet.actions.html#var-with-service-restart">with-service-restart</a></li>
+        </ul>
+      </div>
+    </navigation>
+    <article>
+      <div id="content" class="namespace-docs">
+        <h2 class="namespace-title">pallet.actions documentation</h2>
+        <div class="doc"><p>Pallet's action primitives.</p>
+</div>
+        <div class="ns-vars">
+          <div class="public">
+            <h3 id="var-add-rpm">add-rpm</h3>
+            <div class="usage">[rpm-name &amp; {:as options}]</div>
+            
+            
+            <div class="doc"><p>Add an rpm.  Source options are as for remote file.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-all-options">all-options</h3>
+            
+            
+            
+            <div class="doc"><p>A vector of the options accepted by remote-file.  Can be used for
+option forwarding when calling remote-file from other crates.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-assoc-settings">assoc-settings</h3>
+            <div class="usage">[facility kv-pairs &amp; {:keys [instance-id]}]</div>
+            
+            
+            <div class="doc"><p>Set the settings for the specified host facility. The instance-id allows
+the specification of specific instance of the facility (the default is
+:default).</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-content-options">content-options</h3>
+            
+            
+            
+            <div class="doc"><p>A vector of the options accepted by remote-file.  Can be used for
+option forwarding when calling remote-file from other crates.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-delete-local-path">delete-local-path</h3>
+            <div class="usage">[local-path]</div>
+            
+            
+            <div class="doc"><p>Function to delete a local path.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-directories">directories</h3>
+            <div class="usage">[paths &amp; options]</div>
+            
+            
+            <div class="doc"><p>Directory management of multiple directories with the same
+owner/group/permissions.</p>
+
+<p><code>options</code> are as for <code>directory</code> and are applied to each directory in
+<code>paths</code></p>
+</div>
+          </div><div class="public">
+            <h3 id="var-directory">directory</h3>
+            <div class="usage">[dir-path &amp; {:keys [action recursive force path mode verbose owner group], :or {action :create, recursive true, force true, path true}}]</div>
+            
+            
+            <div class="doc"><p>Directory management.</p>
+
+<p>For :create and :touch, all components of path are effected.</p>
+
+<p>Options are:
+ - :action     One of :create, :touch, :delete
+ - :recursive  Flag for recursive delete
+ - :force      Flag for forced delete
+ - :path       flag to create all path elements
+ - :owner      set owner
+ - :group      set group
+ - :mode       set mode</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-exec">exec</h3>
+            <div class="usage">[{:keys [language interpreter version], :or {language :bash}} script]</div>
+            
+            
+            <div class="doc"><p>Execute script on the target node. The <code>script</code> is a plain string. <code>type</code>
+specifies the script language (default :bash). You can override the
+interpreter path using the <code>:interpreter</code> option.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-exec-checked-script">exec-checked-script</h3>
+            <div class="usage">[script-name &amp; script]</div>
+            
+            
+            <div class="doc"><p>Execute a bash script remotely, throwing if any element of the
+script fails. The script is expressed in stevedore.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-exec-script">exec-script</h3>
+            <div class="usage">[&amp; script]</div>
+            
+            
+            <div class="doc"><p>Execute a bash script remotely. The script is expressed in stevedore.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-exec-script*">exec-script*</h3>
+            <div class="usage">[script]</div>
+            
+            
+            <div class="doc"><p>Execute script on the target node. The script is a plain string.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-fifo">fifo</h3>
+            <div class="usage">[path &amp; {:keys [action owner group mode force], :or {action :create}}]</div>
+            
+            
+            <div class="doc"><p>FIFO pipe management.</p>
+
+<ul>
+<li>:action    one of :create, :delete</li>
+<li>:owner     user name or id for owner of fifo</li>
+<li>:group     user name or id for group of fifo</li>
+<li>:mode      fifo permissions</li>
+<li>:force     when deleting, try and force removal</li>
+</ul>
+</div>
+          </div><div class="public">
+            <h3 id="var-file">file</h3>
+            <div class="usage">[path &amp; {:keys [action owner group mode force], :or {action :create, force true}}]</div>
+            
+            
+            <div class="doc"><p>Touch or remove a file. Can also set owner and permissions.</p>
+
+<ul>
+<li>:action    one of :create, :delete, :touch</li>
+<li>:owner     user name or id for owner of file</li>
+<li>:group     user name or id for group of file</li>
+<li>:mode      file permissions</li>
+<li>:force     when deleting, try and force removal</li>
+</ul>
+</div>
+          </div><div class="public">
+            <h3 id="var-group">group</h3>
+            <div class="usage">[groupname &amp; {:keys [action system gid password], :or {action :manage}, :as options}]</div>
+            
+            
+            <div class="doc"><p>User Group Management.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-init-script">init-script</h3>
+            <div class="usage">[service-name &amp; {:keys [action url local-file remote-file link content literal template values md5 md5-url force], :or {action :create}, :as options}]</div>
+            
+            
+            <div class="doc"><p>Install an init script.  Sources as for remote-file.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-install-deb">install-deb</h3>
+            <div class="usage">[deb-name &amp; {:as options}]</div>
+            
+            
+            <div class="doc"><p>Add a deb.  Source options are as for remote file.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-minimal-packages">minimal-packages</h3>
+            <div class="usage">[]</div>
+            
+            
+            <div class="doc"><p>Add minimal packages for pallet to function</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-ownership-options">ownership-options</h3>
+            
+            
+            
+            <div class="doc"><p>A vector of options for controlling ownership. Can be used for option
+forwarding when calling remote-file from other crates.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-package">package</h3>
+            <div class="usage">[package-name &amp; {:keys [action y force purge enable disable priority], :or {action :install, y true, priority 50}}]</div>
+            
+            
+            <div class="doc"><p>Install or remove a package.</p>
+
+<p>Options
+ - :action [:install | :remove | :upgrade]
+ - :purge [true|false]         when removing, whether to remove all config
+ - :enable [repo|(seq repo)]   enable specific repository
+ - :disable [repo|(seq repo)]  disable specific repository
+ - :priority n                 priority (0-100, default 50)</p>
+
+<p>Package management occurs in one shot, so that the package manager can
+maintain a consistent view.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-package-manager">package-manager</h3>
+            <div class="usage">[action &amp; options]</div>
+            
+            
+            <div class="doc"><p>Package manager controls.</p>
+
+<p><code>action</code> is one of the following:
+- :update          - update the list of available packages
+- :list-installed  - output a list of the installed packages
+- :add-scope       - enable a scope (eg. multiverse, non-free)</p>
+
+<p>To refresh the list of packages known to the pakage manager:
+    (package-manager session :update)</p>
+
+<p>To enable multiverse on ubuntu:
+    (package-manager session :add-scope :scope :multiverse)</p>
+
+<p>To enable non-free on debian:
+    (package-manager session :add-scope :scope :non-free)</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-package-source">package-source</h3>
+            <div class="usage">[name &amp; {:keys [aptitude yum]}]</div>
+            
+            
+            <div class="doc"><p>Control package sources.
+Options are the package manager keywords, each specifying a map of
+packager specific options.</p>
+
+<p>:aptitude
+  - :source-type string   - source type (deb)
+  - :url url              - repository url
+  - :scopes seq           - scopes to enable for repository
+  - :key-url url          - url for key
+  - :key-id id            - id for key to look it up from keyserver</p>
+
+<p>:yum
+  - :name                 - repository name
+  - :url url          - repository base url
+  - :gpgkey url           - gpg key url for repository</p>
+
+<p>Example
+    (package-source "Partner"
+      :aptitude {:url "http://archive.canonical.com/"
+                 :scopes ["partner"]})</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-packages">packages</h3>
+            <div class="usage">[&amp; {:keys [yum aptitude pacman brew], :as options}]</div>
+            
+            
+            <div class="doc"><p>Install a list of packages keyed on packager.
+(packages session
+  :yum ["git" "git-email"]
+  :aptitude ["git-core" "git-email"])</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-pipeline-when">pipeline-when</h3>
+            <div class="usage">[condition &amp; crate-fns-or-actions]</div>
+            
+            
+            <div class="doc"><p>Execute the crate-fns-or-actions, only when condition is true.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-pipeline-when-not">pipeline-when-not</h3>
+            <div class="usage">[condition &amp; crate-fns-or-actions]</div>
+            
+            
+            <div class="doc"><p>Execute the crate-fns-or-actions, only when condition is false.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-remote-directory">remote-directory</h3>
+            <div class="usage">[path &amp; {:keys [action url local-file remote-file unpack tar-options unzip-options jar-options strip-components md5 md5-url owner group recursive force-overwrite local-file-options], :or {action :create, tar-options "xz", unzip-options "-o", jar-options "xf", strip-components 1, recursive true}, :as options}]</div>
+            
+            
+            <div class="doc"><p>Specify the contents of remote directory.</p>
+
+<p>Options:
+ - :url              - a url to download content from
+ - :unpack           - how download should be extracts (default :tar)
+ - :tar-options      - options to pass to tar (default "xz")
+ - :unzip-options    - options to pass to unzip (default "-o")
+ - :jar-options      - options to pass to unzip (default "xf")
+                       jar does not support stripping path components
+ - :strip-components - number of path compnents to remove when unpacking
+ - :md5              - md5 of file to unpack
+ - :md5-url          - url of md5 file for file to unpack</p>
+
+<p>Ownership options:
+ - :owner            - owner of files
+ - :group            - group of files
+ - :recursive        - flag to recursively set owner and group</p>
+
+<p>To install the content of an url pointing at a tar file, specify the :url
+option.
+    (remote-directory session path
+       :url "http://a.com/path/file.tgz")</p>
+
+<p>If there is an md5 url with the tar file's md5, you can specify that as well,
+to prevent unecessary downloads and verify the content.
+    (remote-directory session path
+       :url "http://a.com/path/file.tgz"
+       :md5-url "http://a.com/path/file.md5")</p>
+
+<p>To install the content of an url pointing at a zip file, specify the :url
+option and :unpack :unzip.
+    (remote-directory session path
+       :url "http://a.com/path/file."
+       :unpack :unzip)</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-remote-file">remote-file</h3>
+            <div class="usage">[path &amp; {:keys [action url local-file remote-file link content literal template values md5 md5-url owner group mode force blob blobstore install-new-files overwrite-changes no-versioning max-versions flag-on-changed local-file-options], :as options}]</div>
+            
+            
+            <div class="doc"><p>Remote file content management.</p>
+
+<p>The <code>remote-file</code> action can specify the content of a remote file in a number
+different ways.</p>
+
+<p>By default, the remote-file is versioned, and 5 versions are kept.</p>
+
+<p>The remote content is also verified against it's md5 hash.  If the contents
+of the remote file have changed (e.g. have been edited on the remote machine)
+then by default the file will not be overwritten, and an error will be raised.
+To force overwrite, call <code>set-force-overwrite</code> before running <code>converge</code> or
+<code>lift</code>.</p>
+
+<p>Options for specifying the file's content are:
+  :url url          - download the specified url to the given filepath
+  :content string   - use the specified content directly
+  :local-file path  - use the file on the local machine at the given path
+  :remote-file path - use the file on the remote machine at the given path
+  :link             - file to link to
+  :literal          - prevent shell expansion on content
+  :md5              - md5 for file
+  :md5-url          - a url containing file's md5
+  :template         - specify a template to be interpolated
+  :values           - values for interpolation
+  :blob             - map of :container, :path
+  :blobstore        - a jclouds blobstore object (override blobstore in session)
+  :insecure         - boolean to specify ignoring of SLL certs</p>
+
+<p>Options for version control are:
+  :overwrite-changes - flag to force overwriting of locally modified content
+  :no-versioning    - do not version the file
+  :max-versions     - specfy the number of versions to keep (default 5)
+  :flag-on-changed  - flag to set if file is changed</p>
+
+<p>Options for specifying the file's permissions are:
+  :owner user-name
+  :group group-name
+  :mode  file-mode</p>
+
+<p>To copy the content of a local file to a remote file:
+    (remote-file session "remote/path" :local-file "local/path")</p>
+
+<p>To copy the content of one remote file to another remote file:
+    (remote-file session "remote/path" :remote-file "remote/source/path")</p>
+
+<p>To link one remote file to another remote file:
+    (remote-file session "remote/path" :link "remote/source/path")</p>
+
+<p>To download a url to a remote file:
+    (remote-file session "remote/path" :url "http://a.com/path")</p>
+
+<p>If a url to a md5 file is also available, then it can be specified to prevent
+unnecessary downloads and to verify the download.
+    (remote-file session "remote/path"
+      :url "http://a.com/path"
+      :md5-url "http://a.com/path.md5")</p>
+
+<p>If the md5 of the file to download, it can be specified to prevent unnecessary
+downloads and to verify the download.
+    (remote-file session "remote/path"
+      :url "http://a.com/path"
+      :md5 "6de9439834c9147569741d3c9c9fc010")</p>
+
+<p>Content can also be copied from a blobstore.
+    (remote-file session "remote/path"
+      :blob {:container "container" :path "blob"})</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-remote-file-content">remote-file-content</h3>
+            <div class="usage">[path]</div>
+            
+            
+            <div class="doc"><p>Return a function that returns the content of a file, when used inside
+another action.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-retry-until">retry-until</h3>
+            <div class="usage">[{:keys [max-retries standoff service-name], :or {max-retries 5, standoff 2}} condition]</div>
+            
+            
+            <div class="doc"><p>Repeat an action until it succeeds</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-return-value-expr">return-value-expr</h3>
+            <div class="usage">[[&amp; return-values] &amp; body]</div>
+            
+            
+            <div class="doc"><p>Creates an action that can transform return values</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-rsync">rsync</h3>
+            <div class="usage">[local-path remote-path {:keys [port]}]</div>
+            
+            
+            <div class="doc"><p>Use rsync to copy files from local-path to remote-path</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-rsync-directory">rsync-directory</h3>
+            <div class="usage">[from to &amp; {:keys [owner group mode port], :as options}]</div>
+            
+            
+            <div class="doc"><p>Rsync from a local directory to a remote directory.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-sed">sed</h3>
+            <div class="usage">[path exprs-map &amp; {:keys [separator no-md5 restriction]}]</div>
+            
+            
+            <div class="doc"><p>Execute sed on the file at path.  Takes a map of expr to replacement.
+- :separator     the separator to use in generated sed expressions. This
+                 will be inferred if not specified.
+- :no-md5        prevent md5 generation for the modified file
+- :restriction   restrict the sed expressions to a particular context.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-service">service</h3>
+            <div class="usage">[service-name &amp; {:keys [action if-flag if-stopped], :or {action :start}, :as options}]</div>
+            
+            
+            <div class="doc"><p>Control services.</p>
+
+<ul>
+<li>:action  accepts either startstop, restart, enable or disable keywords.</li>
+<li>:if-flag  makes start, stop, and restart confitional on the specified flag
+        as set, for example, by remote-file :flag-on-changed</li>
+<li>:sequence-start  a sequence of [sequence-number level level ...], where
+               sequence number determines the order in which services
+               are started within a level.</li>
+</ul>
+</div>
+          </div><div class="public">
+            <h3 id="var-set-force-overwrite">set-force-overwrite</h3>
+            <div class="usage">[flag]</div>
+            
+            
+            <div class="doc"><p>Globally force installation of new files, even if content on node has
+changed.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-set-install-new-files">set-install-new-files</h3>
+            <div class="usage">[flag]</div>
+            
+            
+            <div class="doc"><p>Set boolean flag to control installation of new files</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-symbolic-link">symbolic-link</h3>
+            <div class="usage">[from name &amp; {:keys [action owner group mode force], :or {action :create, force true}}]</div>
+            
+            
+            <div class="doc"><p>Symbolic link management.</p>
+
+<ul>
+<li>:action    one of :create, :delete</li>
+<li>:owner     user name or id for owner of symlink</li>
+<li>:group     user name or id for group of symlink</li>
+<li>:mode      symlink permissions</li>
+<li>:force     when deleting, try and force removal</li>
+</ul>
+</div>
+          </div><div class="public">
+            <h3 id="var-transfer-file">transfer-file</h3>
+            <div class="usage">[local-path remote-path]</div>
+            
+            
+            <div class="doc"><p>Function to transfer a local file to a remote path.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-transfer-file-to-local">transfer-file-to-local</h3>
+            <div class="usage">[remote-path local-path]</div>
+            
+            
+            <div class="doc"><p>Function to transfer a remote file to a local path.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-user">user</h3>
+            <div class="usage">[username &amp; {:keys [action shell base-dir home system create-home password shell comment groups remove force append], :or {action :manage}, :as options}]</div>
+            
+            
+            <div class="doc"><p>User management.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-version-options">version-options</h3>
+            
+            
+            
+            <div class="doc"><p>A vector of options for controlling versions. Can be used for option
+forwarding when calling remote-file from other crates.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-with-remote-file">with-remote-file</h3>
+            <div class="usage">[f path &amp; args]</div>
+            
+            
+            <div class="doc"><p>Function to call f with a local copy of the sessioned remote path.
+f should be a function taking [session local-path &amp; _], where local-path will
+be a File with a copy of the remote file (which will be unlinked after
+calling f.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-with-service-restart">with-service-restart</h3>
+            <div class="usage">[service-name &amp; body]</div>
+            
+            
+            <div class="doc"><p>Stop the given service, execute the body, and then restart.</p>
+</div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </body>
+
+</html>
