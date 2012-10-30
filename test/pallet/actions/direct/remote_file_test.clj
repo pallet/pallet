@@ -10,6 +10,7 @@
    [pallet.api :only [group-spec lift plan-fn with-admin-user]]
    [pallet.argument :only [delayed]]
    [pallet.compute :only [nodes]]
+   [pallet.core.api :only [throw-operation-exception]]
    [pallet.core.user :only [*admin-user*]]
    [pallet.node-value :only [node-value]]
    [pallet.stevedore :only [script]]
@@ -222,7 +223,7 @@
               local (group-spec "local")]
           (testing "local-file"
             (logging/debugf "local-file is %s" (.getPath tmp))
-            (let [result @(lift
+            (let [op (lift
                            local
                            :phase (plan-fn
                                     (log-action)
@@ -231,7 +232,10 @@
                                      :local-file (.getPath tmp)
                                      :mode "0666"))
                            :compute compute
-                           :user user)]
+                           :user user)
+                  result @op]
+              (throw-operation-exception op)
+              (is (complete? op))
               (is (some
                    #(= (first (nodes compute)) %)
                    (map :node (:targets result)))))

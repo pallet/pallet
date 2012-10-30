@@ -295,3 +295,11 @@
     (get
      (read-or-empty-map (tag (:node node) state-tag-name))
      (keyword (name state-name)))))
+
+;;; # Exception reporting
+(defn throw-operation-exception
+  "If the operation has a logged exception, throw it. This will block on the
+   operation being complete or failed."
+  [operation]
+  (when-let [e (:exception @operation)]
+    (throw e)))
