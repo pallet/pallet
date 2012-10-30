@@ -7,7 +7,7 @@
    [pallet.stevedore :as stevedore])
   (:use
    [pallet.actions
-    :only [directory exec-checked-script file remote-file with-remote-file]]
+    :only [directory exec-checked-script file remote-file remote-file-content]]
    [pallet.crate :only [def-plan-fn]]))
 
 (defn user-ssh-dir [user]
@@ -100,34 +100,17 @@
   (file path :owner user :mode "0600")
   (file (str path ".pub") :owner user :mode "0644"))
 
-(def-plan-fn record-public-key
-  "Record a public key"
-  [user & {:keys [filename type parameter-path]
-           :or {type "rsa"} :as options}]
-  [filename (or filename (ssh-default-filenames type))
-   path (str (user-ssh-dir user) filename ".pub")]
+(def-plan-fn public-key
+  "Returns the public key for the specified remote `user`. By default it returns
+the user's id_rsa key from `~user/.ssh/id_rsa.pub`.
 
-  'todo "fixme"
-  ;; (with-remote-file
-  ;;   (action/as-clj-action
-  ;;    (fn [session local-path]
-  ;;      (let [pub-key (slurp local-path)]
-  ;;        (if-not (string/blank? pub-key)
-  ;;          (if parameter-path
-  ;;            (parameter/update-for-service
-  ;;             session parameter-path
-  ;;             (fn [keys] (conj (or keys #{}) pub-key)))
-  ;;            (parameter/assoc-for-target
-  ;;             session [:user (keyword user) (keyword filename)] pub-key))
-  ;;          session)))
-  ;;    [session local-path])
-  ;;   path)
-  )
+You can specify a different key type by passing :type. This assumes the public
+key has a `.pub` extension.
 
-#_
-(pallet.core/defnode a {}
-  :bootstrap (pallet.api/plan-fn
-              (pallet.crate.automated-admin-user/automated-admin-user))
-  :configure (pallet.api/plan-fn
-              (pallet.crate.ssh-key/generate-key "duncan")
-              (pallet.crate.ssh-key/record-public-key "duncan")))
+Passing a :filename value allows direct specification of the filename.
+
+`:dir` allows specification of a different location."
+  [user & {:keys [filename dir type] :or {type "rsa"} :as options}]
+  [filename (m-result (or filename (str (ssh-default-filenames type) ".pub")))
+   path (m-result (str (or dir (user-ssh-dir user)) filename))]
+  (remote-file-content path))

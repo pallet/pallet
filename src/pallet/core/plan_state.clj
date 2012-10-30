@@ -6,22 +6,20 @@
   "Retrieve the settings for the specified host facility. The instance-id allows
    the specification of specific instance of the facility. If passed a nil
    `instance-id`, then `:default` is used"
-  [plan-state node-id facility
-   {:keys [instance-id default] :or {instance-id :default} :as options}]
+  [plan-state node-id facility {:keys [instance-id default]}]
   (get-in plan-state [:host node-id facility instance-id] default))
 
 (defn assoc-settings
   "Set the settings for the specified host facility. The instance-id allows
    the specification of specific instance of the facility (the default is
    :default)."
-  [plan-state node-id facility values
-   {:keys [instance-id] :or {instance-id :default}}]
-  (assoc-in plan-state [:host node-id facility instance-id] values))
+  [plan-state node-id facility kw-values {:keys [instance-id]}]
+  (update-in plan-state [:host node-id facility instance-id] merge kw-values))
 
 (defn update-settings
   "Update the settings for the specified host facility. The instance-id allows
    the specification of specific instance of the facility (the default is
    :default)."
   [plan-state node-id facility f args
-   {:keys [instance-id] :or {instance-id :default}}]
+   {:keys [instance-id]}]
   (apply update-in plan-state [:host node-id facility instance-id] f args))

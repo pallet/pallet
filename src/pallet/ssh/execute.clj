@@ -5,15 +5,23 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.common.filesystem :as filesystem]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.execute :as execute]
-   [pallet.ssh.transport :as transport]
    [pallet.local.execute :as local]
+   [pallet.transport :as transport]
+   [pallet.transport.local]
+   [pallet.transport.ssh]
    [pallet.node :as node]
    [pallet.script.lib :as lib]
    [pallet.script-builder :as script-builder]
    [pallet.stevedore :as stevedore])
   (:use
+   [pallet.action-plan :only [context-label]]
+   [pallet.action-impl :only [action-symbol]]
    [slingshot.slingshot :only [throw+]]))
+
+(def ssh-connection (transport/factory :ssh {}))
+(def local-connection (transport/factory :local {}))
 
 (defn authentication
   [session]
@@ -29,6 +37,7 @@
   "Create a temporary remote file using the `ssh-session` and the filename
   `prefix`"
   [connection prefix]
+  (logging/debugf "ssh-mktemp %s" (.state connection))
   (let [result (transport/exec
                 connection
                 {:execv [(stevedore/script
@@ -45,45 +54,58 @@
         :out (:out result)}))))
 
 (defn get-connection [session]
-  (transport/open (endpoint session) (authentication session) {}))
+  (transport/open
+   ssh-connection (endpoint session) (authentication session) {}))
 
 (defmacro ^{:indent 2} with-connection
-  "Execute the body with a connection tot he current target node"
+  "Execute the body with a connection to the current target node,"
   [session [connection] & body]
   `(let [session# ~session
          ~connection (get-connection session#)]
      (try
        ~@body
-       (finally
-        (transport/close ~connection)))))
+       (catch Exception e#
+         (logging/errorf e# "SSH Error")))))
 
 (defn ssh-script-on-target
   "Execute a bash action on the target via ssh."
-  [session {:keys [node-value-path] :as action} action-type [options script]]
-  (logging/info "ssh-script-on-target")
+  [session {:keys [context node-value-path] :as action} action-type
+   [options script]]
+  (logging/debug "ssh-script-on-target")
   (with-connection session [connection]
-    (let [{:keys [endpoint authentication]} connection
+    (let [endpoint (transport/endpoint connection)
+          authentication (transport/authentication connection)
           script (script-builder/build-script options script action)
           tmpfile (ssh-mktemp connection "pallet")]
-      (logging/debugf "Target %s cmd\n%s via %s" endpoint script tmpfile)
-      (transport/send-text
-       connection script tmpfile
-       {:mode (if (:sudo-user action) 0644 0600)})
-      (let [clean-f (comp
-                     #(execute/strip-sudo-password % (:user authentication))
-                     execute/normalise-eol)
-            output-f (comp #(logging/spy %) clean-f)
-            result (transport/exec
-                    connection
-                    (script-builder/build-code session action tmpfile)
-                    {:output-f output-f})
-            [result session] (execute/parse-shell-result session result)
-            result (assoc result :script script)
-            ;; Set the node-value to the result of execution, rather than
-            ;; the script.
-            session (assoc-in
-                     session [:plan-state :node-values node-value-path] result)]
-        [(update-in result [:out] clean-f) session]))))
+      (logutils/with-context [:target (:server endpoint)]
+        (logging/infof
+         "%s %s %s"
+         (:server endpoint) (context-label action)
+         (action-symbol (:action action)))
+        (logging/debugf "Target %s cmd\n%s via %s" endpoint script tmpfile)
+        (transport/send-text
+         connection script tmpfile
+         {:mode (if (:sudo-user action) 0644 0600)})
+        (let [clean-f (comp
+                       #(execute/strip-sudo-password % (:user authentication))
+                       execute/normalise-eol)
+              output-f (comp #(logging/spy %) clean-f)
+              result (transport/exec
+                      connection
+                      (script-builder/build-code session action tmpfile)
+                      {:output-f output-f})
+              [result session] (execute/parse-shell-result session result)
+              result (assoc result :script script)
+              ;; Set the node-value to the result of execution, rather than
+              ;; the script.
+              session (assoc-in
+                       session [:plan-state :node-values node-value-path]
+                       result)]
+          (transport/exec
+           connection
+           {:execv [(stevedore/script (rm -f ~tmpfile))]}
+           {})
+          [(update-in result [:out] clean-f) session])))))
 
 (defn- ssh-upload
   "Upload a file to a remote location via sftp"
@@ -91,7 +113,7 @@
   (let [tmpcpy (ssh-mktemp connection "pallet")]
     (logging/infof
      "Transferring %s to %s:%s via %s"
-     file (-> connection :endpoint :server) remote-name tmpcpy)
+     file (:server (transport/endpoint connection)) remote-name tmpcpy)
     (transport/send-stream connection (io/input-stream file) tmpcpy {})
     (transport/exec
      connection
@@ -105,7 +127,7 @@
   "Transfer a file from the origin machine to the target via ssh."
   [session value]
   (with-connection session [connection]
-    (let [{:keys [endpoint authentication]} connection]
+    (let [endpoint (transport/endpoint connection)]
       (let [[file remote-name] value
             remote-md5-name (-> remote-name
                                 (string/replace #"\.new$" ".md5")
@@ -141,12 +163,11 @@
   "Transfer a file from the origin machine to the target via ssh."
   [session value]
   (with-connection session [connection]
-    (let [{:keys [endpoint authentication]} connection]
-      (let [[remote-file local-file] value]
-        (logging/infof
-         "Transferring file %s from node to %s" remote-file local-file)
-        (transport/receive connection remote-file local-file))
-      [value session])))
+    (let [[remote-file local-file] value]
+      (logging/infof
+       "Transferring file %s from node to %s" remote-file local-file)
+      (transport/receive connection remote-file local-file))
+    [value session]))
 
 
 (defmacro with-ssh-tunnel
@@ -162,7 +183,7 @@
            ;; do something on local port 2222
            session)"
   [transport session tunnels & body]
-  `(let [{:keys [endpoint# auth#] :as connection#} (get-connection ~session)]
+  `(let [{:as connection#} (get-connection ~session)]
      (transport/with-ssh-tunnel
        connection# ~tunnels
        ~@body)))

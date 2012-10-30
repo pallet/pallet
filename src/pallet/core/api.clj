@@ -1,11 +1,11 @@
 (ns pallet.core.api
   "Base level API for pallet"
   (:require
-   [clojure.tools.logging :as logging]
    [clojure.java.io :as io]
    [clojure.string :as string])
   (:use
    [clojure.algo.monads :only [domonad m-map state-m with-monad]]
+   [clojure.tools.logging :only [debugf tracef]]
    [clojure.string :only [blank?]]
    [pallet.action-plan :only [execute stop-execution-on-error translate]]
    [pallet.compute :only [destroy-nodes-in-group destroy-node nodes run-nodes]]
@@ -36,7 +36,7 @@
   matching node."
   [compute-service groups]
   (let [nodes (remove pallet.node/terminated? (nodes compute-service))]
-    (logging/tracef "service-state %s" (vec nodes))
+    (tracef "service-state %s" (vec nodes))
     (filter identity (map (node->node-map groups) nodes))))
 
 ;;; ## Action Plan Building
@@ -50,7 +50,7 @@
          (map? target-map)
          (or (nil? environment) (map? environment))]}
   (fn action-plan [plan-state]
-    (logging/tracef "action-plan plan-state %s" plan-state)
+    (tracef "action-plan plan-state %s" plan-state)
     (let [session (add-session-verification-key
                    (merge
                     {:user (:user environment *admin-user*)}
@@ -92,7 +92,7 @@
 (defn action-plans
   [service-state environment phase targets]
   (let [targets-with-phase (filter #(-> % :phases phase) targets)]
-    (logging/tracef
+    (tracef
      "action-plans: phase %s targets %s targets-with-phase %s"
      phase (vec targets) (vec targets-with-phase))
     (with-monad state-m
@@ -131,7 +131,7 @@
   "Execute the `action-plan` on the `target`."
   [session executor execute-status-fn
    {:keys [action-plan phase target-type target]}]
-  (logging/tracef "execute-action-plan*")
+  (tracef "execute-action-plan*")
   (let [[result session] (execute
                           action-plan session executor execute-status-fn)
         errors (seq (remove (complement :error) result))
@@ -151,7 +151,7 @@
 (defmethod execute-action-plan :node
   [service-state plan-state environment user executor execute-status-fn
    {:keys [action-plan phase target-type target] :as action-plan-map}]
-  (logging/tracef "execute-action-plan :node")
+  (tracef "execute-action-plan :node")
   (with-script-for-node (:node target)
     (execute-action-plan*
      {:server target
@@ -164,7 +164,7 @@
 (defmethod execute-action-plan :group
   [service-state plan-state environment user executor execute-status-fn
    {:keys [action-plan phase target-type target] :as action-plan-map}]
-  (logging/tracef "execute-action-plan :group")
+  (tracef "execute-action-plan :group")
   (execute-action-plan*
    {:group target
     :service-state service-state
@@ -266,7 +266,7 @@
   "Removes `nodes` from `group`. If `all` is true, then all nodes for the group
   are being removed."
   [compute-service group {:keys [nodes all]}]
-  (logging/debugf "remove-nodes")
+  (debugf "remove-nodes")
   (if all
     (destroy-nodes-in-group compute-service (name (:group-name group)))
     (doseq [node nodes] (destroy-node compute-service (:node node)))))
@@ -295,3 +295,11 @@
     (get
      (read-or-empty-map (tag (:node node) state-tag-name))
      (keyword (name state-name)))))
+
+;;; # Exception reporting
+(defn throw-operation-exception
+  "If the operation has a logged exception, throw it. This will block on the
+   operation being complete or failed."
+  [operation]
+  (when-let [e (:exception @operation)]
+    (throw e)))

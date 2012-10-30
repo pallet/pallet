@@ -3,7 +3,6 @@
   (:require
    [clojure.string :as string])
   (:use
-   pallet.thread-expr
    [pallet.actions :only [directory exec-checked-script]]
    [pallet.crate :only [def-plan-fn]]))
 

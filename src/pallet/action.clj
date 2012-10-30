@@ -162,7 +162,8 @@
         action-name (vary-meta
                      action-name assoc
                      :arglists (list 'quote [args])
-                     :defonce true)
+                     :defonce true
+                     :pallet/action true)
         action-symbol (symbol
                        (or (namespace action-name) (name (ns-name *ns*)))
                        (name action-name))

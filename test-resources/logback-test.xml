@@ -79,6 +79,7 @@
   <logger name="pallet.algo.fsm" level="WARN"/>
   <logger name="pallet.algo.fsmop" level="WARN"/>
   <logger name="pallet.core.primitives" level="DEBUG"/>
+  <logger name="pallet.transport" level="TRACE"/>
   <!-- <logger name="pallet.execute.default-executor" level="TRACE"/> -->
 
   <root level="INFO">

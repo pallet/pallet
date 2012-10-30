@@ -16,15 +16,20 @@
    The image list to be used can be selected using `pallet.test.image-list`
    and should specify one of the keys in `image-lists`."
   (:require
+   clojure.stacktrace
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
    [pallet.node :as node]
    [clojure.string :as string])
   (:use
+   [clojure.tools.logging :only [debugf errorf tracef warnf]]
    [pallet.algo.fsmop :only [operate complete?]]
    [pallet.core.operations :only [converge]]
-   [slingshot.slingshot :only [throw+]]))
+   [pallet.core.api :only [service-state]]
+   [pallet.environment :only [environment]]
+   [slingshot.slingshot :only [throw+]]
+   [slingshot.support :only [get-context]]))
 
 (def
   ^{:doc "The default images for testing"}
@@ -50,7 +55,9 @@
   ^{:doc "Selectable image lists"}
   image-lists
   {:amzn-linux [{:os-family :amzn-linux :os-64-bit true}]
-   :aws-ubuntu-10-10 [{:os-family :ubuntu :image-id "ami-08f40561"}]
+   :aws-ubuntu-10-10 [{:os-family :ubuntu :image-id "us-east-1/ami-08f40561"}]
+   :aws-ubuntu-12-04 [{:os-family :ubuntu :image-id "us-east-1/ami-3c994355"
+                       :os-64-bit true}]
    ;; individual images from default-images
    :ubuntu-lucid [{:os-family :ubuntu :os-version-matches "10.04"
                    :os-64-bit false}]
@@ -220,19 +227,29 @@
   "Build nodes using the node-types specs"
   [service node-types specs phases]
   (let [counts (counts specs)
-        op (operate (converge counts nil phases service {} {}))]
+        op (operate
+            (converge
+             counts
+             (service-state service counts)
+             phases service (environment service) {}))]
     @op
-    (when (or (not (complete? op)) (some :error (:result @op)))
-      (throw+
-       {:reason :live-test-failed-to-build-nodes
-        :fail-reason @op}
-       "live-test build-nodes failed: %s" @op))
+    (when (or (not (complete? op)) (some :errors (:result @op)))
+      (let [e (or
+               (:exception @op)
+               (some #(some (comp :cause :error) (:errors %)) (:results @op)))
+            &throw-context (when e (get-context e))]
+        (if e
+          (debugf e "live-test build-nodes failed: %s" @op)
+          (debugf "live-test build-nodes failed: %s" @op))
+        (throw+
+         {:reason :live-test-failed-to-build-nodes
+          :fail-reason @op}
+         "live-test build-nodes failed")))
     (let [group-nodes (->>
                        @op :targets
                        (group-by (comp keyword name node/group-name :node)))
           test-groups (map (comp keyword name) (keys node-types))]
-      (clojure.tools.logging/tracef
-       "build-nodes %s %s %s" group-nodes test-groups)
+      (tracef "build-nodes %s %s %s" group-nodes test-groups)
       (select-keys group-nodes test-groups))))
 
 (defn destroy-nodes

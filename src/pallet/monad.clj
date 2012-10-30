@@ -8,9 +8,11 @@ monad, but are each use a different context."
    [clojure.algo.monads
     :only [defmonad defmonadfn domonad m-map m-when m-when-not monad state-m
            with-monad]]
+   [pallet.argument :only [delayed]]
    [pallet.context :only [with-context with-phase-context]]
    pallet.monad.state-accessors
-   [pallet.session.verify :only [check-session]]))
+   [pallet.session.verify :only [check-session]]
+   [slingshot.slingshot :only [try+]]))
 
 ;;; ## Pallet Monads and Monad Transformers
 
@@ -113,6 +115,37 @@ monad, but are each use a different context."
       #(vector (first %) (componentise (second %)))
       (partition 2 forms)))))
 
+;; ### Action argument delay
+(defn wrap-args-if-action
+  [[fform & args :as form]]
+  (if (and (symbol? fform)
+           ;; (when-let [v (resolve fform)]
+           ;;   (-> v meta :pallet/action))
+           (when-let [v (resolve fform)]
+             (not (-> v meta :macro)))
+           )
+    (list* fform
+           (map
+            (fn [arg]
+              `(let [f# (fn [] ~arg)]
+                 ;; written like this to avoid recur across catch errors
+                 (try+
+                   (f#)
+                   (catch [:type :pallet/access-of-unset-node-value] _#
+                     (delayed [~'&session] (f#))))))
+            args))
+    form))
+
+(defn wrap-action-args
+  "Replace arguments to actions."
+  [forms]
+  (vec
+   (mapcat
+    #(list (first %) (wrap-args-if-action (second %)))
+    (partition 2 forms))))
+
+
+
 ;; ### Let Comprehension
 (defmacro let-state
   "A monadic comprehension using the state-m monad. Adds lookup of components."
@@ -132,7 +165,8 @@ monad, but are each use a different context."
             ~(->
               (first body)
               replace-in-top-level-forms
-              componentise-top-level-forms)
+              componentise-top-level-forms
+              wrap-action-args)
             ~@(rest body)))
 
 ;; ### Pipelines
@@ -147,7 +181,10 @@ monad, but are each use a different context."
               [(gensym "_") f]))]
     (let [bindings (mapcat gen-step args)]
       `(let-s
-         [~@bindings]
+        [~@bindings
+          ;; This is here so the last session is checked. Otherwise the monad
+          ;; implementation elides the last check (as a valid optimisation).
+         _# (~'m-result 1)]
          ~(last (drop-last bindings))))))
 
 (defmacro wrap-pipeline

@@ -13,7 +13,6 @@
    [clojure.java.io :as io])
   (:use
    [clojure.algo.monads :only [m-when]]
-   pallet.thread-expr
    [pallet.action :only [implement-action]]
    [pallet.actions
     :only [exec-script transfer-file transfer-file-to-local delete-local-path]]
@@ -160,7 +159,7 @@
                    (str "remote-file " path " specified without content."))))
 
          ;; process the new file accordingly
-         (when install-new-files
+         (when (and install-new-files (not link))
            (stevedore/chain-commands
             (if (or overwrite-changes no-versioning)
               (stevedore/script

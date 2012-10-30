@@ -1,7 +1,5 @@
 (ns pallet.crate.package.jpackage
   "Actions for working with the jpackage repository"
-  (:require
-   [pallet.thread-expr :as thread-expr])
   (:use
    [pallet.action :only [with-action-options]]
    [pallet.actions :only [add-rpm package package-manager package-source
@@ -118,12 +116,12 @@
            :failovermethod "priority"
            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
            :enabled enabled}))
-  (assoc-settings :jpackage-repos jpackage-repos))
+  (assoc-settings :jpackage-repos {:repos jpackage-repos}))
 
 (defplan package-manager-update-jpackage
   "Update the package lists for the jpackage repositories"
-  [jpackage-repos (get-settings :jpackage-repos)]
+  [{:keys [repos]} (get-settings :jpackage-repos)]
   (package-manager
    :update
    :disable ["*"]
-   :enable jpackage-repos))
+   :enable repos))

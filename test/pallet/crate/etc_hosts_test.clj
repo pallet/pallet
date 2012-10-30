@@ -31,3 +31,10 @@
                  {:server {:node (test-utils/make-node "g" :group-name :grp)}}
                (etc-hosts/hosts-for-group :grp)
                etc-hosts/hosts))))))
+
+(deftest hostname-test
+  (testing "compile"
+    (is
+     (build-actions
+      {:server {:node (test-utils/make-node "g" :group-name :grp)}}
+      (etc-hosts/set-hostname)))))

@@ -64,8 +64,10 @@
                           ["test" condition])
                       (~'echo @~'?))))])]
        (if-action ~(if is-script?
-                     `(delayed [s#]
-                        (= (-> (node-value ~nv s#) :flag-values ~nv-kw) "0"))
+                     ;; `(delayed [s#]
+                     ;;    (= (-> (node-value ~nv s#) :flag-values ~nv-kw) "0"))
+                     ;; `(delayed [~'&session] ~condition)
+                     `(= (-> (deref ~nv) :flag-values ~nv-kw) "0")
                      condition))
        enter-scope
        ~@crate-fns-or-actions
@@ -108,7 +110,7 @@
   (let [session (gensym "session")]
     `((clj-action [~session]
         [(let [~@(mapcat #(vector % `(node-value ~% ~session)) return-values)]
-           (logging/warnf "return-value-expr %s" ~(vec return-values))
+           (logging/debugf "return-value-expr %s" ~(vec return-values))
            ~@body)
          ~session]))))
 
@@ -116,7 +118,7 @@
   "Set the settings for the specified host facility. The instance-id allows
    the specification of specific instance of the facility (the default is
    :default)."
-  [facility kv-pairs])
+  [facility kv-pairs & {:keys [instance-id]}])
 
 ;;; # Simple File Management
 (defaction file
@@ -355,9 +357,7 @@ Content can also be copied from a blobstore.
   [path]
   (let-s
     [nv (exec-script (~lib/cat ~path))
-     c (return-value-expr [nv]
-         (logging/warnf "remote-file-content %s" (:out nv))
-         (:out nv))]
+     c (return-value-expr [nv] (:out nv))]
     c))
 
 ;;; # Remote Directory Content

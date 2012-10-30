@@ -6,7 +6,6 @@
    pallet.actions.direct.remote-file
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [pallet.thread-expr :as thread-expr]
    [clojure.java.io :as io])
   (:use
    [clojure.algo.monads :only [m-when]]
@@ -62,7 +61,9 @@
                   (let [[cmd tarpath] (source-to-cmd-and-path
                                        session path
                                        url local-file remote-file md5 md5-url
-                                       install-new-files overwrite-changes)]
+                                       install-new-files overwrite-changes)
+                        tar-md5 (str tarpath ".md5")
+                        path-md5 (str path "/.pallet.directory.md5")]
                     (checked-commands
                      "remote-directory"
                      (->
@@ -70,27 +71,34 @@
                        session path :owner owner :group group :recursive false)
                       first second)
                      cmd
-                     (condp = unpack
-                       :tar (stevedore/checked-script
-                             (format "Untar %s" tarpath)
-                             (var rdf @(readlink -f ~tarpath))
-                             (cd ~path)
-                             (tar ~tar-options
-                                  ~(str "--strip-components=" strip-components)
-                                  -f @rdf)
-                             (cd -))
-                       :unzip (stevedore/checked-script
-                               (format "Unzip %s" tarpath)
-                               (var rdf @(readlink -f ~tarpath))
-                               (cd ~path)
-                               (unzip ~unzip-options @rdf)
-                               (cd -))
-                       :jar (stevedore/checked-script
-                             (format "Unjar %s" tarpath)
-                             (var rdf @(readlink -f ~tarpath))
-                             (cd ~path)
-                             (jar ~jar-options @rdf)
-                             (cd -)))
+                     (stevedore/script
+                      (when (or (not (file-exists? ~tar-md5))
+                                (or (not (file-exists? ~path-md5))
+                                    (not (diff ~tar-md5 ~path-md5))))
+                        ~(condp = unpack
+                          :tar (stevedore/checked-script
+                                (format "Untar %s" tarpath)
+                                (var rdf @(readlink -f ~tarpath))
+                                (cd ~path)
+                                (tar
+                                 ~tar-options
+                                 ~(str "--strip-components=" strip-components)
+                                 -f @rdf)
+                                (cd -))
+                          :unzip (stevedore/checked-script
+                                  (format "Unzip %s" tarpath)
+                                  (var rdf @(readlink -f ~tarpath))
+                                  (cd ~path)
+                                  (unzip ~unzip-options @rdf)
+                                  (cd -))
+                          :jar (stevedore/checked-script
+                                (format "Unjar %s" tarpath)
+                                (var rdf @(readlink -f ~tarpath))
+                                (cd ~path)
+                                (jar ~jar-options @rdf)
+                                (cd -)))
+                        (when (file-exists? ~tar-md5)
+                          (cp ~tar-md5 ~path-md5))))
                      (if recursive
                        (->
                         (directory*

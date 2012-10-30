@@ -28,7 +28,7 @@
                    {:assoc (plan-fn
                              [c (remote-file-content
                                  (.getAbsolutePath tmp-file))]
-                             (assoc-settings :myapp c))
+                             (assoc-settings :myapp {:content @c}))
                     :get (plan-fn
                            [node target-node
                             c (get-node-settings node :myapp)]
@@ -39,4 +39,4 @@
                              :user user)]
             @result
             (is (not (failed? result)))
-            (is (= "test" @a))))))))
+            (is (= {:content "test"} @a))))))))

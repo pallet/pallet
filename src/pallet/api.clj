@@ -59,7 +59,7 @@
         algorithms
         (if (map? inherits)
           inherits
-          (reduce (partial merge-specs algorithms) inherits))
+          (reduce #(merge-specs algorithms %1 %2) {} inherits))
         spec)
        spec))
   ([spec inherits]
@@ -280,6 +280,9 @@
        all-node-set)))
     (result nil)))
 
+(def ^{:doc "Arguments that are forwarded to be part of the environment"}
+  environment-args [:compute :blobstore :user :middleware :provider-options])
+
 (defn converge*
   "Returns a FSM to converge the existing compute resources with the counts
    specified in `group-spec->count`. New nodes are started, or nodes are
@@ -319,7 +322,8 @@
         targets (groups-with-phases targets phase-map)
         environment (merge-environments
                      (pallet.environment/environment compute)
-                     environment)]
+                     environment
+                     (select-keys options environment-args))]
     (dofsm converge
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
@@ -395,7 +399,8 @@
         targets (groups-with-phases targets phase-map)
         environment (merge-environments
                      (and compute (pallet.environment/environment compute))
-                     environment)
+                     environment
+                     (select-keys options environment-args))
         plan-state {}]
     (dofsm lift
       [nodes-set (all-group-nodes compute groups all-node-set)
@@ -446,10 +451,12 @@
          (file \"/some-file\")
          (file \"/other-file\"))
 
-   This generates a new plan function."
+   This generates a new plan function, and adds code to verify the state
+   around each plan function call."
   [& body]
-  `(session-pipeline ~(gensym "a-plan-fn") {}
-     ~@body))
+  (let [n (if (string? (first body)) (first body) "a-plan-fn")
+        body (if (string? (first body)) (rest body) body)]
+    `(session-pipeline ~(gensym n) {} ~@body)))
 
 ;;; ### Admin user
 (defn make-user

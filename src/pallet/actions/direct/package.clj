@@ -13,7 +13,6 @@
    pallet.actions.direct.file
    pallet.actions.direct.remote-file)
   (:use
-   pallet.thread-expr
    [pallet.action :only [action-fn implement-action]]
    [pallet.action-plan :only [checked-commands checked-script]]
    [pallet.actions
@@ -263,7 +262,8 @@
        (if (and key-url (.startsWith key-url "ppa:"))
          (stevedore/chain-commands
           (stevedore/script (~lib/install-package "python-software-properties"))
-          (stevedore/script (add-apt-repository ~key-url)))
+          (stevedore/script (pipe (echo "") (add-apt-repository ~key-url)))
+          (stevedore/script (~lib/update-package-list)))
          (->
           (remote-file*
            session

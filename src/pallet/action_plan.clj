@@ -23,6 +23,7 @@
   (:use
    [clojure.algo.monads :only [defmonad domonad m-seq m-map]]
    [clojure.set :only [union]]
+   [clojure.string :only [trim]]
    [clojure.stacktrace :only [print-cause-trace]]
    [pallet.context :only [with-context in-phase-context-scope]]
    [pallet.node-value :only [make-node-value set-node-value]]
@@ -160,6 +161,23 @@
   [context]
   (when (seq context)
     (str (string/join ": " context) "\n")))
+
+(defmulti context-label
+  "Return a label for an action"
+  (fn [action] (action-execution action)))
+
+(defmethod context-label :default
+  [{:keys [context] :as action}]
+  (when-let [s (context-string context)]
+    (trim s)))
+
+(defmethod context-label :aggregated
+  [{:keys [context] :as action}]
+  (multi-context-string context))
+
+(defmethod context-label :collected
+  [{:keys [context] :as action}]
+  (multi-context-string context))
 
 (defn- action-plan?
   "Predicate for testing if action-plan is valid. An action-plan is either a

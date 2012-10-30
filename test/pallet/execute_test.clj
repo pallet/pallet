@@ -27,8 +27,8 @@
                    {:plan-state
                     {:host
                      {(name (id (-> session :server :node)))
-                      {:flags {:default #{:changed}}
-                       :flag-values {:default {:a "1" :b "0"}}}}}})]
+                      {:flags {nil #{:changed}}
+                       :flag-values {nil {:a "1" :b "0"}}}}}})]
              (parse-shell-result
               session
               result)))))

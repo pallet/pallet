@@ -294,7 +294,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               (exec-checked-script
                "Package source"
                (~lib/install-package "python-software-properties")
-               (add-apt-repository "ppa:abc"))))
+               (pipe (echo) (add-apt-repository "ppa:abc"))
+               (~lib/update-package-list))))
            (first
             (build-actions
                 {}

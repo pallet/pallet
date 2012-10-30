@@ -56,19 +56,27 @@
    "lift :phase %s :targets %s" (vec phases) (vec (map :group-name targets)))
   (dofsm lift
     [[results plan-state] (reduce*
-                           (fn reducer [[result plan-state] phase]
+                           (fn reducer [[results plan-state] phase]
                              (dofsm reduce-phases
                                [[r ps] (primitives/build-and-execute-phase
                                         targets plan-state environment
                                         (api/environment-execution-settings
                                          environment)
                                         targets phase)
+                                results1 (result (concat results r))
                                 _ (succeed
                                    (not (some :errors r))
-                                   {:phase-errors true
-                                    :phase phase
-                                    :results (concat result r)})]
-                               [(concat result r) ps]))
+                                   (merge
+                                    {:phase-errors true
+                                     :phase phase
+                                     :results results1}
+                                    (when-let [e (some
+                                                  #(some
+                                                    (comp :cause :error)
+                                                    (:errors %))
+                                                  results1)]
+                                      {:exception e})))]
+                               [results1 ps]))
                            [[] plan-state]
                            phases)]
     {:results results
@@ -92,18 +100,25 @@
                             targets :settings)
      _ (succeed
         (not (some :errors results1))
-        {:phase-errors true :phase :settings :results results1})
+        (merge
+         {:phase-errors true :phase :settings :results results1}
+         (when-let [e (some #(some (comp :cause :error) (:errors %)) results1)]
+           {:exception e})))
 
      [results2 plan-state] (primitives/execute-on-unflagged
                             targets
                             #(primitives/execute-phase-with-image-user
-                               % environment targets plan-state :bootstrap)
+                               service-state environment % plan-state
+                               :bootstrap)
                             :bootstrapped)
 
      _ (succeed
         (not (some :errors results2))
-        {:phase-errors true :phase :bootstrap
-         :results (concat results1 results2)})
+        (merge
+         {:phase-errors true :phase :bootstrap
+          :results (concat results1 results2)}
+         (when-let [e (some #(some (comp :cause :error) (:errors %)) results2)]
+           {:exception e})))
 
      [results3 plan-state] (reduce*
                             (fn reducer [[result plan-state] phase]
@@ -115,9 +130,16 @@
                                           targets phase)
                                  _ (succeed
                                     (not (some :errors r))
-                                    {:phase-errors true
-                                     :phase phase
-                                     :results (concat result r)})]
+                                    (merge
+                                     {:phase-errors true
+                                      :phase phase
+                                      :results (concat result r)}
+                                     (when-let [e (some
+                                                   #(some
+                                                     (comp :cause :error)
+                                                     (:errors %))
+                                                   r)]
+                                       {:exception e})))]
                                 [(concat result r) ps]))
                             [[] plan-state]
                             (remove #{:settings :bootstrap} phases))]

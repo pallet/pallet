@@ -5,7 +5,8 @@
    [pallet.action-plan :as action-plan]
    [pallet.stevedore :as stevedore])
   (:use
-   [pallet.actions :only [exec-script* pipeline-when remote-file]]
+   [pallet.actions
+    :only [exec-script* pipeline-when pipeline-when-not remote-file]]
    [pallet.crate :only [def-plan-fn os-family]]))
 
 (def-plan-fn system-environment
@@ -39,7 +40,8 @@
                 -e (quoted "/${k}/ d")
                 -e (quoted "$ a \\\\\n${s}")
                 ~path)
-               (exit 1)))))))))
+               (exit 1))))))))))
+  (pipeline-when-not shared
     (remote-file
      path
      :owner "root"
