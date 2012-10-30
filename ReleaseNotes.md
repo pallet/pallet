@@ -1,5 +1,113 @@
 Unstable development branch
 
+# 0.8.0-alpha.4
+
+- Put phase exceptions on the :exception key in the operation map
+  pallet.core.api/throw-operation-exception can be used to throw an
+  exception reported in the operation map.
+
+- Remove unnecessary require of pallet.thread-expr
+
+- Use script-exec instead of ssh- and local-transport
+
+- Add :insecure and :ssl-versions to wait-for-http-status
+
+- Add a logging context for the target node
+
+- Fix execution order in specs using :extends
+
+- Log live-test failures at debug
+
+- Add hosts-for-role and sanitise localhost
+  When the hostname is not in the list of ips provided for /etc/hosts, add
+  it as a psuedonym for localhost (prevents sudo from complaining).
+
+- Log return-value-expr at debug
+
+- Log action context at info
+
+- Add aws-ubuntu-12-04 image list to live-test
+  Uses us-east-1/ami-3c994355
+
+- Allow instance-id to be specified in assoc-settings action
+
+- Add automatic wrapping in delayed if required
+
+- Automatically delay arguments to actions
+  Allow easy use of node return values.
+
+- Only unpack remote-directory files when md5 changes
+  Use the md5 of the tar or zip file to guard unpacking the archive.
+
+- Remove warn level logging from remote-file-content
+
+- Allow instance-id to be specified in assoc-settings action
+
+- Fix environment crate
+  Both branches were being used on shared environment distros
+
+- Fix md5-url comparisons
+  The md5 comparison using :md5-url was always failing due to the file path
+  being included in the .md5 file.
+
+- Add set-hostname to pallet.crate.etc-hosts
+
+- Add pallet.crate/target-name
+
+- Add isa? based dispatch to defmulti-plan
+
+- Fix remote-file for links
+
+- Merge pull request #169 from MerelyAPseudonym/patch-2
+  Tweak docs
+
+- Update to pallet-fsmop 0.1.4
+
+- Clarify description of an "environment" in Pallet
+
+- Remove tempfiles after running scripts remotely
+
+- Fix use of package-source in crate-install
+
+- Add a confirmation to add-apt-repository in pacakage-source
+
+- Fix live-test
+  Neither the environment nor existing nodes were being used when
+  convereging nodes for a test.
+
+- Ensure the state after a final plan function is verified
+  Due to optimisations in clojure.algo.monads, the final state in a chain-s
+  expression was not being verified.
+
+- Add a debugf macro to pallet.debug
+
+- Rename p.c.ssh-key/record-public-key to public-key and implement
+  The public key is returned as a node value.
+
+- Remove use of :default in settings
+  This was getting confusing, since :instance-id might have been specified
+  as nil, and was not getting converted to :default.
+
+- Fix filtering of bootstrapped nodes on converge
+
+- Switch to use for clojure.tools.logging
+
+- Log phase contexts
+
+- Fix argument evaluation for maps containing nil values
+
+- Allow naming of plan-fn functions
+
+- Add supplied arguments (eg :user) to the environment map
+  The :compute, :blobstore, :user, :middleware and :provider-options
+  arguments are all added to the environment map.
+
+- Update pallet.debug functions to work in plan functions
+
+- Fix package-source method in crate-install
+
+- Fix merging of specs passed to :extends
+
 # 0.8.0-alpha.3
 
 - Update to ssh-transport 0.1.1
