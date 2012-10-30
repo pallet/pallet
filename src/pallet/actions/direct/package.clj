@@ -13,7 +13,6 @@
    pallet.actions.direct.file
    pallet.actions.direct.remote-file)
   (:use
-   pallet.thread-expr
    [pallet.action :only [action-fn implement-action]]
    [pallet.action-plan :only [checked-commands checked-script]]
    [pallet.actions

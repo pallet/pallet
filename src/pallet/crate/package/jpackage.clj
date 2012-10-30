@@ -1,7 +1,5 @@
 (ns pallet.crate.package.jpackage
   "Actions for working with the jpackage repository"
-  (:require
-   [pallet.thread-expr :as thread-expr])
   (:use
    [pallet.action :only [with-action-options]]
    [pallet.actions :only [add-rpm package package-manager package-source

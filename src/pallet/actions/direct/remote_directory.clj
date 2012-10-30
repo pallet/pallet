@@ -6,7 +6,6 @@
    pallet.actions.direct.remote-file
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [pallet.thread-expr :as thread-expr]
    [clojure.java.io :as io])
   (:use
    [clojure.algo.monads :only [m-when]]
