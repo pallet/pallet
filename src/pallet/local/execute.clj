@@ -6,10 +6,14 @@
    [clojure.tools.logging :as logging]
    [pallet.compute.jvm :as jvm]
    [pallet.execute :as execute]
-   [pallet.local.transport :as transport]
+   [pallet.transport :as transport]
+   [pallet.transport.local]
    [pallet.script :as script]
    [pallet.script-builder :as script-builder]
    [pallet.stevedore :as stevedore]))
+
+(def local-connection
+  (transport/open (transport/factory :local {}) nil nil nil))
 
 (defn verify-sh-return
   "Verify the return code of a sh execution"
@@ -36,6 +40,7 @@
       (logging/debugf "script-on-origin script\n%s" script)
       (spit tmpfile script)
       (let [result (transport/exec
+                    local-connection
                     {:execv ["/bin/chmod" "+x" (.getPath tmpfile)]}
                     nil)]
         (when-not (zero? (:exit result))
@@ -43,12 +48,13 @@
            "script-on-origin: Could not chmod script file: %s"
            (:out result))))
       (let [cmd (script-builder/build-code session action (.getPath tmpfile))
-            result (transport/exec cmd {:output-f #(logging/spy %)})
+            result (transport/exec
+                    local-connection cmd {:output-f #(logging/spy %)})
             [result session] (execute/parse-shell-result session result)
             result (assoc result :script script)]
         (verify-sh-return "for origin cmd" value result)
         [result session])
-      (finally  (.delete tmpfile)))))
+      (finally (.delete tmpfile)))))
 
 (defn clojure-on-origin
   "Execute a clojure function on the origin"
@@ -70,7 +76,7 @@
   [& body]
   `(local-script-context
     (logging/infof "local-script %s" (stevedore/script ~@body))
-    (transport/exec {:in (stevedore/script ~@body)} nil)))
+    (transport/exec local-connection {:in (stevedore/script ~@body)} nil)))
 
 (defmacro local-checked-script
   "Run a script on the local machine, setting up stevedore to produce the
@@ -80,7 +86,7 @@
     (let [cmd# (stevedore/checked-script ~msg ~@body)]
       (verify-sh-return
        ~msg cmd#
-       (transport/exec {:in cmd#} nil)))))
+       (transport/exec local-connection {:in cmd#} nil)))))
 
 (defn local-script-expand
   "Expand a script expression."
