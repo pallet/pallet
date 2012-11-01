@@ -55,7 +55,8 @@
 
 (defn get-connection [session]
   (transport/open
-   ssh-connection (endpoint session) (authentication session) {}))
+   ssh-connection (endpoint session) (authentication session)
+   {:max-tries 3}))
 
 (defmacro ^{:indent 2} with-connection
   "Execute the body with a connection to the current target node,"
