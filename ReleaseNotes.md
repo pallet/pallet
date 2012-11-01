@@ -1,5 +1,9 @@
 Unstable development branch
 
+# 0.8.0-alpha.5
+
+- Enable retry of SSH connection attempts
+
 # 0.8.0-alpha.4
 
 - Put phase exceptions on the :exception key in the operation map
