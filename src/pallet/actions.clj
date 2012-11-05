@@ -120,6 +120,13 @@
    :default)."
   [facility kv-pairs & {:keys [instance-id]}])
 
+(defaction update-settings
+  "Update the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility (the default is
+   :default)."
+  [facility options-or-f & args]
+  {:arglists '[[facility options f & args] [facility f & args]]})
+
 ;;; # Simple File Management
 (defaction file
   "Touch or remove a file. Can also set owner and permissions.
