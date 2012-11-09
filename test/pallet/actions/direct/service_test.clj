@@ -2,7 +2,7 @@
   (:use
    clojure.test
    [pallet.actions
-    :only [service with-service-restart init-script
+    :only [service with-service-restart service-script
            exec-checked-script remote-file]]
    [pallet.build-actions :as build-actions]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
@@ -54,4 +54,4 @@
              :mode "0755")))
          (first
           (build-actions {}
-            (init-script "tomcat" :content "c"))))))
+            (service-script "tomcat" :content "c"))))))

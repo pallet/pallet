@@ -561,9 +561,10 @@ Content can also be copied from a blobstore.
                as set, for example, by remote-file :flag-on-changed
    - :sequence-start  a sequence of [sequence-number level level ...], where
                       sequence number determines the order in which services
-                      are started within a level."
-  [service-name & {:keys [action if-flag if-stopped]
-                   :or {action :start}
+                      are started within a level.
+   - :service-impl    either :initd or :upstart"
+  [service-name & {:keys [action if-flag if-stopped service-impl]
+                   :or {action :start service-impl :initd}
                    :as options}])
 
 (defmacro with-service-restart
@@ -575,17 +576,17 @@ Content can also be copied from a blobstore.
        ~@body
        (service service# :action :start))))
 
-(defn init-script
-  "Install an init script.  Sources as for remote-file."
+(defn service-script
+  "Install a service script.  Sources as for remote-file."
   [service-name & {:keys [action url local-file remote-file link
                           content literal template values md5 md5-url
-                          force]
-                   :or {action :create}
+                          force service-impl]
+                   :or {action :create service-impl :initd}
                    :as options}]
   (phase-pipeline init-script {}
     (apply-map
      pallet.actions/remote-file
-     (init-script-path service-name)
+     (service-script-path service-impl service-name)
      :owner "root" :group "root" :mode "0755"
      (merge {:action action} options))))
 
