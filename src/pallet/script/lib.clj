@@ -768,6 +768,9 @@
 (script/defimpl etc-init :default [] "/etc/init.d")
 (script/defimpl etc-init [:pacman] [] "/etc/rc.d")
 
+(script/defscript upstart-script-dir [])
+(script/defimpl upstart-script-dir :default [] "/etc/init")
+
 ;; Some of the packagers, like brew, are "add-ons" in the sense that they are
 ;; outside of the base system.  These paths refer to locations of packager
 ;; installed files.
