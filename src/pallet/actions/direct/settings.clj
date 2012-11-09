@@ -35,5 +35,5 @@
        [[f args] (update-in
                   session [:plan-state]
                   plan-state/update-settings
-                  (session/target-id session) facility options f args)])
+                  (session/target-id session) facility f args options)])
      session]))
