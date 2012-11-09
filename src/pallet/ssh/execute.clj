@@ -83,14 +83,18 @@
          "%s %s %s"
          (:server endpoint) (context-label action)
          (action-symbol (:action action)))
-        (logging/debugf "Target %s cmd\n%s via %s" endpoint script tmpfile)
+        (logging/debugf "Target %s cmd\n%s via %s as %s"
+                        endpoint script tmpfile (or (:sudo-user action) "root"))
         (transport/send-text
          connection script tmpfile
          {:mode (if (:sudo-user action) 0644 0600)})
         (let [clean-f (comp
                        #(execute/strip-sudo-password % (:user authentication))
                        execute/normalise-eol)
-              output-f (comp #(logging/spy %) clean-f)
+              output-f (comp
+                        #(logging/debugf
+                          "%s output\n=> %s" (:server endpoint) %)
+                        clean-f)
               result (transport/exec
                       connection
                       (script-builder/build-code session action tmpfile)
