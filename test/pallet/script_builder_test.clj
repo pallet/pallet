@@ -16,7 +16,7 @@
 (deftest sudo-cmd-for-test
   (script/with-script-context [:ubuntu]
     (let [no-pw "/usr/bin/sudo -n"
-          pw "echo \"fred\" | /usr/bin/sudo -S"
+          pw "echo 'fred' | /usr/bin/sudo -S"
           no-sudo nil]
       (is (= no-pw (sudo-cmd-for {:username "fred"})))
       (is (= pw (sudo-cmd-for {:username "fred" :sudo-password "fred"})))
@@ -27,7 +27,7 @@
       (is (= no-sudo (sudo-cmd-for {:username "fred" :no-sudo true})))))
   (script/with-script-context [:centos-5.3]
     (let [no-pw "/usr/bin/sudo"
-          pw "echo \"fred\" | /usr/bin/sudo -S"
+          pw "echo 'fred' | /usr/bin/sudo -S"
           no-sudo nil]
       (is (= no-pw (sudo-cmd-for {:username "fred"})))
       (is (= pw (sudo-cmd-for {:username "fred" :sudo-password "fred"})))
