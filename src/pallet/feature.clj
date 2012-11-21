@@ -56,3 +56,7 @@
 (defn node-image
   "Feature for pallet.node/NodeImage."
   [] true)
+
+(defn node-hardware
+  "Feature for pallet.node/NodeHardware."
+  [] true)

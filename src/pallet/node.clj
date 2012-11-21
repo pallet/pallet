@@ -25,6 +25,14 @@
 (defprotocol NodeImage
   (image-user [node] "Return the user that is defined by the image."))
 
+(defprotocol NodeHardware
+  (hardware [node]
+    "Return a map with `:cpus`, `:ram`, and `:disks` information. The ram is
+     reported in Mb. The `:cpus` is a sequence of maps, one for each cpu,
+     containing the number of `:cores` on each. The `:disks` is a sequence
+     of maps, containing a :size key for each drive, in Gb. Other keys
+     may be present."))
+
 (defn node?
   "Predicate to test whether an object implements the Node protocol"
   [obj]
