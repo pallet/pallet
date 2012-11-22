@@ -79,6 +79,19 @@ Shell script `for` loops are mapped to clojure`s `doseq`.
 : echo ${x}
 : done
 
+You can also combine command substitution with loops like this
+
+#+BEGIN_SRC clojure :tangle src/stevedore.clj
+  (stevedore/script
+   (doseq [d @(ls "/home")]
+     (println @d)))
+#+END_SRC
+
+#+results:
+: for d in $(ls /home/); do
+: echo ${d}
+: done
+
 * Functions
 
 Calling a function follows clojure's normal syntax.
