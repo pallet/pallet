@@ -254,7 +254,7 @@
      (format "enabled=%s" enabled)
      ""])))
 
-+(def ^{:dynamic true} *default-apt-keyserver* "subkeys.pgp.net")
+(def ^{:dynamic true} *default-apt-keyserver* "subkeys.pgp.net")
 
 (defn package-source*
   "Add a packager source."
