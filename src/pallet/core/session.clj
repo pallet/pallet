@@ -18,6 +18,11 @@
 ;;   [session]
 ;;   (:phase session))
 
+(defn target
+  "Target server."
+  [session]
+  (-> session :server))
+
 (defn target-node
   "Target compute service node."
   [session]

@@ -172,6 +172,11 @@
      [nil ~sym]))
 
 ;;; ## Session Accessors
+(defn target
+  "The target-node."
+  [session]
+  [(session/target session) session])
+
 (defn target-node
   "The target-node."
   [session]
