@@ -32,3 +32,11 @@
      (fn [session]
        (println (format format-string (pr-str session)))
        [nil session])))
+
+(defn assertf
+  "Assert a condition"
+  ([expr format-string & args]
+     (fn [session]
+       (when-not expr
+         (throw (Exception. (apply format format-string args))))
+       [true session])))
