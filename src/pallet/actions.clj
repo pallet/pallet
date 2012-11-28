@@ -481,6 +481,8 @@ Content can also be copied from a blobstore.
    :execution :aggregated}
   [action & options])
 
+(def package-source-changed-flag "packagesourcechanged")
+
 (defaction package-source
   "Control package sources.
    Options are the package manager keywords, each specifying a map of

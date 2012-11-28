@@ -17,7 +17,7 @@
    [pallet.action-plan :only [checked-commands checked-script]]
    [pallet.actions
     :only [add-rpm package package-manager package-source minimal-packages
-           exec-script remote-file sed install-deb]]
+           exec-script remote-file sed install-deb package-source-changed-flag]]
    [pallet.actions-impl :only [remote-file-action]]
    [pallet.core.session :only [packager os-family]]))
 
@@ -269,7 +269,8 @@
            session
            (format (source-location packager) name)
            {:content (format-source packager name (packager options))
-            :literal (= packager :yum)})
+            :literal (= packager :yum)
+            :flag-on-changed package-source-changed-flag})
           first second)))
      (if-let [key-id (or (:key-id aptitude) (:key-id apt))]
        (if (#{:aptitude :apt} packager)
@@ -284,7 +285,10 @@
        (if (#{:aptitude :apt} packager)
        (stevedore/chain-commands
         (->
-         (remote-file* session "aptkey.tmp" {:url key-url}) first second)
+         (remote-file*
+          session "aptkey.tmp"
+          {:url key-url :flag-on-changed package-source-changed-flag})
+         first second)
         (stevedore/script (apt-key add aptkey.tmp)))))
      (when-let [key (and (= packager :yum) (:gpgkey yum))]
        (stevedore/script (rpm "--import" ~key))))))
