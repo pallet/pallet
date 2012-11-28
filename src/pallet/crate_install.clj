@@ -1,10 +1,15 @@
 (ns pallet.crate-install
   "Install methods for crates"
   (:use
+   [clojure.algo.monads :only [m-map]]
+   [clojure.tools.logging :only [debugf]]
    [pallet.action :only [with-action-options]]
-   [pallet.actions :only [add-rpm package-source package remote-directory]]
+   [pallet.actions
+    :only [add-rpm package package-source package-manager
+           package-source-changed-flag pipeline-when remote-directory]]
    [pallet.crate :only [get-settings defmulti-plan defmethod-plan]]
    [pallet.crate.package-repo :only [repository-packages rebuild-repository]]
+   [pallet.execute :only [target-flag?]]
    [pallet.monad :only [chain-s let-s]]
    [pallet.utils :only [apply-map]])
   (:require
@@ -23,13 +28,22 @@
   [{:keys [packages]} (get-settings facility {:instance-id instance-id})]
   (map package packages))
 
-;; install based on the setting's :package-source and :packages keys
+;; Install based on the setting's :package-source and :packages keys.
+;; This will cause a package update if the package source definition
+;; changes.
 (defmethod-plan install :package-source
   [facility instance-id]
-  [{:keys [package-source packages]}
+  [{:keys [package-source packages package-options]}
    (get-settings facility {:instance-id instance-id})]
   (apply-map actions/package-source (:name package-source) package-source)
-  (map package packages))
+  [update? (target-flag? package-source-changed-flag)]
+  (m-result (debugf "package source modified %s" update?))
+  (pipeline-when update?
+                 (m-result (debugf "before update"))
+   (package-manager :update))
+  (m-result (debugf "after update"))
+  (m-map #(apply-map package % package-options) packages)
+  (m-result (debugf "after packages")))
 
 ;; install based on a rpm
 (defmethod-plan install :rpm
