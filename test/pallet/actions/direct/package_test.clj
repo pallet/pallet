@@ -261,7 +261,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (remote-file*
             ubuntu-session
             "/etc/apt/sources.list.d/source1.list"
-            {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
+            {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"
+             :flag-on-changed "packagesourcechanged"})
            first second))
          (binding [pallet.action-plan/*defining-context* nil]
            (package-source*
@@ -279,7 +280,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
          "/etc/yum.repos.d/source1.repo"
          {:content
           "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\nenabled=1\n"
-          :literal true})
+          :literal true
+          :flag-on-changed "packagesourcechanged"})
         first second))
       (binding [pallet.action-plan/*defining-context* nil]
         (package-source*
@@ -309,7 +311,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              (remote-file*
               ubuntu-session
               "/etc/apt/sources.list.d/source1.list"
-              {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
+              {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"
+               :flag-on-changed "packagesourcechanged"})
              first second)
             (stevedore/script
              (apt-key adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
@@ -328,7 +331,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                (remote-file*
                 ubuntu-session
                 "/etc/apt/sources.list.d/source1.list"
-                {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
+                {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"
+                 :flag-on-changed "packagesourcechanged"})
                first second)
               (stevedore/script
                (apt-key adv "--keyserver" keys.ubuntu.com "--recv-keys" 1234)))
@@ -351,7 +355,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              (remote-file*
               (build-session {:server a})
               "/etc/apt/sources.list.d/source1.list"
-              {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
+              {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"
+               :flag-on-changed "packagesourcechanged"})
              first second))
            (first (build-actions
                       {:server a}
@@ -369,6 +374,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   "/etc/yum.repos.d/source1.repo"
                   {:content
                    "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\nenabled=1\n"
+                   :flag-on-changed "packagesourcechanged"
                    :literal true})
                  first second)))
            (first (build-actions centos-session
