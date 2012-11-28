@@ -53,12 +53,15 @@
    (stevedore/chain-commands*
     (for [[opts packages] (->>
                            packages
-                           (group-by #(select-keys % [:enable]))
+                           (group-by #(select-keys % [:enable :allow-unsigned]))
                            (sort-by #(apply min (map :priority (second %)))))]
       (stevedore/script
        (aptitude
         install -q -y
         ~(string/join " " (map #(str "-t " %) (:enable opts)))
+        ~(if (:allow-unsigned opts)
+           "-o 'APT::Get::AllowUnauthenticated=true'"
+           "")
         ~(string/join
           " "
           (for [[action packages] (group-by :action packages)
@@ -102,12 +105,13 @@
    (stevedore/chain-commands*
     (for [[opts packages] (->>
                            packages
-                           (group-by #(select-keys % [:enable]))
+                           (group-by #(select-keys % [:enable :allow-unsigned]))
                            (sort-by #(apply min (map :priority (second %)))))]
       (stevedore/script
        (apt-get
         -q -y install
         ~(string/join " " (map #(str "-t " %) (:enable opts)))
+        ~(if (:allow-unsigned opts) "--allow-unauthenticated" "")
         ~(string/join
           " "
           (for [[action packages] (group-by :action packages)
