@@ -2,7 +2,7 @@
   "Install methods for crates"
   (:use
    [clojure.algo.monads :only [m-map]]
-   [clojure.tools.logging :only [debugf]]
+   [clojure.tools.logging :only [debugf tracef]]
    [pallet.action :only [with-action-options]]
    [pallet.actions
     :only [add-rpm package package-source package-manager
@@ -35,15 +35,14 @@
   [facility instance-id]
   [{:keys [package-source packages package-options]}
    (get-settings facility {:instance-id instance-id})]
+  (m-result (debugf "package source %s %s" facility package-source))
   (apply-map actions/package-source (:name package-source) package-source)
   [update? (target-flag? package-source-changed-flag)]
   (m-result (debugf "package source modified %s" update?))
   (pipeline-when update?
-                 (m-result (debugf "before update"))
    (package-manager :update))
-  (m-result (debugf "after update"))
-  (m-map #(apply-map package % package-options) packages)
-  (m-result (debugf "after packages")))
+  (m-result (tracef "packages %s options %s" (vec packages) package-options))
+  (m-map #(apply-map package % package-options) packages))
 
 ;; install based on a rpm
 (defmethod-plan install :rpm
