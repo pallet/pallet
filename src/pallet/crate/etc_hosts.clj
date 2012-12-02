@@ -85,7 +85,7 @@
       os os-family
       _ (pallet.debug/debugf "hostname for os %s" os)]
      os))
-  :hierarchy os-hierarchy)
+  :hierarchy #'os-hierarchy)
 
 (defmethod-plan set-hostname* :linux [hostname]
   ;; change the hostname now
