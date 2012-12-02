@@ -112,6 +112,15 @@
        (roles role)))
    (:service-state session)))
 
+(defn role->nodes-map
+  "Returns a map from role to nodes."
+  [session]
+  (reduce
+   (fn [m node]
+     (reduce (fn [m role] (update-in m [role] conj node)) m (:roles node)))
+   {}
+   (:service-state session)))
+
 (defn packager
   [session]
   (node/packager (get-in session [:server :node])))

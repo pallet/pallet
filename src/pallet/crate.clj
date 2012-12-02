@@ -235,6 +235,12 @@
   (fn [session]
     [(session/nodes-with-role session role) session]))
 
+(defn role->nodes-map
+  "A map from role to nodes."
+  []
+  (fn [session]
+    [(session/role->nodes-map session) session]))
+
 (defn packager
   [session]
   [(session/packager session) session])
