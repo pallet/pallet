@@ -488,6 +488,24 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                 ubuntu-session
                 [{:package "p1" :action :install :priority 20}
                  {:package "p2" :action :install :enable ["r1"] :priority 2}]))))))
+  (testing "aptitude with allow-unsigned"
+    (script/with-script-context [:aptitude]
+      (is (= (stevedore/checked-script
+              "Packages"
+              (~lib/package-manager-non-interactive)
+              (aptitude install -q -y p1+)
+              (aptitude install -q -y -o "'APT::Get::AllowUnauthenticated=true'" p2+)
+              (pipe
+               (aptitude search (quoted "?and(?installed, ?name(^p1$))"))
+               (grep (quoted p1)))
+              (pipe
+               (aptitude search (quoted "?and(?installed, ?name(^p2$))"))
+               (grep (quoted "p2"))))
+             (binding [pallet.action-plan/*defining-context* nil]
+               (adjust-packages
+                ubuntu-session
+                [{:package "p1" :action :install}
+                 {:package "p2" :action :install :allow-unsigned true}]))))))
   (testing "yum"
     (is (= (stevedore/checked-script
             "Packages"

@@ -47,6 +47,7 @@
 ;; need to split by enable/disable options.
 (defmethod adjust-packages :aptitude
   [session packages]
+  (logging/tracef "adjust-packages :aptitude %s" (vec packages))
   (checked-commands
    "Packages"
    (stevedore/script (~lib/package-manager-non-interactive))
@@ -183,8 +184,9 @@
 (defn- package-map
   "Convert the args into a single map"
   [session package-name
-   & {:keys [action y force purge priority enable disable] :as options}]
-  (logging/tracef "package-map %s" package-name)
+   & {:keys [action y force purge priority enable disable allow-unsigned]
+      :as options}]
+  (logging/tracef "package-map %s %s" package-name options)
   (letfn [(as-seq [x] (if (or (string? x) (symbol? x) (keyword? x))
                         [(name x)] x))]
     (->
@@ -199,18 +201,21 @@
 
    Options
     - :action [:install | :remove | :upgrade]
-    - :purge [true|false]         when removing, whether to remove all config
-    - :enable [repo|(seq repo)]   enable specific repository
-    - :disable [repo|(seq repo)]  disable specific repository
-    - :priority n                 priority (0-100, default 50)
+    - :purge [true|false]          when removing, whether to remove all config
+    - :enable [repo|(seq repo)]    enable specific repository
+    - :disable [repo|(seq repo)]   disable specific repository
+    - :priority n                  priority (0-100, default 50)
+    - :allow-unsigned [true|false] allow unsigned packages
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
   {:action-type :script
    :location :target}
   [session & args]
+  (logging/tracef "package %s" (vec args))
   [[{:language :bash}
-    (adjust-packages session (map #(apply package-map session %) args))]
+    (adjust-packages
+     session (map #(apply package-map session %) (distinct args)))]
    session])
 
 (def source-location
