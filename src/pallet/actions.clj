@@ -5,12 +5,13 @@
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore])
   (:use
+   [clojure.set :only [intersection]]
    pallet.actions-impl
    [pallet.action
     :only [clj-action defaction with-action-options enter-scope leave-scope]]
    [pallet.argument :only [delayed]]
-   [pallet.crate :only [packager]]
-   [pallet.monad :only [let-s phase-pipeline]]
+   [pallet.crate :only [role->nodes-map packager target]]
+   [pallet.monad :only [let-s phase-pipeline phase-pipeline-no-context]]
    [pallet.node-value :only [node-value]]
    [pallet.script.lib :only [set-flag-value]]
    [pallet.utils :only [apply-map tmpfile]]))
@@ -619,3 +620,29 @@ Content can also be copied from a blobstore.
    condition]
   (let [service-name (or service-name "retryable")]
     `(loop-until ~service-name ~condition ~max-retries ~standoff)))
+
+;;; target filters
+
+(defn ^:internal one-node-filter
+  [role->nodes [role & roles]]
+  (let [role-nodes (set (role->nodes role))
+        m (select-keys role->nodes roles)]
+    (or (first (reduce
+                (fn [result [role nodes]]
+                  (intersection result (set nodes)))
+                role-nodes
+                m))
+        (first m))))
+
+(defmacro on-one-node
+  "Execute the body on just one node of the specified roles. If there is no
+   node in the union of nodes for all the roles, the nodes for the first role
+   are used."
+  [[roles] & body]
+  `(phase-pipeline-no-context
+    on-one-node {:roles roles}
+    [target# target
+     role->nodes# (role->nodes-map)]
+    (pipeline-when
+     (= target# (one-node-filter role->nodes# ~roles))
+     ~@body)))
