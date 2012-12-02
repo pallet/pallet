@@ -130,7 +130,7 @@
                  (if-let [f# (or (get @a# dispatch-val#)
                                  (some
                                   (fn [[k# f#]]
-                                    (when (isa? ~hierarchy dispatch-val# k#)
+                                    (when (isa? @~hierarchy dispatch-val# k#)
                                       f#))
                                   @a#))]
                    ((f# ~@args) session#)
