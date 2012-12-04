@@ -18,17 +18,32 @@
 (defn minc [x] (fn mincf [s] [(inc x) s]))
 (defn s-inc [s] [nil (inc s)])
 (defn s-inc-throw [s] (throw (Exception. "xxx")) [nil (inc s)])
+(defn minc-throw [] (fn s-inc-throw2 [s]
+                      (throw (Exception. "xxx"))
+                      [nil (inc s)]))
 
 
 (deftest dostate-test
   (check-state-with nil)
-  (letfn [(mf [x] (dostate [y (minc x)] y))]
+  (letfn [(mf [x] (dostate
+                   [y (minc x)] y))]
     (is (= [2 :state] ((mf 1) :state))))
-  (let [f (dostate [y s-inc] y)]
+  (let [f (dostate
+           [y s-inc]
+           y)]
     (is (= [nil 2] (f 1))))
-  ;; (let [f (dostate [y s-inc-throw] y)]
-  ;;   (is (= [nil 2] (f 1))))
-  )
+  (letfn [(f [] (dostate
+                 [y s-inc
+                  ;; y (minc-throw)
+                  ] y
+                 ))]
+    (is (= [nil 2] ((f) 1))))
+  (let [f (dostate
+           [y s-inc
+            ;; y s-inc-throw
+            ]
+           y)]
+    (is (= [nil 2] (f 1)))))
 
 (deftest when-test
   (check-state-with nil)

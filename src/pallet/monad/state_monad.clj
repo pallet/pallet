@@ -44,6 +44,8 @@ way. The function can not modify the state used in any way."
   (let [fname (gensym "m-resultf")]
     `(fn ~fname [s#] [~v s#])))
 
+;;; `m-bind` is a macro to reduce the stack depth, and to allow the bind
+;;; function to be named for identification
 (defmacro m-bind [mv f]
   (let [s (gensym "state")
         ss (gensym "state")
@@ -55,11 +57,14 @@ way. The function can not modify the state used in any way."
                        (let [s (sanitise-for-symbol form)]
                          (str "bfn" (subs s 0 (min 50 (count s)))))
                        "m-bind-fn"))]
-    `(fn ~fname [~s]
-       ~@(when state-checker `[(when state-checker (state-checker ~s '~f))])
-       (let [[v# ~ss] (~mv ~s)]
-         ~@(when state-checker `[(when state-checker (state-checker ~ss '~f))])
-         ((~f v#) ~ss)))))
+    (with-meta
+      `(fn ~fname [~s]
+         ~@(when state-checker `[(when state-checker (state-checker ~s '~f))])
+         (let [[v# ~ss] (~mv ~s)]
+           ~@(when state-checker
+               `[(when state-checker (state-checker ~ss '~f))])
+           ((~f v#) ~ss)))
+      (select-keys (meta mv) [:line]))))
 
 ;;; # Monadic Comprehension
 (defn- ensure-items [n steps]
