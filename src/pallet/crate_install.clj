@@ -1,7 +1,6 @@
 (ns pallet.crate-install
   "Install methods for crates"
   (:use
-   [clojure.algo.monads :only [m-map]]
    [clojure.tools.logging :only [debugf tracef]]
    [pallet.action :only [with-action-options]]
    [pallet.actions
@@ -11,6 +10,7 @@
    [pallet.crate.package-repo :only [repository-packages rebuild-repository]]
    [pallet.execute :only [target-flag?]]
    [pallet.monad :only [chain-s let-s]]
+   [pallet.monad.state-monad :only [m-map]]
    [pallet.utils :only [apply-map]])
   (:require
    [pallet.actions :as actions]))

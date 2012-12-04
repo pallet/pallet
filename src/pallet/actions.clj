@@ -12,6 +12,7 @@
    [pallet.argument :only [delayed]]
    [pallet.crate :only [role->nodes-map packager target]]
    [pallet.monad :only [let-s phase-pipeline phase-pipeline-no-context]]
+   [pallet.monad.state-monad :only [m-when]]
    [pallet.node-value :only [node-value]]
    [pallet.script.lib :only [set-flag-value]]
    [pallet.utils :only [apply-map tmpfile]]))
@@ -334,7 +335,7 @@ Content can also be copied from a blobstore.
   {:pre [path]}
   (verify-local-file-exists local-file)
   (let-s
-    [_ (when local-file
+    [_ (m-when local-file
          (transfer-file local-file (str path ".new")))
      f (with-action-options local-file-options
          (let-s
@@ -419,7 +420,7 @@ Content can also be copied from a blobstore.
            :as options}]
   (verify-local-file-exists local-file)
   (let-s
-    [_ (when local-file
+    [_ (m-when local-file
          (transfer-file local-file (str path "-content")))
      f (with-action-options local-file-options
          (let-s
