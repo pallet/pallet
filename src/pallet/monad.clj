@@ -57,7 +57,9 @@ monad, but are each use a different context."
   "Replace top level monadic function symbols."
   [form]
   (if (and (sequential? form) (not (vector? form)))
-    (list* (get top-level-replacements (first form) (first form)) (rest form))
+    (with-meta
+      (list* (get top-level-replacements (first form) (first form)) (rest form))
+      (meta form))
     form))
 
 (defn replace-in-top-level-forms
@@ -89,24 +91,28 @@ monad, but are each use a different context."
 
 ;; ### Action argument delay
 (defn wrap-args-if-action
-  [[fform & args :as form]]
-  (if (and (symbol? fform)
-           ;; (when-let [v (resolve fform)]
-           ;;   (-> v meta :pallet/action))
-           (when-let [v (resolve fform)]
-             (not (-> v meta :macro)))
-           )
-    (list* fform
-           (map
-            (fn [arg]
-              `(let [f# (fn ~(gensym "wrap-arg") [] ~arg)]
-                 ;; written like this to avoid recur across catch errors
-                 (try+
-                  (f#)
-                  (catch [:type :pallet/access-of-unset-node-value] _#
-                    (delayed [~'&session] (f#))))))
-            args))
-    form))
+  [form]                                ; no destructuring to preserve metadata
+  (let [[fform & args] form]
+    (if (and (symbol? fform)
+             ;; (when-let [v (resolve fform)]
+             ;;   (-> v meta :pallet/action))
+             (when-let [v (resolve fform)]
+               (not (-> v meta :macro))))
+      (with-meta
+        (list* fform
+               (map
+                (fn [arg]
+                  (if (or (keyword? arg)(number? arg)(vector? arg)(set? arg))
+                    arg
+                    `(let [f# (fn ~(gensym "wrap-arg") [] ~arg)]
+                       ;; written like this to avoid recur across catch errors
+                       (try+
+                        (f#)
+                        (catch [:type :pallet/access-of-unset-node-value] _#
+                          (delayed [~'&session] (f#)))))))
+                args))
+        (meta form))
+      form)))
 
 (defn wrap-action-args
   "Replace arguments to actions."
