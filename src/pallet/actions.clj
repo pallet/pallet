@@ -633,7 +633,7 @@ Content can also be copied from a blobstore.
                   (intersection result (set nodes)))
                 role-nodes
                 m))
-        (first m))))
+        (first role-nodes))))
 
 (defmacro on-one-node
   "Execute the body on just one node of the specified roles. If there is no
