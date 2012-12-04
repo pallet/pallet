@@ -6,7 +6,6 @@
    [pallet.context :as context])
   (:use
    [clojure.tools.macro :only [name-with-attributes]]
-   [clojure.algo.monads :only [m-result]]
    [pallet.action :only [declare-aggregated-crate-action declare-action]]
    [pallet.common.context :only [throw-map]]
    [pallet.monad :only [phase-pipeline phase-pipeline-no-context
