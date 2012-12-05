@@ -29,7 +29,7 @@ way. The function can not modify the state used in any way."
 (defn sanitise-for-symbol [s]
   (->
    (pr-str s)
-   (string/replace #"[- :().\[\]+,#]" "_")
+   (string/replace #"[- :().\[\]+,#\"!]" "_")
    (string/replace #"clojure.core/" "")
    (string/replace #"_+" "_")
    (string/replace #"_[0-9]+_(auto_)?" "_G_")                  ; replace gensym
