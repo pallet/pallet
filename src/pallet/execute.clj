@@ -84,6 +84,7 @@
      (when-let [flags (get-settings
                        (:plan-state session) (target-id session) :flags
                        {:default #{}})]
+       (logging/tracef "target-flag? flag %s flags %s" flag flags)
        (flags flag)))
   ([flag]
      (fn [session]

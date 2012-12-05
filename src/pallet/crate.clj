@@ -4,6 +4,7 @@
    [clojure.string :as string]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.session :as session]
+   [pallet.execute :as execute]
    [pallet.node :as node])
   (:use
    [clojure.tools.macro :only [name-with-attributes]]
@@ -11,6 +12,7 @@
     :only [declare-action
            declare-aggregated-crate-action
            declare-collected-crate-action]]
+   [pallet.argument :only [delayed-fn]]
    [pallet.monad :only [phase-pipeline phase-pipeline-no-context
                         session-pipeline local-env let-s]]
    [pallet.utils :only [compiler-exception]]
@@ -254,6 +256,11 @@
   "Predicate for a 64 bit target"
   [session]
   [(session/is-64bit? session) session])
+
+(defn target-flag?
+  "Returns a DelayedFunction that is a predicate for whether the flag is set"
+  [flag]
+  (delayed-fn #(execute/target-flag? % (keyword (name flag)))))
 
 ;;; ## Settings
 (defn get-settings
