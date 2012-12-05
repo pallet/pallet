@@ -12,7 +12,7 @@
    [pallet.argument :only [delayed]]
    [pallet.crate :only [role->nodes-map packager target]]
    [pallet.monad :only [let-s phase-pipeline phase-pipeline-no-context]]
-   [pallet.monad.state-monad :only [m-when]]
+   [pallet.monad.state-monad :only [m-when m-result]]
    [pallet.node-value :only [node-value]]
    [pallet.script.lib :only [set-flag-value]]
    [pallet.utils :only [apply-map tmpfile]]))
@@ -639,7 +639,7 @@ Content can also be copied from a blobstore.
   "Execute the body on just one node of the specified roles. If there is no
    node in the union of nodes for all the roles, the nodes for the first role
    are used."
-  [[roles] & body]
+  [roles & body]
   `(phase-pipeline-no-context
     on-one-node {:roles roles}
     [target# target
