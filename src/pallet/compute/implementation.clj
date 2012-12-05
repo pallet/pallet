@@ -12,7 +12,7 @@
   (fn [provider-name & _] (keyword provider-name)))
 
 
-(def compute-prefix "pallet.compute")
+(def compute-prefix #"^pallet.compute")
 (def exclude-compute-ns
   #{'pallet.compute
     'pallet.compute.jvm
