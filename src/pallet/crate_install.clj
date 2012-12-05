@@ -6,9 +6,8 @@
    [pallet.actions
     :only [add-rpm package package-source package-manager
            package-source-changed-flag pipeline-when remote-directory]]
-   [pallet.crate :only [get-settings defmulti-plan defmethod-plan]]
+   [pallet.crate :only [get-settings defmulti-plan defmethod-plan target-flag?]]
    [pallet.crate.package-repo :only [repository-packages rebuild-repository]]
-   [pallet.execute :only [target-flag?]]
    [pallet.monad :only [chain-s let-s]]
    [pallet.monad.state-monad :only [m-map]]
    [pallet.utils :only [apply-map]])
@@ -37,9 +36,8 @@
    (get-settings facility {:instance-id instance-id})]
   (m-result (debugf "package source %s %s" facility package-source))
   (apply-map actions/package-source (:name package-source) package-source)
-  [update? (target-flag? package-source-changed-flag)]
-  (m-result (debugf "package source modified %s" update?))
-  (pipeline-when update?
+  [modified? (m-result (target-flag? package-source-changed-flag))]
+  (pipeline-when modified?
    (package-manager :update))
   (m-result (tracef "packages %s options %s" (vec packages) package-options))
   (m-map #(apply-map package % package-options) packages))
