@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.actions.direct.remote-directory documentation</title>
+    <title>pallet.monad.state-monad documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript" src="js/page_effects.js"></script>
@@ -21,18 +21,118 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          
+          <li class="ns-var-link"><a href="pallet.monad.state-monad.html#var-check-state-with">check-state-with</a></li><li class="ns-var-link"><a href="pallet.monad.state-monad.html#var-cond-statement">cond-statement</a></li><li class="ns-var-link"><a href="pallet.monad.state-monad.html#var-dostate">dostate</a></li><li class="ns-var-link"><a href="pallet.monad.state-monad.html#var-m-chain">m-chain</a></li><li class="ns-var-link"><a href="pallet.monad.state-monad.html#var-m-fmap">m-fmap</a></li><li class="ns-var-link"><a href="pallet.monad.state-monad.html#var-m-join">m-join</a></li><li class="ns-var-link"><a href="pallet.monad.state-monad.html#var-m-lift">m-lift</a></li><li class="ns-var-link"><a href="pallet.monad.state-monad.html#var-m-map">m-map</a></li><li class="ns-var-link"><a href="pallet.monad.state-monad.html#var-m-seq">m-seq</a></li><li class="ns-var-link"><a href="pallet.monad.state-monad.html#var-m-when">m-when</a></li><li class="ns-var-link"><a href="pallet.monad.state-monad.html#var-m-when-not">m-when-not</a></li><li class="ns-var-link"><a href="pallet.monad.state-monad.html#var-state-checker">state-checker</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.actions.direct.remote-directory documentation</h2>
-        <div class="doc"><p>Action to specify the content of a remote directory.  At present the
-content can come from a downloaded tar or zip file.</p>
+        <h2 class="namespace-title">pallet.monad.state-monad documentation</h2>
+        <div class="doc"><p>Provides a state monad implementation, based on clojure.algo.monads.</p>
+
+<p>This aims to solve two problems that occur when using state monads with
+clojure.algo.monads.  Firstly stack traces are unusable, since they contain only
+bind calls (ie. no identifiable user code).  Secondly they use a lot of stack,
+since each expression in a comprehension becomes a nested stack frame.</p>
 </div>
         <div class="ns-vars">
-          
+          <div class="public">
+            <h3 id="var-check-state-with">check-state-with</h3>
+            <div class="usage">[f]</div>
+            
+            
+            <div class="doc"><p>Specify a global function that checks the state in some way. This function
+will be called at compile time, so can not be modified at run time. The
+function can not modify the state used in any way.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-cond-statement">cond-statement</h3>
+            <div class="usage">[expr mexpr continuation]</div>
+            
+            
+            <div class="doc"><p>Process a :cond steps when adding a new monadic step to the mexrp.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-dostate">dostate</h3>
+            <div class="usage">[bindings result]</div>
+            
+            
+            <div class="doc"><p>A comprehension for the state monad</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-m-chain">m-chain</h3>
+            <div class="usage">[steps]</div>
+            
+            
+            <div class="doc"><p>Chains together monadic computation steps that are each functions
+of one parameter. Each step is called with the result of the previous
+step as its argument. (m-chain (step1 step2)) is equivalent to
+(fn [x] (domonad [r1 (step1 x) r2 (step2 r1)] r2)).</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-m-fmap">m-fmap</h3>
+            <div class="usage">[f m]</div>
+            
+            
+            <div class="doc"><p>Bind the monadic value m to the function returning (f x) for argument x</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-m-join">m-join</h3>
+            <div class="usage">[m]</div>
+            
+            
+            <div class="doc"><p>Converts a monadic value containing a monadic value into a 'simple'
+monadic value.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-m-lift">m-lift</h3>
+            <div class="usage">[n f]</div>
+            
+            
+            <div class="doc"><p>Converts a function f of n arguments into a function of n
+monadic arguments returning a monadic value.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-m-map">m-map</h3>
+            <div class="usage">[f xs]</div>
+            
+            
+            <div class="doc"><p>'Executes' the sequence of monadic values resulting from mapping
+f onto the values xs. f must return a monadic value.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-m-seq">m-seq</h3>
+            <div class="usage">[ms]</div>
+            
+            
+            <div class="doc"><p>'Executes' the monadic values in ms and returns a sequence of the
+basic values contained in them.</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-m-when">m-when</h3>
+            <div class="usage">[test m-expr]</div>
+            
+            
+            <div class="doc"><p>If test is logical true, return monadic value m-expr, else return
+(m-result nil).</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-m-when-not">m-when-not</h3>
+            <div class="usage">[test m-expr]</div>
+            
+            
+            <div class="doc"><p>If test if logical false, return monadic value m-expr, else return
+(m-result nil).</p>
+</div>
+          </div><div class="public">
+            <h3 id="var-state-checker">state-checker</h3>
+            
+            
+            
+            <div class="doc"><p>This can be set to a function that is expected to check the state in some
+way. The function can not modify the state used in any way.</p>
+</div>
+          </div>
         </div>
       </div>
     </article>
