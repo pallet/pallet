@@ -19,6 +19,13 @@ It uses [jclouds][jclouds] to gain portable access to different cloud providers.
 
 [Documentation][docs] is available.
 
+## Crates
+
+Pallet installation and configuration for various software packages is provided
+via crates.  For pallet 0.4.x through 0.6.x, the crates are in the
+[pallet-crates](https://github.com/pallet/pallet-crates) repo. For 0.7.x and
+on, each crate is in its own repository.
+
 ## Support
 
 On the [mailing list][ml], or #pallet on freenode irc.
