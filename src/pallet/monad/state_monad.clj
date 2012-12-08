@@ -46,6 +46,39 @@ way. The function can not modify the state used in any way."
 
 ;;; `m-bind` is a macro to reduce the stack depth, and to allow the bind
 ;;; function to be named for identification
+(defn- read-property
+  "Read a system property as a clojure value."
+  [property-name]
+  (when-let [property (System/getProperty property-name)]
+    (if (string? property)
+      (read-string property)
+      property)))
+
+(def use-long-fn-names (read-property "pallet.long-fn-names"))
+
+(defmacro mfn*
+  [[argv] body & args]
+  (let [[argv] args]
+    body))
+
+(defmacro mfn
+  "An macro form which looks like an anonymous function, and can be used to
+  inline a function call "
+  [args body & arg-vals]
+  `(let [~args ~(vec arg-vals)]
+     ~body))
+
+(defmacro mapply
+  [f & args]
+  (if (and (sequential? f) (or (= `mfn (first f))  (= 'mfn (first f))))
+    `~(concat f args)
+    `(~f ~@args)))
+
+;; (mapply (mfn [x] x) 1)
+;; (mapply (mfn [x] (+ x 2)) 1)
+;; (mapply (fn [x] (+ x 3)) 1)
+;; (mapply inc 1 )
+
 (defmacro m-bind [mv f]
   (let [s (gensym "state")
         ss (gensym "state")
@@ -54,8 +87,9 @@ way. The function can not modify the state used in any way."
         form (or (-> mv meta :form) mv)
         fname (gensym (or
                        n
-                       (let [s (sanitise-for-symbol form)]
-                         (str "bfn" (subs s 0 (min 50 (count s)))))
+                       (when use-long-fn-names
+                         (let [s (sanitise-for-symbol form)]
+                           (str "bfn" (subs s 0 (min 50 (count s))))))
                        "m-bind-fn"))]
     (with-meta
       `(fn ~fname [~s]
@@ -63,7 +97,7 @@ way. The function can not modify the state used in any way."
          (let [[v# ~ss] (~mv ~s)]
            ~@(when state-checker
                `[(when state-checker (state-checker ~ss '~f))])
-           ((~f v#) ~ss)))
+           (mapply (mapply ~f v#) ~ss)))
       (select-keys (meta mv) [:line]))))
 
 ;;; # Monadic Comprehension
@@ -176,15 +210,15 @@ way. The function can not modify the state used in any way."
 (defn m-fmap
   "Bind the monadic value m to the function returning (f x) for argument x"
   [f m]
-  (m-bind m (fn [x] (m-result (f x)))))
+  (m-bind m (mfn [x] (m-result (f x)))))
 
 (defn m-seq
   "'Executes' the monadic values in ms and returns a sequence of the
    basic values contained in them."
   [ms]
   (reduce (fn [q p]
-            (m-bind p (fn [x]
-                        (m-bind q (fn [y]
+            (m-bind p (mfn [x]
+                        (m-bind q (mfn [y]
                                     (m-result (cons x y)))) )))
           (m-result '())
           (reverse ms)))
