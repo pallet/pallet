@@ -79,26 +79,35 @@ way. The function can not modify the state used in any way."
 ;; (mapply (fn [x] (+ x 3)) 1)
 ;; (mapply inc 1 )
 
-(defmacro m-bind [mv f]
-  (let [s (gensym "state")
-        ss (gensym "state")
-        v (and (symbol? f) (not (get &env f)) (resolve f))
-        n (and v (-> v meta :name))
-        form (or (-> mv meta :form) mv)
-        fname (gensym (or
-                       n
-                       (when use-long-fn-names
-                         (let [s (sanitise-for-symbol form)]
-                           (str "bfn" (subs s 0 (min 50 (count s))))))
-                       "m-bind-fn"))]
-    (with-meta
-      `(fn ~fname [~s]
-         ~@(when state-checker `[(when state-checker (state-checker ~s '~f))])
-         (let [[v# ~ss] (~mv ~s)]
-           ~@(when state-checker
-               `[(when state-checker (state-checker ~ss '~f))])
-           (mapply (mapply ~f v#) ~ss)))
-      (select-keys (meta mv) [:line]))))
+(defn m-bind [mv f]
+  (fn fname [s]
+    (when state-checker
+      (state-checker s {:f f}))
+    (let [[v ss] (mv s)]
+      (when state-checker
+        (state-checker ss {:f f}))
+      ((f v) ss))))
+
+;; (defmacro m-bind [mv f]
+;;   (let [s (gensym "state")
+;;         ss (gensym "state")
+;;         v (and (symbol? f) (not (get &env f)) (resolve f))
+;;         n (and v (-> v meta :name))
+;;         form (or (-> mv meta :form) mv)
+;;         fname (gensym (or
+;;                        n
+;;                        (when use-long-fn-names
+;;                          (let [s (sanitise-for-symbol form)]
+;;                            (str "bfn" (subs s 0 (min 50 (count s))))))
+;;                        "m-bind-fn"))]
+;;     (with-meta
+;;       `(fn ~fname [~s]
+;;          ~@(when state-checker `[(when state-checker (state-checker ~s '~f))])
+;;          (let [[v# ~ss] (~mv ~s)]
+;;            ~@(when state-checker
+;;                `[(when state-checker (state-checker ~ss '~f))])
+;;            (mapply (mapply ~f v#) ~ss)))
+;;       (select-keys (meta mv) [:line]))))
 
 ;;; # Monadic Comprehension
 (defn- ensure-items [n steps]
@@ -210,15 +219,15 @@ way. The function can not modify the state used in any way."
 (defn m-fmap
   "Bind the monadic value m to the function returning (f x) for argument x"
   [f m]
-  (m-bind m (mfn [x] (m-result (f x)))))
+  (m-bind m (fn [x] (m-result (f x)))))
 
 (defn m-seq
   "'Executes' the monadic values in ms and returns a sequence of the
    basic values contained in them."
   [ms]
   (reduce (fn [q p]
-            (m-bind p (mfn [x]
-                        (m-bind q (mfn [y]
+            (m-bind p (fn [x]
+                        (m-bind q (fn [y]
                                     (m-result (cons x y)))) )))
           (m-result '())
           (reverse ms)))
