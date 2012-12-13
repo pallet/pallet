@@ -524,7 +524,7 @@
         (let [&throw-context {:throwable (:cause error)}]
           (logging/errorf "errors found %s" (vec (map :error errors)))
           (throw+
-           (assoc error :all-errors errors)
+           (assoc error :all-errors errors :session session)
            "Error prevented completion of phase: %s"
            (:message error)))
         [results session]))))
