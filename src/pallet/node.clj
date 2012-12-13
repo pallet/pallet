@@ -38,8 +38,8 @@
   [obj]
   (instance? pallet.node.Node obj))
 
-(defn node-in-group? [group-name node]
-  (= (clojure.core/name group-name) (pallet.node/group-name node)))
+(defn node-in-group? [grp-name node]
+  (= (name grp-name) (group-name node)))
 
 (defn node-address
   [node]
