@@ -18,6 +18,11 @@
 ;;   [session]
 ;;   (:phase session))
 
+(defn target
+  "Target server."
+  [session]
+  (-> session :server))
+
 (defn target-node
   "Target compute service node."
   [session]
@@ -105,6 +110,15 @@
    (fn [node]
      (when-let [roles (:roles node)]
        (roles role)))
+   (:service-state session)))
+
+(defn role->nodes-map
+  "Returns a map from role to nodes."
+  [session]
+  (reduce
+   (fn [m node]
+     (reduce (fn [m role] (update-in m [role] conj node)) m (:roles node)))
+   {}
    (:service-state session)))
 
 (defn packager

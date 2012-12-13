@@ -34,7 +34,8 @@
   {:internal true}
   [group-name]
   (fn has-group-name? [node]
-    (= group-name (name (node/group-name node)))))
+    (when-let [node-group (node/group-name node)]
+      (= group-name (name node-group)))))
 
 (defn node-in-group?
   "Check if a node satisfies a group's node-predicate."

@@ -5,9 +5,8 @@ Pallet uses monads for both internal core code, and for action and phase code
 used in crates. The two uses are both fundamentally an application of the state
 monad, but are each use a different context."
   (:use
-   [clojure.algo.monads
-    :only [defmonad defmonadfn domonad m-map m-when m-when-not monad state-m
-           with-monad]]
+   [pallet.monad.state-monad
+    :only [check-state-with dostate m-when m-when-not m-map m-result]]
    [pallet.argument :only [delayed]]
    [pallet.context :only [with-context with-phase-context]]
    pallet.monad.state-accessors
@@ -16,39 +15,11 @@ monad, but are each use a different context."
 
 ;;; ## Pallet Monads and Monad Transformers
 
-;;; The session-m monad is a state monad, where the state is pallet's session
-;;; map. The state monad is modified to check the validity of the session map,
-;;; before and after each monadic call.
+;;; The basic pallet monad is a state monad, where the state is pallet's session
+;;; map. The state monad checks the validity of the session map, before and
+;;; after each monadic call.
 
-(defn- state-checking-t
-  "Monad transformer that transforms a state monad m into a monad that check its
-  state using the specified `checker` argument."
-  [m checker]
-  (monad [m-result (with-monad m
-                     m-result)
-          m-bind   (with-monad m
-                     (fn m-bind-state-checking-t [stm f]
-                       (fn state-checking-t-mv [s]
-                         (checker s {:f f})
-                         (let [[_ ss :as r] ((m-bind stm f) s)]
-                           (checker ss {:f f :result r})
-                           r))))
-          m-zero   (with-monad m
-                     (if (= ::undefined m-zero)
-                       ::undefined
-                       (fn [s]
-                         m-zero)))
-          m-plus   (with-monad m
-                     (if (= ::undefined m-plus)
-                       ::undefined
-                       m-plus))]))
-
-(def
-  ^{:doc
-    "The pallet session monad. This is fundamentally a state monad, where the
-     state is the pallet session map."}
-  session-m
-  (state-checking-t state-m check-session))
+(check-state-with check-session)
 
 ;;; ## Comprehensions
 
@@ -71,6 +42,7 @@ monad, but are each use a different context."
    'map `m-map
    'when `m-when
    'when-not `m-when-not
+   'm-result `m-result
    `update-in `update-in-state
    `assoc `assoc-state
    `assoc-in `assoc-in-state
@@ -85,7 +57,9 @@ monad, but are each use a different context."
   "Replace top level monadic function symbols."
   [form]
   (if (and (sequential? form) (not (vector? form)))
-    (list* (get top-level-replacements (first form) (first form)) (rest form))
+    (with-meta
+      (list* (get top-level-replacements (first form) (first form)) (rest form))
+      (meta form))
     form))
 
 (defn replace-in-top-level-forms
@@ -117,24 +91,28 @@ monad, but are each use a different context."
 
 ;; ### Action argument delay
 (defn wrap-args-if-action
-  [[fform & args :as form]]
-  (if (and (symbol? fform)
-           ;; (when-let [v (resolve fform)]
-           ;;   (-> v meta :pallet/action))
-           (when-let [v (resolve fform)]
-             (not (-> v meta :macro)))
-           )
-    (list* fform
-           (map
-            (fn [arg]
-              `(let [f# (fn [] ~arg)]
-                 ;; written like this to avoid recur across catch errors
-                 (try+
-                   (f#)
-                   (catch [:type :pallet/access-of-unset-node-value] _#
-                     (delayed [~'&session] (f#))))))
-            args))
-    form))
+  [form]                                ; no destructuring to preserve metadata
+  (let [[fform & args] form]
+    (if (and (symbol? fform)
+             ;; (when-let [v (resolve fform)]
+             ;;   (-> v meta :pallet/action))
+             (when-let [v (resolve fform)]
+               (not (-> v meta :macro))))
+      (with-meta
+        (list* fform
+               (map
+                (fn [arg]
+                  (if (or (keyword? arg)(number? arg)(vector? arg)(set? arg))
+                    arg
+                    `(let [f# (fn ~(gensym "wrap-arg") [] ~arg)]
+                       ;; written like this to avoid recur across catch errors
+                       (try+
+                        (f#)
+                        (catch [:type :pallet/access-of-unset-node-value] _#
+                          (delayed [~'&session] (f#)))))))
+                args))
+        (meta form))
+      form)))
 
 (defn wrap-action-args
   "Replace arguments to actions."
@@ -150,24 +128,24 @@ monad, but are each use a different context."
 (defmacro let-state
   "A monadic comprehension using the state-m monad. Adds lookup of components."
   [& body]
-  `(domonad state-m
-            ~(->
-              (first body)
-              componentise-top-level-forms)
-            ~@(rest body)))
+  `(dostate
+    ~(->
+      (first body)
+      componentise-top-level-forms)
+    ~@(rest body)))
 
 (defmacro let-s
   "A monadic comprehension using the session-m monad. Provides some translation
    of functions used (see `top-level-replacements`), and adds lookup of
    components."
   [& body]
-  `(domonad session-m
-            ~(->
-              (first body)
-              replace-in-top-level-forms
-              componentise-top-level-forms
-              wrap-action-args)
-            ~@(rest body)))
+  `(dostate
+    ~(->
+      (first body)
+      replace-in-top-level-forms
+      componentise-top-level-forms
+      wrap-action-args)
+    ~@(rest body)))
 
 ;; ### Pipelines
 (defmacro chain-s
@@ -181,11 +159,8 @@ monad, but are each use a different context."
               [(gensym "_") f]))]
     (let [bindings (mapcat gen-step args)]
       `(let-s
-        [~@bindings
-          ;; This is here so the last session is checked. Otherwise the monad
-          ;; implementation elides the last check (as a valid optimisation).
-         _# (~'m-result 1)]
-         ~(last (drop-last bindings))))))
+        [~@bindings]
+        ~(last (drop-last bindings))))))
 
 (defmacro wrap-pipeline
   "Wraps a pipeline with one or more wrapping forms. Makes the &session symbol

@@ -36,10 +36,9 @@
           (if (not @(grep (quoted @s) ~path))
             (do
               (chain-or
-               ("sed" -i
-                -e (quoted "/${k}/ d")
-                -e (quoted "$ a \\\\\n${s}")
-                ~path)
+               (chain-and
+                ("sed" -i -e (quoted "/${k}/ d") ~path)
+                ("sed" -i -e (quoted "$ a \\\\\n${s}") ~path))
                (exit 1))))))))))
   (pipeline-when-not shared
     (remote-file

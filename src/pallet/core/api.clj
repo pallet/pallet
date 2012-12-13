@@ -8,10 +8,11 @@
    [clojure.tools.logging :only [debugf tracef]]
    [clojure.string :only [blank?]]
    [pallet.action-plan :only [execute stop-execution-on-error translate]]
+   [pallet.common.logging.logutils :as logutils]
    [pallet.compute :only [destroy-nodes-in-group destroy-node nodes run-nodes]]
    [pallet.environment :only [get-for]]
    [pallet.executors :only [default-executor]]
-   [pallet.node :only [image-user tag tag!]]
+   [pallet.node :only [image-user primary-ip tag tag!]]
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :only [add-session-verification-key check-session]]
@@ -74,20 +75,22 @@
   [service-state environment phase node]
   {:pre [node]}
   (fn [plan-state]
-    (with-script-for-node (:node node)
-      ((action-plan
-        service-state environment (-> node :phases phase)
-        {:server node})
-       plan-state))))
+    (logutils/with-context [:target (-> node :node primary-ip)]
+      (with-script-for-node (:node node)
+        ((action-plan
+          service-state environment (-> node :phases phase)
+          {:server node})
+         plan-state)))))
 
 (defmethod target-action-plan :group
   [service-state environment phase group]
   {:pre [group]}
   (fn [plan-state]
-    ((action-plan
-      service-state environment (-> group :phases phase)
-      {:group group})
-     plan-state)))
+    (logutils/with-context [:target (-> group :group-name)]
+      ((action-plan
+        service-state environment (-> group :phases phase)
+        {:group group})
+       plan-state))))
 
 (defn action-plans
   [service-state environment phase targets]
@@ -152,26 +155,28 @@
   [service-state plan-state environment user executor execute-status-fn
    {:keys [action-plan phase target-type target] :as action-plan-map}]
   (tracef "execute-action-plan :node")
-  (with-script-for-node (:node target)
-    (execute-action-plan*
-     {:server target
-      :service-state service-state
-      :plan-state plan-state
-      :user user
-      :environment environment}
-     executor execute-status-fn action-plan-map)))
+  (logutils/with-context [:target (-> target :node primary-ip)]
+    (with-script-for-node (:node target)
+      (execute-action-plan*
+       {:server target
+        :service-state service-state
+        :plan-state plan-state
+        :user user
+        :environment environment}
+       executor execute-status-fn action-plan-map))))
 
 (defmethod execute-action-plan :group
   [service-state plan-state environment user executor execute-status-fn
    {:keys [action-plan phase target-type target] :as action-plan-map}]
   (tracef "execute-action-plan :group")
-  (execute-action-plan*
-   {:group target
-    :service-state service-state
-    :plan-state plan-state
-    :user user
-    :environment environment}
-   executor execute-status-fn action-plan-map))
+  (logutils/with-context [:target (-> target :group-name)]
+    (execute-action-plan*
+     {:group target
+      :service-state service-state
+      :plan-state plan-state
+      :user user
+      :environment environment}
+     executor execute-status-fn action-plan-map)))
 
 ;;; ## Calculation of node count adjustments
 (defn group-delta

@@ -77,20 +77,26 @@
     (let [endpoint (transport/endpoint connection)
           authentication (transport/authentication connection)
           script (script-builder/build-script options script action)
-          tmpfile (ssh-mktemp connection "pallet")]
+          tmpfile (ssh-mktemp connection "pallet")
+          sudo-user (or (:sudo-user action)
+                        (-> authentication :user :sudo-user))]
       (logutils/with-context [:target (:server endpoint)]
         (logging/infof
          "%s %s %s"
          (:server endpoint) (context-label action)
          (action-symbol (:action action)))
-        (logging/debugf "Target %s cmd\n%s via %s" endpoint script tmpfile)
+        (logging/debugf "Target %s cmd\n%s via %s as %s"
+                        endpoint script tmpfile (or sudo-user "root"))
         (transport/send-text
          connection script tmpfile
-         {:mode (if (:sudo-user action) 0644 0600)})
+         {:mode (if sudo-user 0644 0600)})
         (let [clean-f (comp
                        #(execute/strip-sudo-password % (:user authentication))
                        execute/normalise-eol)
-              output-f (comp #(logging/spy %) clean-f)
+              output-f (comp
+                        #(logging/debugf
+                          "%s output\n=> %s" (:server endpoint) %)
+                        clean-f)
               result (transport/exec
                       connection
                       (script-builder/build-code session action tmpfile)

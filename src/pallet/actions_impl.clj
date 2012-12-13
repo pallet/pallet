@@ -70,6 +70,18 @@ to deal with local file transfer."
          :as options}])
 
 (defn init-script-path
-  "Path to the specified init script"
+  "Path to the specified initd script"
   [service-name]
   (str (stevedore/script (~lib/etc-init)) "/" service-name))
+
+
+(defmulti service-script-path
+  (fn [service-impl service-name] service-impl))
+
+(defmethod service-script-path :initd
+  [_ service-name]
+  (str (stevedore/script (~lib/etc-init)) "/" service-name))
+
+(defmethod service-script-path :upstart
+  [_ service-name]
+  (str (stevedore/script (~lib/upstart-script-dir)) "/" service-name ".conf"))

@@ -4,6 +4,7 @@
    [clojure.string :as string]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.session :as session]
+   [pallet.execute :as execute]
    [pallet.node :as node])
   (:use
    [clojure.tools.macro :only [name-with-attributes]]
@@ -11,6 +12,7 @@
     :only [declare-action
            declare-aggregated-crate-action
            declare-collected-crate-action]]
+   [pallet.argument :only [delayed-fn]]
    [pallet.monad :only [phase-pipeline phase-pipeline-no-context
                         session-pipeline local-env let-s]]
    [pallet.utils :only [compiler-exception]]
@@ -130,7 +132,7 @@
                  (if-let [f# (or (get @a# dispatch-val#)
                                  (some
                                   (fn [[k# f#]]
-                                    (when (isa? ~hierarchy dispatch-val# k#)
+                                    (when (isa? @~hierarchy dispatch-val# k#)
                                       f#))
                                   @a#))]
                    ((f# ~@args) session#)
@@ -172,6 +174,11 @@
      [nil ~sym]))
 
 ;;; ## Session Accessors
+(defn target
+  "The target-node."
+  [session]
+  [(session/target session) session])
+
 (defn target-node
   "The target-node."
   [session]
@@ -230,6 +237,12 @@
   (fn [session]
     [(session/nodes-with-role session role) session]))
 
+(defn role->nodes-map
+  "A map from role to nodes."
+  []
+  (fn [session]
+    [(session/role->nodes-map session) session]))
+
 (defn packager
   [session]
   [(session/packager session) session])
@@ -243,6 +256,11 @@
   "Predicate for a 64 bit target"
   [session]
   [(session/is-64bit? session) session])
+
+(defn target-flag?
+  "Returns a DelayedFunction that is a predicate for whether the flag is set"
+  [flag]
+  (delayed-fn #(execute/target-flag? % (keyword (name flag)))))
 
 ;;; ## Settings
 (defn get-settings

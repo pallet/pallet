@@ -261,7 +261,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (remote-file*
             ubuntu-session
             "/etc/apt/sources.list.d/source1.list"
-            {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
+            {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"
+             :flag-on-changed "packagesourcechanged"})
            first second))
          (binding [pallet.action-plan/*defining-context* nil]
            (package-source*
@@ -279,7 +280,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
          "/etc/yum.repos.d/source1.repo"
          {:content
           "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\nenabled=1\n"
-          :literal true})
+          :literal true
+          :flag-on-changed "packagesourcechanged"})
         first second))
       (binding [pallet.action-plan/*defining-context* nil]
         (package-source*
@@ -309,7 +311,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              (remote-file*
               ubuntu-session
               "/etc/apt/sources.list.d/source1.list"
-              {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
+              {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"
+               :flag-on-changed "packagesourcechanged"})
              first second)
             (stevedore/script
              (apt-key adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
@@ -328,7 +331,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                (remote-file*
                 ubuntu-session
                 "/etc/apt/sources.list.d/source1.list"
-                {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
+                {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"
+                 :flag-on-changed "packagesourcechanged"})
                first second)
               (stevedore/script
                (apt-key adv "--keyserver" keys.ubuntu.com "--recv-keys" 1234)))
@@ -351,7 +355,8 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              (remote-file*
               (build-session {:server a})
               "/etc/apt/sources.list.d/source1.list"
-              {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"})
+              {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"
+               :flag-on-changed "packagesourcechanged"})
              first second))
            (first (build-actions
                       {:server a}
@@ -369,6 +374,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   "/etc/yum.repos.d/source1.repo"
                   {:content
                    "[source1]\nname=source1\nbaseurl=http://somewhere/yum\ngpgcheck=0\nenabled=1\n"
+                   :flag-on-changed "packagesourcechanged"
                    :literal true})
                  first second)))
            (first (build-actions centos-session
@@ -482,6 +488,24 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                 ubuntu-session
                 [{:package "p1" :action :install :priority 20}
                  {:package "p2" :action :install :enable ["r1"] :priority 2}]))))))
+  (testing "aptitude with allow-unsigned"
+    (script/with-script-context [:aptitude]
+      (is (= (stevedore/checked-script
+              "Packages"
+              (~lib/package-manager-non-interactive)
+              (aptitude install -q -y p1+)
+              (aptitude install -q -y -o "'APT::Get::AllowUnauthenticated=true'" p2+)
+              (pipe
+               (aptitude search (quoted "?and(?installed, ?name(^p1$))"))
+               (grep (quoted p1)))
+              (pipe
+               (aptitude search (quoted "?and(?installed, ?name(^p2$))"))
+               (grep (quoted "p2"))))
+             (binding [pallet.action-plan/*defining-context* nil]
+               (adjust-packages
+                ubuntu-session
+                [{:package "p1" :action :install}
+                 {:package "p2" :action :install :allow-unsigned true}]))))))
   (testing "yum"
     (is (= (stevedore/checked-script
             "Packages"

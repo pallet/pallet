@@ -22,7 +22,7 @@
   "A property file.
    The properties are written \"key value\", one per line.
      m                   a key-value map
-     :seperator chars    seperator to use between key and value
+     :separator chars    separator to use between key and value
                          (default is a single space)"
   [m & {:keys [separator] :or {separator " "}}]
   (string/join

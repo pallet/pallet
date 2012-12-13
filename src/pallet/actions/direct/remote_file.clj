@@ -12,7 +12,6 @@
    [pallet.utils :as utils]
    [clojure.java.io :as io])
   (:use
-   [clojure.algo.monads :only [m-when]]
    [pallet.action :only [implement-action]]
    [pallet.actions
     :only [exec-script transfer-file transfer-file-to-local delete-local-path]]

@@ -8,7 +8,7 @@
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
-  <version>0.8.0-SNAPSHOT</version>
+  <version>bash finish-release.sh 0.8.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Pallet</name>
   <description>
@@ -49,7 +49,7 @@
           <codoxTargetDirectory>autodoc/api/${pallet.doc.version}</codoxTargetDirectory>
           <codoxApiVersion>${pallet.doc.version}</codoxApiVersion>
           <codoxWriter>codox-md.writer/write-docs</codoxWriter>
-          <marginaliaTargetDirectory>autodoc/marginalia</marginaliaTargetDirectory>
+          <marginaliaTargetDirectory>autodoc/marginalia/${pallet.doc.version}</marginaliaTargetDirectory>
           <excludeTestNamespacesMatching>pallet.utils-test-bad-ns</excludeTestNamespacesMatching>
         </configuration>
       </plugin>
@@ -128,12 +128,12 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>script-exec</artifactId>
-      <version>0.1.1</version>
+      <version>0.1.2</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>stevedore</artifactId>
-      <version>0.7.2</version>
+      <version>0.7.3</version>
     </dependency>
     <dependency>
       <groupId>pallet-fsmop</groupId>

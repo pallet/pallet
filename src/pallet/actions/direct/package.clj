@@ -17,7 +17,7 @@
    [pallet.action-plan :only [checked-commands checked-script]]
    [pallet.actions
     :only [add-rpm package package-manager package-source minimal-packages
-           exec-script remote-file sed install-deb]]
+           exec-script remote-file sed install-deb package-source-changed-flag]]
    [pallet.actions-impl :only [remote-file-action]]
    [pallet.core.session :only [packager os-family]]))
 
@@ -47,18 +47,22 @@
 ;; need to split by enable/disable options.
 (defmethod adjust-packages :aptitude
   [session packages]
+  (logging/tracef "adjust-packages :aptitude %s" (vec packages))
   (checked-commands
    "Packages"
    (stevedore/script (~lib/package-manager-non-interactive))
    (stevedore/chain-commands*
     (for [[opts packages] (->>
                            packages
-                           (group-by #(select-keys % [:enable]))
+                           (group-by #(select-keys % [:enable :allow-unsigned]))
                            (sort-by #(apply min (map :priority (second %)))))]
       (stevedore/script
        (aptitude
         install -q -y
         ~(string/join " " (map #(str "-t " %) (:enable opts)))
+        ~(if (:allow-unsigned opts)
+           "-o 'APT::Get::AllowUnauthenticated=true'"
+           "")
         ~(string/join
           " "
           (for [[action packages] (group-by :action packages)
@@ -102,12 +106,13 @@
    (stevedore/chain-commands*
     (for [[opts packages] (->>
                            packages
-                           (group-by #(select-keys % [:enable]))
+                           (group-by #(select-keys % [:enable :allow-unsigned]))
                            (sort-by #(apply min (map :priority (second %)))))]
       (stevedore/script
        (apt-get
         -q -y install
         ~(string/join " " (map #(str "-t " %) (:enable opts)))
+        ~(if (:allow-unsigned opts) "--allow-unauthenticated" "")
         ~(string/join
           " "
           (for [[action packages] (group-by :action packages)
@@ -179,8 +184,9 @@
 (defn- package-map
   "Convert the args into a single map"
   [session package-name
-   & {:keys [action y force purge priority enable disable] :as options}]
-  (logging/tracef "package-map %s" package-name)
+   & {:keys [action y force purge priority enable disable allow-unsigned]
+      :as options}]
+  (logging/tracef "package-map %s %s" package-name options)
   (letfn [(as-seq [x] (if (or (string? x) (symbol? x) (keyword? x))
                         [(name x)] x))]
     (->
@@ -195,18 +201,21 @@
 
    Options
     - :action [:install | :remove | :upgrade]
-    - :purge [true|false]         when removing, whether to remove all config
-    - :enable [repo|(seq repo)]   enable specific repository
-    - :disable [repo|(seq repo)]  disable specific repository
-    - :priority n                 priority (0-100, default 50)
+    - :purge [true|false]          when removing, whether to remove all config
+    - :enable [repo|(seq repo)]    enable specific repository
+    - :disable [repo|(seq repo)]   disable specific repository
+    - :priority n                  priority (0-100, default 50)
+    - :allow-unsigned [true|false] allow unsigned packages
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
   {:action-type :script
    :location :target}
   [session & args]
+  (logging/tracef "package %s" (vec args))
   [[{:language :bash}
-    (adjust-packages session (map #(apply package-map session %) args))]
+    (adjust-packages
+     session (map #(apply package-map session %) (distinct args)))]
    session])
 
 (def source-location
@@ -250,7 +259,7 @@
      (format "enabled=%s" enabled)
      ""])))
 
-+(def ^{:dynamic true} *default-apt-keyserver* "subkeys.pgp.net")
+(def ^{:dynamic true} *default-apt-keyserver* "subkeys.pgp.net")
 
 (defn package-source*
   "Add a packager source."
@@ -269,7 +278,8 @@
            session
            (format (source-location packager) name)
            {:content (format-source packager name (packager options))
-            :literal (= packager :yum)})
+            :literal (= packager :yum)
+            :flag-on-changed package-source-changed-flag})
           first second)))
      (if-let [key-id (or (:key-id aptitude) (:key-id apt))]
        (if (#{:aptitude :apt} packager)
@@ -284,7 +294,10 @@
        (if (#{:aptitude :apt} packager)
        (stevedore/chain-commands
         (->
-         (remote-file* session "aptkey.tmp" {:url key-url}) first second)
+         (remote-file*
+          session "aptkey.tmp"
+          {:url key-url :flag-on-changed package-source-changed-flag})
+         first second)
         (stevedore/script (apt-key add aptkey.tmp)))))
      (when-let [key (and (= packager :yum) (:gpgkey yum))]
        (stevedore/script (rpm "--import" ~key))))))

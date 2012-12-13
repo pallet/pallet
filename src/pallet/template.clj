@@ -13,6 +13,7 @@
    [pallet.actions :only [remote-file]]
    [pallet.core.session :only [group-name packager os-family]]
    [pallet.monad :only [phase-pipeline-no-context]]
+   [pallet.monad.state-monad :only [m-map]]
    [pallet.utils :only [apply-map]]))
 
 (defn get-resource
@@ -99,4 +100,4 @@
 
 (defn apply-templates [template-fn args]
   (phase-pipeline-no-context apply-templates {}
-    (map apply-template-file (apply template-fn args))))
+    (m-map apply-template-file (apply template-fn args))))

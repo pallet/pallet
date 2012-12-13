@@ -8,7 +8,6 @@
    [pallet.stevedore :as stevedore]
    [clojure.java.io :as io])
   (:use
-   [clojure.algo.monads :only [m-when]]
    [pallet.action :only [action-fn implement-action]]
    [pallet.action-plan :only [checked-commands]]
    [pallet.actions :only [directory remote-directory]]
