@@ -1,5 +1,94 @@
 Unstable development branch
 
+# 0.8.0-alpha.6
+
+## Fixes
+
+- Ignore nodes with no group name
+  The pallet.core.api-impl/node-has-group-name? function was throwing a NPE
+  when the node didn't have a group name.
+
+- Improve propogation of :line metadata
+  The :line metadata is used to track source line numbers, and needs manual
+  propagation on forms modified by macros.
+
+- Honour user's :sudo-user for script permissions
+  When using :sudo-user in the admin user, ensure that generated scripts 
+  have appropriate permissions.
+
+- Fix use of hierarchy in defmulti-plan
+
+- Updates packages when package source changes
+  In the :package-source crate install method, update the packages when the
+  package source changes.  This ensures packages from the updated or new
+  package source are available.
+
+- Fix tests for quoting changes in sudo commands
+  References #170
+
+- use single-quotes in lieu of doubles with passwd
+  Fixes #170
+
+- Add script user to ssh execute logging, and cleanup output logging
+
+- Fix environment crate
+  The environment variables would toggle between being set and removed on
+  successive runs.
+
+- Fix update-settings action
+
+## Features
+
+- Update stevedore and script-exec versions
+  Update to stevedore 0.7.3 and script-exec 0.1.2.
+
+- Reduce monadic function nesting levels
+
+- Add target-flag? in pallet.crate
+  Returns a delayed function predicate for whether a flag is set, suitable 
+  for passing to pipeline-when.
+
+- Add target logging context
+
+- Provide a specialised state monad implementation
+  The stack traces when using clojure.core.algo were unusable.  This 
+  implementation tries to reduce stack depth, and to give reasonable names 
+  to the bind functions.
+
+- Add role->nodes-map
+  Returns a map keyed on role where the values are a sequence of all nodes 
+  providing the role.
+
+- Add on-one-node macro
+  The body of the on-one-macro will be executed on only one node out of all
+  the nodes that have the given roles. If more than one role is specified,
+  and there is at least one node that provides the intersection of all the
+  roles, then first of any such nodes is used.
+
+- Make target-flag? callable as a plan function
+
+- Add target crate funtion
+  Returns the denormalised map for the target node.
+
+- Add assertf plan function
+  Enables assertions in plan functions.
+
+- Add support for NodeHarware protocol to node-list
+
+- Add :allow-unsigned option to the package action
+  Allow unsigned packages to be installed by specifying
+  `:allow-unsigned true` in the package action.
+
+- Add flag-on-change to package-source
+  The flag allows taking an action based on whether the package sources 
+  have changed or not.
+
+- Add NodeHardware protocol
+
+- Enable support for upstart in service actions
+
+- Add update-settings action
+
 # 0.8.0-alpha.5
 
 - Enable retry of SSH connection attempts
