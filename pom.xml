@@ -128,12 +128,12 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>script-exec</artifactId>
-      <version>0.1.2-SNAPSHOT</version>
+      <version>0.1.2</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>stevedore</artifactId>
-      <version>0.7.3-SNAPSHOT</version>
+      <version>0.7.3</version>
     </dependency>
     <dependency>
       <groupId>pallet-fsmop</groupId>
