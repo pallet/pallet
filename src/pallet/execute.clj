@@ -19,9 +19,9 @@
 
 ;; slingshot version compatibility
 (try
-  (use '[slingshot.slingshot :only [throw+]])
+  (use '[slingshot.slingshot :only [try+ throw+]])
   (catch Exception _
-    (use '[slingshot.core :only [throw+]])))
+    (use '[slingshot.core :only [try+ throw+]])))
 
 (def prolog
   (str "#!/usr/bin/env bash\n" bash/hashlib))
@@ -367,7 +367,7 @@
                               :password (:password user)}))
             _ (.setDaemonThread ssh-session true)
             _ (when-not (ssh/connected? ssh-session)
-                (try
+                (try+
                   (ssh/connect ssh-session)
                   (catch Exception e
                     (throw+
