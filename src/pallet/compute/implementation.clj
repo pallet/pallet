@@ -40,7 +40,7 @@
                        (require provider)
                        provider
                        (catch Throwable e
-                         (logging/warnf
+                         (logging/debugf
                           "%s provider failed to load: %s"
                           provider
                           (.getMessage e)))))))]
