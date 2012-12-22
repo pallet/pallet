@@ -257,6 +257,14 @@
   [session]
   [(session/is-64bit? session) session])
 
+(defn compute-service
+  "Returns the current compute service"
+  [session]
+  [(if-let [node (session/target-node session)]
+     (node/compute-service node)
+     (:compute session))
+   session])
+
 (defn target-flag?
   "Returns a DelayedFunction that is a predicate for whether the flag is set"
   [flag]

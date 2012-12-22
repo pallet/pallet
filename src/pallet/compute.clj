@@ -60,6 +60,9 @@
   (images [compute])
   (close [compute]))
 
+(defprotocol ComputeServiceProperties
+  (service-properties [compute] "Return a map of service details"))
+
 (defprotocol NodeTagReader
   "Provides a SPI for tagging nodes with values."
   (node-tag [compute node tag-name] [compute node tag-name default-value]
