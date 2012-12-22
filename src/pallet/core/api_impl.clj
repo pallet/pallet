@@ -5,13 +5,13 @@
    [pallet.node :as node])
   (:use
    [pallet.map-merge :only [merge-key merge-keys]]
-   [pallet.monad :only [chain-s]]
+   [pallet.monad :only [chain-s m-identity]]
    [pallet.script :only [with-script-context]]
    [pallet.stevedore :only [with-script-language]]))
 
 (defn pipeline
   [a b]
-  (chain-s a b))
+  (chain-s (m-identity a) (m-identity b)))
 
 (defmethod merge-key :merge-state-monad
   [_ _ val-in-result val-in-latter]

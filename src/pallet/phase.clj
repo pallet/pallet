@@ -10,6 +10,7 @@
    [pallet.common.context :only [throw-map]]
    [pallet.monad :only [phase-pipeline phase-pipeline-no-context
                         session-pipeline local-env]]
+   [pallet.monad.state-accessors :only [assoc-state get-state]]
    [pallet.session.verify :only [check-session]]
    [pallet.utils :only [compiler-exception]]))
 
@@ -43,19 +44,19 @@
   "Specify that the body should be executed in the pre-phase."
   [& body]
   `(session-pipeline schedule-in-pre-phase {}
-     [phase# (get :phase)]
-     (assoc :phase (pre-phase-name phase#))
+     [phase# (get-state :phase)]
+     (assoc-state :phase (pre-phase-name phase#))
      ~@body
-     (assoc :phase phase#)))
+     (assoc-state :phase phase#)))
 
 (defmacro schedule-in-post-phase
   "Specify that the body should be executed in the post-phase."
   [& body]
   `(session-pipeline schedule-in-post-phase {}
-     [phase# (get :phase)]
-     (assoc :phase (post-phase-name phase#))
+     [phase# (get-state :phase)]
+     (assoc-state :phase (post-phase-name phase#))
      ~@body
-     (assoc :phase phase#)))
+     (assoc-state :phase phase#)))
 
 (defmacro check-session-thread
   "Add session checking to a sequence of calls which thread a session

@@ -3,12 +3,12 @@
   (:require
    [clojure.tools.logging :as logging]))
 
-
 (defn log-session
   "A crate function that will log the session map at the debug level, using
    the supplied format string.
 
        (log-session session \"The session is %s\")"
+  {:pallet/plan-fn true}
   ([] (log-session "%s"))
   ([format-string]
      (fn [session]
@@ -17,6 +17,7 @@
 
 (defmacro debugf
   "Log at DEBUG level."
+  {:pallet/plan-fn true}
   [format-string & args]
   `(fn [session#]
      (logging/debugf ~format-string ~@args)
@@ -27,6 +28,7 @@
    format string.
 
        (print-session \"The session is %s\")"
+  {:pallet/plan-fn true}
   ([] (print-session "%s"))
   ([format-string]
      (fn [session]
@@ -35,6 +37,7 @@
 
 (defn assertf
   "Assert a condition"
+  {:pallet/plan-fn true}
   ([expr format-string & args]
      (fn [session]
        (when-not expr

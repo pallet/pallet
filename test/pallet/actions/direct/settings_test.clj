@@ -6,6 +6,7 @@
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.core.user :only [*admin-user*]]
    [pallet.crate :only [get-node-settings target-node]]
+   [pallet.monad :only [m-identity]]
    [pallet.test-utils
     :only [clj-action make-localhost-compute test-username]]
    [pallet.utils :only [tmpfile with-temporary]]
@@ -32,7 +33,7 @@
                     :get (plan-fn
                            [node target-node
                             c (get-node-settings node :myapp)]
-                           (fn [session] (reset! a c) [c session]))})
+                           (m-identity (fn [session] (reset! a c) [c session])))})
             compute (make-localhost-compute :group-name "local")]
         (testing "assoc-settings across phases"
           (let [result (lift local :compute compute :phase [:assoc :get]

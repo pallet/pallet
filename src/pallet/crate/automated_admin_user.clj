@@ -5,7 +5,8 @@
   (:use
    [pallet.actions :only [user package-manager]]
    [pallet.api :only [server-spec plan-fn]]
-   [pallet.crate :only [admin-user def-plan-fn]]))
+   [pallet.crate :only [admin-user def-plan-fn]]
+   [pallet.monad.state-monad :only [m-map]]))
 
 (def-plan-fn authorize-user-key
   "Authorise a single key, specified as a path or as a byte array."
@@ -32,7 +33,7 @@
   ([username & public-key-paths]
      (sudoers/install)
      (user username :create-home true :shell :bash)
-     (map (partial authorize-user-key username) public-key-paths)
+     (m-map (partial authorize-user-key username) public-key-paths)
      (sudoers/sudoers
       {} {} {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})))
 

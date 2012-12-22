@@ -7,6 +7,7 @@
    [pallet.api :only [group-spec plan-fn]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.compute :only [nodes]]
+   [pallet.monad :only [m-identity]]
    [pallet.node :only [group-name]]
    [pallet.test-utils :only [clj-action make-localhost-compute]]))
 
@@ -45,7 +46,7 @@
           group (group-spec
                  (group-name (first (nodes compute)))
                  :phases {:p (plan-fn (exec-script "ls /"))
-                          :p2 (plan-fn (localf))})
+                          :p2 (plan-fn (m-identity (localf)))})
           node-set @(operate (group-nodes compute [group]))
           op (operate (lift node-set [:p :p2] {} {}))
           {:keys [plan-state results targets]} @op]

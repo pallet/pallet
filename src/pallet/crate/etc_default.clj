@@ -17,9 +17,9 @@
           :JAVA_OPTS \"-Xmx1024m\"
           \"JSP_COMPILER\" \"javac\")"
   [filename & key-value-pairs]
-  [file (m-result (if (= \/ (first filename))
-                    filename
-                   (str (stevedore/script (~lib/etc-default)) "/" filename)))]
+  [file (if (= \/ (first filename))
+          filename
+          (str (stevedore/script (~lib/etc-default)) "/" filename))]
   (remote-file
    file
    :owner "root:root"

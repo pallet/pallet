@@ -16,11 +16,11 @@
    is used."
   [env-name key-value-pairs & {:keys [path shared] :as options}]
   [os-family os-family
-   [path shared] (m-result (if (and path shared)
-                             [path shared]
-                             (if (#{:rhel :centos :fedora} os-family)
-                               ["/etc/profile.d/java.sh" false]
-                               ["/etc/environment" true])))]
+   [path shared] (if (and path shared)
+                    [path shared]
+                    (if (#{:rhel :centos :fedora} os-family)
+                      ["/etc/profile.d/java.sh" false]
+                      ["/etc/environment" true]))]
   (pipeline-when shared
     (exec-script*
      (action-plan/checked-commands*

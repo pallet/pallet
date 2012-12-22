@@ -5,7 +5,8 @@
    clojure.test
    pallet.crate
    [pallet.api :only [group-spec]]
-   [pallet.monad :only [let-s]]
+   [pallet.monad :only [let-s m-identity]]
+   [pallet.monad.state-monad :only [m-result]]
    [pallet.session.verify :only [add-session-verification-key]]
    [pallet.test-utils :only [test-session make-node]]))
 
@@ -30,12 +31,12 @@
 (defmulti-plan xx
   (fn [k]
     (let-s
-      [xx (fn [s] [(:xx s) s])]
+     [xx (m-identity (fn [s] [(:xx s) s]))]
       xx)))
 
 (defmethod-plan xx :yy
   [k]
-  [xx (fn [s] [(:xx s) s])
+  [xx (m-identity (fn [s] [(:xx s) s]))
    r (m-result [xx k])])
 
 (deftest defmulti-plan-test

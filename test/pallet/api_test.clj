@@ -8,6 +8,7 @@
    [pallet.compute :only [nodes]]
    [pallet.core.user :only [default-private-key-path default-public-key-path]]
    [pallet.environment :only [get-environment]]
+   [pallet.monad :only [m-identity]]
    [pallet.node :only [group-name]]
    [pallet.session.verify :only [add-session-verification-key]]
    [pallet.test-utils :only [make-localhost-compute]]))
@@ -68,7 +69,7 @@
           op (lift [group]
                    :phase (plan-fn
                             [k (get-environment [:my-key])]
-                            (fn [session] (reset! a k)))
+                            (m-identity (fn [session] (reset! a k))))
                    :compute compute
                    :environment {:my-key 1})]
       (is @op)

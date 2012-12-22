@@ -12,6 +12,8 @@
    [pallet.compute :only [nodes]]
    [pallet.core.api :only [throw-operation-exception]]
    [pallet.core.user :only [*admin-user*]]
+   [pallet.monad :only [m-identity as-plan-fn]]
+   [pallet.monad.state-monad :only [m-result]]
    [pallet.node-value :only [node-value]]
    [pallet.stevedore :only [script]]
    [pallet.test-utils
@@ -185,8 +187,8 @@
     (is (thrown-with-msg? RuntimeException
           #".*/some/non-existing/file.*does not exist, is a directory, or is unreadable.*"
           (build-actions/build-actions
-              {} (remote-file
-                  "file1" :local-file "/some/non-existing/file" :owner "user1"))))
+           {} (remote-file
+               "file1" :local-file "/some/non-existing/file" :owner "user1"))))
     (is (=
          (str
           "{:error {:type :pallet/action-execution-error, "
@@ -197,7 +199,7 @@
           "remote-file file1 specified without content.>}}")
          (->
           (build-actions/build-actions
-              {} (remote-file "file1" :owner "user1"))
+           {} (remote-file "file1" :owner "user1"))
           second
           :errors
           first
@@ -207,16 +209,16 @@
       (is (re-find #"mv -f --backup=\"numbered\" file1.new file1"
                    (first
                     (build-actions/build-actions
-                        {} (remote-file
-                            "file1" :local-file (.getPath tmp)))))))
+                     {} (remote-file
+                         "file1" :local-file (.getPath tmp)))))))
 
     (utils/with-temporary [tmp (utils/tmpfile)
                            target-tmp (utils/tmpfile)]
       ;; this is convoluted to get around the "t" sticky bit on temp dirs
       (let [user (local-test-user)
             log-action (clj-action [session]
-                         (logging/info "local-file test")
-                         [nil session])]
+                                   (logging/info "local-file test")
+                                   [nil session])]
         (.delete target-tmp)
         (io/copy "text" tmp)
         (let [compute (make-localhost-compute :group-name "local")
@@ -224,15 +226,15 @@
           (testing "local-file"
             (logging/debugf "local-file is %s" (.getPath tmp))
             (let [op (lift
-                           local
-                           :phase (plan-fn
-                                    (log-action)
-                                    (remote-file
-                                     (.getPath target-tmp)
-                                     :local-file (.getPath tmp)
-                                     :mode "0666"))
-                           :compute compute
-                           :user user)
+                      local
+                      :phase (plan-fn
+                              (m-identity (log-action))
+                              (remote-file
+                               (.getPath target-tmp)
+                               :local-file (.getPath tmp)
+                               :mode "0666"))
+                      :compute compute
+                      :user user)
                   result @op]
               (throw-operation-exception op)
               (is (complete? op))
@@ -268,43 +270,43 @@
             (is (= (:out (local/local-script "hostname"))
                    (slurp (.getPath target-tmp)))))
           (testing "content unchanged"
-            (let [a (atom nil)]
+            (let [a (atom nil)
+                  act (clj-action
+                       [session nv]
+                       (reset! a true)
+                       (is (nil? (seq (:flags nv))))
+                       [nil session])]
               @(lift
                 local
                 :compute compute
                 :phase (plan-fn
-                         [nv (remote-file
-                              (.getPath target-tmp) :content "$(hostname)"
-                              :mode "0666" :flag-on-changed :changed)]
-                         (verify-flag-not-set :changed)
-                         ((clj-action
-                              [session nv]
-                            (reset! a true)
-                            (is (nil? (seq (:flags nv))))
-                            [nil session])
-                          nv))
+                        [nv (remote-file
+                             (.getPath target-tmp) :content "$(hostname)"
+                             :mode "0666" :flag-on-changed :changed)]
+                        (verify-flag-not-set :changed)
+                        (m-identity (act nv)))
                 :user user)
               (is @a)
               (is (.canRead target-tmp))
               (is (= (:out (local/local-script "hostname"))
                      (slurp (.getPath target-tmp))))))
           (testing "content changed"
-            (let [a (atom nil)]
+            (let [a (atom nil)
+                  act (clj-action
+                       [session nv]
+                       (reset! a true)
+                       (is (:flags nv))
+                       (is ((:flags nv) :changed))
+                       [nil session])]
               @(lift
                 local
                 :compute compute
                 :phase (plan-fn
-                         [nv (remote-file
-                              (.getPath target-tmp) :content "abc"
-                              :mode "0666" :flag-on-changed :changed)]
-                         (verify-flag-set :changed)
-                         ((clj-action
-                              [session nv]
-                            (reset! a true)
-                            (is (:flags nv))
-                            (is ((:flags nv) :changed))
-                            [nil session])
-                          nv))
+                        [nv (remote-file
+                             (.getPath target-tmp) :content "abc"
+                             :mode "0666" :flag-on-changed :changed)]
+                        (verify-flag-set :changed)
+                        (m-identity (act nv)))
                 :user user)
               (is @a))
             (is (.canRead target-tmp))
@@ -364,13 +366,13 @@
                       local
                       :compute compute
                       :phase (plan-fn
-                               (exec-script
-                                ((~lib/md5sum ~(.getPath tmp)) > ~md5path))
-                               (remote-file
-                                (.getPath target-tmp)
-                                :url (str "file://" (.getPath tmp))
-                                :md5-url (str "file://" md5path)
-                                :mode "0666"))
+                              (exec-script
+                               ((~lib/md5sum ~(.getPath tmp)) > ~md5path))
+                              (remote-file
+                               (.getPath target-tmp)
+                               :url (str "file://" (.getPath tmp))
+                               :md5-url (str "file://" md5path)
+                               :mode "0666"))
                       :user user)]
               @op
               (is (complete? op))
@@ -466,7 +468,7 @@
                        (pipeline-when @is-text
                          [new-content (return-value-expr [content]
                                         (string/replace content "x" "s"))]
-                         (m-result (reset! seen true))
+                         (reset! seen true)
                          (remote-file
                           (.getPath tmp-file-2)
                           :content (delayed [_] @new-content))))
@@ -489,7 +491,7 @@
                        (pipeline-when (= @content "text")
                          [new-content (return-value-expr [content]
                                         (string/replace content "x" "s"))]
-                         (m-result (reset! seen true))
+                         (reset! seen true)
                          (remote-file
                           (.getPath tmp-file-2)
                           :content (delayed [_] @new-content))))
@@ -511,7 +513,7 @@
                      (plan-fn
                        [content (remote-file-content (.getPath tmp-file))]
                        (pipeline-when (= @content "text")
-                         (m-result (reset! seen true))
+                         (reset! seen true)
                          (remote-file-action
                           (.getPath tmp-file-2)
                           {:content (string/replace @content "x" "s")})))
@@ -533,7 +535,7 @@
                      (plan-fn
                        [content (remote-file-content (.getPath tmp-file))]
                        (pipeline-when (= @content "text")
-                         (m-result (reset! seen true))
+                         (reset! seen true)
                          (remote-file
                           (.getPath tmp-file-2)
                           :content (delayed [s]
@@ -556,7 +558,7 @@
                      (plan-fn
                        [content (remote-file-content (.getPath tmp-file))]
                        (pipeline-when (= @content "text")
-                         (m-result (reset! seen true))
+                         (reset! seen true)
                          (remote-file
                           (.getPath tmp-file-2)
                           :content (string/replace @content "x" "s"))))

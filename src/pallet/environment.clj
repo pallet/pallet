@@ -167,10 +167,11 @@
 
 (defn get-environment
   "Monadic environment accessor"
+  {:pallet/plan-fn true}
   ([keys]
      (fn get-env [session]
        [(get-for session keys) session]))
-    ([keys default]
+  ([keys default]
      (fn get-env [session]
        [(get-for session keys default) session])))
 

@@ -9,6 +9,7 @@
    [pallet.api :only [server-spec plan-fn]]
    [pallet.crate
     :only [def-plan-fn assoc-settings get-settings update-settings]]
+   [pallet.monad.state-monad :only [m-map]]
    [pallet.utils :only [apply-map]]))
 
 (def system-cron-dir "/etc/cron.d")
@@ -46,9 +47,9 @@
 (def-plan-fn create-user-crontab
   "Create user crontab for the given user."
   [user]
-  [in-file (m-result (in-file user))
+  [in-file (in-file user)
    settings (get-settings :crontab)
-   content-spec (m-result (get (:user settings) user))]
+   content-spec (get (:user settings) user)]
   (apply-map
    remote-file
    in-file :owner user :mode "0600"
@@ -60,7 +61,7 @@
 (def-plan-fn remove-user-crontab
   "Remove user crontab for the specified user"
   [user]
-  [in-file (m-result (in-file user))]
+  [in-file (in-file user)]
   (file in-file :action :delete)
   (exec-checked-script
    "Remove crontab"
@@ -70,7 +71,7 @@
   "Write all user crontab files."
   [& {:keys [action] :or {action :create}}]
   [settings (get-settings :crontab nil)]
-  (map
+  (m-map
    (case action
      :create create-user-crontab
      :remove remove-user-crontab)
@@ -84,7 +85,7 @@
 (def-plan-fn create-system-crontab
   "Create system crontab for the given name."
   [system]
-  [path (m-result (system-cron-file system))
+  [path (system-cron-file system)
    settings (get-settings :crontab)]
   (apply-map
    remote-file
@@ -95,7 +96,7 @@
 (def-plan-fn remove-system-crontab
   "Remove system crontab for the given name"
   [system]
-  [path (m-result (system-cron-file system))
+  [path (system-cron-file system)
    settings (get-settings :crontab)]
   (file path :action :delete))
 
@@ -103,7 +104,7 @@
   "Write all system crontab files."
   [& {:keys [action] :or {action :create}}]
   [settings (get-settings :crontab)]
-  (map
+  (m-map
    (case action
      :create create-system-crontab
      :remove remove-system-crontab)

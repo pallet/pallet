@@ -58,22 +58,22 @@
            enabled 0}}]
   [os-family os-family
    os-version os-version
-   no-updates (m-result (and            ; missing updates for fedora 13, 14
-                         (= version "5.0")
-                         (= :fedora os-family)
-                         (try
-                           (< 12 (Integer/decode (str os-version)))
-                           (catch NumberFormatException _))))
-   jpackage-repos (m-result (vec
-                             (filter
-                              identity
-                              ["jpackage-generic"
-                               "jpackage-generic-updates"
-                               "jpackage-generic-non-free"
-                               "jpackage-generic-updates-non-free"
-                               (format "jpackage-%s" component)
-                               (when-not no-updates
-                                 (format "jpackage-%s-updates" component))])))]
+   no-updates (and            ; missing updates for fedora 13, 14
+               (= version "5.0")
+               (= :fedora os-family)
+               (try
+                 (< 12 (Integer/decode (str os-version)))
+                 (catch NumberFormatException _)))
+   jpackage-repos (vec
+                   (filter
+                    identity
+                    ["jpackage-generic"
+                     "jpackage-generic-updates"
+                     "jpackage-generic-non-free"
+                     "jpackage-generic-updates-non-free"
+                     (format "jpackage-%s" component)
+                     (when-not no-updates
+                       (format "jpackage-%s-updates" component))]))]
   (package-source
    "jpackage-generic"
    :yum {:mirrorlist (mirrorlist "generic" "free" version)

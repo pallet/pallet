@@ -166,7 +166,8 @@ list, Alan Dipert and MeikelBrandmeyer."
        action#)))
 
 (def
-  ^{:doc "Verify that the specified flag is set for the current target."}
+  ^{:doc "Verify that the specified flag is set for the current target."
+    :pallet/plan-fn true}
   verify-flag-set
   (clj-action
     [session flag]
@@ -177,7 +178,8 @@ list, Alan Dipert and MeikelBrandmeyer."
     [flag session]))
 
 (def
-  ^{:doc "Verify that the specified flag is not set for the current target."}
+  ^{:doc "Verify that the specified flag is not set for the current target."
+    :pallet/plan-fn true}
   verify-flag-not-set
   (clj-action
    [session flag]

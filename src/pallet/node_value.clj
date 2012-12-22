@@ -71,16 +71,19 @@
   (instance? NodeValue v))
 
 (defn set-node-value
+  {:pallet/plan-fn true}
   ([session v node-value-path]
      (assoc-in session [:plan-state :node-values node-value-path] v))
   ([session v]
      (set-node-value session v (:current-node-value-path session))))
 
 (defn assign-node-value
+  {:pallet/plan-fn true}
   [nv v]
   (fn [session]
     [v (assoc-in session [:plan-state :node-values (.path nv)] v)]))
 
 (defn get-node-value
+  {:pallet/plan-fn true}
   [nv]
   (fn [session] [(node-value nv session) session]))

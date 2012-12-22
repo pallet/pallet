@@ -19,7 +19,8 @@
    [pallet.actions :only [directory exec-checked-script file remote-file user]]
    [pallet.api :only [lift plan-fn]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.crate :only [get-settings]]))
+   [pallet.crate :only [get-settings]]
+   [pallet.monad :only [m-identity]]))
 
 (use-fixtures
  :once with-ubuntu-script-template (logging-threshold-fixture))
@@ -251,6 +252,7 @@
        (generate-key "user"))))
 
 (defn check-public-key
+  {:pallet/plan-fn true}
   [key]
   (fn [session]
     (logging/trace (format "check-public-key session is %s" session))
@@ -271,7 +273,7 @@
         :count 1
         :phases
         {:bootstrap (plan-fn
-                     (automated-admin-user)
+                     (m-identity (automated-admin-user))
                      (user "testuser"))
          :configure (plan-fn (generate-key "testuser"))
          :verify1 (plan-fn

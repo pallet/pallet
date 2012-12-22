@@ -40,7 +40,9 @@ way. The function can not modify the state used in any way."
     "") ; anonymous function
    (string/replace #"fn\*_p1_G" "fn")))
 
-(defmacro m-result [v]
+(defmacro m-result
+  {:pallet/plan-fn true}
+  [v]
   (let [fname (gensym "m-resultf")]
     `(fn ~fname [s#] [~v s#])))
 
@@ -204,6 +206,7 @@ way. The function can not modify the state used in any way."
 (defmacro m-lift
   "Converts a function f of n arguments into a function of n
   monadic arguments returning a monadic value."
+  {:pallet/plan-fn true}
   [n f]
   (let [expr (take n (repeatedly #(gensym "x_")))
         vars (vec (take n (repeatedly #(gensym "mv_"))))
@@ -213,17 +216,20 @@ way. The function can not modify the state used in any way."
 (defn m-join
   "Converts a monadic value containing a monadic value into a 'simple'
    monadic value."
+  {:pallet/plan-fn true}
   [m]
   (m-bind m identity))
 
 (defn m-fmap
   "Bind the monadic value m to the function returning (f x) for argument x"
+  {:pallet/plan-fn true}
   [f m]
   (m-bind m (fn [x] (m-result (f x)))))
 
 (defn m-seq
   "'Executes' the monadic values in ms and returns a sequence of the
    basic values contained in them."
+  {:pallet/plan-fn true}
   [ms]
   (reduce (fn [q p]
             (m-bind p (fn [x]
@@ -235,6 +241,7 @@ way. The function can not modify the state used in any way."
 (defn m-map
   "'Executes' the sequence of monadic values resulting from mapping
    f onto the values xs. f must return a monadic value."
+  {:pallet/plan-fn true}
   [f xs]
   (m-seq (map f xs)))
 
@@ -243,6 +250,7 @@ way. The function can not modify the state used in any way."
    of one parameter. Each step is called with the result of the previous
    step as its argument. (m-chain (step1 step2)) is equivalent to
    (fn [x] (domonad [r1 (step1 x) r2 (step2 r1)] r2))."
+  {:pallet/plan-fn true}
   [steps]
   (reduce (fn m-chain-link [chain-expr step]
             (fn [v] (m-bind (chain-expr v) step)))
@@ -277,11 +285,13 @@ way. The function can not modify the state used in any way."
 (defmacro m-when
   "If test is logical true, return monadic value m-expr, else return
    (m-result nil)."
+  {:pallet/plan-fn true}
   [test m-expr]
   `(if ~test ~m-expr (m-result nil)))
 
 (defmacro m-when-not
   "If test if logical false, return monadic value m-expr, else return
    (m-result nil)."
+  {:pallet/plan-fn true}
   [test m-expr]
   `(if ~test (m-result nil) ~m-expr))

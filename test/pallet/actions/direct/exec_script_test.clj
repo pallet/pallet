@@ -6,6 +6,7 @@
    [pallet.actions :only [exec-script* exec-script exec-checked-script exec]]
    [pallet.api :only [group-spec lift]]
    [pallet.core.user :only [*admin-user*]]
+   [pallet.monad :only [as-plan-fn]]
    [pallet.node :only [hostname]]
    [pallet.node-value :only [node-value]]
    [pallet.script.lib :only [ls]]
@@ -32,7 +33,7 @@
   (let [v (promise)
         rv (let-actions {}
              [nv (exec-script* "ls file1")
-              _ #(do (deliver v nv) [nv %])]
+              _ (as-plan-fn #(do (deliver v nv) nv))]
              nv)]
     (is (= "ls file1\n" (first rv)))
     (is (= [{:language :bash} "ls file1"] (node-value @v (second rv))))))

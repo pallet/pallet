@@ -5,6 +5,7 @@ Pallet uses monads for both internal core code, and for action and phase code
 used in crates. The two uses are both fundamentally an application of the state
 monad, but are each use a different context."
   (:use
+   [clojure.tools.logging :only [debugf tracef]]
    [pallet.monad.state-monad
     :only [check-state-with dostate m-when m-when-not m-map m-result]]
    [pallet.argument :only [delayed]]
@@ -22,6 +23,12 @@ monad, but are each use a different context."
 (check-state-with check-session)
 
 ;;; ## Comprehensions
+
+;;; ### Helpers
+(defn list-form?
+  [form]
+  (and (sequential? form) (not (vector? form))))
+
 
 ;; ### Rewriting of core symbols to monadic equivalents.
 
@@ -42,7 +49,6 @@ monad, but are each use a different context."
    'map `m-map
    'when `m-when
    'when-not `m-when-not
-   'm-result `m-result
    `update-in `update-in-state
    `assoc `assoc-state
    `assoc-in `assoc-in-state
@@ -53,21 +59,35 @@ monad, but are each use a different context."
    `when `m-when
    `when-not `m-when-not})
 
-(defn- replace-in-top-level-form
+(defn replace-in-top-level-form*
   "Replace top level monadic function symbols."
   [form]
   (if (and (sequential? form) (not (vector? form)))
-    (with-meta
-      (list* (get top-level-replacements (first form) (first form)) (rest form))
-      (meta form))
+    (do
+      (when-not (= (first form)
+                   (get top-level-replacements (first form) (first form)))
+        (println "*** replacing "
+                 form
+                 "using"
+                 (get top-level-replacements (first form) (first form))
+                 "at"
+                 *file*
+                 (:line (meta form))))
+      (with-meta
+        (list* (get top-level-replacements (first form) (first form)) (rest form))
+        (meta form)))
     form))
+
+(defmacro replace-in-top-level-form
+  [form]
+  (replace-in-top-level-form* form))
 
 (defn replace-in-top-level-forms
   "Replace some top level function names with their monadic equivalents."
   [forms]
   (vec
    (mapcat
-    #(list (first %) (replace-in-top-level-form (second %)))
+    #(list (first %) (replace-in-top-level-form* (second %)))
     (partition 2 forms))))
 
 ;; ### Components
@@ -76,50 +96,121 @@ monad, but are each use a different context."
 (defn component-symbol-fn
   "Returns an inline function definition for a component look-up by symbol"
   [k]
-  `(fn [session#] ((get (:components session#) '~k ~k) session#)))
+  (if (symbol? k)
+    `(fn [session#] ((get (:components session#) '~k ~k) session#))
+    k))
 
 (defn componentise-top-level-forms
   [forms]
-  (letfn [(componentise [s]
-            (if (symbol? s)
-              (component-symbol-fn s)
-              s))]
-    (vec
-     (mapcat
-      #(vector (first %) (componentise (second %)))
-      (partition 2 forms)))))
+  (vec
+   (mapcat
+    #(vector (first %) (component-symbol-fn (second %)))
+    (partition 2 forms))))
+
 
 ;; ### Action argument delay
-(defn wrap-args-if-action
+(defn wrap-args-if-action*
   [form]                                ; no destructuring to preserve metadata
-  (let [[fform & args] form]
-    (if (and (symbol? fform)
-             ;; (when-let [v (resolve fform)]
-             ;;   (-> v meta :pallet/action))
-             (when-let [v (resolve fform)]
-               (not (-> v meta :macro))))
-      (with-meta
-        (list* fform
-               (map
-                (fn [arg]
-                  (if (or (keyword? arg)(number? arg)(vector? arg)(set? arg))
-                    arg
-                    `(let [f# (fn ~(gensym "wrap-arg") [] ~arg)]
-                       ;; written like this to avoid recur across catch errors
-                       (try+
-                        (f#)
-                        (catch [:type :pallet/access-of-unset-node-value] _#
-                          (delayed [~'&session] (f#)))))))
-                args))
-        (meta form))
-      form)))
+  (if (list-form? form)
+    (let [[fform & args] form]
+      (if (and
+           (symbol? fform)
+           ;; (when-let [v (resolve fform)]
+           ;;   (-> v meta :pallet/action))
+           (when-let [v (resolve fform)]
+             (not (-> v meta :macro))))
+        (with-meta
+          (list* fform
+                 (map
+                  (fn [arg]
+                    (if (or (keyword? arg)
+                            (number? arg)
+                            (vector? arg)
+                            (set? arg)
+                            (string? arg))
+                      arg
+                      `(let [f# (fn ~(gensym "wrap-arg") [] ~arg)]
+                         ;; written like this to avoid recur across catch errors
+                         (try+
+                          (f#)
+                          (catch [:type :pallet/access-of-unset-node-value] _#
+                            (delayed [~'&session] (f#)))))))
+                  args))
+          (meta form))
+        form))
+    form))
+
+(defmacro wrap-args-if-action
+  [form]
+  (wrap-args-if-action* form))
 
 (defn wrap-action-args
   "Replace arguments to actions."
   [forms]
   (vec
    (mapcat
-    #(list (first %) (wrap-args-if-action (second %)))
+    #(list (first %) (wrap-args-if-action* (second %)))
+    (partition 2 forms))))
+
+;;; ### Monadisation
+;;; Check for forms that require m-result wrapping
+(defn- contains-plan-fn?
+  "Predicate to see if a plan-fn contains a symbol that resolves
+   to a var that has :pallet/plan-fn metadata"
+  [env form]
+  (cond
+   (symbol? form) (or (#{'m-result 'm-identity} form)
+                      (when-let [v (and (not (get env form)) (resolve form))]
+                        (println
+                         (format "sym %s %s %s"
+                                         form v (:pallet/plan-fn (meta v))))
+                        (:pallet/plan-fn (meta v))))
+   (list-form? form) (some (partial contains-plan-fn? env) form)
+   :else nil)) ;(println "ignore form" form (type form))
+
+(defmacro m-identity
+  "Wrapper to prevent form translation to m-result."
+  {:pallet/plan-fn true}
+  [x]
+  x)
+
+(defn translate-form*
+  "Translate a pallet plan-fn form.  This looks to see if the form contains
+   a symbol with :pallet/plan-fn metadata, and if not wraps it in a m-result.
+   It could also translate outer map, when, etc into m-map, m-when, etc if
+   a plan-fn is found."
+  [env form]
+  (if (or (symbol? form) (list-form? form))
+    (->
+     (if (contains-plan-fn? env form)
+       (do
+         (println
+          "*** monadic fn"
+          (component-symbol-fn (replace-in-top-level-form form))
+          "at" *file* (:line (meta form)))
+         (component-symbol-fn (replace-in-top-level-form form)))
+       (do
+         (println
+          "*** translating to (m-result" form ") at" *file* (:line (meta form)))
+         (list `m-result form)))
+     (with-meta (meta form)))
+    form))
+
+(defmacro translate-form
+  [form]
+  (translate-form* &env form))
+
+(defn translate-forms
+  "Translate pallet plan-fn forms."
+  [env forms]
+  (vec
+   (mapcat
+    #(list (first %) (with-meta
+                       `(translate-form
+                         ~(with-meta
+                            `(wrap-args-if-action ~(second %))
+                            (meta (second %))))
+                       (meta (second %))))
     (partition 2 forms))))
 
 
@@ -127,6 +218,7 @@ monad, but are each use a different context."
 ;; ### Let Comprehension
 (defmacro let-state
   "A monadic comprehension using the state-m monad. Adds lookup of components."
+  {:pallet/plan-fn true}
   [& body]
   `(dostate
     ~(->
@@ -138,13 +230,14 @@ monad, but are each use a different context."
   "A monadic comprehension using the session-m monad. Provides some translation
    of functions used (see `top-level-replacements`), and adds lookup of
    components."
+  {:pallet/plan-fn true}
   [& body]
   `(dostate
-    ~(->
+    ~(->>
       (first body)
-      replace-in-top-level-forms
-      componentise-top-level-forms
-      wrap-action-args)
+      (translate-forms &env)
+      ;; wrap-action-args
+      )
     ~@(rest body)))
 
 ;; ### Pipelines
@@ -152,6 +245,7 @@ monad, but are each use a different context."
   "Defines a monadic comprehension under the session monad, where return value
   bindings not specified. Any vector in the arguments is expected to be of the
   form [symbol expr] and becomes part of the generated monad comprehension."
+  {:pallet/plan-fn true}
   [& args]
   (letfn [(gen-step [f]
             (if (vector? f)
@@ -165,7 +259,8 @@ monad, but are each use a different context."
 (defmacro wrap-pipeline
   "Wraps a pipeline with one or more wrapping forms. Makes the &session symbol
    available withing the bindings."
-  {:indent 'defun}
+  {:indent 'defun
+   :pallet/plan-fn true}
   [sym & wrappers-and-pipeline]
   `(fn ~sym [~'&session]
      ~(reduce
@@ -179,7 +274,8 @@ monad, but are each use a different context."
   "Defines a session pipeline. This composes the body functions under the
   session-m monad. Any vector in the arguments is expected to be of the form
   [symbol expr] and becomes part of the generated monad comprehension."
-  {:indent 2}
+  {:indent 2
+   :pallet/plan-fn true}
   [pipeline-name event & args]
   (let [line (-> &form meta :line)]
     `(wrap-pipeline ~pipeline-name
@@ -194,7 +290,8 @@ monad, but are each use a different context."
 
 (defmacro let-session
   "Defines a session comprehension."
-  {:indent 2}
+  {:indent 2
+   :pallet/plan-fn true}
   [comprehension-name event & args]
   (let [line (-> &form meta :line)]
     `(wrap-pipeline ~comprehension-name
@@ -221,7 +318,8 @@ monad, but are each use a different context."
   stack traces.
 
   A context is automatically added."
-  {:indent 2}
+  {:indent 2
+   :pallet/plan-fn true}
   [pipeline-name event & args]
   (let [line (-> &form meta :line)]
     `(wrap-pipeline ~pipeline-name
@@ -236,7 +334,8 @@ monad, but are each use a different context."
 
 (defmacro phase-pipeline-no-context
   "Similar to `phase-pipeline`, but without the context."
-  {:indent 2}
+  {:indent 2
+   :pallet/plan-fn true}
   [pipeline-name event & args]
   (let [line (-> &form meta :line)]
     `(wrap-pipeline ~pipeline-name
@@ -245,13 +344,14 @@ monad, but are each use a different context."
 ;;; ## Helpers
 (defn exec-s
   "Call a session-m state monad function, returning only the session map."
+  {:pallet/plan-fn true}
   [pipeline session]
   (second (pipeline session)))
 
-(defn as-session-pipeline-fn
-  "Converts a function of session -> session and makes it a monadic value under
-  the state monad"
-  [f] #(vector nil (f %)))
+(defn as-plan-fn
+  "Converts a function of no arguments into a plan-fn"
+  {:pallet/plan-fn true}
+  [f] (fn as-plan-fn [session] [(f) session]))
 
 (defmacro local-env
   "Return the local environment as a map of keyword value pairs."

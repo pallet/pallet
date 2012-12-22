@@ -16,7 +16,7 @@
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.environment :only [get-for]]
    [pallet.live-test :only [test-for test-nodes images]]
-   [pallet.monad :only [let-s]]
+   [pallet.monad :only [let-s m-identity]]
    [pallet.node-value :only [node-value]]
    [pallet.script.lib :only [user-home]]
    [pallet.stevedore :only [script]]))
@@ -55,40 +55,41 @@
   "0 1 1 1 1 ls > /dev/null")
 
 (deftest live-test
-  (test-for [image (images)]
-    (test-nodes [compute node-map node-types]
-        {:crontab
-         (merge
-          with-crontab
-          {:image image
-           :count 1
-           :phases
-           {:settings (plan-fn
-                        [user admin-user]
-                        (user-settings
-                         (:username user) {:content crontab-for-test}))
-            :bootstrap (automated-admin-user)
-            :configure (plan-fn
-                         (system-crontabs :action :create)
-                         (user-crontabs :action :create))
-            :verify (let-s
-                      [user admin-user
-                       fcontent (remote-file-content
-                                 (str
-                                  (script (~user-home ~(:username user)))
-                                  "/crontab.in"))
-                       v ((clj-action [session]
-                            (let [f (get-for session [:file-checker])]
-                              (f session fcontent))
-                            [nil session]))]
-                      v)}})}
-      (let [op (operate
-                (lift [(:crontab node-types)] nil [:verify] compute
-                      {:file-checker
-                       (bound-fn [session fcontent]
-                         (let [content (fcontent session)]
-                           (is (= crontab-for-test (trim content))
-                               "Remote file matches")))}
-                      {}))]
-        @op
-        (is (complete? op))))))
+  (let [act (clj-action
+             [session fcontent]
+             (let [f (get-for session [:file-checker])]
+               (f session fcontent)) [nil session])]
+    (test-for [image (images)]
+     (test-nodes [compute node-map node-types]
+                 {:crontab
+                  (merge
+                   with-crontab
+                   {:image image
+                    :count 1
+                    :phases
+                    {:settings (plan-fn
+                                [user admin-user]
+                                (user-settings
+                                 (:username user) {:content crontab-for-test}))
+                     :bootstrap (automated-admin-user)
+                     :configure (plan-fn
+                                 (system-crontabs :action :create)
+                                 (user-crontabs :action :create))
+                     :verify (let-s
+                              [user admin-user
+                               fcontent (remote-file-content
+                                         (str
+                                          (script (~user-home ~(:username user)))
+                                          "/crontab.in"))
+                               v (m-identity (act fcontent))]
+                              v)}})}
+                 (let [op (operate
+                           (lift [(:crontab node-types)] nil [:verify] compute
+                                 {:file-checker
+                                  (bound-fn [session fcontent]
+                                    (let [content (fcontent session)]
+                                      (is (= crontab-for-test (trim content))
+                                          "Remote file matches")))}
+                                 {}))]
+                   @op
+                   (is (complete? op)))))))

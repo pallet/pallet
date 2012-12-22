@@ -11,8 +11,9 @@
     :only [clj-action defaction with-action-options enter-scope leave-scope]]
    [pallet.argument :only [delayed]]
    [pallet.crate :only [role->nodes-map packager target]]
-   [pallet.monad :only [let-s phase-pipeline phase-pipeline-no-context]]
-   [pallet.monad.state-monad :only [m-when m-result]]
+   [pallet.monad
+    :only [let-s phase-pipeline phase-pipeline-no-context m-identity]]
+   [pallet.monad.state-monad :only [m-when m-result m-map]]
    [pallet.node-value :only [node-value]]
    [pallet.script.lib :only [set-flag-value]]
    [pallet.utils :only [apply-map tmpfile]]))
@@ -34,19 +35,22 @@
 
 (defmacro exec-script
   "Execute a bash script remotely. The script is expressed in stevedore."
+  {:pallet/plan-fn true}
   [& script]
   `(exec-script* (stevedore/script ~@script)))
 
 (defmacro exec-checked-script
   "Execute a bash script remotely, throwing if any element of the
    script fails. The script is expressed in stevedore."
+  {:pallet/plan-fn true}
   [script-name & script]
   `(exec-script* (checked-script ~script-name ~@script)))
 
 ;;; # Flow Control
 (defmacro pipeline-when
   "Execute the crate-fns-or-actions, only when condition is true."
-  {:indent 1}
+  {:indent 1
+   :pallet/plan-fn true}
   [condition & crate-fns-or-actions]
   (let [nv (gensym "nv")
         nv-kw (keyword (name nv))
@@ -77,7 +81,8 @@
 
 (defmacro pipeline-when-not
   "Execute the crate-fns-or-actions, only when condition is false."
-  {:indent 1}
+  {:indent 1
+   :pallet/plan-fn true}
   [condition & crate-fns-or-actions]
   (let [nv (gensym "nv")
         nv-kw (keyword (name nv))
@@ -108,6 +113,7 @@
 
 (defmacro return-value-expr
   "Creates an action that can transform return values"
+  {:pallet/plan-fn true}
   [[& return-values] & body]
   (let [session (gensym "session")]
     `((clj-action [~session]
@@ -321,6 +327,7 @@ downloads and to verify the download.
 Content can also be copied from a blobstore.
     (remote-file session \"remote/path\"
       :blob {:container \"container\" :path \"blob\"})"
+  {:pallet/plan-fn true}
   [path & {:keys [action url local-file remote-file link
                   content literal
                   template values
@@ -353,16 +360,18 @@ Content can also be copied from a blobstore.
    f should be a function taking [session local-path & _], where local-path will
    be a File with a copy of the remote file (which will be unlinked after
    calling f."
+  {:pallet/plan-fn true}
   [f path & args]
   (let [local-path (tmpfile)]
     (phase-pipeline with-remote-file-fn {:local-path local-path}
       (transfer-file-to-local path local-path)
-      (apply f local-path args)
+      (m-identity (apply f local-path args))
       (delete-local-path local-path))))
 
 (defn remote-file-content
   "Return a function that returns the content of a file, when used inside
    another action."
+  {:pallet/plan-fn true}
   [path]
   (let-s
     [nv (exec-script (~lib/cat ~path))
@@ -406,6 +415,7 @@ Content can also be copied from a blobstore.
        (remote-directory session path
           :url \"http://a.com/path/file.\"
           :unpack :unzip)"
+  {:pallet/plan-fn true}
   [path & {:keys [action url local-file remote-file
                   unpack tar-options unzip-options jar-options
                   strip-components md5 md5-url owner group recursive
@@ -458,10 +468,11 @@ Content can also be copied from a blobstore.
        (packages session
          :yum [\"git\" \"git-email\"]
          :aptitude [\"git-core\" \"git-email\"])"
+  {:pallet/plan-fn true}
   [& {:keys [yum aptitude pacman brew] :as options}]
   (phase-pipeline packages {}
     [packager packager]
-    (map package (options packager))))
+    (m-map package (options packager))))
 
 (defaction package-manager
   "Package manager controls.
@@ -531,6 +542,7 @@ Content can also be copied from a blobstore.
 
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
+  {:pallet/plan-fn true}
   [from to & {:keys [owner group mode port] :as options}]
   (phase-pipeline rsync-directory-fn {:name :rsync-directory}
     ;; would like to ensure rsync is installed, but this requires
@@ -573,6 +585,7 @@ Content can also be copied from a blobstore.
 
 (defmacro with-service-restart
   "Stop the given service, execute the body, and then restart."
+  {:pallet/plan-fn true}
   [service-name & body]
   `(let [service# ~service-name]
      (phase-pipeline with-restart {:service service#}
@@ -582,6 +595,7 @@ Content can also be copied from a blobstore.
 
 (defn service-script
   "Install a service script.  Sources as for remote-file."
+  {:pallet/plan-fn true}
   [service-name & {:keys [action url local-file remote-file link
                           content literal template values md5 md5-url
                           force service-impl]
@@ -597,7 +611,8 @@ Content can also be copied from a blobstore.
 ;;; # Retry
 ;;; TODO: convert to use a nested scope in the action-plan
 (defn loop-until
-  {:no-doc true}
+  {:no-doc true
+   :pallet/plan-fn true}
   [service-name condition max-retries standoff]
   (exec-checked-script
    (format "Wait for %s" service-name)
@@ -616,6 +631,7 @@ Content can also be copied from a blobstore.
 
 (defmacro retry-until
   "Repeat an action until it succeeds"
+  {:pallet/plan-fn true}
   [{:keys [max-retries standoff service-name]
     :or {max-retries 5 standoff 2}}
    condition]
@@ -625,6 +641,7 @@ Content can also be copied from a blobstore.
 ;;; target filters
 
 (defn ^:internal one-node-filter
+  {:pallet/plan-fn true}
   [role->nodes [role & roles]]
   (let [role-nodes (set (role->nodes role))
         m (select-keys role->nodes roles)]
@@ -639,6 +656,7 @@ Content can also be copied from a blobstore.
   "Execute the body on just one node of the specified roles. If there is no
    node in the union of nodes for all the roles, the nodes for the first role
    are used."
+  {:pallet/plan-fn true}
   [roles & body]
   `(phase-pipeline-no-context
     on-one-node {:roles roles}

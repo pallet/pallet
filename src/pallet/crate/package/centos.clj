@@ -12,7 +12,8 @@
 (def ^{:private true} centos-repo-key
   "http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-%s")
 
-(def ^{:doc "Return the centos package architecture for the target node."}
+(def ^{:doc "Return the centos package architecture for the target node."
+       :pallet/plan-fn true}
   arch
   (let-s
     [is64bit is-64bit?]

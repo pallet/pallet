@@ -14,17 +14,21 @@
            declare-collected-crate-action]]
    [pallet.argument :only [delayed-fn]]
    [pallet.monad :only [phase-pipeline phase-pipeline-no-context
-                        session-pipeline local-env let-s]]
+                        session-pipeline local-env let-s m-identity]]
    [pallet.utils :only [compiler-exception]]
    [slingshot.slingshot :only [throw+]]))
 
 (defmacro defplan
   "Define a crate function."
-  {:indent 'defun}
+  {:indent 'defun
+   :pallet/plan-fn true}
   [sym & body]
   (let [docstring (when (string? (first body)) (first body))
         body (if docstring (rest body) body)
-        sym (if docstring (vary-meta sym assoc :doc docstring) sym)]
+        sym (if docstring
+              (vary-meta sym assoc :doc docstring)
+              sym)
+        sym (vary-meta sym assoc :pallet/plan-fn true)]
     `(def ~sym
        (let [locals# (local-env)]
          (phase-pipeline
@@ -46,15 +50,20 @@
               `(~args
                 (let [locals# (local-env)]
                   (~p
-                      ~(symbol (str (name sym) "-cfn"))
-                      {:msg ~(str sym) :kw ~(keyword sym) :locals locals#}
-                    ~@body)))))]
-    (let [[sym rest] (name-with-attributes sym body)]
+                   ~(symbol (str (name sym) "-cfn"))
+                   {:msg ~(str sym) :kw ~(keyword sym) :locals locals#}
+                   ~@body)))))]
+    (let [[sym rest] (name-with-attributes sym body)
+          sym (vary-meta sym assoc :pallet/plan-fn true)]
       (if (vector? (first rest))
-        `(defn ~sym
-           ~@(output-body rest))
-        `(defn ~sym
-           ~@(map output-body rest))))))
+        `(do
+           (declare ~sym)
+           (defn ~sym
+             ~@(output-body rest)))
+        `(do
+           (declare ~sym)  ; otherwise recursive calls don't recognise a plan-fn
+           (defn ~sym
+             ~@(map output-body rest)))))))
 
 (defmacro def-aggregate-plan-fn
   "Define a crate function where arguments on successive calls are conjoined,
@@ -63,6 +72,7 @@
    :indent 'defun}
   [sym & args]
   (let [[sym [args f & rest]] (name-with-attributes sym args)
+        sym (vary-meta sym assoc :pallet/plan-fn true)
         id (gensym (name sym))]
     (when (seq rest)
       (throw (compiler-exception
@@ -78,7 +88,7 @@
          ;;    :action-name (list 'quote sym)}
          ;;   (meta sym))
          [~@args]
-         (action# ~@args)))))
+         (m-identity (action# ~@args))))))
 
 (defmacro def-collect-plan-fn
   "Define a crate function where arguments on successive calls are conjoined,
@@ -87,6 +97,7 @@
    :indent 'defun}
   [sym & args]
   (let [[sym [args f & rest]] (name-with-attributes sym args)
+        sym (vary-meta sym assoc :pallet/plan-fn true)
         id (gensym (name sym))]
     (when (seq rest)
       (throw (compiler-exception
@@ -102,7 +113,7 @@
          ;;    :action-name (list 'quote sym)}
          ;;   (meta sym))
          [~@args]
-         (action# ~@args)))))
+         (m-identity (action# ~@args))))))
 
 ;;; Multi-method for plan functions
 (defmacro defmulti-plan
@@ -119,10 +130,10 @@
         dispatch-fn (first args)
         {:keys [hierarchy]
          :or {hierarchy #'clojure.core/global-hierarchy}} (rest args)
-        args (first (filter vector? dispatch-fn))]
+        args (first (filter vector? dispatch-fn))
+        name (vary-meta name assoc :pallet/plan-fn true)]
     `(let [a# (atom {})]
-       (def
-         ~name
+       (def ~name
          ^{:dispatch-fn (fn [~@args] ~@(rest dispatch-fn))
            :methods a#}
          (fn [~@args]
@@ -176,47 +187,56 @@
 ;;; ## Session Accessors
 (defn target
   "The target-node."
+  {:pallet/plan-fn true}
   [session]
   [(session/target session) session])
 
 (defn target-node
   "The target-node."
+  {:pallet/plan-fn true}
   [session]
   [(session/target-node session) session])
 
 (defn target-id
   "Id of the target-node (unique for provider)."
+  {:pallet/plan-fn true}
   [session]
   [(session/target-id session) session])
 
 (defn target-name
   "Name of the target-node."
+  {:pallet/plan-fn true}
   [session]
   [(node/hostname (session/target-node session)) session])
 
 (defn admin-user
   "Id of the target-node."
+  {:pallet/plan-fn true}
   [session]
   [(session/admin-user session) session])
 
 (defn os-family
   "OS-Family of the target-node."
+  {:pallet/plan-fn true}
   [session]
   [(session/os-family session) session])
 
 (defn os-version
   "OS-Family of the target-node."
+  {:pallet/plan-fn true}
   [session]
   [(session/os-version session) session])
 
 (defn group-name
   "Group-Name of the target-node."
+  {:pallet/plan-fn true}
   [session]
   [(session/group-name session) session])
 
 (defn nodes-in-group
   "All nodes in the same tag as the target-node, or with the specified
   group-name."
+  {:pallet/plan-fn true}
   ([group-name]
      (fn [session]
        [(session/nodes-in-group session group-name) session]))
@@ -233,27 +253,32 @@
 
 (defn nodes-with-role
   "All target nodes with the specified role."
+  {:pallet/plan-fn true}
   [role]
   (fn [session]
     [(session/nodes-with-role session role) session]))
 
 (defn role->nodes-map
   "A map from role to nodes."
+  {:pallet/plan-fn true}
   []
   (fn [session]
     [(session/role->nodes-map session) session]))
 
 (defn packager
+  {:pallet/plan-fn true}
   [session]
   [(session/packager session) session])
 
 (defn admin-group
   "User that remote commands are run under"
+  {:pallet/plan-fn true}
   [session]
   [(session/admin-group session) session])
 
 (defn is-64bit?
   "Predicate for a 64 bit target"
+  {:pallet/plan-fn true}
   [session]
   [(session/is-64bit? session) session])
 
@@ -275,6 +300,7 @@
   "Retrieve the settings for the specified host facility. The instance-id allows
    the specification of specific instance of the facility. If passed a nil
    `instance-id`, then `:default` is used"
+  {:pallet/plan-fn true}
   ([facility {:keys [instance-id default] :as options}]
      (fn [session]
        [(plan-state/get-settings
@@ -287,6 +313,7 @@
   "Retrieve the settings for the `facility` on the `node`. The instance-id
    allows the specification of specific instance of the facility. If passed a
    nil `instance-id`, then `:default` is used"
+  {:pallet/plan-fn true}
   ([node facility {:keys [instance-id default] :as options}]
      (fn [session]
        [(plan-state/get-settings
@@ -299,6 +326,7 @@
   "Set the settings for the specified host facility. The instance-id allows
    the specification of specific instance of the facility (the default is
    :default)."
+  {:pallet/plan-fn true}
   ([facility kv-pairs {:keys [instance-id] :as options}]
      (fn [session]
        [kv-pairs
@@ -313,7 +341,8 @@
   "Update the settings for the specified host facility. The instance-id allows
    the specification of specific instance of the facility (the default is
    :default)."
-  {:arglists '[[facility f & args][facility options f & args]]}
+  {:arglists '[[facility f & args][facility options f & args]]
+   :pallet/plan-fn true}
   [facility f-or-opts & args]
   (let [[options f args] (if (map? f-or-opts)
                            [f-or-opts (first args) (rest args)]

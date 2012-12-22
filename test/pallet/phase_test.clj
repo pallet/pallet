@@ -14,6 +14,7 @@
   (is (= :pallet.phase/pre-fred (pre-phase-name :fred))))
 
 (defn is-phase
+  {:pallet/plan-fn true}
   [phase]
   (fn [session]
     (is (= phase (:phase session)))

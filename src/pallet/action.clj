@@ -34,22 +34,26 @@
 
 (defn action-options
   "Return any precedence modifiers defined on the session."
+  {:pallet/plan-fn true}
   [session]
   (get session action-options-key))
 
 (defn get-action-options
   "Return any precedence modifiers defined on the session."
+  {:pallet/plan-fn true}
   [session]
   [(get session action-options-key) session])
 
 (defn update-action-options
   "Update any precedence modifiers defined on the session"
+  {:pallet/plan-fn true}
   [m]
   (fn update-action-options [session]
     [m (update-in session [action-options-key] merge m)]))
 
 (defn assoc-action-options
   "Set precedence modifiers defined on the session."
+  {:pallet/plan-fn true}
   [m]
   (fn assoc-action-options [session]
     [m (assoc session action-options-key m)]))
@@ -57,6 +61,7 @@
 (defmacro ^{:indent 1} with-action-options
   "Set up local precedence relations between actions, and allows override
    of user options, :script-dir and :script-prefix."
+  {:pallet/plan-fn true}
   [m & body]
   `(let-s
      [p# get-action-options
@@ -88,7 +93,8 @@
   "Return an action inserter function. This is used for anonymous actions. The
   argument list is not enforced."
   [action]
-  ^{:action action}
+  ^{:action action
+    :pallet/plan-fn true}
   (fn action-fn [& argv]
     (fn action-inserter [session]
       (insert-action
@@ -163,7 +169,8 @@
                      action-name assoc
                      :arglists (list 'quote [args])
                      :defonce true
-                     :pallet/action true)
+                     :pallet/action true
+                     :pallet/plan-fn true)
         action-symbol (symbol
                        (or (namespace action-name) (name (ns-name *ns*)))
                        (name action-name))
@@ -276,7 +283,8 @@
   "Creates a clojure action with a :direct implementation. The first argument
 will be the session. The clojure code can not return a modified session (use a
 full action to do that."
-  {:indent 1} [args & impl]
+  {:indent 1}
+  [args & impl]
   (let [action-sym (gensym "clj-action")]
     `(let [action# (declare-action '~action-sym {})]
        (implement-action action# :direct
@@ -299,10 +307,12 @@ full action to do that."
 
 (defn enter-scope
   "Enter a new action scope."
+  {:pallet/plan-fn true}
   [session]
   [nil (update-action-plan session push-block)])
 
 (defn leave-scope
   "Leave the current action scope."
+  {:pallet/plan-fn true}
   [session]
   [nil (update-action-plan session pop-block)])

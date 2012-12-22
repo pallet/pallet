@@ -8,7 +8,8 @@
   (:use
    [pallet.actions
     :only [directory exec-checked-script file remote-file remote-file-content]]
-   [pallet.crate :only [def-plan-fn]]))
+   [pallet.crate :only [def-plan-fn]]
+   [pallet.monad.state-monad :only [m-when-not]]))
 
 (defn user-ssh-dir [user]
   (str (stevedore/script (~lib/user-home ~user)) "/.ssh/"))
@@ -16,9 +17,9 @@
 (def-plan-fn authorize-key
   "Authorize a public key on the specified user."
   [user public-key-string & {:keys [authorize-for-user]}]
-  [target-user (m-result (or authorize-for-user user))
-   dir (m-result (user-ssh-dir target-user))
-   auth-file (m-result (str dir "authorized_keys"))]
+  [target-user (or authorize-for-user user)
+   dir (user-ssh-dir target-user)
+   auth-file (str dir "authorized_keys")]
   (directory dir :owner target-user :mode "755")
   (file auth-file :owner target-user :mode "644")
   (exec-checked-script
@@ -35,9 +36,9 @@
   localhost.  The :authorize-for-user option can be used to specify the
   user to who's authorized_keys file is modified."
   [user public-key-filename & {:keys [authorize-for-user] :as options}]
-  [target-user (m-result (or authorize-for-user user))
-   key-file (m-result (str (user-ssh-dir user) public-key-filename))
-   auth-file (m-result (str (user-ssh-dir target-user) "authorized_keys"))]
+  [target-user (or authorize-for-user user)
+   key-file (str (user-ssh-dir user) public-key-filename)
+   auth-file (str (user-ssh-dir target-user) "authorized_keys")]
   (directory
    (user-ssh-dir target-user) :owner target-user :mode "755")
   (file auth-file :owner target-user :mode "644")
@@ -53,7 +54,7 @@
 (def-plan-fn install-key
   "Install a ssh private key."
   [user key-name private-key-string public-key-string]
-  [ssh-dir (m-result (user-ssh-dir user))]
+  [ssh-dir (user-ssh-dir user)]
   (directory ssh-dir :owner user :mode "755")
   (remote-file
    (str ssh-dir key-name)
@@ -81,12 +82,12 @@
            :or {type "rsa" passphrase ""}
            :as  options}]
 
-  [key-type (m-result type)
-   path (m-result (stevedore/script
-                   ~(str (user-ssh-dir user)
-                         (or filename (ssh-default-filenames key-type)))))
-   ssh-dir (m-result (.getParent (java.io.File. path)))]
-  (when-not (or (:no-dir options))
+  [key-type type
+   path (stevedore/script
+         ~(str (user-ssh-dir user)
+               (or filename (ssh-default-filenames key-type))))
+   ssh-dir (.getParent (java.io.File. path))]
+  (m-when-not (or (:no-dir options))
     (directory ssh-dir :owner user :mode "755"))
   (exec-checked-script
    "ssh-keygen"
@@ -111,6 +112,6 @@ Passing a :filename value allows direct specification of the filename.
 
 `:dir` allows specification of a different location."
   [user & {:keys [filename dir type] :or {type "rsa"} :as options}]
-  [filename (m-result (or filename (str (ssh-default-filenames type) ".pub")))
-   path (m-result (str (or dir (user-ssh-dir user)) filename))]
+  [filename (or filename (str (ssh-default-filenames type) ".pub"))
+   path (str (or dir (user-ssh-dir user)) filename)]
   (remote-file-content path))

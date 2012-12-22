@@ -20,10 +20,10 @@
 
 (defplan default-specs
   [admin-group admin-group]
-  (m-result (array-map
-             "root" {:ALL {:run-as-user :ALL}}
-             (str "%" admin-group)
-             {:ALL {:run-as-user :ALL}})))
+  (array-map
+   "root" {:ALL {:run-as-user :ALL}}
+   (str "%" admin-group)
+   {:ALL {:run-as-user :ALL}}))
 
 (defn- param-string [[key value]]
   (cond

@@ -28,21 +28,24 @@
 (def-plan-fn hosts-for-group
   "Declare host entries for all nodes of a group"
   [group-name & {:keys [private-ip]}]
-  [ip (m-result (if private-ip node/private-ip node/primary-ip))
-   group-nodes (nodes-in-group group-name)]
+  [group-nodes (nodes-in-group group-name)]
   (update-settings
-   :hosts merge (into {} (map #(vector (ip %) (node/hostname %)) group-nodes))))
+   :hosts merge
+   (into {} (map
+             (let [ip (if private-ip node/private-ip node/primary-ip)]
+               #(vector (ip %) (node/hostname %)))
+             group-nodes))))
 
 (def-plan-fn hosts-for-role
   "Declare host entries for all nodes of a role"
   [role & {:keys [private-ip]}]
-  [ip (m-result (if private-ip node/private-ip node/primary-ip))
-   nodes (nodes-with-role role)]
+  [nodes (nodes-with-role role)]
   (update-settings
-   :hosts merge (into {}
-                      (map
-                       #(vector (ip %) (node/hostname %))
-                       (map :node nodes)))))
+   :hosts merge
+   (into {} (map
+             (let [ip (if private-ip node/private-ip node/primary-ip)]
+               #(vector (ip %) (node/hostname %)))
+             (map :node nodes)))))
 
 (defn ^{:private true} localhost
   ([node-name]
@@ -57,13 +60,12 @@
 (defplan format-hosts
   [settings (get-settings :hosts)
    node-name target-name]
-  (m-result
-   (format-hosts*
-    (merge
-     settings
-     (if (some #(= node-name %) (vals settings))
-       (localhost)
-       (localhost node-name))))))
+  (format-hosts*
+   (merge
+    settings
+    (if (some #(= node-name %) (vals settings))
+      (localhost)
+      (localhost node-name)))))
 
 (defplan hosts
   "Writes the hosts files"

@@ -78,7 +78,9 @@
   `(defn ~template [~@args]
      ~m))
 
-(defn- apply-template-file [[file-spec content]]
+(defn- apply-template-file
+  {:pallet/plan-fn true}
+  [[file-spec content]]
   (phase-pipeline-no-context apply-template-file {}
     ;; (logging/trace (str "apply-template-file " file-spec \newline content))
     (apply-map remote-file (:path file-spec) :content content file-spec)
@@ -98,6 +100,8 @@
     ;;               (stevedore/script (do (chown ~owner @file))))])))
     ))
 
-(defn apply-templates [template-fn args]
+(defn apply-templates
+  {:pallet/plan-fn true}
+  [template-fn args]
   (phase-pipeline-no-context apply-templates {}
     (m-map apply-template-file (apply template-fn args))))

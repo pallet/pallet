@@ -13,6 +13,7 @@
    [pallet.core.api-impl :only [with-script-for-node]]
    [pallet.core.user :only [*admin-user*]]
    [pallet.executors :only [default-executor]]
+   [pallet.monad :only [m-identity]]
    pallet.core.api))
 
 (use-fixtures :once (logging-threshold-fixture))
@@ -107,10 +108,11 @@
 
 (deftest action-plans-test
   (let [n1 (make-node "n1" "g1" "192.168.1.1" :ubuntu)
+        one (clj-action [session] [1 session])
         g1 (group-spec
             :g1
             :phases {:p (plan-fn (exec-script "ls"))
-                     :g (plan-fn ((clj-action [session] 1)))})
+                     :g (plan-fn (m-identity (one)))})
         service (node-list-service [n1])
         n1 (assoc n1 :service service)
         service-state (service-state service [g1])]
@@ -157,7 +159,7 @@
         g1 (group-spec
             :g1
             :phases {:p (plan-fn (exec-script "ls"))
-                     :g (plan-fn (ga))})
+                     :g (plan-fn (m-identity (ga)))})
         service (node-list-service [n1])
         service-state (service-state service [g1])]
     (testing "nodes"

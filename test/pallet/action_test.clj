@@ -4,7 +4,7 @@
    pallet.action
    pallet.action-impl
    [pallet.action-plan :only [translate]]
-   [pallet.monad :only [let-s]]
+   [pallet.monad :only [let-s m-identity]]
    [pallet.node-value :only [node-value?]]
    [pallet.session.action-plan :only [get-action-plan]]
    [pallet.test-utils :only [test-session]]))
@@ -91,9 +91,9 @@
     (let [agg (declare-action 'agg {:execution :aggregated})
           ins (declare-action 'ins {})
           session (test-session {})
-          p (let-s [_ (agg "hello")
+          p (let-s [_ (m-identity (agg "hello"))
                     _ (with-action-options {:always-before #{agg}}
-                        (ins "a"))]
+                        (m-identity (ins "a")))]
                    nil)
           [_ session] (p session)
           action-plan (get-action-plan session)
