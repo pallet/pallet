@@ -20,7 +20,7 @@
   (format "%s %s"  (key entry) (name (val entry))))
 
 (def-plan-fn host
-  "Declare a host entry. Names should be a sting containing one or more names
+  "Declare a host entry. Names should be a string containing one or more names
   for the address"
   [address names]
   (update-settings :hosts merge {address names}))
