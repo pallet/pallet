@@ -1,8 +1,7 @@
 (ns pallet.command-script
   "Produce a shell script for launching Pallet, possibly customised for extra jars"
   (:require
-   [pallet.stevedore :as stevedore]
-   [pallet.action.user :as user]))
+   [pallet.stevedore :as stevedore]))
 
 (defn path
   [components]
