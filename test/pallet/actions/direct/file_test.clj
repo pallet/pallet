@@ -3,7 +3,6 @@
    [pallet.actions :only [file fifo symbolic-link sed]]
    [pallet.build-actions :only [build-actions]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.monad :only [phase-pipeline]]
    [pallet.stevedore :only [script]]
    [pallet.test-utils
     :only [with-ubuntu-script-template with-bash-script-language]]

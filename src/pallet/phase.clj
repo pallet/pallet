@@ -8,10 +8,9 @@
    [clojure.tools.macro :only [name-with-attributes]]
    [pallet.action :only [declare-aggregated-crate-action declare-action]]
    [pallet.common.context :only [throw-map]]
-   [pallet.monad :only [phase-pipeline phase-pipeline-no-context
-                        session-pipeline local-env]]
+   [pallet.core.session :only [session session! session-pipeline]]
    [pallet.session.verify :only [check-session]]
-   [pallet.utils :only [compiler-exception]]))
+   [pallet.utils :only [compiler-exception local-env]]))
 
 (defn pre-phase-name
   "Return the name for the pre-phase for the given `phase`."
@@ -42,20 +41,22 @@
 (defmacro schedule-in-pre-phase
   "Specify that the body should be executed in the pre-phase."
   [& body]
-  `(session-pipeline schedule-in-pre-phase {}
-     [phase# (get :phase)]
-     (assoc :phase (pre-phase-name phase#))
-     ~@body
-     (assoc :phase phase#)))
+  `(session-pipeline
+    schedule-in-pre-phase {}
+    (let [phase# (get (session) :phase)]
+      (session! (assoc (session) :phase (pre-phase-name phase#)))
+      ~@body
+      (session! (assoc (session) :phase phase#)))))
 
 (defmacro schedule-in-post-phase
   "Specify that the body should be executed in the post-phase."
   [& body]
-  `(session-pipeline schedule-in-post-phase {}
-     [phase# (get :phase)]
-     (assoc :phase (post-phase-name phase#))
-     ~@body
-     (assoc :phase phase#)))
+  `(session-pipeline
+    schedule-in-post-phase {}
+    (let [phase# (get (session) :phase)]
+      (session! (assoc (session) :phase (post-phase-name phase#)))
+      ~@body
+      (session! (assoc (session) :phase phase#)))))
 
 (defmacro check-session-thread
   "Add session checking to a sequence of calls which thread a session

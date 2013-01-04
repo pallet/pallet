@@ -13,24 +13,42 @@
            declare-aggregated-crate-action
            declare-collected-crate-action]]
    [pallet.argument :only [delayed-fn]]
-   [pallet.monad :only [phase-pipeline phase-pipeline-no-context
-                        session-pipeline local-env let-s]]
-   [pallet.utils :only [compiler-exception]]
+   [pallet.context :only [with-phase-context]]
+   [pallet.core.session :only [session session!]]
+   [pallet.utils :only [compiler-exception local-env]]
    [slingshot.slingshot :only [throw+]]))
 
-(defmacro defplan
-  "Define a crate function."
-  {:indent 'defun}
-  [sym & body]
-  (let [docstring (when (string? (first body)) (first body))
-        body (if docstring (rest body) body)
-        sym (if docstring (vary-meta sym assoc :doc docstring) sym)]
-    `(def ~sym
-       (let [locals# (local-env)]
-         (phase-pipeline
-             ~(symbol (str (name sym) "-cfn"))
-             {:msg ~(str sym) :kw ~(keyword sym) :locals locals#}
-           ~@body)))))
+
+;;; The phase pipeline is used in actions and crate functions. The phase
+;;; pipeline automatically sets up the phase context, which is available
+;;; (for logging, etc) at phase execution time.
+(defmacro phase-pipeline
+  "Defines a block with a context that is automatically added."
+  {:indent 2}
+  [pipeline-name event & args]
+  (let [line (-> &form meta :line)]
+    `(with-phase-context
+       (merge {:kw ~(list 'quote pipeline-name)
+               :msg ~(name pipeline-name)
+               :ns ~(list 'quote (ns-name *ns*))
+               :line ~line
+               :log-level :debug}
+              ~event)
+       ~@args)))
+
+(defmacro phase-pipeline-no-context
+  [name event & body]
+  `(do ~@body))
+
+(defn final-fn-sym?
+  "Predicate to match the final function symbol in a form."
+  [sym form]
+  (loop [form form]
+    (when (sequential? form)
+      (let [s (first form)]
+        (if (and (symbol? s) (= sym (symbol (name s))))
+          true
+          (recur (last form)))))))
 
 (defmacro def-plan-fn
   "Define a crate function."
@@ -38,17 +56,15 @@
    :indent 'defun}
   [sym & body]
   (letfn [(output-body [[args & body]]
-            (let [p (if (and (sequential? (last body))
-                             (symbol? (first (last body)))
-                             (= sym (symbol (name (first (last body))))))
+            (let [p (if (final-fn-sym? sym body)
                       `phase-pipeline-no-context ; ends in recursive call
                       `phase-pipeline)]
               `(~args
                 (let [locals# (local-env)]
                   (~p
-                      ~(symbol (str (name sym) "-cfn"))
-                      {:msg ~(str sym) :kw ~(keyword sym) :locals locals#}
-                    ~@body)))))]
+                   ~(symbol (str (name sym) "-cfn"))
+                   {:msg ~(str sym) :kw ~(keyword sym) :locals locals#}
+                   ~@body)))))]
     (let [[sym rest] (name-with-attributes sym body)]
       (if (vector? (first rest))
         `(defn ~sym
@@ -72,11 +88,6 @@
                 (vec rest))))))
     `(let [action# (declare-aggregated-crate-action '~sym ~f)]
        (def-plan-fn ~sym
-         ;; ~(merge
-         ;;   {:execution :aggregated-crate-fn
-         ;;    :crate-fn-id (list 'quote id)
-         ;;    :action-name (list 'quote sym)}
-         ;;   (meta sym))
          [~@args]
          (action# ~@args)))))
 
@@ -96,11 +107,6 @@
                 (vec rest))))))
     `(let [action# (declare-collected-crate-action '~sym ~f)]
        (def-plan-fn ~sym
-         ;; ~(merge
-         ;;   {:execution :aggregated-crate-fn
-         ;;    :crate-fn-id (list 'quote id)
-         ;;    :action-name (list 'quote sym)}
-         ;;   (meta sym))
          [~@args]
          (action# ~@args)))))
 
@@ -126,23 +132,20 @@
          ^{:dispatch-fn (fn [~@args] ~@(rest dispatch-fn))
            :methods a#}
          (fn [~@args]
-           (let [df# ((-> ~name meta :dispatch-fn) ~@args)]
-             (fn [session#]
-               (let [[dispatch-val# _#] (df# session#)]
-                 (if-let [f# (or (get @a# dispatch-val#)
-                                 (some
-                                  (fn [[k# f#]]
-                                    (when (isa? @~hierarchy dispatch-val# k#)
-                                      f#))
-                                  @a#))]
-                   ((f# ~@args) session#)
-                   (throw+
-                    {:reason :missing-method
-                     :plan-multi ~(clojure.core/name name)
-                     :session session#}
-                    "Missing plan-multi %s dispatch for %s"
-                    ~(clojure.core/name name)
-                    (pr-str dispatch-val#)))))))))))
+           (let [dispatch-val# ((-> ~name meta :dispatch-fn) ~@args)]
+             (if-let [f# (or (get @a# dispatch-val#)
+                             (some
+                              (fn [[k# f#]]
+                                (when (isa? @~hierarchy dispatch-val# k#)
+                                  f#))
+                              @a#))]
+               (f# ~@args)
+               (throw+
+                {:reason :missing-method
+                 :plan-multi ~(clojure.core/name name)}
+                "Missing plan-multi %s dispatch for %s"
+                ~(clojure.core/name name)
+                (pr-str dispatch-val#)))))))))
 
 (defn
   ^{:internal true :indent 2}
@@ -176,94 +179,88 @@
 ;;; ## Session Accessors
 (defn target
   "The target-node."
-  [session]
-  [(session/target session) session])
+  []
+  (session/target (session)))
 
 (defn target-node
   "The target-node."
-  [session]
-  [(session/target-node session) session])
+  []
+  (session/target-node (session)))
 
 (defn target-id
   "Id of the target-node (unique for provider)."
-  [session]
-  [(session/target-id session) session])
+  []
+  (session/target-id (session)))
 
 (defn target-name
   "Name of the target-node."
-  [session]
-  [(node/hostname (session/target-node session)) session])
+  []
+  (node/hostname (session/target-node (session))))
 
 (defn admin-user
   "Id of the target-node."
-  [session]
-  [(session/admin-user session) session])
+  []
+  (session/admin-user (session)))
 
 (defn os-family
   "OS-Family of the target-node."
-  [session]
-  [(session/os-family session) session])
+  []
+  (session/os-family (session)))
 
 (defn os-version
   "OS-Family of the target-node."
-  [session]
-  [(session/os-version session) session])
+  []
+  (session/os-version (session)))
 
 (defn group-name
   "Group-Name of the target-node."
-  [session]
-  [(session/group-name session) session])
+  []
+  (session/group-name session))
 
 (defn nodes-in-group
   "All nodes in the same tag as the target-node, or with the specified
   group-name."
   ([group-name]
-     (fn [session]
-       [(session/nodes-in-group session group-name) session]))
+     (session/nodes-in-group (session) group-name))
   ([]
-     (fn [session]
-       [(session/nodes-in-group) session])))
+     (session/nodes-in-group (session))))
 
 (comment
   (defn groups-with-role
     "All target groups with the specified role."
     [role]
-    (fn [session]
-      [(session/groups-with-role session role) session])))
+    (session/groups-with-role (session) role)))
 
 (defn nodes-with-role
   "All target nodes with the specified role."
   [role]
-  (fn [session]
-    [(session/nodes-with-role session role) session]))
+  (session/nodes-with-role (session) role))
 
 (defn role->nodes-map
   "A map from role to nodes."
   []
-  (fn [session]
-    [(session/role->nodes-map session) session]))
+  (session/role->nodes-map (session)))
 
 (defn packager
-  [session]
-  [(session/packager session) session])
+  []
+  (session/packager (session)))
 
 (defn admin-group
   "User that remote commands are run under"
-  [session]
-  [(session/admin-group session) session])
+  []
+  (session/admin-group (session)))
 
 (defn is-64bit?
   "Predicate for a 64 bit target"
-  [session]
-  [(session/is-64bit? session) session])
+  []
+  (session/is-64bit? (session)))
 
 (defn compute-service
   "Returns the current compute service"
-  [session]
-  [(if-let [node (session/target-node session)]
-     (node/compute-service node)
-     (:compute session))
-   session])
+  []
+  (if-let [node (session/target-node (session))]
+    (node/compute-service node)
+    (:compute session)))
 
 (defn target-flag?
   "Returns a DelayedFunction that is a predicate for whether the flag is set"
@@ -276,10 +273,8 @@
    the specification of specific instance of the facility. If passed a nil
    `instance-id`, then `:default` is used"
   ([facility {:keys [instance-id default] :as options}]
-     (fn [session]
-       [(plan-state/get-settings
-         (:plan-state session) (session/target-id session) facility options)
-        session]))
+     (plan-state/get-settings
+      (:plan-state (session)) (session/target-id (session)) facility options))
   ([facility]
      (get-settings facility {})))
 
@@ -288,10 +283,8 @@
    allows the specification of specific instance of the facility. If passed a
    nil `instance-id`, then `:default` is used"
   ([node facility {:keys [instance-id default] :as options}]
-     (fn [session]
-       [(plan-state/get-settings
-         (:plan-state session) (node/id node) facility options)
-        session]))
+     (plan-state/get-settings
+      (:plan-state (session)) (node/id node) facility options))
   ([node facility]
      (get-node-settings node facility {})))
 
@@ -300,12 +293,11 @@
    the specification of specific instance of the facility (the default is
    :default)."
   ([facility kv-pairs {:keys [instance-id] :as options}]
-     (fn [session]
-       [kv-pairs
-        (update-in
-         session [:plan-state]
-         plan-state/assoc-settings
-         (session/target-id session) facility kv-pairs options)]))
+     (session!
+      (update-in
+       (session) [:plan-state]
+       plan-state/assoc-settings
+       (session/target-id (session)) facility kv-pairs options)))
   ([facility kv-pairs]
      (assoc-settings facility kv-pairs {})))
 
@@ -318,9 +310,9 @@
   (let [[options f args] (if (map? f-or-opts)
                            [f-or-opts (first args) (rest args)]
                            [nil f-or-opts args])]
-    (fn [session]
-      [session
-       (update-in
-        session [:plan-state]
-        plan-state/update-settings
-        (session/target-id session) facility f args options)])))
+
+    (session!
+     (update-in
+      (session) [:plan-state]
+      plan-state/update-settings
+      (session/target-id (session)) facility f args options))))

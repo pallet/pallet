@@ -10,9 +10,7 @@
    [pallet.action
     :only [clj-action defaction with-action-options enter-scope leave-scope]]
    [pallet.argument :only [delayed]]
-   [pallet.crate :only [role->nodes-map packager target]]
-   [pallet.monad :only [let-s phase-pipeline phase-pipeline-no-context]]
-   [pallet.monad.state-monad :only [m-when m-result]]
+   [pallet.crate :only [role->nodes-map packager phase-pipeline target]]
    [pallet.node-value :only [node-value]]
    [pallet.script.lib :only [set-flag-value]]
    [pallet.utils :only [apply-map tmpfile]]))
@@ -55,25 +53,24 @@
                            (= (resolve (first condition)) #'stevedore/script))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-pipeline pipeline-when {:condition ~(list 'quote condition)}
-       [~@(when is-script?
-            [nv `(exec-checked-script
-                  (str "Check " ~condition)
-                  (~(list 'unquote `set-flag-value)
-                   ~(name nv-kw)
-                   @(do
-                      ~@(if is-stevedore?
-                          (rest condition)
-                          ["test" condition])
-                      (~'echo @~'?))))])]
-       (if-action ~(if is-script?
-                     ;; `(delayed [s#]
-                     ;;    (= (-> (node-value ~nv s#) :flag-values ~nv-kw) "0"))
-                     ;; `(delayed [~'&session] ~condition)
-                     `(= (-> (deref ~nv) :flag-values ~nv-kw) "0")
-                     condition))
-       enter-scope
+       (let [~@(when is-script?
+                 [nv `(exec-checked-script
+                       (str "Check " ~condition)
+                       (~(list 'unquote `set-flag-value)
+                        ~(name nv-kw)
+                        @(do
+                           ~@(if is-stevedore?
+                               (rest condition)
+                               ["test" condition])
+                           (~'echo @~'?))))] )]
+         (if-action ~(if is-script?
+                       `(delayed [s#]
+                                 (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
+                                    "0"))
+                       `(delayed [~'&session] ~condition))))
+       (enter-scope)
        ~@crate-fns-or-actions
-       leave-scope)))
+       (leave-scope))))
 
 (defmacro pipeline-when-not
   "Execute the crate-fns-or-actions, only when condition is false."
@@ -86,35 +83,36 @@
                            (= (resolve (first condition)) #'stevedore/script))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-pipeline pipeline-when-not {:condition ~(list 'quote condition)}
-       [~@(when is-script?
-            [nv `(exec-checked-script
-                  (str "Check not " ~condition)
-                  (~(list `unquote `set-flag-value)
-                   ~(name nv-kw)
-                   @(do
-                      ~@(if is-stevedore?
-                          (rest condition)
-                          ["test" condition])
-                      (~'echo @~'?))))])]
-       (if-action ~(if is-script?
-                     `(delayed [s#]
-                        (= (-> (node-value ~nv s#) :flag-values ~nv-kw) "0"))
-                     condition))
-       enter-scope
-       leave-scope
-       enter-scope
+       (let [~@(when is-script?
+                 [nv `(exec-checked-script
+                       (str "Check not " ~condition)
+                       (~(list `unquote `set-flag-value)
+                        ~(name nv-kw)
+                        @(do
+                           ~@(if is-stevedore?
+                               (rest condition)
+                               ["test" condition])
+                           (~'echo @~'?))))])]
+         (if-action ~(if is-script?
+                       `(delayed [s#]
+                                 (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
+                                    "0"))
+                       `(delayed [~'&session] ~condition))))
+       (enter-scope)
+       (leave-scope)
+       (enter-scope)
        ~@crate-fns-or-actions
-       leave-scope)))
+       (leave-scope))))
 
 (defmacro return-value-expr
   "Creates an action that can transform return values"
   [[& return-values] & body]
   (let [session (gensym "session")]
     `((clj-action [~session]
-        [(let [~@(mapcat #(vector % `(node-value ~% ~session)) return-values)]
-           (logging/debugf "return-value-expr %s" ~(vec return-values))
-           ~@body)
-         ~session]))))
+       [(let [~@(mapcat #(vector % `(node-value ~% ~session)) return-values)]
+          (logging/debugf "return-value-expr %s" ~(vec return-values))
+          ~@body)
+        ~session]))))
 
 (defaction assoc-settings
   "Set the settings for the specified host facility. The instance-id allows
@@ -334,19 +332,15 @@ Content can also be copied from a blobstore.
            :as options}]
   {:pre [path]}
   (verify-local-file-exists local-file)
-  (let-s
-    [_ (m-when local-file
-         (transfer-file local-file (str path ".new")))
-     f (with-action-options local-file-options
-         (let-s
-           [v (remote-file-action
-               path
-               (merge
-                {:install-new-files *install-new-files*
-                 :overwrite-changes *force-overwrite*} ; capture bound values
-                options))]
-           v))]
-    f))
+  (when local-file
+    (transfer-file local-file (str path ".new")))
+  (with-action-options local-file-options
+    (remote-file-action
+     path
+     (merge
+      {:install-new-files *install-new-files*
+       :overwrite-changes *force-overwrite*} ; capture bound values
+      options))))
 
 (defn with-remote-file
   "Function to call f with a local copy of the sessioned remote path.
@@ -364,9 +358,8 @@ Content can also be copied from a blobstore.
   "Return a function that returns the content of a file, when used inside
    another action."
   [path]
-  (let-s
-    [nv (exec-script (~lib/cat ~path))
-     c (return-value-expr [nv] (:out nv))]
+  (let [nv (exec-script (~lib/cat ~path))
+        c (return-value-expr [nv] (:out nv))]
     c))
 
 ;;; # Remote Directory Content
@@ -419,19 +412,15 @@ Content can also be copied from a blobstore.
                 recursive true}
            :as options}]
   (verify-local-file-exists local-file)
-  (let-s
-    [_ (m-when local-file
-         (transfer-file local-file (str path "-content")))
-     f (with-action-options local-file-options
-         (let-s
-           [v (remote-directory-action
-               path
-               (merge
-                {:install-new-files *install-new-files*
-                 :overwrite-changes *force-overwrite*} ; capture bound values
-                options))]
-           v))]
-    f))
+  (when local-file
+    (transfer-file local-file (str path "-content")))
+  (with-action-options local-file-options
+    (remote-directory-action
+     path
+     (merge
+      {:install-new-files *install-new-files*
+       :overwrite-changes *force-overwrite*} ; capture bound values
+      options))))
 
 
 ;;; # Packages
@@ -447,7 +436,8 @@ Content can also be copied from a blobstore.
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
-  {:execution :aggregated}
+  {:execution :aggregated
+   :always-after #{:package-manager :package-source}}
   [package-name & {:keys [action y force purge enable disable priority]
                    :or {action :install
                         y true
@@ -460,8 +450,8 @@ Content can also be copied from a blobstore.
          :aptitude [\"git-core\" \"git-email\"])"
   [& {:keys [yum aptitude pacman brew] :as options}]
   (phase-pipeline packages {}
-    [packager packager]
-    (map package (options packager))))
+    (let [packager (packager)]
+      (doseq [p (options packager)] (package p)))))
 
 (defaction package-manager
   "Package manager controls.
@@ -640,10 +630,8 @@ Content can also be copied from a blobstore.
    node in the union of nodes for all the roles, the nodes for the first role
    are used."
   [roles & body]
-  `(phase-pipeline-no-context
-    on-one-node {:roles roles}
-    [target# target
-     role->nodes# (role->nodes-map)]
-    (pipeline-when
-     (= target# (one-node-filter role->nodes# ~roles))
-     ~@body)))
+  `(let [target# (target)
+         role->nodes# (role->nodes-map)]
+     (pipeline-when
+         (= target# (one-node-filter role->nodes# ~roles))
+       ~@body)))

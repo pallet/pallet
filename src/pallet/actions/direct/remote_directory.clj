@@ -12,7 +12,6 @@
    [pallet.action-plan :only [checked-commands]]
    [pallet.actions :only [directory remote-directory]]
    [pallet.actions-impl :only [remote-directory-action remote-file-action]]
-   [pallet.monad :only [let-s phase-pipeline]]
    [pallet.utils :only [apply-map]]))
 
 (def ^{:private true}

@@ -8,6 +8,7 @@
    pallet.action-plan
    [pallet.action :only [declare-action implement-action*]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [pallet.core.session :only [session with-session]]
    [pallet.context :only [with-phase-context]]
    [pallet.node-value
     :only [make-node-value node-value node-value? set-node-value]]
@@ -472,10 +473,8 @@
       (let [g (make-action 'g :delayed-crate-fn {})
             _ (add-action-implementation! g :default {} fa)]
         (testing "without context"
-          (let [a (action-map g [1] {})
-                action-plan (->
-                             nil
-                             (add-action-map (assoc a :node-value-path :v)))]
+          (let [a (-> (action-map g [1] {}) (assoc :node-value-path :v))
+                action-plan (add-action-map nil a)]
             (is (=
                  [{:action (-> fa meta :action) :args [1] :context nil}]
                  (map

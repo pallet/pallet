@@ -5,10 +5,11 @@
    [pallet.stevedore :as stevedore])
   (:use
    [pallet.actions :only [package-source]]
-   [pallet.crate :only [defplan]]))
+   [pallet.crate :only [def-plan-fn]]))
 
-(defplan add-debian-backports
+(def-plan-fn add-debian-backports
   "Add debian backport package repository"
+  []
   (package-source
    "debian-backports"
    :aptitude {:url "http://backports.debian.org/debian-backports"

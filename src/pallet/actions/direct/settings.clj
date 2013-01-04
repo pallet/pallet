@@ -11,9 +11,7 @@
    [pallet.action :only [implement-action]]
    [pallet.actions :only [assoc-settings update-settings]]
    [pallet.core.session :only [admin-user target-ip]]
-   [pallet.monad :only [phase-pipeline]]
    [pallet.node :only [primary-ip]]))
-
 
 (implement-action assoc-settings :direct
   {:action-type :fn/clojure :location :origin}

@@ -1,5 +1,6 @@
 (ns pallet.actions.direct.remote-file-test
   (:use
+   [clojure.stacktrace :only [print-cause-trace print-stack-trace root-cause]]
    [pallet.actions
     :only [exec-script transfer-file transfer-file-to-local remote-file
            remote-file-content with-remote-file pipeline-when
@@ -135,7 +136,9 @@
              (let [compute (make-localhost-compute :group-name "local")
                    session @(lift
                              (group-spec "local")
-                             :phase (remote-file (.getPath tmp) :content "xxx")
+                             :phase (plan-fn
+                                      (remote-file
+                                       (.getPath tmp) :content "xxx"))
                              :compute compute
                              :user (local-test-user))]
                (logging/infof "r-f-t content: session %s" session)
@@ -149,7 +152,8 @@
       (let [compute (make-localhost-compute :group-name "local")
             session @(lift
                       (group-spec "local")
-                      :phase (remote-file (.getPath tmp) :content "xxx")
+                      :phase (plan-fn
+                               (remote-file (.getPath tmp) :content "xxx"))
                       :compute compute
                       :user (local-test-user)
                       :executor test-executors/test-executor)]
@@ -185,8 +189,8 @@
     (is (thrown-with-msg? RuntimeException
           #".*/some/non-existing/file.*does not exist, is a directory, or is unreadable.*"
           (build-actions/build-actions
-              {} (remote-file
-                  "file1" :local-file "/some/non-existing/file" :owner "user1"))))
+           {} (remote-file
+               "file1" :local-file "/some/non-existing/file" :owner "user1"))))
     (is (=
          (str
           "{:error {:type :pallet/action-execution-error, "
@@ -197,7 +201,7 @@
           "remote-file file1 specified without content.>}}")
          (->
           (build-actions/build-actions
-              {} (remote-file "file1" :owner "user1"))
+           {} (remote-file "file1" :owner "user1"))
           second
           :errors
           first
@@ -207,16 +211,16 @@
       (is (re-find #"mv -f --backup=\"numbered\" file1.new file1"
                    (first
                     (build-actions/build-actions
-                        {} (remote-file
-                            "file1" :local-file (.getPath tmp)))))))
+                     {} (remote-file
+                         "file1" :local-file (.getPath tmp)))))))
 
     (utils/with-temporary [tmp (utils/tmpfile)
                            target-tmp (utils/tmpfile)]
       ;; this is convoluted to get around the "t" sticky bit on temp dirs
       (let [user (local-test-user)
             log-action (clj-action [session]
-                         (logging/info "local-file test")
-                         [nil session])]
+                                   (logging/info "local-file test")
+                                   [nil session])]
         (.delete target-tmp)
         (io/copy "text" tmp)
         (let [compute (make-localhost-compute :group-name "local")
@@ -224,15 +228,15 @@
           (testing "local-file"
             (logging/debugf "local-file is %s" (.getPath tmp))
             (let [op (lift
-                           local
-                           :phase (plan-fn
-                                    (log-action)
-                                    (remote-file
-                                     (.getPath target-tmp)
-                                     :local-file (.getPath tmp)
-                                     :mode "0666"))
-                           :compute compute
-                           :user user)
+                      local
+                      :phase (plan-fn
+                               (log-action)
+                               (remote-file
+                                (.getPath target-tmp)
+                                :local-file (.getPath tmp)
+                                :mode "0666"))
+                      :compute compute
+                      :user user)
                   result @op]
               (throw-operation-exception op)
               (is (complete? op))
@@ -247,11 +251,12 @@
               (let [compute (make-localhost-compute :group-name "local")
                     result @(lift
                              local
-                             :phase [(log-action)
-                                     (remote-file
-                                      (.getPath target-tmp)
-                                      :local-file (.getPath tmp)
-                                      :mode "0666")]
+                             :phase (plan-fn
+                                      [(log-action)
+                                       (remote-file
+                                        (.getPath target-tmp)
+                                        :local-file (.getPath tmp)
+                                        :mode "0666")])
                              :compute compute
                              :user user)]
                 (is (some
@@ -260,8 +265,9 @@
           (testing "content"
             @(lift
               local
-              :phase (remote-file (.getPath target-tmp) :content "$(hostname)"
-                                  :mode "0666" :flag-on-changed :changed)
+              :phase (plan-fn
+                       (remote-file (.getPath target-tmp) :content "$(hostname)"
+                                    :mode "0666" :flag-on-changed :changed))
               :compute compute
               :user user)
             (is (.canRead target-tmp))
@@ -273,16 +279,16 @@
                 local
                 :compute compute
                 :phase (plan-fn
-                         [nv (remote-file
-                              (.getPath target-tmp) :content "$(hostname)"
-                              :mode "0666" :flag-on-changed :changed)]
-                         (verify-flag-not-set :changed)
-                         ((clj-action
-                              [session nv]
-                            (reset! a true)
-                            (is (nil? (seq (:flags nv))))
-                            [nil session])
-                          nv))
+                         (let [nv (remote-file
+                                   (.getPath target-tmp) :content "$(hostname)"
+                                   :mode "0666" :flag-on-changed :changed)]
+                           (verify-flag-not-set :changed)
+                           ((clj-action
+                             [session nv]
+                             (reset! a true)
+                             (is (nil? (seq (:flags nv))))
+                             [nil session])
+                            nv)))
                 :user user)
               (is @a)
               (is (.canRead target-tmp))
@@ -294,17 +300,17 @@
                 local
                 :compute compute
                 :phase (plan-fn
-                         [nv (remote-file
-                              (.getPath target-tmp) :content "abc"
-                              :mode "0666" :flag-on-changed :changed)]
-                         (verify-flag-set :changed)
-                         ((clj-action
-                              [session nv]
-                            (reset! a true)
-                            (is (:flags nv))
-                            (is ((:flags nv) :changed))
-                            [nil session])
-                          nv))
+                         (let [nv (remote-file
+                                   (.getPath target-tmp) :content "abc"
+                                   :mode "0666" :flag-on-changed :changed)]
+                           (verify-flag-set :changed)
+                           ((clj-action
+                             [session nv]
+                             (reset! a true)
+                             (is (:flags nv))
+                             (is ((:flags nv) :changed))
+                             [nil session])
+                            nv)))
                 :user user)
               (is @a))
             (is (.canRead target-tmp))
@@ -314,9 +320,10 @@
             @(lift
               local
               :compute compute
-              :phase (remote-file
-                      (.getPath target-tmp) :content "$text123" :literal true
-                      :mode "0666")
+              :phase (plan-fn
+                       (remote-file
+                        (.getPath target-tmp) :content "$text123" :literal true
+                        :mode "0666"))
               :user user)
             (is (.canRead target-tmp))
             (is (= "$text123\n" (slurp (.getPath target-tmp)))))
@@ -325,9 +332,10 @@
             @(lift
               local
               :compute compute
-              :phase (remote-file
-                      (.getPath target-tmp) :remote-file (.getPath tmp)
-                      :mode "0666")
+              :phase (plan-fn
+                       (remote-file
+                        (.getPath target-tmp) :remote-file (.getPath tmp)
+                        :mode "0666"))
               :user user)
             (is (.canRead target-tmp))
             (is (= "text" (slurp (.getPath target-tmp)))))
@@ -336,10 +344,11 @@
             @(lift
               local
               :compute compute
-              :phase (remote-file
-                      (.getPath target-tmp)
-                      :url (str "file://" (.getPath tmp))
-                      :mode "0666")
+              :phase (plan-fn
+                       (remote-file
+                        (.getPath target-tmp)
+                        :url (str "file://" (.getPath tmp))
+                        :mode "0666"))
               :user user)
             (is (.canRead target-tmp))
             (is (= "urltext" (slurp (.getPath target-tmp)))))
@@ -348,11 +357,12 @@
             @(lift
               local
               :compute compute
-              :phase (remote-file
-                      (.getPath target-tmp)
-                      :url (str "file://" (.getPath tmp))
-                      :md5 (stevedore/script @(~lib/md5sum ~(.getPath tmp)))
-                      :mode "0666")
+              :phase (plan-fn
+                       (remote-file
+                        (.getPath target-tmp)
+                        :url (str "file://" (.getPath tmp))
+                        :md5 (stevedore/script @(~lib/md5sum ~(.getPath tmp)))
+                        :mode "0666"))
               :user user)
             (is (.canRead target-tmp))
             (is (= "urlmd5text" (slurp (.getPath target-tmp)))))
@@ -382,7 +392,8 @@
             @(lift
               local
               :compute compute
-              :phase (remote-file (.getPath target-tmp) :action :delete)
+              :phase (plan-fn
+                       (remote-file (.getPath target-tmp) :action :delete))
               :user user)
             (is (not (.exists target-tmp)))))))))
 
@@ -392,8 +403,9 @@
     (let [user (local-test-user)
           local (group-spec
                  "local"
-                 :phases {:configure (transfer-file-to-local
-                                      remote-file local-file)})
+                 :phases {:configure (plan-fn
+                                       (transfer-file-to-local
+                                        remote-file local-file))})
           compute (make-localhost-compute :group-name "local")]
       (io/copy "text" remote-file)
       (testing "with local ssh"
@@ -422,8 +434,9 @@
               @(lift
                 local
                 :compute compute
-                :phase (with-remote-file
-                         check-content (.getPath remote-file) "text" path-atom)
+                :phase (plan-fn
+                         (with-remote-file
+                           check-content (.getPath remote-file) "text" path-atom))
                 :user user)
               (is @path-atom)
               (is (not= (.getPath remote-file) (.getPath @path-atom))))))
@@ -434,8 +447,10 @@
               @(lift
                 local
                 :compute compute
-                :phase (with-remote-file
-                         check-content (.getPath remote-file) "text" path-atom)
+                :phase (plan-fn
+                         (with-remote-file
+                           check-content
+                           (.getPath remote-file) "text" path-atom))
                 :user user
                 ;; :middleware [translate-action-plan]
                 )
@@ -460,19 +475,23 @@
                      :compute compute
                      :phase
                      (plan-fn
-                       [content (remote-file-content (.getPath tmp-file))
-                        is-text (return-value-expr [content]
-                                  (= content "text"))]
-                       (pipeline-when @is-text
-                         [new-content (return-value-expr [content]
-                                        (string/replace content "x" "s"))]
-                         (m-result (reset! seen true))
-                         (remote-file
-                          (.getPath tmp-file-2)
-                          :content (delayed [_] @new-content))))
+                       (let [content (remote-file-content (.getPath tmp-file))
+                             is-text (return-value-expr [content]
+                                                        (= content "text"))]
+                         (pipeline-when @is-text
+                           (let [new-content (return-value-expr
+                                              [content]
+                                              (string/replace content "x" "s"))]
+                             (reset! seen true)
+                             (remote-file
+                              (.getPath tmp-file-2)
+                              :content (delayed [_] @new-content))))))
                      :user user)]
                 @result
                 (is (not (failed? result)))
+                (when (failed? result)
+                  (when-let [e (:exception @result)]
+                    (print-stack-trace (root-cause e))))
                 (is @seen)
                 (is (= (slurp (.getPath tmp-file-2)) "test\n"))
                 (flush)))
@@ -485,17 +504,21 @@
                      :compute compute
                      :phase
                      (plan-fn
-                       [content (remote-file-content (.getPath tmp-file))]
-                       (pipeline-when (= @content "text")
-                         [new-content (return-value-expr [content]
-                                        (string/replace content "x" "s"))]
-                         (m-result (reset! seen true))
-                         (remote-file
-                          (.getPath tmp-file-2)
-                          :content (delayed [_] @new-content))))
+                       (let [content (remote-file-content (.getPath tmp-file))]
+                         (pipeline-when (= @content "text")
+                           (let [new-content (return-value-expr
+                                              [content]
+                                              (string/replace content "x" "s"))]
+                             (reset! seen true)
+                             (remote-file
+                              (.getPath tmp-file-2)
+                              :content (delayed [_] @new-content))))))
                      :user user)]
                 @result
                 (is (not (failed? result)))
+                (if (failed? result)
+                  (when-let [e (:exception @result)]
+                    (print-cause-trace e)))
                 (is @seen)
                 (is (= (slurp (.getPath tmp-file-2)) "test\n"))
                 (flush)))
@@ -509,14 +532,18 @@
                      :compute compute
                      :phase
                      (plan-fn
-                       [content (remote-file-content (.getPath tmp-file))]
-                       (pipeline-when (= @content "text")
-                         (m-result (reset! seen true))
-                         (remote-file-action
-                          (.getPath tmp-file-2)
-                          {:content (string/replace @content "x" "s")})))
+                       (let [content (remote-file-content (.getPath tmp-file))]
+                         (pipeline-when (= @content "text")
+                           (reset! seen true)
+                           (remote-file-action
+                            (.getPath tmp-file-2)
+                            (delayed [_]
+                              {:content (string/replace @content "x" "s")})))))
                      :user user)]
                 (is @result)
+                (when (failed? result)
+                  (when-let [e (:exception @result)]
+                    (print-cause-trace e)))
                 (is (not (failed? result)))
                 (is @seen)
                 (is (= (slurp (.getPath tmp-file-2)) "test\n"))
@@ -531,13 +558,13 @@
                      :compute compute
                      :phase
                      (plan-fn
-                       [content (remote-file-content (.getPath tmp-file))]
-                       (pipeline-when (= @content "text")
-                         (m-result (reset! seen true))
-                         (remote-file
-                          (.getPath tmp-file-2)
-                          :content (delayed [s]
-                                     (string/replace @content "x" "s")))))
+                       (let [content (remote-file-content (.getPath tmp-file))]
+                         (pipeline-when (= @content "text")
+                           (reset! seen true)
+                           (remote-file
+                            (.getPath tmp-file-2)
+                            :content (delayed [s]
+                                       (string/replace @content "x" "s"))))))
                      :user user)]
                 (is @result)
                 (is (not (failed? result)))
@@ -554,12 +581,13 @@
                      :compute compute
                      :phase
                      (plan-fn
-                       [content (remote-file-content (.getPath tmp-file))]
-                       (pipeline-when (= @content "text")
-                         (m-result (reset! seen true))
-                         (remote-file
-                          (.getPath tmp-file-2)
-                          :content (string/replace @content "x" "s"))))
+                       (let [content (remote-file-content (.getPath tmp-file))]
+                         (pipeline-when (= @content "text")
+                           (reset! seen true)
+                           (remote-file
+                            (.getPath tmp-file-2)
+                            :content (delayed [_]
+                                       (string/replace @content "x" "s"))))))
                      :user user)]
                 (is @result)
                 (is (not (failed? result)))

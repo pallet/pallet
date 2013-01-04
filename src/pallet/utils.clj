@@ -336,3 +336,12 @@ value to assoc. The assoc only occurs if the value is non-nil."
   (deprecated "pallet.utils/make-user is now pallet.core.user/make-user")
   (require 'pallet.core.user)
   ((ns-resolve 'pallet.core.user 'make-user) username options))
+
+(defmacro local-env
+  "Return clojure's local environment as a map of keyword value pairs."
+  []
+  (letfn [(not-gensym? [sym] #(not (.contains (name sym) "__")))]
+    (into {}
+          (map
+           #(vector (keyword (name %)) %)
+           (filter not-gensym? (keys &env))))))

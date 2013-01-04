@@ -5,15 +5,17 @@
    pallet.test-utils
    [pallet.actions :only [remote-file]]
    [pallet.build-actions :only [build-actions]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]))
+   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [pallet.core.session :only [session with-session]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 
 (deftest default-specs-test
-  (let [session (test-session {:server {:node (make-node :g1)}})
-        [r s] (#'pallet.crate.sudoers/default-specs session)]
-    (is (instance? clojure.lang.PersistentArrayMap r))
-    (is (= session s))))
+  (let [sess (test-session {:server {:node (make-node :g1)}})]
+    (with-session sess
+      (let [r (#'pallet.crate.sudoers/default-specs)]
+        (is (instance? clojure.lang.PersistentArrayMap r))
+        (is (= (session) sess))))))
 
 (with-private-vars [pallet.crate.sudoers
                     [default-specs
@@ -32,10 +34,10 @@
 
 
   (deftest sudoer-merge
-    (let [session (test-session {:server {:node (make-node :g1)}})
-          [default-specs s] (#'pallet.crate.sudoers/default-specs session)]
-      (is (= [{} {} default-specs]
-               (sudoer-merge [{} {} default-specs] []))))
+    (with-session (test-session {:server {:node (make-node :g1)}})
+      (let [default-specs (#'pallet.crate.sudoers/default-specs)]
+        (is (= [{} {} default-specs]
+               (sudoer-merge [{} {} default-specs] [])))))
     (is (= [{} {} {"user" {:ALL {}}}]
              (sudoer-merge [{} {} {}] [[{} {} {"user" {:ALL {}}}]])))
     (is (= [{} {} {"user" {["/bin/ls"] {} :ALL {:run-as :ALL}}}]
@@ -62,12 +64,12 @@
                              "%adm" {:ALL {:run-as-user :ALL}}
                              "user1" [{:host "h1" :ALL {}}]
                              "user2" {:host "h2" :ALL {}})]
-             (let [session (test-session {:server {:node (make-node :g1)}})
-                   [default-specs s] (#'pallet.crate.sudoers/default-specs session)]
+           (with-session (test-session {:server {:node (make-node :g1)}})
+             (let [default-specs (#'pallet.crate.sudoers/default-specs)]
                (sudoer-merge
                 [{} {} default-specs]
                 [[{} {} (array-map "user1" [{:host "h1" :ALL {}}])]
-                 [{} {} (array-map "user2" {:host "h2" :ALL {}})]])))))
+                 [{} {} (array-map "user2" {:host "h2" :ALL {}})]]))))))
 
   (deftest test-param-string
     (is (= "fqdn" (param-string [:fqdn true])))

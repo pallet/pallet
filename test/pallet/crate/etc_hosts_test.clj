@@ -30,7 +30,7 @@
       (first (build-actions
                  {:server {:node (test-utils/make-node "g" :group-name :grp)}}
                (etc-hosts/hosts-for-group :grp)
-               etc-hosts/hosts))))))
+               (etc-hosts/hosts)))))))
 
 (deftest hostname-test
   (testing "compile"

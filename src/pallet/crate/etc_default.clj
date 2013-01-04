@@ -17,14 +17,14 @@
           :JAVA_OPTS \"-Xmx1024m\"
           \"JSP_COMPILER\" \"javac\")"
   [filename & key-value-pairs]
-  [file (m-result (if (= \/ (first filename))
-                    filename
-                   (str (stevedore/script (~lib/etc-default)) "/" filename)))]
-  (remote-file
-   file
-   :owner "root:root"
-   :mode 644
-   :content (string/join
-             \newline
-             (for [[k v] (partition 2 key-value-pairs)]
-               (str (name k) "=" (pr-str v))))))
+  (let [file (if (= \/ (first filename))
+               filename
+               (str (stevedore/script (~lib/etc-default)) "/" filename))]
+    (remote-file
+     file
+     :owner "root:root"
+     :mode 644
+     :content (string/join
+               \newline
+               (for [[k v] (partition 2 key-value-pairs)]
+                 (str (name k) "=" (pr-str v)))))))

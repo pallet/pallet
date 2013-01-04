@@ -1,11 +1,57 @@
 (ns pallet.core.session
-  "Functions for querying sessions.
-
-   Non-monadic functions."
+  "Functions for querying sessions."
   (:require
    [pallet.compute :as compute]
    [pallet.node :as node]
-   [pallet.utils :as utils]))
+   [pallet.utils :as utils])
+  (:use
+   [pallet.context :only [with-context]]
+   [pallet.core.thread-local
+    :only [with-thread-locals thread-local thread-local!]]))
+
+;; Using the session var directly is to be avoided. It is a dynamic var in
+;; order to provide thread specific bindings. The value is expected to be an
+;; atom to allow in-place update semantics.
+(def ^{:internal true :dynamic true :doc "Current session state"}
+  *session*)
+
+;;; # Session map low-level API
+;;; The aim here is to provide an API that could possibly be backed by something
+;;; other than a plain map.
+
+(defn session
+  "Return the current session, which implements clojure's map interfaces."
+  [] (thread-local *session*))
+
+(defmacro with-session
+  [session & body]
+  `(with-thread-locals [*session* ~session]
+     ~@body))
+
+(defn session!
+  [session]
+  (thread-local! *session* session))
+
+;;; ## Session Pipeline
+;;; The session pipeline is used in pallet core code.
+(defmacro session-pipeline
+  "Defines a session pipeline. This composes the body functions under the
+  session-m monad. Any vector in the arguments is expected to be of the form
+  [symbol expr] and becomes part of the generated monad comprehension."
+  {:indent 2}
+  [pipeline-name event & args]
+  (let [line (-> &form meta :line)]
+    `(with-context
+        ~(merge {:kw (list 'quote pipeline-name)
+                 :msg (name pipeline-name)
+                 :ns (list 'quote (ns-name *ns*))
+                 :line line
+                 :log-level :debug}
+                event)
+        ~@args)))
+
+
+;;; # Session accessors
 
 (defn safe-id
   "Computes a configuration and filesystem safe identifier corresponding to a

@@ -10,9 +10,9 @@
    [clojure.tools.logging :as logging])
   (:use
    [pallet.core.api-impl :only [merge-specs merge-spec-algorithm]]
+   [pallet.core.session :only [session-pipeline]]
    [pallet.algo.fsmop :only [dofsm operate result succeed]]
    [pallet.environment :only [merge-environments]]
-   [pallet.monad :only [session-pipeline]]
    [pallet.node :only [node?]]
    [pallet.thread-expr :only [when->]]
    [pallet.utils :only [apply-map]]))
@@ -456,7 +456,7 @@
   [& body]
   (let [n (if (string? (first body)) (first body) "a-plan-fn")
         body (if (string? (first body)) (rest body) body)]
-    `(session-pipeline ~(gensym n) {} ~@body)))
+    `(fn [] (session-pipeline ~(gensym n) {} ~@body))))
 
 ;;; ### Admin user
 (defn make-user

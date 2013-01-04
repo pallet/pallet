@@ -13,7 +13,7 @@
    [pallet.build-actions
     :only [build-actions build-session ubuntu-session centos-session]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.monad :only [phase-pipeline]]
+   [pallet.crate :only [phase-pipeline]]
    [pallet.script :only [with-script-context]]
    [pallet.stevedore :only [script]])
   (:require

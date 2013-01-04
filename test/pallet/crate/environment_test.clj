@@ -9,6 +9,5 @@
 
 (deftest service-test
   (is
-   (first (build-actions
-           {}
-           (system-environment "testenv" {"A" 1 :B "b"})))))
+   (first (build-actions {}
+            (system-environment "testenv" {"A" 1 :B "b"})))))

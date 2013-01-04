@@ -19,20 +19,19 @@
   permission to sudo without password, so that passwords don't have to appear
   in scripts, etc."
   ([]
-     [admin-user admin-user]
-     (fn [session]
-       (clojure.tools.logging/debugf "a-a-u for %s" admin-user)
-       [nil session])
-     (automated-admin-user
-      (:username admin-user)
-      (:public-key-path admin-user)))
+     (let [user (admin-user)]
+       (clojure.tools.logging/debugf "a-a-u for %s" user)
+       (automated-admin-user
+        (:username user)
+        (:public-key-path user))))
   ([username]
-     [user admin-user]
-     (automated-admin-user username (:public-key-path user)))
+     (let [user (admin-user)]
+       (automated-admin-user username (:public-key-path user))))
   ([username & public-key-paths]
      (sudoers/install)
      (user username :create-home true :shell :bash)
-     (map (partial authorize-user-key username) public-key-paths)
+     (doseq [kp public-key-paths]
+       (authorize-user-key username kp))
      (sudoers/sudoers
       {} {} {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})))
 

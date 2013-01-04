@@ -17,8 +17,7 @@
    [pallet.actions :only [user exec-checked-script]]
    [pallet.api :only [lift make-user node-spec plan-fn server-spec]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.core.user :only [default-public-key-path default-private-key-path]]
-   [pallet.monad :only [wrap-pipeline]]))
+   [pallet.core.user :only [default-public-key-path default-private-key-path]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 
@@ -31,9 +30,8 @@
              (user "fred" :create-home true :shell :bash)
              (sudoers/sudoers
               {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-             (wrap-pipeline authorize-user-key
-               (context/with-phase-context
-                 {:kw :authorize-user-key :msg "authorize-user-key"})
+             (context/with-phase-context
+               {:kw :authorize-user-key :msg "authorize-user-key"}
                (ssh-key/authorize-key
                 "fred" (slurp (default-public-key-path))))))
            (first
@@ -49,9 +47,8 @@
              (user "fred" :create-home true :shell :bash)
              (sudoers/sudoers
               {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-             (wrap-pipeline authorize-user-key
-               (context/with-phase-context
-                 {:kw :authorize-user-key :msg "authorize-user-key"})
+             (context/with-phase-context
+               {:kw :authorize-user-key :msg "authorize-user-key"}
                (ssh-key/authorize-key
                 "fred" (slurp (default-public-key-path))))))
            (first
@@ -68,9 +65,8 @@
              (user "fred" :create-home true :shell :bash)
              (sudoers/sudoers
               {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-             (wrap-pipeline authorize-user-key
-               (context/with-phase-context
-                 {:kw :authorize-user-key :msg "authorize-user-key"})
+             (context/with-phase-context
+               {:kw :authorize-user-key :msg "authorize-user-key"}
                (ssh-key/authorize-key "fred" "abc"))))
            (first
             (build-actions/build-actions
@@ -87,9 +83,8 @@
                (user user-name :create-home true :shell :bash)
                (sudoers/sudoers
                 {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-               (wrap-pipeline authorize-user-key
-                 (context/with-phase-context
-                   {:kw :authorize-user-key :msg "authorize-user-key"})
+               (context/with-phase-context
+                 {:kw :authorize-user-key :msg "authorize-user-key"}
                  (ssh-key/authorize-key
                   user-name
                   (slurp (default-public-key-path))))))
@@ -106,9 +101,8 @@
                (user user-name :create-home true :shell :bash)
                (sudoers/sudoers
                 {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-               (wrap-pipeline authorize-user-key
-                 (context/with-phase-context
-                   {:kw :authorize-user-key :msg "authorize-user-key"})
+               (context/with-phase-context
+                 {:kw :authorize-user-key :msg "authorize-user-key"}
                  (ssh-key/authorize-key
                   user-name
                   (slurp (default-public-key-path))))))

@@ -20,7 +20,7 @@
    [pallet.action-plan
     :only [schedule-action-map action-map pop-block push-block]]
    [pallet.common.context :only [throw-map]]
-   [pallet.monad :only [phase-pipeline let-s]]
+   [pallet.core.session :only [session session!]]
    [pallet.session.action-plan
     :only [assoc-action-plan get-action-plan update-action-plan]]
    [pallet.utils :only [compiler-exception]]
@@ -33,37 +33,35 @@
 (def ^{:no-doc true :private true} action-options-key ::action-precedence)
 
 (defn action-options
-  "Return any precedence modifiers defined on the session."
+  "Return any action-options currently defined on the session."
   [session]
   (get session action-options-key))
 
 (defn get-action-options
-  "Return any precedence modifiers defined on the session."
-  [session]
-  [(get session action-options-key) session])
+  "Return any action-options currently defined on the session."
+  []
+  (action-options (session)))
 
 (defn update-action-options
   "Update any precedence modifiers defined on the session"
   [m]
-  (fn update-action-options [session]
-    [m (update-in session [action-options-key] merge m)]))
+  (session! (update-in (session) [action-options-key] merge m)))
 
 (defn assoc-action-options
   "Set precedence modifiers defined on the session."
   [m]
-  (fn assoc-action-options [session]
-    [m (assoc session action-options-key m)]))
+  (session! (assoc (session) action-options-key m)))
 
 (defmacro ^{:indent 1} with-action-options
   "Set up local precedence relations between actions, and allows override
    of user options, :script-dir and :script-prefix."
   [m & body]
-  `(let-s
-     [p# get-action-options
-      _# (update-action-options ~m)
-      v# ~@body
-      _# (assoc-action-options p#)]
-     v#))
+  `(let [p# (get-action-options)]
+     (update-action-options ~m)
+     (let [v# (do ~@body)]
+       (assoc-action-options p#)
+       v#)))
+
 
 ;;; ## Actions
 
@@ -90,9 +88,12 @@
   [action]
   ^{:action action}
   (fn action-fn [& argv]
-    (fn action-inserter [session]
-      (insert-action
-       session (action-map action argv (action-options session))))))
+    (let [session (session)
+          [nv session] (insert-action
+                        session
+                        (action-map action argv (action-options session)))]
+      (session! session)
+      nv)))
 
 (defn declare-action
   "Declare an action. The action-name is a symbol (not necessarily referring to
@@ -177,13 +178,15 @@
          ^{:action action#}
          (fn ~action-name
            [~@args]
-           (fn ~(symbol (str (name action-name) "-inserter")) [session#]
-             (insert-action
-              session#
-              (action-map
-               action#
-               ~(arg-values args)
-               (action-options session#)))))))))
+           (let [session# (session)
+                 [nv# session#] (insert-action
+                                 session#
+                                 (action-map
+                                  action#
+                                  ~(arg-values args)
+                                  (action-options session#)))]
+             (session! session#)
+             nv#))))))
 
 (defn implement-action*
   "Define an implementation of an action given the `action-inserter` function."
@@ -299,10 +302,10 @@ full action to do that."
 
 (defn enter-scope
   "Enter a new action scope."
-  [session]
-  [nil (update-action-plan session push-block)])
+  []
+  (session! (update-action-plan (session) push-block)))
 
 (defn leave-scope
   "Leave the current action scope."
-  [session]
-  [nil (update-action-plan session pop-block)])
+  []
+  (session! (update-action-plan (session) pop-block)))

@@ -5,7 +5,6 @@
    [pallet.action :only [implement-action]]
    [pallet.actions :only [service]]
    [pallet.actions-impl :only [init-script-path]]
-   [pallet.monad :only [phase-pipeline]]
    [pallet.utils :only [apply-map]])
   (:require
    [pallet.action-plan :as action-plan]

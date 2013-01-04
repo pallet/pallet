@@ -6,8 +6,7 @@
    [pallet.action :only [action-fn with-action-options]]
    [pallet.actions :only [exec-checked-script package package-manager]]
    [pallet.actions-impl :only [remote-file-action]]
-   [pallet.monad :only [phase-pipeline-no-context]]
-   [pallet.monad.state-accessors :only [get-session]]
+   [pallet.core.session :only [session]]
    [pallet.crate :only [def-plan-fn]]))
 
 ;;; TODO remove this and use pipeline-when
@@ -24,8 +23,7 @@
   [& {:keys [version distro arch]
       :or {version "0.5.2-2" distro "el5" arch "i386"}}]
   (with-action-options {:always-before #{package-manager package}}
-    (phase-pipeline-no-context add-rpmforge {}
-      [session (get-session)]
+    (let [session (session)]
       (exec-checked-script
        "Add rpmforge repositories"
        (chain-or

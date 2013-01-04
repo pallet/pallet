@@ -7,7 +7,8 @@
    into the session map's :node-values key."
   (:use
    [pallet.common.context :only [throw-map]]
-   [pallet.argument :only [DelayedArgument *session*]]))
+   [pallet.argument :only [DelayedArgument *session*]]
+   [pallet.core.session :only [session session!]]))
 
 ;; (defprotocol SetableNodeValue
 ;;   "A protocol used to set node-values"
@@ -56,6 +57,11 @@
   clojure.lang.IDeref
   (deref [nv]
     (node-value nv *session*))
+  clojure.lang.IPending
+  (isRealized [nv]
+    (not=
+     (get-in *session* [:plan-state :node-values path] ::not-set)
+     ::not-set))
   clojure.lang.Associative
   (containsKey [_ key] (invalid-access 'containsKey))
   (entryAt [_ key] (invalid-access 'entryAt))
@@ -78,8 +84,7 @@
 
 (defn assign-node-value
   [nv v]
-  (fn [session]
-    [v (assoc-in session [:plan-state :node-values (.path nv)] v)]))
+  (session! (assoc-in (session) [:plan-state :node-values (.path nv)] v)))
 
 (defn get-node-value
   [nv]

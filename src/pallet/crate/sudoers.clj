@@ -6,8 +6,8 @@
    [pallet.utils :as utils])
   (:use
    [pallet.actions :only [package package-manager]]
-   [pallet.crate :only [admin-group def-plan-fn defplan def-collect-plan-fn]]
-   [pallet.monad :only [phase-pipeline]]))
+   [pallet.crate
+    :only [admin-group def-plan-fn def-collect-plan-fn phase-pipeline]]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
@@ -18,12 +18,13 @@
       :or {package-name "sudo" action :install}}]
   (package package-name :action action))
 
-(defplan default-specs
-  [admin-group admin-group]
-  (m-result (array-map
-             "root" {:ALL {:run-as-user :ALL}}
-             (str "%" admin-group)
-             {:ALL {:run-as-user :ALL}})))
+(def-plan-fn default-specs
+  []
+  (let [admin-group (admin-group)]
+    (array-map
+     "root" {:ALL {:run-as-user :ALL}}
+     (str "%" admin-group)
+     {:ALL {:run-as-user :ALL}})))
 
 (defn- param-string [[key value]]
   (cond
@@ -167,9 +168,9 @@ specs [ { [\"user1\" \"user2\"]
   (fn [& args]
     (logging/trace "apply-sudoers")
     (phase-pipeline sudoers {}
-      [specs default-specs]
-      (template/apply-templates
-       sudoer-templates
-       (sudoer-merge
-        [(array-map) (array-map) specs]
-        args)))))
+      (let [specs (default-specs)]
+        (template/apply-templates
+         sudoer-templates
+         (sudoer-merge
+          [(array-map) (array-map) specs]
+          args))))))

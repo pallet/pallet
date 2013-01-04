@@ -1,26 +1,25 @@
 (ns pallet.core.api-impl
-  "Implementation functions for the core api"
+  "Implementation functions for the core api."
   (:require
    [pallet.compute :as compute]
    [pallet.node :as node])
   (:use
    [pallet.map-merge :only [merge-key merge-keys]]
-   [pallet.monad :only [chain-s]]
    [pallet.script :only [with-script-context]]
    [pallet.stevedore :only [with-script-language]]))
 
 (defn pipeline
   [a b]
-  (chain-s a b))
+  (fn [] (a) (b)))
 
-(defmethod merge-key :merge-state-monad
+(defmethod merge-key :merge-phases
   [_ _ val-in-result val-in-latter]
   (merge-with pipeline val-in-result val-in-latter))
 
 (def
   ^{:doc "Map from key to merge algorithm. Specifies how specs are merged."}
   merge-spec-algorithm
-  {:phases :merge-state-monad
+  {:phases :merge-phases
    :roles :union
    :group-names :union})
 

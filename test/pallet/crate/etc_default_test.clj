@@ -6,7 +6,7 @@
   [pallet.actions-impl :only [remote-file-action]]
   [pallet.build-actions :only [build-actions]]
   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-  [pallet.monad :only [phase-pipeline]]
+  [pallet.crate :only [phase-pipeline]]
   pallet.test-utils)
  (:require
   [pallet.crate.etc-default :as default]

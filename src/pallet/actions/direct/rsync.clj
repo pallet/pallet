@@ -9,7 +9,6 @@
    [pallet.action :only [implement-action]]
    [pallet.actions :only [rsync]]
    [pallet.core.session :only [admin-user target-ip]]
-   [pallet.monad :only [phase-pipeline]]
    [pallet.node :only [primary-ip]]))
 
 (def ^{:private true}

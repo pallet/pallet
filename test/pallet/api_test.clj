@@ -6,6 +6,7 @@
    [pallet.api :only [group-spec plan-fn]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.compute :only [nodes]]
+   [pallet.core.session :only [session session! with-session]]
    [pallet.core.user :only [default-private-key-path default-public-key-path]]
    [pallet.environment :only [get-environment]]
    [pallet.node :only [group-name]]
@@ -17,26 +18,33 @@
 (deftest extend-specs-test
   (testing "simple ordering"
     (is (= [2 (add-session-verification-key {:v 3})]
-           ((-> (extend-specs
-                 {:phases {:a (fn [session]
-                                [2 (update-in session [:v] inc)])}}
-                 [{:phases {:a (fn [session]
-                                 [1 (update-in session [:v] * 2)])}}])
-                :phases
-                :a)
-            (add-session-verification-key {:v 1})))))
+           (with-session (add-session-verification-key {:v 1})
+             [((-> (extend-specs
+                    {:phases {:a (fn []
+                                   (session! (update-in (session) [:v] inc))
+                                   2)}}
+                    [{:phases {:a (fn []
+                                    (session! (update-in (session) [:v] * 2))
+                                    1)}}])
+                   :phases
+                   :a))
+              (session)]))))
   (testing "multiple extends"
     (is (= [3 (add-session-verification-key {:v 6})]
-           ((-> (extend-specs
-                 {:phases {:a (fn [session]
-                                [3 (update-in session [:v] inc)])}}
-                 [{:phases {:a (fn [session]
-                                 [1 (update-in session [:v] * 2)])}}
-                  {:phases {:a (fn [session]
-                                 [2 (update-in session [:v] + 3)])}}])
-                :phases
-                :a)
-            (add-session-verification-key {:v 1}))))))
+           (with-session (add-session-verification-key {:v 1})
+             [((-> (extend-specs
+                    {:phases {:a (fn []
+                                   (session! (update-in (session) [:v] inc))
+                                   3)}}
+                    [{:phases {:a (fn []
+                                    (session! (update-in (session) [:v] * 2))
+                                    1)}}
+                     {:phases {:a (fn []
+                                    (session! (update-in (session) [:v] + 3))
+                                    2)}}])
+                   :phases
+                   :a))
+              (session)])))))
 
 (deftest lift-test
   (testing "lift on group"
@@ -67,8 +75,8 @@
           a (atom nil)
           op (lift [group]
                    :phase (plan-fn
-                            [k (get-environment [:my-key])]
-                            (fn [session] (reset! a k)))
+                            (let [k (get-environment [:my-key])]
+                              (reset! a k)))
                    :compute compute
                    :environment {:my-key 1})]
       (is @op)

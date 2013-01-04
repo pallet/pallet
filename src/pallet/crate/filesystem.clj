@@ -43,8 +43,8 @@
   (exec-checked-script
    (format "Mount %s at %s" device mount-point)
    (if-not @(mountpoint -q ~mount-point)
-     (mount ~(if fs-type (str "-t " fs-type) "")
-            ~(mount-cmd-options
-              (dissoc options :device-type :dump-frequency :boot-check-pass
-                      :fs-type))
-            ~device (quoted ~mount-point)))))
+     ("mount" ~(if fs-type (str "-t " fs-type) "")
+      ~(mount-cmd-options
+        (dissoc options :device-type :dump-frequency :boot-check-pass
+                :fs-type))
+      ~device (quoted ~mount-point)))))

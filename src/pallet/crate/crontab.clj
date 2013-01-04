@@ -46,35 +46,34 @@
 (def-plan-fn create-user-crontab
   "Create user crontab for the given user."
   [user]
-  [in-file (m-result (in-file user))
-   settings (get-settings :crontab)
-   content-spec (m-result (get (:user settings) user))]
-  (apply-map
-   remote-file
-   in-file :owner user :mode "0600"
-   (select-keys content-spec content-options))
-  (exec-checked-script
-   "Load crontab"
-   ("crontab" -u ~user ~in-file)))
+  (let [in-file (in-file user)
+        settings (get-settings :crontab)
+        content-spec (get (:user settings) user)]
+    (apply-map
+     remote-file
+     in-file :owner user :mode "0600"
+     (select-keys content-spec content-options))
+    (exec-checked-script
+     "Load crontab"
+     ("crontab" -u ~user ~in-file))))
 
 (def-plan-fn remove-user-crontab
   "Remove user crontab for the specified user"
   [user]
-  [in-file (m-result (in-file user))]
-  (file in-file :action :delete)
-  (exec-checked-script
-   "Remove crontab"
-   ("crontab" -u ~user -r)))
+  (let [in-file (in-file user)]
+    (file in-file :action :delete)
+    (exec-checked-script
+     "Remove crontab"
+     ("crontab" -u ~user -r))))
 
 (def-plan-fn user-crontabs
   "Write all user crontab files."
   [& {:keys [action] :or {action :create}}]
-  [settings (get-settings :crontab nil)]
-  (map
-   (case action
-     :create create-user-crontab
-     :remove remove-user-crontab)
-   (keys (:user settings))))
+  (let [settings (get-settings :crontab nil)]
+    (doseq [k (keys (:user settings))]
+      (case action
+        :create (create-user-crontab k)
+        :remove (remove-user-crontab k)))))
 
 (defn- system-cron-file
   "Path to system cron file for `name`"
@@ -84,34 +83,34 @@
 (def-plan-fn create-system-crontab
   "Create system crontab for the given name."
   [system]
-  [path (m-result (system-cron-file system))
-   settings (get-settings :crontab)]
-  (apply-map
-   remote-file
-   path :owner "root" :group "root" :mode "0644"
-   (select-keys
-    (get (:system settings) system) content-options)))
+  (let [path (system-cron-file system)
+        settings (get-settings :crontab)]
+    (apply-map
+     remote-file
+     path :owner "root" :group "root" :mode "0644"
+     (select-keys
+      (get (:system settings) system) content-options))))
 
 (def-plan-fn remove-system-crontab
   "Remove system crontab for the given name"
   [system]
-  [path (m-result (system-cron-file system))
-   settings (get-settings :crontab)]
-  (file path :action :delete))
+  (let [path (system-cron-file system)
+        settings (get-settings :crontab)]
+    (file path :action :delete)))
 
 (def-plan-fn system-crontabs
   "Write all system crontab files."
   [& {:keys [action] :or {action :create}}]
-  [settings (get-settings :crontab)]
-  (map
-   (case action
-     :create create-system-crontab
-     :remove remove-system-crontab)
-   (keys (:system settings))))
+  (let [settings (get-settings :crontab)]
+    (doseq [k (keys (:system settings))]
+     (case action
+       :create (create-system-crontab k)
+       :remove (remove-system-crontab k)))))
 
 (def with-crontab
   (server-spec
-   :settings (empty-settings)
+   :settings (plan-fn
+               (empty-settings))
    :configure (plan-fn
                 (system-crontabs :action :create)
                 (user-crontabs :action :create))))

@@ -22,8 +22,7 @@
    [pallet.context :only [with-phase-context]]
    [pallet.executors :only [echo-executor]]
    [pallet.session.action-plan :only [target-path]]
-   [pallet.session.verify :only [check-session add-session-verification-key]]
-   [pallet.monad :only [let-s wrap-pipeline]]))
+   [pallet.session.verify :only [check-session add-session-verification-key]]))
 
 (defn- trim-if-string [s]
   (when s (string/trim s)))
@@ -102,9 +101,9 @@
   [f session]
   (let [session (build-session session)
         f (if-let [phase-context (:phase-context session)]
-            (wrap-pipeline build-action-with-context
-              (with-phase-context {:msg phase-context})
-              f)
+            (fn []
+              (with-phase-context {:msg phase-context}
+                (f)))
             f)]
     (produce-phases session f)))
 
@@ -129,7 +128,7 @@
   [session & body]
   `(let [session# ~session]
      (assert (or (nil? session#) (map? session#)))
-     (build-actions* (let-s ~@body) session#)))
+     (build-actions* (plan-fn ~@body) session#)))
 
 (def ubuntu-session
   (build-session {:server {:image {:os-family :ubuntu}}}))
