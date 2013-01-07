@@ -3,7 +3,7 @@
   (:use
    [pallet.actions :only [package package-source]]
    [pallet.crate :only [is-64bit?]]
-   [pallet.crate :only [def-plan-fn]]))
+   [pallet.crate :only [defplan]]))
 
 (def ^{:private true} centos-repo
   "http://mirror.centos.org/centos/%s/%s/%s/repodata/repomd.xml")
@@ -15,7 +15,7 @@
   arch []
   (if (is-64bit?) "x86_64" "i386"))
 
-(def-plan-fn add-repository
+(defplan add-repository
   "Add a centos repository. By default, ensure that it has a lower than default
   priority."
   [& {:keys [version repository enabled priority]

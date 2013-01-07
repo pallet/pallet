@@ -7,9 +7,9 @@
   (:use
    [pallet.actions
     :only [exec-script* pipeline-when pipeline-when-not remote-file]]
-   [pallet.crate :only [def-plan-fn os-family]]))
+   [pallet.crate :only [defplan os-family]]))
 
-(def-plan-fn system-environment
+(defplan system-environment
   "Define system wide default environment.
    On redhat based systems, this is set in /etc/profile.d, so is only
    valid within a login shell. On debian based systems, /etc/environment

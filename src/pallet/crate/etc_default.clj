@@ -6,9 +6,9 @@
    [pallet.script.lib :as lib])
   (:use
    [pallet.actions :only [remote-file]]
-   [pallet.crate :only [def-plan-fn]]))
+   [pallet.crate :only [defplan]]))
 
-(def-plan-fn write
+(defplan write
   "Writes a KEY=value file to /etc/default/~{filename}, or ~{filename} if
    filename starts with a /.  Note that all values are quoted, and quotes in
    values are escaped, but otherwise, values are written literally.

@@ -46,7 +46,7 @@
           true
           (recur (last form)))))))
 
-(defmacro def-plan-fn
+(defmacro defplan
   "Define a crate function."
   {:arglists '[[name doc-string? attr-map? [params*] body]]
    :indent 'defun}
@@ -54,6 +54,9 @@
   (letfn [(output-body [[args & body]]
             (let [no-context? (final-fn-sym? sym body)]
               `(~args
+                ;; if the final function call is recursive, then don't add a
+                ;; phase-context, so that just forwarding different arities only
+                ;; gives one log entry/event, etc.
                 ~@(if no-context?
                     body
                     [(let [locals (gensym "locals")]
@@ -86,7 +89,7 @@
                 "Extra arguments passed to def-aggregate-crate-fn: %s"
                 (vec rest))))))
     `(let [action# (declare-aggregated-crate-action '~sym ~f)]
-       (def-plan-fn ~sym
+       (defplan ~sym
          [~@args]
          (action# ~@args)))))
 
@@ -105,7 +108,7 @@
                 "Extra arguments passed to def-aggregate-crate-fn: %s"
                 (vec rest))))))
     `(let [action# (declare-collected-crate-action '~sym ~f)]
-       (def-plan-fn ~sym
+       (defplan ~sym
          [~@args]
          (action# ~@args)))))
 

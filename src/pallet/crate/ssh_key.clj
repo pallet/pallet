@@ -8,12 +8,12 @@
   (:use
    [pallet.actions
     :only [directory exec-checked-script file remote-file remote-file-content]]
-   [pallet.crate :only [def-plan-fn]]))
+   [pallet.crate :only [defplan]]))
 
 (defn user-ssh-dir [user]
   (str (stevedore/script (~lib/user-home ~user)) "/.ssh/"))
 
-(def-plan-fn authorize-key
+(defplan authorize-key
   "Authorize a public key on the specified user."
   [user public-key-string & {:keys [authorize-for-user]}]
   (let [target-user (or authorize-for-user user)
@@ -30,7 +30,7 @@
      "Set selinux permissions"
      (~lib/selinux-file-type ~dir "user_home_t"))))
 
-(def-plan-fn authorize-key-for-localhost
+(defplan authorize-key-for-localhost
   "Authorize a user's public key on the specified user, for ssh access to
   localhost.  The :authorize-for-user option can be used to specify the
   user to who's authorized_keys file is modified."
@@ -50,7 +50,7 @@
          (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
          (cat @key_file ">>" @auth_file))))))
 
-(def-plan-fn install-key
+(defplan install-key
   "Install a ssh private key."
   [user key-name private-key-string public-key-string]
   (let [ssh-dir (user-ssh-dir user)]
@@ -69,7 +69,7 @@
       "rsa" "id_rsa"
       "dsa" "id_dsa"})
 
-(def-plan-fn generate-key
+(defplan generate-key
   "Generate an ssh key pair for the given user, unless one already
    exists. Options are:
      :filename path -- output file name (within ~user/.ssh directory)
@@ -100,7 +100,7 @@
     (file path :owner user :mode "0600")
     (file (str path ".pub") :owner user :mode "0644")))
 
-(def-plan-fn public-key
+(defplan public-key
   "Returns the public key for the specified remote `user`. By default it returns
 the user's id_rsa key from `~user/.ssh/id_rsa.pub`.
 

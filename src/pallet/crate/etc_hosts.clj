@@ -11,7 +11,7 @@
    [pallet.actions :only [exec-checked-script remote-file sed]]
    [pallet.compute :only [os-hierarchy]]
    [pallet.crate
-    :only [def-plan-fn get-settings update-settings
+    :only [defplan get-settings update-settings
            nodes-in-group nodes-with-role
            target-name os-family target-name defmulti-plan defmethod-plan]]))
 
@@ -19,13 +19,13 @@
   [entry]
   (format "%s %s"  (key entry) (name (val entry))))
 
-(def-plan-fn host
+(defplan host
   "Declare a host entry. Names should be a sting containing one or more names
   for the address"
   [address names]
   (update-settings :hosts merge {address names}))
 
-(def-plan-fn hosts-for-group
+(defplan hosts-for-group
   "Declare host entries for all nodes of a group"
   [group-name & {:keys [private-ip]}]
   (let [ip (if private-ip node/private-ip node/primary-ip)
@@ -34,7 +34,7 @@
      :hosts merge
      (into {} (map #(vector (ip %) (node/hostname %)) group-nodes)))))
 
-(def-plan-fn hosts-for-role
+(defplan hosts-for-role
   "Declare host entries for all nodes of a role"
   [role & {:keys [private-ip]}]
   (let [ip (if private-ip node/private-ip node/primary-ip)
@@ -55,7 +55,7 @@
   [entries]
   (string/join "\n" (map format-entry entries)))
 
-(def-plan-fn format-hosts
+(defplan format-hosts
   []
   (let [settings (get-settings :hosts)
         node-name (target-name)]
@@ -66,7 +66,7 @@
         (localhost)
         (localhost node-name))))))
 
-(def-plan-fn hosts
+(defplan hosts
   "Writes the hosts files"
   []
   (let [content (format-hosts)]
@@ -102,7 +102,7 @@
   (sed "/etc/sysconfig/network"
        {"HOSTNAME=.*" (str "HOSTNAME=" hostname)}))
 
-(def-plan-fn set-hostname
+(defplan set-hostname
   "Set the hostname on a node. Note that sudo may stop working if the
 hostname is not in /etc/hosts."
   []

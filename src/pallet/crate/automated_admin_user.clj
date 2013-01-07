@@ -5,16 +5,16 @@
   (:use
    [pallet.actions :only [user package-manager]]
    [pallet.api :only [server-spec plan-fn]]
-   [pallet.crate :only [admin-user def-plan-fn]]))
+   [pallet.crate :only [admin-user defplan]]))
 
-(def-plan-fn authorize-user-key
+(defplan authorize-user-key
   "Authorise a single key, specified as a path or as a byte array."
   [username path-or-bytes]
   (if (string? path-or-bytes)
     (ssh-key/authorize-key username (slurp path-or-bytes))
     (ssh-key/authorize-key username (String. path-or-bytes))))
 
-(def-plan-fn automated-admin-user
+(defplan automated-admin-user
   "Builds a user for use in remote-admin automation. The user is given
   permission to sudo without password, so that passwords don't have to appear
   in scripts, etc."

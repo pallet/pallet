@@ -7,7 +7,7 @@
    [pallet.actions :only [exec-checked-script package package-manager]]
    [pallet.actions-impl :only [remote-file-action]]
    [pallet.core.session :only [session]]
-   [pallet.crate :only [def-plan-fn]]))
+   [pallet.crate :only [defplan]]))
 
 ;;; TODO remove this and use pipeline-when
 (def ^{:private true}
@@ -18,7 +18,7 @@
   "http://packages.sw.be/rpmforge-release/rpmforge-release-%s.%s.rf.%s.rpm")
 
 ;; this is an aggregate so that it can come before the aggragate package-manager
-(def-plan-fn add-rpmforge
+(defplan add-rpmforge
   "Add the rpmforge repository"
   [& {:keys [version distro arch]
       :or {version "0.5.2-2" distro "el5" arch "i386"}}]

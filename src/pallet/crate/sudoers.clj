@@ -7,18 +7,18 @@
   (:use
    [pallet.actions :only [package package-manager]]
    [pallet.crate
-    :only [admin-group def-plan-fn def-collect-plan-fn phase-context]]))
+    :only [admin-group defplan def-collect-plan-fn phase-context]]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
 ;; TODO - dsl for sudoers, eg. (alias "user1" "user2" :as :ADMINS)
 
-(def-plan-fn install
+(defplan install
   [& {:keys [package-name action]
       :or {package-name "sudo" action :install}}]
   (package package-name :action action))
 
-(def-plan-fn default-specs
+(defplan default-specs
   []
   (let [admin-group (admin-group)]
     (array-map

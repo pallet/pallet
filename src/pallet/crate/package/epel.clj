@@ -5,9 +5,9 @@
   (:use
    [pallet.action :only [with-action-options]]
    [pallet.actions :only [exec-checked-script package package-manager]]
-   [pallet.crate :only [def-plan-fn]]))
+   [pallet.crate :only [defplan]]))
 
-(def-plan-fn add-epel
+(defplan add-epel
   "Add the EPEL repository"
   [& {:keys [version] :or {version "5-4"}}]
   (with-action-options {:always-before #{package-manager package}}

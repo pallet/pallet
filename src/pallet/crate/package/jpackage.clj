@@ -4,7 +4,7 @@
    [pallet.action :only [with-action-options]]
    [pallet.actions :only [add-rpm package package-manager package-source
                           pipeline-when pipeline-when-not]]
-   [pallet.crate :only [def-plan-fn assoc-settings get-settings
+   [pallet.crate :only [defplan assoc-settings get-settings
                         os-family os-version]]))
 
 ;; The source for this rpm is available here:
@@ -16,7 +16,7 @@
   (str "https://github.com/downloads/pallet/pallet/"
        "jpackage-utils-compat-el5-0.0.1-1.noarch.rpm"))
 
-(def-plan-fn jpackage-utils
+(defplan jpackage-utils
   "Add jpackge-utils. Due to incompatibilities on RHEL derived distributions,
    a compatability package is required.
 
@@ -45,7 +45,7 @@
   [dist type release]
   (format jpackage-mirror-fmt dist type release))
 
-(def-plan-fn add-jpackage
+(defplan add-jpackage
   "Add the jpackage repository.  component should be one of:
      fedora
      redhat-el
@@ -119,7 +119,7 @@
                               :enabled enabled}))
     (assoc-settings :jpackage-repos {:repos jpackage-repos})))
 
-(def-plan-fn package-manager-update-jpackage
+(defplan package-manager-update-jpackage
   "Update the package lists for the jpackage repositories"
   []
   (let [{:keys [repos]} (get-settings :jpackage-repos)]

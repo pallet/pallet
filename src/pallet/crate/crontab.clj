@@ -8,12 +8,12 @@
    [pallet.actions :only [exec-checked-script file remote-file content-options]]
    [pallet.api :only [server-spec plan-fn]]
    [pallet.crate
-    :only [def-plan-fn assoc-settings get-settings update-settings]]
+    :only [defplan assoc-settings get-settings update-settings]]
    [pallet.utils :only [apply-map]]))
 
 (def system-cron-dir "/etc/cron.d")
 
-(def-plan-fn settings
+(defplan settings
   "Define the crontab settings.  The settings are a map from user name to a map
    of keyword argument values for remote-file content (under :user) and a map
    from system facility name to a map of keyword argument values for remote-file
@@ -21,19 +21,19 @@
   [settings]
   (assoc-settings :crontab settings))
 
-(def-plan-fn empty-settings
+(defplan empty-settings
   "Define empty crontab settings. This can be used to ensure that settings are
    available for crontab, independently of whether any are specified elsewhere."
   []
   (update-settings :crontab identity))
 
-(def-plan-fn user-settings
+(defplan user-settings
   "Define the user's crontab settings.  The settings are a map of keyword
   argument values for remote-file content."
   [user settings-map]
   (update-settings :crontab assoc-in [:user user] settings-map))
 
-(def-plan-fn system-settings
+(defplan system-settings
   "Define the system's crontab settings.  The settings are a map of keyword
   argument values for remote-file content."
   [name settings-map]
@@ -43,7 +43,7 @@
   "Create a path for a crontab.in file for the given user"
   (str (stevedore/script (~lib/user-home ~user)) "/crontab.in"))
 
-(def-plan-fn create-user-crontab
+(defplan create-user-crontab
   "Create user crontab for the given user."
   [user]
   (let [in-file (in-file user)
@@ -57,7 +57,7 @@
      "Load crontab"
      ("crontab" -u ~user ~in-file))))
 
-(def-plan-fn remove-user-crontab
+(defplan remove-user-crontab
   "Remove user crontab for the specified user"
   [user]
   (let [in-file (in-file user)]
@@ -66,7 +66,7 @@
      "Remove crontab"
      ("crontab" -u ~user -r))))
 
-(def-plan-fn user-crontabs
+(defplan user-crontabs
   "Write all user crontab files."
   [& {:keys [action] :or {action :create}}]
   (let [settings (get-settings :crontab nil)]
@@ -80,7 +80,7 @@
   [name]
   (str system-cron-dir "/" name))
 
-(def-plan-fn create-system-crontab
+(defplan create-system-crontab
   "Create system crontab for the given name."
   [system]
   (let [path (system-cron-file system)
@@ -91,14 +91,14 @@
      (select-keys
       (get (:system settings) system) content-options))))
 
-(def-plan-fn remove-system-crontab
+(defplan remove-system-crontab
   "Remove system crontab for the given name"
   [system]
   (let [path (system-cron-file system)
         settings (get-settings :crontab)]
     (file path :action :delete)))
 
-(def-plan-fn system-crontabs
+(defplan system-crontabs
   "Write all system crontab files."
   [& {:keys [action] :or {action :create}}]
   (let [settings (get-settings :crontab)]
