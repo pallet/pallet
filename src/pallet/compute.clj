@@ -60,6 +60,9 @@
   (images [compute])
   (close [compute]))
 
+(defprotocol ComputeServiceProperties
+  (service-properties [compute] "Return a map of service details"))
+
 (defprotocol NodeTagReader
   "Provides a SPI for tagging nodes with values."
   (node-tag [compute node tag-name] [compute node tag-name default-value]
@@ -112,7 +115,7 @@
       (derive :arch :arch-base)
       (derive :gentoo :gentoo-base)
       (derive :darwin :bsd-base)
-      (derive :osx :bsd-base)))
+      (derive :os-x :bsd-base)))
 
 (defmacro defmulti-os
   "Defines a defmulti used to abstract over the target operating system. The

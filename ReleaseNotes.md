@@ -1,5 +1,31 @@
 Unstable development branch
 
+# 0.8.0-alpha.7
+
+## Fixes
+- Resolve inconsistent Mac OS X naming
+  `pallet.compute/os-hierarchy` refers to Mac OS X with `:osx`. The rest of
+  the code in Pallet uses `:os-x`. I don't have a strong opinion on which
+  to use, but altering `os-hierarchy` seems to be the simplest fix.
+
+- Fixing a duplicate define issue for the lift function
+  When compiling the code from scratch there was a duplicate define as the file
+  was using lift from pallet.api and defining a lift function in there as
+  well. The solution used was to rename the pallet.api to be lift2
+
+- Removing a use reference to user that was not used in the file
+  When compiling from a clean build I got a could not find the
+  pallet.action.user reference. Since the reference was not being used, I just
+  removed it
+
+- Reduce log level on providers that fail to load
+
+## Features
+
+- Add compute-service-properties
+  Allow reflection on the compute service properties within crate
+  functions.
+
 # 0.8.0-alpha.6
 
 ## Fixes

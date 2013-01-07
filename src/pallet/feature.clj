@@ -60,3 +60,7 @@
 (defn node-hardware
   "Feature for pallet.node/NodeHardware."
   [] true)
+
+(defn compute-service-properties
+  "Feature for pallet.compute/ComputeServiceProperties."
+  [] true)
