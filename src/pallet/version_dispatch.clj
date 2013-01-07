@@ -15,7 +15,7 @@ data may provide a version."
    [clojure.string :as string])
   (:use
    [pallet.compute :only [os-hierarchy]]
-   [pallet.crate :only [os-family os-version phase-pipeline]]
+   [pallet.crate :only [os-family os-version phase-context]]
    [pallet.versions
     :only [as-version-vector version-less version-matches? version-spec-less]]
    [slingshot.slingshot :only [throw+]]))
@@ -129,7 +129,7 @@ refers to a software package version of some sort, on the specified `os` and
             (fn ~(symbol
                   (str (name os) "-" os-version "-" (string/join "" version)))
               [~@args]
-              (phase-pipeline
+              (phase-context
                   ~(symbol
                     (str (name os) "-" os-version "-" (string/join "" version)))
                   {}

@@ -7,7 +7,7 @@
   (:use
    [pallet.actions :only [package package-manager]]
    [pallet.crate
-    :only [admin-group def-plan-fn def-collect-plan-fn phase-pipeline]]))
+    :only [admin-group def-plan-fn def-collect-plan-fn phase-context]]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
@@ -167,7 +167,7 @@ specs [ { [\"user1\" \"user2\"]
   [aliases defaults specs]
   (fn [& args]
     (logging/trace "apply-sudoers")
-    (phase-pipeline sudoers {}
+    (phase-context sudoers {}
       (let [specs (default-specs)]
         (template/apply-templates
          sudoer-templates

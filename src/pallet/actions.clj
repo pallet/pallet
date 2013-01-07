@@ -10,7 +10,7 @@
    [pallet.action
     :only [clj-action defaction with-action-options enter-scope leave-scope]]
    [pallet.argument :only [delayed]]
-   [pallet.crate :only [role->nodes-map packager phase-pipeline target]]
+   [pallet.crate :only [role->nodes-map packager phase-context target]]
    [pallet.node-value :only [node-value]]
    [pallet.script.lib :only [set-flag-value]]
    [pallet.utils :only [apply-map tmpfile]]))
@@ -52,7 +52,7 @@
                            (symbol? (first condition))
                            (= (resolve (first condition)) #'stevedore/script))
         is-script? (or (string? condition) is-stevedore?)]
-    `(phase-pipeline pipeline-when {:condition ~(list 'quote condition)}
+    `(phase-context pipeline-when {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
                  [nv `(exec-checked-script
                        (str "Check " ~condition)
@@ -82,7 +82,7 @@
                            (symbol? (first condition))
                            (= (resolve (first condition)) #'stevedore/script))
         is-script? (or (string? condition) is-stevedore?)]
-    `(phase-pipeline pipeline-when-not {:condition ~(list 'quote condition)}
+    `(phase-context pipeline-when-not {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
                  [nv `(exec-checked-script
                        (str "Check not " ~condition)
@@ -349,7 +349,7 @@ Content can also be copied from a blobstore.
    calling f."
   [f path & args]
   (let [local-path (tmpfile)]
-    (phase-pipeline with-remote-file-fn {:local-path local-path}
+    (phase-context with-remote-file-fn {:local-path local-path}
       (transfer-file-to-local path local-path)
       (apply f local-path args)
       (delete-local-path local-path))))
@@ -449,7 +449,7 @@ Content can also be copied from a blobstore.
          :yum [\"git\" \"git-email\"]
          :aptitude [\"git-core\" \"git-email\"])"
   [& {:keys [yum aptitude pacman brew] :as options}]
-  (phase-pipeline packages {}
+  (phase-context packages {}
     (let [packager (packager)]
       (doseq [p (options packager)] (package p)))))
 
@@ -522,7 +522,7 @@ Content can also be copied from a blobstore.
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
   [from to & {:keys [owner group mode port] :as options}]
-  (phase-pipeline rsync-directory-fn {:name :rsync-directory}
+  (phase-context rsync-directory-fn {:name :rsync-directory}
     ;; would like to ensure rsync is installed, but this requires
     ;; root permissions, and doesn't work when this is run without
     ;; root permision
@@ -565,7 +565,7 @@ Content can also be copied from a blobstore.
   "Stop the given service, execute the body, and then restart."
   [service-name & body]
   `(let [service# ~service-name]
-     (phase-pipeline with-restart {:service service#}
+     (phase-context with-restart {:service service#}
        (service service# :action :stop)
        ~@body
        (service service# :action :start))))
@@ -577,7 +577,7 @@ Content can also be copied from a blobstore.
                           force service-impl]
                    :or {action :create service-impl :initd}
                    :as options}]
-  (phase-pipeline init-script {}
+  (phase-context init-script {}
     (apply-map
      pallet.actions/remote-file
      (service-script-path service-impl service-name)

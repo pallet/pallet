@@ -6,7 +6,7 @@
   [pallet.actions-impl :only [remote-file-action]]
   [pallet.build-actions :only [build-actions]]
   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-  [pallet.crate :only [phase-pipeline]]
+  [pallet.crate :only [phase-context]]
   pallet.test-utils)
  (:require
   [pallet.crate.etc-default :as default]
@@ -23,7 +23,7 @@
   (is (=
        (first
         (build-actions {:server {:image {:os-family :ubuntu}}}
-          (phase-pipeline write {}
+          (phase-context write {}
             (remote-file
              "/etc/default/tomcat6"
              :owner "root:root"
@@ -37,7 +37,7 @@
             "JSP_COMPILER" "javac")))))
   (is (= (first
           (build-actions {:server {:image {:os-family :ubuntu}}}
-            (phase-pipeline write {}
+            (phase-context write {}
               (remote-file
                "/etc/tomcat/tomcat6"
                :owner "root:root"

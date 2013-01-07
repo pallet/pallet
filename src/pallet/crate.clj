@@ -20,9 +20,9 @@
 
 
 ;;; The phase pipeline is used in actions and crate functions. The phase
-;;; pipeline automatically sets up the phase context, which is available
+;;; context automatically sets up the phase context, which is available
 ;;; (for logging, etc) at phase execution time.
-(defmacro phase-pipeline
+(defmacro phase-context
   "Defines a block with a context that is automatically added."
   {:indent 2}
   [pipeline-name event & args]
@@ -35,10 +35,6 @@
                :log-level :debug}
               ~event)
        ~@args)))
-
-(defmacro phase-pipeline-no-context
-  [name event & body]
-  `(do ~@body))
 
 (defn final-fn-sym?
   "Predicate to match the final function symbol in a form."
@@ -56,15 +52,18 @@
    :indent 'defun}
   [sym & body]
   (letfn [(output-body [[args & body]]
-            (let [p (if (final-fn-sym? sym body)
-                      `phase-pipeline-no-context ; ends in recursive call
-                      `phase-pipeline)]
+            (let [no-context? (final-fn-sym? sym body)]
               `(~args
-                (let [locals# (local-env)]
-                  (~p
-                   ~(symbol (str (name sym) "-cfn"))
-                   {:msg ~(str sym) :kw ~(keyword sym) :locals locals#}
-                   ~@body)))))]
+                ~@(if no-context?
+                    body
+                    [(let [locals (gensym "locals")]
+                       `(let [~locals (local-env)]
+                          (phase-context
+                              ~(symbol (str (name sym) "-cfn"))
+                              {:msg ~(str sym)
+                               :kw ~(keyword sym)
+                               :locals ~locals}
+                            ~@body)))]))))]
     (let [[sym rest] (name-with-attributes sym body)]
       (if (vector? (first rest))
         `(defn ~sym
@@ -160,7 +159,7 @@
             (string/replace (str v) #":" ""))]
     `(add-plan-method-to-multi ~multifn ~dispatch-val
        (fn [~@args]
-         (phase-pipeline
+         (phase-context
              ~(symbol (str (name multifn) "-" (sanitise dispatch-val)))
              {:msg ~(name multifn) :kw ~(keyword (name multifn))
               :dispatch-val ~dispatch-val}
