@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.main-invoker documentation</title>
+    <title>pallet.task.lift documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript" src="js/page_effects.js"></script>
@@ -21,48 +21,24 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-link"><a href="pallet.main-invoker.html#var-find-admin-user">find-admin-user</a></li><li class="ns-var-link"><a href="pallet.main-invoker.html#var-find-blobstore">find-blobstore</a></li><li class="ns-var-link"><a href="pallet.main-invoker.html#var-find-compute-service">find-compute-service</a></li>
+          <li class="ns-var-link"><a href="pallet.task.lift.html#var-lift">lift</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.main-invoker documentation</h2>
-        <div class="doc"><p>Invoke tasks requiring a compute service.  This decouples main from anything
-pallet, jclouds or maven specific, and ensures compiling main doesn't compile
-the world.</p>
+        <h2 class="namespace-title">pallet.task.lift documentation</h2>
+        <div class="doc"><p>Apply configuration.</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3 id="var-find-admin-user">find-admin-user</h3>
-            <div class="usage">[defaults project profiles]</div>
+            <h3 id="var-lift">lift</h3>
+            <div class="usage">[request &amp; args]</div>
             
             
-            <div class="doc"><p>Return the admin user</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-find-blobstore">find-blobstore</h3>
-            <div class="usage">[options defaults project profiles]</div>
-            
-            
-            <div class="doc"><p>Look for a compute service in the following sequence:
-  Check pallet.config.service property
-  check maven settings
-  check pallet.config/service var.
-This sequence allows you to specify an overridable default in
-pallet.config/service.</p>
-</div>
-          </div><div class="public">
-            <h3 id="var-find-compute-service">find-compute-service</h3>
-            <div class="usage">[options defaults project profiles]</div>
-            
-            
-            <div class="doc"><p>Look for a compute service in the following sequence:
-  Check pallet.config.service property
-  check maven settings
-  check pallet.config/service var.
-This sequence allows you to specify an overridable default in
-pallet.config/service.</p>
+            <div class="doc"><p>Apply configuration.
+  eg. pallet lift mynodes/my-node
+The node-types should be namespace qualified.</p>
 </div>
           </div>
         </div>
