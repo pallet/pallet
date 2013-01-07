@@ -3,7 +3,7 @@
   (:use
    [pallet.action :only [with-action-options]]
    [pallet.actions :only [add-rpm package package-manager package-source
-                          pipeline-when pipeline-when-not]]
+                          plan-when plan-when-not]]
    [pallet.crate :only [defplan assoc-settings get-settings
                         os-family os-version]]))
 
@@ -25,7 +25,7 @@
   []
   (let [os-family (os-family)
         os-version (os-version)]
-    (pipeline-when
+    (plan-when
         (or
          (= :fedora os-family)
          (and
@@ -107,7 +107,7 @@
            :failovermethod "priority"
            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
            :enabled enabled})
-    (pipeline-when-not no-updates
+    (plan-when-not no-updates
                        (package-source
                         (format "jpackage-%s-updates" component)
                         :yum {:mirrorlist (mirrorlist

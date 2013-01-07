@@ -6,7 +6,7 @@
    [pallet.stevedore :as stevedore])
   (:use
    [pallet.actions
-    :only [exec-script* pipeline-when pipeline-when-not remote-file]]
+    :only [exec-script* plan-when plan-when-not remote-file]]
    [pallet.crate :only [defplan os-family]]))
 
 (defplan system-environment
@@ -21,7 +21,7 @@
                         (if (#{:rhel :centos :fedora} os-family)
                           ["/etc/profile.d/java.sh" false]
                           ["/etc/environment" true]))]
-    (pipeline-when shared
+    (plan-when shared
       (exec-script*
        (action-plan/checked-commands*
         (format "Add %s environment to %s" env-name path)
@@ -40,7 +40,7 @@
                   ("sed" -i -e (quoted "/${k}/ d") ~path)
                   ("sed" -i -e (quoted "$ a \\\\\n${s}") ~path))
                  (exit 1))))))))))
-    (pipeline-when-not shared
+    (plan-when-not shared
       (remote-file
        path
        :owner "root"

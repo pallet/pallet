@@ -42,7 +42,7 @@
   `(exec-script* (checked-script ~script-name ~@script)))
 
 ;;; # Flow Control
-(defmacro pipeline-when
+(defmacro plan-when
   "Execute the crate-fns-or-actions, only when condition is true."
   {:indent 1}
   [condition & crate-fns-or-actions]
@@ -52,7 +52,7 @@
                            (symbol? (first condition))
                            (= (resolve (first condition)) #'stevedore/script))
         is-script? (or (string? condition) is-stevedore?)]
-    `(phase-context pipeline-when {:condition ~(list 'quote condition)}
+    `(phase-context plan-when {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
                  [nv `(exec-checked-script
                        (str "Check " ~condition)
@@ -72,7 +72,7 @@
        ~@crate-fns-or-actions
        (leave-scope))))
 
-(defmacro pipeline-when-not
+(defmacro plan-when-not
   "Execute the crate-fns-or-actions, only when condition is false."
   {:indent 1}
   [condition & crate-fns-or-actions]
@@ -82,7 +82,7 @@
                            (symbol? (first condition))
                            (= (resolve (first condition)) #'stevedore/script))
         is-script? (or (string? condition) is-stevedore?)]
-    `(phase-context pipeline-when-not {:condition ~(list 'quote condition)}
+    `(phase-context plan-when-not {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
                  [nv `(exec-checked-script
                        (str "Check not " ~condition)
@@ -632,6 +632,6 @@ Content can also be copied from a blobstore.
   [roles & body]
   `(let [target# (target)
          role->nodes# (role->nodes-map)]
-     (pipeline-when
+     (plan-when
          (= target# (one-node-filter role->nodes# ~roles))
        ~@body)))

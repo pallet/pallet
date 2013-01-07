@@ -3,7 +3,7 @@
    [clojure.stacktrace :only [print-cause-trace print-stack-trace root-cause]]
    [pallet.actions
     :only [exec-script transfer-file transfer-file-to-local remote-file
-           remote-file-content with-remote-file pipeline-when
+           remote-file-content with-remote-file plan-when
            return-value-expr]]
    [pallet.actions-impl
     :only [remote-file-action *install-new-files* *force-overwrite*]]
@@ -478,7 +478,7 @@
                        (let [content (remote-file-content (.getPath tmp-file))
                              is-text (return-value-expr [content]
                                                         (= content "text"))]
-                         (pipeline-when @is-text
+                         (plan-when @is-text
                            (let [new-content (return-value-expr
                                               [content]
                                               (string/replace content "x" "s"))]
@@ -505,7 +505,7 @@
                      :phase
                      (plan-fn
                        (let [content (remote-file-content (.getPath tmp-file))]
-                         (pipeline-when (= @content "text")
+                         (plan-when (= @content "text")
                            (let [new-content (return-value-expr
                                               [content]
                                               (string/replace content "x" "s"))]
@@ -533,7 +533,7 @@
                      :phase
                      (plan-fn
                        (let [content (remote-file-content (.getPath tmp-file))]
-                         (pipeline-when (= @content "text")
+                         (plan-when (= @content "text")
                            (reset! seen true)
                            (remote-file-action
                             (.getPath tmp-file-2)
@@ -559,7 +559,7 @@
                      :phase
                      (plan-fn
                        (let [content (remote-file-content (.getPath tmp-file))]
-                         (pipeline-when (= @content "text")
+                         (plan-when (= @content "text")
                            (reset! seen true)
                            (remote-file
                             (.getPath tmp-file-2)
@@ -582,7 +582,7 @@
                      :phase
                      (plan-fn
                        (let [content (remote-file-content (.getPath tmp-file))]
-                         (pipeline-when (= @content "text")
+                         (plan-when (= @content "text")
                            (reset! seen true)
                            (remote-file
                             (.getPath tmp-file-2)

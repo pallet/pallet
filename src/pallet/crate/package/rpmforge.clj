@@ -9,7 +9,7 @@
    [pallet.core.session :only [session]]
    [pallet.crate :only [defplan]]))
 
-;;; TODO remove this and use pipeline-when
+;;; TODO remove this and use plan-when
 (def ^{:private true}
   remote-file* (action-fn remote-file-action :direct))
 

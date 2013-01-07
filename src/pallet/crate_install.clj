@@ -5,7 +5,7 @@
    [pallet.action :only [with-action-options]]
    [pallet.actions
     :only [add-rpm package package-source package-manager
-           package-source-changed-flag pipeline-when remote-directory]]
+           package-source-changed-flag plan-when remote-directory]]
    [pallet.crate :only [get-settings defmulti-plan defmethod-plan target-flag?]]
    [pallet.crate.package-repo :only [repository-packages rebuild-repository]]
    [pallet.utils :only [apply-map]])
@@ -35,7 +35,7 @@
     (debugf "package source %s %s" facility package-source)
     (apply-map actions/package-source (:name package-source) package-source)
     (let [modified? (target-flag? package-source-changed-flag)]
-      (pipeline-when modified?
+      (plan-when modified?
         (package-manager :update))
       (tracef "packages %s options %s" (vec packages) package-options)
       (doseq [p packages]
