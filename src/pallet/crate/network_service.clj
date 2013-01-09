@@ -4,9 +4,9 @@
    [pallet.script.lib :as lib])
   (:use
    [pallet.actions :only [exec-checked-script]]
-   [pallet.crate :only [def-plan-fn]]))
+   [pallet.crate :only [defplan]]))
 
-(def-plan-fn wait-for-port-listen
+(defplan wait-for-port-listen
   "Wait for the network port `port` to be in a listening state.
 
    Options:
@@ -33,7 +33,7 @@
      (sleep ~standoff))
    (sleep ~standoff)))
 
-(def-plan-fn wait-for-http-status
+(defplan wait-for-http-status
   "Wait for a url to respond with the given HTTP status code.
 
    Options:
@@ -86,7 +86,7 @@
      (sleep ~standoff))
    (sleep ~standoff)))
 
-(def-plan-fn wait-for-port-response
+(defplan wait-for-port-response
   "Wait for a port to respond to a message with a given response regex.
 
    Options:

@@ -13,7 +13,7 @@
    [pallet.build-actions
     :only [build-actions build-session ubuntu-session centos-session]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.monad :only [phase-pipeline]]
+   [pallet.crate :only [phase-context]]
    [pallet.script :only [with-script-context]]
    [pallet.stevedore :only [script]])
   (:require
@@ -389,7 +389,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
         b (group-spec "b" :packager :yum)]
     (is (= (first
             (build-actions {}
-              (phase-pipeline packages {}
+              (phase-context packages {}
                 (package "git-apt")
                 (package "git-apt2"))))
            (first (build-actions {}
@@ -398,7 +398,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                      :yum ["git-yum"])))))
     (is (= (first
             (build-actions centos-session
-              (phase-pipeline packages {}
+              (phase-context packages {}
                 (package "git-yum"))))
            (first (build-actions centos-session
                     (packages

@@ -16,7 +16,6 @@
    [pallet.actions
     :only [exec-script transfer-file transfer-file-to-local delete-local-path]]
    [pallet.actions-impl :only [remote-file-action]]
-   [pallet.monad :only [let-s phase-pipeline]]
    [pallet.utils :only [apply-map]]))
 
 (defn- get-session

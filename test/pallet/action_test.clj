@@ -4,7 +4,7 @@
    pallet.action
    pallet.action-impl
    [pallet.action-plan :only [translate]]
-   [pallet.monad :only [let-s]]
+   [pallet.core.session :only [session with-session]]
    [pallet.node-value :only [node-value?]]
    [pallet.session.action-plan :only [get-action-plan]]
    [pallet.test-utils :only [test-session]]))
@@ -20,15 +20,18 @@
         (is (= :in-sequence (action-execution action)))
         (is (= {:always-before :a} (action-precedence action))))
       (testing "inserter"
-        (let [[nv session] ((inserter 1) {})
-              action-plan (get-action-plan session)
-              action-map (ffirst action-plan)]
-          (is (node-value? nv))
-          (is (seq action-plan))
-          (is (map? action-map))
-          (is (nil? (:pallet.action/action-plan session)))
-          (is (= action (:action action-map)))
-          (is (= [1] (:args action-map)))))))
+        (with-session {}
+          (let [nv (inserter 1)
+                action-plan (get-action-plan (session))
+                action-map (ffirst action-plan)]
+            (is (session))
+            (is action-map)
+            (is (node-value? nv))
+            (is (seq action-plan))
+            (is (map? action-map))
+            (is (nil? (:pallet.action/action-plan session)))
+            (is (= action (:action action-map)))
+            (is (= [1] (:args action-map))))))))
   (testing "explicit execution"
     (let [inserter (declare-action 'a0 {:execution :aggregated})]
       (is (= :aggregated (action-execution (-> inserter meta :action)))))))
@@ -43,14 +46,15 @@
       (is (= :in-sequence (action-execution action))))
     (testing "inserter"
       (is (fn? a1))
-      (let [[nv session] ((a1 1) {})
-            action-plan (get-action-plan session)
-            action-map (ffirst action-plan)]
-        (is (node-value? nv))
-        (is (seq action-plan))
-        (is (map? action-map))
-        (is (= action (:action action-map)))
-        (is (= [1] (:args action-map))))))
+      (with-session {}
+        (let [nv (a1 1)
+              action-plan (get-action-plan (session))
+              action-map (ffirst action-plan)]
+          (is (node-value? nv))
+          (is (seq action-plan))
+          (is (map? action-map))
+          (is (= action (:action action-map)))
+          (is (= [1] (:args action-map)))))))
   (testing "explicit execution"
     (defaction a2 {:execution :aggregated} [arg])
     (let [action (-> a2 meta :action)]
@@ -90,17 +94,18 @@
   (testing "precedence across execution model"
     (let [agg (declare-action 'agg {:execution :aggregated})
           ins (declare-action 'ins {})
-          session (test-session {})
-          p (let-s [_ (agg "hello")
-                    _ (with-action-options {:always-before #{agg}}
-                        (ins "a"))]
-                   nil)
-          [_ session] (p session)
-          action-plan (get-action-plan session)
-          [a1 a2] (#'pallet.action-plan/pop-block action-plan)]
-      (is (= 'agg (action-symbol (:action a1))))
-      (is (= 'ins (action-symbol (:action a2))))
-      (let [[action-plan _] (translate action-plan session)
-            [a1 a2] action-plan]
-        (is (= 'ins (action-symbol (:action a1))))
-        (is (= 'agg (action-symbol (:action a2))))))))
+          initial-session (test-session {})
+          p (fn []
+              (agg "hello")
+              (with-action-options {:always-before #{agg}}
+                (ins "a")))]
+      (let [[action-plan s] (with-session initial-session
+                              (p)
+                              [(get-action-plan (session)) (session)])]
+        (is action-plan)
+        (let [[a1 a2] (#'pallet.action-plan/pop-block action-plan)]
+          (is (= 'agg (action-symbol (:action a1))))
+          (is (= 'ins (action-symbol (:action a2))))
+          (let [[[a1 a2] _] (translate action-plan s)]
+            (is (= 'ins (action-symbol (:action a1))))
+            (is (= 'agg (action-symbol (:action a2))))))))))

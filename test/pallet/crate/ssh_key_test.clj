@@ -275,7 +275,7 @@
                      (user "testuser"))
          :configure (plan-fn (generate-key "testuser"))
          :verify1 (plan-fn
-                   [pk (public-key "testuser")])
+                    (public-key "testuser"))
          :verify2 (plan-fn
                    (check-public-key))}}}
       (lift (:ssh-key node-types)

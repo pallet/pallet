@@ -15,8 +15,7 @@ data may provide a version."
    [clojure.string :as string])
   (:use
    [pallet.compute :only [os-hierarchy]]
-   [pallet.monad :only [phase-pipeline let-s]]
-   [pallet.core.session :only [os-family os-version]]
+   [pallet.crate :only [os-family os-version phase-context]]
    [pallet.versions
     :only [as-version-vector version-less version-matches? version-spec-less]]
    [slingshot.slingshot :only [throw+]]))
@@ -105,19 +104,16 @@ refers to a software package version of some sort, on the specified `os` and
 `os-version`."
   {:indent 2}
   [name [version & args]]
-  `(do
-     (let [h# #'os-hierarchy
-           m# (atom {})]
-       (defn ~name
-         {:hierarchy h# :methods m#}
-         [~version ~@args]
-         (fn [session#]
-           ((dispatch-version
-              '~name
-              (os-family session#)
-              (as-version-vector (os-version session#))
-              (as-version-vector ~version) [~@args] (var-get h#) @m#)
-            session#))))))
+  `(let [h# #'os-hierarchy
+         m# (atom {})]
+     (defn ~name
+       {:hierarchy h# :methods m#}
+       [~version ~@args]
+       (dispatch-version
+        '~name
+        (os-family)
+        (as-version-vector (os-version))
+        (as-version-vector ~version) [~@args] (var-get h#) @m#))))
 
 (defmacro defmethod-version-plan
   "Adds a method to the specified multi-version function for the specified
@@ -133,7 +129,7 @@ refers to a software package version of some sort, on the specified `os` and
             (fn ~(symbol
                   (str (name os) "-" os-version "-" (string/join "" version)))
               [~@args]
-              (phase-pipeline
+              (phase-context
                   ~(symbol
                     (str (name os) "-" os-version "-" (string/join "" version)))
                   {}
@@ -188,6 +184,4 @@ vector."
 
 (defn os-map-lookup
   [os-map]
-  (fn [session]
-    [(get os-map {:os (os-family session) :os-version (os-version session)})
-     session]))
+  (get os-map {:os (os-family) :os-version (os-version)}))

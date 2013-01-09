@@ -2,7 +2,9 @@
   (:use pallet.phase)
   (:use
    clojure.test
+   [pallet.api :only [plan-fn]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [pallet.core.session :only [session with-session]]
    [pallet.test-utils :only [test-session]]))
 
 (use-fixtures :once (logging-threshold-fixture))
@@ -20,18 +22,20 @@
     [nil session]))
 
 (deftest schedule-in-post-phase-test
-  (let [session-in (test-session {:phase :fred})
-        [_ session] ((schedule-in-post-phase
-                            (is-phase :pallet.phase/post-fred))
-                          session-in)]
-    (is (= :fred (:phase session)))))
+  (with-session (test-session {:phase :fred})
+    (let [f (plan-fn
+              (schedule-in-post-phase
+               (is-phase :pallet.phase/post-fred)))]
+      (f)
+      (is (= :fred (:phase (session)))))))
 
 (deftest schedule-in-pre-phase-test
-  (let [session-in (test-session {:phase :fred})
-        [_ session] ((schedule-in-pre-phase
-                       (is-phase :pallet.phase/pre-fred))
-                     session-in)]
-    (is (= :fred (:phase session)))))
+  (with-session (test-session {:phase :fred})
+    (let [f (plan-fn
+              (schedule-in-pre-phase
+               (is-phase :pallet.phase/pre-fred)))]
+      (f)
+      (is (= :fred (:phase (session)))))))
 
 (deftest all-phases-for-phase-test
   (testing "pre, post added"

@@ -4,7 +4,7 @@
    [pallet.build-actions :only [build-actions let-actions]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.actions :only [exec-script* exec-script exec-checked-script exec]]
-   [pallet.api :only [group-spec lift]]
+   [pallet.api :only [group-spec lift plan-fn]]
    [pallet.core.user :only [*admin-user*]]
    [pallet.node :only [hostname]]
    [pallet.node-value :only [node-value]]
@@ -30,10 +30,11 @@
 
 (deftest exec-script*-test
   (let [v (promise)
-        rv (let-actions {}
-             [nv (exec-script* "ls file1")
-              _ #(do (deliver v nv) [nv %])]
-             nv)]
+        rv (let-actions
+            {}
+            (let [nv (exec-script* "ls file1")]
+              (deliver v nv)
+              nv))]
     (is (= "ls file1\n" (first rv)))
     (is (= [{:language :bash} "ls file1"] (node-value @v (second rv))))))
 
@@ -60,9 +61,10 @@
               (exec-checked-script "check" (~ls "file1"))))))))
 
 (deftest exec-test
-  (let [rv (let-actions {}
-             [nv (exec {:language :python} "print 'Hello, world!'")]
-             nv)]
+  (let [rv (let-actions
+            {}
+            (let [nv (exec {:language :python} "print 'Hello, world!'")]
+              nv))]
     (is (= "print 'Hello, world!'\n" (first rv)))))
 
 (def print-action
@@ -72,7 +74,7 @@
 (deftest lift-all-node-set-test
   (let [local (group-spec
                "local"
-               :phases {:configure (print-action "hello")})
+               :phases {:configure (plan-fn (print-action "hello"))})
         localhost (node-list/make-localhost-node :group-name "local")
         service (compute/compute-service "node-list" :node-list [localhost])]
     (testing "python"

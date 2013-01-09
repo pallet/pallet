@@ -9,6 +9,7 @@
 
 (defplan add-debian-backports
   "Add debian backport package repository"
+  []
   (package-source
    "debian-backports"
    :aptitude {:url "http://backports.debian.org/debian-backports"

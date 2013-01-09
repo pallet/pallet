@@ -5,7 +5,7 @@
    clojure.test
    pallet.crate
    [pallet.api :only [group-spec]]
-   [pallet.monad :only [let-s]]
+   [pallet.core.session :only [session with-session]]
    [pallet.session.verify :only [add-session-verification-key]]
    [pallet.test-utils :only [test-session make-node]]))
 
@@ -24,20 +24,19 @@
         g2 (group-spec "group2" :roles :role2)
         targets [(assoc g1 :node n1) (assoc g2 :node n2)]
         session (test-session {:service-state targets})]
-    (is (= [[(first targets)] session]
-           ((nodes-with-role :role1) session)))))
+    (is (= [(first targets)]
+           (with-session session
+             (nodes-with-role :role1))))))
 
 (defmulti-plan xx
   (fn [k]
-    (let-s
-      [xx (fn [s] [(:xx s) s])]
-      xx)))
+    (:xx (session))))
 
 (defmethod-plan xx :yy
   [k]
-  [xx (fn [s] [(:xx s) s])
-   r (m-result [xx k])])
+  [k])
 
 (deftest defmulti-plan-test
-  (let [session (add-session-verification-key {:xx :yy})]
-    (is (= [[:yy :k] session] ((xx :k) session)))))
+  (let [s (add-session-verification-key {:xx :yy})]
+    (with-session s
+      (is (= [:k] (xx :k))))))

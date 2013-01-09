@@ -6,24 +6,25 @@
    [pallet.utils :as utils])
   (:use
    [pallet.actions :only [package package-manager]]
-   [pallet.crate :only [admin-group def-plan-fn defplan def-collect-plan-fn]]
-   [pallet.monad :only [phase-pipeline]]))
+   [pallet.crate
+    :only [admin-group defplan def-collect-plan-fn phase-context]]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
 ;; TODO - dsl for sudoers, eg. (alias "user1" "user2" :as :ADMINS)
 
-(def-plan-fn install
+(defplan install
   [& {:keys [package-name action]
       :or {package-name "sudo" action :install}}]
   (package package-name :action action))
 
 (defplan default-specs
-  [admin-group admin-group]
-  (m-result (array-map
-             "root" {:ALL {:run-as-user :ALL}}
-             (str "%" admin-group)
-             {:ALL {:run-as-user :ALL}})))
+  []
+  (let [admin-group (admin-group)]
+    (array-map
+     "root" {:ALL {:run-as-user :ALL}}
+     (str "%" admin-group)
+     {:ALL {:run-as-user :ALL}})))
 
 (defn- param-string [[key value]]
   (cond
@@ -166,10 +167,10 @@ specs [ { [\"user1\" \"user2\"]
   [aliases defaults specs]
   (fn [& args]
     (logging/trace "apply-sudoers")
-    (phase-pipeline sudoers {}
-      [specs default-specs]
-      (template/apply-templates
-       sudoer-templates
-       (sudoer-merge
-        [(array-map) (array-map) specs]
-        args)))))
+    (phase-context sudoers {}
+      (let [specs (default-specs)]
+        (template/apply-templates
+         sudoer-templates
+         (sudoer-merge
+          [(array-map) (array-map) specs]
+          args))))))

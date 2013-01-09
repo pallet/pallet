@@ -10,6 +10,7 @@
    [pallet.action-plan :only [execute stop-execution-on-error translate]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :only [destroy-nodes-in-group destroy-node nodes run-nodes]]
+   [pallet.core.session :only [session with-session]]
    [pallet.environment :only [get-for]]
    [pallet.executors :only [default-executor]]
    [pallet.node :only [image-user primary-ip tag tag!]]
@@ -52,18 +53,20 @@
          (or (nil? environment) (map? environment))]}
   (fn action-plan [plan-state]
     (tracef "action-plan plan-state %s" plan-state)
-    (let [session (add-session-verification-key
-                   (merge
-                    {:user (:user environment *admin-user*)}
-                    target-map
-                    {:service-state service-state
-                     :plan-state plan-state
-                     :environment environment}))
-          [rv session] (plan-fn session)
-          _ (check-session session '(plan-fn session))
-          [action-plan session] (get-session-action-plan session)
-          [action-plan session] (translate action-plan session)]
-      [action-plan (:plan-state session)])))
+    (let [s (with-session
+              (add-session-verification-key
+               (merge
+                {:user (:user environment *admin-user*)}
+                target-map
+                {:service-state service-state
+                 :plan-state plan-state
+                 :environment environment}))
+              (plan-fn)
+              (check-session (session) '(plan-fn))
+              (session))]
+      (let [[action-plan session] (get-session-action-plan s)
+            [action-plan session] (translate action-plan session)]
+        [action-plan (:plan-state session)]))))
 
 (defmulti target-action-plan
   "Build action plans for the specified `phase` on all nodes or groups in the

@@ -6,7 +6,7 @@
    clojure.test
    pallet.core.primitives
    [pallet.algo.fsmop :only [dofsm operate status report-operation]]
-   [pallet.api :only [group-spec]]
+   [pallet.api :only [group-spec plan-fn]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.compute.node-list :only [make-node node-list-service]]
    [pallet.test-utils :only [clj-action make-localhost-compute]]))
@@ -34,7 +34,7 @@
   (let [service (make-localhost-compute)
         a (atom nil)
         action (clj-action [session] [(reset! a true) session])
-        g (group-spec :local :phases {:p (action)})
+        g (group-spec :local :phases {:p (plan-fn (action))})
         targets (api/service-state service [g])
         op (operate
                   (build-and-execute-phase

@@ -12,8 +12,6 @@
   (:use
    [pallet.actions :only [remote-file]]
    [pallet.core.session :only [group-name packager os-family]]
-   [pallet.monad :only [phase-pipeline-no-context]]
-   [pallet.monad.state-monad :only [m-map]]
    [pallet.utils :only [apply-map]]))
 
 (defn get-resource
@@ -78,26 +76,12 @@
   `(defn ~template [~@args]
      ~m))
 
-(defn- apply-template-file [[file-spec content]]
-  (phase-pipeline-no-context apply-template-file {}
-    ;; (logging/trace (str "apply-template-file " file-spec \newline content))
-    (apply-map remote-file (:path file-spec) :content content file-spec)
-    ;; (let [path (:path file-spec)]
-    ;;   (string/join
-    ;;    ""
-    ;;    (filter (complement nil?)
-    ;;            [(action-plan/checked-script
-    ;;              (str "Write file " path)
-    ;;              (var file ~path)
-    ;;              (~lib/heredoc @file ~content {}))
-    ;;             (when-let [mode (:mode file-spec)]
-    ;;               (stevedore/script (do (chmod ~mode @file))))
-    ;;             (when-let [group (:group file-spec)]
-    ;;               (stevedore/script (do (chgrp ~group @file))))
-    ;;             (when-let [owner (:owner file-spec)]
-    ;;               (stevedore/script (do (chown ~owner @file))))])))
-    ))
+(defn- apply-template-file
+  [[file-spec content]]
+  (logging/trace (str "apply-template-file " file-spec \newline content))
+  (apply-map remote-file (:path file-spec) :content content file-spec))
 
-(defn apply-templates [template-fn args]
-  (phase-pipeline-no-context apply-templates {}
-    (m-map apply-template-file (apply template-fn args))))
+(defn apply-templates
+  [template-fn args]
+  (doseq [f (apply template-fn args)]
+    (apply-template-file f)))

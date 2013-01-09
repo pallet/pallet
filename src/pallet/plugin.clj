@@ -1,7 +1,6 @@
 (ns pallet.plugin
   (:use
-   [chiba.plugin :only [plugins]]
-   [pallet.monad :only [session-pipeline]]))
+   [chiba.plugin :only [plugins]]))
 
 ;; (defn load-plugins
 ;;   "Load pallet plugins"

@@ -14,6 +14,7 @@
     {:server
      {:node
       (make-node "n" :os-family :centos :os-version "5.5" :packager :yum)}}
-    jpackage-utils
+    (jpackage-utils)
     (add-jpackage)
-    package-manager-update-jpackage)))
+    (
+     package-manager-update-jpackage))))

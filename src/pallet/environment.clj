@@ -28,6 +28,7 @@
    [clojure.walk :as walk])
   (:use
    [clojure.core.incubator :only [-?>]]
+   [pallet.core.session :only [session]]
    [pallet.core.user :only [make-user]]
    [slingshot.slingshot :only [throw+]]))
 
@@ -168,11 +169,9 @@
 (defn get-environment
   "Monadic environment accessor"
   ([keys]
-     (fn get-env [session]
-       [(get-for session keys) session]))
-    ([keys default]
-     (fn get-env [session]
-       [(get-for session keys default) session])))
+     (get-for (session) keys))
+  ([keys default]
+     (get-for (session) keys default)))
 
 (defn session-with-environment
   "Returns an updated `session` map, containing the keys for the specified

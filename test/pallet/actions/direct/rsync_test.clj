@@ -3,7 +3,7 @@
    clojure.test
    [pallet.actions :only [rsync rsync-directory]]
    [pallet.algo.fsmop :only [complete?]]
-   [pallet.api :only [group-spec lift with-admin-user]]
+   [pallet.api :only [group-spec lift plan-fn with-admin-user]]
    [pallet.core.user :only [*admin-user*]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.stevedore :only [script]]
@@ -35,7 +35,8 @@
         (let [op (lift
                   tag
                   :compute compute
-                  :phase (rsync (.getPath dir) (.getPath target-dir) {})
+                  :phase (plan-fn
+                           (rsync (.getPath dir) (.getPath target-dir) {}))
                   :environment {:user user})
               target-tmp (java.io.File.
                           (str (.getPath target-dir)
@@ -50,7 +51,9 @@
         (let [op (lift
                    tag
                    :compute compute
-                   :phase (rsync-directory (.getPath dir) (.getPath target-dir))
+                   :phase (plan-fn
+                            (rsync-directory
+                             (.getPath dir) (.getPath target-dir)))
                    :environment {:user user})
               target-tmp (java.io.File.
                           (str (.getPath target-dir)

@@ -4,9 +4,9 @@
    [clojure.string :as string])
   (:use
    [pallet.actions :only [directory exec-checked-script]]
-   [pallet.crate :only [def-plan-fn]]))
+   [pallet.crate :only [defplan]]))
 
-(def-plan-fn make-xfs-filesytem
+(defplan make-xfs-filesytem
   "Format a device as an XFS filesystem."
   [device]
   (exec-checked-script
@@ -32,7 +32,7 @@
       ""
       (str "-o " option-string))))
 
-(def-plan-fn mount
+(defplan mount
   "Mount a device."
   [device mount-point
    & {:keys [fs-type device-type automount no-automount dump-frequency
@@ -43,8 +43,8 @@
   (exec-checked-script
    (format "Mount %s at %s" device mount-point)
    (if-not @(mountpoint -q ~mount-point)
-     (mount ~(if fs-type (str "-t " fs-type) "")
-            ~(mount-cmd-options
-              (dissoc options :device-type :dump-frequency :boot-check-pass
-                      :fs-type))
-            ~device (quoted ~mount-point)))))
+     ("mount" ~(if fs-type (str "-t " fs-type) "")
+      ~(mount-cmd-options
+        (dissoc options :device-type :dump-frequency :boot-check-pass
+                :fs-type))
+      ~device (quoted ~mount-point)))))

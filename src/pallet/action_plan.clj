@@ -26,6 +26,7 @@
    [clojure.string :only [trim]]
    [clojure.stacktrace :only [print-cause-trace]]
    [pallet.context :only [with-context in-phase-context-scope]]
+   [pallet.core.session :only [session with-session]]
    [pallet.node-value :only [make-node-value set-node-value]]
    [pallet.session.action-plan
     :only [dissoc-action-plan get-session-action-plan]]
@@ -323,21 +324,21 @@
               (logging/tracef "ex-action-map %s" action-map)
               (if (delayed-execution? (action-execution action))
                 ;; execute the delayed phase function
-                (let [f (-> (action-implementation action :default) :f)
-                      f (apply f args)
-                      f (if (seq context)
-                          (fn ex-with-context [session]
+                (with-session session
+                  (let [f (-> (action-implementation action :default) :f)
+                        _ (if (seq context)
                             (with-context
-                                {:kw :ex-with-context :msg "ex-with-context"}
-                              (in-phase-context-scope context
-                                (f session))))
-                          f)
-                      [_ session] (f session)
-                      [action-plan session] (get-session-action-plan session)
-                      sub-plan (pop-block action-plan)]
-                  ;; return the local action-plan
-                  (logging/tracef "local action plan is %s" (vec sub-plan))
-                  sub-plan)
+                              {:kw :ex-with-context :msg "ex-with-context"}
+                              (in-phase-context-scope
+                               context
+                               (apply f args)))
+                            (apply f args))
+                        [action-plan session] (get-session-action-plan
+                                               (pallet.core.session/session))
+                        sub-plan (pop-block action-plan)]
+                    ;; return the local action-plan
+                    (logging/tracef "local action plan is %s" (vec sub-plan))
+                    sub-plan))
                 ;; return the unmodified action in a vector
                 [action-map]))
             (ex [action-plan]
@@ -438,6 +439,9 @@
                            (map
                             (fn [d] (set (mapcat instances d)))
                             (vals dependencies)))]
+    (logging/tracef
+     "action-scope-dependencies %s"
+     [actions action-id-map dependencies instances dependents])
     [action-id-map dependencies instances dependents]))
 
 (defn- action-with-dependents
@@ -628,12 +632,11 @@
 (defn execute-if
   "Execute an if action"
   [session {:keys [blocks] :as action} value]
-  (let [;; {:keys [value session]} (f session)
-        executor (get-in session [:action-plans ::executor])
-        _ (assert executor)
+  (let [executor (get-in session [:action-plans ::executor])
         execute-status-fn (get-in session [:action-plans ::execute-status-fn])
-        _ (assert execute-status-fn)
         exec-action (exec-action executor execute-status-fn)]
+    (assert executor)
+    (assert execute-status-fn)
     (logging/tracef "execute-if value %s" (pr-str value))
     (if value
       ((domonad action-exec-m [v (m-map exec-action (first blocks))] (last v))
