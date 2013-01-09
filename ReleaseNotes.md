@@ -1,5 +1,17 @@
 Unstable development branch
 
+# 0.8.0-alpha.8
+
+- Rename pipeline-when to plan-when
+
+- Rename def-plan-fn to def-plan
+
+- Rename phase-pipeline to phase-context
+
+- Replace monadic plan functions with a dynamic var
+  Change plan-fn to use ordinary clojure functions, and maintain state
+  using a dynamic var.
+
 # 0.8.0-alpha.7
 
 ## Fixes
