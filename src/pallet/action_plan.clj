@@ -602,6 +602,7 @@
        ((fn [r] (logging/tracef "rv is %s" r) r))
        (set-node-value-with-return-value node-value-path)))
     (catch Exception e
+      (logging/errorf e "Exception in execute-action-map")
       [{:error {:type :pallet/action-execution-error
                 :context (context/contexts)
                 :message (format "Unexpected exception: %s" (.getMessage e))
@@ -615,7 +616,9 @@
   (if-let [flag (::flag result)]
     (if (not= flag ::stop)
       (if (:error result)
-        [(assoc result ::flag ::stop) session]
+        (do
+          (logging/errorf "Stopping execution %s" (:error result))
+          [(assoc result ::flag ::stop) session])
         session)
       [result session])
     [result session]))
