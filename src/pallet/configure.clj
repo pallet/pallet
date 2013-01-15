@@ -18,7 +18,8 @@
    [clojure.tools.logging :as logging]
    [clojure.walk :as walk])
   (:use
-   [clojure.core.incubator :only [-?>]]))
+   [clojure.core.incubator :only [-?>]]
+   [pallet.utils :only [find-var-with-require maybe-update-in]]))
 
 (def ^{:private true
        :doc "A var to be set by defpallet, so that it may be loaded from any
@@ -107,43 +108,52 @@
           environment (when-let [env (:environment config)]
                         (environment/eval-environment env))]
       (cond
-       ;; no specific service requested, and default service specified by
-       ;; top level keys in defppallet
-       (and
-        (not service)
-        (every? identity default-service)) (->
-                                            (select-keys
-                                             config
-                                             [:provider :identity :credential
-                                              :blobstore :endpoint
-                                              :environment])
-                                            (utils/maybe-update-in
-                                             [:environment]
-                                             (fn [env] environment)))
+        ;; no specific service requested, and default service specified by
+        ;; top level keys in defppallet
+        (and
+         (not service)
+         (every? identity default-service))
+        (->
+         (select-keys
+          config
+          [:provider :identity :credential
+           :blobstore :endpoint
+           :environment])
+         (utils/maybe-update-in
+          [:environment]
+          (fn [env] environment)))
+
         ;; pick from specified services
-       (map? services) (->
-                        (or
-                         (and service
-                              ;; ensure that if services is specified as a
-                              ;; vector of keyword value vectors, that
-                              ;; it is converted into a map first.
-                              (let [services (into {} services)]
-                                (or
-                                 (services (keyword service))
-                                 (services service))))
-                         (and (not service) ; use default if service unspecified
-                              (when-let [service (first services)]
-                                (-> service second))))
-                        ;; merge any top level environment with the service
-                        ;; specific environment
-                        (utils/maybe-update-in
-                         [:environment]
-                         #(environment/merge-environments
-                           environment
-                           (environment/eval-environment
-                            (cake-project-environment))
-                           (environment/eval-environment %))))
-       :else nil))))
+        (or (map? services) (vector? services))
+        (when-let [config (or
+                           (and service
+                                ;; ensure that if services is specified as a
+                                ;; vector of keyword value vectors, that
+                                ;; it is converted into a map first.
+                                (let [services (into {} services)]
+                                  (or
+                                   (services (keyword service))
+                                   (services service))))
+                           (and (not service) ; use default if service
+                                        ; unspecified
+                                (if-let [service-name
+                                         (find-var-with-require
+                                           'pallet.config 'service-name)]
+                                  (or
+                                   (get services (name service-name))
+                                   (get services (keyword (name service-name))))
+                                  (-> (first services) second))))]
+          ;; merge any top level environment with the service
+          ;; specific environment
+          (maybe-update-in
+           config [:environment]
+           #(environment/merge-environments
+             environment
+             (environment/eval-environment
+              (cake-project-environment))
+             (environment/eval-environment %))))
+
+        :else nil))))
 
 (defn compute-service-from-map
   "Create a compute service from a credentials map.

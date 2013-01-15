@@ -41,7 +41,8 @@
    - :max-retries   number of times to test HTTP status before erroring
    - :url-name      name of url to use in messages (defaults to url)"
 
-  [session url status & {:keys [max-retries standoff url-name cookie]
+  [session url status & {:keys [max-retries standoff url-name cookie insecure
+                                ssl-version]
                          :or {max-retries 5 standoff 2
                               url-name url}}]
   (->
@@ -54,6 +55,8 @@
         (pipe
          ("wget" -q -S -O "/dev/null"
           ~(if cookie (str "--header " (format "'Cookie: %s'" cookie)) "")
+         ~(if insecure "--no-check-certificate" "")
+         ~(if ssl-version (str "--secure-protocol=SSLv" ssl-version) "")
           (quoted ~url) "2>&1")
          ("grep" "HTTP/1.1")
          ("tail" -1)
@@ -62,6 +65,8 @@
         (defn httpresponse []
           ("curl" -sL -w (quoted "%{http_code}")
            ~(if cookie (str "-b '" cookie "'") "")
+          ~(if insecure "--insecure" "")
+          ~(if ssl-version (str "-" ssl-version) "")
            (quoted ~url)
            -o "/dev/null"))
         (do

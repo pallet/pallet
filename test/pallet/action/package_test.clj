@@ -461,7 +461,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
       (is (= (stevedore/checked-script
               "Packages"
               (~lib/package-manager-non-interactive)
-              (aptitude install -q -y -t r1 p2+)
+              (aptitude install -q -y p2+)
               (aptitude install -q -y p1+)
               (pipe (aptitude
                      search (quoted "?and(?installed, ?name(^p1$))"))

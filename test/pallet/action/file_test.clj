@@ -47,7 +47,8 @@
   (is (= (stevedore/checked-commands
           "sed file path"
           "sed -i -e \"s|a|b|\" path"
-          "md5sum path > path.md5")
+          (str "(cp=$(readlink -f path) && cd $(dirname ${cp}) && "
+               "md5sum $(basename ${cp}) > path.md5\n)"))
          (sed* {} "path" {"a" "b"} :seperator "|")))
   (is
    (build-actions/build-actions

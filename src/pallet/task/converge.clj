@@ -2,7 +2,9 @@
   "Adjust node counts."
   (:require
    [pallet.core :as core]
-   [clojure.tools.logging :as logging]))
+   [clojure.tools.logging :as logging])
+  (:use
+   [pallet.task :only [abort maybe-resolve-symbol-string]]))
 
 (defn- build-args [args]
   (loop [args args
@@ -10,18 +12,24 @@
          m nil
          phases []]
     (if-let [a (first args)]
-      (cond
-       (and (nil? m) (symbol? a) (nil? (namespace a))) (recur
-                                                        (next args)
-                                                        (name a)
-                                                        m
-                                                        phases)
-       (not (keyword? a)) (recur
-                           (nnext args)
-                           prefix
-                           (assoc (or m {}) a (fnext args))
-                           phases)
-       :else (recur (next args) prefix m (conj phases a)))
+      (let [v (maybe-resolve-symbol-string a)]
+        (cond
+          ;; non symbol as first arg
+          (and (nil? m) (not v)) (recur (next args) a m phases)
+          ;; a symbol number pair
+          (not (.startsWith a ":"))
+          (if v
+            (let [n (read-string (fnext args))]
+              (when-not (number? n)
+                (abort
+                 (format
+                  "Could not determine number of nodes for %s (%s given)"
+                  a (fnext args))))
+              (recur (nnext args) prefix (assoc (or m {}) v n) phases))
+            (abort
+             (str "Could not locate node definition for " a)))
+          ;; a phase
+          :else (recur (next args) prefix m (conj phases (read-string a)))))
       (concat [m] (if prefix [:prefix prefix] []) [:phase phases]))))
 
 (defn converge

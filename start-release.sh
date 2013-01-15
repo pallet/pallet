@@ -14,7 +14,7 @@ echo ""
 echo "Start release of $version, previous version is $previous_version"
 echo ""
 echo "Changes since $previous_version"
-git log --pretty=changelog  pallet-$previous_version.. | tee git.log
+git log --pretty=changelog  pallet-$previous_version..
 echo ""
 echo ""
 echo "Now edit ReleaseNotes and README"

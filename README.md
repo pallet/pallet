@@ -58,7 +58,7 @@ for instructions on how to create a project with a `lein new` template.
 
 ### lein/cake project.clj
 
-    :dependencies [[org.cloudhoist/pallet "0.7.1"]]
+    :dependencies [[org.cloudhoist/pallet "0.7.2"]]
     :repositories {"sonatype"
                    "http://oss.sonatype.org/content/repositories/releases"
                    "sonatype-snapshots"
@@ -70,7 +70,7 @@ for instructions on how to create a project with a `lein new` template.
       <dependency>
         <groupId>org.cloudhoist</groupId>
         <artifactId>pallet</artifactId>
-        <version>0.7.1</version>
+        <version>0.7.2</version>
       </dependency>
     <dependencies>
 

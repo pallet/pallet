@@ -22,25 +22,30 @@
                "specified provider anyway."))))
 
 (defn write-service
-  [file service-name provider-name identity credential]
+  [file service-name provider-name identity credential properties]
   (.. (java.io.File. (.getParent file)) mkdirs)
   (spit file (pr-str {(keyword service-name)
-                      (into {}
-                            (filter val {:provider provider-name
-                                         :identity identity
-                                         :credential credential}))})))
+                      (merge
+                       (into {}
+                             (filter val {:provider provider-name
+                                          :identity identity
+                                          :credential credential}))
+                       properties)})))
 
 (defn add-service*
-  [file service-name provider-name identity credential]
+  [file service-name provider-name identity credential properties]
   (let [service-name (name service-name)
         available-services (compute/supported-providers)]
     (warn-on-invalid-provider-name provider-name available-services)
-    (write-service file service-name provider-name identity credential)))
+    (write-service
+     file service-name provider-name identity credential properties)))
 
 (defn usage []
   (binding [*out* *err*]
     (println "incorrect arguments:")
-    (println "  lein pallet service-name provider-name [identity credential]")))
+    (println
+     (str "  lein pallet add-service service-name provider-name "
+          "[identity credential [property-name value ...]]"))))
 
 (defn
   ^{:no-service-required true}
@@ -51,9 +56,9 @@ This will create ~/.pallet/services/service-name.clj"
      (add-service service-name service-name))
   ([service-name provider-name]
      (add-service service-name provider-name nil nil))
-  ([service-name provider-name identity credential]
+  ([service-name provider-name identity credential & kw-vals]
      (write-config-clj-unless-exists)
-     (if (and service-name provider-name)
+     (if (and service-name provider-name (even? (count kw-vals)))
        (let [service-name (name service-name)
              path (io/file
                    (.getParent
@@ -67,5 +72,9 @@ This will create ~/.pallet/services/service-name.clj"
             path service-name
             (name provider-name)
             (and identity (name identity))
-            (and credential (name credential)))))
+            (and credential (name credential))
+            (into {}
+                  (map
+                   #(vector (keyword (name (first %))) (second %))
+                   (partition 2 kw-vals))))))
        (usage))))

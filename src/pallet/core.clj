@@ -365,6 +365,16 @@
     (handler session)))
 
 
+(defn- apply-environment
+  "Apply the effective environment"
+  [session]
+  (environment/session-with-environment
+    session
+    (environment/merge-environments
+     (:environment session)
+     (environment/eval-environment (-> session :server :environment)))))
+
+
 ;;; executor
 
 (defn- executor [session f action-type location]
@@ -420,6 +430,7 @@
                               :target-id :bootstrap-id
                               :server (assoc (:group session)
                                         :node-id :bootstrap-id))
+                          apply-environment
                           (assoc-in
                            [:executor :script/bash :target]
                            execute/echo-bash)
@@ -471,15 +482,6 @@
      (count (:old-nodes session)))
     session))
 
-(defn- apply-environment
-  "Apply the effective environment"
-  [session]
-  (environment/session-with-environment
-    session
-    (environment/merge-environments
-     (:environment session)
-     (environment/eval-environment (-> session :server :environment)))))
-
 (defn translate-action-plan
   [handler]
   (fn [session]
@@ -522,7 +524,7 @@
         (let [&throw-context {:throwable (:cause error)}]
           (logging/errorf "errors found %s" (vec (map :error errors)))
           (throw+
-           (assoc error :all-errors errors)
+           (assoc error :all-errors errors :session session)
            "Error prevented completion of phase: %s"
            (:message error)))
         [results session]))))
@@ -1010,7 +1012,8 @@
   [session f]
   (assoc (f session)
     :groups (:groups session)
-    :phase-list (:phase-list session)))
+    :phase-list (:phase-list session)
+    :environment (:environment session)))
 
 (defn lift-destroy-server
   [session]
@@ -1227,7 +1230,15 @@
   "If the :all-nodes key is not set, then the nodes are retrieved from the
    compute service if possible."
   [session]
-  (let [nodes (filter
+  (let [selected (->>
+                  (:node-set session)
+                  (filter #(and (map? %) (every? map? (keys %))))
+                  (mapcat vals)
+                  (mapcat #(if (seq? %) % [%]))
+                  (filter node/node?)
+                  (distinct))
+
+        nodes (filter
                node/running?
                (or (:all-nodes session) ; empty list is ok
                    (if-let [compute (environment/get-for
@@ -1235,14 +1246,8 @@
                      (do
                        (logging/info "retrieving nodes")
                        (compute/nodes compute))
-                     (->>
-                      (:node-set session)
-                      (filter #(and (map? %) (every? map? (keys %))))
-                      (mapcat vals)
-                      (mapcat #(if (seq? %) % [%]))
-                      (filter node/node?)
-                      (distinct)))))]
-    (assoc session :all-nodes nodes :selected-nodes nodes)))
+                     selected)))]
+    (assoc session :all-nodes nodes :selected-nodes (or selected nodes))))
 
 (defn session-with-groups
   "Takes the :selected-nodes, :all-nodes. :node-set and :prefix keys and compute
@@ -1508,11 +1513,13 @@
    bound compute-service is used.  The configure phase is applied by default
    unless other phases are specified.
 
-   node-set can be a node type, a sequence of node types, or a map
-   of node type to nodes. Examples:
-              [node-type1 node-type2 {node-type #{node1 node2}}]
-              node-type
-              {node-type #{node1 node2}}
+   node-set can be a group-spec, a sequence of group-specs, or a map
+   of group-spec to nodes (to explicitly associate nodes to a group-spec).
+
+   Examples:
+              [group-spec1 group-spec2 {group-spec #{node1 node2}}]
+              group-spec
+              {group-spec #{node1 node2}}
 
    options can also be keywords specifying the phases to apply, or an immediate
    phase specified with the phase macro, or a function that will be called with

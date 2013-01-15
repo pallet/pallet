@@ -1,9 +1,12 @@
 (ns pallet.task.version
-  "Print Pallet's version to standard out.")
+  "Print the pallet version"
+  (:require
+   [pallet.core :as core]))
 
 (defn version
+  "Print the pallet version"
   {:no-service-required true}
   []
-  (println "Pallet" (System/getProperty "pallet.version")
+  (println "Pallet" (core/version)
            "on Java" (System/getProperty "java.version")
            (System/getProperty "java.vm.name")))

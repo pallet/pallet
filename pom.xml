@@ -8,7 +8,7 @@
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
-  <version>0.7.2-RYAN-SNAPSHOT</version>
+  <version>0.7.3-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>pallet</name>
   <description>
@@ -118,7 +118,7 @@
     <dependency>
       <groupId>clj-ssh</groupId>
       <artifactId>clj-ssh</artifactId>
-      <version>0.4.0</version>
+      <version>0.4.3</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

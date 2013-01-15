@@ -19,9 +19,9 @@
 
 ;; slingshot version compatibility
 (try
-  (use '[slingshot.slingshot :only [throw+]])
+  (use '[slingshot.slingshot :only [try+ throw+]])
   (catch Exception _
-    (use '[slingshot.core :only [throw+]])))
+    (use '[slingshot.core :only [try+ throw+]])))
 
 (def prolog
   (str "#!/usr/bin/env bash\n" bash/hashlib))
@@ -224,7 +224,8 @@
         (ssh/add-identity agent options)
         (ssh/add-identity-with-keychain agent options)))
     (catch Exception e
-      (logging/warnf e "Add identity failed"))))
+      (logging/warnf "Add ssh identity failed for %s" private-key-path)
+      (logging/debugf e "Add identity failed"))))
 
 (defn- ssh-mktemp
   "Create a temporary remote file using the `ssh-session` and the filename
@@ -354,46 +355,48 @@
   "Try ensuring an ssh connection to the server specified in the session."
   [session]
   (let [{:keys [server port user ssh-session sftp-channel tmpfile tmpcpy]
-         :as ssh} (:ssh session)]
-    (when-not
-        (and server
-             (if (string? server) (not (string/blank? server)) true)
-             user)
-      (throw+
-       {:type :session-missing-middleware
-        :message (str
-                  "The session is missing server ssh connection details.\n"
-                  "Add middleware to enable ssh.")}))
-    (let [agent (default-agent)
-          ssh-session (or ssh-session
-                          (ssh/session
-                           agent server
-                           {:username (:username user)
-                            :strict-host-key-checking :no
-                            :port port
-                            :password (:password user)}))
-          _ (.setDaemonThread ssh-session true)
-          _ (when-not (ssh/connected? ssh-session)
-              (try
-                (ssh/connect ssh-session)
-                (catch Exception e
-                  (throw+
-                   {:type :pallet/ssh-connection-failure
-                    :message (format
-                              "ssh-fail: server %s, port %s, user %s, group %s"
-                              server (or port 22) (:username user)
-                              (-> session :server :group-name))
-                    :cause e}))))
-          tmpfile (or tmpfile (ssh-mktemp ssh-session "sudocmd"))
-          tmpcpy (or tmpcpy (ssh-mktemp ssh-session "tfer"))
-          sftp-channel (or sftp-channel (ssh/ssh-sftp ssh-session))
-          _ (when-not (ssh/connected-channel? sftp-channel)
-              (ssh/connect-channel sftp-channel))]
-      (update-in session [:ssh] merge
-                 {:ssh-session ssh-session
-                  :tmpfile tmpfile
-                  :tmpcpy tmpcpy
-                  :sftp-channel sftp-channel}))))
+         :as ssh}
+        (:ssh session)]
+    (let [port (or port 22)]
+      (when-not
+          (and server
+               (if (string? server) (not (string/blank? server)) true)
+               user)
+        (throw+
+         {:type :session-missing-middleware
+          :message (str
+                    "The session is missing server ssh connection details.\n"
+                    "Add middleware to enable ssh.")}))
+      (let [agent (default-agent)
+            ssh-session (or ssh-session
+                            (ssh/session
+                             agent server
+                             {:username (:username user)
+                              :strict-host-key-checking :no
+                              :port port
+                              :password (:password user)}))
+            _ (.setDaemonThread ssh-session true)
+            _ (when-not (ssh/connected? ssh-session)
+                (try+
+                  (ssh/connect ssh-session)
+                  (catch Exception e
+                    (throw+
+                     {:type :pallet/ssh-connection-failure
+                      :message (format
+                                "ssh-fail: server %s, port %s, user %s, group %s"
+                                server  port (:username user)
+                                (-> session :server :group-name))
+                      :cause e}))))
+            tmpfile (or tmpfile (ssh-mktemp ssh-session "sudocmd"))
+            tmpcpy (or tmpcpy (ssh-mktemp ssh-session "tfer"))
+            sftp-channel (or sftp-channel (ssh/ssh-sftp ssh-session))
+            _ (when-not (ssh/connected-channel? sftp-channel)
+                (ssh/connect-channel sftp-channel))]
+        (update-in session [:ssh] merge
+                   {:ssh-session ssh-session
+                    :tmpfile tmpfile
+                    :tmpcpy tmpcpy
+                    :sftp-channel sftp-channel})))))
 
 (defn- close-ssh-connection
   "Close any ssh connection to the server specified in the session."

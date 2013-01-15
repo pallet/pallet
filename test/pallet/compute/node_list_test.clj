@@ -1,7 +1,8 @@
 (ns pallet.compute.node-list-test
   (:require
    [pallet.compute.node-list :as node-list]
-   [pallet.compute :as compute])
+   [pallet.compute :as compute]
+   [pallet.node :as node])
   (:use
    clojure.test)
   (:import
@@ -30,7 +31,13 @@
 (deftest nodes-test
   (let [node (node-list/make-node "n" "t" "1.2.3.4" :ubuntu)
         node-list (compute/compute-service "node-list" :node-list [node])]
-    (is (= [node] (compute/nodes node-list)))))
+    (is (= [(assoc node :service node-list)] (compute/nodes node-list)))))
+
+(deftest node-compute-service-test
+  (let [node (node-list/make-node "n" "t" "1.2.3.4" :ubuntu)
+        node-list (compute/compute-service "node-list" :node-list [node])
+        node (first (compute/nodes node-list))]
+    (is (= node-list (node/compute-service node)))))
 
 (deftest close-test
   (is (nil? (compute/close

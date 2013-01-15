@@ -1,4 +1,78 @@
-The latest release is 0.7.1
+The latest release is 0.7.2
+
+
+# 0.7.2
+
+## Features
+
+- Add limits-conf crate for configuring ulimits
+
+- Add crate function to set the hostname on a node.
+
+## Fixes
+
+- Default rsync port from target node
+  The ssh port is taken from the target node. Extra options can now be
+  specified. Fixes #157
+
+- Fix the handling of task args
+  The args were all being read, which caused problems when values passed
+  didn't read to the expected type (eg. strings containing a single / were
+  read as symbols). It is now the task's responsibility to do any reading
+  required. Fixes #161.
+
+- Fix parsing of symbols and numbers in pallet.main
+
+- Fix usage message for add-service
+
+- Improve handling of string arguments to pallet.main
+
+- Filter *-test namespaces from tasks for help
+
+- Ensure pallet.main doesn't treat urls as symbols
+
+- Add support for properties to add-service task
+
+- Fix md5-url comparisons
+  The md5 comparison using :md5-url was always failing due to the file path 
+  being included in the .md5 file.
+
+- Fix merging of environment phases in bootstrap
+  This fixes the merging of the environment phases in boostrap, without
+  breaking the merging of other phases. Fixes #144.
+
+- Ensure port 22 is used in SSH connections when no port is specified.
+  Fixes #153
+
+- Allow project to specify default service name
+  Fixes #146
+
+- Fix exception when service name is not in config map
+
+- Fix issue: actions in env phases not taking precedence
+  Fixes #145.
+
+- Fix issue with proxy not being set for aptitude
+  Fixes #143.
+
+- Fix issue with environment phases not being forwarded in converge.
+  Fixes #144
+
+  This would only happen in converge, but not during a lift.
+
+- Fix providers task to use pallet.compute/supported-providers
+  Fixes #141
+
+- Add -P option to help output
+
+- Fix help task for invalid task namespaces
+
+- Fix version task
+
+- Fix resolving of tasks, and improve help formatting
+
+- Fix node-list nodes to return the node-list
+  An atom was being returned. Fixes #140.
 
 # 0.7.1
 

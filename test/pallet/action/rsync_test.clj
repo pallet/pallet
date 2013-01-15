@@ -1,7 +1,9 @@
 (ns pallet.action.rsync-test
   (:use pallet.action.rsync)
-  (:use [pallet.stevedore :only [script]]
-        clojure.test)
+  (:use
+   [pallet.build-actions :only [build-session]]
+   [pallet.stevedore :only [script]]
+   clojure.test)
   (:require
    [pallet.action :as action]
    [pallet.action.remote-file :as remote-file]
@@ -15,6 +17,43 @@
    [clojure.java.io :as io]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
+
+(deftest rsync-command-test
+  (testing "default"
+    (is (= (str "/usr/bin/rsync "
+                "-e '/usr/bin/ssh -o \"StrictHostKeyChecking no\" -p 22' "
+                "-rP --delete --copy-links -F -F "
+                "/from null@127.0.0.1:/to")
+           (rsync-command
+            (build-session
+             {:server {:node (test-utils/make-localhost-node)}})
+            "/from" "/to" {}))))
+  (testing "port from node"
+    (is (= (str "/usr/bin/rsync "
+                "-e '/usr/bin/ssh -o \"StrictHostKeyChecking no\" -p 2222' "
+                "-rP --delete --copy-links -F -F "
+                "/from null@127.0.0.1:/to")
+           (rsync-command
+            (build-session
+             {:server {:node (test-utils/make-localhost-node :ssh-port 2222)}})
+            "/from" "/to" {}))))
+  (testing "options"
+    (is (= (str "/usr/bin/rsync "
+                "-e '/usr/bin/ssh -o \"StrictHostKeyChecking no\" -p 22' "
+                "-rP --delete --copy-links -F -F --times "
+                "/from null@127.0.0.1:/to")
+           (rsync-command
+            (build-session
+             {:server {:node (test-utils/make-localhost-node)}})
+            "/from" "/to" {:times true})))
+    (is (= (str "/usr/bin/rsync "
+                "-e '/usr/bin/ssh -o \"StrictHostKeyChecking no\" -p 22' "
+                "-rP --delete --copy-links -F -F -t "
+                "/from null@127.0.0.1:/to")
+           (rsync-command
+            (build-session
+             {:server {:node (test-utils/make-localhost-node)}})
+            "/from" "/to" {:t true})))))
 
 (deftest rsync-test
   (core/with-admin-user (assoc utils/*admin-user*

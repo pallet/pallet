@@ -50,7 +50,7 @@
   "Returns a node, suitable for use in a node-list."
   [name group-name ip os-family
    & {:keys [id ssh-port private-ip is-64bit running os-version service]
-      :or {ssh-port 22 is-64bit true running true service (atom nil)}}]
+      :or {ssh-port 22 is-64bit true running true}}]
   (Node.
    name
    group-name
@@ -138,12 +138,7 @@
                          %)
                       node-list)))
         nodelist (NodeList. nodes environment)]
-    (swap! nodes
-           #(map
-             (fn [node]
-               (reset! (node/compute-service node) nodelist)
-               node)
-             %))
+    (swap! nodes #(map (fn [node] (assoc node :service nodelist)) %))
     nodelist))
 
 ;;;; Compute service constructor

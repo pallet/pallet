@@ -89,11 +89,11 @@
       (.delete tmp)
       (is (= (str "remote-file " (.getPath tmp) "...\n"
                   "MD5 sum is 6de9439834c9147569741d3c9c9fc010 "
-                  (.getPath tmp) "\n"
+                  (.getName tmp) "\n"
                   "...done\n")
              (->
               (pallet.core/lift
-               {{:group-name :local} (test-utils/make-localhost-node)}
+               {{:group-name :local} #{(test-utils/make-localhost-node)}}
                :phase #(remote-file % (.getPath tmp) :content "xxx")
                :compute nil
                :middleware [core/translate-action-plan
@@ -303,10 +303,14 @@
             (is (= "urlmd5urltext" (slurp (.getPath target-tmp)))))
           (testing "delete action"
             (.createNewFile target-tmp)
-            (core/lift
-             {local node}
-             :phase #(remote-file % (.getPath target-tmp) :action :delete)
-             :user user)
+            (let [s (core/lift
+                     {(assoc local
+                        :phases {:install
+                                 #(remote-file % (.getPath target-tmp) :action :delete)})
+                      node}
+                     :phase :install
+                     :user user)]
+              (is (= [node] (:selected-nodes s))))
             (is (not (.exists target-tmp)))))))))
 
 (action/def-clj-action check-content

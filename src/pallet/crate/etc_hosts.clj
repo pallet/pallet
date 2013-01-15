@@ -1,8 +1,11 @@
 (ns pallet.crate.etc-hosts
   "/etc/hosts file."
- (:require
+  (use [pallet.script :only [defscript defimpl]]
+       [pallet.action.exec-script :only [exec-checked-script]])
+  (:require
    [pallet.action.file :as file]
    [pallet.action.remote-file :as remote-file]
+   [pallet.action.service :as service]
    [pallet.argument :as argument]
    [pallet.common.deprecate :as deprecate]
    [pallet.compute :as compute]
@@ -68,3 +71,26 @@
        :owner "root:root"
        :mode 644
        :content (argument/delayed [session] (format-hosts session)))))
+
+
+;;; set the node's host name.
+(compute/defmulti-os hostname [session name])
+
+(defmethod hostname :linux [session name]
+  (-> session
+      ;; change the hostname now
+      (pallet.action.exec-script/exec-script ("hostname " ~name))
+      ;; make sure this change will survive reboots
+      (remote-file/remote-file
+       "/etc/hostname"
+       :owner "root" :group "root" :mode "0644"
+       :content name )))
+
+(defmethod hostname :rh-base [session name]
+  (-> session
+      ;; change the hostname now
+      (pallet.action.exec-script/exec-script ("hostname " ~name))
+      ;; make sure this change will survive reboots
+      (file/sed "/etc/sysconfig/network"
+                {"HOSTNAME=.*" (str "HOSTNAME=" name)})))
+
