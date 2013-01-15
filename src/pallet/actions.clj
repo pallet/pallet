@@ -2,6 +2,7 @@
   "Pallet's action primitives."
   (:require
    [clojure.tools.logging :as logging]
+   [pallet.argument :as argument]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore])
   (:use
@@ -40,6 +41,14 @@
    script fails. The script is expressed in stevedore."
   [script-name & script]
   `(exec-script* (checked-script ~script-name ~@script)))
+
+;;; # Wrap arbitrary code
+(defmacro as-action
+  "Wrap arbitrary clojure code to be run as an action"
+  [& body]
+  `((clj-action [~'&session]
+      (binding [pallet.argument/*session* ~'&session]
+        ~@body))))
 
 ;;; # Flow Control
 (defmacro plan-when
