@@ -1,2 +1,8 @@
-language: java
+language: clojure
 jdk: openjdk6
+script: 
+        -mvn -Dzi.version=0.5.5 clean
+        -mvn compile
+        -mvn -Dzi.version=0.5.5 zi:compile
+        -mvn -Dzi.version=0.5.5 test
+
