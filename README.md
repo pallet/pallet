@@ -1,6 +1,6 @@
 ![pallet logo](https://github.com/downloads/pallet/pallet/pallet-logo.png)
 
-[![Build Status](https://travis-ci.org/rstradling/pallet.png?branch=0.7.x)](undefined)
+[![Build Status](https://travis-ci.org/rstradling/pallet.png?branch=support/0.7.x)](undefined)
 
 [Pallet](http://palletops.com) is used to provision and maintain servers on
 cloud and virtual machine infrastructure, and aims to solve the problem of
