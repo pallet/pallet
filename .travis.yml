@@ -2,8 +2,7 @@ language: java
 jdk: openjdk6
 install: echo "HELLO"
 script: 
-        - mvn -Dzi.version=0.5.5 clean
-        - mvn compile
-        - mvn -Dzi.version=0.5.5 zi:compile
-        - mvn -Dzi.version=0.5.5 test
+        - mvn --settings ./travis/settings.xml -Dzi.version=0.5.5 compile
+        - mvn --settings ./travis/settings.xml -Dzi.version=0.5.5 zi:compile
+        - mvn --settings ./travis/settings.xml -Dzi.version=0.5.5 test
 
