@@ -2,7 +2,6 @@ language: java
 jdk: openjdk6
 install: echo "HELLO"
 before_script:
-        - mkdir ~/.ssh
         - ssh-keygen -N "" -f ~/.ssh/id_rsa
         - cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 script: 
