@@ -49,6 +49,10 @@
   [#{:centos-5.3 :os-x :darwin :debian :fedora}]
   []
   ("/usr/bin/sudo"))
+(script/defimpl sudo-no-password
+  [#{:smartos :solaris}]
+  []
+  ("/opt/local/bin/sudo" -n))
 
 (defn sudo-cmd-for
   "Construct a sudo command prefix for the specified user."

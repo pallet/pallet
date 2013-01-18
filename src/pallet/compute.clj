@@ -88,6 +88,7 @@
       (derive :suse-base :linux)
       (derive :bsd-base :linux)
       (derive :gentoo-base :linux)
+      (derive :solaris :linux)
 
       ;; distibutions
       (derive :centos :rh-base)
@@ -102,7 +103,8 @@
       (derive :arch :arch-base)
       (derive :gentoo :gentoo-base)
       (derive :darwin :bsd-base)
-      (derive :osx :bsd-base)))
+      (derive :osx :bsd-base)
+      (derive :smartos :solaris)))
 
 (defmacro defmulti-os
   "Defines a defmulti used to abstract over the target operating system. The
@@ -137,6 +139,7 @@
        (#{:suse} os-family) :zypper
        (#{:gentoo} os-family) :portage
        (#{:darwin :os-x} os-family) :brew
+       (#{:smartos :solaris} os-family) :pkgin
        :else (throw+
               {:type :unknown-packager
                :message (format
@@ -153,6 +156,7 @@
        (#{:ubuntu :debian :jeos} os-family) :debian
        (#{:centos :rhel :amzn-linux :fedora} os-family) :rh
        (#{:arch} os-family) :arch
+       (#{:smartos} os-family) :solaris
        (#{:suse} os-family) :suse
        (#{:gentoo} os-family) :gentoo
        (#{:darwin :os-x} os-family) :os-x
