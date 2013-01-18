@@ -29,7 +29,9 @@
   (let [line (-> &form meta :line)]
     `(with-phase-context
        (merge {:kw ~(list 'quote pipeline-name)
-               :msg ~(name pipeline-name)
+               :msg ~(if (symbol? pipeline-name)
+                       (name pipeline-name)
+                       pipeline-name)
                :ns ~(list 'quote (ns-name *ns*))
                :line ~line
                :log-level :debug}

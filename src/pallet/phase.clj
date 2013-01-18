@@ -8,7 +8,7 @@
    [clojure.tools.macro :only [name-with-attributes]]
    [pallet.action :only [declare-aggregated-crate-action declare-action]]
    [pallet.common.context :only [throw-map]]
-   [pallet.core.session :only [session session! session-pipeline]]
+   [pallet.core.session :only [session session! session-context]]
    [pallet.session.verify :only [check-session]]
    [pallet.utils :only [compiler-exception local-env]]))
 
@@ -41,7 +41,7 @@
 (defmacro schedule-in-pre-phase
   "Specify that the body should be executed in the pre-phase."
   [& body]
-  `(session-pipeline
+  `(session-context
     schedule-in-pre-phase {}
     (let [phase# (get (session) :phase)]
       (session! (assoc (session) :phase (pre-phase-name phase#)))
@@ -51,7 +51,7 @@
 (defmacro schedule-in-post-phase
   "Specify that the body should be executed in the post-phase."
   [& body]
-  `(session-pipeline
+  `(session-context
     schedule-in-post-phase {}
     (let [phase# (get (session) :phase)]
       (session! (assoc (session) :phase (post-phase-name phase#)))

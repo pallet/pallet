@@ -10,7 +10,8 @@
    [clojure.tools.logging :as logging])
   (:use
    [pallet.core.api-impl :only [merge-specs merge-spec-algorithm]]
-   [pallet.core.session :only [session-pipeline]]
+   [pallet.core.session :only [session-context]]
+   [pallet.crate :only [phase-context]]
    [pallet.algo.fsmop :only [dofsm operate result succeed]]
    [pallet.environment :only [merge-environments]]
    [pallet.node :only [node?]]
@@ -454,9 +455,12 @@
    This generates a new plan function, and adds code to verify the state
    around each plan function call."
   [& body]
-  (let [n (if (string? (first body)) (first body) "a-plan-fn")
-        body (if (string? (first body)) (rest body) body)]
-    `(fn [] (session-pipeline ~(gensym n) {} ~@body))))
+  (let [n? (string? (first body))
+        n (when n? (first body))
+        body (if n? (rest body) body)]
+    (if n
+      `(fn [] (phase-context ~(gensym n) {} ~@body))
+      `(fn [] (session-context ~(gensym "a-plan-fn") {} ~@body)))))
 
 ;;; ### Admin user
 (defn make-user
