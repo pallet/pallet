@@ -1,0 +1,6 @@
+checkout:
+  post:
+    - git clone https://github.com/pallet/pallet-settings-xml.git
+test:
+  override:
+    - mvn --settings pallet-settings-xml/settings.xml test
