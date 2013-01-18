@@ -126,6 +126,15 @@
       session])
    )
 
+(defn targets
+  "Targets for current converge."
+  [session]
+  (:service-state session))
+
+(defn target-nodes
+  "Target nodes for current converge."
+  [session]
+  (map :node (:service-state session)))
 
 (defn nodes-in-group
   "All nodes in the same tag as the target-node, or with the specified

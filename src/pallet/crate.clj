@@ -182,14 +182,24 @@
 
 ;;; ## Session Accessors
 (defn target
-  "The target-node."
+  "The target-node map."
   []
   (session/target (session)))
 
 (defn target-node
-  "The target-node."
+  "The target-node instance (the :node in the target-node map)."
   []
   (session/target-node (session)))
+
+(defn targets
+  "All targets."
+  []
+  (session/targets (session)))
+
+(defn target-nodes
+  "All target-nodes."
+  []
+  (session/target-nodes (session)))
 
 (defn target-id
   "Id of the target-node (unique for provider)."
