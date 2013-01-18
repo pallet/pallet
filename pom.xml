@@ -8,7 +8,7 @@
   </parent>
   <groupId>org.cloudhoist</groupId>
   <artifactId>pallet</artifactId>
-  <version>0.7.3-SNAPSHOT</version>
+  <version>0.7.3-smartos-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>pallet</name>
   <description>
@@ -169,7 +169,7 @@
   </profiles>
 
   <properties>
-    <clojure.version>1.2.1</clojure.version>
+    <clojure.version>1.3.0</clojure.version>
     <pallet.doc.version>0.7</pallet.doc.version>
   </properties>
 
