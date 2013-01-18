@@ -835,8 +835,9 @@
         count (-> session :group :delta-count)
         session (update-in session [:group]
                            #(compute/ensure-os-family compute %))
-        session (assoc-in session [:group :packager]
-                          (compute/packager (-> session :group :image)))
+        session (update-in session [:group :packager]
+                           #(or %
+                                (compute/packager (-> session :group :image))))
         init-script (bootstrap-script session)
         _ (logging/tracef "Bootstrap script:\n%s" init-script)
         new-nodes (compute/run-nodes
