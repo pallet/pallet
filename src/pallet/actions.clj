@@ -541,17 +541,62 @@ Content can also be copied from a blobstore.
 
 ;;; # Users and Groups
 (defaction group
-  "User Group Management."
+  "User Group Management.
+
+`:action`
+: One of :create, :manage, :remove.
+
+`:gid`
+: specify the group id
+
+`:password`
+: An MD5 crypted password for the user.
+
+`:system`
+: Specify the user as a system user."
   [groupname & {:keys [action system gid password]
                 :or {action :manage}
                 :as options}])
 
 (defaction user
-  "User management."
+  "User management.
+
+`:action`
+: One of :create, :manage, :lock, :unlock or :remove.
+
+`:shell`
+: One of :bash, :csh, :ksh, :rsh, :sh, :tcsh, :zsh, :false or a path string.
+
+`:create-home`
+: Controls creation of the user's home directory.
+
+`:base-dir`
+: The directory in which default user directories should be created.
+
+`:home`
+: Specify the user's home directory.
+
+`:system`
+: Specify the user as a system user.
+
+`:comment`
+: A comment to record for the user.
+
+`:group`
+: The user's login group. Defaults to a group with the same name as the user.
+
+`:groups`
+: Additional groups the user should belong to.
+
+`:password`
+: An MD5 crypted password for the user.
+
+`:force`
+: Force user removal."
   {:execution :aggregated
    :always-after #{group}}
   [username & {:keys [action shell base-dir home system create-home
-                      password shell comment groups remove force append]
+                      password shell comment group groups remove force append]
                :or {action :manage}
                :as options}])
 
