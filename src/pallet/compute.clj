@@ -61,7 +61,9 @@
   (close [compute]))
 
 (defprotocol ComputeServiceProperties
-  (service-properties [compute] "Return a map of service details"))
+  (service-properties [compute]
+    "Return a map of service details.  Contains a :provider key at a minimum.
+    May contain current credentials."))
 
 (defprotocol NodeTagReader
   "Provides a SPI for tagging nodes with values."
