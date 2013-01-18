@@ -55,7 +55,7 @@
   []
   ("/usr/bin/sudo"))
 (script/defimpl sudo-no-password
-  [#{:smartos :system-v}]
+  [#{:smartos :solaris}]
   []
   ("/opt/local/bin/sudo" -n))
 
