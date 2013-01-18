@@ -13,4 +13,3 @@ script:
         - mvn --settings ./pallet-settings/settings.xml -Dzi.version=0.5.5 compile
         - mvn --settings ./pallet-settings/settings.xml -Dzi.version=0.5.5 zi:compile
         - mvn --settings ./pallet-settings/settings.xml -Dzi.version=0.5.5 test
-
