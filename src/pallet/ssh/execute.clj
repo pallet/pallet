@@ -87,9 +87,11 @@
          (action-symbol (:action action)))
         (logging/debugf "Target %s cmd\n%s via %s as %s"
                         endpoint script tmpfile (or sudo-user "root"))
+        (logging/trace "ssh-script-on-target send script file")
         (transport/send-text
          connection script tmpfile
          {:mode (if sudo-user 0644 0600)})
+        (logging/trace "ssh-script-on-target execute script file")
         (let [clean-f (comp
                        #(execute/strip-sudo-password % (:user authentication))
                        execute/normalise-eol)
@@ -108,10 +110,12 @@
               session (assoc-in
                        session [:plan-state :node-values node-value-path]
                        result)]
+          (logging/trace "ssh-script-on-target remove script file")
           (transport/exec
            connection
            {:execv [(stevedore/script (rm -f ~tmpfile))]}
            {})
+          (logging/trace "ssh-script-on-target done")
           [(update-in result [:out] clean-f) session])))))
 
 (defn- ssh-upload
