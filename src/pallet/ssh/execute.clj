@@ -83,7 +83,8 @@
       (logutils/with-context [:target (:server endpoint)]
         (logging/infof
          "%s %s %s"
-         (:server endpoint) (context-label action)
+         (:server endpoint)
+         (or (context-label action) "")
          (action-symbol (:action action)))
         (logging/debugf "Target %s cmd\n%s via %s as %s"
                         endpoint script tmpfile (or sudo-user "root"))
