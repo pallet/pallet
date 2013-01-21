@@ -4,7 +4,7 @@
    [pallet.build-actions :only [build-actions let-actions]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.actions :only [exec-script* exec-script exec-checked-script exec]]
-   [pallet.api :only [group-spec lift plan-fn]]
+   [pallet.api :only [group-spec lift server-spec plan-fn]]
    [pallet.core.user :only [*admin-user*]]
    [pallet.node :only [hostname]]
    [pallet.node-value :only [node-value]]
@@ -84,6 +84,55 @@
                               :username (test-username) :no-sudo true)
                       :compute service)]
         (is (= ["hello\n"]
+               (->>
+                session
+                :results
+                (filter
+                 #(and (= "localhost" (hostname (-> % :target :node)))
+                       (= :configure (:phase %))))
+                (mapcat :result)
+                (map :out))))))))
+
+;; this is in the wrong place really, as it is testing phase-fns with arguments
+(deftest lift-arguments-test
+  (let [localhost (node-list/make-localhost-node :group-name "local")
+        service (compute/compute-service "node-list" :node-list [localhost])]
+    (testing "simple phase"
+      (let [local (group-spec
+                   "local"
+                   :phases {:configure (fn [x]
+                                         (exec-script (echo "xx" ~x "yy")))})
+            session @(lift
+                      local
+                      :user (assoc *admin-user*
+                              :username (test-username) :no-sudo true)
+                      :phase [[:configure "hello"]]
+                      :compute service)]
+        (is (= ["xx hello yy\n"]
+               (->>
+                session
+                :results
+                (filter
+                 #(and (= "localhost" (hostname (-> % :target :node)))
+                       (= :configure (:phase %))))
+                (mapcat :result)
+                (map :out))))))
+    (testing "compound phase"
+      (let [server (server-spec
+                    :phases {:configure (fn [x]
+                                          (exec-script (echo "xx" ~x)))})
+            local (group-spec
+                   "local"
+                   :extends [server]
+                   :phases {:configure (fn [x]
+                                         (exec-script (echo "yy" ~x)))})
+            session @(lift
+                      local
+                      :user (assoc *admin-user*
+                              :username (test-username) :no-sudo true)
+                      :phase [[:configure "hello"]]
+                      :compute service)]
+        (is (= ["xx hello\n" "yy hello\n"]
                (->>
                 session
                 :results

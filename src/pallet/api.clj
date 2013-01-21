@@ -215,7 +215,8 @@
   (let [phases (if (or (keyword? phases) (fn? phases)) [phases] phases)]
     (reduce
      (fn [[phase-kws phase-map] phase]
-       (if (keyword? phase)
+       (if (or (keyword? phase)
+               (and (or (vector? phase) (seq? phase)) (keyword? (first phase))))
          [(conj phase-kws phase) phase-map]
          (let [phase-kw (-> (gensym "phase")
                             name keyword)]

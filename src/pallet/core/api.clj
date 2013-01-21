@@ -47,7 +47,7 @@
   the context of the `service-state`. The `plan-state` contains all the
   settings, etc, for all groups. `target-map` is a map for the session
   describing the target."
-  [service-state environment plan-fn target-map]
+  [service-state environment plan-fn args target-map]
   {:pre [(not (map? plan-fn)) (fn? plan-fn)
          (map? target-map)
          (or (nil? environment) (map? environment))]}
@@ -61,12 +61,25 @@
                 {:service-state service-state
                  :plan-state plan-state
                  :environment environment}))
-              (plan-fn)
+              (apply plan-fn args)
               (check-session (session) '(plan-fn))
               (session))]
       (let [[action-plan session] (get-session-action-plan s)
             [action-plan session] (translate action-plan session)]
         [action-plan (:plan-state session)]))))
+
+(defn- phase-args [phase]
+  (if (keyword? phase)
+    nil
+    (rest phase)))
+
+(defn- phase-kw [phase]
+  (if (keyword? phase)
+    phase
+    (first phase)))
+
+(defn- target-phase [target phase]
+  (-> target :phases (get (phase-kw phase))))
 
 (defmulti target-action-plan
   "Build action plans for the specified `phase` on all nodes or groups in the
@@ -81,7 +94,8 @@
     (logutils/with-context [:target (-> target :node primary-ip)]
       (with-script-for-node target
         ((action-plan
-          service-state environment (-> target :phases phase)
+          service-state environment
+          (target-phase target phase) (phase-args phase)
           {:server target})
          plan-state)))))
 
@@ -91,13 +105,14 @@
   (fn [plan-state]
     (logutils/with-context [:target (-> group :group-name)]
       ((action-plan
-        service-state environment (-> group :phases phase)
+        service-state environment
+        (target-phase group phase) (phase-args phase)
         {:group group})
        plan-state))))
 
 (defn action-plans
   [service-state environment phase targets]
-  (let [targets-with-phase (filter #(-> % :phases phase) targets)]
+  (let [targets-with-phase (filter #(target-phase % phase) targets)]
     (tracef
      "action-plans: phase %s targets %s targets-with-phase %s"
      phase (vec targets) (vec targets-with-phase))
@@ -108,7 +123,7 @@
          (partial target-action-plan service-state environment phase)
          targets-with-phase)]
        (map
-        #(hash-map :target %1 :phase phase :action-plan %2)
+        #(hash-map :target %1 :phase (phase-kw phase) :action-plan %2)
         targets-with-phase action-plans)))))
 
 
@@ -146,7 +161,7 @@
                  :target-type target-type
                  :plan-state (:plan-state session)
                  :result result
-                 :phase phase}]
+                 :phase (phase-kw phase)}]
       (maybe-assoc value :errors errors))))
 
 (defmulti execute-action-plan

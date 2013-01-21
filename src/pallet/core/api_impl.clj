@@ -10,7 +10,7 @@
 
 (defn pipeline
   [a b]
-  (fn [] (a) (b)))
+  (fn [& args] (apply a args) (apply b args)))
 
 (defmethod merge-key :merge-phases
   [_ _ val-in-result val-in-latter]

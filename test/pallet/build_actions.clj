@@ -37,7 +37,7 @@
             _ (assert phase)
             [action-plan plan-state]
             ((action-plan
-              (:service-state session) (:environment session) f session)
+              (:service-state session) (:environment session) f nil session)
              (:plan-state session))
 
             {:keys [result] :as result-map}
