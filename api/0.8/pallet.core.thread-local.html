@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.compute.node-list documentation</title>
+    <title>pallet.core.thread-local documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript" src="js/page_effects.js"></script>
@@ -24,63 +24,53 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-link"><a href="pallet.compute.node-list.html#var-make-localhost-node">make-localhost-node</a></li><li class="ns-var-link"><a href="pallet.compute.node-list.html#var-make-node">make-node</a></li><li class="ns-var-link"><a href="pallet.compute.node-list.html#var-node-list-service">node-list-service</a></li>
+          <li class="ns-var-link"><a href="pallet.core.thread-local.html#var-thread-local">thread-local</a></li><li class="ns-var-link"><a href="pallet.core.thread-local.html#var-thread-local%21">thread-local!</a></li><li class="ns-var-link"><a href="pallet.core.thread-local.html#var-with-thread-locals">with-thread-locals</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.compute.node-list documentation</h2>
-        <div class="doc"><p>A simple node list provider.</p>
+        <h2 class="namespace-title">pallet.core.thread-local documentation</h2>
+        <div class="doc"><p>Provides a thread local place, using a dynamic var.</p>
 
-<p>The node-list provider enables pallet to work with a server rack or existing
-virtual machines. It works by maintaining a list of nodes. Each node
-minimally provides an IP address, a host name, a group name and an operating
-system. Nodes are constructed using <code>make-node</code>.</p>
+<p>A thread local place can be given a value using <code>with-thread-locals</code>.  It is an
+error to use <code>with-thread-locals</code> if the thread local already has a value.</p>
 
-<p>An instance of the node-list provider can be built using
-<code>node-list-service</code>.</p>
+<p>The current value of the thread local is found with <code>thread-local</code>.</p>
 
-<pre><code>(node-list-service
-  [["host1" "fullstack" "192.168.1.101" :ubuntu]
-   ["host2" "fullstack" "192.168.1.102" :ubuntu]])
+<p>The current value of the thread local can be set with <code>thread-local!</code>.  It is an
+error to set the value on a thread other than the one used to provide the
+initial value using <code>with-thread-locals</code>.</p>
+
+<pre><code> (def ^:dynamic *tl*)
+
+ (with-thread-locals [*t1* {}]
+  (assert (= (thread-local *tl*) {}))
+  (thread-local! *tl* {:a 1})
+  (assert (= (thread-local *tl*) {:a 1})))
 </code></pre>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-make-localhost-node" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L136">make-localhost-node</a></h3>
-            <div class="usage">[&amp; {:keys [name group-name ip os-family id], :or {name "localhost", group-name "local", ip "127.0.0.1", os-family (jvm/os-family)}, :as options}]</div>
+            <h3><a id="var-thread-local" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/thread_local.clj#L43">thread-local</a></h3>
+            <div class="usage">[sym]</div>
             
             
-            <div class="doc"><p>Make a node representing the local host. This calls <code>make-node</code> with values
-inferred for the local host. Takes options as for <code>make-node</code>.</p>
-
-<pre><code>:name "localhost"
-:group-name "local"
-:ip "127.0.0.1"
-:os-family (pallet.compute.jvm/os-family)
-</code></pre>
+            <div class="doc"><p>Get the value of the thread local</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-make-node" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L48">make-node</a></h3>
-            <div class="usage">[name group-name ip os-family &amp; {:keys [id ssh-port private-ip is-64bit running os-version service hardware], :or {ssh-port 22, is-64bit true, running true}}]</div>
+            <h3><a id="var-thread-local%21" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/thread_local.clj#L48">thread-local!</a></h3>
+            <div class="usage">[sym value]</div>
             
             
-            <div class="doc"><p>Returns a node, suitable for use in a node-list.</p>
+            <div class="doc"><p>Reset the value of a thread local</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-node-list-service" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L175">node-list-service</a></h3>
-            <div class="usage">[node-list &amp; {:keys [environment tag-provider], :as options}]</div>
-            <div class="added">
-              <p>Added: <span class="version">0.6.8</span></p>
-            </div>
+            <h3><a id="var-with-thread-locals" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/thread_local.clj#L25">with-thread-locals</a></h3>
+            <div class="usage">[bindings &amp; body]</div>
             
-            <div class="doc"><p>Create a node-list compute service, based on a sequence of nodes. Each
-node is passed as either a node object constructed with <code>make-node</code>,
-or as a vector of arguments for <code>make-node</code>.</p>
-
-<p>Optionally, an environment map can be passed using the :environment keyword.
-See <code>pallet.environment</code>.</p>
+            
+            <div class="doc"><p>Assign an initial value to a thread local.</p>
 </div>
           </div>
         </div>

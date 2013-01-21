@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.compute.node-list documentation</title>
+    <title>pallet.compute documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript" src="js/page_effects.js"></script>
@@ -24,63 +24,177 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-link"><a href="pallet.compute.node-list.html#var-make-localhost-node">make-localhost-node</a></li><li class="ns-var-link"><a href="pallet.compute.node-list.html#var-make-node">make-node</a></li><li class="ns-var-link"><a href="pallet.compute.node-list.html#var-node-list-service">node-list-service</a></li>
+          <li class="ns-var-link"><a href="pallet.compute.html#var-NodeTagReader">NodeTagReader</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-NodeTagWriter">NodeTagWriter</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-admin-group">admin-group</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-base-distribution">base-distribution</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-boot-if-down">boot-if-down</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-compute-service">compute-service</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-defmulti-os">defmulti-os</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-ensure-os-family">ensure-os-family</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-node-tag">node-tag</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-node-taggable%3F">node-taggable?</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-node-tags">node-tags</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-nodes">nodes</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-packager">packager</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-packager-for-os">packager-for-os</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-reboot">reboot</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-run-nodes">run-nodes</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-service-properties">service-properties</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-shutdown">shutdown</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-shutdown-node">shutdown-node</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-supported-providers">supported-providers</a></li><li class="ns-var-link"><a href="pallet.compute.html#var-tag-node%21">tag-node!</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.compute.node-list documentation</h2>
-        <div class="doc"><p>A simple node list provider.</p>
-
-<p>The node-list provider enables pallet to work with a server rack or existing
-virtual machines. It works by maintaining a list of nodes. Each node
-minimally provides an IP address, a host name, a group name and an operating
-system. Nodes are constructed using <code>make-node</code>.</p>
-
-<p>An instance of the node-list provider can be built using
-<code>node-list-service</code>.</p>
-
-<pre><code>(node-list-service
-  [["host1" "fullstack" "192.168.1.101" :ubuntu]
-   ["host2" "fullstack" "192.168.1.102" :ubuntu]])
-</code></pre>
+        <h2 class="namespace-title">pallet.compute documentation</h2>
+        <div class="doc"><p>Abstraction of the compute interface</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-make-localhost-node" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L136">make-localhost-node</a></h3>
-            <div class="usage">[&amp; {:keys [name group-name ip os-family id], :or {name "localhost", group-name "local", ip "127.0.0.1", os-family (jvm/os-family)}, :as options}]</div>
+            <h3><a id="var-NodeTagReader" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute.clj#L68">NodeTagReader</a></h3>
             
             
-            <div class="doc"><p>Make a node representing the local host. This calls <code>make-node</code> with values
-inferred for the local host. Takes options as for <code>make-node</code>.</p>
-
-<pre><code>:name "localhost"
-:group-name "local"
-:ip "127.0.0.1"
-:os-family (pallet.compute.jvm/os-family)
-</code></pre>
+            
+            <div class="doc"><p>Provides a SPI for tagging nodes with values.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-make-node" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L48">make-node</a></h3>
-            <div class="usage">[name group-name ip os-family &amp; {:keys [id ssh-port private-ip is-64bit running os-version service hardware], :or {ssh-port 22, is-64bit true, running true}}]</div>
+            <h3><a id="var-NodeTagWriter" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute.clj#L75">NodeTagWriter</a></h3>
             
             
-            <div class="doc"><p>Returns a node, suitable for use in a node-list.</p>
+            
+            <div class="doc"><p>Provides a SPI for adding tags to nodes.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-node-list-service" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L175">node-list-service</a></h3>
-            <div class="usage">[node-list &amp; {:keys [environment tag-provider], :as options}]</div>
-            <div class="added">
-              <p>Added: <span class="version">0.6.8</span></p>
-            </div>
+            <h3><a id="var-admin-group" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute.clj#L201">admin-group</a></h3>
+            <div class="usage">[target]</div><div class="usage">[os-family os-version]</div>
             
-            <div class="doc"><p>Create a node-list compute service, based on a sequence of nodes. Each
-node is passed as either a node object constructed with <code>make-node</code>,
-or as a vector of arguments for <code>make-node</code>.</p>
+            
+            <div class="doc"><p>User that remote commands are run under</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-base-distribution" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute.clj#L182">base-distribution</a></h3>
+            <div class="usage">[target]</div>
+            
+            
+            <div class="doc"><p>Base distribution for the target.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-boot-if-down" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">boot-if-down</a></h3>
+            <div class="usage">[compute nodes]</div>
+            
+            
+            <div class="doc"><p>Boot the specified nodes, if they are not running.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-compute-service" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute.clj#L18">compute-service</a></h3>
+            <div class="usage">[provider-name &amp; {:keys [identity credential extensions node-list endpoint environment sub-services], :as options}]</div>
+            
+            
+            <div class="doc"><p>Instantiate a compute service. The provider name should be a recognised
+jclouds provider, or "node-list". The other arguments are keyword value
+pairs.
+- :identity     username or key
+- :credential   password or secret
+- :extensions   extension modules for jclouds
+- :node-list    a list of nodes for the "node-list" provider.
+- :environment  an environment map with service specific values.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-defmulti-os" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute.clj#L122">defmulti-os</a></h3>
+            <div class="usage">[name [&amp; args]]</div>
+            
+            
+            <div class="doc"><p>Defines a defmulti used to abstract over the target operating system. The
+function dispatches based on the target operating system, that is extracted
+from the session passed as the first argument.</p>
 
-<p>Optionally, an environment map can be passed using the :environment keyword.
-See <code>pallet.environment</code>.</p>
+<p>Version comparisons are not included</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-ensure-os-family" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">ensure-os-family</a></h3>
+            <div class="usage">[compute group-spec]</div>
+            
+            
+            <div class="doc"><p>Called on startup of a new node to ensure group-spec has an os-family
+attached to it.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-node-tag" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">node-tag</a></h3>
+            <div class="usage">[compute node tag-name]</div><div class="usage">[compute node tag-name default-value]</div>
+            
+            
+            <div class="doc"><p>Return the specified tag on the node.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-node-taggable%3F" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">node-taggable?</a></h3>
+            <div class="usage">[compute node]</div>
+            
+            
+            <div class="doc"><p>Predicate to test the availability of tags on a node.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-node-tags" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">node-tags</a></h3>
+            <div class="usage">[compute node]</div>
+            
+            
+            <div class="doc"><p>Return the tags on the node.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">nodes</a></h3>
+            <div class="usage">[compute]</div>
+            
+            
+            <div class="doc"><p>List nodes</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-packager" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute.clj#L159">packager</a></h3>
+            <div class="usage">[target]</div>
+            
+            
+            <div class="doc"><p>Package manager</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-packager-for-os" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute.clj#L142">packager-for-os</a></h3>
+            <div class="usage">[os-family os-version]</div>
+            
+            
+            <div class="doc"><p>Package manager</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-reboot" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">reboot</a></h3>
+            <div class="usage">[compute nodes]</div>
+            
+            
+            <div class="doc"><p>Reboot the specified nodes</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-run-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">run-nodes</a></h3>
+            <div class="usage">[compute group-spec node-count user init-script options]</div>
+            
+            
+            <div class="doc"><p>Start node-count nodes for group-spec, executing an init-script
+on each, using the specified user and options.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-service-properties" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">service-properties</a></h3>
+            <div class="usage">[compute]</div>
+            
+            
+            <div class="doc"><p>Return a map of service details.  Contains a :provider key at a minimum.
+May contain current credentials.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-shutdown" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">shutdown</a></h3>
+            <div class="usage">[compute nodes user]</div>
+            
+            
+            <div class="doc"><p>Shutdown specified nodes</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-shutdown-node" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">shutdown-node</a></h3>
+            <div class="usage">[compute node user]</div>
+            
+            
+            <div class="doc"><p>Shutdown a node.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-supported-providers" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute.clj#L11">supported-providers</a></h3>
+            <div class="usage">[]</div>
+            
+            
+            <div class="doc"><p>A list of supported provider names.  Each name is suitable to be passed
+to compute-service.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-tag-node%21" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">tag-node!</a></h3>
+            <div class="usage">[compute node tag-name value]</div>
+            
+            
+            <div class="doc"><p>Set a value on the given tag-name on the node.</p>
 </div>
           </div>
         </div>

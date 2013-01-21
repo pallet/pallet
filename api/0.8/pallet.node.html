@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.compute.node-list documentation</title>
+    <title>pallet.node documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
     <script type="text/javascript" src="js/page_effects.js"></script>
@@ -24,63 +24,152 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-link"><a href="pallet.compute.node-list.html#var-make-localhost-node">make-localhost-node</a></li><li class="ns-var-link"><a href="pallet.compute.node-list.html#var-make-node">make-node</a></li><li class="ns-var-link"><a href="pallet.compute.node-list.html#var-node-list-service">node-list-service</a></li>
+          <li class="ns-var-link"><a href="pallet.node.html#var-compute-service">compute-service</a></li><li class="ns-var-link"><a href="pallet.node.html#var-group-name">group-name</a></li><li class="ns-var-link"><a href="pallet.node.html#var-hardware">hardware</a></li><li class="ns-var-link"><a href="pallet.node.html#var-hostname">hostname</a></li><li class="ns-var-link"><a href="pallet.node.html#var-image-user">image-user</a></li><li class="ns-var-link"><a href="pallet.node.html#var-is-64bit%3F">is-64bit?</a></li><li class="ns-var-link"><a href="pallet.node.html#var-node%3F">node?</a></li><li class="ns-var-link"><a href="pallet.node.html#var-os-family">os-family</a></li><li class="ns-var-link"><a href="pallet.node.html#var-os-version">os-version</a></li><li class="ns-var-link"><a href="pallet.node.html#var-packager">packager</a></li><li class="ns-var-link"><a href="pallet.node.html#var-primary-ip">primary-ip</a></li><li class="ns-var-link"><a href="pallet.node.html#var-private-ip">private-ip</a></li><li class="ns-var-link"><a href="pallet.node.html#var-running%3F">running?</a></li><li class="ns-var-link"><a href="pallet.node.html#var-ssh-port">ssh-port</a></li><li class="ns-var-link"><a href="pallet.node.html#var-tag">tag</a></li><li class="ns-var-link"><a href="pallet.node.html#var-tag%21">tag!</a></li><li class="ns-var-link"><a href="pallet.node.html#var-taggable%3F">taggable?</a></li><li class="ns-var-link"><a href="pallet.node.html#var-tags">tags</a></li><li class="ns-var-link"><a href="pallet.node.html#var-terminated%3F">terminated?</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.compute.node-list documentation</h2>
-        <div class="doc"><p>A simple node list provider.</p>
-
-<p>The node-list provider enables pallet to work with a server rack or existing
-virtual machines. It works by maintaining a list of nodes. Each node
-minimally provides an IP address, a host name, a group name and an operating
-system. Nodes are constructed using <code>make-node</code>.</p>
-
-<p>An instance of the node-list provider can be built using
-<code>node-list-service</code>.</p>
-
-<pre><code>(node-list-service
-  [["host1" "fullstack" "192.168.1.101" :ubuntu]
-   ["host2" "fullstack" "192.168.1.102" :ubuntu]])
-</code></pre>
+        <h2 class="namespace-title">pallet.node documentation</h2>
+        <div class="doc"><p>API for nodes in pallet</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-make-localhost-node" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L136">make-localhost-node</a></h3>
-            <div class="usage">[&amp; {:keys [name group-name ip os-family id], :or {name "localhost", group-name "local", ip "127.0.0.1", os-family (jvm/os-family)}, :as options}]</div>
+            <h3><a id="var-compute-service" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">compute-service</a></h3>
+            <div class="usage">[node]</div>
             
             
-            <div class="doc"><p>Make a node representing the local host. This calls <code>make-node</code> with values
-inferred for the local host. Takes options as for <code>make-node</code>.</p>
-
-<pre><code>:name "localhost"
-:group-name "local"
-:ip "127.0.0.1"
-:os-family (pallet.compute.jvm/os-family)
-</code></pre>
+            <div class="doc"><p>Return the service provider the node was provided by.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-make-node" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L48">make-node</a></h3>
-            <div class="usage">[name group-name ip os-family &amp; {:keys [id ssh-port private-ip is-64bit running os-version service hardware], :or {ssh-port 22, is-64bit true, running true}}]</div>
+            <h3><a id="var-group-name" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">group-name</a></h3>
+            <div class="usage">[node]</div>
             
             
-            <div class="doc"><p>Returns a node, suitable for use in a node-list.</p>
+            <div class="doc"><p>Returns the group name for the node.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-node-list-service" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L175">node-list-service</a></h3>
-            <div class="usage">[node-list &amp; {:keys [environment tag-provider], :as options}]</div>
-            <div class="added">
-              <p>Added: <span class="version">0.6.8</span></p>
-            </div>
+            <h3><a id="var-hardware" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">hardware</a></h3>
+            <div class="usage">[node]</div>
             
-            <div class="doc"><p>Create a node-list compute service, based on a sequence of nodes. Each
-node is passed as either a node object constructed with <code>make-node</code>,
-or as a vector of arguments for <code>make-node</code>.</p>
-
-<p>Optionally, an environment map can be passed using the :environment keyword.
-See <code>pallet.environment</code>.</p>
+            
+            <div class="doc"><p>Return a map with <code>:cpus</code>, <code>:ram</code>, and <code>:disks</code> information. The ram is
+reported in Mb. The <code>:cpus</code> is a sequence of maps, one for each cpu,
+containing the number of <code>:cores</code> on each. The <code>:disks</code> is a sequence
+of maps, containing a :size key for each drive, in Gb. Other keys
+may be present.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-hostname" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">hostname</a></h3>
+            <div class="usage">[node]</div>
+            
+            
+            <div class="doc"><p>TODO make this work on ec2</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-image-user" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">image-user</a></h3>
+            <div class="usage">[node]</div>
+            
+            
+            <div class="doc"><p>Return the user that is defined by the image.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-is-64bit%3F" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">is-64bit?</a></h3>
+            <div class="usage">[node]</div>
+            
+            
+            <div class="doc"><p>64 Bit OS predicate</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-node%3F" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/node.clj#L36">node?</a></h3>
+            <div class="usage">[obj]</div>
+            
+            
+            <div class="doc"><p>Predicate to test whether an object implements the Node protocol</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-os-family" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">os-family</a></h3>
+            <div class="usage">[node]</div>
+            
+            
+            <div class="doc"><p>Return a node's os-family, or nil if not available.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-os-version" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">os-version</a></h3>
+            <div class="usage">[node]</div>
+            
+            
+            <div class="doc"><p>Return a node's os-version, or nil if not available.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-packager" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">packager</a></h3>
+            <div class="usage">[node]</div>
+            
+            
+            <div class="doc"><p>The packager to use on the node</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-primary-ip" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">primary-ip</a></h3>
+            <div class="usage">[node]</div>
+            
+            
+            <div class="doc"><p>Returns the first public IP for the node.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-private-ip" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">private-ip</a></h3>
+            <div class="usage">[node]</div>
+            
+            
+            <div class="doc"><p>Returns the first private IP for the node.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-running%3F" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">running?</a></h3>
+            <div class="usage">[node]</div>
+            
+            
+            <div class="doc"><p>Predicate to test if node is running.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-ssh-port" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">ssh-port</a></h3>
+            <div class="usage">[node]</div>
+            
+            
+            <div class="doc"><p>Extract the port from the node's userMetadata</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-tag" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/node.clj#L51">tag</a></h3>
+            <div class="usage">[node tag-name]</div><div class="usage">[node tag-name default-value]</div>
+            
+            
+            <div class="doc"><p>Return the specified tag.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-tag%21" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/node.clj#L63">tag!</a></h3>
+            <div class="usage">[node tag-name value]</div>
+            
+            
+            <div class="doc"><p>Set a value on the given tag-name.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-taggable%3F" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/node.clj#L68">taggable?</a></h3>
+            <div class="usage">[node]</div>
+            
+            
+            <div class="doc"><p>Predicate to test the availability of tags.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-tags" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/node.clj#L58">tags</a></h3>
+            <div class="usage">[node]</div>
+            
+            
+            <div class="doc"><p>Return the tags.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-terminated%3F" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/#L">terminated?</a></h3>
+            <div class="usage">[node]</div>
+            
+            
+            <div class="doc"><p>Predicate to test if node is terminated.</p>
 </div>
           </div>
         </div>
