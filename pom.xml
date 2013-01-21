@@ -49,6 +49,7 @@
           <codoxTargetDirectory>autodoc/api/${pallet.doc.version}</codoxTargetDirectory>
           <codoxApiVersion>${pallet.doc.version}</codoxApiVersion>
           <codoxWriter>codox-md.writer/write-docs</codoxWriter>
+          <codoxSourceUri>https://github.com/pallet/pallet/blob/develop</codoxSourceUri>
           <marginaliaTargetDirectory>autodoc/marginalia/${pallet.doc.version}</marginaliaTargetDirectory>
           <excludeTestNamespacesMatching>pallet.utils-test-bad-ns</excludeTestNamespacesMatching>
         </configuration>
