@@ -13,7 +13,7 @@
    [pallet.core.session :only [session with-session]]
    [pallet.environment :only [get-for]]
    [pallet.executors :only [default-executor]]
-   [pallet.node :only [image-user primary-ip tag tag!]]
+   [pallet.node :only [image-user primary-ip tag tag! taggable?]]
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :only [add-session-verification-key check-session]]
@@ -302,7 +302,8 @@
   [state-name]
   (fn [node]
     (get
-     (read-or-empty-map (tag (:node node) state-tag-name))
+     (when (taggable? (:node node))
+       (read-or-empty-map (tag (:node node) state-tag-name)))
      (keyword (name state-name)))))
 
 ;;; # Exception reporting

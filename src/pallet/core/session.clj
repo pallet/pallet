@@ -177,7 +177,7 @@
 (defn packager
   [session]
   (or
-   (:packager (get-in session [:server :node]))
+   (-> session :server :packager)
    (node/packager (get-in session [:server :node]))))
 
 (defn admin-user
