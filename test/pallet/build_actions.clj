@@ -32,7 +32,7 @@
    Useful for testing."
   [session f]
   (binding [action-plan/*defining-context* (context/phase-contexts)]
-    (with-script-for-node (-> session :server :node)
+    (with-script-for-node (-> session :server)
       (let [phase (:phase session)
             _ (assert phase)
             [action-plan plan-state]

@@ -176,7 +176,9 @@
 
 (defn packager
   [session]
-  (node/packager (get-in session [:server :node])))
+  (or
+   (:packager (get-in session [:server :node]))
+   (node/packager (get-in session [:server :node]))))
 
 (defn admin-user
   "User that remote commands are run under"

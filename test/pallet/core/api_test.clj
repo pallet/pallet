@@ -95,7 +95,7 @@
         g1 (group-spec :g1)
         service (node-list-service [n1])
         service-state (service-state service [g1])
-        [r plan-state] (with-script-for-node n1
+        [r plan-state] (with-script-for-node {:node n1}
                          ((action-plan
                            service-state {}
                            (plan-fn (exec-script "ls"))

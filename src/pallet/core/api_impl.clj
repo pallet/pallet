@@ -59,18 +59,19 @@
        groups))))
 
 (defn script-template-for-node
-  [node]
-  {:pre [node]}
-  (let [family (node/os-family node)]
+  [target]
+  {:pre [target (:node target)]}
+  (let [node (:node target)
+        family (node/os-family node)]
     (filter identity
             [family
-             (node/packager node)
+             (or (:packager target) (node/packager node))
              (when-let [version (node/os-version node)]
                (keyword (format "%s-%s" (name family) version)))])))
 
 (defmacro with-script-for-node
   "Set up the script context for a server"
-  [node & body]
-  `(with-script-context (script-template-for-node ~node)
+  [target & body]
+  `(with-script-context (script-template-for-node ~target)
      (with-script-language :pallet.stevedore.bash/bash
        ~@body)))
