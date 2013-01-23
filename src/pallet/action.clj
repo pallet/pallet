@@ -86,7 +86,8 @@
   "Return an action inserter function. This is used for anonymous actions. The
   argument list is not enforced."
   [action]
-  ^{:action action}
+  ^{:action action
+    :pallet/plan-fn true}
   (fn action-fn [& argv]
     (let [session (session)
           [nv session] (insert-action
@@ -164,7 +165,8 @@
                      action-name assoc
                      :arglists (list 'quote [args])
                      :defonce true
-                     :pallet/action true)
+                     :pallet/action true
+                     :pallet/plan-fn true)
         action-symbol (symbol
                        (or (namespace action-name) (name (ns-name *ns*)))
                        (name action-name))

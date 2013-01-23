@@ -69,7 +69,8 @@
                                :kw ~(keyword sym)
                                :locals ~locals}
                             ~@body)))]))))]
-    (let [[sym rest] (name-with-attributes sym body)]
+    (let [[sym rest] (name-with-attributes sym body)
+          sym (vary-meta sym assoc :pallet/plan-fn true)]
       (if (vector? (first rest))
         `(defn ~sym
            ~@(output-body rest))
@@ -83,6 +84,7 @@
    :indent 'defun}
   [sym & args]
   (let [[sym [args f & rest]] (name-with-attributes sym args)
+        sym (vary-meta sym assoc :pallet/plan-fn true)
         id (gensym (name sym))]
     (when (seq rest)
       (throw (compiler-exception
@@ -102,6 +104,7 @@
    :indent 'defun}
   [sym & args]
   (let [[sym [args f & rest]] (name-with-attributes sym args)
+        sym (vary-meta sym assoc :pallet/plan-fn true)
         id (gensym (name sym))]
     (when (seq rest)
       (throw (compiler-exception
@@ -129,7 +132,8 @@
         dispatch-fn (first args)
         {:keys [hierarchy]
          :or {hierarchy #'clojure.core/global-hierarchy}} (rest args)
-        args (first (filter vector? dispatch-fn))]
+        args (first (filter vector? dispatch-fn))
+        name (vary-meta name assoc :pallet/plan-fn true)]
     `(let [a# (atom {})]
        (def
          ~name
@@ -278,6 +282,7 @@
 
 (defn target-flag?
   "Returns a DelayedFunction that is a predicate for whether the flag is set"
+  {:pallet/plan-fn true}
   [flag]
   (delayed-fn #(execute/target-flag? % (keyword (name flag)))))
 
