@@ -69,7 +69,7 @@
        (let [~@(when is-script?
                  [nv `(exec-checked-script
                        (str "Check " ~condition)
-                       (~(list 'unquote `set-flag-value)
+                       (~(list `unquote 'pallet.script.lib/set-flag-value)
                         ~(name nv-kw)
                         @(do
                            ~@(if is-stevedore?
