@@ -155,6 +155,7 @@
            (ex-info
             (format "Unknown packager for %s %s" os-family os-version)
             {:type :unknown-packager}))))
+
 (defn packager
   "Package manager"
   [target]
@@ -174,7 +175,9 @@
       (#{:darwin :os-x} os-family) :brew
       :else (throw
              (ex-info
-              (format "Unknown packager for %s - :image %s" os-family target)
+              (format
+               "Unknown packager for %s - :image %s"
+               os-family target)
               {:type :unknown-packager}))))))
 
 (defn base-distribution
@@ -192,8 +195,9 @@
       (#{:darwin :os-x} os-family) :os-x
       :else (throw
              (ex-info
-              (format "Unknown base-distribution for %s - target is %s"
-                      os-family target)
+              (format
+               "Unknown base-distribution for %s - target is %s"
+               os-family target)
               {:type :unknown-packager}))))))
 
 (defn admin-group

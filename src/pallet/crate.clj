@@ -5,7 +5,8 @@
    [pallet.core.plan-state :as plan-state]
    [pallet.core.session :as session]
    [pallet.execute :as execute]
-   [pallet.node :as node])
+   [pallet.node :as node]
+   [pallet.core.transform :refer [plan-rewrite]])
   (:use
    [clojure.tools.macro :only [name-with-attributes]]
    [pallet.action
@@ -27,11 +28,11 @@
   [pipeline-name event & args]
   (let [line (-> &form meta :line)]
     `(with-phase-context
-       (merge {:kw ~(list 'quote pipeline-name)
+       (merge {:kw '~(list 'quote pipeline-name)
                :msg ~(if (symbol? pipeline-name)
                        (name pipeline-name)
                        pipeline-name)
-               :ns ~(list 'quote (ns-name *ns*))
+               :ns '~(list 'quote (ns-name *ns*))
                :line ~line
                :log-level :debug}
               ~event)
@@ -70,9 +71,18 @@
                             ~@body)))]))))]
     (let [[sym rest] (name-with-attributes sym body)
           sym (vary-meta sym assoc :pallet/plan-fn true)]
+      ;; we can't analyze the defn form without the compiler complaining
+      ;; about duplicate class definitions.
       (if (vector? (first rest))
-        `(defn ~sym
-           ~@(output-body rest))
+        (let [env (mapcat (fn [[s v]] [s :dummy]) &env)
+              b (pallet.core.transform/plan-rewrite
+                 (ns-name *ns*)
+                 `(let [~@env]
+                    (fn ~@(output-body rest))))
+              b (-> b first second second second last)]
+          (spit "out.clj" b)
+          `(defn ~sym
+             ~@(drop 1 b)))
         `(defn ~sym
            ~@(map output-body rest))))))
 
@@ -150,7 +160,8 @@
                (throw
                 (ex-info
                  (format "Missing plan-multi %s dispatch for %s"
-                         ~(clojure.core/name name) (pr-str dispatch-val#))
+                         ~(clojure.core/name name)
+                         (pr-str dispatch-val#))
                  {:reason :missing-method
                   :plan-multi ~(clojure.core/name name)})))))))))
 
