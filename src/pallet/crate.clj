@@ -15,8 +15,7 @@
    [pallet.argument :only [delayed-fn]]
    [pallet.context :only [with-phase-context]]
    [pallet.core.session :only [session session!]]
-   [pallet.utils :only [compiler-exception local-env]]
-   [slingshot.slingshot :only [throw+]]))
+   [pallet.utils :only [compiler-exception local-env]]))
 
 
 ;;; The phase pipeline is used in actions and crate functions. The phase
@@ -148,12 +147,12 @@
                                   f#))
                               @a#))]
                (f# ~@args)
-               (throw+
-                {:reason :missing-method
-                 :plan-multi ~(clojure.core/name name)}
-                "Missing plan-multi %s dispatch for %s"
-                ~(clojure.core/name name)
-                (pr-str dispatch-val#)))))))))
+               (throw
+                (ex-info
+                 (format "Missing plan-multi %s dispatch for %s"
+                         ~(clojure.core/name name) (pr-str dispatch-val#))
+                 {:reason :missing-method
+                  :plan-multi ~(clojure.core/name name)})))))))))
 
 (defn
   ^{:internal true :indent 2}

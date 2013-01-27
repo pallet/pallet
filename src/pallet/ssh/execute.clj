@@ -17,8 +17,7 @@
    [pallet.stevedore :as stevedore])
   (:use
    [pallet.action-plan :only [context-label]]
-   [pallet.action-impl :only [action-symbol]]
-   [slingshot.slingshot :only [throw+]]))
+   [pallet.action-impl :only [action-symbol]]))
 
 (def ssh-connection (transport/factory :ssh {}))
 (def local-connection (transport/factory :local {}))
@@ -45,13 +44,13 @@
                 {})]
     (if (zero? (:exit result))
       (string/trim (result :out))
-      (throw+
-       {:type :remote-execution-failure
-        :message (format
-                  "Failed to generate remote temporary file %s" (:err result))
-        :exit (:exit result)
-        :err (:err result)
-        :out (:out result)}))))
+      (throw
+       (ex-info
+        (format "Failed to generate remote temporary file %s" (:err result))
+        {:type :remote-execution-failure
+         :exit (:exit result)
+         :err (:err result)
+         :out (:out result)})))))
 
 (defn get-connection [session]
   (transport/open

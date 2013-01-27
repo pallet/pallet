@@ -3,9 +3,7 @@
   (:require
    [pallet.common.deprecate :as deprecate]
    [pallet.compute.implementation :as implementation]
-   [pallet.utils :as utils])
-  (:use
-   [slingshot.slingshot :only [throw+]]))
+   [pallet.utils :as utils]))
 
 ;;; Meta
 (defn supported-providers
@@ -132,11 +130,12 @@
        :hierarchy #'os-hierarchy)
 
      (defmethod ~name :default [~@args]
-       (throw+
-        {:message (format
-                  "%s does not support %s"
-                  ~name (-> ~(first args) :server :image :os-family))
-        :type :pallet/unsupported-os}))))
+       (throw
+        (ex-info
+         (format
+          "%s does not support %s"
+          ~name (-> ~(first args) :server :image :os-family))
+         {:type :pallet/unsupported-os})))))
 
 ;;; target mapping
 (defn packager-for-os
@@ -152,10 +151,10 @@
     (#{:suse} os-family) :zypper
     (#{:gentoo} os-family) :portage
     (#{:darwin :os-x} os-family) :brew
-    :else (throw+
-           {:type :unknown-packager
-            :message (format
-                      "Unknown packager for %s %s" os-family os-version)})))
+    :else (throw
+           (ex-info
+            (format "Unknown packager for %s %s" os-family os-version)
+            {:type :unknown-packager}))))
 (defn packager
   "Package manager"
   [target]
@@ -173,11 +172,10 @@
       (#{:suse} os-family) :zypper
       (#{:gentoo} os-family) :portage
       (#{:darwin :os-x} os-family) :brew
-      :else (throw+
-             {:type :unknown-packager
-              :message (format
-                        "Unknown packager for %s - :image %s"
-                        os-family target)})))))
+      :else (throw
+             (ex-info
+              (format "Unknown packager for %s - :image %s" os-family target)
+              {:type :unknown-packager}))))))
 
 (defn base-distribution
   "Base distribution for the target."
@@ -192,11 +190,11 @@
       (#{:suse} os-family) :suse
       (#{:gentoo} os-family) :gentoo
       (#{:darwin :os-x} os-family) :os-x
-      :else (throw+
-             {:type :unknown-packager
-              :message (format
-                        "Unknown base-distribution for %s - target is %s"
-                        os-family target)})))))
+      :else (throw
+             (ex-info
+              (format "Unknown base-distribution for %s - target is %s"
+                      os-family target)
+              {:type :unknown-packager}))))))
 
 (defn admin-group
   "User that remote commands are run under"

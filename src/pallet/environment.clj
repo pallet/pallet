@@ -29,8 +29,7 @@
   (:use
    [clojure.core.incubator :only [-?>]]
    [pallet.core.session :only [session]]
-   [pallet.core.user :only [make-user]]
-   [slingshot.slingshot :only [throw+]]))
+   [pallet.core.user :only [make-user]]))
 
 (defprotocol Environment
   "A protocol for accessing an environment."
@@ -156,12 +155,13 @@
      {:pre [(sequential? keys)]}
      (let [result (get-in (:environment session) keys ::not-set)]
        (when (= ::not-set result)
-         (throw+
-          {:type :environment-not-found
-           :message (format
-                     "Could not find keys %s in session :environment"
-                     (if (sequential? keys) (vec keys) keys))
-           :key-not-set keys}))
+         (throw
+          (ex-info
+           (format
+            "Could not find keys %s in session :environment"
+            (if (sequential? keys) (vec keys) keys))
+           {:type :environment-not-found
+            :key-not-set keys})))
        result))
   ([session keys default]
      (get-in (:environment session) keys default)))

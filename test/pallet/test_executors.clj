@@ -8,8 +8,7 @@
    [pallet.script-builder :as script-builder]
    [pallet.ssh.execute :as ssh])
   (:use
-   [pallet.executors :only [direct-script]]
-   [slingshot.slingshot :only [throw+]]))
+   [pallet.executors :only [direct-script]]))
 
 (defn test-executor
   [session action]
@@ -20,8 +19,9 @@
       [:script :target] (local/script-on-origin
                          session action action-type script)
       [:fn/clojure :origin] (local/clojure-on-origin session action)
-      (throw+
-       {:type :pallet/no-executor-for-action
-        :action action
-        :executor 'TestExector}
-       "No suitable executor found"))))
+      (throw
+       (ex-info
+        "No suitable executor found"
+        {:type :pallet/no-executor-for-action
+         :action action
+         :executor 'TestExector})))))

@@ -17,8 +17,7 @@ data may provide a version."
    [pallet.compute :only [os-hierarchy]]
    [pallet.crate :only [os-family os-version phase-context]]
    [pallet.versions
-    :only [as-version-vector version-less version-matches? version-spec-less]]
-   [slingshot.slingshot :only [throw+]]))
+    :only [as-version-vector version-less version-matches? version-spec-less]]))
 
 (defn ^{:internal true} hierarchy-vals
   "Returns all values in a hierarchy, whether parents or children."
@@ -55,14 +54,15 @@ data may provide a version."
       (apply f os os-version version args)
       (if-let [f (:default methods)]
         (apply f os os-version version args)
-        (throw+
-         {:reason :defmulti-version-method-missing
-          :multi-version sym
-          :os os
-          :os-version os-version
-          :version version}
-         "No %s method for :os %s :os-version %s :version %s"
-         sym os os-version version)))))
+        (throw
+         (ex-info
+          (format "No %s method for :os %s :os-version %s :version %s"
+                  sym os os-version version)
+          {:reason :defmulti-version-method-missing
+           :multi-version sym
+           :os os
+           :os-version os-version
+           :version version}))))))
 
 (defmacro defmulti-version
   "Defines a multi-version funtion used to abstract over an operating system

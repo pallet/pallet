@@ -19,8 +19,7 @@
    [pallet.session.verify :only [add-session-verification-key check-session]]
    [pallet.utils :only [maybe-assoc]]
    pallet.core.api-impl
-   [pallet.core.user :only [*admin-user*]]
-   [slingshot.slingshot :only [throw+]]))
+   [pallet.core.user :only [*admin-user*]]))
 
 (let [v (atom nil)]
   (defn version
@@ -204,10 +203,11 @@
   (let [existing-count (count targets)
         target-count (:count group ::not-specified)]
     (when (= target-count ::not-specified)
-      (throw+
-       {:reason :target-count-not-specified
-        :group group}
-       "Node :count not specified for group: %s" (:group-name group)))
+      (throw
+       (ex-info
+        "Node :count not specified for group: %s"
+        {:reason :target-count-not-specified
+         :group group}) (:group-name group)))
     {:actual existing-count :target target-count
      :delta (- target-count existing-count)}))
 
@@ -328,3 +328,9 @@
   [operation]
   (when-let [e (:exception @operation)]
     (throw e)))
+
+(defn phase-errors
+  "Return the phase errors for an operation"
+  [operation]
+  (when (:phase-errors @operation)
+    (mapcat :errors (:results @operation))))

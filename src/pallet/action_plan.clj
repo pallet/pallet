@@ -30,7 +30,6 @@
    [pallet.node-value :only [make-node-value set-node-value]]
    [pallet.session.action-plan
     :only [dissoc-action-plan get-session-action-plan]]
-   [slingshot.slingshot :only [throw+]]
    pallet.action-impl))
 
 ;;; ## Action Plan Data Structure
@@ -656,9 +655,10 @@
    "execute %s actions with %s %s"
    (count action-plan) executor execute-status-fn)
   (when-not (translated? action-plan)
-    (throw+
-     {:type :pallet/execute-called-on-untranslated-action-plan
-      :message "Attempt to execute an untranslated action plan"}))
+    (throw
+     (ex-info
+      "Attempt to execute an untranslated action plan"
+      {:type :pallet/execute-called-on-untranslated-action-plan})))
   (letfn [(exec-action [action]
             (fn execute-with-error-check [session]
               (logging/tracef "execute-with-error-check")

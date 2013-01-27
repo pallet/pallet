@@ -1,20 +1,18 @@
 (ns pallet.actions
   "Pallet's action primitives."
   (:require
+   [clojure.java.io :as io]
+   [clojure.set :refer [intersection]]
    [clojure.tools.logging :as logging]
-   [pallet.argument :as argument]
-   [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore])
-  (:use
-   [clojure.set :only [intersection]]
-   pallet.actions-impl
    [pallet.action
-    :only [clj-action defaction with-action-options enter-scope leave-scope]]
-   [pallet.argument :only [delayed]]
-   [pallet.crate :only [role->nodes-map packager phase-context target]]
-   [pallet.node-value :only [node-value]]
-   [pallet.script.lib :only [set-flag-value]]
-   [pallet.utils :only [apply-map tmpfile]]))
+    :refer [clj-action defaction with-action-options enter-scope leave-scope]]
+   [pallet.actions-impl :refer :all]
+   [pallet.argument :as argument :refer [delayed]]
+   [pallet.crate :refer [role->nodes-map packager phase-context target]]
+   [pallet.node-value :refer [node-value]]
+   [pallet.script.lib :as lib :refer [set-flag-value]]
+   [pallet.stevedore :as stevedore]
+   [pallet.utils :refer [apply-map tmpfile]]))
 
 ;;; # Direct Script Execution
 

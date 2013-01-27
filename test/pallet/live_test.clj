@@ -27,9 +27,7 @@
    [pallet.algo.fsmop :only [operate complete?]]
    [pallet.core.operations :only [converge]]
    [pallet.core.api :only [service-state]]
-   [pallet.environment :only [environment]]
-   [slingshot.slingshot :only [throw+]]
-   [slingshot.support :only [get-context]]))
+   [pallet.environment :only [environment]]))
 
 (def
   ^{:doc "The default images for testing"}
@@ -236,15 +234,16 @@
     (when (or (not (complete? op)) (some :errors (:result @op)))
       (let [e (or
                (:exception @op)
-               (some #(some (comp :cause :error) (:errors %)) (:results @op)))
-            &throw-context (when e (get-context e))]
+               (some #(some (comp :cause :error) (:errors %)) (:results @op)))]
         (if e
           (debugf e "live-test build-nodes failed: %s" @op)
           (debugf "live-test build-nodes failed: %s" @op))
-        (throw+
-         {:reason :live-test-failed-to-build-nodes
-          :fail-reason @op}
-         "live-test build-nodes failed")))
+        (throw
+         (ex-info
+          "live-test build-nodes failed"
+          {:reason :live-test-failed-to-build-nodes
+           :fail-reason @op}
+          e))))
     (let [group-nodes (->>
                        @op :targets
                        (group-by (comp keyword name node/group-name :node)))
