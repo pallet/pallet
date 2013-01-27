@@ -79,8 +79,7 @@
                  (ns-name *ns*)
                  `(let [~@env]
                     (fn ~@(output-body rest))))
-              b (-> b first second second second last)]
-          (spit "out.clj" b)
+              b (-> b first second second last)]
           `(defn ~sym
              ~@(drop 1 b)))
         `(defn ~sym

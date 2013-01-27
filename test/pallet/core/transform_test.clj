@@ -73,7 +73,6 @@
 
 (defn ^:pallet/plan-fn xx [a b] (+ a b))
 
-
 (deftest node-value-test
   (is (= '(let* [x 1 y (pallet.core.transform-test/xx 1 2)]
             (pallet.core.transform-test/xx
