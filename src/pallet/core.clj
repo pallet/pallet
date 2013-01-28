@@ -1230,15 +1230,7 @@
   "If the :all-nodes key is not set, then the nodes are retrieved from the
    compute service if possible."
   [session]
-  (let [selected (->>
-                  (:node-set session)
-                  (filter #(and (map? %) (every? map? (keys %))))
-                  (mapcat vals)
-                  (mapcat #(if (seq? %) % [%]))
-                  (filter node/node?)
-                  (distinct))
-
-        nodes (filter
+  (let [nodes (filter
                node/running?
                (or (:all-nodes session) ; empty list is ok
                    (if-let [compute (environment/get-for
@@ -1246,8 +1238,14 @@
                      (do
                        (logging/info "retrieving nodes")
                        (compute/nodes compute))
-                     selected)))]
-    (assoc session :all-nodes nodes :selected-nodes (or selected nodes))))
+                     (->>
+                      (:node-set session)
+                      (filter #(and (map? %) (every? map? (keys %))))
+                      (mapcat vals)
+                      (mapcat #(if (seq? %) % [%]))
+                      (filter node/node?)
+                      (distinct)))))]
+    (assoc session :all-nodes nodes :selected-nodes nodes)))
 
 (defn session-with-groups
   "Takes the :selected-nodes, :all-nodes. :node-set and :prefix keys and compute
