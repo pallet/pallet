@@ -21,67 +21,69 @@
 (def remote-file* (action-fn remote-file-action :direct))
 
 (deftest remote-directory-test
-  (is (= (binding [pallet.action-plan/*defining-context* nil]
-           (stevedore/checked-commands
-            "remote-directory"
-            (-> (directory* {} "/path" :owner "fred" :recursive false)
-                first second)
-            (-> (remote-file*
-                 {}
-                 "${TMPDIR-/tmp}/file.tgz"
-                 {:url "http://site.com/a/file.tgz" :md5 nil})
-                first second)
-            (stevedore/script
-             (when (or (not (file-exists? "${TMPDIR-/tmp}/file.tgz.md5"))
-                       (or (not (file-exists? "/path/.pallet.directory.md5"))
-                           (not (diff "${TMPDIR-/tmp}/file.tgz.md5"
-                                      "/path/.pallet.directory.md5"))))
-               ~(stevedore/checked-script
-                 "Untar ${TMPDIR-/tmp}/file.tgz"
-                 (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
-                 (cd "/path")
-                 (tar xz "--strip-components=1" -f "${rdf}")
-                 (cd -))
-               (when (file-exists? "${TMPDIR-/tmp}/file.tgz.md5")
-                 (cp "${TMPDIR-/tmp}/file.tgz.md5"
-                     "/path/.pallet.directory.md5"))))
-            (-> (directory* {} "/path" :owner "fred" :recursive true)
-                first second)))
-         (first (build-actions/build-actions
-                 {}
-                 (remote-directory
-                  "/path"
-                  :url "http://site.com/a/file.tgz"
-                  :unpack :tar
-                  :owner "fred")))))
-  (is (= (binding [pallet.action-plan/*defining-context* nil]
-           (stevedore/checked-commands
-            "remote-directory"
-            (-> (directory* {} "/path" :owner "fred" :recursive false)
-                first second)
-            (-> (remote-file*
-                 {} "${TMPDIR-/tmp}/file.tgz"
-                 {:url "http://site.com/a/file.tgz" :md5 nil})
-                first second)
-            (stevedore/script
-             (when (or (not (file-exists? "${TMPDIR-/tmp}/file.tgz.md5"))
-                       (or (not (file-exists? "/path/.pallet.directory.md5"))
-                           (not (diff "${TMPDIR-/tmp}/file.tgz.md5"
-                                      "/path/.pallet.directory.md5"))))
-              ~(stevedore/checked-script
+  (is (script-no-comment=
+       (binding [pallet.action-plan/*defining-context* nil]
+         (stevedore/checked-commands
+          "remote-directory"
+          (-> (directory* {} "/path" :owner "fred" :recursive false)
+              first second)
+          (-> (remote-file*
+               {}
+               "${TMPDIR-/tmp}/file.tgz"
+               {:url "http://site.com/a/file.tgz" :md5 nil})
+              first second)
+          (stevedore/script
+           (when (or (not (file-exists? "${TMPDIR-/tmp}/file.tgz.md5"))
+                     (or (not (file-exists? "/path/.pallet.directory.md5"))
+                         (not (diff "${TMPDIR-/tmp}/file.tgz.md5"
+                                    "/path/.pallet.directory.md5"))))
+             ~(stevedore/checked-script
                "Untar ${TMPDIR-/tmp}/file.tgz"
                (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
                (cd "/path")
                (tar xz "--strip-components=1" -f "${rdf}")
                (cd -))
-              (when (file-exists? "${TMPDIR-/tmp}/file.tgz.md5")
-                 (cp "${TMPDIR-/tmp}/file.tgz.md5"
-                     "/path/.pallet.directory.md5"))))))
-         (first (build-actions/build-actions
-                 {}
-                 (remote-directory
-                  "/path"
-                  :url "http://site.com/a/file.tgz"
-                  :unpack :tar
-                  :owner "fred"
-                  :recursive false))))))
+             (when (file-exists? "${TMPDIR-/tmp}/file.tgz.md5")
+               (cp "${TMPDIR-/tmp}/file.tgz.md5"
+                   "/path/.pallet.directory.md5"))))
+          (-> (directory* {} "/path" :owner "fred" :recursive true)
+              first second)))
+       (first (build-actions/build-actions
+               {}
+               (remote-directory
+                "/path"
+                :url "http://site.com/a/file.tgz"
+                :unpack :tar
+                :owner "fred")))))
+  (is (script-no-comment=
+       (binding [pallet.action-plan/*defining-context* nil]
+         (stevedore/checked-commands
+          "remote-directory"
+          (-> (directory* {} "/path" :owner "fred" :recursive false)
+              first second)
+          (-> (remote-file*
+               {} "${TMPDIR-/tmp}/file.tgz"
+               {:url "http://site.com/a/file.tgz" :md5 nil})
+              first second)
+          (stevedore/script
+           (when (or (not (file-exists? "${TMPDIR-/tmp}/file.tgz.md5"))
+                     (or (not (file-exists? "/path/.pallet.directory.md5"))
+                         (not (diff "${TMPDIR-/tmp}/file.tgz.md5"
+                                    "/path/.pallet.directory.md5"))))
+             ~(stevedore/checked-script
+               "Untar ${TMPDIR-/tmp}/file.tgz"
+               (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
+               (cd "/path")
+               (tar xz "--strip-components=1" -f "${rdf}")
+               (cd -))
+             (when (file-exists? "${TMPDIR-/tmp}/file.tgz.md5")
+               (cp "${TMPDIR-/tmp}/file.tgz.md5"
+                   "/path/.pallet.directory.md5"))))))
+       (first (build-actions/build-actions
+               {}
+               (remote-directory
+                "/path"
+                :url "http://site.com/a/file.tgz"
+                :unpack :tar
+                :owner "fred"
+                :recursive false))))))

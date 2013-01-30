@@ -1,5 +1,6 @@
 (ns pallet.test-utils
   (:require
+   [clojure.string :as string]
    [pallet.action-plan :as action-plan]
    [pallet.common.deprecate :as deprecate]
    [pallet.execute :as execute]
@@ -47,11 +48,18 @@ list, Alan Dipert and MeikelBrandmeyer."
       (f)
       (finally (System/setOut out#)))))
 
+
 (defmacro with-location-info
   "A scope for enabling or disabling location info"
   [b & body]
   `(binding [pallet.actions-impl/*script-location-info* ~b]
      ~@body))
+
+(def no-location-info
+  (fn [f] (with-location-info false (f))))
+
+(def no-source-line-comments
+  (fn [f] (stevedore/with-source-line-comments false (f))))
 
 (defn test-username
   "Function to get test username. This is a function to avoid issues with AOT."
@@ -208,3 +216,26 @@ list, Alan Dipert and MeikelBrandmeyer."
   "Create a bash literal string as returned by an action function"
   [& bash-strings]
   [{:language :bash} (apply str bash-strings)])
+
+(defn remove-source-line-comments [script]
+  (-> script
+      (string/replace #"(?sm)^( *# [\w\d_]+.clj:\d+)+\n" "")
+      (string/replace #"\s+# [\w\d_]+.clj:\d+" "")
+      (string/replace #" \([\w\d_]+.clj:\d+\)\.\.\." "...")
+      (string/replace #" \([\w\d_]+.clj:\d+\) : " " : ")
+      (string/trim)))
+
+;;; A test method that strips location and source comments
+(defmethod assert-expr 'script-no-comment= [msg form]
+  (let [[_ expected expr] form]
+    `(let [expected# ~expected
+           actual# ~expr
+           expected-norm# (remove-source-line-comments expected#)
+           actual-norm# (remove-source-line-comments actual#)]
+       (if (= expected-norm# actual-norm#)
+         (do-report
+          {:type :pass :message ~msg :expected expected# :actual actual#})
+         (do-report
+          {:type :fail :message ~msg
+           :expected [expected# expected-norm#]
+           :actual [actual# actual-norm#]})))))

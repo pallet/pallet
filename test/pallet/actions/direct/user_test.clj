@@ -8,7 +8,8 @@
    clojure.test)
   (:require
    [pallet.test-utils :as test-utils]
-   [pallet.script :as script]))
+   [pallet.script :as script]
+   [pallet.script.lib :as lib]))
 
 (use-fixtures
  :once
@@ -17,39 +18,60 @@
  (logging-threshold-fixture))
 
 (deftest user*-create-test
-  (is (= (str "if ! ( getent passwd user1 );"
-              " then /usr/sbin/useradd --shell \"/bin/bash\" user1;fi")
-         (user* {} "user1" :action :create :shell :bash))))
+  (is (script-no-comment=
+       (script
+        (if-not (~lib/user-exists? "user1")
+          (~lib/create-user "user1" {:shell "/bin/bash"})))
+       (user* {} "user1" :action :create :shell :bash))))
 
 (deftest user*-modify-test
-  (is (= (str "if getent passwd user1;"
-              " then :;else /usr/sbin/useradd user1;fi")
-         (user* {} "user1" :action :manage)))
-  (is (= (str
-          "if getent passwd user1;"
-          " then /usr/sbin/usermod -p \"p\" user1;"
-          "else /usr/sbin/useradd -p \"p\" user1;fi")
-         (pallet.script/with-script-context [:fedora]
-           (user* {} "user1" :action :manage :password "p")))))
+  (is (script-no-comment=
+       (script
+        (if (~lib/user-exists? "user1")
+          ":"
+          (~lib/create-user "user1" {})))
+       (user* {} "user1" :action :manage)))
+  (is (script-no-comment=
+       (script
+        (if (~lib/user-exists? "user1")
+          (~lib/modify-user "user1" {:p "p"})
+          (~lib/create-user "user1" {:p "p"})))
+       (pallet.script/with-script-context [:fedora]
+         (user* {} "user1" :action :manage :password "p")))))
 
 (deftest user*-lock-test
-  (is (= "if getent passwd user1; then /usr/sbin/usermod --lock user1;fi"
-         (user* {} "user1" :action :lock))))
+  (is (script-no-comment=
+       (script
+        (if (~lib/user-exists? "user1")
+          (~lib/lock-user "user1")))
+       (user* {} "user1" :action :lock))))
 
 (deftest user*-unlock-test
-  (is (= "if getent passwd user1; then /usr/sbin/usermod --unlock user1;fi"
-         (user* {} "user1" :action :unlock))))
+  (is (script-no-comment=
+       (script
+        (if (~lib/user-exists? "user1")
+          (~lib/unlock-user "user1")))
+       (user* {} "user1" :action :unlock))))
 
 (deftest user*-remove-test
-  (is (= "if getent passwd user1; then /usr/sbin/userdel user1;fi"
-         (user* {} "user1" :action :remove))))
+  (is (script-no-comment=
+       (script
+        (if (~lib/user-exists? "user1")
+          (~lib/remove-user "user1" {})))
+       (user* {} "user1" :action :remove))))
 
 (deftest group-create-test
-  (is (= "if ! ( getent group group11 ); then /usr/sbin/groupadd group11;fi\n"
-         (first (build-actions {}
-                  (group "group11" :action :create)))))
+  (is (script-no-comment=
+       (script
+        (if-not (~lib/group-exists? "group11")
+          (~lib/create-group "group11" {})))
+       (first (build-actions {}
+                (group "group11" :action :create)))))
   (testing "system on rh"
-    (is (="if ! ( getent group group11 ); then /usr/sbin/groupadd -r group11;fi\n"
+    (is (script-no-comment=
+         (script
+          (if-not (~lib/group-exists? "group11")
+            (~lib/create-group "group11" {:r true})))
          (first (build-actions
                     {:server {:image {:os-family :centos}}}
                   (group "group11" :action :create :system true)))))))

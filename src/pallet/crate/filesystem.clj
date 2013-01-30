@@ -11,7 +11,7 @@
   [device]
   (exec-checked-script
    (format "Format %s as XFS" device)
-   (mkfs.xfs -f ~device)))
+   ("mkfs.xfs" -f ~device)))
 
 (defmulti format-mount-option
   (fn [[key value]] (class value)))

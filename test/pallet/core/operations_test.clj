@@ -7,6 +7,7 @@
    [pallet.api :only [group-spec plan-fn]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.compute :only [nodes]]
+   [pallet.core.api :only [phase-errors]]
    [pallet.node :only [group-name]]
    [pallet.test-utils :only [clj-action make-localhost-compute]]))
 
@@ -33,6 +34,7 @@
           node-set @(operate (group-nodes compute [group]))
           op (operate (lift node-set [:p] {} {}))
           {:keys [plan-state results targets]} @op]
+      (is (nil? (phase-errors op)))
       (is (not (failed? op)))
       (is (= 1 (count targets)))
       (is (= 1 (count (:node-values plan-state))))

@@ -13,7 +13,7 @@
    [pallet.script.lib :only [ls]]
    [pallet.script-builder :only [interpreter]]
    [pallet.test-utils
-    :only [no-source-line-comments script-action test-username
+    :only [no-source-line-comments no-location-info script-action test-username
            with-bash-script-language with-location-info]])
   (:require
    pallet.actions.direct.exec-script
@@ -25,7 +25,8 @@
 (use-fixtures
  :once
  with-bash-script-language
- (logging-threshold-fixture))
+ (logging-threshold-fixture)
+ no-location-info)
 
 (use-fixtures
  :each

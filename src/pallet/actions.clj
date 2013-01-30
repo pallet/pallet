@@ -11,7 +11,7 @@
    [pallet.crate :refer [role->nodes-map packager phase-context target]]
    [pallet.node-value :refer [node-value]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
-   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
    [pallet.utils :refer [apply-map tmpfile]]))
 
 ;;; # Direct Script Execution
@@ -71,15 +71,16 @@
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-context plan-when {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
-                 [nv `(exec-checked-script
-                       (str "Check " ~condition)
-                       (~(list `unquote 'pallet.script.lib/set-flag-value)
-                        ~(name nv-kw)
-                        @(do
-                           ~@(if is-stevedore?
-                               (rest condition)
-                               ["test" condition])
-                           (~'echo @~'?))))] )]
+                 [nv `(with-source-line-comments false
+                        (exec-checked-script
+                         (str "Check " ~condition)
+                         (~(list `unquote 'pallet.script.lib/set-flag-value)
+                          ~(name nv-kw)
+                          @(do
+                             ~@(if is-stevedore?
+                                 (rest condition)
+                                 ["test" condition])
+                             (~'echo @~'?)))))] )]
          (if-action ~(if is-script?
                        `(delayed [s#]
                                  (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
@@ -102,19 +103,20 @@
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-context plan-when-not {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
-                 [nv `(exec-checked-script
-                       (str "Check not " ~condition)
-                       (~(list `unquote `set-flag-value)
-                        ~(name nv-kw)
-                        @(do
-                           ~@(if is-stevedore?
-                               (rest condition)
-                               ["test" condition])
-                           (~'echo @~'?))))])]
+                 [nv `(with-source-line-comments false
+                        (exec-checked-script
+                         (str "Check not " ~condition)
+                         (~(list `unquote `set-flag-value)
+                          ~(name nv-kw)
+                          @(do
+                             ~@(if is-stevedore?
+                                 (rest condition)
+                                 ["test" condition])
+                             (~'echo @~'?)))))])]
          (if-action ~(if is-script?
                        `(delayed [s#]
-                                 (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
-                                    "0"))
+                          (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
+                             "0"))
                        `(delayed [~'&session] ~condition))))
        (enter-scope)
        (leave-scope)

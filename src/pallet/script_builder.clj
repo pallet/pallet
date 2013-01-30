@@ -4,7 +4,7 @@
   (:require
    [clojure.string :as string]
    [pallet.script :as script]
-   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
    [pallet.stevedore.bash :as bash])
   (:use
    [pallet.script.lib :only [mkdir make-temp-file heredoc]]))

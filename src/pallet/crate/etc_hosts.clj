@@ -4,7 +4,7 @@
    [clojure.string :as string]
    [pallet.node :as node]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
    [pallet.utils :as utils])
   (:use
    [clojure.string :only [blank?]]
@@ -112,8 +112,7 @@
   "Writes the hosts files"
   []
   (let [content (format-hosts)]
-    (remote-file
-     (stevedore/script (~lib/etc-hosts))
+    (remote-file (stevedore/fragment (~lib/etc-hosts))
      :owner "root:root"
      :mode 644
      :content content)))
@@ -152,7 +151,7 @@ hostname is not in /etc/hosts."
   []
   (let [node-name (target-name)]
     (plan-when-not (stevedore/script (grep ~node-name (~lib/etc-hosts)))
-      (sed (stevedore/script (~lib/etc-hosts))
+      (sed (with-source-line-comments false (stevedore/script (~lib/etc-hosts)))
            {"127\\.0\\.0\\.1\\(.*\\)" (str "127.0.0.1\\1 " node-name)}
            :restriction (str "/" node-name "/ !")
            :quote-with "'"))

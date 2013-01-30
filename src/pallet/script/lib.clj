@@ -19,17 +19,17 @@
 
 (script/defscript exit [value])
 (script/defimpl exit :default [value]
-  (exit ~value))
+  ("exit" ~value))
 
 (script/defscript xargs [script])
 (script/defimpl xargs :default
   [script]
-  (xargs ~script))
+  ("xargs \\\n" ~script))
 
 (script/defscript which [arg])
 (script/defimpl which :default
   [arg]
-  (which ~arg))
+  ("which" ~arg))
 
 (script/defscript has-command?
   "Check whether the specified command is on the path"

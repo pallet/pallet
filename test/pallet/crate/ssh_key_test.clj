@@ -22,225 +22,237 @@
    [pallet.crate :only [get-settings]]))
 
 (use-fixtures
- :once with-ubuntu-script-template (logging-threshold-fixture))
+ :once
+ with-ubuntu-script-template
+ (logging-threshold-fixture)
+ no-location-info)
 
 (deftest authorize-key-test
-  (is (= (first
-          (context/with-phase-context
-            {:kw :authorize-key :msg "authorize-key"}
-           (build-actions/build-actions
-            {}
-            (directory
-             "$(getent passwd fred | cut -d: -f6)/.ssh/"
-             :owner "fred" :mode "755")
-            (file
-             "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
-             :owner "fred" :mode "644")
-            (exec-checked-script
-             "authorize-key on user fred"
-             (var auth_file
-                  "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
-             (if-not (fgrep (quoted "key1") @auth_file)
-               (echo (quoted "key1") ">>" @auth_file)))
-            (exec-checked-script
-             "Set selinux permissions"
-             (~lib/selinux-file-type
-              "$(getent passwd fred | cut -d: -f6)/.ssh/" "user_home_t")))))
-         (first
+  (is (script-no-comment=
+       (first
+        (context/with-phase-context
+          {:kw :authorize-key :msg "authorize-key"}
           (build-actions/build-actions
            {}
-           (authorize-key "fred" "key1"))))))
+           (directory
+            "$(getent passwd fred | cut -d: -f6)/.ssh/"
+            :owner "fred" :mode "755")
+           (file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
+            :owner "fred" :mode "644")
+           (exec-checked-script
+            "authorize-key on user fred"
+            (var auth_file
+                 "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
+            (if-not (fgrep (quoted "key1") @auth_file)
+              (echo (quoted "key1") ">>" @auth_file)))
+           (exec-checked-script
+            "Set selinux permissions"
+            (~lib/selinux-file-type
+             "$(getent passwd fred | cut -d: -f6)/.ssh/" "user_home_t")))))
+       (first
+        (build-actions/build-actions
+         {}
+         (authorize-key "fred" "key1"))))))
 
 (deftest install-key-test
-  (is (= (first
-          (context/with-phase-context
-            {:kw :install-key :msg "install-key"}
-            (build-actions/build-actions
-             {}
-             (directory
-              "$(getent passwd fred | cut -d: -f6)/.ssh/"
-              :owner "fred" :mode "755")
-             (remote-file
-              "$(getent passwd fred | cut -d: -f6)/.ssh/id"
-              :content "private" :owner "fred" :mode "600")
-             (remote-file
-              "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
-              :content "public" :owner "fred" :mode "644"))))
-         (first
-          (build-actions/build-actions
-           {} (install-key "fred" "id" "private" "public")))))
-  (is (= (first
-          (context/with-phase-context
-            {:kw :install-key :msg "install-key"}
-            (build-actions/build-actions
-             {}
-             (directory
-              "$(getent passwd fred | cut -d: -f6)/.ssh/"
-              :owner "fred" :mode "755")
-             (remote-file
-              "$(getent passwd fred | cut -d: -f6)/.ssh/id"
-              :content "private" :owner "fred" :mode "600")
-             (remote-file
-              "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
-              :content "public" :owner "fred" :mode "644"))))
-         (first
+  (is (script-no-comment=
+       (first
+        (context/with-phase-context
+          {:kw :install-key :msg "install-key"}
           (build-actions/build-actions
            {}
-           (install-key "fred" "id" "private" "public"))))))
+           (directory
+            "$(getent passwd fred | cut -d: -f6)/.ssh/"
+            :owner "fred" :mode "755")
+           (remote-file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id"
+            :content "private" :owner "fred" :mode "600")
+           (remote-file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
+            :content "public" :owner "fred" :mode "644"))))
+       (first
+        (build-actions/build-actions
+         {} (install-key "fred" "id" "private" "public")))))
+  (is (script-no-comment=
+       (first
+        (context/with-phase-context
+          {:kw :install-key :msg "install-key"}
+          (build-actions/build-actions
+           {}
+           (directory
+            "$(getent passwd fred | cut -d: -f6)/.ssh/"
+            :owner "fred" :mode "755")
+           (remote-file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id"
+            :content "private" :owner "fred" :mode "600")
+           (remote-file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id.pub"
+            :content "public" :owner "fred" :mode "644"))))
+       (first
+        (build-actions/build-actions
+         {}
+         (install-key "fred" "id" "private" "public"))))))
 
 (deftest generate-key-test
-  (is (= (first
+  (is (script-no-comment=
+       (first
+        (build-actions/build-actions
+         {:phase-context "generate-key"}
+         (directory
+          "$(getent passwd fred | cut -d: -f6)/.ssh"
+          :owner "fred" :mode "755")
+         (exec-checked-script
+          "ssh-keygen"
+          (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa")
+          (if-not (file-exists? @key_path)
+            (ssh-keygen
+             ~(stevedore/map-to-arg-string
+               {:f (stevedore/script @key_path) :t "rsa" :N ""
+                :C "generated by pallet"}))))
+         (file
+          "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa"
+          :owner "fred" :mode "0600")
+         (file
+          "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa.pub"
+          :owner "fred" :mode "0644")))
+       (first
+        (build-actions/build-actions
+         {}
+         (generate-key "fred")))))
+
+  (is (script-no-comment=
+       (first
+        (pallet.context/with-phase-context
+          {:kw :generate-key :msg "generate-key"}
           (build-actions/build-actions
-           {:phase-context "generate-key"}
+           {}
            (directory
             "$(getent passwd fred | cut -d: -f6)/.ssh"
             :owner "fred" :mode "755")
            (exec-checked-script
             "ssh-keygen"
-            (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa")
+            (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa")
             (if-not (file-exists? @key_path)
               (ssh-keygen
                ~(stevedore/map-to-arg-string
-                 {:f (stevedore/script @key_path) :t "rsa" :N ""
+                 {:f (stevedore/script @key_path) :t "dsa" :N ""
                   :C "generated by pallet"}))))
            (file
-            "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa"
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa"
             :owner "fred" :mode "0600")
            (file
-            "$(getent passwd fred | cut -d: -f6)/.ssh/id_rsa.pub"
-            :owner "fred" :mode "0644")))
-         (first
+            "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub"
+            :owner "fred" :mode "0644"))))
+       (first
+        (build-actions/build-actions
+         {} (generate-key "fred" :type "dsa")))))
+
+  (is (script-no-comment=
+       (first
+        (pallet.context/with-phase-context
+          {:kw :generate-key :msg "generate-key"}
           (build-actions/build-actions
            {}
-           (generate-key "fred")))))
-
-  (is (= (first
-          (pallet.context/with-phase-context
-            {:kw :generate-key :msg "generate-key"}
-            (build-actions/build-actions
-             {}
-             (directory
-              "$(getent passwd fred | cut -d: -f6)/.ssh"
-              :owner "fred" :mode "755")
-             (exec-checked-script
-              "ssh-keygen"
-              (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa")
-              (if-not (file-exists? @key_path)
-                (ssh-keygen
-                 ~(stevedore/map-to-arg-string
-                   {:f (stevedore/script @key_path) :t "dsa" :N ""
-                    :C "generated by pallet"}))))
-             (file
-              "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa"
-              :owner "fred" :mode "0600")
-             (file
-              "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub"
-              :owner "fred" :mode "0644"))))
-         (first
-          (build-actions/build-actions
-           {} (generate-key "fred" :type "dsa")))))
-
-  (is (= (first
-          (pallet.context/with-phase-context
-            {:kw :generate-key :msg "generate-key"}
-            (build-actions/build-actions
-             {}
-             (directory
-              "$(getent passwd fred | cut -d: -f6)/.ssh"
-              :owner "fred" :mode "755")
-             (exec-checked-script
-              "ssh-keygen"
-              (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/identity")
-              (if-not (file-exists? @key_path)
-                (ssh-keygen
-                 ~(stevedore/map-to-arg-string
-                   {:f (stevedore/script @key_path) :t "rsa1" :N ""
-                    :C "generated by pallet"}))))
-             (file
-              "$(getent passwd fred | cut -d: -f6)/.ssh/identity"
-              :owner "fred" :mode "0600")
-             (file
-              "$(getent passwd fred | cut -d: -f6)/.ssh/identity.pub"
-              :owner "fred" :mode "0644"))))
-         (first
-          (build-actions/build-actions
-           {} (generate-key "fred" :type "rsa1")))))
-
-  (is (= (first
-          (build-actions/build-actions
-           {:phase-context "generate-key"}
+           (directory
+            "$(getent passwd fred | cut -d: -f6)/.ssh"
+            :owner "fred" :mode "755")
            (exec-checked-script
             "ssh-keygen"
-            (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/c")
+            (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/identity")
             (if-not (file-exists? @key_path)
               (ssh-keygen
                ~(stevedore/map-to-arg-string
-                 {:f (stevedore/script @key_path)
-                  :t "rsa1" :N "abc"  :C "my comment"}))))
-           (file "$(getent passwd fred | cut -d: -f6)/.ssh/c"
-                 :owner "fred" :mode "0600")
-           (file "$(getent passwd fred | cut -d: -f6)/.ssh/c.pub"
-                 :owner "fred" :mode "0644")))
-         (first
-          (build-actions/build-actions
-           {}
-           (generate-key
-            "fred" :type "rsa1" :filename "c" :no-dir true
-            :comment "my comment" :passphrase "abc"))))))
+                 {:f (stevedore/script @key_path) :t "rsa1" :N ""
+                  :C "generated by pallet"}))))
+           (file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/identity"
+            :owner "fred" :mode "0600")
+           (file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/identity.pub"
+            :owner "fred" :mode "0644"))))
+       (first
+        (build-actions/build-actions
+         {} (generate-key "fred" :type "rsa1")))))
+
+  (is (script-no-comment=
+       (first
+        (build-actions/build-actions
+         {:phase-context "generate-key"}
+         (exec-checked-script
+          "ssh-keygen"
+          (var key_path "$(getent passwd fred | cut -d: -f6)/.ssh/c")
+          (if-not (file-exists? @key_path)
+            (ssh-keygen
+             ~(stevedore/map-to-arg-string
+               {:f (stevedore/script @key_path)
+                :t "rsa1" :N "abc"  :C "my comment"}))))
+         (file "$(getent passwd fred | cut -d: -f6)/.ssh/c"
+               :owner "fred" :mode "0600")
+         (file "$(getent passwd fred | cut -d: -f6)/.ssh/c.pub"
+               :owner "fred" :mode "0644")))
+       (first
+        (build-actions/build-actions
+         {}
+         (generate-key
+          "fred" :type "rsa1" :filename "c" :no-dir true
+          :comment "my comment" :passphrase "abc"))))))
 
 (deftest authorize-key-for-localhost-test
-  (is (= (first
-          (pallet.context/with-phase-context
-            {:kw :generate-key :msg "authorize-key-for-localhost"}
-            (build-actions/build-actions
-             {}
-             (directory
-              "$(getent passwd fred | cut -d: -f6)/.ssh/"
-              :owner "fred" :mode "755")
-             (file
-              "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
-              :owner "fred" :mode "644")
-             (exec-checked-script
-              "authorize-key"
-              (var key_file
-                   "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
-              (var auth_file
-                   "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
-              (if-not (grep (quoted @(cat @key_file)) @auth_file)
-                (do
-                  (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
-                  (cat @key_file ">>" @auth_file)))))))
-         (first
+  (is (script-no-comment=
+       (first
+        (pallet.context/with-phase-context
+          {:kw :generate-key :msg "authorize-key-for-localhost"}
           (build-actions/build-actions
            {}
-           (authorize-key-for-localhost "fred" "id_dsa.pub")))))
+           (directory
+            "$(getent passwd fred | cut -d: -f6)/.ssh/"
+            :owner "fred" :mode "755")
+           (file
+            "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys"
+            :owner "fred" :mode "644")
+           (exec-checked-script
+            "authorize-key"
+            (var key_file
+                 "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
+            (var auth_file
+                 "$(getent passwd fred | cut -d: -f6)/.ssh/authorized_keys")
+            (if-not (grep (quoted @(cat @key_file)) @auth_file)
+              (do
+                (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
+                (cat @key_file ">>" @auth_file)))))))
+       (first
+        (build-actions/build-actions
+         {}
+         (authorize-key-for-localhost "fred" "id_dsa.pub")))))
 
-  (is (= (first
-          (pallet.context/with-phase-context
-            {:kw :generate-key :msg "authorize-key-for-localhost"}
-            (build-actions/build-actions
-             {}
-             (directory
-              "$(getent passwd tom | cut -d: -f6)/.ssh/"
-              :owner "tom" :mode "755")
-             (file
-              "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys"
-              :owner "tom" :mode "644")
-             (exec-checked-script
-              "authorize-key"
-              (var key_file
-                   "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
-              (var auth_file
-                   "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys")
-              (if-not (grep (quoted @(cat @key_file)) @auth_file)
-                (do
-                  (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
-                  (cat @key_file ">>" @auth_file)))))))
-         (first
+  (is (script-no-comment=
+       (first
+        (pallet.context/with-phase-context
+          {:kw :generate-key :msg "authorize-key-for-localhost"}
           (build-actions/build-actions
            {}
-           (authorize-key-for-localhost
-            "fred" "id_dsa.pub" :authorize-for-user "tom"))))))
+           (directory
+            "$(getent passwd tom | cut -d: -f6)/.ssh/"
+            :owner "tom" :mode "755")
+           (file
+            "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys"
+            :owner "tom" :mode "644")
+           (exec-checked-script
+            "authorize-key"
+            (var key_file
+                 "$(getent passwd fred | cut -d: -f6)/.ssh/id_dsa.pub")
+            (var auth_file
+                 "$(getent passwd tom | cut -d: -f6)/.ssh/authorized_keys")
+            (if-not (grep (quoted @(cat @key_file)) @auth_file)
+              (do
+                (echo -n (quoted "from=\\\"localhost\\\" ") ">>" @auth_file)
+                (cat @key_file ">>" @auth_file)))))))
+       (first
+        (build-actions/build-actions
+         {}
+         (authorize-key-for-localhost
+          "fred" "id_dsa.pub" :authorize-for-user "tom"))))))
 
 (deftest invoke-test
   (is (build-actions/build-actions

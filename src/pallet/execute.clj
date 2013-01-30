@@ -58,7 +58,7 @@
   "Create an error map for a script execution"
   [server msg result]
   (merge
-   result
+   (select-keys result [:server :err :out :exit])
    {:message (format
               "localhost %s%s%s"
               msg

@@ -1,7 +1,8 @@
 (ns pallet.crate.crontab-test
   (:use pallet.crate.crontab)
   (:require
-   [pallet.live-test :as live-test])
+   [pallet.live-test :as live-test]
+   [pallet.test-utils :refer [no-location-info]])
   (:use
    clojure.test
    [clojure.string :only [trim]]
@@ -20,35 +21,36 @@
    [pallet.script.lib :only [user-home]]
    [pallet.stevedore :only [script]]))
 
-(use-fixtures :once (logging-threshold-fixture))
+(use-fixtures :once (logging-threshold-fixture) no-location-info)
 
 (deftest user-crontab-test
-  (is (= (first
-          (build-actions
-              {:phase-context "user-crontabs: create-user-crontab"}
-            (remote-file
-             "$(getent passwd fred | cut -d: -f6)/crontab.in"
-             :content "contents" :owner "fred" :mode "0600")
-            (exec-checked-script
-             "Load crontab"
-             ("crontab -u fred"
-              "$(getent passwd fred | cut -d: -f6)/crontab.in\n"))))
-         (first
-          (build-actions {}
-            (user-settings "fred" {:content "contents"})
-            (user-crontabs))))))
+  (is (script-no-comment=
+       (first
+        (build-actions
+            {:phase-context "user-crontabs: create-user-crontab"}
+          (remote-file
+           "$(getent passwd fred | cut -d: -f6)/crontab.in"
+           :content "contents" :owner "fred" :mode "0600")
+          (exec-checked-script
+           "Load crontab"
+           ("crontab -u fred"
+            "$(getent passwd fred | cut -d: -f6)/crontab.in"))))
+       (first
+        (build-actions {}
+          (user-settings "fred" {:content "contents"})
+          (user-crontabs))))))
 
 (deftest system-crontab-test
-  (is (= (first
-          (build-actions
-              {:phase-context "system-crontabs: create-system-crontab"}
-            (remote-file
-             "/etc/cron.d/fred"
-             :content "contents" :owner "root" :group "root" :mode "0644")))
-         (first
-          (build-actions {}
-            (system-settings "fred" {:content "contents"})
-            (system-crontabs))))))
+  (is (script-no-comment=
+       (first
+        (build-actions {:phase-context "system-crontabs: create-system-crontab"}
+          (remote-file
+           "/etc/cron.d/fred"
+           :content "contents" :owner "root" :group "root" :mode "0644")))
+       (first
+        (build-actions {}
+          (system-settings "fred" {:content "contents"})
+          (system-crontabs))))))
 
 (def crontab-for-test
   "0 1 1 1 1 ls > /dev/null")

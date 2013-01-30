@@ -37,7 +37,7 @@
   "Create a temporary remote file using the `ssh-session` and the filename
   `prefix`"
   [connection prefix]
-  (logging/debugf "ssh-mktemp %s" (.state connection))
+  (logging/tracef "ssh-mktemp %s" (.state connection))
   (let [result (transport/exec
                 connection
                 {:execv [(stevedore/script
@@ -86,7 +86,7 @@
          (:server endpoint)
          (or (context-label action) "")
          (action-symbol (:action action)))
-        (log-multiline :debug (str endpoint " script %s") script)
+        (log-multiline :debug (str (:server endpoint) " script %s") script)
         (logging/debugf "%s send script via %s as %s"
                         endpoint tmpfile (or sudo-user "root"))
         (transport/send-text
