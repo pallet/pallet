@@ -43,9 +43,9 @@
   `(exec-script*
     (checked-script
      ~(if *script-location-info*
-        script-name
-        (str script-name
-             " (" (.getName (io/file *file*)) ":" (:line (meta &form)) ")"))
+        `(str ~script-name
+              " (" ~(.getName (io/file *file*)) ":" ~(:line (meta &form)) ")")
+        script-name)
      ~@script)))
 
 ;;; # Wrap arbitrary code

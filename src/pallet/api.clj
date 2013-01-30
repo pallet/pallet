@@ -245,7 +245,7 @@
   "Split a node-set into groups and targets. Returns a map with
 :groups and :targets keys"
   [node-set]
-  (logging/debugf "split-groups-and-targets %s" (vec node-set))
+  (logging/tracef "split-groups-and-targets %s" (vec node-set))
   (->
    (group-by
     #(if (and (map? %)
@@ -318,8 +318,8 @@
         {:keys [groups targets]} (-> groups
                                      expand-cluster-groups
                                      split-groups-and-targets)
-        _ (logging/debugf "groups %s" (vec groups))
-        _ (logging/debugf "targets %s" (vec targets))
+        _ (logging/tracef "groups %s" (vec groups))
+        _ (logging/tracef "targets %s" (vec targets))
         groups (groups-with-phases groups phase-map)
         targets (groups-with-phases targets phase-map)
         environment (merge-environments
@@ -395,8 +395,8 @@
         {:keys [groups targets]} (-> node-set
                                      expand-cluster-groups
                                      split-groups-and-targets)
-        _ (logging/debugf "groups %s" (vec groups))
-        _ (logging/debugf "targets %s" (vec targets))
+        _ (logging/tracef "groups %s" (vec groups))
+        _ (logging/tracef "targets %s" (vec targets))
         groups (groups-with-phases groups phase-map)
         targets (groups-with-phases targets phase-map)
         environment (merge-environments

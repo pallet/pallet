@@ -160,7 +160,7 @@
   {:no-doc true}
   [context]
   (when (seq context)
-    (str (string/join ": " context) "\n")))
+    (str (string/join ": " context) ": ")))
 
 (defmulti context-label
   "Return a label for an action"

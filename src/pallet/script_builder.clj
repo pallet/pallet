@@ -78,16 +78,17 @@ future)."
   "Builds a code map, describing the command to execute a script."
   [session {:keys [script-prefix script-dir sudo-user] :as action}
    & args]
-  {:execv
-   (->>
-    (concat
-     (when-let [prefix (prefix
-                        (:script-prefix session (or script-prefix :sudo))
-                        session
-                        action)]
-       (string/split prefix #" "))
-     ["/usr/bin/env"]
-     (map (fn [[k v]] (format "%s=\"%s\"" k v)) (:script-env session))
-     [(interpreter {:language :bash})]
-     args)
-    (filter identity))})
+  (with-source-line-comments false
+    {:execv
+     (->>
+      (concat
+       (when-let [prefix (prefix
+                          (:script-prefix session (or script-prefix :sudo))
+                          session
+                          action)]
+         (string/split prefix #" "))
+       ["/usr/bin/env"]
+       (map (fn [[k v]] (format "%s=\"%s\"" k v)) (:script-env session))
+       [(interpreter {:language :bash})]
+       args)
+      (filter identity))}))

@@ -75,6 +75,8 @@
     <appender-ref ref="VMFESTFILE" />
   </logger>
 
+  <logger name="pallet.executors" level="INFO"/>
+  <logger name="pallet.stevedore" level="DEBUG"/>
   <logger name="pallet.action-plan" level="DEBUG"/>
   <logger name="pallet.algo.fsm" level="WARN"/>
   <logger name="pallet.algo.fsmop" level="WARN"/>

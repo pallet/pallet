@@ -6,7 +6,8 @@
    [clojure.tools.logging :as logging]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.execute :as execute]
+   [pallet.execute :as execute
+    :refer [clean-logs log-multiline log-script-output result-with-error-map]]
    [pallet.local.execute :as local]
    [pallet.transport :as transport]
    [pallet.transport.local]
@@ -71,7 +72,7 @@
   "Execute a bash action on the target via ssh."
   [session {:keys [context node-value-path] :as action} action-type
    [options script]]
-  (logging/debug "ssh-script-on-target")
+  (logging/trace "ssh-script-on-target")
   (with-connection session [connection]
     (let [endpoint (transport/endpoint connection)
           authentication (transport/authentication connection)
@@ -85,26 +86,24 @@
          (:server endpoint)
          (or (context-label action) "")
          (action-symbol (:action action)))
-        (logging/debugf "Target %s cmd\n%s via %s as %s"
-                        endpoint script tmpfile (or sudo-user "root"))
-        (logging/trace "ssh-script-on-target send script file")
+        (log-multiline :debug (str endpoint " script %s") script)
+        (logging/debugf "%s send script via %s as %s"
+                        endpoint tmpfile (or sudo-user "root"))
         (transport/send-text
          connection script tmpfile
          {:mode (if sudo-user 0644 0600)})
         (logging/trace "ssh-script-on-target execute script file")
-        (let [clean-f (comp
-                       #(execute/strip-sudo-password % (:user authentication))
-                       execute/normalise-eol)
-              output-f (comp
-                        #(logging/debugf
-                          "%s output\n=> %s" (:server endpoint) %)
-                        clean-f)
+        (let [clean-f (clean-logs (:user authentication))
               result (transport/exec
                       connection
                       (script-builder/build-code session action tmpfile)
-                      {:output-f output-f})
+                      {:output-f (log-script-output
+                                  (:server endpoint) (:user authentication))})
               [result session] (execute/parse-shell-result session result)
+              result (update-in result [:out] clean-f)
               result (assoc result :script script)
+              result (result-with-error-map
+                       (:server endpoint) "Error executing script" result)
               ;; Set the node-value to the result of execution, rather than
               ;; the script.
               session (assoc-in
@@ -116,7 +115,7 @@
            {:execv [(stevedore/script (rm -f ~tmpfile))]}
            {})
           (logging/trace "ssh-script-on-target done")
-          [(update-in result [:out] clean-f) session])))))
+          [result session])))))
 
 (defn- ssh-upload
   "Upload a file to a remote location via sftp"
