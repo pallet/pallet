@@ -334,3 +334,11 @@
   [operation]
   (when (:phase-errors @operation)
     (mapcat :errors (:results @operation))))
+
+(defn throw-phase-errors
+  [operation]
+  (when-let [e (phase-errors operation)]
+    (throw
+     (ex-info
+      (str "Phase errors: " (string/join " " (map (comp :message :error) e)))
+      {:errors e}))))
