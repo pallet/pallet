@@ -47,6 +47,12 @@ list, Alan Dipert and MeikelBrandmeyer."
       (f)
       (finally (System/setOut out#)))))
 
+(defmacro with-location-info
+  "A scope for enabling or disabling location info"
+  [b & body]
+  `(binding [pallet.actions-impl/*script-location-info* ~b]
+     ~@body))
+
 (defn test-username
   "Function to get test username. This is a function to avoid issues with AOT."
   [] (or (. System getProperty "ssh.username")

@@ -40,7 +40,13 @@
    script fails. The script is expressed in stevedore."
   {:pallet/plan-fn true}
   [script-name & script]
-  `(exec-script* (checked-script ~script-name ~@script)))
+  `(exec-script*
+    (checked-script
+     ~(if *script-location-info*
+        script-name
+        (str script-name
+             " (" (.getName (io/file *file*)) ":" (:line (meta &form)) ")"))
+     ~@script)))
 
 ;;; # Wrap arbitrary code
 (defmacro as-action

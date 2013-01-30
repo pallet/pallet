@@ -21,6 +21,8 @@
       ~name)
     ~@script))
 
+(def ^:dynamic *script-location-info* true)
+
 (defaction if-action
   "An 'if' flow control action, that claims the next (up to two) nested scopes."
   [condition])
