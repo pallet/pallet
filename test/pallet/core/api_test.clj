@@ -175,7 +175,8 @@
             :phases {:p (plan-fn (exec-script "ls"))
                      :g (plan-fn (ga))})
         service (node-list-service [n1])
-        service-state (service-state service [g1])]
+        service-state (service-state service [g1])
+        user (assoc *admin-user* :no-sudo true)]
     (testing "nodes"
       (let [[r plan-state] ((action-plans service-state {} :p service-state)
                             {:ps 1})
@@ -183,7 +184,7 @@
 
             {:keys [result phase plan-state errors target]}
             (execute-action-plan
-             service-state plan-state {} *admin-user* default-executor
+             service-state plan-state {} user default-executor
              stop-execution-on-error action-plan)]
         (is (= {:ps 1} (dissoc plan-state :node-values)))
         (is (= (first service-state) target))
@@ -199,7 +200,7 @@
 
             {:keys [result phase plan-state errors target]}
             (execute-action-plan
-             service-state plan-state {} *admin-user* default-executor
+             service-state plan-state {} user default-executor
              stop-execution-on-error action-plan)]
         (is (= {:ps 1} (dissoc plan-state :node-values)))
         (is (= (first targets) target))
