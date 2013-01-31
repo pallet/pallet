@@ -119,22 +119,22 @@
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>pallet-common</artifactId>
-      <version>0.3.1-SNAPSHOT</version>
+      <version>0.3.1</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>script-exec</artifactId>
-      <version>0.1.3-SNAPSHOT</version>
+      <version>0.2.0</version>
     </dependency>
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>stevedore</artifactId>
-      <version>0.8.0-SNAPSHOT</version>
+      <version>0.8.0-alpha.1</version>
     </dependency>
     <dependency>
       <groupId>pallet-fsmop</groupId>
       <artifactId>pallet-fsmop</artifactId>
-      <version>0.2.0-SNAPSHOT</version>
+      <version>0.2.0</version>
     </dependency>
     <dependency>
       <groupId>pallet-map-merge</groupId>
@@ -151,17 +151,6 @@
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
       <version>1.4</version>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-core</artifactId>
-      <optional>true</optional>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
