@@ -34,7 +34,7 @@
                    (group-name (first (nodes compute)))
                    :phases {:p (plan-fn (exec-script "ls /"))})
             node-set @(operate (group-nodes compute [group]))
-            op (operate (lift node-set [:p] {} {}))
+            op (operate (lift node-set [:p] {:user user} {}))
             {:keys [plan-state results targets]} @op]
         (is (nil? (phase-errors op)))
         (is (not (failed? op)))
@@ -51,7 +51,7 @@
                    :phases {:p (plan-fn (exec-script "ls /"))
                             :p2 (plan-fn (localf))})
             node-set @(operate (group-nodes compute [group]))
-            op (operate (lift node-set [:p :p2] {} {}))
+            op (operate (lift node-set [:p :p2] {:user user} {}))
             {:keys [plan-state results targets]} @op]
         (is (not (failed? op)))
         (is (= 1 (count targets)))
