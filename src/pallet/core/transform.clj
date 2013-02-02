@@ -18,9 +18,9 @@ plan functions.  This means that the distinction may have to occur at runtime,
 or that we assume arguments are not node-values, and require the user to adjust
 if they are (is this advanced use?)."
   (:require
-   [pallet.core.transform.ast
-    :refer [analyse-form deftraversal emit-node form-with-metadata traverse
-            with-emit-fn]]))
+   [muir.ast
+    :refer [analyse-form deftraversal emit emit-node form-with-metadata
+            traverse]]))
 
 (defn plan-fn-ast
   "Generate the AST for a form."
@@ -180,8 +180,7 @@ if they are (is this advanced use?)."
 
 (defn plan-emit
   [ast]
-  (with-emit-fn plan-emit-dispatch
-    (plan-emit-dispatch ast)))
+  (emit ast plan-emit-dispatch))
 
 (defn plan-rewrite
   "Rewrite a defplan form."
