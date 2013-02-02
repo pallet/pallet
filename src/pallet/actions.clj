@@ -83,8 +83,10 @@
                              (~'echo @~'?)))))] )]
          (if-action ~(if is-script?
                        `(delayed [s#]
-                                 (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
-                                    "0"))
+                          (let [v# (node-value ~nv s#)]
+                            (when (map? v#) ; eg. not testing with build-actions
+                              (= (-> v# :flag-values ~nv-kw)
+                                 "0"))))
                        `(delayed [~'&session] ~condition))))
        (enter-scope)
        ~@crate-fns-or-actions
@@ -115,8 +117,10 @@
                              (~'echo @~'?)))))])]
          (if-action ~(if is-script?
                        `(delayed [s#]
-                          (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
-                             "0"))
+                          (let [v# (node-value ~nv s#)]
+                            (when (map? v#) ; eg. not testing with build-actions
+                              (= (-> v# :flag-values ~nv-kw)
+                                 "0"))))
                        `(delayed [~'&session] ~condition))))
        (enter-scope)
        (leave-scope)

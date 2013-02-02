@@ -100,12 +100,10 @@
     </dependency>
 
     <dependency>
-      <groupId>midje</groupId>
-      <artifactId>midje</artifactId>
-      <version>1.4.0-beta2</version>
-      <scope>test</scope>
+      <groupId>muir</groupId>
+      <artifactId>muir</artifactId>
+      <version>0.1.0</version>
     </dependency>
-
     <dependency>
       <groupId>org.cloudhoist</groupId>
       <artifactId>chiba</artifactId>
@@ -145,6 +143,11 @@
       <groupId>useful</groupId>
       <artifactId>useful</artifactId>
       <version>0.8.6</version>
+    </dependency>
+    <dependency>
+      <groupId>analyze</groupId>
+      <artifactId>analyze</artifactId>
+      <version>0.2.5</version>
     </dependency>
 
     <dependency>

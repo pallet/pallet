@@ -11,16 +11,15 @@
 
 (defplan system-environment
   "Define system wide default environment.
-   On redhat based systems, this is set in /etc/profile.d, so is only
-   valid within a login shell. On debian based systems, /etc/environment
-   is used."
+  On redhat based systems, this is set in /etc/profile.d, so is only valid
+  within a login shell. On debian based systems, /etc/environment is used."
+
   [env-name key-value-pairs & {:keys [path shared] :as options}]
   (let [os-family (os-family)
-        [path shared] (if (and path shared)
-                        [path shared]
-                        (if (#{:rhel :centos :fedora} os-family)
-                          ["/etc/profile.d/java.sh" false]
-                          ["/etc/environment" true]))]
+        [path shared] (if (and path shared) [path shared]
+                          (if (#{:rhel :centos :fedora} os-family)
+                            ["/etc/profile.d/java.sh" false]
+                            ["/etc/environment" true]))]
     (plan-when shared
       (exec-script*
        (action-plan/checked-commands*
@@ -28,7 +27,7 @@
         (conj
          (for [[k v] key-value-pairs]
            (stevedore/script
-            (var vv ~v)                ; so v can contain multi-line expressions
+            (var vv ~v) ; so v can contain multi-line expressions
             (pallet_set_env ~k @vv (str ~(name k) "=" (quoted @vv)))))
          (stevedore/script
           (defn pallet_set_env [k v s]
