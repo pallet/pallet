@@ -2,6 +2,7 @@
   "Namespace for loading pallet project files.  Provides a default set of
   requires that are available to the pallet file."
   (:require
+   [pallet.actions :refer :all :exclude [update-settings assoc-settings]]
    [pallet.api :refer :all]
    [pallet.crate :refer :all :exclude [compute-service]]
    [pallet.crate.automated-admin-user :refer [automated-admin-user]]
