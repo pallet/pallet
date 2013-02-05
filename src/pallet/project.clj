@@ -9,8 +9,7 @@ defproject refers to pallet.project.loader/defproject."
   (:require
    [clojure.java.io :refer [file resource]]
    [clojure.string :as string]
-   [pallet.api :as api :refer [cluster-spec]]
-   [pallet.compute :refer [service-properties]]))
+   [pallet.api :as api :refer [cluster-spec]]))
 
 ;;; ## Read a project file
 (def default-pallet-file "pallet.clj")
@@ -79,20 +78,11 @@ defproject refers to pallet.project.loader/defproject."
 (defn ensure-node-spec [node-spec group]
   (merge node-spec group))
 
-(defn spec-from-project [{:keys [compute project] :as request}]
-  (let [project-name (:name project)
-        pallet-file (or (:pallet-file project)
-                        (if (and project-name (:root project))
-                          default-pallet-file
-                          (file (System/getProperty "user.home")
-                                ".pallet" "pallet.clj")))
-        {:keys [groups provider service]} (read-or-create-project
-                                           project-name
-                                           pallet-file)
-        compute-info (service-properties compute)
-        node-specs (concat
-                    (get-in service [(:service compute-info) :node-specs])
-                    (get-in provider [(:provider compute-info) :node-specs]))
+(defn spec-from-project
+  "Compute the groups for a pallet project using the given compute service
+  provider keyword"
+  [{:keys [groups provider service]:as pallet-project} provider-kw]
+  (let [node-specs (get-in provider [provider-kw :node-specs])
         node-spec (or (first (filter (comp :default :selectors) node-specs))
                       (first node-specs))]
     (:groups

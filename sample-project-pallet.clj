@@ -15,8 +15,6 @@
                 :group-suffix "u1204"
                 :selectors #{:default}}]
               :phases {}}}
-  ;; Provide service specific configurat
-  :services {:vb4 {:phases {}}}
 
   ;; # General phases
 
@@ -32,9 +30,4 @@
   ;; :phases are applied.
 
   ;; You can specify groups directly, or by reference
-  :groups [(group-spec "xx")]
-
-  ;; add directories to the classpath
-  ;; by default the pallet directory is added.
-  :source-paths []
-  )
+  :groups [(group-spec "xx")])

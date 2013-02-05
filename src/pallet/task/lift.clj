@@ -8,7 +8,8 @@
    [pallet.api :as api :refer [print-targets]]
    [pallet.core.api :refer [phase-errors]]
    [pallet.project :refer [spec-from-project]]
-   [pallet.task :refer [abort maybe-resolve-symbol-string]]))
+   [pallet.task :refer [abort maybe-resolve-symbol-string]]
+   [pallet.task-utils :refer [pallet-project project-groups]]))
 
 (defn- build-args [args]
   (loop [args args
@@ -33,9 +34,9 @@
   "Apply configuration.
      eg. pallet lift mynodes/my-node
    The node-types should be namespace qualified."
-  [request & args]
+  [{:keys [compute project] :as request} & args]
   (let [[spec & args] (build-args args)
-        spec (or (seq spec) (spec-from-project request))
+        spec (or (seq spec) (project-groups (pallet-project project) compute))
         _ (logging/debugf "lift %s" (pr-str spec))
         op (apply api/lift
                   spec
