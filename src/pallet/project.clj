@@ -9,7 +9,7 @@ defproject refers to pallet.project.loader/defproject."
   (:require
    [clojure.java.io :refer [file resource]]
    [clojure.string :as string]
-   [pallet.api :as api :refer [cluster-spec]]))
+   [pallet.api :as api :refer [cluster-spec extend-specs]]))
 
 ;;; ## Read a project file
 (def default-pallet-file "pallet.clj")
@@ -70,17 +70,26 @@ defproject refers to pallet.project.loader/defproject."
   []
   *project*)
 
-;;; ## group specs for a project
+;;; ## group-specs for a project
 
 (defn ensure-group-count [group]
   (merge {:count 1} group))
 
-(defn ensure-node-spec [node-spec group]
-  (merge node-spec group))
+(defn merge-variant-node-specs
+  "Use the node-specs specified in the variant.  The variant can have a
+   general node-spec, or a per-group node-spec under the `:groups` key"
+  [{:keys [node-spec groups] :as variant} {:keys [group-name] :as group}]
+  (merge node-spec (get-in groups [group-name :node-spec]) group))
 
-(defn decorate-name [{:keys [group-prefix group-suffix]
+(defn merge-variant-phases
+  "Use the node-specs specified in the variant.  The variant can have a
+   general node-spec, or a per-group node-spec under the `:groups` key"
+  [{:keys [phases groups] :as variant} {:keys [group-name] :as group}]
+  (extend-specs group (remove nil? [variant (get-in groups [group-name])])))
+
+(defn decorate-name [{:keys [group-prefix group-suffix node-spec]
                       :or {group-prefix "" group-suffix ""}
-                      :as node-spec} group]
+                      :as variant} group]
   (update-in group [:group-name] #(str group-prefix % group-suffix)))
 
 (defn spec-from-project
@@ -88,16 +97,21 @@ defproject refers to pallet.project.loader/defproject."
   provider keyword.  The selector defaults to :default."
   ([{:keys [groups provider service] :as pallet-project} provider-kw selector]
      (let [selector (or selector :default)
-           node-specs (get-in provider [provider-kw :node-specs])
-           node-specs (filter (comp selector :selectors) node-specs)]
+           variants (get-in provider [provider-kw :variants])
+           ;; if variants are given we select from them, otherwise just
+           ;; use the default
+           variants (if variants
+                      (filter (comp selector :selectors) variants)
+                      [(get provider provider-kw)])]
        (:groups
         (cluster-spec "" :groups
                       (apply concat
-                             (for [node-spec node-specs]
+                             (for [variant variants]
                                (map
                                 (comp
-                                 #(decorate-name node-spec %)
-                                 #(ensure-node-spec node-spec %)
+                                 #(decorate-name variant %)
+                                 #(merge-variant-node-specs variant %)
+                                 #(merge-variant-phases variant %)
                                  ensure-group-count)
                                 groups)))))))
   ([pallet-project provider-kw]
