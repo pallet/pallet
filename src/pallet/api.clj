@@ -181,7 +181,9 @@
                     (merge (dissoc group-spec :phases))
                     (update-in
                      [:group-name]
-                     #(keyword (str (name cluster-name) "-" (name %))))
+                     #(keyword (str (name cluster-name)
+                                    (if (blank? cluster-name) "" "-")
+                                    (name %))))
                     (update-in
                      [:environment]
                      merge-environments environment)
