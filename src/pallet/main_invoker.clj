@@ -120,4 +120,4 @@
       (do
         (println "Error: no credentials supplied\n\n")
         ((main/resolve-task "help"))
-        1))))
+        (throw (ex-info "Error: no credentials supplied" {}))))))

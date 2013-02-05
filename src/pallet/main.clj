@@ -3,7 +3,7 @@
   (:require
    [pallet.command-line :as command-line]
    [clojure.tools.logging :as logging]
-   [clojure.stacktrace :as stacktrace]
+   [clojure.stacktrace :refer [print-cause-trace]]
    [clojure.walk :as walk]
    [clojure.string :as string])
   (:use
@@ -48,12 +48,12 @@
   "Check the exception to see if it is the `exit-task-exception`, and if it is
    not, then report the exception."
   [^Throwable e]
+  (logging/errorf "Exception %s" (pr-str e))
   (when-not (= e exit-task-exception)
     (logging/error e "Exception")
     (report-error (.getMessage e))
     (binding [*out* *err*]
-      (stacktrace/print-stack-trace
-       (stacktrace/root-cause e)))))
+      (print-cause-trace e))))
 
 (defn pallet-task
   "A pallet task.
@@ -99,10 +99,10 @@
                               task
                               args)))]
         (flush)
-        (if (integer? return-value) return-value 0))
+        nil)
       (catch Exception e
         (report-unexpected-exception e)
-        1))))
+        (throw e)))))
 
 (defn -main
   "Command line runner."
