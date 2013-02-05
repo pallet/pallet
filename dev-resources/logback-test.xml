@@ -5,6 +5,9 @@
     <encoder>
       <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
     </encoder>
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>INFO</level>
+    </filter>
   </appender>
 
   <appender name="COMPUTEFILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -75,13 +78,20 @@
     <appender-ref ref="VMFESTFILE" />
   </logger>
 
+  <logger name="pallet.configure" level="INFO"/>
   <logger name="pallet.executors" level="INFO"/>
   <logger name="pallet.stevedore" level="DEBUG"/>
   <logger name="pallet.action-plan" level="DEBUG"/>
   <logger name="pallet.algo.fsm" level="WARN"/>
   <logger name="pallet.algo.fsmop" level="WARN"/>
-  <logger name="pallet.core.primitives" level="DEBUG"/>
+  <logger name="pallet.action-plan" level="TRACE"/>
+  <logger name="pallet.executors" level="TRACE"/>
+  <logger name="pallet.execute" level="TRACE"/>
+  <logger name="pallet.core.api" level="TRACE"/>
+  <logger name="pallet.core.primitives" level="TRACE"/>
+  <logger name="pallet.core.operations" level="TRACE"/>
   <logger name="pallet.transport" level="TRACE"/>
+  <logger name="clj-ssh.ssh" level="ERROR"/>
   <!-- <logger name="pallet.execute.default-executor" level="TRACE"/> -->
 
   <root level="INFO">
