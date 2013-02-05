@@ -313,7 +313,8 @@
                         :as options}]
   (let [[phases phase-map] (process-phases phase)
         groups (if (map? group-spec->count)
-                 [group-spec->count])
+                 [group-spec->count]
+                 group-spec->count)
         groups (expand-group-spec-with-counts group-spec->count)
         {:keys [groups targets]} (-> groups
                                      expand-cluster-groups
