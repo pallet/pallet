@@ -12,10 +12,8 @@
 
 (defn up
   "Bring up project nodes."
-  [{:keys [compute project] :as request} & args]
-  (let [spec (project-groups (pallet-project project) compute)]
-    (when-not spec
-      (throw (ex-info "Converge with no group specified" {:args args})))
+  [{:keys [compute project] :as request} & [selector]]
+  (let [spec (project-groups (pallet-project project) compute selector)]
     (let [op (apply-map api/converge
                         spec
                         (->

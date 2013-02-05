@@ -19,6 +19,7 @@
 
 (defn project-groups
   "Compute the groups for a pallet project using the given compute service"
-  [pallet-project compute]
+  [pallet-project compute selector]
   (let [{:keys [provider]} (service-properties compute)]
-    (spec-from-project pallet-project provider)))
+    (spec-from-project
+     pallet-project provider (or (and selector (keyword selector)) :default))))

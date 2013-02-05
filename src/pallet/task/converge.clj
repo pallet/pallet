@@ -42,7 +42,8 @@
    The node-types should be namespace qualified."
   [{:keys [compute project] :as request} & args]
   (let [[spec & args] (build-args args)
-        spec (or spec (project-groups (pallet-project project) compute))]
+        spec (or spec
+                 (project-groups (pallet-project project) compute nil))]
     (logging/debugf "converge %s" (pr-str spec))
     (when-not spec
       (throw (ex-info "Converge with no group specified" {:args args})))

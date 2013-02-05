@@ -78,15 +78,27 @@ defproject refers to pallet.project.loader/defproject."
 (defn ensure-node-spec [node-spec group]
   (merge node-spec group))
 
+(defn decorate-name [{:keys [group-prefix group-suffix]
+                      :or {group-prefix "" group-suffix ""}
+                      :as node-spec} group]
+  (update-in group [:group-name] #(str group-prefix % group-suffix)))
+
 (defn spec-from-project
   "Compute the groups for a pallet project using the given compute service
-  provider keyword"
-  [{:keys [groups provider service]:as pallet-project} provider-kw]
-  (let [node-specs (get-in provider [provider-kw :node-specs])
-        node-spec (or (first (filter (comp :default :selectors) node-specs))
-                      (first node-specs))]
-    (:groups
-     (cluster-spec "" :groups (map
-                               (comp #(ensure-node-spec node-spec %)
-                                     ensure-group-count)
-                               groups)))))
+  provider keyword.  The selector defaults to :default."
+  ([{:keys [groups provider service] :as pallet-project} provider-kw selector]
+     (let [selector (or selector :default)
+           node-specs (get-in provider [provider-kw :node-specs])
+           node-specs (filter (comp selector :selectors) node-specs)]
+       (:groups
+        (cluster-spec "" :groups
+                      (apply concat
+                             (for [node-spec node-specs]
+                               (map
+                                (comp
+                                 #(decorate-name node-spec %)
+                                 #(ensure-node-spec node-spec %)
+                                 ensure-group-count)
+                                groups)))))))
+  ([pallet-project provider-kw]
+     (spec-from-project pallet-project provider-kw :default)))

@@ -36,7 +36,8 @@
    The node-types should be namespace qualified."
   [{:keys [compute project] :as request} & args]
   (let [[spec & args] (build-args args)
-        spec (or (seq spec) (project-groups (pallet-project project) compute))
+        spec (or (seq spec)
+                 (project-groups (pallet-project project) compute nil))
         _ (logging/debugf "lift %s" (pr-str spec))
         op (apply api/lift
                   spec
