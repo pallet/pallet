@@ -7,7 +7,7 @@
    [clojure.walk :as walk]
    [clojure.string :as string])
   (:use
-   [pallet.task :only [abort exit-task-exception report-error]]))
+   [pallet.task :only [abort]]))
 
 (defn read-targets
   ([dir]
@@ -48,12 +48,9 @@
   "Check the exception to see if it is the `exit-task-exception`, and if it is
    not, then report the exception."
   [^Throwable e]
-  (logging/errorf "Exception %s" (pr-str e))
-  (when-not (= e exit-task-exception)
-    (logging/error e "Exception")
-    (report-error (.getMessage e))
-    (binding [*out* *err*]
-      (print-cause-trace e))))
+  (logging/errorf e "Exception")
+  (binding [*out* *err*]
+    (print-cause-trace e)))
 
 (defn pallet-task
   "A pallet task.
@@ -72,42 +69,45 @@
      [project-options "Project options (usually picked up from project.clj)."]
      [defaults "Default options (usually picked up from config.clj)."]
      args]
-    (try
-      (let [[task & args] args
-            task (or (aliases task) task "help")
-            project-options (when project-options
-                              (read-string project-options))
-            defaults (when defaults
-                       (read-string defaults))
-            task (resolve-task task)
-            return-value (if (:no-service-required (meta task))
-                           (apply task args)
-                           (let [_ (require 'pallet.main-invoker)
-                                 invoker (find-var
-                                          'pallet.main-invoker/invoke)]
-                             (invoker
-                              {:provider provider
-                               :identity identity
-                               :credential credential
-                               :blobstore-provider blobstore-provider
-                               :blobstore-identity blobstore-identity
-                               :blobstore-credential blobstore-credential
-                               :profiles (profiles P)
-                               :project project-options
-                               :defaults defaults
-                               :environment environment}
-                              task
-                              args)))]
-        (flush)
-        nil)
-      (catch Exception e
-        (report-unexpected-exception e)
-        (throw e)))))
+    (let [[task & args] args
+          task (or (aliases task) task "help")
+          project-options (when project-options
+                            (read-string project-options))
+          defaults (when defaults
+                     (read-string defaults))
+          task (resolve-task task)
+          return-value (if (:no-service-required (meta task))
+                         (apply task args)
+                         (let [_ (require 'pallet.main-invoker)
+                               invoker (find-var
+                                        'pallet.main-invoker/invoke)]
+                           (invoker
+                            {:provider provider
+                             :identity identity
+                             :credential credential
+                             :blobstore-provider blobstore-provider
+                             :blobstore-identity blobstore-identity
+                             :blobstore-credential blobstore-credential
+                             :profiles (profiles P)
+                             :project project-options
+                             :defaults defaults
+                             :environment environment}
+                            task
+                            args)))]
+      (flush)
+      nil)))
 
 (defn -main
   "Command line runner."
   ([& args]
-     (let [return-value (pallet-task args)]
-       (shutdown-agents)
-       (System/exit return-value)))
+     (try
+       (pallet-task args)
+       (catch Exception e
+         (when-let [exit-code (:exit-code (ex-data e))]
+           (System/exit exit-code))
+         (report-unexpected-exception e)
+         (System/exit 1))
+       (finally
+         (shutdown-agents)))
+     (System/exit 0))
   ([] (apply -main *command-line-args*)))

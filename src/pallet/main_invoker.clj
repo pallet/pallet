@@ -11,9 +11,7 @@
    [pallet.configure :as configure :refer [default-compute-service]]
    [pallet.environment :as environment]
    [pallet.utils :as utils]
-   [pallet.main :as main])
-  (:use
-   [pallet.task :only [exit-task-exception]]))
+   [pallet.main :as main]))
 
 (defn log-info
   [admin-user]
@@ -92,7 +90,7 @@
                            (re-find #"provider .* not configured" msg))
                         (binding [*out* *err*]
                           (println msg)
-                          (throw exit-task-exception))
+                          (throw (ex-info msg {:exit-code 1})))
                         (throw e)))))]
     (if compute
       (try
@@ -120,4 +118,4 @@
       (do
         (println "Error: no credentials supplied\n\n")
         ((main/resolve-task "help"))
-        (throw (ex-info "Error: no credentials supplied" {}))))))
+        (throw (ex-info "Error: no credentials supplied" {:exit-code 1}))))))

@@ -37,10 +37,17 @@
 (deftest pallet-task-test
   (testing "help"
     (is (with-output [#"(?s)Pallet is a.*" no-err]
-          (is (= 0 (pallet-task ["help"]))))))
+          (is (nil? (pallet-task ["help"]))))))
   (testing "invalid task"
-    (is (with-output [no-out #"(?s)some-non-existing-task is not a task.*"]
-          (is (= 1 (pallet-task ["some-non-existing-task"])))))))
+    (testing "throws"
+     (is (thrown-with-msg? clojure.lang.ExceptionInfo
+           #"(?s)some-non-existing-task is not a task.*"
+           (pallet-task ["some-non-existing-task"]))))
+    (testing "exception has :exit-code"
+      (try
+        (pallet-task ["some-non-existing-task"])
+        (catch Exception e
+          (is (= 1 (:exit-code (ex-data e)))))))))
 
 (deftest report-unexpected-exception-test
   (logutils/suppress-logging
