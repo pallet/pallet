@@ -2,11 +2,8 @@
   "list nodes."
   (:require
    [pallet.compute :as compute]
-   [clojure.pprint :as pprint])
-  (:use clojure.tools.logging))
+   [pallet.api :refer [print-nodes]]))
 
 (defn nodes
   [request]
-  (let [ns (compute/nodes (:compute request))]
-    (doseq [n ns]
-      (println n))))
+  (print-nodes (compute/nodes (:compute request))))

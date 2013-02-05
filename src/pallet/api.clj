@@ -501,6 +501,16 @@
   `(binding [user/*admin-user* ~user]
     ~@exprs))
 
+(defn print-nodes
+  "Print the targets of an operation"
+  [nodes]
+  (print-table
+   [:primary-ip :private-ip :hostname :roles]
+   (for [node nodes]
+     {:primary-ip (primary-ip node)
+      :private-ip (private-ip node)
+      :hostname (hostname node)})))
+
 (defn print-targets
   "Print the targets of an operation"
   [op]
