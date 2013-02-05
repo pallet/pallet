@@ -8,7 +8,7 @@
    [clojure.tools.logging :as logging]
    [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
-   [pallet.configure :as configure]
+   [pallet.configure :as configure :refer [default-compute-service]]
    [pallet.environment :as environment]
    [pallet.utils :as utils]
    [pallet.main :as main])
@@ -60,7 +60,8 @@
      (compute-service-from-config-files defaults project profiles))
    (configure/compute-service-from-property)
    (configure/compute-service-from-config-var)
-   (compute-service-from-config-files defaults project profiles)))
+   (compute-service-from-config-files
+    defaults project [(default-compute-service defaults)])))
 
 (defn find-blobstore
   "Look for a compute service in the following sequence:

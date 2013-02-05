@@ -13,38 +13,38 @@
     (is (= {:provider "p" :identity "i" :credential "c"}
            (compute-service-properties
             {:provider "p" :identity "i" :credential "c"}
-            []))))
+            :pallet.configure/default))))
   (testing "default with endpoint"
     (is (= {:provider "p" :identity "i" :credential "c" :endpoint "e"}
          (compute-service-properties
           {:provider "p" :identity "i" :credential "c" :endpoint "e"}
-          []))))
+          :pallet.configure/default))))
   (testing "specified"
     (is (= {:provider "pb" :identity "ib" :credential "cb"}
            (compute-service-properties
             {:providers
              {:a {:provider "pa" :identity "ia" :credential "ca"}
               :b {:provider "pb" :identity "ib" :credential "cb"}}}
-            [:b])))
+            :b)))
     (is (= {:provider "pb" :identity "ib" :credential "cb"}
            (compute-service-properties
             {:services
              {:a {:provider "pa" :identity "ia" :credential "ca"}
               :b {:provider "pb" :identity "ib" :credential "cb"}}}
-            [:b]))))
+            :b))))
   (testing "specified with endpoint"
     (is (= {:provider "pa" :identity "ia" :credential "ca" :endpoint "ea"}
            (compute-service-properties
             {:providers
              {:a {:provider "pa" :identity "ia" :credential "ca" :endpoint "ea"}
               :b {:provider "pb" :identity "ib" :credential "cb"}}}
-            [:a])))
+            :a)))
     (is (= {:provider "pa" :identity "ia" :credential "ca" :endpoint "ea"}
            (compute-service-properties
             {:services
              {:a {:provider "pa" :identity "ia" :credential "ca" :endpoint "ea"}
               :b {:provider "pb" :identity "ib" :credential "cb"}}}
-            [:a]))))
+            :a))))
   (testing "with environment"
     (is (= {:provider "pa" :identity "ia" :credential "ca"
             :environment {:image {:os-family :ubuntu}}}
@@ -52,7 +52,7 @@
             {:providers
              {:a {:provider "pa" :identity "ia" :credential "ca"
                   :environment {:image {:os-family :ubuntu}}}}}
-            [:a])))
+            :a)))
     (is (= {:provider "pa" :identity "ia" :credential "ca"
             :environment {:image {:os-family :ubuntu :os-version "101"}}}
            (compute-service-properties
@@ -60,7 +60,7 @@
              {:a {:provider "pa" :identity "ia" :credential "ca"
                   :environment {:image {:os-family :ubuntu}}}}
              :environment {:image {:os-version "101"}}}
-            [:a])))))
+            :a)))))
 
 ;;; define service in pallet.config
 (ns pallet.config)
