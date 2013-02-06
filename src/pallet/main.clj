@@ -111,10 +111,12 @@
   "Add extra switches back into an argument vector."
   [args extras]
   (letfn [(option-to-args [[switch value]]
-            [(if (= 1 (count (name switch)))
-               (str "-" (name switch))
-               (str "--" (name switch)))
-             value])]
+            (let [k (if (= 1 (count (name switch)))
+                      (str "-" (name switch))
+                      (str "--" (name switch)))]
+              (if (or (= false value) (= true value) (nil? value))
+                [k]
+                [k value])))]
     (concat (mapcat option-to-args extras) args)))
 
 (defn ^{:doc help} pallet-task
