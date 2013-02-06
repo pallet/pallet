@@ -2,20 +2,42 @@
   "Task helpers that depend on pallet implementation"
   (:require
    [clojure.java.io :refer [file]]
+   [clojure.tools.cli :refer [cli]]
    [pallet.compute :refer [service-properties]]
    [pallet.project
-    :refer [default-pallet-file read-or-create-project spec-from-project]]))
+    :refer [create-project-file default-pallet-file default-user-pallet-file
+            pallet-file-exists?  read-or-create-project read-project
+            spec-from-project]]
+   [pallet.task :refer [abort report-error]]))
 
 (defn pallet-project
-  "Load or create the pallet project for the specified lein project."
+  "Load the pallet project for the specified lein project.  Will create
+   a user level config if called outside of a project and no user level
+   config exists yet."
   [lein-project]
   (let [project-name (:name lein-project)
         pallet-file (or (:pallet-file lein-project)
-                        (if (and project-name (:root lein-project))
-                          default-pallet-file
-                          (file (System/getProperty "user.home")
-                                ".pallet" "pallet.clj")))]
-    (read-or-create-project (or project-name "default") pallet-file)))
+                        (when (and project-name (:root lein-project))
+                          default-pallet-file))]
+    (if pallet-file
+      (if (pallet-file-exists? pallet-file)
+        (read-project pallet-file)
+        (abort (str "No pallet configuration for project.  "
+                    "Use `lein pallet project-int` to create one")))
+      (read-or-create-project "pallet" default-user-pallet-file))))
+
+(defn create-pallet-project
+  "Create the pallet project for the specified lein project."
+  [lein-project]
+  (let [project-name (:name lein-project)
+        pallet-file (or (:pallet-file lein-project)
+                        (when (and project-name (:root lein-project))
+                          default-pallet-file))]
+    (if (pallet-file-exists? pallet-file)
+      (abort (str "Pallet configuration already exists for project in "
+                  pallet-file))
+      (do (create-project-file (or project-name "default") pallet-file)
+          pallet-file))))
 
 (defn project-groups
   "Compute the groups for a pallet project using the given compute service"
