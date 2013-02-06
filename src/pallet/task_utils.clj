@@ -23,3 +23,18 @@
   (let [{:keys [provider]} (service-properties compute)]
     (spec-from-project
      pallet-project provider (or (and selector (keyword selector)) :default))))
+
+(defn process-args
+  "Process command line arguments. Returns an option map, a vector of arguments
+  and a help string."
+  [task args switches]
+  (try
+    (apply cli args switches)
+    (catch Exception e
+      (report-error
+       (str (str (.getMessage e) " for '" task "'") \newline \newline
+            (last (apply cli nil switches))))
+      (throw (ex-info
+              (str "Pallet " task " task failed")
+              {:exit-code 1}
+              e)))))
