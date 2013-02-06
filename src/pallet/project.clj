@@ -13,6 +13,9 @@ defproject refers to pallet.project.loader/defproject."
 
 ;;; ## Read a project file
 (def default-pallet-file "pallet.clj")
+(def default-user-pallet-file
+  (.getAbsolutePath
+   (file (System/getProperty "user.home") ".pallet" "pallet.clj")))
 
 (defn add-default-phases
   "Adds default phases.  Note that these are merged as ordinary clojure maps,
@@ -39,12 +42,13 @@ defproject refers to pallet.project.loader/defproject."
   ([] (read-project default-pallet-file)))
 
 (defn pallet-file-exists?
-  "Predicate to check if a pallet.clj file exsists."
+  "Predicate to check if a pallet.clj file exists."
   ([pallet-file] (.exists (file pallet-file)))
   ([] (pallet-file-exists? default-pallet-file)))
 
 (defn create-project-file
   [project-name pallet-file]
+  (.mkdirs (file pallet-file))
   (spit pallet-file
         (-> (resource "pallet/default-project-pallet.clj")
             slurp
