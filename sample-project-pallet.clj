@@ -1,7 +1,8 @@
 ;;; A pallet configuration file
 
-;;; By default, the pallet.api and pallet.crate namespaces are already referred.
-;;; The pallet.crate.automated-admin-user/automated-admin-user us also referred.
+;;; By default, the pallet.actions, pallet.api and pallet.crate namespaces are
+;;; already referred.  The
+;;; pallet.crate.automated-admin-user/automated-admin-user us also referred.
 
 ;;; (require '[your-ns :refer [your-group])
 
