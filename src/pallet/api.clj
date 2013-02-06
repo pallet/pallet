@@ -504,7 +504,7 @@
 (defn print-nodes
   "Print the targets of an operation"
   [nodes]
-  (let [ks [:primary-ip :private-ip :hostname :roles]]
+  (let [ks [:primary-ip :private-ip :hostname :group-name :roles]]
     (print-table ks
                  (for [node nodes
                        :let [node (node-map node)]]
@@ -513,7 +513,7 @@
 (defn print-targets
   "Print the targets of an operation"
   [op]
-  (let [ks [:primary-ip :private-ip :hostname :roles]]
+  (let [ks [:primary-ip :private-ip :hostname :group-name :roles]]
     (print-table ks
                  (for [{:keys [node roles]} (:targets op)]
                    (assoc (select-keys (node-map node) ks)
