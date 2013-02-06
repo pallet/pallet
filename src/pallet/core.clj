@@ -1248,7 +1248,7 @@
                        (logging/info "retrieving nodes")
                        (compute/nodes compute))
                      selected)))]
-    (assoc session :all-nodes nodes :selected-nodes (or selected nodes))))
+    (assoc session :all-nodes nodes :selected-nodes (or (seq selected) nodes))))
 
 (defn session-with-groups
   "Takes the :selected-nodes, :all-nodes. :node-set and :prefix keys and compute
