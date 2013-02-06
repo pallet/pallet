@@ -8,6 +8,7 @@ which is reset after loading.
 defproject refers to pallet.project.loader/defproject."
   (:require
    [clojure.java.io :refer [file resource]]
+   [clojure.set :refer [intersection]]
    [clojure.string :as string]
    [pallet.api :as api :refer [cluster-spec extend-specs]]))
 
@@ -99,13 +100,15 @@ defproject refers to pallet.project.loader/defproject."
 (defn spec-from-project
   "Compute the groups for a pallet project using the given compute service
   provider keyword.  The selector defaults to :default."
-  ([{:keys [groups provider service] :as pallet-project} provider-kw selector]
-     (let [selector (or selector :default)
+  ([{:keys [groups provider service] :as pallet-project} provider-kw selectors]
+     (let [selectors (or selectors #{:default})
            variants (get-in provider [provider-kw :variants])
            ;; if variants are given we select from them, otherwise just
            ;; use the default
            variants (if variants
-                      (filter (comp selector :selectors) variants)
+                      (filter
+                       (comp seq #(intersection (set selectors) %) :selectors)
+                       variants)
                       [(get provider provider-kw)])]
        (:groups
         (cluster-spec "" :groups

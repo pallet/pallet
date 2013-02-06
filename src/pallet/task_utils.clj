@@ -39,12 +39,18 @@
       (do (create-project-file (or project-name "default") pallet-file)
           pallet-file))))
 
+(defn comma-sep->kw-seq
+  [s]
+  (and s (map keyword (.split s ","))))
+
 (defn project-groups
   "Compute the groups for a pallet project using the given compute service"
-  [pallet-project compute selector]
+  [pallet-project compute selectors]
   (let [{:keys [provider]} (service-properties compute)]
     (spec-from-project
-     pallet-project provider (or (and selector (keyword selector)) :default))))
+     pallet-project
+     provider
+     (comma-sep->kw-seq selectors))))
 
 (defn process-args
   "Process command line arguments. Returns an option map, a vector of arguments
