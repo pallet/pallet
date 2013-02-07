@@ -1,5 +1,6 @@
 (ns pallet.node
   "API for nodes in pallet"
+  (:refer-clojure :exclude [proxy])
   (:use
    [pallet.compute :only [node-tag node-tags tag-node! node-taggable?]]))
 
@@ -32,6 +33,9 @@
      containing the number of `:cores` on each. The `:disks` is a sequence
      of maps, containing a :size key for each drive, in Gb. Other keys
      may be present."))
+
+(defprotocol NodeProxy
+  (proxy [node] "A map with SSH proxy connection details."))
 
 (defn node?
   "Predicate to test whether an object implements the Node protocol"
