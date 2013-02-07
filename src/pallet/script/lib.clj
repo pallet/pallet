@@ -23,17 +23,6 @@
    options
    translations))
 
-;(defn expect
- ;  "Install the expect package."
-;   [session]
- ;  (->
-;     session
-;     (package/packages
-;       :yum ["expect"])
-;       :pkgin ["tcl-expect"]
-;       :brew ["expect"]
-;       :aptitude ["expect"]))
-
 (script/defscript exit [value])
 (script/defimpl exit :default [value]
   (exit ~value))
