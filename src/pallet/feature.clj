@@ -61,6 +61,10 @@
   "Feature for pallet.node/NodeHardware."
   [] true)
 
+(defn node-proxy
+  "Feature for pallet.node/NodeProxy."
+  [] true)
+
 (defn compute-service-properties
   "Feature for pallet.compute/ComputeServiceProperties."
   [] true)
