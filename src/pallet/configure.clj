@@ -102,7 +102,9 @@
   [config]
   (or (:default-service config)         ; explicit default
       (and            ; default service specified by top level keys in defpallet
-       (->> [:provider :identity :credential] (map config) (every? identity))
+       (->> [:provider :identity :credential]
+            (map (or config {}))
+            (every? identity))
        ::default)
       (first (keys (:services config))))) ; the "first" specified
 
