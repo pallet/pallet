@@ -13,6 +13,13 @@
   (report-error msg)
   (throw (ex-info msg {:exit-code 1})))
 
+(def ^:dynamic *suppress-exit* nil)
+
+(defn exit [exit-code]
+  (if *suppress-exit*
+    (throw (ex-info "suppressed exit" {:exit-code exit-code}))
+    (System/exit exit-code)))
+
 (defn parse-as-qualified-symbol
   "Convert the given symbol-string into a namespace qualified symbol.
    Returns a vector of ns and symbol"
