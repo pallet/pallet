@@ -2,7 +2,8 @@
   (:use pallet.main)
   (:require
    [clojure.string :as string]
-   [pallet.common.logging.logutils :as logutils])
+   [pallet.common.logging.logutils :as logutils]
+   [pallet.task :refer [*suppress-exit*]])
   (:use
    clojure.test
    pallet.test-utils))
@@ -35,12 +36,20 @@
 (def no-err no-out)
 
 (deftest pallet-task-test
-  (testing "help"
-    (is (with-output [#"(?s)Pallet is a.*" no-err]
-          (is (= 0 (pallet-task ["help"]))))))
-  (testing "invalid task"
-    (is (with-output [no-out #"(?s)some-non-existing-task is not a task.*"]
-          (is (= 1 (pallet-task ["some-non-existing-task"])))))))
+  (binding [*suppress-exit* true]
+    (testing "help"
+      (is (with-output [#"(?s)Pallet is a.*" no-err]
+            (is (nil? (pallet-task ["help"]))))))
+    (testing "invalid task"
+      (testing "throws"
+        (is (thrown-with-msg? clojure.lang.ExceptionInfo
+              #"(?s)suppressed exit.*"
+              (pallet-task ["some-non-existing-task"]))))
+      (testing "exception has :exit-code"
+        (try
+          (pallet-task ["some-non-existing-task"])
+          (catch Exception e
+            (is (= 1 (:exit-code (ex-data e))))))))))
 
 (deftest report-unexpected-exception-test
   (logutils/suppress-logging
