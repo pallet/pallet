@@ -6,7 +6,7 @@
    [clojure.tools.cli :refer [cli]]
    [clojure.tools.logging :as logging]
    [clojure.walk :as walk]
-   [pallet.task :refer [abort report-error]]))
+   [pallet.task :refer [abort exit report-error]]))
 
 (defn read-targets
   ([dir]
@@ -159,7 +159,7 @@
         ;; suppress exception traces for errors with :exit-code
         (if-let [exit-code (:exit-code (ex-data e))]
           (do (report-error (.getMessage e))
-              (System/exit exit-code))
+              (exit exit-code))
           (throw e))))))
 
 (defn -main
@@ -169,12 +169,12 @@
        (pallet-task args)
        (catch Exception e
          (when-let [exit-code (:exit-code (ex-data e))]
-           (System/exit exit-code))
+           (exit exit-code))
          (report-unexpected-exception e)
-         (System/exit 1))
+         (exit 1))
        (finally
          (shutdown-agents)))
-     (System/exit 0))
+     (exit 0))
   ([] (apply -main *command-line-args*)))
 
 ;;; Allow the task to define pallet services
