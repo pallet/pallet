@@ -424,7 +424,7 @@
 ;; called instead
 ;; Please note for smartos modify user with a password option will rely
 ;; upon expect being installed on the server.  Currently this is not done
-;; for you.
+;; for you and you should look at minimal-packages that will install this.
 (script/defimpl create-user [#{:smartos}]
   [username options]
    ("/usr/sbin/useradd"
