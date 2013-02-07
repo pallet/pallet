@@ -176,3 +176,9 @@
          (shutdown-agents)))
      (System/exit 0))
   ([] (apply -main *command-line-args*)))
+
+;;; Allow the task to define pallet services
+(def transient-services (atom {}))
+
+(defn add-service [name-kw properties]
+  (swap! transient-services assoc-in [:services name-kw] properties))

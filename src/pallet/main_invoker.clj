@@ -11,7 +11,7 @@
    [pallet.configure :as configure :refer [default-compute-service]]
    [pallet.environment :as environment]
    [pallet.utils :as utils]
-   [pallet.main :as main]))
+   [pallet.main :as main :refer [transient-services]]))
 
 (defn log-info
   [admin-user]
@@ -59,7 +59,10 @@
    (configure/compute-service-from-property)
    (configure/compute-service-from-config-var)
    (compute-service-from-config-files
-    defaults project [(default-compute-service defaults)])))
+    defaults project [(default-compute-service defaults)])
+   (compute-service-from-config-files
+    @transient-services project
+    [(default-compute-service @transient-services)])))
 
 (defn find-blobstore
   "Look for a compute service in the following sequence:
