@@ -1,5 +1,154 @@
 Unstable development branch
 
+# 0.8.0-alpha.9
+
+- Update p.c.api/phase-errors to use wait-for
+
+- Add support for connecting to nodes via a proxy.  Adds the
+  pallet.node/NodeProxy protocol, with a single function, proxy, that
+  returns a map with :host and :port keys.
+
+- Allow injection of service definitions in tasks
+  Adds pallet.main/add-service, to allow service definitions to be added by
+  a task driver (eg. lein pallet plugin)
+
+- Add edn output in nodes task
+  The nodes task can be invoked with `-f edn` to output a clojure data
+  structure describing the nodes.
+
+- Update task option processing to use tools.cli
+
+- Remove the new-project task
+
+- Add project-init task to write a default pallet.clj
+  Make it easy to generate an initial configuration file.
+
+- Add pallet.api/print-nodes and pallet.api/print-targets
+  Add a function to print the targets of an operation in a table.
+
+- Update tasks to throw on error
+  This is to match lein 2 expectations.
+
+- Add up and down tasks
+  The tasks bring up and tear down nodes according to the current
+  project.clj file.
+
+- Use project config in lift and converge tasks
+  When no group-specs are specified in these tasks, use the project
+  `pallet.clj` file to find a default group spec.
+
+- Add project specific config file
+  A project specific `pallet.clj` file is now available.  The file is in
+  the project root by default.  The `pallet.project*` namespaces deal with
+  loading and returning information from the file.  See
+  `sample-project-pallet.clj` for an example.
+
+- Only add a dash in cluster-spec if prefix given
+  If a cluster-spec is requested with a blank prefix, do not add a dash to
+  the group names.
+
+- Fix processing of groups in converge
+  Groups specified as a sequence with :count keys were being ignored.
+
+- Rename test-resouces to dev-resources
+  Aligns with lein 2 usage
+
+- Fix the handling of task args
+  The args were all being read, which caused problems when values passed
+  didn't read to the expected type (eg. strings containing a single / were
+  read as symbols). It is now the task's responsibility to do any reading
+  required. Fixes #161.
+
+- Pass explicit user for loopback tests
+
+- Add :no-sudo to user for loopback tests
+
+- Update for new source line comments in stevedore
+
+- Adjust script execution logging
+  Uses the new "#> " status line prefix in stevedore to help make the logs
+  more searchable.
+
+- Add function to throw operation phase errors
+  Adds the pallet.core.api/throw-phase-errors function that will throw an
+  exception if the passed operation has phase errors.
+
+- Add location information to exec-checked-script
+  In order to improved the utility of the logs, add file and line number to 
+  message string passed to exec-checked-script.
+
+- Require clojure 1.4.0
+  Remove use of slingshot
+
+- Fix plan-when script generation bug
+  plan-when was generating invalid script, due to unquote not being scoped
+  correctly.
+
+- Annotate functions returning a node-value
+  Add {:pallet/plan-fn true} metadata to each function that returns a
+  node-value.
+
+- Don't show null as context in log messages
+  Avoid showing anything as the context when no context is available.  This
+  was being displayed as 'null'.
+
+- Add arguments to phase functions
+  Allow functions with arguments as phase functions.  When calling lift,
+  the arguments to a phase can be passed using a vector.  For example (lift
+  mygroup
+  :phase [[:configure :full]]) passes a :full argument to the :configure
+  phase function.
+
+- Fix has-state-flag? for when node is not taggable
+
+- Allow :packager specification in a group-spec
+  This should fix a regression compared with 0.7.x.
+
+- Update the user and group action doc strings
+
+- Refactor etc-hosts crate
+  The host entries are now maintained in the settings, with functions to
+  add localhost, ipv6-aliases and a named localhost-hostname (using
+  127.0.1.1). The aliases for each ip are now stored in a sequence.
+
+  The new add-hosts function allows for bulk update of the hosts mapping.
+
+  The hosts-for-group and hosts-for role are removed.  Equivalent
+  functionality can be achieved using pallet.crate/nodes-with-role and the
+  add-hosts function.
+
+- Add trace level logging to pallet.ssh.execute
+  The trace level logging gives insight into the timing of action
+  executions.
+
+- Add targets and target-nodes to pallet.crate
+  These functions return all nodes being targeted by the converge or lift.
+
+- Ensure a session is set when executing
+  The thread-local *session* wasn't being set when executing an
+  action-plan.
+
+- Improve service-properties doc string
+
+- Use a phase-context for named plan-fns
+  When a name is given to the plan-fn, create a phase-context for it,
+  rather than a session-context.  The session-pipeline is renamed to
+  session-context.
+
+- Make rsync action take options
+  Allows passing a map of option flags.  By default rsync is now less
+  verbose, with no -P flag.
+
+- Add pallet.actions/as-action
+  Allow wrapping of arbitrary clojure code to be run as an action.
+
+- Improve error logging
+
+- Update to latest fsmop and script-exec
+
+- Update useful version
+
+
 # 0.8.0-alpha.8
 
 - Rename pipeline-when to plan-when
