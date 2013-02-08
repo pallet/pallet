@@ -29,9 +29,13 @@
 
 (defn endpoint
   [session]
-  (let [target-node (-> session :server :node)]
-    {:server (node/node-address target-node)
-     :port (node/ssh-port target-node)}))
+  (let [target-node (-> session :server :node)
+        proxy (node/proxy target-node)]
+    (if proxy
+      {:server (or (:host proxy "localhost"))
+       :port (:port proxy)}
+      {:server (node/node-address target-node)
+       :port (node/ssh-port target-node)})))
 
 (defn- ssh-mktemp
   "Create a temporary remote file using the `ssh-session` and the filename

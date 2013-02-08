@@ -8,6 +8,7 @@
    [clojure.tools.logging :only [debugf tracef]]
    [clojure.string :only [blank?]]
    [pallet.action-plan :only [execute stop-execution-on-error translate]]
+   [pallet.algo.fsmop :only [wait-for]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :only [destroy-nodes-in-group destroy-node nodes run-nodes]]
    [pallet.core.session :only [session with-session]]
@@ -332,8 +333,8 @@
 (defn phase-errors
   "Return the phase errors for an operation"
   [operation]
-  (when (:phase-errors @operation)
-    (mapcat :errors (:results @operation))))
+  (when (:phase-errors (wait-for operation))
+    (mapcat :errors (:results (wait-for operation)))))
 
 (defn throw-phase-errors
   [operation]
