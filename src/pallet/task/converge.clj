@@ -1,10 +1,14 @@
 (ns pallet.task.converge
   "Adjust node counts."
   (:require
-   [pallet.api :as api]
-   [clojure.tools.logging :as logging])
-  (:use
-   [pallet.task :only [abort maybe-resolve-symbol-string]]))
+   [clojure.pprint :refer [print-table]]
+   [clojure.stacktrace :refer [print-cause-trace]]
+   [clojure.tools.logging :as logging]
+   [pallet.algo.fsmop :refer [complete? failed? wait-for]]
+   [pallet.api :as api :refer [print-targets]]
+   [pallet.core.api :refer [phase-errors]]
+   [pallet.task :refer [abort maybe-resolve-symbol-string]]
+   [pallet.task-utils :refer [pallet-project project-groups]]))
 
 (defn- build-args [args]
   (loop [args args
@@ -36,14 +40,31 @@
   "Adjust node counts.  Requires a map of node-type, count pairs.
      eg. pallet converge mynodes/my-node 1
    The node-types should be namespace qualified."
-  [request & args]
-  (let [args (build-args args)]
-    (apply api/converge
-           (concat args
-                   (apply concat
-                          (->
-                           request
-                           (dissoc :config :project)
-                           (assoc :environment
-                             (or (:environment request)
-                                 (-> request :project :environment)))))))))
+  [{:keys [compute project] :as request} & args]
+  (let [[spec & args] (build-args args)
+        spec (or spec
+                 (project-groups (pallet-project project) compute nil))]
+    (logging/debugf "converge %s" (pr-str spec))
+    (when-not spec
+      (throw (ex-info "Converge with no group specified" {:args args})))
+    (let [op (apply api/converge
+                    spec
+                    (concat
+                     args
+                     (apply concat
+                            (->
+                             request
+                             (dissoc :config :project)
+                             (assoc :environment
+                               (or (:environment request)
+                                   (-> request :project :environment)))))))]
+      (wait-for op)
+        (if (complete? op)
+          (print-targets @op)
+          (do
+            (println "An error occured")
+            (when-let [e (:exception @op)]
+              (print-cause-trace e))
+            (when-let [e (seq (phase-errors op))]
+              (print-table (->> e (map :error) (map #(dissoc % :type)))))
+            (println "See logs for further details"))))))

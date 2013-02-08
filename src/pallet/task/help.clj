@@ -1,25 +1,21 @@
 (ns pallet.task.help
   "Display a list of tasks or help for a given task."
   (:require
-   [clojure.string :as string]))
+   [clojure.string :as string]
+   [chiba.plugin :refer [plugins]]
+   [pallet.main :refer [pallet-args]]))
 
-(def impl-ns #"^pallet\.task\.")
+(def impl-ns "pallet.task.")
 (def task-list (atom nil))
 
 (defn tasks
   "Find the available tasks."
   []
   (try
-   (require 'clojure.tools.namespace)
-   (let [find-namespaces-on-classpath
-         (find-var 'clojure.tools.namespace/find-namespaces-on-classpath)]
-     (or @task-list
-         (reset! task-list
-                 (set (filter #(re-find impl-ns (name %))
-                              (find-namespaces-on-classpath))))))
-   (catch java.io.FileNotFoundException e
-     #{'pallet.task.help
-       'pallet.task.new-project})))
+    (or @task-list
+        (reset! task-list (plugins impl-ns)))
+    (catch java.io.FileNotFoundException e
+      #{'pallet.task.help})))
 
 (defn help-for
   "Help for a task is stored in its docstring, or if that's not present
@@ -39,34 +35,33 @@
                        (string/join " " %))
                  arglists)))))
 
-;; affected by clojure ticket #130: bug of AOT'd namespaces losing metadata
 (defn help-summary-for [task-ns]
-  (require task-ns)
   (let [task-name (last (.split (name task-ns) "\\."))]
-    (str task-name (apply str (repeat (- 8 (count task-name)) " "))
-         " - " (:doc (meta (find-ns task-ns))))))
+    (try
+      (require task-ns)
+      (str task-name (apply str (repeat (- 16 (count task-name)) " "))
+           " - " (:doc (meta (find-ns task-ns))))
+      (catch Exception e
+        (str task-name " failed to load: " (.getMessage e))))))
 
 (defn help
   {:no-service-required true}
   ([task] (println (help-for task)))
   ([]
-     (println "Pallet is a cloud administration tool.\n")
-     (println "Several tasks are available:")
-     (doseq [task-ns (tasks)]
-       ;; (println (help-summary-for task-ns))
-       (println " " (last (.split (name task-ns) "\\."))))
-     (println "\nRun pallet help $TASK for details.")
+     (println
+      (str "Pallet is a provisioning, configuration management and "
+           "orchestration tool.\n"))
+     (println "Several tasks are available:\n")
+     (doseq [task-summary (sort (map help-summary-for (tasks)))]
+       (println task-summary))
+     (println "\nRun pallet help $TASK for details.\n\n")
+
+     (println (last (pallet-args nil)))
 
      (if @task-list
        (do
-         (println "\nYou can write project specific tasks under the\n"
-                  "pallet.task namespace.")
-         (println "\nOptions:")
-         (println "  -progvide    name-of-cloud-provider")
-         (println "  -identity    login for cloud service API")
-         (println "  -credential  key or password for cloud service API")
          (println "\nIf no options are given, the following sequence is used to")
-         (println "find a service to use.")
+         (println "find a compute service to use.")
          (println "\n  the pallet.config.service property is checked for the")
          (println "    name of a var to use for the service,")
          (println "\n  the ~/.pallet/config.clj is checked for an active profile")
@@ -76,12 +71,7 @@
          (println "          :aws {:provider \"ec2\"")
          (println "                :identity \"username or key\"")
          (println "                :credential \"password, key or secret key\"}})")
-         (println "\n  the ~/.m2/settings.xml is checked for an active profile")
-         (println "    with the following properties:")
-         (println "      pallet.compute.provider")
-         (println "      pallet.compute.identity")
-         (println "      pallet.compute.credential,")
-         (println "\n  the pallet.config/service is used if it exists."))
-       (do
-         (println "Run the new-project task to create a pallet project.\n")))
-     (println "\nSee http://github.com/hugoduncan/pallet.")))
+         (println "\n  the pallet.config/service is used if it exists.")
+         (println "\nYou can write project specific tasks under the\n"
+                  "pallet.task namespace.")))
+     (println "\nSee http://palletops.com for documentation")))

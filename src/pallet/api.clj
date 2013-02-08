@@ -14,7 +14,7 @@
    [pallet.crate :only [phase-context]]
    [pallet.algo.fsmop :only [dofsm operate result succeed]]
    [pallet.environment :only [merge-environments]]
-   [pallet.node :only [node? hostname primary-ip private-ip]]
+   [pallet.node :only [node? node-map]]
    [pallet.thread-expr :only [when->]]
    [pallet.utils :only [apply-map]]))
 
@@ -501,13 +501,20 @@
   `(binding [user/*admin-user* ~user]
     ~@exprs))
 
+(defn print-nodes
+  "Print the targets of an operation"
+  [nodes]
+  (let [ks [:primary-ip :private-ip :hostname :group-name :roles]]
+    (print-table ks
+                 (for [node nodes
+                       :let [node (node-map node)]]
+                   (select-keys node ks)))))
+
 (defn print-targets
   "Print the targets of an operation"
   [op]
-  (print-table
-   [:primary-ip :private-ip :hostname :roles]
-   (for [{:keys [node roles]} (:targets op)]
-     {:primary-ip (primary-ip node)
-      :roles roles
-      :private-ip (private-ip node)
-      :hostname (hostname node)})))
+  (let [ks [:primary-ip :private-ip :hostname :group-name :roles]]
+    (print-table ks
+                 (for [{:keys [node roles]} (:targets op)]
+                   (assoc (select-keys (node-map node) ks)
+                     :roles roles)))))

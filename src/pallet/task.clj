@@ -1,10 +1,5 @@
 (ns pallet.task
-  "Task helpers")
-
-(def
-  ^{:doc "An exception instance to use for terminating the task, without
-          a stack trace"}
-  exit-task-exception (Exception.))
+  "Task helpers, that do not have any dependencies in pallet.")
 
 (defn report-error
   "Report a message to *err*."
@@ -16,7 +11,14 @@
   "Abort a task, with the specified error message, and no stack trace."
   [msg]
   (report-error msg)
-  (throw exit-task-exception))
+  (throw (ex-info msg {:exit-code 1})))
+
+(def ^:dynamic *suppress-exit* nil)
+
+(defn exit [exit-code]
+  (if *suppress-exit*
+    (throw (ex-info "suppressed exit" {:exit-code exit-code}))
+    (System/exit exit-code)))
 
 (defn parse-as-qualified-symbol
   "Convert the given symbol-string into a namespace qualified symbol.

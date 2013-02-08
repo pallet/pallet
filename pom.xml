@@ -95,6 +95,11 @@
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
+      <artifactId>tools.cli</artifactId>
+      <version>0.2.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
       <artifactId>tools.macro</artifactId>
       <version>0.1.1</version>
     </dependency>
