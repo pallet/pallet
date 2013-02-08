@@ -24,7 +24,7 @@
 
 (defrecord Node
     [name group-name ip os-family os-version id ssh-port private-ip is-64bit
-     running service hardware]
+     running service hardware proxy]
   pallet.node.Node
   (ssh-port [node] ssh-port)
   (primary-ip [node] ip)
@@ -41,14 +41,16 @@
   pallet.node.NodePackager
   (packager [node] (compute/packager-for-os os-family os-version))
   pallet.node.NodeHardware
-  (hardware [node] hardware))
+  (hardware [node] hardware)
+  pallet.node.NodeProxy
+  (proxy [node] proxy))
 
 ;;; Node utilities
 (defn make-node
   "Returns a node, suitable for use in a node-list."
   [name group-name ip os-family
    & {:keys [id ssh-port private-ip is-64bit running os-version service
-             hardware]
+             hardware proxy]
       :or {ssh-port 22 is-64bit true running true}}]
   (Node.
    name
@@ -62,7 +64,8 @@
    is-64bit
    running
    service
-   hardware))
+   hardware
+   proxy))
 
 (deftype NodeTagUnsupported
     []
