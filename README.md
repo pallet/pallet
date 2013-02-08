@@ -19,6 +19,13 @@ It uses [jclouds][jclouds] to gain portable access to different cloud providers.
 
 [Documentation][docs] is available.
 
+## Crates
+
+Pallet installation and configuration for various software packages is provided
+via crates.  For pallet 0.4.x through 0.6.x, the crates are in the
+[pallet-crates](https://github.com/pallet/pallet-crates) repo. For 0.7.x and
+on, each crate is in its own repository.
+
 ## Support
 
 On the [mailing list][ml], or #pallet on freenode irc.
@@ -37,7 +44,7 @@ Installation is with maven or your favourite maven repository aware build tool.
 ### lein project.clj
 
 ```clojure
-:dependencies [[org.cloudhoist/pallet "0.8.0-alpha.8"]]
+:dependencies [[org.cloudhoist/pallet "0.8.0-alpha.9"]]
 :repositories {"sonatype"
                "http://oss.sonatype.org/content/repositories/releases"}
 ```
@@ -49,7 +56,7 @@ Installation is with maven or your favourite maven repository aware build tool.
   <dependency>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet</artifactId>
-    <version>0.8.0-alpha.8</version>
+    <version>0.8.0-alpha.9</version>
   </dependency>
 <dependencies>
 
