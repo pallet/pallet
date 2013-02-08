@@ -1,7 +1,7 @@
 (ns pallet.actions.direct.retry-test
   (:use
    clojure.test
-   [pallet.actions :only [retry-until]]
+   [pallet.actions :only [loop-until retry-until]]
    [pallet.build-actions :only [build-actions]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.stevedore :only [script]]))
@@ -9,20 +9,13 @@
 (use-fixtures :once (logging-threshold-fixture))
 
 (deftest retry-test
-  (is (= (str
-          "echo \"Wait for x...\"\n"
-          "{ { let x=0 || true; } && "
-          "while ! ( [ -e abc ] ); do\n"
-          "let x=(x + 1)\n"
-          "if [ \"5\" == \"${x}\" ]; then\n"
-          "echo Timed out waiting for x >&2\nexit 1\nfi\n"
-          "echo Waiting for x\n"
-          "sleep 2\ndone; } || { echo \"Wait for x\" failed; exit 1; } >&2 "
-          "\necho \"...done\"\n")
-         (first (build-actions {}
-                  (retry-until
-                   {:service-name "x"}
-                   (script (file-exists? abc))))))))
+  (is (script-no-comment=
+       (first (build-actions {}
+                (loop-until "x" (script (file-exists? abc)) 5 2)))
+       (first (build-actions {}
+                (retry-until
+                 {:service-name "x"}
+                 (script (file-exists? abc))))))))
 
 ;; (against-background [(around :facts (with-threshold [:warn] ?form))]
 ;;   (fact

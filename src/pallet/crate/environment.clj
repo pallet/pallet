@@ -28,9 +28,8 @@
         (conj
          (for [[k v] key-value-pairs]
            (stevedore/script
-            (pallet_set_env
-             ~k ~v
-             ~(str (name k) "=" (pr-str v)))))
+            (var vv ~v)                ; so v can contain multi-line expressions
+            (pallet_set_env ~k @vv (str ~(name k) "=" (quoted @vv)))))
          (stevedore/script
           (defn pallet_set_env [k v s]
             (if (not @(grep (quoted @s) ~path))

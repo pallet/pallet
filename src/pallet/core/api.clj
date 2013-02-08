@@ -8,19 +8,19 @@
    [clojure.tools.logging :only [debugf tracef]]
    [clojure.string :only [blank?]]
    [pallet.action-plan :only [execute stop-execution-on-error translate]]
+   [pallet.algo.fsmop :only [wait-for]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :only [destroy-nodes-in-group destroy-node nodes run-nodes]]
    [pallet.core.session :only [session with-session]]
    [pallet.environment :only [get-for]]
    [pallet.executors :only [default-executor]]
-   [pallet.node :only [image-user primary-ip tag tag!]]
+   [pallet.node :only [image-user primary-ip tag tag! taggable?]]
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :only [add-session-verification-key check-session]]
    [pallet.utils :only [maybe-assoc]]
    pallet.core.api-impl
-   [pallet.core.user :only [*admin-user*]]
-   [slingshot.slingshot :only [throw+]]))
+   [pallet.core.user :only [*admin-user*]]))
 
 (let [v (atom nil)]
   (defn version
@@ -47,7 +47,7 @@
   the context of the `service-state`. The `plan-state` contains all the
   settings, etc, for all groups. `target-map` is a map for the session
   describing the target."
-  [service-state environment plan-fn target-map]
+  [service-state environment plan-fn args target-map]
   {:pre [(not (map? plan-fn)) (fn? plan-fn)
          (map? target-map)
          (or (nil? environment) (map? environment))]}
@@ -61,12 +61,25 @@
                 {:service-state service-state
                  :plan-state plan-state
                  :environment environment}))
-              (plan-fn)
+              (apply plan-fn args)
               (check-session (session) '(plan-fn))
               (session))]
       (let [[action-plan session] (get-session-action-plan s)
             [action-plan session] (translate action-plan session)]
         [action-plan (:plan-state session)]))))
+
+(defn- phase-args [phase]
+  (if (keyword? phase)
+    nil
+    (rest phase)))
+
+(defn- phase-kw [phase]
+  (if (keyword? phase)
+    phase
+    (first phase)))
+
+(defn- target-phase [target phase]
+  (-> target :phases (get (phase-kw phase))))
 
 (defmulti target-action-plan
   "Build action plans for the specified `phase` on all nodes or groups in the
@@ -75,14 +88,15 @@
   (fn [service-state environment phase target] (:target-type target :node)))
 
 (defmethod target-action-plan :node
-  [service-state environment phase node]
-  {:pre [node]}
+  [service-state environment phase target]
+  {:pre [target]}
   (fn [plan-state]
-    (logutils/with-context [:target (-> node :node primary-ip)]
-      (with-script-for-node (:node node)
+    (logutils/with-context [:target (-> target :node primary-ip)]
+      (with-script-for-node target
         ((action-plan
-          service-state environment (-> node :phases phase)
-          {:server node})
+          service-state environment
+          (target-phase target phase) (phase-args phase)
+          {:server target})
          plan-state)))))
 
 (defmethod target-action-plan :group
@@ -91,13 +105,14 @@
   (fn [plan-state]
     (logutils/with-context [:target (-> group :group-name)]
       ((action-plan
-        service-state environment (-> group :phases phase)
+        service-state environment
+        (target-phase group phase) (phase-args phase)
         {:group group})
        plan-state))))
 
 (defn action-plans
   [service-state environment phase targets]
-  (let [targets-with-phase (filter #(-> % :phases phase) targets)]
+  (let [targets-with-phase (filter #(target-phase % phase) targets)]
     (tracef
      "action-plans: phase %s targets %s targets-with-phase %s"
      phase (vec targets) (vec targets-with-phase))
@@ -108,7 +123,7 @@
          (partial target-action-plan service-state environment phase)
          targets-with-phase)]
        (map
-        #(hash-map :target %1 :phase phase :action-plan %2)
+        #(hash-map :target %1 :phase (phase-kw phase) :action-plan %2)
         targets-with-phase action-plans)))))
 
 
@@ -138,15 +153,16 @@
   [session executor execute-status-fn
    {:keys [action-plan phase target-type target]}]
   (tracef "execute-action-plan*")
-  (let [[result session] (execute
-                          action-plan session executor execute-status-fn)
-        errors (seq (remove (complement :error) result))
-        value {:target target
-               :target-type target-type
-               :plan-state (:plan-state session)
-               :result result
-               :phase phase}]
-    (maybe-assoc value :errors errors)))
+  (with-session session
+    (let [[result session] (execute
+                            action-plan session executor execute-status-fn)
+          errors (seq (remove (complement :error) result))
+          value {:target target
+                 :target-type target-type
+                 :plan-state (:plan-state session)
+                 :result result
+                 :phase (phase-kw phase)}]
+      (maybe-assoc value :errors errors))))
 
 (defmulti execute-action-plan
   "Execute the `action-plan` on the `target`."
@@ -159,7 +175,7 @@
    {:keys [action-plan phase target-type target] :as action-plan-map}]
   (tracef "execute-action-plan :node")
   (logutils/with-context [:target (-> target :node primary-ip)]
-    (with-script-for-node (:node target)
+    (with-script-for-node target
       (execute-action-plan*
        {:server target
         :service-state service-state
@@ -188,10 +204,11 @@
   (let [existing-count (count targets)
         target-count (:count group ::not-specified)]
     (when (= target-count ::not-specified)
-      (throw+
-       {:reason :target-count-not-specified
-        :group group}
-       "Node :count not specified for group: %s" (:group-name group)))
+      (throw
+       (ex-info
+        "Node :count not specified for group: %s"
+        {:reason :target-count-not-specified
+         :group group}) (:group-name group)))
     {:actual existing-count :target target-count
      :delta (- target-count existing-count)}))
 
@@ -301,7 +318,8 @@
   [state-name]
   (fn [node]
     (get
-     (read-or-empty-map (tag (:node node) state-tag-name))
+     (when (taggable? (:node node))
+       (read-or-empty-map (tag (:node node) state-tag-name)))
      (keyword (name state-name)))))
 
 ;;; # Exception reporting
@@ -311,3 +329,17 @@
   [operation]
   (when-let [e (:exception @operation)]
     (throw e)))
+
+(defn phase-errors
+  "Return the phase errors for an operation"
+  [operation]
+  (when (:phase-errors (wait-for operation))
+    (mapcat :errors (:results (wait-for operation)))))
+
+(defn throw-phase-errors
+  [operation]
+  (when-let [e (phase-errors operation)]
+    (throw
+     (ex-info
+      (str "Phase errors: " (string/join " " (map (comp :message :error) e)))
+      {:errors e}))))

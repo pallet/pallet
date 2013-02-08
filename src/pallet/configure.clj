@@ -97,55 +97,58 @@
   (-?> 'cake/*project* resolve var-get :environment))
 
 ;;; Compute service
+(defn default-compute-service
+  "Returns the default compute service"
+  [config]
+  (or (:default-service config)         ; explicit default
+      (and            ; default service specified by top level keys in defpallet
+       (->> [:provider :identity :credential]
+            (map (or config {}))
+            (every? identity))
+       ::default)
+      (first (keys (:services config))))) ; the "first" specified
 
 (defn compute-service-properties
   "Helper to read compute service properties. Given a config file return the
    selected service definition as a map."
-  [config profiles]
+  [config service]
   (when config
-    (let [service (first profiles)
-          default-service (map config [:provider :identity :credential])
+    (let [default-service (map config [:provider :identity :credential])
           services (:services config (:providers config))
           environment (when-let [env (:environment config)]
                         (environment/eval-environment env))]
+      (logging/debugf
+       "compute-service-properties service: %s available: %s"
+       service (keys services))
       (cond
-       ;; no specific service requested, and default service specified by
-       ;; top level keys in defppallet
-       (and
-        (not service)
-        (every? identity default-service)) (->
-                                            (select-keys
-                                             config
-                                             [:provider :identity :credential
-                                              :blobstore :endpoint
-                                              :environment])
-                                            (utils/maybe-update-in
-                                             [:environment]
-                                             (fn [env] environment)))
+        (= service ::default) (->
+                               (select-keys
+                                config
+                                [:provider :identity :credential
+                                 :blobstore :endpoint
+                                 :environment])
+                               (utils/maybe-update-in
+                                [:environment]
+                                (fn [env] environment)))
         ;; pick from specified services
-       (map? services) (->
-                        (or
-                         (and service
-                              ;; ensure that if services is specified as a
-                              ;; vector of keyword value vectors, that
-                              ;; it is converted into a map first.
-                              (let [services (into {} services)]
-                                (or
-                                 (services (keyword service))
-                                 (services service))))
-                         (and (not service) ; use default if service unspecified
-                              (when-let [service (first services)]
-                                (-> service second))))
-                        ;; merge any top level environment with the service
-                        ;; specific environment
-                        (utils/maybe-update-in
-                         [:environment]
-                         #(environment/merge-environments
-                           environment
-                           (environment/eval-environment
-                            (cake-project-environment))
-                           (environment/eval-environment %))))
-       :else nil))))
+        (map? services) (->
+                         ;; ensure that if services is specified as a
+                         ;; vector of keyword value vectors, that
+                         ;; it is converted into a map first.
+                         (let [services (into {} services)]
+                           (or
+                            (services (keyword service))
+                            (services service)))
+                         ;; merge any top level environment with the service
+                         ;; specific environment
+                         (utils/maybe-update-in
+                          [:environment]
+                          #(environment/merge-environments
+                            environment
+                            (environment/eval-environment
+                             (cake-project-environment))
+                            (environment/eval-environment %))))
+        :else nil))))
 
 (defn compute-service-from-map
   "Create a compute service from a credentials map.
@@ -173,7 +176,8 @@
   [config profiles]
   (check-deprecations config)
   (compute-service-from-map
-   (compute-service-properties config profiles)))
+   (compute-service-properties
+    config (or (first profiles) (default-compute-service config)))))
 
 (defn compute-service-from-config-var
   "Checks to see if pallet.config/service is a var, and if so returns its

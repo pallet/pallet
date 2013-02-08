@@ -4,14 +4,17 @@
    [clojure.string :as string]
    [pallet.script.lib :as lib]
    [pallet.script :as script]
-   [pallet.stevedore :as stevedore])
+   [pallet.stevedore :as stevedore :refer [with-source-line-comments]])
   (:use
    [pallet.actions
     :only [directory exec-checked-script file remote-file remote-file-content]]
    [pallet.crate :only [defplan]]))
 
 (defn user-ssh-dir [user]
-  (str (stevedore/script (~lib/user-home ~user)) "/.ssh/"))
+  (str
+   (with-source-line-comments false
+     (stevedore/script (~lib/user-home ~user)))
+   "/.ssh/"))
 
 (defplan authorize-key
   "Authorize a public key on the specified user."

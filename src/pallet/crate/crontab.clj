@@ -3,9 +3,10 @@
   (:require
    [clojure.tools.logging :as logging]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore])
+   [pallet.stevedore :as stevedore :refer [with-source-line-comments]])
   (:use
-   [pallet.actions :only [exec-checked-script file remote-file content-options]]
+   [pallet.actions
+    :only [content-options exec-checked-script file remote-file]]
    [pallet.api :only [server-spec plan-fn]]
    [pallet.crate
     :only [defplan assoc-settings get-settings update-settings]]
@@ -41,7 +42,9 @@
 
 (defn- in-file [user]
   "Create a path for a crontab.in file for the given user"
-  (str (stevedore/script (~lib/user-home ~user)) "/crontab.in"))
+  (str (with-source-line-comments false
+         (stevedore/script (~lib/user-home ~user)))
+       "/crontab.in"))
 
 (defplan create-user-crontab
   "Create user crontab for the given user."

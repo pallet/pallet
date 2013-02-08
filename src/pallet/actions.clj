@@ -1,19 +1,18 @@
 (ns pallet.actions
   "Pallet's action primitives."
   (:require
+   [clojure.java.io :as io]
+   [clojure.set :refer [intersection]]
    [clojure.tools.logging :as logging]
-   [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore])
-  (:use
-   [clojure.set :only [intersection]]
-   pallet.actions-impl
    [pallet.action
-    :only [clj-action defaction with-action-options enter-scope leave-scope]]
-   [pallet.argument :only [delayed]]
-   [pallet.crate :only [role->nodes-map packager phase-context target]]
-   [pallet.node-value :only [node-value]]
-   [pallet.script.lib :only [set-flag-value]]
-   [pallet.utils :only [apply-map tmpfile]]))
+    :refer [clj-action defaction with-action-options enter-scope leave-scope]]
+   [pallet.actions-impl :refer :all]
+   [pallet.argument :as argument :refer [delayed]]
+   [pallet.crate :refer [role->nodes-map packager phase-context target]]
+   [pallet.node-value :refer [node-value]]
+   [pallet.script.lib :as lib :refer [set-flag-value]]
+   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
+   [pallet.utils :refer [apply-map tmpfile]]))
 
 ;;; # Direct Script Execution
 
@@ -32,19 +31,37 @@
 
 (defmacro exec-script
   "Execute a bash script remotely. The script is expressed in stevedore."
+  {:pallet/plan-fn true}
   [& script]
   `(exec-script* (stevedore/script ~@script)))
 
 (defmacro exec-checked-script
   "Execute a bash script remotely, throwing if any element of the
    script fails. The script is expressed in stevedore."
+  {:pallet/plan-fn true}
   [script-name & script]
-  `(exec-script* (checked-script ~script-name ~@script)))
+  `(exec-script*
+    (checked-script
+     ~(if *script-location-info*
+        `(str ~script-name
+              " (" ~(.getName (io/file *file*)) ":" ~(:line (meta &form)) ")")
+        script-name)
+     ~@script)))
+
+;;; # Wrap arbitrary code
+(defmacro as-action
+  "Wrap arbitrary clojure code to be run as an action"
+  {:pallet/plan-fn true}
+  [& body]
+  `((clj-action [~'&session]
+      (binding [pallet.argument/*session* ~'&session]
+        ~@body))))
 
 ;;; # Flow Control
 (defmacro plan-when
   "Execute the crate-fns-or-actions, only when condition is true."
-  {:indent 1}
+  {:indent 1
+   :pallet/plan-fn true}
   [condition & crate-fns-or-actions]
   (let [nv (gensym "nv")
         nv-kw (keyword (name nv))
@@ -54,15 +71,16 @@
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-context plan-when {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
-                 [nv `(exec-checked-script
-                       (str "Check " ~condition)
-                       (~(list 'unquote `set-flag-value)
-                        ~(name nv-kw)
-                        @(do
-                           ~@(if is-stevedore?
-                               (rest condition)
-                               ["test" condition])
-                           (~'echo @~'?))))] )]
+                 [nv `(with-source-line-comments false
+                        (exec-checked-script
+                         (str "Check " ~condition)
+                         (~(list `unquote 'pallet.script.lib/set-flag-value)
+                          ~(name nv-kw)
+                          @(do
+                             ~@(if is-stevedore?
+                                 (rest condition)
+                                 ["test" condition])
+                             (~'echo @~'?)))))] )]
          (if-action ~(if is-script?
                        `(delayed [s#]
                                  (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
@@ -74,7 +92,8 @@
 
 (defmacro plan-when-not
   "Execute the crate-fns-or-actions, only when condition is false."
-  {:indent 1}
+  {:indent 1
+   :pallet/plan-fn true}
   [condition & crate-fns-or-actions]
   (let [nv (gensym "nv")
         nv-kw (keyword (name nv))
@@ -84,19 +103,20 @@
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-context plan-when-not {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
-                 [nv `(exec-checked-script
-                       (str "Check not " ~condition)
-                       (~(list `unquote `set-flag-value)
-                        ~(name nv-kw)
-                        @(do
-                           ~@(if is-stevedore?
-                               (rest condition)
-                               ["test" condition])
-                           (~'echo @~'?))))])]
+                 [nv `(with-source-line-comments false
+                        (exec-checked-script
+                         (str "Check not " ~condition)
+                         (~(list `unquote `set-flag-value)
+                          ~(name nv-kw)
+                          @(do
+                             ~@(if is-stevedore?
+                                 (rest condition)
+                                 ["test" condition])
+                             (~'echo @~'?)))))])]
          (if-action ~(if is-script?
                        `(delayed [s#]
-                                 (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
-                                    "0"))
+                          (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
+                             "0"))
                        `(delayed [~'&session] ~condition))))
        (enter-scope)
        (leave-scope)
@@ -106,6 +126,7 @@
 
 (defmacro return-value-expr
   "Creates an action that can transform return values"
+  {:pallet/plan-fn true}
   [[& return-values] & body]
   (let [session (gensym "session")]
     `((clj-action [~session]
@@ -347,6 +368,7 @@ Content can also be copied from a blobstore.
    f should be a function taking [session local-path & _], where local-path will
    be a File with a copy of the remote file (which will be unlinked after
    calling f."
+  {:pallet/plan-fn true}
   [f path & args]
   (let [local-path (tmpfile)]
     (phase-context with-remote-file-fn {:local-path local-path}
@@ -357,6 +379,7 @@ Content can also be copied from a blobstore.
 (defn remote-file-content
   "Return a function that returns the content of a file, when used inside
    another action."
+  {:pallet/plan-fn true}
   [path]
   (let [nv (exec-script (~lib/cat ~path))
         c (return-value-expr [nv] (:out nv))]
@@ -399,6 +422,7 @@ Content can also be copied from a blobstore.
        (remote-directory session path
           :url \"http://a.com/path/file.\"
           :unpack :unzip)"
+  {:pallet/plan-fn true}
   [path & {:keys [action url local-file remote-file
                   unpack tar-options unzip-options jar-options
                   strip-components md5 md5-url owner group recursive
@@ -448,6 +472,7 @@ Content can also be copied from a blobstore.
        (packages session
          :yum [\"git\" \"git-email\"]
          :aptitude [\"git-core\" \"git-email\"])"
+  {:pallet/plan-fn true}
   [& {:keys [yum aptitude pacman brew] :as options}]
   (phase-context packages {}
     (let [packager (packager)]
@@ -521,6 +546,7 @@ Content can also be copied from a blobstore.
 
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
+  {:pallet/plan-fn true}
   [from to & {:keys [owner group mode port] :as options}]
   (phase-context rsync-directory-fn {:name :rsync-directory}
     ;; would like to ensure rsync is installed, but this requires
@@ -532,17 +558,62 @@ Content can also be copied from a blobstore.
 
 ;;; # Users and Groups
 (defaction group
-  "User Group Management."
+  "User Group Management.
+
+`:action`
+: One of :create, :manage, :remove.
+
+`:gid`
+: specify the group id
+
+`:password`
+: An MD5 crypted password for the user.
+
+`:system`
+: Specify the user as a system user."
   [groupname & {:keys [action system gid password]
                 :or {action :manage}
                 :as options}])
 
 (defaction user
-  "User management."
+  "User management.
+
+`:action`
+: One of :create, :manage, :lock, :unlock or :remove.
+
+`:shell`
+: One of :bash, :csh, :ksh, :rsh, :sh, :tcsh, :zsh, :false or a path string.
+
+`:create-home`
+: Controls creation of the user's home directory.
+
+`:base-dir`
+: The directory in which default user directories should be created.
+
+`:home`
+: Specify the user's home directory.
+
+`:system`
+: Specify the user as a system user.
+
+`:comment`
+: A comment to record for the user.
+
+`:group`
+: The user's login group. Defaults to a group with the same name as the user.
+
+`:groups`
+: Additional groups the user should belong to.
+
+`:password`
+: An MD5 crypted password for the user.
+
+`:force`
+: Force user removal."
   {:execution :aggregated
    :always-after #{group}}
   [username & {:keys [action shell base-dir home system create-home
-                      password shell comment groups remove force append]
+                      password shell comment group groups remove force append]
                :or {action :manage}
                :as options}])
 
@@ -572,6 +643,7 @@ Content can also be copied from a blobstore.
 
 (defn service-script
   "Install a service script.  Sources as for remote-file."
+  {:pallet/plan-fn true}
   [service-name & {:keys [action url local-file remote-file link
                           content literal template values md5 md5-url
                           force service-impl]
@@ -587,7 +659,8 @@ Content can also be copied from a blobstore.
 ;;; # Retry
 ;;; TODO: convert to use a nested scope in the action-plan
 (defn loop-until
-  {:no-doc true}
+  {:no-doc true
+   :pallet/plan-fn true}
   [service-name condition max-retries standoff]
   (exec-checked-script
    (format "Wait for %s" service-name)
@@ -606,6 +679,7 @@ Content can also be copied from a blobstore.
 
 (defmacro retry-until
   "Repeat an action until it succeeds"
+  {:pallet/plan-fn true}
   [{:keys [max-retries standoff service-name]
     :or {max-retries 5 standoff 2}}
    condition]
@@ -629,6 +703,7 @@ Content can also be copied from a blobstore.
   "Execute the body on just one node of the specified roles. If there is no
    node in the union of nodes for all the roles, the nodes for the first role
    are used."
+  {:pallet/plan-fn true}
   [roles & body]
   `(let [target# (target)
          role->nodes# (role->nodes-map)]

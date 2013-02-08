@@ -1,5 +1,6 @@
 (ns pallet.node
   "API for nodes in pallet"
+  (:refer-clojure :exclude [proxy])
   (:use
    [pallet.compute :only [node-tag node-tags tag-node! node-taggable?]]))
 
@@ -32,6 +33,9 @@
      containing the number of `:cores` on each. The `:disks` is a sequence
      of maps, containing a :size key for each drive, in Gb. Other keys
      may be present."))
+
+(defprotocol NodeProxy
+  (proxy [node] "A map with SSH proxy connection details."))
 
 (defn node?
   "Predicate to test whether an object implements the Node protocol"
@@ -69,3 +73,17 @@
   "Predicate to test the availability of tags."
   [node]
   (node-taggable? (compute-service node) node))
+
+(defn node-map
+  "Convert a node into a map representing the node."
+  [node]
+  {:primary-ip (primary-ip node)
+   :private-ip (private-ip node)
+   :ssh-port (ssh-port node)
+   :hostname (hostname node)
+   :group-name (group-name node)
+   :os-family (os-family node)
+   :os-version (os-version node)
+   :is-64bit? (is-64bit? node)
+   :terminated? (terminated? node)
+   :running? (running? node)})

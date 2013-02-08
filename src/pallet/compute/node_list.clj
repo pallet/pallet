@@ -20,12 +20,11 @@
    [pallet.node :as node]
    [clojure.string :as string])
   (:use
-   [pallet.utils :only [apply-map]]
-   [slingshot.slingshot :only [throw+]]))
+   [pallet.utils :only [apply-map]]))
 
 (defrecord Node
     [name group-name ip os-family os-version id ssh-port private-ip is-64bit
-     running service hardware]
+     running service hardware proxy]
   pallet.node.Node
   (ssh-port [node] ssh-port)
   (primary-ip [node] ip)
@@ -42,14 +41,16 @@
   pallet.node.NodePackager
   (packager [node] (compute/packager-for-os os-family os-version))
   pallet.node.NodeHardware
-  (hardware [node] hardware))
+  (hardware [node] hardware)
+  pallet.node.NodeProxy
+  (proxy [node] proxy))
 
 ;;; Node utilities
 (defn make-node
   "Returns a node, suitable for use in a node-list."
   [name group-name ip os-family
    & {:keys [id ssh-port private-ip is-64bit running os-version service
-             hardware]
+             hardware proxy]
       :or {ssh-port 22 is-64bit true running true}}]
   (Node.
    name
@@ -63,7 +64,8 @@
    is-64bit
    running
    service
-   hardware))
+   hardware
+   proxy))
 
 (deftype NodeTagUnsupported
     []
@@ -73,12 +75,13 @@
   (node-tags [_ node] nil)
   pallet.compute.NodeTagWriter
   (tag-node! [_ node tag-name value]
-    (throw+
-     {:reason :unsupported-operation
-      :operation :pallet.compute/node-tags}
-     "Attempt to call node-tags on a node that doesn't support mutable tags.
+    (throw
+     (ex-info
+      "Attempt to call node-tags on a node that doesn't support mutable tags.
 You can pass a :tag-provider to the compute service constructor to enable
-support."))
+support."
+      {:reason :unsupported-operation
+       :operation :pallet.compute/node-tags})))
   (node-taggable? [_ node] false))
 
 (deftype NodeList
@@ -88,9 +91,10 @@ support."))
   (ensure-os-family
     [compute-service group-spec]
     (when (not (-> group-spec :image :os-family))
-      (throw+
-       {:type :no-os-family-specified
-        :message "Node list contains a node without os-family"})))
+      (throw
+       (ex-info
+        "Node list contains a node without os-family"
+        {:type :no-os-family-specified}))))
   ;; Not implemented
   ;; (run-nodes [node-type node-count request init-script options])
   ;; (reboot "Reboot the specified nodes")

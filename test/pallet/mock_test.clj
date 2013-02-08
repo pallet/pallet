@@ -1,15 +1,12 @@
 (ns pallet.mock-test
   (:use
    pallet.mock
-   clojure.test
-   [slingshot.slingshot :only [throw+]])
-  (:require
-   slingshot.test)
-  (:import
-   slingshot.ExceptionInfo))
+   clojure.test))
 
 (deftest verify-expectations-test
-  (is (thrown+? map? (verify-expectations [(fn [] (throw+ {:error 1}))])))
+  (is (thrown? clojure.lang.ExceptionInfo
+               (verify-expectations
+                [(fn [] (throw (ex-info "err" {:error 1})))])))
   (is (nil?
        (verify-expectations [(fn [] true)]))))
 
@@ -17,13 +14,13 @@
   (with-expectations
     (let [f (once 'v1 [] `((once 1)))]
       (is (thrown?
-           slingshot.ExceptionInfo
+           clojure.lang.ExceptionInfo
            ((first *expectations*))))
       (is (= 1 (f)))
       (is (nil? ((first *expectations*)))))
     (let [f (once 'v1 [x] `((once (inc x))))]
       (is (thrown?
-           slingshot.ExceptionInfo
+           clojure.lang.ExceptionInfo
            ((first *expectations*))))
       (is (= 1 (f 0)))
       (is (nil? ((first *expectations*)))))))

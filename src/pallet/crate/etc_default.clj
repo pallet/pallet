@@ -2,7 +2,7 @@
   "Generation and installation of /etc/default-style files."
   (:require
    [clojure.string :as string]
-   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
    [pallet.script.lib :as lib])
   (:use
    [pallet.actions :only [remote-file]]
@@ -19,7 +19,9 @@
   [filename & key-value-pairs]
   (let [file (if (= \/ (first filename))
                filename
-               (str (stevedore/script (~lib/etc-default)) "/" filename))]
+               (str (with-source-line-comments false
+                      (stevedore/script (~lib/etc-default)))
+                    "/" filename))]
     (remote-file
      file
      :owner "root:root"

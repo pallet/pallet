@@ -8,7 +8,8 @@
     :only [with-ubuntu-script-template with-bash-script-language]]
    clojure.test)
   (:require
-   pallet.actions.direct.file
+   [pallet.actions.direct.file :refer [write-md5-for-file]]
+   [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]))
 
 (use-fixtures
@@ -18,45 +19,52 @@
  (logging-threshold-fixture))
 
 (deftest file-test
-  (is (= (stevedore/checked-script "file file1" (touch file1))
-         (first (build-actions {} (file "file1")))))
-  (is (= (stevedore/checked-script "ctx\nfile file1" (touch file1))
+  (is (script-no-comment=
+       (stevedore/checked-script "file file1" (touch file1))
+       (first (build-actions {} (file "file1")))))
+  (testing "context label"
+    (is (script-no-comment=
+         (stevedore/checked-script "ctx: file file1" (touch file1))
          (first
           (build-actions {:phase-context "ctx"}
-            (file "file1")))))
-  (is (= (stevedore/checked-script
-          "file file1"
-          (touch file1)
-          (chown user1 file1))
-         (first (build-actions {}
-                  (file "file1" :owner "user1")))))
-  (is (= (stevedore/checked-script
-          "file file1"
-          (touch file1)
-          (chown user1 file1))
-         (first (build-actions {}
-                  (file "file1" :owner "user1" :action :create)))))
-  (is (= (stevedore/checked-script
-          "file file1"
-          (touch file1)
-          (chgrp group1 file1))
-         (first (build-actions {}
-                  (file "file1" :group "group1" :action :touch)))))
-  (is (= (stevedore/checked-script
-          "delete file file1"
-          ("rm" "--force" file1))
-         (first (build-actions {}
-                  (file "file1" :action :delete :force true))))))
+            (file "file1"))))))
+  (is (script-no-comment=
+       (stevedore/checked-script
+        "file file1"
+        (touch file1)
+        (chown user1 file1))
+       (first (build-actions {}
+                (file "file1" :owner "user1")))))
+  (is (script-no-comment=
+       (stevedore/checked-script
+        "file file1"
+        (touch file1)
+        (chown user1 file1))
+       (first (build-actions {}
+                (file "file1" :owner "user1" :action :create)))))
+  (is (script-no-comment=
+       (stevedore/checked-script
+        "file file1"
+        (touch file1)
+        (chgrp group1 file1))
+       (first (build-actions {}
+                (file "file1" :group "group1" :action :touch)))))
+  (is (script-no-comment=
+       (stevedore/checked-script
+        "delete file file1"
+        ("rm" "--force" file1))
+       (first (build-actions {}
+                (file "file1" :action :delete :force true))))))
 
 (deftest sed-test
-  (is (= (stevedore/checked-commands
-          "sed file path"
-          "sed -i -e \"s|a|b|\" path"
-          (str "(cp=$(readlink -f path) && cd $(dirname ${cp}) && "
-               "md5sum $(basename ${cp}) > path.md5\n)"))
-         (first
-          (build-actions {}
-            (sed "path" {"a" "b"} :seperator "|")))))
+  (is (script-no-comment=
+       (stevedore/checked-commands
+        "sed file path"
+        (script (~lib/sed-file "path" {"a" "b"} {:seperator "|"}))
+        (write-md5-for-file "path" "path.md5"))
+       (first
+        (build-actions {}
+          (sed "path" {"a" "b"} :seperator "|")))))
   (is
    (build-actions {}
      (sed "path" {"a" "b"} :seperator "|"))))

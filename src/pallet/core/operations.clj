@@ -75,6 +75,8 @@
                                                     (comp :cause :error)
                                                     (:errors %))
                                                   results1)]
+                                      (logging/errorf
+                                       e "Phase Error in %s" phase)
                                       {:exception e})))]
                                [results1 ps]))
                            [[] plan-state]
@@ -103,6 +105,7 @@
         (merge
          {:phase-errors true :phase :settings :results results1}
          (when-let [e (some #(some (comp :cause :error) (:errors %)) results1)]
+           (logging/errorf e "Phase Error in :settings")
            {:exception e})))
 
      [results2 plan-state] (primitives/execute-on-unflagged
@@ -118,6 +121,7 @@
          {:phase-errors true :phase :bootstrap
           :results (concat results1 results2)}
          (when-let [e (some #(some (comp :cause :error) (:errors %)) results2)]
+           (logging/errorf e "Phase Error in :bootstrap")
            {:exception e})))
 
      [results3 plan-state] (reduce*
@@ -139,6 +143,8 @@
                                                      (comp :cause :error)
                                                      (:errors %))
                                                    r)]
+                                       (logging/errorf
+                                        e "Phase Error in %s" phase)
                                        {:exception e})))]
                                 [(concat result r) ps]))
                             [[] plan-state]

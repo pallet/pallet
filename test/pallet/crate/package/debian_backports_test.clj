@@ -14,19 +14,19 @@
 
 (deftest debian-backports-test
   (is
-   (=
+   (script-no-comment=
     (first
      (build-actions
-      {:server {:image {:os-family :debian}}
-       :phase-context "add-debian-backports"}
-      (package-source
-       "debian-backports"
-       :aptitude {:url "http://backports.debian.org/debian-backports"
-                  :release (str
-                            (stevedore/script (~lib/os-version-name))
-                            "-backports")
-                  :scopes ["main"]})))
+         {:server {:image {:os-family :debian}}
+          :phase-context "add-debian-backports"}
+       (package-source
+        "debian-backports"
+        :aptitude {:url "http://backports.debian.org/debian-backports"
+                   :release (str
+                             (stevedore/script (~lib/os-version-name))
+                             "-backports")
+                   :scopes ["main"]})))
     (first
      (build-actions
-      {:server {:image {:os-family :debian}}}
-      (add-debian-backports))))))
+         {:server {:image {:os-family :debian}}}
+       (add-debian-backports))))))

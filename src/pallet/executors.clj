@@ -28,8 +28,7 @@
   (:use
    [pallet.action-plan :only [execute-if stop-execution-on-error]]
    [pallet.action :only [implementation]]
-   [pallet.node :only [primary-ip]]
-   [slingshot.slingshot :only [throw+]]))
+   [pallet.node :only [primary-ip]]))
 
 
 (defn direct-script
@@ -66,11 +65,12 @@
       [:flow/if :origin] (execute-if session action script)
       [:transfer/from-local :origin] (ssh/ssh-from-local session script)
       [:transfer/to-local :origin] (ssh/ssh-to-local session script)
-      (throw+
-       {:type :pallet/no-executor-for-action
-        :action action
-        :executor 'DefaultExector}
-       "No suitable executor found"))))
+      (throw
+       (ex-info
+        "No suitable executor found"
+        {:type :pallet/no-executor-for-action
+         :action action
+         :executor 'DefaultExector})))))
 
 (defn force-target-via-ssh-executor
   "Direct executor where target actions are always over ssh."
@@ -87,23 +87,25 @@
       [:flow/if :origin] (execute-if session action script)
       [:transfer/from-local :origin] (ssh/ssh-from-local session script)
       [:transfer/to-local :origin] (ssh/ssh-to-local session script)
-      (throw+
-       {:type :pallet/no-executor-for-action
-        :action action
-        :executor 'DefaultExector}
-       "No suitable executor found"))))
+      (throw
+       (ex-info
+        "No suitable executor found"
+        {:type :pallet/no-executor-for-action
+         :action action
+         :executor 'DefaultExector})))))
 
 (defn bootstrap-executor
   [session action]
   (let [[script action-type location session] (direct-script session action)]
     (case [action-type location]
       [:script :target] (echo/echo-bash session script)
-      (throw+
-       {:type :pallet/no-executor-for-action
-        :action action
-        :executor 'BootstrapExector}
-       (str "No suitable bootstrap executor found "
-            "(local actions are not allowed)")))))
+      (throw
+       (ex-info
+        (str "No suitable bootstrap executor found "
+             "(local actions are not allowed)")
+        {:type :pallet/no-executor-for-action
+         :action action
+         :executor 'BootstrapExector})))))
 
 (defn echo-executor
   [session action]
@@ -117,9 +119,10 @@
       [:flow/if :origin] (execute-if session action script)
       [:transfer/from-local :origin] (echo/echo-transfer session script)
       [:transfer/to-local :origin] (echo/echo-transfer session script)
-      (throw+
-       {:type :pallet/no-executor-for-action
-        :action action
-        :executor 'EchoExecutor}
-       "No suitable echo executor found for %s (%s, %s)"
-       (:name action) action-type location))))
+      (throw
+       (ex-info
+        (format "No suitable echo executor found for %s (%s, %s)"
+                (:name action) action-type location)
+        {:type :pallet/no-executor-for-action
+         :action action
+         :executor 'EchoExecutor})))))

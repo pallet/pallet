@@ -32,12 +32,10 @@
   [session]
   (thread-local! *session* session))
 
-;;; ## Session Pipeline
-;;; The session pipeline is used in pallet core code.
-(defmacro session-pipeline
-  "Defines a session pipeline. This composes the body functions under the
-  session-m monad. Any vector in the arguments is expected to be of the form
-  [symbol expr] and becomes part of the generated monad comprehension."
+;;; ## Session Context
+;;; The session context is used in pallet core code.
+(defmacro session-context
+  "Defines a session context."
   {:indent 2}
   [pipeline-name event & args]
   (let [line (-> &form meta :line)]
@@ -128,6 +126,15 @@
       session])
    )
 
+(defn targets
+  "Targets for current converge."
+  [session]
+  (:service-state session))
+
+(defn target-nodes
+  "Target nodes for current converge."
+  [session]
+  (map :node (:service-state session)))
 
 (defn nodes-in-group
   "All nodes in the same tag as the target-node, or with the specified
@@ -169,7 +176,9 @@
 
 (defn packager
   [session]
-  (node/packager (get-in session [:server :node])))
+  (or
+   (-> session :server :packager)
+   (node/packager (get-in session [:server :node]))))
 
 (defn admin-user
   "User that remote commands are run under"

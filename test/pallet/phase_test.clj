@@ -48,10 +48,10 @@
 ;; (deftest plan-fn-test
 ;;   (letfn [(id [s] [nil s])]
 ;;     (is (thrown-with-msg?
-;;           slingshot.ExceptionInfo #"in phase session"
+;;           clojure.lang.ExceptionInfo #"in phase session"
 ;;           ((plan-fn id) 1)))
 ;;     (is (= [nil (test-session)] ((plan-fn id) (test-session))))
 ;;     (let [fgh (fn fgh [_] nil)]
 ;;       (is (thrown-with-msg?
-;;             slingshot.ExceptionInfo #"Problem probably caused in"
+;;             clojure.lang.ExceptionInfo #"Problem probably caused in"
 ;;             ((plan-fn fgh) (test-session)))))))

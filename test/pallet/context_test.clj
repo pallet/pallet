@@ -4,17 +4,16 @@
    [pallet.context :as context]
    [pallet.common.logging.logutils :as logutils])
   (:use
-   clojure.test
-   [slingshot.slingshot :only [try+]]))
+   clojure.test))
 
 (deftest phase-context-test
   (is (= ["ctx"]
          (context/with-phase-context {:kw :ctxkw :msg "ctx"}
             (context/phase-contexts))))
-  (try+
+  (try
    (-> 1
        (context/phase-context
         {:kw :ctxkw :msg "ctx"}
         ((fn [session] (throw (Exception. "msg"))))))
-   (catch map? e
-     (is (:context e)))))
+   (catch clojure.lang.ExceptionInfo e
+     (is (:context (ex-data e))))))

@@ -95,15 +95,31 @@
         g1 (group-spec :g1)
         service (node-list-service [n1])
         service-state (service-state service [g1])
-        [r plan-state] (with-script-for-node n1
+        [r plan-state] (with-script-for-node {:node n1}
                          ((action-plan
                            service-state {}
                            (plan-fn (exec-script "ls"))
+                           nil
                            {:server {:node n1}})
                           {:ps 1}))]
     (is (seq r))
     (is (map? plan-state))
-    (is (= {:ps 1} plan-state))))
+    (is (= {:ps 1} plan-state)))
+  (testing "with phase arguments"
+    (let [n1 (make-node "n1" "g1" "192.168.1.1" :ubuntu)
+        g1 (group-spec :g1)
+        service (node-list-service [n1])
+        service-state (service-state service [g1])
+          [r plan-state] (with-script-for-node {:node n1}
+                         ((action-plan
+                           service-state {}
+                           (fn [x] (exec-script "ls" ~x))
+                           ["/bin"]
+                           {:server {:node n1}})
+                          {:ps 1}))]
+    (is (seq r))
+    (is (map? plan-state))
+    (is (= {:ps 1} plan-state)))))
 
 (deftest action-plans-test
   (let [n1 (make-node "n1" "g1" "192.168.1.1" :ubuntu)
@@ -159,7 +175,8 @@
             :phases {:p (plan-fn (exec-script "ls"))
                      :g (plan-fn (ga))})
         service (node-list-service [n1])
-        service-state (service-state service [g1])]
+        service-state (service-state service [g1])
+        user (assoc *admin-user* :no-sudo true)]
     (testing "nodes"
       (let [[r plan-state] ((action-plans service-state {} :p service-state)
                             {:ps 1})
@@ -167,7 +184,7 @@
 
             {:keys [result phase plan-state errors target]}
             (execute-action-plan
-             service-state plan-state {} *admin-user* default-executor
+             service-state plan-state {} user default-executor
              stop-execution-on-error action-plan)]
         (is (= {:ps 1} (dissoc plan-state :node-values)))
         (is (= (first service-state) target))
@@ -183,7 +200,7 @@
 
             {:keys [result phase plan-state errors target]}
             (execute-action-plan
-             service-state plan-state {} *admin-user* default-executor
+             service-state plan-state {} user default-executor
              stop-execution-on-error action-plan)]
         (is (= {:ps 1} (dissoc plan-state :node-values)))
         (is (= (first targets) target))

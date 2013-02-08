@@ -30,7 +30,6 @@
    [pallet.node-value :only [make-node-value set-node-value]]
    [pallet.session.action-plan
     :only [dissoc-action-plan get-session-action-plan]]
-   [slingshot.slingshot :only [throw+]]
    pallet.action-impl))
 
 ;;; ## Action Plan Data Structure
@@ -161,7 +160,7 @@
   {:no-doc true}
   [context]
   (when (seq context)
-    (str (string/join ": " context) "\n")))
+    (str (string/join ": " context) ": ")))
 
 (defmulti context-label
   "Return a label for an action"
@@ -602,6 +601,7 @@
        ((fn [r] (logging/tracef "rv is %s" r) r))
        (set-node-value-with-return-value node-value-path)))
     (catch Exception e
+      (logging/errorf e "Exception in execute-action-map")
       [{:error {:type :pallet/action-execution-error
                 :context (context/contexts)
                 :message (format "Unexpected exception: %s" (.getMessage e))
@@ -615,7 +615,9 @@
   (if-let [flag (::flag result)]
     (if (not= flag ::stop)
       (if (:error result)
-        [(assoc result ::flag ::stop) session]
+        (do
+          (logging/errorf "Stopping execution %s" (:error result))
+          [(assoc result ::flag ::stop) session])
         session)
       [result session])
     [result session]))
@@ -653,9 +655,10 @@
    "execute %s actions with %s %s"
    (count action-plan) executor execute-status-fn)
   (when-not (translated? action-plan)
-    (throw+
-     {:type :pallet/execute-called-on-untranslated-action-plan
-      :message "Attempt to execute an untranslated action plan"}))
+    (throw
+     (ex-info
+      "Attempt to execute an untranslated action plan"
+      {:type :pallet/execute-called-on-untranslated-action-plan})))
   (letfn [(exec-action [action]
             (fn execute-with-error-check [session]
               (logging/tracef "execute-with-error-check")

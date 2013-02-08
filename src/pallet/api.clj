@@ -1,8 +1,8 @@
 (ns pallet.api
-  "# Pallet API
-
-"
+  "# Pallet API"
   (:require
+   [clojure.string :refer [blank?]]
+   [clojure.pprint :refer [print-table]]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
    [pallet.core.user :as user]
@@ -10,10 +10,11 @@
    [clojure.tools.logging :as logging])
   (:use
    [pallet.core.api-impl :only [merge-specs merge-spec-algorithm]]
-   [pallet.core.session :only [session-pipeline]]
+   [pallet.core.session :only [session-context]]
+   [pallet.crate :only [phase-context]]
    [pallet.algo.fsmop :only [dofsm operate result succeed]]
    [pallet.environment :only [merge-environments]]
-   [pallet.node :only [node?]]
+   [pallet.node :only [node? node-map]]
    [pallet.thread-expr :only [when->]]
    [pallet.utils :only [apply-map]]))
 
@@ -180,7 +181,9 @@
                     (merge (dissoc group-spec :phases))
                     (update-in
                      [:group-name]
-                     #(keyword (str (name cluster-name) "-" (name %))))
+                     #(keyword (str (name cluster-name)
+                                    (if (blank? cluster-name) "" "-")
+                                    (name %))))
                     (update-in
                      [:environment]
                      merge-environments environment)
@@ -214,7 +217,8 @@
   (let [phases (if (or (keyword? phases) (fn? phases)) [phases] phases)]
     (reduce
      (fn [[phase-kws phase-map] phase]
-       (if (keyword? phase)
+       (if (or (keyword? phase)
+               (and (or (vector? phase) (seq? phase)) (keyword? (first phase))))
          [(conj phase-kws phase) phase-map]
          (let [phase-kw (-> (gensym "phase")
                             name keyword)]
@@ -243,7 +247,7 @@
   "Split a node-set into groups and targets. Returns a map with
 :groups and :targets keys"
   [node-set]
-  (logging/debugf "split-groups-and-targets %s" (vec node-set))
+  (logging/tracef "split-groups-and-targets %s" (vec node-set))
   (->
    (group-by
     #(if (and (map? %)
@@ -311,13 +315,14 @@
                         :as options}]
   (let [[phases phase-map] (process-phases phase)
         groups (if (map? group-spec->count)
-                 [group-spec->count])
+                 [group-spec->count]
+                 group-spec->count)
         groups (expand-group-spec-with-counts group-spec->count)
         {:keys [groups targets]} (-> groups
                                      expand-cluster-groups
                                      split-groups-and-targets)
-        _ (logging/debugf "groups %s" (vec groups))
-        _ (logging/debugf "targets %s" (vec targets))
+        _ (logging/tracef "groups %s" (vec groups))
+        _ (logging/tracef "targets %s" (vec targets))
         groups (groups-with-phases groups phase-map)
         targets (groups-with-phases targets phase-map)
         environment (merge-environments
@@ -393,8 +398,8 @@
         {:keys [groups targets]} (-> node-set
                                      expand-cluster-groups
                                      split-groups-and-targets)
-        _ (logging/debugf "groups %s" (vec groups))
-        _ (logging/debugf "targets %s" (vec targets))
+        _ (logging/tracef "groups %s" (vec groups))
+        _ (logging/tracef "targets %s" (vec targets))
         groups (groups-with-phases groups phase-map)
         targets (groups-with-phases targets phase-map)
         environment (merge-environments
@@ -454,9 +459,12 @@
    This generates a new plan function, and adds code to verify the state
    around each plan function call."
   [& body]
-  (let [n (if (string? (first body)) (first body) "a-plan-fn")
-        body (if (string? (first body)) (rest body) body)]
-    `(fn [] (session-pipeline ~(gensym n) {} ~@body))))
+  (let [n? (string? (first body))
+        n (when n? (first body))
+        body (if n? (rest body) body)]
+    (if n
+      `(fn [] (phase-context ~(gensym n) {} ~@body))
+      `(fn [] (session-context ~(gensym "a-plan-fn") {} ~@body)))))
 
 ;;; ### Admin user
 (defn make-user
@@ -492,3 +500,21 @@
   [user & exprs]
   `(binding [user/*admin-user* ~user]
     ~@exprs))
+
+(defn print-nodes
+  "Print the targets of an operation"
+  [nodes]
+  (let [ks [:primary-ip :private-ip :hostname :group-name :roles]]
+    (print-table ks
+                 (for [node nodes
+                       :let [node (node-map node)]]
+                   (select-keys node ks)))))
+
+(defn print-targets
+  "Print the targets of an operation"
+  [op]
+  (let [ks [:primary-ip :private-ip :hostname :group-name :roles]]
+    (print-table ks
+                 (for [{:keys [node roles]} (:targets op)]
+                   (assoc (select-keys (node-map node) ks)
+                     :roles roles)))))

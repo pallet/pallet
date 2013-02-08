@@ -15,8 +15,7 @@
    [pallet.argument :only [delayed-fn]]
    [pallet.context :only [with-phase-context]]
    [pallet.core.session :only [session session!]]
-   [pallet.utils :only [compiler-exception local-env]]
-   [slingshot.slingshot :only [throw+]]))
+   [pallet.utils :only [compiler-exception local-env]]))
 
 
 ;;; The phase pipeline is used in actions and crate functions. The phase
@@ -29,7 +28,9 @@
   (let [line (-> &form meta :line)]
     `(with-phase-context
        (merge {:kw ~(list 'quote pipeline-name)
-               :msg ~(name pipeline-name)
+               :msg ~(if (symbol? pipeline-name)
+                       (name pipeline-name)
+                       pipeline-name)
                :ns ~(list 'quote (ns-name *ns*))
                :line ~line
                :log-level :debug}
@@ -67,7 +68,8 @@
                                :kw ~(keyword sym)
                                :locals ~locals}
                             ~@body)))]))))]
-    (let [[sym rest] (name-with-attributes sym body)]
+    (let [[sym rest] (name-with-attributes sym body)
+          sym (vary-meta sym assoc :pallet/plan-fn true)]
       (if (vector? (first rest))
         `(defn ~sym
            ~@(output-body rest))
@@ -81,6 +83,7 @@
    :indent 'defun}
   [sym & args]
   (let [[sym [args f & rest]] (name-with-attributes sym args)
+        sym (vary-meta sym assoc :pallet/plan-fn true)
         id (gensym (name sym))]
     (when (seq rest)
       (throw (compiler-exception
@@ -100,6 +103,7 @@
    :indent 'defun}
   [sym & args]
   (let [[sym [args f & rest]] (name-with-attributes sym args)
+        sym (vary-meta sym assoc :pallet/plan-fn true)
         id (gensym (name sym))]
     (when (seq rest)
       (throw (compiler-exception
@@ -127,7 +131,8 @@
         dispatch-fn (first args)
         {:keys [hierarchy]
          :or {hierarchy #'clojure.core/global-hierarchy}} (rest args)
-        args (first (filter vector? dispatch-fn))]
+        args (first (filter vector? dispatch-fn))
+        name (vary-meta name assoc :pallet/plan-fn true)]
     `(let [a# (atom {})]
        (def
          ~name
@@ -142,12 +147,12 @@
                                   f#))
                               @a#))]
                (f# ~@args)
-               (throw+
-                {:reason :missing-method
-                 :plan-multi ~(clojure.core/name name)}
-                "Missing plan-multi %s dispatch for %s"
-                ~(clojure.core/name name)
-                (pr-str dispatch-val#)))))))))
+               (throw
+                (ex-info
+                 (format "Missing plan-multi %s dispatch for %s"
+                         ~(clojure.core/name name) (pr-str dispatch-val#))
+                 {:reason :missing-method
+                  :plan-multi ~(clojure.core/name name)})))))))))
 
 (defn
   ^{:internal true :indent 2}
@@ -180,14 +185,24 @@
 
 ;;; ## Session Accessors
 (defn target
-  "The target-node."
+  "The target-node map."
   []
   (session/target (session)))
 
 (defn target-node
-  "The target-node."
+  "The target-node instance (the :node in the target-node map)."
   []
   (session/target-node (session)))
+
+(defn targets
+  "All targets."
+  []
+  (session/targets (session)))
+
+(defn target-nodes
+  "All target-nodes."
+  []
+  (session/target-nodes (session)))
 
 (defn target-id
   "Id of the target-node (unique for provider)."
@@ -266,6 +281,7 @@
 
 (defn target-flag?
   "Returns a DelayedFunction that is a predicate for whether the flag is set"
+  {:pallet/plan-fn true}
   [flag]
   (delayed-fn #(execute/target-flag? % (keyword (name flag)))))
 

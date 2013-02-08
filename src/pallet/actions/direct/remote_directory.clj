@@ -5,7 +5,7 @@
    pallet.actions.direct.directory
    pallet.actions.direct.remote-file
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
    [clojure.java.io :as io])
   (:use
    [pallet.action :only [action-fn implement-action]]
@@ -24,7 +24,8 @@
    install-new-files overwrite-changes]
   (cond
    url (let [tarpath (str
-                      (stevedore/script (~lib/tmp-dir)) "/"
+                      (with-source-line-comments false
+                        (stevedore/script (~lib/tmp-dir))) "/"
                       (.getName
                        (java.io.File. (.getFile (java.net.URL. url)))))]
          [(->

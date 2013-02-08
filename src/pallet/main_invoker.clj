@@ -8,10 +8,10 @@
    [clojure.tools.logging :as logging]
    [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
-   [pallet.configure :as configure]
+   [pallet.configure :as configure :refer [default-compute-service]]
    [pallet.environment :as environment]
    [pallet.utils :as utils]
-   [pallet.main :as main]))
+   [pallet.main :as main :refer [transient-services]]))
 
 (defn log-info
   [admin-user]
@@ -58,7 +58,11 @@
      (compute-service-from-config-files defaults project profiles))
    (configure/compute-service-from-property)
    (configure/compute-service-from-config-var)
-   (compute-service-from-config-files defaults project profiles)))
+   (compute-service-from-config-files
+    defaults project [(default-compute-service defaults)])
+   (compute-service-from-config-files
+    @transient-services project
+    [(default-compute-service @transient-services)])))
 
 (defn find-blobstore
   "Look for a compute service in the following sequence:
@@ -89,7 +93,7 @@
                            (re-find #"provider .* not configured" msg))
                         (binding [*out* *err*]
                           (println msg)
-                          (throw pallet.main/exit-task-exception))
+                          (throw (ex-info msg {:exit-code 1})))
                         (throw e)))))]
     (if compute
       (try
@@ -117,4 +121,4 @@
       (do
         (println "Error: no credentials supplied\n\n")
         ((main/resolve-task "help"))
-        1))))
+        (throw (ex-info "Error: no credentials supplied" {:exit-code 1}))))))

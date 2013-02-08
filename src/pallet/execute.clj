@@ -29,6 +29,62 @@
   (string/replace
    s (format "\"%s\"" (or (:password user) (:sudo-password user))) "XXXXXXX"))
 
+(defn clean-logs
+  "Clean passwords from logs"
+  [user]
+  (comp #(strip-sudo-password % user) normalise-eol))
+
+(defn status-line? [line]
+  (.startsWith line "#> "))
+
+(defn status-lines
+  "Return script status lines from the given sequence of lines."
+  [lines]
+  (filter status-line? lines))
+
+(defn log-script-output
+  "Return a function to log (multi-line) script output, removing passwords."
+  [server user]
+  (comp
+   #(doseq [l %]
+      (cond
+       (not (status-line? l)) (logging/debugf "%s output => %s" server l)
+       (.endsWith l "FAIL") (logging/errorf "%s %s" server l)
+       :else (logging/infof "%s %s" server l)))
+   string/split-lines
+   (clean-logs user)))
+
+(defn script-error-map
+  "Create an error map for a script execution"
+  [server msg result]
+  (merge
+   (select-keys result [:server :err :out :exit])
+   {:message (format
+              "localhost %s%s%s"
+              msg
+              (let [out (string/join
+                         ", "
+                         (status-lines (string/split-lines (:out result))))]
+                (if (string/blank? out) "" (str " :out " out)))
+              (if-let [err (:err result)] (str " :err " err) ""))
+    :type :pallet-script-excution-error
+    :server server}))
+
+(defn result-with-error-map
+  "Verify the return code of a script execution, and add an error map if
+   there is a non-zero result :exit"
+  [server msg {:keys [exit] :as result}]
+  (if (zero? exit)
+    result
+    (assoc result :error (script-error-map server msg result))))
+
+(defmacro log-multiline
+  [level-kw fmt string]
+  `(let [fmt# ~fmt]
+     (when (logging/enabled? ~level-kw)
+       (doseq [l# (string/split-lines ~string)]
+         (logging/log ~level-kw (format fmt# l#))))))
+
 ;;; ## Flag Parsing
 
 ;;; In order to capture node state, actions emit output that matches a specific

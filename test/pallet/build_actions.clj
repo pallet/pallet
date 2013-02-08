@@ -9,7 +9,7 @@
    [pallet.node :as node]
    [pallet.phase :as phase]
    [pallet.script :as script]
-   [pallet.test-utils :as test-utils]
+   [pallet.test-utils :as test-utils :refer [remove-source-line-comments]]
    [pallet.utils :as utils]
    [clojure.tools.logging :as logging]
    [clojure.string :as string])
@@ -32,12 +32,12 @@
    Useful for testing."
   [session f]
   (binding [action-plan/*defining-context* (context/phase-contexts)]
-    (with-script-for-node (-> session :server :node)
+    (with-script-for-node (-> session :server)
       (let [phase (:phase session)
             _ (assert phase)
             [action-plan plan-state]
             ((action-plan
-              (:service-state session) (:environment session) f session)
+              (:service-state session) (:environment session) f nil session)
              (:plan-state session))
 
             {:keys [result] :as result-map}
@@ -104,8 +104,9 @@
             (fn []
               (with-phase-context {:msg phase-context}
                 (f)))
-            f)]
-    (produce-phases session f)))
+            f)
+        [script session] (produce-phases session f)]
+    [script session]))
 
 (defmacro build-actions
   "Outputs the remote actions specified in the body for the specified phases.

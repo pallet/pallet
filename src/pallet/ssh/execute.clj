@@ -6,7 +6,8 @@
    [clojure.tools.logging :as logging]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.execute :as execute]
+   [pallet.execute :as execute
+    :refer [clean-logs log-multiline log-script-output result-with-error-map]]
    [pallet.local.execute :as local]
    [pallet.transport :as transport]
    [pallet.transport.local]
@@ -17,8 +18,7 @@
    [pallet.stevedore :as stevedore])
   (:use
    [pallet.action-plan :only [context-label]]
-   [pallet.action-impl :only [action-symbol]]
-   [slingshot.slingshot :only [throw+]]))
+   [pallet.action-impl :only [action-symbol]]))
 
 (def ssh-connection (transport/factory :ssh {}))
 (def local-connection (transport/factory :local {}))
@@ -29,15 +29,19 @@
 
 (defn endpoint
   [session]
-  (let [target-node (-> session :server :node)]
-    {:server (node/node-address target-node)
-     :port (node/ssh-port target-node)}))
+  (let [target-node (-> session :server :node)
+        proxy (node/proxy target-node)]
+    (if proxy
+      {:server (or (:host proxy "localhost"))
+       :port (:port proxy)}
+      {:server (node/node-address target-node)
+       :port (node/ssh-port target-node)})))
 
 (defn- ssh-mktemp
   "Create a temporary remote file using the `ssh-session` and the filename
   `prefix`"
   [connection prefix]
-  (logging/debugf "ssh-mktemp %s" (.state connection))
+  (logging/tracef "ssh-mktemp %s" (.state connection))
   (let [result (transport/exec
                 connection
                 {:execv [(stevedore/script
@@ -45,13 +49,13 @@
                 {})]
     (if (zero? (:exit result))
       (string/trim (result :out))
-      (throw+
-       {:type :remote-execution-failure
-        :message (format
-                  "Failed to generate remote temporary file %s" (:err result))
-        :exit (:exit result)
-        :err (:err result)
-        :out (:out result)}))))
+      (throw
+       (ex-info
+        (format "Failed to generate remote temporary file %s" (:err result))
+        {:type :remote-execution-failure
+         :exit (:exit result)
+         :err (:err result)
+         :out (:out result)})))))
 
 (defn get-connection [session]
   (transport/open
@@ -72,7 +76,7 @@
   "Execute a bash action on the target via ssh."
   [session {:keys [context node-value-path] :as action} action-type
    [options script]]
-  (logging/debug "ssh-script-on-target")
+  (logging/trace "ssh-script-on-target")
   (with-connection session [connection]
     (let [endpoint (transport/endpoint connection)
           authentication (transport/authentication connection)
@@ -83,36 +87,39 @@
       (logutils/with-context [:target (:server endpoint)]
         (logging/infof
          "%s %s %s"
-         (:server endpoint) (context-label action)
+         (:server endpoint)
+         (or (context-label action) "")
          (action-symbol (:action action)))
-        (logging/debugf "Target %s cmd\n%s via %s as %s"
-                        endpoint script tmpfile (or sudo-user "root"))
+        (log-multiline :debug (str (:server endpoint) " script %s") script)
+        (logging/debugf "%s send script via %s as %s"
+                        endpoint tmpfile (or sudo-user "root"))
         (transport/send-text
          connection script tmpfile
          {:mode (if sudo-user 0644 0600)})
-        (let [clean-f (comp
-                       #(execute/strip-sudo-password % (:user authentication))
-                       execute/normalise-eol)
-              output-f (comp
-                        #(logging/debugf
-                          "%s output\n=> %s" (:server endpoint) %)
-                        clean-f)
+        (logging/trace "ssh-script-on-target execute script file")
+        (let [clean-f (clean-logs (:user authentication))
               result (transport/exec
                       connection
                       (script-builder/build-code session action tmpfile)
-                      {:output-f output-f})
+                      {:output-f (log-script-output
+                                  (:server endpoint) (:user authentication))})
               [result session] (execute/parse-shell-result session result)
+              result (update-in result [:out] clean-f)
               result (assoc result :script script)
+              result (result-with-error-map
+                       (:server endpoint) "Error executing script" result)
               ;; Set the node-value to the result of execution, rather than
               ;; the script.
               session (assoc-in
                        session [:plan-state :node-values node-value-path]
                        result)]
+          (logging/trace "ssh-script-on-target remove script file")
           (transport/exec
            connection
            {:execv [(stevedore/script (rm -f ~tmpfile))]}
            {})
-          [(update-in result [:out] clean-f) session])))))
+          (logging/trace "ssh-script-on-target done")
+          [result session])))))
 
 (defn- ssh-upload
   "Upload a file to a remote location via sftp"

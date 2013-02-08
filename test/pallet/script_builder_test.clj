@@ -3,8 +3,9 @@
   (:use clojure.test
         clojure.tools.logging)
   (:require
+   [clojure.string :as string]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.test-utils :as test-utils]
+   [pallet.test-utils :as test-utils :refer [remove-source-line-comments]]
    [pallet.script :as script]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
@@ -18,22 +19,26 @@
     (let [no-pw "/usr/bin/sudo -n"
           pw "echo 'fred' | /usr/bin/sudo -S"
           no-sudo nil]
-      (is (= no-pw (sudo-cmd-for {:username "fred"})))
+      (is (= no-pw
+             (remove-source-line-comments (sudo-cmd-for {:username "fred"}))))
       (is (= pw (sudo-cmd-for {:username "fred" :sudo-password "fred"})))
       (is (= no-pw
-             (sudo-cmd-for
-              {:username "fred" :password "fred" :sudo-password false})))
+             (remove-source-line-comments
+              (sudo-cmd-for
+               {:username "fred" :password "fred" :sudo-password false}))))
       (is (= no-sudo (sudo-cmd-for {:username "root"})))
       (is (= no-sudo (sudo-cmd-for {:username "fred" :no-sudo true})))))
   (script/with-script-context [:centos-5.3]
     (let [no-pw "/usr/bin/sudo"
           pw "echo 'fred' | /usr/bin/sudo -S"
           no-sudo nil]
-      (is (= no-pw (sudo-cmd-for {:username "fred"})))
+      (is (= no-pw
+             (remove-source-line-comments (sudo-cmd-for {:username "fred"}))))
       (is (= pw (sudo-cmd-for {:username "fred" :sudo-password "fred"})))
       (is (= no-pw
-             (sudo-cmd-for
-              {:username "fred" :password "fred" :sudo-password false})))
+             (remove-source-line-comments
+              (sudo-cmd-for
+               {:username "fred" :password "fred" :sudo-password false}))))
       (is (= no-sudo (sudo-cmd-for {:username "root"})))
       (is (= no-sudo (sudo-cmd-for {:username "fred" :no-sudo true}))))))
 

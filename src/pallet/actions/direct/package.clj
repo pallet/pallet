@@ -8,7 +8,7 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
    pallet.actions.direct.exec-script
    pallet.actions.direct.file
    pallet.actions.direct.remote-file)
@@ -233,7 +233,8 @@
    "%s %s %s %s\n"
    (:source-type options "deb")
    (:url options)
-   (:release options (stevedore/script (~lib/os-version-name)))
+   (:release options (with-source-line-comments false
+                       (stevedore/script (~lib/os-version-name))))
    (string/join " " (:scopes options ["main"]))))
 
 (defmethod format-source :apt

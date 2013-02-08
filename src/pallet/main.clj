@@ -1,28 +1,12 @@
 (ns pallet.main
   (:gen-class)
   (:require
-   [pallet.command-line :as command-line]
+   [clojure.stacktrace :refer [print-cause-trace]]
+   [clojure.string :as string]
+   [clojure.tools.cli :refer [cli]]
    [clojure.tools.logging :as logging]
-   [clojure.stacktrace :as stacktrace]
    [clojure.walk :as walk]
-   [clojure.string :as string]))
-
-(def
-  ^{:doc "An exception instance to use for terminating the task, without
-          a stack trace"}
-  exit-task-exception (Exception.))
-
-(defn report-error
-  "Report a message to *err*."
-  [msg]
-  (binding [*out* *err*]
-    (println msg)))
-
-(defn abort
-  "Abort a task, with the specified error message, and no stack trace."
-  [msg]
-  (report-error msg)
-  (throw exit-task-exception))
+   [pallet.task :refer [abort exit report-error]]))
 
 (defn read-targets
   ([dir]
@@ -54,30 +38,6 @@
       (catch java.io.FileNotFoundException e
         error-fn))))
 
-(defn parse-as-qualified-symbol
-  "Convert the given string into a namespace qualified symbol.
-   Returns a vector of ns and symbol"
-  [arg]
-  {:pre [(string? arg)]}
-  (if (.contains arg "/")
-    (if-let [sym (symbol arg)]
-      [(symbol (namespace sym)) sym])))
-
-(defn map-and-resolve-symbols
-  "Function to build a symbol->value map, requiring namespaces as needed."
-  [symbol-map arg]
-  (if-let [[ns sym] (parse-as-qualified-symbol arg)]
-    (do
-      (try
-        (require ns)
-        (catch java.io.FileNotFoundException e
-          (abort
-           (format "Could not locate node definition for %s" arg))))
-      (if-let [v (find-var sym)]
-        (assoc symbol-map sym (var-get v))
-        symbol-map))
-    symbol-map))
-
 (defn profiles
   [profiles-string]
   (when profiles-string
@@ -87,30 +47,86 @@
   "Check the exception to see if it is the `exit-task-exception`, and if it is
    not, then report the exception."
   [^Throwable e]
-  (when-not (= e exit-task-exception)
-    (logging/error e "Exception")
-    (report-error (.getMessage e))
-    (binding [*out* *err*]
-      (stacktrace/print-stack-trace
-       (stacktrace/root-cause e)))))
+  (logging/errorf e "Exception")
+  (binding [*out* *err*]
+    (print-cause-trace e)))
 
-(defn pallet-task
-  "A pallet task.
+(def pallet-switches
+  [["-P" "--service" "Service key to use (use add-service to create a service"]
+   ["-p" "--provider" "Cloud provider name."]
+   ["-i" "--identity" "Cloud user name or key."]
+   ["-c" "--credential" "Cloud password or secret."]
+   ["-B" "--blobstore-provider" "Blobstore provider name."]
+   ["-I" "--blobstore-identity" "Blobstore user name or key."]
+   ["-C" "--blobstore-credential" "Blobstore password or secret."]
+   ["-O" "--project-options" "Project options (usually picked up from project.clj)."]
+   ["-D" "--defaults" "Default options (usually picked up from config.clj)."]])
 
-   Returns an integer exit status suitable for System/exit."
+(defn pallet-args
+  "Process command line arguments. Returns an option map, a vector of arguments
+  and a help string.  Optionally accepts a sequence of switch descriptions."
+  ([args switches]
+     (apply cli args switches))
+  ([args]
+     (pallet-args args pallet-switches)))
+
+(def help
+  (str "A command line for pallet."
+       \newline \newline
+       (last (pallet-args nil))))
+
+;;; We use cli in the tasks to process switches, so we need to allow arbitray
+;;; switches to pass to the tasks.  We do this by recursively add switches
+;;; that fail, and returning these as extra switches, for propagation to the
+;;; task.
+(def ^:private pallet-option-names
+  (map (comp :name #'clojure.tools.cli/generate-spec) pallet-switches))
+
+(defn process-arg-attempt [args extra-switches]
+  (try
+    (let [[options args] (pallet-args
+                          args (concat pallet-switches extra-switches))]
+      {:options (select-keys options pallet-option-names)
+       :extra (apply dissoc options pallet-option-names)
+       :args args
+       :extra-switches extra-switches})
+    (catch Exception e
+      (if-let [[_ switch] (re-matches
+                           #"'(.*)' is not a valid argument"
+                           (.getMessage e))]
+        {:add-switch switch
+         :extra-switches extra-switches}
+        (throw e)))))
+
+(defn process-args
+  "Process arguments, returning options, arguments and unrecognised options."
+  [all-args]
+  (loop [{:keys [options extra args extra-switches add-switch] :as parsed}
+         (process-arg-attempt all-args nil)]
+    (if add-switch
+      (recur (process-arg-attempt all-args (conj extra-switches [add-switch])))
+      [options args extra])))
+
+(defn args-with-extras
+  "Add extra switches back into an argument vector."
+  [args extras]
+  (letfn [(option-to-args [[switch value]]
+            (let [k (if (= 1 (count (name switch)))
+                      (str "-" (name switch))
+                      (str "--" (name switch)))]
+              (if (or (= false value) (= true value) (nil? value))
+                [k]
+                [k value])))]
+    (concat (mapcat option-to-args extras) args)))
+
+(defn ^{:doc help} pallet-task
   [args & {:keys [environment]}]
-  (command-line/with-command-line args
-    "Pallet command line"
-    [[provider "Cloud provider name."]
-     [identity "Cloud user name or key."]
-     [credential "Cloud password or secret."]
-     [blobstore-provider "Blobstore provider name."]
-     [blobstore-identity "Blobstore user name or key."]
-     [blobstore-credential "Blobstore password or secret."]
-     [P "Profiles to use for key lookup in config.clj or settings.xml"]
-     [project-options "Project options (usually picked up from project.clj)."]
-     [defaults "Default options (usually picked up from config.clj)."]
-     args]
+  (let [[{:keys [provider identity credential blobstore-provider
+                 blobstore-identity blobstore-credential service
+                 project-options defaults]}
+         args
+         extras]
+        (process-args args)]
     (try
       (let [[task & args] args
             task (or (aliases task) task "help")
@@ -118,13 +134,9 @@
                               (read-string project-options))
             defaults (when defaults
                        (read-string defaults))
-            symbol-map (reduce map-and-resolve-symbols {} args)
-            arg-line (str "[ " (apply str (interpose " " args)) " ]")
-            params (read-string arg-line)
-            params (clojure.walk/prewalk-replace symbol-map params)
             task (resolve-task task)
             return-value (if (:no-service-required (meta task))
-                           (apply task params)
+                           (apply task (args-with-extras args extras))
                            (let [_ (require 'pallet.main-invoker)
                                  invoker (find-var
                                           'pallet.main-invoker/invoke)]
@@ -135,22 +147,38 @@
                                :blobstore-provider blobstore-provider
                                :blobstore-identity blobstore-identity
                                :blobstore-credential blobstore-credential
-                               :profiles (profiles P)
+                               :profiles (profiles service)
                                :project project-options
                                :defaults defaults
                                :environment environment}
                               task
-                              params)))]
+                              (args-with-extras args extras))))]
         (flush)
-        (if (integer? return-value) return-value 0))
+        nil)
       (catch Exception e
-        (report-unexpected-exception e)
-        1))))
+        ;; suppress exception traces for errors with :exit-code
+        (if-let [exit-code (:exit-code (ex-data e))]
+          (do (report-error (.getMessage e))
+              (exit exit-code))
+          (throw e))))))
 
 (defn -main
   "Command line runner."
   ([& args]
-     (let [return-value (pallet-task args)]
-       (shutdown-agents)
-       (System/exit return-value)))
+     (try
+       (pallet-task args)
+       (catch Exception e
+         (when-let [exit-code (:exit-code (ex-data e))]
+           (exit exit-code))
+         (report-unexpected-exception e)
+         (exit 1))
+       (finally
+         (shutdown-agents)))
+     (exit 0))
   ([] (apply -main *command-line-args*)))
+
+;;; Allow the task to define pallet services
+(def transient-services (atom {}))
+
+(defn add-service [name-kw properties]
+  (swap! transient-services assoc-in [:services name-kw] properties))
