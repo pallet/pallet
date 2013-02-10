@@ -89,7 +89,7 @@
       (throw (compiler-exception
               (IllegalArgumentException.
                (format
-                "Extra arguments passed to def-aggregate-crate-fn: %s"
+                "Extra arguments passed to def-aggregate-plan-fn: %s"
                 (vec rest))))))
     `(let [action# (declare-aggregated-crate-action '~sym ~f)]
        (defplan ~sym
@@ -109,7 +109,7 @@
       (throw (compiler-exception
               (IllegalArgumentException.
                (format
-                "Extra arguments passed to def-aggregate-crate-fn: %s"
+                "Extra arguments passed to def-collect-plan-fn: %s"
                 (vec rest))))))
     `(let [action# (declare-collected-crate-action '~sym ~f)]
        (defplan ~sym
