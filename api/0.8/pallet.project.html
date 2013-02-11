@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.plugin documentation</title>
+    <title>pallet.project documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <link href="css/codox-md.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
@@ -22,17 +22,91 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.project.html#var-add-default-phases">add-default-phases</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.project.html#var-default-project">default-project</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.project.html#var-merge-variant-node-specs">merge-variant-node-specs</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.project.html#var-merge-variant-phases">merge-variant-phases</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.project.html#var-pallet-file-exists%3F">pallet-file-exists?</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.project.html#var-read-project">read-project</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.project.html#var-spec-from-project">spec-from-project</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.project.html#var-use-project%21">use-project!</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.plugin documentation</h2>
-        <div class="doc">
+        <h2 class="namespace-title">pallet.project documentation</h2>
+        <div class="doc"><p>Pallet projects are specified in a pallet.clj file.</p>
+
+<p>The files are loaded by calling clojure.core/load in the pallet.project.load
+namespace.  The defproject form in that file def's a <code>pallet-project-map</code> var,
+which is reset after loading.</p>
+
+<p>defproject refers to pallet.project.loader/defproject.</p>
 </div>
         <div class="ns-vars">
-          
+          <div class="public">
+            <h3><a id="var-add-default-phases" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/project.clj#L21">add-default-phases</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[{:keys [phases]} project]</div>
+            
+            
+            <div class="doc"><p>Adds default phases.  Note that these are merged as ordinary clojure maps,
+not as server-specs, so that the project can remove default behaviour.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-default-project" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/project.clj#L73">default-project</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[]</div>
+            
+            
+            <div class="doc"><p>Return the default project, or nil if there is none.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-merge-variant-node-specs" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/project.clj#L83">merge-variant-node-specs</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[{:keys [node-spec groups], :as variant} {:keys [group-name], :as group}]</div>
+            
+            
+            <div class="doc"><p>Use the node-specs specified in the variant.  The variant can have a
+general node-spec, or a per-group node-spec under the <code>:groups</code> key</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-merge-variant-phases" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/project.clj#L89">merge-variant-phases</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[{:keys [phases groups], :as variant} {:keys [group-name], :as group}]</div>
+            
+            
+            <div class="doc"><p>Use the node-specs specified in the variant.  The variant can have a
+general node-spec, or a per-group node-spec under the <code>:groups</code> key</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-pallet-file-exists%3F" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/project.clj#L45">pallet-file-exists?</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[pallet-file]</div><div class="usage">[]</div>
+            
+            
+            <div class="doc"><p>Predicate to check if a pallet.clj file exists.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-read-project" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/project.clj#L27">read-project</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[pallet-file]</div><div class="usage">[]</div>
+            
+            
+            <div class="doc"><p>Read the project file</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-spec-from-project" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/project.clj#L100">spec-from-project</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[{:keys [groups provider service], :as pallet-project} provider-kw selectors]</div><div class="usage">[pallet-project provider-kw]</div>
+            
+            
+            <div class="doc"><p>Compute the groups for a pallet project using the given compute service
+provider keyword.  The selector defaults to :default.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-use-project%21" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/project.clj#L68">use-project!</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[project]</div>
+            
+            
+            <div class="doc"><p>Set the specified project map as the default project.</p>
+</div>
+          </div>
         </div>
       </div>
     </article>

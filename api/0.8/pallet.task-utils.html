@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.plugin documentation</title>
+    <title>pallet.task-utils documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <link href="css/codox-md.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
@@ -22,17 +22,52 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.task-utils.html#var-create-pallet-project">create-pallet-project</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.task-utils.html#var-pallet-project">pallet-project</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.task-utils.html#var-process-args">process-args</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.task-utils.html#var-project-groups">project-groups</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.plugin documentation</h2>
-        <div class="doc">
+        <h2 class="namespace-title">pallet.task-utils documentation</h2>
+        <div class="doc"><p>Task helpers that depend on pallet implementation</p>
 </div>
         <div class="ns-vars">
-          
+          <div class="public">
+            <h3><a id="var-create-pallet-project" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/task_utils.clj#L29">create-pallet-project</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[lein-project]</div>
+            
+            
+            <div class="doc"><p>Create the pallet project for the specified lein project.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-pallet-project" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/task_utils.clj#L13">pallet-project</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[lein-project]</div>
+            
+            
+            <div class="doc"><p>Load the pallet project for the specified lein project.  Will create
+a user level config if called outside of a project and no user level
+config exists yet.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-process-args" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/task_utils.clj#L55">process-args</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[task args switches]</div>
+            
+            
+            <div class="doc"><p>Process command line arguments. Returns an option map, a vector of arguments
+and a help string.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-project-groups" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/task_utils.clj#L46">project-groups</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[pallet-project compute selectors]</div>
+            
+            
+            <div class="doc"><p>Compute the groups for a pallet project using the given compute service</p>
+</div>
+          </div>
         </div>
       </div>
     </article>

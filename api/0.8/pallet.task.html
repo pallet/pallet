@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.plugin documentation</title>
+    <title>pallet.task documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <link href="css/codox-md.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
@@ -22,17 +22,50 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.task.html#var-abort">abort</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.task.html#var-maybe-resolve-symbol-string">maybe-resolve-symbol-string</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.task.html#var-parse-as-qualified-symbol">parse-as-qualified-symbol</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.task.html#var-report-error">report-error</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.plugin documentation</h2>
-        <div class="doc">
+        <h2 class="namespace-title">pallet.task documentation</h2>
+        <div class="doc"><p>Task helpers, that do not have any dependencies in pallet.</p>
 </div>
         <div class="ns-vars">
-          
+          <div class="public">
+            <h3><a id="var-abort" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/task.clj#L10">abort</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[msg]</div>
+            
+            
+            <div class="doc"><p>Abort a task, with the specified error message, and no stack trace.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-maybe-resolve-symbol-string" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/task.clj#L32">maybe-resolve-symbol-string</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[symbol-string]</div>
+            
+            
+            <div class="doc"><p>Try and resolve a symbol-string to a var value</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-parse-as-qualified-symbol" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/task.clj#L23">parse-as-qualified-symbol</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[symbol-string]</div>
+            
+            
+            <div class="doc"><p>Convert the given symbol-string into a namespace qualified symbol.
+Returns a vector of ns and symbol</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-report-error" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/task.clj#L4">report-error</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[msg]</div>
+            
+            
+            <div class="doc"><p>Report a message to <em>err</em>.</p>
+</div>
+          </div>
         </div>
       </div>
     </article>
