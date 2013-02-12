@@ -2,7 +2,7 @@
   "Script library for abstracting target host script differences"
   (:require
    [pallet.script :as script]
-   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :as stevedore :refer [script with-source-line-comments]]
    [pallet.thread-expr :as thread-expr]
    [clojure.string :as string]))
 
@@ -34,18 +34,18 @@
 (script/defscript has-command?
   "Check whether the specified command is on the path"
   [arg])
-(script/defimpl has-command? :default [arg] (hash ~arg "2>&-"))
+(script/defimpl has-command? :default [arg] ("hash" ~arg "2>&-"))
 
 (script/defscript canonical-path [path]
   "Return the canonical version of the specified path"
   [arg])
-(script/defimpl canonical-path :default [arg] (readlink -f ~arg))
+(script/defimpl canonical-path :default [arg] ("readlink" -f ~arg))
 (script/defimpl canonical-path [#{:darwin :os-x}] [arg]
   (chain-and
-   (var ccwd @(pwd))
-   (cd @(dirname ~arg))
-   (println (quoted (str @(pwd -P) "/" @(basename ~arg))))
-   (cd @ccwd)))
+   (var ccwd @("pwd"))
+   ("cd" @("dirname" ~arg))
+   (println (quoted (str @("pwd" -P) "/" @("basename" ~arg))))
+   ("cd" @ccwd)))
 
 
 (script/defscript rm [file & {:keys [recursive force]}])
@@ -57,14 +57,14 @@
 (script/defscript mv [source destination & {:keys [force backup]}])
 (script/defimpl mv :default
   [source destination & {:keys [force backup]}]
-  (mv
+  ("mv"
    ~(stevedore/map-to-arg-string
      {:f force :backup (when backup (name backup))}
      :assign true)
    ~source ~destination))
 (script/defimpl mv [#{:darwin :os-x}]
   [source destination & {:keys [force backup]}]
-  (mv
+  ("mv"
    ~(stevedore/map-to-arg-string
      {:f force}
      :assign true)
@@ -73,21 +73,21 @@
 (script/defscript cp [source destination & {:keys [force backup preserve]}])
 (script/defimpl cp :default
   [source destination & {:keys [force backup preserve]}]
-  (cp
+  ("cp"
    ~(stevedore/map-to-arg-string {:f force
                                   :backup (when backup (name backup))
                                   :p preserve})
    ~source ~destination))
 (script/defimpl cp [#{:darwin :os-x}]
   [source destination & {:keys [force backup preserve]}]
-  (cp
+  ("cp"
    ~(stevedore/map-to-arg-string {:f force :p preserve})
    ~source ~destination))
 
 (script/defscript ln [source destination & {:keys [force symbolic]}])
 (script/defimpl ln :default
   [source destination & {:keys [force symbolic]}]
-  (ln
+  ("ln"
    ~(stevedore/map-to-arg-string {:f force :s symbolic})
    ~source ~destination))
 
@@ -100,17 +100,17 @@
 (script/defscript basename [path])
 (script/defimpl basename :default
   [path]
-  (basename ~path))
+  ("basename" ~path))
 
 (script/defscript dirname [path])
 (script/defimpl dirname :default
   [path]
-  (dirname ~path))
+  ("dirname" ~path))
 
 (script/defscript ls [pattern & {:keys [sort-by-time sort-by-size reverse]}])
 (script/defimpl ls :default
   [pattern & {:keys [sort-by-time sort-by-size reverse]}]
-  (ls ~(stevedore/map-to-arg-string
+  ("ls" ~(stevedore/map-to-arg-string
           {:t sort-by-time
            :S sort-by-size
            :r reverse})
@@ -119,44 +119,44 @@
 (script/defscript cat [pattern])
 (script/defimpl cat :default
   [pattern]
-  (cat ~pattern))
+  ("cat" ~pattern))
 
 (script/defscript tail [pattern & {:keys [max-lines]}])
 (script/defimpl tail :default
   [pattern & {:keys [max-lines]}]
-  (tail ~(stevedore/map-to-arg-string {:n max-lines}) ~pattern))
+  ("tail" ~(stevedore/map-to-arg-string {:n max-lines}) ~pattern))
 
 (script/defscript diff [file1 file2 & {:keys [unified]}])
 (script/defimpl diff :default
   [file1 file2 & {:keys [unified]}]
-  (diff ~(stevedore/map-to-arg-string {:u unified}) ~file1 ~file2))
+  ("diff" ~(stevedore/map-to-arg-string {:u unified}) ~file1 ~file2))
 
 (script/defscript cut [file & {:keys [fields delimiter]}])
 (script/defimpl cut :default
   [file & {:keys [fields delimiter]}]
-  (cut
+  ("cut"
    ~(stevedore/map-to-arg-string {:f fields :d delimiter})
    ~file))
 
 (script/defscript chown [owner file & {:as options}])
 (script/defimpl chown :default [owner file & {:as options}]
-  (chown ~(stevedore/map-to-arg-string options) ~owner ~file))
+  ("chown" ~(stevedore/map-to-arg-string options) ~owner ~file))
 
 (script/defscript chgrp [group file & {:as options}])
 (script/defimpl chgrp :default [group file & {:as options}]
-  (chgrp ~(stevedore/map-to-arg-string options) ~group ~file))
+  ("chgrp" ~(stevedore/map-to-arg-string options) ~group ~file))
 
 (script/defscript chmod [mode file & {:as options}])
 (script/defimpl chmod :default [mode file & {:as options}]
-  (chmod ~(stevedore/map-to-arg-string options) ~mode ~file))
+  ("chmod" ~(stevedore/map-to-arg-string options) ~mode ~file))
 
 (script/defscript touch [file & {:as options}])
 (script/defimpl touch :default [file & {:as options}]
-  (touch ~(stevedore/map-to-arg-string options) ~file))
+  ("touch" ~(stevedore/map-to-arg-string options) ~file))
 
 (script/defscript md5sum [file & {:as options}])
 (script/defimpl md5sum :default [file & {:as options}]
-  (md5sum ~(stevedore/map-to-arg-string options) ~file))
+  ("md5sum" ~(stevedore/map-to-arg-string options) ~file))
 (script/defimpl md5sum [#{:darwin :os-x}] [file & {:as options}]
   ("/sbin/md5" -r ~file))
 
@@ -165,31 +165,31 @@
   [file])
 (script/defimpl normalise-md5 :default
   [file]
-  (if (egrep "'^[a-fA-F0-9]+$'" ~file)
-    (echo
-     (quoted (str "  " @(pipe (basename ~file) (sed -e "s/.md5//"))))
+  (if ("egrep" "'^[a-fA-F0-9]+$'" ~file)
+    (println
+     (quoted (str "  " @(pipe ("basename" ~file) ("sed" -e "s/.md5//"))))
      ">>" ~file)))
 
 (script/defscript md5sum-verify [file & {:as options}])
 (script/defimpl md5sum-verify :default
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
   ("(" (chain-and
-        (cd @(dirname ~file))
-        (md5sum
+        ("cd" @(dirname ~file))
+        ("md5sum"
          ~(stevedore/map-to-arg-string {:quiet quiet :check check})
          @(basename ~file))) ")"))
 (script/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel :fedora}]
   [file & {:keys [quiet check] :or {quiet true check true} :as options}]
   ("(" (chain-and
-        (cd @(dirname ~file))
-        (md5sum
+        ("cd" @(dirname ~file))
+        ("md5sum"
          ~(stevedore/map-to-arg-string {:status quiet :check check})
-         @(basename ~file))) ")"))
+         @("basename" ~file))) ")"))
 (script/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
   ("(" (chain-and
         (var testfile @(~cut ~file :delimiter " " :fields 2))
         (var md5 @(~cut ~file :delimiter " " :fields 1))
-        (cd @(dirname ~file))
+        ("cd" @(dirname ~file))
         ("test" (quoted @("/sbin/md5" -q @testfile)) == (quoted @md5))
         @mres) ")"))
 
@@ -209,7 +209,7 @@
   [file expr-map {:keys [seperator restriction quote-with]
                   :or {quote-with "\""}
                   :as options}]
-  (sed "-i"
+  ("sed" "-i"
    ~(if (map? expr-map)
       (string/join
        " "
@@ -236,7 +236,7 @@
 
 (script/defimpl download-file :default [url path & {:keys [proxy insecure]}]
   (if (~has-command? curl)
-    (curl "-o" (quoted ~path)
+    ("curl" "-o" (quoted ~path)
           --retry 5 --silent --show-error --fail --location
           ~(if proxy
              (let [url (java.net.URL. proxy)]
@@ -245,7 +245,7 @@
           ~(if insecure "--insecure" "")
           (quoted ~url))
     (if (~has-command? wget)
-      (wget "-O" (quoted ~path) --tries 5 --no-verbose
+      ("wget" "-O" (quoted ~path) --tries 5 --no-verbose
             ~(if proxy
                (format
                 "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\"" proxy proxy)
@@ -254,11 +254,11 @@
             (quoted ~url))
       (do
         (println "No download utility available")
-        (~exit 1)))))
+        (exit 1)))))
 
 (script/defscript download-request [path request])
 (script/defimpl download-request :default [path request]
-  (curl "-o" (quoted ~path) --retry 3 --silent --show-error --fail --location
+  ("curl" "-o" (quoted ~path) --retry 3 --silent --show-error --fail --location
    ~(string/join
      " "
      (map (fn dlr-fmt [e] (format "-H \"%s: %s\"" (key e) (val e)))
@@ -271,7 +271,7 @@
 
 (script/defscript make-temp-file [pattern])
 (script/defimpl make-temp-file :default [pattern]
-  @(mktemp (quoted ~(str pattern "XXXXX"))))
+  @("mktemp" (quoted ~(str pattern "XXXXX"))))
 
 (script/defscript heredoc-in [cmd content {:keys [literal]}])
 (script/defimpl heredoc-in :default [cmd content {:keys [literal]}]
@@ -296,7 +296,7 @@
   [directory & {:keys [path verbose mode]}])
 (script/defimpl mkdir :default
   [directory & {:keys [path verbose mode] :as options}]
-  (mkdir
+  ("mkdir"
    ~(stevedore/map-to-arg-string {:m mode :p path :v verbose})
    ~directory))
 
@@ -304,7 +304,7 @@
   "Create a temporary directory"
   [pattern & {:as options}])
 (script/defimpl make-temp-dir :default [pattern & {:as options}]
-  @(mktemp -d
+  @("mktemp" -d
     ~(stevedore/map-to-arg-string options)
     ~(str pattern "XXXXX")))
 
@@ -313,33 +313,34 @@
 
 (script/defscript os-version-name [])
 (script/defimpl os-version-name [#{:ubuntu :debian}] []
-  @(lsb_release -c -s))
+  @("lsb_release" -c -s))
 
 (script/defimpl os-version-name :default []
   "")
 
 (script/defscript hostname [& options])
 (script/defimpl hostname :default [& options]
-  @(hostname
+  @("hostname"
     ~(if (first options)
        (stevedore/map-to-arg-string (apply hash-map options))
        "")))
 
 (script/defscript dnsdomainname [])
 (script/defimpl dnsdomainname :default []
-  @(dnsdomainname))
+  @("dnsdomainname"))
 
 (script/defscript nameservers [])
 (script/defimpl nameservers :default []
-  @(grep nameserver "/etc/resolv.conf" | cut "-f2"))
+  @(pipe ("grep" nameserver "/etc/resolv.conf")
+         ("cut" "-f2")))
 
 (script/defscript debian-version [])
 (script/defimpl debian-version :default []
-  (if (file-exists? "/etc/debian") (cat "/etc/debian")))
+  (if (file-exists? "/etc/debian") ("cat" "/etc/debian")))
 
 (script/defscript redhat-version [])
 (script/defimpl redhat-version :default []
-  (if (file-exists? "/etc/redhat-release") (cat "/etc/redhat-release")))
+  (if (file-exists? "/etc/redhat-release") ("cat" "/etc/redhat-release")))
 
 (script/defscript ubuntu-version [])
 (script/defimpl ubuntu-version :default []
@@ -347,7 +348,7 @@
 
 (script/defscript arch [])
 (script/defimpl arch :default []
-  @(uname -p))
+  @("uname" -p))
 
 
 
@@ -369,7 +370,7 @@
 (script/defscript remove-group [name options])
 
 (script/defimpl user-exists? :default [username]
-  (getent passwd ~username))
+  ("getent" passwd ~username))
 
 (defn group-seq->string
   [groups]
@@ -521,137 +522,141 @@
 ;;; aptitude
 (script/defimpl update-package-list [#{:aptitude}] [& {:keys [] :as options}]
   (chain-or
-   (aptitude update -q=2 -y ~(stevedore/map-to-arg-string options)) true))
+   ("aptitude" update -q=2 -y ~(stevedore/map-to-arg-string options)) true))
 
 (script/defimpl upgrade-all-packages [#{:aptitude}] [& options]
-  (aptitude upgrade -q -y ~(stevedore/option-args options)))
+  ("aptitude" upgrade -q -y ~(stevedore/option-args options)))
 
 (script/defimpl install-package [#{:aptitude}] [package & options]
-  (aptitude install -q -y ~(stevedore/option-args options) ~package
-            ;; show returns an error code if no package found, while install
-            ;; does not.  There should be a better way than this...
-            "&&" aptitude show ~package))
+  ~(with-source-line-comments false
+     (script
+      (chain-and
+       ("aptitude" install -q -y ~(stevedore/option-args options) ~package)
+       ;; show returns an error code if no package found, while install
+       ;; does not.  There should be a better way than this...
+       ("aptitude" show ~package)))))
 
 (script/defimpl upgrade-package [#{:aptitude}] [package & options]
-  (aptitude install -q -y ~(stevedore/option-args options) ~package
-            ;; show returns an error code if no package found, while install
-            ;; does not.  There should be a better way than this...
-            "&&" aptitude show ~package))
+  (chain-and
+   ("aptitude" install -q -y ~(stevedore/option-args options) ~package)
+   ;; show returns an error code if no package found, while install
+   ;; does not.  There should be a better way than this...
+   ("aptitude" show ~package)))
 
 (script/defimpl remove-package [#{:aptitude}] [package & options]
-  (aptitude remove -y ~(stevedore/option-args options) ~package))
+  ("aptitude" remove -y ~(stevedore/option-args options) ~package))
 
 (script/defimpl purge-package [#{:aptitude}] [package & options]
-  (aptitude purge -y  ~(stevedore/option-args options) ~package))
+  ("aptitude" purge -y  ~(stevedore/option-args options) ~package))
 
 (script/defimpl list-installed-packages [#{:aptitude}] [& options]
-  (aptitude search (quoted "~i")))
+  ("aptitude" search (quoted "~i")))
 
 ;;; apt
 (script/defimpl update-package-list [#{:apt}] [& {:keys [] :as options}]
-  (apt-get -qq ~(stevedore/map-to-arg-string options) update))
+  ("apt-get" -qq ~(stevedore/map-to-arg-string options) update))
 
 (script/defimpl upgrade-all-packages [#{:apt}] [& options]
-  (apt-get -qq -y ~(stevedore/option-args options) upgrade))
+  ("apt-get" -qq -y ~(stevedore/option-args options) upgrade))
 
 (script/defimpl install-package [#{:apt}] [package & options]
-  (apt-get -qq -y ~(stevedore/option-args options) install ~package))
+  ("apt-get" -qq -y ~(stevedore/option-args options) install ~package))
 
 (script/defimpl upgrade-package [#{:apt}] [package & options]
-  (apt-get -qq -y ~(stevedore/option-args options)  install ~package))
+  ("apt-get" -qq -y ~(stevedore/option-args options)  install ~package))
 
 (script/defimpl remove-package [#{:apt}] [package & options]
-  (apt-get -qq -y ~(stevedore/option-args options) remove ~package))
+  ("apt-get" -qq -y ~(stevedore/option-args options) remove ~package))
 
 (script/defimpl purge-package [#{:apt}] [package & options]
-  (apt-get -qq -y ~(stevedore/option-args options) remove ~package))
+  ("apt-get" -qq -y ~(stevedore/option-args options) remove ~package))
 
 (script/defimpl list-installed-packages [#{:apt}] [& options]
-  (dpkg --get-selections))
+  ("dpkg" --get-selections))
 
 ;;; yum
 (script/defimpl update-package-list [#{:yum}] [& {:keys [enable disable]}]
-  (yum makecache -q ~(string/join
+  ("yum" makecache -q ~(string/join
                       " "
                       (concat
                        (map #(str "--disablerepo=" %) disable)
                        (map #(str "--enablerepo=" %) enable)))))
 
 (script/defimpl upgrade-all-packages [#{:yum}] [& options]
-  (yum update -y -q ~(stevedore/option-args options)))
+  ("yum" update -y -q ~(stevedore/option-args options)))
 
 (script/defimpl install-package [#{:yum}] [package & options]
-  (yum install -y -q ~(stevedore/option-args options) ~package))
+  ("yum" install -y -q ~(stevedore/option-args options) ~package))
 
 (script/defimpl upgrade-package [#{:yum}] [package & options]
-  (yum upgrade -y -q ~(stevedore/option-args options) ~package))
+  ("yum" upgrade -y -q ~(stevedore/option-args options) ~package))
 
 (script/defimpl remove-package [#{:yum}] [package & options]
-  (yum remove ~(stevedore/option-args options) ~package))
+  ("yum" remove ~(stevedore/option-args options) ~package))
 
 (script/defimpl purge-package [#{:yum}] [package & options]
-  (yum purge ~(stevedore/option-args options) ~package))
+  ("yum" purge ~(stevedore/option-args options) ~package))
 
 (script/defimpl list-installed-packages [#{:yum}] [& options]
-  (yum list installed))
+  ("yum" list installed))
 
 ;;; zypper
 (script/defimpl update-package-list [#{:zypper}] [& options]
-  (zypper refresh ~(stevedore/option-args options)))
+  ("zypper" refresh ~(stevedore/option-args options)))
 
 (script/defimpl upgrade-all-packages [#{:zypper}] [& options]
-  (zypper update -y ~(stevedore/option-args options)))
+  ("zypper" update -y ~(stevedore/option-args options)))
 
 (script/defimpl install-package [#{:zypper}] [package & options]
-  (zypper install -y ~(stevedore/option-args options) ~package))
+  ("zypper" install -y ~(stevedore/option-args options) ~package))
 
 (script/defimpl remove-package [#{:zypper}] [package & options]
-  (zypper remove ~(stevedore/option-args options) ~package))
+  ("zypper" remove ~(stevedore/option-args options) ~package))
 
 (script/defimpl purge-package [#{:zypper}] [package & options]
-  (zypper remove ~(stevedore/option-args options) ~package))
+  ("zypper" remove ~(stevedore/option-args options) ~package))
 
-;;; pacman
+;;; "pacman"
 (script/defimpl update-package-list [#{:pacman}] [& options]
-  (pacman -Sy "--noconfirm" "--noprogressbar"
+  ("pacman" -Sy "--noconfirm" "--noprogressbar"
    ~(stevedore/option-args options)))
 
 (script/defimpl upgrade-all-packages [#{:pacman}] [& options]
-  (pacman -Su "--noconfirm" "--noprogressbar" ~(stevedore/option-args options)))
+  ("pacman" -Su "--noconfirm" "--noprogressbar" ~(stevedore/option-args options)))
 
 (script/defimpl install-package [#{:pacman}] [package & options]
-  (pacman -S "--noconfirm" "--noprogressbar"
+  ("pacman" -S "--noconfirm" "--noprogressbar"
    ~(stevedore/option-args options) ~package))
 
 (script/defimpl upgrade-package [#{:pacman}] [package & options]
-  (pacman -S "--noconfirm" "--noprogressbar"
+  ("pacman" -S "--noconfirm" "--noprogressbar"
    ~(stevedore/option-args options) ~package))
 
 (script/defimpl remove-package [#{:pacman}] [package & options]
-  (pacman -R "--noconfirm" ~(stevedore/option-args options) ~package))
+  ("pacman" -R "--noconfirm" ~(stevedore/option-args options) ~package))
 
 (script/defimpl purge-package [#{:pacman}] [package & options]
-  (pacman -R "--noconfirm" "--nosave"
+  ("pacman" -R "--noconfirm" "--nosave"
    ~(stevedore/option-args options) ~package))
 
 ;; brew
 (script/defimpl update-package-list [#{:brew}] [& options]
-  (brew update ~(stevedore/option-args options)))
+  ("brew" update ~(stevedore/option-args options)))
 
 (script/defimpl upgrade-all-packages [#{:brew}] [& options]
-  (brew upgrade ~(stevedore/option-args options)))
+  ("brew" upgrade ~(stevedore/option-args options)))
 
 (script/defimpl install-package [#{:brew}] [package & options]
   (chain-or
    ;; brew install complains if already installed
-   (brew ls ~package > "/dev/null" "2>&1")
-   (brew install -y ~(stevedore/option-args options) ~package)))
+   ("brew" ls ~package > "/dev/null" "2>&1")
+   ("brew" install -y ~(stevedore/option-args options) ~package)))
 
 (script/defimpl remove-package [#{:brew}] [package & options]
-  (brew uninstall ~(stevedore/option-args options) ~package))
+  ("brew" uninstall ~(stevedore/option-args options) ~package))
 
 (script/defimpl purge-package [#{:brew}] [package & options]
-  (brew uninstall ~(stevedore/option-args options) ~package))
+  ("brew" uninstall ~(stevedore/option-args options) ~package))
 
 
 (script/defscript debconf-set-selections [& selections])
@@ -830,7 +835,7 @@
 (script/defimpl selinux-file-type :default
   [path type]
   (if (&& (~has-command? chcon) (directory? "/etc/selinux"))
-    (chcon -Rv ~(str "--type=" type) ~path)))
+    ("chcon" -Rv ~(str "--type=" type) ~path)))
 
 (script/defscript selinux-bool
   "Set the selinux boolean value"
@@ -840,4 +845,4 @@
   [flag value & {:keys [persist]}]
   (if (&& (&& (~has-command? setsebool) (directory? "/etc/selinux"))
           (file-exists? "/selinux/enforce"))
-    (setsebool ~(if persist "-P" "") ~(name flag) ~value)))
+    ("setsebool" ~(if persist "-P" "") ~(name flag) ~value)))

@@ -113,7 +113,7 @@
       (let [local (group-spec
                    "local"
                    :phases {:configure (fn [x]
-                                         (exec-script (echo "xx" ~x "yy")))})
+                                         (exec-script (println "xx" ~x "yy")))})
             session @(lift
                       local
                       :user (assoc *admin-user*
@@ -132,12 +132,12 @@
     (testing "compound phase"
       (let [server (server-spec
                     :phases {:configure (fn [x]
-                                          (exec-script (echo "xx" ~x)))})
+                                          (exec-script (println "xx" ~x)))})
             local (group-spec
                    "local"
                    :extends [server]
                    :phases {:configure (fn [x]
-                                         (exec-script (echo "yy" ~x)))})
+                                         (exec-script (println "yy" ~x)))})
             session @(lift
                       local
                       :user (assoc *admin-user*
@@ -165,7 +165,7 @@
             f (fn [x]
                 (exec-checked-script
                  "myscript"
-                 (echo ~x)
+                 (println ~x)
                  (file-exists? "abcdef")))]
         (testing "failed script"
           (let [local (group-spec "local" :phases {:configure f})

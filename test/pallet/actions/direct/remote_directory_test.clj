@@ -35,17 +35,17 @@
           (stevedore/script
            (when (or (not (file-exists? "${TMPDIR-/tmp}/file.tgz.md5"))
                      (or (not (file-exists? "/path/.pallet.directory.md5"))
-                         (not (diff "${TMPDIR-/tmp}/file.tgz.md5"
+                         (not ("diff" "${TMPDIR-/tmp}/file.tgz.md5"
                                     "/path/.pallet.directory.md5"))))
              ~(stevedore/checked-script
                "Untar ${TMPDIR-/tmp}/file.tgz"
-               (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
-               (cd "/path")
-               (tar xz "--strip-components=1" -f "${rdf}")
-               (cd -))
+               (var rdf @("readlink" -f "${TMPDIR-/tmp}/file.tgz"))
+               ("cd" "/path")
+               ("tar" xz "--strip-components=1" -f "${rdf}")
+               ("cd" -))
              (when (file-exists? "${TMPDIR-/tmp}/file.tgz.md5")
-               (cp "${TMPDIR-/tmp}/file.tgz.md5"
-                   "/path/.pallet.directory.md5"))))
+               ("cp" "${TMPDIR-/tmp}/file.tgz.md5"
+                "/path/.pallet.directory.md5"))))
           (-> (directory* {} "/path" :owner "fred" :recursive true)
               first second)))
        (first (build-actions/build-actions
@@ -68,17 +68,17 @@
           (stevedore/script
            (when (or (not (file-exists? "${TMPDIR-/tmp}/file.tgz.md5"))
                      (or (not (file-exists? "/path/.pallet.directory.md5"))
-                         (not (diff "${TMPDIR-/tmp}/file.tgz.md5"
-                                    "/path/.pallet.directory.md5"))))
+                         (not ("diff" "${TMPDIR-/tmp}/file.tgz.md5"
+                               "/path/.pallet.directory.md5"))))
              ~(stevedore/checked-script
                "Untar ${TMPDIR-/tmp}/file.tgz"
-               (var rdf @(readlink -f "${TMPDIR-/tmp}/file.tgz"))
-               (cd "/path")
-               (tar xz "--strip-components=1" -f "${rdf}")
-               (cd -))
+               (var rdf @("readlink" -f "${TMPDIR-/tmp}/file.tgz"))
+               ("cd" "/path")
+               ("tar" xz "--strip-components=1" -f "${rdf}")
+               ("cd" -))
              (when (file-exists? "${TMPDIR-/tmp}/file.tgz.md5")
-               (cp "${TMPDIR-/tmp}/file.tgz.md5"
-                   "/path/.pallet.directory.md5"))))))
+               ("cp" "${TMPDIR-/tmp}/file.tgz.md5"
+                "/path/.pallet.directory.md5"))))))
        (first (build-actions/build-actions
                {}
                (remote-directory

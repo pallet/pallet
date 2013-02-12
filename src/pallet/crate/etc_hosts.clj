@@ -48,7 +48,7 @@
   [ip]
   (let [r (exec-checked-script
            (str "reverse DNS for " ip)
-           (pipe (host ~ip) (awk "'{print $NF}'")))]
+           (pipe ("host" ~ip) ("awk" "'{print $NF}'")))]
     (as-action (:out @r))))
 
 (defplan resolve-dns
@@ -56,7 +56,7 @@
   [hostname]
   (let [r (exec-checked-script
            (str "Resolve DNS for " hostname)
-           (pipe (host ~hostname) (awk "'{print $NF}'")))]
+           (pipe ("host" ~hostname) ("awk" "'{print $NF}'")))]
     (as-action (:out @r))))
 
 
@@ -150,7 +150,7 @@
 hostname is not in /etc/hosts."
   []
   (let [node-name (target-name)]
-    (plan-when-not (stevedore/script (grep ~node-name (~lib/etc-hosts)))
+    (plan-when-not (stevedore/script ("grep" ~node-name (~lib/etc-hosts)))
       (sed (with-source-line-comments false (stevedore/script (~lib/etc-hosts)))
            {"127\\.0\\.0\\.1\\(.*\\)" (str "127.0.0.1\\1 " node-name)}
            :restriction (str "/" node-name "/ !")

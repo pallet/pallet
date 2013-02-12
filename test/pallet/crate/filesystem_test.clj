@@ -32,8 +32,8 @@
          (directory "/mnt/a")
          (exec-checked-script
           "Mount /dev/a at /mnt/a"
-          (if-not @(mountpoint -q "/mnt/a")
-            (mount "/dev/a" (quoted "/mnt/a"))))))
+          (if-not @("mountpoint" -q "/mnt/a")
+            ("mount" "/dev/a" (quoted "/mnt/a"))))))
        (first
         (build-actions/build-actions
          {}
@@ -45,9 +45,9 @@
          (directory "/mnt/a")
          (exec-checked-script
           "Mount /dev/a at /mnt/a"
-          (if-not @(mountpoint -q "/mnt/a")
-            (mount -t "vboxsf" -o "gid=user,uid=user"
-                   "/dev/a" (quoted "/mnt/a"))))))
+          (if-not @("mountpoint" -q "/mnt/a")
+            ("mount" -t "vboxsf" -o "gid=user,uid=user"
+             "/dev/a" (quoted "/mnt/a"))))))
        (first
         (build-actions/build-actions
          {}

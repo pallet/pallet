@@ -57,7 +57,7 @@
                            (group-by #(select-keys % [:enable :allow-unsigned]))
                            (sort-by #(apply min (map :priority (second %)))))]
       (stevedore/script
-       (aptitude
+       ("aptitude"
         install -q -y
         ~(string/join " " (map #(str "-t " %) (:enable opts)))
         ~(if (:allow-unsigned opts)
@@ -85,18 +85,18 @@
       (cond
         (#{:install :upgrade} action)
         (stevedore/script
-         (pipe (aptitude
+         (pipe ("aptitude"
                 search
                 (quoted
                  (str "?and(?installed, ?name(^" ~escaped-package "$))")))
-               (grep (quoted ~package))))
+               ("grep" (quoted ~package))))
         (= :remove action)
         (stevedore/script
-         (not (pipe (aptitude
+         (not (pipe ("aptitude"
                      search
                      (quoted
                       (str "?and(?installed, ?name(^" ~escaped-package "$))")))
-                    (grep (quoted ~package))))))))))
+                    ("grep" (quoted ~package))))))))))
 
 (defmethod adjust-packages :apt
   [session packages]
@@ -109,7 +109,7 @@
                            (group-by #(select-keys % [:enable :allow-unsigned]))
                            (sort-by #(apply min (map :priority (second %)))))]
       (stevedore/script
-       (apt-get
+       ("apt-get"
         -q -y install
         ~(string/join " " (map #(str "-t " %) (:enable opts)))
         ~(if (:allow-unsigned opts) "--allow-unauthenticated" "")
@@ -150,7 +150,7 @@
                               #(select-keys % [:enable :disable :exclude]))
                              (sort-by #(apply min (map :priority (second %)))))]
         (stevedore/script
-         (yum
+         ("yum"
           ~(name action) -q -y
           ~(string/join " " (map #(str "--disablerepo=" %) (:disable opts)))
           ~(string/join " " (map #(str "--enablerepo=" %) (:enable opts)))
@@ -272,7 +272,7 @@
        (if (and key-url (.startsWith key-url "ppa:"))
          (stevedore/chain-commands
           (stevedore/script (~lib/install-package "python-software-properties"))
-          (stevedore/script (pipe (echo "") (add-apt-repository ~key-url)))
+          (stevedore/script (pipe (println "") ("add-apt-repository" ~key-url)))
           (stevedore/script (~lib/update-package-list)))
          (->
           (remote-file*
@@ -287,7 +287,7 @@
          (let [key-server (or (:key-server aptitude) (:key-server apt)
                               *default-apt-keyserver*)]
            (stevedore/script
-            (apt-key
+            ("apt-key"
              adv
              "--keyserver" ~key-server
              "--recv-keys" ~(:key-id aptitude))))))
@@ -299,9 +299,9 @@
           session "aptkey.tmp"
           {:url key-url :flag-on-changed package-source-changed-flag})
          first second)
-        (stevedore/script (apt-key add aptkey.tmp)))))
+        (stevedore/script ("apt-key" add aptkey.tmp)))))
      (when-let [key (and (= packager :yum) (:gpgkey yum))]
-       (stevedore/script (rpm "--import" ~key))))))
+       (stevedore/script ("rpm" "--import" ~key))))))
 
 (implement-action package-source :direct
   "Control package sources.
@@ -336,9 +336,9 @@
   "Add a scope to all the existing package sources. Aptitude specific."
   [type scope file]
   (stevedore/chained-script
-   (var tmpfile @(mktemp -t addscopeXXXX))
+   (var tmpfile @("mktemp" -t addscopeXXXX))
    (~lib/cp ~file @tmpfile :preserve true)
-   (awk "'{if ($1 ~" ~(str "/^" type "/") "&& !" ~(str "/" scope "/")
+   ("awk" "'{if ($1 ~" ~(str "/^" type "/") "&& !" ~(str "/" scope "/")
         " ) print $0 \" \" \"" ~scope  "\" ; else print; }'"
         ~file > @tmpfile)
    (~lib/mv @tmpfile ~file :force ~true)))
@@ -517,8 +517,8 @@
          first second)
      (checked-script
       (format "Install rpm %s" rpm-name)
-      (if-not (rpm -q @(rpm -pq ~rpm-name) > "/dev/null" "2>&1")
-        (do (rpm -U --quiet ~rpm-name)))))]
+      (if-not ("rpm" -q @("rpm" -pq ~rpm-name) > "/dev/null" "2>&1")
+        (do ("rpm" -U --quiet ~rpm-name)))))]
    session])
 
 (implement-action install-deb :direct
@@ -536,7 +536,7 @@
          first second)
      (checked-script
       (format "Install deb %s" deb-name)
-      (dpkg -i --skip-same-version ~deb-name)))]
+      ("dpkg" -i --skip-same-version ~deb-name)))]
    session])
 
 (implement-action minimal-packages :direct
@@ -553,14 +553,15 @@
                                         (~lib/install-package "sudo"))
         (= :arch os-family) (checked-script
                              "Add minimal packages"
-                             ("{" pacman-db-upgrade "||" true "; } "
+                             ("{" (chain-or pacman-db-upgrade true) "; } "
                               "2> /dev/null")
                              (~lib/update-package-list)
                              (~lib/upgrade-package "pacman")
                              (println "  checking for pacman-db-upgrade")
-                             ("{" pacman-db-upgrade
-                              "&&" (~lib/update-package-list)
-                              "||" true "; } "
+                             ("{" (chain-or (chain-and
+                                             pacman-db-upgrade
+                                             (~lib/update-package-list))
+                                            true) "; } "
                               "2> /dev/null")
                              (~lib/install-package "sudo")))]
      session]))

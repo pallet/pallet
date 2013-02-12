@@ -71,12 +71,3 @@
        (first
         (build-actions {}
           (directories ["d1" "d2"] :owner "o"))))))
-
-(pallet.stevedore/with-script-language
-  :pallet.stevedore.bash/bash
-  (str
-   (binding [pallet.action-plan/*defining-context* nil]
-     (stevedore/chain-commands
-      (-> (directory* {} "d1" :owner "o") first second)
-      (-> (directory* {} "d2" :owner "o") first second)))
-   \newline))

@@ -6,7 +6,8 @@
        ;;                   "marg" "-d" "autodoc/marginalia/0.8/"]
        ;;           "codox" ["with-profile" "+doc" "doc"]
        ;;           "doc" ["do" "codox," "marg"]}
-       }
+       :checkout-deps-shares [:source-paths :test-paths :resource-paths
+                              :compile-path]}
  :doc {:dependencies [[codox-md "0.2.0"]]
        :codox {:writer codox-md.writer/write-docs
                :output-dir "autodoc/api/0.8"

@@ -70,7 +70,7 @@
              "yum install -q -y java rubygems"
              "yum remove -q -y git ruby"
              "yum upgrade -q -y maven2"
-             (yum list installed))))
+             ("yum" list installed))))
          (first
           (build-actions
               {:server {:tag :n :image {:os-family :centos}}}
@@ -113,10 +113,10 @@ EOF
 (deftest add-scope-test
   (is (script-no-comment=
        (stevedore/chained-script
-        (set! tmpfile @(mktemp -t addscopeXXXX))
-        (cp -p "/etc/apt/sources.list" @tmpfile)
-        (awk "'{if ($1 ~ /^deb/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
-        (mv -f @tmpfile "/etc/apt/sources.list"))
+        (set! tmpfile @("mktemp" -t addscopeXXXX))
+        ("cp" -p "/etc/apt/sources.list" @tmpfile)
+        ("awk" "'{if ($1 ~ /^deb/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
+        ("mv" -f @tmpfile "/etc/apt/sources.list"))
        (add-scope* "deb" "multiverse" "/etc/apt/sources.list")))
 
   (testing "with sources.list"
@@ -140,17 +140,17 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (is (script-no-comment=
        (stevedore/checked-script
         "package-manager multiverse "
-        (set! tmpfile @(mktemp -t addscopeXXXX))
-        (cp -p "/etc/apt/sources.list" @tmpfile)
-        (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
-        (mv -f @tmpfile "/etc/apt/sources.list"))
+        (set! tmpfile @("mktemp" -t addscopeXXXX))
+        ("cp" -p "/etc/apt/sources.list" @tmpfile)
+        ("awk" "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
+        ("mv" -f @tmpfile "/etc/apt/sources.list"))
        (binding [pallet.action-plan/*defining-context* nil]
          (package-manager* ubuntu-session :multiverse))))
   (is (script-no-comment=
        (stevedore/checked-script
         "package-manager update "
         (chain-or
-         (aptitude update "-q=2" -y)
+         ("aptitude" update "-q=2" -y)
          true))
        (binding [pallet.action-plan/*defining-context* nil]
          (script/with-script-context [:aptitude]
@@ -164,7 +164,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
               {:server {:group-name :n :image {:os-family :centos}}}
             (exec-checked-script
              "package-manager update :enable [\"r1\"]"
-             (yum makecache -q "--enablerepo=r1"))))
+             ("yum" makecache -q "--enablerepo=r1"))))
          (first
           (build-actions
               {:server {:group-name :n :image {:os-family :centos}}}
@@ -251,14 +251,14 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
        (str
         (stevedore/checked-script
          "package-manager multiverse "
-         (set! tmpfile @(mktemp -t addscopeXXXX))
+         (set! tmpfile @("mktemp" -t addscopeXXXX))
          (~lib/cp "/etc/apt/sources.list" @tmpfile :preserve true)
-         (awk "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
+         ("awk" "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
          (~lib/mv @tmpfile "/etc/apt/sources.list" :force true))
         (stevedore/checked-script
          "package-manager update "
          (chain-or
-          (aptitude update "-q=2" -y "")
+          ("aptitude" update "-q=2" -y "")
           true)))
        (first (build-actions
                   {}
@@ -312,7 +312,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (exec-checked-script
              "Package source"
              (~lib/install-package "python-software-properties")
-             (pipe (echo) (add-apt-repository "ppa:abc"))
+             (pipe (println) ("add-apt-repository" "ppa:abc"))
              (~lib/update-package-list))))
          (first
           (build-actions
@@ -332,7 +332,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              :flag-on-changed "packagesourcechanged"})
            first second)
           (stevedore/script
-           (apt-key adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
+           ("apt-key" adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
          (binding [pallet.action-plan/*defining-context* nil]
            (package-source*
             ubuntu-session
@@ -353,7 +353,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                :flag-on-changed "packagesourcechanged"})
              first second)
             (stevedore/script
-             (apt-key adv "--keyserver" keys.ubuntu.com "--recv-keys" 1234)))
+             ("apt-key" adv "--keyserver" keys.ubuntu.com "--recv-keys" 1234)))
            (binding [pallet.action-plan/*defining-context* nil]
              (package-source*
               ubuntu-session
@@ -476,19 +476,19 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (stevedore/checked-script
             "Packages"
             (~lib/package-manager-non-interactive)
-            (aptitude install -q -y p1- p4_ p2+ p3+)
+            ("aptitude" install -q -y p1- p4_ p2+ p3+)
             (not (pipe
-                  (aptitude search (quoted "?and(?installed, ?name(^p1$))"))
-                  (grep (quoted p1))))
+                  ("aptitude" search (quoted "?and(?installed, ?name(^p1$))"))
+                  ("grep" (quoted p1))))
             (pipe
-             (aptitude search (quoted "?and(?installed, ?name(^p2$))"))
-             (grep (quoted p2)))
+             ("aptitude" search (quoted "?and(?installed, ?name(^p2$))"))
+             ("grep" (quoted p2)))
             (pipe
-             (aptitude search (quoted "?and(?installed, ?name(^p3$))"))
-             (grep (quoted p3)))
+             ("aptitude" search (quoted "?and(?installed, ?name(^p3$))"))
+             ("grep" (quoted p3)))
             (not (pipe
-                  (aptitude search (quoted "?and(?installed, ?name(^p4$))"))
-                  (grep (quoted "p4")))))
+                  ("aptitude" search (quoted "?and(?installed, ?name(^p4$))"))
+                  ("grep" (quoted "p4")))))
            (binding [pallet.action-plan/*defining-context* nil]
              (adjust-packages
               ubuntu-session
@@ -502,14 +502,14 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (stevedore/checked-script
             "Packages"
             (~lib/package-manager-non-interactive)
-            (aptitude install -q -y -t r1 p2+)
-            (aptitude install -q -y p1+)
+            ("aptitude" install -q -y -t r1 p2+)
+            ("aptitude" install -q -y p1+)
             (pipe
-             (aptitude search (quoted "?and(?installed, ?name(^p1$))"))
-             (grep (quoted p1)))
+             ("aptitude" search (quoted "?and(?installed, ?name(^p1$))"))
+             ("grep" (quoted p1)))
             (pipe
-             (aptitude search (quoted "?and(?installed, ?name(^p2$))"))
-             (grep (quoted "p2"))))
+             ("aptitude" search (quoted "?and(?installed, ?name(^p2$))"))
+             ("grep" (quoted "p2"))))
            (binding [pallet.action-plan/*defining-context* nil]
              (adjust-packages
               ubuntu-session
@@ -521,14 +521,14 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (stevedore/checked-script
             "Packages"
             (~lib/package-manager-non-interactive)
-            (aptitude install -q -y p1+)
-            (aptitude install -q -y -o "'APT::Get::AllowUnauthenticated=true'" p2+)
+            ("aptitude" install -q -y p1+)
+            ("aptitude" install -q -y -o "'APT::Get::AllowUnauthenticated=true'" p2+)
             (pipe
-             (aptitude search (quoted "?and(?installed, ?name(^p1$))"))
-             (grep (quoted p1)))
+             ("aptitude" search (quoted "?and(?installed, ?name(^p1$))"))
+             ("grep" (quoted p1)))
             (pipe
-             (aptitude search (quoted "?and(?installed, ?name(^p2$))"))
-             (grep (quoted "p2"))))
+             ("aptitude" search (quoted "?and(?installed, ?name(^p2$))"))
+             ("grep" (quoted "p2"))))
            (binding [pallet.action-plan/*defining-context* nil]
              (adjust-packages
               ubuntu-session
@@ -538,10 +538,10 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (is (script-no-comment=
          (stevedore/checked-script
           "Packages"
-          (yum install -q -y p2)
-          (yum remove -q -y p1 p4)
-          (yum upgrade -q -y p3)
-          (yum list installed))
+          ("yum" install -q -y p2)
+          ("yum" remove -q -y p1 p4)
+          ("yum" upgrade -q -y p3)
+          ("yum" list installed))
          (binding [pallet.action-plan/*defining-context* nil]
            (script/with-script-context [:yum]
              (adjust-packages
@@ -554,9 +554,9 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (is (script-no-comment=
          (stevedore/checked-script
           "Packages"
-          (yum install -q -y "--disablerepo=r1" p2)
-          (yum install -q -y p1)
-          (yum list installed))
+          ("yum" install -q -y "--disablerepo=r1" p2)
+          ("yum" install -q -y p1)
+          ("yum" list installed))
          (binding [pallet.action-plan/*defining-context* nil]
            (script/with-script-context [:yum]
              (adjust-packages
@@ -567,9 +567,9 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
     (is (script-no-comment=
          (stevedore/checked-script
           "Packages"
-          (yum install -q -y "--disablerepo=r1" p2)
-          (yum install -q -y p1)
-          (yum list installed))
+          ("yum" install -q -y "--disablerepo=r1" p2)
+          ("yum" install -q -y p1)
+          ("yum" list installed))
          (first
           (build-actions centos-session
             (package "p1")
@@ -583,9 +583,9 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           (remote-file "jpackage-utils-compat" :url "http:url")
           (exec-checked-script
            "Install rpm jpackage-utils-compat"
-           (if-not (rpm -q @(rpm -pq "jpackage-utils-compat")
+           (if-not ("rpm" -q @("rpm" -pq "jpackage-utils-compat")
                         > "/dev/null" "2>&1")
-             (do (rpm -U --quiet "jpackage-utils-compat"))))))
+             (do ("rpm" -U --quiet "jpackage-utils-compat"))))))
        (first
         (build-actions centos-session
           (add-rpm "jpackage-utils-compat" :url "http:url"))))))

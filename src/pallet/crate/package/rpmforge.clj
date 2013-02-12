@@ -27,7 +27,7 @@
       (exec-checked-script
        "Add rpmforge repositories"
        (chain-or
-        (if (= "0" @(pipe (rpm -qa) (grep rpmforge) (wc -l)))
+        (if (= "0" @(pipe ("rpm" -qa) ("grep" rpmforge) ("wc" -l)))
           (do
             ~(first
               (remote-file*

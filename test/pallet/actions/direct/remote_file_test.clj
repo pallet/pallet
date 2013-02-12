@@ -62,7 +62,7 @@
            (~lib/download-file "http://a.com/b" "path.new")
            (if (file-exists? "path.new")
              (do
-               (mv -f "path.new" path)))))
+               ("mv" -f "path.new" path)))))
          (binding [pallet.action-plan/*defining-context* nil]
            (->
             (remote-file*
@@ -79,7 +79,7 @@
             "http://a.com/b" "path.new" :proxy "http://proxy/")
            (if (file-exists? "path.new")
              (do
-               (mv -f "path.new" path)))))
+               ("mv" -f "path.new" path)))))
          (binding [pallet.action-plan/*defining-context* nil]
            (->
             (remote-file*
@@ -202,8 +202,7 @@
           (build-actions/build-actions
            {} (remote-file
                "file1" :local-file "/some/non-existing/file" :owner "user1"))))
-    (is (script-no-comment=
-
+    (is (=
          (str
           "{:error {:type :pallet/action-execution-error, "
           ":context nil, "

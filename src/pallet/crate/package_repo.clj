@@ -10,11 +10,11 @@
 
 (defscript rebuild-repo [path])
 (defimpl rebuild-repo [#{:apt :aptitude}] [path]
-  (cd ~path)
+  ("cd" ~path)
   (pipe
-   (dpkg-scanpackages . "/dev/null")
-   (gzip "-9c" > Packages.gz))
-  (cd -))
+   ("dpkg-scanpackages" . "/dev/null")
+   ("gzip" "-9c" > Packages.gz))
+  ("cd" -))
 
 (defplan rebuild-repository
   "Rebuild repository indexes for the repository at path"

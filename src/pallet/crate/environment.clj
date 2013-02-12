@@ -29,16 +29,16 @@
          (for [[k v] key-value-pairs]
            (stevedore/script
             (var vv ~v)                ; so v can contain multi-line expressions
-            (pallet_set_env ~k @vv (str ~(name k) "=" (quoted @vv)))))
+            ("pallet_set_env" ~k @vv (str ~(name k) "=" (quoted @vv)))))
          (stevedore/script
           (defn pallet_set_env [k v s]
-            (if (not @(grep (quoted @s) ~path))
+            (if (not @("grep" (quoted @s) ~path))
               (do
                 (chain-or
                  (chain-and
                   ("sed" -i -e (quoted "/${k}/ d") ~path)
                   ("sed" -i -e (quoted "$ a \\\\\n${s}") ~path))
-                 (exit 1))))))))))
+                 ("exit" 1))))))))))
     (plan-when-not shared
       (remote-file
        path
