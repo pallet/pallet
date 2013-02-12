@@ -23,6 +23,7 @@ unprecedented level of customization."
                  [org.cloudhoist/pallet-common "0.3.1"]
                  [org.cloudhoist/script-exec "0.2.0"]
                  [org.cloudhoist/stevedore "0.8.0-alpha.1"]
+                 [enlive "1.0.1"]
                  [pallet-fsmop "0.2.0"]
                  [pallet-map-merge "0.1.0"]
                  [useful "0.8.6"]
