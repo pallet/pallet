@@ -1,6 +1,10 @@
 (ns pallet.task
   "Task helpers, that do not have any dependencies in pallet.")
 
+(let [{:keys [major minor]} *clojure-version*]
+  (when (and (= major 1) (< minor 4))
+    (throw (Exception. "Pallet requires at least clojure 1.4.0"))))
+
 (defn report-error
   "Report a message to *err*."
   [msg]
