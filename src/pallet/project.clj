@@ -49,7 +49,8 @@ defproject refers to pallet.project.loader/defproject."
 
 (defn create-project-file
   [project-name pallet-file]
-  (.mkdirs (file pallet-file))
+  (when-let [parent (.getParentFile (file pallet-file))]
+    (.mkdirs parent))
   (spit pallet-file
         (-> (resource "pallet/default-project-pallet.clj")
             slurp
