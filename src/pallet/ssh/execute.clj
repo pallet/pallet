@@ -116,7 +116,7 @@
           (logging/trace "ssh-script-on-target remove script file")
           (transport/exec
            connection
-           {:execv [(stevedore/script (rm -f ~tmpfile))]}
+           {:execv [(stevedore/script ("rm" -f ~tmpfile))]}
            {})
           (logging/trace "ssh-script-on-target done")
           [result session])))))
@@ -132,9 +132,9 @@
     (transport/exec
      connection
      {:in (stevedore/script
-           (chmod "0600" ~tmpcpy)
-           (mv -f ~tmpcpy ~remote-name)
-           (exit "$?"))}
+           ("chmod" "0600" ~tmpcpy)
+           ("mv" -f ~tmpcpy ~remote-name)
+           ("exit" "$?"))}
      {})))
 
 (defn ssh-from-local

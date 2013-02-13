@@ -128,7 +128,7 @@
                            :msg "Check Automated admin user"}
                           (exec-checked-script
                            "is functional"
-                           (pipe (echo @SUDO_USER) (grep "fred")))))}
+                           (pipe (println @SUDO_USER) ("grep" "fred")))))}
       :count 1
       :node-spec (node-spec :image image)
       :environment {:user {:username "fred"}})}

@@ -17,7 +17,7 @@
      (when (:group options)
        (stevedore/script (~lib/chgrp ~(options :group) ~path)))
      (when (:mode options)
-       (stevedore/script (chmod ~(options :mode) ~path)))])))
+       (stevedore/script ("chmod" ~(options :mode) ~path)))])))
 
 (defn write-md5-for-file
   "Create a .md5 file for the specified input file"
@@ -26,7 +26,7 @@
    "("
    (chain-and
     (var cp @(~lib/canonical-path ~path))
-    (cd @(~lib/dirname @cp))
+    ("cd" @(~lib/dirname @cp))
     ((~lib/md5sum @(~lib/basename @cp)) > ~md5-path))
    ")"))
 
@@ -82,7 +82,7 @@
                (str "fifo " path)
                (stevedore/script
                 (if-not (file-exists? ~path)
-                  (mkfifo ~path)))
+                  ("mkfifo" ~path)))
                (adjust-file path options)))]
    session])
 

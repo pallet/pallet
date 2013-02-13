@@ -21,7 +21,7 @@
    (format "Wait for %s to be in a listen state" service-name)
    (group (chain-or (let x 0) true))
    (while
-       (pipe (netstat -lnt) (awk ~(format "'$4 ~ /:%s$/ {exit 1}'" port)))
+       (pipe ("netstat" -lnt) ("awk" ~(format "'$4 ~ /:%s$/ {exit 1}'" port)))
      (let x (+ x 1))
      (if (= ~max-retries @x)
        (do
@@ -30,8 +30,8 @@
           >&2)
          (~lib/exit 1)))
      (println ~(format "Waiting for %s to be in a listen state" service-name))
-     (sleep ~standoff))
-   (sleep ~standoff)))
+     ("sleep" ~standoff))
+   ("sleep" ~standoff)))
 
 (defplan wait-for-http-status
   "Wait for a url to respond with the given HTTP status code.
@@ -73,7 +73,7 @@
 
    (group (chain-or (let x 0) true))
    (while
-       (!= ~status @(httpresponse))
+       (!= ~status @("httpresponse"))
      (let x (+ x 1))
      (if (= ~max-retries @x)
        (do
@@ -83,8 +83,8 @@
           >&2)
          (~lib/exit 1)))
      (println ~(format "Waiting for %s to return a %s status" url-name status))
-     (sleep ~standoff))
-   (sleep ~standoff)))
+     ("sleep" ~standoff))
+   ("sleep" ~standoff)))
 
 (defplan wait-for-port-response
   "Wait for a port to respond to a message with a given response regex.
@@ -107,7 +107,7 @@
 
    (group (chain-or (let x 0) true))
    (while
-       (! (pipe (println (quoted ~message))
+       ("!" (pipe (println (quoted ~message))
                 ("nc" -q ~timeout ~host ~port)
                 ("grep" -E (quoted ~response-regex))))
      (let x (+ x 1))
@@ -122,5 +122,5 @@
      (println
       ~(format
         "Waiting for %s to return response %s" service-name response-regex))
-     (sleep ~standoff))
-   (sleep ~standoff)))
+     ("sleep" ~standoff))
+   ("sleep" ~standoff)))

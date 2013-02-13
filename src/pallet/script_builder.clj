@@ -7,7 +7,7 @@
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
    [pallet.stevedore.bash :as bash])
   (:use
-   [pallet.script.lib :only [mkdir make-temp-file heredoc]]))
+   [pallet.script.lib :only [exit heredoc mkdir make-temp-file rm]]))
 
 (def prolog (str "#!/usr/bin/env bash\n"))
 (def epilog "\nexit $?")
@@ -59,7 +59,7 @@ future)."
    (if script-dir
      (stevedore/script
       (~mkdir ~script-dir :path true)
-      (cd ~script-dir))
+      ("cd" ~script-dir))
      "")
    (if (= language :bash)
      script

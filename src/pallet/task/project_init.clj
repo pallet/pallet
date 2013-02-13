@@ -8,6 +8,6 @@
   "Initialise a project, creating a pallet.clj configuration file."
   [{:keys [compute project] :as request}]
   (if (:root project)
-    (println "Your project's pallet configuration is in "
+    (println "Your project's pallet configuration is in"
              (create-pallet-project project))
     (abort "You can only initalise within a lein project.")))

@@ -23,17 +23,17 @@
   [session]
   (stevedore/script
    (if (test @(~lib/which curl))
-     (curl -s "--retry" 20
-           ~(apply str (map
-                        #(format "-H \"%s: %s\" " (first %) (second %))
-                        (.. session getHeaders entries)))
-           ~(.. session getEndpoint toASCIIString))
+     ("curl" -s "--retry" 20
+      ~(apply str (map
+                   #(format "-H \"%s: %s\" " (first %) (second %))
+                   (.. session getHeaders entries)))
+      ~(.. session getEndpoint toASCIIString))
      (if (test @(~lib/which wget))
-       (wget -nv "--tries" 20
-             ~(apply str (map
-                          #(format "--header \"%s: %s\" " (first %) (second %))
-                          (.. session getHeaders entries)))
-             ~(.. session getEndpoint toASCIIString))
+       ("wget" -nv "--tries" 20
+        ~(apply str (map
+                     #(format "--header \"%s: %s\" " (first %) (second %))
+                     (.. session getHeaders entries)))
+        ~(.. session getEndpoint toASCIIString))
        (do
          (println "No download utility available")
          (~lib/exit 1))))))
@@ -87,7 +87,7 @@
          (str "remote-file " path)
          (cond
            (and url md5) (stevedore/chained-script
-                          (if (|| (not (file-exists? ~path))
+                          (if (chain-or (not (file-exists? ~path))
                                   (!= ~md5 @((pipe
                                               (~lib/md5sum ~path)
                                               (~lib/cut
@@ -98,7 +98,7 @@
                                :proxy ~proxy :insecure ~insecure))))
            ;; Download md5 to temporary directory.
            (and url md5-url) (stevedore/chained-script
-                              (set "-x")
+                              ("set" "-x")
                               (var tmpdir (quoted (~lib/make-temp-dir "rf")))
                               (var basefile
                                    (quoted
@@ -108,7 +108,7 @@
                                ~md5-url @newmd5path :proxy ~proxy
                                :insecure ~insecure)
                               (~lib/normalise-md5 @newmd5path)
-                              (if (|| (not (file-exists? ~md5-path))
+                              (if (chain-or (not (file-exists? ~md5-path))
                                       (not (~lib/diff @newmd5path ~md5-path)))
                                 (do
                                   (~lib/download-file

@@ -305,18 +305,24 @@ value to assoc. The assoc only occurs if the value is non-nil."
 (defmacro compiler-exception
   "Create a compiler exception that wraps a cause and includes source location."
   [exception]
-  `(clojure.lang.Compiler$CompilerException.
-    ~*file*
-    ~(-> &form meta :line)
-    ~exception))
+  `(let [e# ~exception
+         f# (io/file ~*file*)]
+     (ex-info
+      (str (.getMessage e#) " " (.getName f#) ":")
+      {:file ~*file*
+       :line ~(-> &form meta :line)}
+      ~exception)))
 
 (defmacro macro-compiler-exception
   "Create a compiler exception that wraps a cause and includes source location."
   [exception]
-  `(clojure.lang.Compiler$CompilerException.
-    *file*
-    (-> ~'&form meta :line)
-    ~exception))
+  `(let [e# ~exception
+         f# (io/file ~'*file*)]
+     (ex-info
+      (str (.getMessage e#) " " (.getName f#) ":")
+      {:file ~'*file*
+       :line (-> ~'&form meta :line)}
+      ~exception)))
 
 (defn make-user
   "Creates a User record with the given username and options. Generally used

@@ -54,9 +54,10 @@
 (deftest normalise-md5-test
   (is (script-no-comment=
        (script
-        (if (egrep "'^[a-fA-F0-9]+$'" abc.md5)
-          (echo
-           (quoted (str "  " @(pipe (basename abc.md5) (sed -e "s/.md5//"))))
+        (if ("egrep" "'^[a-fA-F0-9]+$'" abc.md5)
+          (println
+           (quoted (str "  " @(pipe ("basename" abc.md5)
+                                    ("sed" -e "s/.md5//"))))
            ">>" abc.md5)))
        (script (~normalise-md5 abc.md5)))))
 
@@ -64,10 +65,10 @@
   (is (script-no-comment=
        (script
         ("(" (chain-and
-              (cd @(dirname abc.md5))
-              (md5sum
+              ("cd" @("dirname" abc.md5))
+              ("md5sum"
                ~(map-to-arg-string {:quiet true :check true})
-               @(basename abc.md5))) ")"))
+               @("basename" abc.md5))) ")"))
        (script (~md5sum-verify abc.md5)))))
 
 (deftest heredoc-test

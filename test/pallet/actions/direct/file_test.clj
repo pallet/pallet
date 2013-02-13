@@ -20,33 +20,33 @@
 
 (deftest file-test
   (is (script-no-comment=
-       (stevedore/checked-script "file file1" (touch file1))
+       (stevedore/checked-script "file file1" ("touch" file1))
        (first (build-actions {} (file "file1")))))
   (testing "context label"
     (is (script-no-comment=
-         (stevedore/checked-script "ctx: file file1" (touch file1))
+         (stevedore/checked-script "ctx: file file1" ("touch" file1))
          (first
           (build-actions {:phase-context "ctx"}
             (file "file1"))))))
   (is (script-no-comment=
        (stevedore/checked-script
         "file file1"
-        (touch file1)
-        (chown user1 file1))
+        ("touch" file1)
+        ("chown" user1 file1))
        (first (build-actions {}
                 (file "file1" :owner "user1")))))
   (is (script-no-comment=
        (stevedore/checked-script
         "file file1"
-        (touch file1)
-        (chown user1 file1))
+        ("touch" file1)
+        ("chown" user1 file1))
        (first (build-actions {}
                 (file "file1" :owner "user1" :action :create)))))
   (is (script-no-comment=
        (stevedore/checked-script
         "file file1"
-        (touch file1)
-        (chgrp group1 file1))
+        ("touch" file1)
+        ("chgrp" group1 file1))
        (first (build-actions {}
                 (file "file1" :group "group1" :action :touch)))))
   (is (script-no-comment=

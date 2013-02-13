@@ -1,5 +1,34 @@
 Unstable development branch
 
+# 0.8.0-beta.1
+
+- Remove dependency on CompilerException
+
+- Add dependency message on project file failure
+  When a task fails to load the projec pallet.clj file, output a message 
+  that explains that a dependency needs to be added.
+
+- Change group ID to com.palletops, pom.xml, and lein project.clj
+
+- Update for stevedore with resolved function position
+  Fixes #164.
+
+- Fix message formatting in project-init task
+
+- Throw on unsupported clojure version
+  Adds a top level form to pallet.task to throw when using an unsupported
+  version of clojure.  This should give a less cryptic error message in
+  that situation.
+
+- Fix pallet.clj project file creation
+  The creation of parent directories was incorrect.
+
+- Add back enlive dependency
+
+- Update exception message for some macro
+  Update exception message for def-aggregate-plan-fn and
+  def-collect-plan-fn.
+
 # 0.8.0-alpha.9
 
 - Update p.c.api/phase-errors to use wait-for

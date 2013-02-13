@@ -100,4 +100,4 @@
 (defn local-script-expand
   "Expand a script expression."
   [expr]
-  (string/trim (:out (local-script (echo ~expr)))))
+  (string/trim (:out (local-script (println ~expr)))))

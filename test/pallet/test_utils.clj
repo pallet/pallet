@@ -237,5 +237,6 @@ list, Alan Dipert and MeikelBrandmeyer."
           {:type :pass :message ~msg :expected expected# :actual actual#})
          (do-report
           {:type :fail :message ~msg
-           :expected [expected# expected-norm#]
-           :actual [actual# actual-norm#]})))))
+           :expected (list '= [expected# expected-norm#] [actual# actual-norm#])
+           :actual (list 'not (list '= [expected# expected-norm#]
+                                       [actual# actual-norm#]))})))))

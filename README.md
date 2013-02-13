@@ -44,7 +44,7 @@ Installation is with maven or your favourite maven repository aware build tool.
 ### lein project.clj
 
 ```clojure
-:dependencies [[org.cloudhoist/pallet "0.8.0-alpha.9"]]
+:dependencies [[org.cloudhoist/pallet "0.8.0-beta.1"]]
 :repositories {"sonatype"
                "http://oss.sonatype.org/content/repositories/releases"}
 ```
@@ -56,7 +56,7 @@ Installation is with maven or your favourite maven repository aware build tool.
   <dependency>
     <groupId>org.cloudhoist</groupId>
     <artifactId>pallet</artifactId>
-    <version>0.8.0-alpha.9</version>
+    <version>0.8.0-beta.1</version>
   </dependency>
 <dependencies>
 

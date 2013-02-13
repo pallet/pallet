@@ -73,31 +73,31 @@
                      (stevedore/script
                       (when (or (not (file-exists? ~tar-md5))
                                 (or (not (file-exists? ~path-md5))
-                                    (not (diff ~tar-md5 ~path-md5))))
+                                    (not ("diff" ~tar-md5 ~path-md5))))
                         ~(condp = unpack
                           :tar (stevedore/checked-script
                                 (format "Untar %s" tarpath)
-                                (var rdf @(readlink -f ~tarpath))
-                                (cd ~path)
-                                (tar
+                                (var rdf @("readlink" -f ~tarpath))
+                                ("cd" ~path)
+                                ("tar"
                                  ~tar-options
                                  ~(str "--strip-components=" strip-components)
                                  -f @rdf)
-                                (cd -))
+                                ("cd" -))
                           :unzip (stevedore/checked-script
                                   (format "Unzip %s" tarpath)
-                                  (var rdf @(readlink -f ~tarpath))
-                                  (cd ~path)
-                                  (unzip ~unzip-options @rdf)
-                                  (cd -))
+                                  (var rdf @("readlink" -f ~tarpath))
+                                  ("cd" ~path)
+                                  ("unzip" ~unzip-options @rdf)
+                                  ("cd" -))
                           :jar (stevedore/checked-script
                                 (format "Unjar %s" tarpath)
-                                (var rdf @(readlink -f ~tarpath))
-                                (cd ~path)
-                                (jar ~jar-options @rdf)
-                                (cd -)))
+                                (var rdf @("readlink" -f ~tarpath))
+                                ("cd" ~path)
+                                ("jar" ~jar-options @rdf)
+                                ("cd" -)))
                         (when (file-exists? ~tar-md5)
-                          (cp ~tar-md5 ~path-md5))))
+                          ("cp" ~tar-md5 ~path-md5))))
                      (if recursive
                        (->
                         (directory*

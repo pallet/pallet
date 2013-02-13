@@ -675,7 +675,7 @@ Content can also be copied from a blobstore.
             >&2)
            (~lib/exit 1)))
        (println ~(format "Waiting for %s" service-name))
-       (sleep ~standoff)))))
+       ("sleep" ~standoff)))))
 
 (defmacro retry-until
   "Repeat an action until it succeeds"

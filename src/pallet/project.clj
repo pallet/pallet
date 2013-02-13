@@ -32,7 +32,9 @@ defproject refers to pallet.project.loader/defproject."
        (binding [*ns* (find-ns 'pallet.project.load)]
          (try (load-file pallet-file)
               (catch Exception e
-                (throw (ex-info "Error loading project.clj" {} e)))))
+                (throw
+                 (ex-info "Error loading project.clj"
+                          {:project-file pallet-file} e)))))
        (let [project (resolve 'pallet.project.load/pallet-project-map)]
          (when-not project
            (throw (ex-info "pallet.clj must define project map."
@@ -49,7 +51,8 @@ defproject refers to pallet.project.loader/defproject."
 
 (defn create-project-file
   [project-name pallet-file]
-  (.mkdirs (file pallet-file))
+  (when-let [parent (.getParentFile (file pallet-file))]
+    (.mkdirs parent))
   (spit pallet-file
         (-> (resource "pallet/default-project-pallet.clj")
             slurp

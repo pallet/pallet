@@ -66,7 +66,7 @@
               op (lift
                   (group-spec "local")
                   :phase (plan-fn
-                           (exec-script (touch (quoted ~(.getPath tmp))))
+                           (exec-script ("touch" (quoted ~(.getPath tmp))))
                            (plan-when (script (file-exists? ~(.getPath tmp)))
                              (exec-script (println "tmp found"))))
                   :compute compute
@@ -94,7 +94,7 @@
               op (lift
                   (group-spec "local")
                   :phase (plan-fn
-                           (exec-script (touch (quoted ~(.getPath tmp))))
+                           (exec-script ("touch" (quoted ~(.getPath tmp))))
                            (plan-when-not
                                (script (file-exists? ~(.getPath tmp)))
                              (exec-script (println "tmp not found"))))
