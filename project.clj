@@ -1,4 +1,4 @@
-(defproject org.cloudhoist/pallet "0.8.0-SNAPSHOT"
+(defproject com.palletops/pallet "0.8.0-SNAPSHOT"
   :description
   "DevOps for the JVM.
 
