@@ -2,6 +2,7 @@
   "Task helpers that depend on pallet implementation"
   (:require
    [clojure.java.io :refer [file]]
+   [clojure.string :as string]
    [clojure.tools.cli :refer [cli]]
    [pallet.compute :refer [service-properties]]
    [pallet.project
@@ -9,6 +10,23 @@
             pallet-file-exists?  read-or-create-project read-project
             spec-from-project]]
    [pallet.task :refer [abort report-error]]))
+
+(defn- ns-error-msg [ns crate]
+  (str
+   "Could not find namespace " ns \newline
+   "  This is probably caused by a missing dependency."
+   \newline \newline
+   "  To solve this, add the correct dependency to your :pallet profile"
+   \newline
+   "  :dependencies in project.clj."
+   (if crate
+     (str \newline  \newline
+          "  It looks like you are trying to use the " crate " crate."
+          \newline
+          "  The dependency for this should look like:" \newline \newline
+          "    [com.palletops/" crate "-crate \"0.8.0\"]")
+     "")
+   \newline))
 
 (defn pallet-project
   "Load the pallet project for the specified lein project.  Will create
@@ -21,7 +39,24 @@
                           default-pallet-file))]
     (if pallet-file
       (if (pallet-file-exists? pallet-file)
-        (read-project pallet-file)
+        (try
+          (read-project pallet-file)
+          (catch Exception e
+            (if-let [project-file (:project-file (ex-data e))]
+              (if-let [[_ path]
+                       (re-matches
+                        #"Could not locate .* or (.*)\.clj on classpath.*"
+                        (.getMessage (.getCause e)))]
+                (let [ns (-> path (string/replace "/" ".")
+                             (string/replace "_" "-"))
+                      [_ crate] (re-matches #"pallet\.crate\.([^.]+)" ns)]
+                  (report-error (ns-error-msg ns crate))
+                  (throw
+                   (ex-info (str "ERROR: Could not find namespace " ns
+                                 " while loading " project-file)
+                            {:exit-code 1})))
+                (throw e))
+              (throw e))))
         (abort (str "No pallet configuration for project.  "
                     "Use `lein pallet project-int` to create one")))
       (read-or-create-project "pallet" default-user-pallet-file))))
