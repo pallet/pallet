@@ -58,7 +58,7 @@
                 (throw e))
               (throw e))))
         (abort (str "No pallet configuration for project.  "
-                    "Use `lein pallet project-int` to create one")))
+                    "Use `lein pallet project-init` to create one")))
       (read-or-create-project "pallet" default-user-pallet-file))))
 
 (defn create-pallet-project
