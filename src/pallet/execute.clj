@@ -367,6 +367,10 @@
           :message (str
                     "The session is missing server ssh connection details.\n"
                     "Add middleware to enable ssh.")}))
+      (when-not user
+        (throw+
+         {:type :missing-user}
+         (str "The session is missing user details.\n")))
       (let [agent (default-agent)
             ssh-session (or ssh-session
                             (ssh/session
@@ -392,6 +396,8 @@
             sftp-channel (or sftp-channel (ssh/ssh-sftp ssh-session))
             _ (when-not (ssh/connected-channel? sftp-channel)
                 (ssh/connect-channel sftp-channel))]
+        (logging/debugf "%s: user %s"
+                        server (dissoc user :pasword :sudo-password))
         (update-in session [:ssh] merge
                    {:ssh-session ssh-session
                     :tmpfile tmpfile
