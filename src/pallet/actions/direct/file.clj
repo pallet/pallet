@@ -27,8 +27,8 @@
    (chain-and
     (var cp @(~lib/canonical-path ~path))
     ("cd" @(~lib/dirname @cp))
-    ((~lib/md5sum @(~lib/basename @cp)) > ~md5-path))
-   ")"))
+    ((~lib/md5sum @(~lib/basename @cp))))
+   ")" > ~md5-path))
 
 
 (defn touch-file [path {:keys [force] :as options}]
