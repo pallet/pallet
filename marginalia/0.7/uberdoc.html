@@ -3033,13 +3033,13 @@ net.brehaut.ClojureTools = (function (SH) {
     build_tree: build_tree
   };
 })(SyntaxHighlighter);
-</script><title>pallet -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">pallet</h1><h2 class="project-version">0.7.3-SNAPSHOT</h2><br /><p>Pallet, DevOps for the JVM</p>
+</script><title>pallet -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">pallet</h1><h2 class="project-version">0.7.4-SNAPSHOT</h2><br /><p>Pallet, DevOps for the JVM</p>
 
 <p>Pallet is a platform for agile and programmatic automation of infrastructure
 in the cloud, on server racks or directly on virtual machines. Pallet
 provides cloud provider and operating system independence, and allows for an
 unprecedented level of customization.</p>
-</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.2.1</td></tr><tr><td class="dep-name">org.clojure/core.incubator</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">org.clojure/tools.logging</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0</td></tr><tr><td class="dep-name">slingshot</td><td class="dotted"><hr /></td><td class="dep-version">0.10.2</td></tr><tr><td class="dep-name">org.cloudhoist/chiba</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">org.cloudhoist/thread-expr</td><td class="dotted"><hr /></td><td class="dep-version">1.2.0</td></tr><tr><td class="dep-name">org.cloudhoist/pallet-common</td><td class="dotted"><hr /></td><td class="dep-version">0.2.3</td></tr><tr><td class="dep-name">org.cloudhoist/stevedore</td><td class="dotted"><hr /></td><td class="dep-version">0.7.2</td></tr><tr><td class="dep-name">commons-codec</td><td class="dotted"><hr /></td><td class="dep-version">1.4</td></tr><tr><td class="dep-name">clj-ssh</td><td class="dotted"><hr /></td><td class="dep-version">0.4.0</td></tr><tr><td class="dep-name">enlive</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr></table></div><div class="dependencies"><h3>dev dependencies</h3><table><tr><td class="dep-name">org.slf4j/slf4j-api</td><td class="dotted"><hr /></td><td class="dep-version">1.6.1</td></tr><tr><td class="dep-name">ch.qos.logback/logback-core</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr><tr><td class="dep-name">ch.qos.logback/logback-classic</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#pallet.action.conditional">pallet.action.conditional</a></li><li><a href="#pallet.action.directory">pallet.action.directory</a></li><li><a href="#pallet.action.environment">pallet.action.environment</a></li><li><a href="#pallet.action.exec-script">pallet.action.exec-script</a></li><li><a href="#pallet.action.file">pallet.action.file</a></li><li><a href="#pallet.action.filesystem">pallet.action.filesystem</a></li><li><a href="#pallet.action.package.centos">pallet.action.package.centos</a></li><li><a href="#pallet.action.package.debian-backports">pallet.action.package.debian-backports</a></li><li><a href="#pallet.action.package.epel">pallet.action.package.epel</a></li><li><a href="#pallet.action.package.jpackage">pallet.action.package.jpackage</a></li><li><a href="#pallet.action.package.rpmforge">pallet.action.package.rpmforge</a></li><li><a href="#pallet.action.package">pallet.action.package</a></li><li><a href="#pallet.action.remote-directory">pallet.action.remote-directory</a></li><li><a href="#pallet.action.remote-file">pallet.action.remote-file</a></li><li><a href="#pallet.action.retry">pallet.action.retry</a></li><li><a href="#pallet.action.rsync">pallet.action.rsync</a></li><li><a href="#pallet.action.service">pallet.action.service</a></li><li><a href="#pallet.action.user">pallet.action.user</a></li><li><a href="#pallet.action">pallet.action</a></li><li><a href="#pallet.action-plan">pallet.action-plan</a></li><li><a href="#pallet.argument">pallet.argument</a></li><li><a href="#pallet.blobstore.implementation">pallet.blobstore.implementation</a></li><li><a href="#pallet.blobstore.url-blobstore">pallet.blobstore.url-blobstore</a></li><li><a href="#pallet.blobstore">pallet.blobstore</a></li><li><a href="#pallet.command-line">pallet.command-line</a></li><li><a href="#pallet.command-script">pallet.command-script</a></li><li><a href="#pallet.compute.hybrid">pallet.compute.hybrid</a></li><li><a href="#pallet.compute.implementation">pallet.compute.implementation</a></li><li><a href="#pallet.compute.jvm">pallet.compute.jvm</a></li><li><a href="#pallet.compute.node-list">pallet.compute.node-list</a></li><li><a href="#pallet.compute">pallet.compute</a></li><li><a href="#pallet.config-file.format">pallet.config-file.format</a></li><li><a href="#pallet.configure">pallet.configure</a></li><li><a href="#pallet.core">pallet.core</a></li><li><a href="#pallet.crate.automated-admin-user">pallet.crate.automated-admin-user</a></li><li><a href="#pallet.crate.crontab">pallet.crate.crontab</a></li><li><a href="#pallet.crate.environment">pallet.crate.environment</a></li><li><a href="#pallet.crate.etc-default">pallet.crate.etc-default</a></li><li><a href="#pallet.crate.etc-hosts">pallet.crate.etc-hosts</a></li><li><a href="#pallet.crate.limits-conf">pallet.crate.limits-conf</a></li><li><a href="#pallet.crate.network-service">pallet.crate.network-service</a></li><li><a href="#pallet.crate.package-repo">pallet.crate.package-repo</a></li><li><a href="#pallet.crate.ssh-key">pallet.crate.ssh-key</a></li><li><a href="#pallet.crate.sudoers">pallet.crate.sudoers</a></li><li><a href="#pallet.crate-install">pallet.crate-install</a></li><li><a href="#pallet.debug">pallet.debug</a></li><li><a href="#pallet.enlive">pallet.enlive</a></li><li><a href="#pallet.environment">pallet.environment</a></li><li><a href="#pallet.execute">pallet.execute</a></li><li><a href="#pallet.futures">pallet.futures</a></li><li><a href="#pallet.main">pallet.main</a></li><li><a href="#pallet.main-invoker">pallet.main-invoker</a></li><li><a href="#pallet.map-merge">pallet.map-merge</a></li><li><a href="#pallet.md5crypt">pallet.md5crypt</a></li><li><a href="#pallet.node">pallet.node</a></li><li><a href="#pallet.parameter">pallet.parameter</a></li><li><a href="#pallet.phase">pallet.phase</a></li><li><a href="#pallet.repl">pallet.repl</a></li><li><a href="#pallet.request-map">pallet.request-map</a></li><li><a href="#pallet.resource.directory">pallet.resource.directory</a></li><li><a href="#pallet.resource.exec-script">pallet.resource.exec-script</a></li><li><a href="#pallet.resource.file">pallet.resource.file</a></li><li><a href="#pallet.resource.filesystem">pallet.resource.filesystem</a></li><li><a href="#pallet.resource.filesystem-layout">pallet.resource.filesystem-layout</a></li><li><a href="#pallet.resource.format">pallet.resource.format</a></li><li><a href="#pallet.resource.hostinfo">pallet.resource.hostinfo</a></li><li><a href="#pallet.resource.lib">pallet.resource.lib</a></li><li><a href="#pallet.resource.network-service">pallet.resource.network-service</a></li><li><a href="#pallet.resource.package">pallet.resource.package</a></li><li><a href="#pallet.resource.remote-directory">pallet.resource.remote-directory</a></li><li><a href="#pallet.resource.remote-file">pallet.resource.remote-file</a></li><li><a href="#pallet.resource.resource-when">pallet.resource.resource-when</a></li><li><a href="#pallet.resource.rsync">pallet.resource.rsync</a></li><li><a href="#pallet.resource.service">pallet.resource.service</a></li><li><a href="#pallet.resource.shell">pallet.resource.shell</a></li><li><a href="#pallet.resource.user">pallet.resource.user</a></li><li><a href="#pallet.resource">pallet.resource</a></li><li><a href="#pallet.script.lib">pallet.script.lib</a></li><li><a href="#pallet.session">pallet.session</a></li><li><a href="#pallet.shell">pallet.shell</a></li><li><a href="#pallet.strint">pallet.strint</a></li><li><a href="#pallet.target">pallet.target</a></li><li><a href="#pallet.task.add-service">pallet.task.add-service</a></li><li><a href="#pallet.task.config">pallet.task.config</a></li><li><a href="#pallet.task.containers">pallet.task.containers</a></li><li><a href="#pallet.task.converge">pallet.task.converge</a></li><li><a href="#pallet.task.describe-node">pallet.task.describe-node</a></li><li><a href="#pallet.task.help">pallet.task.help</a></li><li><a href="#pallet.task.images">pallet.task.images</a></li><li><a href="#pallet.task.lift">pallet.task.lift</a></li><li><a href="#pallet.task.nodes">pallet.task.nodes</a></li><li><a href="#pallet.task.providers">pallet.task.providers</a></li><li><a href="#pallet.task.to-blob">pallet.task.to-blob</a></li><li><a href="#pallet.task.version">pallet.task.version</a></li><li><a href="#pallet.task">pallet.task</a></li><li><a href="#pallet.template.properties">pallet.template.properties</a></li><li><a href="#pallet.template">pallet.template</a></li><li><a href="#pallet.utils">pallet.utils</a></li><li><a href="#pallet.version-dispatch">pallet.version-dispatch</a></li><li><a href="#pallet.versions">pallet.versions</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.action.conditional" name="pallet.action.conditional"><h1 class="project-name">pallet.action.conditional</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Conditional action execution.</p>
+</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.2.1</td></tr><tr><td class="dep-name">org.clojure/core.incubator</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">org.clojure/tools.logging</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0</td></tr><tr><td class="dep-name">slingshot</td><td class="dotted"><hr /></td><td class="dep-version">0.10.2</td></tr><tr><td class="dep-name">org.cloudhoist/chiba</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">org.cloudhoist/thread-expr</td><td class="dotted"><hr /></td><td class="dep-version">1.2.0</td></tr><tr><td class="dep-name">org.cloudhoist/pallet-common</td><td class="dotted"><hr /></td><td class="dep-version">0.2.3</td></tr><tr><td class="dep-name">org.cloudhoist/stevedore</td><td class="dotted"><hr /></td><td class="dep-version">0.7.2</td></tr><tr><td class="dep-name">commons-codec</td><td class="dotted"><hr /></td><td class="dep-version">1.4</td></tr><tr><td class="dep-name">clj-ssh</td><td class="dotted"><hr /></td><td class="dep-version">0.4.3</td></tr><tr><td class="dep-name">enlive</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr></table></div><div class="dependencies"><h3>dev dependencies</h3><table><tr><td class="dep-name">org.slf4j/slf4j-api</td><td class="dotted"><hr /></td><td class="dep-version">1.6.1</td></tr><tr><td class="dep-name">ch.qos.logback/logback-core</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr><tr><td class="dep-name">ch.qos.logback/logback-classic</td><td class="dotted"><hr /></td><td class="dep-version">1.0.0</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#pallet.action.conditional">pallet.action.conditional</a></li><li><a href="#pallet.action.directory">pallet.action.directory</a></li><li><a href="#pallet.action.environment">pallet.action.environment</a></li><li><a href="#pallet.action.exec-script">pallet.action.exec-script</a></li><li><a href="#pallet.action.file">pallet.action.file</a></li><li><a href="#pallet.action.filesystem">pallet.action.filesystem</a></li><li><a href="#pallet.action.package.centos">pallet.action.package.centos</a></li><li><a href="#pallet.action.package.debian-backports">pallet.action.package.debian-backports</a></li><li><a href="#pallet.action.package.epel">pallet.action.package.epel</a></li><li><a href="#pallet.action.package.jpackage">pallet.action.package.jpackage</a></li><li><a href="#pallet.action.package.rpmforge">pallet.action.package.rpmforge</a></li><li><a href="#pallet.action.package">pallet.action.package</a></li><li><a href="#pallet.action.remote-directory">pallet.action.remote-directory</a></li><li><a href="#pallet.action.remote-file">pallet.action.remote-file</a></li><li><a href="#pallet.action.retry">pallet.action.retry</a></li><li><a href="#pallet.action.rsync">pallet.action.rsync</a></li><li><a href="#pallet.action.service">pallet.action.service</a></li><li><a href="#pallet.action.user">pallet.action.user</a></li><li><a href="#pallet.action">pallet.action</a></li><li><a href="#pallet.action-plan">pallet.action-plan</a></li><li><a href="#pallet.argument">pallet.argument</a></li><li><a href="#pallet.blobstore.implementation">pallet.blobstore.implementation</a></li><li><a href="#pallet.blobstore.url-blobstore">pallet.blobstore.url-blobstore</a></li><li><a href="#pallet.blobstore">pallet.blobstore</a></li><li><a href="#pallet.command-line">pallet.command-line</a></li><li><a href="#pallet.command-script">pallet.command-script</a></li><li><a href="#pallet.compute.hybrid">pallet.compute.hybrid</a></li><li><a href="#pallet.compute.implementation">pallet.compute.implementation</a></li><li><a href="#pallet.compute.jvm">pallet.compute.jvm</a></li><li><a href="#pallet.compute.node-list">pallet.compute.node-list</a></li><li><a href="#pallet.compute">pallet.compute</a></li><li><a href="#pallet.config-file.format">pallet.config-file.format</a></li><li><a href="#pallet.configure">pallet.configure</a></li><li><a href="#pallet.core">pallet.core</a></li><li><a href="#pallet.crate.automated-admin-user">pallet.crate.automated-admin-user</a></li><li><a href="#pallet.crate.crontab">pallet.crate.crontab</a></li><li><a href="#pallet.crate.environment">pallet.crate.environment</a></li><li><a href="#pallet.crate.etc-default">pallet.crate.etc-default</a></li><li><a href="#pallet.crate.etc-hosts">pallet.crate.etc-hosts</a></li><li><a href="#pallet.crate.limits-conf">pallet.crate.limits-conf</a></li><li><a href="#pallet.crate.network-service">pallet.crate.network-service</a></li><li><a href="#pallet.crate.package-repo">pallet.crate.package-repo</a></li><li><a href="#pallet.crate.ssh-key">pallet.crate.ssh-key</a></li><li><a href="#pallet.crate.sudoers">pallet.crate.sudoers</a></li><li><a href="#pallet.crate-install">pallet.crate-install</a></li><li><a href="#pallet.debug">pallet.debug</a></li><li><a href="#pallet.enlive">pallet.enlive</a></li><li><a href="#pallet.environment">pallet.environment</a></li><li><a href="#pallet.execute">pallet.execute</a></li><li><a href="#pallet.futures">pallet.futures</a></li><li><a href="#pallet.main">pallet.main</a></li><li><a href="#pallet.main-invoker">pallet.main-invoker</a></li><li><a href="#pallet.map-merge">pallet.map-merge</a></li><li><a href="#pallet.md5crypt">pallet.md5crypt</a></li><li><a href="#pallet.node">pallet.node</a></li><li><a href="#pallet.parameter">pallet.parameter</a></li><li><a href="#pallet.phase">pallet.phase</a></li><li><a href="#pallet.repl">pallet.repl</a></li><li><a href="#pallet.request-map">pallet.request-map</a></li><li><a href="#pallet.resource.directory">pallet.resource.directory</a></li><li><a href="#pallet.resource.exec-script">pallet.resource.exec-script</a></li><li><a href="#pallet.resource.file">pallet.resource.file</a></li><li><a href="#pallet.resource.filesystem">pallet.resource.filesystem</a></li><li><a href="#pallet.resource.filesystem-layout">pallet.resource.filesystem-layout</a></li><li><a href="#pallet.resource.format">pallet.resource.format</a></li><li><a href="#pallet.resource.hostinfo">pallet.resource.hostinfo</a></li><li><a href="#pallet.resource.lib">pallet.resource.lib</a></li><li><a href="#pallet.resource.network-service">pallet.resource.network-service</a></li><li><a href="#pallet.resource.package">pallet.resource.package</a></li><li><a href="#pallet.resource.remote-directory">pallet.resource.remote-directory</a></li><li><a href="#pallet.resource.remote-file">pallet.resource.remote-file</a></li><li><a href="#pallet.resource.resource-when">pallet.resource.resource-when</a></li><li><a href="#pallet.resource.rsync">pallet.resource.rsync</a></li><li><a href="#pallet.resource.service">pallet.resource.service</a></li><li><a href="#pallet.resource.shell">pallet.resource.shell</a></li><li><a href="#pallet.resource.user">pallet.resource.user</a></li><li><a href="#pallet.resource">pallet.resource</a></li><li><a href="#pallet.script.lib">pallet.script.lib</a></li><li><a href="#pallet.session">pallet.session</a></li><li><a href="#pallet.shell">pallet.shell</a></li><li><a href="#pallet.strint">pallet.strint</a></li><li><a href="#pallet.target">pallet.target</a></li><li><a href="#pallet.task.add-service">pallet.task.add-service</a></li><li><a href="#pallet.task.config">pallet.task.config</a></li><li><a href="#pallet.task.containers">pallet.task.containers</a></li><li><a href="#pallet.task.converge">pallet.task.converge</a></li><li><a href="#pallet.task.describe-node">pallet.task.describe-node</a></li><li><a href="#pallet.task.help">pallet.task.help</a></li><li><a href="#pallet.task.images">pallet.task.images</a></li><li><a href="#pallet.task.lift">pallet.task.lift</a></li><li><a href="#pallet.task.nodes">pallet.task.nodes</a></li><li><a href="#pallet.task.providers">pallet.task.providers</a></li><li><a href="#pallet.task.to-blob">pallet.task.to-blob</a></li><li><a href="#pallet.task.version">pallet.task.version</a></li><li><a href="#pallet.task">pallet.task</a></li><li><a href="#pallet.template.properties">pallet.template.properties</a></li><li><a href="#pallet.template">pallet.template</a></li><li><a href="#pallet.utils">pallet.utils</a></li><li><a href="#pallet.version-dispatch">pallet.version-dispatch</a></li><li><a href="#pallet.versions">pallet.versions</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.action.conditional" name="pallet.action.conditional"><h1 class="project-name">pallet.action.conditional</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Conditional action execution.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns pallet.action.conditional
   (:refer-clojure :exclude [when when-not])
   (:require
@@ -3547,7 +3547,6 @@ split by enable/disable options.</p>
        (aptitude
         install -q -y
         ~(if (:allow-untrusted opts) &quot;--allow-untrusted&quot; &quot;&quot;)
-        ~(string/join &quot; &quot; (map #(str &quot;-t &quot; %) (:enable opts)))
         ~(string/join
           &quot; &quot;
           (for [[action packages] (group-by :action packages)
@@ -3595,7 +3594,6 @@ split by enable/disable options.</p>
       (stevedore/script
        (apt-get
         -q -y install
-        ~(string/join &quot; &quot; (map #(str &quot;-t &quot; %) (:enable opts)))
         ~(string/join
           &quot; &quot;
           (for [[action packages] (group-by :action packages)
@@ -3635,6 +3633,31 @@ split by enable/disable options and by command.  We install before removing.</p>
           ~(string/join &quot; &quot; (map #(str &quot;--disablerepo=&quot; %) (:disable opts)))
           ~(string/join &quot; &quot; (map #(str &quot;--enablerepo=&quot; %) (:enable opts)))
           ~(string/join &quot; &quot; (map #(str &quot;--exclude=&quot; %) (:exclude opts)))
+          ~(string/join
+            &quot; &quot;
+            (distinct (map :package packages)))))))
+     (stevedore/script (~lib/list-installed-packages))))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod adjust-packages :pkgin
+  [session packages]
+  (checked-commands
+   &quot;Packages&quot;
+   (stevedore/chain-commands*
+    (conj
+     (vec
+      (for [[action packages] (-&gt;&gt; packages
+                                   (sort-by #(action-order (:action %)))
+                                   (group-by :action))
+            [opts packages] (-&gt;&gt;
+                             packages
+                             (group-by
+                              #(select-keys % [:enable :disable :exclude]))
+                             (sort-by #(apply min (map :priority (second %)))))]
+        (stevedore/script
+         (pkgin -y
+          ~(name action)
+         ; ~(string/join &quot; &quot; (map #(str &quot;--disablerepo=&quot; %) (:disable opts)))
+         ; ~(string/join &quot; &quot; (map #(str &quot;--enablerepo=&quot; %) (:enable opts)))
+         ; ~(string/join &quot; &quot; (map #(str &quot;--exclude=&quot; %) (:exclude opts)))
           ~(string/join
             &quot; &quot;
             (distinct (map :package packages)))))))
@@ -3692,7 +3715,7 @@ split by enable/disable options and by command.  We install before removing.</p>
          :yum ["git" "git-email"]
          :aptitude ["git-core" "git-email"])</p>
 </td><td class="codes"><pre class="brush: clojure">(defn packages
-  [session &amp; {:keys [yum aptitude pacman brew] :as options}]
+  [session &amp; {:keys [yum aptitude pacman brew pkgin] :as options}]
   (-&gt;
    session
    (for-&gt;
@@ -3957,6 +3980,10 @@ split by enable/disable options and by command.  We install before removing.</p>
                                      (~lib/update-package-list)
                                      (~lib/install-package &quot;coreutils&quot;)
                                      (~lib/install-package &quot;sudo&quot;))
+     (#{:smartos} os-family) (stevedore/checked-script
+                              &quot;Add minimal packages&quot;
+                              (~lib/update-package-list)
+                              (~lib/install-package &quot;tcl-expect&quot;))
      (= :arch os-family) (stevedore/checked-script
                           &quot;Add minimal packages&quot;
                           (&quot;{&quot; pacman-db-upgrade &quot;||&quot; true &quot;; } &quot;
@@ -6244,6 +6271,7 @@ with :nested-scope types</p>
       (derive :suse-base :linux)
       (derive :bsd-base :linux)
       (derive :gentoo-base :linux)
+      (derive :solaris :linux)
       ;; distibutions
       (derive :centos :rh-base)
       (derive :rhel :rh-base)
@@ -6255,7 +6283,8 @@ with :nested-scope types</p>
       (derive :arch :arch-base)
       (derive :gentoo :gentoo-base)
       (derive :darwin :bsd-base)
-      (derive :osx :bsd-base)))</pre></td></tr><tr><td class="docs"><p>Defines a defmulti used to abstract over the target operating system. The
+      (derive :osx :bsd-base)
+      (derive :smartos :solaris)))</pre></td></tr><tr><td class="docs"><p>Defines a defmulti used to abstract over the target operating system. The
    function dispatches based on the target operating system, that is extracted
    from the session passed as the first argument.</p>
 
@@ -6286,6 +6315,7 @@ with :nested-scope types</p>
        (#{:suse} os-family) :zypper
        (#{:gentoo} os-family) :portage
        (#{:darwin :os-x} os-family) :brew
+       (#{:smartos :solaris} os-family) :pkgin
        :else (throw+
               {:type :unknown-packager
                :message (format
@@ -6300,6 +6330,7 @@ with :nested-scope types</p>
        (#{:ubuntu :debian :jeos} os-family) :debian
        (#{:centos :rhel :amzn-linux :fedora} os-family) :rh
        (#{:arch} os-family) :arch
+       (#{:smartos} os-family) :solaris
        (#{:suse} os-family) :suse
        (#{:gentoo} os-family) :gentoo
        (#{:darwin :os-x} os-family) :os-x
@@ -7161,7 +7192,7 @@ with :nested-scope types</p>
         (let [&amp;throw-context {:throwable (:cause error)}]
           (logging/errorf &quot;errors found %s&quot; (vec (map :error errors)))
           (throw+
-           (assoc error :all-errors errors)
+           (assoc error :all-errors errors :session session)
            &quot;Error prevented completion of phase: %s&quot;
            (:message error)))
         [results session]))))</pre></td></tr><tr><td class="docs">
@@ -7426,8 +7457,9 @@ with :nested-scope types</p>
         count (-&gt; session :group :delta-count)
         session (update-in session [:group]
                            #(compute/ensure-os-family compute %))
-        session (assoc-in session [:group :packager]
-                          (compute/packager (-&gt; session :group :image)))
+        session (update-in session [:group :packager]
+                           #(or %
+                                (compute/packager (-&gt; session :group :image))))
         init-script (bootstrap-script session)
         _ (logging/tracef &quot;Bootstrap script:\n%s&quot; init-script)
         new-nodes (compute/run-nodes
@@ -7766,7 +7798,14 @@ with :nested-scope types</p>
    compute service if possible.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn session-with-all-nodes
   [session]
-  (let [nodes (filter
+  (let [selected (-&gt;&gt;
+                  (:node-set session)
+                  (filter #(and (map? %) (every? map? (keys %))))
+                  (mapcat vals)
+                  (mapcat #(if (seq? %) % [%]))
+                  (filter node/node?)
+                  (distinct))
+        nodes (filter
                node/running?
                (or (:all-nodes session) ; empty list is ok
                    (if-let [compute (environment/get-for
@@ -7774,14 +7813,8 @@ with :nested-scope types</p>
                      (do
                        (logging/info &quot;retrieving nodes&quot;)
                        (compute/nodes compute))
-                     (-&gt;&gt;
-                      (:node-set session)
-                      (filter #(and (map? %) (every? map? (keys %))))
-                      (mapcat vals)
-                      (mapcat #(if (seq? %) % [%]))
-                      (filter node/node?)
-                      (distinct)))))]
-    (assoc session :all-nodes nodes :selected-nodes nodes)))</pre></td></tr><tr><td class="docs"><p>Takes the :selected-nodes, :all-nodes. :node-set and :prefix keys and compute
+                     selected)))]
+    (assoc session :all-nodes nodes :selected-nodes (or (seq selected) nodes))))</pre></td></tr><tr><td class="docs"><p>Takes the :selected-nodes, :all-nodes. :node-set and :prefix keys and compute
    the groups for the session, updating the :selected-nodes, :all-nodes
    and :groups keys of the session.</p>
 
@@ -8362,7 +8395,8 @@ Options are as for remote-file.</p>
    - :max-retries   number of times to test HTTP status before erroring
    - :url-name      name of url to use in messages (defaults to url)</p>
 </td><td class="codes"><pre class="brush: clojure">(defn wait-for-http-status
-  [session url status &amp; {:keys [max-retries standoff url-name cookie]
+  [session url status &amp; {:keys [max-retries standoff url-name cookie insecure
+                                ssl-version]
                          :or {max-retries 5 standoff 2
                               url-name url}}]
   (-&gt;
@@ -8374,6 +8408,8 @@ Options are as for remote-file.</p>
         (pipe
          (&quot;wget&quot; -q -S -O &quot;/dev/null&quot;
           ~(if cookie (str &quot;--header &quot; (format &quot;'Cookie: %s'&quot; cookie)) &quot;&quot;)
+         ~(if insecure &quot;--no-check-certificate&quot; &quot;&quot;)
+         ~(if ssl-version (str &quot;--secure-protocol=SSLv&quot; ssl-version) &quot;&quot;)
           (quoted ~url) &quot;2&gt;&amp;1&quot;)
          (&quot;grep&quot; &quot;HTTP/1.1&quot;)
          (&quot;tail&quot; -1)
@@ -8382,6 +8418,8 @@ Options are as for remote-file.</p>
         (defn httpresponse []
           (&quot;curl&quot; -sL -w (quoted &quot;%{http_code}&quot;)
            ~(if cookie (str &quot;-b '&quot; cookie &quot;'&quot;) &quot;&quot;)
+          ~(if insecure &quot;--insecure&quot; &quot;&quot;)
+          ~(if ssl-version (str &quot;-&quot; ssl-version) &quot;&quot;)
            (quoted ~url)
            -o &quot;/dev/null&quot;))
         (do
@@ -9089,9 +9127,9 @@ settings. Recognises :package-source, :packages, :rpm and :debs keys.</p>
    [pallet.shell :as ccshell]
    [clojure.tools.logging :as logging]))</pre></td></tr><tr><td class="docs"><p>slingshot version compatibility</p>
 </td><td class="codes"><pre class="brush: clojure">(try
-  (use '[slingshot.slingshot :only [throw+]])
+  (use '[slingshot.slingshot :only [try+ throw+]])
   (catch Exception _
-    (use '[slingshot.core :only [throw+]])))</pre></td></tr><tr><td class="docs">
+    (use '[slingshot.core :only [try+ throw+]])))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(def prolog
   (str &quot;#!/usr/bin/env bash\n&quot; bash/hashlib))</pre></td></tr><tr><td class="docs"><p>Convert eol into platform specific value</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- normalise-eol
@@ -9104,20 +9142,29 @@ settings. Recognises :package-source, :packages, :rpm and :debs keys.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn bash-command
   [expr]
   (format &quot;/usr/bin/env bash -c '%s'&quot; expr))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn sudo-cmd-dir [items]
+  (cond
+   (= :smartos (some #{:smartos} items)) &quot;/opt/local/bin/sudo&quot;
+   :else &quot;/usr/bin/sudo&quot;))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defscript sudo-no-password [])
 (script/defimpl sudo-no-password :default []
   (&quot;/usr/bin/sudo&quot; -n))
 (script/defimpl sudo-no-password
   [#{:centos-5.3 :os-x :darwin :debian :fedora}]
   []
-  (&quot;/usr/bin/sudo&quot;))</pre></td></tr><tr><td class="docs"><p>Construct a sudo command prefix for the specified user.</p>
+  (&quot;/usr/bin/sudo&quot;))
+(script/defimpl sudo-no-password
+  [#{:smartos :solaris}]
+  []
+  (&quot;/opt/local/bin/sudo&quot; -n))</pre></td></tr><tr><td class="docs"><p>Construct a sudo command prefix for the specified user.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn sudo-cmd-for
   [user]
-  (if (or (= (:username user) &quot;root&quot;) (:no-sudo user))
-    &quot;/bin/bash &quot;
-    (if-let [pw (:sudo-password user)]
-      (str &quot;echo \&quot;&quot; (or (:password user) pw) &quot;\&quot; | /usr/bin/sudo -S &quot;)
-      (str (stevedore/script (~sudo-no-password)) &quot; &quot;))))</pre></td></tr><tr><td class="docs"><p>Specifies the buffer size used to read the ssh output stream.
+  (let [sudodir (sudo-cmd-dir pallet.script/*script-context*)]
+    (if (or (= (:username user) &quot;root&quot;) (:no-sudo user))
+      &quot;/bin/bash &quot;
+      (if-let [pw (:sudo-password user)]
+        (str &quot;echo \&quot;&quot; (or (:password user) pw) &quot;\&quot; | &quot; sudodir &quot; -S &quot;)
+        (str (stevedore/script (~sudo-no-password)) &quot; &quot;)))))</pre></td></tr><tr><td class="docs"><p>Specifies the buffer size used to read the ssh output stream.
     Defaults to 10K, to match clj-ssh.ssh/<em>piped-stream-buffer-size</em></p>
 </td><td class="codes"><pre class="brush: clojure">(def
   ssh-output-buffer-size (atom (* 1024 10)))</pre></td></tr><tr><td class="docs"><p>Specifies the polling period for retrieving ssh command output.
@@ -9252,7 +9299,8 @@ settings. Recognises :package-source, :packages, :rpm and :debs keys.</p>
         (ssh/add-identity agent options)
         (ssh/add-identity-with-keychain agent options)))
     (catch Exception e
-      (logging/warnf e &quot;Add identity failed&quot;))))</pre></td></tr><tr><td class="docs"><p>Create a temporary remote file using the <code>ssh-session</code> and the filename
+      (logging/warnf &quot;Add ssh identity failed for %s&quot; private-key-path)
+      (logging/debugf e &quot;Add identity failed&quot;))))</pre></td></tr><tr><td class="docs"><p>Create a temporary remote file using the <code>ssh-session</code> and the filename
   <code>prefix</code></p>
 </td><td class="codes"><pre class="brush: clojure">(defn- ssh-mktemp
   [ssh-session prefix]
@@ -9394,7 +9442,7 @@ settings. Recognises :package-source, :packages, :rpm and :debs keys.</p>
                               :password (:password user)}))
             _ (.setDaemonThread ssh-session true)
             _ (when-not (ssh/connected? ssh-session)
-                (try
+                (try+
                   (ssh/connect ssh-session)
                   (catch Exception e
                     (throw+
@@ -10792,7 +10840,11 @@ settings. Recognises :package-source, :packages, :rpm and :debs keys.</p>
    [pallet.script :as script]
    [pallet.stevedore :as stevedore]
    [pallet.thread-expr :as thread-expr]
-   [clojure.string :as string]))</pre></td></tr><tr><td class="docs">
+   [clojure.string :as string]))</pre></td></tr><tr><td class="docs"><p>slingshot version compatibility</p>
+</td><td class="codes"><pre class="brush: clojure">(try
+  (use '[slingshot.slingshot :only [throw+]])
+  (catch Exception _
+    (use '[slingshot.core :only [throw+]])))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn- translate-options
   [options translations]
   (reduce
@@ -11085,11 +11137,20 @@ settings. Recognises :package-source, :packages, :rpm and :debs keys.</p>
 (script/defscript lock-user [name])
 (script/defscript unlock-user [name])
 (script/defscript user-home [username])
-(script/defscript current-user [])</pre></td></tr><tr><td class="docs">
+(script/defscript current-user [])
+(script/defscript set-password [username password])</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defscript group-exists? [name])
 (script/defscript modify-group [name options])
 (script/defscript create-group [name options])
 (script/defscript remove-group [name options])</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl set-password :default [username password]
+    (throw+
+        {:message &quot;set-password does not support default&quot;   
+	 :type :pallet/unsupported-os}))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl set-password [#{:smartos}] [username password]
+    (str &quot;echo '&quot; (str &quot;#!/opt/local/bin/expect --\nspawn sudo passwd &quot; ~username
+		      &quot;\nexpect \&quot;assword:\&quot;\nsend \ ~password &quot;\r\&quot;\nexpect \&quot;assword:\&quot;\nsend \ ~password &quot;\r\&quot;\nexpect eof&quot;)
+	 &quot;' &gt; ./setpass.expect  &amp;&amp; chmod 777 ./setpass.expect &amp;&amp; ./setpass.expect &amp;&amp; rm ./setpass.expect&quot;))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defimpl user-exists? :default [username]
   (getent passwd ~username))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn group-seq-&gt;string
@@ -11108,7 +11169,37 @@ settings. Recognises :package-source, :packages, :rpm and :debs keys.</p>
          (assoc :g (:group options))
          (dissoc :group))
         stevedore/map-to-arg-string)
-   ~username))</pre></td></tr><tr><td class="docs">
+   ~username))</pre></td></tr><tr><td class="docs"><p>smartos does not support useradd
+with password.  passwd needs to be
+called instead
+Please note for smartos modify user with a password option will rely
+upon expect being installed on the server.  Currently this is not done
+for you and you should look at minimal-packages that will install this.</p>
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl create-user [#{:smartos}]
+  [username options]
+   (&quot;/usr/sbin/useradd&quot;
+   ~(-&gt; options
+        (thread-expr/when-&gt;
+         (:groups options)
+         (update-in [:groups] group-seq-&gt;string))
+        (thread-expr/when-&gt;
+         (:group options)
+         (assoc :g (:group options))
+         (dissoc :group))
+  ; password will be handled via passwd
+	(thread-expr/when-&gt;
+	 (:password options)
+	 (dissoc :password))
+  ; there is no useradd for system user so
+  ; just remove the option
+  (thread-expr/when-&gt;
+   (:system options)
+   (dissoc :system))
+	(translate-options {:shell :s :group :g :groups :G})
+        stevedore/map-to-arg-string)
+   ~username ~(if-let [pass  (get options :password)] &quot;&amp;&amp; &quot; ))
+   ~(if-let [pass (get options :password)]
+       (stevedore/script(~set-password ~username ~pass))  ))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defimpl create-user [#{:rhel :centos :amzn-linux :fedora}]
   [username options]
   (&quot;/usr/sbin/useradd&quot;
@@ -11137,13 +11228,44 @@ settings. Recognises :package-source, :packages, :rpm and :debs keys.</p>
         (translate-options
          {:system :r :group :g :password :p :append :a :groups :G})
         stevedore/map-to-arg-string)
-   ~username))</pre></td></tr><tr><td class="docs">
+   ~username))</pre></td></tr><tr><td class="docs"><p>Please note for smartos modify user with a password option will rely
+upon expect being installed on the server.  Currently this is not done
+for you.</p>
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl modify-user [#{:smartos}]
+  [username options]
+   (&quot;/usr/sbin/usermod&quot;
+   ~(-&gt; options
+        (thread-expr/when-&gt;
+         (:groups options)
+         (update-in [:groups] group-seq-&gt;string))
+        (thread-expr/when-&gt;
+         (:group options)
+         (assoc :g (:group options))
+         (dissoc :group))
+  ; password will be handled via passwd
+	(thread-expr/when-&gt;
+	 (:password options)
+	 (dissoc :password))
+  ; there is no usermod for system user so
+  ; just remove the option
+  (thread-expr/when-&gt;
+   (:system options)
+   (dissoc :system))
+	(translate-options {:shell :s :group :g :groups :G :append :a})
+        stevedore/map-to-arg-string)
+   ~username ~(if-let [pass  (get options :password)] &quot;&amp;&amp; &quot; ))
+   ~(if-let [pass (get options :password)]
+       (stevedore/script(~set-password ~username ~pass)) ))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defimpl remove-user :default [username options]
   (&quot;/usr/sbin/userdel&quot; ~(stevedore/map-to-arg-string options) ~username))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defimpl lock-user :default [username]
   (&quot;/usr/sbin/usermod&quot; --lock ~username))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl lock-user [#{:smartos}] [username]
+  (&quot;/usr/bin/passwd&quot; -l ~username))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defimpl unlock-user :default [username]
   (&quot;/usr/sbin/usermod&quot; --unlock ~username))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl unlock-user [#{:smartos}] [username]
+  (&quot;/usr/bin/passwd&quot; -u ~username))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defimpl user-home :default [username]
   @(&quot;getent&quot; passwd ~username | &quot;cut&quot; &quot;-d:&quot; &quot;-f6&quot;))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defimpl user-home [#{:darwin :os-x}] [username]
@@ -11157,7 +11279,7 @@ settings. Recognises :package-source, :packages, :rpm and :debs keys.</p>
   (&quot;getent&quot; group ~name))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defimpl create-group :default [groupname options]
   (&quot;/usr/sbin/groupadd&quot; ~(stevedore/map-to-arg-string options) ~groupname))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(script/defimpl create-group [#{:rhel :centos :amzn-linux :fedora}]
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl create-group [#{:rhel :centos :amzn-linux :fedora :smartos}]
   [groupname options]
   (&quot;/usr/sbin/groupadd&quot;
    ~(-&gt; options
@@ -11304,7 +11426,21 @@ Repeating the selector makes it more explicit</p>
 (script/defimpl package-manager-non-interactive [#{:aptitude}] []
   (~debconf-set-selections
    &quot;debconf debconf/frontend select noninteractive&quot;
-   &quot;debconf debconf/frontend seen false&quot;))</pre></td></tr><tr><td class="docs"><p>Service functions</p>
+   &quot;debconf debconf/frontend seen false&quot;))</pre></td></tr><tr><td class="docs"><p>pkgin</p>
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl update-package-list [#{:pkgin}] [&amp; {:keys [] :as options}]
+  (pkgin -y update ~(stevedore/option-args options)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl upgrade-all-packages [#{:pkgin}] [&amp; options]
+  (pkgin -y full-upgrade ~(stevedore/option-args options)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl install-package [#{:pkgin}] [package &amp; options]
+  (pkgin -y install ~(stevedore/option-args options) ~package))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl upgrade-package [#{:pkgin}] [package &amp; options]
+  (pkgin -y upgrade ~(stevedore/option-args options) ~package))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl remove-package [#{:pkgin}] [package &amp; options]
+  (pkgin -y remove ~(stevedore/option-args options) ~package))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl purge-package [#{:pkgin}] [package &amp; options]
+  (pkgin -y clean ~(stevedore/option-args options) ~package))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl list-installed-packages [#{:pkgin}] [&amp; options]
+  (pkgin list))</pre></td></tr><tr><td class="docs"><p>Service functions</p>
 </td><td class="codes"></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defscript configure-service
   [name action options])</pre></td></tr><tr><td class="docs">
@@ -11356,7 +11492,15 @@ Repeating the selector makes it more explicit</p>
                      ~name on
                      &quot;--level&quot; ~(chkconfig-levels
                                  (:sequence-start
-                                  options chkconfig-default-options))))))</pre></td></tr><tr><td class="docs"><p>Functions to return distribution specific paths.</p>
+                                  options chkconfig-default-options))))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(script/defimpl configure-service [#{:pkgin}] [name action options]
+  ~(condp = action
+       :disable (stevedore/script (&quot;/usr/sbin/svcadm&quot; disable ~name))
+       :enable (stevedore/script
+                (&quot;/usr/sbin/svcadm&quot; enable ~name))
+       :start-stop (stevedore/script ;; start/stop
+                    (&quot;/usr/sbin/svcadm&quot;
+                     restart ~name))))</pre></td></tr><tr><td class="docs"><p>Functions to return distribution specific paths.</p>
 
 <p>These script functions are meant to help build distribution agnostic crates.
  * Links
@@ -11369,7 +11513,7 @@ Repeating the selector makes it more explicit</p>
   &quot;/etc/default&quot;)
 (script/defimpl etc-default [#{:centos :rhel :amzn-linux :fedora}] []
   &quot;/etc/sysconfig&quot;)
-(script/defimpl etc-default [#{:os-x :darwin}] []
+(script/defimpl etc-default [#{:os-x :darwin :smartos :solaris}] []
   &quot;/etc/defaults&quot;)</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defscript log-root [])
 (script/defimpl log-root :default []
@@ -11385,7 +11529,8 @@ Repeating the selector makes it more explicit</p>
   &quot;/etc/hosts&quot;)</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(script/defscript etc-init [])
 (script/defimpl etc-init :default [] &quot;/etc/init.d&quot;)
-(script/defimpl etc-init [:pacman] [] &quot;/etc/rc.d&quot;)</pre></td></tr><tr><td class="docs"><p>Some of the packagers, like brew, are "add-ons" in the sense that they are
+(script/defimpl etc-init [:pacman] [] &quot;/etc/rc.d&quot;)
+(script/defimpl etc-init [:pkgin] [] &quot;/var/svc/manifest&quot;)</pre></td></tr><tr><td class="docs"><p>Some of the packagers, like brew, are "add-ons" in the sense that they are
 outside of the base system.  These paths refer to locations of packager
 installed files.</p>
 </td><td class="codes"></td></tr><tr><td class="docs">
@@ -12019,11 +12164,13 @@ This will create ~/.pallet/services/service-name.clj</p>
 </td><td class="codes"><pre class="brush: clojure">(defn providers
   {:no-service-required true}
   [&amp; _]
-  (println &quot;Pallet uses jcloud's providers.\n&quot;)
+  (println &quot;Pallet uses it's own and jcloud's providers.\n&quot;)
   (doseq [name (supported-providers)]
     (println (str &quot;\t&quot; name )))
-  (println &quot;\nProviders can be enabled by adding a dependency on the jclouds &quot;)
-  (println &quot;provider into your project.clj or pom.xml.&quot;))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.task.to-blob" name="pallet.task.to-blob"><h1 class="project-name">pallet.task.to-blob</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Upload to a blob.</p>
+  (doseq [name (supported-providers)]
+    (println (format &quot;  %s&quot; name)))
+  (println &quot;\nProviders can be enabled by adding a dependency on a pallet or\n&quot;)
+  (println &quot;jclouds provider into your project.clj or pom.xml.&quot;))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.task.to-blob" name="pallet.task.to-blob"><h1 class="project-name">pallet.task.to-blob</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Upload to a blob.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns pallet.task.to-blob
   (:require
    [pallet.blobstore :as blobstore]))</pre></td></tr><tr><td class="docs">
