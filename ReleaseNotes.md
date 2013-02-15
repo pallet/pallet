@@ -1,4 +1,45 @@
-The latest release is 0.7.2
+The latest release is 0.7.3
+
+# 0.7.3
+
+## Features
+
+- Add support for smartos using the pkgin package manager.
+  This do not provide any global zone administration of local zones.
+
+- Add :insecure and :ssl-versions to wait-for-http-status
+
+- Update to clj-ssh 0.4.3
+
+- Add a multimethod with common crate install methods
+  pallet.crate-install can be used from crates to provide standard install
+  strategies
+
+## Fixes
+
+- Fix converge when specifying a compute service
+  session-with-all-nodes needed a seq to properly check if nodes were
+  explicitly supplied.  Fixes #187.
+
+- Don't overwrite an explicit :packager
+  When specifying a :packager in the server-spec or group-spec, this was
+  being overridden in pallet.core/create-nodes.
+
+- Use try+ to wrap ssh/connect
+  The exception thrown by ssh/connect wasn't being reported in the cause of
+  the wrapped exception.
+
+- Add session to rasie-on-error exception
+  Make partial results available in the case of an error in one phase.
+
+- Fix selected-nodes when compute service is provided
+  The code was assuming either a compute service was supplied, or nodes
+  were explicitly passed, but not both.
+
+- Quieten logging of exceptions when adding ssh identities
+
+- Disregard :enable option in apt and aptitude adjust-packages
+  apt doesn't have the ability to enable and disable sources via options.
 
 
 # 0.7.2
