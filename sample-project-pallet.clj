@@ -4,7 +4,7 @@
 ;;; already referred.  The
 ;;; pallet.crate.automated-admin-user/automated-admin-user us also referred.
 
-;;; (require '[your-ns :refer [your-group])
+;;; (require '[your-ns :refer [your-group]])
 
 (defproject my-project
   ;; Provider specific configuration

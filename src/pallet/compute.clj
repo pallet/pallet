@@ -13,6 +13,10 @@
   (implementation/supported-providers))
 
 ;;; Compute Service instantiation
+(def ^:private
+  missing-provider-re
+  "No method in multimethod 'service' for dispatch value: :vmfest")
+
 (defn compute-service
   "Instantiate a compute service. The provider name should be a recognised
    jclouds provider, or \"node-list\". The other arguments are keyword value
@@ -26,7 +30,23 @@
    & {:keys [identity credential extensions node-list endpoint environment sub-services]
       :as options}]
   (implementation/load-providers)
-  (implementation/service provider-name options))
+  (try
+    (implementation/service provider-name options)
+    (catch IllegalArgumentException e
+      (if-let [[_ provider] (re-find missing-provider-re (.getMessage e))]
+        (let [cause (cond
+                     (= provider ":vmfest")
+                     "Possible missing dependency on pallet-vmfest."
+                     (find-ns 'pallet.compute.jclouds)
+                     "Possible missing dependency on a jclouds provider."
+                     :else
+                     "Possible missing dependency")]
+          (throw (ex-info
+                  (str "No pallet provider found for " provider
+                       ".  " cause)
+                  {:provider provider
+                   :cause cause})))
+        (throw e)))))
 
 ;;; Actions
 
