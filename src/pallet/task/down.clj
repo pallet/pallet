@@ -12,7 +12,7 @@
 
 (def switches
   [["-s" "--selectors" "A comma separated list of selectors"
-    :default ":default"]
+    :default "default"]
    ["-q" "--quiet" "No output on successful completion"
     :flag true :default false]])
 

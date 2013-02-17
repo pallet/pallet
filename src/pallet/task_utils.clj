@@ -85,7 +85,7 @@
     (spec-from-project
      pallet-project
      provider
-     (comma-sep->kw-seq selectors))))
+     (set (comma-sep->kw-seq selectors)))))
 
 (defn process-args
   "Process command line arguments. Returns an option map, a vector of arguments

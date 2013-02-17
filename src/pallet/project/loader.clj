@@ -22,7 +22,7 @@
 (defn add-default-group-spec
   [{:keys [project-name phases] :as project}]
   (update-in project [:groups] #(or %
-                                    [(group-spec (keyword project-name)
+                                    [(group-spec project-name
                                                  :phases phases
                                                  :count 1)])))
 

@@ -14,7 +14,7 @@
 
 (def switches
   [["-s" "--selectors" "A comma separated list of selectors"
-    :default ":default"]
+    :default "default"]
    ["-p" "--phases" "A comma separated list of phases"]
    ["-f" "--format" "Output nodes in a table [table,edn]"
     :default "table"]
