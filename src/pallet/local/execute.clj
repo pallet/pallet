@@ -6,12 +6,13 @@
    [clojure.tools.logging :as logging]
    [pallet.compute.jvm :as jvm]
    [pallet.execute :as execute
-    :refer [log-multiline log-script-output result-with-error-map status-lines]]
+    :refer [log-script-output result-with-error-map status-lines]]
    [pallet.transport :as transport]
    [pallet.transport.local]
    [pallet.script :as script]
    [pallet.script-builder :as script-builder]
-   [pallet.stevedore :as stevedore]))
+   [pallet.stevedore :as stevedore]
+   [pallet.utils :refer [log-multiline]]))
 
 (def local-connection
   (transport/open (transport/factory :local {}) nil nil nil))

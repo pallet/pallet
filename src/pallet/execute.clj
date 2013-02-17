@@ -78,13 +78,6 @@
     result
     (assoc result :error (script-error-map server msg result))))
 
-(defmacro log-multiline
-  [level-kw fmt string]
-  `(let [fmt# ~fmt]
-     (when (logging/enabled? ~level-kw)
-       (doseq [l# (string/split-lines ~string)]
-         (logging/log ~level-kw (format fmt# l#))))))
-
 ;;; ## Flag Parsing
 
 ;;; In order to capture node state, actions emit output that matches a specific
