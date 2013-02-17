@@ -79,13 +79,16 @@
   (and s (map keyword (.split s ","))))
 
 (defn project-groups
-  "Compute the groups for a pallet project using the given compute service"
-  [pallet-project compute selectors]
+  "Compute the groups for a pallet project using the given compute service,
+filtered by selectors, groups and roles."
+  [pallet-project compute selectors groups roles]
   (let [{:keys [provider]} (service-properties compute)]
     (spec-from-project
      pallet-project
      provider
-     (set (comma-sep->kw-seq selectors)))))
+     (set (comma-sep->kw-seq selectors))
+     (set (comma-sep->kw-seq groups))
+     (set (comma-sep->kw-seq roles)))))
 
 (defn process-args
   "Process command line arguments. Returns an option map, a vector of arguments

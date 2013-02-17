@@ -105,8 +105,11 @@ defproject refers to pallet.project.loader/defproject."
 
 (defn spec-from-project
   "Compute the groups for a pallet project using the given compute service
-  provider keyword.  The selector defaults to :default."
-  ([{:keys [groups provider service] :as pallet-project} provider-kw selectors]
+provider keyword.  The node specs are filtered by the selector selector set,
+which defaults to #{:default}.  The groups can be filtered by the roles set, and
+by group-names."
+  ([{:keys [groups provider service] :as pallet-project} provider-kw
+    selectors roles group-names]
      (let [selectors (or selectors #{:default})
            variants (get-in provider [provider-kw :variants])
            ;; if variants are given we select from them, otherwise just
@@ -116,6 +119,16 @@ defproject refers to pallet.project.loader/defproject."
                        (comp seq #(intersection (set selectors) %) :selectors)
                        variants)
                       [(get provider provider-kw)])
+           _ (debugf "Filtering groups with group-names : %s" group-names)
+           groups (if (seq group-names)
+                    (filter #((set group-names) (:group-name %)) groups)
+                    groups)
+           _ (debugf "Filtering roles with %s" roles)
+           groups (if (seq roles)
+                    (filter
+                     (comp seq #(intersection (set roles) %) :roles)
+                     groups)
+                    groups)
            groups (apply concat
                          (for [variant variants]
                            (map
