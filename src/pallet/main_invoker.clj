@@ -5,6 +5,7 @@
   (:use
    [pallet.core.user :only [*admin-user*]])
   (:require
+   [bultitude.core :refer [classpath-files]]
    [clojure.tools.logging :as logging]
    [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
@@ -27,7 +28,9 @@
      private-key-path (.canRead (java.io.File. private-key-path)))
     (logging/debugf
      "public-key-path %s %s"
-     public-key-path (.canRead (java.io.File. public-key-path)))))
+     public-key-path (.canRead (java.io.File. public-key-path)))
+    (doseq [f (classpath-files)]
+      (logging/debugf "classpath: %s" (.getPath f)))))
 
 (defn find-admin-user
   "Return the admin user"
