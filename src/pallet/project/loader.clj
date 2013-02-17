@@ -17,12 +17,7 @@
       (update-in [:phases :bootstrap]
                  #(or % (plan-fn
                           (package-manager :update)
-                          (automated-admin-user))))
-      ;; (update-in [:phases :configure]
-      ;;            #(or % (plan-fn)))
-      ;; (update-in [:phases :settings]
-      ;;            #(or % (plan-fn)))
-      ))
+                          (automated-admin-user))))))
 
 (defn add-default-group-spec
   [{:keys [project-name phases] :as project}]
