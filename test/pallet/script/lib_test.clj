@@ -123,12 +123,12 @@
 (deftest download-file-test
   (is (script (~download-file "http://server.com/" "/path")))
   (is (script-no-comment=
-       "if\nhash curl 2>&-; then curl -o \"/path\" --retry 5 --silent --show-error --fail --location --proxy localhost:3812 \"http://server.com/\";else\nif\nhash wget 2>&-; then wget -O \"/path\" --tries 5 --no-verbose -e \"http_proxy = http://localhost:3812\" -e \"ftp_proxy = http://localhost:3812\" \"http://server.com/\";else\necho No download utility available\nexit 1\nfi\nfi"
+       "if\nhash curl 2>&-; then curl -o \"/path\" --retry 5 --silent --show-error --fail --location --proxy localhost:3812 \"http://server.com/\";else\nif\nhash wget 2>&-; then wget -O \"/path\" --tries 5 --no-verbose --progress=dot:mega -e \"http_proxy = http://localhost:3812\" -e \"ftp_proxy = http://localhost:3812\" \"http://server.com/\";else\necho No download utility available\nexit 1\nfi\nfi"
        (script
         (~download-file
          "http://server.com/" "/path" :proxy "http://localhost:3812"))))
   (is (script-no-comment=
-       "if\nhash curl 2>&-; then curl -o \"/path\" --retry 5 --silent --show-error --fail --location --proxy localhost:3812 --insecure \"http://server.com/\";else\nif\nhash wget 2>&-; then wget -O \"/path\" --tries 5 --no-verbose -e \"http_proxy = http://localhost:3812\" -e \"ftp_proxy = http://localhost:3812\" --no-check-certificate \"http://server.com/\";else\necho No download utility available\nexit 1\nfi\nfi"
+       "if\nhash curl 2>&-; then curl -o \"/path\" --retry 5 --silent --show-error --fail --location --proxy localhost:3812 --insecure \"http://server.com/\";else\nif\nhash wget 2>&-; then wget -O \"/path\" --tries 5 --no-verbose --progress=dot:mega -e \"http_proxy = http://localhost:3812\" -e \"ftp_proxy = http://localhost:3812\" --no-check-certificate \"http://server.com/\";else\necho No download utility available\nexit 1\nfi\nfi"
        (script
         (~download-file
          "http://server.com/" "/path" :proxy "http://localhost:3812"
