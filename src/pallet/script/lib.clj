@@ -245,7 +245,7 @@
           ~(if insecure "--insecure" "")
           (quoted ~url))
     (if (~has-command? wget)
-      ("wget" "-O" (quoted ~path) --tries 5 --no-verbose
+      ("wget" "-O" (quoted ~path) --tries 5 --no-verbose --progress=dot:mega
             ~(if proxy
                (format
                 "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\"" proxy proxy)
