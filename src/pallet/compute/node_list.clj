@@ -42,6 +42,8 @@
   (packager [node] (compute/packager-for-os os-family os-version))
   pallet.node.NodeHardware
   (hardware [node] hardware)
+  pallet.node.NodeImage
+  (image-user [node])
   pallet.node.NodeProxy
   (proxy [node] proxy))
 
@@ -120,7 +122,12 @@ support."
   (tag-node! [compute node tag-name value]
     (compute/tag-node! tag-provider node tag-name value))
   (node-taggable? [compute node]
-    (compute/node-taggable? tag-provider node)))
+    (compute/node-taggable? tag-provider node))
+  pallet.compute.ComputeServiceProperties
+  (service-properties [_]
+    {:provider :node-list
+     :nodes @node-list
+     :environment environment}))
 
 
 
