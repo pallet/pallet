@@ -15,7 +15,7 @@
 ;;; Compute Service instantiation
 (def ^:private
   missing-provider-re
-  "No method in multimethod 'service' for dispatch value: :vmfest")
+  #"No method in multimethod 'service' for dispatch value: (.*)")
 
 (defn compute-service
   "Instantiate a compute service. The provider name should be a recognised
@@ -27,7 +27,8 @@
    - :node-list    a list of nodes for the \"node-list\" provider.
    - :environment  an environment map with service specific values."
   [provider-name
-   & {:keys [identity credential extensions node-list endpoint environment sub-services]
+   & {:keys [identity credential extensions node-list endpoint environment
+             sub-services]
       :as options}]
   (implementation/load-providers)
   (try
@@ -40,7 +41,7 @@
                      (find-ns 'pallet.compute.jclouds)
                      "Possible missing dependency on a jclouds provider."
                      :else
-                     "Possible missing dependency")]
+                     "Possible missing dependency.")]
           (throw (ex-info
                   (str "No pallet provider found for " provider
                        ".  " cause)
