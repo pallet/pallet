@@ -123,10 +123,11 @@
   [args & {:keys [environment]}]
   (let [[{:keys [provider identity credential blobstore-provider
                  blobstore-identity blobstore-credential service
-                 project-options defaults]}
+                 project-options defaults] :as options}
          args
          extras]
         (process-args args)]
+    (logging/debugf "pallet-task options %s" options)
     (try
       (let [[task & args] args
             task (or (aliases task) task "help")
@@ -181,4 +182,6 @@
 (def transient-services (atom {}))
 
 (defn add-service [name-kw properties]
-  (swap! transient-services assoc-in [:services name-kw] properties))
+  (swap! transient-services assoc-in [:services name-kw] properties)
+  (when-not (:default-service @transient-services)
+    (swap! transient-services assoc :default-service name-kw)))
