@@ -66,7 +66,7 @@
     (testing "with context"
       (is (script-no-comment=
            (stevedore/checked-commands
-            "context\ncheck"
+            "context check"
             "ls file1")
            (first
             (build-actions {:phase-context "context"}

@@ -17,7 +17,7 @@
   [name & script]
   `(stevedore/checked-script
     (if-let [context# (seq (context/phase-contexts))]
-      (str (string/join ": " context#) "\n" ~name)
+      (str (string/join ": " context#) " " ~name)
       ~name)
     ~@script))
 
