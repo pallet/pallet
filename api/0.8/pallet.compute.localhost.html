@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.config-file.format documentation</title>
+    <title>pallet.compute.localhost documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <link href="css/codox-md.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
@@ -42,37 +42,39 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.config-file.format.html#var-name-values">name-values</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.config-file.format.html#var-sectioned-properties">sectioned-properties</a></li>
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.localhost.html#var--%3ELocalhostService">-&gt;LocalhostService</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.localhost.html#var--%3ENodeTagEphemeral">-&gt;NodeTagEphemeral</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.config-file.format documentation</h2>
-        <div class="doc"><p>Some standard file formating.</p>
+        <h2 class="namespace-title">pallet.compute.localhost documentation</h2>
+        <div class="doc"><p>Localhost provider service implementation.</p>
+
+<p>This enables your localhost to masquerade as a node for any group.</p>
+
+<p><code>run-nodes</code> will set the group-name for the localhost node, but is otherwise a
+no-op.  The localhost node is marked as bootstrapped to prevent bootstrap
+actions from occurring on group-name changes.</p>
+
+<p>Node removal functions are no-ops.</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-name-values" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/config_file/format.clj#L21">name-values</a></h3>
+            <h3><a id="var--%3ELocalhostService" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/localhost.clj#L35">-&gt;LocalhostService</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[m &amp; {:keys [separator], :or {separator " "}}]</div>
+            <div class="usage">[node environment tag-provider]</div>
             
             
-            <div class="doc"><p>A property file.
-The properties are written "key value", one per line.
-  m                   a key-value map
-  :separator chars    separator to use between key and value
-                      (default is a single space)</p>
+            <div class="doc"><p>Positional factory function for class pallet.compute.localhost.LocalhostService.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-sectioned-properties" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/config_file/format.clj#L6">sectioned-properties</a></h3>
+            <h3><a id="var--%3ENodeTagEphemeral" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/localhost.clj#L21">-&gt;NodeTagEphemeral</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[m]</div>
+            <div class="usage">[tags]</div>
             
             
-            <div class="doc"><p>A sectioned property file.
-This is modeled as vector of maps. The keys of the outer map are the section
-names.  The inner maps are keyword value maps.</p>
+            <div class="doc"><p>Positional factory function for class pallet.compute.localhost.NodeTagEphemeral.</p>
 </div>
           </div>
         </div>
