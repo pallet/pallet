@@ -74,6 +74,10 @@
       (do (create-project-file (or project-name "default") pallet-file)
           pallet-file))))
 
+(defn comma-sep->seq
+  [s]
+  (and s (.split s ",")))
+
 (defn comma-sep->kw-seq
   [s]
   (and s (map keyword (.split s ","))))

@@ -11,7 +11,8 @@
    [pallet.core.api :refer [phase-errors]]
    [pallet.node :refer [node-map]]
    [pallet.task-utils
-    :refer [comma-sep->kw-seq pallet-project process-args project-groups]]
+    :refer [comma-sep->kw-seq comma-sep->seq pallet-project process-args
+            project-groups]]
    [pallet.utils :refer [apply-map]]))
 
 (def switches
@@ -34,17 +35,30 @@
        \newline
        (last (process-args "nodes" nil switches))))
 
+(defn phases-with-args
+  "Take phase keywords and apply comma separated args to each."
+  [phases args]
+  (map #(if %2
+          (apply vector %1 (comma-sep->seq %2))
+          %1)
+       phases (concat args (repeat nil))))
+
 (defn ^{:doc help} up
   [{:keys [compute project quiet format] :as request} & args]
   (let [[{:keys [selectors phases roles groups quiet format dry-run]} args]
         (process-args "up" args switches)
         pallet-project (pallet-project project)
-        spec (project-groups pallet-project compute selectors groups roles)]
+        spec (project-groups pallet-project compute selectors groups roles)
+        phases (phases-with-args (comma-sep->kw-seq phases) args)]
     (if dry-run
       (let [info (vec (map #(select-keys % [:group-name :roles :image]) spec))]
         (println "Dry run")
         (if (pos? (count info))
-          (pprint info)
+          (do
+            (println
+             (if phases (str "      phases: " (vec phases) \newline) "")
+             "  Node Specs:")
+            (pprint info))
           (println
            (if (or selectors groups roles)
              (let [provider (:provider (service-properties compute))]
@@ -68,24 +82,24 @@
                           spec
                           (->
                            request
-                           (merge (when phases
-                                    {:phase (comma-sep->kw-seq phases)}))
+                           (merge (when (seq phases)
+                                    {:phase phases}))
                            (dissoc :config :project)
                            (assoc :environment
                              (or (:environment request)
                                  (-> request :project :environment)))))]
         (wait-for op)
-        (if (complete? op)
-          (when-not quiet
-            (if (= format "edn")
-              (pprint (map node-map (map :node (:targets @op))))
-              (print-targets @op)))
+        (if (failed? op)
           (binding [*out* *err*]
             (println "An error occured")
             (when-let [e (seq (phase-errors op))]
-              (print-table (->> e (map :error) (map #(dissoc % :type)))))
+              (pprint (->> e (map :error) (map #(dissoc % :type)))))
             (when-let [e (:exception @op)]
               (print-cause-trace e)
               (throw (ex-info "pallet up failed" {:exit-code 1} e)))
             (throw
-             (ex-info "See logs for further details" {:exit-code 1}))))))))
+             (ex-info "See logs for further details" {:exit-code 1})))
+          (when-not quiet
+            (if (= format "edn")
+              (pprint (map node-map (map :node (:targets @op))))
+              (print-targets @op))))))))
