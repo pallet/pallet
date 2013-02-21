@@ -7,8 +7,8 @@
 
 ;;; Meta
 (defn supported-providers
-  "A list of supported provider names.  Each name is suitable to be passed
-   to compute-service."
+  "Return a list of supported provider names.
+Each name is suitable to be passed to compute-service."
   []
   (implementation/supported-providers))
 

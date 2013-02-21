@@ -76,7 +76,10 @@
                      inherit phases, etc.
    - :roles          defines a sequence of roles for the server-spec
    - :node-spec      default node-spec for this server-spec
-   - :packager       override the choice of packager to use"
+   - :packager       override the choice of packager to use
+
+For a given phase, inherited phase functions are run first, in the order
+specified in the `:extends` argument."
   [& {:keys [phases packager node-spec extends roles]
       :as options}]
   (->
