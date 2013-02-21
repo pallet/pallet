@@ -10,9 +10,9 @@
   (:require
    [pallet.blobstore :as blobstore]
    [pallet.common.deprecate :as deprecate]
-   [pallet.compute :as compute]
+   [pallet.compute :as compute :refer [instantiate-provider]]
    [pallet.environment :as environment]
-   [pallet.utils :as utils]
+   [pallet.utils :as utils :refer [apply-map]]
    [clojure.java.io :as java-io]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
@@ -76,7 +76,9 @@
   (reduce
    (fn [config service]
      (assoc-in config [:services (key (first service))] (val (first service))))
-   (read-config (.getAbsolutePath (config-file-path)))
+   (if (.exists (config-file-path))
+     (read-config (.getAbsolutePath (config-file-path)))
+     {})
    (for [file (filter
                #(and (.isFile %) (.endsWith (.getName %) ".clj"))
                (file-seq (java-io/file (home-dir) "services")))]
@@ -166,18 +168,19 @@
                  (update-in [:environment] #(environment/eval-environment %)))]
     (when-let [provider (:provider options)]
       (apply
-       compute/compute-service
+       instantiate-provider
        provider
        (apply concat (filter second (dissoc options :provider)))))))
 
 (defn compute-service-from-config
-  "Compute service from a defpallet configuration map and a list of active
-   profiles (provider keys)."
-  [config profiles]
+  "Compute service from a defpallet configuration map and a service keyword."
+  [config service provider-options]
   (check-deprecations config)
   (compute-service-from-map
-   (compute-service-properties
-    config (or (first profiles) (default-compute-service config)))))
+   (merge
+    (compute-service-properties
+     config (or service (default-compute-service config)))
+    provider-options)))
 
 (defn compute-service-from-config-var
   "Checks to see if pallet.config/service is a var, and if so returns its
@@ -196,10 +199,15 @@
        (symbol (first sym-names)) (symbol (second sym-names))))))
 
 (defn compute-service-from-config-file
-  "Compute service from ~/.pallet/config.clj. Profiles is a sequence of service
-   keys to use from the :services map."
-  [& profiles]
-  (compute-service-from-config (pallet-config) profiles))
+  "Return a compute service from the configuration in `~/.pallet/config.clj` and
+`~/.pallet/service/*.clj`.
+
+`service` is a keyword used to find an entry in the :services map.
+
+`provider-options` is a map of provider options to be merged
+with the service configuration in the configuration file."
+  [service provider-options]
+  (compute-service-from-config (pallet-config) service provider-options))
 
 (defn compute-service
   "Instantiate a compute service.
@@ -231,13 +239,13 @@
       (compute-service-from-property)
       (compute-service-from-config-var)
       (compute-service-from-config-file)))
-  ([service-name]
+  ([service-name & {:as options}]
      (or
-      (compute-service-from-config-file service-name)))
-  ([provider-name
-    & {:keys [identity credential extensions node-list endpoint environment]
-       :as options}]
-     (apply compute/compute-service provider-name (apply concat options))))
+      (compute-service-from-config-file service-name options)
+      (throw
+       (ex-info
+        (str "Could not find a configuration for service: " service-name)
+        {:service-name service-name})))))
 
 ;;; Blobstore
 
@@ -266,8 +274,8 @@
 
 (defn blobstore-from-config
   "Create a blobstore service form a configuration map."
-  [config profiles]
-  (let [config (compute-service-properties config profiles)
+  [config service options]
+  (let [config (merge (compute-service-properties config service) options)
         {:keys [provider identity credential]} (merge
                                                 (update-in
                                                  config [:provider]
@@ -295,8 +303,8 @@
 
 (defn blobstore-service-from-config-file
   "Create a blobstore service form a configuration map."
-  [& profiles]
-  (blobstore-from-config (pallet-config) profiles))
+  [service options]
+  (blobstore-from-config (pallet-config) service options))
 
 (defn blobstore-service
   "Instantiate a blobstore service.
@@ -329,12 +337,7 @@
       (blobstore-service-from-config-var)
       (blobstore-service-from-config-file)))
   ([service-name]
-     (or
-      (blobstore-service-from-config-file service-name)))
-  ([provider-name
-    & {:keys [identity credential extensions node-list endpoint environment]
-       :as options}]
-     (apply blobstore/service provider-name (apply concat options))))
+     (blobstore-service-from-config-file service-name)))
 
 ;;; Admin user
 

@@ -1,6 +1,7 @@
 (ns pallet.main-invoker-test
   (:require
    [pallet.common.logging.logutils :as logutils]
+   [pallet.compute :refer [service-properties]]
    [pallet.configure :as configure]
    [pallet.main-invoker :as main-invoker]
    [pallet.test-utils :as test-utils]
@@ -27,8 +28,8 @@
                                 :environment {:user
                                               {:username "fred"}}}}})]
    (main-invoker/invoke
-    {:profiles [:node-list]}
+    {:service :node-list}
     (fn [options]
-      (is (instance? pallet.compute.node_list.NodeList (:compute options)))
+      (is (= :node-list (:provider (service-properties (:compute options)))))
       (is (= "fred" (:username (:user (:environment options))))))
     nil)))

@@ -193,4 +193,5 @@ support."
   {:added "0.6.8"}
   [node-list & {:keys [environment tag-provider] :as options}]
   (apply-map
-   compute/compute-service :node-list (assoc options :node-list node-list)))
+   compute/instantiate-provider
+   :node-list (assoc options :node-list node-list)))

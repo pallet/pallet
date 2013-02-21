@@ -17,15 +17,18 @@ Each name is suitable to be passed to compute-service."
   missing-provider-re
   #"No method in multimethod 'service' for dispatch value: (.*)")
 
-(defn compute-service
+(defn instantiate-provider
   "Instantiate a compute service. The provider name should be a recognised
-   jclouds provider, or \"node-list\". The other arguments are keyword value
-   pairs.
+jclouds provider, \"node-list\", \"hybrid\", or \"localhost\". The other
+arguments are keyword value pairs.
+
    - :identity     username or key
    - :credential   password or secret
    - :extensions   extension modules for jclouds
    - :node-list    a list of nodes for the \"node-list\" provider.
-   - :environment  an environment map with service specific values."
+   - :environment  an environment map with service specific values.
+
+Provider specific options may also be passed."
   [provider-name
    & {:keys [identity credential extensions node-list endpoint environment
              sub-services]

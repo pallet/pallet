@@ -34,7 +34,7 @@
 
 (defn find-admin-user
   "Return the admin user"
-  [defaults project profiles]
+  [defaults project profile]
   (or
    (configure/admin-user-from-config (:pallet project))
    (configure/admin-user-from-config defaults)
@@ -42,10 +42,10 @@
    *admin-user*))
 
 (defn compute-service-from-config-files
-  [defaults project profiles]
+  [defaults project profile]
   (or
-   (configure/compute-service-from-config (:pallet project) profiles)
-   (configure/compute-service-from-config defaults profiles)))
+   (configure/compute-service-from-config (:pallet project) profile {})
+   (configure/compute-service-from-config defaults profile {})))
 
 (defn find-compute-service
   "Look for a compute service in the following sequence:
@@ -54,18 +54,18 @@
      check pallet.config/service var.
    This sequence allows you to specify an overridable default in
    pallet.config/service."
-  [options defaults project profiles]
+  [options defaults project profile]
   (or
    (configure/compute-service-from-map options)
-   (when (seq profiles)
-     (compute-service-from-config-files defaults project profiles))
+   (when profile
+     (compute-service-from-config-files defaults project profile))
    (configure/compute-service-from-property)
    (configure/compute-service-from-config-var)
    (compute-service-from-config-files
     defaults project [(default-compute-service defaults)])
    (compute-service-from-config-files
     @transient-services project
-    [(default-compute-service @transient-services)])))
+    (default-compute-service @transient-services))))
 
 (defn find-blobstore
   "Look for a compute service in the following sequence:
@@ -74,21 +74,21 @@
      check pallet.config/service var.
    This sequence allows you to specify an overridable default in
    pallet.config/service."
-  [options defaults project profiles]
+  [options defaults project profile]
   (or
    (configure/blobstore-from-map options)
-   (configure/blobstore-from-config (:pallet project) profiles)
-   (configure/blobstore-from-config defaults profiles)))
+   (configure/blobstore-from-config (:pallet project) profile {})
+   (configure/blobstore-from-config defaults profile {})))
 
 (defn invoke
   [options task params]
   (let [default-config (or (:defaults options) (configure/pallet-config))
         admin-user (find-admin-user
-                    default-config (:project options) (:profiles options))
+                    default-config (:project options) (:service options))
         compute (try
                   (find-compute-service
                    options default-config
-                   (:project options) (:profiles options))
+                   (:project options) (:service options))
                   (catch IllegalArgumentException e
                     (let [msg (.getMessage e)]
                       (if (and
@@ -102,7 +102,7 @@
       (try
         (let [blobstore (find-blobstore
                          options default-config
-                         (:project options) (:profiles options))]
+                         (:project options) (:service options))]
           (try
             (log-info admin-user)
             (apply task

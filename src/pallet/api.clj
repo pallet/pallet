@@ -203,10 +203,8 @@ specified in the `:extends` argument."
 (defn compute-service
   "Returns a compute service object, used to perform actions on a cloud
   provider."
-  [{:keys [config provider] :as options}]
-  (if config
-    (configure/compute-service config)
-    (apply-map compute/compute-service provider (dissoc options provider))))
+  [service-or-provider-name & options]
+  (apply configure/compute-service service-or-provider-name options))
 
 ;;; ## Operations
 ;;;

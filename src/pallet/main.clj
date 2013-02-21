@@ -38,11 +38,6 @@
       (catch java.io.FileNotFoundException e
         error-fn))))
 
-(defn profiles
-  [profiles-string]
-  (when profiles-string
-    (string/split profiles-string #",")))
-
 (defn- report-unexpected-exception
   "Check the exception to see if it is the `exit-task-exception`, and if it is
    not, then report the exception."
@@ -148,7 +143,7 @@
                                :blobstore-provider blobstore-provider
                                :blobstore-identity blobstore-identity
                                :blobstore-credential blobstore-credential
-                               :profiles (profiles service)
+                               :service service
                                :project project-options
                                :defaults defaults
                                :environment environment}
