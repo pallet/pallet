@@ -309,9 +309,10 @@
 (defn set-state-for-node
   "Sets the boolean `state-name` flag on `node`."
   [state-name node]
-  (let [current (read-or-empty-map (tag (:node node) state-tag-name))
-        val (assoc current (keyword (name state-name)) true)]
-    (tag! (:node node) state-tag-name (pr-str val))))
+  (when (taggable? (:node node))
+    (let [current (read-or-empty-map (tag (:node node) state-tag-name))
+          val (assoc current (keyword (name state-name)) true)]
+      (tag! (:node node) state-tag-name (pr-str val)))))
 
 (defn has-state-flag?
   "Return a predicate to test for a state-flag having been set."
