@@ -351,3 +351,11 @@ value to assoc. The assoc only occurs if the value is non-nil."
           (map
            #(vector (keyword (name %)) %)
            (filter not-gensym? (keys &env))))))
+
+(defmacro log-multiline
+  "Log a multiline string in multiple log lines"
+  [level-kw fmt string]
+  `(let [fmt# ~fmt]
+     (when (logging/enabled? ~level-kw)
+       (doseq [l# (string/split-lines ~string)]
+         (logging/log ~level-kw (format fmt# l#))))))

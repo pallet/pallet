@@ -3,8 +3,11 @@
    clojure.test
    pallet.configure)
   (:require
+   [clojure.java.io :refer [file]]
    pallet.api
-   [pallet.common.logging.logutils :as logutils]))
+   [pallet.common.logging.logutils :as logutils]
+   [pallet.compute :refer [nodes]]
+   [pallet.utils :refer [tmpdir]]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
 
@@ -88,3 +91,31 @@
 (deftest admin-user-from-config-test
   (let [admin-user (admin-user-from-config {:admin-user {:username "fred"}})]
     (is (= "fred" (:username admin-user)))))
+
+(def nl-form
+  '(defpallet
+     :services {:nl {:provider :node-list
+                     :node-list [["worker" "worker" "192.168.1.37"
+                                  :ubuntu :os-version "10.04"
+                                  :is-64bit false]]}}))
+
+(deftest compute-service-test
+  (let [tmp (tmpdir)
+        clean-tmp (fn []
+                    (doseq [f (file-seq tmp)]
+                      (.delete f))
+                    (.delete tmp))
+        home (System/getProperty "user.home")
+        pallet (file tmp ".pallet" "config.clj")]
+    (try
+      (System/setProperty "user.home" (.getPath tmp))
+      (is (not= home (System/getProperty "user.home")))
+      (is (.isDirectory tmp))
+      (.mkdirs (.getParentFile pallet))
+      (spit pallet nl-form)
+      (is (pos? (count (nodes (compute-service :nl)))) "from config file")
+      (is (zero? (count (nodes (compute-service :nl :node-list []))))
+          "override options")
+      (finally
+        (System/setProperty "user.home" home)
+        (clean-tmp)))))

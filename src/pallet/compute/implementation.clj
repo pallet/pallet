@@ -8,7 +8,7 @@
 
 (defmulti service
   "Instantiate a compute service. Providers should implement a method for this.
-   See pallet.compute/compute-service."
+   See pallet.compute/instantiate-provider."
   (fn [provider-name & _] (keyword provider-name)))
 
 

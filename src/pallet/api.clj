@@ -76,7 +76,10 @@
                      inherit phases, etc.
    - :roles          defines a sequence of roles for the server-spec
    - :node-spec      default node-spec for this server-spec
-   - :packager       override the choice of packager to use"
+   - :packager       override the choice of packager to use
+
+For a given phase, inherited phase functions are run first, in the order
+specified in the `:extends` argument."
   [& {:keys [phases packager node-spec extends roles]
       :as options}]
   (->
@@ -200,10 +203,8 @@
 (defn compute-service
   "Returns a compute service object, used to perform actions on a cloud
   provider."
-  [{:keys [config provider] :as options}]
-  (if config
-    (configure/compute-service config)
-    (apply-map compute/compute-service provider (dissoc options provider))))
+  [service-or-provider-name & options]
+  (apply configure/compute-service service-or-provider-name options))
 
 ;;; ## Operations
 ;;;

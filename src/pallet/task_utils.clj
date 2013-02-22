@@ -58,7 +58,7 @@
                 (throw e))
               (throw e))))
         (abort (str "No pallet configuration for project.  "
-                    "Use `lein pallet project-int` to create one")))
+                    "Use `lein pallet project-init` to create one")))
       (read-or-create-project "pallet" default-user-pallet-file))))
 
 (defn create-pallet-project
@@ -74,18 +74,25 @@
       (do (create-project-file (or project-name "default") pallet-file)
           pallet-file))))
 
+(defn comma-sep->seq
+  [s]
+  (and s (.split s ",")))
+
 (defn comma-sep->kw-seq
   [s]
   (and s (map keyword (.split s ","))))
 
 (defn project-groups
-  "Compute the groups for a pallet project using the given compute service"
-  [pallet-project compute selectors]
+  "Compute the groups for a pallet project using the given compute service,
+filtered by selectors, groups and roles."
+  [pallet-project compute selectors groups roles]
   (let [{:keys [provider]} (service-properties compute)]
     (spec-from-project
      pallet-project
      provider
-     (comma-sep->kw-seq selectors))))
+     (set (comma-sep->kw-seq selectors))
+     (set (comma-sep->kw-seq groups))
+     (set (comma-sep->kw-seq roles)))))
 
 (defn process-args
   "Process command line arguments. Returns an option map, a vector of arguments

@@ -1,5 +1,78 @@
 Unstable development branch
 
+# 0.8.0-beta.2
+
+## Changes
+
+- Simplify compute-service
+  This aims to remove some of the confusion around the compute-service
+  functions.
+
+  This makes p.api/compute-service forward to p.configure/compute-service.
+
+  p.configure/compute-service no longer tries to instantiate a provider,
+  and is limited to looking up service configurations.
+
+  p.compute/compute-service is renamed p.compute/instantiate-provider.
+
+- Allow up task to take phase arguments
+
+- Add group name and role selectors to pallet.clj
+
+- Add a localhost compute service provider
+  The localhost provider enables localhost to masquerade as a node in any
+  group. Calling `run-nodes` on a localhost service will change the group
+  name of the localhost node.
+
+
+## Fixes
+
+- Fix remote-directory for :local-file
+  The generated temp file previously required unprivileged write
+  permissions in the target directory.
+
+  Fixes #199
+
+- Document execution order for extended phases
+
+- Ensure nodes taggable before setting state flags
+
+- Fix halting of phases on error
+  Phases were not stopping on action errors.
+
+- Use primary-ip address for host on hostname change
+  When changing hostname we ensure the hostname is in the hosts file, so
+  sudo does not break.  Using the public ip ensures reverse name lookup is
+  useable in hadoop, for example.
+
+- Ensure context strings are on a single line
+  This is so the script status markers are single lines.
+
+- Add service-properties and image-user to node-list
+
+- Fix reporting on missing provider
+
+- Fix providers task to use support-providers
+
+- Fix test failures introduced in 88b48b01b
+
+- Fix pallet.clj phase and group-name handling
+
+- Quieten downloads when using wget
+
+- Fix phase declaration in with-automated-admin-user
+
+- Add with-automated-admin-user to project refers
+  Makes with-automated-admin-user available unqualified in pallet.clj
+  files.
+
+- Fix parens in sample and default project resources
+
+- Fix md5sum script generation
+
+- Fix project-init message when no project found
+
+
 # 0.8.0-beta.1
 
 - Remove dependency on CompilerException

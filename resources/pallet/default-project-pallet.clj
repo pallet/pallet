@@ -3,7 +3,7 @@
 ;;; By default, the pallet.api and pallet.crate namespaces are already referred.
 ;;; The pallet.crate.automated-admin-user/automated-admin-user us also referred.
 
-;;; (require '[your-ns :refer [your-group])
+;;; (require '[your-ns :refer [your-group]])
 
 (defproject {{project-name}}
   :provider {:vmfest

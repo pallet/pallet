@@ -38,11 +38,6 @@
       (catch java.io.FileNotFoundException e
         error-fn))))
 
-(defn profiles
-  [profiles-string]
-  (when profiles-string
-    (string/split profiles-string #",")))
-
 (defn- report-unexpected-exception
   "Check the exception to see if it is the `exit-task-exception`, and if it is
    not, then report the exception."
@@ -123,10 +118,11 @@
   [args & {:keys [environment]}]
   (let [[{:keys [provider identity credential blobstore-provider
                  blobstore-identity blobstore-credential service
-                 project-options defaults]}
+                 project-options defaults] :as options}
          args
          extras]
         (process-args args)]
+    (logging/debugf "pallet-task options %s" options)
     (try
       (let [[task & args] args
             task (or (aliases task) task "help")
@@ -147,7 +143,7 @@
                                :blobstore-provider blobstore-provider
                                :blobstore-identity blobstore-identity
                                :blobstore-credential blobstore-credential
-                               :profiles (profiles service)
+                               :service service
                                :project project-options
                                :defaults defaults
                                :environment environment}
@@ -181,4 +177,6 @@
 (def transient-services (atom {}))
 
 (defn add-service [name-kw properties]
-  (swap! transient-services assoc-in [:services name-kw] properties))
+  (swap! transient-services assoc-in [:services name-kw] properties)
+  (when-not (:default-service @transient-services)
+    (swap! transient-services assoc :default-service name-kw)))

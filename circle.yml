@@ -1,13 +1,8 @@
 checkout:
   post:
     - git clone https://github.com/pallet/pallet-settings-xml.git
-dependencies:
-  override:
-    - mvn --settings pallet-settings-xml/settings.xml dependency:go-offline
 test:
   pre:
     - ssh-keygen -N "" -f ~/.ssh/id_rsa
     - echo >> ~/.ssh/authorized_keys
     - cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
-  override:
-    - mvn --settings pallet-settings-xml/settings.xml test

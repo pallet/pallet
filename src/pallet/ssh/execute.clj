@@ -7,7 +7,7 @@
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
    [pallet.execute :as execute
-    :refer [clean-logs log-multiline log-script-output result-with-error-map]]
+    :refer [clean-logs log-script-output result-with-error-map]]
    [pallet.local.execute :as local]
    [pallet.transport :as transport]
    [pallet.transport.local]
@@ -15,7 +15,8 @@
    [pallet.node :as node]
    [pallet.script.lib :as lib]
    [pallet.script-builder :as script-builder]
-   [pallet.stevedore :as stevedore])
+   [pallet.stevedore :as stevedore]
+   [pallet.utils :refer [log-multiline]])
   (:use
    [pallet.action-plan :only [context-label]]
    [pallet.action-impl :only [action-symbol]]))

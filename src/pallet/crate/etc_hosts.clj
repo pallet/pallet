@@ -14,7 +14,7 @@
    [pallet.compute :only [os-hierarchy]]
    [pallet.crate
     :only [defmethod-plan defmulti-plan defplan get-settings os-family
-           target-name target-node update-settings]]
+           target-node target-name target-node update-settings]]
    [pallet.node :only [primary-ip private-ip]]))
 
 ;;; ## Add entries to the host file settings
@@ -150,9 +150,10 @@
 hostname is not in /etc/hosts."
   []
   (let [node-name (target-name)]
-    (plan-when-not (stevedore/script ("grep" ~node-name (~lib/etc-hosts)))
-      (sed (with-source-line-comments false (stevedore/script (~lib/etc-hosts)))
-           {"127\\.0\\.0\\.1\\(.*\\)" (str "127.0.0.1\\1 " node-name)}
-           :restriction (str "/" node-name "/ !")
-           :quote-with "'"))
+    (plan-when-not (stevedore/script ("grep" ~node-name (lib/etc-hosts)))
+      (exec-checked-script
+       "Add self hostname"
+       (println ">>" (lib/etc-hosts))
+       ((println ~(node/primary-ip (target-node)) " " ~node-name)
+        ">>" (lib/etc-hosts))))
     (set-hostname* node-name)))

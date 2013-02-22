@@ -11,7 +11,8 @@
    [pallet.action :only [action-fn implement-action]]
    [pallet.action-plan :only [checked-commands]]
    [pallet.actions :only [directory remote-directory]]
-   [pallet.actions-impl :only [remote-directory-action remote-file-action]]
+   [pallet.actions-impl
+    :only [remote-directory-action remote-file-action temp-filename]]
    [pallet.utils :only [apply-map]]))
 
 (def ^{:private true}
@@ -35,7 +36,7 @@
                           :overwrite-changes overwrite-changes})
            first second)
           tarpath])
-   local-file ["" (str path "-content")]
+   local-file ["" (temp-filename path)]
    remote-file ["" remote-file]))
 
 (implement-action remote-directory-action :direct

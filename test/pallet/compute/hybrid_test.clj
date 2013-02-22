@@ -23,17 +23,17 @@
 (deftest service-test
   (is (instance?
        pallet.compute.ComputeService
-       (compute/compute-service "hybrid")))
+       (compute/instantiate-provider "hybrid")))
   (is (instance?
        pallet.compute.hybrid.HybridService
-       (compute/compute-service "hybrid"))))
+       (compute/instantiate-provider "hybrid"))))
 
 (deftest nodes-test
   (let [node-1 (node-list/make-node "n1" "t" "1.2.3.4" :ubuntu)
         node-2 (node-list/make-node "n2" "t" "1.2.3.5" :ubuntu)
-        node-list-1 (compute/compute-service "node-list" :node-list [node-1])
-        node-list-2 (compute/compute-service "node-list" :node-list [node-2])
-        hybrid (compute/compute-service
+        node-list-1 (compute/instantiate-provider "node-list" :node-list [node-1])
+        node-list-2 (compute/instantiate-provider "node-list" :node-list [node-2])
+        hybrid (compute/instantiate-provider
                 "hybrid" :sub-services {:nl1 node-list-1 :nl2 node-list-2})]
     (is (= [(assoc node-2 :service node-list-2)
             (assoc node-1 :service node-list-1)]
@@ -55,19 +55,19 @@
         "return nodes from both sub-services")))
 
 (deftest close-test
-  (is (= [] (compute/close (compute/compute-service "hybrid")))))
+  (is (= [] (compute/close (compute/instantiate-provider "hybrid")))))
 
 ;; (deftest start-node-test
 ;;   (jclouds-test-utils/purge-compute-service)
 ;;   (let [jc (jclouds-test-utils/compute)
-;;         nl (compute/compute-service "node-list")
+;;         nl (compute/instantiate-provider "node-list")
 ;;         gs (group-spec :gs)]
-;;     (let [hybrid (compute/compute-service
+;;     (let [hybrid (compute/instantiate-provider
 ;;                   "hybrid" :sub-services {:jc jc :nl nl})]
 ;;       (is (thrown? RuntimeException
 ;;                    (compute/run-nodes hybrid gs 1 *admin-user* "" nil)))
 ;;       "throw if group is not dispatched to a service")
-;;     (let [hybrid (compute/compute-service
+;;     (let [hybrid (compute/instantiate-provider
 ;;                   "hybrid" :sub-services {:jc jc :nl nl}
 ;;                   :groups-for-services {:jc #{:gs}})]
 ;;       (is (= 1

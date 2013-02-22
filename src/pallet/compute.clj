@@ -7,26 +7,50 @@
 
 ;;; Meta
 (defn supported-providers
-  "A list of supported provider names.  Each name is suitable to be passed
-   to compute-service."
+  "Return a list of supported provider names.
+Each name is suitable to be passed to compute-service."
   []
   (implementation/supported-providers))
 
 ;;; Compute Service instantiation
-(defn compute-service
+(def ^:private
+  missing-provider-re
+  #"No method in multimethod 'service' for dispatch value: (.*)")
+
+(defn instantiate-provider
   "Instantiate a compute service. The provider name should be a recognised
-   jclouds provider, or \"node-list\". The other arguments are keyword value
-   pairs.
+jclouds provider, \"node-list\", \"hybrid\", or \"localhost\". The other
+arguments are keyword value pairs.
+
    - :identity     username or key
    - :credential   password or secret
    - :extensions   extension modules for jclouds
    - :node-list    a list of nodes for the \"node-list\" provider.
-   - :environment  an environment map with service specific values."
+   - :environment  an environment map with service specific values.
+
+Provider specific options may also be passed."
   [provider-name
-   & {:keys [identity credential extensions node-list endpoint environment sub-services]
+   & {:keys [identity credential extensions node-list endpoint environment
+             sub-services]
       :as options}]
   (implementation/load-providers)
-  (implementation/service provider-name options))
+  (try
+    (implementation/service provider-name options)
+    (catch IllegalArgumentException e
+      (if-let [[_ provider] (re-find missing-provider-re (.getMessage e))]
+        (let [cause (cond
+                     (= provider ":vmfest")
+                     "Possible missing dependency on pallet-vmfest."
+                     (find-ns 'pallet.compute.jclouds)
+                     "Possible missing dependency on a jclouds provider."
+                     :else
+                     "Possible missing dependency.")]
+          (throw (ex-info
+                  (str "No pallet provider found for " provider
+                       ".  " cause)
+                  {:provider provider
+                   :cause cause})))
+        (throw e)))))
 
 ;;; Actions
 

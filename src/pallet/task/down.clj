@@ -12,7 +12,9 @@
 
 (def switches
   [["-s" "--selectors" "A comma separated list of selectors"
-    :default ":default"]
+    :default "default"]
+   ["-g" "--groups" "A comma separated list of groups"]
+   ["-r" "--roles" "A comma separated list of group roles"]
    ["-q" "--quiet" "No output on successful completion"
     :flag true :default false]])
 
@@ -25,8 +27,10 @@
 
 (defn ^{:doc help} down
   [{:keys [compute project] :as request} & args]
-  (let [[{:keys [selectors quiet]} args] (process-args "down" args switches)
-        spec (project-groups (pallet-project project) compute selectors)]
+  (let [[{:keys [selectors quiet groups roles]} args]
+        (process-args "down" args switches)
+        spec (project-groups
+              (pallet-project project) compute selectors groups roles)]
     (let [op (apply-map api/converge
                         (map #(assoc % :count 0) spec)
                         (->

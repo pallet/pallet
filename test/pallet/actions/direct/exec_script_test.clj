@@ -66,7 +66,7 @@
     (testing "with context"
       (is (script-no-comment=
            (stevedore/checked-commands
-            "context\ncheck"
+            "context check"
             "ls file1")
            (first
             (build-actions {:phase-context "context"}
@@ -88,7 +88,7 @@
                "local"
                :phases {:configure (plan-fn (print-action "hello"))})
         localhost (node-list/make-localhost-node :group-name "local")
-        service (compute/compute-service "node-list" :node-list [localhost])]
+        service (compute/instantiate-provider "node-list" :node-list [localhost])]
     (testing "python"
       (let [session @(lift
                       local
@@ -108,7 +108,7 @@
 ;; this is in the wrong place really, as it is testing phase-fns with arguments
 (deftest lift-arguments-test
   (let [localhost (node-list/make-localhost-node :group-name "local")
-        service (compute/compute-service "node-list" :node-list [localhost])]
+        service (compute/instantiate-provider "node-list" :node-list [localhost])]
     (testing "simple phase"
       (let [local (group-spec
                    "local"
@@ -160,7 +160,7 @@
   (with-source-line-comments true
     (with-location-info true
       (let [localhost (node-list/make-localhost-node :group-name "local")
-            service (compute/compute-service
+            service (compute/instantiate-provider
                      "node-list" :node-list [localhost])
             f (fn [x]
                 (exec-checked-script

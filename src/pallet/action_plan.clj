@@ -21,7 +21,7 @@
    [clojure.tools.logging :as logging]
    [clojure.string :as string])
   (:use
-   [clojure.algo.monads :only [defmonad domonad m-seq m-map]]
+   [clojure.algo.monads :only [defmonad domonad m-seq m-map state-m]]
    [clojure.set :only [union]]
    [clojure.string :only [trim]]
    [clojure.stacktrace :only [print-cause-trace]]
@@ -519,30 +519,13 @@
        action-plan))))
 
 ;;; ## Execute Action Plan
-(defmonad
-  ^{:private true
-    :no-doc true}
-  short-circuiting-state-m
-  "Monad describing stateful computations. The monadic values have the
-    structure (fn [old-state] [result new-state]). If result is a map with
-    :action-plan/flag set to :action-plan/stop, then further calculations are
-    short circuited."
-  [m-result (fn m-result-state [v]
-              (fn [s] [v s]))
-   m-bind    (fn m-bind-short-state [mv f]
-               (fn [s]
-                 (let [[v ss] (mv s)]
-                   (if (and (map? v) (= ::stop (::flag v)))
-                     [v ss]
-                     ((f v) ss)))))])
-
 (def
   ^{:doc
-    "The pallet action execution monad. This is fundamentally a state monad,
+    "The pallet action execution monad is fundamentally a state monad,
      where the state is the pallet session map."
     :private true
     :no-doc true}
-  action-exec-m short-circuiting-state-m)
+  action-exec-m state-m)
 
 (defn translated?
   "Predicate to test if an action plan has been translated"
@@ -592,34 +575,33 @@
    an error map."
   [executor session {:keys [node-value-path context] :as action}]
   (logging/tracef "execute-action-map %s %s %s" session action executor)
-  (try
-    (binding [*defining-context* context]
-      (->>
-       action
-       (evaluate-arguments session)
-       (executor session)
-       ((fn [r] (logging/tracef "rv is %s" r) r))
-       (set-node-value-with-return-value node-value-path)))
-    (catch Exception e
-      (logging/errorf e "Exception in execute-action-map")
-      [{:error {:type :pallet/action-execution-error
-                :context (context/contexts)
-                :message (format "Unexpected exception: %s" (.getMessage e))
-                ;; :location (with-out-str (print-cause-trace e))
-                :cause e}}
-       session])))
+  (if (= ::stop (::flag session))
+    [nil session]
+    (try
+      (binding [*defining-context* context]
+        (->>
+         action
+         (evaluate-arguments session)
+         (executor session)
+         ((fn [r] (logging/tracef "rv is %s" r) r))
+         (set-node-value-with-return-value node-value-path)))
+      (catch Exception e
+        (logging/errorf e "Exception in execute-action-map")
+        [{:error {:type :pallet/action-execution-error
+                  :context (context/contexts)
+                  :message (format "Unexpected exception: %s" (.getMessage e))
+                  ;; :location (with-out-str (print-cause-trace e))
+                  :cause e}}
+         session]))))
 
 (defn stop-execution-on-error
   ":execute-status-fn algorithm to stop execution on an error"
   [[result session]]
-  (if-let [flag (::flag result)]
-    (if (not= flag ::stop)
-      (if (:error result)
-        (do
-          (logging/errorf "Stopping execution %s" (:error result))
-          [(assoc result ::flag ::stop) session])
-        session)
-      [result session])
+  (logging/debugf "stop-execution-on-error %s" result)
+  (if (:error result)
+    (do
+      (logging/debugf "Stopping execution %s" (:error result))
+      [result (assoc session ::flag ::stop)])
     [result session]))
 
 (defn exec-action

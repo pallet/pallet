@@ -37,6 +37,6 @@
 
 (def with-automated-admin-user
   (server-spec
-   :bootstrap (plan-fn
-                (package-manager :update)
-                (automated-admin-user))))
+   :phases {:bootstrap (plan-fn
+                          (package-manager :update)
+                          (automated-admin-user))}))
