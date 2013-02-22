@@ -437,7 +437,7 @@ Content can also be copied from a blobstore.
            :as options}]
   (verify-local-file-exists local-file)
   (when local-file
-    (transfer-file local-file (str path "-content")))
+    (transfer-file local-file (temp-filename path)))
   (with-action-options local-file-options
     (remote-directory-action
      path

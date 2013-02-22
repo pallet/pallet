@@ -5,7 +5,8 @@
    [clojure.string :as string]
    [pallet.context :as context]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore])
+   [pallet.stevedore :as stevedore]
+   [pallet.utils :refer [base64-md5]])
   (:use
    [pallet.action :only [defaction]]
    [pallet.common.context :only [throw-map]]
@@ -87,3 +88,8 @@ to deal with local file transfer."
 (defmethod service-script-path :upstart
   [_ service-name]
   (str (stevedore/script (~lib/upstart-script-dir)) "/" service-name ".conf"))
+
+(defn temp-filename
+  "Generate a temporary file name for a given path."
+  [path]
+  (str (base64-md5 path) "-content"))
