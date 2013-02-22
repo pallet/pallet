@@ -288,30 +288,69 @@ To force overwrite, call `set-force-overwrite` before running `converge` or
 `lift`.
 
 Options for specifying the file's content are:
-  :url url          - download the specified url to the given filepath
-  :content string   - use the specified content directly
-  :local-file path  - use the file on the local machine at the given path
-  :remote-file path - use the file on the remote machine at the given path
-  :link             - file to link to
-  :literal          - prevent shell expansion on content
-  :md5              - md5 for file
-  :md5-url          - a url containing file's md5
-  :template         - specify a template to be interpolated
-  :values           - values for interpolation
-  :blob             - map of :container, :path
-  :blobstore        - a jclouds blobstore object (override blobstore in session)
-  :insecure         - boolean to specify ignoring of SLL certs
+`url`
+: download the specified url to the given filepath
+
+`content`
+: use the specified content directly
+
+`local-file`
+: use the file on the local machine at the given path
+
+`remote-file`
+: use the file on the remote machine at the given path
+
+`link`
+: file to link to
+
+`literal`
+: prevent shell expansion on content
+
+`md5`
+: md5 for file
+
+`md5-url`
+: a url containing file's md5
+
+`template`
+: specify a template to be interpolated
+
+`values`
+: values for interpolation
+
+`blob`
+: map of `container`, `path`
+
+`blobstore`
+: a jclouds blobstore object (override blobstore in session)
+
+`insecure`
+: boolean to specify ignoring of SLL certs
 
 Options for version control are:
-  :overwrite-changes - flag to force overwriting of locally modified content
-  :no-versioning    - do not version the file
-  :max-versions     - specfy the number of versions to keep (default 5)
-  :flag-on-changed  - flag to set if file is changed
+
+`overwrite-changes`
+: flag to force overwriting of locally modified content
+
+`no-versioning`
+: do not version the file
+
+`max-versions`
+: specfy the number of versions to keep (default 5)
+
+`flag-on-changed`
+: flag to set if file is changed
 
 Options for specifying the file's permissions are:
-  :owner user-name
-  :group group-name
-  :mode  file-mode
+
+`owner`
+: user-name
+
+`group`
+: group-name
+
+`mode`
+: file-mode
 
 To copy the content of a local file to a remote file:
     (remote-file session \"remote/path\" :local-file \"local/path\")
@@ -327,17 +366,20 @@ To download a url to a remote file:
 
 If a url to a md5 file is also available, then it can be specified to prevent
 unnecessary downloads and to verify the download.
+
     (remote-file session \"remote/path\"
       :url \"http://a.com/path\"
       :md5-url \"http://a.com/path.md5\")
 
 If the md5 of the file to download, it can be specified to prevent unnecessary
 downloads and to verify the download.
+
     (remote-file session \"remote/path\"
       :url \"http://a.com/path\"
       :md5 \"6de9439834c9147569741d3c9c9fc010\")
 
 Content can also be copied from a blobstore.
+
     (remote-file session \"remote/path\"
       :blob {:container \"container\" :path \"blob\"})"
   [path & {:keys [action url local-file remote-file link
@@ -390,38 +432,62 @@ Content can also be copied from a blobstore.
 (defn remote-directory
   "Specify the contents of remote directory.
 
-   Options:
-    - :url              - a url to download content from
-    - :unpack           - how download should be extracts (default :tar)
-    - :tar-options      - options to pass to tar (default \"xz\")
-    - :unzip-options    - options to pass to unzip (default \"-o\")
-    - :jar-options      - options to pass to unzip (default \"xf\")
-                          jar does not support stripping path components
-    - :strip-components - number of path compnents to remove when unpacking
-    - :md5              - md5 of file to unpack
-    - :md5-url          - url of md5 file for file to unpack
+Options:
 
-   Ownership options:
-    - :owner            - owner of files
-    - :group            - group of files
-    - :recursive        - flag to recursively set owner and group
+`:url`
+: a url to download content from
 
-   To install the content of an url pointing at a tar file, specify the :url
-   option.
-       (remote-directory session path
-          :url \"http://a.com/path/file.tgz\")
+`:unpack`
+: how download should be extracts (default :tar)
 
-   If there is an md5 url with the tar file's md5, you can specify that as well,
-   to prevent unecessary downloads and verify the content.
-       (remote-directory session path
-          :url \"http://a.com/path/file.tgz\"
-          :md5-url \"http://a.com/path/file.md5\")
+`:tar-options`
+: options to pass to tar (default \"xz\")
 
-   To install the content of an url pointing at a zip file, specify the :url
-   option and :unpack :unzip.
-       (remote-directory session path
-          :url \"http://a.com/path/file.\"
-          :unpack :unzip)"
+`:unzip-options`
+: options to pass to unzip (default \"-o\")
+
+`:jar-options`
+: options to pass to unzip (default \"xf\") jar does not support stripping path
+  components
+
+`:strip-components`
+: number of path compnents to remove when unpacking
+
+`:md5`
+: md5 of file to unpack
+
+`:md5-url`
+: url of md5 file for file to unpack
+
+Ownership options:
+`:owner`
+: owner of files
+
+`:group`
+: group of files
+
+`:recursive`
+: flag to recursively set owner and group
+
+To install the content of an url pointing at a tar file, specify the :url
+option.
+
+    (remote-directory session path
+       :url \"http://a.com/path/file.tgz\")
+
+If there is an md5 url with the tar file's md5, you can specify that as well,
+to prevent unecessary downloads and verify the content.
+
+    (remote-directory session path
+       :url \"http://a.com/path/file.tgz\"
+       :md5-url \"http://a.com/path/file.md5\")
+
+To install the content of an url pointing at a zip file, specify the :url
+option and :unpack :unzip.
+
+    (remote-directory session path
+       :url \"http://a.com/path/file.\"
+       :unpack :unzip)"
   {:pallet/plan-fn true}
   [path & {:keys [action url local-file remote-file
                   unpack tar-options unzip-options jar-options
