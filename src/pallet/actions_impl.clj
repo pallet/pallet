@@ -83,11 +83,11 @@ to deal with local file transfer."
 
 (defmethod service-script-path :initd
   [_ service-name]
-  (str (stevedore/script (~lib/etc-init)) "/" service-name))
+  (str (stevedore/fragment (~lib/etc-init)) "/" service-name))
 
 (defmethod service-script-path :upstart
   [_ service-name]
-  (str (stevedore/script (~lib/upstart-script-dir)) "/" service-name ".conf"))
+  (str (stevedore/fragment (~lib/upstart-script-dir)) "/" service-name ".conf"))
 
 (defn temp-filename
   "Generate a temporary file name for a given path."
