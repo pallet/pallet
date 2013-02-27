@@ -141,11 +141,12 @@
   "Returns execution settings based on the environment and the image user."
   [environment]
   (fn [node]
-    {:user (merge (:user environment *admin-user*)
-                  (into {} (filter val (image-user (:node node)))))
-     :executor (get-in environment [:algorithms :executor] default-executor)
-     :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
-                                 #'stop-execution-on-error)}))
+    (let [user (into {} (filter val (image-user (:node node))))]
+      (debugf "Image-user is %s" user)
+      {:user user
+       :executor (get-in environment [:algorithms :executor] default-executor)
+       :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
+                                   #'stop-execution-on-error)})))
 
 
 (defn execute-action-plan*
