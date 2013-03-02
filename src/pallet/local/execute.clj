@@ -34,6 +34,15 @@
               :script-err (:err result)
               :server "localhost"})))
 
+
+(defn build-code
+  "Build the code with defaults for local execution."
+  [session action ^java.io.File tmpfile]
+  (script-builder/build-code
+   session
+   (assoc action :default-script-prefix :no-sudo)
+   (.getPath tmpfile)))
+
 (defn script-on-origin
   "Execute a script action on the origin"
   [session action action-type [options value]]
@@ -51,7 +60,7 @@
           (logging/warnf
            "script-on-origin: Could not chmod script file: %s"
            (:out result))))
-      (let [cmd (script-builder/build-code session action (.getPath tmpfile))
+      (let [cmd (build-code session action tmpfile)
             _ (logging/debugf "localhost %s" cmd)
             result (transport/exec
                     local-connection cmd
