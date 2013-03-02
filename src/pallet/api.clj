@@ -15,6 +15,7 @@
    [pallet.algo.fsmop :only [dofsm operate result succeed]]
    [pallet.environment :only [merge-environments]]
    [pallet.node :only [node? node-map]]
+   [pallet.plugin :only [load-plugins]]
    [pallet.thread-expr :only [when->]]
    [pallet.utils :only [apply-map]]))
 
@@ -365,6 +366,7 @@ specified in the `:extends` argument."
                                all-nodes all-node-set environment]
                         :or {phase [:configure]}
                         :as options}]
+  (load-plugins)
   (operate (apply-map converge* group-spec->count options)))
 
 (defn lift*
@@ -447,6 +449,7 @@ specified in the `:extends` argument."
   [node-set & {:keys [compute phase prefix middleware all-node-set environment]
                :or {phase [:configure]}
                :as options}]
+  (load-plugins)
   (operate (apply-map lift* node-set options)))
 
 ;;; ### plan functions
