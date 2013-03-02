@@ -60,7 +60,8 @@
   (merge
    (select-keys result [:server :err :out :exit])
    {:message (format
-              "localhost %s%s%s"
+              "%s %s%s%s"
+              server
               msg
               (let [out (string/join
                          ", "
