@@ -3,6 +3,7 @@
   (:require
    [clojure.java.io :as io]
    [clojure.set :refer [intersection]]
+   [clojure.string :refer [trim]]
    [clojure.tools.logging :as logging]
    [pallet.action
     :refer [clj-action defaction with-action-options enter-scope leave-scope]]
@@ -12,7 +13,7 @@
    [pallet.node-value :refer [node-value]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
-   [pallet.utils :refer [apply-map tmpfile]]))
+   [pallet.utils :refer [apply-map tmpfile log-multiline]]))
 
 ;;; # Direct Script Execution
 
@@ -131,7 +132,7 @@
   (let [session (gensym "session")]
     `((clj-action [~session]
        [(let [~@(mapcat #(vector % `(node-value ~% ~session)) return-values)]
-          (logging/debugf "return-value-expr %s" ~(vec return-values))
+          (logging/tracef "return-value-expr %s" ~(vec return-values))
           ~@body)
         ~session]))))
 
@@ -776,3 +777,18 @@ option and :unpack :unzip.
      (plan-when
          (= target# (one-node-filter role->nodes# ~roles))
        ~@body)))
+
+(defmacro log-script-output
+  "Log the result of a script action."
+  ;; This is a macro so that logging occurs in the caller's namespace
+  [script-return-value
+   {:keys [out err exit fmt]
+    :or {out :debug err :info exit :none fmt "%s"}}]
+  `(return-value-expr
+    [~script-return-value]
+    (when (and (not= ~out :none) (:out ~script-return-value))
+      (log-multiline ~out ~fmt (trim (:out ~script-return-value))))
+    (when (and (not= ~err :none) (:err ~script-return-value))
+      (log-multiline ~err ~fmt (trim (:err ~script-return-value))))
+    (when (not= ~exit :none)
+      (log-multiline ~exit ~fmt (:exit ~script-return-value)))))

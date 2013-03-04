@@ -1,5 +1,43 @@
 Unstable development branch
 
+# 0.8.0-beta.3
+
+- Add log-script-output macro to actions
+
+- Default local script to run without sudo
+  When running local scripts, do not use sudo by default.  Actions can ask
+  for sudo by using `:exec-prefix :sudo` in their implementation metadata.
+
+- Don't wrap FileNotFoundException in read-project
+  This allows callers to catch the FileNotFoundException and not have to
+  introspect an ex-info.
+
+- Adjust visibility of core api functions
+  The phase-args and target-phase functions are useful when adding
+  target-action-plan methods.
+
+- Enable user with private key strings
+  Fixes the case where AMI's returning literally keys would cause bootstrap
+  to fail.
+
+- Update fsmop
+  Adds running? predicate and three-value returns for failed? and complete?
+  Adds timeouts to deref and wait-for.
+
+- Update to script-exec 0.2.2
+
+## Fixes
+
+- Adjust log levels
+
+- Fix hostname in script error logging
+
+- Load plugins on converge or lift
+  Load plugins and call the plugin init function if it exists.
+
+- Fix service-script-path methods to use fragment
+  The generated comments were breaking scripts.
+
 # 0.8.0-beta.2
 
 ## Changes
@@ -78,7 +116,7 @@ Unstable development branch
 - Remove dependency on CompilerException
 
 - Add dependency message on project file failure
-  When a task fails to load the projec pallet.clj file, output a message 
+  When a task fails to load the projec pallet.clj file, output a message
   that explains that a dependency needs to be added.
 
 - Change group ID to com.palletops, pom.xml, and lein project.clj
@@ -176,7 +214,7 @@ Unstable development branch
   exception if the passed operation has phase errors.
 
 - Add location information to exec-checked-script
-  In order to improved the utility of the logs, add file and line number to 
+  In order to improved the utility of the logs, add file and line number to
   message string passed to exec-checked-script.
 
 - Require clojure 1.4.0
@@ -302,7 +340,7 @@ Unstable development branch
   propagation on forms modified by macros.
 
 - Honour user's :sudo-user for script permissions
-  When using :sudo-user in the admin user, ensure that generated scripts 
+  When using :sudo-user in the admin user, ensure that generated scripts
   have appropriate permissions.
 
 - Fix use of hierarchy in defmulti-plan
@@ -334,18 +372,18 @@ Unstable development branch
 - Reduce monadic function nesting levels
 
 - Add target-flag? in pallet.crate
-  Returns a delayed function predicate for whether a flag is set, suitable 
+  Returns a delayed function predicate for whether a flag is set, suitable
   for passing to pipeline-when.
 
 - Add target logging context
 
 - Provide a specialised state monad implementation
-  The stack traces when using clojure.core.algo were unusable.  This 
-  implementation tries to reduce stack depth, and to give reasonable names 
+  The stack traces when using clojure.core.algo were unusable.  This
+  implementation tries to reduce stack depth, and to give reasonable names
   to the bind functions.
 
 - Add role->nodes-map
-  Returns a map keyed on role where the values are a sequence of all nodes 
+  Returns a map keyed on role where the values are a sequence of all nodes
   providing the role.
 
 - Add on-one-node macro
@@ -369,7 +407,7 @@ Unstable development branch
   `:allow-unsigned true` in the package action.
 
 - Add flag-on-change to package-source
-  The flag allows taking an action based on whether the package sources 
+  The flag allows taking an action based on whether the package sources
   have changed or not.
 
 - Add NodeHardware protocol
@@ -512,7 +550,7 @@ Unstable development branch
   nodes.
 
 - Fix nodes-in-group
-  Added to test in etc-hosts crate that exercises nodes-in-group via 
+  Added to test in etc-hosts crate that exercises nodes-in-group via
   hosts-for-group.
 
 - Fix passing of environment to session in plan functions
@@ -543,7 +581,7 @@ Unstable development branch
 - Make sudoers a collected plan function
 
 - Merge image credential with admin user
-  The key reporting from jclouds getCredential has a bug, so we just use 
+  The key reporting from jclouds getCredential has a bug, so we just use
   the admin user's key
 
 - Add def-collect-plan-fn
@@ -609,7 +647,7 @@ Unstable development branch
 - Add a precondition to version-vector
 
 - Rename defmulti-version-crate to defmulti-version-plan and make
-  defmulti-version-plan and multi-version-plan-method bodies now wrap their 
+  defmulti-version-plan and multi-version-plan-method bodies now wrap their
   bodies in a state monad pipeline.
 
 - Update dispatch-version to provide better exception information
@@ -623,7 +661,7 @@ Unstable development branch
 - Fix the environment crate to use pipeline-when
 
 - Add defmulti-plan and defmethod-plan for multimethods in plan functions
-  These functions implement a multimethod for the state monad, where the 
+  These functions implement a multimethod for the state monad, where the
   dispatch function is also a monadic function.
 
 - Fix propogation of plan-state in lift
@@ -638,7 +676,7 @@ Unstable development branch
 - Fix pipeline-when to correctly handle keywords used as functions
 
 - Add simple script testing macros
-  The pallet.scipt-test macros provide a simple framework for verifying 
+  The pallet.scipt-test macros provide a simple framework for verifying
   pallet phases on the node.
 
 - Factor out NodeImage and NodePackager protocols
@@ -662,8 +700,8 @@ Unstable development branch
   function.
 
 - Represent service-state and targets as node maps
-  At the core level, the information from the groups is denormalised into a 
-  sequence of nodes. This decouples the lookup of phase functions from any 
+  At the core level, the information from the groups is denormalised into a
+  sequence of nodes. This decouples the lookup of phase functions from any
   concept of group, allowing arbitrary organisation of node hierarchies
   (not limited to group-specs).
 

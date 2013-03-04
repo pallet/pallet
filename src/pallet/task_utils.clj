@@ -41,6 +41,10 @@
       (if (pallet-file-exists? pallet-file)
         (try
           (read-project pallet-file)
+          (catch java.io.FileNotFoundException e
+            (abort
+             (str "Could not read pallet configuration for project from "
+                  pallet-file)))
           (catch Exception e
             (if-let [project-file (:project-file (ex-data e))]
               (if-let [[_ path]

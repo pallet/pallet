@@ -33,6 +33,8 @@ defproject refers to pallet.project.loader/defproject."
        (require 'pallet.project.load)
        (binding [*ns* (find-ns 'pallet.project.load)]
          (try (load-file pallet-file)
+              (catch java.io.FileNotFoundException e
+                (throw e))
               (catch Exception e
                 (throw
                  (ex-info "Error loading project.clj"

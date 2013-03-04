@@ -78,49 +78,50 @@
   [session {:keys [context node-value-path] :as action} action-type
    [options script]]
   (logging/trace "ssh-script-on-target")
-  (with-connection session [connection]
-    (let [endpoint (transport/endpoint connection)
-          authentication (transport/authentication connection)
-          script (script-builder/build-script options script action)
-          tmpfile (ssh-mktemp connection "pallet")
-          sudo-user (or (:sudo-user action)
-                        (-> authentication :user :sudo-user))]
-      (logutils/with-context [:target (:server endpoint)]
-        (logging/infof
-         "%s %s %s"
-         (:server endpoint)
-         (or (context-label action) "")
-         (action-symbol (:action action)))
-        (log-multiline :debug (str (:server endpoint) " script %s") script)
-        (logging/debugf "%s send script via %s as %s"
-                        endpoint tmpfile (or sudo-user "root"))
-        (transport/send-text
-         connection script tmpfile
-         {:mode (if sudo-user 0644 0600)})
-        (logging/trace "ssh-script-on-target execute script file")
-        (let [clean-f (clean-logs (:user authentication))
-              result (transport/exec
-                      connection
-                      (script-builder/build-code session action tmpfile)
-                      {:output-f (log-script-output
-                                  (:server endpoint) (:user authentication))})
-              [result session] (execute/parse-shell-result session result)
-              result (update-in result [:out] clean-f)
-              result (assoc result :script script)
-              result (result-with-error-map
-                       (:server endpoint) "Error executing script" result)
-              ;; Set the node-value to the result of execution, rather than
-              ;; the script.
-              session (assoc-in
-                       session [:plan-state :node-values node-value-path]
-                       result)]
-          (logging/trace "ssh-script-on-target remove script file")
-          (transport/exec
-           connection
-           {:execv [(stevedore/script ("rm" -f ~tmpfile))]}
-           {})
-          (logging/trace "ssh-script-on-target done")
-          [result session])))))
+  (let [endpoint (endpoint session)]
+    (logutils/with-context [:target (:server endpoint)]
+      (logging/infof
+       "%s %s %s"
+       (:server endpoint)
+       (or (context-label action) "")
+       (action-symbol (:action action)))
+      (with-connection session [connection]
+        (let [authentication (transport/authentication connection)
+              script (script-builder/build-script options script action)
+              tmpfile (ssh-mktemp connection "pallet")
+              sudo-user (or (:sudo-user action)
+                            (-> authentication :user :sudo-user))]
+
+          (log-multiline :debug (str (:server endpoint) " script %s") script)
+          (logging/debugf "%s send script via %s as %s"
+                          endpoint tmpfile (or sudo-user "root"))
+          (transport/send-text
+           connection script tmpfile
+           {:mode (if sudo-user 0644 0600)})
+          (logging/trace "ssh-script-on-target execute script file")
+          (let [clean-f (clean-logs (:user authentication))
+                result (transport/exec
+                        connection
+                        (script-builder/build-code session action tmpfile)
+                        {:output-f (log-script-output
+                                    (:server endpoint) (:user authentication))})
+                [result session] (execute/parse-shell-result session result)
+                result (update-in result [:out] clean-f)
+                result (assoc result :script script)
+                result (result-with-error-map
+                         (:server endpoint) "Error executing script" result)
+                ;; Set the node-value to the result of execution, rather than
+                ;; the script.
+                session (assoc-in
+                         session [:plan-state :node-values node-value-path]
+                         result)]
+            (logging/trace "ssh-script-on-target remove script file")
+            (transport/exec
+             connection
+             {:execv [(stevedore/script ("rm" -f ~tmpfile))]}
+             {})
+            (logging/trace "ssh-script-on-target done")
+            [result session]))))))
 
 (defn- ssh-upload
   "Upload a file to a remote location via sftp"

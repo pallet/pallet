@@ -12,8 +12,8 @@
   (str (System/getProperty "user.home") "/.ssh/id_rsa.pub"))
 
 (defrecord User
-  [username public-key-path private-key-path passphrase
-   password sudo-password no-sudo sudo-user])
+    [username public-key-path private-key-path public-key private-key
+     passphrase password sudo-password no-sudo sudo-user])
 
 (defn user? [user]
   (instance? pallet.core.user.User user))
@@ -24,17 +24,39 @@
    to `lift` or `converge` as the named :user argument.
 
    Options:
-    - :public-key-path
-    - :private-key-path
-    - :passphrase
-    - :password
-    - :sudo-password (defaults to :password)
-    - :no-sudo"
-  [username {:keys [public-key-path private-key-path passphrase
-                    password sudo-password no-sudo sudo-user]}]
-  (User.
-   username public-key-path private-key-path passphrase password
-   sudo-password no-sudo sudo-user))
+
+`:public-key-path`
+: path string to public key file
+
+`:private-key-path`
+: path string to private key file
+
+`:public-key`
+: public key as a string or byte array
+
+`:private-key`
+: private key as a string or byte array
+
+`:passphrase`
+: passphrase for private key
+
+`:password`
+: ssh user password
+
+`:sudo-password`
+: password for sudo (defaults to :password)
+
+`:sudo-user`
+: the user to sudo to
+
+`:no-sudo`
+: flag to not use sudo (e.g. when the user has root privileges)."
+  [username {:keys [public-key-path private-key-path
+                    public-key private-key
+                    passphrase
+                    password sudo-password no-sudo sudo-user]
+             :as options}]
+  (map->User (assoc options :username username)))
 
 (def
   ^{:doc "The admin user is used for running remote admin commands that require

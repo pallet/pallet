@@ -597,7 +597,6 @@
 (defn stop-execution-on-error
   ":execute-status-fn algorithm to stop execution on an error"
   [[result session]]
-  (logging/debugf "stop-execution-on-error %s" result)
   (if (:error result)
     (do
       (logging/debugf "Stopping execution %s" (:error result))

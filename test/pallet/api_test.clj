@@ -92,6 +92,8 @@
             :password password
             :private-key-path private-key-path
             :public-key-path public-key-path
+            :private-key nil
+            :public-key nil
             :passphrase passphrase
             :sudo-password password
             :no-sudo nil
@@ -105,6 +107,8 @@
             :password nil
             :private-key-path (default-private-key-path)
             :public-key-path (default-public-key-path)
+            :private-key nil
+            :public-key nil
             :passphrase nil
             :sudo-password nil
             :no-sudo nil
@@ -114,6 +118,8 @@
             :password nil
             :private-key-path (default-private-key-path)
             :public-key-path (default-public-key-path)
+            :private-key nil
+            :public-key nil
             :passphrase nil
             :sudo-password password
             :no-sudo nil
@@ -123,6 +129,8 @@
             :password nil
             :private-key-path (default-private-key-path)
             :public-key-path (default-public-key-path)
+            :private-key nil
+            :public-key nil
             :passphrase nil
             :sudo-password nil
             :no-sudo true
@@ -132,6 +140,8 @@
             :password nil
             :private-key-path (default-private-key-path)
             :public-key-path (default-public-key-path)
+            :private-key nil
+            :public-key nil
             :passphrase nil
             :sudo-password nil
             :no-sudo nil

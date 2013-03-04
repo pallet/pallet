@@ -488,7 +488,7 @@
                 action-plan (->
                              nil
                              (add-action-map (assoc a :node-value-path :v)))]
-            (is (= [{:kw :k :msg "m"}]
+            (is (= [{:kw :k :msg "m" :log-level :trace}]
                    (map #(dissoc % :ns :line) (:context a))))
             (is (=
                  [{:action (-> fa meta :action) :args [1] :context ["m"]}]

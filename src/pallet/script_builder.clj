@@ -76,14 +76,17 @@ future)."
 
 (defn build-code
   "Builds a code map, describing the command to execute a script."
-  [session {:keys [script-prefix script-dir sudo-user] :as action}
+  [session {:keys [script-prefix script-dir sudo-user default-script-prefix]
+            :as action}
    & args]
   (with-source-line-comments false
     {:execv
      (->>
       (concat
        (when-let [prefix (prefix
-                          (:script-prefix session (or script-prefix :sudo))
+                          (:script-prefix
+                           session
+                           (or script-prefix default-script-prefix :sudo))
                           session
                           action)]
          (string/split prefix #" "))

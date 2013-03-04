@@ -33,7 +33,7 @@
                        pipeline-name)
                :ns ~(list 'quote (ns-name *ns*))
                :line ~line
-               :log-level :debug}
+               :log-level :trace}
               ~event)
        ~@args)))
 
