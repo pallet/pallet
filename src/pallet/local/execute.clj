@@ -95,7 +95,7 @@
    correct target specific code"
   [& body]
   `(local-script-context
-    (logging/infof "local-script %s" (stevedore/script ~@body))
+    (logging/debugf "local-script %s" (stevedore/script ~@body))
     (transport/exec local-connection {:in (stevedore/script ~@body)} nil)))
 
 (defmacro local-checked-script

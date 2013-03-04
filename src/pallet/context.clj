@@ -27,7 +27,9 @@
   {:indent 1}
   [context & body]
   (let [line (-> &form meta :line)]
-    `(let [c# (merge {:ns ~(list 'quote (ns-name *ns*)) :line ~line} ~context)]
+    `(let [c# (merge
+               {:ns ~(list 'quote (ns-name *ns*)) :line ~line :log-level :trace}
+               ~context)]
        (context/with-context
          c#
          {:scope :pallet/pallet
@@ -55,7 +57,9 @@
   "Specifies a context inside a phase function"
   [context & body]
   (let [line (-> &form meta :line)]
-    `(let [c# (merge {:ns ~(list 'quote (ns-name *ns*)) :line ~line} ~context)]
+    `(let [c# (merge
+               {:ns ~(list 'quote (ns-name *ns*)) :line ~line :log-level :trace}
+               ~context)]
        (context/with-context
          c#
          {:scope :pallet/phase
