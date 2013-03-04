@@ -694,3 +694,23 @@
              ((domonad action-exec-m
                        [v (m-map exec-action (second blocks))] v) session))]))
      session]))
+
+(defn action-data
+  "Return an action's data."
+  [session {:keys [action args blocks] :as action-m}]
+  (let [executor (get-in session [:action-plans ::executor])
+        execute-status-fn (get-in session [:action-plans ::execute-status-fn])
+        exec-action (exec-action executor execute-status-fn)]
+    [(merge
+      {:action-symbol (:action-symbol action)
+       :args args}
+      (when (= 'pallet.actions-impl/if-action (:action-symbol action))
+        {:blocks [(ffirst
+                   ((domonad
+                     action-exec-m
+                     [v (m-map exec-action (first blocks))] v) session))
+                  (ffirst
+                   ((domonad
+                     action-exec-m
+                     [v (m-map exec-action (second blocks))] v) session))]}))
+     session]))

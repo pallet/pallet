@@ -26,7 +26,8 @@
    [pallet.script-builder :as script-builder]
    [pallet.ssh.execute :as ssh])
   (:use
-   [pallet.action-plan :only [execute-if print-action stop-execution-on-error]]
+   [pallet.action-plan
+    :only [action-data execute-if print-action stop-execution-on-error]]
    [pallet.action :only [implementation]]
    [pallet.node :only [primary-ip]]))
 
@@ -129,5 +130,10 @@
 
 (defn action-plan-printer
   [session action]
-  (logging/tracef "action-plan-executor %s" action)
+  (logging/tracef "action-plan-printer %s" action)
   (print-action session action))
+
+(defn action-plan-data
+  [session action]
+  (logging/tracef "action-plan-data %s" action)
+  (action-data session action))
