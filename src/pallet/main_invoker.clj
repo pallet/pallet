@@ -30,7 +30,9 @@
      "public-key-path %s %s"
      public-key-path (.canRead (java.io.File. public-key-path)))
     (doseq [f (classpath-files)]
-      (logging/debugf "classpath: %s" (.getPath f)))))
+      (logging/debugf "classpath: %s" (.getPath f)))
+    (doseq [[k v] (System/getProperties)]
+      (logging/debugf "property: %s %s" k v))))
 
 (defn find-admin-user
   "Return the admin user"
