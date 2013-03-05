@@ -52,21 +52,38 @@
             :args ["f"
                    {:content "xxx",
                     :install-new-files true,
-                    :overwrite-changes nil}]})
+                    :overwrite-changes nil}]
+            :form
+            (pallet.actions-impl/remote-file-action
+             "f"
+             {:content "xxx",
+              :install-new-files true,
+              :overwrite-changes nil})})
          (plan-data-fn (plan-fn (remote-file "f" :content "xxx")))))
-  (is (= '({:action-symbol pallet.actions-impl/if-action
+  (is (= '({:blocks [{:action-symbol pallet.actions/exec-script*,
+                      :args ["f"],
+                      :form (pallet.actions/exec-script* "f")}
+                     nil]
+            :action-symbol pallet.actions-impl/if-action
             :args [true]
-            :blocks [{:action-symbol pallet.actions/exec-script*
-                      :args ["f"]}
-                     nil]})
+
+            :form (pallet.actions-impl/if-action
+                   true
+                   (pallet.actions/exec-script* "f")
+                   nil)})
          (plan-data-fn (plan-fn
                          (plan-when (= 1 1)
                            (exec-script "f"))))))
   (is (= '({:action-symbol pallet.actions-impl/if-action
             :args [true]
             :blocks [nil
-                     {:action-symbol pallet.actions/exec-script*
-                      :args ["g"]}]})
+                     {:action-symbol pallet.actions/exec-script*,
+                      :args ["g"],
+                      :form (pallet.actions/exec-script* "g")}]
+            :form (pallet.actions-impl/if-action
+                   true
+                   nil
+                   (pallet.actions/exec-script* "g"))})
          (plan-data-fn (plan-fn
                          (plan-when-not (= 1 1)
                            (exec-script "g")))))))

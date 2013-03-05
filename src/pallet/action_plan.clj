@@ -700,17 +700,20 @@
   [session {:keys [action args blocks] :as action-m}]
   (let [executor (get-in session [:action-plans ::executor])
         execute-status-fn (get-in session [:action-plans ::execute-status-fn])
-        exec-action (exec-action executor execute-status-fn)]
+        exec-action (exec-action executor execute-status-fn)
+        self-fn (fn [b session]
+                  (ffirst
+                   ((domonad action-exec-m [v (m-map exec-action b)] v)
+                    session)))
+        blocks (when (= 'pallet.actions-impl/if-action (:action-symbol action))
+                 [(self-fn (first blocks) session)
+                  (self-fn (second blocks) session)])]
     [(merge
       {:action-symbol (:action-symbol action)
-       :args args}
-      (when (= 'pallet.actions-impl/if-action (:action-symbol action))
-        {:blocks [(ffirst
-                   ((domonad
-                     action-exec-m
-                     [v (m-map exec-action (first blocks))] v) session))
-                  (ffirst
-                   ((domonad
-                     action-exec-m
-                     [v (m-map exec-action (second blocks))] v) session))]}))
+       :args (vec args)
+       :form `(~(:action-symbol action) ~@args
+               ~@(when blocks
+                   (map :form blocks)))}
+      (when blocks
+        {:blocks blocks}))
      session]))
