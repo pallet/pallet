@@ -76,7 +76,7 @@ future)."
 
 (defn build-code
   "Builds a code map, describing the command to execute a script."
-  [session {:keys [script-prefix script-dir sudo-user default-script-prefix]
+  [session {:keys [script-prefix script-dir sudo-user default-script-prefix script-env]
             :as action}
    & args]
   (with-source-line-comments false
@@ -91,7 +91,7 @@ future)."
                           action)]
          (string/split prefix #" "))
        ["/usr/bin/env"]
-       (map (fn [[k v]] (format "%s=\"%s\"" k v)) (:script-env session))
+       (map (fn [[k v]] (format "%s=\"%s\"" (name k) v)) (or script-env (:script-env session)))
        [(interpreter {:language :bash})]
        args)
       (filter identity))}))
