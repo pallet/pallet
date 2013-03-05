@@ -16,6 +16,17 @@
 (defmulti-plan install
   (fn [facility instance-id]
     (let [settings (get-settings facility {:instance-id instance-id})]
+      (when-not settings
+        (throw (ex-info
+                (str "No settings found for facility " facility)
+                {:facility facility
+                 :instance-id instance-id})))
+      (when-not (:install-strategy settings)
+        (throw (ex-info
+                (str "No :install-strategy found in settings for facility "
+                     facility)
+                {:facility facility
+                 :instance-id instance-id})))
       (:install-strategy settings))))
 
 ;; install based on the setting's :packages key
