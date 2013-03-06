@@ -27,7 +27,8 @@
    [pallet.ssh.execute :as ssh])
   (:use
    [pallet.action-plan
-    :only [action-data execute-if print-action stop-execution-on-error]]
+    :only [action-data execute-if map-action-f print-action
+           session-exec-action stop-execution-on-error]]
    [pallet.action :only [implementation]]
    [pallet.node :only [primary-ip]]))
 
@@ -134,6 +135,26 @@
   (print-action session action))
 
 (defn action-plan-data
-  [session action]
-  (logging/tracef "action-plan-data %s" action)
-  (action-data session action))
+  "Return an action's data."
+  [session {:keys [action args blocks] :as action-m}]
+  (let [action-symbol (:action-symbol action)
+        [script action-type location session] (direct-script session action-m)
+        exec-action (session-exec-action session)
+        self-fn (fn [b session]
+                  (ffirst (map-action-f exec-action b session)))
+        blocks (when (= 'pallet.actions-impl/if-action action-symbol)
+                 [(self-fn (first blocks) session)
+                  (self-fn (second blocks) session)])]
+    [(merge
+      (-> action-m
+          (dissoc :node-value-path)
+          (update-in [:action] dissoc :impls))
+      {:form `(~action-symbol ~@args
+               ~@(when blocks
+                   (map :form blocks)))
+       :script script
+       :action-type action-type
+       :location location}
+      (when blocks
+        {:blocks blocks}))
+     session]))
