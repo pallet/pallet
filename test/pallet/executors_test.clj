@@ -1,7 +1,7 @@
 (ns pallet.executors-test
   (:require
-   [clojure.test :refer [deftest is]]
-   [pallet.action :refer [action-fn]]
+   [clojure.test :refer [deftest is testing]]
+   [pallet.action :refer [action-fn with-action-options]]
    [pallet.actions-impl :refer [remote-file-action]]
    [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.actions :refer [exec-script plan-when plan-when-not remote-file]]
@@ -136,4 +136,21 @@
              :precedence {}}})
          (plan-data-fn (plan-fn
                          (plan-when-not (= 1 1)
-                           (exec-script "g")))))))
+                           (exec-script "g"))))))
+  (testing "action options"
+    (is (= '{:location :target,
+             :action-type :script,
+             :script [{:language :bash} "g"],
+             :form (pallet.actions/exec-script* "g"),
+             :context nil,
+             :args ("g"),
+             :action
+             {:action-symbol pallet.actions/exec-script*,
+              :execution :in-sequence,
+              :precedence {}},
+             :script-dir "abc",}
+           (-> (plan-data-fn (plan-fn
+                               (with-action-options {:script-dir "abc"}
+                                 (exec-script "g"))))
+               first
+               (dissoc :action-id))))))
