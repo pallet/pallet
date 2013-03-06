@@ -141,7 +141,7 @@
         [script action-type location session] (direct-script session action-m)
         exec-action (session-exec-action session)
         self-fn (fn [b session]
-                  (ffirst (map-action-f exec-action b session)))
+                  (first (map-action-f exec-action b session)))
         blocks (when (= 'pallet.actions-impl/if-action action-symbol)
                  [(self-fn (first blocks) session)
                   (self-fn (second blocks) session)])]
@@ -151,7 +151,7 @@
           (update-in [:action] dissoc :impls))
       {:form `(~action-symbol ~@args
                ~@(when blocks
-                   (map :form blocks)))
+                   (map #(map :form %) blocks)))
        :script script
        :action-type action-type
        :location location}

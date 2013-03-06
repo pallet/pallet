@@ -85,20 +85,20 @@
             :script true,
             :form (pallet.actions-impl/if-action
                    true
-                   (pallet.actions/exec-script* "f")
-                   nil),
+                   [(pallet.actions/exec-script* "f")]
+                   []),
             :blocks
-            [{:location :target,
-              :action-type :script,
-              :script [{:language :bash} "f"],
-              :form (pallet.actions/exec-script* "f"),
-              :context ("plan-when"),
-              :args ("f"),
-              :action
-              {:action-symbol pallet.actions/exec-script*,
-               :execution :in-sequence,
-               :precedence {}}}
-             nil],
+            [[{:location :target,
+               :action-type :script,
+               :script [{:language :bash} "f"],
+               :form (pallet.actions/exec-script* "f"),
+               :context ("plan-when"),
+               :args ("f"),
+               :action
+               {:action-symbol pallet.actions/exec-script*,
+                :execution :in-sequence,
+                :precedence {}}}]
+             []],
             :context ("plan-when"),
             :args (true),
             :action
@@ -114,20 +114,20 @@
             :form
             (pallet.actions-impl/if-action
              true
-             nil
-             (pallet.actions/exec-script* "g")),
+             []
+             [(pallet.actions/exec-script* "g")]),
             :blocks
-            [nil
-             {:location :target,
-              :action-type :script,
-              :script [{:language :bash} "g"],
-              :form (pallet.actions/exec-script* "g"),
-              :context ("plan-when-not"),
-              :args ("g"),
-              :action
-              {:action-symbol pallet.actions/exec-script*,
-               :execution :in-sequence,
-               :precedence {}}}],
+            [[]
+             [{:location :target,
+               :action-type :script,
+               :script [{:language :bash} "g"],
+               :form (pallet.actions/exec-script* "g"),
+               :context ("plan-when-not"),
+               :args ("g"),
+               :action
+               {:action-symbol pallet.actions/exec-script*,
+                :execution :in-sequence,
+                :precedence {}}}]],
             :context ("plan-when-not"),
             :args (true),
             :action
