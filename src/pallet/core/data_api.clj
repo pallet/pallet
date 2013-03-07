@@ -25,13 +25,10 @@
 (defn- mock-exec-plan
   "Creates mock provider with a mock node, and a mock group, and then lifts
  the plan funcion `pfn` on such group. "
-  [executor pfn
-   & {:keys [settings-phase node os-family]
-      :or {node ["mock-node" "mock-group" "0.0.0.0" :ubuntu]}}]
-  (let [os-family (or os-family (nth 4 node))
-        node (conj (into [] (take 3 node)) os-family)
-        compute (node-list-service [node])
-        group-name (second node)]
+  [executor pfn node & {:keys [settings-phase ]}]
+  (let [compute (node-list-service [node])
+        group-name (second node)
+        os-family (nth node 3)]
     (let [group (merge (group-spec group-name :node {:os-family os-family})
                        (when settings-phase
                          {:phases {:settings (plan-fn (settings-phase))}}))
@@ -44,9 +41,8 @@
       @op)))
 
 
-(defn explain-plan [pfn & {:keys [settings-phase os-family]}]
+(defn explain-plan [pfn node & {:keys [settings-phase]}]
   ;; build a node list with a node with the characteristics above
-  (let [op (mock-exec-plan action-plan-data pfn
-                           :settings-phase settings-phase
-                           :os-family os-family)]
+  (let [op (mock-exec-plan action-plan-data pfn node
+                           :settings-phase settings-phase)]
     (mapcat :result (:results op))))

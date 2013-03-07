@@ -124,23 +124,34 @@ requires settings to be set, adding the settings function call to
   By default, the plan function is run against a mock node with
 this configuration:
 
-    [\"mock-node\" \"mock-group\" \"0.0.0.0\" :ubuntu]
+    [\"mock-node\" \"mock-group\" \"0.0.0.0\" :ubuntu :os-version \"12.04\"]
 
 and you can override this by passing your own node vector as `:node`,
-or just change the os-family for the ndoe by passing `:os-family.
+or just change the os-family/os-version for the node by passing
+`:os-family` and `:os-version`. If a os-family is passed but no
+os-version, then a sane default for os-version will be picked. If you
+specify `:node` then `:os-family` and `:os-version` are ignored.
 
 By default, both the generated action forms (clojure forms) and the
 scripts corresponding to those action forms will be shown, but you can
 disable them by passing `:print-scripts false` and/or `:print-forms
 false` "
   [pfn & {:keys [settings-phase print-scripts print-forms
-                 node os-family]
+                 node os-family os-version]
           :or {print-scripts true
-               print-forms false}}]
-  (let [actions (da/explain-plan pfn
-                                 :settings-phase settings-phase
-                                 :os-family os-family
-                                 :node node)]
+               print-forms true
+               os-family :ubuntu}}]
+  (let [os-version (or os-version
+                       (os-family {:ubuntu "12.04"
+                                   :centos "6.3"
+                                   :debian "6.0"
+                                   :rhel "6.1"}))
+        node (or node
+                 ["mock-node" "mock-group" "0.0.0.0" os-family
+                  :os-version os-version])
+        ;; echo what node we're about to use for the mock run
+        _ (do (print "Mock lift with node: ") (pprint node))
+        actions (da/explain-plan pfn node :settings-phase settings-phase)]
     (explain-actions actions
                      :print-scripts print-scripts
                      :print-forms print-forms)))
