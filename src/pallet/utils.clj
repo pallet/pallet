@@ -279,14 +279,6 @@ value to assoc. The assoc only occurs if the value is non-nil."
      (let [f# (ns-resolve '~'pallet.configure '~(or as-name name))]
        (apply f# args#))))
 
-
-;;; forward with deprecation warnings
-;;;   admin-user-from-config-var
-;;;   admin-user-from-config
-
-(fwd-to-configure admin-user-from-config-var)
-(fwd-to-configure admin-user-from-config)
-
 (defn compare-and-swap!
   "Compare and swap, returning old and new values"
   [a f & args]
