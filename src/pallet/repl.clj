@@ -34,14 +34,19 @@
     (print-table keys nodes)
     (print-table nodes)))
 
+(def node-table-cols
+  [:host-name :group-name :os-family :os-version :primary-ip
+   :private-ip :terminated?])
+
 (defn show-nodes
   "Prints a table with the information on all the nodes in a compute provider.
   The columns displayed can be modified by passing an optional `keys`
   vector containing the keys to display as columns (order is
   significative)"
-  [compute & [rows]]
-  (let [nodes (da/nodes compute)]
-    (show-nodes* nodes rows)))
+  [compute & [keys]]
+  (let [keys (or keys node-table-cols)
+        nodes (da/nodes compute)]
+    (show-nodes* nodes keys)))
 
 (defn show-group
   "Prints a table with the information on all the nodes belonging to a
@@ -49,11 +54,11 @@
   provider. The columns displayed can be modified by passing an
   optional `keys` vector containing the keys to display as
   columns (order is significative)"
-  [compute group-name & rows]
+  [compute group-name & keys]
   (let [nodes (da/nodes compute)
         group-filter (fn [n] (= group-name (:group-name n)))
         group-nodes (filter group-filter nodes)]
-    (show-nodes* group-nodes rows)))
+    (show-nodes* group-nodes (or keys node-table-cols))))
 
 (defn- prefix-text [prefix text]
   (when (and (seq text)
