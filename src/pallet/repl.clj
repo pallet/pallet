@@ -8,22 +8,17 @@
         [clojure.pprint :only [pprint with-pprint-dispatch code-dispatch
                                print-table pprint-indent]]
         [clojure.walk :only [prewalk]]
-        [pallet.stevedore :only (with-source-line-comments)]
-        ;; the equivalent to `use-pallet`
-        [pallet.utils :exclude [make-user]]
-        pallet.api
-        pallet.actions
-        clj-ssh.ssh))
+        [pallet.stevedore :only (with-source-line-comments)]))
 
 (defmacro use-pallet
   "Macro that will use pallet's namespaces, to provide an easy to access REPL."
   []
   '(do
      (clojure.core/use
-      '[pallet.utils :exclude [make-user]]
       'pallet.api
       'pallet.actions
-      'clj-ssh.ssh)))
+      'clj-ssh.ssh
+      'pallet.repl)))
 
 (defn show-nodes*
   "Prints the list of nodes in `nodes` as a table. The columns of the
