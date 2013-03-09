@@ -18,7 +18,7 @@ unprecedented level of customization."
                  [org.clojure/tools.macro "0.1.1"]
                  [org.clojure/tools.cli "0.2.2"]
                  [org.clojure/algo.monads "0.1.0"]
-                 [org.cloudhoist/chiba "0.1.1"]
+                 [com.palletops/chiba "0.2.0"]
                  [org.cloudhoist/thread-expr "1.2.0"]
                  [org.cloudhoist/pallet-common "0.3.1"]
                  [org.cloudhoist/script-exec "0.2.2"]
