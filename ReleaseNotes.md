@@ -1,5 +1,48 @@
 Unstable development branch
 
+# 0.8.0-beta.4
+
+- Add :no-service-require metadata to project-init
+  The task should not try to create a compute service.
+
+- Add pallet.repl functions for easier crate development
+  Add show-nodes, show-group for pretty printing the nodes in a provider or
+  in a group within a provider
+
+  Add explain-plan to show (print) what pallet is going to do with a plan
+  function, both in terms of generated actions forms and also shell scripts.
+
+  Add pallet.core.data-api to hold the data-only version of such functions.
+
+- Add support for os-version in explain-plan
+  Refactor how the default node is handled to make it more consistent and
+  outside of pallet.core.data-api
+
+- Allow action plans to be returned and not executed
+  Implements an action-plan-data executor that can be used to return the 
+  action-plan as a sequence of maps.  You can specify the printer by passing
+  ':environment {:algorithms {:executor action-plan-data}}' to lift.
+
+- Update to chiba 0.2.0
+
+- Update to pallet-fsmop 0.2.3
+  Fixes a compilation issue with clojure 1.5.0.
+
+- Clean the imports in pallet.repl and done by p.repl/use-pallet
+
+- Remove outdated forwards to p.configure from p.utils
+
+- allow specification of environment vars with :script-env
+  The :script-env can be specified in with-action-options.
+
+- Add removal of path in md5 file normalisation
+  When a .md5 file contains a path, md5 normalisation now removes the path 
+  elements.
+
+- Add logging of system properties in main-invoker
+
+- Add error when crate install fails to dispatch
+
 # 0.8.0-beta.3
 
 - Add log-script-output macro to actions
