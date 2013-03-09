@@ -6,6 +6,7 @@
 
 (defn project-init
   "Initialise a project, creating a pallet.clj configuration file."
+  {:no-service-required true}
   [{:keys [compute project] :as request}]
   (if (:root project)
     (println "Your project's pallet configuration is in"

@@ -396,6 +396,8 @@
                                 :mode "0666"))
                       :user user)]
               @op
+              (is (nil? (phase-errors op)))
+              (is (nil? (:exception @op)))
               (is (complete? op))
               (is (not (failed? op)))
               (is (.canRead target-tmp))

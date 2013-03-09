@@ -154,51 +154,6 @@
 (script/defimpl touch :default [file & {:as options}]
   ("touch" ~(stevedore/map-to-arg-string options) ~file))
 
-(script/defscript md5sum [file & {:as options}])
-(script/defimpl md5sum :default [file & {:as options}]
-  ("md5sum" ~(stevedore/map-to-arg-string options) ~file))
-(script/defimpl md5sum [#{:darwin :os-x}] [file & {:as options}]
-  ("/sbin/md5" -r ~file))
-
-(script/defscript normalise-md5
-  "Normalise an md5 sum file to contain the base filename"
-  [file])
-(script/defimpl normalise-md5 :default
-  [file]
-  (if ("egrep" "'^[a-fA-F0-9]+$'" ~file)
-    (println
-     (quoted (str "  " @(pipe ("basename" ~file) ("sed" -e "s/.md5//"))))
-     ">>" ~file)))
-
-(script/defscript md5sum-verify [file & {:as options}])
-(script/defimpl md5sum-verify :default
-  [file & {:keys [quiet check] :or {quiet true check true} :as options}]
-  ("(" (chain-and
-        ("cd" @(dirname ~file))
-        ("md5sum"
-         ~(stevedore/map-to-arg-string {:quiet quiet :check check})
-         @(basename ~file))) ")"))
-(script/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel :fedora}]
-  [file & {:keys [quiet check] :or {quiet true check true} :as options}]
-  ("(" (chain-and
-        ("cd" @(dirname ~file))
-        ("md5sum"
-         ~(stevedore/map-to-arg-string {:status quiet :check check})
-         @("basename" ~file))) ")"))
-(script/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
-  ("(" (chain-and
-        (var testfile @(~cut ~file :delimiter " " :fields 2))
-        (var md5 @(~cut ~file :delimiter " " :fields 1))
-        ("cd" @(dirname ~file))
-        ("test" (quoted @("/sbin/md5" -q @testfile)) == (quoted @md5))
-        @mres) ")"))
-
-(script/defscript backup-option [])
-(script/defimpl backup-option :default []
-  "--backup=numbered")
-(script/defimpl backup-option [#{:darwin :os-x}] []
-  "")
-
 (script/defscript sed-file [file expr-map options])
 
 (def ^{:doc "Possible sed separators" :private true}
@@ -231,6 +186,52 @@
        (if restriction (str restriction " ") "")
        expr-map quote-with))
    ~file))
+
+(script/defscript md5sum [file & {:as options}])
+(script/defimpl md5sum :default [file & {:as options}]
+  ("md5sum" ~(stevedore/map-to-arg-string options) ~file))
+(script/defimpl md5sum [#{:darwin :os-x}] [file & {:as options}]
+  ("/sbin/md5" -r ~file))
+
+(script/defscript normalise-md5
+  "Normalise an md5 sum file to contain the base filename"
+  [file])
+(script/defimpl normalise-md5 :default
+  [file]
+  (if ("egrep" "'^[a-fA-F0-9]+$'" ~file)
+    (println
+     (quoted (str "  " @(pipe ("basename" ~file) ("sed" -e "s/.md5//"))))
+     ">>" ~file))
+  (sed-file ~file ~{"/.*/\\(.+\\)" "\\1"} ~{}))
+
+(script/defscript md5sum-verify [file & {:as options}])
+(script/defimpl md5sum-verify :default
+  [file & {:keys [quiet check] :or {quiet true check true} :as options}]
+  ("(" (chain-and
+        ("cd" @(dirname ~file))
+        ("md5sum"
+         ~(stevedore/map-to-arg-string {:quiet quiet :check check})
+         @(basename ~file))) ")"))
+(script/defimpl md5sum-verify [#{:centos :debian :amzn-linux :rhel :fedora}]
+  [file & {:keys [quiet check] :or {quiet true check true} :as options}]
+  ("(" (chain-and
+        ("cd" @(dirname ~file))
+        ("md5sum"
+         ~(stevedore/map-to-arg-string {:status quiet :check check})
+         @("basename" ~file))) ")"))
+(script/defimpl md5sum-verify [#{:darwin :os-x}] [file & {:as options}]
+  ("(" (chain-and
+        (var testfile @(~cut ~file :delimiter " " :fields 2))
+        (var md5 @(~cut ~file :delimiter " " :fields 1))
+        ("cd" @(dirname ~file))
+        ("test" (quoted @("/sbin/md5" -q @testfile)) == (quoted @md5))
+        @mres) ")"))
+
+(script/defscript backup-option [])
+(script/defimpl backup-option :default []
+  "--backup=numbered")
+(script/defimpl backup-option [#{:darwin :os-x}] []
+  "")
 
 (script/defscript download-file [url path & {:keys [proxy insecure]}])
 

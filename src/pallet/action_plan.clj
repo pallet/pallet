@@ -535,6 +535,12 @@
             (list? (first action-plan))
             (nil? (second action-plan)))))
 
+(defn map-action-f
+  "Map exec-action over actions in the action-plan, applying sesssion."
+  [exec-action action-plan session]
+  ((domonad action-exec-m [v (m-map exec-action action-plan)] v)
+   session))
+
 ;;; ### Argument Evaluation
 (defn- evaluate-args
   "Evaluate an argument sequence"
@@ -610,16 +616,20 @@
       (logging/tracef "exec-action %s %s %s" session action executor)
       (execute-status-fn (execute-action-map executor session action)))))
 
+(defn session-exec-action
+  [session]
+  (let [executor (get-in session [:action-plans ::executor])
+        execute-status-fn (get-in session [:action-plans ::execute-status-fn])]
+    (assert executor)
+    (assert execute-status-fn)
+    (exec-action executor execute-status-fn)))
+
 ;;; ### Action Map Executor Functions
 ;;; Functions for use in executors.
 (defn execute-if
   "Execute an if action"
   [session {:keys [blocks] :as action} value]
-  (let [executor (get-in session [:action-plans ::executor])
-        execute-status-fn (get-in session [:action-plans ::execute-status-fn])
-        exec-action (exec-action executor execute-status-fn)]
-    (assert executor)
-    (assert execute-status-fn)
+  (let [exec-action (session-exec-action session)]
     (logging/tracef "execute-if value %s" (pr-str value))
     (if value
       ((domonad action-exec-m [v (m-map exec-action (first blocks))] (last v))
@@ -645,9 +655,8 @@
               (logging/tracef "execute-with-error-check")
               (execute-status-fn
                (execute-action-map executor session action))))]
-    ((domonad action-exec-m [v (m-map exec-action action-plan)] v)
-     ;; the executor and execute-status-fn are put into the session map in order
-     ;; to allow access to them in flow action execution
+    (map-action-f
+     exec-action action-plan
      (update-in
       session [:action-plans]
       assoc ::executor executor ::execute-status-fn execute-status-fn))))
@@ -678,3 +687,24 @@
    action"
   [name & script]
   (checked-commands* name script))
+
+(defn action-data
+  "Return an action's data."
+  [session {:keys [action args blocks] :as action-m}]
+  (let [exec-action (session-exec-action session)
+        self-fn (fn [b session]
+                  (ffirst
+                   ((domonad action-exec-m [v (m-map exec-action b)] v)
+                    session)))
+        blocks (when (= 'pallet.actions-impl/if-action (:action-symbol action))
+                 [(self-fn (first blocks) session)
+                  (self-fn (second blocks) session)])]
+    [(merge
+      {:action-symbol (:action-symbol action)
+       :args (vec args)
+       :form `(~(:action-symbol action) ~@args
+               ~@(when blocks
+                   (map :form blocks)))}
+      (when blocks
+        {:blocks blocks}))
+     session]))
