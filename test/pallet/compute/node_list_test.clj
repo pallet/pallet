@@ -18,11 +18,11 @@
   (let [nl (atom nil)]
     (is (= (pallet.compute.node_list.Node.
             "n" "t" "1.2.3.4" :ubuntu "10.2" "n-1-2-3-4" 22 "4.3.2.1" false true
-            nl {:ram 512} {:host "h"})
+            nl {:ram 512} {:host "h"} {:username "u"})
            (node-list/make-node
             "n" "t" "1.2.3.4" :ubuntu :private-ip "4.3.2.1" :is-64bit false
             :os-version "10.2" :service nl :hardware {:ram 512}
-            :proxy {:host "h"})))))
+            :proxy {:host "h"} :image-user {:username "u"})))))
 
 (deftest service-test
   (is (instance?

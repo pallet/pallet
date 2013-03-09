@@ -24,7 +24,7 @@
 
 (defrecord Node
     [name group-name ip os-family os-version id ssh-port private-ip is-64bit
-     running service hardware proxy]
+     running service hardware proxy image-user]
   pallet.node.Node
   (ssh-port [node] ssh-port)
   (primary-ip [node] ip)
@@ -43,7 +43,7 @@
   pallet.node.NodeHardware
   (hardware [node] hardware)
   pallet.node.NodeImage
-  (image-user [node])
+  (image-user [node] image-user)
   pallet.node.NodeProxy
   (proxy [node] proxy))
 
@@ -52,7 +52,7 @@
   "Returns a node, suitable for use in a node-list."
   [name group-name ip os-family
    & {:keys [id ssh-port private-ip is-64bit running os-version service
-             hardware proxy]
+             hardware proxy image-user]
       :or {ssh-port 22 is-64bit true running true}}]
   (Node.
    name
@@ -67,7 +67,8 @@
    running
    service
    hardware
-   proxy))
+   proxy
+   image-user))
 
 (deftype NodeTagUnsupported
     []
