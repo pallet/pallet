@@ -10,7 +10,7 @@
 (defn find-war
   [project]
   (some
-   #(let [f (% project)] (and (.exists (java.io.File. f)) f))
+   #(let [^String f (% project)] (and (.exists (java.io.File. f)) f))
    [war-file-name]))
 
 (defn to-blob

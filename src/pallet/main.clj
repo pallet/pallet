@@ -11,7 +11,7 @@
 (defn read-targets
   ([dir]
      (try
-      (doseq [file (file-seq dir)]
+      (doseq [^java.io.File file (file-seq dir)]
         (load (.getPath file)))
       (catch java.io.FileNotFoundException _
         (abort "No pallet directory found in the current directory."))))

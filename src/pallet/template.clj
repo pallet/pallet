@@ -14,14 +14,14 @@
    [pallet.core.session :only [group-name packager os-family]]
    [pallet.utils :only [apply-map]]))
 
-(defn get-resource
+(defn ^java.net.URL get-resource
   "Loads a resource. Returns a URI."
   [path]
   (-> (clojure.lang.RT/baseLoader) (.getResource path)))
 
 (defn path-components
   "Split a resource path into path, basename and extension components."
-  [path]
+  [^String path]
   (let [p (inc (.lastIndexOf path "/"))
         i (.lastIndexOf path ".")]
     [(when (pos? p) (subs path 0 (dec p)))

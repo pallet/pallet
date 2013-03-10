@@ -15,7 +15,7 @@
          prefix nil
          m nil
          phases []]
-    (if-let [a (first args)]
+    (if-let [^String a (first args)]
       (let [v (maybe-resolve-symbol-string a)]
         (cond
           ;; non symbol as first arg

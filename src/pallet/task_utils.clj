@@ -79,11 +79,11 @@
           pallet-file))))
 
 (defn comma-sep->seq
-  [s]
+  [^String s]
   (and s (.split s ",")))
 
 (defn comma-sep->kw-seq
-  [s]
+  [^String s]
   (and s (map keyword (.split s ","))))
 
 (defn project-groups

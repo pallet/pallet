@@ -69,7 +69,7 @@
             result (assoc result :script script)]
         (when-let [e (:err result)]
           (when-not (string/blank? e)
-            (doseq [l (string/split-lines e)
+            (doseq [^String l (string/split-lines e)
                     :when (not (.startsWith l "#> "))]  ; logged elsewhere
               (logging/warnf "localhost %s" l))))
         [(result-with-error-map "localhost" "Error executing script" result)

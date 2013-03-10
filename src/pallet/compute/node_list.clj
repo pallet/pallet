@@ -133,7 +133,7 @@ support."
 
 
 (defmethod clojure.core/print-method Node
-  [^Node node writer]
+  [^Node node ^java.io.Writer writer]
   (.write
    writer
    (format

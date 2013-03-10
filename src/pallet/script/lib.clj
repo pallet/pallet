@@ -169,7 +169,7 @@
       (string/join
        " "
        (map
-        (fn [[key value]]
+        (fn [[^String key ^String value]]
           (let [used (fn [c]
                        (or (>= (.indexOf key (int c)) 0)
                            (>= (.indexOf value (int c)) 0)))

@@ -12,7 +12,7 @@
   [username path-or-bytes]
   (if (string? path-or-bytes)
     (ssh-key/authorize-key username (slurp path-or-bytes))
-    (ssh-key/authorize-key username (String. path-or-bytes))))
+    (ssh-key/authorize-key username (String. ^bytes path-or-bytes))))
 
 (defplan automated-admin-user
   "Builds a user for use in remote-admin automation. The user is given

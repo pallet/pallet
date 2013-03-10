@@ -22,7 +22,7 @@
                "specified provider anyway."))))
 
 (defn write-service
-  [file service-name provider-name identity credential]
+  [^java.io.File file service-name provider-name identity credential]
   (.. (java.io.File. (.getParent file)) mkdirs)
   (spit file (pr-str {(keyword service-name)
                       (into {}

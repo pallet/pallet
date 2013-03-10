@@ -47,7 +47,7 @@
     (catch InterruptedException e
       (logging/warnf "%s interrupted" operation-label))
     (catch ExecutionException e
-      (let [cause (stacktrace/root-cause e)]
+      (let [^Exception cause (stacktrace/root-cause e)]
         (logging/errorf
          cause "%s exception: %s" operation-label (.getMessage cause)))
       (logging/debugf (.getCause e) "%s exception" operation-label))))

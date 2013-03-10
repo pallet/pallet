@@ -85,9 +85,9 @@
            :as  options}]
 
   (let [key-type type
-        path (stevedore/script
-              ~(str (user-ssh-dir user)
-                    (or filename (ssh-default-filenames key-type))))
+        ^String path (stevedore/script
+                      ~(str (user-ssh-dir user)
+                            (or filename (ssh-default-filenames key-type))))
         ssh-dir (.getParent (java.io.File. path))]
     (when-not (or (:no-dir options))
       (directory ssh-dir :owner user :mode "755"))
