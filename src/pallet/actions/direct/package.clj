@@ -16,8 +16,9 @@
    [pallet.action :only [action-fn implement-action]]
    [pallet.action-plan :only [checked-commands checked-script]]
    [pallet.actions
-    :only [add-rpm package package-manager package-source minimal-packages
-           exec-script remote-file sed install-deb package-source-changed-flag]]
+    :only [add-rpm debconf-set-selections exec-script install-deb
+           minimal-packages package package-manager package-source
+           package-source-changed-flag remote-file sed]]
    [pallet.actions-impl :only [remote-file-action]]
    [pallet.core.session :only [packager os-family]]))
 
@@ -537,6 +538,24 @@
      (checked-script
       (format "Install deb %s" deb-name)
       ("dpkg" -i --skip-same-version ~deb-name)))]
+   session])
+
+(implement-action debconf-set-selections :direct
+  "Set debconf selections.
+Specify :line, or the other options."
+  {:action-type :script :location :target}
+  [session {:keys [line package question type value]}]
+  [[{:language :bash}
+    (stevedore/do-script
+     (checked-script
+      (format "Preseed %s"
+              (or line (string/join " " [package question type value])))
+      (pipe
+       (println
+        (quoted ~@(if line
+                    [line]
+                    [(name package) question (name type) (pr-str value)])))
+       ("/usr/bin/debconf-set-selections"))))]
    session])
 
 (implement-action minimal-packages :direct

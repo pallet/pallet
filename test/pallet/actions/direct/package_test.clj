@@ -5,9 +5,9 @@
     :only [add-scope* adjust-packages package-manager* package-source*]]
    [pallet.action :only [action-fn]]
    [pallet.actions
-    :only [exec-script exec-checked-script file package remote-file sed
-           add-rpm package package-manager package-source minimal-packages
-           packages]]
+    :only [add-rpm debconf-set-selections exec-checked-script
+           exec-checked-script exec-script file minimal-packages package package
+           package-manager package-source packages remote-file sed]]
    [pallet.actions-impl :only [remote-file-action]]
    [pallet.api :only [group-spec lift]]
    [pallet.build-actions
@@ -589,3 +589,29 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
        (first
         (build-actions centos-session
           (add-rpm "jpackage-utils-compat" :url "http:url"))))))
+
+(deftest debconf-set-selections-test
+  (is (script-no-comment=
+       (first
+        (build-actions {}
+          (exec-checked-script
+           "Preseed a b c d"
+           (pipe (println (quoted "a b c d"))
+                 ("/usr/bin/debconf-set-selections")))))
+       (first
+        (build-actions {}
+          (debconf-set-selections {:line "a b c d"})))))
+  (is (script-no-comment=
+       (first
+        (build-actions {}
+          (exec-checked-script
+           "Preseed p q :select true"
+           (pipe (println (quoted "p q select true"))
+                 ("/usr/bin/debconf-set-selections")))))
+       (first
+        (build-actions {}
+          (debconf-set-selections
+           {:package "p"
+            :question "q"
+            :type :select
+            :value true}))))))

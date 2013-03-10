@@ -600,6 +600,13 @@ option and :unpack :unzip.
   "Add a deb.  Source options are as for remote file."
   [deb-name & {:as options}])
 
+(defaction debconf-set-selections
+  "Set debconf selections.
+Specify `:line` as a string, or `:package`, `:question`, `:type` and
+`:value` options."
+  {:always-before #{package}}
+  [{:keys [line package question type value]}])
+
 (defaction minimal-packages
   "Add minimal packages for pallet to function"
   {:always-before #{package-manager package-source package}}
