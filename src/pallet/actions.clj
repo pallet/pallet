@@ -81,7 +81,7 @@
                              ~@(if is-stevedore?
                                  (rest condition)
                                  ["test" condition])
-                             (~'echo @~'?)))))] )]
+                             (~'println @~'?)))))] )]
          (if-action ~(if is-script?
                        `(delayed [s#]
                                  (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
@@ -113,7 +113,7 @@
                              ~@(if is-stevedore?
                                  (rest condition)
                                  ["test" condition])
-                             (~'echo @~'?)))))])]
+                             (~'println @~'?)))))])]
          (if-action ~(if is-script?
                        `(delayed [s#]
                           (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
