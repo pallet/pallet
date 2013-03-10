@@ -735,7 +735,10 @@
                                   options chkconfig-default-options))))))
 
 
-
+;;; Functions like clojure.java.io
+(script/defscript file [& args])
+(script/defimpl file :default [& args]
+  (str ~@(interpose "/" args)))
 
 ;;; Functions to return distribution specific paths.
 ;;;

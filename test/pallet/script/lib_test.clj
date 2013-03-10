@@ -266,3 +266,6 @@
 
 (deftest config-root-test
   (mktest :ubuntu config-root "/etc"))
+
+(deftest file-test
+  (is (=  "/etc/riemann" (fragment (file (config-root) "riemann")))))
