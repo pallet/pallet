@@ -23,7 +23,8 @@ unprecedented level of customization."
                  [org.cloudhoist/pallet-common "0.3.1"]
                  [org.cloudhoist/script-exec "0.2.2"]
                  [com.palletops/stevedore "0.8.0-SNAPSHOT"]
-                 [enlive "1.0.1"]
+                 [enlive "1.0.1"
+                  :exclusions [org.clojure/clojure]]
                  [pallet-fsmop "0.2.3"]
                  [pallet-map-merge "0.1.0"]
                  [useful "0.8.6"]
