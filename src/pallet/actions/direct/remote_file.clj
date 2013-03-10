@@ -18,26 +18,6 @@
    [pallet.actions-impl :only [remote-file-action]]
    [pallet.utils :only [apply-map]]))
 
-(defn- get-session
-  "Build a curl or wget command from the specified session object."
-  [session]
-  (stevedore/script
-   (if (test @(~lib/which curl))
-     ("curl" -s "--retry" 20
-      ~(apply str (map
-                   #(format "-H \"%s: %s\" " (first %) (second %))
-                   (.. session getHeaders entries)))
-      ~(.. session getEndpoint toASCIIString))
-     (if (test @(~lib/which wget))
-       ("wget" -nv "--tries" 20
-        ~(apply str (map
-                     #(format "--header \"%s: %s\" " (first %) (second %))
-                     (.. session getHeaders entries)))
-        ~(.. session getEndpoint toASCIIString))
-       (do
-         (println "No download utility available")
-         (~lib/exit 1))))))
-
 (implement-action delete-local-path :direct
   {:action-type :fn/clojure :location :origin}
   [session local-path]
