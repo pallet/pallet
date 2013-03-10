@@ -153,7 +153,7 @@ refers to a software package version of some sort, on the specified `os` and
 
 (declare os-map)
 
-(deftype VersionMap [data]
+(deftype VersionMap [^clojure.lang.IPersistentMap data]
   clojure.lang.ILookup
   (valAt [m key]
     (lookup-os (:os key) (:os-version key) os-hierarchy data nil))
