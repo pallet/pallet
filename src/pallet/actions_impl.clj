@@ -30,7 +30,7 @@
 
 (defn verify-local-file-exists
   [local-file]
-  (when-let [f (and local-file (io/file local-file))]
+  (when-let [^java.io.File f (and local-file (io/file local-file))]
     (when (not (and (.exists f) (.isFile f) (.canRead f)))
       (throw-map
        (format

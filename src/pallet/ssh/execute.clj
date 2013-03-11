@@ -42,7 +42,7 @@
   "Create a temporary remote file using the `ssh-session` and the filename
   `prefix`"
   [connection prefix]
-  (logging/tracef "ssh-mktemp %s" (.state connection))
+  (logging/tracef "ssh-mktemp %s" (bean connection))
   (let [result (transport/exec
                 connection
                 {:execv [(stevedore/script

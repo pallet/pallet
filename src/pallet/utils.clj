@@ -53,7 +53,7 @@
 (defn load-resource-url
   [^java.net.URL name]
   (logging/tracef "load-resource-url %s" name)
-  (with-open [stream (.getContent name)
+  (with-open [^java.io.InputStream stream (.getContent name)
               r (new java.io.BufferedReader
                      (new java.io.InputStreamReader
                           stream (.name (java.nio.charset.Charset/defaultCharset))))]

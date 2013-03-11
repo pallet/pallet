@@ -269,7 +269,7 @@
   (let [packager (packager session)]
     (checked-commands
      "Package source"
-     (let [key-url (or (:url aptitude) (:url apt))]
+     (let [^String key-url (or (:url aptitude) (:url apt))]
        (if (and key-url (.startsWith key-url "ppa:"))
          (stevedore/chain-commands
           (stevedore/script (~lib/install-package "python-software-properties"))
