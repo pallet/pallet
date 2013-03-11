@@ -20,17 +20,14 @@ unprecedented level of customization."
                  [org.clojure/algo.monads "0.1.0"]
                  [com.palletops/chiba "0.2.0"]
                  [org.cloudhoist/thread-expr "1.2.0"]
-                 [org.cloudhoist/pallet-common "0.3.1"]
-                 [org.cloudhoist/script-exec "0.2.2"]
+                 [com.palletops/pallet-common "0.4.0"]
+                 [com.palletops/script-exec "0.3.0"]
                  [com.palletops/stevedore "0.8.0-SNAPSHOT"]
                  [enlive "1.0.1"
                   :exclusions [org.clojure/clojure]]
-                 [pallet-fsmop "0.2.3"]
+                 [pallet-fsmop "0.2.4"]
                  [pallet-map-merge "0.1.0"]
                  [useful "0.8.6"]
                  [commons-codec "1.4"]]
-  :repositories {"sonatype"
-                 {:url "https://oss.sonatype.org/content/repositories/releases/"
-                  :snapshots false}}
   :classifiers {:tests {:source-paths ^:replace ["test"]
                         :resource-paths ^:replace []}})
