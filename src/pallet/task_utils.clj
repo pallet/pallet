@@ -4,6 +4,7 @@
    [clojure.java.io :refer [file]]
    [clojure.string :as string]
    [clojure.tools.cli :refer [cli]]
+   [clojure.tools.logging :refer [fatalf]]
    [pallet.compute :refer [service-properties]]
    [pallet.project
     :refer [create-project-file default-pallet-file default-user-pallet-file
@@ -42,6 +43,8 @@
         (try
           (read-project pallet-file)
           (catch java.io.FileNotFoundException e
+            (fatalf e "Could not read pallet configuration for project from %s"
+                    pallet-file)
             (abort
              (str "Could not read pallet configuration for project from "
                   pallet-file)))
