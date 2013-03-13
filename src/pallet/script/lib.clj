@@ -202,7 +202,7 @@
     (println
      (quoted (str "  " @(pipe ("basename" ~file) ("sed" -e "s/.md5//"))))
      ">>" ~file))
-  (sed-file ~file ~{"/.*/\\(.+\\)" "\\1"} ~{}))
+  (sed-file ~file ~{"/.*/\\(..*\\)" "\\1"} ~{}))
 
 (script/defscript md5sum-verify [file & {:as options}])
 (script/defimpl md5sum-verify :default
