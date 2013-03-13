@@ -545,6 +545,7 @@
 Specify :line, or the other options."
   {:action-type :script :location :target}
   [session {:keys [line package question type value]}]
+  {:pre [(or line (and package question type (not (nil? value))))]}
   [[{:language :bash}
     (stevedore/do-script
      (checked-script
