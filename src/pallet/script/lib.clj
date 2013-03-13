@@ -306,9 +306,13 @@
   "Create a temporary directory"
   [pattern & {:as options}])
 (script/defimpl make-temp-dir :default [pattern & {:as options}]
-  @("mktemp" -d
+  @("mktemp" -d --tmpdir
     ~(stevedore/map-to-arg-string options)
     ~(str pattern "XXXXX")))
+(script/defimpl make-temp-dir [#{:darwin :os-x}] [pattern & {:as options}]
+  @("mktemp" -d
+    ~(stevedore/map-to-arg-string options)
+    -t (str "pallet" ~(str pattern "XXXXX"))))
 
 
 ;;; Host information.
