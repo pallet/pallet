@@ -98,8 +98,8 @@ filtered by selectors, groups and roles."
      pallet-project
      provider
      (set (comma-sep->kw-seq selectors))
-     (set (comma-sep->kw-seq groups))
-     (set (comma-sep->kw-seq roles)))))
+     (set (comma-sep->kw-seq roles))
+     (set (comma-sep->kw-seq groups)))))
 
 (defn process-args
   "Process command line arguments. Returns an option map, a vector of arguments
