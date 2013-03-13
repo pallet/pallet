@@ -19,7 +19,7 @@ unprecedented level of customization."
                  [org.clojure/tools.cli "0.2.2"]
                  [org.clojure/algo.monads "0.1.0"]
                  [com.palletops/chiba "0.2.0"]
-                 [org.cloudhoist/thread-expr "1.2.0"]
+                 [com.palletops/thread-expr "1.3.0"]
                  [com.palletops/pallet-common "0.4.0"]
                  [com.palletops/script-exec "0.3.0"]
                  [com.palletops/stevedore "0.8.0-SNAPSHOT"]
