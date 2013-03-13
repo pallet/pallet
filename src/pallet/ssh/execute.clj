@@ -71,7 +71,8 @@
      (try
        ~@body
        (catch Exception e#
-         (logging/errorf e# "SSH Error")))))
+         (logging/errorf e# "SSH Error")
+         (throw e#)))))
 
 (defn ssh-script-on-target
   "Execute a bash action on the target via ssh."
