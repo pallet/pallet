@@ -38,6 +38,9 @@
                                  (event :success (f))
                                  (catch Exception e
                                    (logging/warn e "async-fsm failed")
+                                   (event :fail {:exception e}))
+                                 (catch AssertionError e
+                                   (logging/warn e "async-fsm failed")
                                    (event :fail {:exception e}))))]
                 (reset! async-f (execute f-runner))))]
       (event-machine-config
