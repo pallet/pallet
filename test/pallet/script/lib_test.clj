@@ -268,4 +268,6 @@
   (mktest :ubuntu config-root "/etc"))
 
 (deftest file-test
-  (is (=  "/etc/riemann" (fragment (file (config-root) "riemann")))))
+  (is (=  "/etc/riemann" (fragment (file (config-root) "riemann"))))
+  (let [a "/etc" b "riemann"]
+    (is (=  "/etc/riemann" (fragment (file ~a ~b))))))
