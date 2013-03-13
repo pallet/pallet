@@ -223,8 +223,9 @@
   ("(" (chain-and
         (var testfile @(~cut ~file :delimiter " " :fields 2))
         (var md5 @(~cut ~file :delimiter " " :fields 1))
-        ("cd" @(dirname ~file))
-        ("test" (quoted @("/sbin/md5" -q @testfile)) == (quoted @md5))
+        ("ls" "-l" @(dirname ~file) ">&2")
+        (var md5q @("/sbin/md5" -q (quoted (str @(dirname ~file) / @testfile))))
+        ("test" (quoted @md5q) == (quoted @md5))
         @mres) ")"))
 
 (script/defscript backup-option [])
