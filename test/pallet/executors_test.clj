@@ -2,9 +2,8 @@
   (:require
    [clojure.test :refer [deftest is testing]]
    [pallet.action :refer [action-fn with-action-options]]
-   [pallet.actions-impl :refer [remote-file-action]]
    [pallet.api :refer [group-spec lift plan-fn]]
-   [pallet.actions :refer [exec-script plan-when plan-when-not remote-file]]
+   [pallet.actions :refer [exec-script plan-when plan-when-not]]
    [pallet.compute :refer [nodes]]
    [pallet.core.api-impl :refer [with-script-for-node]]
    [pallet.executors :refer :all]
@@ -19,35 +18,18 @@
                                {:executor action-plan-data}})]
     (-> @op :results first :result)))
 
-(def ^{:private true}
-  remote-file* (action-fn remote-file-action :direct))
-
-(defmacro with-script [& body]
-  `(with-script-for-node {:node (first (nodes (make-localhost-compute)))}
-     ~@body))
-
 (deftest action-plan-data-test
   (is (= `({:location :target
             :action-type :script
-            :script ~(with-script
-                       (first (remote-file* {} "f" {:content "xxx",
-                                                    :install-new-files true,
-                                                    :overwrite-changes nil})))
-            :form (pallet.actions-impl/remote-file-action
-                   "f"
-                   {:content "xxx",
-                    :install-new-files true,
-                    :overwrite-changes nil})
+            :script [{:language :bash} "f"]
+            :form (pallet.actions/exec-script* "f")
             :context nil
-            :args ["f"
-                   {:content "xxx",
-                    :install-new-files true,
-                    :overwrite-changes nil}]
+            :args ["f"]
             :action
-            {:action-symbol pallet.actions-impl/remote-file-action,
+            {:action-symbol pallet.actions/exec-script*,
              :execution :in-sequence
              :precedence {}}})
-         (plan-data-fn (plan-fn (remote-file "f" :content "xxx")))))
+          (plan-data-fn (plan-fn (exec-script "f")))))
   (is (= '({:location :origin,
             :action-type :flow/if,
             :script true,
