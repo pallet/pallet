@@ -716,7 +716,9 @@ Specify `:line` as a string, or `:package`, `:question`, `:type` and
    - :sequence-start  a sequence of [sequence-number level level ...], where
                       sequence number determines the order in which services
                       are started within a level.
-   - :service-impl    either :initd or :upstart"
+   - :service-impl    either :initd or :upstart
+
+Deprecated in favour of pallet.crate.service/service."
   [service-name & {:keys [action if-flag if-stopped service-impl]
                    :or {action :start service-impl :initd}
                    :as options}])
