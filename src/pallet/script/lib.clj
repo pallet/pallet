@@ -765,6 +765,10 @@
 (script/defimpl log-root :default []
   "/var/log")
 
+(script/defscript state-root [])
+(script/defimpl state-root :default []
+  "/var/lib")
+
 (script/defscript pid-root [])
 (script/defimpl pid-root :default []
   "/var/run")

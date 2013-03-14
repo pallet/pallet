@@ -4,9 +4,9 @@
    [clojure.java.io :as io]
    [clojure.string :as string]
    [pallet.context :as context]
-   [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]
-   [pallet.utils :refer [base64-md5]])
+   [pallet.core.session :refer [session]]
+   [pallet.script.lib :refer [file state-root] :as lib]
+   [pallet.stevedore :refer [fragment] :as stevedore])
   (:use
    [pallet.action :only [defaction]]
    [pallet.common.context :only [throw-map]]
@@ -89,7 +89,34 @@ to deal with local file transfer."
   [_ service-name]
   (str (stevedore/fragment (~lib/upstart-script-dir)) "/" service-name ".conf"))
 
-(defn temp-filename
+;;; # File names for transfers
+
+;;; These paths create a parallel directory tree under "/var/lib/pallet" which
+;;; contains the up/downloaded files, the md5s and the installed file history.
+
+;;; To facilitate md5 checks the basename of the generated copy-filename should
+;;; match the original basename, and the md5 file should be in the same
+;;; directory.
+
+;;; Note that we can not use remote evaluated expressions in these paths, as
+;;; they are used locally.
+(defn- adjust-root
+  [^String path]
+  (if (.startsWith path "/")
+    path
+    (fragment (file "/admin-home" ~(-> (session) :user :username) ~path))))
+
+(defn new-filename
   "Generate a temporary file name for a given path."
   [path]
-  (str (base64-md5 path) "-content"))
+  (fragment (str (state-root) "/pallet" ~(str (adjust-root path) ".new"))))
+
+(defn md5-filename
+  "Generate a md5 file name for a given path."
+  [path]
+  (fragment (str (state-root) "/pallet" ~(str (adjust-root path) ".md5"))))
+
+(defn copy-filename
+  "Generate a md5 file name for a given path."
+  [path]
+  (fragment (str (state-root) "/pallet" ~(adjust-root path))))
