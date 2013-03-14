@@ -76,12 +76,13 @@
   ("cp"
    ~(stevedore/map-to-arg-string {:f force
                                   :backup (when backup (name backup))
-                                  :p preserve})
+                                  :p preserve}
+                                 :assign true)
    ~source ~destination))
 (script/defimpl cp [#{:darwin :os-x}]
   [source destination & {:keys [force backup preserve]}]
   ("cp"
-   ~(stevedore/map-to-arg-string {:f force :p preserve})
+   ~(stevedore/map-to-arg-string {:f force :p preserve} :assign true)
    ~source ~destination))
 
 (script/defscript ln [source destination & {:keys [force symbolic]}])
