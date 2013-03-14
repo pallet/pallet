@@ -59,7 +59,7 @@
            (quoted (str "  " @(pipe ("basename" abc.md5)
                                     ("sed" -e "s/.md5//"))))
            ">>" abc.md5))
-        ("sed" -i -e (quoted "s_/.*/\\(.+\\)_\\1_") "abc.md5"))
+        ("sed" -i -e (quoted "s_/.*/\\(..*\\)_\\1_") "abc.md5"))
        (script (~normalise-md5 abc.md5)))))
 
 (deftest md5sum-verify-test
