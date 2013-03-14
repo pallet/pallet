@@ -5,17 +5,14 @@
 
 (defn sectioned-properties
   "A sectioned property file.
-   This is modeled as vector of maps. The keys of the outer map are the section
+   This is modeled as a map of maps. The keys of the outer map are the section
    names.  The inner maps are keyword value maps."
-  [m]
-  (letfn [(format-kv
-           [[key-name value]]
-           (format "%s = %s\n" (name key-name) value))
-          (format-section
+  [m & {:keys [separator] :or {separator " = "}}]
+  (letfn [(format-section
            [[section-name kv-map]]
            (format
             "[%s]\n%s\n" (name section-name)
-            (string/join (map format-kv kv-map))))]
+                         (name-values kv-map :separator separator)))]
     (string/join (map format-section m))))
 
 (defn name-values
