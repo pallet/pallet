@@ -23,7 +23,7 @@
   {:action-type :fn/clojure :location :origin}
   [session ^java.io.File local-path]
   [(fn [session]
-     (.delete local-path)
+     (.delete (io/file local-path))
      [local-path session])
    session])
 
