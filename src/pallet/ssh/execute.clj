@@ -9,7 +9,7 @@
    [pallet.execute :as execute
     :refer [clean-logs log-script-output result-with-error-map]]
    [pallet.local.execute :as local]
-   [pallet.script.lib :refer [mkdir exit]]
+   [pallet.script.lib :refer [chown mkdir exit]]
    [pallet.transport :as transport]
    [pallet.transport.local]
    [pallet.transport.ssh]
@@ -127,7 +127,7 @@
 
 (defn- ssh-upload
   "Upload a file to a remote location via sftp"
-  [connection file remote-name]
+  [session connection file remote-name]
   (logging/infof
    "Transferring file %s from local to %s:%s"
    file (:server (transport/endpoint connection)) remote-name)
@@ -135,7 +135,13 @@
     (let [{:keys [exit] :as rv} (transport/exec
                                  connection
                                  {:in (stevedore/script
-                                       (mkdir ~dir :path true)
+                                       (~(script-builder/prefix
+                                          :sudo session nil)
+                                        (mkdir ~dir :path true))
+                                       (~(script-builder/prefix
+                                          :sudo session nil)
+                                        (chown ~(-> session :user :username)
+                                               ~dir))
                                        (exit "$?"))}
                                  {})]
       (if (zero? exit)
@@ -177,11 +183,11 @@
                 (if (not=
                      (first (string/split md5 #" "))
                      (first (string/split local-md5 #" ")) )
-                  (ssh-upload connection file remote-name)
+                  (ssh-upload session connection file remote-name)
                   (logging/infof
                    "%s:%s is already up to date"
                    (:server endpoint) remote-name))))
-            (ssh-upload connection file remote-name))))
+            (ssh-upload session connection file remote-name))))
       [value session])))
 
 (defn ssh-to-local
