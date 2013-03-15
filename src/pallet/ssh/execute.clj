@@ -132,16 +132,14 @@
    "Transferring file %s from local to %s:%s"
    file (:server (transport/endpoint connection)) remote-name)
   (if-let [dir (.getParent (io/file remote-name))]
-    (let [{:keys [exit] :as rv} (transport/exec
+    (let [prefix (or (script-builder/prefix :sudo session nil) "")
+          {:keys [exit] :as rv} (transport/exec
                                  connection
                                  {:in (stevedore/script
-                                       (~(script-builder/prefix
-                                          :sudo session nil)
-                                        (mkdir ~dir :path true))
-                                       (~(script-builder/prefix
-                                          :sudo session nil)
-                                        (chown ~(-> session :user :username)
-                                               ~dir))
+                                       (~prefix (mkdir ~dir :path true))
+                                       (~prefix
+                                        (chown
+                                         ~(-> session :user :username) ~dir))
                                        (exit "$?"))}
                                  {})]
       (if (zero? exit)
