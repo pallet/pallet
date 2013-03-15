@@ -124,15 +124,25 @@
         (process-args args)]
     (logging/debugf "pallet-task options %s" options)
     (try
-      (let [[task & args] args
-            task (or (aliases task) task "help")
+      (let [[task-name & args] args
+            task-name (or (aliases task-name) task-name "help")
             project-options (when project-options
                               (read-string project-options))
             defaults (when defaults
                        (read-string defaults))
-            task (resolve-task task)
+            task (resolve-task task-name)
             return-value (if (:no-service-required (meta task))
-                           (apply task (args-with-extras args extras))
+                           (let [_ (require 'pallet.main-invoker)
+                                 invoker (find-var
+                                          'pallet.main-invoker/invoke-no-service)]
+
+                             (invoker
+                              {:project project-options
+                               :defaults defaults
+                               :environment environment}
+                              task
+                              task-name
+                              (args-with-extras args extras)))
                            (let [_ (require 'pallet.main-invoker)
                                  invoker (find-var
                                           'pallet.main-invoker/invoke)]

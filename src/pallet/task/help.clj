@@ -46,8 +46,8 @@
 
 (defn help
   {:no-service-required true}
-  ([task] (println (help-for task)))
-  ([]
+  ([_ task] (println (help-for task)))
+  ([_]
      (println
       (str "Pallet is a provisioning, configuration management and "
            "orchestration tool.\n"))

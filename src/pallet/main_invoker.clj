@@ -127,3 +127,13 @@
         (println "Error: no credentials supplied\n\n")
         ((main/resolve-task "help"))
         (throw (ex-info "Error: no credentials supplied" {:exit-code 1}))))))
+
+(defn invoke-no-service
+  [options task task-name params]
+  (try
+    (apply task options params)
+    (catch clojure.lang.ArityException e
+      (println (.getMessage e))
+      (require 'pallet.task.help)
+      (let [help (ns-resolve 'pallet.task.help 'help)]
+        (help nil task-name)))))
