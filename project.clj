@@ -22,10 +22,10 @@ unprecedented level of customization."
                  [com.palletops/thread-expr "1.3.0"]
                  [com.palletops/pallet-common "0.4.0"]
                  [com.palletops/script-exec "0.3.0"]
-                 [com.palletops/stevedore "0.8.0-SNAPSHOT"]
+                 [com.palletops/stevedore "0.8.0-beta.2"]
                  [enlive "1.0.1"
                   :exclusions [org.clojure/clojure]]
-                 [pallet-fsmop "0.2.4"]
+                 [pallet-fsmop "0.2.5"]
                  [pallet-map-merge "0.1.0"]
                  [useful "0.8.6"]
                  [commons-codec "1.4"]]
