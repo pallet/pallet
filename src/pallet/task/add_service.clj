@@ -22,7 +22,7 @@
                "specified provider anyway."))))
 
 (defn write-service
-  [file service-name provider-name identity credential]
+  [^java.io.File file service-name provider-name identity credential]
   (.. (java.io.File. (.getParent file)) mkdirs)
   (spit file (pr-str {(keyword service-name)
                       (into {}
@@ -42,16 +42,16 @@
     (println "incorrect arguments:")
     (println "  lein pallet service-name provider-name [identity credential]")))
 
-(defn
-  ^{:no-service-required true}
-  add-service
+(defn add-service
   "Add a service provider definition to your pallet configuration.
 This will create ~/.pallet/services/service-name.clj"
-  ([service-name]
+  {:no-service-required true
+   :help-arglists '[[service-name provider-name? identity? credential?]]}
+  ([_ service-name]
      (add-service service-name service-name))
-  ([service-name provider-name]
+  ([_ service-name provider-name]
      (add-service service-name provider-name nil nil))
-  ([service-name provider-name identity credential]
+  ([_ service-name provider-name identity credential]
      (write-config-clj-unless-exists)
      (if (and service-name provider-name)
        (let [service-name (name service-name)

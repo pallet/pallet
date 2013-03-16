@@ -76,12 +76,13 @@
   ("cp"
    ~(stevedore/map-to-arg-string {:f force
                                   :backup (when backup (name backup))
-                                  :p preserve})
+                                  :p preserve}
+                                 :assign true)
    ~source ~destination))
 (script/defimpl cp [#{:darwin :os-x}]
   [source destination & {:keys [force backup preserve]}]
   ("cp"
-   ~(stevedore/map-to-arg-string {:f force :p preserve})
+   ~(stevedore/map-to-arg-string {:f force :p preserve} :assign true)
    ~source ~destination))
 
 (script/defscript ln [source destination & {:keys [force symbolic]}])
@@ -169,7 +170,7 @@
       (string/join
        " "
        (map
-        (fn [[key value]]
+        (fn [[^String key ^String value]]
           (let [used (fn [c]
                        (or (>= (.indexOf key (int c)) 0)
                            (>= (.indexOf value (int c)) 0)))
@@ -202,7 +203,7 @@
     (println
      (quoted (str "  " @(pipe ("basename" ~file) ("sed" -e "s/.md5//"))))
      ">>" ~file))
-  (sed-file ~file ~{"/.*/\\(.+\\)" "\\1"} ~{}))
+  (sed-file ~file ~{"/.*/\\(..*\\)" "\\1"} ~{}))
 
 (script/defscript md5sum-verify [file & {:as options}])
 (script/defimpl md5sum-verify :default
@@ -223,8 +224,8 @@
   ("(" (chain-and
         (var testfile @(~cut ~file :delimiter " " :fields 2))
         (var md5 @(~cut ~file :delimiter " " :fields 1))
-        ("cd" @(dirname ~file))
-        ("test" (quoted @("/sbin/md5" -q @testfile)) == (quoted @md5))
+        (var md5q @("/sbin/md5" -q (quoted (str @(dirname ~file) / @testfile))))
+        ("test" (quoted @md5q) == (quoted @md5))
         @mres) ")"))
 
 (script/defscript backup-option [])
@@ -305,9 +306,13 @@
   "Create a temporary directory"
   [pattern & {:as options}])
 (script/defimpl make-temp-dir :default [pattern & {:as options}]
-  @("mktemp" -d
+  @("mktemp" -d --tmpdir
     ~(stevedore/map-to-arg-string options)
     ~(str pattern "XXXXX")))
+(script/defimpl make-temp-dir [#{:darwin :os-x}] [pattern & {:as options}]
+  @("mktemp" -d
+    ~(stevedore/map-to-arg-string options)
+    -t (str "pallet" ~(str pattern "XXXXX"))))
 
 
 ;;; Host information.
@@ -735,7 +740,10 @@
                                   options chkconfig-default-options))))))
 
 
-
+;;; Functions like clojure.java.io
+(script/defscript file [& args])
+(script/defimpl file :default [& args]
+  (str ~@(interpose "/" args)))
 
 ;;; Functions to return distribution specific paths.
 ;;;
@@ -757,6 +765,10 @@
 (script/defscript log-root [])
 (script/defimpl log-root :default []
   "/var/log")
+
+(script/defscript state-root [])
+(script/defimpl state-root :default []
+  "/var/lib")
 
 (script/defscript pid-root [])
 (script/defimpl pid-root :default []

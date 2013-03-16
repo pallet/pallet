@@ -1,4 +1,4 @@
-(defproject com.palletops/pallet "0.8.0-beta.4"
+(defproject com.palletops/pallet "0.8.0-beta.5"
   :description
   "DevOps for the JVM.
 
@@ -19,17 +19,15 @@ unprecedented level of customization."
                  [org.clojure/tools.cli "0.2.2"]
                  [org.clojure/algo.monads "0.1.0"]
                  [com.palletops/chiba "0.2.0"]
-                 [org.cloudhoist/thread-expr "1.2.0"]
-                 [org.cloudhoist/pallet-common "0.3.1"]
-                 [org.cloudhoist/script-exec "0.2.2"]
-                 [com.palletops/stevedore "0.8.0-beta.1"]
-                 [enlive "1.0.1"]
-                 [pallet-fsmop "0.2.3"]
+                 [com.palletops/thread-expr "1.3.0"]
+                 [com.palletops/pallet-common "0.4.0"]
+                 [com.palletops/script-exec "0.3.0"]
+                 [com.palletops/stevedore "0.8.0-beta.2"]
+                 [enlive "1.0.1"
+                  :exclusions [org.clojure/clojure]]
+                 [pallet-fsmop "0.2.5"]
                  [pallet-map-merge "0.1.0"]
                  [useful "0.8.6"]
                  [commons-codec "1.4"]]
-  :repositories {"sonatype"
-                 {:url "https://oss.sonatype.org/content/repositories/releases/"
-                  :snapshots false}}
   :classifiers {:tests {:source-paths ^:replace ["test"]
                         :resource-paths ^:replace []}})

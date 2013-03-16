@@ -43,11 +43,19 @@
    (assoc action :default-script-prefix :no-sudo)
    (.getPath tmpfile)))
 
+(defn- local-script-dir [{:keys [script-dir]}]
+  (if script-dir
+    (if (.startsWith "/" script-dir)
+      script-dir
+      (str (System/getProperty "user.home") "/" script-dir))
+    (System/getProperty "user.home")))
+
 (defn script-on-origin
   "Execute a script action on the origin"
   [session action action-type [options value]]
   (logging/trace "script-on-origin")
-  (let [script (script-builder/build-script options value action)
+  (let [action (merge {:script-dir (local-script-dir action)} action)
+        script (script-builder/build-script options value action)
         tmpfile (java.io.File/createTempFile "pallet" "script")]
     (try
       (log-multiline :debug "localhost script: %s" script)
@@ -69,7 +77,7 @@
             result (assoc result :script script)]
         (when-let [e (:err result)]
           (when-not (string/blank? e)
-            (doseq [l (string/split-lines e)
+            (doseq [^String l (string/split-lines e)
                     :when (not (.startsWith l "#> "))]  ; logged elsewhere
               (logging/warnf "localhost %s" l))))
         [(result-with-error-map "localhost" "Error executing script" result)

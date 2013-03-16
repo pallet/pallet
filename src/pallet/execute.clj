@@ -34,7 +34,7 @@
   [user]
   (comp #(strip-sudo-password % user) normalise-eol))
 
-(defn status-line? [line]
+(defn status-line? [^String line]
   (.startsWith line "#> "))
 
 (defn status-lines
@@ -46,7 +46,7 @@
   "Return a function to log (multi-line) script output, removing passwords."
   [server user]
   (comp
-   #(doseq [l %]
+   #(doseq [^String l %]
       (cond
        (not (status-line? l)) (logging/debugf "%s output => %s" server l)
        (.endsWith l "FAIL") (logging/errorf "%s %s" server l)

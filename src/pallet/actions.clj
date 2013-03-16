@@ -81,7 +81,7 @@
                              ~@(if is-stevedore?
                                  (rest condition)
                                  ["test" condition])
-                             (~'echo @~'?)))))] )]
+                             (~'println @~'?)))))] )]
          (if-action ~(if is-script?
                        `(delayed [s#]
                                  (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
@@ -113,7 +113,7 @@
                              ~@(if is-stevedore?
                                  (rest condition)
                                  ["test" condition])
-                             (~'echo @~'?)))))])]
+                             (~'println @~'?)))))])]
          (if-action ~(if is-script?
                        `(delayed [s#]
                           (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
@@ -252,8 +252,9 @@
   (concat content-options version-options ownership-options))
 
 (defaction transfer-file
-  "Function to transfer a local file to a remote path."
-  [local-path remote-path])
+  "Function to transfer a local file to a remote path.
+Prefer remote-file or remote-directory over direct use of this action."
+  [local-path remote-path remote-md5-path])
 
 (defaction transfer-file-to-local
   "Function to transfer a remote file to a local path."
@@ -397,7 +398,7 @@ Content can also be copied from a blobstore.
   {:pre [path]}
   (verify-local-file-exists local-file)
   (when local-file
-    (transfer-file local-file (str path ".new")))
+    (transfer-file local-file (new-filename path) (md5-filename path)))
   (with-action-options local-file-options
     (remote-file-action
      path
@@ -504,7 +505,7 @@ option and :unpack :unzip.
            :as options}]
   (verify-local-file-exists local-file)
   (when local-file
-    (transfer-file local-file (temp-filename path)))
+    (transfer-file local-file (new-filename path)))
   (with-action-options local-file-options
     (remote-directory-action
      path
@@ -599,6 +600,13 @@ option and :unpack :unzip.
 (defaction install-deb
   "Add a deb.  Source options are as for remote file."
   [deb-name & {:as options}])
+
+(defaction debconf-set-selections
+  "Set debconf selections.
+Specify `:line` as a string, or `:package`, `:question`, `:type` and
+`:value` options."
+  {:always-before #{package}}
+  [{:keys [line package question type value]}])
 
 (defaction minimal-packages
   "Add minimal packages for pallet to function"

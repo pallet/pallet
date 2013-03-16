@@ -53,13 +53,16 @@ up the working directory (and possibly environment variables in the
 future)."
   [{:keys [language version interpreter] :or {language :bash} :as options}
    script
-   {:keys [script-dir] :as action}]
+   {:keys [script-dir script-trace] :as action}]
   (str
    prolog
    (if script-dir
      (stevedore/script
       (~mkdir ~script-dir :path true)
       ("cd" ~script-dir))
+     "")
+   (if (and (= language :bash) script-trace)
+     "set -x\n"
      "")
    (if (= language :bash)
      script

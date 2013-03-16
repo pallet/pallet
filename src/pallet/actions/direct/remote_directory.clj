@@ -12,7 +12,8 @@
    [pallet.action-plan :only [checked-commands]]
    [pallet.actions :only [directory remote-directory]]
    [pallet.actions-impl
-    :only [remote-directory-action remote-file-action temp-filename]]
+    :only [md5-filename new-filename remote-directory-action
+           remote-file-action]]
    [pallet.utils :only [apply-map]]))
 
 (def ^{:private true}
@@ -36,8 +37,8 @@
                           :overwrite-changes overwrite-changes})
            first second)
           tarpath])
-   local-file ["" (temp-filename path)]
-   remote-file ["" remote-file]))
+   local-file ["" (new-filename path) (md5-filename path)]
+   remote-file ["" remote-file (str remote-file ".md5")]))
 
 (implement-action remote-directory-action :direct
   {:action-type :script :location :target}
@@ -58,10 +59,12 @@
       :create (let [url (options :url)
                     unpack (options :unpack :tar)]
                 (when (and (or url local-file remote-file) unpack)
-                  (let [[cmd tarpath] (source-to-cmd-and-path
-                                       session path
-                                       url local-file remote-file md5 md5-url
-                                       install-new-files overwrite-changes)
+                  (let [[cmd tarpath tar-md5] (source-to-cmd-and-path
+                                               session path
+                                               url local-file remote-file
+                                               md5 md5-url
+                                               install-new-files
+                                               overwrite-changes)
                         tar-md5 (str tarpath ".md5")
                         path-md5 (str path "/.pallet.directory.md5")]
                     (checked-commands

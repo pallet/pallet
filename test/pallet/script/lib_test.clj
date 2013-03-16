@@ -1,6 +1,6 @@
 (ns pallet.script.lib-test
   (:use pallet.script.lib)
-  (:use [pallet.stevedore :only [map-to-arg-string script]]
+  (:use [pallet.stevedore :only [map-to-arg-string fragment script]]
         clojure.test)
   (:require
    [pallet.script :as script]
@@ -59,7 +59,7 @@
            (quoted (str "  " @(pipe ("basename" abc.md5)
                                     ("sed" -e "s/.md5//"))))
            ">>" abc.md5))
-        ("sed" -i -e (quoted "s_/.*/\\(.+\\)_\\1_") "abc.md5"))
+        ("sed" -i -e (quoted "s_/.*/\\(..*\\)_\\1_") "abc.md5"))
        (script (~normalise-md5 abc.md5)))))
 
 (deftest md5sum-verify-test
@@ -249,16 +249,13 @@
        "$(grep nameserver /etc/resolv.conf | cut -f2)"
        (script (~nameservers)))))
 
-
-
 ;;; test filesystem paths
-
 (defmacro mktest
   [os-family f path]
-  `(is (~'script-no-comment= ~path
-                             (script/with-script-context [~os-family]
-                               (script
-                                ( ~(list `unquote f)))))))
+  `(is (= ~path
+          (script/with-script-context [~os-family]
+            (fragment
+             ~(list f))))))
 
 (deftest etc-default-test
   (mktest :ubuntu etc-default "/etc/default")
@@ -266,3 +263,11 @@
   (mktest :centos etc-default "/etc/sysconfig")
   (mktest :fedora etc-default "/etc/sysconfig")
   (mktest :os-x etc-default "/etc/defaults"))
+
+(deftest config-root-test
+  (mktest :ubuntu config-root "/etc"))
+
+(deftest file-test
+  (is (=  "/etc/riemann" (fragment (file (config-root) "riemann"))))
+  (let [a "/etc" b "riemann"]
+    (is (=  "/etc/riemann" (fragment (file ~a ~b))))))

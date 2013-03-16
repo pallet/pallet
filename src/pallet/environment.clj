@@ -167,7 +167,7 @@
      (get-in (:environment session) keys default)))
 
 (defn get-environment
-  "Monadic environment accessor"
+  "Environment accessor."
   ([keys]
      (get-for (session) keys))
   ([keys default]

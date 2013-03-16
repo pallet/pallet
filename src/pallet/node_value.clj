@@ -84,7 +84,8 @@
 
 (defn assign-node-value
   [nv v]
-  (session! (assoc-in (session) [:plan-state :node-values (.path nv)] v)))
+  (session!
+   (assoc-in (session) [:plan-state :node-values (.path ^NodeValue nv)] v)))
 
 (defn get-node-value
   [nv]

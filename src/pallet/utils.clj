@@ -23,7 +23,7 @@
   [s]
   (str "\"" s "\""))
 
-(defn underscore [s]
+(defn underscore [^String s]
   "Change - to _"
   (apply str (interpose "_"  (.split s "-"))))
 
@@ -51,9 +51,9 @@
     (.getResourceAsStream loader name)))
 
 (defn load-resource-url
-  [name]
+  [^java.net.URL name]
   (logging/tracef "load-resource-url %s" name)
-  (with-open [stream (.getContent name)
+  (with-open [^java.io.InputStream stream (.getContent name)
               r (new java.io.BufferedReader
                      (new java.io.InputStreamReader
                           stream (.name (java.nio.charset.Charset/defaultCharset))))]
@@ -240,7 +240,7 @@ value to assoc. The assoc only occurs if the value is non-nil."
 (defn classpath-urls
   "Return the classpath URL's for the current clojure classloader."
   []
-  (.getURLs (.getClassLoader clojure.lang.RT)))
+  (.getURLs ^java.net.URLClassLoader (.getClassLoader clojure.lang.RT)))
 
 (defn classpath
   "Return the classpath File's for the current clojure classloader."
@@ -261,7 +261,7 @@ value to assoc. The assoc only occurs if the value is non-nil."
    identity
    (map
     #(try
-       (java.util.jar.JarFile. %)
+       (java.util.jar.JarFile. ^java.io.File %)
        (catch Exception _
          (logging/warnf "Unable to open jar file on classpath: %s" %)))
     (filter jar-file? (classpath)))))

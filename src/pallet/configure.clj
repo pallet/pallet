@@ -80,7 +80,8 @@
      (read-config (.getAbsolutePath (config-file-path)))
      {})
    (for [file (filter
-               #(and (.isFile %) (.endsWith (.getName %) ".clj"))
+               #(and (.isFile ^java.io.File %)
+                     (.endsWith (.getName ^java.io.File %) ".clj"))
                (file-seq (java-io/file (home-dir) "services")))]
      (read-string (slurp file)))))
 

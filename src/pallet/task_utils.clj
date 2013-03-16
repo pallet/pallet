@@ -4,6 +4,7 @@
    [clojure.java.io :refer [file]]
    [clojure.string :as string]
    [clojure.tools.cli :refer [cli]]
+   [clojure.tools.logging :refer [fatalf]]
    [pallet.compute :refer [service-properties]]
    [pallet.project
     :refer [create-project-file default-pallet-file default-user-pallet-file
@@ -42,6 +43,8 @@
         (try
           (read-project pallet-file)
           (catch java.io.FileNotFoundException e
+            (fatalf e "Could not read pallet configuration for project from %s"
+                    pallet-file)
             (abort
              (str "Could not read pallet configuration for project from "
                   pallet-file)))
@@ -79,11 +82,11 @@
           pallet-file))))
 
 (defn comma-sep->seq
-  [s]
+  [^String s]
   (and s (.split s ",")))
 
 (defn comma-sep->kw-seq
-  [s]
+  [^String s]
   (and s (map keyword (.split s ","))))
 
 (defn project-groups
@@ -95,8 +98,8 @@ filtered by selectors, groups and roles."
      pallet-project
      provider
      (set (comma-sep->kw-seq selectors))
-     (set (comma-sep->kw-seq groups))
-     (set (comma-sep->kw-seq roles)))))
+     (set (comma-sep->kw-seq roles))
+     (set (comma-sep->kw-seq groups)))))
 
 (defn process-args
   "Process command line arguments. Returns an option map, a vector of arguments

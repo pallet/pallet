@@ -4,7 +4,7 @@
    [clojure.tools.logging :only [debugf tracef]]
    [pallet.action :only [with-action-options]]
    [pallet.actions
-    :only [add-rpm package package-source package-manager
+    :only [add-rpm debconf-set-selections package package-manager package-source
            package-source-changed-flag plan-when remote-directory]]
    [pallet.crate :only [get-settings defmulti-plan defmethod-plan target-flag?]]
    [pallet.crate.package-repo :only [repository-packages rebuild-repository]]
@@ -32,7 +32,10 @@
 ;; install based on the setting's :packages key
 (defmethod-plan install :packages
   [facility instance-id]
-  (let [{:keys [packages]} (get-settings facility {:instance-id instance-id})]
+  (let [{:keys [packages preseeds]}
+        (get-settings facility {:instance-id instance-id})]
+    (doseq [p preseeds]
+      (debconf-set-selections p))
     (doseq [p packages]
       (package p))))
 
@@ -41,7 +44,7 @@
 ;; changes.
 (defmethod-plan install :package-source
   [facility instance-id]
-  (let [{:keys [package-source packages package-options]}
+  (let [{:keys [package-source packages package-options preseeds]}
         (get-settings facility {:instance-id instance-id})]
     (debugf "package source %s %s" facility package-source)
     (apply-map actions/package-source (:name package-source) package-source)
@@ -49,6 +52,8 @@
       (plan-when modified?
         (package-manager :update))
       (tracef "packages %s options %s" (vec packages) package-options)
+      (doseq [p preseeds]
+        (debconf-set-selections p))
       (doseq [p packages]
         (apply-map package p package-options)))))
 

@@ -21,15 +21,15 @@
                    (System/getProperty "os.version"))
   (logging/debugf "Arch            %s" (System/getProperty "os.arch"))
   (logging/debugf "Admin user      %s" (:username admin-user))
-  (let [private-key-path (:private-key-path admin-user)
-        public-key-path (:public-key-path admin-user)]
+  (let [^String private-key-path (:private-key-path admin-user)
+        ^String public-key-path (:public-key-path admin-user)]
     (logging/debugf
      "private-key-path %s %s"
      private-key-path (.canRead (java.io.File. private-key-path)))
     (logging/debugf
      "public-key-path %s %s"
      public-key-path (.canRead (java.io.File. public-key-path)))
-    (doseq [f (classpath-files)]
+    (doseq [^java.io.File f (classpath-files)]
       (logging/debugf "classpath: %s" (.getPath f)))
     (doseq [[k v] (System/getProperties)]
       (logging/debugf "property: %s %s" k v))))
@@ -127,3 +127,13 @@
         (println "Error: no credentials supplied\n\n")
         ((main/resolve-task "help"))
         (throw (ex-info "Error: no credentials supplied" {:exit-code 1}))))))
+
+(defn invoke-no-service
+  [options task task-name params]
+  (try
+    (apply task options params)
+    (catch clojure.lang.ArityException e
+      (println (.getMessage e))
+      (require 'pallet.task.help)
+      (let [help (ns-resolve 'pallet.task.help 'help)]
+        (help nil task-name)))))

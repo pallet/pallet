@@ -15,34 +15,15 @@
    [pallet.action :only [implement-action]]
    [pallet.actions
     :only [exec-script transfer-file transfer-file-to-local delete-local-path]]
-   [pallet.actions-impl :only [remote-file-action]]
+   [pallet.actions-impl
+    :only [copy-filename md5-filename new-filename remote-file-action]]
    [pallet.utils :only [apply-map]]))
-
-(defn- get-session
-  "Build a curl or wget command from the specified session object."
-  [session]
-  (stevedore/script
-   (if (test @(~lib/which curl))
-     ("curl" -s "--retry" 20
-      ~(apply str (map
-                   #(format "-H \"%s: %s\" " (first %) (second %))
-                   (.. session getHeaders entries)))
-      ~(.. session getEndpoint toASCIIString))
-     (if (test @(~lib/which wget))
-       ("wget" -nv "--tries" 20
-        ~(apply str (map
-                     #(format "--header \"%s: %s\" " (first %) (second %))
-                     (.. session getHeaders entries)))
-        ~(.. session getEndpoint toASCIIString))
-       (do
-         (println "No download utility available")
-         (~lib/exit 1))))))
 
 (implement-action delete-local-path :direct
   {:action-type :fn/clojure :location :origin}
-  [session local-path]
+  [session ^java.io.File local-path]
   [(fn [session]
-     (.delete local-path)
+     (.delete (io/file local-path))
      [local-path session])
    session])
 
@@ -55,9 +36,10 @@
 
 (implement-action transfer-file :direct
   {:action-type :transfer/from-local :location :origin}
-  [session local-path remote-path]
+  [session local-path remote-path remote-md5-path]
   [[(.getPath (io/file local-path))
-    (.getPath (io/file remote-path))]
+    (.getPath (io/file remote-path))
+    (.getPath (io/file remote-md5-path))]
    session])
 
 (implement-action remote-file-action :direct
@@ -77,14 +59,23 @@
                       install-new-files true}
                  :as options}]
   [[{:language :bash}
-    (let [new-path (str path ".new")
-          md5-path (str path ".md5")
+    (let [new-path (new-filename path)
+          md5-path (md5-filename path)
+          copy-path (copy-filename path)
           versioning (if no-versioning nil :numbered)
           proxy (environment/get-for session [:proxy] nil)]
       (case action
         :create
         (action-plan/checked-commands
          (str "remote-file " path)
+
+         ;; create the directory if required - note this is not the final
+         ;; directory
+         (stevedore/chained-script
+          ("set" "-x")
+          (lib/mkdir @(lib/dirname ~new-path) :path true))
+
+         ;; Create the new content
          (cond
            (and url md5) (stevedore/chained-script
                           (if (chain-or (not (file-exists? ~path))
@@ -98,40 +89,37 @@
                                :proxy ~proxy :insecure ~insecure))))
            ;; Download md5 to temporary directory.
            (and url md5-url) (stevedore/chained-script
-                              ("set" "-x")
-                              (var tmpdir (quoted (~lib/make-temp-dir "rf")))
+                              (var tmpdir (quoted (lib/make-temp-dir "rf")))
                               (var basefile
                                    (quoted
-                                    (str @tmpdir "/" @(~lib/basename ~path))))
+                                    (str @tmpdir "/" @(lib/basename ~path))))
                               (var newmd5path (quoted (str @basefile ".md5")))
-                              (~lib/download-file
+                              (lib/download-file
                                ~md5-url @newmd5path :proxy ~proxy
                                :insecure ~insecure)
-                              (~lib/normalise-md5 @newmd5path)
+                              (lib/normalise-md5 @newmd5path)
                               (if (chain-or (not (file-exists? ~md5-path))
-                                      (not (~lib/diff @newmd5path ~md5-path)))
+                                      (not (lib/diff @newmd5path ~md5-path)))
                                 (do
-                                  (~lib/download-file
+                                  (lib/download-file
                                    ~url ~new-path :proxy ~proxy
                                    :insecure ~insecure)
-                                  (~lib/ln ~new-path @basefile)
+                                  (lib/ln ~new-path @basefile)
                                   (if-not (~lib/md5sum-verify @newmd5path)
                                     (do
                                       (println ~(str "Download of " url
                                                      " failed to match md5"))
-                                      (~lib/exit 1)))))
-                              (~lib/rm @tmpdir :force ~true :recursive ~true))
+                                      (lib/rm @tmpdir
+                                              :force ~true :recursive ~true)
+                                      (lib/exit 1)))))
+                              (lib/rm @tmpdir :force ~true :recursive ~true))
            url (stevedore/chained-script
                 (~lib/download-file
                  ~url ~new-path :proxy ~proxy :insecure ~insecure))
            content (stevedore/script
                     (~lib/heredoc
                      ~new-path ~content ~(select-keys options [:literal])))
-           local-file nil
-           ;; (let [temp-path (action/register-file-transfer!
-           ;;                   local-file)]
-           ;;    (stevedore/script
-           ;;     (mv -f (str "~/" ~temp-path) ~new-path)))
+           local-file nil ; already copied in remote-file wrapper
            remote-file (stevedore/script
                         (~lib/cp ~remote-file ~new-path :force ~true))
            template (stevedore/script
@@ -165,39 +153,57 @@
                  (do
                    ~(stevedore/chain-commands
                      (stevedore/script
-                      (~lib/mv
-                       ~new-path ~path :backup ~versioning :force ~true))
+                      (lib/cp           ; copy to copy-path with versioning
+                       ~new-path ~copy-path :backup ~versioning :force ~true)
+                      (lib/mv ~new-path ~path :force ~true))
                      (if flag-on-changed
                        (stevedore/script (~lib/set-flag ~flag-on-changed)))))))
-              (stevedore/script
+              (stevedore/chained-script
+               ;; check if the file and the current copy are the same
+               (var filediff "")
+               (if (&& (file-exists? ~path) (file-exists? ~copy-path))
+                 (do
+                   (lib/diff ~path ~copy-path :unified true)
+                   (set! filediff "$?")))
+               ;; check if the current copy and the md5 match
                (var md5diff "")
-               (if (&& (file-exists? ~path) (file-exists? ~md5-path))
+               (if (&& (file-exists? ~copy-path) (file-exists? ~md5-path))
                  (do
                    (~lib/md5sum-verify ~md5-path)
                    (set! md5diff "$?")))
+               ;; get the diff between current and new
                (var contentdiff "")
                (if (&& (file-exists? ~path) (file-exists? ~new-path))
                  (do
                    (~lib/diff ~path ~new-path :unified true)
                    (set! contentdiff "$?")))
+
+               ;; report any errors
+               (var errexit 0)
+               (if (== @filediff 1)
+                 (do
+                   (println
+                    "Existing file did not match the pallet master copy: FAIL")
+                   (set! errexit 1)))
+
                (if (== @md5diff 1)
                  (do
-                   (println "Existing content did not match md5:")
-                   (~lib/exit 1)))
-               (if (!= @contentdiff "0")
+                   (println "Existing content did not match md5: FAIL")
+                   (set! errexit 1)))
+
+               ;; exit if error
+               (== @errexit 0)
+
+               ;; install the file if the content is different
+               (if (&& (not (== @contentdiff 0)) (file-exists? ~new-path))
                  (do
                    ~(stevedore/chain-commands
                      (stevedore/script
-                      (~lib/mv
-                       ~new-path ~path :force ~true :backup ~versioning))
+                      (lib/cp
+                       ~new-path ~copy-path :force ~true :backup ~versioning)
+                      (lib/mv ~new-path ~path :force ~true))
                      (if flag-on-changed
-                       (stevedore/script (~lib/set-flag ~flag-on-changed))))))
-               (if-not (file-exists? ~path)
-                 (do
-                   ~(stevedore/chain-commands
-                     (stevedore/script (~lib/mv ~new-path ~path))
-                     (if flag-on-changed
-                       (stevedore/script (~lib/set-flag ~flag-on-changed))))))))
+                       (stevedore/script (lib/set-flag ~flag-on-changed))))))))
             (file/adjust-file path options)
             (when-not no-versioning
               (stevedore/chain-commands

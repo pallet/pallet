@@ -1,7 +1,8 @@
 (ns pallet.script-test
   "Simple script functions for testing."
   (:require
-   [clojure.string :as string])
+   [clojure.string :as string]
+   [pallet.script.lib :refer [exit]])
   (:use
    [pallet.stevedore :only [script]]))
 
@@ -18,7 +19,7 @@
       (when-not (= 0 (deref "failcount"))
         (println "' '")
         (println (deref "failcount") " test failures")
-        (~'exit 1)))]))
+        (exit 1)))]))
 
 (defmacro is=
   "Test for equality"

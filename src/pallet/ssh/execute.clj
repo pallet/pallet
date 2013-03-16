@@ -9,6 +9,7 @@
    [pallet.execute :as execute
     :refer [clean-logs log-script-output result-with-error-map]]
    [pallet.local.execute :as local]
+   [pallet.script.lib :refer [chown mkdir exit]]
    [pallet.transport :as transport]
    [pallet.transport.local]
    [pallet.transport.ssh]
@@ -42,7 +43,7 @@
   "Create a temporary remote file using the `ssh-session` and the filename
   `prefix`"
   [connection prefix]
-  (logging/tracef "ssh-mktemp %s" (.state connection))
+  (logging/tracef "ssh-mktemp %s" (bean connection))
   (let [result (transport/exec
                 connection
                 {:execv [(stevedore/script
@@ -71,7 +72,8 @@
      (try
        ~@body
        (catch Exception e#
-         (logging/errorf e# "SSH Error")))))
+         (logging/errorf e# "SSH Error")
+         (throw e#)))))
 
 (defn ssh-script-on-target
   "Execute a bash action on the target via ssh."
@@ -125,29 +127,40 @@
 
 (defn- ssh-upload
   "Upload a file to a remote location via sftp"
-  [connection file remote-name]
-  (let [tmpcpy (ssh-mktemp connection "pallet")]
-    (logging/infof
-     "Transferring %s to %s:%s via %s"
-     file (:server (transport/endpoint connection)) remote-name tmpcpy)
-    (transport/send-stream connection (io/input-stream file) tmpcpy {})
-    (transport/exec
-     connection
-     {:in (stevedore/script
-           ("chmod" "0600" ~tmpcpy)
-           ("mv" -f ~tmpcpy ~remote-name)
-           ("exit" "$?"))}
-     {})))
+  [session connection file remote-name]
+  (logging/infof
+   "Transferring file %s from local to %s:%s"
+   file (:server (transport/endpoint connection)) remote-name)
+  (if-let [dir (.getParent (io/file remote-name))]
+    (let [prefix (or (script-builder/prefix :sudo session nil) "")
+          {:keys [exit] :as rv} (transport/exec
+                                 connection
+                                 {:in (stevedore/script
+                                       (~prefix (mkdir ~dir :path true))
+                                       (~prefix
+                                        (chown
+                                         ~(-> session :user :username) ~dir))
+                                       (exit "$?"))}
+                                 {})]
+      (if (zero? exit)
+        (transport/send-stream
+         connection (io/input-stream file) remote-name {:mode 0600})
+        (throw (ex-info
+                (str "Failed to create target directory " dir)
+                rv))))
+    (transport/send-stream
+     connection (io/input-stream file) remote-name {:mode 0600})))
 
 (defn ssh-from-local
   "Transfer a file from the origin machine to the target via ssh."
   [session value]
+  (logging/tracef "ssh-from-local %s" value)
+  (logging/tracef "ssh-from-local %s" session)
+  (assert (-> session :server) "Target server in session")
+  (assert (-> session :server :node) "Target node in session")
   (with-connection session [connection]
     (let [endpoint (transport/endpoint connection)]
-      (let [[file remote-name] value
-            remote-md5-name (-> remote-name
-                                (string/replace #"\.new$" ".md5")
-                                (string/replace #"-content$" ".md5"))]
+      (let [[file remote-name remote-md5-name] value]
         (logging/debugf
          "Remote file %s:%s from %s" (:server endpoint) remote-md5-name file)
         (let [md5 (try
@@ -168,15 +181,15 @@
                 (if (not=
                      (first (string/split md5 #" "))
                      (first (string/split local-md5 #" ")) )
-                  (ssh-upload connection file remote-name)
+                  (ssh-upload session connection file remote-name)
                   (logging/infof
                    "%s:%s is already up to date"
                    (:server endpoint) remote-name))))
-            (ssh-upload connection file remote-name))))
+            (ssh-upload session connection file remote-name))))
       [value session])))
 
 (defn ssh-to-local
-  "Transfer a file from the origin machine to the target via ssh."
+  "Transfer a file from the target machine to the origin via ssh."
   [session value]
   (with-connection session [connection]
     (let [[remote-file local-file] value]
