@@ -1,5 +1,73 @@
 Unstable development branch
 
+# 0.8.0-beta.5
+
+- Update fsmop, stevedore, script-exec, and pallet-common
+
+- Add :preseeds option to :packages install strategy
+  The :preseeds key takes a sequence of debconf-set-selections maps.
+
+- Add debconf-set-selections action
+  The action can be used to set debconf selection values.  It runs before
+  any
+  `package` action.
+
+- Add pallet.script.lib/file like c.java.io/file
+  Adds a file function for concatenating path elements in script.
+- Fix ssh-upload for no-sudo case
+
+- Update :no-service-required tasks to take options
+  Adds an initial option map to all no-service-required tasks.  This makes
+  arg lists consistent across tasks, and allows no-service-required tasks to
+  still use lein project information when invoked through pallet-lein.
+
+- Fix exit status for testing-script
+
+- Allow delete-local-path to take a File
+
+- Fix cp script function long option format
+
+- Remove md5 and backup files from target paths
+  The md5 files and backup versions are now written to a parallel directory
+  structure under /var/lib/pallet.
+
+- Add precondition for debconf-set-selections
+
+- Add action option to enable script tracing
+
+- Don't swallow exceptions from ssh script execution
+
+- Make local relative paths user home relative
+  When running local script functions, relative paths should be resolved
+  relative to the user's home directory, for consistency with ssh execution.
+
+- Ensure asserts within plan functions are reported
+
+- Create temp directorys under TEMPDIR on osx
+
+- Make md5 checking on os x more robust
+
+- Correct the fixup of md5 files with paths
+
+- Fix argument order in spec-from-project call
+
+- When a task fails to read pallet.clj, show reason
+  The exception thrown when pallet.clj failed to be read was being
+  swallowed.  It is now logged at FATAL level before aborting.
+
+- Remove reflection warnings
+
+- Remove unused get-session function
+
+- Remove unused cache implementation
+
+- Remove outdated launch script generator
+
+- Add exclusion to prevent Enlive from checking every Clojure version.
+
+- Add image-user to node-list nodes
+
+
 # 0.8.0-beta.4
 
 - Add :no-service-require metadata to project-init
