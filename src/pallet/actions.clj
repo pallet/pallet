@@ -505,7 +505,7 @@ option and :unpack :unzip.
            :as options}]
   (verify-local-file-exists local-file)
   (when local-file
-    (transfer-file local-file (new-filename path)))
+    (transfer-file local-file (new-filename path) (md5-filename path)))
   (with-action-options local-file-options
     (remote-directory-action
      path

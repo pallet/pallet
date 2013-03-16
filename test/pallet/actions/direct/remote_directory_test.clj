@@ -7,7 +7,8 @@
    [pallet.actions-impl :only [remote-file-action]]
    [pallet.common.logging.logutils :only [logging-threshold-fixture]]
    [pallet.core.session :only [with-session]]
-   [pallet.core.user :only [*admin-user*]])
+   [pallet.core.user :only [*admin-user*]]
+   [pallet.utils :refer [with-temporary tmpfile]])
   (:require
    [pallet.build-actions :as build-actions]
    [pallet.stevedore :as stevedore]
@@ -91,4 +92,13 @@
                  :url "http://site.com/a/file.tgz"
                  :unpack :tar
                  :owner "fred"
-                 :recursive false))))))
+                 :recursive false)))))
+  (with-temporary [tmp (tmpfile)]
+    (is (first (build-actions/build-actions
+                   {}
+                 (remote-directory
+                  "/path"
+                  :local-file (.getPath tmp)
+                  :unpack :tar
+                  :owner "fred"
+                  :recursive false))))))
