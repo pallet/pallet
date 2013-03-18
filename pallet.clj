@@ -3,7 +3,7 @@
 ;;; By default, the pallet.api and pallet.crate namespaces are already referred.
 ;;; The pallet.crate.automated-admin-user/automated-admin-user us also referred.
 
-(require '[pallet.test-specs :refer [remote-file-test]])
+(require '[pallet.test-specs :refer [remote-file-test rsync-test]])
 
 
 (defproject pallet
@@ -15,4 +15,4 @@
                 :group-suffix "u1204"
                 :selectors #{:default}}]}}
 
-  :groups [remote-file-test])
+  :groups [remote-file-test rsync-test])
