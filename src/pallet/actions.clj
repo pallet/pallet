@@ -56,7 +56,7 @@
   [& body]
   `((clj-action [~'&session]
       (binding [pallet.argument/*session* ~'&session]
-        ~@body))))
+        [(do ~@body) ~'&session]))))
 
 ;;; # Flow Control
 (defmacro plan-when
