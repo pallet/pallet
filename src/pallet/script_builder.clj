@@ -10,7 +10,7 @@
    [pallet.script.lib
     :only [bash env env-var-pairs exit heredoc make-temp-file mkdir rm sudo]]))
 
-(def prolog (str "#!/usr/bin/env bash\n"))
+(defn prolog []  (str "#!" (fragment (env)) "bash\n"))
 (def epilog "\nexit $?")
 
 (defmulti interpreter
@@ -49,7 +49,7 @@ future)."
    script
    {:keys [script-dir script-trace] :as action}]
   (str
-   prolog
+   (prolog)
    (if script-dir
      (stevedore/script
       (~mkdir ~script-dir :path true)
