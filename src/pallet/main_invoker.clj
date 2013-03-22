@@ -134,6 +134,7 @@
     (apply task options params)
     (catch clojure.lang.ArityException e
       (println (.getMessage e))
+      (println "Actual arguments" "_options_" (pr-str params))
       (require 'pallet.task.help)
       (let [help (ns-resolve 'pallet.task.help 'help)]
         (help nil task-name)))))

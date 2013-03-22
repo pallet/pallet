@@ -47,10 +47,10 @@
 This will create ~/.pallet/services/service-name.clj"
   {:no-service-required true
    :help-arglists '[[service-name provider-name? identity? credential?]]}
-  ([_ service-name]
-     (add-service service-name service-name))
-  ([_ service-name provider-name]
-     (add-service service-name provider-name nil nil))
+  ([options service-name]
+     (add-service options service-name service-name))
+  ([options service-name provider-name]
+     (add-service options service-name provider-name nil nil))
   ([_ service-name provider-name identity credential]
      (write-config-clj-unless-exists)
      (if (and service-name provider-name)
