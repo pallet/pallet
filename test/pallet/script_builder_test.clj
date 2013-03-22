@@ -44,15 +44,15 @@
 
 (deftest build-code-test
   (script/with-script-context [:ubuntu]
-    (is (= {:execv ["/usr/bin/sudo" "-n" "/usr/bin/env" "/bin/bash"]}
+    (is (= {:execv ["/usr/bin/sudo" "-n" "/usr/bin/env" "/bin/bash" "-l"]}
            (build-code {:user {}} {})))
-    (is (= {:execv ["/usr/bin/env" "/bin/bash"]}
+    (is (= {:execv ["/usr/bin/env" "/bin/bash" "-l"]}
            (build-code {:user {:no-sudo true}} {})))
-    (is (= {:execv ["/usr/bin/env" "/bin/bash"]}
+    (is (= {:execv ["/usr/bin/env" "/bin/bash" "-l"]}
            (build-code {:user {}} {:script-prefix :no-prefix})))
     (is (= {:execv
-            ["/usr/bin/sudo" "-n" "-u" "fred" "/usr/bin/env" "/bin/bash"]}
+            ["/usr/bin/sudo" "-n" "-u" "fred" "/usr/bin/env" "/bin/bash" "-l"]}
            (build-code {:user {}} {:sudo-user "fred"})))
     (is (= {:execv
-            ["/usr/bin/sudo" "-n" "-u" "fred" "/usr/bin/env" "/bin/bash"]}
+            ["/usr/bin/sudo" "-n" "-u" "fred" "/usr/bin/env" "/bin/bash" "-l"]}
            (build-code {:user {:sudo-user "fred"}} {})))))

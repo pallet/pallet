@@ -17,7 +17,7 @@
   "The interprester used to run a script."
   (fn [{:keys [language]}] language))
 (defmethod interpreter :default [_] nil)
-(defmethod interpreter :bash [_] (split (fragment (bash)) #" +"))
+(defmethod interpreter :bash [_] (split (fragment (bash :login true)) #" +"))
 
 (defn sudo-cmd-for
   "Construct a sudo command prefix for the specified user."

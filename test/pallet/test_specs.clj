@@ -2,10 +2,12 @@
   "Various group specs to test pallet on live infrastructure."
   (:require
    [clojure.java.io :refer [file]]
+   [pallet.action :refer [with-action-options]]
    [pallet.actions :refer [delete-local-path directory exec-checked-script
                            exec-script* remote-file rsync-directory]]
    [pallet.api :refer [group-spec plan-fn]]
    [pallet.crate :refer [admin-user defplan]]
+   [pallet.crate.environment :refer [system-environment]]
    [pallet.script-test :refer [testing-script is-true is=]]
    [pallet.utils :refer [tmpdir tmpfile]]))
 
@@ -75,6 +77,26 @@
                            "remote-file"
                            (is-true
                             (file-exists? "some/path/afile")
-                            "rsync copied correctly")
-                           ))))}
+                            "rsync copied correctly")))))}
       :roles #{:live-test :rsync})))
+
+(def environment-test
+  (group-spec "env-test"
+    :phases {:configure (plan-fn
+                          (system-environment "test" {"PALLET_TEST" "123"}))
+             :test (plan-fn
+                     (with-action-options {:prefix :no-sudo :script-trace true}
+                       (exec-script*
+                        (testing-script
+                         "environment"
+                         (is=
+                          "123" @PALLET_TEST
+                          "environment set ok"))))
+                     (with-action-options {:prefix :no-sudo :script-trace true}
+                       (exec-script*
+                        (testing-script
+                         "environment"
+                         (is=
+                          "123" @PALLET_TEST
+                          "environment set ok without sudo")))))}
+    :roles #{:live-test :env}))
