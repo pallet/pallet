@@ -54,7 +54,8 @@
                         overwrite-changes no-versioning max-versions
                         flag-on-changed
                         force
-                        insecure]
+                        insecure
+                        verify]
                  :or {action :create max-versions 5
                       install-new-files true}
                  :as options}]
@@ -145,6 +146,11 @@
                    (str "remote-file " path " specified without content."))))
 
          ;; process the new file accordingly
+         (when verify
+           (stevedore/checked-script
+            (str "Verify " new-path " with " verify)
+            (~verify ~new-path)))
+
          (when (and install-new-files (not link))
            (stevedore/chain-commands
             (if (or overwrite-changes no-versioning)

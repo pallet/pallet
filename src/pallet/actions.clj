@@ -354,6 +354,11 @@ Options for specifying the file's permissions are:
 `mode`
 : file-mode
 
+Options for verifying the file's content:
+
+`verify`
+: a command to run on the file on the node, before it is installed
+
 To copy the content of a local file to a remote file:
     (remote-file session \"remote/path\" :local-file \"local/path\")
 
@@ -393,7 +398,8 @@ Content can also be copied from a blobstore.
                   install-new-files
                   overwrite-changes no-versioning max-versions
                   flag-on-changed
-                  local-file-options]
+                  local-file-options
+                  verify]
            :as options}]
   {:pre [path]}
   (verify-local-file-exists local-file)
