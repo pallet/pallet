@@ -859,3 +859,42 @@
   (if (&& (&& (~has-command? setsebool) (directory? "/etc/selinux"))
           (file-exists? "/selinux/enforce"))
     ("setsebool" ~(if persist "-P" "") ~(name flag) ~value)))
+
+;;; ## Basic program locations
+(script/defscript sudo [& {:keys [no-prompt user stdin]}])
+(script/defimpl sudo :default [& {:keys [no-prompt user stdin]}]
+  ("/usr/bin/sudo"
+   ~@(when no-prompt ["-n"])
+   ~@(when user ["-u" user])
+   ~@(when stdin ["-S"])) )
+
+;; no support for -p
+(script/defimpl sudo
+  [#{:centos-5.3 :os-x :darwin :debian :fedora}]
+  [& {:keys [no-prompt user stdin]}]
+  ("/usr/bin/sudo"
+   ~@(when user ["-u" user])
+   ~@(when stdin ["-S"])))
+
+
+(script/defscript bash
+  "Call bash"
+  [& {:keys [login]}])
+(script/defimpl bash :default [& {:keys [login]}]
+  ("/bin/bash"
+   ~@(when login ["-l"])))
+
+
+(defn env-var-pairs
+  "Return a sequence of name=var strings for the given `vars` map."
+  [vars]
+  (map
+   (fn [[k v]] (format "%s=\"%s\"" (name k) v))
+   vars))
+
+(script/defscript env
+  "Setup an environment for another cmd.  Vars is a map of name and value
+  pairs."
+  [& {:keys [vars]}])
+(script/defimpl env :default [& {:keys [vars]}]
+  ("/usr/bin/env" ~@(env-var-pairs vars)))
