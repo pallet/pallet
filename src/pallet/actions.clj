@@ -520,6 +520,12 @@ option and :unpack :unzip.
        :overwrite-changes *force-overwrite*} ; capture bound values
       options))))
 
+(defaction wait-for-file
+  "Wait for a file to exist"
+  [path & {:keys [max-retries standoff service-name]
+           :or {action :create max-versions 5
+                install-new-files true}
+           :as options}])
 
 ;;; # Packages
 (defaction package
