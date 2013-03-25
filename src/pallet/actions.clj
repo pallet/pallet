@@ -68,7 +68,8 @@
         nv-kw (keyword (name nv))
         is-stevedore? (and (sequential? condition)
                            (symbol? (first condition))
-                           (= (resolve (first condition)) #'stevedore/script))
+                           (#{#'stevedore/script #'stevedore/fragment}
+                            (resolve (first condition))))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-context plan-when {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
@@ -100,7 +101,8 @@
         nv-kw (keyword (name nv))
         is-stevedore? (and (sequential? condition)
                            (symbol? (first condition))
-                           (= (resolve (first condition)) #'stevedore/script))
+                           (#{#'stevedore/script #'stevedore/fragment}
+                            (resolve (first condition))))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-context plan-when-not {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
