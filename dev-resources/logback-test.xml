@@ -84,13 +84,14 @@
   <logger name="pallet.action-plan" level="DEBUG"/>
   <logger name="pallet.algo.fsm" level="WARN"/>
   <logger name="pallet.algo.fsmop" level="WARN"/>
-  <logger name="pallet.action-plan" level="TRACE"/>
-  <logger name="pallet.executors" level="TRACE"/>
-  <logger name="pallet.execute" level="TRACE"/>
-  <logger name="pallet.core.api" level="TRACE"/>
-  <logger name="pallet.core.primitives" level="TRACE"/>
-  <logger name="pallet.core.operations" level="TRACE"/>
-  <logger name="pallet.transport" level="TRACE"/>
+  <logger name="pallet.action-plan" level="DEBUG"/>
+  <logger name="pallet.executors" level="INFO"/>
+  <logger name="pallet.execute" level="DEBUG"/>
+  <logger name="pallet.core.api" level="DEBUG"/>
+  <logger name="pallet.core.primitives" level="DEBUG"/>
+  <logger name="pallet.core.operations" level="DEBUG"/>
+  <logger name="pallet.crate.nohup" level="DEBUG"/>
+  <logger name="pallet.transport" level="DEBUG"/>
   <logger name="clj-ssh.ssh" level="ERROR"/>
   <!-- <logger name="pallet.execute.default-executor" level="TRACE"/> -->
 

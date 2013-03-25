@@ -68,7 +68,8 @@
         nv-kw (keyword (name nv))
         is-stevedore? (and (sequential? condition)
                            (symbol? (first condition))
-                           (= (resolve (first condition)) #'stevedore/script))
+                           (#{#'stevedore/script #'stevedore/fragment}
+                            (resolve (first condition))))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-context plan-when {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
@@ -100,7 +101,8 @@
         nv-kw (keyword (name nv))
         is-stevedore? (and (sequential? condition)
                            (symbol? (first condition))
-                           (= (resolve (first condition)) #'stevedore/script))
+                           (#{#'stevedore/script #'stevedore/fragment}
+                            (resolve (first condition))))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-context plan-when-not {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
@@ -354,6 +356,11 @@ Options for specifying the file's permissions are:
 `mode`
 : file-mode
 
+Options for verifying the file's content:
+
+`verify`
+: a command to run on the file on the node, before it is installed
+
 To copy the content of a local file to a remote file:
     (remote-file session \"remote/path\" :local-file \"local/path\")
 
@@ -393,7 +400,8 @@ Content can also be copied from a blobstore.
                   install-new-files
                   overwrite-changes no-versioning max-versions
                   flag-on-changed
-                  local-file-options]
+                  local-file-options
+                  verify]
            :as options}]
   {:pre [path]}
   (verify-local-file-exists local-file)
@@ -514,6 +522,12 @@ option and :unpack :unzip.
        :overwrite-changes *force-overwrite*} ; capture bound values
       options))))
 
+(defaction wait-for-file
+  "Wait for a file to exist"
+  [path & {:keys [max-retries standoff service-name]
+           :or {action :create max-versions 5
+                install-new-files true}
+           :as options}])
 
 ;;; # Packages
 (defaction package
@@ -702,7 +716,9 @@ Specify `:line` as a string, or `:package`, `:question`, `:type` and
    - :sequence-start  a sequence of [sequence-number level level ...], where
                       sequence number determines the order in which services
                       are started within a level.
-   - :service-impl    either :initd or :upstart"
+   - :service-impl    either :initd or :upstart
+
+Deprecated in favour of pallet.crate.service/service."
   [service-name & {:keys [action if-flag if-stopped service-impl]
                    :or {action :start service-impl :initd}
                    :as options}])

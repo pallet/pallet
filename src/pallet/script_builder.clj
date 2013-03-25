@@ -2,43 +2,37 @@
   "Build scripts with prologues, epilogues, etc, and command lines for
    running them in different environments"
   (:require
-   [clojure.string :as string]
+   [clojure.string :as string :refer [split]]
    [pallet.script :as script]
-   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
+   [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
    [pallet.stevedore.bash :as bash])
   (:use
-   [pallet.script.lib :only [exit heredoc mkdir make-temp-file rm]]))
+   [pallet.script.lib
+    :only [bash env env-var-pairs exit heredoc make-temp-file mkdir rm sudo]]))
 
-(def prolog (str "#!/usr/bin/env bash\n"))
+(defn prolog []  (str "#!" (fragment (env)) "bash\n"))
 (def epilog "\nexit $?")
 
 (defmulti interpreter
   "The interprester used to run a script."
   (fn [{:keys [language]}] language))
 (defmethod interpreter :default [_] nil)
-(defmethod interpreter :bash [_] "/bin/bash")
-
-(script/defscript sudo-no-password [])
-(script/defimpl sudo-no-password :default []
-  ("/usr/bin/sudo" -n))
-(script/defimpl sudo-no-password
-  [#{:centos-5.3 :os-x :darwin :debian :fedora}]
-  []
-  ("/usr/bin/sudo"))
+(defmethod interpreter :bash [_] (split (fragment (bash)) #" +"))
 
 (defn sudo-cmd-for
   "Construct a sudo command prefix for the specified user."
-  [user]
-  (if (or (and (= (:username user) "root") (not (:sudo-user user)))
-          (:no-sudo user))
+  [{:keys [no-sudo password sudo-user sudo-password username] :as user}]
+  (if (or (and (= username "root") (not sudo-user))
+          no-sudo)
     nil
     (str
-     (if-let [pw (:sudo-password user)]
-       (str "echo '" (or (:password user) pw) "' | /usr/bin/sudo -S")
-       (stevedore/script (~sudo-no-password)))
-     (if-let [su (:sudo-user user)]
-       (str " -u " su)
-       ""))))
+     (if sudo-password
+       (fragment
+        (pipe
+         (println (str "'" ~sudo-password "'"))
+         (sudo :stdin true :user ~sudo-user)))
+       (fragment
+        (sudo :user ~sudo-user :no-prompt true))))))
 
 (defmulti prefix
   "The executable used to prefix the interpreter (eg. sudo, chroot, etc)."
@@ -55,7 +49,7 @@ future)."
    script
    {:keys [script-dir script-trace] :as action}]
   (str
-   prolog
+   (prolog)
    (if script-dir
      (stevedore/script
       (~mkdir ~script-dir :path true)
@@ -79,7 +73,8 @@ future)."
 
 (defn build-code
   "Builds a code map, describing the command to execute a script."
-  [session {:keys [script-prefix script-dir sudo-user default-script-prefix script-env]
+  [session {:keys [default-script-prefix script-dir script-env script-prefix
+                   sudo-user]
             :as action}
    & args]
   (with-source-line-comments false
@@ -93,8 +88,8 @@ future)."
                           session
                           action)]
          (string/split prefix #" "))
-       ["/usr/bin/env"]
-       (map (fn [[k v]] (format "%s=\"%s\"" (name k) v)) (or script-env (:script-env session)))
-       [(interpreter {:language :bash})]
+       [(fragment (env))]
+       (env-var-pairs (or script-env (:script-env session)))
+       (interpreter {:language :bash})
        args)
       (filter identity))}))
