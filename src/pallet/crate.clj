@@ -240,7 +240,7 @@
   ([group-name]
      (session/nodes-in-group (session) group-name))
   ([]
-     (session/nodes-in-group (session))))
+     (nodes-in-group (group-name))))
 
 (comment
   (defn groups-with-role
