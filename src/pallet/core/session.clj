@@ -112,7 +112,7 @@
 (defn group-name
   "Group name of the target-node."
   [session]
-  (-> session :group :group-name))
+  (-> session :server :group-name))
 
 (comment
    (defn safe-name

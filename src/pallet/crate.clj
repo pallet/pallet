@@ -232,7 +232,7 @@
 (defn group-name
   "Group-Name of the target-node."
   []
-  (session/group-name session))
+  (session/group-name (session)))
 
 (defn nodes-in-group
   "All nodes in the same tag as the target-node, or with the specified
