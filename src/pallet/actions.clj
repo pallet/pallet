@@ -587,22 +587,45 @@ option and :unpack :unzip.
    Options are the package manager keywords, each specifying a map of
    packager specific options.
 
-   :aptitude
-     - :source-type string   - source type (deb)
-     - :url url              - repository url
-     - :scopes seq           - scopes to enable for repository
-     - :key-url url          - url for key
-     - :key-id id            - id for key to look it up from keyserver
+## `:aptitude`
 
-   :yum
-     - :name                 - repository name
-     - :url url          - repository base url
-     - :gpgkey url           - gpg key url for repository
+`:source-type source-string`
+: the source type (default \"deb\")
 
-   Example
-       (package-source \"Partner\"
-         :aptitude {:url \"http://archive.canonical.com/\"
-                    :scopes [\"partner\"]})"
+`:url url-string`
+: the repository url
+
+`:scopes seq`
+: scopes to enable for repository
+
+`:release release-name`
+: override the release name
+
+`:key-url url-string`
+: url for key
+
+`:key-server hostname`
+: hostname to use as a keyserver
+
+`:key-id id`
+: id for key to look it up from keyserver
+
+## `:yum`
+
+`:name name`
+: repository name
+
+`:url url-string`
+: repository base url
+
+`:gpgkey url-string`
+: gpg key url for repository
+
+## Example
+
+    (package-source \"Partner\"
+      :aptitude {:url \"http://archive.canonical.com/\"
+                 :scopes [\"partner\"]})"
   {:always-before #{package-manager package}
    :execution :aggregated}
   [name & {:keys [aptitude yum]}])
