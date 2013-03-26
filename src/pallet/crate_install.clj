@@ -49,8 +49,9 @@
     (debugf "package source %s %s" facility package-source)
     (apply-map actions/package-source (:name package-source) package-source)
     (let [modified? (target-flag? package-source-changed-flag)]
-      (plan-when modified?
-        (package-manager :update))
+      (with-action-options {:always-before #{package}}
+        (plan-when modified?
+          (package-manager :update)))
       (tracef "packages %s options %s" (vec packages) package-options)
       (doseq [p preseeds]
         (debconf-set-selections p))
