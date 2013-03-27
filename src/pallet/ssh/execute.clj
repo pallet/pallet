@@ -94,9 +94,14 @@
               sudo-user (or (:sudo-user action)
                             (-> authentication :user :sudo-user))]
 
-          (log-multiline :debug (str (:server endpoint) " script %s") script)
-          (logging/debugf "%s send script via %s as %s"
-                          endpoint tmpfile (or sudo-user "root"))
+          (log-multiline :debug (str (:server endpoint) " ==> %s")
+                         (str " -----------------------------------------\n"
+                              script
+                              "\n------------------------------------------"))
+          (logging/debugf "%s:%s send script via %s as %s"
+                          (:server endpoint) (:port endpoint) tmpfile (or sudo-user "root"))
+          (logging/debugf "%s   <== ----------------------------------------"
+                          (:server endpoint))
           (transport/send-text
            connection script tmpfile
            {:mode (if sudo-user 0644 0600)})
@@ -123,6 +128,8 @@
              {:execv [(stevedore/script ("rm" -f ~tmpfile))]}
              {})
             (logging/trace "ssh-script-on-target done")
+            (logging/debugf "%s   <== ----------------------------------------"
+                            (:server endpoint))
             [result session]))))))
 
 (defn- ssh-upload
