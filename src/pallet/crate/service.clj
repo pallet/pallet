@@ -54,7 +54,8 @@ supervisor specific."
 The settings map must provide `:service-name` and `:supervisor` keys.  The
 `:supervisor` key specifies a keyword for the supervisor provider to dispatch
 to.  The `:service-name` provides a service name to be used by the supervision
-provider.
+provider.  It is not an error to call with `:action :start` if the process is
+already running.
 
 `:action`
 One of `:enable`, `:disable`, `:start`, `:stop`, `:restart`, `:status`. Defaults

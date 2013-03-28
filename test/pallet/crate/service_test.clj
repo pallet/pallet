@@ -32,6 +32,9 @@
                              (assert (not= (:out pid) (:out pid2))
                                      (str "old pid: " (:out pid)
                                           " new pid: " (:out pid2)))))))
+    (testing "start when started is ok"
+      (service-supervisor
+       supervisor config (assoc supervisor-options :action :start)))
     (testing "can stop"
       (service-supervisor
        supervisor config
