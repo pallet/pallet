@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.actions.direct.file documentation</title>
+    <title>pallet.crate.service documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <link href="css/codox-md.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
@@ -42,23 +42,105 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.actions.direct.file.html#var-write-md5-for-file">write-md5-for-file</a></li>
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.service.html#var-service">service</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.service.html#var-service-supervisor">service-supervisor</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.service.html#var-service-supervisor-available%3F">service-supervisor-available?</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.service.html#var-service-supervisor-config">service-supervisor-config</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.service.html#var-supervisor-config">supervisor-config</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.service.html#var-supervisor-config-map">supervisor-config-map</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.actions.direct.file documentation</h2>
-        <div class="doc"><p>File manipulation.</p>
+        <h2 class="namespace-title">pallet.crate.service documentation</h2>
+        <div class="doc"><p>Run services under supervision.</p>
+
+<p>This crate provides a framework for a process under supervision.  It can be
+extended by different supervision providers, by providing methods for the
+various multi-methods.</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-write-md5-for-file" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/actions/direct/file.clj#L22">write-md5-for-file</a></h3>
+            <h3><a id="var-service" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/service.clj#L51">service</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[path md5-path]</div>
+            <div class="usage">[{:keys [supervisor service-name], :as settings} {:keys [action if-flag if-stopped instance-id], :as options}]</div>
             
             
-            <div class="doc"><p>Create a .md5 file for the specified input file</p>
+            <div class="doc"><p>Control a process under supervision.</p>
+
+<p>The settings map must provide <code>:service-name</code> and <code>:supervisor</code> keys.  The
+<code>:supervisor</code> key specifies a keyword for the supervisor provider to dispatch
+to.  The <code>:service-name</code> provides a service name to be used by the supervision
+provider.  It is not an error to call with <code>:action :start</code> if the process is
+already running.</p>
+
+<p><code>:action</code>
+One of <code>:enable</code>, <code>:disable</code>, <code>:start</code>, <code>:stop</code>, <code>:restart</code>, <code>:status</code>. Defaults
+to :start.</p>
+
+<p><code>:if-stopped</code>
+Flag to only apply the action if the service is currently stopped.</p>
+
+<p><code>:if-flag</code>
+Flag to only apply the action only if the specified flag is set.</p>
+
+<p><code>:instance-id</code>
+Specifies an instance id, should there be more than one instance of the
+supervisor (not the facility).</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-service-supervisor" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/service.clj#L19">service-supervisor</a></h3>
+            <h4 class="var-type var" id="var-type">var</h4>
+            
+            
+            
+            <div class="doc"><p>Provides an open dispatched supervisor implementation.</p>
+
+<p>Implement a method dispatched on the supervisor keyword to add a
+supervisor implementation.</p>
+
+<p>In options:</p>
+
+<p><code>:instance-id</code>
+: specifies the supervisor instance-id, not the facility instance-id.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-service-supervisor-available%3F" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/service.clj#L12">service-supervisor-available?</a></h3>
+            <h4 class="var-type var" id="var-type">var</h4>
+            
+            
+            
+            <div class="doc"><p>Predicate to test if a given service implementation is available.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-service-supervisor-config" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/service.clj#L31">service-supervisor-config</a></h3>
+            <h4 class="var-type var" id="var-type">var</h4>
+            
+            
+            
+            <div class="doc"><p>Configure a service implementation based on configuration map.  The <code>config</code>
+map is specific to the supervisor.  The initial enabled status of a config is
+supervisor specific.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-supervisor-config" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/service.clj#L103">supervisor-config</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[facility {:keys [supervisor], :as settings} options]</div>
+            
+            
+            <div class="doc"><p>Configure service supervision for facility based on configuration map.</p>
+
+<p>Supervisor specific options are specified under the supervisor key in the
+settings map.</p>
+
+<p>This is intended to be called at the crate level.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-supervisor-config-map" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/service.clj#L80">supervisor-config-map</a></h3>
+            <h4 class="var-type var" id="var-type">var</h4>
+            
+            
+            
+            <div class="doc"><p>Return a service configuration map for the given supervisor and facility.</p>
+
+<p>A method should be implemented in each crate for each supervisor to be
+supported.</p>
 </div>
           </div>
         </div>

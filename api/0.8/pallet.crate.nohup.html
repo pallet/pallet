@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.actions.direct.file documentation</title>
+    <title>pallet.crate.nohup documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <link href="css/codox-md.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
@@ -42,23 +42,24 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.actions.direct.file.html#var-write-md5-for-file">write-md5-for-file</a></li>
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.nohup.html#var-jobs">jobs</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.actions.direct.file documentation</h2>
-        <div class="doc"><p>File manipulation.</p>
+        <h2 class="namespace-title">pallet.crate.nohup documentation</h2>
+        <div class="doc"><p>Provides supervision via nohup.  Note that this is very limited, and not
+really recommended for production use.</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-write-md5-for-file" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/actions/direct/file.clj#L22">write-md5-for-file</a></h3>
+            <h3><a id="var-jobs" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/nohup.clj#L51">jobs</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[path md5-path]</div>
+            <div class="usage">[{:keys [instance-id], :as options}]</div>
             
             
-            <div class="doc"><p>Create a .md5 file for the specified input file</p>
+            <div class="doc"><p>Write out job definitions.</p>
 </div>
           </div>
         </div>
