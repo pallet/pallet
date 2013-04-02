@@ -58,7 +58,7 @@
         script (script-builder/build-script options value action)
         tmpfile (java.io.File/createTempFile "pallet" "script")]
     (try
-      (log-multiline :debug "localhost script: %s" script)
+      (log-multiline :debug " (L) -=> %s" script)
       (spit tmpfile script)
       (let [result (transport/exec
                     local-connection

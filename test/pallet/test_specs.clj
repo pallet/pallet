@@ -1,16 +1,16 @@
 (ns pallet.test-specs
   "Various group specs to test pallet on live infrastructure."
   (:require
-   [clojure.java.io]
+   [clojure.java.io :refer [file]]
    [pallet.actions :refer [delete-local-path directory exec-checked-script
-                           exec-script* remote-file]]
+                           exec-script* remote-file rsync-directory]]
    [pallet.api :refer [group-spec plan-fn]]
    [pallet.crate :refer [admin-user defplan]]
    [pallet.script-test :refer [testing-script is-true is=]]
-   [pallet.utils :refer [tmpfile]]))
+   [pallet.utils :refer [tmpdir tmpfile]]))
 
-(def chars (apply vector "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789"))
-(defn rand-char [] (chars (rand-int (count chars))))
+(def characters (apply vector "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789"))
+(defn rand-char [] (characters (rand-int (count characters))))
 (defn rand-str [n] (apply str (take n (repeatedly rand-char))))
 
 (def remote-file-test
@@ -54,3 +54,27 @@
                             (file-exists? "/var/lib/file")
                             "local-file copied correctly")))))}
       :roles #{:live-test :remote-file})))
+
+(def rsync-test
+  (let [s (rand-str 10)]
+    (group-spec "rsync-test"
+      :phases {:configure (plan-fn
+                            (let [d (tmpdir)
+                                  f (file d "afile")
+                                  u (:username (admin-user))]
+                              (spit f s)
+                              (directory "some/path" :owner "duncan")
+                              (rsync-directory
+                               (str (.getPath d) "/")
+                               "some/path/")
+                              (delete-local-path (.getPath f))))
+               :test (plan-fn
+                       (let [u (:username (admin-user))]
+                         (exec-script*
+                          (testing-script
+                           "remote-file"
+                           (is-true
+                            (file-exists? "some/path/afile")
+                            "rsync copied correctly")
+                           ))))}
+      :roles #{:live-test :rsync})))

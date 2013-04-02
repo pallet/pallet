@@ -77,17 +77,18 @@ to deal with local file transfer."
   [service-name]
   (str (stevedore/script (~lib/etc-init)) "/" service-name))
 
-
+;;; # Service Supervision
+;;; TODO - remove these
 (defmulti service-script-path
   (fn [service-impl service-name] service-impl))
 
 (defmethod service-script-path :initd
   [_ service-name]
-  (str (stevedore/fragment (~lib/etc-init)) "/" service-name))
+  (str (stevedore/fragment (lib/etc-init)) "/" service-name))
 
 (defmethod service-script-path :upstart
   [_ service-name]
-  (str (stevedore/fragment (~lib/upstart-script-dir)) "/" service-name ".conf"))
+  (str (stevedore/fragment (lib/upstart-script-dir)) "/" service-name ".conf"))
 
 ;;; # File names for transfers
 

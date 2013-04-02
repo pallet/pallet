@@ -7,7 +7,9 @@
 
 (deftest build-code-test
   (is (= {:execv ["/usr/bin/env" "/bin/bash" "tmpf"]}
-         (build-code {} {} (java.io.File. "tmpf"))))
+         (with-script-language :pallet.stevedore.bash/bash
+           (with-script-context [:ubuntu]
+             (build-code {} {} (java.io.File. "tmpf"))))))
   (is (= {:execv ["/usr/bin/sudo" "-n" "/usr/bin/env" "/bin/bash" "tmpf"]}
          (with-script-language :pallet.stevedore.bash/bash
            (with-script-context [:ubuntu]

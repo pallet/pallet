@@ -3,7 +3,8 @@
   when working at the clojure REPL."
   (:require [pallet.core.data-api :as da]
             [clojure.string :as string]
-            [clojure.tools.logging :as log])
+            [clojure.tools.logging :as log]
+            [pallet.utils :refer [apply-map]])
   (:use [clojure.pprint :only [print-table]]
         [clojure.pprint :only [pprint with-pprint-dispatch code-dispatch
                                print-table pprint-indent]]
@@ -137,17 +138,18 @@ scripts corresponding to those action forms will be shown, but you can
 disable them by passing `:print-scripts false` and/or `:print-forms
 false` "
   [pfn & {:keys [settings-phase print-scripts print-forms
-                 node os-family os-version]
+                 node os-family os-version group-name]
           :or {print-scripts true
                print-forms true
-               os-family :ubuntu}}]
+               os-family :ubuntu
+               group-name "mock-group"}}]
   (let [os-version (or os-version
                        (os-family {:ubuntu "12.04"
                                    :centos "6.3"
                                    :debian "6.0"
                                    :rhel "6.1"}))
         node (or node
-                 ["mock-node" "mock-group" "0.0.0.0" os-family
+                 ["mock-node" group-name  "0.0.0.0" os-family
                   :os-version os-version])
         ;; echo what node we're about to use for the mock run
         _ (do (print "Mock lift with node: ") (pprint node))
@@ -155,3 +157,37 @@ false` "
     (explain-actions actions
                      :print-scripts print-scripts
                      :print-forms print-forms)))
+
+(defn explain-phase
+  "Prints the action plan and corresponding shell scripts built as a result of
+executing a phase from the `server-spec`.  The `:configure` phase is explained
+by default. The phase can be specified with the `:phase` keyword.
+
+  By default, the plan function is run against a mock node with
+this configuration:
+
+    [\"mock-node\" \"mock-group\" \"0.0.0.0\" :ubuntu :os-version \"12.04\"]
+
+and you can override this by passing your own node vector as `:node`,
+or just change the os-family/os-version for the node by passing
+`:os-family` and `:os-version`. If a os-family is passed but no
+os-version, then a sane default for os-version will be picked. If you
+specify `:node` then `:os-family` and `:os-version` are ignored.
+
+By default, both the generated action forms (clojure forms) and the
+scripts corresponding to those action forms will be shown, but you can
+disable them by passing `:print-scripts false` and/or `:print-forms
+false` "
+  [server-spec & {:keys [phase print-scripts print-forms
+                        node os-family os-version]
+                 :or {print-scripts true
+                      print-forms true
+                      os-family :ubuntu
+                      phase :configure}
+                  :as options}]
+  (apply-map explain-plan
+             (-> server-spec :phases phase)
+             :settings-phase (-> server-spec :phases :settings)
+             (if-let [group-name (:group-name server-spec)]
+               (merge {:group-name (name group-name)} options)
+               options)))

@@ -78,8 +78,8 @@
   "Direct executor where target actions are always over ssh."
   [session action]
   (let [[script action-type location session] (direct-script session action)]
-    (logging/tracef "default-executor %s %s" action-type location)
-    (logging/tracef "default-executor script %s" script)
+    (logging/tracef "force-target-via-ssh-executor %s %s" action-type location)
+    (logging/tracef "force-target-via-ssh-executor script %s" script)
     (case [action-type location]
       [:script :origin] (local/script-on-origin
                          session action action-type script)

@@ -351,3 +351,12 @@ value to assoc. The assoc only occurs if the value is non-nil."
      (when (logging/enabled? ~level-kw)
        (doseq [l# (string/split-lines ~string)]
          (logging/log ~level-kw (format fmt# l#))))))
+
+(defn deep-merge
+  "Recursively merge maps."
+  [& ms]
+  (letfn [(f [a b]
+            (if (and (map? a) (map? b))
+              (deep-merge a b)
+              b))]
+    (apply merge-with f ms)))

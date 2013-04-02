@@ -6,15 +6,16 @@
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
    [pallet.environment :as environment]
-   [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]
+   [pallet.script.lib :as lib :refer [wait-while exit]]
+   [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.template :as templates]
    [pallet.utils :as utils]
    [clojure.java.io :as io])
   (:use
    [pallet.action :only [implement-action]]
    [pallet.actions
-    :only [exec-script transfer-file transfer-file-to-local delete-local-path]]
+    :only [exec-script transfer-file transfer-file-to-local delete-local-path
+           wait-for-file]]
    [pallet.actions-impl
     :only [copy-filename md5-filename new-filename remote-file-action]]
    [pallet.utils :only [apply-map]]))
@@ -54,7 +55,8 @@
                         overwrite-changes no-versioning max-versions
                         flag-on-changed
                         force
-                        insecure]
+                        insecure
+                        verify]
                  :or {action :create max-versions 5
                       install-new-files true}
                  :as options}]
@@ -145,6 +147,11 @@
                    (str "remote-file " path " specified without content."))))
 
          ;; process the new file accordingly
+         (when verify
+           (stevedore/checked-script
+            (str "Verify " new-path " with " verify)
+            (~verify ~new-path)))
+
          (when (and install-new-files (not link))
            (stevedore/chain-commands
             (if (or overwrite-changes no-versioning)
@@ -221,4 +228,23 @@
         :delete (action-plan/checked-script
                  (str "delete remote-file " path)
                  (~lib/rm ~path :force ~force))))]
+   session])
+
+
+(implement-action wait-for-file :direct
+  {:action-type :script :location :target}
+  [session path & {:keys [action max-retries standoff service-name]
+                   :or {action :create
+                        max-retries 5 standoff 2}
+                   :as options}]
+  [[{:language :bash}
+    (let [[test-expr waiting-msg failed-msg]
+          (case action
+            :create [(fragment (not (file-exists? ~path)))
+                     (str "Waiting for " path " to exist")
+                     (str "Failed waiting for " path " to exist")]
+            :remove [(fragment (file-exists? ~path))
+                     (str "Waiting for " path " to be removed")
+                     (str "Failed waiting for " path " to be removed")])]
+      (wait-while test-expr standoff max-retries waiting-msg failed-msg))]
    session])

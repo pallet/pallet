@@ -2,7 +2,8 @@
   "Script library for abstracting target host script differences"
   (:require
    [pallet.script :as script]
-   [pallet.stevedore :as stevedore :refer [script with-source-line-comments]]
+   [pallet.stevedore :as stevedore
+    :refer [chained-script script with-source-line-comments]]
    [pallet.thread-expr :as thread-expr]
    [clojure.string :as string]))
 
@@ -859,3 +860,59 @@
   (if (&& (&& (~has-command? setsebool) (directory? "/etc/selinux"))
           (file-exists? "/selinux/enforce"))
     ("setsebool" ~(if persist "-P" "") ~(name flag) ~value)))
+
+;;; ## Basic program locations
+(script/defscript sudo [& {:keys [no-prompt user stdin]}])
+(script/defimpl sudo :default [& {:keys [no-prompt user stdin]}]
+  ("/usr/bin/sudo"
+   ~@(when no-prompt ["-n"])
+   ~@(when user ["-u" user])
+   ~@(when stdin ["-S"])) )
+
+;; no support for -p
+(script/defimpl sudo
+  [#{:centos-5.3 :os-x :darwin :debian :fedora}]
+  [& {:keys [no-prompt user stdin]}]
+  ("/usr/bin/sudo"
+   ~@(when user ["-u" user])
+   ~@(when stdin ["-S"])))
+
+
+(script/defscript bash
+  "Call bash"
+  [& {:keys [login]}])
+(script/defimpl bash :default [& {:keys [login]}]
+  ("/bin/bash"
+   ~@(when login ["-l"])))
+
+
+(defn env-var-pairs
+  "Return a sequence of name=var strings for the given `vars` map."
+  [vars]
+  (map
+   (fn [[k v]] (format "%s=\"%s\"" (name k) v))
+   vars))
+
+(script/defscript env
+  "Setup an environment for another cmd.  Vars is a map of name and value
+  pairs."
+  [& {:keys [vars]}])
+(script/defimpl env :default [& {:keys [vars]}]
+  ("/usr/bin/env" ~@(env-var-pairs vars)))
+
+
+(defn wait-while
+  "Returns a script expression that waits while test-expr is successful, using
+a constant standoff (in seconds) and max-retries."
+  [test-expr standoff max-retries waiting-msg failed-msg]
+  (chained-script
+   (group (chain-or (let x 0) true))
+   (while ~test-expr
+     (let x (+ x 1))
+     (if (= ~max-retries @x)
+       (do
+         (println ~failed-msg >&2)
+         (exit 1)))
+     (println ~waiting-msg)
+     ("sleep" ~standoff))
+   ("sleep" ~standoff)))

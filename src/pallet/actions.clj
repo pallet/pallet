@@ -56,7 +56,7 @@
   [& body]
   `((clj-action [~'&session]
       (binding [pallet.argument/*session* ~'&session]
-        ~@body))))
+        [(do ~@body) ~'&session]))))
 
 ;;; # Flow Control
 (defmacro plan-when
@@ -68,7 +68,8 @@
         nv-kw (keyword (name nv))
         is-stevedore? (and (sequential? condition)
                            (symbol? (first condition))
-                           (= (resolve (first condition)) #'stevedore/script))
+                           (#{#'stevedore/script #'stevedore/fragment}
+                            (resolve (first condition))))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-context plan-when {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
@@ -100,7 +101,8 @@
         nv-kw (keyword (name nv))
         is-stevedore? (and (sequential? condition)
                            (symbol? (first condition))
-                           (= (resolve (first condition)) #'stevedore/script))
+                           (#{#'stevedore/script #'stevedore/fragment}
+                            (resolve (first condition))))
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-context plan-when-not {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
@@ -354,6 +356,11 @@ Options for specifying the file's permissions are:
 `mode`
 : file-mode
 
+Options for verifying the file's content:
+
+`verify`
+: a command to run on the file on the node, before it is installed
+
 To copy the content of a local file to a remote file:
     (remote-file session \"remote/path\" :local-file \"local/path\")
 
@@ -393,7 +400,8 @@ Content can also be copied from a blobstore.
                   install-new-files
                   overwrite-changes no-versioning max-versions
                   flag-on-changed
-                  local-file-options]
+                  local-file-options
+                  verify]
            :as options}]
   {:pre [path]}
   (verify-local-file-exists local-file)
@@ -505,7 +513,7 @@ option and :unpack :unzip.
            :as options}]
   (verify-local-file-exists local-file)
   (when local-file
-    (transfer-file local-file (new-filename path)))
+    (transfer-file local-file (new-filename path) (md5-filename path)))
   (with-action-options local-file-options
     (remote-directory-action
      path
@@ -514,6 +522,12 @@ option and :unpack :unzip.
        :overwrite-changes *force-overwrite*} ; capture bound values
       options))))
 
+(defaction wait-for-file
+  "Wait for a file to exist"
+  [path & {:keys [max-retries standoff service-name]
+           :or {action :create max-versions 5
+                install-new-files true}
+           :as options}])
 
 ;;; # Packages
 (defaction package
@@ -573,22 +587,45 @@ option and :unpack :unzip.
    Options are the package manager keywords, each specifying a map of
    packager specific options.
 
-   :aptitude
-     - :source-type string   - source type (deb)
-     - :url url              - repository url
-     - :scopes seq           - scopes to enable for repository
-     - :key-url url          - url for key
-     - :key-id id            - id for key to look it up from keyserver
+## `:aptitude`
 
-   :yum
-     - :name                 - repository name
-     - :url url          - repository base url
-     - :gpgkey url           - gpg key url for repository
+`:source-type source-string`
+: the source type (default \"deb\")
 
-   Example
-       (package-source \"Partner\"
-         :aptitude {:url \"http://archive.canonical.com/\"
-                    :scopes [\"partner\"]})"
+`:url url-string`
+: the repository url
+
+`:scopes seq`
+: scopes to enable for repository
+
+`:release release-name`
+: override the release name
+
+`:key-url url-string`
+: url for key
+
+`:key-server hostname`
+: hostname to use as a keyserver
+
+`:key-id id`
+: id for key to look it up from keyserver
+
+## `:yum`
+
+`:name name`
+: repository name
+
+`:url url-string`
+: repository base url
+
+`:gpgkey url-string`
+: gpg key url for repository
+
+## Example
+
+    (package-source \"Partner\"
+      :aptitude {:url \"http://archive.canonical.com/\"
+                 :scopes [\"partner\"]})"
   {:always-before #{package-manager package}
    :execution :aggregated}
   [name & {:keys [aptitude yum]}])
@@ -702,7 +739,9 @@ Specify `:line` as a string, or `:package`, `:question`, `:type` and
    - :sequence-start  a sequence of [sequence-number level level ...], where
                       sequence number determines the order in which services
                       are started within a level.
-   - :service-impl    either :initd or :upstart"
+   - :service-impl    either :initd or :upstart
+
+Deprecated in favour of pallet.crate.service/service."
   [service-name & {:keys [action if-flag if-stopped service-impl]
                    :or {action :start service-impl :initd}
                    :as options}])

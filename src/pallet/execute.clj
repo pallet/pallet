@@ -48,7 +48,7 @@
   (comp
    #(doseq [^String l %]
       (cond
-       (not (status-line? l)) (logging/debugf "%s output => %s" server l)
+       (not (status-line? l)) (logging/debugf "%s   <== %s" server l)
        (.endsWith l "FAIL") (logging/errorf "%s %s" server l)
        :else (logging/infof "%s %s" server l)))
    string/split-lines

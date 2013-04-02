@@ -16,9 +16,9 @@
       (~'let "failcount" 0))
      ~@body
      (script
-      (when-not (= 0 (deref "failcount"))
-        (println "' '")
-        (println (deref "failcount") " test failures")
+      (if (= 0 (deref "failcount"))
+        (println "Test" ~test-name "PASSED")
+        (println "test" ~test-name "FAILED with" (deref "failcount") "failures")
         (exit 1)))]))
 
 (defmacro is=
