@@ -1,5 +1,78 @@
 Unstable development branch
 
+# 0.8.0-beta.6
+
+## Features
+
+- Add explain-phase
+  Adds pallet.repl/explain-phase which can be used to see the action plan
+  resulting from the execution of a phase from a server-spec (or
+  group-spec).
+
+- Enable passing of group-name in explain-plan
+
+- Create a service supervision abstraction
+  Create an abstraction that will easily allow crates to support running
+  under a variety of service supervisors.  Provides a function to test
+  supervisor implementations.
+
+- Add wait-for-file action
+  Allows waiting on the creation or removal of a file.  Also adds a
+  wait-while script generator in p.script.lib.
+
+- Allow verification of files before installation
+  Adds a :verify option to remote-file, that can run an arbitrary program on
+  the file on the node before it is installed.  If the verify program
+  returns non-zero, the remote-file fails.
+
+- Make script prolog extensible using script function
+
+- Add deep-merge to pallet.utils
+
+## Fixes
+- Update to pallet-fsmop 0.2.6
+  Fixes hangs caused by assertion failures.
+
+- Write sectioned-properties in terms of name-values
+  Enables passing of a map of maps, rather than just a vector of maps.
+
+- Ensure :start when already running is not an error
+  Calling pallet.crate.service/service with :action :start should not error
+  if the process is already started.  This adds a test to ensure service
+  implementations conform to this expectation.
+
+- Fix script-test/testing-script to properly report PASS/FAIL.
+
+- Add markers (==> and <==) to logs for scripts and their output.
+
+- Fix group-name crate function
+
+- Ensure :package-source install updates packages
+  When using the :package-source install method, ensure that the
+  package-update occurs before the package install if it is required.
+
+- Fix zero arity nodes-in-group
+
+- Add :release to package-source doc string
+
+- Allow fragment in plan-when test expressions
+
+- Refactor script-builder to use script fns
+  Refactors the script-builder code to avoid any hard coded paths, leaving
+  it open to customisation via script functions.  Allows possible
+  customisation for systems with sudo, env, etc in unusual places.
+
+- Fix add-service task for arity two and three
+
+- Fix as-action
+  as-action was not providing a state monad return value.  It now returns
+  the value of it's body and the input session as the monadic return value.
+
+- Add rsync integration test
+
+- Fix remote-directory with :local source
+
+
 # 0.8.0-beta.5
 
 - Update fsmop, stevedore, script-exec, and pallet-common
@@ -87,7 +160,7 @@ Unstable development branch
   outside of pallet.core.data-api
 
 - Allow action plans to be returned and not executed
-  Implements an action-plan-data executor that can be used to return the 
+  Implements an action-plan-data executor that can be used to return the
   action-plan as a sequence of maps.  You can specify the printer by passing
   ':environment {:algorithms {:executor action-plan-data}}' to lift.
 
@@ -104,7 +177,7 @@ Unstable development branch
   The :script-env can be specified in with-action-options.
 
 - Add removal of path in md5 file normalisation
-  When a .md5 file contains a path, md5 normalisation now removes the path 
+  When a .md5 file contains a path, md5 normalisation now removes the path
   elements.
 
 - Add logging of system properties in main-invoker
