@@ -8,7 +8,7 @@
        ;;           "doc" ["do" "codox," "marg"]}
        :checkout-deps-shares [:source-paths :test-paths :resource-paths
                               :compile-path]}
- :doc {:dependencies [[com.palletops/pallet-codox "0.1.0-SNAPSHOT"]]
+ :doc {:dependencies [[com.palletops/pallet-codox "0.1.0"]]
        :codox {:writer codox-md.writer/write-docs
                :output-dir "autodoc/api/0.8"
                :src-dir-uri "https://github.com/pallet/pallet/blob/develop"
