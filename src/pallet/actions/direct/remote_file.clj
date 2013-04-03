@@ -74,7 +74,6 @@
          ;; create the directory if required - note this is not the final
          ;; directory
          (stevedore/chained-script
-          ("set" "-x")
           (lib/mkdir @(lib/dirname ~new-path) :path true))
 
          ;; Create the new content

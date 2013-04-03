@@ -63,7 +63,6 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             ("set" "-x")
              (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true)
              (lib/download-file "http://a.com/b" (new-filename "path"))
              (if (file-exists? (new-filename "path"))
@@ -83,7 +82,6 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             ("set" "-x")
              (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true)
              (lib/download-file
               "http://a.com/b" (new-filename "path") :proxy "http://proxy/")
@@ -105,7 +103,6 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             ("set" "-x")
              (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true))
             (stevedore/script (~lib/heredoc (new-filename "path") "xxx" {}))
             (stevedore/chained-script
@@ -125,7 +122,6 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             ("set" "-x")
              (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true))
             (stevedore/script (~lib/heredoc (new-filename "path") "xxx" {}))
             (stevedore/chained-script
@@ -157,7 +153,6 @@
       (is (script-no-comment=
            (stevedore/checked-script
             "remote-file path"
-            ("set" "-x")
             (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true)
             (lib/heredoc (new-filename "path") "a 1\n" {}))
            (binding [pallet.action-plan/*defining-context* nil]
