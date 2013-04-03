@@ -1,6 +1,7 @@
 (ns pallet.api
   "# Pallet API"
   (:require
+   [clojure.set :refer [union]]
    [clojure.string :refer [blank?]]
    [clojure.pprint :refer [print-table]]
    [pallet.compute :as compute]
@@ -171,9 +172,9 @@ specified in the `:extends` argument."
 
    - :node-spec default node-spec for the nodes in the cluster
 
-   - :roles     roles for the group-spec"
+   - :roles     roles for all group-specs in the cluster"
   [cluster-name
-   & {:keys [extends groups phases node-spec environment] :as options}]
+   & {:keys [extends groups phases node-spec environment roles] :as options}]
   (->
    options
    (update-in [:groups]
@@ -191,6 +192,7 @@ specified in the `:extends` argument."
                     (update-in
                      [:environment]
                      merge-environments environment)
+                    (update-in [:roles] union roles)
                     (extend-specs extends)
                     (extend-specs [{:phases phases}])
                     (extend-specs [(select-keys group-spec [:phases])])))
