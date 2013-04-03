@@ -325,10 +325,10 @@
    :default)."
   {:arglists '[[facility f & args][facility options f & args]]}
   [facility f-or-opts & args]
-  (let [[options f args] (if (map? f-or-opts)
+  (let [[options f args] (if (or (map? f-or-opts) (nil? f-or-opts))
                            [f-or-opts (first args) (rest args)]
                            [nil f-or-opts args])]
-
+    (assert f "nil update function")
     (session!
      (update-in
       (session) [:plan-state]
