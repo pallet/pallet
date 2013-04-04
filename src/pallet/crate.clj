@@ -242,11 +242,10 @@
   ([]
      (nodes-in-group (group-name))))
 
-(comment
-  (defn groups-with-role
-    "All target groups with the specified role."
-    [role]
-    (session/groups-with-role (session) role)))
+(defn groups-with-role
+  "All target groups with the specified role."
+  [role]
+  (session/groups-with-role (session) role))
 
 (defn nodes-with-role
   "All target nodes with the specified role."

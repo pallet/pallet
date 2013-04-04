@@ -147,14 +147,15 @@
          (when-let [group-names (:group-names %)] (group-names group-name))))
    (map :node)))
 
-(comment
-  (defn groups-with-role
-    "All target groups with the specified role."
-    [session role]
-    (->>
-     (keys (-> session :service-state :group->nodes))
-     (filter #(when-let [roles (:roles %)] (when (roles role) %)))
-     (map :group-name))))
+
+(defn groups-with-role
+  "All target groups with the specified role."
+  [session role]
+  (->>
+   (:service-state session)
+   (filter #((:roles %) role))
+   (map #(dissoc % :node))
+   distinct))
 
 (defn nodes-with-role
   "All target nodes with the specified role."
