@@ -21,7 +21,7 @@ unprecedented level of customization."
                  [com.palletops/chiba "0.2.0"]
                  [com.palletops/thread-expr "1.3.0"]
                  [com.palletops/pallet-common "0.4.0"]
-                 [com.palletops/script-exec "0.3.0"]
+                 [com.palletops/script-exec "0.3.1"]
                  [com.palletops/stevedore "0.8.0-beta.2"]
                  [enlive "1.0.1"
                   :exclusions [org.clojure/clojure]]
