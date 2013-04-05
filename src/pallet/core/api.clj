@@ -145,7 +145,9 @@
   (fn [node]
     (let [user (into {} (filter val (image-user (:node node))))]
       (debugf "Image-user is %s" user)
-      {:user user
+      {:user (if (seq user)
+               user
+               (:user environment))
        :executor (get-in environment [:algorithms :executor] default-executor)
        :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
                                    #'stop-execution-on-error)})))
