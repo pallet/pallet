@@ -70,12 +70,15 @@
    proxy
    image-user))
 
-(deftype NodeTagUnsupported
-    []
+(deftype NodeTagStatic
+    [static-tags]
   pallet.compute.NodeTagReader
-  (node-tag [_ node tag-name] nil)
-  (node-tag [_ node tag-name default-value] default-value)
-  (node-tags [_ node] nil)
+  (node-tag [_ node tag-name] 
+    (get static-tags tag-name))
+  (node-tag [_ node tag-name default-value] 
+    (or (get static-tags tag-name) default-value))
+  (node-tags [_ node] 
+    static-tags)
   pallet.compute.NodeTagWriter
   (tag-node! [_ node tag-name value]
     (throw
@@ -172,7 +175,7 @@ support."
 
 (defmethod implementation/service :node-list
   [_ {:keys [node-list environment tag-provider]
-      :or {tag-provider (NodeTagUnsupported.)}}]
+      :or {tag-provider (NodeTagStatic. {:bootstrapped true})}}]
   (let [nodes (atom (vec
                      (map
                       #(if (vector? %)

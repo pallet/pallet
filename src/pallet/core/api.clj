@@ -329,9 +329,7 @@
   (fn [node]
     (debugf "has-state-flag %s %s" state-name (id (:node node)))
     (get
-     (when (taggable? (:node node))
-       (debugf "has-state-flag taggable %s %s" state-name (id (:node node)))
-       (read-or-empty-map (tag (:node node) state-tag-name)))
+     (read-or-empty-map (tag (:node node) state-tag-name))
      (keyword (name state-name)))))
 
 ;;; # Exception reporting
