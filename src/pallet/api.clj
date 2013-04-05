@@ -327,10 +327,6 @@ specified in the `:extends` argument."
                                      split-groups-and-targets)
         _ (logging/tracef "groups %s" (vec groups))
         _ (logging/tracef "targets %s" (vec targets))
-        _ (logging/warnf "merging environments %s %s %s"
-                         (pallet.environment/environment compute)
-                         environment
-                         (select-keys options environment-args))
         environment (merge-environments
                      (pallet.environment/environment compute)
                      environment
