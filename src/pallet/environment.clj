@@ -21,7 +21,7 @@
   (:require
    [pallet.common.deprecate :as deprecate]
    [pallet.local.execute :as local]
-   [pallet.map-merge :as map-merge]
+   [pallet.map-merge :as map-merge :refer [merge-key]]
    [pallet.utils :as utils]
    [clojure.set :as set]
    [clojure.tools.logging :as logging]
@@ -35,11 +35,19 @@
   "A protocol for accessing an environment."
   (environment [_] "Returns an environment map"))
 
+(defn pipeline
+  [a b]
+  (fn [& args] (apply a args) (apply b args)))
+
+(defmethod merge-key :merge-phases
+  [_ _ val-in-result val-in-latter]
+  (merge-with pipeline val-in-result val-in-latter))
+
 (def
   ^{:doc
     "Map associating keys to merge algorithms. Specifies how environments are merged."}
   merge-key-algorithm
-  {:phases :merge-comp
+  {:phases :merge-phases
    :user :merge
    :image :merge
    :compute :replace
@@ -49,6 +57,8 @@
    :executor :replace
    :middleware :replace
    :groups :merge-environments
+   :roles :union
+   :group-names :union
    :tags :merge-environments
    :install-plugins :concat
    ;; :executors :concat
@@ -228,3 +238,15 @@
         ]
     ;; (track-executors (:executors session))
     session))
+
+(defn group-with-environment
+  "Add the environment to a group."
+  [environment group]
+  (clojure.tools.logging/warnf "merging %s %s %s"
+                               (select-keys environment node-keys)
+                               group
+                               (-?> environment :groups group))
+  (merge-environments
+   (select-keys environment node-keys)
+   group
+   (-?> environment :groups group)))

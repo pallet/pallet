@@ -32,7 +32,7 @@
                (environment/merge-environments
                 {:phases {:bootstrap f1}}
                 {:phases {:bootstrap f2}})
-               :phases :bootstrap) 2) 6))))
+               :phases :bootstrap) 2) 4))))
   (testing "merge images"
     (is (= {:image {:a :a :b :b}}
          (environment/merge-environments

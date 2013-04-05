@@ -4,17 +4,9 @@
    [pallet.compute :as compute]
    [pallet.node :as node])
   (:use
-   [pallet.map-merge :only [merge-key merge-keys]]
+   [pallet.map-merge :only [merge-keys]]
    [pallet.script :only [with-script-context]]
    [pallet.stevedore :only [with-script-language]]))
-
-(defn pipeline
-  [a b]
-  (fn [& args] (apply a args) (apply b args)))
-
-(defmethod merge-key :merge-phases
-  [_ _ val-in-result val-in-latter]
-  (merge-with pipeline val-in-result val-in-latter))
 
 (def
   ^{:doc "Map from key to merge algorithm. Specifies how specs are merged."}
@@ -40,6 +32,7 @@
   "Check if a node satisfies a group's node-predicate."
   {:internal true}
   [node group]
+  {:pre [(:group-name group)]}
   ((:node-predicate group (node-has-group-name? (name (:group-name group))))
    node))
 

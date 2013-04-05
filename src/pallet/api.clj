@@ -14,7 +14,7 @@
    [pallet.core.session :only [session-context]]
    [pallet.crate :only [phase-context]]
    [pallet.algo.fsmop :only [dofsm operate result succeed]]
-   [pallet.environment :only [merge-environments]]
+   [pallet.environment :only [group-with-environment merge-environments]]
    [pallet.node :only [node? node-map]]
    [pallet.plugin :only [load-plugins]]
    [pallet.thread-expr :only [when->]]
@@ -327,12 +327,18 @@ specified in the `:extends` argument."
                                      split-groups-and-targets)
         _ (logging/tracef "groups %s" (vec groups))
         _ (logging/tracef "targets %s" (vec targets))
-        groups (groups-with-phases groups phase-map)
-        targets (groups-with-phases targets phase-map)
+        _ (logging/warnf "merging environments %s %s %s"
+                         (pallet.environment/environment compute)
+                         environment
+                         (select-keys options environment-args))
         environment (merge-environments
                      (pallet.environment/environment compute)
                      environment
-                     (select-keys options environment-args))]
+                     (select-keys options environment-args))
+        groups (groups-with-phases groups phase-map)
+        targets (groups-with-phases targets phase-map)
+        groups (map (partial group-with-environment environment) groups)
+        targets (map (partial group-with-environment environment) targets)]
     (dofsm converge
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
@@ -405,12 +411,14 @@ specified in the `:extends` argument."
                                      split-groups-and-targets)
         _ (logging/tracef "groups %s" (vec groups))
         _ (logging/tracef "targets %s" (vec targets))
-        groups (groups-with-phases groups phase-map)
-        targets (groups-with-phases targets phase-map)
         environment (merge-environments
                      (and compute (pallet.environment/environment compute))
                      environment
                      (select-keys options environment-args))
+        groups (groups-with-phases groups phase-map)
+        targets (groups-with-phases targets phase-map)
+        groups (map (partial group-with-environment environment) groups)
+        targets (map (partial group-with-environment environment) targets)
         plan-state {}]
     (dofsm lift
       [nodes-set (all-group-nodes compute groups all-node-set)
