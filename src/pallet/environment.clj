@@ -242,10 +242,6 @@
 (defn group-with-environment
   "Add the environment to a group."
   [environment group]
-  (clojure.tools.logging/warnf "merging %s %s %s"
-                               (select-keys environment node-keys)
-                               group
-                               (-?> environment :groups group))
   (merge-environments
    (select-keys environment node-keys)
    group
