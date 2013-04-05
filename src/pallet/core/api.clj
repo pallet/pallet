@@ -143,7 +143,10 @@
   "Returns execution settings based on the environment and the image user."
   [environment]
   (fn [node]
-    (let [user (into {} (filter val (image-user (:node node))))]
+    (let [user (into {} (filter val (image-user (:node node))))
+          user (if (or (:private-key-path user) (:private-key user))
+                 (assoc user :temp-key true)
+                 user)]
       (debugf "Image-user is %s" user)
       {:user user
        :executor (get-in environment [:algorithms :executor] default-executor)
