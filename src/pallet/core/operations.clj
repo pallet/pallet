@@ -122,34 +122,8 @@
           :results (concat results1 results2)}
          (when-let [e (some #(some (comp :cause :error) (:errors %)) results2)]
            (logging/errorf e "Phase Error in :bootstrap")
-           {:exception e})))
-
-     [results3 plan-state] (reduce*
-                            (fn reducer [[result plan-state] phase]
-                              (dofsm reduce-phases
-                                [[r ps] (primitives/build-and-execute-phase
-                                         targets plan-state environment
-                                         (api/environment-execution-settings
-                                          environment)
-                                          targets phase)
-                                 _ (succeed
-                                    (not (some :errors r))
-                                    (merge
-                                     {:phase-errors true
-                                      :phase phase
-                                      :results (concat result r)}
-                                     (when-let [e (some
-                                                   #(some
-                                                     (comp :cause :error)
-                                                     (:errors %))
-                                                   r)]
-                                       (logging/errorf
-                                        e "Phase Error in %s" phase)
-                                       {:exception e})))]
-                                [(concat result r) ps]))
-                            [[] plan-state]
-                            (remove #{:settings :bootstrap} phases))]
-    {:results (concat results results1 results2 results3)
+           {:exception e})))]
+    {:results (concat results results1 results2)
      :targets targets
      :plan-state plan-state
      :new-nodes new-nodes

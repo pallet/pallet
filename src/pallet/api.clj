@@ -341,8 +341,16 @@ specified in the `:extends` argument."
        _ (succeed
           (or compute (seq nodes-set))
           {:error :no-nodes-and-no-compute-service})
-       result (ops/converge groups nodes-set phases compute environment {})]
-      result)))
+       {:keys [plan-state targets] :as converge-result}
+       (ops/converge groups nodes-set phases compute environment {})
+
+       {:keys [results plan-state] :as lift-result}
+       (ops/lift targets (remove #{:settings :bootstrap} phases)
+                 environment plan-state)]
+
+      (-> converge-result
+          (update-in [:results] concat results)
+          (assoc :plan-state plan-state)))))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
