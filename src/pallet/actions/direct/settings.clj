@@ -9,7 +9,7 @@
    [clojure.tools.logging :as logging])
   (:use
    [pallet.action :only [implement-action]]
-   [pallet.actions :only [assoc-settings update-settings]]
+   [pallet.actions :only [assoc-settings assoc-in-settings update-settings]]
    [pallet.core.session :only [admin-user target-ip]]
    [pallet.node :only [primary-ip]]))
 
@@ -21,6 +21,17 @@
                 session [:plan-state]
                 plan-state/assoc-settings
                 (session/target-id session) facility kv-pairs options)])
+   session])
+
+(implement-action assoc-in-settings :direct
+  {:action-type :fn/clojure :location :origin}
+  [session [facility & path] value & {:keys [instance-id] :as options}]
+  [(fn [session]
+     [value (update-in
+             session [:plan-state]
+             plan-state/update-settings
+             (session/target-id session) facility assoc-in [path value]
+             options)])
    session])
 
 (implement-action update-settings :direct

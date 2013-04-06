@@ -1,7 +1,7 @@
 (ns pallet.actions.direct.settings-test
   (:use
    [clojure.stacktrace :only [print-cause-trace print-stack-trace root-cause]]
-   [pallet.actions :only [assoc-settings remote-file-content]]
+   [pallet.actions :only [assoc-settings assoc-in-settings remote-file-content]]
    [pallet.algo.fsmop :only [failed?]]
    [pallet.api :only [group-spec lift plan-fn with-admin-user]]
    [pallet.argument :only [delayed]]
@@ -25,17 +25,21 @@
       (spit tmp-file "test")
       (let [user (local-test-user)
             a (atom nil)
+            b (atom nil)
             local (group-spec
                    "local" :phases
                    {:assoc (plan-fn
                              (let [c (remote-file-content
                                       (.getAbsolutePath tmp-file))]
                                (assoc-settings
-                                :myapp (delayed [_] {:content @c}))))
+                                :myapp (delayed [_] {:content @c}))
+                               (assoc-in-settings [:myapp2 :c] c)))
                     :get (plan-fn
                            (let [node (target-node)
-                                 c (get-node-settings node :myapp)]
-                             (reset! a c)))})
+                                 c (get-node-settings node :myapp)
+                                 d (get-node-settings node :myapp2)]
+                             (reset! a c)
+                             (reset! b (:c d))))})
             compute (make-localhost-compute :group-name "local")]
         (testing "assoc-settings across phases"
           (let [result (lift local :compute compute :phase [:assoc :get]
@@ -45,4 +49,5 @@
             (when (failed? result)
               (when-let [e (:exception @result)]
                 (print-cause-trace e)))
-            (is (= {:content "test"} @a))))))))
+            (is (= {:content "test"} @a))
+            (is (= "test" @b))))))))

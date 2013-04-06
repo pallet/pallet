@@ -144,6 +144,11 @@
    :default)."
   [facility kv-pairs & {:keys [instance-id]}])
 
+(defaction assoc-in-settings
+  "Put the specified `value` (possible a `NodeValue`) into the settings
+  for `path`, a vector of `[facility & keys]`, specifying a facility an a path."
+  [path value & {:keys [instance-id]}])
+
 (defaction update-settings
   "Update the settings for the specified host facility. The instance-id allows
    the specification of specific instance of the facility (the default is
