@@ -1,5 +1,42 @@
 Unstable development branch
 
+# 0.8.0-beta.7
+
+## Features
+
+- Allow service definitions from the classpath
+  Service definitions can no be put in pallet_services/*, in the same form
+  as they currently appear in ~/.pallet/services.  This allows project
+  specific service definitions.
+
+- Enable cluster-spec to add roles to its groups
+  The :roles passed to the cluster-spec are inserted into its groups' roles.
+
+## Fixes
+
+- Mark image credentials as :temp-key
+  When using image credentials to bootstrap, mark the credentials with
+  `:temp-key true` so they are not added to the system agent.
+
+  Fixes #226
+
+- Update to script-exec 0.3.1
+  Should fix issues with stale jsch Session objects being re-used.
+
+  Closes #223.
+
+- Fix mergeing of environment phases
+
+- Fix lift task for updated project-groups arity
+
+- Add back p.crate/groups-with-role
+
+- Assert if update-in passed a nil function
+  Also treats a nil argument to f-or-opts in update-settings as a map.
+
+- Remove the set -x from remote file
+  This can be enabled with the :script-trace action-option.
+
 # 0.8.0-beta.6
 
 ## Features
