@@ -37,7 +37,7 @@
   [{:keys [compute project] :as request} & args]
   (let [[spec & args] (build-args args)
         spec (or (seq spec)
-                 (project-groups (pallet-project project) compute nil))
+                 (project-groups (pallet-project project) compute nil nil nil))
         _ (logging/debugf "lift %s" (pr-str spec))
         op (apply api/lift
                   spec

@@ -20,6 +20,6 @@
   "Update the settings for the specified host facility. The instance-id allows
    the specification of specific instance of the facility (the default is
    :default)."
-  [plan-state node-id facility f args
-   {:keys [instance-id]}]
+  [plan-state node-id facility f args {:keys [instance-id]}]
+  {:pre [f]}
   (apply update-in plan-state [:host node-id facility instance-id] f args))

@@ -1,6 +1,7 @@
 (ns pallet.api
   "# Pallet API"
   (:require
+   [clojure.set :refer [union]]
    [clojure.string :refer [blank?]]
    [clojure.pprint :refer [print-table]]
    [pallet.compute :as compute]
@@ -13,7 +14,7 @@
    [pallet.core.session :only [session-context]]
    [pallet.crate :only [phase-context]]
    [pallet.algo.fsmop :only [dofsm operate result succeed]]
-   [pallet.environment :only [merge-environments]]
+   [pallet.environment :only [group-with-environment merge-environments]]
    [pallet.node :only [node? node-map]]
    [pallet.plugin :only [load-plugins]]
    [pallet.thread-expr :only [when->]]
@@ -171,9 +172,9 @@ specified in the `:extends` argument."
 
    - :node-spec default node-spec for the nodes in the cluster
 
-   - :roles     roles for the group-spec"
+   - :roles     roles for all group-specs in the cluster"
   [cluster-name
-   & {:keys [extends groups phases node-spec environment] :as options}]
+   & {:keys [extends groups phases node-spec environment roles] :as options}]
   (->
    options
    (update-in [:groups]
@@ -191,6 +192,7 @@ specified in the `:extends` argument."
                     (update-in
                      [:environment]
                      merge-environments environment)
+                    (update-in [:roles] union roles)
                     (extend-specs extends)
                     (extend-specs [{:phases phases}])
                     (extend-specs [(select-keys group-spec [:phases])])))
@@ -325,12 +327,14 @@ specified in the `:extends` argument."
                                      split-groups-and-targets)
         _ (logging/tracef "groups %s" (vec groups))
         _ (logging/tracef "targets %s" (vec targets))
-        groups (groups-with-phases groups phase-map)
-        targets (groups-with-phases targets phase-map)
         environment (merge-environments
                      (pallet.environment/environment compute)
                      environment
-                     (select-keys options environment-args))]
+                     (select-keys options environment-args))
+        groups (groups-with-phases groups phase-map)
+        targets (groups-with-phases targets phase-map)
+        groups (map (partial group-with-environment environment) groups)
+        targets (map (partial group-with-environment environment) targets)]
     (dofsm converge
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
@@ -375,11 +379,11 @@ specified in the `:extends` argument."
    otherwise the bound compute-service is used.  The configure phase is applied
    by default unless other phases are specified.
 
-   node-set can be a node type, a sequence of node types, or a map
-   of node type to nodes. Examples:
-              [node-type1 node-type2 {node-type #{node1 node2}}]
-              node-type
-              {node-type #{node1 node2}}
+   node-set can be a group spec, a sequence of group specs, or a map
+   of group specs to nodes. Examples:
+              [group-spec1 group-spec2 {group-spec #{node1 node2}}]
+              group-spec
+              {group-spec #{node1 node2}}
 
    options can also be keywords specifying the phases to apply, or an immediate
    phase specified with the phase macro, or a function that will be called with
@@ -403,12 +407,14 @@ specified in the `:extends` argument."
                                      split-groups-and-targets)
         _ (logging/tracef "groups %s" (vec groups))
         _ (logging/tracef "targets %s" (vec targets))
-        groups (groups-with-phases groups phase-map)
-        targets (groups-with-phases targets phase-map)
         environment (merge-environments
                      (and compute (pallet.environment/environment compute))
                      environment
                      (select-keys options environment-args))
+        groups (groups-with-phases groups phase-map)
+        targets (groups-with-phases targets phase-map)
+        groups (map (partial group-with-environment environment) groups)
+        targets (map (partial group-with-environment environment) targets)
         plan-state {}]
     (dofsm lift
       [nodes-set (all-group-nodes compute groups all-node-set)
@@ -427,11 +433,11 @@ specified in the `:extends` argument."
    bound compute-service is used.  The configure phase is applied by default
    unless other phases are specified.
 
-   node-set can be a node type, a sequence of node types, or a map
-   of node type to nodes. Examples:
-              [node-type1 node-type2 {node-type #{node1 node2}}]
-              node-type
-              {node-type #{node1 node2}}
+   node-set can be a group spec, a sequence of group specs, or a map
+   of group specs to nodes. Examples:
+              [group-spec1 group-spec2 {group-spec #{node1 node2}}]
+              group-spec
+              {group-spec #{node1 node2}}
 
    options can also be keywords specifying the phases to apply, or an immediate
    phase specified with the phase macro, or a function that will be called with

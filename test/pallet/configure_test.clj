@@ -112,8 +112,9 @@
       (is (not= home (System/getProperty "user.home")))
       (is (.isDirectory tmp))
       (.mkdirs (.getParentFile pallet))
+      (is (compute-service :test) "from resource")
       (spit pallet nl-form)
-      (is (pos? (count (nodes (compute-service :nl)))) "from config file")
+      (is (= 1 (count (nodes (compute-service :nl)))) "from config file")
       (is (zero? (count (nodes (compute-service :nl :node-list []))))
           "override options")
       (finally
