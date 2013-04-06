@@ -145,9 +145,7 @@
   (fn [node]
     (let [user (into {} (filter val (image-user (:node node))))]
       (debugf "Image-user is %s" user)
-      {:user (if (seq user)
-               user
-               (:user environment))
+      {:user user
        :executor (get-in environment [:algorithms :executor] default-executor)
        :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
                                    #'stop-execution-on-error)})))
@@ -324,8 +322,7 @@
   [state-name]
   (fn [node]
     (get
-     (when (taggable? (:node node))
-       (read-or-empty-map (tag (:node node) state-tag-name)))
+     (read-or-empty-map (tag (:node node) state-tag-name))
      (keyword (name state-name)))))
 
 ;;; # Exception reporting
