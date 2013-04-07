@@ -37,7 +37,8 @@
                   :compute compute
                   :phase (plan-fn
                            (rsync (.getPath dir) (.getPath target-dir) {}))
-                  :environment {:user user})
+                  :environment {:user user}
+                  :async true)
               target-tmp (java.io.File.
                           (str (.getPath target-dir)
                                "/" (.getName dir)
@@ -54,7 +55,8 @@
                    :phase (plan-fn
                             (rsync-directory
                              (.getPath dir) (.getPath target-dir)))
-                   :environment {:user user})
+                   :environment {:user user}
+                   :async true)
               target-tmp (java.io.File.
                           (str (.getPath target-dir)
                                "/" (.getName dir)

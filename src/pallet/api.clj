@@ -373,13 +373,33 @@ specified in the `:extends` argument."
 
    An optional group-name prefix may be specified. This will be used to modify
    the group-name for each group-spec, allowing you to build multiple discrete
-   clusters from a single set of group-specs."
+   clusters from a single set of group-specs.
+
+## Options
+
+`:async`
+: a flag to control whether the function executes asynchronously.  When truthy,
+  the function returns an Operation that can be deref'd like a future.  When not
+  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
+
+`:timeout-ms`
+: an integral number of milliseconds to wait for completion before timeout.
+  Only applies if `:async` is not truthy (the default).
+
+`:timeout-val`
+: a value to be returned should the operation time out."
   [group-spec->count & {:keys [compute blobstore user phase prefix middleware
-                               all-nodes all-node-set environment]
+                               all-nodes all-node-set environment
+                               async timeout-ms timeout-val]
                         :or {phase [:configure]}
                         :as options}]
   (load-plugins)
-  (operate (apply-map converge* group-spec->count options)))
+  (if async
+    (operate (apply-map converge* group-spec->count options))
+    (if timeout-ms
+      (deref (operate (apply-map converge* group-spec->count options))
+             timeout-ms timeout-val)
+      (deref (operate (apply-map converge* group-spec->count options))))))
 
 (defn lift*
   "Returns a FSM to lift the running nodes in the specified node-set by applying
@@ -451,20 +471,45 @@ specified in the `:extends` argument."
    phase specified with the phase macro, or a function that will be called with
    each matching node.
 
-   Options:
-    :compute         a jclouds compute service
-    :compute-service a map of :provider, :identity, :credential, and
-                     optionally :extensions for constructing a jclouds compute
-                     service.
-    :phase           a phase keyword, phase function, or sequence of these
-    :middleware      the middleware to apply to the configuration pipeline
-    :prefix          a prefix for the group-name names
-    :user            the admin-user on the nodes"
-  [node-set & {:keys [compute phase prefix middleware all-node-set environment]
+## Options:
+
+`:compute`
+: a jclouds compute service.
+
+`:phase`
+: a phase keyword, phase function, or sequence of these.
+
+`:middleware`
+: the middleware to apply to the configuration pipeline.
+
+`:prefix`
+: a prefix for the group-name names.
+
+`:user`
+the admin-user on the nodes.
+
+`:async`
+: a flag to control whether the function executes asynchronously.  When truthy,
+  the function returns an Operation that can be deref'd like a future.  When not
+  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
+
+`:timeout-ms`
+: an integral number of milliseconds to wait for completion before timeout.
+  Only applies if `:async` is not truthy (the default).
+
+`:timeout-val`
+: a value to be returned should the operation time out."
+  [node-set & {:keys [compute phase prefix middleware all-node-set environment
+                      async timeout-ms timeout-val]
                :or {phase [:configure]}
                :as options}]
   (load-plugins)
-  (operate (apply-map lift* node-set options)))
+  (if async
+    (operate (apply-map lift* node-set options))
+    (if timeout-ms
+      (deref (operate (apply-map lift* node-set options))
+             timeout-ms timeout-val)
+      (deref (operate (apply-map lift* node-set options))))))
 
 (defn lift-nodes
   "Lift `targets`, a sequence of node-maps, using the specified `phases`.
@@ -485,19 +530,19 @@ specified in the `:extends` argument."
 : an state map, which can be used to passing settings across multiple lift-nodes
   invocations.
 
-`:asynch`
+`:async`
 : a flag to control whether the function executes asynchronously.  When truthy,
   the function returns an Operation that can be deref'd like a future.  When not
   truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
 
 `:timeout-ms`
 : an integral number of milliseconds to wait for completion before timeout.
-  Only applies if `:asynch` is not truthy (the default).
+  Only applies if `:async` is not truthy (the default).
 
 `:timeout-val`
 : a value to be returned should the operation time out."
   [targets phases
-   & {:keys [user environment plan-state asynch timeout-ms timeout-val]
+   & {:keys [user environment plan-state async timeout-ms timeout-val]
       :or {environment {} plan-state {}}
       :as options}]
   (let [[phases phase-map] (process-phases phases)
@@ -507,7 +552,7 @@ specified in the `:extends` argument."
                      (select-keys options environment-args))]
     (letfn [(lift-nodes* []
               (operate (ops/lift targets phases environment plan-state)))]
-      (if asynch
+      (if async
         (lift-nodes*)
         (if timeout-ms
           (deref (lift-nodes*) timeout-ms timeout-val)
@@ -518,20 +563,20 @@ specified in the `:extends` argument."
 
 ## Options:
 
-`:asynch`
+`:async`
 : a flag to control whether the function executes asynchronously.  When truthy,
   the function returns an Operation that can be deref'd like a future.  When not
   truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
 
 `:timeout-ms`
 : an integral number of milliseconds to wait for completion before timeout.
-  Only applies if `:asynch` is not truthy (the default).
+  Only applies if `:async` is not truthy (the default).
 
 `:timeout-val`
 : a value to be returned should the operation time out."
-  [compute groups & {:keys [asynch timeout-ms timeout-val]}]
+  [compute groups & {:keys [async timeout-ms timeout-val]}]
   (letfn [(group-nodes* [] (operate (ops/group-nodes compute groups)))]
-    (if asynch
+    (if async
       (group-nodes*)
       (if timeout-ms
         (deref (group-nodes*) timeout-ms timeout-val)

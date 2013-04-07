@@ -50,9 +50,19 @@
   (testing "lift on group"
     (let [compute (make-localhost-compute)
           group (group-spec
-                 (group-name (first (nodes compute)))
-                 :phases {:p (plan-fn (exec-script "ls /"))})
+                    (group-name (first (nodes compute)))
+                  :phases {:p (plan-fn (exec-script "ls /"))})
           op (lift [group] :phase :p :compute compute)]
+      (is op)
+      (some
+       (partial re-find #"/bin")
+       (->> (mapcat :results op) (mapcat :out)))))
+  (testing "lift on group async"
+    (let [compute (make-localhost-compute)
+          group (group-spec
+                    (group-name (first (nodes compute)))
+                  :phases {:p (plan-fn (exec-script "ls /"))})
+          op (lift [group] :phase :p :compute compute :async true)]
       (is @op)
       (some
        (partial re-find #"/bin")
@@ -63,10 +73,10 @@
           op (lift [group]
                    :phase (plan-fn (exec-script "ls /"))
                    :compute compute)]
-      (is @op)
+      (is op)
       (some
        (partial re-find #"/bin")
-       (->> (mapcat :results @op) (mapcat :out))))))
+       (->> (mapcat :results op) (mapcat :out))))))
 
 (deftest lift-with-environment-test
   (testing "lift with environment"
@@ -79,7 +89,7 @@
                               (reset! a k)))
                    :compute compute
                    :environment {:my-key 1})]
-      (is @op)
+      (is op)
       (is (= 1 @a)))))
 
 (deftest make-user-test

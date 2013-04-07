@@ -43,7 +43,7 @@
             compute (make-localhost-compute :group-name "local")]
         (testing "assoc-settings across phases"
           (let [result (lift local :compute compute :phase [:assoc :get]
-                             :user user)]
+                             :user user :async true)]
             @result
             (is (not (failed? result)))
             (when (failed? result)

@@ -70,7 +70,8 @@
                            (plan-when (script (file-exists? ~(.getPath tmp)))
                              (exec-script (println "tmp found"))))
                   :compute compute
-                  :user (local-test-user))
+                  :user (local-test-user)
+                  :async true)
               session @op]
           (is (not (failed? op)))
           (is (= "tmp found\n"
@@ -84,7 +85,8 @@
                            (plan-when (script (file-exists? ~(.getPath tmp)))
                              (exec-script (println "tmp found"))))
                   :compute compute
-                  :user (local-test-user))
+                  :user (local-test-user)
+                  :async true)
               session @op]
           (is (not (failed? op)))
           (is (nil? (->> session :results (mapcat :result) last :out))))))
@@ -99,7 +101,8 @@
                                (script (file-exists? ~(.getPath tmp)))
                              (exec-script (println "tmp not found"))))
                   :compute compute
-                  :user (local-test-user))
+                  :user (local-test-user)
+                  :async true)
               session @op]
           (is (not (failed? op)))
           (is (nil? (->> session :results (mapcat :result) last :out)))))
@@ -113,7 +116,8 @@
                                (script (file-exists? ~(.getPath tmp)))
                              (exec-script (println "tmp not found"))))
                   :compute compute
-                  :user (local-test-user))
+                  :user (local-test-user)
+                  :async true)
               session @op]
           (is (not (failed? op)))
           (is (= "tmp not found\n"

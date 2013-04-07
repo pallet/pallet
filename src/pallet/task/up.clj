@@ -80,6 +80,7 @@
         (flush))
       (let [op (apply-map api/converge
                           spec
+                          :async true
                           (->
                            request
                            (merge (when (seq phases)

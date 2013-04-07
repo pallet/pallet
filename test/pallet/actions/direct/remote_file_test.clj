@@ -184,7 +184,8 @@
                                 (remote-file
                                  (.getPath tmp) :content "xxx"))
                        :compute compute
-                       :user (local-test-user))
+                       :user (local-test-user)
+                       :async true)
                    session @op]
                (is (not (failed? op)))
                (is (nil? (phase-errors op)))
@@ -203,7 +204,8 @@
                            (remote-file (.getPath tmp) :content "xxx"))
                   :compute compute
                   :user (local-test-user)
-                  :executor test-executors/test-executor)
+                  :executor test-executors/test-executor
+                  :async true)
               session @op]
           (logging/infof
            "r-f-t overwrite on existing content and no md5: session %s"
@@ -268,7 +270,8 @@
                                   :local-file (.getPath tmp)
                                   :mode "0666"))
                         :compute compute
-                        :user user)
+                        :user user
+                        :async true)
                     result (wait-for op)]
                 (is (complete? op))
                 (is (nil? (:exception @op)))
@@ -290,7 +293,8 @@
                                     :local-file (.getPath tmp)
                                     :mode "0666"))
                           :compute compute
-                          :user user)
+                          :user user
+                          :async true)
                       result (wait-for op)]
                   (is (nil? (phase-errors op)))
                   (is (nil? (:exception @op)))
@@ -309,7 +313,8 @@
                                     :local-file (.getPath tmp)
                                     :mode "0666"))
                           :compute compute
-                          :user user)
+                          :user user
+                          :async true)
                       result (wait-for op)]
                   (is (nil? (phase-errors op)))
                   (is (nil? (:exception @op)))
@@ -325,7 +330,8 @@
                                               :mode "0666"
                                               :flag-on-changed :changed))
                         :compute compute
-                        :user user)
+                        :user user
+                        :async true)
                     result @op]
                 (is (nil? (phase-errors op)))
                 (is (nil? (:exception @op)))
@@ -334,70 +340,70 @@
                        (slurp (.getPath target-tmp))))))
             (testing "content unchanged"
               (let [a (atom nil)]
-                @(lift
-                  local
-                  :compute compute
-                  :phase (plan-fn
-                           (let [nv (remote-file
-                                     (.getPath target-tmp)
-                                     :content "$(hostname)"
-                                     :mode "0666" :flag-on-changed :changed)]
-                             (verify-flag-not-set :changed)
-                             ((clj-action
-                                [session nv]
-                                (reset! a true)
-                                (is (nil? (seq (:flags nv))))
-                                [nil session])
-                              nv)))
-                  :user user)
+                (lift
+                 local
+                 :compute compute
+                 :phase (plan-fn
+                          (let [nv (remote-file
+                                    (.getPath target-tmp)
+                                    :content "$(hostname)"
+                                    :mode "0666" :flag-on-changed :changed)]
+                            (verify-flag-not-set :changed)
+                            ((clj-action
+                               [session nv]
+                               (reset! a true)
+                               (is (nil? (seq (:flags nv))))
+                               [nil session])
+                             nv)))
+                 :user user)
                 (is @a)
                 (is (.canRead target-tmp))
                 (is (= (:out (local/local-script "hostname"))
                        (slurp (.getPath target-tmp))))))
             (testing "content changed"
               (let [a (atom nil)]
-                @(lift
-                  local
-                  :compute compute
-                  :phase (plan-fn
-                           (let [nv (remote-file
-                                     (.getPath target-tmp) :content "abc"
-                                     :mode "0666" :flag-on-changed :changed)]
-                             (verify-flag-set :changed)
-                             ((clj-action
-                                [session nv]
-                                (reset! a true)
-                                (is (:flags nv))
-                                (is ((:flags nv) :changed))
-                                [nil session])
-                              nv)))
-                  :user user)
+                (lift
+                 local
+                 :compute compute
+                 :phase (plan-fn
+                          (let [nv (remote-file
+                                    (.getPath target-tmp) :content "abc"
+                                    :mode "0666" :flag-on-changed :changed)]
+                            (verify-flag-set :changed)
+                            ((clj-action
+                               [session nv]
+                               (reset! a true)
+                               (is (:flags nv))
+                               (is ((:flags nv) :changed))
+                               [nil session])
+                             nv)))
+                 :user user)
                 (is @a))
               (is (.canRead target-tmp))
               (is (= "abc\n"
                      (slurp (.getPath target-tmp)))))
             (testing "content"
-              @(lift
-                local
-                :compute compute
-                :phase (plan-fn
-                         (remote-file
-                          (.getPath target-tmp)
-                          :content "$text123" :literal true
-                          :mode "0666"))
-                :user user)
+              (lift
+               local
+               :compute compute
+               :phase (plan-fn
+                        (remote-file
+                         (.getPath target-tmp)
+                         :content "$text123" :literal true
+                         :mode "0666"))
+               :user user)
               (is (.canRead target-tmp))
               (is (= "$text123\n" (slurp (.getPath target-tmp)))))
             (testing "remote-file"
               (io/copy "text" tmp)
-              @(lift
-                local
-                :compute compute
-                :phase (plan-fn
-                         (remote-file
-                          (.getPath target-tmp) :remote-file (.getPath tmp)
-                          :mode "0666"))
-                :user user)
+              (lift
+               local
+               :compute compute
+               :phase (plan-fn
+                        (remote-file
+                         (.getPath target-tmp) :remote-file (.getPath tmp)
+                         :mode "0666"))
+               :user user)
               (is (.canRead target-tmp))
               (is (= "text" (slurp (.getPath target-tmp)))))
             (testing "url"
@@ -410,23 +416,24 @@
                                   (.getPath target-tmp)
                                   :url (str "file://" (.getPath tmp))
                                   :mode "0666"))
-                        :user user)]
+                        :user user
+                        :async true)]
                 (is @op)
                 (is (nil? (phase-errors op)))
                 (is (.canRead target-tmp))
                 (is (= "urltext" (slurp (.getPath target-tmp))))))
             (testing "url with md5"
               (io/copy "urlmd5text" tmp)
-              @(lift
-                local
-                :compute compute
-                :phase (plan-fn
-                         (remote-file
-                          (.getPath target-tmp)
-                          :url (str "file://" (.getPath tmp))
-                          :md5 (stevedore/script @(~lib/md5sum ~(.getPath tmp)))
-                          :mode "0666"))
-                :user user)
+              (lift
+               local
+               :compute compute
+               :phase (plan-fn
+                        (remote-file
+                         (.getPath target-tmp)
+                         :url (str "file://" (.getPath tmp))
+                         :md5 (stevedore/script @(~lib/md5sum ~(.getPath tmp)))
+                         :mode "0666"))
+               :user user)
               (is (.canRead target-tmp))
               (is (= "urlmd5text" (slurp (.getPath target-tmp)))))
             (testing "url with md5 urls"
@@ -452,7 +459,8 @@
                                     :url (str "file://" (.getPath tmp))
                                     :md5-url (str "file://" md5path)
                                     :mode "0666"))
-                          :user user)]
+                          :user user
+                          :async true)]
                   @op
                   (is (nil? (phase-errors op)))
                   (is (nil? (:exception @op)))
@@ -462,12 +470,12 @@
                   (is (= "urlmd5urltext" (slurp (.getPath target-tmp)))))))
             (testing "delete action"
               (.createNewFile target-tmp)
-              @(lift
-                local
-                :compute compute
-                :phase (plan-fn
-                         (remote-file (.getPath target-tmp) :action :delete))
-                :user user)
+              (lift
+               local
+               :compute compute
+               :phase (plan-fn
+                        (remote-file (.getPath target-tmp) :action :delete))
+               :user user)
               (is (not (.exists target-tmp))))))))))
 
 (deftest transfer-file-to-local-test
@@ -484,7 +492,7 @@
       (testing "with local ssh"
         (let [node (test-utils/make-localhost-node)]
           (testing "with-remote-file"
-            @(lift local :compute compute :user user)
+            (lift local :compute compute :user user)
             (is (= "text" (slurp local-file)))))))))
 
 (def check-content
@@ -504,29 +512,29 @@
           (let [node (test-utils/make-localhost-node)
                 path-atom (atom nil)]
             (testing "with-remote-file"
-              @(lift
-                local
-                :compute compute
-                :phase (plan-fn
-                         (with-remote-file
-                           check-content (.getPath remote-file) "text" path-atom))
-                :user user)
+              (lift
+               local
+               :compute compute
+               :phase (plan-fn
+                        (with-remote-file
+                          check-content (.getPath remote-file) "text" path-atom))
+               :user user)
               (is @path-atom)
               (is (not= (.getPath remote-file) (.getPath @path-atom))))))
         (testing "with local shell"
           (let [node (test-utils/make-localhost-node)
                 path-atom (atom nil)]
             (testing "with-remote-file"
-              @(lift
-                local
-                :compute compute
-                :phase (plan-fn
-                         (with-remote-file
-                           check-content
-                           (.getPath remote-file) "text" path-atom))
-                :user user
-                ;; :middleware [translate-action-plan]
-                )
+              (lift
+               local
+               :compute compute
+               :phase (plan-fn
+                        (with-remote-file
+                          check-content
+                          (.getPath remote-file) "text" path-atom))
+               :user user
+               ;; :middleware [translate-action-plan]
+               )
               (is @path-atom)
               (is (not= (.getPath remote-file) (.getPath @path-atom))))))))))
 
@@ -559,7 +567,8 @@
                              (remote-file
                               (.getPath tmp-file-2)
                               :content (delayed [_] @new-content))))))
-                     :user user)]
+                     :user user
+                     :async true)]
                 @result
                 (is (not (failed? result)))
                 (when (failed? result)
@@ -586,7 +595,8 @@
                              (remote-file
                               (.getPath tmp-file-2)
                               :content (delayed [_] @new-content))))))
-                     :user user)]
+                     :user user
+                     :async true)]
                 @result
                 (is (not (failed? result)))
                 (if (failed? result)
@@ -612,7 +622,8 @@
                             (.getPath tmp-file-2)
                             (delayed [_]
                               {:content (string/replace @content "x" "s")})))))
-                     :user user)]
+                     :user user
+                     :async true)]
                 (is @result)
                 (when (failed? result)
                   (when-let [e (:exception @result)]
@@ -638,7 +649,8 @@
                             (.getPath tmp-file-2)
                             :content (delayed [s]
                                        (string/replace @content "x" "s"))))))
-                     :user user)]
+                     :user user
+                     :async true)]
                 (is @result)
                 (is (not (failed? result)))
                 (is @seen)
@@ -661,7 +673,8 @@
                             (.getPath tmp-file-2)
                             :content (delayed [_]
                                        (string/replace @content "x" "s"))))))
-                     :user user)]
+                     :user user
+                     :async true)]
                 (is @result)
                 (is (not (failed? result)))
                 (is @seen)
