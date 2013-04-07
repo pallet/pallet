@@ -2,10 +2,20 @@
   "Various group specs to test pallet on live infrastructure."
   (:require
    [clojure.java.io :refer [file]]
-   [pallet.actions :refer [delete-local-path directory exec-checked-script
-                           exec-script* remote-file rsync-directory]]
+   [clojure.string :refer [blank?]]
+   [clojure.tools.logging :refer [debugf infof]]
+   [pallet.actions
+    :refer [as-action assoc-in-settings delete-local-path directory
+            exec-checked-script exec-script exec-script* on-one-node remote-file
+            rsync-directory]]
+   [pallet.algo.fsmop :refer [operate]]
    [pallet.api :refer [group-spec plan-fn]]
-   [pallet.crate :refer [admin-user defplan]]
+   [pallet.core.operations :as ops]
+   [pallet.core.plan-state :as ps]
+   [pallet.crate
+    :refer [admin-user compute-service defplan get-settings target-node
+            target-nodes targets]]
+   [pallet.node :refer [id tag tag!]]
    [pallet.script-test :refer [testing-script is-true is=]]
    [pallet.utils :refer [tmpdir tmpfile]]))
 
@@ -78,3 +88,58 @@
                             "rsync copied correctly")
                            ))))}
       :roles #{:live-test :rsync})))
+
+
+;;; This is to test p.c.operations.  It runs a sequential lift over two nodes
+;;; inside the configure phase.
+(declare ops-test-plan)
+(def operations-test
+  (group-spec "ops-test"
+    :count 2
+    :phases {:settings (plan-fn
+                         (let [nv (exec-script ("hostname"))]
+                           (assoc-in-settings [:ops :hostname] nv)))
+             :configure (plan-fn
+                          (on-one-node  ; run on just one of the two nodes
+                           [:ops]
+                           (as-action
+                            ;; use a new thread so session is not bound
+                            @(future
+                               (ops-test-plan
+                                (compute-service)
+                                (distinct
+                                 (map #(dissoc % :node) (targets))))))))
+             :tag (plan-fn
+                    (let [{:keys [hostname]} (get-settings :ops)]
+                      (tag! (target-node) "hostname" (:out hostname))))
+             :test (plan-fn
+                     ;; assert that every node has an opstest tag
+                     (as-action
+                      (assert
+                       (every?
+                        #(not (blank? (tag % "hostname")))
+                        (target-nodes))))
+                     ;; reset the tags
+                     (as-action (tag! (target-node) "hostname" "")))}
+    :roles #{:live-test :ops}))
+
+(defn ops-test-plan
+  [compute groups]
+  ;; Run settings on all the nodes to get settings
+  (let [nodes @(operate (ops/group-nodes compute groups))
+        {:keys [plan-state]} @(operate (ops/lift nodes [:settings] {} {}))]
+    (assert (= 2 (count nodes)) "Incorrect node count")
+    (assert (every? #(ps/get-settings plan-state (id (:node %)) :ops {}) nodes)
+            "Has hostname in :ops settings for each node")
+    ;; set the tag on the first node
+    @(operate (ops/lift [(first nodes)] [:tag] {} plan-state))
+    (assert (not (blank? (tag (:node (first nodes)) "hostname")))
+            "first node has tag")
+    (assert (blank? (tag (:node (second nodes)) "hostname"))
+            "second node has no tag")
+    ;; set the tag on the second node
+    @(operate (ops/lift [(second nodes)] [:tag] {} plan-state))
+    (assert (not (blank? (tag (:node (first nodes)) "hostname")))
+            "first node has tag")
+    (assert (not (blank? (tag (:node (second nodes)) "hostname")))
+            "second node has tag")))

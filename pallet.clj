@@ -4,7 +4,7 @@
 ;;; The pallet.crate.automated-admin-user/automated-admin-user us also referred.
 
 (require
- '[pallet.test-specs :refer [remote-file-test rsync-test]]
+ '[pallet.test-specs :refer [remote-file-test rsync-test operations-test]]
  '[pallet.crate.initd-test :refer [initd-test-spec]]
  '[pallet.crate.nohup-test :refer [nohup-test-spec]])
 
@@ -18,6 +18,7 @@
                 :selectors #{:default}}]}}
 
   :groups [remote-file-test rsync-test
+           operations-test
            (group-spec "initd-test"
              :extends [with-automated-admin-user
                        initd-test-spec]
