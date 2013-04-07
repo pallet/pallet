@@ -466,6 +466,77 @@ specified in the `:extends` argument."
   (load-plugins)
   (operate (apply-map lift* node-set options)))
 
+(defn lift-nodes
+  "Lift `targets`, a sequence of node-maps, using the specified `phases`.
+
+`phases`
+: a sequence of phase keywords (identifying phases) or plan functions, that
+  should be applied to the target nodes.  Note that there are no default phases.
+
+## Options:
+
+`:user`
+: the admin-user to use for operations on the target nodes.
+
+`:environment`
+: an environment map, to be merged into the environment.
+
+`:plan-state`
+: an state map, which can be used to passing settings across multiple lift-nodes
+  invocations.
+
+`:asynch`
+: a flag to control whether the function executes asynchronously.  When truthy,
+  the function returns an Operation that can be deref'd like a future.  When not
+  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
+
+`:timeout-ms`
+: an integral number of milliseconds to wait for completion before timeout.
+  Only applies if `:asynch` is not truthy (the default).
+
+`:timeout-val`
+: a value to be returned should the operation time out."
+  [targets phases
+   & {:keys [user environment plan-state asynch timeout-ms timeout-val]
+      :or {environment {} plan-state {}}
+      :as options}]
+  (let [[phases phase-map] (process-phases phases)
+        targets (groups-with-phases targets phase-map)
+        environment (merge-environments
+                     environment
+                     (select-keys options environment-args))]
+    (letfn [(lift-nodes* []
+              (operate (ops/lift targets phases environment plan-state)))]
+      (if asynch
+        (lift-nodes*)
+        (if timeout-ms
+          (deref (lift-nodes*) timeout-ms timeout-val)
+          (deref (lift-nodes*)))))))
+
+(defn group-nodes
+  "Return a sequence of node-maps for each node in the specified group-specs.
+
+## Options:
+
+`:asynch`
+: a flag to control whether the function executes asynchronously.  When truthy,
+  the function returns an Operation that can be deref'd like a future.  When not
+  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
+
+`:timeout-ms`
+: an integral number of milliseconds to wait for completion before timeout.
+  Only applies if `:asynch` is not truthy (the default).
+
+`:timeout-val`
+: a value to be returned should the operation time out."
+  [compute groups & {:keys [asynch timeout-ms timeout-val]}]
+  (letfn [(group-nodes* [] (operate (ops/group-nodes compute groups)))]
+    (if asynch
+      (group-nodes*)
+      (if timeout-ms
+        (deref (group-nodes*) timeout-ms timeout-val)
+        (deref (group-nodes*))))))
+
 ;;; ### plan functions
 (defmacro plan-fn
   "Create a plan function from a sequence of plan function invocations.
