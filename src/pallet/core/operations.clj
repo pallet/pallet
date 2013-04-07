@@ -6,7 +6,7 @@
    [clojure.tools.logging :as logging])
   (:use
    [pallet.environment :only [environment]]
-   [pallet.algo.fsmop :only [dofsm reduce* result succeed]]
+   [pallet.algo.fsmop :only [delay-for dofsm reduce* result succeed]]
    [pallet.utils :only [apply-map]]))
 
 (defn node-count-adjuster
@@ -81,6 +81,62 @@
                                [results1 ps]))
                            [[] plan-state]
                            phases)]
+    {:results results
+     :targets targets
+     :plan-state plan-state}))
+
+(defn rolling-lift
+  "Lift targets one at a time, applying phases.
+
+## Options
+
+`:delay`
+: the time to delay between targets.
+
+`:delay-units`
+: the units for the delay. A keyword from, :ns, :us, :ms, :s, :mins, :hours"
+  [targets phases environment plan-state
+   {:keys [delay delay-units] :or {delay-units :ms}}]
+  (logging/debugf
+   "lift :phase %s :targets %s" (vec phases) (vec (map :group-name targets)))
+  (dofsm lift-target
+    [[results plan-state]
+     (reduce*
+      (fn target-reducer [[results plan-state] target]
+        (dofsm lift-phases
+          [[results plan-state]
+           (reduce*
+            (fn phase-reducer [[results plan-state] phase]
+              (dofsm reduce-phases
+                [[r ps] (primitives/build-and-execute-phase
+                         targets plan-state environment
+                         (api/environment-execution-settings
+                          environment)
+                         [target] phase)
+                 results1 (result (concat results r))
+                 _ (succeed
+                    (not (some :errors r))
+                    (merge
+                     {:phase-errors true
+                      :phase phase
+                      :results results1}
+                     (when-let [e (some
+                                   #(some
+                                     (comp :cause :error)
+                                     (:errors %))
+                                   results1)]
+                       (logging/errorf
+                        e "Phase Error in %s" phase)
+                       {:exception e})))]
+                [results1 ps]))
+            [results plan-state]
+            phases)
+           _ (if delay
+               (delay-for delay delay-units)
+               (succeed true nil))]
+          [results plan-state]))
+      [[] plan-state]
+      targets)]
     {:results results
      :targets targets
      :plan-state plan-state}))

@@ -9,7 +9,7 @@
             exec-checked-script exec-script exec-script* on-one-node remote-file
             rsync-directory]]
    [pallet.algo.fsmop :refer [operate]]
-   [pallet.api :refer [group-spec plan-fn]]
+   [pallet.api :refer [group-spec plan-fn] :as api]
    [pallet.core.operations :as ops]
    [pallet.core.plan-state :as ps]
    [pallet.crate
@@ -143,3 +143,52 @@
             "first node has tag")
     (assert (not (blank? (tag (:node (second nodes)) "hostname")))
             "second node has tag")))
+
+;;; Test rolling-list
+(declare rolling-test-plan)
+(def rolling-lift-test
+  (group-spec "rolling-test"
+    :count 2
+    :phases {:settings (plan-fn
+                         (let [nv (exec-script ("hostname"))]
+                           (assoc-in-settings [:rolling :hostname] nv)))
+             :configure (plan-fn
+                          (infof "rolling-test-plan configure")
+                          (on-one-node  ; run on just one of the two nodes
+                           [:rolling]
+                           (as-action
+                            (infof "rolling-test-plan configure action")
+                            ;; use a new thread so session is not bound
+                            @(future
+                               (rolling-test-plan
+                                (compute-service)
+                                (distinct
+                                 (map #(dissoc % :node) (targets))))))))
+             :tag (plan-fn
+                    (let [{:keys [hostname]} (get-settings :rolling)]
+                      (infof "rolling-lift-test tag with %s" (:out hostname))
+                      (tag! (target-node) "hostname" (:out hostname))))
+             :test (plan-fn
+                     ;; assert that every node has a hostname tag
+                     (as-action
+                      (assert
+                       (every?
+                        #(not (blank? (tag % "hostname")))
+                        (target-nodes))))
+                     ;; reset the tags
+                     (as-action (tag! (target-node) "hostname" "")))}
+    :roles #{:live-test :rolling}))
+
+(defn rolling-test-plan
+  [compute groups]
+  ;; Run settings on all the nodes to get settings
+  (infof "rolling-test-plan applying :settings")
+  (let [nodes (api/group-nodes compute groups)
+        {:keys [plan-state]} (api/lift-nodes nodes [:settings] {} {})]
+    (infof "rolling-test-plan applying rolling lift")
+    (infof "rolling-test-plan plan-state %s" plan-state)
+    (assert (= 2 (count nodes)) "Incorrect node count")
+    (assert
+     (every? #(ps/get-settings plan-state (id (:node %)) :rolling {}) nodes)
+     "Has hostname in :rolling settings for each node")
+    (api/rolling-lift nodes [:tag] :plan-state plan-state :delay 10000)))
