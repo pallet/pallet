@@ -334,7 +334,8 @@ specified in the `:extends` argument."
         groups (groups-with-phases groups phase-map)
         targets (groups-with-phases targets phase-map)
         groups (map (partial group-with-environment environment) groups)
-        targets (map (partial group-with-environment environment) targets)]
+        targets (map (partial group-with-environment environment) targets)
+        lift-options (select-keys options ops/lift-options)]
     (dofsm converge
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
@@ -348,10 +349,7 @@ specified in the `:extends` argument."
        {:keys [results plan-state] :as lift-result}
        (ops/lift-partitions
         targets plan-state environment (remove #{:settings :bootstrap} phases)
-        (dissoc options
-                :compute :blobstore :user :phase :prefix :middleware
-                :all-nodes :all-node-set :environment :plan-state :async
-                :timeout-val :timeout-ms))]
+        lift-options)]
 
       (-> converge-result
           (update-in [:results] concat results)
@@ -448,7 +446,8 @@ specified in the `:extends` argument."
         targets (groups-with-phases targets phase-map)
         groups (map (partial group-with-environment environment) groups)
         targets (map (partial group-with-environment environment) targets)
-        plan-state {}]
+        plan-state {}
+        lift-options (select-keys options ops/lift-options)]
     (dofsm lift
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
@@ -456,9 +455,11 @@ specified in the `:extends` argument."
           (or compute (seq nodes-set))
           {:error :no-nodes-and-no-compute-service})
        {:keys [plan-state]} (ops/lift
-                             nodes-set [:settings] environment plan-state {})
-       result (ops/lift nodes-set phases environment plan-state {})]
-      result)))
+                             nodes-set plan-state environment [:settings] {})
+       results (ops/lift-partitions
+                nodes-set plan-state environment (remove #{:settings} phases)
+                lift-options)]
+      results)))
 
 (defn lift
   "Lift the running nodes in the specified node-set by applying the specified

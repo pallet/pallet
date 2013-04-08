@@ -33,7 +33,7 @@
                           state :aborted assoc :fail-reason event-data))))
             (run-async [{:keys [em state-data] :as state}]
               (let [event (:event em)
-                    f-runner (fn []
+                    f-runner (fn async-fsm []
                                (try
                                  (event :success (f))
                                  (catch Exception e

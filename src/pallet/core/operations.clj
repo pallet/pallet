@@ -54,6 +54,11 @@
     [service-state (primitives/service-state compute groups)]
     service-state))
 
+(def ^{:doc "A sequence of keywords, listing the lift-options"}
+  lift-options
+  [:targets :phase-execution-f :execution-settings-f
+   :post-phase-f :post-phase-f])
+
 (defn lift
   "Lift nodes (`targets` which defaults to `service-state`), given a
 `plan-state`, `environment` and the `phases` to apply.
@@ -88,12 +93,10 @@
            post-phase-f post-phase-fsm]
     :or {targets service-state
          phase-execution-f primitives/build-and-execute-phase
-         execution-settings-f (api/environment-execution-settings environment)
-         post-phase nil}}]
+         execution-settings-f (api/environment-execution-settings
+                               environment)}}]
   (logging/debugf
    "lift :phases %s :targets %s" (vec phases) (vec (map :group-name targets)))
-  (logging/debugf
-   "lift :plan-state %s" plan-state)
   (dofsm lift
     [[results plan-state] (reduce*
                            (fn reducer [[results plan-state] phase]
@@ -106,11 +109,14 @@
                                    (when post-phase-f
                                      (post-phase-f targets phase r)))
                                 _ (result
-                                   (doseq [f (->> targets
-                                                  (map (comp :post-phase-f meta
-                                                             phase :phases))
-                                                  (remove nil?)
-                                                  distinct)]
+                                   (doseq [f (->>
+                                              targets
+                                              (map
+                                               (comp
+                                                :post-phase-f meta
+                                                #(api/target-phase % phase)))
+                                              (remove nil?)
+                                              distinct)]
                                      (f targets phase r)))
                                 _ (if post-phase-fsm
                                     (post-phase-fsm targets phase r)
@@ -120,8 +126,9 @@
                                            nil
                                            (->>
                                             targets
-                                            (map (comp :post-phase-fsm meta
-                                                       phase :phases))
+                                            (map
+                                             (comp :post-phase-fsm meta
+                                                   #(api/target-phase % phase)))
                                             (remove nil?)
                                             distinct))
                                 _ (succeed
@@ -178,12 +185,10 @@ Other options as taken by `lift`."
     [[results plan-state]
      (reduce*
       (fn phase-reducer [[results plan-state] phase]
-        (logging/debugf "lift-partitions :phase %s" phase)
         (dofsm lift-partitions
           [[results plan-state]
            (reduce*
             (fn target-reducer [[r plan-state] targets]
-              (logging/debugf "lift-partitions on %s targets" (count targets))
               (dofsm reduce-phases
                 [{:keys [results plan-state]}
                  (lift
@@ -193,22 +198,19 @@ Other options as taken by `lift`."
             [results plan-state]
             (let [fns (comp
                        (juxt :partition-by :post-phase-f :post-phase-fsm)
-                       meta phase :phases)]
+                       meta #(api/target-phase % phase))]
               (->>
                targets
                ;; partition by all the partitioning and post-phase functions, so
                ;; we get the correct behaviour in lift.
                (clojure.core/partition-by fns)
-               doall
                (mapcat
-                #(do
-                   (logging/debugf "Partitioning %s targets" (count targets))
-                   (clojure.core/partition-by
-                    ((comp (fn [[f & _]]
-                             (or f partition-by (constantly nil)))
-                           fns)
-                     (first %))
-                    %))))))]
+                #(clojure.core/partition-by
+                  ((comp (fn [[f & _]]
+                           (or f partition-by (constantly nil)))
+                         fns)
+                   (first %))
+                  %)))))]
           [results plan-state]))
       [[] plan-state]
       phases)]
@@ -234,7 +236,6 @@ to implement this functions contract."
           {:targets (filter (complement (api/has-state-flag? flag)) targets)
            :post-phase-fsm
            (fn [targets phase results]
-             (logging/debugf "lift-and-flag post-phase-fsm")
              (primitives/set-state-for-nodes
               flag (map :target (remove :errors results))))})))
 
