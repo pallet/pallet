@@ -8,8 +8,8 @@
    [pallet.algo.fsm.fsm-dsl :only
     [event-handler event-machine-config fsm-name initial-state on-enter state
      state-driver valid-transitions]]
-   [pallet.map-merge :only [merge-keys]]))
-
+   [pallet.map-merge :only [merge-keys]]
+   [pallet.node :only [id]]))
 ;;; ## Wrap non-FSM functions in simple FSM
 
 ;;; TODO: Provide support for controlling retry count, standoff, etc, although
@@ -33,7 +33,7 @@
                           state :aborted assoc :fail-reason event-data))))
             (run-async [{:keys [em state-data] :as state}]
               (let [event (:event em)
-                    f-runner (fn []
+                    f-runner (fn async-fsm []
                                (try
                                  (event :success (f))
                                  (catch Exception e
@@ -54,11 +54,14 @@
 (defn set-state-for-node
   "Sets the boolean `state-name` flag on `node`."
   [state-name node]
+  (logging/debugf "set-state-for-node %s %s" state-name (:id (:node node)))
   (async-fsm (partial api/set-state-for-node state-name node)))
 
 (defn set-state-for-nodes
   "Sets the boolean `state-name` flag on `nodes`."
   [state-name nodes]
+  (logging/debugf "set-state-for-nodes %s %s"
+                  state-name (mapv (comp id :node) nodes))
   (map* (map (partial set-state-for-node state-name) nodes)))
 
 ;;; ## Compute service state
@@ -104,7 +107,7 @@
   `target-type`
   : specifies the type of target to run the phase on, :group, :group-nodes,
   or :group-node-list."
-  [service-state plan-state environment execution-settings-f targets phase]
+  [service-state plan-state environment phase targets execution-settings-f]
   {:pre [phase]}
   (logging/debugf
    "build-and-execute-phase %s on %s target(s)" phase (count targets))
@@ -119,31 +122,26 @@
     (execute-action-plans
      service-state plan-state environment execution-settings-f action-plans)))
 
-(defn execute-phase-with-image-user
-  [service-state environment targets plan-state phase]
-  (logging/debugf
-   "execute-phase-with-image-user on %s target(s)" (count targets))
-  (dofsm execute-phase-with-image-user
-    [[results plan-state] (build-and-execute-phase
-                           service-state plan-state environment
-                           (api/environment-image-execution-settings
-                            environment)
-                           targets phase)]
-    [results plan-state]))
-
 (defn execute-on-unflagged
-  "Execute a function of service-state on nodes that don't have the specified
-  state flag set. On successful completion the nodes have the state flag set."
-  [targets execute-f state-flag]
-  (logging/debugf "execute-on-unflagged state-flag %s" state-flag)
-  (dofsm execute-on-unflagged
-    [[results plan-state] (execute-f
-                           (filter
-                            (complement (api/has-state-flag? state-flag))
-                            targets))
-     _ (set-state-for-nodes
-        state-flag (map :target (remove :errors results)))]
-    [results plan-state]))
+  "Return a phase execution function, that will exacute a phase on nodes that
+  don't have the specified state flag set. On successful completion the nodes
+  have the state flag set."
+  ([state-flag execute-f]
+     (logging/debugf "execute-on-unflagged state-flag %s" state-flag)
+     (fn execute-on-unflagged
+       [service-state plan-state environment phase targets execution-settings-f]
+       (dofsm execute-on-unflagged
+         [[results plan-state] (execute-f
+                                service-state plan-state environment phase
+                                (filter
+                                 (complement (api/has-state-flag? state-flag))
+                                 targets)
+                                execution-settings-f)
+          _ (set-state-for-nodes
+             state-flag (map :target (remove :errors results)))]
+         [results plan-state])))
+  ([state-flag]
+     (execute-on-unflagged state-flag build-and-execute-phase)))
 
 ;;; ## Result predicates
 (defn successful-result?
