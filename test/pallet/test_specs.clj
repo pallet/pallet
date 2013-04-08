@@ -13,8 +13,8 @@
    [pallet.core.operations :as ops]
    [pallet.core.plan-state :as ps]
    [pallet.crate
-    :refer [admin-user compute-service defplan get-settings target-node
-            target-nodes targets]]
+    :refer [admin-user compute-service defplan get-settings target-name
+            target-node target-nodes targets]]
    [pallet.node :refer [id tag tag!]]
    [pallet.script-test :refer [testing-script is-true is=]]
    [pallet.utils :refer [tmpdir tmpfile]]))
@@ -127,18 +127,18 @@
   [compute groups]
   ;; Run settings on all the nodes to get settings
   (let [nodes @(operate (ops/group-nodes compute groups))
-        {:keys [plan-state]} @(operate (ops/lift nodes [:settings] {} {}))]
+        {:keys [plan-state]} @(operate (ops/lift nodes [:settings] {} {} {}))]
     (assert (= 2 (count nodes)) "Incorrect node count")
     (assert (every? #(ps/get-settings plan-state (id (:node %)) :ops {}) nodes)
             "Has hostname in :ops settings for each node")
     ;; set the tag on the first node
-    @(operate (ops/lift [(first nodes)] [:tag] {} plan-state))
+    @(operate (ops/lift [(first nodes)] [:tag] {} plan-state {}))
     (assert (not (blank? (tag (:node (first nodes)) "hostname")))
             "first node has tag")
     (assert (blank? (tag (:node (second nodes)) "hostname"))
             "second node has no tag")
     ;; set the tag on the second node
-    @(operate (ops/lift [(second nodes)] [:tag] {} plan-state))
+    @(operate (ops/lift [(second nodes)] [:tag] {} plan-state {}))
     (assert (not (blank? (tag (:node (first nodes)) "hostname")))
             "first node has tag")
     (assert (not (blank? (tag (:node (second nodes)) "hostname")))
@@ -165,9 +165,9 @@
                                 (distinct
                                  (map #(dissoc % :node) (targets))))))))
              :tag (plan-fn
-                    (let [{:keys [hostname]} (get-settings :rolling)]
-                      (infof "rolling-lift-test tag with %s" (:out hostname))
-                      (tag! (target-node) "hostname" (:out hostname))))
+                       (let [{:keys [hostname]} (get-settings :rolling)]
+                         (infof "rolling-lift-test tag with %s" (:out hostname))
+                         (tag! (target-node) "hostname" (:out hostname))))
              :test (plan-fn
                      ;; assert that every node has a hostname tag
                      (as-action
@@ -191,4 +191,31 @@
     (assert
      (every? #(ps/get-settings plan-state (id (:node %)) :rolling {}) nodes)
      "Has hostname in :rolling settings for each node")
-    (api/rolling-lift nodes [:tag] :plan-state plan-state :delay 10000)))
+    (api/lift-nodes nodes [:tag]
+                    :plan-state plan-state
+                    :partition-by identity
+                    :post-phase-fsm (ops/delay 10 :s))))
+
+;;; test partitioning via metadata
+(def partitioning-test
+  (group-spec "rolling-test"
+    :count 2
+    :phases {:settings (plan-fn
+                         (assoc-in-settings [:rolling :hostname] (target-name)))
+             :tag (with-meta
+                    (plan-fn
+                      (let [{:keys [hostname]} (get-settings :rolling)]
+                        (debugf "rolling-lift-test tag with %s" hostname)
+                        (tag! (target-node) "hostname" hostname)))
+                    {:partition-by identity
+                     :post-phase-f (fn [_ _ _] (Thread/sleep 10000))})
+             :test (plan-fn
+                     ;; assert that every node has a hostname tag
+                     (as-action
+                      (assert
+                       (every?
+                        #(not (blank? (tag % "hostname")))
+                        (target-nodes))))
+                     ;; reset the tags
+                     (as-action (tag! (target-node) "hostname" "")))}
+    :roles #{:live-test :partition}))

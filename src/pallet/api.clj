@@ -314,7 +314,7 @@ specified in the `:extends` argument."
    the group-name for each group-spec, allowing you to build multiple discrete
    clusters from a single set of group-specs."
   [group-spec->count & {:keys [compute blobstore user phase prefix middleware
-                               all-nodes all-node-set environment]
+                               all-nodes all-node-set environment plan-state]
                         :or {phase [:configure]}
                         :as options}]
   (let [[phases phase-map] (process-phases phase)
@@ -342,11 +342,16 @@ specified in the `:extends` argument."
           (or compute (seq nodes-set))
           {:error :no-nodes-and-no-compute-service})
        {:keys [plan-state targets] :as converge-result}
-       (ops/converge groups nodes-set phases compute environment {})
+       (ops/converge
+        compute groups nodes-set plan-state environment phases options)
 
        {:keys [results plan-state] :as lift-result}
-       (ops/lift targets (remove #{:settings :bootstrap} phases)
-                 environment plan-state)]
+       (ops/lift-partitions
+        targets plan-state environment (remove #{:settings :bootstrap} phases)
+        (dissoc options
+                :compute :blobstore :user :phase :prefix :middleware
+                :all-nodes :all-node-set :environment :plan-state :async
+                :timeout-val :timeout-ms))]
 
       (-> converge-result
           (update-in [:results] concat results)
@@ -451,8 +456,8 @@ specified in the `:extends` argument."
           (or compute (seq nodes-set))
           {:error :no-nodes-and-no-compute-service})
        {:keys [plan-state]} (ops/lift
-                             nodes-set [:settings] environment plan-state)
-       result (ops/lift nodes-set phases environment plan-state)]
+                             nodes-set [:settings] environment plan-state {})
+       result (ops/lift nodes-set phases environment plan-state {})]
       result)))
 
 (defn lift
@@ -551,64 +556,17 @@ the admin-user on the nodes.
                      environment
                      (select-keys options environment-args))]
     (letfn [(lift-nodes* []
-              (operate (ops/lift targets phases environment plan-state)))]
+              (operate
+               (ops/lift-partitions
+                targets phases environment plan-state
+                (dissoc options
+                        :environment :plan-state :async
+                        :timeout-val :timeout-ms))))]
       (if async
         (lift-nodes*)
         (if timeout-ms
           (deref (lift-nodes*) timeout-ms timeout-val)
           (deref (lift-nodes*)))))))
-
-(defn rolling-lift
-  "Lift `targets`, a sequence of node-maps, using the specified `phases`.  The
-lift is done one node at a time.
-
-`phases`
-: a sequence of phase keywords (identifying phases) or plan functions, that
-  should be applied to the target nodes.  Note that there are no default phases.
-
-## Options:
-
-`:user`
-: the admin-user to use for operations on the target nodes.
-
-`:environment`
-: an environment map, to be merged into the environment.
-
-`:plan-state`
-: an state map, which can be used to passing settings across multiple lift-nodes
-  invocations.
-
-`:async`
-: a flag to control whether the function executes asynchronously.  When truthy,
-  the function returns an Operation that can be deref'd like a future.  When not
-  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
-
-`:timeout-ms`
-: an integral number of milliseconds to wait for completion before timeout.
-  Only applies if `:async` is not truthy (the default).
-
-`:timeout-val`
-: a value to be returned should the operation time out."
-  [targets phases
-   & {:keys [user environment plan-state async timeout-ms timeout-val
-             delay]
-      :or {environment {} plan-state {}}
-      :as options}]
-  (let [[phases phase-map] (process-phases phases)
-        targets (groups-with-phases targets phase-map)
-        environment (merge-environments
-                     environment
-                     (select-keys options environment-args))]
-    (letfn [(lift-nodes* []
-              (operate (ops/rolling-lift
-                        targets phases environment plan-state
-                        (select-keys options [:delay]))))]
-      (if async
-        (lift-nodes*)
-        (if timeout-ms
-          (deref (lift-nodes*) timeout-ms timeout-val)
-          (deref (lift-nodes*)))))))
-
 
 (defn group-nodes
   "Return a sequence of node-maps for each node in the specified group-specs.

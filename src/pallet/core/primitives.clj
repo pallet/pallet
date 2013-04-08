@@ -104,7 +104,7 @@
   `target-type`
   : specifies the type of target to run the phase on, :group, :group-nodes,
   or :group-node-list."
-  [service-state plan-state environment execution-settings-f targets phase]
+  [service-state plan-state environment phase targets execution-settings-f]
   {:pre [phase]}
   (logging/debugf
    "build-and-execute-phase %s on %s target(s)" phase (count targets))
@@ -120,21 +120,22 @@
      service-state plan-state environment execution-settings-f action-plans)))
 
 (defn execute-phase-with-image-user
-  [service-state environment targets plan-state phase]
+  [service-state plan-state environment phase targets]
   (logging/debugf
    "execute-phase-with-image-user on %s target(s)" (count targets))
   (dofsm execute-phase-with-image-user
     [[results plan-state] (build-and-execute-phase
                            service-state plan-state environment
+                           phase
+                           targets
                            (api/environment-image-execution-settings
-                            environment)
-                           targets phase)]
+                            environment))]
     [results plan-state]))
 
 (defn execute-on-unflagged
   "Execute a function of service-state on nodes that don't have the specified
   state flag set. On successful completion the nodes have the state flag set."
-  [targets execute-f state-flag]
+  [execute-f state-flag targets]
   (logging/debugf "execute-on-unflagged state-flag %s" state-flag)
   (dofsm execute-on-unflagged
     [[results plan-state] (execute-f
