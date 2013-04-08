@@ -33,6 +33,7 @@
               (pallet-project project) compute selectors groups roles)]
     (let [op (apply-map api/converge
                         (map #(assoc % :count 0) spec)
+                        :async true
                         (->
                          request
                          (dissoc :config :project)
