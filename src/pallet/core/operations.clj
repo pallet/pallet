@@ -191,16 +191,22 @@ Other options as taken by `lift`."
                   (assoc options :targets targets))]
                 [(concat r results) plan-state]))
             [results plan-state]
-            (let [f (comp :partition-by meta phase :phases)]
+            (let [fns (comp
+                       (juxt :partition-by :post-phase-f :post-phase-fsm)
+                       meta phase :phases)]
               (->>
                targets
-               (clojure.core/partition-by f)
+               ;; partition by all the partitioning and post-phase functions, so
+               ;; we get the correct behaviour in lift.
+               (clojure.core/partition-by fns)
                doall
                (mapcat
                 #(do
                    (logging/debugf "Partitioning %s targets" (count targets))
                    (clojure.core/partition-by
-                    ((comp (fn [f] (or f partition-by (constantly nil))) f)
+                    ((comp (fn [[f & _]]
+                             (or f partition-by (constantly nil)))
+                           fns)
                      (first %))
                     %))))))]
           [results plan-state]))
