@@ -8,8 +8,8 @@
    [pallet.algo.fsm.fsm-dsl :only
     [event-handler event-machine-config fsm-name initial-state on-enter state
      state-driver valid-transitions]]
-   [pallet.map-merge :only [merge-keys]]))
-
+   [pallet.map-merge :only [merge-keys]]
+   [pallet.node :only [id]]))
 ;;; ## Wrap non-FSM functions in simple FSM
 
 ;;; TODO: Provide support for controlling retry count, standoff, etc, although
@@ -54,11 +54,14 @@
 (defn set-state-for-node
   "Sets the boolean `state-name` flag on `node`."
   [state-name node]
+  (logging/infof "set-state-for-node %s %s" state-name (:id (:node node)))
   (async-fsm (partial api/set-state-for-node state-name node)))
 
 (defn set-state-for-nodes
   "Sets the boolean `state-name` flag on `nodes`."
   [state-name nodes]
+  (logging/infof "set-state-for-nodes %s %s"
+                 state-name (mapv (comp id :node) nodes))
   (map* (map (partial set-state-for-node state-name) nodes)))
 
 ;;; ## Compute service state

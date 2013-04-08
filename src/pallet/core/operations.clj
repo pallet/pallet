@@ -104,23 +104,19 @@
                                 results1 (result (concat results r))
                                 _ (result
                                    (when post-phase-f
-                                     (logging/debugf
-                                      "post-phase-f for %s" phase)
-                                     (post-phase-f targets phase results)))
+                                     (post-phase-f targets phase r)))
                                 _ (result
                                    (doseq [f (->> targets
                                                   (map (comp :post-phase-f meta
                                                              phase :phases))
                                                   (remove nil?)
                                                   distinct)]
-                                     (f targets phase results)))
+                                     (f targets phase r)))
                                 _ (if post-phase-fsm
-                                    (do (logging/debugf
-                                         "post-phase-fsm for %s" phase)
-                                        (post-phase-fsm targets phase results))
+                                    (post-phase-fsm targets phase r)
                                     (result nil))
                                 _ (reduce* (fn post-reducer [_ f]
-                                             (f targets phase results))
+                                             (f targets phase r))
                                            nil
                                            (->>
                                             targets
@@ -232,6 +228,7 @@ to implement this functions contract."
           {:targets (filter (complement (api/has-state-flag? flag)) targets)
            :post-phase-fsm
            (fn [targets phase results]
+             (logging/debugf "lift-and-flag post-phase-fsm")
              (primitives/set-state-for-nodes
               flag (map :target (remove :errors results))))})))
 
