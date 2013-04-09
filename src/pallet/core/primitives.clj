@@ -54,14 +54,14 @@
 (defn set-state-for-node
   "Sets the boolean `state-name` flag on `node`."
   [state-name node]
-  (logging/infof "set-state-for-node %s %s" state-name (:id (:node node)))
+  (logging/debugf "set-state-for-node %s %s" state-name (:id (:node node)))
   (async-fsm (partial api/set-state-for-node state-name node)))
 
 (defn set-state-for-nodes
   "Sets the boolean `state-name` flag on `nodes`."
   [state-name nodes]
-  (logging/infof "set-state-for-nodes %s %s"
-                 state-name (mapv (comp id :node) nodes))
+  (logging/debugf "set-state-for-nodes %s %s"
+                  state-name (mapv (comp id :node) nodes))
   (map* (map (partial set-state-for-node state-name) nodes)))
 
 ;;; ## Compute service state
