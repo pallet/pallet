@@ -108,7 +108,7 @@
                                  f (result (or (:phase-execution-f meta)
                                                phase-execution-f))
                                   [r ps] (f
-                                          targets plan-state environment
+                                          service-state plan-state environment
                                           phase targets execution-settings-f)
                                   results1 (result (concat results r))
                                   _ (result
