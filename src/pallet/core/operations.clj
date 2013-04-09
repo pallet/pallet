@@ -164,18 +164,53 @@
   ([delay]
      (delay-for delay :ms)))
 
+(defn ^:internal partition-targets
+  "Partition targets using the, possibly nil, default partitioning function f.
+
+There are three sources of partitioning applied.  The default passed to the
+function, a paritioning based on the partitioning and post-phase functions in
+the target's metadata, and the target's partitioning function from the metadata.
+
+The partitioning by metadata is applied so that post-phase functions are applied
+to the correct targets in lift."
+  [targets phase f]
+  (let [fns (comp
+             (juxt :partition-f :post-phase-f :post-phase-fsm)
+             meta #(api/target-phase % phase))]
+    (->>
+     targets
+     (clojure.core/partition-by fns)
+     (mapcat
+      #(let [[pf & _] (fns (first %))]
+         (if pf
+           (pf %)
+           %))))))
+
 (defn lift-partitions
   "Lift targets by phase, applying partitions for each phase.
 
+To apply phases at finer than a group granularity (so for example, a
+`:post-phase-f` function is applied to nodes rather than a whole group), we can
+use partitioning.
+
+The partitioning function takes a sequence of targets, and returns a sequence of
+sequences of targets.  The function can filter targets as required.
+
+For example, this can be used to implement a rolling restart, or a blue/green
+deploy.
+
 ## Options
 
-`:partition-by`
-: a function used to partition the targets.  Defaults to any :partition-by
-  metadata on the phase, or (constantly nil) otherwise
+Options are as for `lift`, with the addition of:
+
+`:partition-f`
+: a function that takes a sequence of targets, and returns a sequence of
+  sequences of targets.  Used to partition or filter the targets.  Defaults to
+  any :partition metadata on the phase, or no partitioning otherwise.
 
 Other options as taken by `lift`."
   [service-state plan-state environment phases
-   {:keys [targets partition-by]
+   {:keys [targets partition-f]
     :or {targets service-state}
     :as options}]
   (logging/debugf
@@ -197,20 +232,9 @@ Other options as taken by `lift`."
                 [(concat r results) plan-state]))
             [results plan-state]
             (let [fns (comp
-                       (juxt :partition-by :post-phase-f :post-phase-fsm)
+                       (juxt :partition-f :post-phase-f :post-phase-fsm)
                        meta #(api/target-phase % phase))]
-              (->>
-               targets
-               ;; partition by all the partitioning and post-phase functions, so
-               ;; we get the correct behaviour in lift.
-               (clojure.core/partition-by fns)
-               (mapcat
-                #(clojure.core/partition-by
-                  ((comp (fn [[f & _]]
-                           (or f partition-by (constantly nil)))
-                         fns)
-                   (first %))
-                  %)))))]
+              (partition-targets targets phase partition-f)))]
           [results plan-state]))
       [[] plan-state]
       phases)]

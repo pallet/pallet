@@ -207,7 +207,7 @@
                       (let [{:keys [hostname]} (get-settings :rolling)]
                         (debugf "rolling-lift-test tag with %s" hostname)
                         (tag! (target-node) "hostname" hostname)))
-                    {:partition-by identity
+                    {:partition-f #(partition 1 %)
                      :post-phase-f (fn [_ _ _] (Thread/sleep 10000))})
              :test (plan-fn
                      ;; assert that every node has a hostname tag
