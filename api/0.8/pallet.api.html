@@ -29,7 +29,7 @@
       </div>
     </div>
       <div id="header">
-        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-SNAPSHOT API documentation</span></a></h1>
+        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-beta.7 API documentation</span></a></h1>
       </div>
     </header>
     <navigation>
@@ -53,9 +53,9 @@
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-cluster-spec" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L160">cluster-spec</a></h3>
+            <h3><a id="var-cluster-spec" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L161">cluster-spec</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[cluster-name &amp; {:keys [extends groups phases node-spec environment], :as options}]</div>
+            <div class="usage">[cluster-name &amp; {:keys [extends groups phases node-spec environment roles], :as options}]</div>
             
             
             <div class="doc"><p>Create a cluster-spec.</p>
@@ -68,11 +68,11 @@
          for all groups in the cluster</p></li>
 <li><p>:phases    define phases on all groups.</p></li>
 <li><p>:node-spec default node-spec for the nodes in the cluster</p></li>
-<li><p>:roles     roles for the group-spec</p></li>
+<li><p>:roles     roles for all group-specs in the cluster</p></li>
 </ul>
 </div>
           </div><div class="public">
-            <h3><a id="var-compute-service" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L204">compute-service</a></h3>
+            <h3><a id="var-compute-service" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L206">compute-service</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[service-or-provider-name &amp; options]</div>
             
@@ -81,7 +81,7 @@
 provider.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-converge" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L343">converge</a></h3>
+            <h3><a id="var-converge" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L347">converge</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[group-spec-&gt;count &amp; {:keys [compute blobstore user phase prefix middleware all-nodes all-node-set environment], :or {phase [:configure]}, :as options}]</div>
             
@@ -108,7 +108,7 @@ the group-name for each group-spec, allowing you to build multiple discrete
 clusters from a single set of group-specs.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-converge*" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L292">converge*</a></h3>
+            <h3><a id="var-converge*" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L294">converge*</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[group-spec-&gt;count &amp; {:keys [compute blobstore user phase prefix middleware all-nodes all-node-set environment], :or {phase [:configure]}, :as options}]</div>
             
@@ -135,7 +135,7 @@ the group-name for each group-spec, allowing you to build multiple discrete
 clusters from a single set of group-specs.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-environment-args" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L289">environment-args</a></h3>
+            <h3><a id="var-environment-args" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L291">environment-args</a></h3>
             <h4 class="var-type var" id="var-type">var</h4>
             
             
@@ -143,7 +143,7 @@ clusters from a single set of group-specs.</p>
             <div class="doc"><p>Arguments that are forwarded to be part of the environment</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-expand-cluster-groups" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L238">expand-cluster-groups</a></h3>
+            <h3><a id="var-expand-cluster-groups" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L240">expand-cluster-groups</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[node-set]</div>
             
@@ -151,7 +151,7 @@ clusters from a single set of group-specs.</p>
             <div class="doc"><p>Expand a node-set into its groups</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-expand-group-spec-with-counts" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L132">expand-group-spec-with-counts</a></h3>
+            <h3><a id="var-expand-group-spec-with-counts" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L133">expand-group-spec-with-counts</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[node-set spec-count]</div><div class="usage">[node-set]</div>
             
@@ -159,7 +159,7 @@ clusters from a single set of group-specs.</p>
             <div class="doc"><p>Expand a converge node spec into its groups</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-extend-specs" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L56">extend-specs</a></h3>
+            <h3><a id="var-extend-specs" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L57">extend-specs</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[spec inherits algorithms]</div><div class="usage">[spec inherits]</div>
             
@@ -167,7 +167,7 @@ clusters from a single set of group-specs.</p>
             <div class="doc"><p>Merge in the inherited specs</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-group-spec" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L94">group-spec</a></h3>
+            <h3><a id="var-group-spec" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L95">group-spec</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[name &amp; {:keys [extends count image phases packager node-spec roles], :as options}]</div>
             
@@ -190,7 +190,7 @@ to it's node-spec</p>
 </ul>
 </div>
           </div><div class="public">
-            <h3><a id="var-lift" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L424">lift</a></h3>
+            <h3><a id="var-lift" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L430">lift</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[node-set &amp; {:keys [compute phase prefix middleware all-node-set environment], :or {phase [:configure]}, :as options}]</div>
             
@@ -221,7 +221,7 @@ each matching node.</p>
  :user            the admin-user on the nodes</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-lift*" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L372">lift*</a></h3>
+            <h3><a id="var-lift*" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L376">lift*</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[node-set &amp; {:keys [compute phase prefix middleware all-node-set environment], :or {phase [:configure]}, :as options}]</div>
             
@@ -252,7 +252,7 @@ each matching node.</p>
  :user            the admin-user on the nodes</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-make-user" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L474">make-user</a></h3>
+            <h3><a id="var-make-user" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L480">make-user</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[username &amp; {:keys [public-key-path private-key-path passphrase password sudo-password no-sudo sudo-user], :as options}]</div>
             
@@ -270,7 +270,7 @@ to <code>lift</code> or <code>converge</code> as the named :user argument.</p>
  - :no-sudo</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-node-spec" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L29">node-spec</a></h3>
+            <h3><a id="var-node-spec" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L30">node-spec</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[&amp; {:keys [image hardware location network qos], :as options}]</div>
             
@@ -299,7 +299,7 @@ an image and hardware for nodes created for this node-spec.</p>
            spot-price enable-monitoring</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-plan-fn" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L456">plan-fn</a></h3>
+            <h3><a id="var-plan-fn" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L462">plan-fn</a></h3>
             <h4 class="var-type macro" id="var-type">macro</h4>
             <div class="usage">[&amp; body]</div>
             
@@ -314,7 +314,7 @@ an image and hardware for nodes created for this node-spec.</p>
 around each plan function call.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-print-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L508">print-nodes</a></h3>
+            <h3><a id="var-print-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L514">print-nodes</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[nodes]</div>
             
@@ -322,7 +322,7 @@ around each plan function call.</p>
             <div class="doc"><p>Print the targets of an operation</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-print-targets" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L517">print-targets</a></h3>
+            <h3><a id="var-print-targets" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L523">print-targets</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[op]</div>
             
@@ -330,7 +330,7 @@ around each plan function call.</p>
             <div class="doc"><p>Print the targets of an operation</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-server-spec" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L70">server-spec</a></h3>
+            <h3><a id="var-server-spec" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L71">server-spec</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[&amp; {:keys [phases packager node-spec extends roles], :as options}]</div>
             
@@ -352,7 +352,7 @@ around each plan function call.</p>
 specified in the <code>:extends</code> argument.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-split-groups-and-targets" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L248">split-groups-and-targets</a></h3>
+            <h3><a id="var-split-groups-and-targets" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L250">split-groups-and-targets</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[node-set]</div>
             
@@ -361,7 +361,7 @@ specified in the <code>:extends</code> argument.</p>
 :groups and :targets keys</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-with-admin-user" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L496">with-admin-user</a></h3>
+            <h3><a id="var-with-admin-user" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/api.clj#L502">with-admin-user</a></h3>
             <h4 class="var-type macro" id="var-type">macro</h4>
             <div class="usage">[user &amp; exprs]</div>
             

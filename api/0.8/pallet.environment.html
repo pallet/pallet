@@ -29,7 +29,7 @@
       </div>
     </div>
       <div id="header">
-        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-SNAPSHOT API documentation</span></a></h1>
+        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-beta.7 API documentation</span></a></h1>
       </div>
     </header>
     <navigation>
@@ -42,7 +42,7 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-Environment">Environment</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-environment">environment</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-eval-environment">eval-environment</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-get-environment">get-environment</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-get-for">get-for</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-merge-environments">merge-environments</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-merge-key-algorithm">merge-key-algorithm</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-node-keys">node-keys</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-session-with-environment">session-with-environment</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-shell-expand-keys">shell-expand-keys</a></li>
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-Environment">Environment</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-environment">environment</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-eval-environment">eval-environment</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-get-environment">get-environment</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-get-for">get-for</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-group-with-environment">group-with-environment</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-merge-environments">merge-environments</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-merge-key-algorithm">merge-key-algorithm</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-node-keys">node-keys</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-session-with-environment">session-with-environment</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment.html#var-shell-expand-keys">shell-expand-keys</a></li>
         </ul>
       </div>
     </navigation>
@@ -87,7 +87,7 @@ environment map using the <code>:environment</code> key.</p>
             <div class="doc"><p>Returns an environment map</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-eval-environment" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L119">eval-environment</a></h3>
+            <h3><a id="var-eval-environment" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L129">eval-environment</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[env-map]</div>
             
@@ -100,7 +100,7 @@ evaluated are:
 - <code>:algorithms</code></p>
 </div>
           </div><div class="public">
-            <h3><a id="var-get-environment" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L169">get-environment</a></h3>
+            <h3><a id="var-get-environment" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L179">get-environment</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[keys]</div><div class="usage">[keys default]</div>
             
@@ -108,7 +108,7 @@ evaluated are:
             <div class="doc"><p>Environment accessor.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-get-for" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L147">get-for</a></h3>
+            <h3><a id="var-get-for" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L157">get-for</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[session keys]</div><div class="usage">[session keys default]</div>
             
@@ -122,7 +122,15 @@ no environment value is set.</p>
 </code></pre>
 </div>
           </div><div class="public">
-            <h3><a id="var-merge-environments" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L65">merge-environments</a></h3>
+            <h3><a id="var-group-with-environment" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L242">group-with-environment</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[environment group]</div>
+            
+            
+            <div class="doc"><p>Add the environment to a group.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-merge-environments" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L75">merge-environments</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[&amp; maps]</div>
             
@@ -133,7 +141,7 @@ from the latter (left-to-right) will be combined with the mapping in
 the result by calling <code>(merge-key key val-in-result val-in-latter)</code>.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-merge-key-algorithm" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L38">merge-key-algorithm</a></h3>
+            <h3><a id="var-merge-key-algorithm" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L46">merge-key-algorithm</a></h3>
             <h4 class="var-type var" id="var-type">var</h4>
             
             
@@ -141,7 +149,7 @@ the result by calling <code>(merge-key key val-in-result val-in-latter)</code>.<
             <div class="doc"><p>Map associating keys to merge algorithms. Specifies how environments are merged.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-node-keys" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L58">node-keys</a></h3>
+            <h3><a id="var-node-keys" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L68">node-keys</a></h3>
             <h4 class="var-type var" id="var-type">var</h4>
             
             
@@ -149,7 +157,7 @@ the result by calling <code>(merge-key key val-in-result val-in-latter)</code>.<
             <div class="doc"><p>node-specific environment keys</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-session-with-environment" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L176">session-with-environment</a></h3>
+            <h3><a id="var-session-with-environment" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L186">session-with-environment</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[session environment]</div>
             
@@ -164,7 +172,7 @@ treated as an environment, and merge with any environment in the
 <p>The node-specific environment keys are <code>:images</code> and <code>:phases</code>.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-shell-expand-keys" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L109">shell-expand-keys</a></h3>
+            <h3><a id="var-shell-expand-keys" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment.clj#L119">shell-expand-keys</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[user-map keys]</div>
             
