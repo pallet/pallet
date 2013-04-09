@@ -184,7 +184,7 @@ to the correct targets in lift."
       #(let [[pf & _] (fns (first %))]
          (if pf
            (pf %)
-           %))))))
+           [%]))))))
 
 (defn lift-partitions
   "Lift targets by phase, applying partitions for each phase.
