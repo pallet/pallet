@@ -64,7 +64,7 @@
    (configure/compute-service-from-property)
    (configure/compute-service-from-config-var)
    (compute-service-from-config-files
-    defaults project [(default-compute-service defaults)])
+    defaults project (default-compute-service defaults))
    (compute-service-from-config-files
     @transient-services project
     (default-compute-service @transient-services))))
