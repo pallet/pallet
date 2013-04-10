@@ -9,6 +9,7 @@
    [clojure.tools.logging :as logging]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
+   [pallet.utils :refer [apply-map]]
    pallet.actions.direct.exec-script
    pallet.actions.direct.file
    pallet.actions.direct.remote-file)
@@ -263,46 +264,82 @@
 
 (def ^{:dynamic true} *default-apt-keyserver* "subkeys.pgp.net")
 
-(defn package-source*
+(defmulti package-source*
   "Add a packager source."
+  (fn  [session name & {:keys [apt aptitude yum] :as options}]
+    (packager session)))
+
+(defn- package-source-apt
+  [session name & {:keys [apt aptitude yum] :as options}]
+  (checked-commands
+   "Package source"
+   (let [^String key-url (or (:url aptitude) (:url apt))]
+     (if (and key-url (.startsWith key-url "ppa:"))
+       (stevedore/chain-commands
+        (stevedore/script (~lib/install-package "python-software-properties"))
+        (stevedore/script (pipe (println "") ("add-apt-repository" ~key-url)))
+        (stevedore/script (~lib/update-package-list)))
+       (->
+        (remote-file*
+         session
+         (format (source-location :apt) name)
+         {:content (format-source
+                    :apt name (or (:apt options) (:aptitude options)))
+          :flag-on-changed package-source-changed-flag})
+        first second)))
+   (if-let [key-id (or (:key-id aptitude) (:key-id apt))]
+     (let [key-server (or (:key-server aptitude) (:key-server apt)
+                          *default-apt-keyserver*)]
+       (stevedore/script
+        ("apt-key"
+         adv
+         "--keyserver" ~key-server
+         "--recv-keys" ~key-id))))
+   (if-let [key-url (or (:key-url aptitude) (:key-url apt))]
+     (stevedore/chain-commands
+      (->
+       (remote-file*
+        session "aptkey.tmp"
+        {:url key-url :flag-on-changed package-source-changed-flag})
+       first second)
+      (stevedore/script ("apt-key" add aptkey.tmp))))))
+
+(defmethod package-source* :aptitude
+  [session name & {:keys [apt aptitude yum] :as options}]
+  (apply-map package-source-apt session name options))
+
+(defmethod package-source* :apt
+  [session name & {:keys [apt aptitude yum] :as options}]
+  (apply-map package-source-apt session name options))
+
+(defmethod package-source* :yum
   [session name & {:keys [apt aptitude yum] :as options}]
   (let [packager (packager session)]
     (checked-commands
      "Package source"
-     (let [^String key-url (or (:url aptitude) (:url apt))]
-       (if (and key-url (.startsWith key-url "ppa:"))
-         (stevedore/chain-commands
-          (stevedore/script (~lib/install-package "python-software-properties"))
-          (stevedore/script (pipe (println "") ("add-apt-repository" ~key-url)))
-          (stevedore/script (~lib/update-package-list)))
-         (->
-          (remote-file*
-           session
-           (format (source-location packager) name)
-           {:content (format-source packager name (packager options))
-            :literal (= packager :yum)
-            :flag-on-changed package-source-changed-flag})
-          first second)))
-     (if-let [key-id (or (:key-id aptitude) (:key-id apt))]
-       (if (#{:aptitude :apt} packager)
-         (let [key-server (or (:key-server aptitude) (:key-server apt)
-                              *default-apt-keyserver*)]
-           (stevedore/script
-            ("apt-key"
-             adv
-             "--keyserver" ~key-server
-             "--recv-keys" ~(:key-id aptitude))))))
-     (if-let [key-url (or (:key-url aptitude) (:key-url apt))]
-       (if (#{:aptitude :apt} packager)
-       (stevedore/chain-commands
-        (->
-         (remote-file*
-          session "aptkey.tmp"
-          {:url key-url :flag-on-changed package-source-changed-flag})
-         first second)
-        (stevedore/script ("apt-key" add aptkey.tmp)))))
+     (->
+      (remote-file*
+       session
+       (format (source-location packager) name)
+       {:content (format-source packager name (packager options))
+        :literal true
+        :flag-on-changed package-source-changed-flag})
+      first second)
      (when-let [key (and (= packager :yum) (:gpgkey yum))]
        (stevedore/script ("rpm" "--import" ~key))))))
+
+(defmethod package-source* :default
+  [session name & {:as options}]
+  (let [packager (packager session)]
+    (checked-commands
+     "Package source"
+     (->
+      (remote-file*
+       session
+       (format (source-location packager) name)
+       {:content (format-source packager name (packager options))
+        :flag-on-changed package-source-changed-flag})
+      first second))))
 
 (implement-action package-source :direct
   "Control package sources.

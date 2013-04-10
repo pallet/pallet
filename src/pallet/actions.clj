@@ -563,7 +563,10 @@ option and :unpack :unzip.
   [& {:keys [yum aptitude pacman brew] :as options}]
   (phase-context packages {}
     (let [packager (packager)]
-      (doseq [p (options packager)] (package p)))))
+      (doseq [p (or (options packager)
+                    (when (#{:apt :aptitude} packager)
+                      (options (first (disj #{:apt :aptitude} packager)))))]
+        (package p)))))
 
 (defaction package-manager
   "Package manager controls.

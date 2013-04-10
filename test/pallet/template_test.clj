@@ -32,14 +32,14 @@
 (deftest candidate-templates-test
   (is (= ["a/b/c_t.d" "resources/a/b/c_t.d"
           "a/b/c_ubuntu.d" "resources/a/b/c_ubuntu.d"
-          "a/b/c_aptitude.d" "resources/a/b/c_aptitude.d"
+          "a/b/c_apt.d" "resources/a/b/c_apt.d"
           "a/b/c.d" "resources/a/b/c.d"]
            (#'pallet.template/candidate-templates
             "a/b/c.d" "t"
             (test-session
              {:server {:node (make-node :id :group-name :c)}}))))
   (is (= ["c_t.d" "resources/c_t.d" "c_ubuntu.d" "resources/c_ubuntu.d"
-          "c_aptitude.d" "resources/c_aptitude.d" "c.d" "resources/c.d"]
+          "c_apt.d" "resources/c_apt.d" "c.d" "resources/c.d"]
          (#'pallet.template/candidate-templates
           "c.d" "t"
           (test-session
