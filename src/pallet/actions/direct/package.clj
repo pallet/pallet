@@ -10,6 +10,7 @@
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
    [pallet.utils :refer [apply-map]]
+   [pallet.version-dispatch :refer [os-map os-map-lookup]]
    pallet.actions.direct.exec-script
    pallet.actions.direct.file
    pallet.actions.direct.remote-file)
@@ -269,6 +270,12 @@
   (fn  [session name & {:keys [apt aptitude yum] :as options}]
     (packager session)))
 
+(def ubuntu-ppa-add
+  (atom                                 ; allow for open extension
+   (os-map
+    {{:os :ubuntu :os-version [[10] [12 04]]} "python-software-properties"
+     {:os :ubuntu :os-version [[12 10] nil]} "software-properties-common"})))
+
 (defn- package-source-apt
   [session name & {:keys [apt aptitude yum] :as options}]
   (checked-commands
@@ -276,7 +283,8 @@
    (let [^String key-url (or (:url aptitude) (:url apt))]
      (if (and key-url (.startsWith key-url "ppa:"))
        (stevedore/chain-commands
-        (stevedore/script (~lib/install-package "python-software-properties"))
+        (if-let [package (os-map-lookup @ubuntu-ppa-add)]
+          (stevedore/script (~lib/install-package ~package)))
         (stevedore/script (pipe (println "") ("add-apt-repository" ~key-url)))
         (stevedore/script (~lib/update-package-list)))
        (->

@@ -340,22 +340,40 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
          :aptitude {:url "http://somewhere/apt"
                     :scopes ["main"]}
          :yum {:url "http://somewhere/yum"}))))
-    (is (script-no-comment=
-         (first
-          (build-actions
-              {}
-            (exec-checked-script
-             "Package source"
-             (~lib/install-package "python-software-properties")
-             (pipe (println) ("add-apt-repository" "ppa:abc"))
-             (~lib/update-package-list))))
-         (first
-          (build-actions
-              {}
-            (package-source
-             "source1"
-             :aptitude {:url "ppa:abc"}
-             :yum {:url "http://somewhere/yum"})))))
+    (testing "ppa pre 12.10"
+      (is (script-no-comment=
+           (first
+            (build-actions
+                {}
+              (exec-checked-script
+               "Package source"
+               (~lib/install-package "python-software-properties")
+               (pipe (println) ("add-apt-repository" "ppa:abc"))
+               (~lib/update-package-list))))
+           (first
+            (build-actions
+                {:server {:image {:os-family :ubuntu :os-version "12.04"}}}
+              (package-source
+               "source1"
+               :aptitude {:url "ppa:abc"}
+               :yum {:url "http://somewhere/yum"}))))))
+    (testing "ppa for 12.10"
+      (is (script-no-comment=
+           (first
+            (build-actions
+                {}
+              (exec-checked-script
+               "Package source"
+               (~lib/install-package "software-properties-common")
+               (pipe (println) ("add-apt-repository" "ppa:abc"))
+               (~lib/update-package-list))))
+           (first
+            (build-actions
+                {:server {:image {:os-family :ubuntu :os-version "12.10"}}}
+              (package-source
+               "source1"
+               :aptitude {:url "ppa:abc"}
+               :yum {:url "http://somewhere/yum"}))))))
     (is (script-no-comment=
          (stevedore/checked-commands
           "Package source"
