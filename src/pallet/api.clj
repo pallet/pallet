@@ -52,7 +52,7 @@
               spot-price enable-monitoring"
   [& {:keys [image hardware location network qos] :as options}]
   {:pre [(or (nil? image) (map? image))]}
-  options)
+  (vary-meta options assoc :type ::node-spec))
 
 (defn extend-specs
   "Merge in the inherited specs"
@@ -86,11 +86,13 @@ specified in the `:extends` argument."
       :as options}]
   (->
    node-spec
+   (or node-spec {})                    ; ensure we have a map and not nil
    (merge options)
    (when-> roles
        (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
    (extend-specs extends)
-   (dissoc :extends :node-spec)))
+   (dissoc :extends :node-spec)
+   (vary-meta assoc :type ::server-spec)))
 
 (defn group-spec
   "Create a group-spec.
@@ -118,7 +120,8 @@ specified in the `:extends` argument."
        (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
    (extend-specs extends)
    (dissoc :extends :node-spec)
-   (assoc :group-name (keyword name))))
+   (assoc :group-name (keyword name))
+   (vary-meta assoc :type ::group-spec)))
 
 (defn expand-cluster-groups
   "Expand a node-set into its groups"
@@ -198,7 +201,8 @@ specified in the `:extends` argument."
                     (extend-specs [(select-keys group-spec [:phases])])))
                  (expand-group-spec-with-counts group-specs 1))))
    (dissoc :extends :node-spec)
-   (assoc :cluster-cluster-name (keyword cluster-name))))
+   (assoc :cluster-cluster-name (keyword cluster-name))
+   (vary-meta assoc :type ::cluster-spec)))
 
 ;;; ## Compute Service
 ;;;
