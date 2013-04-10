@@ -1,4 +1,5 @@
 (ns pallet.core.operations-test
+  (:refer-clojure :exclude [delay])
   (:use
    clojure.test
    pallet.core.operations
