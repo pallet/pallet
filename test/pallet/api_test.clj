@@ -169,18 +169,21 @@
 (deftest server-spec-test
   (is (= {:phases {:a 1}}
          (server-spec :phases {:a 1})))
-  (is (= {:phases {:a 1} :image {:b 2}}
-         (server-spec :phases {:a 1} :node-spec (node-spec :image {:b 2})))
+  (is (= {:phases {:a 1} :image {:image-id "2"}}
+         (server-spec
+          :phases {:a 1} :node-spec (node-spec :image {:image-id "2"})))
       "node-spec merged in")
-  (is (= {:phases {:a 1} :image {:b 2} :hardware {:hardware-id :id}}
+  (is (= {:phases {:a 1} :image {:image-id "2"}
+          :hardware {:hardware-id "id"}}
          (server-spec
           :phases {:a 1}
-          :node-spec (node-spec :image {:b 2})
-          :hardware {:hardware-id :id}))
+          :node-spec (node-spec :image {:image-id "2"})
+          :hardware {:hardware-id "id"}))
       "node-spec keys moved to :node-spec keyword")
-  (is (= {:phases {:a 1} :image {:b 2}}
+  (is (= {:phases {:a 1} :image {:image-id "2"}}
          (server-spec
-          :extends (server-spec :phases {:a 1} :node-spec {:image {:b 2}})))
+          :extends (server-spec
+                    :phases {:a 1} :node-spec {:image {:image-id "2"}})))
       "extends a server-spec")
   (is (= {:roles #{:r1}} (server-spec :roles :r1)) "Allow roles as keyword")
   (is (= {:roles #{:r1}} (server-spec :roles [:r1])) "Allow roles as sequence")
@@ -194,20 +197,22 @@
           :node-filter)))
   (is (:node-filter
        (group-spec "gn" :extends (server-spec :phases {:a 1}))))
-  (is (= {:group-name :gn :phases {:a 1} :image {:b 2}}
+  (is (= {:group-name :gn :phases {:a 1} :image {:image-id "2"}}
          (dissoc
           (group-spec
               "gn"
             :extends [(server-spec :phases {:a 1})
-                      (server-spec :node-spec {:image {:b 2}})])
+                      (server-spec :node-spec {:image {:image-id "2"}})])
           :node-filter)))
-  (is (= {:group-name :gn :phases {:a 1} :image {:b 2} :roles #{:r1 :r2 :r3}}
+  (is (= {:group-name :gn :phases {:a 1}
+          :image {:image-id "2"} :roles #{:r1 :r2 :r3}}
          (dissoc
           (group-spec
               "gn"
             :roles :r1
             :extends [(server-spec :phases {:a 1} :roles :r2)
-                      (server-spec :node-spec {:image {:b 2}} :roles [:r3])])
+                      (server-spec
+                       :node-spec {:image {:image-id "2"}} :roles [:r3])])
           :node-filter)))
   (testing "type"
     (is (= :pallet.api/group-spec (type (group-spec "gn"))))))

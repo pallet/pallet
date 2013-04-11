@@ -7,6 +7,9 @@
    [clojure.pprint :refer [print-table]]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
+   [pallet.contracts :refer [check-converge-options check-group-spec
+                             check-lift-options check-node-spec
+                             check-server-spec check-user]]
    [pallet.core.user :as user]
    [pallet.core.operations :as ops]
    [clojure.tools.logging :as logging])
@@ -69,7 +72,7 @@
               spot-price enable-monitoring"
   [& {:keys [image hardware location network qos] :as options}]
   {:pre [(or (nil? image) (map? image))]}
-  (vary-meta options assoc :type ::node-spec))
+  (check-node-spec (vary-meta options assoc :type ::node-spec)))
 
 (defn extend-specs
   "Merge in the inherited specs"
@@ -101,15 +104,16 @@ For a given phase, inherited phase functions are run first, in the order
 specified in the `:extends` argument."
   [& {:keys [phases packager node-spec extends roles]
       :as options}]
-  (->
-   node-spec
-   (or node-spec {})                    ; ensure we have a map and not nil
-   (merge options)
-   (when-> roles
-       (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
-   (extend-specs extends)
-   (dissoc :extends :node-spec)
-   (vary-meta assoc :type ::server-spec)))
+  (check-server-spec
+   (->
+    node-spec
+    (or node-spec {})                    ; ensure we have a map and not nil
+    (merge options)
+    (when-> roles
+            (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
+    (extend-specs extends)
+    (dissoc :extends :node-spec)
+    (vary-meta assoc :type ::server-spec))))
 
 (defn group-spec
   "Create a group-spec.
@@ -133,16 +137,17 @@ specified in the `:extends` argument."
       :as options}]
   {:pre [(or (nil? image) (map? image))]}
   (let [group-name (keyword (clojure.core/name name))]
-    (->
-     node-spec
-     (merge options)
-     (update-in [:node-filter] #(or % (node-has-group-name? group-name)))
-     (when-> roles
-             (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
-     (extend-specs extends)
-     (dissoc :extends :node-spec)
-     (assoc :group-name group-name)
-     (vary-meta assoc :type ::group-spec))))
+    (check-group-spec
+     (->
+      node-spec
+      (merge options)
+      (update-in [:node-filter] #(or % (node-has-group-name? group-name)))
+      (when-> roles
+              (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
+      (extend-specs extends)
+      (dissoc :extends :node-spec)
+      (assoc :group-name group-name)
+      (vary-meta assoc :type ::group-spec)))))
 
 (defn expand-cluster-groups
   "Expand a node-set into its groups"
@@ -323,6 +328,7 @@ specified in the `:extends` argument."
                                all-nodes all-node-set environment plan-state]
                         :or {phase [:configure]}
                         :as options}]
+  (check-converge-options options)
   (let [[phases phase-map] (process-phases phase)
         groups (if (map? group-spec->count)
                  [group-spec->count]
@@ -342,6 +348,7 @@ specified in the `:extends` argument."
         groups (map (partial group-with-environment environment) groups)
         targets (map (partial group-with-environment environment) targets)
         lift-options (select-keys options ops/lift-options)]
+    (doseq [group groups] (check-group-spec group))
     (dofsm converge
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
@@ -449,6 +456,7 @@ the admin-user on the nodes.
   [node-set & {:keys [compute phase all-node-set environment]
                :or {phase [:configure]}
                :as options}]
+  (check-lift-options options)
   (let [[phases phase-map] (process-phases phase)
         {:keys [groups targets]} (-> node-set
                                      expand-cluster-groups
@@ -465,6 +473,7 @@ the admin-user on the nodes.
         targets (map (partial group-with-environment environment) targets)
         plan-state {}
         lift-options (select-keys options ops/lift-options)]
+    (doseq [group groups] (check-group-spec group))
     (dofsm lift
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
@@ -672,13 +681,14 @@ insufficient.
     - :no-sudo"
   [username & {:keys [public-key-path private-key-path passphrase
                       password sudo-password no-sudo sudo-user] :as options}]
-  (user/make-user
-   username
-   (merge
-    {:private-key-path (user/default-private-key-path)
-     :public-key-path (user/default-public-key-path)
-     :sudo-password (:password options)}
-    options)))
+  (check-user
+   (user/make-user
+    username
+    (merge
+     {:private-key-path (user/default-private-key-path)
+      :public-key-path (user/default-public-key-path)
+      :sudo-password (:password options)}
+     options))))
 
 (defmacro with-admin-user
   "Specify the admin user for running remote commands.  The user is specified
