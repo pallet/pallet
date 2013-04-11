@@ -10,7 +10,8 @@
    [pallet.core.operations :as ops]
    [clojure.tools.logging :as logging])
   (:use
-   [pallet.core.api-impl :only [merge-specs merge-spec-algorithm]]
+   [pallet.core.api-impl
+    :only [merge-specs merge-spec-algorithm node-has-group-name?]]
    [pallet.core.session :only [session-context]]
    [pallet.crate :only [phase-context]]
    [pallet.algo.fsmop :only [dofsm operate result succeed]]
@@ -103,25 +104,29 @@ specified in the `:extends` argument."
    - :extends  specify a server-spec, a group-spec, or sequence thereof
                and is used to inherit phases, etc.
 
-   - :phases used to define phases. Standard phases are:
-     - :bootstrap    run on first boot of a new node
-     - :configure    defines the configuration of the node.
+   - :phases      used to define phases. Standard phases are:
+   - :bootstrap   run on first boot of a new node
+   - :configure   defines the configuration of the node.
 
-   - :count    specify the target number of nodes for this node-spec
-   - :packager override the choice of packager to use
-   - :node-spec      default node-spec for this server-spec"
+   - :count          specify the target number of nodes for this node-spec
+   - :packager       override the choice of packager to use
+   - :node-spec      default node-spec for this group-spec
+   - :node-predicate a predicate to test if a node is a member of this group."
   [name
-   & {:keys [extends count image phases packager node-spec roles] :as options}]
+   & {:keys [extends count image phases packager node-spec roles node-predicate]
+      :as options}]
   {:pre [(or (nil? image) (map? image))]}
-  (->
-   node-spec
-   (merge options)
-   (when-> roles
-       (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
-   (extend-specs extends)
-   (dissoc :extends :node-spec)
-   (assoc :group-name (keyword name))
-   (vary-meta assoc :type ::group-spec)))
+  (let [group-name (keyword (clojure.core/name name))]
+    (->
+     node-spec
+     (merge options)
+     (update-in [:node-predicate] #(or % (node-has-group-name? group-name)))
+     (when-> roles
+             (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
+     (extend-specs extends)
+     (dissoc :extends :node-spec)
+     (assoc :group-name group-name)
+     (vary-meta assoc :type ::group-spec))))
 
 (defn expand-cluster-groups
   "Expand a node-set into its groups"

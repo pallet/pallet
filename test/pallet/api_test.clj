@@ -189,18 +189,26 @@
 
 (deftest group-spec-test
   (is (= {:group-name :gn :phases {:a 1}}
-         (group-spec "gn" :extends (server-spec :phases {:a 1}))))
+         (dissoc
+          (group-spec "gn" :extends (server-spec :phases {:a 1}))
+          :node-predicate)))
+  (is (:node-predicate
+       (group-spec "gn" :extends (server-spec :phases {:a 1}))))
   (is (= {:group-name :gn :phases {:a 1} :image {:b 2}}
-         (group-spec
-          "gn"
-          :extends [(server-spec :phases {:a 1})
-                    (server-spec :node-spec {:image {:b 2}})])))
+         (dissoc
+          (group-spec
+              "gn"
+            :extends [(server-spec :phases {:a 1})
+                      (server-spec :node-spec {:image {:b 2}})])
+          :node-predicate)))
   (is (= {:group-name :gn :phases {:a 1} :image {:b 2} :roles #{:r1 :r2 :r3}}
-         (group-spec
-          "gn"
-          :roles :r1
-          :extends [(server-spec :phases {:a 1} :roles :r2)
-                    (server-spec :node-spec {:image {:b 2}} :roles [:r3])])))
+         (dissoc
+          (group-spec
+              "gn"
+            :roles :r1
+            :extends [(server-spec :phases {:a 1} :roles :r2)
+                      (server-spec :node-spec {:image {:b 2}} :roles [:r3])])
+          :node-predicate)))
   (testing "type"
     (is (= :pallet.api/group-spec (type (group-spec "gn"))))))
 
