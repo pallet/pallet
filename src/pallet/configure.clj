@@ -18,6 +18,8 @@
    [clojure.tools.logging :as logging]
    [clojure.walk :as walk])
   (:use
+   [clojure.java.io :only [resource]]
+   [chiba.plugin :only [data-plugins]]
    [clojure.core.incubator :only [-?>]]
    [pallet.utils :only [find-var-with-require maybe-update-in]]))
 
@@ -68,6 +70,21 @@
   []
   (java-io/file (home-dir) "config.clj"))
 
+(defn service-files
+  "Read all service definitions in ${PALLET_HOME:~/.pallet}/services."
+  []
+  (for [file (filter
+               #(and (.isFile ^java.io.File %)
+                     (.endsWith (.getName ^java.io.File %) ".clj"))
+               (file-seq (java-io/file (home-dir) "services")))]
+     (read-string (slurp file))))
+
+(defn service-resources
+  "Read all service definitions in pallet_services/ resources."
+  []
+  (for [path (data-plugins "pallet_services/")]
+    (read-string (slurp (resource path)))))
+
 (defn pallet-config
   "Read pallet configuration from config.clj and services/*.clj files. The
    files are taken from ~/.pallet or $PALLET_HOME if set."
@@ -76,10 +93,7 @@
    (fn [config service]
      (assoc-in config [:services (key (first service))] (val (first service))))
    (read-config (.getAbsolutePath (config-file-path)))
-   (for [file (filter
-               #(and (.isFile %) (.endsWith (.getName %) ".clj"))
-               (file-seq (java-io/file (home-dir) "services")))]
-     (read-string (slurp file)))))
+   (concat (service-resources) (service-files))))
 
 (defn- check-deprecations
   "Provide deprecation warnings."
