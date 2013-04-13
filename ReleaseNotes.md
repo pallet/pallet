@@ -1,5 +1,111 @@
 Unstable development branch
 
+# 0.8.0-beta.8
+
+## Features
+
+- Add assoc-in-settings action
+  This can be used to put a value into the settings at a specific path.  The
+  value passed may be a node value, or some other delayed expression.
+
+- Add node-, server-, group- and cluster-spec :type
+  Allows for simple testing of whether a value is a node-spec, etc. The
+  types are
+  ::node-spec, ::server-spec, ::group-spec and ::cluster-spec in the
+  pallet.api namespace.
+
+- Add :default-service to task generated config.clj
+
+- Parameterise lift and converge execution
+  Adds the :partition-f, :post-phase-f, :post-phase-fsm and
+  :phase-execution-f keywords to lift and converge.
+
+  Enables the use of partitioning, post phase and phase execution functions
+  on converge and lift.
+
+- Make lift and converge synchronous by default
+  pallet.api lift and converge revert to being synchronous by default.  Pass
+  :async true to enable the return of an Operation and have call complete 
+  asynchronously.  Also adds :timeout-ms and :timeout-val, that control the 
+  timeout behaviour of the synchronous operation.
+
+  This breaking change as against 0.8 beta's, and is a reversion to 0.7
+  behaviour by default.
+
+- Add group-nodes and lift-nodes in pallet.api
+  These provide api functions for working at the node level, rather than
+  just the group level.
+
+
+## Fixes
+
+- Fix channel connection failures on timeout
+  JSch Session objects seem to timeout and still report that they are
+  connected. This works around the issue by retrying on a "session is not
+  opened." exception.
+
+  Fixes #222
+
+- Rename return-value-expr to with-action-values
+  with-action-values is a clearer name.  return-value-expr remains, but is 
+  deprecated.
+
+- Rename node-predicate to node-filter in group-spec
+
+- Set node-filter in group-spec
+
+- Ensure :default-service is respected in tasks
+  Any default service that has been configure should take precedence.
+
+- Use software-properties-common in quantal and up
+  To install ppa: repositories, add-apt-repository is used. In quantal and
+  above this has moved from python-software-properties to
+  software-properties-common.
+
+  Fixes #229
+
+- Make :apt, :aptitude equivalent for package-source
+  In package-source, and packages do not distinguish between :apt or
+  :aptitude.
+
+  Also fixes test for changing default to :apt rather than :aptitude.
+
+- use :apt by default on Ubuntu
+
+- Static tags for node-list provider
+  Add a new tag-provider for the node-list provider enabling these nodes to
+  have predefined static tags.
+
+  The :bootstrapped tag is defined with the value `true` in order to avoid
+  the bootstrap phase to be run on the `pallet up` action.
+
+- Fix lift to pass all nodes as the service-state
+  The new pallet.core.operations/lift was passing only the current target
+  nodes as the service-state, which meant phases could only see nodes within
+  the current target when using nodes-in-group, etc.
+
+- Fixed DEBUG log exception for :admin-user without keypaths
+  If the admin-user defined in the environment is defined with :username and
+  :password and without private-key-path/public-key-path pair, when DEBUG
+  log was turned on for pallet.main-invoker it failed with a
+  NullPointerException.
+
+  Now if values are nil empty string is logged instead.
+
+- Add live test for pallet.core.operations
+  Adds pallet.test-specs/operations-test with role :ops, which tests 
+  p.c.o/lift and p.c.o/group-nodes, and operating on individual nodes.
+
+- Remove lift from pallet.core.operations/converge
+  Factor out the lift from the tail of pallet.core.operations/converge, and
+  make pallet.api/converge use pallet.core.operations/converge and 
+  pallet.core.operations/lift.
+
+- Fix os-map-lookup
+  The os-map-lookup was incorrectly using the string returned by os-version, 
+  without converting it to a version vector.
+
+
 # 0.8.0-beta.7
 
 ## Features
