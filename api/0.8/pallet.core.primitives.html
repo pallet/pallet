@@ -29,7 +29,7 @@
       </div>
     </div>
       <div id="header">
-        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-beta.7 API documentation</span></a></h1>
+        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-beta.8 API documentation</span></a></h1>
       </div>
     </header>
     <navigation>
@@ -63,9 +63,9 @@ Assumes failures in the underlying function cause an exception to be thrown,
 and that the function takes no arguments.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-build-and-execute-phase" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L101">build-and-execute-phase</a></h3>
+            <h3><a id="var-build-and-execute-phase" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L104">build-and-execute-phase</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[service-state plan-state environment execution-settings-f targets phase]</div>
+            <div class="usage">[service-state plan-state environment phase targets execution-settings-f]</div>
             
             
             <div class="doc"><p>Build and execute the specified phase.</p>
@@ -75,7 +75,7 @@ and that the function takes no arguments.</p>
 or :group-node-list.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-create-group-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L162">create-group-nodes</a></h3>
+            <h3><a id="var-create-group-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L160">create-group-nodes</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[compute-service environment group-counts]</div>
             
@@ -83,7 +83,7 @@ or :group-node-list.</p>
             <div class="doc"><p>Create nodes for groups.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-create-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L156">create-nodes</a></h3>
+            <h3><a id="var-create-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L154">create-nodes</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[compute-service environment group count]</div>
             
@@ -91,7 +91,7 @@ or :group-node-list.</p>
             <div class="doc"><p>Create <code>count</code> nodes for a <code>group</code>.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-execute-action-plan" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L72">execute-action-plan</a></h3>
+            <h3><a id="var-execute-action-plan" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L75">execute-action-plan</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[service-state plan-state environment execution-settings-f {:keys [action-plan phase target-type target], :as action-plan-map}]</div>
             
@@ -99,7 +99,7 @@ or :group-node-list.</p>
             <div class="doc"><p>Executes an action-plan on the specified node.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-execute-action-plans" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L86">execute-action-plans</a></h3>
+            <h3><a id="var-execute-action-plans" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L89">execute-action-plans</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[service-state plan-state environment execution-settings-f action-plans]</div>
             
@@ -109,16 +109,17 @@ or :group-node-list.</p>
 :user, :executor and :executor-status-fn keys.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-execute-on-unflagged" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L134">execute-on-unflagged</a></h3>
+            <h3><a id="var-execute-on-unflagged" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L125">execute-on-unflagged</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[targets execute-f state-flag]</div>
+            <div class="usage">[state-flag execute-f]</div><div class="usage">[state-flag]</div>
             
             
-            <div class="doc"><p>Execute a function of service-state on nodes that don't have the specified
-state flag set. On successful completion the nodes have the state flag set.</p>
+            <div class="doc"><p>Return a phase execution function, that will exacute a phase on nodes that
+don't have the specified state flag set. On successful completion the nodes
+have the state flag set.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-remove-group-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L184">remove-group-nodes</a></h3>
+            <h3><a id="var-remove-group-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L182">remove-group-nodes</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[compute-service group-nodes]</div>
             
@@ -127,7 +128,7 @@ state flag set. On successful completion the nodes have the state flag set.</p>
 nodes</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-remove-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L176">remove-nodes</a></h3>
+            <h3><a id="var-remove-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L174">remove-nodes</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[compute-service group {:keys [nodes all], :as remove-node-map}]</div>
             
@@ -136,7 +137,7 @@ nodes</p>
 are being removed.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-service-state" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L65">service-state</a></h3>
+            <h3><a id="var-service-state" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L68">service-state</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[compute groups]</div>
             
@@ -152,7 +153,7 @@ are being removed.</p>
             <div class="doc"><p>Sets the boolean <code>state-name</code> flag on <code>node</code>.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-set-state-for-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L59">set-state-for-nodes</a></h3>
+            <h3><a id="var-set-state-for-nodes" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L60">set-state-for-nodes</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[state-name nodes]</div>
             
@@ -160,7 +161,7 @@ are being removed.</p>
             <div class="doc"><p>Sets the boolean <code>state-name</code> flag on <code>nodes</code>.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-successful-result%3F" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L149">successful-result?</a></h3>
+            <h3><a id="var-successful-result%3F" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/primitives.clj#L147">successful-result?</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[result]</div>
             

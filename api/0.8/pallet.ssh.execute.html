@@ -29,7 +29,7 @@
       </div>
     </div>
       <div id="header">
-        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-beta.7 API documentation</span></a></h1>
+        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-beta.8 API documentation</span></a></h1>
       </div>
     </header>
     <navigation>
@@ -42,7 +42,7 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.ssh.execute.html#var-ssh-from-local">ssh-from-local</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.ssh.execute.html#var-ssh-script-on-target">ssh-script-on-target</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.ssh.execute.html#var-ssh-to-local">ssh-to-local</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.ssh.execute.html#var-with-connection">with-connection</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.ssh.execute.html#var-with-ssh-tunnel">with-ssh-tunnel</a></li>
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.ssh.execute.html#var-ssh-from-local">ssh-from-local</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.ssh.execute.html#var-ssh-script-on-target">ssh-script-on-target</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.ssh.execute.html#var-ssh-to-local">ssh-to-local</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.ssh.execute.html#var-with-connection">with-connection</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.ssh.execute.html#var-with-connection*">with-connection*</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.ssh.execute.html#var-with-ssh-tunnel">with-ssh-tunnel</a></li>
         </ul>
       </div>
     </navigation>
@@ -53,7 +53,7 @@
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-ssh-from-local" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/ssh/execute.clj#L161">ssh-from-local</a></h3>
+            <h3><a id="var-ssh-from-local" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/ssh/execute.clj#L192">ssh-from-local</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[session value]</div>
             
@@ -61,7 +61,7 @@
             <div class="doc"><p>Transfer a file from the origin machine to the target via ssh.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-ssh-script-on-target" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/ssh/execute.clj#L78">ssh-script-on-target</a></h3>
+            <h3><a id="var-ssh-script-on-target" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/ssh/execute.clj#L109">ssh-script-on-target</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[session {:keys [context node-value-path], :as action} action-type [options script]]</div>
             
@@ -69,7 +69,7 @@
             <div class="doc"><p>Execute a bash action on the target via ssh.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-ssh-to-local" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/ssh/execute.clj#L198">ssh-to-local</a></h3>
+            <h3><a id="var-ssh-to-local" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/ssh/execute.clj#L229">ssh-to-local</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[session value]</div>
             
@@ -77,7 +77,7 @@
             <div class="doc"><p>Transfer a file from the target machine to the origin via ssh.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-with-connection" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/ssh/execute.clj#L67">with-connection</a></h3>
+            <h3><a id="var-with-connection" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/ssh/execute.clj#L100">with-connection</a></h3>
             <h4 class="var-type macro" id="var-type">macro</h4>
             <div class="usage">[session [connection] &amp; body]</div>
             
@@ -85,7 +85,15 @@
             <div class="doc"><p>Execute the body with a connection to the current target node,</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-with-ssh-tunnel" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/ssh/execute.clj#L209">with-ssh-tunnel</a></h3>
+            <h3><a id="var-with-connection*" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/ssh/execute.clj#L82">with-connection*</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[session f]</div>
+            
+            
+            <div class="doc"><p>Execute a function with a connection to the current target node,</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-with-ssh-tunnel" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/ssh/execute.clj#L240">with-ssh-tunnel</a></h3>
             <h4 class="var-type macro" id="var-type">macro</h4>
             <div class="usage">[transport session tunnels &amp; body]</div>
             

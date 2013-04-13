@@ -29,7 +29,7 @@
       </div>
     </div>
       <div id="header">
-        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-beta.7 API documentation</span></a></h1>
+        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-beta.8 API documentation</span></a></h1>
       </div>
     </header>
     <navigation>
@@ -42,7 +42,7 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.operations.html#var-node-count-adjuster">node-count-adjuster</a></li>
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.operations.html#var-converge">converge</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.operations.html#var-delay">delay</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.operations.html#var-lift">lift</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.operations.html#var-lift-options">lift-options</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.operations.html#var-lift-partitions">lift-partitions</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.operations.html#var-node-count-adjuster">node-count-adjuster</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.operations.html#var-partition-targets">partition-targets</a></li>
         </ul>
       </div>
     </navigation>
@@ -53,12 +53,129 @@
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-node-count-adjuster" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/operations.clj#L12">node-count-adjuster</a></h3>
+            <h3><a id="var-converge" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/operations.clj#L251">converge</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[compute-service groups targets environment plan-state]</div>
+            <div class="usage">[compute groups service-state plan-state environment phases {:keys [targets], :or {targets service-state}, :as options}]</div>
+            
+            
+            <div class="doc"><p>Converge the <code>groups</code>, using the specified service-state to provide the
+existing nodes.  The <code>:bootstrap</code> phase is run on new nodes.  When tagging is
+supported the <code>:bootstrap</code> phase is run on those nodes without a :bootstrapped
+flag.</p>
+
+<h2>Options</h2>
+
+<p><code>:targets</code>
+: used to restrict the nodes on which the phases are run to a subset of
+  <code>service-state</code>.  Defaults to <code>service-state</code>.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-delay" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/operations.clj#L161">delay</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[delay units]</div><div class="usage">[delay]</div>
+            
+            
+            <div class="doc"><p>Returns a delay fsm.</p>
+
+<h2>Options</h2>
+
+<p><code>:units</code>
+: the units for the delay. A keyword from, :ns, :us, :ms, :s, :mins, :hours</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-lift" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/operations.clj#L62">lift</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[service-state plan-state environment phases {:keys [targets execution-settings-f phase-execution-f post-phase-f post-phase-fsm], :or {targets service-state, phase-execution-f primitives/build-and-execute-phase, execution-settings-f (api/environment-execution-settings environment)}}]</div>
+            
+            
+            <div class="doc"><p>Lift nodes (<code>targets</code> which defaults to <code>service-state</code>), given a
+<code>plan-state</code>, <code>environment</code> and the <code>phases</code> to apply.</p>
+
+<h2>Options</h2>
+
+<p><code>:targets</code>
+: used to restrict the nodes on which the phases are run to a subset of
+  <code>service-state</code>.  Defaults to <code>service-state</code>.</p>
+
+<p><code>:phase-execution-f</code>
+: specifies the function used to execute a phase on the targets.  Defaults
+  to <code>pallet.core.primitives/build-and-execute-phase</code>.</p>
+
+<p><code>:post-phase-f</code>
+: specifies an optional function that is run after a phase is applied.  It is
+  passed <code>targets</code>, <code>phase</code> and <code>results</code> arguments, and is called before any
+  error checking is done.  The return value is ignored, so this is for side
+  affect only.</p>
+
+<p><code>:post-phase-fsm</code>
+: specifies an optional fsm returning function that is run after a phase is
+  applied.  It is passed <code>targets</code>, <code>phase</code> and <code>results</code> arguments, and is
+  called before any error checking is done.  The return value is ignored, so
+  this is for side affect only.</p>
+
+<p><code>:execution-settings-f</code>
+: specifies a function that will be called with a node argument, and which
+  should return a map with <code>:user</code>, <code>:executor</code> and <code>:executor-status-fn</code> keys.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-lift-options" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/operations.clj#L57">lift-options</a></h3>
+            <h4 class="var-type var" id="var-type">var</h4>
+            
+            
+            
+            <div class="doc"><p>A sequence of keywords, listing the lift-options</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-lift-partitions" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/operations.clj#L195">lift-partitions</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[service-state plan-state environment phases {:keys [targets partition-f], :or {targets service-state}, :as options}]</div>
+            
+            
+            <div class="doc"><p>Lift targets by phase, applying partitions for each phase.</p>
+
+<p>To apply phases at finer than a group granularity (so for example, a
+<code>:post-phase-f</code> function is applied to nodes rather than a whole group), we can
+use partitioning.</p>
+
+<p>The partitioning function takes a sequence of targets, and returns a sequence of
+sequences of targets.  The function can filter targets as required.</p>
+
+<p>For example, this can be used to implement a rolling restart, or a blue/green
+deploy.</p>
+
+<h2>Options</h2>
+
+<p>Options are as for <code>lift</code>, with the addition of:</p>
+
+<p><code>:partition-f</code>
+: a function that takes a sequence of targets, and returns a sequence of
+  sequences of targets.  Used to partition or filter the targets.  Defaults to
+  any :partition metadata on the phase, or no partitioning otherwise.</p>
+
+<p>Other options as taken by <code>lift</code>.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-node-count-adjuster" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/operations.clj#L13">node-count-adjuster</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[compute-service groups service-state plan-state environment targets]</div>
             
             
             <div class="doc"><p>Adjusts node counts. Groups are expected to have node counts on them.</p>
+</div>
+          </div><div class="public">
+            <h3><a id="var-partition-targets" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/operations.clj#L173">partition-targets</a></h3>
+            <h4 class="var-type fn" id="var-type">fn</h4>
+            <div class="usage">[targets phase f]</div>
+            
+            
+            <div class="doc"><p>Partition targets using the, possibly nil, default partitioning function f.</p>
+
+<p>There are three sources of partitioning applied.  The default passed to the
+function, a paritioning based on the partitioning and post-phase functions in
+the target's metadata, and the target's partitioning function from the metadata.</p>
+
+<p>The partitioning by metadata is applied so that post-phase functions are applied
+to the correct targets in lift.</p>
 </div>
           </div>
         </div>

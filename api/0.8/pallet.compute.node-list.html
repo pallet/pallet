@@ -29,7 +29,7 @@
       </div>
     </div>
       <div id="header">
-        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-beta.7 API documentation</span></a></h1>
+        <h1><a href="http://palletops.com"><span class="project-title">Pallet 0.8.0-beta.8 API documentation</span></a></h1>
       </div>
     </header>
     <navigation>
@@ -42,7 +42,7 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var--%3ENode">-&gt;Node</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var--%3ENodeList">-&gt;NodeList</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var--%3ENodeTagUnsupported">-&gt;NodeTagUnsupported</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var-make-localhost-node">make-localhost-node</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var-make-node">make-node</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var-map-%3ENode">map-&gt;Node</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var-node-list-service">node-list-service</a></li>
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var--%3ENode">-&gt;Node</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var--%3ENodeList">-&gt;NodeList</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var--%3ENodeTagStatic">-&gt;NodeTagStatic</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var-make-localhost-node">make-localhost-node</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var-make-node">make-node</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var-map-%3ENode">map-&gt;Node</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.compute.node-list.html#var-node-list-service">node-list-service</a></li>
         </ul>
       </div>
     </navigation>
@@ -74,7 +74,7 @@ system. Nodes are constructed using <code>make-node</code>.</p>
             <div class="doc"><p>Positional factory function for class pallet.compute.node_list.Node.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var--%3ENodeList" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L90">-&gt;NodeList</a></h3>
+            <h3><a id="var--%3ENodeList" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L93">-&gt;NodeList</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[node-list environment tag-provider]</div>
             
@@ -82,15 +82,15 @@ system. Nodes are constructed using <code>make-node</code>.</p>
             <div class="doc"><p>Positional factory function for class pallet.compute.node_list.NodeList.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var--%3ENodeTagUnsupported" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L73">-&gt;NodeTagUnsupported</a></h3>
+            <h3><a id="var--%3ENodeTagStatic" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L73">-&gt;NodeTagStatic</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[]</div>
+            <div class="usage">[static-tags]</div>
             
             
-            <div class="doc"><p>Positional factory function for class pallet.compute.node_list.NodeTagUnsupported.</p>
+            <div class="doc"><p>Positional factory function for class pallet.compute.node_list.NodeTagStatic.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-make-localhost-node" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L148">make-localhost-node</a></h3>
+            <h3><a id="var-make-localhost-node" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L151">make-localhost-node</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[&amp; {:keys [name group-name ip os-family id], :or {name "localhost", group-name "local", ip "127.0.0.1", os-family (jvm/os-family)}, :as options}]</div>
             
@@ -121,7 +121,7 @@ inferred for the local host. Takes options as for <code>make-node</code>.</p>
             <div class="doc"><p>Factory function for class pallet.compute.node_list.Node, taking a map of keywords to field values.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-node-list-service" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L187">node-list-service</a></h3>
+            <h3><a id="var-node-list-service" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/compute/node_list.clj#L190">node-list-service</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
             <div class="usage">[node-list &amp; {:keys [environment tag-provider], :as options}]</div>
             <div class="added">

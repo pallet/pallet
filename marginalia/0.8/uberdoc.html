@@ -3033,13 +3033,13 @@ net.brehaut.ClojureTools = (function (SH) {
     build_tree: build_tree
   };
 })(SyntaxHighlighter);
-</script><title>com.palletops/pallet -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">com.palletops/pallet</h1><h2 class="project-version">0.8.0-beta.7</h2><br /><p>DevOps for the JVM.</p>
+</script><title>com.palletops/pallet -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">com.palletops/pallet</h1><h2 class="project-version">0.8.0-beta.8</h2><br /><p>DevOps for the JVM.</p>
 
 <p>Pallet is a platform for agile and programmatic automation of infrastructure
 in the cloud, on server racks or directly on virtual machines. Pallet
 provides cloud provider and operating system independence, and allows for an
 unprecedented level of customization.</p>
-</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.4.0</td></tr><tr><td class="dep-name">org.clojure/core.incubator</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">org.clojure/tools.logging</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0</td></tr><tr><td class="dep-name">org.clojure/tools.macro</td><td class="dotted"><hr /></td><td class="dep-version">0.1.1</td></tr><tr><td class="dep-name">org.clojure/tools.cli</td><td class="dotted"><hr /></td><td class="dep-version">0.2.2</td></tr><tr><td class="dep-name">org.clojure/algo.monads</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">com.palletops/chiba</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0</td></tr><tr><td class="dep-name">com.palletops/thread-expr</td><td class="dotted"><hr /></td><td class="dep-version">1.3.0</td></tr><tr><td class="dep-name">com.palletops/pallet-common</td><td class="dotted"><hr /></td><td class="dep-version">0.4.0</td></tr><tr><td class="dep-name">com.palletops/script-exec</td><td class="dotted"><hr /></td><td class="dep-version">0.3.1</td></tr><tr><td class="dep-name">com.palletops/stevedore</td><td class="dotted"><hr /></td><td class="dep-version">0.8.0-beta.2</td></tr><tr><td class="dep-name">enlive</td><td class="dotted"><hr /></td><td class="dep-version">1.0.1</td></tr><tr><td class="dep-name">pallet-fsmop</td><td class="dotted"><hr /></td><td class="dep-version">0.2.6</td></tr><tr><td class="dep-name">pallet-map-merge</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">useful</td><td class="dotted"><hr /></td><td class="dep-version">0.8.6</td></tr><tr><td class="dep-name">commons-codec</td><td class="dotted"><hr /></td><td class="dep-version">1.4</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#pallet.action">pallet.action</a></li><li><a href="#pallet.action-impl">pallet.action-impl</a></li><li><a href="#pallet.action-plan">pallet.action-plan</a></li><li><a href="#pallet.actions">pallet.actions</a></li><li><a href="#pallet.actions.direct">pallet.actions.direct</a></li><li><a href="#pallet.actions.direct.conditional">pallet.actions.direct.conditional</a></li><li><a href="#pallet.actions.direct.directory">pallet.actions.direct.directory</a></li><li><a href="#pallet.actions.direct.exec-script">pallet.actions.direct.exec-script</a></li><li><a href="#pallet.actions.direct.file">pallet.actions.direct.file</a></li><li><a href="#pallet.actions.direct.package">pallet.actions.direct.package</a></li><li><a href="#pallet.actions.direct.remote-directory">pallet.actions.direct.remote-directory</a></li><li><a href="#pallet.actions.direct.remote-file">pallet.actions.direct.remote-file</a></li><li><a href="#pallet.actions.direct.retry">pallet.actions.direct.retry</a></li><li><a href="#pallet.actions.direct.rsync">pallet.actions.direct.rsync</a></li><li><a href="#pallet.actions.direct.service">pallet.actions.direct.service</a></li><li><a href="#pallet.actions.direct.settings">pallet.actions.direct.settings</a></li><li><a href="#pallet.actions.direct.user">pallet.actions.direct.user</a></li><li><a href="#pallet.actions-impl">pallet.actions-impl</a></li><li><a href="#pallet.api">pallet.api</a></li><li><a href="#pallet.argument">pallet.argument</a></li><li><a href="#pallet.blobstore">pallet.blobstore</a></li><li><a href="#pallet.blobstore.implementation">pallet.blobstore.implementation</a></li><li><a href="#pallet.blobstore.url-blobstore">pallet.blobstore.url-blobstore</a></li><li><a href="#pallet.command-line">pallet.command-line</a></li><li><a href="#pallet.compute">pallet.compute</a></li><li><a href="#pallet.compute.hybrid">pallet.compute.hybrid</a></li><li><a href="#pallet.compute.implementation">pallet.compute.implementation</a></li><li><a href="#pallet.compute.jvm">pallet.compute.jvm</a></li><li><a href="#pallet.compute.localhost">pallet.compute.localhost</a></li><li><a href="#pallet.compute.node-list">pallet.compute.node-list</a></li><li><a href="#pallet.config-file.format">pallet.config-file.format</a></li><li><a href="#pallet.configure">pallet.configure</a></li><li><a href="#pallet.context">pallet.context</a></li><li><a href="#pallet.core">pallet.core</a></li><li><a href="#pallet.core.api">pallet.core.api</a></li><li><a href="#pallet.core.api-impl">pallet.core.api-impl</a></li><li><a href="#pallet.core.data-api">pallet.core.data-api</a></li><li><a href="#pallet.core.operations">pallet.core.operations</a></li><li><a href="#pallet.core.plan-state">pallet.core.plan-state</a></li><li><a href="#pallet.core.primitives">pallet.core.primitives</a></li><li><a href="#pallet.core.session">pallet.core.session</a></li><li><a href="#pallet.core.thread-local">pallet.core.thread-local</a></li><li><a href="#pallet.core.user">pallet.core.user</a></li><li><a href="#pallet.crate">pallet.crate</a></li><li><a href="#pallet.crate.automated-admin-user">pallet.crate.automated-admin-user</a></li><li><a href="#pallet.crate.crontab">pallet.crate.crontab</a></li><li><a href="#pallet.crate.environment">pallet.crate.environment</a></li><li><a href="#pallet.crate.etc-default">pallet.crate.etc-default</a></li><li><a href="#pallet.crate.etc-hosts">pallet.crate.etc-hosts</a></li><li><a href="#pallet.crate.filesystem">pallet.crate.filesystem</a></li><li><a href="#pallet.crate.initd">pallet.crate.initd</a></li><li><a href="#pallet.crate.network-service">pallet.crate.network-service</a></li><li><a href="#pallet.crate.nohup">pallet.crate.nohup</a></li><li><a href="#pallet.crate.package.centos">pallet.crate.package.centos</a></li><li><a href="#pallet.crate.package.debian-backports">pallet.crate.package.debian-backports</a></li><li><a href="#pallet.crate.package.epel">pallet.crate.package.epel</a></li><li><a href="#pallet.crate.package.jpackage">pallet.crate.package.jpackage</a></li><li><a href="#pallet.crate.package.rpmforge">pallet.crate.package.rpmforge</a></li><li><a href="#pallet.crate.package-repo">pallet.crate.package-repo</a></li><li><a href="#pallet.crate.service">pallet.crate.service</a></li><li><a href="#pallet.crate.ssh-key">pallet.crate.ssh-key</a></li><li><a href="#pallet.crate.sudoers">pallet.crate.sudoers</a></li><li><a href="#pallet.crate-install">pallet.crate-install</a></li><li><a href="#pallet.debug">pallet.debug</a></li><li><a href="#pallet.echo.execute">pallet.echo.execute</a></li><li><a href="#pallet.enlive">pallet.enlive</a></li><li><a href="#pallet.environment">pallet.environment</a></li><li><a href="#pallet.event">pallet.event</a></li><li><a href="#pallet.execute">pallet.execute</a></li><li><a href="#pallet.executors">pallet.executors</a></li><li><a href="#pallet.feature">pallet.feature</a></li><li><a href="#pallet.futures">pallet.futures</a></li><li><a href="#pallet.local.execute">pallet.local.execute</a></li><li><a href="#pallet.main">pallet.main</a></li><li><a href="#pallet.main-invoker">pallet.main-invoker</a></li><li><a href="#pallet.md5crypt">pallet.md5crypt</a></li><li><a href="#pallet.node">pallet.node</a></li><li><a href="#pallet.node-value">pallet.node-value</a></li><li><a href="#pallet.phase">pallet.phase</a></li><li><a href="#pallet.plugin">pallet.plugin</a></li><li><a href="#pallet.project">pallet.project</a></li><li><a href="#pallet.project.load">pallet.project.load</a></li><li><a href="#pallet.project.loader">pallet.project.loader</a></li><li><a href="#pallet.repl">pallet.repl</a></li><li><a href="#pallet.script.lib">pallet.script.lib</a></li><li><a href="#pallet.script-builder">pallet.script-builder</a></li><li><a href="#pallet.script-exec">pallet.script-exec</a></li><li><a href="#pallet.session.action-plan">pallet.session.action-plan</a></li><li><a href="#pallet.session.verify">pallet.session.verify</a></li><li><a href="#pallet.ssh.execute">pallet.ssh.execute</a></li><li><a href="#pallet.strint">pallet.strint</a></li><li><a href="#pallet.task">pallet.task</a></li><li><a href="#pallet.task.add-service">pallet.task.add-service</a></li><li><a href="#pallet.task.config">pallet.task.config</a></li><li><a href="#pallet.task.containers">pallet.task.containers</a></li><li><a href="#pallet.task.converge">pallet.task.converge</a></li><li><a href="#pallet.task.describe-node">pallet.task.describe-node</a></li><li><a href="#pallet.task.down">pallet.task.down</a></li><li><a href="#pallet.task.help">pallet.task.help</a></li><li><a href="#pallet.task.images">pallet.task.images</a></li><li><a href="#pallet.task.lift">pallet.task.lift</a></li><li><a href="#pallet.task.nodes">pallet.task.nodes</a></li><li><a href="#pallet.task.project-init">pallet.task.project-init</a></li><li><a href="#pallet.task.providers">pallet.task.providers</a></li><li><a href="#pallet.task.to-blob">pallet.task.to-blob</a></li><li><a href="#pallet.task.up">pallet.task.up</a></li><li><a href="#pallet.task.version">pallet.task.version</a></li><li><a href="#pallet.task-utils">pallet.task-utils</a></li><li><a href="#pallet.template">pallet.template</a></li><li><a href="#pallet.template.properties">pallet.template.properties</a></li><li><a href="#pallet.utils">pallet.utils</a></li><li><a href="#pallet.version-dispatch">pallet.version-dispatch</a></li><li><a href="#pallet.versions">pallet.versions</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.action" name="pallet.action"><h1 class="project-name">pallet.action</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Actions are the primitives that are called by crate functions.</p>
+</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.4.0</td></tr><tr><td class="dep-name">org.clojure/core.incubator</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">org.clojure/tools.logging</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0</td></tr><tr><td class="dep-name">org.clojure/tools.macro</td><td class="dotted"><hr /></td><td class="dep-version">0.1.1</td></tr><tr><td class="dep-name">org.clojure/tools.cli</td><td class="dotted"><hr /></td><td class="dep-version">0.2.2</td></tr><tr><td class="dep-name">org.clojure/algo.monads</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">com.palletops/chiba</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0</td></tr><tr><td class="dep-name">com.palletops/thread-expr</td><td class="dotted"><hr /></td><td class="dep-version">1.3.0</td></tr><tr><td class="dep-name">com.palletops/pallet-common</td><td class="dotted"><hr /></td><td class="dep-version">0.4.0</td></tr><tr><td class="dep-name">com.palletops/script-exec</td><td class="dotted"><hr /></td><td class="dep-version">0.3.2</td></tr><tr><td class="dep-name">com.palletops/stevedore</td><td class="dotted"><hr /></td><td class="dep-version">0.8.0-beta.2</td></tr><tr><td class="dep-name">enlive</td><td class="dotted"><hr /></td><td class="dep-version">1.0.1</td></tr><tr><td class="dep-name">pallet-fsmop</td><td class="dotted"><hr /></td><td class="dep-version">0.2.6</td></tr><tr><td class="dep-name">pallet-map-merge</td><td class="dotted"><hr /></td><td class="dep-version">0.1.0</td></tr><tr><td class="dep-name">useful</td><td class="dotted"><hr /></td><td class="dep-version">0.8.6</td></tr><tr><td class="dep-name">commons-codec</td><td class="dotted"><hr /></td><td class="dep-version">1.4</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#pallet.action">pallet.action</a></li><li><a href="#pallet.action-impl">pallet.action-impl</a></li><li><a href="#pallet.action-plan">pallet.action-plan</a></li><li><a href="#pallet.actions">pallet.actions</a></li><li><a href="#pallet.actions.direct">pallet.actions.direct</a></li><li><a href="#pallet.actions.direct.conditional">pallet.actions.direct.conditional</a></li><li><a href="#pallet.actions.direct.directory">pallet.actions.direct.directory</a></li><li><a href="#pallet.actions.direct.exec-script">pallet.actions.direct.exec-script</a></li><li><a href="#pallet.actions.direct.file">pallet.actions.direct.file</a></li><li><a href="#pallet.actions.direct.package">pallet.actions.direct.package</a></li><li><a href="#pallet.actions.direct.remote-directory">pallet.actions.direct.remote-directory</a></li><li><a href="#pallet.actions.direct.remote-file">pallet.actions.direct.remote-file</a></li><li><a href="#pallet.actions.direct.retry">pallet.actions.direct.retry</a></li><li><a href="#pallet.actions.direct.rsync">pallet.actions.direct.rsync</a></li><li><a href="#pallet.actions.direct.service">pallet.actions.direct.service</a></li><li><a href="#pallet.actions.direct.settings">pallet.actions.direct.settings</a></li><li><a href="#pallet.actions.direct.user">pallet.actions.direct.user</a></li><li><a href="#pallet.actions-impl">pallet.actions-impl</a></li><li><a href="#pallet.api">pallet.api</a></li><li><a href="#pallet.argument">pallet.argument</a></li><li><a href="#pallet.blobstore">pallet.blobstore</a></li><li><a href="#pallet.blobstore.implementation">pallet.blobstore.implementation</a></li><li><a href="#pallet.blobstore.url-blobstore">pallet.blobstore.url-blobstore</a></li><li><a href="#pallet.command-line">pallet.command-line</a></li><li><a href="#pallet.compute">pallet.compute</a></li><li><a href="#pallet.compute.hybrid">pallet.compute.hybrid</a></li><li><a href="#pallet.compute.implementation">pallet.compute.implementation</a></li><li><a href="#pallet.compute.jvm">pallet.compute.jvm</a></li><li><a href="#pallet.compute.localhost">pallet.compute.localhost</a></li><li><a href="#pallet.compute.node-list">pallet.compute.node-list</a></li><li><a href="#pallet.config-file.format">pallet.config-file.format</a></li><li><a href="#pallet.configure">pallet.configure</a></li><li><a href="#pallet.context">pallet.context</a></li><li><a href="#pallet.core">pallet.core</a></li><li><a href="#pallet.core.api">pallet.core.api</a></li><li><a href="#pallet.core.api-impl">pallet.core.api-impl</a></li><li><a href="#pallet.core.data-api">pallet.core.data-api</a></li><li><a href="#pallet.core.operations">pallet.core.operations</a></li><li><a href="#pallet.core.plan-state">pallet.core.plan-state</a></li><li><a href="#pallet.core.primitives">pallet.core.primitives</a></li><li><a href="#pallet.core.session">pallet.core.session</a></li><li><a href="#pallet.core.thread-local">pallet.core.thread-local</a></li><li><a href="#pallet.core.user">pallet.core.user</a></li><li><a href="#pallet.crate">pallet.crate</a></li><li><a href="#pallet.crate.automated-admin-user">pallet.crate.automated-admin-user</a></li><li><a href="#pallet.crate.crontab">pallet.crate.crontab</a></li><li><a href="#pallet.crate.environment">pallet.crate.environment</a></li><li><a href="#pallet.crate.etc-default">pallet.crate.etc-default</a></li><li><a href="#pallet.crate.etc-hosts">pallet.crate.etc-hosts</a></li><li><a href="#pallet.crate.filesystem">pallet.crate.filesystem</a></li><li><a href="#pallet.crate.initd">pallet.crate.initd</a></li><li><a href="#pallet.crate.network-service">pallet.crate.network-service</a></li><li><a href="#pallet.crate.nohup">pallet.crate.nohup</a></li><li><a href="#pallet.crate.package.centos">pallet.crate.package.centos</a></li><li><a href="#pallet.crate.package.debian-backports">pallet.crate.package.debian-backports</a></li><li><a href="#pallet.crate.package.epel">pallet.crate.package.epel</a></li><li><a href="#pallet.crate.package.jpackage">pallet.crate.package.jpackage</a></li><li><a href="#pallet.crate.package.rpmforge">pallet.crate.package.rpmforge</a></li><li><a href="#pallet.crate.package-repo">pallet.crate.package-repo</a></li><li><a href="#pallet.crate.service">pallet.crate.service</a></li><li><a href="#pallet.crate.ssh-key">pallet.crate.ssh-key</a></li><li><a href="#pallet.crate.sudoers">pallet.crate.sudoers</a></li><li><a href="#pallet.crate-install">pallet.crate-install</a></li><li><a href="#pallet.debug">pallet.debug</a></li><li><a href="#pallet.echo.execute">pallet.echo.execute</a></li><li><a href="#pallet.enlive">pallet.enlive</a></li><li><a href="#pallet.environment">pallet.environment</a></li><li><a href="#pallet.event">pallet.event</a></li><li><a href="#pallet.execute">pallet.execute</a></li><li><a href="#pallet.executors">pallet.executors</a></li><li><a href="#pallet.feature">pallet.feature</a></li><li><a href="#pallet.futures">pallet.futures</a></li><li><a href="#pallet.local.execute">pallet.local.execute</a></li><li><a href="#pallet.main">pallet.main</a></li><li><a href="#pallet.main-invoker">pallet.main-invoker</a></li><li><a href="#pallet.md5crypt">pallet.md5crypt</a></li><li><a href="#pallet.node">pallet.node</a></li><li><a href="#pallet.node-value">pallet.node-value</a></li><li><a href="#pallet.phase">pallet.phase</a></li><li><a href="#pallet.plugin">pallet.plugin</a></li><li><a href="#pallet.project">pallet.project</a></li><li><a href="#pallet.project.load">pallet.project.load</a></li><li><a href="#pallet.project.loader">pallet.project.loader</a></li><li><a href="#pallet.repl">pallet.repl</a></li><li><a href="#pallet.script.lib">pallet.script.lib</a></li><li><a href="#pallet.script-builder">pallet.script-builder</a></li><li><a href="#pallet.script-exec">pallet.script-exec</a></li><li><a href="#pallet.session.action-plan">pallet.session.action-plan</a></li><li><a href="#pallet.session.verify">pallet.session.verify</a></li><li><a href="#pallet.ssh.execute">pallet.ssh.execute</a></li><li><a href="#pallet.strint">pallet.strint</a></li><li><a href="#pallet.task">pallet.task</a></li><li><a href="#pallet.task.add-service">pallet.task.add-service</a></li><li><a href="#pallet.task.config">pallet.task.config</a></li><li><a href="#pallet.task.containers">pallet.task.containers</a></li><li><a href="#pallet.task.converge">pallet.task.converge</a></li><li><a href="#pallet.task.describe-node">pallet.task.describe-node</a></li><li><a href="#pallet.task.down">pallet.task.down</a></li><li><a href="#pallet.task.help">pallet.task.help</a></li><li><a href="#pallet.task.images">pallet.task.images</a></li><li><a href="#pallet.task.lift">pallet.task.lift</a></li><li><a href="#pallet.task.nodes">pallet.task.nodes</a></li><li><a href="#pallet.task.project-init">pallet.task.project-init</a></li><li><a href="#pallet.task.providers">pallet.task.providers</a></li><li><a href="#pallet.task.to-blob">pallet.task.to-blob</a></li><li><a href="#pallet.task.up">pallet.task.up</a></li><li><a href="#pallet.task.version">pallet.task.version</a></li><li><a href="#pallet.task-utils">pallet.task-utils</a></li><li><a href="#pallet.template">pallet.template</a></li><li><a href="#pallet.template.properties">pallet.template.properties</a></li><li><a href="#pallet.utils">pallet.utils</a></li><li><a href="#pallet.version-dispatch">pallet.version-dispatch</a></li><li><a href="#pallet.versions">pallet.versions</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.action" name="pallet.action"><h1 class="project-name">pallet.action</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Actions are the primitives that are called by crate functions.</p>
 
 <p>   Actions can have multiple implementations, but by default most are
    implemented as script to be executed on the remote node.</p>
@@ -4067,9 +4067,20 @@ achieve, so the exec-script actions allow you to execute arbitrary script.</p>
        (leave-scope)
        (enter-scope)
        ~@crate-fns-or-actions
-       (leave-scope))))</pre></td></tr><tr><td class="docs"><p>Creates an action that can transform return values</p>
-</td><td class="codes"><pre class="brush: clojure">(defmacro return-value-expr
+       (leave-scope))))</pre></td></tr><tr><td class="docs"><p>Creates an action that can transform action return values.  The return
+value is itself an action return value.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmacro with-action-values
   {:pallet/plan-fn true}
+  [[&amp; return-values] &amp; body]
+  (let [session (gensym &quot;session&quot;)]
+    `((clj-action [~session]
+       [(let [~@(mapcat #(vector % `(node-value ~% ~session)) return-values)]
+          (logging/tracef &quot;with-action-values %s&quot; ~(vec return-values))
+          ~@body)
+        ~session]))))</pre></td></tr><tr><td class="docs"><p>Creates an action that can transform return values</p>
+</td><td class="codes"><pre class="brush: clojure">(defmacro return-value-expr
+  {:pallet/plan-fn true
+   :deprecated &quot;0.8.0-beta.8&quot;}
   [[&amp; return-values] &amp; body]
   (let [session (gensym &quot;session&quot;)]
     `((clj-action [~session]
@@ -4080,7 +4091,10 @@ achieve, so the exec-script actions allow you to execute arbitrary script.</p>
    the specification of specific instance of the facility (the default is
    :default).</p>
 </td><td class="codes"><pre class="brush: clojure">(defaction assoc-settings
-  [facility kv-pairs &amp; {:keys [instance-id]}])</pre></td></tr><tr><td class="docs"><p>Update the settings for the specified host facility. The instance-id allows
+  [facility kv-pairs &amp; {:keys [instance-id]}])</pre></td></tr><tr><td class="docs"><p>Put the specified <code>value</code> (possible a <code>NodeValue</code>) into the settings
+  for <code>path</code>, a vector of <code>[facility &amp; keys]</code>, specifying a facility an a path.</p>
+</td><td class="codes"><pre class="brush: clojure">(defaction assoc-in-settings
+  [path value &amp; {:keys [instance-id]}])</pre></td></tr><tr><td class="docs"><p>Update the settings for the specified host facility. The instance-id allows
    the specification of specific instance of the facility (the default is
    :default).</p>
 </td><td class="codes"><pre class="brush: clojure">(defaction update-settings
@@ -4339,7 +4353,7 @@ downloads and to verify the download.</p>
   {:pallet/plan-fn true}
   [path]
   (let [nv (exec-script (~lib/cat ~path))
-        c (return-value-expr [nv] (:out nv))]
+        c (with-action-values [nv] (:out nv))]
     c))</pre></td></tr><tr><td class="docs"><h1>Remote Directory Content</h1>
 </td><td class="codes"></td></tr><tr><td class="docs"><p>Specify the contents of remote directory.</p>
 
@@ -4458,7 +4472,10 @@ option and :unpack :unzip.</p>
   [&amp; {:keys [yum aptitude pacman brew] :as options}]
   (phase-context packages {}
     (let [packager (packager)]
-      (doseq [p (options packager)] (package p)))))</pre></td></tr><tr><td class="docs"><p>Package manager controls.</p>
+      (doseq [p (or (options packager)
+                    (when (#{:apt :aptitude} packager)
+                      (options (first (disj #{:apt :aptitude} packager)))))]
+        (package p)))))</pre></td></tr><tr><td class="docs"><p>Package manager controls.</p>
 
 <p>   <code>action</code> is one of the following:
    - :update          - update the list of available packages
@@ -4700,7 +4717,7 @@ Specify <code>:line</code> as a string, or <code>:package</code>, <code>:questio
   [script-return-value
    {:keys [out err exit fmt]
     :or {out :debug err :info exit :none fmt &quot;%s&quot;}}]
-  `(return-value-expr
+  `(with-action-values
     [~script-return-value]
     (when (and (not= ~out :none) (:out ~script-return-value))
       (log-multiline ~out ~fmt (trim (:out ~script-return-value))))
@@ -4903,6 +4920,8 @@ Specify <code>:line</code> as a string, or <code>:package</code>, <code>:questio
    [clojure.tools.logging :as logging]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
+   [pallet.utils :refer [apply-map]]
+   [pallet.version-dispatch :refer [os-map os-map-lookup]]
    pallet.actions.direct.exec-script
    pallet.actions.direct.file
    pallet.actions.direct.remote-file)
@@ -5134,45 +5153,82 @@ split by enable/disable options and by command.  We install before removing.</p>
      (format &quot;enabled=%s&quot; enabled)
      &quot;&quot;])))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(def ^{:dynamic true} *default-apt-keyserver* &quot;subkeys.pgp.net&quot;)</pre></td></tr><tr><td class="docs"><p>Add a packager source.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn package-source*
+</td><td class="codes"><pre class="brush: clojure">(defmulti package-source*
+  (fn  [session name &amp; {:keys [apt aptitude yum] :as options}]
+    (packager session)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(def ubuntu-ppa-add
+  (atom                                 ; allow for open extension
+   (os-map
+    {{:os :ubuntu :os-version [[10] [12 04]]} &quot;python-software-properties&quot;
+     {:os :ubuntu :os-version [[12 10] nil]} &quot;software-properties-common&quot;})))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn- package-source-apt
+  [session name &amp; {:keys [apt aptitude yum] :as options}]
+  (checked-commands
+   &quot;Package source&quot;
+   (let [^String key-url (or (:url aptitude) (:url apt))]
+     (if (and key-url (.startsWith key-url &quot;ppa:&quot;))
+       (stevedore/chain-commands
+        (if-let [package (os-map-lookup @ubuntu-ppa-add)]
+          (stevedore/script (~lib/install-package ~package)))
+        (stevedore/script (pipe (println ) (&quot;add-apt-repository&quot; ~key-url)))
+        (stevedore/script (~lib/update-package-list)))
+       (-&gt;
+        (remote-file*
+         session
+         (format (source-location :apt) name)
+         {:content (format-source
+                    :apt name (or (:apt options) (:aptitude options)))
+          :flag-on-changed package-source-changed-flag})
+        first second)))
+   (if-let [key-id (or (:key-id aptitude) (:key-id apt))]
+     (let [key-server (or (:key-server aptitude) (:key-server apt)
+                          *default-apt-keyserver*)]
+       (stevedore/script
+        (&quot;apt-key&quot;
+         adv
+         &quot;--keyserver&quot; ~key-server
+         &quot;--recv-keys&quot; ~key-id))))
+   (if-let [key-url (or (:key-url aptitude) (:key-url apt))]
+     (stevedore/chain-commands
+      (-&gt;
+       (remote-file*
+        session &quot;aptkey.tmp&quot;
+        {:url key-url :flag-on-changed package-source-changed-flag})
+       first second)
+      (stevedore/script (&quot;apt-key&quot; add aptkey.tmp))))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod package-source* :aptitude
+  [session name &amp; {:keys [apt aptitude yum] :as options}]
+  (apply-map package-source-apt session name options))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod package-source* :apt
+  [session name &amp; {:keys [apt aptitude yum] :as options}]
+  (apply-map package-source-apt session name options))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod package-source* :yum
   [session name &amp; {:keys [apt aptitude yum] :as options}]
   (let [packager (packager session)]
     (checked-commands
      &quot;Package source&quot;
-     (let [^String key-url (or (:url aptitude) (:url apt))]
-       (if (and key-url (.startsWith key-url &quot;ppa:&quot;))
-         (stevedore/chain-commands
-          (stevedore/script (~lib/install-package &quot;python-software-properties&quot;))
-          (stevedore/script (pipe (println &quot;&quot;) (&quot;add-apt-repository&quot; ~key-url)))
-          (stevedore/script (~lib/update-package-list)))
-         (-&gt;
-          (remote-file*
-           session
-           (format (source-location packager) name)
-           {:content (format-source packager name (packager options))
-            :literal (= packager :yum)
-            :flag-on-changed package-source-changed-flag})
-          first second)))
-     (if-let [key-id (or (:key-id aptitude) (:key-id apt))]
-       (if (#{:aptitude :apt} packager)
-         (let [key-server (or (:key-server aptitude) (:key-server apt)
-                              *default-apt-keyserver*)]
-           (stevedore/script
-            (&quot;apt-key&quot;
-             adv
-             &quot;--keyserver&quot; ~key-server
-             &quot;--recv-keys&quot; ~(:key-id aptitude))))))
-     (if-let [key-url (or (:key-url aptitude) (:key-url apt))]
-       (if (#{:aptitude :apt} packager)
-       (stevedore/chain-commands
-        (-&gt;
-         (remote-file*
-          session &quot;aptkey.tmp&quot;
-          {:url key-url :flag-on-changed package-source-changed-flag})
-         first second)
-        (stevedore/script (&quot;apt-key&quot; add aptkey.tmp)))))
+     (-&gt;
+      (remote-file*
+       session
+       (format (source-location packager) name)
+       {:content (format-source packager name (packager options))
+        :literal true
+        :flag-on-changed package-source-changed-flag})
+      first second)
      (when-let [key (and (= packager :yum) (:gpgkey yum))]
        (stevedore/script (&quot;rpm&quot; &quot;--import&quot; ~key))))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defmethod package-source* :default
+  [session name &amp; {:as options}]
+  (let [packager (packager session)]
+    (checked-commands
+     &quot;Package source&quot;
+     (-&gt;
+      (remote-file*
+       session
+       (format (source-location packager) name)
+       {:content (format-source packager name (packager options))
+        :flag-on-changed package-source-changed-flag})
+      first second))))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(implement-action package-source :direct
   &quot;Control package sources.
    Options are the package manager keywords, each specifying a map of
@@ -5898,7 +5954,7 @@ Specify :line, or the other options.&quot;
    [clojure.tools.logging :as logging])
   (:use
    [pallet.action :only [implement-action]]
-   [pallet.actions :only [assoc-settings update-settings]]
+   [pallet.actions :only [assoc-settings assoc-in-settings update-settings]]
    [pallet.core.session :only [admin-user target-ip]]
    [pallet.node :only [primary-ip]]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(implement-action assoc-settings :direct
@@ -5909,6 +5965,16 @@ Specify :line, or the other options.&quot;
                 session [:plan-state]
                 plan-state/assoc-settings
                 (session/target-id session) facility kv-pairs options)])
+   session])</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(implement-action assoc-in-settings :direct
+  {:action-type :fn/clojure :location :origin}
+  [session [facility &amp; path] value &amp; {:keys [instance-id] :as options}]
+  [(fn [session]
+     [value (update-in
+             session [:plan-state]
+             plan-state/update-settings
+             (session/target-id session) facility assoc-in [path value]
+             options)])
    session])</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(implement-action update-settings :direct
   {:action-type :fn/clojure :location :origin}
@@ -6115,7 +6181,8 @@ they are used locally.</p>
    [pallet.core.operations :as ops]
    [clojure.tools.logging :as logging])
   (:use
-   [pallet.core.api-impl :only [merge-specs merge-spec-algorithm]]
+   [pallet.core.api-impl
+    :only [merge-specs merge-spec-algorithm node-has-group-name?]]
    [pallet.core.session :only [session-context]]
    [pallet.crate :only [phase-context]]
    [pallet.algo.fsmop :only [dofsm operate result succeed]]
@@ -6152,7 +6219,7 @@ they are used locally.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn node-spec
   [&amp; {:keys [image hardware location network qos] :as options}]
   {:pre [(or (nil? image) (map? image))]}
-  options)</pre></td></tr><tr><td class="docs"><p>Merge in the inherited specs</p>
+  (vary-meta options assoc :type ::node-spec))</pre></td></tr><tr><td class="docs"><p>Merge in the inherited specs</p>
 </td><td class="codes"><pre class="brush: clojure">(defn extend-specs
   ([spec inherits algorithms]
      (if inherits
@@ -6184,11 +6251,13 @@ specified in the <code>:extends</code> argument.</p>
       :as options}]
   (-&gt;
    node-spec
+   (or node-spec {})                    ; ensure we have a map and not nil
    (merge options)
    (when-&gt; roles
        (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
    (extend-specs extends)
-   (dissoc :extends :node-spec)))</pre></td></tr><tr><td class="docs"><p>Create a group-spec.</p>
+   (dissoc :extends :node-spec)
+   (vary-meta assoc :type ::server-spec)))</pre></td></tr><tr><td class="docs"><p>Create a group-spec.</p>
 
 <p>   <code>name</code> is used for the group name, which is set on each node and links a node
    to it's node-spec</p>
@@ -6196,26 +6265,30 @@ specified in the <code>:extends</code> argument.</p>
 <ul>
 <li><p>:extends  specify a server-spec, a group-spec, or sequence thereof
            and is used to inherit phases, etc.</p></li>
-<li><p>:phases used to define phases. Standard phases are:</p>
-
-<ul><li>:bootstrap    run on first boot of a new node</li>
-<li>:configure    defines the configuration of the node.</li></ul></li>
-<li><p>:count    specify the target number of nodes for this node-spec</p></li>
-<li>:packager override the choice of packager to use</li>
-<li>:node-spec      default node-spec for this server-spec</li>
+<li><p>:phases      used to define phases. Standard phases are:</p></li>
+<li>:bootstrap   run on first boot of a new node</li>
+<li><p>:configure   defines the configuration of the node.</p></li>
+<li><p>:count          specify the target number of nodes for this node-spec</p></li>
+<li>:packager       override the choice of packager to use</li>
+<li>:node-spec      default node-spec for this group-spec</li>
+<li>:node-filter    a predicate to test if a node is a member of this group.</li>
 </ul>
 </td><td class="codes"><pre class="brush: clojure">(defn group-spec
   [name
-   &amp; {:keys [extends count image phases packager node-spec roles] :as options}]
+   &amp; {:keys [extends count image phases packager node-spec roles node-filter]
+      :as options}]
   {:pre [(or (nil? image) (map? image))]}
-  (-&gt;
-   node-spec
-   (merge options)
-   (when-&gt; roles
-       (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
-   (extend-specs extends)
-   (dissoc :extends :node-spec)
-   (assoc :group-name (keyword name))))</pre></td></tr><tr><td class="docs"><p>Expand a node-set into its groups</p>
+  (let [group-name (keyword (clojure.core/name name))]
+    (-&gt;
+     node-spec
+     (merge options)
+     (update-in [:node-filter] #(or % (node-has-group-name? group-name)))
+     (when-&gt; roles
+             (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
+     (extend-specs extends)
+     (dissoc :extends :node-spec)
+     (assoc :group-name group-name)
+     (vary-meta assoc :type ::group-spec))))</pre></td></tr><tr><td class="docs"><p>Expand a node-set into its groups</p>
 </td><td class="codes"><pre class="brush: clojure">(defn expand-cluster-groups
   [node-set]
   (cond
@@ -6287,7 +6360,8 @@ specified in the <code>:extends</code> argument.</p>
                     (extend-specs [(select-keys group-spec [:phases])])))
                  (expand-group-spec-with-counts group-specs 1))))
    (dissoc :extends :node-spec)
-   (assoc :cluster-cluster-name (keyword cluster-name))))</pre></td></tr><tr><td class="docs"><p>Returns a compute service object, used to perform actions on a cloud
+   (assoc :cluster-cluster-name (keyword cluster-name))
+   (vary-meta assoc :type ::cluster-spec)))</pre></td></tr><tr><td class="docs"><p>Returns a compute service object, used to perform actions on a cloud
   provider.</p>
 
 <h2>Compute Service</h2>
@@ -6364,29 +6438,11 @@ specified in the <code>:extends</code> argument.</p>
        all-node-set)))
     (result nil)))</pre></td></tr><tr><td class="docs"><p>Arguments that are forwarded to be part of the environment</p>
 </td><td class="codes"><pre class="brush: clojure">(def 
-  environment-args [:compute :blobstore :user :middleware :provider-options])</pre></td></tr><tr><td class="docs"><p>Returns a FSM to converge the existing compute resources with the counts
-   specified in <code>group-spec-&gt;count</code>. New nodes are started, or nodes are
-   destroyed to obtain the specified node counts.</p>
-
-<p>   <code>group-spec-&gt;count</code> can be a map from group-spec to node count, or can be a
-   sequence of group-specs containing a :count key.</p>
-
-<p>   The compute service may be supplied as an option, otherwise the bound
-   compute-service is used.</p>
-
-<p>   This applies the bootstrap phase to all new nodes and the configure phase to
-   all running nodes whose group-name matches a key in the node map.  Additional
-   phases can also be specified in the options, and will be applied to all
-   matching nodes.  The :configure phase is always applied, by default as the
-   first (post bootstrap) phase.  You can change the order in which
-   the :configure phase is applied by explicitly listing it.</p>
-
-<p>   An optional group-name prefix may be specified. This will be used to modify
-   the group-name for each group-spec, allowing you to build multiple discrete
-   clusters from a single set of group-specs.</p>
+  environment-args [:compute :blobstore :user :provider-options])</pre></td></tr><tr><td class="docs"><p>Returns a FSM to converge the existing compute resources with the counts
+   specified in <code>group-spec-&gt;count</code>.  Options are as for <code>converge</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn converge*
-  [group-spec-&gt;count &amp; {:keys [compute blobstore user phase prefix middleware
-                               all-nodes all-node-set environment]
+  [group-spec-&gt;count &amp; {:keys [compute blobstore user phase
+                               all-nodes all-node-set environment plan-state]
                         :or {phase [:configure]}
                         :as options}]
   (let [[phases phase-map] (process-phases phase)
@@ -6406,66 +6462,107 @@ specified in the <code>:extends</code> argument.</p>
         groups (groups-with-phases groups phase-map)
         targets (groups-with-phases targets phase-map)
         groups (map (partial group-with-environment environment) groups)
-        targets (map (partial group-with-environment environment) targets)]
+        targets (map (partial group-with-environment environment) targets)
+        lift-options (select-keys options ops/lift-options)]
     (dofsm converge
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
        _ (succeed
           (or compute (seq nodes-set))
           {:error :no-nodes-and-no-compute-service})
-       result (ops/converge groups nodes-set phases compute environment {})]
-      result)))</pre></td></tr><tr><td class="docs"><p>Converge the existing compute resources with the counts specified in
-   <code>group-spec-&gt;count</code>. New nodes are started, or nodes are destroyed
-   to obtain the specified node counts.</p>
+       {:keys [plan-state targets] :as converge-result}
+       (ops/converge
+        compute groups nodes-set plan-state environment phases options)
+       {:keys [results plan-state] :as lift-result}
+       (ops/lift-partitions
+        targets plan-state environment (remove #{:settings :bootstrap} phases)
+        lift-options)]
+      (-&gt; converge-result
+          (update-in [:results] concat results)
+          (assoc :plan-state plan-state)))))</pre></td></tr><tr><td class="docs"><p>Converge the existing compute resources with the counts specified in
+<code>group-spec-&gt;count</code>. New nodes are started, or nodes are destroyed to obtain the
+specified node counts.</p>
 
-<p>   <code>group-spec-&gt;count</code> can be a map from group-spec to node count, or can be a
-   sequence of group-specs containing a :count key.</p>
+<p><code>group-spec-&gt;count</code> can be a map from group-spec to node count, or can be a
+sequence of group-specs containing a :count key.</p>
 
-<p>   The compute service may be supplied as an option, otherwise the bound
-   compute-service is used.</p>
+<p>This applies the <code>:bootstrap</code> phase to all new nodes and, by default,
+the :configure phase to all running nodes whose group-name matches a key in the
+node map.  Phases can also be specified with the <code>:phase</code> option, and will be
+applied to all matching nodes.  The :configure phase is the default phase
+applied.</p>
 
-<p>   This applies the bootstrap phase to all new nodes and the configure phase to
-   all running nodes whose group-name matches a key in the node map.  Additional
-   phases can also be specified in the options, and will be applied to all
-   matching nodes.  The :configure phase is always applied, by default as the
-   first (post bootstrap) phase.  You can change the order in which
-   the :configure phase is applied by explicitly listing it.</p>
+<h2>Options</h2>
 
-<p>   An optional group-name prefix may be specified. This will be used to modify
-   the group-name for each group-spec, allowing you to build multiple discrete
-   clusters from a single set of group-specs.</p>
+<p><code>:compute</code>
+: a compute service.</p>
+
+<p><code>:phase</code>
+: a phase keyword, phase function, or sequence of these.</p>
+
+<p><code>:user</code>
+the admin-user on the nodes.</p>
+
+<h3>Partitioning</h3>
+
+<p><code>:partition-f</code>
+: a function that takes a sequence of targets, and returns a sequence of
+  sequences of targets.  Used to partition or filter the targets.  Defaults to
+  any :partition metadata on the phase, or no partitioning otherwise.</p>
+
+<h2>Post phase options</h2>
+
+<p><code>:post-phase-f</code>
+: specifies an optional function that is run after a phase is applied.  It is
+  passed <code>targets</code>, <code>phase</code> and <code>results</code> arguments, and is called before any
+  error checking is done.  The return value is ignored, so this is for side
+  affect only.</p>
+
+<p><code>:post-phase-fsm</code>
+: specifies an optional fsm returning function that is run after a phase is
+  applied.  It is passed <code>targets</code>, <code>phase</code> and <code>results</code> arguments, and is
+  called before any error checking is done.  The return value is ignored, so
+  this is for side affect only.</p>
+
+<h3>Asynchronous and Timeouts</h3>
+
+<p><code>:async</code>
+: a flag to control whether the function executes asynchronously.  When truthy,
+  the function returns an Operation that can be deref'd like a future.  When not
+  truthy, <code>:timeout-ms</code> may be used to specify a timeout.  Defaults to nil.</p>
+
+<p><code>:timeout-ms</code>
+: an integral number of milliseconds to wait for completion before timeout.
+  Only applies if <code>:async</code> is not truthy (the default).</p>
+
+<p><code>:timeout-val</code>
+: a value to be returned should the operation time out.</p>
+
+<h3>Algorithm options</h3>
+
+<p><code>:phase-execution-f</code>
+: specifies the function used to execute a phase on the targets.  Defaults
+  to <code>pallet.core.primitives/build-and-execute-phase</code>.</p>
+
+<p><code>:execution-settings-f</code>
+: specifies a function that will be called with a node argument, and which
+  should return a map with <code>:user</code>, <code>:executor</code> and <code>:executor-status-fn</code> keys.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn converge
-  [group-spec-&gt;count &amp; {:keys [compute blobstore user phase prefix middleware
-                               all-nodes all-node-set environment]
+  [group-spec-&gt;count &amp; {:keys [compute blobstore user phase
+                               all-nodes all-node-set environment
+                               async timeout-ms timeout-val]
                         :or {phase [:configure]}
                         :as options}]
   (load-plugins)
-  (operate (apply-map converge* group-spec-&gt;count options)))</pre></td></tr><tr><td class="docs"><p>Returns a FSM to lift the running nodes in the specified node-set by applying
-   the specified phases.  The compute service may be supplied as an option,
-   otherwise the bound compute-service is used.  The configure phase is applied
-   by default unless other phases are specified.</p>
-
-<p>   node-set can be a group spec, a sequence of group specs, or a map
-   of group specs to nodes. Examples:
-              [group-spec1 group-spec2 {group-spec #{node1 node2}}]
-              group-spec
-              {group-spec #{node1 node2}}</p>
-
-<p>   options can also be keywords specifying the phases to apply, or an immediate
-   phase specified with the phase macro, or a function that will be called with
-   each matching node.</p>
-
-<p>   Options:
-    :compute         a jclouds compute service
-    :compute-service a map of :provider, :identity, :credential, and
-                     optionally :extensions for constructing a jclouds compute
-                     service.
-    :phase           a phase keyword, phase function, or sequence of these
-    :middleware      the middleware to apply to the configuration pipeline
-    :prefix          a prefix for the group-name names
-    :user            the admin-user on the nodes</p>
+  (if async
+    (operate (apply-map converge* group-spec-&gt;count options))
+    (if timeout-ms
+      (deref (operate (apply-map converge* group-spec-&gt;count options))
+             timeout-ms timeout-val)
+      (deref (operate (apply-map converge* group-spec-&gt;count options))))))</pre></td></tr><tr><td class="docs"><p>Returns a FSM to lift the running nodes in the specified node-set by applying
+   the specified phases.  Options as specified in <code>lift</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn lift*
-  [node-set &amp; {:keys [compute phase prefix middleware all-node-set environment]
+  [node-set &amp; {:keys [compute phase all-node-set environment]
                :or {phase [:configure]}
                :as options}]
   (let [[phases phase-map] (process-phases phase)
@@ -6482,7 +6579,8 @@ specified in the <code>:extends</code> argument.</p>
         targets (groups-with-phases targets phase-map)
         groups (map (partial group-with-environment environment) groups)
         targets (map (partial group-with-environment environment) targets)
-        plan-state {}]
+        plan-state {}
+        lift-options (select-keys options ops/lift-options)]
     (dofsm lift
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
@@ -6490,38 +6588,167 @@ specified in the <code>:extends</code> argument.</p>
           (or compute (seq nodes-set))
           {:error :no-nodes-and-no-compute-service})
        {:keys [plan-state]} (ops/lift
-                             nodes-set [:settings] environment plan-state)
-       result (ops/lift nodes-set phases environment plan-state)]
-      result)))</pre></td></tr><tr><td class="docs"><p>Lift the running nodes in the specified node-set by applying the specified
-   phases.  The compute service may be supplied as an option, otherwise the
-   bound compute-service is used.  The configure phase is applied by default
-   unless other phases are specified.</p>
+                             nodes-set plan-state environment [:settings] {})
+       results (ops/lift-partitions
+                nodes-set plan-state environment (remove #{:settings} phases)
+                lift-options)]
+      results)))</pre></td></tr><tr><td class="docs"><p>Lift the running nodes in the specified node-set by applying the specified
+phases.  The compute service may be supplied as an option, otherwise the
+bound compute-service is used.  The configure phase is applied by default
+unless other phases are specified.</p>
 
-<p>   node-set can be a group spec, a sequence of group specs, or a map
-   of group specs to nodes. Examples:
-              [group-spec1 group-spec2 {group-spec #{node1 node2}}]
-              group-spec
-              {group-spec #{node1 node2}}</p>
+<p>node-set can be a group spec, a sequence of group specs, or a map
+of group specs to nodes. Examples:</p>
 
-<p>   options can also be keywords specifying the phases to apply, or an immediate
-   phase specified with the phase macro, or a function that will be called with
-   each matching node.</p>
+<pre><code>[group-spec1 group-spec2 {group-spec #{node1 node2}}]
+group-spec
+{group-spec #{node1 node2}}
+</code></pre>
 
-<p>   Options:
-    :compute         a jclouds compute service
-    :compute-service a map of :provider, :identity, :credential, and
-                     optionally :extensions for constructing a jclouds compute
-                     service.
-    :phase           a phase keyword, phase function, or sequence of these
-    :middleware      the middleware to apply to the configuration pipeline
-    :prefix          a prefix for the group-name names
-    :user            the admin-user on the nodes</p>
+<h2>Options:</h2>
+
+<p><code>:compute</code>
+: a compute service.</p>
+
+<p><code>:phase</code>
+: a phase keyword, phase function, or sequence of these.</p>
+
+<p><code>:user</code>
+the admin-user on the nodes.</p>
+
+<h3>Partitioning</h3>
+
+<p><code>:partition-f</code>
+: a function that takes a sequence of targets, and returns a sequence of
+  sequences of targets.  Used to partition or filter the targets.  Defaults to
+  any :partition metadata on the phase, or no partitioning otherwise.</p>
+
+<h2>Post phase options</h2>
+
+<p><code>:post-phase-f</code>
+: specifies an optional function that is run after a phase is applied.  It is
+  passed <code>targets</code>, <code>phase</code> and <code>results</code> arguments, and is called before any
+  error checking is done.  The return value is ignored, so this is for side
+  affect only.</p>
+
+<p><code>:post-phase-fsm</code>
+: specifies an optional fsm returning function that is run after a phase is
+  applied.  It is passed <code>targets</code>, <code>phase</code> and <code>results</code> arguments, and is
+  called before any error checking is done.  The return value is ignored, so
+  this is for side affect only.</p>
+
+<h3>Asynchronous and Timeouts</h3>
+
+<p><code>:async</code>
+: a flag to control whether the function executes asynchronously.  When truthy,
+  the function returns an Operation that can be deref'd like a future.  When not
+  truthy, <code>:timeout-ms</code> may be used to specify a timeout.  Defaults to nil.</p>
+
+<p><code>:timeout-ms</code>
+: an integral number of milliseconds to wait for completion before timeout.
+  Only applies if <code>:async</code> is not truthy (the default).</p>
+
+<p><code>:timeout-val</code>
+: a value to be returned should the operation time out.</p>
+
+<h3>Algorithm options</h3>
+
+<p><code>:phase-execution-f</code>
+: specifies the function used to execute a phase on the targets.  Defaults
+  to <code>pallet.core.primitives/build-and-execute-phase</code>.</p>
+
+<p><code>:execution-settings-f</code>
+: specifies a function that will be called with a node argument, and which
+  should return a map with <code>:user</code>, <code>:executor</code> and <code>:executor-status-fn</code> keys.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn lift
-  [node-set &amp; {:keys [compute phase prefix middleware all-node-set environment]
+  [node-set &amp; {:keys [compute phase all-node-set environment
+                      async timeout-ms timeout-val
+                      partition-f post-phase-f post-phase-fsm
+                      phase-execution-f execution-settings-f]
                :or {phase [:configure]}
                :as options}]
   (load-plugins)
-  (operate (apply-map lift* node-set options)))</pre></td></tr><tr><td class="docs"><p>Create a plan function from a sequence of plan function invocations.</p>
+  (if async
+    (operate (apply-map lift* node-set options))
+    (if timeout-ms
+      (deref (operate (apply-map lift* node-set options))
+             timeout-ms timeout-val)
+      (deref (operate (apply-map lift* node-set options))))))</pre></td></tr><tr><td class="docs"><p>Lift <code>targets</code>, a sequence of node-maps, using the specified <code>phases</code>.  This
+provides a way of lifting phases, which doesn't tie you to working with all
+nodes in a group.  Consider using this only if the functionality in <code>lift</code> is
+insufficient.</p>
+
+<p><code>phases</code>
+: a sequence of phase keywords (identifying phases) or plan functions, that
+  should be applied to the target nodes.  Note that there are no default phases.</p>
+
+<h2>Options:</h2>
+
+<p><code>:user</code>
+: the admin-user to use for operations on the target nodes.</p>
+
+<p><code>:environment</code>
+: an environment map, to be merged into the environment.</p>
+
+<p><code>:plan-state</code>
+: an state map, which can be used to passing settings across multiple lift-nodes
+  invocations.</p>
+
+<p><code>:async</code>
+: a flag to control whether the function executes asynchronously.  When truthy,
+  the function returns an Operation that can be deref'd like a future.  When not
+  truthy, <code>:timeout-ms</code> may be used to specify a timeout.  Defaults to nil.</p>
+
+<p><code>:timeout-ms</code>
+: an integral number of milliseconds to wait for completion before timeout.
+  Only applies if <code>:async</code> is not truthy (the default).</p>
+
+<p><code>:timeout-val</code>
+: a value to be returned should the operation time out.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn lift-nodes
+  [targets phases
+   &amp; {:keys [user environment plan-state async timeout-ms timeout-val]
+      :or {environment {} plan-state {}}
+      :as options}]
+  (let [[phases phase-map] (process-phases phases)
+        targets (groups-with-phases targets phase-map)
+        environment (merge-environments
+                     environment
+                     (select-keys options environment-args))]
+    (letfn [(lift-nodes* []
+              (operate
+               (ops/lift-partitions
+                targets phases environment plan-state
+                (dissoc options
+                        :environment :plan-state :async
+                        :timeout-val :timeout-ms))))]
+      (if async
+        (lift-nodes*)
+        (if timeout-ms
+          (deref (lift-nodes*) timeout-ms timeout-val)
+          (deref (lift-nodes*)))))))</pre></td></tr><tr><td class="docs"><p>Return a sequence of node-maps for each node in the specified group-specs.</p>
+
+<h2>Options:</h2>
+
+<p><code>:async</code>
+: a flag to control whether the function executes asynchronously.  When truthy,
+  the function returns an Operation that can be deref'd like a future.  When not
+  truthy, <code>:timeout-ms</code> may be used to specify a timeout.  Defaults to nil.</p>
+
+<p><code>:timeout-ms</code>
+: an integral number of milliseconds to wait for completion before timeout.
+  Only applies if <code>:async</code> is not truthy (the default).</p>
+
+<p><code>:timeout-val</code>
+: a value to be returned should the operation time out.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn group-nodes
+  [compute groups &amp; {:keys [async timeout-ms timeout-val]}]
+  (letfn [(group-nodes* [] (operate (ops/group-nodes compute groups)))]
+    (if async
+      (group-nodes*)
+      (if timeout-ms
+        (deref (group-nodes*) timeout-ms timeout-val)
+        (deref (group-nodes*))))))</pre></td></tr><tr><td class="docs"><p>Create a plan function from a sequence of plan function invocations.</p>
 
 <p>   eg. (plan-fn
          (file "/some-file")
@@ -6980,9 +7207,7 @@ passing too</p>
   [os-family os-version]
   (cond
     (#{:debian :jeos} os-family) :aptitude
-    (#{:ubuntu} os-family) (if (= &quot;11.10&quot; os-version)
-                             :apt
-                             :aptitude)
+    (#{:ubuntu} os-family) :apt
     (#{:centos :rhel :amzn-linux :fedora} os-family) :yum
     (#{:arch} os-family) :pacman
     (#{:suse} os-family) :zypper
@@ -7357,12 +7582,15 @@ actions from occurring on group-name changes.</p>
    hardware
    proxy
    image-user))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(deftype NodeTagUnsupported
-    []
+</td><td class="codes"><pre class="brush: clojure">(deftype NodeTagStatic
+    [static-tags]
   pallet.compute.NodeTagReader
-  (node-tag [_ node tag-name] nil)
-  (node-tag [_ node tag-name default-value] default-value)
-  (node-tags [_ node] nil)
+  (node-tag [_ node tag-name] 
+    (get static-tags tag-name))
+  (node-tag [_ node tag-name default-value] 
+    (or (get static-tags tag-name) default-value))
+  (node-tags [_ node] 
+    static-tags)
   pallet.compute.NodeTagWriter
   (tag-node! [_ node tag-name value]
     (throw
@@ -7448,7 +7676,7 @@ support.&quot;
   [] [&quot;node-list&quot;])</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmethod implementation/service :node-list
   [_ {:keys [node-list environment tag-provider]
-      :or {tag-provider (NodeTagUnsupported.)}}]
+      :or {tag-provider (NodeTagStatic. {:bootstrapped true})}}]
   (let [nodes (atom (vec
                      (map
                       #(if (vector? %)
@@ -7981,7 +8209,7 @@ with the service configuration in the configuration file.</p>
    [pallet.core.session :only [session with-session]]
    [pallet.environment :only [get-for]]
    [pallet.executors :only [default-executor]]
-   [pallet.node :only [image-user primary-ip tag tag! taggable?]]
+   [pallet.node :only [id image-user primary-ip tag tag! taggable?]]
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :only [add-session-verification-key check-session]]
@@ -8239,16 +8467,19 @@ with the service configuration in the configuration file.</p>
     (read-string s)))</pre></td></tr><tr><td class="docs"><p>Sets the boolean <code>state-name</code> flag on <code>node</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn set-state-for-node
   [state-name node]
+  (debugf &quot;set-state-for-node %s&quot; state-name)
   (when (taggable? (:node node))
+    (debugf &quot;set-state-for-node taggable&quot;)
     (let [current (read-or-empty-map (tag (:node node) state-tag-name))
           val (assoc current (keyword (name state-name)) true)]
+      (debugf &quot;set-state-for-node %s %s&quot; state-tag-name (pr-str val))
       (tag! (:node node) state-tag-name (pr-str val)))))</pre></td></tr><tr><td class="docs"><p>Return a predicate to test for a state-flag having been set.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn has-state-flag?
   [state-name]
   (fn [node]
+    (debugf &quot;has-state-flag %s %s&quot; state-name (id (:node node)))
     (get
-     (when (taggable? (:node node))
-       (read-or-empty-map (tag (:node node) state-tag-name)))
+     (read-or-empty-map (tag (:node node) state-tag-name))
      (keyword (name state-name)))))</pre></td></tr><tr><td class="docs"><p>If the operation has a logged exception, throw it. This will block on the
    operation being complete or failed.</p>
 
@@ -8289,13 +8520,13 @@ with the service configuration in the configuration file.</p>
   [group-name]
   (fn has-group-name? [node]
     (when-let [node-group (node/group-name node)]
-      (= group-name (name node-group)))))</pre></td></tr><tr><td class="docs"><p>Check if a node satisfies a group's node-predicate.</p>
+      (= group-name (keyword (name node-group))))))</pre></td></tr><tr><td class="docs"><p>Check if a node satisfies a group's node-filter.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn node-in-group?
   {:internal true}
   [node group]
   {:pre [(:group-name group)]}
-  ((:node-predicate group (node-has-group-name? (name (:group-name group))))
-   node))</pre></td></tr><tr><td class="docs"><p>Build a map entry from a node and a list of groups</p>
+  ((:node-filter group (node-has-group-name? (:group-name group)))
+   node))</pre></td></tr><tr><td class="docs"><p>Build a map entry from a node and a list of groups.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn node-&gt;node-map
   {:internal true}
   [groups]
@@ -8353,30 +8584,30 @@ with the service configuration in the configuration file.</p>
         os-family (nth node 3)]
     (let [group (merge (group-spec group-name :node {:os-family os-family})
                        (when settings-phase
-                         {:phases {:settings (plan-fn (settings-phase))}}))
-          op (lift [group]
-                   :phase pfn
-                   :environment
-                   {:algorithms
-                    {:executor executor}}
-                   :compute compute)]
-      @op)))</pre></td></tr><tr><td class="docs">
+                         {:phases {:settings (plan-fn (settings-phase))}}))]
+      (lift [group]
+            :phase pfn
+            :environment
+            {:algorithms
+             {:executor executor}}
+            :compute compute))))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn explain-plan [pfn node &amp; {:keys [settings-phase]}]
   ;; build a node list with a node with the characteristics above
   (let [op (mock-exec-plan action-plan-data pfn node
                            :settings-phase settings-phase)]
     (mapcat :result (:results op))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.core.operations" name="pallet.core.operations"><h1 class="project-name">pallet.core.operations</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Built in operations</p>
 </td><td class="codes"><pre class="brush: clojure">(ns pallet.core.operations
+  (:refer-clojure :exclude [delay])
   (:require
    [pallet.core.primitives :as primitives]
    [pallet.core.api :as api]
    [clojure.tools.logging :as logging])
   (:use
    [pallet.environment :only [environment]]
-   [pallet.algo.fsmop :only [dofsm reduce* result succeed]]
+   [pallet.algo.fsmop :only [delay-for dofsm reduce* result succeed]]
    [pallet.utils :only [apply-map]]))</pre></td></tr><tr><td class="docs"><p>Adjusts node counts. Groups are expected to have node counts on them.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn node-count-adjuster
-  [compute-service groups targets environment plan-state]
+  [compute-service groups service-state plan-state environment targets]
   {:pre [compute-service]}
   (dofsm node-count-adjuster
     [group-deltas         (result (api/group-deltas targets groups))
@@ -8384,20 +8615,20 @@ with the service configuration in the configuration file.</p>
      nodes-to-add         (result (api/nodes-to-add group-deltas))
      [results1 plan-state] (primitives/build-and-execute-phase
                             targets plan-state environment
-                            (api/environment-execution-settings environment)
+                            :destroy-server
                             (mapcat :nodes (vals nodes-to-remove))
-                            :destroy-server)
+                            (api/environment-execution-settings environment))
      _ (primitives/remove-group-nodes compute-service nodes-to-remove)
      [results2 plan-state] (primitives/build-and-execute-phase
                             targets plan-state environment
-                            (api/environment-execution-settings environment)
+                            :destroy-group
                             (api/groups-to-remove group-deltas)
-                            :destroy-group)
+                            (api/environment-execution-settings environment))
      [results3 plan-state] (primitives/build-and-execute-phase
                             targets plan-state environment
-                            (api/environment-execution-settings environment)
+                            :create-group
                             (api/groups-to-create group-deltas)
-                            :create-group)
+                            (api/environment-execution-settings environment))
      new-nodes (primitives/create-group-nodes
                 compute-service environment nodes-to-add)]
     {:new-nodes new-nodes
@@ -8406,48 +8637,214 @@ with the service configuration in the configuration file.</p>
                    (concat new-nodes)
                    (remove (set (mapcat :nodes (vals nodes-to-remove)))))
      :plan-state plan-state
+     :service-state (-&gt;&gt; service-state
+                         (concat new-nodes)
+                         (remove (set (mapcat :nodes (vals nodes-to-remove)))))
      :results (concat results1 results2 results3)}))</pre></td></tr><tr><td class="docs"><h2>Top level operations</h2>
 </td><td class="codes"><pre class="brush: clojure">(defn group-nodes
   [compute groups]
   (dofsm group-nodes
     [service-state (primitives/service-state compute groups)]
-    service-state))</pre></td></tr><tr><td class="docs">
+    service-state))</pre></td></tr><tr><td class="docs"><p>A sequence of keywords, listing the lift-options</p>
+</td><td class="codes"><pre class="brush: clojure">(def 
+  lift-options
+  [:targets :phase-execution-f :execution-settings-f
+   :post-phase-f :post-phase-fsm :partition-f])</pre></td></tr><tr><td class="docs"><p>Lift nodes (<code>targets</code> which defaults to <code>service-state</code>), given a
+<code>plan-state</code>, <code>environment</code> and the <code>phases</code> to apply.</p>
+
+<h2>Options</h2>
+
+<p><code>:targets</code>
+: used to restrict the nodes on which the phases are run to a subset of
+  <code>service-state</code>.  Defaults to <code>service-state</code>.</p>
+
+<p><code>:phase-execution-f</code>
+: specifies the function used to execute a phase on the targets.  Defaults
+  to <code>pallet.core.primitives/build-and-execute-phase</code>.</p>
+
+<p><code>:post-phase-f</code>
+: specifies an optional function that is run after a phase is applied.  It is
+  passed <code>targets</code>, <code>phase</code> and <code>results</code> arguments, and is called before any
+  error checking is done.  The return value is ignored, so this is for side
+  affect only.</p>
+
+<p><code>:post-phase-fsm</code>
+: specifies an optional fsm returning function that is run after a phase is
+  applied.  It is passed <code>targets</code>, <code>phase</code> and <code>results</code> arguments, and is
+  called before any error checking is done.  The return value is ignored, so
+  this is for side affect only.</p>
+
+<p><code>:execution-settings-f</code>
+: specifies a function that will be called with a node argument, and which
+  should return a map with <code>:user</code>, <code>:executor</code> and <code>:executor-status-fn</code> keys.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn lift
-  [targets phases environment plan-state]
+  [service-state plan-state environment phases
+   {:keys [targets execution-settings-f phase-execution-f
+           post-phase-f post-phase-fsm]
+    :or {targets service-state
+         phase-execution-f primitives/build-and-execute-phase
+         execution-settings-f (api/environment-execution-settings
+                               environment)}}]
   (logging/debugf
-   &quot;lift :phase %s :targets %s&quot; (vec phases) (vec (map :group-name targets)))
-  (dofsm lift
-    [[results plan-state] (reduce*
-                           (fn reducer [[results plan-state] phase]
-                             (dofsm reduce-phases
-                               [[r ps] (primitives/build-and-execute-phase
-                                        targets plan-state environment
-                                        (api/environment-execution-settings
-                                         environment)
-                                        targets phase)
-                                results1 (result (concat results r))
-                                _ (succeed
-                                   (not (some :errors r))
-                                   (merge
-                                    {:phase-errors true
-                                     :phase phase
-                                     :results results1}
-                                    (when-let [e (some
-                                                  #(some
-                                                    (comp :cause :error)
-                                                    (:errors %))
-                                                  results1)]
-                                      (logging/errorf
-                                       e &quot;Phase Error in %s&quot; phase)
-                                      {:exception e})))]
-                               [results1 ps]))
-                           [[] plan-state]
-                           phases)]
+   &quot;lift :phases %s :targets %s&quot; (vec phases) (vec (map :group-name targets)))
+  (letfn [(phase-meta [phase target]
+            (-&gt; (api/target-phase target phase) meta))]
+    (dofsm lift
+      [[results plan-state] (reduce*
+                             (fn reducer [[results plan-state] phase]
+                               (dofsm reduce-phases
+                                 [meta (result
+                                       (phase-meta phase (first targets)))
+                                 f (result (or (:phase-execution-f meta)
+                                               phase-execution-f))
+                                  [r ps] (f
+                                          service-state plan-state environment
+                                          phase targets execution-settings-f)
+                                  results1 (result (concat results r))
+                                  _ (result
+                                     (when post-phase-f
+                                       (post-phase-f targets phase r)))
+                                  _ (result
+                                     (doseq [f (-&gt;&gt;
+                                                targets
+                                                (map
+                                                 (comp
+                                                  :post-phase-f
+                                                  #(phase-meta phase %)))
+                                                (remove nil?)
+                                                distinct)]
+                                       (f targets phase r)))
+                                  _ (if post-phase-fsm
+                                      (post-phase-fsm targets phase r)
+                                      (result nil))
+                                  _ (reduce* (fn post-reducer [_ f]
+                                               (f targets phase r))
+                                             nil
+                                             (-&gt;&gt;
+                                              targets
+                                              (map
+                                               (comp :post-phase-fsm
+                                                     #(phase-meta phase %)))
+                                              (remove nil?)
+                                              distinct))
+                                  _ (succeed
+                                     (not (some :errors r))
+                                     (merge
+                                      {:phase-errors true
+                                       :phase phase
+                                       :results results1}
+                                      (when-let [e (some
+                                                    #(some
+                                                      (comp :cause :error)
+                                                      (:errors %))
+                                                    results1)]
+                                        (logging/errorf
+                                         e &quot;Phase Error in %s&quot; phase)
+                                        {:exception e})))]
+                                 [results1 ps]))
+                             [[] plan-state]
+                             phases)]
+      {:results results
+       :targets targets
+       :plan-state plan-state})))</pre></td></tr><tr><td class="docs"><p>Returns a delay fsm.</p>
+
+<h2>Options</h2>
+
+<p><code>:units</code>
+: the units for the delay. A keyword from, :ns, :us, :ms, :s, :mins, :hours</p>
+</td><td class="codes"><pre class="brush: clojure">(defn delay
+  ([delay units]
+     (delay-for delay units))
+  ([delay]
+     (delay-for delay :ms)))</pre></td></tr><tr><td class="docs"><p>Partition targets using the, possibly nil, default partitioning function f.</p>
+
+<p>There are three sources of partitioning applied.  The default passed to the
+function, a paritioning based on the partitioning and post-phase functions in
+the target's metadata, and the target's partitioning function from the metadata.</p>
+
+<p>The partitioning by metadata is applied so that post-phase functions are applied
+to the correct targets in lift.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn ^:internal partition-targets
+  [targets phase f]
+  (let [fns (comp
+             (juxt :partition-f :post-phase-f :post-phase-fsm)
+             meta #(api/target-phase % phase))]
+    (-&gt;&gt;
+     targets
+     (clojure.core/partition-by fns)
+     (mapcat
+      #(let [[pf &amp; _] (fns (first %))]
+         (if pf
+           (pf %)
+           [%]))))))</pre></td></tr><tr><td class="docs"><p>Lift targets by phase, applying partitions for each phase.</p>
+
+<p>To apply phases at finer than a group granularity (so for example, a
+<code>:post-phase-f</code> function is applied to nodes rather than a whole group), we can
+use partitioning.</p>
+
+<p>The partitioning function takes a sequence of targets, and returns a sequence of
+sequences of targets.  The function can filter targets as required.</p>
+
+<p>For example, this can be used to implement a rolling restart, or a blue/green
+deploy.</p>
+
+<h2>Options</h2>
+
+<p>Options are as for <code>lift</code>, with the addition of:</p>
+
+<p><code>:partition-f</code>
+: a function that takes a sequence of targets, and returns a sequence of
+  sequences of targets.  Used to partition or filter the targets.  Defaults to
+  any :partition metadata on the phase, or no partitioning otherwise.</p>
+
+<p>Other options as taken by <code>lift</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn lift-partitions
+  [service-state plan-state environment phases
+   {:keys [targets partition-f]
+    :or {targets service-state}
+    :as options}]
+  (logging/debugf
+   &quot;lift-partitions :phases %s :targets %s&quot;
+   (vec phases) (vec (map :group-name targets)))
+  (dofsm lift-phases
+    [[results plan-state]
+     (reduce*
+      (fn phase-reducer [[results plan-state] phase]
+        (dofsm lift-partitions
+          [[results plan-state]
+           (reduce*
+            (fn target-reducer [[r plan-state] targets]
+              (dofsm reduce-phases
+                [{:keys [results plan-state]}
+                 (lift
+                  service-state plan-state environment [phase]
+                  (assoc options :targets targets))]
+                [(concat r results) plan-state]))
+            [results plan-state]
+            (let [fns (comp
+                       (juxt :partition-f :post-phase-f :post-phase-fsm :phase-execution-f)
+                       meta #(api/target-phase % phase))]
+              (partition-targets targets phase partition-f)))]
+          [results plan-state]))
+      [[] plan-state]
+      phases)]
     {:results results
      :targets targets
-     :plan-state plan-state}))</pre></td></tr><tr><td class="docs">
+     :plan-state plan-state}))</pre></td></tr><tr><td class="docs"><p>Converge the <code>groups</code>, using the specified service-state to provide the
+existing nodes.  The <code>:bootstrap</code> phase is run on new nodes.  When tagging is
+supported the <code>:bootstrap</code> phase is run on those nodes without a :bootstrapped
+flag.</p>
+
+<h2>Options</h2>
+
+<p><code>:targets</code>
+: used to restrict the nodes on which the phases are run to a subset of
+  <code>service-state</code>.  Defaults to <code>service-state</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn converge
-  [groups targets phases compute environment plan-state]
+  [compute groups service-state plan-state environment phases
+   {:keys [targets]
+    :or {targets service-state}
+    :as options}]
   (logging/debugf
    &quot;converge :phase %s :groups %s :settings-groups %s&quot;
    (vec phases)
@@ -8455,58 +8852,26 @@ with the service configuration in the configuration file.</p>
    (vec (map :group-name targets)))
   (dofsm converge
     [{:keys [new-nodes old-nodes targets service-state plan-state results]}
-     (node-count-adjuster compute groups targets environment plan-state)
-     [results1 plan-state] (primitives/build-and-execute-phase
-                            targets plan-state environment
-                            (api/environment-execution-settings environment)
-                            targets :settings)
-     _ (succeed
-        (not (some :errors results1))
-        (merge
-         {:phase-errors true :phase :settings :results results1}
-         (when-let [e (some #(some (comp :cause :error) (:errors %)) results1)]
-           (logging/errorf e &quot;Phase Error in :settings&quot;)
-           {:exception e})))
-     [results2 plan-state] (primitives/execute-on-unflagged
-                            targets
-                            #(primitives/execute-phase-with-image-user
-                               service-state environment % plan-state
-                               :bootstrap)
-                            :bootstrapped)
-     _ (succeed
-        (not (some :errors results2))
-        (merge
-         {:phase-errors true :phase :bootstrap
-          :results (concat results1 results2)}
-         (when-let [e (some #(some (comp :cause :error) (:errors %)) results2)]
-           (logging/errorf e &quot;Phase Error in :bootstrap&quot;)
-           {:exception e})))
-     [results3 plan-state] (reduce*
-                            (fn reducer [[result plan-state] phase]
-                              (dofsm reduce-phases
-                                [[r ps] (primitives/build-and-execute-phase
-                                         targets plan-state environment
-                                         (api/environment-execution-settings
-                                          environment)
-                                          targets phase)
-                                 _ (succeed
-                                    (not (some :errors r))
-                                    (merge
-                                     {:phase-errors true
-                                      :phase phase
-                                      :results (concat result r)}
-                                     (when-let [e (some
-                                                   #(some
-                                                     (comp :cause :error)
-                                                     (:errors %))
-                                                   r)]
-                                       (logging/errorf
-                                        e &quot;Phase Error in %s&quot; phase)
-                                       {:exception e})))]
-                                [(concat result r) ps]))
-                            [[] plan-state]
-                            (remove #{:settings :bootstrap} phases))]
-    {:results (concat results results1 results2 results3)
+     (node-count-adjuster
+      compute groups service-state plan-state environment targets)
+     results1 (result results)
+     {:keys [results plan-state]} (lift
+                                   service-state plan-state environment
+                                   [:bootstrap]
+                                   (merge
+                                    options
+                                    {:execution-settings-f
+                                     (api/environment-image-execution-settings
+                                      environment)
+                                     :phase-execution-f
+                                     (primitives/execute-on-unflagged
+                                      :bootstrapped)}))
+     results2 (result results)
+     {:keys [results plan-state]} (lift
+                                   service-state plan-state environment
+                                   [:settings]
+                                   (assoc options :targets service-state))]
+    {:results (concat results1 results2 results)
      :targets targets
      :plan-state plan-state
      :new-nodes new-nodes
@@ -8538,7 +8903,8 @@ with the service configuration in the configuration file.</p>
    [pallet.algo.fsm.fsm-dsl :only
     [event-handler event-machine-config fsm-name initial-state on-enter state
      state-driver valid-transitions]]
-   [pallet.map-merge :only [merge-keys]]))</pre></td></tr><tr><td class="docs"><h2>Wrap non-FSM functions in simple FSM</h2>
+   [pallet.map-merge :only [merge-keys]]
+   [pallet.node :only [id]]))</pre></td></tr><tr><td class="docs"><h2>Wrap non-FSM functions in simple FSM</h2>
 </td><td class="codes"></td></tr><tr><td class="docs"><p>Returns a FSM specification for running the specified function in a future.
   Assumes failures in the underlying function cause an exception to be thrown,
   and that the function takes no arguments.</p>
@@ -8561,7 +8927,7 @@ this might be better added externally.</p>
                           state :aborted assoc :fail-reason event-data))))
             (run-async [{:keys [em state-data] :as state}]
               (let [event (:event em)
-                    f-runner (fn []
+                    f-runner (fn async-fsm []
                                (try
                                  (event :success (f))
                                  (catch Exception e
@@ -8581,9 +8947,12 @@ this might be better added externally.</p>
 <h2>Node state</h2>
 </td><td class="codes"><pre class="brush: clojure">(defn set-state-for-node
   [state-name node]
+  (logging/debugf &quot;set-state-for-node %s %s&quot; state-name (:id (:node node)))
   (async-fsm (partial api/set-state-for-node state-name node)))</pre></td></tr><tr><td class="docs"><p>Sets the boolean <code>state-name</code> flag on <code>nodes</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn set-state-for-nodes
   [state-name nodes]
+  (logging/debugf &quot;set-state-for-nodes %s %s&quot;
+                  state-name (mapv (comp id :node) nodes))
   (map* (map (partial set-state-for-node state-name) nodes)))</pre></td></tr><tr><td class="docs"><p>Define an operation that builds a representation of the available nodes.</p>
 
 <h2>Compute service state</h2>
@@ -8622,7 +8991,7 @@ this might be better added externally.</p>
   : specifies the type of target to run the phase on, :group, :group-nodes,
   or :group-node-list.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn build-and-execute-phase
-  [service-state plan-state environment execution-settings-f targets phase]
+  [service-state plan-state environment phase targets execution-settings-f]
   {:pre [phase]}
   (logging/debugf
    &quot;build-and-execute-phase %s on %s target(s)&quot; phase (count targets))
@@ -8635,30 +9004,26 @@ this might be better added externally.</p>
      (vec (map (comp count :action-plan) action-plans)) plan-state)
     (logging/tracef &quot;build-and-execute-phase plan-state %s&quot; plan-state)
     (execute-action-plans
-     service-state plan-state environment execution-settings-f action-plans)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn execute-phase-with-image-user
-  [service-state environment targets plan-state phase]
-  (logging/debugf
-   &quot;execute-phase-with-image-user on %s target(s)&quot; (count targets))
-  (dofsm execute-phase-with-image-user
-    [[results plan-state] (build-and-execute-phase
-                           service-state plan-state environment
-                           (api/environment-image-execution-settings
-                            environment)
-                           targets phase)]
-    [results plan-state]))</pre></td></tr><tr><td class="docs"><p>Execute a function of service-state on nodes that don't have the specified
-  state flag set. On successful completion the nodes have the state flag set.</p>
+     service-state plan-state environment execution-settings-f action-plans)))</pre></td></tr><tr><td class="docs"><p>Return a phase execution function, that will exacute a phase on nodes that
+  don't have the specified state flag set. On successful completion the nodes
+  have the state flag set.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn execute-on-unflagged
-  [targets execute-f state-flag]
-  (logging/debugf &quot;execute-on-unflagged state-flag %s&quot; state-flag)
-  (dofsm execute-on-unflagged
-    [[results plan-state] (execute-f
-                           (filter
-                            (complement (api/has-state-flag? state-flag))
-                            targets))
-     _ (set-state-for-nodes
-        state-flag (map :target (remove :errors results)))]
-    [results plan-state]))</pre></td></tr><tr><td class="docs"><p>Filters <code>target-results</code>, a map from target to result map, for successful
+  ([state-flag execute-f]
+     (logging/debugf &quot;execute-on-unflagged state-flag %s&quot; state-flag)
+     (fn execute-on-unflagged
+       [service-state plan-state environment phase targets execution-settings-f]
+       (dofsm execute-on-unflagged
+         [[results plan-state] (execute-f
+                                service-state plan-state environment phase
+                                (filter
+                                 (complement (api/has-state-flag? state-flag))
+                                 targets)
+                                execution-settings-f)
+          _ (set-state-for-nodes
+             state-flag (map :target (remove :errors results)))]
+         [results plan-state])))
+  ([state-flag]
+     (execute-on-unflagged state-flag build-and-execute-phase)))</pre></td></tr><tr><td class="docs"><p>Filters <code>target-results</code>, a map from target to result map, for successful
   results.</p>
 
 <h2>Result predicates</h2>
@@ -10682,7 +11047,9 @@ installs from the repository.</p>
   (environment [_] &quot;Returns an environment map&quot;))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn pipeline
   [a b]
-  (fn [&amp; args] (apply a args) (apply b args)))</pre></td></tr><tr><td class="docs">
+  (with-meta
+    (fn [&amp; args] (apply a args) (apply b args))
+    (merge (meta a) (meta b))))         ; TODO merge keys properly</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defmethod merge-key :merge-phases
   [_ _ val-in-result val-in-latter]
   (merge-with pipeline val-in-result val-in-latter))</pre></td></tr><tr><td class="docs"><p>Map associating keys to merge algorithms. Specifies how environments are merged.</p>
@@ -11558,10 +11925,10 @@ task.</p>
         ^String public-key-path (:public-key-path admin-user)]
     (logging/debugf
      &quot;private-key-path %s %s&quot;
-     private-key-path (.canRead (java.io.File. private-key-path)))
+     private-key-path (if private-key-path (.canRead (java.io.File. private-key-path)) ))
     (logging/debugf
      &quot;public-key-path %s %s&quot;
-     public-key-path (.canRead (java.io.File. public-key-path)))
+     public-key-path (if public-key-path (.canRead (java.io.File. public-key-path)) ))
     (doseq [^java.io.File f (classpath-files)]
       (logging/debugf &quot;classpath: %s&quot; (.getPath f)))
     (doseq [[k v] (System/getProperties)]
@@ -11592,7 +11959,7 @@ task.</p>
    (configure/compute-service-from-property)
    (configure/compute-service-from-config-var)
    (compute-service-from-config-files
-    defaults project [(default-compute-service defaults)])
+    defaults project (default-compute-service defaults))
    (compute-service-from-config-files
     @transient-services project
     (default-compute-service @transient-services))))</pre></td></tr><tr><td class="docs"><p>Look for a compute service in the following sequence:
@@ -13298,16 +13665,41 @@ Is interpreter specific</p>
 </td><td class="codes"><pre class="brush: clojure">(defn get-connection [session]
   (transport/open
    ssh-connection (endpoint session) (authentication session)
-   {:max-tries 3}))</pre></td></tr><tr><td class="docs"><p>Execute the body with a connection to the current target node,</p>
+   {:max-tries 3}))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn release-connection [session]
+  (transport/release
+   ssh-connection (endpoint session) (authentication session)
+   {:max-tries 3}))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn ^{:internal true} with-connection-exception-handler
+  [e]
+  (logging/errorf e &quot;SSH Error&quot;)
+  (if-let [{:keys [type reason]} (ex-data e)]
+    (if (and (= type :clj-ssh/open-channel-failure)
+             (= reason :clj-ssh/channel-open-failed))
+      {::retriable true ::exception e}
+      (throw e))
+    (throw e)))</pre></td></tr><tr><td class="docs"><p>Execute a function with a connection to the current target node,</p>
+</td><td class="codes"><pre class="brush: clojure">(defn ^{:internal true} with-connection*
+  [session f]
+  (loop [retries 1]
+    (let [connection (get-connection session)
+          r (f connection)]
+      (if (map? r)
+        (cond
+         (and (::retriable r) (pos? retries))
+         (do
+           (release-connection session)
+           (recur (dec retries)))
+         (::retriable r) (throw (::exception r))
+         :else r)
+        r))))</pre></td></tr><tr><td class="docs"><p>Execute the body with a connection to the current target node,</p>
 </td><td class="codes"><pre class="brush: clojure">(defmacro ^{:indent 2} with-connection
   [session [connection] &amp; body]
-  `(let [session# ~session
-         ~connection (get-connection session#)]
-     (try
-       ~@body
-       (catch Exception e#
-         (logging/errorf e# &quot;SSH Error&quot;)
-         (throw e#)))))</pre></td></tr><tr><td class="docs"><p>Execute a bash action on the target via ssh.</p>
+  `(with-connection* ~session (fn [~connection]
+                                (try
+                                  ~@body
+                                  (catch Exception e#
+                                    (with-connection-exception-handler e#))))))</pre></td></tr><tr><td class="docs"><p>Execute a bash action on the target via ssh.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn ssh-script-on-target
   [session {:keys [context node-value-path] :as action} action-type
    [options script]]
@@ -13568,11 +13960,10 @@ This will create ~/.pallet/services/service-name.clj</p>
   (.mkdirs (.getParentFile file))
   (spit file
         &quot;(defpallet
+  ;; You can specify a default service to be used
+  ;; :default-service :vmfest
   ;; you can specify global data in the :environment key here
-  ;; :environment {:proxy \&quot;http://192.168.1.37:3128\&quot;
-  ;;               :algorithms
-  ;;                {:lift-fn pallet.core/parallel-lift
-  ;;                 :converge-fn pallet.core/parallel-adjust-node-counts}})&quot;))</pre></td></tr><tr><td class="docs"><p>Write a config.clj file if one doesn't exist. Returns true if it actually
+  ;; :environment {:proxy \&quot;http://192.168.1.37:3128\&quot;})&quot;))</pre></td></tr><tr><td class="docs"><p>Write a config.clj file if one doesn't exist. Returns true if it actually
   writes</p>
 </td><td class="codes"><pre class="brush: clojure">(defn write-config-clj-unless-exists
   []
@@ -13648,6 +14039,7 @@ This will create ~/.pallet/services/service-name.clj</p>
       (throw (ex-info &quot;Converge with no group specified&quot; {:args args})))
     (let [op (apply api/converge
                     spec
+                    :async true
                     (concat
                      args
                      (apply concat
@@ -13709,6 +14101,7 @@ This will create ~/.pallet/services/service-name.clj</p>
               (pallet-project project) compute selectors groups roles)]
     (let [op (apply-map api/converge
                         (map #(assoc % :count 0) spec)
+                        :async true
                         (-&gt;
                          request
                          (dissoc :config :project)
@@ -13841,6 +14234,7 @@ This will create ~/.pallet/services/service-name.clj</p>
         _ (logging/debugf &quot;lift %s&quot; (pr-str spec))
         op (apply api/lift
                   spec
+                  :async true
                   (concat
                    args
                    (apply concat
@@ -14007,6 +14401,7 @@ This will create ~/.pallet/services/service-name.clj</p>
         (flush))
       (let [op (apply-map api/converge
                           spec
+                          :async true
                           (-&gt;
                            request
                            (merge (when (seq phases)
@@ -14682,7 +15077,7 @@ vector.</p>
   (VersionMap. os-value-pairs))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn os-map-lookup
   [os-map]
-  (get os-map {:os (os-family) :os-version (os-version)}))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.versions" name="pallet.versions"><h1 class="project-name">pallet.versions</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Version handling for pallet</p>
+  (get os-map {:os (os-family) :os-version (as-version-vector (os-version))}))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#pallet.versions" name="pallet.versions"><h1 class="project-name">pallet.versions</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Version handling for pallet</p>
 </td><td class="codes"><pre class="brush: clojure">(ns pallet.versions
  (:require
   [clojure.string :as string]))</pre></td></tr><tr><td class="docs"><p>Convert a dotted version string to a vector of version numbers.
