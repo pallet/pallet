@@ -8,6 +8,8 @@
    service definitions can also be specified as clojure maps in
    ~/.pallet/services/*.clj"
   (:require
+   [clojure.java.io :refer [resource]]
+   [chiba.plugin :refer [data-plugins]]
    [pallet.blobstore :as blobstore]
    [pallet.common.deprecate :as deprecate]
    [pallet.compute :as compute]
