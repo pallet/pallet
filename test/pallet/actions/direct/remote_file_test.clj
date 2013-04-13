@@ -3,7 +3,7 @@
    [clojure.stacktrace :only [print-cause-trace print-stack-trace root-cause]]
    [pallet.actions
     :only [as-action exec-script plan-when remote-file remote-file-content
-           return-value-expr transfer-file transfer-file-to-local
+           with-action-values transfer-file transfer-file-to-local
            with-remote-file]]
    [pallet.actions-impl
     :only [remote-file-action *install-new-files* *force-overwrite*
@@ -557,12 +557,12 @@
                      :phase
                      (plan-fn
                        (let [content (remote-file-content (.getPath tmp-file))
-                             is-text (return-value-expr [content]
-                                                        (= content "text"))]
+                             is-text (with-action-values [content]
+                                       (= content "text"))]
                          (plan-when @is-text
-                           (let [new-content (return-value-expr
-                                              [content]
-                                              (string/replace content "x" "s"))]
+                           (let [new-content (with-action-values [content]
+                                               (string/replace
+                                                content "x" "s"))]
                              (reset! seen true)
                              (remote-file
                               (.getPath tmp-file-2)
@@ -588,9 +588,9 @@
                      (plan-fn
                        (let [content (remote-file-content (.getPath tmp-file))]
                          (plan-when (= @content "text")
-                           (let [new-content (return-value-expr
-                                              [content]
-                                              (string/replace content "x" "s"))]
+                           (let [new-content (with-action-values [content]
+                                               (string/replace
+                                                content "x" "s"))]
                              (reset! seen true)
                              (remote-file
                               (.getPath tmp-file-2)
