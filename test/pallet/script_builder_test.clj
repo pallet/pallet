@@ -14,6 +14,10 @@
  :each
  test-utils/with-bash-script-language)
 
+(deftest prolog-test
+  (script/with-script-context [:ubuntu]
+    (is (= "#!/usr/bin/env bash\n" (prolog)))))
+
 (deftest sudo-cmd-for-test
   (script/with-script-context [:ubuntu]
     (let [no-pw "/usr/bin/sudo -n"
