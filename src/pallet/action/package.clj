@@ -340,10 +340,11 @@
      - :key-url url          - url for key
      - :key-id id            - id for key to look it up from key server
      - :key-server           - the hostname of the key server to lookup keys
+     - :release              - override the release name added to the source
 
    :yum
      - :name                 - repository name
-     - :url url          - repository base url
+     - :url url              - repository base url
      - :gpgkey url           - gpg key url for repository
 
    Example
