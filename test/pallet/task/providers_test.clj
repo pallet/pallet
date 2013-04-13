@@ -6,4 +6,5 @@
 
 (deftest providers-output-test
   (let [out (with-out-str (providers))]
-    (is (.contains out "node-list"))))
+    (is (.contains out "node-list"))
+    (is (.contains out "hybrid"))))
