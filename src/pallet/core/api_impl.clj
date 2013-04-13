@@ -29,11 +29,11 @@
       (= group-name (keyword (name node-group))))))
 
 (defn node-in-group?
-  "Check if a node satisfies a group's node-predicate."
+  "Check if a node satisfies a group's node-filter."
   {:internal true}
   [node group]
   {:pre [(:group-name group)]}
-  ((:node-predicate group (node-has-group-name? (:group-name group)))
+  ((:node-filter group (node-has-group-name? (:group-name group)))
    node))
 
 (defn node->node-map

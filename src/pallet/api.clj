@@ -111,16 +111,16 @@ specified in the `:extends` argument."
    - :count          specify the target number of nodes for this node-spec
    - :packager       override the choice of packager to use
    - :node-spec      default node-spec for this group-spec
-   - :node-predicate a predicate to test if a node is a member of this group."
+   - :node-filter    a predicate to test if a node is a member of this group."
   [name
-   & {:keys [extends count image phases packager node-spec roles node-predicate]
+   & {:keys [extends count image phases packager node-spec roles node-filter]
       :as options}]
   {:pre [(or (nil? image) (map? image))]}
   (let [group-name (keyword (clojure.core/name name))]
     (->
      node-spec
      (merge options)
-     (update-in [:node-predicate] #(or % (node-has-group-name? group-name)))
+     (update-in [:node-filter] #(or % (node-has-group-name? group-name)))
      (when-> roles
              (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
      (extend-specs extends)

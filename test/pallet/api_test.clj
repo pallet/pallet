@@ -191,8 +191,8 @@
   (is (= {:group-name :gn :phases {:a 1}}
          (dissoc
           (group-spec "gn" :extends (server-spec :phases {:a 1}))
-          :node-predicate)))
-  (is (:node-predicate
+          :node-filter)))
+  (is (:node-filter
        (group-spec "gn" :extends (server-spec :phases {:a 1}))))
   (is (= {:group-name :gn :phases {:a 1} :image {:b 2}}
          (dissoc
@@ -200,7 +200,7 @@
               "gn"
             :extends [(server-spec :phases {:a 1})
                       (server-spec :node-spec {:image {:b 2}})])
-          :node-predicate)))
+          :node-filter)))
   (is (= {:group-name :gn :phases {:a 1} :image {:b 2} :roles #{:r1 :r2 :r3}}
          (dissoc
           (group-spec
@@ -208,7 +208,7 @@
             :roles :r1
             :extends [(server-spec :phases {:a 1} :roles :r2)
                       (server-spec :node-spec {:image {:b 2}} :roles [:r3])])
-          :node-predicate)))
+          :node-filter)))
   (testing "type"
     (is (= :pallet.api/group-spec (type (group-spec "gn"))))))
 
