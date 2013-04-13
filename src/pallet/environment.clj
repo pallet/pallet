@@ -37,7 +37,9 @@
 
 (defn pipeline
   [a b]
-  (fn [& args] (apply a args) (apply b args)))
+  (with-meta
+    (fn [& args] (apply a args) (apply b args))
+    (merge (meta a) (meta b))))         ; TODO merge keys properly
 
 (defmethod merge-key :merge-phases
   [_ _ val-in-result val-in-latter]

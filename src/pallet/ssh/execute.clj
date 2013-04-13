@@ -64,16 +64,47 @@
    ssh-connection (endpoint session) (authentication session)
    {:max-tries 3}))
 
+(defn release-connection [session]
+  (transport/release
+   ssh-connection (endpoint session) (authentication session)
+   {:max-tries 3}))
+
+(defn ^{:internal true} with-connection-exception-handler
+  [e]
+  (logging/errorf e "SSH Error")
+  (if-let [{:keys [type reason]} (ex-data e)]
+    (if (and (= type :clj-ssh/open-channel-failure)
+             (= reason :clj-ssh/channel-open-failed))
+      {::retriable true ::exception e}
+      (throw e))
+    (throw e)))
+
+(defn ^{:internal true} with-connection*
+  "Execute a function with a connection to the current target node,"
+  [session f]
+  (loop [retries 1]
+    (let [connection (get-connection session)
+          r (f connection)]
+      (if (map? r)
+        (cond
+         (and (::retriable r) (pos? retries))
+         (do
+           (release-connection session)
+           (recur (dec retries)))
+
+         (::retriable r) (throw (::exception r))
+
+         :else r)
+        r))))
+
 (defmacro ^{:indent 2} with-connection
   "Execute the body with a connection to the current target node,"
   [session [connection] & body]
-  `(let [session# ~session
-         ~connection (get-connection session#)]
-     (try
-       ~@body
-       (catch Exception e#
-         (logging/errorf e# "SSH Error")
-         (throw e#)))))
+  `(with-connection* ~session (fn [~connection]
+                                (try
+                                  ~@body
+                                  (catch Exception e#
+                                    (with-connection-exception-handler e#))))))
 
 (defn ssh-script-on-target
   "Execute a bash action on the target via ssh."

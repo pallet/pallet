@@ -25,10 +25,10 @@
         ^String public-key-path (:public-key-path admin-user)]
     (logging/debugf
      "private-key-path %s %s"
-     private-key-path (.canRead (java.io.File. private-key-path)))
+     private-key-path (if private-key-path (.canRead (java.io.File. private-key-path)) ""))
     (logging/debugf
      "public-key-path %s %s"
-     public-key-path (.canRead (java.io.File. public-key-path)))
+     public-key-path (if public-key-path (.canRead (java.io.File. public-key-path)) ""))
     (doseq [^java.io.File f (classpath-files)]
       (logging/debugf "classpath: %s" (.getPath f)))
     (doseq [[k v] (System/getProperties)]
@@ -64,7 +64,7 @@
    (configure/compute-service-from-property)
    (configure/compute-service-from-config-var)
    (compute-service-from-config-files
-    defaults project [(default-compute-service defaults)])
+    defaults project (default-compute-service defaults))
    (compute-service-from-config-files
     @transient-services project
     (default-compute-service @transient-services))))

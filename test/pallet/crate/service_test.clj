@@ -2,7 +2,7 @@
   "Provide a test suite for service supervision implementations"
   (:require
    [clojure.test :refer [deftest is testing]]
-   [pallet.actions :refer [exec-checked-script exec-script return-value-expr]]
+   [pallet.actions :refer [exec-checked-script exec-script with-action-values]]
    [pallet.crate.service :refer :all]))
 
 (defn service-supervisor-test
@@ -28,10 +28,10 @@
         (let [pid2 (exec-checked-script
                     "check process is up after restart"
                     ("pgrep" -f (quoted ~(name process-name))))]
-          (return-value-expr [pid pid2]
-                             (assert (not= (:out pid) (:out pid2))
-                                     (str "old pid: " (:out pid)
-                                          " new pid: " (:out pid2)))))))
+          (with-action-values [pid pid2]
+            (assert (not= (:out pid) (:out pid2))
+                    (str "old pid: " (:out pid)
+                         " new pid: " (:out pid2)))))))
     (testing "start when started is ok"
       (service-supervisor
        supervisor config (assoc supervisor-options :action :start)))

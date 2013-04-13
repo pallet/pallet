@@ -184,4 +184,4 @@ vector."
 
 (defn os-map-lookup
   [os-map]
-  (get os-map {:os (os-family) :os-version (os-version)}))
+  (get os-map {:os (os-family) :os-version (as-version-vector (os-version))}))

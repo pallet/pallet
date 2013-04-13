@@ -50,9 +50,19 @@
   (testing "lift on group"
     (let [compute (make-localhost-compute)
           group (group-spec
-                 (group-name (first (nodes compute)))
-                 :phases {:p (plan-fn (exec-script "ls /"))})
+                    (group-name (first (nodes compute)))
+                  :phases {:p (plan-fn (exec-script "ls /"))})
           op (lift [group] :phase :p :compute compute)]
+      (is op)
+      (some
+       (partial re-find #"/bin")
+       (->> (mapcat :results op) (mapcat :out)))))
+  (testing "lift on group async"
+    (let [compute (make-localhost-compute)
+          group (group-spec
+                    (group-name (first (nodes compute)))
+                  :phases {:p (plan-fn (exec-script "ls /"))})
+          op (lift [group] :phase :p :compute compute :async true)]
       (is @op)
       (some
        (partial re-find #"/bin")
@@ -63,10 +73,10 @@
           op (lift [group]
                    :phase (plan-fn (exec-script "ls /"))
                    :compute compute)]
-      (is @op)
+      (is op)
       (some
        (partial re-find #"/bin")
-       (->> (mapcat :results @op) (mapcat :out))))))
+       (->> (mapcat :results op) (mapcat :out))))))
 
 (deftest lift-with-environment-test
   (testing "lift with environment"
@@ -79,7 +89,7 @@
                               (reset! a k)))
                    :compute compute
                    :environment {:my-key 1})]
-      (is @op)
+      (is op)
       (is (= 1 @a)))))
 
 (deftest make-user-test
@@ -147,3 +157,73 @@
             :no-sudo nil
             :sudo-user "fred"}
            (into {} (make-user username :sudo-user "fred"))))))
+
+(deftest node-spec-test
+  (is (= {:image {}}
+         (node-spec :image {})))
+  (is (= {:hardware {}}
+         (node-spec :hardware {})))
+  (testing "type"
+    (is (= :pallet.api/node-spec (type (node-spec :hardware {}))))))
+
+(deftest server-spec-test
+  (is (= {:phases {:a 1}}
+         (server-spec :phases {:a 1})))
+  (is (= {:phases {:a 1} :image {:b 2}}
+         (server-spec :phases {:a 1} :node-spec (node-spec :image {:b 2})))
+      "node-spec merged in")
+  (is (= {:phases {:a 1} :image {:b 2} :hardware {:hardware-id :id}}
+         (server-spec
+          :phases {:a 1}
+          :node-spec (node-spec :image {:b 2})
+          :hardware {:hardware-id :id}))
+      "node-spec keys moved to :node-spec keyword")
+  (is (= {:phases {:a 1} :image {:b 2}}
+         (server-spec
+          :extends (server-spec :phases {:a 1} :node-spec {:image {:b 2}})))
+      "extends a server-spec")
+  (is (= {:roles #{:r1}} (server-spec :roles :r1)) "Allow roles as keyword")
+  (is (= {:roles #{:r1}} (server-spec :roles [:r1])) "Allow roles as sequence")
+  (testing "type"
+    (is (= :pallet.api/server-spec (type (server-spec :roles :r1))))))
+
+(deftest group-spec-test
+  (is (= {:group-name :gn :phases {:a 1}}
+         (dissoc
+          (group-spec "gn" :extends (server-spec :phases {:a 1}))
+          :node-filter)))
+  (is (:node-filter
+       (group-spec "gn" :extends (server-spec :phases {:a 1}))))
+  (is (= {:group-name :gn :phases {:a 1} :image {:b 2}}
+         (dissoc
+          (group-spec
+              "gn"
+            :extends [(server-spec :phases {:a 1})
+                      (server-spec :node-spec {:image {:b 2}})])
+          :node-filter)))
+  (is (= {:group-name :gn :phases {:a 1} :image {:b 2} :roles #{:r1 :r2 :r3}}
+         (dissoc
+          (group-spec
+              "gn"
+            :roles :r1
+            :extends [(server-spec :phases {:a 1} :roles :r2)
+                      (server-spec :node-spec {:image {:b 2}} :roles [:r3])])
+          :node-filter)))
+  (testing "type"
+    (is (= :pallet.api/group-spec (type (group-spec "gn"))))))
+
+(deftest cluster-spec-test
+  (let [x (fn [x] (update-in x [:x] inc))
+        gn (group-spec "gn" :count 1 :phases {:x (fn [] )})
+        go (group-spec "go" :count 2 :phases {:o (fn [] )})
+        cluster (cluster-spec
+                 "cl"
+                 :phases {:x x}
+                 :groups [gn go]
+                 :node-spec {:image {:os-family :ubuntu}})]
+    (is (= 2 (count (:groups cluster))))
+    (testing "names are prefixed"
+      (is (= :cl-gn (:group-name (first (:groups cluster)))))
+      (is (= :cl-go (:group-name (second (:groups cluster))))))
+    (testing "type"
+      (is (= :pallet.api/cluster-spec (type cluster))))))

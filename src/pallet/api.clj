@@ -10,7 +10,8 @@
    [pallet.core.operations :as ops]
    [clojure.tools.logging :as logging])
   (:use
-   [pallet.core.api-impl :only [merge-specs merge-spec-algorithm]]
+   [pallet.core.api-impl
+    :only [merge-specs merge-spec-algorithm node-has-group-name?]]
    [pallet.core.session :only [session-context]]
    [pallet.crate :only [phase-context]]
    [pallet.algo.fsmop :only [dofsm operate result succeed]]
@@ -52,7 +53,7 @@
               spot-price enable-monitoring"
   [& {:keys [image hardware location network qos] :as options}]
   {:pre [(or (nil? image) (map? image))]}
-  options)
+  (vary-meta options assoc :type ::node-spec))
 
 (defn extend-specs
   "Merge in the inherited specs"
@@ -86,11 +87,13 @@ specified in the `:extends` argument."
       :as options}]
   (->
    node-spec
+   (or node-spec {})                    ; ensure we have a map and not nil
    (merge options)
    (when-> roles
        (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
    (extend-specs extends)
-   (dissoc :extends :node-spec)))
+   (dissoc :extends :node-spec)
+   (vary-meta assoc :type ::server-spec)))
 
 (defn group-spec
   "Create a group-spec.
@@ -101,24 +104,29 @@ specified in the `:extends` argument."
    - :extends  specify a server-spec, a group-spec, or sequence thereof
                and is used to inherit phases, etc.
 
-   - :phases used to define phases. Standard phases are:
-     - :bootstrap    run on first boot of a new node
-     - :configure    defines the configuration of the node.
+   - :phases      used to define phases. Standard phases are:
+   - :bootstrap   run on first boot of a new node
+   - :configure   defines the configuration of the node.
 
-   - :count    specify the target number of nodes for this node-spec
-   - :packager override the choice of packager to use
-   - :node-spec      default node-spec for this server-spec"
+   - :count          specify the target number of nodes for this node-spec
+   - :packager       override the choice of packager to use
+   - :node-spec      default node-spec for this group-spec
+   - :node-filter    a predicate to test if a node is a member of this group."
   [name
-   & {:keys [extends count image phases packager node-spec roles] :as options}]
+   & {:keys [extends count image phases packager node-spec roles node-filter]
+      :as options}]
   {:pre [(or (nil? image) (map? image))]}
-  (->
-   node-spec
-   (merge options)
-   (when-> roles
-       (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
-   (extend-specs extends)
-   (dissoc :extends :node-spec)
-   (assoc :group-name (keyword name))))
+  (let [group-name (keyword (clojure.core/name name))]
+    (->
+     node-spec
+     (merge options)
+     (update-in [:node-filter] #(or % (node-has-group-name? group-name)))
+     (when-> roles
+             (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
+     (extend-specs extends)
+     (dissoc :extends :node-spec)
+     (assoc :group-name group-name)
+     (vary-meta assoc :type ::group-spec))))
 
 (defn expand-cluster-groups
   "Expand a node-set into its groups"
@@ -198,7 +206,8 @@ specified in the `:extends` argument."
                     (extend-specs [(select-keys group-spec [:phases])])))
                  (expand-group-spec-with-counts group-specs 1))))
    (dissoc :extends :node-spec)
-   (assoc :cluster-cluster-name (keyword cluster-name))))
+   (assoc :cluster-cluster-name (keyword cluster-name))
+   (vary-meta assoc :type ::cluster-spec)))
 
 ;;; ## Compute Service
 ;;;
@@ -289,32 +298,13 @@ specified in the `:extends` argument."
     (result nil)))
 
 (def ^{:doc "Arguments that are forwarded to be part of the environment"}
-  environment-args [:compute :blobstore :user :middleware :provider-options])
+  environment-args [:compute :blobstore :user :provider-options])
 
 (defn converge*
   "Returns a FSM to converge the existing compute resources with the counts
-   specified in `group-spec->count`. New nodes are started, or nodes are
-   destroyed to obtain the specified node counts.
-
-   `group-spec->count` can be a map from group-spec to node count, or can be a
-   sequence of group-specs containing a :count key.
-
-   The compute service may be supplied as an option, otherwise the bound
-   compute-service is used.
-
-
-   This applies the bootstrap phase to all new nodes and the configure phase to
-   all running nodes whose group-name matches a key in the node map.  Additional
-   phases can also be specified in the options, and will be applied to all
-   matching nodes.  The :configure phase is always applied, by default as the
-   first (post bootstrap) phase.  You can change the order in which
-   the :configure phase is applied by explicitly listing it.
-
-   An optional group-name prefix may be specified. This will be used to modify
-   the group-name for each group-spec, allowing you to build multiple discrete
-   clusters from a single set of group-specs."
-  [group-spec->count & {:keys [compute blobstore user phase prefix middleware
-                               all-nodes all-node-set environment]
+   specified in `group-spec->count`.  Options are as for `converge`."
+  [group-spec->count & {:keys [compute blobstore user phase
+                               all-nodes all-node-set environment plan-state]
                         :or {phase [:configure]}
                         :as options}]
   (let [[phases phase-map] (process-phases phase)
@@ -334,71 +324,113 @@ specified in the `:extends` argument."
         groups (groups-with-phases groups phase-map)
         targets (groups-with-phases targets phase-map)
         groups (map (partial group-with-environment environment) groups)
-        targets (map (partial group-with-environment environment) targets)]
+        targets (map (partial group-with-environment environment) targets)
+        lift-options (select-keys options ops/lift-options)]
     (dofsm converge
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
        _ (succeed
           (or compute (seq nodes-set))
           {:error :no-nodes-and-no-compute-service})
-       result (ops/converge groups nodes-set phases compute environment {})]
-      result)))
+       {:keys [plan-state targets] :as converge-result}
+       (ops/converge
+        compute groups nodes-set plan-state environment phases options)
+
+       {:keys [results plan-state] :as lift-result}
+       (ops/lift-partitions
+        targets plan-state environment (remove #{:settings :bootstrap} phases)
+        lift-options)]
+
+      (-> converge-result
+          (update-in [:results] concat results)
+          (assoc :plan-state plan-state)))))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
-   `group-spec->count`. New nodes are started, or nodes are destroyed
-   to obtain the specified node counts.
+`group-spec->count`. New nodes are started, or nodes are destroyed to obtain the
+specified node counts.
 
-   `group-spec->count` can be a map from group-spec to node count, or can be a
-   sequence of group-specs containing a :count key.
+`group-spec->count` can be a map from group-spec to node count, or can be a
+sequence of group-specs containing a :count key.
 
-   The compute service may be supplied as an option, otherwise the bound
-   compute-service is used.
+This applies the `:bootstrap` phase to all new nodes and, by default,
+the :configure phase to all running nodes whose group-name matches a key in the
+node map.  Phases can also be specified with the `:phase` option, and will be
+applied to all matching nodes.  The :configure phase is the default phase
+applied.
 
+## Options
 
-   This applies the bootstrap phase to all new nodes and the configure phase to
-   all running nodes whose group-name matches a key in the node map.  Additional
-   phases can also be specified in the options, and will be applied to all
-   matching nodes.  The :configure phase is always applied, by default as the
-   first (post bootstrap) phase.  You can change the order in which
-   the :configure phase is applied by explicitly listing it.
+`:compute`
+: a compute service.
 
-   An optional group-name prefix may be specified. This will be used to modify
-   the group-name for each group-spec, allowing you to build multiple discrete
-   clusters from a single set of group-specs."
-  [group-spec->count & {:keys [compute blobstore user phase prefix middleware
-                               all-nodes all-node-set environment]
+`:phase`
+: a phase keyword, phase function, or sequence of these.
+
+`:user`
+the admin-user on the nodes.
+
+### Partitioning
+
+`:partition-f`
+: a function that takes a sequence of targets, and returns a sequence of
+  sequences of targets.  Used to partition or filter the targets.  Defaults to
+  any :partition metadata on the phase, or no partitioning otherwise.
+
+## Post phase options
+
+`:post-phase-f`
+: specifies an optional function that is run after a phase is applied.  It is
+  passed `targets`, `phase` and `results` arguments, and is called before any
+  error checking is done.  The return value is ignored, so this is for side
+  affect only.
+
+`:post-phase-fsm`
+: specifies an optional fsm returning function that is run after a phase is
+  applied.  It is passed `targets`, `phase` and `results` arguments, and is
+  called before any error checking is done.  The return value is ignored, so
+  this is for side affect only.
+
+### Asynchronous and Timeouts
+
+`:async`
+: a flag to control whether the function executes asynchronously.  When truthy,
+  the function returns an Operation that can be deref'd like a future.  When not
+  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
+
+`:timeout-ms`
+: an integral number of milliseconds to wait for completion before timeout.
+  Only applies if `:async` is not truthy (the default).
+
+`:timeout-val`
+: a value to be returned should the operation time out.
+
+### Algorithm options
+
+`:phase-execution-f`
+: specifies the function used to execute a phase on the targets.  Defaults
+  to `pallet.core.primitives/build-and-execute-phase`.
+
+`:execution-settings-f`
+: specifies a function that will be called with a node argument, and which
+  should return a map with `:user`, `:executor` and `:executor-status-fn` keys."
+  [group-spec->count & {:keys [compute blobstore user phase
+                               all-nodes all-node-set environment
+                               async timeout-ms timeout-val]
                         :or {phase [:configure]}
                         :as options}]
   (load-plugins)
-  (operate (apply-map converge* group-spec->count options)))
+  (if async
+    (operate (apply-map converge* group-spec->count options))
+    (if timeout-ms
+      (deref (operate (apply-map converge* group-spec->count options))
+             timeout-ms timeout-val)
+      (deref (operate (apply-map converge* group-spec->count options))))))
 
 (defn lift*
   "Returns a FSM to lift the running nodes in the specified node-set by applying
-   the specified phases.  The compute service may be supplied as an option,
-   otherwise the bound compute-service is used.  The configure phase is applied
-   by default unless other phases are specified.
-
-   node-set can be a group spec, a sequence of group specs, or a map
-   of group specs to nodes. Examples:
-              [group-spec1 group-spec2 {group-spec #{node1 node2}}]
-              group-spec
-              {group-spec #{node1 node2}}
-
-   options can also be keywords specifying the phases to apply, or an immediate
-   phase specified with the phase macro, or a function that will be called with
-   each matching node.
-
-   Options:
-    :compute         a jclouds compute service
-    :compute-service a map of :provider, :identity, :credential, and
-                     optionally :extensions for constructing a jclouds compute
-                     service.
-    :phase           a phase keyword, phase function, or sequence of these
-    :middleware      the middleware to apply to the configuration pipeline
-    :prefix          a prefix for the group-name names
-    :user            the admin-user on the nodes"
-  [node-set & {:keys [compute phase prefix middleware all-node-set environment]
+   the specified phases.  Options as specified in `lift`."
+  [node-set & {:keys [compute phase all-node-set environment]
                :or {phase [:configure]}
                :as options}]
   (let [[phases phase-map] (process-phases phase)
@@ -415,7 +447,8 @@ specified in the `:extends` argument."
         targets (groups-with-phases targets phase-map)
         groups (map (partial group-with-environment environment) groups)
         targets (map (partial group-with-environment environment) targets)
-        plan-state {}]
+        plan-state {}
+        lift-options (select-keys options ops/lift-options)]
     (dofsm lift
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
@@ -423,40 +456,172 @@ specified in the `:extends` argument."
           (or compute (seq nodes-set))
           {:error :no-nodes-and-no-compute-service})
        {:keys [plan-state]} (ops/lift
-                             nodes-set [:settings] environment plan-state)
-       result (ops/lift nodes-set phases environment plan-state)]
-      result)))
+                             nodes-set plan-state environment [:settings] {})
+       results (ops/lift-partitions
+                nodes-set plan-state environment (remove #{:settings} phases)
+                lift-options)]
+      results)))
 
 (defn lift
   "Lift the running nodes in the specified node-set by applying the specified
-   phases.  The compute service may be supplied as an option, otherwise the
-   bound compute-service is used.  The configure phase is applied by default
-   unless other phases are specified.
+phases.  The compute service may be supplied as an option, otherwise the
+bound compute-service is used.  The configure phase is applied by default
+unless other phases are specified.
 
-   node-set can be a group spec, a sequence of group specs, or a map
-   of group specs to nodes. Examples:
-              [group-spec1 group-spec2 {group-spec #{node1 node2}}]
-              group-spec
-              {group-spec #{node1 node2}}
+node-set can be a group spec, a sequence of group specs, or a map
+of group specs to nodes. Examples:
 
-   options can also be keywords specifying the phases to apply, or an immediate
-   phase specified with the phase macro, or a function that will be called with
-   each matching node.
+    [group-spec1 group-spec2 {group-spec #{node1 node2}}]
+    group-spec
+    {group-spec #{node1 node2}}
 
-   Options:
-    :compute         a jclouds compute service
-    :compute-service a map of :provider, :identity, :credential, and
-                     optionally :extensions for constructing a jclouds compute
-                     service.
-    :phase           a phase keyword, phase function, or sequence of these
-    :middleware      the middleware to apply to the configuration pipeline
-    :prefix          a prefix for the group-name names
-    :user            the admin-user on the nodes"
-  [node-set & {:keys [compute phase prefix middleware all-node-set environment]
+## Options:
+
+`:compute`
+: a compute service.
+
+`:phase`
+: a phase keyword, phase function, or sequence of these.
+
+`:user`
+the admin-user on the nodes.
+
+### Partitioning
+
+`:partition-f`
+: a function that takes a sequence of targets, and returns a sequence of
+  sequences of targets.  Used to partition or filter the targets.  Defaults to
+  any :partition metadata on the phase, or no partitioning otherwise.
+
+## Post phase options
+
+`:post-phase-f`
+: specifies an optional function that is run after a phase is applied.  It is
+  passed `targets`, `phase` and `results` arguments, and is called before any
+  error checking is done.  The return value is ignored, so this is for side
+  affect only.
+
+`:post-phase-fsm`
+: specifies an optional fsm returning function that is run after a phase is
+  applied.  It is passed `targets`, `phase` and `results` arguments, and is
+  called before any error checking is done.  The return value is ignored, so
+  this is for side affect only.
+
+### Asynchronous and Timeouts
+
+`:async`
+: a flag to control whether the function executes asynchronously.  When truthy,
+  the function returns an Operation that can be deref'd like a future.  When not
+  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
+
+`:timeout-ms`
+: an integral number of milliseconds to wait for completion before timeout.
+  Only applies if `:async` is not truthy (the default).
+
+`:timeout-val`
+: a value to be returned should the operation time out.
+
+### Algorithm options
+
+`:phase-execution-f`
+: specifies the function used to execute a phase on the targets.  Defaults
+  to `pallet.core.primitives/build-and-execute-phase`.
+
+`:execution-settings-f`
+: specifies a function that will be called with a node argument, and which
+  should return a map with `:user`, `:executor` and `:executor-status-fn` keys."
+  [node-set & {:keys [compute phase all-node-set environment
+                      async timeout-ms timeout-val
+                      partition-f post-phase-f post-phase-fsm
+                      phase-execution-f execution-settings-f]
                :or {phase [:configure]}
                :as options}]
   (load-plugins)
-  (operate (apply-map lift* node-set options)))
+  (if async
+    (operate (apply-map lift* node-set options))
+    (if timeout-ms
+      (deref (operate (apply-map lift* node-set options))
+             timeout-ms timeout-val)
+      (deref (operate (apply-map lift* node-set options))))))
+
+(defn lift-nodes
+  "Lift `targets`, a sequence of node-maps, using the specified `phases`.  This
+provides a way of lifting phases, which doesn't tie you to working with all
+nodes in a group.  Consider using this only if the functionality in `lift` is
+insufficient.
+
+`phases`
+: a sequence of phase keywords (identifying phases) or plan functions, that
+  should be applied to the target nodes.  Note that there are no default phases.
+
+## Options:
+
+`:user`
+: the admin-user to use for operations on the target nodes.
+
+`:environment`
+: an environment map, to be merged into the environment.
+
+`:plan-state`
+: an state map, which can be used to passing settings across multiple lift-nodes
+  invocations.
+
+`:async`
+: a flag to control whether the function executes asynchronously.  When truthy,
+  the function returns an Operation that can be deref'd like a future.  When not
+  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
+
+`:timeout-ms`
+: an integral number of milliseconds to wait for completion before timeout.
+  Only applies if `:async` is not truthy (the default).
+
+`:timeout-val`
+: a value to be returned should the operation time out."
+  [targets phases
+   & {:keys [user environment plan-state async timeout-ms timeout-val]
+      :or {environment {} plan-state {}}
+      :as options}]
+  (let [[phases phase-map] (process-phases phases)
+        targets (groups-with-phases targets phase-map)
+        environment (merge-environments
+                     environment
+                     (select-keys options environment-args))]
+    (letfn [(lift-nodes* []
+              (operate
+               (ops/lift-partitions
+                targets phases environment plan-state
+                (dissoc options
+                        :environment :plan-state :async
+                        :timeout-val :timeout-ms))))]
+      (if async
+        (lift-nodes*)
+        (if timeout-ms
+          (deref (lift-nodes*) timeout-ms timeout-val)
+          (deref (lift-nodes*)))))))
+
+(defn group-nodes
+  "Return a sequence of node-maps for each node in the specified group-specs.
+
+## Options:
+
+`:async`
+: a flag to control whether the function executes asynchronously.  When truthy,
+  the function returns an Operation that can be deref'd like a future.  When not
+  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
+
+`:timeout-ms`
+: an integral number of milliseconds to wait for completion before timeout.
+  Only applies if `:async` is not truthy (the default).
+
+`:timeout-val`
+: a value to be returned should the operation time out."
+  [compute groups & {:keys [async timeout-ms timeout-val]}]
+  (letfn [(group-nodes* [] (operate (ops/group-nodes compute groups)))]
+    (if async
+      (group-nodes*)
+      (if timeout-ms
+        (deref (group-nodes*) timeout-ms timeout-val)
+        (deref (group-nodes*))))))
 
 ;;; ### plan functions
 (defmacro plan-fn

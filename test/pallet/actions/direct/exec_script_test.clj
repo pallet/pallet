@@ -85,16 +85,17 @@
 
 (deftest lift-all-node-set-test
   (let [local (group-spec
-               "local"
-               :phases {:configure (plan-fn (print-action "hello"))})
+                  "local"
+                :phases {:configure (plan-fn (print-action "hello"))})
         localhost (node-list/make-localhost-node :group-name "local")
-        service (compute/instantiate-provider "node-list" :node-list [localhost])]
+        service (compute/instantiate-provider
+                 "node-list" :node-list [localhost])]
     (testing "python"
-      (let [session @(lift
-                      local
-                      :user (assoc *admin-user*
-                              :username (test-username) :no-sudo true)
-                      :compute service)]
+      (let [session (lift
+                     local
+                     :user (assoc *admin-user*
+                             :username (test-username) :no-sudo true)
+                     :compute service)]
         (is (= ["hello\n"]
                (->>
                 session
@@ -108,18 +109,19 @@
 ;; this is in the wrong place really, as it is testing phase-fns with arguments
 (deftest lift-arguments-test
   (let [localhost (node-list/make-localhost-node :group-name "local")
-        service (compute/instantiate-provider "node-list" :node-list [localhost])]
+        service (compute/instantiate-provider
+                 "node-list" :node-list [localhost])]
     (testing "simple phase"
-      (let [local (group-spec
-                   "local"
-                   :phases {:configure (fn [x]
-                                         (exec-script (println "xx" ~x "yy")))})
-            session @(lift
-                      local
-                      :user (assoc *admin-user*
-                              :username (test-username) :no-sudo true)
-                      :phase [[:configure "hello"]]
-                      :compute service)]
+      (let [local (group-spec "local"
+                    :phases {:configure (fn [x]
+                                          (exec-script
+                                           (println "xx" ~x "yy")))})
+            session (lift
+                     local
+                     :user (assoc *admin-user*
+                             :username (test-username) :no-sudo true)
+                     :phase [[:configure "hello"]]
+                     :compute service)]
         (is (= ["xx hello yy\n"]
                (->>
                 session
@@ -134,16 +136,16 @@
                     :phases {:configure (fn [x]
                                           (exec-script (println "xx" ~x)))})
             local (group-spec
-                   "local"
-                   :extends [server]
-                   :phases {:configure (fn [x]
-                                         (exec-script (println "yy" ~x)))})
-            session @(lift
-                      local
-                      :user (assoc *admin-user*
-                              :username (test-username) :no-sudo true)
-                      :phase [[:configure "hello"]]
-                      :compute service)]
+                      "local"
+                    :extends [server]
+                    :phases {:configure (fn [x]
+                                          (exec-script (println "yy" ~x)))})
+            session (lift
+                     local
+                     :user (assoc *admin-user*
+                             :username (test-username) :no-sudo true)
+                     :phase [[:configure "hello"]]
+                     :compute service)]
         (is (= ["xx hello\n" "yy hello\n"]
                (->>
                 session
@@ -174,7 +176,8 @@
                         :user (assoc *admin-user*
                                 :username (test-username) :no-sudo true)
                         :phase [[:configure "hello"]]
-                        :compute service)
+                        :compute service
+                        :async true)
                 session @result]
             (is (failed? result))
             (is (phase-errors result))

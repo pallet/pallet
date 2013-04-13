@@ -31,14 +31,13 @@
         os-family (nth node 3)]
     (let [group (merge (group-spec group-name :node {:os-family os-family})
                        (when settings-phase
-                         {:phases {:settings (plan-fn (settings-phase))}}))
-          op (lift [group]
-                   :phase pfn
-                   :environment
-                   {:algorithms
-                    {:executor executor}}
-                   :compute compute)]
-      @op)))
+                         {:phases {:settings (plan-fn (settings-phase))}}))]
+      (lift [group]
+            :phase pfn
+            :environment
+            {:algorithms
+             {:executor executor}}
+            :compute compute))))
 
 
 (defn explain-plan [pfn node & {:keys [settings-phase]}]

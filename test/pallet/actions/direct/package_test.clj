@@ -40,11 +40,29 @@
 (def sed* (action-fn sed :direct))
 
 (deftest test-install-example
-  (testing "aptitude"
+  (testing "apt"
     (is (script-no-comment=
          (first
           (build-actions
               {}
+            (exec-checked-script
+             "Packages"
+             (~lib/package-manager-non-interactive)
+             (chain-and
+              "apt-get -q -y install java+ rubygems+ git- ruby_"
+              ("dpkg" "--get-selections")))))
+         (first
+          (build-actions
+              {}
+            (package "java" :action :install)
+            (package "rubygems")
+            (package "git" :action :remove)
+            (package "ruby" :action :remove :purge true))))))
+  (testing "aptitude"
+    (is (script-no-comment=
+         (first
+          (build-actions
+              {:server {:packager :aptitude :image {:os-family :ubuntu}}}
             (exec-checked-script
              "Packages"
              (~lib/package-manager-non-interactive)
@@ -55,7 +73,7 @@
              "! ( aptitude search \"?and(?installed, ?name(^ruby$))\" | \\\ngrep \"ruby\" )")))
          (first
           (build-actions
-              {}
+              {:server {:packager :aptitude :image {:os-family :centos}}}
             (package "java" :action :install)
             (package "rubygems")
             (package "git" :action :remove)
@@ -247,23 +265,40 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              :configure :proxy "http://192.168.2.37:3182")))))))
 
 (deftest add-multiverse-example-test
-  (is (script-no-comment=
-       (str
-        (stevedore/checked-script
-         "package-manager multiverse "
-         (set! tmpfile @("mktemp" -t addscopeXXXX))
-         (~lib/cp "/etc/apt/sources.list" @tmpfile :preserve true)
-         ("awk" "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
-         (~lib/mv @tmpfile "/etc/apt/sources.list" :force true))
-        (stevedore/checked-script
-         "package-manager update "
-         (chain-or
-          ("aptitude" update "-q=2" -y "")
-          true)))
-       (first (build-actions
-                  {}
-                (package-manager :multiverse)
-                (package-manager :update))))))
+  (testing "apt"
+    (is (script-no-comment=
+         (str
+          (stevedore/checked-script
+           "package-manager multiverse "
+           (set! tmpfile @("mktemp" -t addscopeXXXX))
+           (~lib/cp "/etc/apt/sources.list" @tmpfile :preserve true)
+           ("awk" "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
+           (~lib/mv @tmpfile "/etc/apt/sources.list" :force true))
+          (stevedore/checked-script
+           "package-manager update "
+           ("apt-get" "-qq" update)))
+         (first (build-actions
+                    {}
+                  (package-manager :multiverse)
+                  (package-manager :update))))))
+  (testing "aptitude"
+    (is (script-no-comment=
+         (str
+          (stevedore/checked-script
+           "package-manager multiverse "
+           (set! tmpfile @("mktemp" -t addscopeXXXX))
+           (~lib/cp "/etc/apt/sources.list" @tmpfile :preserve true)
+           ("awk" "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
+           (~lib/mv @tmpfile "/etc/apt/sources.list" :force true))
+          (stevedore/checked-script
+           "package-manager update "
+           (chain-or
+            ("aptitude" update "-q=2" -y "")
+            true)))
+         (first (build-actions
+                    {:server {:packager :aptitude :image {:os-family :ubuntu}}}
+                  (package-manager :multiverse)
+                  (package-manager :update)))))))
 
 (deftest package-source*-test
   (let [a (group-spec "a" :packager :aptitude)
@@ -305,22 +340,40 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
          :aptitude {:url "http://somewhere/apt"
                     :scopes ["main"]}
          :yum {:url "http://somewhere/yum"}))))
-    (is (script-no-comment=
-         (first
-          (build-actions
-              {}
-            (exec-checked-script
-             "Package source"
-             (~lib/install-package "python-software-properties")
-             (pipe (println) ("add-apt-repository" "ppa:abc"))
-             (~lib/update-package-list))))
-         (first
-          (build-actions
-              {}
-            (package-source
-             "source1"
-             :aptitude {:url "ppa:abc"}
-             :yum {:url "http://somewhere/yum"})))))
+    (testing "ppa pre 12.10"
+      (is (script-no-comment=
+           (first
+            (build-actions
+                {}
+              (exec-checked-script
+               "Package source"
+               (~lib/install-package "python-software-properties")
+               (pipe (println) ("add-apt-repository" "ppa:abc"))
+               (~lib/update-package-list))))
+           (first
+            (build-actions
+                {:server {:image {:os-family :ubuntu :os-version "12.04"}}}
+              (package-source
+               "source1"
+               :aptitude {:url "ppa:abc"}
+               :yum {:url "http://somewhere/yum"}))))))
+    (testing "ppa for 12.10"
+      (is (script-no-comment=
+           (first
+            (build-actions
+                {}
+              (exec-checked-script
+               "Package source"
+               (~lib/install-package "software-properties-common")
+               (pipe (println) ("add-apt-repository" "ppa:abc"))
+               (~lib/update-package-list))))
+           (first
+            (build-actions
+                {:server {:image {:os-family :ubuntu :os-version "12.10"}}}
+              (package-source
+               "source1"
+               :aptitude {:url "ppa:abc"}
+               :yum {:url "http://somewhere/yum"}))))))
     (is (script-no-comment=
          (stevedore/checked-commands
           "Package source"
@@ -470,6 +523,22 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (package-source "s" :aptitude {:url "http://somewhere/apt"})))))))
 
 (deftest adjust-packages-test
+  (testing "apt"
+    (script/with-script-context [:apt]
+      (is (script-no-comment=
+           (stevedore/checked-script
+            "Packages"
+            (~lib/package-manager-non-interactive)
+            (chain-and
+             ("apt-get" -q -y install p1- p4_ p2+ p3+)
+             ("dpkg" "--get-selections")))
+           (binding [pallet.action-plan/*defining-context* nil]
+             (adjust-packages
+              ubuntu-session
+              [{:package "p1" :action :remove}
+               {:package "p2" :action :install}
+               {:package "p3" :action :upgrade}
+               {:package "p4" :action :remove :purge true}]))))))
   (testing "aptitude"
     (script/with-script-context [:aptitude]
       (is (script-no-comment=
@@ -491,7 +560,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                   ("grep" (quoted "p4")))))
            (binding [pallet.action-plan/*defining-context* nil]
              (adjust-packages
-              ubuntu-session
+              (assoc-in ubuntu-session [:server :packager] :aptitude)
               [{:package "p1" :action :remove}
                {:package "p2" :action :install}
                {:package "p3" :action :upgrade}
@@ -512,7 +581,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              ("grep" (quoted "p2"))))
            (binding [pallet.action-plan/*defining-context* nil]
              (adjust-packages
-              ubuntu-session
+              (assoc-in ubuntu-session [:server :packager] :aptitude)
               [{:package "p1" :action :install :priority 20}
                {:package "p2" :action :install :enable ["r1"] :priority 2}]))))))
   (testing "aptitude with allow-unsigned"
@@ -531,7 +600,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              ("grep" (quoted "p2"))))
            (binding [pallet.action-plan/*defining-context* nil]
              (adjust-packages
-              ubuntu-session
+              (assoc-in ubuntu-session [:server :packager] :aptitude)
               [{:package "p1" :action :install}
                {:package "p2" :action :install :allow-unsigned true}]))))))
   (testing "yum"

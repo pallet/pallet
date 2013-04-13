@@ -14,7 +14,7 @@
    [pallet.core.session :only [session with-session]]
    [pallet.environment :only [get-for]]
    [pallet.executors :only [default-executor]]
-   [pallet.node :only [image-user primary-ip tag tag! taggable?]]
+   [pallet.node :only [id image-user primary-ip tag tag! taggable?]]
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :only [add-session-verification-key check-session]]
@@ -315,18 +315,21 @@
 (defn set-state-for-node
   "Sets the boolean `state-name` flag on `node`."
   [state-name node]
+  (debugf "set-state-for-node %s" state-name)
   (when (taggable? (:node node))
+    (debugf "set-state-for-node taggable")
     (let [current (read-or-empty-map (tag (:node node) state-tag-name))
           val (assoc current (keyword (name state-name)) true)]
+      (debugf "set-state-for-node %s %s" state-tag-name (pr-str val))
       (tag! (:node node) state-tag-name (pr-str val)))))
 
 (defn has-state-flag?
   "Return a predicate to test for a state-flag having been set."
   [state-name]
   (fn [node]
+    (debugf "has-state-flag %s %s" state-name (id (:node node)))
     (get
-     (when (taggable? (:node node))
-       (read-or-empty-map (tag (:node node) state-tag-name)))
+     (read-or-empty-map (tag (:node node) state-tag-name))
      (keyword (name state-name)))))
 
 ;;; # Exception reporting

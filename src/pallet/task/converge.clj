@@ -49,6 +49,7 @@
       (throw (ex-info "Converge with no group specified" {:args args})))
     (let [op (apply api/converge
                     spec
+                    :async true
                     (concat
                      args
                      (apply concat

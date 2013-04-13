@@ -16,7 +16,7 @@
                  :compute compute
                  :environment {:algorithms
                                {:executor action-plan-data}})]
-    (-> @op :results first :result)))
+    (-> op :results first :result)))
 
 (deftest action-plan-data-test
   (is (= `({:location :target

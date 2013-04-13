@@ -41,7 +41,8 @@
                      (as-action (swap! counter inc))
                      (as-action (reset! ip (primary-ip (target-node)))))
             :compute compute
-            :user (local-test-user))
+            :user (local-test-user)
+            :async true)
         session @op]
     (is (not (failed? op)))
     (is (= 2 @counter))

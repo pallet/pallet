@@ -41,6 +41,7 @@
         _ (logging/debugf "lift %s" (pr-str spec))
         op (apply api/lift
                   spec
+                  :async true
                   (concat
                    args
                    (apply concat

@@ -26,18 +26,18 @@
   [group-name]
   (fn has-group-name? [node]
     (when-let [node-group (node/group-name node)]
-      (= group-name (name node-group)))))
+      (= group-name (keyword (name node-group))))))
 
 (defn node-in-group?
-  "Check if a node satisfies a group's node-predicate."
+  "Check if a node satisfies a group's node-filter."
   {:internal true}
   [node group]
   {:pre [(:group-name group)]}
-  ((:node-predicate group (node-has-group-name? (name (:group-name group))))
+  ((:node-filter group (node-has-group-name? (:group-name group)))
    node))
 
 (defn node->node-map
-  "Build a map entry from a node and a list of groups"
+  "Build a map entry from a node and a list of groups."
   {:internal true}
   [groups]
   (fn [node]

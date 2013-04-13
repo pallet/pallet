@@ -35,7 +35,7 @@
                    (make-node "n2" "g1" "192.168.1.2" :linux)]
           g1 (group-spec
               :g1
-              :node-predicate #(= "192.168.1.2" (node/primary-ip %)))
+              :node-filter #(= "192.168.1.2" (node/primary-ip %)))
           service (node-list-service [n1 n2])]
       (is (= [(assoc g1
                 :node (assoc n2 :service service)

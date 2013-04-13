@@ -167,9 +167,7 @@ Provider specific options may also be passed."
   [os-family os-version]
   (cond
     (#{:debian :jeos} os-family) :aptitude
-    (#{:ubuntu} os-family) (if (= "11.10" os-version)
-                             :apt
-                             :aptitude)
+    (#{:ubuntu} os-family) :apt
     (#{:centos :rhel :amzn-linux :fedora} os-family) :yum
     (#{:arch} os-family) :pacman
     (#{:suse} os-family) :zypper

@@ -127,9 +127,22 @@
        ~@crate-fns-or-actions
        (leave-scope))))
 
+(defmacro with-action-values
+  "Creates an action that can transform action return values.  The return
+value is itself an action return value."
+  {:pallet/plan-fn true}
+  [[& return-values] & body]
+  (let [session (gensym "session")]
+    `((clj-action [~session]
+       [(let [~@(mapcat #(vector % `(node-value ~% ~session)) return-values)]
+          (logging/tracef "with-action-values %s" ~(vec return-values))
+          ~@body)
+        ~session]))))
+
 (defmacro return-value-expr
   "Creates an action that can transform return values"
-  {:pallet/plan-fn true}
+  {:pallet/plan-fn true
+   :deprecated "0.8.0-beta.8"}
   [[& return-values] & body]
   (let [session (gensym "session")]
     `((clj-action [~session]
@@ -143,6 +156,11 @@
    the specification of specific instance of the facility (the default is
    :default)."
   [facility kv-pairs & {:keys [instance-id]}])
+
+(defaction assoc-in-settings
+  "Put the specified `value` (possible a `NodeValue`) into the settings
+  for `path`, a vector of `[facility & keys]`, specifying a facility an a path."
+  [path value & {:keys [instance-id]}])
 
 (defaction update-settings
   "Update the settings for the specified host facility. The instance-id allows
@@ -434,7 +452,7 @@ Content can also be copied from a blobstore.
   {:pallet/plan-fn true}
   [path]
   (let [nv (exec-script (~lib/cat ~path))
-        c (return-value-expr [nv] (:out nv))]
+        c (with-action-values [nv] (:out nv))]
     c))
 
 ;;; # Remote Directory Content
@@ -558,7 +576,10 @@ option and :unpack :unzip.
   [& {:keys [yum aptitude pacman brew] :as options}]
   (phase-context packages {}
     (let [packager (packager)]
-      (doseq [p (options packager)] (package p)))))
+      (doseq [p (or (options packager)
+                    (when (#{:apt :aptitude} packager)
+                      (options (first (disj #{:apt :aptitude} packager)))))]
+        (package p)))))
 
 (defaction package-manager
   "Package manager controls.
@@ -831,7 +852,7 @@ Deprecated in favour of pallet.crate.service/service."
   [script-return-value
    {:keys [out err exit fmt]
     :or {out :debug err :info exit :none fmt "%s"}}]
-  `(return-value-expr
+  `(with-action-values
     [~script-return-value]
     (when (and (not= ~out :none) (:out ~script-return-value))
       (log-multiline ~out ~fmt (trim (:out ~script-return-value))))
