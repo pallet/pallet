@@ -1,6 +1,7 @@
 (ns pallet.api
   "# Pallet API"
   (:require
+   [clojure.java.io :refer [resource input-stream]]
    [clojure.set :refer [union]]
    [clojure.string :refer [blank?]]
    [clojure.pprint :refer [print-table]]
@@ -21,6 +22,21 @@
    [pallet.thread-expr :only [when->]]
    [pallet.utils :only [apply-map]]))
 
+
+;;; ## Pallet version
+(let [v (atom nil)
+      properties-path "META-INF/maven/com.palletops/pallet/pom.properties"]
+  (defn version
+    "Returns the pallet version."
+    []
+    (or
+     @v
+     (if-let [path (resource properties-path)]
+       (with-open [in (input-stream path)]
+         (let [properties (doto (java.util.Properties.) (.load in))]
+           {:version (.getProperty properties "version")
+            :revision (.getProperty properties "revision")}))
+       {:version :unknown :revision :unknown}))))
 
 ;;; ## Domain Model
 
