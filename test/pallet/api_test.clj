@@ -232,3 +232,9 @@
       (is (= :cl-go (:group-name (second (:groups cluster))))))
     (testing "type"
       (is (= :pallet.api/cluster-spec (type cluster))))))
+
+(deftest group-nodes-test
+  (let [compute (make-localhost-compute)
+        g (group-spec "local")
+        service-spec (group-nodes compute [g])]
+    (is (= 1 (count service-spec)))))
