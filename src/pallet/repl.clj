@@ -31,7 +31,7 @@
     (print-table nodes)))
 
 (def node-table-cols
-  [:host-name :group-name :os-family :os-version :primary-ip
+  [:hostname :group-name :os-family :os-version :primary-ip
    :private-ip :terminated?])
 
 (defn show-nodes
