@@ -17,7 +17,7 @@
      :group-name (node/group-name node)
      :hostname (node/hostname node)
      :os-family (node/os-family node)
-     :os-version (node/os-family node)
+     :os-version (node/os-version node)
      :running? (node/running? node)
      :terminated? (node/terminated? node)
      :id (node/id node)}))
