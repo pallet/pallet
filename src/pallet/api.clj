@@ -206,7 +206,7 @@ specified in the `:extends` argument."
 
    - :roles     roles for all group-specs in the cluster"
   [cluster-name
-   & {:keys [extends groups phases node-spec environment roles] :as options}]
+   & {:keys [extends groups phases node-spec roles] :as options}]
   (->
    options
    (update-in [:groups]
@@ -221,9 +221,6 @@ specified in the `:extends` argument."
                      #(keyword (str (name cluster-name)
                                     (if (blank? cluster-name) "" "-")
                                     (name %))))
-                    (update-in
-                     [:environment]
-                     merge-environments environment)
                     (update-in [:roles] union roles)
                     (extend-specs extends)
                     (extend-specs [{:phases phases}])
