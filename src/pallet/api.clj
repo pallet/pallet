@@ -131,7 +131,11 @@ specified in the `:extends` argument."
    - :count          specify the target number of nodes for this node-spec
    - :packager       override the choice of packager to use
    - :node-spec      default node-spec for this group-spec
-   - :node-filter    a predicate to test if a node is a member of this group."
+   - :node-filter    a predicate that tests if a node is a member of this
+                     group."
+  ;; Note that the node-filter is not set here for the default group-name based
+  ;; membership, so that it does not need to be updated by functions that modify
+  ;; a group's group-name.
   [name
    & {:keys [extends count image phases packager node-spec roles node-filter]
       :as options}]
@@ -141,7 +145,6 @@ specified in the `:extends` argument."
      (->
       node-spec
       (merge options)
-      (update-in [:node-filter] #(or % (node-has-group-name? group-name)))
       (when-> roles
               (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
       (extend-specs extends)

@@ -75,7 +75,7 @@
   node-spec-schema
   server-spec-schema
   [[:group-name] keyword?
-   [:node-filter] fn?
+   (optional-path [:node-filter]) fn?
    (optional-path [:count]) number?])
 
 (def-map-schema user-schema

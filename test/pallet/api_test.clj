@@ -195,8 +195,6 @@
          (dissoc
           (group-spec "gn" :extends (server-spec :phases {:a 1}))
           :node-filter)))
-  (is (:node-filter
-       (group-spec "gn" :extends (server-spec :phases {:a 1}))))
   (is (= {:group-name :gn :phases {:a 1} :image {:image-id "2"}}
          (dissoc
           (group-spec
