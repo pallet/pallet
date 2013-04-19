@@ -72,7 +72,7 @@
               spot-price enable-monitoring"
   [& {:keys [image hardware location network qos] :as options}]
   {:pre [(or (nil? image) (map? image))]}
-  (check-node-spec (vary-meta options assoc :type ::node-spec)))
+  (check-node-spec (vary-meta (or options {}) assoc :type ::node-spec)))
 
 (defn extend-specs
   "Merge in the inherited specs"
