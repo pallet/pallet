@@ -1,4 +1,16 @@
-The latest release is 0.7.3
+The latest release is 0.7.4
+
+# 0.7.4
+
+- Backport #223 to 0.7.x
+  Enables project specific compute service definitions
+
+- Add hybrid to providers test
+
+- Add :release to package-source doc string
+
+- Log user details used for ssh connections
+  Also raises an exception if user information is completely missing.
 
 # 0.7.3
 
