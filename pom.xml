@@ -69,6 +69,18 @@
           </excludes>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>1.4.4</version>
+        <extensions>true</extensions>
+        <configuration>
+          <!-- The Base URL of Nexus instance where we want to stage -->
+          <nexusUrl>https://oss.sonatype.org</nexusUrl>
+          <!-- The server "id" element from settings to use authentication from -->
+          <serverId>sonatype-nexus-staging</serverId>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
