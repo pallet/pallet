@@ -21,7 +21,10 @@
 
 (defn session
   "Return the current session, which implements clojure's map interfaces."
-  [] (thread-local *session*))
+  []
+  (assert (bound? #'*session*)
+          "Session not bound.  The session is only bound within a phase.")
+  (thread-local *session*))
 
 (defmacro with-session
   [session & body]

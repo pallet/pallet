@@ -16,7 +16,7 @@ echo "Start release of $version, previous version is $previous_version"
 echo ""
 echo ""
 
-lein do clean, test && \
+lein do clean, with-profile +no-checkouts test && \
 git flow release start $version || exit 1
 
 lein with-profile +release set-version ${version} :previous-version ${previous_version} \
@@ -39,7 +39,7 @@ echo -n "commiting project.clj, release notes and readme.  enter to continue:" \
 && git add project.clj ReleaseNotes.md README.md \
 && git commit -m "Updated project.clj, release notes and readme for $version" \
 && echo -n "Peform release.  enter to continue:" && read x \
-&& lein do clean, test, deploy clojars \
+&& lein do clean, with-profile +no-checkouts test, deploy clojars \
 && rm pom.xml \
 && git flow release finish $version \
 && echo "Now push to github. Don't forget the tags!" \

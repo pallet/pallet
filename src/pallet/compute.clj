@@ -82,6 +82,11 @@ Provider specific options may also be passed."
   (images [compute])
   (close [compute]))
 
+(defn compute-service?
+  "Predicate for the argument satisfying the ComputeService protocol."
+  [c]
+  (satisfies? ComputeService c))
+
 (defprotocol ComputeServiceProperties
   (service-properties [compute]
     "Return a map of service details.  Contains a :provider key at a minimum.

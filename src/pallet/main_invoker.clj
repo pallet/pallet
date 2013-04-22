@@ -7,6 +7,7 @@
   (:require
    [bultitude.core :refer [classpath-files]]
    [clojure.tools.logging :as logging]
+   [pallet.api :refer [version]]
    [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
    [pallet.configure :as configure :refer [default-compute-service]]
@@ -16,6 +17,7 @@
 
 (defn log-info
   [admin-user]
+  (logging/debugf "Pallet version: %s" (version))
   (logging/debugf "OS              %s %s"
                    (System/getProperty "os.name")
                    (System/getProperty "os.version"))

@@ -10,8 +10,9 @@ defproject refers to pallet.project.loader/defproject."
    [clojure.java.io :refer [file resource]]
    [clojure.set :refer [intersection]]
    [clojure.string :as string]
-   [clojure.tools.logging :refer [debugf]]
+   [clojure.tools.logging :refer [debugf tracef]]
    [pallet.api :as api :refer [cluster-spec extend-specs]]
+   [pallet.contracts :refer [check-group-spec]]
    [pallet.utils :refer [log-multiline]]))
 
 ;;; ## Read a project file
@@ -97,7 +98,11 @@ defproject refers to pallet.project.loader/defproject."
   "Use the node-specs specified in the variant.  The variant can have a
    general node-spec, or a per-group node-spec under the `:groups` key"
   [{:keys [phases groups] :as variant} {:keys [group-name] :as group}]
-  (extend-specs group (remove nil? [variant (get-in groups [group-name])])))
+  (extend-specs
+   group
+   (remove
+    nil?
+    [(select-keys variant [:phases]) (get-in groups [group-name])])))
 
 (defn decorate-name [{:keys [group-prefix group-suffix node-spec]
                       :or {group-prefix "" group-suffix ""}
@@ -112,6 +117,8 @@ which defaults to #{:default}.  The groups can be filtered by the roles set, and
 by group-names."
   ([{:keys [groups provider service] :as pallet-project} provider-kw
     selectors roles group-names]
+     (debugf "spec-from-project selectors %s roles %s group-names %s"
+             selectors roles group-names)
      (let [selectors (or selectors #{:default})
            variants (get-in provider [provider-kw :variants])
            ;; if variants are given we select from them, otherwise just
@@ -121,16 +128,20 @@ by group-names."
                        (comp seq #(intersection (set selectors) %) :selectors)
                        variants)
                       [(get provider provider-kw)])
+           _ (debugf "Groups : %s" (mapv :group-name groups))
            _ (debugf "Filtering groups with group-names : %s" group-names)
            groups (if (seq group-names)
                     (filter #((set group-names) (:group-name %)) groups)
                     groups)
-           _ (debugf "Filtering roles with %s" roles)
+           _ (debugf "Filtering %s for roles with %s"
+                     (mapv :group-name groups) roles)
+           _ (tracef "Variants %s" (vec variants))
            groups (if (seq roles)
                     (filter
                      (comp seq #(intersection (set roles) %) :roles)
                      groups)
                     groups)
+           _ (doseq [group groups] (check-group-spec group))
            groups (apply concat
                          (for [variant variants]
                            (map
@@ -140,13 +151,15 @@ by group-names."
                              #(merge-variant-phases variant %)
                              ensure-group-count)
                             groups)))]
-       (debugf "spec-from-project for selectors %s found %s variants"
-               selectors (count variants))
-       (debugf "spec-from-project groups %s" (vec (map :group-name groups)))
+       (debugf
+        "spec-from-project found %s variants and %s groups"
+               selectors (count variants) (count groups))
+       (debugf "spec-from-project groups %s" (mapv :group-name groups))
        (log-multiline
         :trace
         "spec-from-project groups %s"
         (with-out-str (clojure.pprint/pprint (vec groups))))
+       (doseq [group groups] (check-group-spec group))
        (:groups (cluster-spec "" :groups groups))))
   ([pallet-project provider-kw]
      (spec-from-project pallet-project provider-kw #{:default})))
