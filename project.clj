@@ -21,11 +21,11 @@ unprecedented level of customization."
                  [com.palletops/chiba "0.2.0"]
                  [com.palletops/thread-expr "1.3.0"]
                  [com.palletops/pallet-common "0.4.0"]
-                 [com.palletops/script-exec "0.3.2"]
+                 [com.palletops/script-exec "0.3.3"]
                  [com.palletops/stevedore "0.8.0-beta.2"]
                  [enlive "1.0.1"
                   :exclusions [org.clojure/clojure]]
-                 [pallet-fsmop "0.2.6"]
+                 [pallet-fsmop "0.2.7"]
                  [pallet-map-merge "0.1.0"]
                  [org.clojars.runa/clj-schema "0.9.2"]
                  [useful "0.8.6"]
