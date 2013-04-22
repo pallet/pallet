@@ -185,62 +185,6 @@
   ([keys default]
      (get-for (session) keys default)))
 
-(defn session-with-environment
-  "Returns an updated `session` map, containing the keys for the specified
-   `environment` map.
-
-   When session includes a `:server` value, then the `:server` value is
-   treated as an environment, and merge with any environment in the
-   `environment`'s `:groups` key.
-
-   The node-specific environment keys are `:images` and `:phases`."
-  [session environment]
-  (when (:tags environment)
-    (deprecate/warn
-     (str "Use of :tags key in the environment is deprecated. "
-          "Please change to use :groups.")))
-  (let [group (or (-> session :server :group-name)
-                  (-> session :group :group-name))
-        session (merge
-                 session
-                 (merge-environments
-                  (->
-                   environment
-                   (select-keys standard-pallet-keys)
-                   (utils/dissoc-keys (conj node-keys :groups :tags)))
-                  (when group
-                    (->
-                     (-> environment :groups group)
-                     (select-keys standard-pallet-keys)
-                     (utils/dissoc-keys (conj node-keys :groups :tags))))))
-        session (assoc-in session [:environment]
-                          (utils/dissoc-keys environment node-keys))
-        session (if (:server session)
-                  (let [group-name (-> session :server :group-name)]
-                    (assoc session
-                      :server (merge-environments
-                               (:server session)
-                               (select-keys environment node-keys)
-                               (-?> environment :tags group-name) ; deprecated
-                               (-?> environment :groups group-name))))
-                  session)
-        session (if (:group session)
-                  (let [group (-> session :group :group-name)]
-                    (assoc session
-                      :group (merge-environments
-                              (:group session)
-                              (select-keys environment node-keys)
-                              (-?> environment :tags group) ; deprecated
-                              (-?> environment :groups group))))
-                  session)
-        ;; session (assoc session
-        ;;           :executor (reduce
-        ;;                      merge
-        ;;                      (map execute/executor-map (:executors session))))
-        ]
-    ;; (track-executors (:executors session))
-    session))
-
 (defn group-with-environment
   "Add the environment to a group."
   [environment group]
