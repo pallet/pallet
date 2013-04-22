@@ -70,7 +70,9 @@
 
 (def-map-schema phase-meta-schema
   [(optional-path [:phase-execution-f]) fn?
-   (optional-path [:execution-settings-f]) fn?])
+   (optional-path [:execution-settings-f]) fn?
+   (optional-path [:post-phase-f]) fn?
+   (optional-path [:post-phase-fsm]) fn?])
 
 (def-map-schema phases-meta-schema
   [[(wild keyword?)] phase-meta-schema])
