@@ -132,8 +132,8 @@
 ;;; ## Action Plan Execution
 (defn environment-execution-settings
   "Returns execution settings based purely on the environment"
-  [environment]
-  (fn [_]
+  []
+  (fn [environment _]
     {:user (:user environment *admin-user*)
      :executor (get-in environment [:algorithms :executor] default-executor)
      :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
@@ -141,8 +141,8 @@
 
 (defn environment-image-execution-settings
   "Returns execution settings based on the environment and the image user."
-  [environment]
-  (fn [node]
+  []
+  (fn [environment node]
     (let [user (into {} (filter val (image-user (:node node))))
           user (if (or (:private-key-path user) (:private-key user))
                  (assoc user :temp-key true)

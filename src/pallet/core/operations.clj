@@ -12,7 +12,8 @@
 
 (defn node-count-adjuster
   "Adjusts node counts. Groups are expected to have node counts on them."
-  [compute-service groups service-state plan-state environment targets]
+  [compute-service groups service-state plan-state environment targets
+   execution-settings-f]
   {:pre [compute-service]}
   (dofsm node-count-adjuster
     [group-deltas         (result (api/group-deltas targets groups))
@@ -22,18 +23,18 @@
                             targets plan-state environment
                             :destroy-server
                             (mapcat :nodes (vals nodes-to-remove))
-                            (api/environment-execution-settings environment))
+                            execution-settings-f)
      _ (primitives/remove-group-nodes compute-service nodes-to-remove)
      [results2 plan-state] (primitives/build-and-execute-phase
                             targets plan-state environment
                             :destroy-group
                             (api/groups-to-remove group-deltas)
-                            (api/environment-execution-settings environment))
+                            execution-settings-f)
      [results3 plan-state] (primitives/build-and-execute-phase
                             targets plan-state environment
                             :create-group
                             (api/groups-to-create group-deltas)
-                            (api/environment-execution-settings environment))
+                            execution-settings-f)
      new-nodes (primitives/create-group-nodes
                 compute-service environment nodes-to-add)]
     {:new-nodes new-nodes
@@ -93,8 +94,7 @@
            post-phase-f post-phase-fsm]
     :or {targets service-state
          phase-execution-f primitives/build-and-execute-phase
-         execution-settings-f (api/environment-execution-settings
-                               environment)}}]
+         execution-settings-f (api/environment-execution-settings)}}]
   (logging/debugf
    "lift :phases %s :targets %s" (vec phases) (vec (map :group-name targets)))
   (letfn [(phase-meta [phase target]
@@ -241,7 +241,8 @@ Other options as taken by `lift`."
                 [(concat r results) plan-state]))
             [results plan-state]
             (let [fns (comp
-                       (juxt :partition-f :post-phase-f :post-phase-fsm :phase-execution-f)
+                       (juxt :partition-f :post-phase-f :post-phase-fsm
+                             :phase-execution-f)
                        meta #(api/target-phase % phase))]
               (partition-targets targets phase partition-f)))]
           [results plan-state]))
@@ -263,8 +264,9 @@ flag.
 : used to restrict the nodes on which the phases are run to a subset of
   `service-state`.  Defaults to `service-state`."
   [compute groups service-state plan-state environment phases
-   {:keys [targets]
-    :or {targets service-state}
+   {:keys [targets execution-settings-f]
+    :or {targets service-state
+         execution-settings-f (api/environment-execution-settings)}
     :as options}]
   (logging/debugf
    "converge :phase %s :groups %s :settings-groups %s"
@@ -272,30 +274,9 @@ flag.
    (vec (map :group-name groups))
    (vec (map :group-name targets)))
   (dofsm converge
-    [{:keys [new-nodes old-nodes targets service-state plan-state results]}
+    [{:keys [new-nodes old-nodes targets service-state plan-state results]
+      :as result}
      (node-count-adjuster
-      compute groups service-state plan-state environment targets)
-
-     results1 (result results)
-     {:keys [results plan-state]} (lift
-                                   service-state plan-state environment
-                                   [:bootstrap]
-                                   (merge
-                                    options
-                                    {:execution-settings-f
-                                     (api/environment-image-execution-settings
-                                      environment)
-                                     :phase-execution-f
-                                     (primitives/execute-on-unflagged
-                                      :bootstrapped)}))
-
-     results2 (result results)
-     {:keys [results plan-state]} (lift
-                                   service-state plan-state environment
-                                   [:settings]
-                                   (assoc options :targets service-state))]
-    {:results (concat results1 results2 results)
-     :targets targets
-     :plan-state plan-state
-     :new-nodes new-nodes
-     :old-nodes old-nodes}))
+      compute groups service-state plan-state environment targets
+      execution-settings-f)]
+    result))
