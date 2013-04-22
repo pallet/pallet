@@ -2,7 +2,7 @@
   "Functions and macros required to load a pallet project configuration file."
   (:require
    [pallet.actions :refer [package-manager]]
-   [pallet.api :refer [plan-fn group-spec]]
+   [pallet.api :refer [default-phase-meta plan-fn group-spec]]
    [pallet.crate.automated-admin-user :refer [automated-admin-user]]))
 
 ;;; Defaults are handled here so we can prevent pallet.project from dependening
@@ -11,13 +11,24 @@
 (def static-project-defaults
   {:source-paths ["pallet/src"]})
 
+(def default-bootstrap
+  (with-meta
+    (plan-fn
+      (package-manager :update)
+      (automated-admin-user))
+    (:bootstrap default-phase-meta)))
+
 (defn add-default-phases
   [{:keys [project-name phases] :as project}]
   (-> project
-      (update-in [:phases :bootstrap]
-                 #(or % (plan-fn
-                          (package-manager :update)
-                          (automated-admin-user))))))
+      (update-in [:phases :bootstrap] #(or % default-bootstrap))
+      (update-in
+       [:groups]
+       (fn [groups]
+         (map
+          (fn [g]
+            (update-in g [:phases :bootstrap] #(or % default-bootstrap)))
+          groups)))))
 
 (defn add-default-group-spec
   [{:keys [project-name phases] :as project}]

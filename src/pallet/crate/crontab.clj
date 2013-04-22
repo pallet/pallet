@@ -112,8 +112,8 @@
 
 (def with-crontab
   (server-spec
-   :settings (plan-fn
-               (empty-settings))
-   :configure (plan-fn
-                (system-crontabs :action :create)
-                (user-crontabs :action :create))))
+   :phases {:settings (plan-fn
+                        (empty-settings))
+            :configure (plan-fn
+                         (system-crontabs :action :create)
+                         (user-crontabs :action :create))}))

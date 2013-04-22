@@ -29,6 +29,11 @@
    [blobstore]
    "Close the blobstore"))
 
+(defn blobstore?
+  "Predicate to test if argument is a blobstore."
+  [b]
+  (satisfies? Blobstore b))
+
 ;;; Add deprecated forwarding functions
 ;;;  blobstore-from-map
 ;;;  blobstore-from-config

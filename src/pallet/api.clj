@@ -1,29 +1,51 @@
 (ns pallet.api
   "# Pallet API"
   (:require
+   [clojure.java.io :refer [resource input-stream]]
    [clojure.set :refer [union]]
    [clojure.string :refer [blank?]]
    [clojure.pprint :refer [print-table]]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
+   [pallet.contracts :refer [check-converge-options check-group-spec
+                             check-lift-options check-node-spec
+                             check-server-spec check-user]]
    [pallet.core.user :as user]
+   [pallet.core.api :refer [environment-image-execution-settings]]
    [pallet.core.operations :as ops]
+   [pallet.core.primitives :refer [execute-on-unflagged]]
+   [pallet.core.session :refer [session-context]]
    [clojure.tools.logging :as logging])
   (:use
    [pallet.core.api-impl
     :only [merge-specs merge-spec-algorithm node-has-group-name?]]
-   [pallet.core.session :only [session-context]]
    [pallet.crate :only [phase-context]]
    [pallet.algo.fsmop :only [dofsm operate result succeed]]
    [pallet.environment :only [group-with-environment merge-environments]]
    [pallet.node :only [node? node-map]]
    [pallet.plugin :only [load-plugins]]
    [pallet.thread-expr :only [when->]]
-   [pallet.utils :only [apply-map]]))
+   [pallet.utils :only [apply-map maybe-update-in]]))
 
+
+;;; ## Pallet version
+(let [v (atom nil)
+      properties-path "META-INF/maven/com.palletops/pallet/pom.properties"]
+  (defn version
+    "Returns the pallet version."
+    []
+    (or
+     @v
+     (if-let [path (resource properties-path)]
+       (with-open [in (input-stream path)]
+         (let [properties (doto (java.util.Properties.) (.load in))]
+           {:version (.getProperty properties "version")
+            :revision (.getProperty properties "revision")}))
+       {:version :unknown :revision :unknown}))))
 
 ;;; ## Domain Model
 
+;;; ### Node Spec
 (def ^{:doc "Vector of keywords recognised by node-spec"
        :private true}
   node-spec-keys [:image :hardware :location :network])
@@ -53,7 +75,57 @@
               spot-price enable-monitoring"
   [& {:keys [image hardware location network qos] :as options}]
   {:pre [(or (nil? image) (map? image))]}
-  (vary-meta options assoc :type ::node-spec))
+  (check-node-spec (vary-meta (or options {}) assoc :type ::node-spec)))
+
+;;; ### Server Spec
+
+;;; #### Phase Metadata
+
+;;; Phase metadata is used to control how a phase is executed.  There are
+;;; currently two possible keys for the metadata attached to a plan function,
+;;; `:execution-settings-f` and `:phase-execution-f`.
+
+;;; Phase metadata is merged when phase functions are composed.
+
+(defn execute-with-image-credentials-metadata
+  "Returns a metadata map that specifies a phase should be run using the image
+credentials (rather than the admin-user).  The map is suitable for use as a
+value in a map passed to the `:phases-meta` clause of a `server-spec` or
+`group-spec`."
+  []
+  {:execution-settings-f (environment-image-execution-settings)})
+
+(defn execute-on-unflagged-metadata
+  "Returns a metadata map that specifies a phase should be run only if the
+specified `flag-kw` is not set on a node.  The map is suitable for use as a
+value in a map passed to the `:phases-meta` clause of a `server-spec` or
+`group-spec`."
+  [flag-kw]
+  {:phase-execution-f (execute-on-unflagged flag-kw)})
+
+(def ^{:doc "The bootstrap phase is executed with the image credentials, and
+only not flagged with a :bootstrapped keyword."}
+  default-phase-meta
+  {:bootstrap
+   (merge (execute-with-image-credentials-metadata)
+          (execute-on-unflagged-metadata :bootstrapped))})
+
+(defn- phases-with-meta
+  "Takes a `phases-map` and applies the default phase metadata and the
+  `phases-meta` to the phases in it."
+  [phases-map phases-meta]
+  (reduce-kv
+   (fn [result k v]
+     (let [dm (default-phase-meta k)
+           pm (get phases-meta k)]
+       (assoc result k (if (or dm pm)
+                         ;; explicit overrides default
+                         (vary-meta v #(merge dm % pm))
+                         v))))
+   nil
+   (or phases-map {})))
+
+;;; #### Phase Extension
 
 (defn extend-specs
   "Merge in the inherited specs"
@@ -69,31 +141,41 @@
   ([spec inherits]
      (extend-specs spec inherits merge-spec-algorithm)))
 
+;;; #### Server-spec
+
 (defn server-spec
   "Create a server-spec.
 
-   - :phases a hash-map used to define phases. Standard phases are:
+   - :phases         a hash-map used to define phases. Phases are inherited by
+                     anything that :extends the server-spec.
+                     Standard phases are:
      - :bootstrap    run on first boot of a new node
      - :configure    defines the configuration of the node
+   - :phases-meta    metadata to add to the phases
    - :extends        takes a server-spec, or sequence thereof, and is used to
                      inherit phases, etc.
-   - :roles          defines a sequence of roles for the server-spec
+   - :roles          defines a sequence of roles for the server-spec. Inherited
+                     by anything that :extends the server-spec.
    - :node-spec      default node-spec for this server-spec
    - :packager       override the choice of packager to use
 
 For a given phase, inherited phase functions are run first, in the order
 specified in the `:extends` argument."
-  [& {:keys [phases packager node-spec extends roles]
+  [& {:keys [phases phases-meta packager node-spec extends roles]
       :as options}]
-  (->
-   node-spec
-   (or node-spec {})                    ; ensure we have a map and not nil
-   (merge options)
-   (when-> roles
-       (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
-   (extend-specs extends)
-   (dissoc :extends :node-spec)
-   (vary-meta assoc :type ::server-spec)))
+  (check-server-spec
+   (->
+    node-spec
+    (or node-spec {})                    ; ensure we have a map and not nil
+    (merge options)
+    (when-> roles
+            (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
+    (extend-specs extends)
+    (maybe-update-in [:phases] phases-with-meta phases-meta)
+    (dissoc :extends :node-spec :phases-meta)
+    (vary-meta assoc :type ::server-spec))))
+
+;;; ### Group-spec
 
 (defn group-spec
   "Create a group-spec.
@@ -105,28 +187,35 @@ specified in the `:extends` argument."
                and is used to inherit phases, etc.
 
    - :phases      used to define phases. Standard phases are:
+   - :phases-meta metadata to add to the phases
    - :bootstrap   run on first boot of a new node
    - :configure   defines the configuration of the node.
 
    - :count          specify the target number of nodes for this node-spec
    - :packager       override the choice of packager to use
    - :node-spec      default node-spec for this group-spec
-   - :node-filter    a predicate to test if a node is a member of this group."
+   - :node-filter    a predicate that tests if a node is a member of this
+                     group."
+  ;; Note that the node-filter is not set here for the default group-name based
+  ;; membership, so that it does not need to be updated by functions that modify
+  ;; a group's group-name.
   [name
-   & {:keys [extends count image phases packager node-spec roles node-filter]
+   & {:keys [extends count image phases phases-meta packager node-spec roles
+             node-filter]
       :as options}]
   {:pre [(or (nil? image) (map? image))]}
   (let [group-name (keyword (clojure.core/name name))]
-    (->
-     node-spec
-     (merge options)
-     (update-in [:node-filter] #(or % (node-has-group-name? group-name)))
-     (when-> roles
-             (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
-     (extend-specs extends)
-     (dissoc :extends :node-spec)
-     (assoc :group-name group-name)
-     (vary-meta assoc :type ::group-spec))))
+    (check-group-spec
+     (->
+      node-spec
+      (merge options)
+      (when-> roles
+              (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
+      (extend-specs extends)
+      (maybe-update-in [:phases] phases-with-meta phases-meta)
+      (dissoc :extends :node-spec :phases-meta)
+      (assoc :group-name group-name)
+      (vary-meta assoc :type ::group-spec)))))
 
 (defn expand-cluster-groups
   "Expand a node-set into its groups"
@@ -182,7 +271,7 @@ specified in the `:extends` argument."
 
    - :roles     roles for all group-specs in the cluster"
   [cluster-name
-   & {:keys [extends groups phases node-spec environment roles] :as options}]
+   & {:keys [extends groups phases node-spec roles] :as options}]
   (->
    options
    (update-in [:groups]
@@ -197,9 +286,6 @@ specified in the `:extends` argument."
                      #(keyword (str (name cluster-name)
                                     (if (blank? cluster-name) "" "-")
                                     (name %))))
-                    (update-in
-                     [:environment]
-                     merge-environments environment)
                     (update-in [:roles] union roles)
                     (extend-specs extends)
                     (extend-specs [{:phases phases}])
@@ -307,6 +393,7 @@ specified in the `:extends` argument."
                                all-nodes all-node-set environment plan-state]
                         :or {phase [:configure]}
                         :as options}]
+  (check-converge-options options)
   (let [[phases phase-map] (process-phases phase)
         groups (if (map? group-spec->count)
                  [group-spec->count]
@@ -326,20 +413,23 @@ specified in the `:extends` argument."
         groups (map (partial group-with-environment environment) groups)
         targets (map (partial group-with-environment environment) targets)
         lift-options (select-keys options ops/lift-options)]
+    (doseq [group groups] (check-group-spec group))
     (dofsm converge
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
        _ (succeed
           (or compute (seq nodes-set))
           {:error :no-nodes-and-no-compute-service})
-       {:keys [plan-state targets] :as converge-result}
-       (ops/converge
-        compute groups nodes-set plan-state environment phases options)
 
-       {:keys [results plan-state] :as lift-result}
+       {:keys [new-nodes plan-state targets service-state] :as converge-result}
+       (ops/converge
+        compute groups nodes-set plan-state environment phases lift-options)
+
+       {:keys [plan-state results]}
        (ops/lift-partitions
-        targets plan-state environment (remove #{:settings :bootstrap} phases)
-        lift-options)]
+        service-state plan-state environment
+        (concat [:settings :bootstrap] phases)
+        (assoc lift-options :targets targets))]
 
       (-> converge-result
           (update-in [:results] concat results)
@@ -433,6 +523,7 @@ the admin-user on the nodes.
   [node-set & {:keys [compute phase all-node-set environment]
                :or {phase [:configure]}
                :as options}]
+  (check-lift-options options)
   (let [[phases phase-map] (process-phases phase)
         {:keys [groups targets]} (-> node-set
                                      expand-cluster-groups
@@ -449,6 +540,7 @@ the admin-user on the nodes.
         targets (map (partial group-with-environment environment) targets)
         plan-state {}
         lift-options (select-keys options ops/lift-options)]
+    (doseq [group groups] (check-group-spec group))
     (dofsm lift
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
@@ -656,13 +748,14 @@ insufficient.
     - :no-sudo"
   [username & {:keys [public-key-path private-key-path passphrase
                       password sudo-password no-sudo sudo-user] :as options}]
-  (user/make-user
-   username
-   (merge
-    {:private-key-path (user/default-private-key-path)
-     :public-key-path (user/default-public-key-path)
-     :sudo-password (:password options)}
-    options)))
+  (check-user
+   (user/make-user
+    username
+    (merge
+     {:private-key-path (user/default-private-key-path)
+      :public-key-path (user/default-public-key-path)
+      :sudo-password (:password options)}
+     options))))
 
 (defmacro with-admin-user
   "Specify the admin user for running remote commands.  The user is specified

@@ -18,7 +18,7 @@
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :only [add-session-verification-key check-session]]
-   [pallet.utils :only [maybe-assoc]]
+   [pallet.utils :only [maybe-assoc maybe-update-in obfuscate]]
    pallet.core.api-impl
    [pallet.core.user :only [*admin-user*]]))
 
@@ -132,8 +132,8 @@
 ;;; ## Action Plan Execution
 (defn environment-execution-settings
   "Returns execution settings based purely on the environment"
-  [environment]
-  (fn [_]
+  []
+  (fn [environment _]
     {:user (:user environment *admin-user*)
      :executor (get-in environment [:algorithms :executor] default-executor)
      :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
@@ -141,13 +141,16 @@
 
 (defn environment-image-execution-settings
   "Returns execution settings based on the environment and the image user."
-  [environment]
-  (fn [node]
+  []
+  (fn [environment node]
     (let [user (into {} (filter val (image-user (:node node))))
           user (if (or (:private-key-path user) (:private-key user))
                  (assoc user :temp-key true)
                  user)]
-      (debugf "Image-user is %s" user)
+      (debugf "Image-user is %s"
+              (-> user
+                  (maybe-update-in [:password] obfuscate)
+                  (maybe-update-in [:sudo-password] obfuscate)))
       {:user user
        :executor (get-in environment [:algorithms :executor] default-executor)
        :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
@@ -212,7 +215,7 @@
     (when (= target-count ::not-specified)
       (throw
        (ex-info
-        "Node :count not specified for group: %s"
+        (format "Node :count not specified for group: %s" group)
         {:reason :target-count-not-specified
          :group group}) (:group-name group)))
     {:actual existing-count :target target-count

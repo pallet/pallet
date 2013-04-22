@@ -10,7 +10,7 @@
    [pallet.script.lib
     :only [bash env env-var-pairs exit heredoc make-temp-file mkdir rm sudo]]))
 
-(defn prolog []  (str "#!" (fragment (env)) "bash\n"))
+(defn prolog []  (str "#!" (fragment (env)) " bash\n"))
 (def epilog "\nexit $?")
 
 (defmulti interpreter

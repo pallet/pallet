@@ -78,7 +78,7 @@
    {:keys [action-plan phase target-type target] :as action-plan-map}]
   {:pre [action-plan-map action-plan target]}
   (let [{:keys [user executor executor-status-fn]} (execution-settings-f
-                                                    target)]
+                                                    environment target)]
     (async-fsm
      (partial
       api/execute-action-plan

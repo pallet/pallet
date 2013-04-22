@@ -3,6 +3,7 @@
   (:require
    [clojure.java.io :as io]
    [clojure.pprint :as pprint]
+   [clojure.string :as string]
    [clojure.tools.logging :as logging])
   (:use
    clojure.tools.logging
@@ -179,11 +180,11 @@
   nested structure.  If any levels do not exist, hash-maps will be
   created only if the update function returns a non-nil value. If
   the update function returns nil, the map is returned unmodified."
-  ([m [& ks] f & args]
-     (let [v (f (get-in m ks))]
-       (if v
-         (assoc-in m ks v)
-         m))))
+  [m [& ks] f & args]
+  (let [v (apply f (get-in m ks) args)]
+    (if v
+      (assoc-in m ks v)
+      m)))
 
 (defn maybe-assoc
   "'Assoc a value in an associative structure, where k is a key and v is the
@@ -360,3 +361,8 @@ value to assoc. The assoc only occurs if the value is non-nil."
               (deep-merge a b)
               b))]
     (apply merge-with f ms)))
+
+(defn obfuscate
+  "Obfuscate a password, by replacing every character by an asterisk."
+  [pw]
+  (when pw (string/replace pw #"." "*")))
