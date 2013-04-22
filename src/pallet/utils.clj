@@ -180,11 +180,11 @@
   nested structure.  If any levels do not exist, hash-maps will be
   created only if the update function returns a non-nil value. If
   the update function returns nil, the map is returned unmodified."
-  ([m [& ks] f & args]
-     (let [v (f (get-in m ks))]
-       (if v
-         (assoc-in m ks v)
-         m))))
+  [m [& ks] f & args]
+  (let [v (apply f (get-in m ks) args)]
+    (if v
+      (assoc-in m ks v)
+      m)))
 
 (defn maybe-assoc
   "'Assoc a value in an associative structure, where k is a key and v is the
