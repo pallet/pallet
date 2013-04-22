@@ -43,7 +43,7 @@
                    {}
                    :p
                    targets
-                   (api/environment-execution-settings {})))
+                   (api/environment-execution-settings)))
         [results plan-state] @op]
     (is @a)
     (is (= [true] (-> results first :result)))
