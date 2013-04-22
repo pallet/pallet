@@ -11,15 +11,24 @@
 (def static-project-defaults
   {:source-paths ["pallet/src"]})
 
+(def default-bootstrap
+  (with-meta
+    (plan-fn
+      (package-manager :update)
+      (automated-admin-user))
+    (:bootstrap default-phase-meta)))
+
 (defn add-default-phases
   [{:keys [project-name phases] :as project}]
   (-> project
-      (update-in [:phases :bootstrap]
-                 #(or % (with-meta
-                          (plan-fn
-                            (package-manager :update)
-                            (automated-admin-user))
-                          (:bootstrap default-phase-meta))))))
+      (update-in [:phases :bootstrap] #(or % default-bootstrap))
+      (update-in
+       [:groups]
+       (fn [groups]
+         (map
+          (fn [g]
+            (update-in g [:phases :bootstrap] #(or % default-bootstrap)))
+          groups)))))
 
 (defn add-default-group-spec
   [{:keys [project-name phases] :as project}]
