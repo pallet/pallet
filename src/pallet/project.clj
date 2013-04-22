@@ -117,6 +117,8 @@ which defaults to #{:default}.  The groups can be filtered by the roles set, and
 by group-names."
   ([{:keys [groups provider service] :as pallet-project} provider-kw
     selectors roles group-names]
+     (debugf "spec-from-project selectors %s roles %s group-names %s"
+             selectors roles group-names)
      (let [selectors (or selectors #{:default})
            variants (get-in provider [provider-kw :variants])
            ;; if variants are given we select from them, otherwise just
@@ -126,11 +128,13 @@ by group-names."
                        (comp seq #(intersection (set selectors) %) :selectors)
                        variants)
                       [(get provider provider-kw)])
+           _ (debugf "Groups : %s" (mapv :group-name groups))
            _ (debugf "Filtering groups with group-names : %s" group-names)
            groups (if (seq group-names)
                     (filter #((set group-names) (:group-name %)) groups)
                     groups)
-           _ (debugf "Filtering roles with %s" roles)
+           _ (debugf "Filtering %s for roles with %s"
+                     (mapv :group-name groups) roles)
            _ (tracef "Variants %s" (vec variants))
            groups (if (seq roles)
                     (filter
@@ -147,9 +151,10 @@ by group-names."
                              #(merge-variant-phases variant %)
                              ensure-group-count)
                             groups)))]
-       (debugf "spec-from-project for selectors %s found %s variants"
-               selectors (count variants))
-       (debugf "spec-from-project groups %s" (vec (map :group-name groups)))
+       (debugf
+        "spec-from-project found %s variants and %s groups"
+               selectors (count variants) (count groups))
+       (debugf "spec-from-project groups %s" (mapv :group-name groups))
        (log-multiline
         :trace
         "spec-from-project groups %s"
