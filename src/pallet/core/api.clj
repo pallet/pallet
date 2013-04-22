@@ -18,7 +18,7 @@
    [pallet.session.action-plan
     :only [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :only [add-session-verification-key check-session]]
-   [pallet.utils :only [maybe-assoc]]
+   [pallet.utils :only [maybe-assoc maybe-update-in obfuscate]]
    pallet.core.api-impl
    [pallet.core.user :only [*admin-user*]]))
 
@@ -147,7 +147,10 @@
           user (if (or (:private-key-path user) (:private-key user))
                  (assoc user :temp-key true)
                  user)]
-      (debugf "Image-user is %s" user)
+      (debugf "Image-user is %s"
+              (-> user
+                  (maybe-update-in [:password] obfuscate)
+                  (maybe-update-in [:sudo-password] obfuscate)))
       {:user user
        :executor (get-in environment [:algorithms :executor] default-executor)
        :executor-status-fn (get-in environment [:algorithms :execute-status-fn]

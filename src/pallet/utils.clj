@@ -3,6 +3,7 @@
   (:require
    [clojure.java.io :as io]
    [clojure.pprint :as pprint]
+   [clojure.string :as string]
    [clojure.tools.logging :as logging])
   (:use
    clojure.tools.logging
@@ -360,3 +361,8 @@ value to assoc. The assoc only occurs if the value is non-nil."
               (deep-merge a b)
               b))]
     (apply merge-with f ms)))
+
+(defn obfuscate
+  "Obfuscate a password, by replacing every character by an asterisk."
+  [pw]
+  (when pw (string/replace pw #"." "*")))
