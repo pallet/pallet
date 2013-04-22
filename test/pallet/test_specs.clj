@@ -7,11 +7,14 @@
    [pallet.actions
     :refer [as-action assoc-in-settings delete-local-path directory
             exec-checked-script exec-script exec-script* on-one-node remote-file
-            rsync-directory]]
+            rsync-directory with-action-values]]
    [pallet.algo.fsmop :refer [operate]]
-   [pallet.api :refer [group-spec plan-fn] :as api]
+   [pallet.api
+    :refer [execute-on-unflagged-metadata
+            execute-with-image-credentials-metadata
+            group-spec plan-fn]
+    :as api]
    [pallet.core.operations :as ops]
-   [pallet.core.primitives :refer [execute-on-unflagged]]
    [pallet.core.plan-state :as ps]
    [pallet.crate
     :refer [admin-user compute-service defplan get-settings target-name
@@ -213,7 +216,7 @@
              :ls (with-meta
                    (plan-fn
                      (exec-script "ls"))
-                   {:phase-execution-f (execute-on-unflagged :ls)})
+                   (execute-on-unflagged-metadata :ls))
              :test (plan-fn
                      ;; assert that every node has a hostname tag
                      (as-action
@@ -224,3 +227,17 @@
                      ;; reset the tags
                      (as-action (tag! (target-node) "hostname" "")))}
     :roles #{:live-test :partition}))
+
+;;; test execution-settings-f via metadata
+(def exec-meta-test
+  (group-spec "metatest"
+    :count 1
+    :phases
+    {:bootstrap (plan-fn)                ; so we don't get automated-admin-user
+     :configure (plan-fn
+                  (let [v (exec-script "ls")]
+                    (with-action-values [v]
+                      (assert (zero? (:exit v)) "Non-zero exit")
+                      (assert (:out v) "Has some output"))))}
+    :phases-meta {:configure (execute-with-image-credentials-metadata)}
+    :roles #{:live-test :exec-meta}))

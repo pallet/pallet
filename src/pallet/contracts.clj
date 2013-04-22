@@ -65,11 +65,24 @@
    (optional-path [:network]) network-spec-schema
    (optional-path [:qos]) qos-spec-schema])
 
+(def-map-schema phases-schema
+  [[(wild keyword?)] fn?])
+
+(def-map-schema phase-meta-schema
+  [(optional-path [:phase-execution-f]) fn?
+   (optional-path [:execution-settings-f]) fn?
+   (optional-path [:post-phase-f]) fn?
+   (optional-path [:post-phase-fsm]) fn?])
+
+(def-map-schema phases-meta-schema
+  [[(wild keyword?)] phase-meta-schema])
+
 (def-map-schema server-spec-schema
   node-spec-schema
-  [(optional-path [:phases]) map?
+  [(optional-path [:phases]) phases-schema
    (optional-path [:roles]) (set-of keyword?)
-   (optional-path [:packager]) keyword?])
+   (optional-path [:packager]) keyword?
+   (optional-path [:phases-meta]) phases-meta-schema])
 
 (def-map-schema group-spec-schema
   node-spec-schema

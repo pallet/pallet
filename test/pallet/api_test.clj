@@ -167,51 +167,68 @@
     (is (= :pallet.api/node-spec (type (node-spec :hardware {}))))))
 
 (deftest server-spec-test
-  (is (= {:phases {:a 1}}
-         (server-spec :phases {:a 1})))
-  (is (= {:phases {:a 1} :image {:image-id "2"}}
-         (server-spec
-          :phases {:a 1} :node-spec (node-spec :image {:image-id "2"})))
-      "node-spec merged in")
-  (is (= {:phases {:a 1} :image {:image-id "2"}
-          :hardware {:hardware-id "id"}}
-         (server-spec
-          :phases {:a 1}
-          :node-spec (node-spec :image {:image-id "2"})
-          :hardware {:hardware-id "id"}))
-      "node-spec keys moved to :node-spec keyword")
-  (is (= {:phases {:a 1} :image {:image-id "2"}}
-         (server-spec
-          :extends (server-spec
-                    :phases {:a 1} :node-spec {:image {:image-id "2"}})))
-      "extends a server-spec")
+  (let [f (fn [] :f)]
+    (is (= {:phases {:a f}}
+           (server-spec :phases {:a f})))
+    (testing "phases-meta"
+      (let [spec (server-spec :phases {:a f}
+                              :phases-meta {:a {:phase-execution-f f}})]
+        (is (= :f ((-> spec :phases :a))))
+        (is (= {:phase-execution-f f} (-> spec :phases :a meta)))))
+    (testing "phases-meta extension"
+      (let [spec1 (server-spec :phases {:a f}
+                              :phases-meta {:a {:phase-execution-f f}})
+            spec2 (server-spec :phases {:a #()})
+            spec (server-spec :extends [spec1 spec2])]
+        (is (= {:phase-execution-f f} (-> spec :phases :a meta)))))
+    (testing "default phases-meta"
+      (let [spec (server-spec :phases {:bootstrap f})]
+        (is (= (:bootstrap default-phase-meta)
+               (-> spec :phases :bootstrap meta)))))
+    (is (= {:phases {:a f} :image {:image-id "2"}}
+           (server-spec
+            :phases {:a f} :node-spec (node-spec :image {:image-id "2"})))
+        "node-spec merged in")
+    (is (= {:phases {:a f} :image {:image-id "2"}
+            :hardware {:hardware-id "id"}}
+           (server-spec
+            :phases {:a f}
+            :node-spec (node-spec :image {:image-id "2"})
+            :hardware {:hardware-id "id"}))
+        "node-spec keys moved to :node-spec keyword")
+    (is (= {:phases {:a f} :image {:image-id "2"}}
+           (server-spec
+            :extends (server-spec
+                      :phases {:a f} :node-spec {:image {:image-id "2"}})))
+        "extends a server-spec"))
   (is (= {:roles #{:r1}} (server-spec :roles :r1)) "Allow roles as keyword")
   (is (= {:roles #{:r1}} (server-spec :roles [:r1])) "Allow roles as sequence")
   (testing "type"
     (is (= :pallet.api/server-spec (type (server-spec :roles :r1))))))
 
 (deftest group-spec-test
-  (is (= {:group-name :gn :phases {:a 1}}
-         (dissoc
-          (group-spec "gn" :extends (server-spec :phases {:a 1}))
-          :node-filter)))
-  (is (= {:group-name :gn :phases {:a 1} :image {:image-id "2"}}
-         (dissoc
-          (group-spec
-              "gn"
-            :extends [(server-spec :phases {:a 1})
-                      (server-spec :node-spec {:image {:image-id "2"}})])
-          :node-filter)))
-  (is (= {:group-name :gn :phases {:a 1}
-          :image {:image-id "2"} :roles #{:r1 :r2 :r3}}
-         (dissoc
-          (group-spec
-              "gn"
-            :roles :r1
-            :extends [(server-spec :phases {:a 1} :roles :r2)
-                      (server-spec
-                       :node-spec {:image {:image-id "2"}} :roles [:r3])])
-          :node-filter)))
+  (let [f (fn [])]
+    (is (= {:group-name :gn :phases {:a f}}
+           (dissoc
+            (group-spec "gn" :extends (server-spec :phases {:a f}))
+            :node-filter)))
+    (is (= {:group-name :gn :phases {:a f} :image {:image-id "2"}}
+           (dissoc
+            (group-spec
+                "gn"
+              :extends [(server-spec :phases {:a f})
+                        (server-spec :node-spec {:image {:image-id "2"}})])
+            :node-filter)))
+    (is (= {:group-name :gn :phases {:a f}
+            :image {:image-id "2"} :roles #{:r1 :r2 :r3}}
+           (dissoc
+            (group-spec
+                "gn"
+              :roles :r1
+              :extends [(server-spec :phases {:a f} :roles :r2)
+                        (server-spec
+                         :node-spec {:image {:image-id "2"}} :roles [:r3])])
+            :node-filter))))
   (testing "type"
     (is (= :pallet.api/group-spec (type (group-spec "gn"))))))
 
