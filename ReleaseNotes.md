@@ -1,5 +1,70 @@
 Unstable development branch
 
+# 0.8.0-beta.9
+
+## Features
+
+- Add clj-schema checks for specs, user, converge and lift
+
+- Add pallet.api/version for the pallet version
+  Returns a map with :version and :revision keys.  When run from source,
+  these will return :unknown.
+
+- Add automated-admin-user to :bootstrap pallet.clj
+  When reading groups from pallet.clj, add automated-admin-user and
+  package-manager :update calls to :bootstrap if no :bootstrap phase exists.
+
+- Add phases-meta, and implement :bootstrap with it
+  This introduces the :phases-meta key used to add execution metadata to
+  phases in server-spec and group-spec.
+
+  The execute-on-unflagged-metadata and
+  execute-with-image-credentials-metadata functions can be used to generate
+  suitable metadata.
+
+  The :bootstrap phase is tagged with metadata to make it run with the
+  image-user, and only on nodes without a :bootstrapped flag.  Converge is
+  refactored to exploit the metadata on the phase and simplify its
+  implementation.
+
+  Changes the environment-execution-settings and
+  environment-image-execution-settings signatures in pallet.core.api.
+
+## Fixes
+
+- Update to fsmop 0.2.7 and script-exec 0.3.3
+
+- Improve logging in spec-from-project
+
+- Name anonymous function for merged phase functions
+
+- Remove obsolete sessiion-with-environment
+
+- Fix maybe-update-in for multi-argument case
+
+- Ensure logged image-user passwords are obfuscated
+
+- Enable phase specification of execution-settings-f
+
+- Fix node-spec when called without options
+
+- Remove environment option from cluster-spec
+
+- Don't set :node-filter for group-name based groups
+  Do not set the :node-filter on a group for groups based on :group-name
+  membership, so that functions that modify the group-name don't have to
+  worry about updating the :node-filter function.
+
+- Correct error message for group without count
+
+- Use assert for error message on unbound session
+
+- Fix os-version in show-nodes
+
+- Fix hostname keyword in show-nodes
+
+- Fix missing space in script prolog
+
 # 0.8.0-beta.8
 
 ## Features
