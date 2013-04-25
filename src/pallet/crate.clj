@@ -333,3 +333,10 @@
       (session) [:plan-state]
       plan-state/update-settings
       (session/target-id (session)) facility f args options))))
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (defplan 'defun) (def-aggregate-plan-fn 'defun))
+;; eval: (define-clojure-indent (def-collect-plan-fn 'defun))
+;; eval: (define-clojure-indent (phase-context 2)(defmethod-plan 2))
+;; End:

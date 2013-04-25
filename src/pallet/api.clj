@@ -787,3 +787,8 @@ insufficient.
                  (for [{:keys [node roles]} (:targets op)]
                    (assoc (select-keys (node-map node) ks)
                      :roles roles)))))
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (cluster-spec 1)(group-spec 1))
+;; End:
