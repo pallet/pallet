@@ -87,8 +87,12 @@
                                     {:phase phases}))
                            (dissoc :config :project)
                            (assoc :environment
-                             (or (:environment request)
-                                 (-> request :project :environment)))))]
+                             (assoc
+                                 (or (:environment request)
+                                     (-> request :project :environment))
+                               :project (dissoc
+                                         (-> request :project)
+                                         :environment)))))]
         (wait-for op)
         (if (failed? op)
           (binding [*out* *err*]
