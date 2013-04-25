@@ -394,6 +394,7 @@ specified in the `:extends` argument."
                         :or {phase [:configure]}
                         :as options}]
   (check-converge-options options)
+  (logging/tracef "environment %s" environment)
   (let [[phases phase-map] (process-phases phase)
         groups (if (map? group-spec->count)
                  [group-spec->count]
