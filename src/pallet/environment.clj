@@ -173,7 +173,8 @@
             "Could not find keys %s in session :environment"
             (if (sequential? keys) (vec keys) keys))
            {:type :environment-not-found
-            :key-not-set keys})))
+            :key-not-set keys
+            :environment (:environment session)})))
        result))
   ([session keys default]
      (get-in (:environment session) keys default)))
