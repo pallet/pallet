@@ -23,4 +23,13 @@
   :set-version
   {:updates [{:path "README.md" :no-snapshot true}]}}
  :no-checkouts {:checkout-shares ^:replace []} ; disable checkouts
- :clojure-1.5.0 {:dependencies [[org.clojure/clojure "1.5.0"]]}}
+ :clojure-1.5.0 {:dependencies [[org.clojure/clojure "1.5.0"]]}
+ :jclouds {:repositories
+           {"sonatype"
+            "https://oss.sonatype.org/content/repositories/releases/"}
+           :dependencies [[org.cloudhoist/pallet-jclouds "1.5.2"]
+                          [org.jclouds/jclouds-allblobstore "1.5.5"]
+                          [org.jclouds/jclouds-allcompute "1.5.5"]
+                          [org.jclouds.driver/jclouds-slf4j "1.5.5"
+                           :exclusions [org.slf4j/slf4j-api]]
+                          [org.jclouds.driver/jclouds-sshj "1.5.5"]]}}
