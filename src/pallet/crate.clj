@@ -276,7 +276,7 @@
   []
   (if-let [node (session/target-node (session))]
     (node/compute-service node)
-    (:compute session)))
+    (:compute (session))))
 
 (defn target-flag?
   "Returns a DelayedFunction that is a predicate for whether the flag is set"
