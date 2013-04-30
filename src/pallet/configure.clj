@@ -220,8 +220,12 @@
 
 `provider-options` is a map of provider options to be merged
 with the service configuration in the configuration file."
-  [service provider-options]
-  (compute-service-from-config (pallet-config) service provider-options))
+  ([service provider-options]
+     (compute-service-from-config (pallet-config) service provider-options))
+  ([]
+     (let [config (pallet-config)]
+       (compute-service-from-config
+        config (default-compute-service config) {}))))
 
 (defn compute-service
   "Instantiate a compute service.
@@ -317,8 +321,12 @@ with the service configuration in the configuration file."
 
 (defn blobstore-service-from-config-file
   "Create a blobstore service form a configuration map."
-  [service options]
-  (blobstore-from-config (pallet-config) service options))
+  ([service options]
+     (blobstore-from-config (pallet-config) service options))
+  ([]
+     (let [config (pallet-config)]
+       (blobstore-from-config
+        config (default-compute-service config) {}))))
 
 (defn blobstore-service
   "Instantiate a blobstore service.
