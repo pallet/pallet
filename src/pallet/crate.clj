@@ -276,12 +276,12 @@
   []
   (if-let [node (session/target-node (session))]
     (node/compute-service node)
-    (:compute (session))))
+    (-> (session) :environment :compute)))
 
 (defn blobstore
   "Returns the current blobstore."
   []
-  (:blobstore (session)))
+  (-> (session) :environment :blobstore))
 
 (defn target-flag?
   "Returns a DelayedFunction that is a predicate for whether the flag is set"
