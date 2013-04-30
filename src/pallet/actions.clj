@@ -579,7 +579,7 @@ option and :unpack :unzip.
       (doseq [p (or (options packager)
                     (when (#{:apt :aptitude} packager)
                       (options (first (disj #{:apt :aptitude} packager)))))]
-        (package p)))))
+        (apply-map package p (dissoc options :aptitude :brew :pacman :yum))))))
 
 (defaction package-manager
   "Package manager controls.
