@@ -455,6 +455,9 @@ applied.
 `:compute`
 : a compute service.
 
+`:blobstore`
+: a blobstore service.
+
 `:phase`
 : a phase keyword, phase function, or sequence of these.
 
@@ -572,6 +575,9 @@ of group specs to nodes. Examples:
 
 `:compute`
 : a compute service.
+
+`:blobstore`
+: a blobstore service.
 
 `:phase`
 : a phase keyword, phase function, or sequence of these.
