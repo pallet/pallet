@@ -2,12 +2,14 @@
   "Crate functions for manipulating SSH-keys"
   (:require
    [clojure.string :as string]
-   [pallet.script.lib :as lib]
+   [pallet.crate :refer [admin-user]]
+   [pallet.script.lib :as lib :refer [user-home]]
    [pallet.script :as script]
-   [pallet.stevedore :as stevedore :refer [with-source-line-comments]])
+   [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]])
   (:use
    [pallet.actions
-    :only [directory exec-checked-script file remote-file remote-file-content]]
+    :only [directory exec-checked-script file remote-file remote-file-content
+           sed]]
    [pallet.crate :only [defplan]]))
 
 (defn user-ssh-dir [user]
@@ -117,3 +119,23 @@ Passing a :filename value allows direct specification of the filename.
   (let [filename (or filename (str (ssh-default-filenames type) ".pub"))
         path (str (or dir (user-ssh-dir user)) filename)]
     (remote-file-content path)))
+
+(defplan config
+  "Update an ssh config file. Sets the configuration for `host` to be that given
+by the key-value-map.  Optionally allows specification of the `user` whose ssh
+config ffile is to be modified, and the full `config-file` path."
+  [host key-value-map & {:keys [user config-file]
+                         :or {user (:username (admin-user))}}]
+  (let [content (str "Host " host \newline
+                     (string/join \newline
+                                  (map
+                                   #(str "  " (first %) " = " (second %))
+                                   key-value-map)))
+        config-file (or config-file
+                        (fragment (lib/file (user-home ~user) ".ssh" config)))]
+    (file config-file :owner user :mode "600") ; ensure it exists
+    (sed config-file (str "{ /^Host " host "/d; /^Host / !d ;}") ;remove old
+         :quote-with "'" :restriction (str "/^Host " host "/,/^Host/"))
+    (exec-checked-script
+     "Append ssh config"
+     (println (str "'" ~content "'") ">>" ~config-file))))

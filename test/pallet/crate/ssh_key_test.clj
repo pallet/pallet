@@ -2,7 +2,10 @@
   (:use pallet.crate.ssh-key)
   (:require
    [pallet.action :as action]
+   [pallet.algo.fsmop :refer [complete? failed?]]
+   [pallet.api :refer [group-spec]]
    [pallet.build-actions :as build-actions]
+   [pallet.core.user :refer [*admin-user*]]
    [pallet.crate.automated-admin-user :as automated-admin-user]
    [pallet.context :as context]
    [pallet.live-test :as live-test]
@@ -10,7 +13,7 @@
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.template :as template]
-   [pallet.utils :as utils]
+   [pallet.utils :as utils :refer [with-temp-file]]
    [clojure.tools.logging :as logging]
    [clojure.string :as string])
   (:use
@@ -26,6 +29,10 @@
  with-ubuntu-script-template
  (logging-threshold-fixture)
  no-location-info)
+
+(defn- local-test-user
+  []
+  (assoc *admin-user* :username (test-username) :no-sudo true))
 
 (deftest authorize-key-test
   (is (script-no-comment=
@@ -269,6 +276,26 @@
     (logging/debug (format "check-public-key key is %s" key))
     (is (string? key))
     [key session]))
+
+(deftest config-test
+  (with-temp-file [tmp ""]
+    (let [compute (make-localhost-compute :group-name "local")
+          op (lift
+              (group-spec "local")
+              :phase (plan-fn
+                       (config "github.com" {"StrictHostKeyChecking" "no"}
+                               :config-file (.getPath tmp))
+                       (config "somewhere" {"StrictHostKeyChecking" "no"}
+                               :config-file (.getPath tmp))
+                       (config "github.com" {"StrictHostKeyChecking" "yes"}
+                               :config-file (.getPath tmp)))
+              :compute compute
+              :user (local-test-user)
+              :async true)
+          session @op]
+      (is (not (failed? op)))
+      (is (= "Host somewhere\n  StrictHostKeyChecking = no\nHost github.com\n  StrictHostKeyChecking = yes\n"
+             (slurp tmp))))))
 
 (deftest live-test
   (live-test/test-for
