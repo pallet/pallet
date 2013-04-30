@@ -54,7 +54,8 @@
 
 (defmacro ^{:indent 1} with-action-options
   "Set up local precedence relations between actions, and allows override
-   of user options, :script-dir and :script-prefix."
+   of user options, :script-dir, :script-sudo, :script-prefix and
+   :new-login-after-action."
   [m & body]
   `(let [p# (get-action-options)]
      (update-action-options ~m)

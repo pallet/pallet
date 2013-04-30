@@ -161,6 +161,8 @@
             (logging/trace "ssh-script-on-target done")
             (logging/debugf "%s   <== ----------------------------------------"
                             (:server endpoint))
+            (when (:new-login-after-action options)
+              (transport/close connection))
             [result session]))))))
 
 (defn- ssh-upload
