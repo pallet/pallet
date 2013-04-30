@@ -71,6 +71,12 @@
     @transient-services project
     (default-compute-service @transient-services))))
 
+(defn blobstore-service-from-config-files
+  [defaults project profile]
+  (or
+   (configure/blobstore-from-config (:pallet project) profile {})
+   (configure/blobstore-from-config defaults profile {})))
+
 (defn find-blobstore
   "Look for a compute service in the following sequence:
      Check pallet.config.service property
@@ -81,8 +87,12 @@
   [options defaults project profile]
   (or
    (configure/blobstore-from-map options)
-   (configure/blobstore-from-config (:pallet project) profile {})
-   (configure/blobstore-from-config defaults profile {})))
+   (when profile
+     (blobstore-service-from-config-files defaults project profile))
+   (configure/blobstore-service-from-property)
+   (configure/blobstore-service-from-config-var)
+   (blobstore-service-from-config-files
+    defaults project (default-compute-service defaults))))
 
 (defn invoke
   [options task params]
