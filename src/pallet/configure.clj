@@ -358,8 +358,8 @@ with the service configuration in the configuration file."
       (blobstore-service-from-property)
       (blobstore-service-from-config-var)
       (blobstore-service-from-config-file)))
-  ([service-name]
-     (blobstore-service-from-config-file service-name)))
+  ([service-name & {:as options}]
+     (blobstore-service-from-config-file service-name options)))
 
 ;;; Admin user
 
