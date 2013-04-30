@@ -278,6 +278,11 @@
     (node/compute-service node)
     (:compute (session))))
 
+(defn blobstore
+  "Returns the current blobstore."
+  []
+  (:blobstore (session)))
+
 (defn target-flag?
   "Returns a DelayedFunction that is a predicate for whether the flag is set"
   {:pallet/plan-fn true}
