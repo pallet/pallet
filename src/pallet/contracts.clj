@@ -186,3 +186,28 @@
 (defmacro check-converge-options
   [m]
   (check-spec m `converge-options-schema &form))
+
+(defn check-keys*
+  [m keys spec msg &form]
+  (if *verify-contracts*
+    `(let [m# (select-keys ~m ~keys)
+           spec# ~spec
+           msg# ~msg]
+       (if-let [errs# (seq (validation-errors spec# m#))]
+         (do
+           (errorf (str "Invalid " msg#  ":"))
+           (doseq [err# errs#]
+             (errorf (str "  " msg# " error: %s") err#))
+           (throw
+            (ex-info
+             (format (str "Invalid " msg# ": %s") (join " " errs#))
+             {:errors errs#
+              :line ~(:line (meta &form))
+              :file ~*file*}))))
+       m#)
+    m))
+
+(defmacro check-keys
+  "Check keys in m"
+  [m keys spec msg]
+  (check-keys* m keys spec msg &form))
