@@ -1,11 +1,13 @@
 (ns pallet.crate-install
   "Install methods for crates"
   (:use
+   [clj-schema.schema :refer [map-schema]]
    [clojure.tools.logging :only [debugf tracef]]
    [pallet.action :only [with-action-options]]
    [pallet.actions
     :only [add-rpm debconf-set-selections package package-manager package-source
            package-source-changed-flag plan-when remote-directory]]
+   [pallet.contracts :refer [check-keys]]
    [pallet.crate :only [get-settings defmulti-plan defmethod-plan target-flag?]]
    [pallet.crate.package-repo :only [repository-packages rebuild-repository]]
    [pallet.utils :only [apply-map]])
@@ -98,3 +100,14 @@
       (rebuild-repository path))
     (apply-map actions/package-source (:name package-source) package-source)
     (doseq [p packages] (package p))))
+
+;; Install based on an archive
+(defmethod-plan install :archive
+  [facility instance-id]
+  (let [{:keys [install-dir install-source] :as settings}
+        (get-settings facility {:instance-id instance-id})]
+    (check-keys
+     settings [:install-dir :install-source]
+     (map-schema :strict [[:install-dir] string? [:install-source] string?])
+     "archive install-strategy settings values")
+    (apply-map remote-directory install-dir install-source)))
