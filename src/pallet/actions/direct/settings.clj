@@ -37,9 +37,13 @@
 (implement-action update-settings :direct
   {:action-type :fn/clojure :location :origin}
   [session facility options & args]
-  (let [options (if (map? options) options nil)
-        f (if options (first args) options)
-        args (if options (rest args) args)]
+  (clojure.tools.logging/warnf
+   "facility %s options %s args %s"
+   facility options (vec args))
+  (let [[options f args] (if (or (nil? options) (map? options))
+                           [options (first args) (rest args)]
+                           [{} options args])]
+    (assert f "Must supply a function")
     [(fn [session]
        [[f args] (update-in
                   session [:plan-state]
