@@ -1,7 +1,9 @@
 (ns pallet.strint-test
-  (:use pallet.common.strint pallet.strint)
-  (:use clojure.test
-        pallet.test-utils))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.common.strint :refer :all]
+   [pallet.strint :refer :all]
+   [pallet.test-utils :refer :all]))
 
 (deftest interpolate-test
   (is (= '("a " a "") (#'pallet.common.strint/interpolate "a ~{a}"))))

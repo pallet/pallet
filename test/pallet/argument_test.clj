@@ -1,6 +1,7 @@
 (ns pallet.argument-test
-  (:use pallet.argument)
-  (:use clojure.test))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.argument :refer :all]))
 
 (deftest evaluate-test
   (is (= "xx" (evaluate "xx" {}))))

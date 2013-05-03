@@ -1,10 +1,9 @@
 (ns pallet.crate.network-service
   "Crate for working with network services"
   (:require
-   [pallet.script.lib :as lib])
-  (:use
-   [pallet.actions :only [exec-checked-script]]
-   [pallet.crate :only [defplan]]))
+   [pallet.actions :refer [exec-checked-script]]
+   [pallet.crate :refer [defplan]]
+   [pallet.script.lib :as lib]))
 
 (defplan wait-for-port-listen
   "Wait for the network port `port` to be in a listening state.

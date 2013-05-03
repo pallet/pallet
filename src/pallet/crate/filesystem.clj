@@ -1,10 +1,9 @@
 (ns pallet.crate.filesystem
   "Filesystem crate."
   (:require
-   [clojure.string :as string])
-  (:use
-   [pallet.actions :only [directory exec-checked-script]]
-   [pallet.crate :only [defplan]]))
+   [clojure.string :as string]
+   [pallet.actions :refer [directory exec-checked-script]]
+   [pallet.crate :refer [defplan]]))
 
 (defplan make-xfs-filesytem
   "Format a device as an XFS filesystem."

@@ -22,7 +22,8 @@
     `(apply format ~msg)
     msg))
 
-(defmacro with-context
+(defmacro ^{:requires [event/publish #'logutils/with-context]}
+  with-context
   "Specifies a context for pallet implementation code."
   {:indent 1}
   [context & body]
@@ -53,7 +54,8 @@
   (when (bound? #'pallet.common.context/*current-context*)
     (seq (context/scope-formatted-context-entries :pallet/phase))))
 
-(defmacro with-phase-context
+(defmacro ^{:requires [#'context/with-context event/publish]}
+  with-phase-context
   "Specifies a context inside a phase function"
   [context & body]
   (let [line (-> &form meta :line)]
@@ -106,7 +108,7 @@
        :problem p#})))
 
 ;;; logging
-(defmacro infof
+(defmacro ^{:requires [#'logging/info string/join]} infof
   [fmt & fmtargs]
   `(logging/infof
     (str (string/join ", " (context/formatted-context-entries)) ": " ~fmt)

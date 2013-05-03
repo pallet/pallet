@@ -1,18 +1,22 @@
 (ns pallet.crate-install
   "Install methods for crates"
-  (:use
-   [clj-schema.schema :refer [map-schema]]
-   [clojure.tools.logging :only [debugf tracef]]
-   [pallet.action :only [with-action-options]]
-   [pallet.actions
-    :only [add-rpm debconf-set-selections package package-manager package-source
-           package-source-changed-flag plan-when remote-directory]]
-   [pallet.contracts :refer [check-keys]]
-   [pallet.crate :only [get-settings defmulti-plan defmethod-plan target-flag?]]
-   [pallet.crate.package-repo :only [repository-packages rebuild-repository]]
-   [pallet.utils :only [apply-map]])
   (:require
-   [pallet.actions :as actions]))
+   [clj-schema.schema :refer [map-schema]]
+   [clojure.tools.logging :refer [debugf tracef]]
+   [pallet.action :refer [with-action-options]]
+   [pallet.actions :as actions]
+   [pallet.actions
+    :refer [add-rpm
+            debconf-set-selections
+            package
+            package-manager
+            package-source-changed-flag
+            plan-when
+            remote-directory]]
+   [pallet.contracts :refer [check-keys]]
+   [pallet.crate :refer [defmethod-plan defmulti-plan get-settings target-flag?]]
+   [pallet.crate.package-repo :refer [rebuild-repository repository-packages]]
+   [pallet.utils :refer [apply-map]]))
 
 ;;; ## Install helpers
 (defmulti-plan install

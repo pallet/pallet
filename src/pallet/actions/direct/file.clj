@@ -1,12 +1,11 @@
 (ns pallet.actions.direct.file
   "File manipulation."
   (:require
+   [pallet.action :refer [implement-action]]
    [pallet.action-plan :as action-plan]
+   [pallet.actions :refer [fifo file sed symbolic-link]]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore])
-  (:use
-   [pallet.action :only [implement-action]]
-   [pallet.actions :only [exec-script file fifo symbolic-link sed]]))
+   [pallet.stevedore :as stevedore]))
 
 (defn adjust-file [path options]
   (stevedore/chain-commands*

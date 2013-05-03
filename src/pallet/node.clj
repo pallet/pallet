@@ -1,8 +1,8 @@
 (ns pallet.node
   "API for nodes in pallet"
-  (:refer-clojure :exclude [proxy])
-  (:use
-   [pallet.compute :only [node-tag node-tags tag-node! node-taggable?]]))
+  (:require
+   [pallet.compute :refer [node-tag node-taggable? node-tags tag-node!]])
+  (:refer-clojure :exclude [proxy]))
 
 ;;; Nodes
 (defprotocol Node

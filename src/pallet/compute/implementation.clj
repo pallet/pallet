@@ -1,10 +1,8 @@
 (ns pallet.compute.implementation
   "Implementation details"
   (:require
-   [pallet.utils :as utils]
-   [clojure.tools.logging :as logging])
-  (:use
-   [chiba.plugin :only [plugins]]))
+   [chiba.plugin :refer [plugins]]
+   [clojure.tools.logging :as logging]))
 
 (defmulti service
   "Instantiate a compute service. Providers should implement a method for this.

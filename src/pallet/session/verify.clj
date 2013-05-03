@@ -1,6 +1,6 @@
 (ns pallet.session.verify
-  (:use
-   [pallet.common.context :only [throw-map]]))
+  (:require
+   [pallet.common.context :refer [throw-map]]))
 
 (def session-verification-key :pallet.phase/session-verification)
 

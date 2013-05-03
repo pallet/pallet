@@ -11,7 +11,7 @@ defproject refers to pallet.project.loader/defproject."
    [clojure.set :refer [intersection]]
    [clojure.string :as string]
    [clojure.tools.logging :refer [debugf tracef]]
-   [pallet.api :as api :refer [cluster-spec extend-specs]]
+   [pallet.api :refer [cluster-spec extend-specs]]
    [pallet.contracts :refer [check-group-spec]]
    [pallet.utils :refer [log-multiline]]))
 

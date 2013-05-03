@@ -2,11 +2,11 @@
   "Generation and installation of /etc/default-style files."
   (:require
    [clojure.string :as string]
-   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
-   [pallet.script.lib :as lib])
-  (:use
-   [pallet.actions :only [remote-file]]
-   [pallet.crate :only [defplan]]))
+   [pallet.actions :refer [remote-file]]
+   [pallet.crate :refer [defplan]]
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :refer [with-source-line-comments]]))
 
 (defplan write
   "Writes a KEY=value file to /etc/default/~{filename}, or ~{filename} if

@@ -1,9 +1,8 @@
 (ns pallet.debug
   "Helpers for debugging."
   (:require
-   [clojure.tools.logging :as logging])
-  (:use
-   [pallet.core.session :only [session]]))
+   [clojure.tools.logging :as logging]
+   [pallet.core.session :refer [session]]))
 
 (defn log-session
   "A crate function that will log the session map at the debug level, using

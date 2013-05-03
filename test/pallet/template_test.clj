@@ -1,19 +1,23 @@
 (ns pallet.template-test
-  (:use pallet.template)
   (:require
-   [pallet.utils :as utils]
-   [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]
-   [pallet.strint :as strint])
-  (:use
-   clojure.test
-   [pallet.actions :only [remote-file]]
-   [pallet.api :only [group-spec]]
-   [pallet.build-actions :only [build-actions]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [clojure.test :refer :all]
+   [pallet.actions :refer [remote-file]]
+   [pallet.api :refer [group-spec]]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.strint :as strint]
+   [pallet.template
+    :refer [apply-templates
+            find-template
+            interpolate-template
+            path-components
+            pathname]]
    [pallet.test-utils
-    :only [make-node test-session
-           with-bash-script-language with-ubuntu-script-template]]))
+    :refer [make-node
+            test-session
+            with-bash-script-language
+            with-ubuntu-script-template]]
+   [pallet.utils :as utils]))
 
 (use-fixtures
  :once

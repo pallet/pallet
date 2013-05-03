@@ -1,12 +1,11 @@
 (ns pallet.main-invoker-test
   (:require
+   [clojure.test :refer :all]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :refer [service-properties]]
    [pallet.configure :as configure]
    [pallet.main-invoker :as main-invoker]
-   [pallet.test-utils :as test-utils]
-   pallet.compute.node-list)
-  (:use clojure.test))
+   [pallet.test-utils :as test-utils]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
 

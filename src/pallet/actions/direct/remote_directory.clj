@@ -2,19 +2,20 @@
   "Action to specify the content of a remote directory.  At present the
    content can come from a downloaded tar or zip file."
   (:require
-   pallet.actions.direct.directory
-   pallet.actions.direct.remote-file
-   [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
-   [clojure.java.io :as io])
-  (:use
-   [pallet.action :only [action-fn implement-action]]
-   [pallet.action-plan :only [checked-commands]]
-   [pallet.actions :only [directory remote-directory]]
+   [pallet.action :refer [action-fn implement-action]]
+   [pallet.action-plan :refer [checked-commands]]
+   [pallet.actions :refer [directory]]
    [pallet.actions-impl
-    :only [md5-filename new-filename remote-directory-action
-           remote-file-action]]
-   [pallet.utils :only [apply-map]]))
+    :refer [md5-filename
+            new-filename
+            remote-directory-action
+            remote-file-action]]
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :refer [with-source-line-comments]]))
+
+(require 'pallet.actions.direct.directory)
+(require 'pallet.actions.direct.remote-file)
 
 (def ^{:private true}
   directory* (action-fn directory :direct))

@@ -1,8 +1,8 @@
 (ns pallet.actions.direct.exec-script
   "Script execution. Script generation occurs with the correct script context."
-  (:use
-   [pallet.action :only [implement-action]]
-   [pallet.actions :only [exec exec-script*]]))
+  (:require
+   [pallet.action :refer [implement-action]]
+   [pallet.actions :refer [exec exec-script*]]))
 
 (implement-action exec :direct
   {:action-type :script :location :target}

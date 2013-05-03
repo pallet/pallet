@@ -1,14 +1,17 @@
 (ns pallet.task-utils
   "Task helpers that depend on pallet implementation"
   (:require
-   [clojure.java.io :refer [file]]
    [clojure.string :as string]
    [clojure.tools.cli :refer [cli]]
    [clojure.tools.logging :refer [fatalf]]
    [pallet.compute :refer [service-properties]]
    [pallet.project
-    :refer [create-project-file default-pallet-file default-user-pallet-file
-            pallet-file-exists?  read-or-create-project read-project
+    :refer [create-project-file
+            default-pallet-file
+            default-user-pallet-file
+            pallet-file-exists?
+            read-or-create-project
+            read-project
             spec-from-project]]
    [pallet.task :refer [abort report-error]]))
 

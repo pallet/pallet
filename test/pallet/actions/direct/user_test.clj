@@ -1,15 +1,13 @@
 (ns pallet.actions.direct.user-test
-  (:use
-   [pallet.actions :only [user group]]
-   [pallet.actions.direct.user :only [user*]]
-   [pallet.build-actions :only [build-actions]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.stevedore :only [script]]
-   clojure.test)
   (:require
-   [pallet.test-utils :as test-utils]
-   [pallet.script :as script]
-   [pallet.script.lib :as lib]))
+   [clojure.test :refer :all]
+   [pallet.actions :refer [group]]
+   [pallet.actions.direct.user :refer [user*]]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :refer [script]]
+   [pallet.test-utils :as test-utils]))
 
 (use-fixtures
  :once

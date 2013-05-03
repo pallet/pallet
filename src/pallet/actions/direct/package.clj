@@ -7,22 +7,27 @@
   (:require
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
-   [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
-   [pallet.utils :refer [apply-map]]
-   [pallet.version-dispatch :refer [os-map os-map-lookup]]
-   pallet.actions.direct.exec-script
-   pallet.actions.direct.file
-   pallet.actions.direct.remote-file)
-  (:use
-   [pallet.action :only [action-fn implement-action]]
-   [pallet.action-plan :only [checked-commands checked-script]]
+   [pallet.action :refer [action-fn implement-action]]
+   [pallet.action-plan :refer [checked-commands]]
    [pallet.actions
-    :only [add-rpm debconf-set-selections exec-script install-deb
-           minimal-packages package package-manager package-source
-           package-source-changed-flag remote-file sed]]
-   [pallet.actions-impl :only [remote-file-action]]
-   [pallet.core.session :only [packager os-family]]))
+    :refer [add-rpm
+            debconf-set-selections
+            install-deb
+            minimal-packages
+            package
+            package-manager
+            package-source
+            package-source-changed-flag
+            sed]]
+   [pallet.actions-impl :refer [remote-file-action]]
+   [pallet.core.session :refer [os-family packager]]
+   [pallet.script.lib :as lib]
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :refer [checked-script with-source-line-comments]]
+   [pallet.utils :refer [apply-map]]
+   [pallet.version-dispatch :refer [os-map os-map-lookup]]))
+
+(require 'pallet.actions.direct.remote-file)  ; stop slamhound from removing it
 
 (def ^{:private true}
   remote-file* (action-fn remote-file-action :direct))

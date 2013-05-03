@@ -2,14 +2,17 @@
   "Base operation primitives for pallet."
   (:require
    [clojure.tools.logging :as logging]
-   [pallet.core.api :as api])
-  (:use
-   [pallet.algo.fsmop :only [dofsm execute update-state map*]]
-   [pallet.algo.fsm.fsm-dsl :only
-    [event-handler event-machine-config fsm-name initial-state on-enter state
-     state-driver valid-transitions]]
-   [pallet.map-merge :only [merge-keys]]
-   [pallet.node :only [id]]))
+   [pallet.algo.fsm.fsm-dsl
+    :refer [event-handler
+            event-machine-config
+            fsm-name
+            on-enter
+            state
+            valid-transitions]]
+   [pallet.algo.fsmop :refer [dofsm execute map* update-state]]
+   [pallet.core.api :as api]
+   [pallet.map-merge :refer [merge-keys]]
+   [pallet.node :refer [id]]))
 ;;; ## Wrap non-FSM functions in simple FSM
 
 ;;; TODO: Provide support for controlling retry count, standoff, etc, although

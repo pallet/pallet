@@ -1,10 +1,9 @@
 (ns pallet.crate-install-test
-  (:use
-   clojure.test
-   pallet.crate-install
-   [pallet.build-actions :only [build-actions]]
-   [pallet.crate :only [assoc-settings]]))
-
+  (:require
+   [clojure.test :refer :all]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.crate :refer [assoc-settings]]
+   [pallet.crate-install :refer :all]))
 
 (deftest install-test
   (is (build-actions {}

@@ -1,24 +1,24 @@
 (ns pallet.actions.direct.remote-file
   "Action to specify remote file content."
   (:require
-   [pallet.action :as action]
-   [pallet.action-plan :as action-plan]
+   [clojure.java.io :as io]
+   [pallet.action :refer [implement-action]]
+   [pallet.actions
+    :refer [delete-local-path
+            transfer-file
+            transfer-file-to-local
+            wait-for-file]]
+   [pallet.actions-impl
+    :refer [copy-filename md5-filename new-filename remote-file-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
    [pallet.environment :as environment]
-   [pallet.script.lib :as lib :refer [wait-while exit]]
-   [pallet.stevedore :as stevedore :refer [fragment]]
-   [pallet.template :as templates]
-   [pallet.utils :as utils]
-   [clojure.java.io :as io])
-  (:use
-   [pallet.action :only [implement-action]]
-   [pallet.actions
-    :only [exec-script transfer-file transfer-file-to-local delete-local-path
-           wait-for-file]]
-   [pallet.actions-impl
-    :only [copy-filename md5-filename new-filename remote-file-action]]
-   [pallet.utils :only [apply-map]]))
+   [pallet.script.lib :as lib]
+   [pallet.script.lib :refer [wait-while]]
+   [pallet.stevedore :as action-plan]
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :refer [fragment]]
+   [pallet.template :as templates]))
 
 (implement-action delete-local-path :direct
   {:action-type :fn/clojure :location :origin}

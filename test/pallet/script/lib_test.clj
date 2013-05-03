@@ -1,9 +1,9 @@
 (ns pallet.script.lib-test
-  (:use pallet.script.lib)
-  (:use [pallet.stevedore :only [map-to-arg-string fragment script]]
-        clojure.test)
   (:require
+   [clojure.test :refer :all]
    [pallet.script :as script]
+   [pallet.script.lib :refer :all]
+   [pallet.stevedore :refer [fragment map-to-arg-string script]]
    [pallet.test-utils :as test-utils]))
 
 (use-fixtures

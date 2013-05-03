@@ -1,17 +1,26 @@
 (ns pallet.api-test
-  (:use
-   clojure.test
-   pallet.api
-   [pallet.actions :only [exec-script]]
-   [pallet.api :only [group-spec plan-fn]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.compute :only [nodes]]
-   [pallet.core.session :only [session session! with-session]]
-   [pallet.core.user :only [default-private-key-path default-public-key-path]]
-   [pallet.environment :only [get-environment]]
-   [pallet.node :only [group-name]]
-   [pallet.session.verify :only [add-session-verification-key]]
-   [pallet.test-utils :only [make-localhost-compute]]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.actions :refer [exec-script]]
+   [pallet.api
+    :refer [cluster-spec
+            default-phase-meta
+            extend-specs
+            group-nodes
+            group-spec
+            lift
+            make-user
+            node-spec
+            plan-fn
+            server-spec]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.compute :refer [nodes]]
+   [pallet.core.session :refer [session session! with-session]]
+   [pallet.core.user :refer [default-private-key-path default-public-key-path]]
+   [pallet.environment :refer [get-environment]]
+   [pallet.node :refer [group-name]]
+   [pallet.session.verify :refer [add-session-verification-key]]
+   [pallet.test-utils :refer [make-localhost-compute]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

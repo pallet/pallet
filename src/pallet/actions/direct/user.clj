@@ -1,13 +1,11 @@
 (ns pallet.actions.direct.user
   "User management action."
-  (:use
-   [pallet.action :only [implement-action]]
-   [pallet.actions :only [user group]]
-   [pallet.script :only [defscript]])
   (:require
+   [clojure.string :as string]
+   [pallet.action :refer [implement-action]]
+   [pallet.actions :refer [group user]]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]
-   [clojure.string :as string]))
+   [pallet.stevedore :as stevedore]))
 
 
 (def

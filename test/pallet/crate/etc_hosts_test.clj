@@ -1,12 +1,10 @@
 (ns pallet.crate.etc-hosts-test
- (:use
-  clojure.test
-  [pallet.actions :only [remote-file]]
-  [pallet.build-actions :only [build-actions]]
-  [pallet.common.logging.logutils :only [logging-threshold-fixture]])
- (:require
-  [pallet.crate.etc-hosts :as etc-hosts]
-  [pallet.test-utils :as test-utils]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.crate.etc-hosts :as etc-hosts]
+   [pallet.test-utils :as test-utils]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

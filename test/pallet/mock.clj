@@ -1,6 +1,6 @@
 (ns pallet.mock
-  (:use clojure.test)
   (:require
+   [clojure.test :refer :all]
    [pallet.utils :as utils]))
 
 (def ^{:dynamic true} *expectations*)
@@ -70,7 +70,8 @@
   `(binding [*expectations* []]
      ~@body))
 
-(defmacro expects
+(defmacro ^{:requires [#'utils/with-redef]}
+  expects
   "Binds a list of mocks, checling any expectations on exit of the block."
   [mocks & body]
   `(with-expectations

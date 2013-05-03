@@ -1,7 +1,7 @@
 (ns pallet.versions-test
-  (:use
-   clojure.test
-   pallet.versions))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.versions :refer :all]))
 
 (deftest version-vector-test
   (is (= [1] (version-vector "1")))

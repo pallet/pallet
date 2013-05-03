@@ -2,7 +2,7 @@
   "Functions and macros required to load a pallet project configuration file."
   (:require
    [pallet.actions :refer [package-manager]]
-   [pallet.api :refer [default-phase-meta plan-fn group-spec]]
+   [pallet.api :refer [default-phase-meta group-spec plan-fn]]
    [pallet.crate.automated-admin-user :refer [automated-admin-user]]))
 
 ;;; Defaults are handled here so we can prevent pallet.project from dependening

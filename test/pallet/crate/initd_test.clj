@@ -1,16 +1,15 @@
 (ns pallet.crate.initd-test
-  (:use
-   clojure.test
-   pallet.test-utils)
   (:require
+   [clojure.test :refer :all]
    [pallet.actions :refer [remote-file]]
    [pallet.api :refer [plan-fn] :as api]
    [pallet.build-actions :as build-actions]
+   [pallet.crate.initd :as initd]
    [pallet.crate.service :refer [service-supervisor-config]]
    [pallet.crate.service-test :refer [service-supervisor-test]]
-   [pallet.crate.initd :as initd]
+   [pallet.script :refer [defimpl defscript]]
    [pallet.stevedore :refer [fragment]]
-   [pallet.script :refer [defscript defimpl]]))
+   [pallet.test-utils :refer :all]))
 
 (defscript init-script "Return an init script" [])
 

@@ -1,6 +1,7 @@
 (ns pallet.template.properties
   "A template for writing properties style config files."
-  (:use [pallet.utils :only [as-string]]))
+  (:require
+   [pallet.utils :refer [as-string]]))
 
 (defn property-section [[name settings]]
   (apply

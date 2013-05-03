@@ -1,12 +1,11 @@
 (ns pallet.script-builder-test
-  (:use pallet.script-builder)
-  (:use clojure.test
-        clojure.tools.logging)
   (:require
-   [clojure.string :as string]
+   [clojure.test :refer :all]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.test-utils :as test-utils :refer [remove-source-line-comments]]
-   [pallet.script :as script]))
+   [pallet.script :as script]
+   [pallet.script-builder :refer [build-code prolog sudo-cmd-for]]
+   [pallet.test-utils :as test-utils]
+   [pallet.test-utils :refer [remove-source-line-comments]]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
 

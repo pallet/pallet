@@ -1,29 +1,32 @@
 (ns pallet.actions.direct.package-test
-  (:use
-   clojure.test
-   [pallet.actions.direct.package
-    :only [add-scope* adjust-packages package-manager* package-source*]]
-   [pallet.action :only [action-fn]]
-   [pallet.actions
-    :only [add-rpm debconf-set-selections exec-checked-script
-           exec-checked-script exec-script file minimal-packages package package
-           package-manager package-source packages remote-file sed]]
-   [pallet.actions-impl :only [remote-file-action]]
-   [pallet.api :only [group-spec lift]]
-   [pallet.build-actions
-    :only [build-actions build-session ubuntu-session centos-session]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.crate :only [phase-context]]
-   [pallet.script :only [with-script-context]]
-   [pallet.stevedore :only [script]])
   (:require
-   [pallet.execute :as execute]
+   [clojure.java.io :as io]
+   [clojure.test :refer :all]
+   [pallet.action :refer [action-fn]]
+   [pallet.actions
+    :refer [add-rpm
+            debconf-set-selections
+            exec-checked-script
+            package
+            package-manager
+            package-source
+            packages
+            remote-file
+            sed]]
+   [pallet.actions-impl :refer [remote-file-action]]
+   [pallet.actions.direct.package
+    :refer [add-scope* adjust-packages package-manager* package-source*]]
+   [pallet.api :refer [group-spec]]
+   [pallet.build-actions
+    :refer [build-actions build-session centos-session ubuntu-session]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.crate :refer [phase-context]]
    [pallet.local.execute :as local]
    [pallet.script :as script]
+   [pallet.script :refer [with-script-context]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [pallet.test-utils :as test-utils]
-   [clojure.java.io :as io]))
+   [pallet.test-utils :as test-utils]))
 
 (use-fixtures
  :each

@@ -1,7 +1,7 @@
 (ns pallet.compute-test
-  (:use
-   pallet.compute
-   clojure.test))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.compute :refer :all]))
 
 (deftest packager-test
   (is (= :aptitude (packager {:os-family :ubuntu})))

@@ -1,9 +1,9 @@
 (ns pallet.crate.package-repo
   "Package repositories"
-  (:use
-   [pallet.actions :only [exec-checked-script packages]]
-   [pallet.crate :only [defplan]]
-   [pallet.script :only [defscript defimpl]]))
+  (:require
+   [pallet.actions :refer [exec-checked-script packages]]
+   [pallet.crate :refer [defplan]]
+   [pallet.script :refer [defimpl defscript]]))
 
 ;; https://help.ubuntu.com/community/Repositories/Personal
 ;; http://odzangba.wordpress.com/2006/10/13/how-to-build-local-apt-repositories/

@@ -6,14 +6,14 @@
    [clojure.string :refer [trim]]
    [clojure.tools.logging :as logging]
    [pallet.action
-    :refer [clj-action defaction with-action-options enter-scope leave-scope]]
+    :refer [clj-action defaction enter-scope leave-scope with-action-options]]
    [pallet.actions-impl :refer :all]
    [pallet.argument :as argument :refer [delayed]]
-   [pallet.crate :refer [role->nodes-map packager phase-context target]]
+   [pallet.crate :refer [packager phase-context role->nodes-map target]]
    [pallet.node-value :refer [node-value]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
-   [pallet.utils :refer [apply-map tmpfile log-multiline]]))
+   [pallet.utils :refer [apply-map log-multiline tmpfile]]))
 
 ;;; # Direct Script Execution
 
@@ -36,7 +36,8 @@
   [& script]
   `(exec-script* (stevedore/script ~@script)))
 
-(defmacro exec-checked-script
+(defmacro ^{:requires [#'checked-script]}
+  exec-checked-script
   "Execute a bash script remotely, throwing if any element of the
    script fails. The script is expressed in stevedore."
   {:pallet/plan-fn true}

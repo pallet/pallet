@@ -2,12 +2,11 @@
   "Functions for querying sessions."
   (:require
    [pallet.compute :as compute]
-   [pallet.node :as node]
-   [pallet.utils :as utils])
-  (:use
-   [pallet.context :only [with-context]]
+   [pallet.context :refer [with-context]]
    [pallet.core.thread-local
-    :only [with-thread-locals thread-local thread-local!]]))
+    :refer [thread-local thread-local! with-thread-locals]]
+   [pallet.node :as node]
+   [pallet.utils :as utils]))
 
 ;; Using the session var directly is to be avoided. It is a dynamic var in
 ;; order to provide thread specific bindings. The value is expected to be an
@@ -26,7 +25,8 @@
           "Session not bound.  The session is only bound within a phase.")
   (thread-local *session*))
 
-(defmacro with-session
+(defmacro ^{:requires [#'with-thread-locals]}
+  with-session
   [session & body]
   `(with-thread-locals [*session* ~session]
      ~@body))
@@ -37,7 +37,7 @@
 
 ;;; ## Session Context
 ;;; The session context is used in pallet core code.
-(defmacro session-context
+(defmacro ^{:requires [#'with-context]} session-context
   "Defines a session context."
   {:indent 2}
   [pipeline-name event & args]

@@ -1,9 +1,9 @@
 (ns pallet.crate.service-test
   "Provide a test suite for service supervision implementations"
   (:require
-   [clojure.test :refer [deftest is testing]]
+   [clojure.test :refer :all]
    [pallet.actions :refer [exec-checked-script exec-script with-action-values]]
-   [pallet.crate.service :refer :all]))
+   [pallet.crate.service :refer [service-supervisor]]))
 
 (defn service-supervisor-test
   [supervisor

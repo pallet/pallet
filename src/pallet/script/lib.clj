@@ -1,11 +1,11 @@
 (ns pallet.script.lib
   "Script library for abstracting target host script differences"
   (:require
+   [clojure.string :as string]
    [pallet.script :as script]
-   [pallet.stevedore :as stevedore
-    :refer [chained-script script with-source-line-comments]]
-   [pallet.thread-expr :as thread-expr]
-   [clojure.string :as string]))
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :refer [chained-script script with-source-line-comments]]
+   [pallet.thread-expr :as thread-expr]))
 
 ;;; basic
 (defn- translate-options

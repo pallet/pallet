@@ -1,26 +1,25 @@
 (ns pallet.core.api
   "Base level API for pallet"
   (:require
+   [clojure.algo.monads :refer [domonad m-map state-m with-monad]]
    [clojure.java.io :as io]
-   [clojure.string :as string])
-  (:use
-   [clojure.algo.monads :only [domonad m-map state-m with-monad]]
-   [clojure.tools.logging :only [debugf tracef]]
-   [clojure.string :only [blank?]]
-   [pallet.action-plan :only [execute stop-execution-on-error translate]]
-   [pallet.algo.fsmop :only [wait-for]]
+   [clojure.string :as string]
+   [clojure.string :refer [blank?]]
+   [clojure.tools.logging :refer [debugf tracef]]
+   [pallet.action-plan :refer [execute stop-execution-on-error translate]]
+   [pallet.algo.fsmop :refer [wait-for]]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.compute :only [destroy-nodes-in-group destroy-node nodes run-nodes]]
-   [pallet.core.session :only [session with-session]]
-   [pallet.environment :only [get-for]]
-   [pallet.executors :only [default-executor]]
-   [pallet.node :only [id image-user primary-ip tag tag! taggable?]]
+   [pallet.compute :refer [destroy-node destroy-nodes-in-group nodes run-nodes]]
+   [pallet.core.api-impl :refer :all]
+   [pallet.core.session :refer [session with-session]]
+   [pallet.core.user :refer [*admin-user*]]
+   [pallet.environment :refer [get-for]]
+   [pallet.executors :refer [default-executor]]
+   [pallet.node :refer [id image-user primary-ip tag tag! taggable?]]
    [pallet.session.action-plan
-    :only [assoc-action-plan get-session-action-plan]]
-   [pallet.session.verify :only [add-session-verification-key check-session]]
-   [pallet.utils :only [maybe-assoc maybe-update-in obfuscate]]
-   pallet.core.api-impl
-   [pallet.core.user :only [*admin-user*]]))
+    :refer [assoc-action-plan get-session-action-plan]]
+   [pallet.session.verify :refer [add-session-verification-key check-session]]
+   [pallet.utils :refer [maybe-assoc maybe-update-in obfuscate]]))
 
 (let [v (atom nil)]
   (defn version

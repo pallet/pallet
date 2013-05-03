@@ -1,9 +1,7 @@
 (ns pallet.compute
   "Abstraction of the compute interface"
   (:require
-   [pallet.common.deprecate :as deprecate]
-   [pallet.compute.implementation :as implementation]
-   [pallet.utils :as utils]))
+   [pallet.compute.implementation :as implementation]))
 
 ;;; Meta
 (defn supported-providers

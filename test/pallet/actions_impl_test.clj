@@ -1,3 +1,1 @@
-(ns pallet.actions-impl-test
-  (:use
-   pallet.actions-impl))
+(ns pallet.actions-impl-test)

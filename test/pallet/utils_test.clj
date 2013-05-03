@@ -1,8 +1,9 @@
 (ns pallet.utils-test
-  (:use pallet.utils)
-  (:use clojure.test
-        clojure.tools.logging
-        pallet.test-utils))
+  (:require
+   [clojure.test :refer :all]
+   [clojure.tools.logging :refer :all]
+   [pallet.test-utils :refer :all]
+   [pallet.utils :refer :all]))
 
 (defn- unload-ns
   "Hack to unload a namespace - remove-ns does not remove it from *loaded-libs*"

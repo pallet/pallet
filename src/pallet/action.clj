@@ -14,17 +14,20 @@
    Calls to :delayed-crate-fn and :aggregated-crate-fn actions are evaluated
    at action plan translation time, which provides a mechanism for calling
    crate functions after all other crate functions have been called."
-  {:author "Hugo Duncan"}
-  (:use
-   [clojure.tools.macro :only [name-with-attributes]]
+  (:require
+   [clojure.tools.macro :refer [name-with-attributes]]
+   [pallet.action-impl
+    :refer [action-implementation
+            action-symbol
+            add-action-implementation!
+            make-action]]
    [pallet.action-plan
-    :only [schedule-action-map action-map pop-block push-block]]
-   [pallet.common.context :only [throw-map]]
-   [pallet.core.session :only [session session!]]
+    :refer [action-map pop-block push-block schedule-action-map]]
+   [pallet.common.context :refer [throw-map]]
+   [pallet.core.session :refer [session session!]]
    [pallet.session.action-plan
-    :only [assoc-action-plan get-action-plan update-action-plan]]
-   [pallet.utils :only [compiler-exception]]
-   pallet.action-impl))
+    :refer [assoc-action-plan get-action-plan update-action-plan]]
+   [pallet.utils :refer [compiler-exception]]))
 
 ;;; # Session precedence
 

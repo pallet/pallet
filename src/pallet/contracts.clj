@@ -1,11 +1,18 @@
 (ns pallet.contracts
   "Contracts that can be enforced in pallet code."
   (:require
-   [clj-schema.schema :refer [constraints def-map-schema map-schema
-                              optional-path predicate-schema seq-schema
-                              sequence-of set-of wild]]
+   [clj-schema.schema
+    :refer [constraints
+            def-map-schema
+            map-schema
+            optional-path
+            seq-schema
+            sequence-of
+            set-of
+            wild]]
    [clj-schema.validation :refer [validation-errors]]
-   [clojure.string :refer [join] :as string]
+   [clojure.string :as string]
+   [clojure.string :refer [join]]
    [clojure.tools.logging :refer [errorf]]
    [pallet.blobstore :refer [blobstore?]]
    [pallet.compute :refer [compute-service?]]))
@@ -144,7 +151,7 @@
 ;;; We use macros so the stack trace reflects the calling location.
 (def ^{:dynamic true} *verify-contracts* true)
 
-(defn check-spec
+(defn ^{:requires [validation-errors #'errorf join]} check-spec
   [m spec &form]
   (if *verify-contracts*
     (let [spec-name (string/replace (name spec) "-schema" "")]

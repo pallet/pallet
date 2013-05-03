@@ -1,9 +1,9 @@
 (ns pallet.crate.environment-test
-  (:use pallet.crate.environment)
-  (:use
-   clojure.test
-   [pallet.build-actions :only [build-actions]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.crate.environment :refer [system-environment]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

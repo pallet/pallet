@@ -1,15 +1,10 @@
 (ns pallet.actions.direct.rsync
   (:require
-   [pallet.context :as context]
-   [pallet.execute :as execute]
-   [pallet.stevedore :as stevedore]
-   [pallet.utils :as utils]
-   [clojure.tools.logging :as logging])
-  (:use
-   [pallet.action :only [implement-action]]
-   [pallet.actions :only [rsync]]
-   [pallet.core.session :only [admin-user target-ip]]
-   [pallet.node :only [primary-ip]]))
+   [pallet.action :refer [implement-action]]
+   [pallet.actions :refer [rsync]]
+   [pallet.context :as logging]
+   [pallet.core.session :refer [admin-user target-ip]]
+   [pallet.stevedore :as stevedore]))
 
 (def ^{:private true}
   cmd "/usr/bin/rsync -e '%s' -r --delete --copy-links -F -F%s %s %s@%s:%s")

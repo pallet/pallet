@@ -1,20 +1,14 @@
 (ns pallet.actions.direct.rsync-test
-  (:use
-   clojure.test
-   [pallet.actions :only [rsync rsync-directory]]
-   [pallet.algo.fsmop :only [complete?]]
-   [pallet.api :only [group-spec lift plan-fn with-admin-user]]
-   [pallet.core.user :only [*admin-user*]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.stevedore :only [script]]
-   [pallet.test-utils :only [make-localhost-compute test-username]])
   (:require
-   pallet.actions.direct.rsync
-   [pallet.action :as action]
-   [pallet.phase :as phase]
-   [pallet.stevedore :as stevedore]
-   [pallet.utils :as utils]
-   [clojure.java.io :as io]))
+   [clojure.java.io :as io]
+   [clojure.test :refer :all]
+   [pallet.actions :refer [rsync rsync-directory]]
+   [pallet.algo.fsmop :refer [complete?]]
+   [pallet.api :refer [group-spec lift plan-fn with-admin-user]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.core.user :refer [*admin-user*]]
+   [pallet.test-utils :refer [make-localhost-compute test-username]]
+   [pallet.utils :as utils]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

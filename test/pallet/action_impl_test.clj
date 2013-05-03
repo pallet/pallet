@@ -1,7 +1,7 @@
 (ns pallet.action-impl-test
-  (:use
-   clojure.test
-   pallet.action-impl))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.action-impl :refer :all]))
 
 (deftest make-action-test
   (testing "arguments"

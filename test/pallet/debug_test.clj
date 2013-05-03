@@ -1,12 +1,11 @@
 (ns pallet.debug-test
   (:require
    [clojure.string :as string]
+   [clojure.test :refer :all]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.test-utils :as test-utils])
-  (:use
-   clojure.test
-   pallet.debug
-   [pallet.core.session :only [with-session]]))
+   [pallet.core.session :refer [with-session]]
+   [pallet.debug :refer :all]
+   [pallet.test-utils :as test-utils]))
 
 (deftest print-session-test
   (let [m {:a 1 :b "2"}]

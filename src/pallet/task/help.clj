@@ -1,8 +1,8 @@
 (ns pallet.task.help
   "Display a list of tasks or help for a given task."
   (:require
-   [clojure.string :as string]
    [chiba.plugin :refer [plugins]]
+   [clojure.string :as string]
    [pallet.main :refer [pallet-args]]))
 
 (def impl-ns "pallet.task.")

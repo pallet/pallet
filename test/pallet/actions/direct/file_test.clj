@@ -1,16 +1,15 @@
 (ns pallet.actions.direct.file-test
-  (:use
-   [pallet.actions :only [file fifo symbolic-link sed]]
-   [pallet.build-actions :only [build-actions]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.stevedore :only [script]]
-   [pallet.test-utils
-    :only [with-ubuntu-script-template with-bash-script-language]]
-   clojure.test)
   (:require
+   [clojure.test :refer :all]
+   [pallet.actions :refer [file sed]]
    [pallet.actions.direct.file :refer [write-md5-for-file]]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]))
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :refer [script]]
+   [pallet.test-utils
+    :refer [with-bash-script-language with-ubuntu-script-template]]))
 
 (use-fixtures
  :once

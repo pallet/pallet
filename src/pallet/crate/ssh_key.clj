@@ -2,15 +2,18 @@
   "Crate functions for manipulating SSH-keys"
   (:require
    [clojure.string :as string]
-   [pallet.crate :refer [admin-user]]
-   [pallet.script.lib :as lib :refer [user-home]]
-   [pallet.script :as script]
-   [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]])
-  (:use
    [pallet.actions
-    :only [directory exec-checked-script file remote-file remote-file-content
-           sed]]
-   [pallet.crate :only [defplan]]))
+    :refer [directory
+            exec-checked-script
+            file
+            remote-file
+            remote-file-content
+            sed]]
+   [pallet.crate :refer [admin-user defplan]]
+   [pallet.script.lib :as lib]
+   [pallet.script.lib :refer [user-home]]
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :refer [fragment with-source-line-comments]]))
 
 (defn user-ssh-dir [user]
   (str

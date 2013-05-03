@@ -16,22 +16,15 @@
    :transfer/from-local - action is a function specifying local source
                           and remote destination."
   (:require
-   ;; ensure direct implementation is loaded
-   pallet.actions.direct
-   ;; TODO cleanup the above to a single require
    [clojure.tools.logging :as logging]
+   [pallet.action :refer [implementation]]
+   [pallet.action-plan :refer [execute-if map-action-f session-exec-action]]
    [pallet.echo.execute :as echo]
-   [pallet.execute :as execute]
    [pallet.local.execute :as local]
-   [pallet.script-builder :as script-builder]
-   [pallet.ssh.execute :as ssh])
-  (:use
-   [pallet.action-plan
-    :only [action-data execute-if map-action-f session-exec-action
-           stop-execution-on-error]]
-   [pallet.action :only [implementation]]
-   [pallet.node :only [primary-ip]]))
+   [pallet.node :refer [primary-ip]]
+   [pallet.ssh.execute :as ssh]))
 
+(require 'pallet.actions.direct)
 
 (defn direct-script
   "Execute the direct action implementation, which returns script or other

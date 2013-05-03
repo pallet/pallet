@@ -1,7 +1,7 @@
 (ns pallet.mock-test
-  (:use
-   pallet.mock
-   clojure.test))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.mock :refer :all]))
 
 (deftest verify-expectations-test
   (is (thrown? clojure.lang.ExceptionInfo

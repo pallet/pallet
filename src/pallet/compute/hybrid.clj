@@ -1,11 +1,10 @@
 (ns pallet.compute.hybrid
   "Hybrid provider service implementation."
   (:require
+   [clojure.tools.logging :as logging]
    [pallet.compute.implementation :as implementation]
    [pallet.configure :as configure]
-   [pallet.node :as node]
-   [pallet.environment :as environment]
-   [clojure.tools.logging :as logging]))
+   [pallet.node :as node]))
 
 (defn supported-providers []
   ["hybrid"])

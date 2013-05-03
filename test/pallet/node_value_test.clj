@@ -1,8 +1,7 @@
 (ns pallet.node-value-test
   (:require
-   [pallet.node-value :as node-value])
-  (:use
-   clojure.test))
+   [clojure.test :refer :all]
+   [pallet.node-value :as node-value]))
 
 (deftest node-value-test
   (let [nv (node-value/make-node-value :nvp)]

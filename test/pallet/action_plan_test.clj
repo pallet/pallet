@@ -1,18 +1,17 @@
 (ns pallet.action-plan-test
   (:require
+   [clojure.test :refer :all]
+   [pallet.action :refer [declare-action implement-action*]]
+   [pallet.action-impl :refer :all]
    [pallet.action-plan :as action-plan]
-   [pallet.argument :as argument])
-  (:use
-   clojure.test
-   pallet.action-impl
-   pallet.action-plan
-   [pallet.action :only [declare-action implement-action*]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.core.session :only [session with-session]]
-   [pallet.context :only [with-phase-context]]
+   [pallet.action-plan :refer :all]
+   [pallet.argument :as argument]
+   [pallet.argument :refer [delayed]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.context :refer [with-phase-context]]
+   [pallet.core.session :refer [session with-session]]
    [pallet.node-value
-    :only [make-node-value node-value node-value? set-node-value]]
-   [pallet.argument :only [delayed]]))
+    :refer [make-node-value node-value node-value? set-node-value]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

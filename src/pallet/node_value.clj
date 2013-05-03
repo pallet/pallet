@@ -5,10 +5,10 @@
    The action may not be executed on the same pallet machine as the phase, so
    the actual value is in the session map, and the node-value contains a key
    into the session map's :node-values key."
-  (:use
-   [pallet.common.context :only [throw-map]]
-   [pallet.argument :only [DelayedArgument *session*]]
-   [pallet.core.session :only [session session!]]))
+  (:require
+   [pallet.argument :refer [*session* DelayedArgument]]
+   [pallet.common.context :refer [throw-map]]
+   [pallet.core.session :refer [session session!]]))
 
 ;; (defprotocol SetableNodeValue
 ;;   "A protocol used to set node-values"

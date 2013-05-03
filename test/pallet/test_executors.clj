@@ -1,14 +1,8 @@
 (ns pallet.test-executors
   "Action executors for testing pallet"
   (:require
-   [clojure.tools.logging :as logging]
-   [pallet.echo.execute :as echo]
-   [pallet.execute :as execute]
-   [pallet.local.execute :as local]
-   [pallet.script-builder :as script-builder]
-   [pallet.ssh.execute :as ssh])
-  (:use
-   [pallet.executors :only [direct-script]]))
+   [pallet.executors :refer [direct-script]]
+   [pallet.local.execute :as local]))
 
 (defn test-executor
   [session action]

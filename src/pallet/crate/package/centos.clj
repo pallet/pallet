@@ -1,9 +1,8 @@
 (ns pallet.crate.package.centos
   "Actions for working with the centos repositories"
-  (:use
-   [pallet.actions :only [package package-source]]
-   [pallet.crate :only [is-64bit?]]
-   [pallet.crate :only [defplan]]))
+  (:require
+   [pallet.actions :refer [package package-source]]
+   [pallet.crate :refer [defplan is-64bit?]]))
 
 (def ^{:private true} centos-repo
   "http://mirror.centos.org/centos/%s/%s/%s/repodata/repomd.xml")

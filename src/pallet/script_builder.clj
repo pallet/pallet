@@ -2,13 +2,16 @@
   "Build scripts with prologues, epilogues, etc, and command lines for
    running them in different environments"
   (:require
-   [clojure.string :as string :refer [split]]
-   [pallet.script :as script]
-   [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
-   [pallet.stevedore.bash :as bash])
-  (:use
+   [clojure.string :as string]
+   [clojure.string :refer [split]]
    [pallet.script.lib
-    :only [bash env env-var-pairs exit heredoc make-temp-file mkdir rm sudo]]))
+    :refer [bash env env-var-pairs exit heredoc make-temp-file mkdir rm sudo]]
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :refer [fragment with-source-line-comments]]
+   [pallet.stevedore.bash :refer [infix-operators]]))
+
+;; keep slamhound from removing the pallet.stevedore.bash require
+infix-operators
 
 (defn prolog []  (str "#!" (fragment (env)) " bash\n"))
 (def epilog "\nexit $?")

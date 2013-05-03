@@ -1,7 +1,7 @@
 (ns pallet.versions
- "Version handling for pallet"
- (:require
-  [clojure.string :as string]))
+  "Version handling for pallet"
+  (:require
+   [clojure.string :as string]))
 
 (defn version-vector
   "Convert a dotted version string to a vector of version numbers.

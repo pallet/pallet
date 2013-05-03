@@ -5,22 +5,36 @@
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :refer [debugf infof]]
    [pallet.actions
-    :refer [as-action assoc-in-settings delete-local-path directory
-            exec-checked-script exec-script exec-script* on-one-node remote-file
-            rsync-directory with-action-values]]
+    :refer [as-action
+            assoc-in-settings
+            delete-local-path
+            directory
+            exec-checked-script
+            exec-script
+            exec-script*
+            on-one-node
+            remote-file
+            rsync-directory
+            with-action-values]]
    [pallet.algo.fsmop :refer [operate]]
    [pallet.api
     :refer [execute-on-unflagged-metadata
             execute-with-image-credentials-metadata
-            group-spec plan-fn]
-    :as api]
+            group-spec
+            plan-fn] :as api]
    [pallet.core.operations :as ops]
    [pallet.core.plan-state :as ps]
    [pallet.crate
-    :refer [admin-user compute-service defplan get-settings target-name
-            target-node target-nodes targets]]
+    :refer [admin-user
+            compute-service
+            defplan
+            get-settings
+            target-name
+            target-node
+            target-nodes
+            targets]]
    [pallet.node :refer [id tag tag!]]
-   [pallet.script-test :refer [testing-script is-true is=]]
+   [pallet.script-test :refer [is-true is= testing-script]]
    [pallet.utils :refer [tmpdir tmpfile]]))
 
 (def characters (apply vector "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789"))

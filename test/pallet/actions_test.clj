@@ -1,8 +1,7 @@
 (ns pallet.actions-test
-  (:use
-   clojure.test
-   pallet.actions)
   (:require
+   [clojure.test :refer :all]
+   [pallet.actions :refer :all]
    [pallet.algo.fsmop :refer [complete? failed?]]
    [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.core.user :refer [*admin-user*]]

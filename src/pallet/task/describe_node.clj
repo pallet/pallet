@@ -1,10 +1,8 @@
 (ns pallet.task.describe-node
   "Adjust node counts."
   (:require
-   [clojure.tools.logging :as logging])
-  (:use
-   [pallet.task :only [maybe-resolve-symbol-string]]
-   [clojure.pprint :only [pprint]]))
+   [clojure.pprint :refer [pprint]]
+   [pallet.task :refer [maybe-resolve-symbol-string]]))
 
 (defn describe-node
   "Display the node definition for the given node-types."

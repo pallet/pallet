@@ -1,8 +1,9 @@
 (ns pallet.strint
- "Runtime string interpolation built on top of clojure.contrib.strint."
- (:use pallet.common.strint)
- (:require
-   clojure.walk))
+  "Runtime string interpolation built on top of clojure.contrib.strint."
+  (:require
+   [clojure.walk :refer [prewalk-replace]]))
+
+(require 'pallet.common.strint)         ; prevent slamhound from removing this
 
 (defmacro capture-values
   "Capture the values of the specified symbols in a symbol->value map."
@@ -16,6 +17,6 @@
          (map (fn [x] (if (symbol? x)
                             (value-map x)
                             (if (seq x)
-                              (eval (clojure.walk/prewalk-replace value-map x))
+                              (eval (prewalk-replace value-map x))
                               x)))
                   (#'pallet.common.strint/interpolate f))))

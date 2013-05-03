@@ -1,7 +1,7 @@
 (ns pallet.compute.implementation-test
-  (:use
-   clojure.test
-   pallet.compute.implementation))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.compute.implementation :refer :all]))
 
 (deftest supported-providers-test
   (is (= #{"node-list" "localhost" "hybrid"} (set (supported-providers)))))

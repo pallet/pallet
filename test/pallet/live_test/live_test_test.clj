@@ -1,8 +1,8 @@
 (ns pallet.live-test.live-test-test
-  (:use clojure.test)
   (:require
-   [pallet.live-test :as live-test]
-   [pallet.compute :as compute]))
+   [clojure.test :refer :all]
+   [pallet.compute :as compute]
+   [pallet.live-test :as live-test]))
 
 (deftest exclude-images-test
   (let [images [{:a 1 :b 1} {:a 2} {:a 3 :b 1 :c 3}]]

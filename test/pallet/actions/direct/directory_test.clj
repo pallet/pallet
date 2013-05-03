@@ -1,15 +1,13 @@
 (ns pallet.actions.direct.directory-test
-  (:use pallet.actions.direct.directory)
   (:require
-   [pallet.stevedore :as stevedore])
-  (:use
-   clojure.test
-   [pallet.action :only [action-fn]]
-   [pallet.actions :only [directories directory]]
-   [pallet.build-actions :only [build-actions]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [clojure.test :refer :all]
+   [pallet.action :refer [action-fn]]
+   [pallet.actions :refer [directories directory]]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.stevedore :as stevedore]
    [pallet.test-utils
-    :only [with-ubuntu-script-template with-bash-script-language]]))
+    :refer [with-bash-script-language with-ubuntu-script-template]]))
 
 (use-fixtures
  :once

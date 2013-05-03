@@ -1,16 +1,17 @@
 (ns pallet.crate.etc-default-test
- (:use
-  clojure.test
-  [pallet.action :only [action-fn]]
-  [pallet.actions :only [remote-file]]
-  [pallet.actions-impl :only [remote-file-action]]
-  [pallet.build-actions :only [build-actions]]
-  [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-  [pallet.crate :only [phase-context]]
-  pallet.test-utils)
- (:require
-  [pallet.crate.etc-default :as default]
-  [pallet.stevedore :as stevedore]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.action :refer [action-fn]]
+   [pallet.actions :refer [remote-file]]
+   [pallet.actions-impl :refer [remote-file-action]]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.crate :refer [phase-context]]
+   [pallet.crate.etc-default :as default]
+   [pallet.test-utils
+    :refer [with-bash-script-language
+            with-null-defining-context
+            with-ubuntu-script-template]]))
 
 (use-fixtures :once
               with-ubuntu-script-template with-bash-script-language

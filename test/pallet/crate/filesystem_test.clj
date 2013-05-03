@@ -1,13 +1,10 @@
 (ns pallet.crate.filesystem-test
-  (:use
-   clojure.test
-   [pallet.actions :only [directory exec-checked-script]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]])
   (:require
-   [pallet.crate.filesystem :as filesystem]
+   [clojure.test :refer :all]
+   [pallet.actions :refer [directory exec-checked-script]]
    [pallet.build-actions :as build-actions]
-   [pallet.stevedore :as stevedore]
-   [pallet.test-utils :refer [no-location-info]]))
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.crate.filesystem :as filesystem]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

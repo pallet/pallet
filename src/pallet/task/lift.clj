@@ -4,10 +4,10 @@
    [clojure.pprint :refer [print-table]]
    [clojure.stacktrace :refer [print-cause-trace]]
    [clojure.tools.logging :as logging]
-   [pallet.algo.fsmop :refer [complete? failed? wait-for]]
-   [pallet.api :as api :refer [print-targets]]
+   [pallet.algo.fsmop :refer [complete? wait-for]]
+   [pallet.api :as api]
+   [pallet.api :refer [print-targets]]
    [pallet.core.api :refer [phase-errors]]
-   [pallet.project :refer [spec-from-project]]
    [pallet.task :refer [abort maybe-resolve-symbol-string]]
    [pallet.task-utils :refer [pallet-project project-groups]]))
 

@@ -4,8 +4,8 @@
    [pallet.compute.node-list :refer [make-localhost-node]]
    [pallet.core.api-impl :refer [with-script-for-node]]
    [pallet.core.user :refer [*admin-user*]]
-   [pallet.ssh.execute :refer [get-connection ssh-script-on-target
-                               with-connection]]
+   [pallet.ssh.execute
+    :refer [get-connection ssh-script-on-target with-connection]]
    [pallet.transport :as transport]))
 
 (def open-channel clj-ssh.ssh/open-channel)

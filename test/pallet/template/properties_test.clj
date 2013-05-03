@@ -1,7 +1,8 @@
 (ns pallet.template.properties-test
-  (:use pallet.template.properties)
-  (:use clojure.test)
-  (:require [clojure.string :as string]))
+  (:require
+   [clojure.string :as string]
+   [clojure.test :refer :all]
+   [pallet.template.properties :refer :all]))
 
 
 (deftest properties-test

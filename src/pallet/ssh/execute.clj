@@ -4,23 +4,22 @@
    [clojure.java.io :as io]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
+   [pallet.action-impl :refer [action-symbol]]
+   [pallet.action-plan :refer [context-label]]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
    [pallet.execute :as execute
     :refer [clean-logs log-script-output result-with-error-map]]
    [pallet.local.execute :as local]
-   [pallet.script.lib :refer [chown mkdir exit]]
+   [pallet.node :as node]
+   [pallet.script-builder :as script-builder]
+   [pallet.script.lib :as lib]
+   [pallet.script.lib :refer [chown exit mkdir]]
+   [pallet.stevedore :as stevedore]
    [pallet.transport :as transport]
    [pallet.transport.local]
    [pallet.transport.ssh]
-   [pallet.node :as node]
-   [pallet.script.lib :as lib]
-   [pallet.script-builder :as script-builder]
-   [pallet.stevedore :as stevedore]
-   [pallet.utils :refer [log-multiline]])
-  (:use
-   [pallet.action-plan :only [context-label]]
-   [pallet.action-impl :only [action-symbol]]))
+   [pallet.utils :refer [log-multiline]]))
 
 (def ssh-connection (transport/factory :ssh {}))
 (def local-connection (transport/factory :local {}))

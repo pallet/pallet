@@ -1,11 +1,10 @@
 (ns pallet.crate.package.debian-backports
   "Actions for working with the debian backports repository"
   (:require
+   [pallet.actions :refer [package-source]]
+   [pallet.crate :refer [defplan]]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore])
-  (:use
-   [pallet.actions :only [package-source]]
-   [pallet.crate :only [defplan]]))
+   [pallet.stevedore :as stevedore]))
 
 (defplan add-debian-backports
   "Add debian backport package repository"

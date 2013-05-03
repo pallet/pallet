@@ -1,13 +1,11 @@
 (ns pallet.crate.sudoers
   (:require
-   [clojure.tools.logging :as logging]
    [clojure.string :as string]
+   [clojure.tools.logging :as logging]
+   [pallet.actions :refer [package]]
+   [pallet.crate :refer [admin-group def-collect-plan-fn defplan phase-context]]
    [pallet.template :as template]
-   [pallet.utils :as utils])
-  (:use
-   [pallet.actions :only [package package-manager]]
-   [pallet.crate
-    :only [admin-group defplan def-collect-plan-fn phase-context]]))
+   [pallet.utils :as utils]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page

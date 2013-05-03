@@ -1,28 +1,24 @@
 (ns pallet.crate.ssh-key-test
-  (:use pallet.crate.ssh-key)
   (:require
-   [pallet.action :as action]
-   [pallet.algo.fsmop :refer [complete? failed?]]
-   [pallet.api :refer [group-spec]]
+   [clojure.test :refer :all]
+   [clojure.tools.logging :as logging]
+   [pallet.actions :refer [directory exec-checked-script file remote-file user]]
+   [pallet.algo.fsmop :refer [failed?]]
+   [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.build-actions :as build-actions]
-   [pallet.core.user :refer [*admin-user*]]
-   [pallet.crate.automated-admin-user :as automated-admin-user]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.context :as context]
+   [pallet.core.user :refer [*admin-user*]]
+   [pallet.crate.ssh-key :refer :all]
    [pallet.live-test :as live-test]
-   [pallet.phase :as phase]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [pallet.template :as template]
-   [pallet.utils :as utils :refer [with-temp-file]]
-   [clojure.tools.logging :as logging]
-   [clojure.string :as string])
-  (:use
-   clojure.test
-   pallet.test-utils
-   [pallet.actions :only [directory exec-checked-script file remote-file user]]
-   [pallet.api :only [lift plan-fn]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.crate :only [get-settings]]))
+   [pallet.test-utils
+    :refer [make-localhost-compute
+            no-location-info
+            test-username
+            with-ubuntu-script-template]]
+   [pallet.utils :refer [with-temp-file]]))
 
 (use-fixtures
  :once

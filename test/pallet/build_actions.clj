@@ -1,28 +1,27 @@
 (ns pallet.build-actions
   "Test utilities for building actions"
   (:require
+   [clojure.string :as string]
+   [clojure.tools.logging :as logging]
    [pallet.action-plan :as action-plan]
-   [pallet.context :as context]
+   [pallet.action-plan :refer [stop-execution-on-error]]
+   [pallet.api :refer [group-spec plan-fn]]
    [pallet.compute :as compute]
+   [pallet.context :as context]
+   [pallet.context :refer [with-phase-context]]
+   [pallet.core.api :refer [action-plan execute-action-plan]]
+   [pallet.core.api-impl :refer [with-script-for-node]]
+   [pallet.core.user :refer [*admin-user*]]
    [pallet.environment :as environment]
    [pallet.execute :as execute]
+   [pallet.executors :refer [echo-executor]]
    [pallet.node :as node]
    [pallet.phase :as phase]
    [pallet.script :as script]
+   [pallet.session.action-plan :refer [target-path]]
+   [pallet.session.verify :refer [add-session-verification-key check-session]]
    [pallet.test-utils :as test-utils :refer [remove-source-line-comments]]
-   [pallet.utils :as utils]
-   [clojure.tools.logging :as logging]
-   [clojure.string :as string])
-  (:use
-   [pallet.action-plan :only [stop-execution-on-error]]
-   [pallet.api :only [group-spec plan-fn]]
-   [pallet.core.api :only [action-plan execute-action-plan]]
-   [pallet.core.api-impl :only [with-script-for-node]]
-   [pallet.core.user :only [*admin-user*]]
-   [pallet.context :only [with-phase-context]]
-   [pallet.executors :only [echo-executor]]
-   [pallet.session.action-plan :only [target-path]]
-   [pallet.session.verify :only [check-session add-session-verification-key]]))
+   [pallet.utils :as utils]))
 
 (defn- trim-if-string [s]
   (when s (string/trim s)))

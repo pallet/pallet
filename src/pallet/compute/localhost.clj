@@ -12,11 +12,8 @@ Node removal functions are no-ops."
    [pallet.compute :as compute]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.node-list :as node-list]
-   [pallet.configure :as configure]
    [pallet.core.api :refer [set-state-for-node]]
-   [pallet.node :as node]
-   [pallet.environment :as environment]
-   [clojure.tools.logging :as logging]))
+   [pallet.node :as node]))
 
 (deftype NodeTagEphemeral
     [tags]

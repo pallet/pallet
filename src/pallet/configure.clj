@@ -8,20 +8,19 @@
    service definitions can also be specified as clojure maps in
    ~/.pallet/services/*.clj"
   (:require
-   [clojure.java.io :refer [resource]]
    [chiba.plugin :refer [data-plugins]]
-   [pallet.blobstore :as blobstore]
-   [pallet.common.deprecate :as deprecate]
-   [pallet.compute :as compute :refer [instantiate-provider]]
-   [pallet.environment :as environment]
-   [pallet.utils :as utils :refer [apply-map]]
+   [clojure.core.incubator :refer [-?>]]
    [clojure.java.io :as java-io]
+   [clojure.java.io :refer [resource]]
    [clojure.string :as string]
+   [clojure.tools.logging :as deprecate]
    [clojure.tools.logging :as logging]
-   [clojure.walk :as walk])
-  (:use
-   [clojure.core.incubator :only [-?>]]
-   [pallet.core.user :only [make-user]]))
+   [clojure.walk :as walk]
+   [pallet.blobstore :as blobstore]
+   [pallet.compute :refer [instantiate-provider]]
+   [pallet.core.user :refer [make-user]]
+   [pallet.environment :as environment]
+   [pallet.utils :as utils]))
 
 (def ^{:private true
        :doc "A var to be set by defpallet, so that it may be loaded from any

@@ -2,18 +2,18 @@
   "Invoke tasks requiring a compute service.  This decouples main from anything
    pallet, jclouds or maven specific, and ensures compiling main doesn't compile
    the world."
-  (:use
-   [pallet.core.user :only [*admin-user*]])
   (:require
    [bultitude.core :refer [classpath-files]]
    [clojure.tools.logging :as logging]
    [pallet.api :refer [version]]
    [pallet.blobstore :as blobstore]
    [pallet.compute :as compute]
-   [pallet.configure :as configure :refer [default-compute-service]]
+   [pallet.configure :as configure]
+   [pallet.configure :refer [default-compute-service]]
+   [pallet.core.user :refer [*admin-user*]]
    [pallet.environment :as environment]
-   [pallet.utils :as utils]
-   [pallet.main :as main :refer [transient-services]]))
+   [pallet.main :as main]
+   [pallet.main :refer [transient-services]]))
 
 (defn log-info
   [admin-user]

@@ -1,11 +1,9 @@
 (ns pallet.crate.package.epel
   "Actions for working with the epel repository"
   (:require
-   [pallet.stevedore :as stevedore])
-  (:use
-   [pallet.action :only [with-action-options]]
-   [pallet.actions :only [exec-checked-script package package-manager]]
-   [pallet.crate :only [defplan]]))
+   [pallet.action :refer [with-action-options]]
+   [pallet.actions :refer [exec-checked-script package package-manager]]
+   [pallet.crate :refer [defplan]]))
 
 (defplan add-epel
   "Add the EPEL repository"

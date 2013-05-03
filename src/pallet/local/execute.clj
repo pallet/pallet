@@ -1,17 +1,17 @@
 (ns pallet.local.execute
   "Local execution of pallet actions"
   (:require
-   [clojure.string :as string]
    [clojure.java.io :as io]
+   [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.compute.jvm :as jvm]
    [pallet.execute :as execute
     :refer [log-script-output result-with-error-map status-lines]]
-   [pallet.transport :as transport]
-   [pallet.transport.local]
    [pallet.script :as script]
    [pallet.script-builder :as script-builder]
    [pallet.stevedore :as stevedore]
+   [pallet.transport :as transport]
+   [pallet.transport.local]
    [pallet.utils :refer [log-multiline]]))
 
 (def local-connection

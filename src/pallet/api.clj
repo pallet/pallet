@@ -1,31 +1,34 @@
 (ns pallet.api
   "# Pallet API"
   (:require
-   [clojure.java.io :refer [resource input-stream]]
+   [clojure.java.io :refer [input-stream resource]]
+   [clojure.pprint :refer [print-table]]
    [clojure.set :refer [union]]
    [clojure.string :refer [blank?]]
-   [clojure.pprint :refer [print-table]]
+   [clojure.tools.logging :as logging]
+   [pallet.algo.fsmop :refer [dofsm operate result succeed]]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
-   [pallet.contracts :refer [check-converge-options check-group-spec
-                             check-lift-options check-node-spec
-                             check-server-spec check-user]]
-   [pallet.core.user :as user]
+   [pallet.contracts
+    :refer [check-converge-options
+            check-group-spec
+            check-lift-options
+            check-node-spec
+            check-server-spec
+            check-user]]
    [pallet.core.api :refer [environment-image-execution-settings]]
+   [pallet.core.api-impl
+    :refer [merge-spec-algorithm merge-specs node-has-group-name?]]
    [pallet.core.operations :as ops]
    [pallet.core.primitives :refer [execute-on-unflagged]]
    [pallet.core.session :refer [session-context]]
-   [clojure.tools.logging :as logging])
-  (:use
-   [pallet.core.api-impl
-    :only [merge-specs merge-spec-algorithm node-has-group-name?]]
-   [pallet.crate :only [phase-context]]
-   [pallet.algo.fsmop :only [dofsm operate result succeed]]
-   [pallet.environment :only [group-with-environment merge-environments]]
-   [pallet.node :only [node? node-map]]
-   [pallet.plugin :only [load-plugins]]
-   [pallet.thread-expr :only [when->]]
-   [pallet.utils :only [apply-map maybe-update-in]]))
+   [pallet.core.user :as user]
+   [pallet.crate :refer [phase-context]]
+   [pallet.environment :refer [group-with-environment merge-environments]]
+   [pallet.node :refer [node-map node?]]
+   [pallet.plugin :refer [load-plugins]]
+   [pallet.thread-expr :refer [when->]]
+   [pallet.utils :refer [apply-map maybe-update-in]]))
 
 
 ;;; ## Pallet version

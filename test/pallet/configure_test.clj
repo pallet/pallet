@@ -1,12 +1,10 @@
 (ns pallet.configure-test
-  (:use
-   clojure.test
-   pallet.configure)
   (:require
    [clojure.java.io :refer [file]]
-   pallet.api
+   [clojure.test :refer :all]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :refer [nodes]]
+   [pallet.configure :refer :all]
    [pallet.utils :refer [tmpdir]]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))

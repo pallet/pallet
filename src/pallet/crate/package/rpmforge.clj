@@ -1,13 +1,11 @@
 (ns pallet.crate.package.rpmforge
   "Actions for working with the rpmforge repository"
   (:require
-   [pallet.stevedore :as stevedore])
-  (:use
-   [pallet.action :only [action-fn with-action-options]]
-   [pallet.actions :only [exec-checked-script package package-manager]]
-   [pallet.actions-impl :only [remote-file-action]]
-   [pallet.core.session :only [session]]
-   [pallet.crate :only [defplan]]))
+   [pallet.action :refer [action-fn with-action-options]]
+   [pallet.actions :refer [exec-checked-script package package-manager]]
+   [pallet.actions-impl :refer [remote-file-action]]
+   [pallet.core.session :refer [session]]
+   [pallet.crate :refer [defplan]]))
 
 ;;; TODO remove this and use plan-when
 (def ^{:private true}

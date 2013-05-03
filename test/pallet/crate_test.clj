@@ -1,13 +1,12 @@
 (ns pallet.crate-test
   (:require
-   [pallet.test-utils :as test-utils])
-  (:use
-   clojure.test
-   pallet.crate
-   [pallet.api :only [group-spec]]
-   [pallet.core.session :only [session with-session]]
-   [pallet.session.verify :only [add-session-verification-key]]
-   [pallet.test-utils :only [test-session make-node]]))
+   [clojure.test :refer :all]
+   [pallet.api :refer [group-spec]]
+   [pallet.core.session :refer [session with-session]]
+   [pallet.crate :refer :all]
+   [pallet.session.verify :refer [add-session-verification-key]]
+   [pallet.test-utils :as test-utils]
+   [pallet.test-utils :refer [make-node test-session]]))
 
 ;; (deftest groups-with-role-test
 ;;   (let [session (test-session

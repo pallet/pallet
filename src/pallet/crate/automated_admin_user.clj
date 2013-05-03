@@ -1,11 +1,10 @@
 (ns pallet.crate.automated-admin-user
   (:require
+   [pallet.actions :refer [package-manager user]]
+   [pallet.api :refer [plan-fn server-spec]]
+   [pallet.crate :refer [admin-user defplan]]
    [pallet.crate.ssh-key :as ssh-key]
-   [pallet.crate.sudoers :as sudoers])
-  (:use
-   [pallet.actions :only [user package-manager]]
-   [pallet.api :only [server-spec plan-fn]]
-   [pallet.crate :only [admin-user defplan]]))
+   [pallet.crate.sudoers :as sudoers]))
 
 (defplan authorize-user-key
   "Authorise a single key, specified as a path or as a byte array."

@@ -16,18 +16,16 @@
    The image list to be used can be selected using `pallet.test.image-list`
    and should specify one of the keys in `image-lists`."
   (:require
-   clojure.stacktrace
+   [clojure.string :as string]
+   [clojure.tools.logging :refer [debugf tracef]]
+   [pallet.algo.fsmop :refer [complete? operate]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
-   [pallet.configure :as configure]
-   [pallet.node :as node]
-   [clojure.string :as string])
-  (:use
-   [clojure.tools.logging :only [debugf errorf tracef warnf]]
-   [pallet.algo.fsmop :only [operate complete?]]
-   [pallet.core.operations :only [converge]]
-   [pallet.core.api :only [service-state]]
-   [pallet.environment :only [environment]]))
+   [pallet.core.api :refer [service-state]]
+   [pallet.core.operations :refer [converge]]
+   [pallet.environment :refer [environment]]
+   [pallet.node :as configure]
+   [pallet.node :as node]))
 
 (def
   ^{:doc "The default images for testing"}
@@ -285,7 +283,8 @@
            (when *cleanup-nodes*
              (destroy-nodes ~'compute (keys ~'node-types))))))))
 
-(defmacro test-for
+(defmacro ^{:requires [#'logutils/with-context]}
+  test-for
   "Loop over tests, in parallel or serial, depending on pallet.test.parallel."
   [[& bindings] & body]
   (let [v (first bindings)]

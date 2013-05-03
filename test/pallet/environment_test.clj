@@ -1,11 +1,10 @@
 (ns pallet.environment-test
   (:require
+   [clojure.java.io :as io]
+   [clojure.test :refer :all]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.environment :as environment]
-   [clojure.java.io :as io])
-  (:use
-   [pallet.core.user :only [user?]]
-   clojure.test))
+   [pallet.core.user :refer [user?]]
+   [pallet.environment :as environment]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
 

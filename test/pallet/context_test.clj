@@ -1,10 +1,9 @@
 (ns pallet.context-test
   (:require
+   [clojure.test :refer :all]
    [clojure.tools.logging :as logging]
-   [pallet.context :as context]
-   [pallet.common.logging.logutils :as logutils])
-  (:use
-   clojure.test))
+   [pallet.common.logging.logutils :as logutils]
+   [pallet.context :as context]))
 
 (deftest phase-context-test
   (is (= ["ctx"]

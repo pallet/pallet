@@ -1,46 +1,45 @@
 (ns pallet.actions.direct.remote-file-test
-  (:use
-   [clojure.stacktrace :only [print-cause-trace print-stack-trace root-cause]]
-   [pallet.actions
-    :only [as-action exec-script plan-when remote-file remote-file-content
-           with-action-values transfer-file transfer-file-to-local
-           with-remote-file]]
-   [pallet.actions-impl
-    :only [remote-file-action *install-new-files* *force-overwrite*
-           copy-filename new-filename md5-filename]]
-   [pallet.algo.fsmop :only [complete? failed? wait-for]]
-   [pallet.api :only [group-spec lift plan-fn with-admin-user]]
-   [pallet.argument :only [delayed]]
-   [pallet.compute :only [nodes]]
-   [pallet.core.api :only [throw-operation-exception phase-errors]]
-   [pallet.core.session :only [with-session]]
-   [pallet.core.user :only [*admin-user*]]
-   [pallet.node-value :only [node-value]]
-   [pallet.stevedore :only [script]]
-   [pallet.test-utils
-    :only [clj-action make-localhost-compute make-node test-session
-           verify-flag-not-set verify-flag-set]]
-   [pallet.utils :only [with-temporary tmpdir]]
-   clojure.test)
   (:require
-   pallet.actions.direct.remote-file
+   [clojure.java.io :as io]
+   [clojure.stacktrace :refer [print-cause-trace print-stack-trace root-cause]]
+   [clojure.string :as string]
+   [clojure.test :refer :all]
+   [clojure.tools.logging :as logging]
    [pallet.action :as action]
+   [pallet.actions
+    :refer [exec-script
+            plan-when
+            remote-file
+            remote-file-content
+            transfer-file-to-local
+            with-action-values
+            with-remote-file]]
+   [pallet.actions-impl
+    :refer [copy-filename md5-filename new-filename remote-file-action]]
+   [pallet.algo.fsmop :refer [complete? failed? wait-for]]
+   [pallet.api :refer [group-spec lift plan-fn with-admin-user]]
+   [pallet.argument :refer [delayed]]
    [pallet.build-actions :as build-actions]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.compute :as compute]
+   [pallet.compute :refer [nodes]]
    [pallet.core.api :refer [phase-errors]]
-   [pallet.execute :as execute]
+   [pallet.core.session :refer [with-session]]
+   [pallet.core.user :refer [*admin-user*]]
    [pallet.local.execute :as local]
-   [pallet.phase :as phase]
    [pallet.script :as script]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [pallet.test-utils :as test-utils]
    [pallet.test-executors :as test-executors]
+   [pallet.test-utils :as test-utils]
+   [pallet.test-utils
+    :refer [clj-action
+            make-localhost-compute
+            make-node
+            test-session
+            verify-flag-not-set
+            verify-flag-set]]
    [pallet.utils :as utils]
-   [clojure.java.io :as io]
-   [clojure.string :as string]
-   [clojure.tools.logging :as logging]))
+   [pallet.utils :refer [tmpdir with-temporary]]))
 
 (use-fixtures
  :once

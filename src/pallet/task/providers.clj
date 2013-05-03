@@ -1,7 +1,7 @@
 (ns pallet.task.providers
   "Provide information on the supported and enabled providers."
-  (:use
-   [pallet.compute :only [supported-providers]]))
+  (:require
+   [pallet.compute :refer [supported-providers]]))
 
 (defn providers
   "Provide information on the supported and enabled providers."

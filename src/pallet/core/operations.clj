@@ -1,14 +1,11 @@
 (ns pallet.core.operations
   "Built in operations"
-  (:refer-clojure :exclude [delay])
   (:require
-   [pallet.core.primitives :as primitives]
+   [clojure.tools.logging :as logging]
+   [pallet.algo.fsmop :refer [delay-for dofsm reduce* result succeed]]
    [pallet.core.api :as api]
-   [clojure.tools.logging :as logging])
-  (:use
-   [pallet.environment :only [environment]]
-   [pallet.algo.fsmop :only [delay-for dofsm reduce* result succeed]]
-   [pallet.utils :only [apply-map]]))
+   [pallet.core.primitives :as primitives])
+  (:refer-clojure :exclude [delay]))
 
 (defn node-count-adjuster
   "Adjusts node counts. Groups are expected to have node counts on them."

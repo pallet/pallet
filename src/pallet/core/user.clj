@@ -1,5 +1,4 @@
-(ns pallet.core.user
-  "Admin user")
+(ns pallet.core.user "Admin user")
 
 (defn default-private-key-path
   "Return the default private key path."

@@ -3,12 +3,10 @@
   (:require
    [clojure.string :as string]
    [pallet.action :refer [with-action-options]]
-   [pallet.action-plan :as action-plan]
-   [pallet.stevedore :as stevedore])
-  (:use
-   [pallet.actions
-    :only [exec-script* plan-when plan-when-not remote-file]]
-   [pallet.crate :only [defplan os-family]]))
+   [pallet.actions :refer [exec-script* plan-when plan-when-not remote-file]]
+   [pallet.crate :refer [defplan os-family]]
+   [pallet.stevedore :as action-plan]
+   [pallet.stevedore :as stevedore]))
 
 (defplan system-environment
   "Define system wide default environment.

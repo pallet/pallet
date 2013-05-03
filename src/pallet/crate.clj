@@ -2,20 +2,19 @@
   "# Pallet Crate Writing API"
   (:require
    [clojure.string :as string]
+   [clojure.tools.macro :refer [name-with-attributes]]
+   [pallet.action
+    :refer [declare-action
+            declare-aggregated-crate-action
+            declare-collected-crate-action]]
+   [pallet.argument :refer [delayed-fn]]
+   [pallet.context :refer [with-phase-context]]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.session :as session]
+   [pallet.core.session :refer [session session!]]
    [pallet.execute :as execute]
-   [pallet.node :as node])
-  (:use
-   [clojure.tools.macro :only [name-with-attributes]]
-   [pallet.action
-    :only [declare-action
-           declare-aggregated-crate-action
-           declare-collected-crate-action]]
-   [pallet.argument :only [delayed-fn]]
-   [pallet.context :only [with-phase-context]]
-   [pallet.core.session :only [session session!]]
-   [pallet.utils :only [compiler-exception local-env]]))
+   [pallet.node :as node]
+   [pallet.utils :refer [compiler-exception local-env]]))
 
 
 ;;; The phase pipeline is used in actions and crate functions. The phase

@@ -3,11 +3,10 @@
   (:require
    [clojure.pprint :refer [print-table]]
    [clojure.stacktrace :refer [print-cause-trace]]
-   [clojure.tools.logging :as logging]
-   [pallet.algo.fsmop :refer [complete? failed? wait-for]]
-   [pallet.api :as api :refer [print-targets print-nodes]]
+   [pallet.algo.fsmop :refer [complete? wait-for]]
+   [pallet.api :as api]
    [pallet.core.api :refer [phase-errors]]
-   [pallet.task-utils :refer [pallet-project project-groups process-args]]
+   [pallet.task-utils :refer [pallet-project process-args project-groups]]
    [pallet.utils :refer [apply-map]]))
 
 (def switches

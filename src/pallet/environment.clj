@@ -19,17 +19,14 @@
    The merging of values between scopes is key specific, and is determined by
    `merge-key-algorithm`."
   (:require
-   [pallet.common.deprecate :as deprecate]
+   [clojure.core.incubator :refer [-?>]]
+   [clojure.walk :as walk]
+   [pallet.core.session :refer [session]]
+   [pallet.core.user :refer [make-user]]
    [pallet.local.execute :as local]
-   [pallet.map-merge :as map-merge :refer [merge-key]]
-   [pallet.utils :as utils]
-   [clojure.set :as set]
-   [clojure.tools.logging :as logging]
-   [clojure.walk :as walk])
-  (:use
-   [clojure.core.incubator :only [-?>]]
-   [pallet.core.session :only [session]]
-   [pallet.core.user :only [make-user]]))
+   [pallet.map-merge :as map-merge]
+   [pallet.map-merge :refer [merge-key]]
+   [pallet.utils :as utils]))
 
 (defprotocol Environment
   "A protocol for accessing an environment."

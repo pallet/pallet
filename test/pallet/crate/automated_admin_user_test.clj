@@ -1,23 +1,18 @@
 (ns pallet.crate.automated-admin-user-test
-  (:use pallet.crate.automated-admin-user)
   (:require
+   [clojure.test :refer :all]
+   [pallet.actions :refer [exec-checked-script user]]
+   [pallet.api :refer [lift make-user node-spec plan-fn server-spec]]
    [pallet.build-actions :as build-actions]
-   [pallet.action :as action]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.context :as context]
+   [pallet.context :as logging]
+   [pallet.core.user :refer [default-public-key-path]]
    [pallet.crate.automated-admin-user :as automated-admin-user]
+   [pallet.crate.automated-admin-user :refer [automated-admin-user]]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.crate.sudoers :as sudoers]
-   [pallet.live-test :as live-test]
-   [pallet.phase :as phase]
-   [pallet.utils :as utils]
-   [clojure.tools.logging :as logging])
-  (:use
-   clojure.test
-   pallet.test-utils
-   [pallet.actions :only [user exec-checked-script]]
-   [pallet.api :only [lift make-user node-spec plan-fn server-spec]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.core.user :only [default-public-key-path default-private-key-path]]))
+   [pallet.live-test :as live-test]))
 
 (use-fixtures :once (logging-threshold-fixture))
 
