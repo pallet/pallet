@@ -259,9 +259,9 @@
         (println "No download utility available")
         (exit 1)))))
 
-(script/defimpl download-file [#{:os-x}] [url path & {:keys [proxy insecure]}]
+(script/defimpl download-file [#{:darwin :os-x}] [url path & {:keys [proxy insecure]}]
   (if (~has-command? curl)
-    ("curl" "-o" (quoted ~path)
+    ("curl" "-o" ~path
           --retry 5 --silent --show-error --fail --location
           ~(if proxy
              (let [url (java.net.URL. proxy)]
