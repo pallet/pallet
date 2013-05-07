@@ -21,13 +21,14 @@
   (:require
    [clojure.core.incubator :refer [-?>]]
    [clojure.walk :as walk]
+   [pallet.core.primitives :refer [phases-with-meta]]
    [pallet.core.session :refer [session]]
    [pallet.core.user :refer [make-user]]
    [pallet.environment-impl :refer [get-for]]
    [pallet.local.execute :as local]
    [pallet.map-merge :as map-merge]
    [pallet.map-merge :refer [merge-key]]
-   [pallet.utils :as utils]))
+   [pallet.utils :as utils :refer [maybe-update-in]]))
 
 (defprotocol Environment
   "A protocol for accessing an environment."
@@ -165,6 +166,8 @@
   "Add the environment to a group."
   [environment group]
   (merge-environments
-   (select-keys environment node-keys)
+   (maybe-update-in (select-keys environment node-keys)
+                    [:phases] phases-with-meta {})
    group
-   (-?> environment :groups group)))
+   (maybe-update-in (-?> environment :groups group)
+                    [:phases] phases-with-meta {})))

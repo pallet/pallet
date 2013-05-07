@@ -20,7 +20,7 @@
    [pallet.core.api-impl
     :refer [merge-spec-algorithm merge-specs node-has-group-name?]]
    [pallet.core.operations :as ops]
-   [pallet.core.primitives :refer [execute-on-unflagged]]
+   [pallet.core.primitives :refer [execute-on-unflagged phases-with-meta]]
    [pallet.core.session :refer [session-context]]
    [pallet.core.user :as user]
    [pallet.crate :refer [phase-context]]
@@ -105,28 +105,6 @@ value in a map passed to the `:phases-meta` clause of a `server-spec` or
 `group-spec`."
   [flag-kw]
   {:phase-execution-f (execute-on-unflagged flag-kw)})
-
-(def ^{:doc "The bootstrap phase is executed with the image credentials, and
-only not flagged with a :bootstrapped keyword."}
-  default-phase-meta
-  {:bootstrap
-   (merge (execute-with-image-credentials-metadata)
-          (execute-on-unflagged-metadata :bootstrapped))})
-
-(defn- phases-with-meta
-  "Takes a `phases-map` and applies the default phase metadata and the
-  `phases-meta` to the phases in it."
-  [phases-map phases-meta]
-  (reduce-kv
-   (fn [result k v]
-     (let [dm (default-phase-meta k)
-           pm (get phases-meta k)]
-       (assoc result k (if (or dm pm)
-                         ;; explicit overrides default
-                         (vary-meta v #(merge dm % pm))
-                         v))))
-   nil
-   (or phases-map {})))
 
 ;;; #### Phase Extension
 

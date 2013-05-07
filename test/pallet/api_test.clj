@@ -4,7 +4,6 @@
    [pallet.actions :refer [exec-script]]
    [pallet.api
     :refer [cluster-spec
-            default-phase-meta
             extend-specs
             group-nodes
             group-spec
@@ -15,6 +14,7 @@
             server-spec]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :refer [nodes]]
+   [pallet.core.primitives :refer [default-phase-meta]]
    [pallet.core.session :refer [session session! with-session]]
    [pallet.core.user :refer [default-private-key-path default-public-key-path]]
    [pallet.environment :refer [get-environment]]

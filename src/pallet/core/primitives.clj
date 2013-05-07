@@ -146,6 +146,30 @@
   ([state-flag]
      (execute-on-unflagged state-flag build-and-execute-phase)))
 
+
+(def ^{:doc "The bootstrap phase is executed with the image credentials, and
+only not flagged with a :bootstrapped keyword."}
+  default-phase-meta
+  {:bootstrap
+   {:execution-settings-f (api/environment-image-execution-settings)
+    :phase-execution-f (execute-on-unflagged :bootstrapped)}})
+
+;; It's not nice that this can not be in p.core.api
+(defn phases-with-meta
+  "Takes a `phases-map` and applies the default phase metadata and the
+  `phases-meta` to the phases in it."
+  [phases-map phases-meta]
+  (reduce-kv
+   (fn [result k v]
+     (let [dm (default-phase-meta k)
+           pm (get phases-meta k)]
+       (assoc result k (if (or dm pm)
+                         ;; explicit overrides default
+                         (vary-meta v #(merge dm % pm))
+                         v))))
+   nil
+   (or phases-map {})))
+
 ;;; ## Result predicates
 (defn successful-result?
   "Filters `target-results`, a map from target to result map, for successful
