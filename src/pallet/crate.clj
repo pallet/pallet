@@ -14,7 +14,7 @@
    [pallet.core.session :refer [session session!]]
    [pallet.execute :as execute]
    [pallet.node :as node]
-   [pallet.utils :refer [compiler-exception local-env]]))
+   [pallet.utils :refer [apply-map compiler-exception local-env]]))
 
 
 ;;; The phase pipeline is used in actions and crate functions. The phase
@@ -337,6 +337,18 @@
       (session) [:plan-state]
       plan-state/update-settings
       (session/target-id (session)) facility f args options))))
+
+(defn service-phases
+  "Return a map of service phases for the specified facility, options and
+  service function.  Optionally, specify :actions with a sequence of keywords
+  for the actions you wish to generate service control phases for."
+  [facility options service-f
+   & {:keys [actions] :or {actions [:start :stop :restart]}}]
+  (letfn [(service-phases [action]
+            (let [f #(apply-map service-f :action action options)]
+              [[action f]
+               [(keyword (str (name action) "-" (name facility))) f]]))]
+    (into {} (mapcat service-phases actions))))
 
 ;; Local Variables:
 ;; mode: clojure
