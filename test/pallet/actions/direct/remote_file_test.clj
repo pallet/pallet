@@ -22,6 +22,7 @@
    [pallet.build-actions :as build-actions]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :refer [nodes]]
+   [pallet.contracts :refer [*verify-contracts*]]
    [pallet.core.api :refer [phase-errors]]
    [pallet.core.session :refer [with-session]]
    [pallet.core.user :refer [*admin-user*]]
@@ -222,6 +223,12 @@
                     "file1" :local-file "/some/non-existing/file"
                     :owner "user1")))))
     (testing "no content specified"
+      (is (thrown-with-msg?
+           Exception #".*Constraint failed.*"
+           (->
+            (build-actions/build-actions
+                {} (remote-file "file1" :owner "user1"))))))
+    (testing "no content specified (no verification)"
       (is (=
            (str
             "{:error {:type :pallet/action-execution-error, "
@@ -230,13 +237,14 @@
             "remote-file file1 specified without content.\", :cause "
             "#<IllegalArgumentException java.lang.IllegalArgumentException: "
             "remote-file file1 specified without content.>}}")
-           (->
-            (build-actions/build-actions
-                {} (remote-file "file1" :owner "user1"))
-            second
-            :errors
-            first
-            str))))
+           (binding [*verify-contracts* false]
+             (->
+              (build-actions/build-actions
+                  {} (remote-file "file1" :owner "user1"))
+              second
+              :errors
+              first
+              str)))))
 
     (testing "local-file script"
       (utils/with-temporary [tmp (utils/tmpfile)]
@@ -327,7 +335,7 @@
                                  (remote-file (.getPath target-tmp)
                                               :content "$(hostname)"
                                               :mode "0666"
-                                              :flag-on-changed :changed))
+                                              :flag-on-changed "changed"))
                         :compute compute
                         :user user
                         :async true)
@@ -346,7 +354,7 @@
                           (let [nv (remote-file
                                     (.getPath target-tmp)
                                     :content "$(hostname)"
-                                    :mode "0666" :flag-on-changed :changed)]
+                                    :mode "0666" :flag-on-changed "changed")]
                             (verify-flag-not-set :changed)
                             ((clj-action
                                [session nv]
@@ -367,7 +375,7 @@
                  :phase (plan-fn
                           (let [nv (remote-file
                                     (.getPath target-tmp) :content "abc"
-                                    :mode "0666" :flag-on-changed :changed)]
+                                    :mode "0666" :flag-on-changed "changed")]
                             (verify-flag-set :changed)
                             ((clj-action
                                [session nv]

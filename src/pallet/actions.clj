@@ -1,6 +1,8 @@
 (ns pallet.actions
   "Pallet's action primitives."
   (:require
+   [clj-schema.schema
+    :refer [constraints def-map-schema map-schema optional-path sequence-of]]
    [clojure.java.io :as io]
    [clojure.set :refer [intersection]]
    [clojure.string :refer [trim]]
@@ -8,7 +10,8 @@
    [pallet.action
     :refer [clj-action defaction enter-scope leave-scope with-action-options]]
    [pallet.actions-impl :refer :all]
-   [pallet.argument :as argument :refer [delayed]]
+   [pallet.argument :as argument :refer [delayed delayed-argument?]]
+   [pallet.contracts :refer [any-value check-spec]]
    [pallet.crate :refer [packager phase-context role->nodes-map target]]
    [pallet.node-value :refer [node-value]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
@@ -270,7 +273,37 @@ value is itself an action return value."
   ^{:doc "A vector of the options accepted by remote-file.  Can be used for
           option forwarding when calling remote-file from other crates."}
   all-options
-  (concat content-options version-options ownership-options))
+  (concat content-options version-options ownership-options [:verify]))
+
+(def-map-schema remote-file-arguments
+  :strict
+  (constraints
+   (fn [m] (some (set content-options) (keys m))))
+  [(optional-path [:local-file]) string?
+   (optional-path [:remote-file]) string?
+   (optional-path [:url]) string?
+   (optional-path [:md5]) string?
+   (optional-path [:md5-url]) string?
+   (optional-path [:content]) [:or string? delayed-argument?]
+   (optional-path [:literal]) any-value
+   (optional-path [:template]) string?
+   (optional-path [:values]) (map-schema :loose [])
+   (optional-path [:action]) keyword?
+   (optional-path [:blob]) string?
+   (optional-path [:blobstore]) any-value  ; cheating to avoid adding a reqiure
+   (optional-path [:insecure]) any-value
+   (optional-path [:overwrite-changes]) any-value
+   (optional-path [:no-versioning]) any-value
+   (optional-path [:max-versions]) number?
+   (optional-path [:flag-on-changed]) string?
+   (optional-path [:owner]) string?
+   (optional-path [:group]) string?
+   (optional-path [:mode]) [:or string? number?]
+   (optional-path [:verify]) any-value])
+
+(defmacro check-remote-file-arguments
+  [m]
+  (check-spec m `remote-file-arguments &form))
 
 (defaction transfer-file
   "Function to transfer a local file to a remote path.
@@ -423,6 +456,7 @@ Content can also be copied from a blobstore.
                   verify]
            :as options}]
   {:pre [path]}
+  (check-remote-file-arguments options)
   (verify-local-file-exists local-file)
   (when local-file
     (transfer-file local-file (new-filename path) (md5-filename path)))

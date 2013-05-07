@@ -73,7 +73,8 @@
 (defn- apply-template-file
   [[file-spec content]]
   (logging/trace (str "apply-template-file " file-spec \newline content))
-  (apply-map remote-file (:path file-spec) :content content file-spec))
+  (apply-map remote-file (:path file-spec) :content content
+             (dissoc file-spec :path)))
 
 (defn apply-templates
   [template-fn args]
