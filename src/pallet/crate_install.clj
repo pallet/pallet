@@ -1,7 +1,8 @@
 (ns pallet.crate-install
   "Install methods for crates"
   (:require
-   [clj-schema.schema :refer [map-schema]]
+   [clj-schema.schema
+    :refer [def-map-schema map-schema optional-path sequence-of]]
    [clojure.tools.logging :refer [debugf tracef]]
    [pallet.action :refer [with-action-options]]
    [pallet.actions :as actions]
@@ -12,11 +13,27 @@
             package-manager
             package-source-changed-flag
             plan-when
-            remote-directory]]
+            remote-directory
+            remote-file-arguments]]
    [pallet.contracts :refer [check-keys]]
-   [pallet.crate :refer [defmethod-plan defmulti-plan get-settings target-flag?]]
+   [pallet.crate
+    :refer [defmethod-plan defmulti-plan get-settings target-flag?]]
    [pallet.crate.package-repo :refer [rebuild-repository repository-packages]]
    [pallet.utils :refer [apply-map]]))
+
+(def-map-schema crate-install-settings
+  :strict
+  [[:install-strategy] keyword?
+   (optional-path [:packages]) (sequence-of string?)
+   (optional-path [:package-source]) (map-schema :loose [[:name] string?])
+   (optional-path [:package-options]) (map-schema :loose [])
+   (optional-path [:preseeds]) (sequence-of vector?)
+   (optional-path [:rpm]) (map-schema
+                           :strict remote-file-arguments [[:name] string?])
+   (optional-path [:debs]) remote-file-arguments
+   (optional-path [:install-source]) remote-file-arguments
+   (optional-path [:install-dir]) remote-file-arguments])
+
 
 ;;; ## Install helpers
 (defmulti-plan install
@@ -38,21 +55,31 @@
 ;; install based on the setting's :packages key
 (defmethod-plan install :packages
   [facility instance-id]
-  (let [{:keys [packages preseeds]}
+  (let [{:keys [packages package-options preseeds] :as settings}
         (get-settings facility {:instance-id instance-id})]
+    (check-keys
+     settings [:packages]
+     (map-schema :strict [[:packages] (sequence-of string?)])
+     "packages install-strategy settings values")
     (doseq [p preseeds]
       (debconf-set-selections p))
     (doseq [p packages]
-      (package p))))
+      (apply-map package p package-options))))
 
 ;; Install based on the setting's :package-source and :packages keys.
 ;; This will cause a package update if the package source definition
 ;; changes.
 (defmethod-plan install :package-source
   [facility instance-id]
-  (let [{:keys [package-source packages package-options preseeds]}
+  (let [{:keys [package-source packages package-options preseeds] :as settings}
         (get-settings facility {:instance-id instance-id})]
     (debugf "package source %s %s" facility package-source)
+    (check-keys
+     settings [:package-source :packages]
+     (map-schema :strict
+                 [[:package-source] (map-schema :loose [[:name] string?])
+                  [:packages] (sequence-of string?)])
+     "package-source install-strategy settings values")
     (apply-map actions/package-source (:name package-source) package-source)
     (let [modified? (target-flag? package-source-changed-flag)]
       (with-action-options {:always-before #{package}}
@@ -67,18 +94,33 @@
 ;; install based on a rpm
 (defmethod-plan install :rpm
   [facility instance-id]
-  (let [{:keys [rpm]} (get-settings facility {:instance-id instance-id})]
+  (let [{:keys [rpm] :as settings}
+        (get-settings facility {:instance-id instance-id})]
+    (check-keys
+     settings [:rpm]
+     (map-schema
+      :strict
+      [[:rpm] (map-schema :strict remote-file-arguments [[:name] string?])])
+     "packages install-strategy settings values")
+
     (with-action-options {:always-before `package/package}
-      (apply-map add-rpm (:name rpm) rpm))))
+      (apply-map add-rpm (:name rpm) (dissoc rpm :name)))))
 
 ;; install based on a rpm that installs a package repository source
 (defmethod-plan install :rpm-repo
   [facility instance-id]
-  (let [{:keys [rpm packages]}
+  (let [{:keys [rpm packages package-options] :as settings}
         (get-settings facility {:instance-id instance-id})]
+    (check-keys
+     settings [:rpm :packages]
+     (map-schema
+      :strict
+      [[:rpm] (map-schema :strict remote-file-arguments [[:name] string?])
+       [:packages] (sequence-of string?)])
+     "packages install-strategy settings values")
     (with-action-options {:always-before `package/package}
-      (apply-map add-rpm (:name rpm) rpm))
-    (doseq [p packages] (package p))))
+      (apply-map add-rpm (:name rpm) (dissoc rpm :name)))
+    (doseq [p packages] (apply-map package p package-options))))
 
 ;; Upload a deb archive for. Options for the :debs key are as for
 ;; remote-directory (e.g. a :local-file key with a path to a local tar

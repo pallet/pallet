@@ -7,10 +7,12 @@
 
 (deftest install-test
   (is (build-actions {}
-        (assoc-settings :f {:install-strategy :packages})
+        (assoc-settings :f {:install-strategy :packages
+                            :packages []})
         (install :f nil)))
   (is (build-actions {}
         (assoc-settings :f {:install-strategy :package-source
+                            :package-source {:name "my-source"}
                             :packages []
                             :package-options {}})
         (install :f nil)))
