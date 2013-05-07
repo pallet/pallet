@@ -3,7 +3,18 @@
 
 This crate provides a framework for a process under supervision.  It can be
 extended by different supervision providers, by providing methods for the
-various multi-methods.")
+various multi-methods.  A crate can provide configuration for use with a range
+of supervision providers.
+
+To control a service, the `service` function is used.
+
+To configure a job for a service, implement a supervisor-config-map for the
+facility and supervision service you wish to use.  Ensure the `server-spec` for
+the supervision implementation is extended by your group-spec.
+
+To create an implementation for a new service supervision provider, implement
+methods for `service-supervisor-available?`, `service-supervisor` and
+`service-supervisor-config`.")
 
 ;;; Service Supervisor SPI
 
@@ -24,8 +35,17 @@ supervisor implementation.
 
 In options:
 
+`:action`
+: the action to be performed.  Should support `:start`, `:stop` and `:restart`.
+
 `:instance-id`
-: specifies the supervisor instance-id, not the facility instance-id."
+: specifies the supervisor instance-id, not the facility instance-id.
+
+The :start action should not complain if the service is already running.
+
+The :restart action should not complain if the service is not running.
+
+The :stop action should not complain if the service is not running."
   (fn [supervisor settings options] supervisor))
 
 (defmulti service-supervisor-config
