@@ -5,7 +5,7 @@
    [clojure.stacktrace :refer [print-cause-trace]]
    [pallet.algo.fsmop :refer [complete? wait-for]]
    [pallet.api :as api]
-   [pallet.core.api :refer [phase-errors]]
+   [pallet.core.primitives :refer [phase-errors]]
    [pallet.task-utils :refer [pallet-project process-args project-groups]]
    [pallet.utils :refer [apply-map]]))
 

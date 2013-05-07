@@ -7,7 +7,7 @@
    [pallet.algo.fsmop :refer [complete? wait-for]]
    [pallet.api :as api]
    [pallet.api :refer [print-targets]]
-   [pallet.core.api :refer [phase-errors]]
+   [pallet.core.primitives :refer [phase-errors]]
    [pallet.task :refer [abort maybe-resolve-symbol-string]]
    [pallet.task-utils :refer [pallet-project project-groups]]))
 

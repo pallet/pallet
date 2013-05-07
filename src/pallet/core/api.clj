@@ -7,7 +7,6 @@
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :refer [debugf tracef]]
    [pallet.action-plan :refer [execute stop-execution-on-error translate]]
-   [pallet.algo.fsmop :refer [wait-for]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :refer [destroy-node destroy-nodes-in-group nodes run-nodes]]
    [pallet.core.api-impl :refer :all]
@@ -335,21 +334,21 @@
 
 ;;; # Exception reporting
 (defn throw-operation-exception
-  "If the operation has a logged exception, throw it. This will block on the
+  "If the result has a logged exception, throw it. This will block on the
    operation being complete or failed."
-  [operation]
-  (when-let [e (:exception @operation)]
+  [result]
+  (when-let [e (:exception result)]
     (throw e)))
 
 (defn phase-errors
   "Return the phase errors for an operation"
-  [operation]
-  (when (:phase-errors (wait-for operation))
-    (mapcat :errors (:results (wait-for operation)))))
+  [result]
+  (when (:phase-errors result)
+    (mapcat :errors (:results result))))
 
 (defn throw-phase-errors
-  [operation]
-  (when-let [e (phase-errors operation)]
+  [result]
+  (when-let [e (phase-errors result)]
     (throw
      (ex-info
       (str "Phase errors: " (string/join " " (map (comp :message :error) e)))

@@ -23,7 +23,7 @@
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :refer [nodes]]
    [pallet.contracts :refer [*verify-contracts*]]
-   [pallet.core.api :refer [phase-errors]]
+   [pallet.core.primitives :refer [phase-errors]]
    [pallet.core.session :refer [with-session]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.local.execute :as local]

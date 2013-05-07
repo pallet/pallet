@@ -7,8 +7,8 @@
    [pallet.api :refer [group-spec plan-fn]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :refer [nodes]]
-   [pallet.core.api :refer [phase-errors]]
    [pallet.core.operations :refer :all]
+   [pallet.core.primitives :refer [phase-errors]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.node :refer [group-name]]
    [pallet.test-utils :refer [clj-action make-localhost-compute]]))

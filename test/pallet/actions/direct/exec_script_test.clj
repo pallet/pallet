@@ -8,7 +8,7 @@
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
-   [pallet.core.api :refer [phase-errors throw-phase-errors]]
+   [pallet.core.primitives :refer [phase-errors throw-phase-errors]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.node :refer [hostname]]
    [pallet.node-value :refer [node-value]]

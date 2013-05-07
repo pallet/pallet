@@ -9,7 +9,7 @@
             on-enter
             state
             valid-transitions]]
-   [pallet.algo.fsmop :refer [dofsm execute map* update-state]]
+   [pallet.algo.fsmop :refer [dofsm execute map* update-state wait-for]]
    [pallet.core.api :as api]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.node :refer [id]]))
@@ -188,3 +188,19 @@
   [compute-service group-nodes]
   (logging/debugf "remove-group-nodes %s" group-nodes)
   (map* (map #(remove-nodes compute-service (key %) (val %)) group-nodes)))
+
+;;; # Exception reporting
+(defn throw-operation-exception
+  "If the operation has a logged exception, throw it. This will block on the
+   operation being complete or failed."
+  [operation]
+  (api/throw-operation-exception @operation))
+
+(defn phase-errors
+  "Return the phase errors for an operation"
+  [operation]
+  (api/phase-errors (wait-for operation)))
+
+(defn throw-phase-errors
+  [operation]
+  (api/throw-phase-errors (wait-for operation)))
