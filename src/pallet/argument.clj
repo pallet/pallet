@@ -56,3 +56,8 @@ considered an implementation detail."
   "Pass an argument to be evaluated at action application time."
   [[session-sym] & body]
   `(DelayedFunction. (fn [~session-sym] ~@body)))
+
+(defn delayed-argument?
+  "Predicate to test if `x` is a delayed argument type."
+  [x]
+  (satisfies? DelayedArgument x))
