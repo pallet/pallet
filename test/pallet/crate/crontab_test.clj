@@ -17,7 +17,7 @@
             user-crontabs
             user-settings
             with-crontab]]
-   [pallet.environment :refer [get-for]]
+   [pallet.environment-impl :refer [get-for]]
    [pallet.live-test :refer [images test-for test-nodes]]
    [pallet.script.lib :refer [user-home]]
    [pallet.stevedore :refer [script]]

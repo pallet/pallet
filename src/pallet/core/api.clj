@@ -13,7 +13,6 @@
    [pallet.core.api-impl :refer :all]
    [pallet.core.session :refer [session with-session]]
    [pallet.core.user :refer [*admin-user*]]
-   [pallet.environment :refer [get-for]]
    [pallet.executors :refer [default-executor]]
    [pallet.node :refer [id image-user primary-ip tag tag! taggable?]]
    [pallet.session.action-plan
@@ -291,9 +290,9 @@
    (fn [node] (assoc group :node node))
    (run-nodes
     compute-service group count
-    (get-for environment [:user] *admin-user*)
+    (:user environment *admin-user*)
     nil
-    (get-for environment [:provider-options] nil))))
+    (:provider-options environment nil))))
 
 (defn remove-nodes
   "Removes `nodes` from `group`. If `all` is true, then all nodes for the group

@@ -12,7 +12,7 @@
     :refer [copy-filename md5-filename new-filename remote-file-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
-   [pallet.environment :as environment]
+   [pallet.environment-impl :refer [get-for]]
    [pallet.script.lib :as lib]
    [pallet.script.lib :refer [wait-while]]
    [pallet.stevedore :as action-plan]
@@ -65,7 +65,7 @@
           md5-path (md5-filename path)
           copy-path (copy-filename path)
           versioning (if no-versioning nil :numbered)
-          proxy (environment/get-for session [:proxy] nil)]
+          proxy (get-for session [:proxy] nil)]
       (case action
         :create
         (action-plan/checked-commands
@@ -136,7 +136,7 @@
                  (~lib/download-request
                   ~new-path
                   ~(blobstore/sign-blob-request
-                    (or blobstore (environment/get-for session [:blobstore] nil)
+                    (or blobstore (get-for session [:blobstore] nil)
                         (throw (IllegalArgumentException.
                                 "No :blobstore given for blob content.") ))
                     (:container blob) (:path blob)
