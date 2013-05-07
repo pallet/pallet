@@ -246,7 +246,7 @@
                (format "--proxy %s:%s" (.getHost url) (.getPort url)))
              "")
           ~(if insecure "--insecure" "")
-          (quoted ~url))
+          ~url)
     (if (~has-command? wget)
       ("wget" "-O" (quoted ~path) --tries 5 --no-verbose --progress=dot:mega
             ~(if proxy
