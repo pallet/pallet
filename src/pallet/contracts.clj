@@ -153,9 +153,9 @@
 
 (defn ^{:requires [validation-errors #'errorf join]} check-spec
   [m spec &form]
-  (if *verify-contracts*
-    (let [spec-name (string/replace (name spec) "-schema" "")]
-      `(let [m# ~m]
+  (let [spec-name (string/replace (name spec) "-schema" "")]
+    `(when *verify-contracts*
+       (let [m# ~m]
          (if-let [errs# (seq (validation-errors ~spec m#))]
            (do
              (errorf ~(str "Invalid " spec-name ":"))
@@ -167,8 +167,7 @@
                {:errors errs#
                 :line ~(:line (meta &form))
                 :file ~*file*}))))
-         m#))
-    m))
+         m#))))
 
 (defmacro check-node-spec
   [m]
@@ -196,8 +195,8 @@
 
 (defn check-keys*
   [m keys spec msg &form]
-  (if *verify-contracts*
-    `(let [m# (select-keys ~m ~keys)
+  `(when *verify-contracts*
+     (let [m# (select-keys ~m ~keys)
            spec# ~spec
            msg# ~msg]
        (if-let [errs# (seq (validation-errors spec# m#))]
@@ -211,8 +210,7 @@
              {:errors errs#
               :line ~(:line (meta &form))
               :file ~*file*}))))
-       m#)
-    m))
+       m#)))
 
 (defmacro check-keys
   "Check keys in m"
