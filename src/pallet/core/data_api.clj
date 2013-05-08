@@ -30,7 +30,7 @@
   (let [compute (node-list-service [node])
         group-name (second node)
         os-family (nth node 3)]
-    (let [group (merge (group-spec group-name :node {:os-family os-family})
+    (let [group (merge (group-spec group-name :image {:os-family os-family})
                        (when settings-phase
                          {:phases {:settings (plan-fn (settings-phase))}}))]
       (lift [group]
