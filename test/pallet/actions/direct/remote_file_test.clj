@@ -63,13 +63,15 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true)
-             (lib/download-file "http://a.com/b" (new-filename "path"))
-             (if (file-exists? (new-filename "path"))
+             (lib/mkdir @(lib/dirname ~(new-filename nil "path")) :path true)
+             (lib/download-file "http://a.com/b" (new-filename nil "path"))
+             (if (file-exists? (new-filename nil "path"))
                (do
                  (lib/cp
-                  (new-filename "path") (copy-filename "path") :force true)
-                 (lib/mv (new-filename "path") path :force true)))))
+                  (new-filename nil "path")
+                  (copy-filename nil "path")
+                  :force true)
+                 (lib/mv (new-filename nil "path") path :force true)))))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
               (remote-file*
@@ -82,14 +84,16 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true)
+             (lib/mkdir @(lib/dirname ~(new-filename nil "path")) :path true)
              (lib/download-file
-              "http://a.com/b" (new-filename "path") :proxy "http://proxy/")
-             (if (file-exists? (new-filename "path"))
+              "http://a.com/b" (new-filename nil "path") :proxy "http://proxy/")
+             (if (file-exists? (new-filename nil "path"))
                (do
                  (lib/cp
-                  (new-filename "path") (copy-filename "path") :force true)
-                 (lib/mv (new-filename "path") path :force true)))))
+                  (new-filename nil "path")
+                  (copy-filename nil "path")
+                  :force true)
+                 (lib/mv (new-filename nil "path") path :force true)))))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
               (remote-file*
@@ -103,14 +107,16 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true))
-            (stevedore/script (~lib/heredoc (new-filename "path") "xxx" {}))
+             (lib/mkdir @(lib/dirname ~(new-filename nil "path")) :path true))
+            (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
             (stevedore/chained-script
-             (if (file-exists? (new-filename "path"))
+             (if (file-exists? (new-filename nil "path"))
                (do
                  (lib/cp
-                  (new-filename "path") (copy-filename "path") :force true)
-                 (lib/mv (new-filename "path") path :force true)))))
+                  (new-filename nil "path")
+                  (copy-filename nil "path")
+                  :force true)
+                 (lib/mv (new-filename nil "path") path :force true)))))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
               (remote-file* {} "path" {:content "xxx" :no-versioning true
@@ -122,14 +128,16 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true))
-            (stevedore/script (~lib/heredoc (new-filename "path") "xxx" {}))
+             (lib/mkdir @(lib/dirname ~(new-filename nil "path")) :path true))
+            (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
             (stevedore/chained-script
-             (if (file-exists? (new-filename "path"))
+             (if (file-exists? (new-filename nil "path"))
                (do
                  (lib/cp
-                  (new-filename "path") (copy-filename "path") :force true)
-                 (lib/mv (new-filename "path") "path" :force true)))
+                  (new-filename nil "path")
+                  (copy-filename nil "path")
+                  :force true)
+                 (lib/mv (new-filename nil "path") "path" :force true)))
              (~lib/chown "o" "path")
              (~lib/chgrp "g" "path")
              (~lib/chmod "m" "path")))
@@ -153,8 +161,8 @@
       (is (script-no-comment=
            (stevedore/checked-script
             "remote-file path"
-            (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true)
-            (lib/heredoc (new-filename "path") "a 1\n" {}))
+            (lib/mkdir @(lib/dirname ~(new-filename nil "path")) :path true)
+            (lib/heredoc (new-filename nil "path") "a 1\n" {}))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
               (remote-file*
@@ -288,7 +296,7 @@
                      (map :node (:targets result)))))
               (is (.canRead target-tmp))
               (is (= "text" (slurp (.getPath target-tmp))))
-              (is (slurp (md5-filename (.getPath target-tmp))))
+              (is (slurp (md5-filename nil (.getPath target-tmp))))
               (testing "with md5 guard same content"
                 (logging/info "remote-file test: local-file with md5 guard")
                 (let [compute (make-localhost-compute :group-name "local")
@@ -483,7 +491,31 @@
                :phase (plan-fn
                         (remote-file (.getPath target-tmp) :action :delete))
                :user user)
-              (is (not (.exists target-tmp))))))))))
+              (is (not (.exists target-tmp))))))))
+    (testing "with :script-dir"
+      (utils/with-temporary [tmp (utils/tmpfile)]
+        (.delete tmp)
+        (is (script-no-comment=
+             (str "remote-file " (.getName tmp) "...\n"
+                  "MD5 sum is 6de9439834c9147569741d3c9c9fc010 "
+                  (.getName tmp) "\n"
+                  "#> remote-file " (.getName tmp) " : SUCCESS")
+             (let [compute (make-localhost-compute :group-name "local")
+                   op (lift
+                       (group-spec "local")
+                       :phase (plan-fn
+                                (action/with-action-options
+                                  {:script-dir (.getParent tmp)}
+                                  (remote-file (.getName tmp) :content "xxx")))
+                       :compute compute
+                       :user (local-test-user)
+                       :async true)
+                   session @op]
+               (is (not (failed? op)))
+               (is (nil? (phase-errors op)))
+               (logging/infof "r-f-t content: session %s" session)
+               (->> session :results (mapcat :result) first :out))))
+        (is (= "xxx\n" (slurp (.getPath tmp))))))))
 
 (deftest transfer-file-to-local-test
   (utils/with-temporary [remote-file (utils/tmpfile)

@@ -181,7 +181,10 @@
         action (make-action 'a :in-sequence {})]
     (add-action-implementation! action :default {} f)
     (is (=
-         ["1" {:plan-state {:node-values {'nvp "1"}}}]
+         ["1" {:plan-state {:node-values {'nvp "1"}}
+               :action {:action {:action-symbol 'a,
+                                 :execution :in-sequence
+                                 :precedence {}}}}]
          (execute-action-map
           (executor :default)
           {}
@@ -189,7 +192,7 @@
 
 (defn dissoc-action-plan
   [[r s]]
-  [r (dissoc s :action-plans)])
+  [r (dissoc s :action-plans :action)])
 
 (deftest execute-test
   (testing "aggregated with one action call"
@@ -414,6 +417,29 @@
         actions [action-f action-g action-h]]
     (is (= [action-g action-h action-f]
            (#'action-plan/enforce-scope-dependencies actions)))))
+
+(deftest action-options-test
+  (testing "reordering across execution-type"
+    (let [a (atom nil)
+          f (fn [session & x]
+              (reset! a (str "xx" (-> session :action :script-dir)))
+              [(str x) session])
+          fa (declare-action 'fa {:execution :in-sequence})
+          _ (implement-action* fa :default {} f)
+          a1 (action-map (-> fa meta :action) [1] {:script-dir "dir"})
+          action-plan (-> nil
+                          (add-action-map (assoc a1 :node-value-path :v1)))]
+      (is (=
+           [["(1)"] {:plan-state {:node-values {:v1 "(1)"}}}]
+           (->
+            (translate action-plan {})
+            first
+            (execute
+             {}
+             (executor :default)
+             stop-execution-on-error)
+            (dissoc-action-plan))))
+      (is (= "xxdir" @a)))))
 
 (deftest enforce-precedence-test
   (testing "reordering across execution-type"

@@ -61,9 +61,9 @@
                       install-new-files true}
                  :as options}]
   [[{:language :bash}
-    (let [new-path (new-filename path)
-          md5-path (md5-filename path)
-          copy-path (copy-filename path)
+    (let [new-path (new-filename (-> session :action :script-dir) path)
+          md5-path (md5-filename (-> session :action :script-dir) path)
+          copy-path (copy-filename (-> session :action :script-dir) path)
           versioning (if no-versioning nil :numbered)
           proxy (get-for session [:proxy] nil)]
       (case action

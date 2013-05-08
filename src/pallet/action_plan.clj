@@ -583,12 +583,16 @@
     [nil session]
     (try
       (binding [*defining-context* context]
-        (->>
-         action
-         (evaluate-arguments session)
-         (executor session)
-         ((fn [r] (logging/tracef "rv is %s" r) r))
-         (set-node-value-with-return-value node-value-path)))
+        (let [session (assoc session
+                        :action (-> action
+                                    (update-in [:action] dissoc :impls)
+                                    (dissoc :node-value-path)))]
+         (->>
+          action
+          (evaluate-arguments session)
+          (executor session)
+          ((fn [r] (logging/tracef "rv is %s" r) r))
+          (set-node-value-with-return-value node-value-path))))
       (catch Exception e
         (logging/errorf e "Exception in execute-action-map")
         [{:error {:type :pallet/action-execution-error

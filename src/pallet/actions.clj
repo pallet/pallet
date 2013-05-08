@@ -8,7 +8,8 @@
    [clojure.string :refer [trim]]
    [clojure.tools.logging :as logging]
    [pallet.action
-    :refer [clj-action defaction enter-scope leave-scope with-action-options]]
+    :refer [clj-action defaction enter-scope get-action-options leave-scope
+            with-action-options]]
    [pallet.actions-impl :refer :all]
    [pallet.argument :as argument :refer [delayed delayed-argument?]]
    [pallet.contracts :refer [any-value check-spec]]
@@ -459,7 +460,9 @@ Content can also be copied from a blobstore.
   (check-remote-file-arguments options)
   (verify-local-file-exists local-file)
   (when local-file
-    (transfer-file local-file (new-filename path) (md5-filename path)))
+    (transfer-file local-file
+                   (new-filename (:script-dir (get-action-options)) path)
+                   (md5-filename (:script-dir (get-action-options)) path)))
   (with-action-options local-file-options
     (remote-file-action
      path
@@ -566,7 +569,9 @@ option and :unpack :unzip.
            :as options}]
   (verify-local-file-exists local-file)
   (when local-file
-    (transfer-file local-file (new-filename path) (md5-filename path)))
+    (transfer-file local-file
+                   (new-filename (:script-dir (get-action-options)) path)
+                   (md5-filename (:script-dir (get-action-options)) path)))
   (with-action-options local-file-options
     (remote-directory-action
      path

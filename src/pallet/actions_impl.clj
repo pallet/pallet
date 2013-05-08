@@ -104,22 +104,27 @@ to deal with local file transfer."
 ;;; Note that we can not use remote evaluated expressions in these paths, as
 ;;; they are used locally.
 (defn- adjust-root
-  [^String path]
+  [^String script-dir ^String path]
   (if (.startsWith path "/")
     path
-    (fragment (file "/admin-home" ~(-> (session) :user :username) ~path))))
+    (fragment
+     (file ~(or script-dir
+                (fragment (file "/admin-home" ~(-> (session) :user :username))))
+           ~path))))
 
 (defn new-filename
   "Generate a temporary file name for a given path."
-  [path]
-  (fragment (str (state-root) "/pallet" ~(str (adjust-root path) ".new"))))
+  [script-dir path]
+  (fragment
+   (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".new"))))
 
 (defn md5-filename
   "Generate a md5 file name for a given path."
-  [path]
-  (fragment (str (state-root) "/pallet" ~(str (adjust-root path) ".md5"))))
+  [script-dir path]
+  (fragment
+   (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".md5"))))
 
 (defn copy-filename
-  "Generate a md5 file name for a given path."
-  [path]
-  (fragment (str (state-root) "/pallet" ~(adjust-root path))))
+  "Generate a file name for a copy of the given path."
+  [script-dir path]
+  (fragment (str (state-root) "/pallet" ~(adjust-root script-dir path))))
