@@ -50,6 +50,11 @@
        :dynamic true}
   *force-overwrite* false)
 
+(defaction remote-pallet-path-action
+  "An action that ensures that a remote /var/lib/pallet path exists, with
+   ownership and permissions to match a path in the filesystem."
+  [path template-path])
+
 (defaction remote-file-action
   "An action that implements most of remote-file, but requires a helper in order
 to deal with local file transfer."

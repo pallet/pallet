@@ -13,7 +13,8 @@
    [pallet.actions-impl :refer :all]
    [pallet.argument :as argument :refer [delayed delayed-argument?]]
    [pallet.contracts :refer [any-value check-spec]]
-   [pallet.crate :refer [packager phase-context role->nodes-map target]]
+   [pallet.crate :refer [admin-user packager phase-context role->nodes-map
+                         target]]
    [pallet.node-value :refer [node-value]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
@@ -459,17 +460,29 @@ Content can also be copied from a blobstore.
   {:pre [path]}
   (check-remote-file-arguments options)
   (verify-local-file-exists local-file)
-  (when local-file
-    (transfer-file local-file
-                   (new-filename (:script-dir (get-action-options)) path)
-                   (md5-filename (:script-dir (get-action-options)) path)))
-  (with-action-options local-file-options
-    (remote-file-action
-     path
-     (merge
-      {:install-new-files *install-new-files*
-       :overwrite-changes *force-overwrite*} ; capture bound values
-      options))))
+  (let [action-options (get-action-options)
+        script-dir (:script-dir action-options)
+        user (if (= :sudo (:script-prefix action-options :sudo))
+               (:sudo-user action-options)
+               (:username (admin-user)))
+        new-path (new-filename script-dir path)
+        md5-path (md5-filename script-dir path)]
+    (when local-file
+      (transfer-file local-file new-path md5-path))
+    (with-action-options {:sudo-user nil :script-prefix :sudo :script-dir nil}
+      remote-pallet-path-action
+      (remote-pallet-path-action new-path path))
+    ;; we run as root so we don't get permission issues
+    (with-action-options (merge
+                          {:script-prefix :sudo :sudo-user nil}
+                          local-file-options)
+      (remote-file-action
+       path
+       (merge
+        {:install-new-files *install-new-files* ; capture bound values
+         :overwrite-changes *force-overwrite*
+         :owner user}
+        options)))))
 
 (defn with-remote-file
   "Function to call f with a local copy of the sessioned remote path.
@@ -568,17 +581,29 @@ option and :unpack :unzip.
                 recursive true}
            :as options}]
   (verify-local-file-exists local-file)
-  (when local-file
-    (transfer-file local-file
-                   (new-filename (:script-dir (get-action-options)) path)
-                   (md5-filename (:script-dir (get-action-options)) path)))
-  (with-action-options local-file-options
-    (remote-directory-action
-     path
-     (merge
-      {:install-new-files *install-new-files*
-       :overwrite-changes *force-overwrite*} ; capture bound values
-      options))))
+  (let [action-options (get-action-options)
+        script-dir (:script-dir action-options)
+        user (if (= :sudo (:script-prefix action-options :sudo))
+               (:sudo-user action-options)
+               (:username (admin-user)))
+        new-path (new-filename script-dir path)
+        md5-path (md5-filename script-dir path)]
+    (when local-file
+      (transfer-file local-file new-path md5-path))
+    (with-action-options {:sudo-user nil :script-prefix :sudo :script-dir nil}
+      remote-pallet-path-action
+      (remote-pallet-path-action new-path path))
+    ;; we run as root so we don't get permission issues
+    (with-action-options (merge
+                          {:script-prefix :sudo :sudo-user nil}
+                          local-file-options)
+      (remote-directory-action
+       path
+       (merge
+        {:install-new-files *install-new-files* ; capture bound values
+         :overwrite-changes *force-overwrite*
+         :owner user}
+        options)))))
 
 (defaction wait-for-file
   "Wait for a file to exist"

@@ -10,8 +10,8 @@
             new-filename
             remote-directory-action
             remote-file-action]]
-   [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]
+   [pallet.script.lib :as lib :refer [user-default-group]]
+   [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.stevedore :refer [with-source-line-comments]]))
 
 (require 'pallet.actions.direct.directory)
@@ -60,7 +60,11 @@
   [[{:language :bash}
     (case action
       :create (let [url (options :url)
-                    unpack (options :unpack :tar)]
+                    unpack (options :unpack :tar)
+                    options (if (and owner (not group))
+                              (assoc options
+                                :group (fragment @(user-default-group ~owner)))
+                              options)]
                 (when (and (or url local-file remote-file) unpack)
                   (let [[cmd tarpath tar-md5] (source-to-cmd-and-path
                                                session path

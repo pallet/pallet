@@ -109,6 +109,40 @@
   [path]
   ("dirname" ~path))
 
+(script/defscript path-owner
+  "Return the owner of the given path"
+  [path])
+(script/defimpl path-owner :default
+  [path]
+  ("stat" "-c%u" ~path))
+(script/defimpl path-owner [#{:darwin :os-x}] [path]
+  ("stat" "-f" "%Su" ~path))
+
+(script/defscript path-group
+  "Return the group of the given path"
+  [path])
+(script/defimpl path-group :default
+  [path]
+  ("stat" "-c%g" ~path))
+(script/defimpl path-group [#{:darwin :os-x}] [path]
+  ("stat" "-f" "%Sg" ~path))
+
+(script/defscript path-mode
+  "Return the mode of the given path"
+  [path])
+(script/defimpl path-mode :default
+  [path]
+  ("stat" "-c%a" ~path))
+(script/defimpl path-mode [#{:darwin :os-x}] [path]
+  ("stat" "-f" "%Op" ~path))
+
+(script/defscript user-default-group
+  "Return the user's default group"
+  [user])
+(script/defimpl user-default-group :default
+  [user]
+  ("id" "-ng" ~user))
+
 (script/defscript ls [pattern & {:keys [sort-by-time sort-by-size reverse]}])
 (script/defimpl ls :default
   [pattern & {:keys [sort-by-time sort-by-size reverse]}]

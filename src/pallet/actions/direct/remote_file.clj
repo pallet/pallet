@@ -9,13 +9,16 @@
             transfer-file-to-local
             wait-for-file]]
    [pallet.actions-impl
-    :refer [copy-filename md5-filename new-filename remote-file-action]]
+    :refer [copy-filename md5-filename new-filename remote-file-action
+            remote-pallet-path-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
    [pallet.environment-impl :refer [get-for]]
-   [pallet.script.lib :as lib]
+   [pallet.script.lib :as lib
+    :refer [canonical-path chgrp chmod chown dirname exit path-group path-mode
+            path-owner user-default-group]]
    [pallet.script.lib :refer [wait-while]]
-   [pallet.stevedore :as action-plan]
+   [pallet.action-plan :as action-plan]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [fragment]]
    [pallet.template :as templates]))
@@ -43,6 +46,33 @@
     (.getPath (io/file remote-md5-path))]
    session])
 
+(defn create-path-with-template
+  "Create the /var/lib/pallet directory if required, ensuring correct
+permissions. Note this is not the final directory."
+  [new-path template-path]
+  (stevedore/script
+   (do
+     (set! dirpath @(dirname ~new-path))
+     (set! templatepath @(dirname @(canonical-path ~template-path)))
+     (chain-or (lib/mkdir @dirpath :path true) (exit 1))
+     ("while" (!= "/" @templatepath) ";do"
+      ~(stevedore/chained-script
+        (set! d @dirpath)               ; copy these and update
+        (set! t @templatepath)          ; so we can continue on any failure
+        (set! dirpath @(dirname @dirpath))
+        (set! templatepath @(dirname @templatepath))
+        (chain-or (chgrp @(path-group @t) @d) ":")
+        (chain-or (chmod @(path-mode @t) @d) ":")
+        (chain-or (chown @(path-owner @t) @d) ":"))
+      ("; done")))))
+
+(implement-action remote-pallet-path-action :direct
+  {:action-type :script :location :target}
+  [session path template-path]
+  [[{:language :bash}
+    (create-path-with-template path template-path)]
+   session])
+
 (implement-action remote-file-action :direct
   {:action-type :script :location :target}
   [session path {:keys [action url local-file remote-file link
@@ -65,16 +95,15 @@
           md5-path (md5-filename (-> session :action :script-dir) path)
           copy-path (copy-filename (-> session :action :script-dir) path)
           versioning (if no-versioning nil :numbered)
-          proxy (get-for session [:proxy] nil)]
+          proxy (get-for session [:proxy] nil)
+          options (if (and owner (not group))
+                    (assoc options
+                      :group (fragment @(user-default-group ~owner)))
+                    options)]
       (case action
         :create
         (action-plan/checked-commands
          (str "remote-file " path)
-
-         ;; create the directory if required - note this is not the final
-         ;; directory
-         (stevedore/chained-script
-          (lib/mkdir @(lib/dirname ~new-path) :path true))
 
          ;; Create the new content
          (cond

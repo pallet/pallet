@@ -55,7 +55,7 @@ future)."
    (prolog)
    (if script-dir
      (stevedore/script
-      (~mkdir ~script-dir :path true)
+      (chain-or (~mkdir ~script-dir :path true) (exit 1))
       ("cd" ~script-dir))
      "")
    (if (and (= language :bash) script-trace)
