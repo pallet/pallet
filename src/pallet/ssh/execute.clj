@@ -163,7 +163,7 @@
             (logging/trace "ssh-script-on-target done")
             (logging/debugf "%s   <== ----------------------------------------"
                             (:server endpoint))
-            (when (:new-login-after-action options)
+            (when (:new-login-after-action action)
               (transport/close connection))
             [result session]))))))
 

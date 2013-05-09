@@ -81,8 +81,9 @@
            nil [{} "echo 1"])
           (is (= original-connection (get-connection session)))
           (ssh-script-on-target
-           session {:node-value-path (keyword (name (gensym "nv")))}
-           nil [{:new-login-after-action true} "echo 1"])
+           session {:node-value-path (keyword (name (gensym "nv")))
+                    :new-login-after-action true}
+           nil [{} "echo 1"])
           (is (not= original-connection (get-connection session)))
           (let [second-connection (get-connection session)]
             (ssh-script-on-target
