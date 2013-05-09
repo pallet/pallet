@@ -91,6 +91,7 @@
   <logger name="pallet.core.primitives" level="DEBUG"/>
   <logger name="pallet.core.operations" level="DEBUG"/>
   <logger name="pallet.crate.nohup" level="DEBUG"/>
+  <logger name="pallet.script-builder" level="DEBUG"/>
   <logger name="pallet.transport" level="DEBUG"/>
   <logger name="clj-ssh.ssh" level="ERROR"/>
   <!-- <logger name="pallet.execute.default-executor" level="TRACE"/> -->

@@ -2,6 +2,7 @@
   "Build scripts with prologues, epilogues, etc, and command lines for
    running them in different environments"
   (:require
+   [clojure.tools.logging :refer [debugf]]
    [clojure.string :as string]
    [clojure.string :refer [split]]
    [pallet.script.lib
@@ -25,6 +26,9 @@ infix-operators
 (defn sudo-cmd-for
   "Construct a sudo command prefix for the specified user."
   [{:keys [no-sudo password sudo-user sudo-password username] :as user}]
+  (debugf
+   "sudo-cmd-for %s"
+   (select-keys user [:no-sudo :password :sudo-user :sudo-password :username]))
   (if (or (and (= username "root") (not sudo-user))
           no-sudo)
     nil
@@ -42,6 +46,7 @@ infix-operators
   (fn [kw session action] kw))
 (defmethod prefix :default [_ _ _] nil)
 (defmethod prefix :sudo [_ session action]
+  (debugf "prefix sudo %s" (into {} (merge (:user session) action)))
   (sudo-cmd-for (merge (:user session) action)))
 
 (defn build-script
@@ -80,6 +85,14 @@ future)."
                    sudo-user]
             :as action}
    & args]
+  (debugf
+   "%s"
+   (select-keys action
+                [:default-script-prefix :script-dir :script-env :script-prefix
+                 :sudo-user]))
+  (debugf
+   "prefix kw %s"
+   (:script-prefix session (or script-prefix default-script-prefix :sudo)))
   (with-source-line-comments false
     {:execv
      (->>
@@ -90,6 +103,7 @@ future)."
                            (or script-prefix default-script-prefix :sudo))
                           session
                           action)]
+         (debugf "prefix %s" prefix)
          (string/split prefix #" "))
        [(fragment (env))]
        (env-var-pairs (merge {:SSH_AUTH_SOCK (fragment @SSH_AUTH_SOCK)}
