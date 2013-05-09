@@ -92,7 +92,8 @@ future)."
                           action)]
          (string/split prefix #" "))
        [(fragment (env))]
-       (env-var-pairs (or script-env (:script-env session)))
+       (env-var-pairs (merge {:SSH_AUTH_SOCK (fragment @SSH_AUTH_SOCK)}
+                             (or script-env (:script-env session))))
        (interpreter {:language :bash})
        args)
       (filter identity))}))
