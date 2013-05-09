@@ -24,7 +24,9 @@
              (sudoers/install)
              (user "fred" :create-home true :shell :bash)
              (sudoers/sudoers
-              {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+              {}
+              {:default {:env_keep "SSH_AUTH_SOCK"}}
+              {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
              (context/with-phase-context
                {:kw :authorize-user-key :msg "authorize-user-key"}
                (ssh-key/authorize-key
@@ -41,7 +43,9 @@
              (sudoers/install)
              (user "fred" :create-home true :shell :bash)
              (sudoers/sudoers
-              {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+              {}
+              {:default {:env_keep "SSH_AUTH_SOCK"}}
+              {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
              (context/with-phase-context
                {:kw :authorize-user-key :msg "authorize-user-key"}
                (ssh-key/authorize-key
@@ -59,7 +63,9 @@
              (sudoers/install)
              (user "fred" :create-home true :shell :bash)
              (sudoers/sudoers
-              {} {} {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+              {}
+              {:default {:env_keep "SSH_AUTH_SOCK"}}
+              {"fred" {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
              (context/with-phase-context
                {:kw :authorize-user-key :msg "authorize-user-key"}
                (ssh-key/authorize-key "fred" "abc"))))
@@ -77,7 +83,9 @@
                (sudoers/install)
                (user user-name :create-home true :shell :bash)
                (sudoers/sudoers
-                {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+                {}
+                {:default {:env_keep "SSH_AUTH_SOCK"}}
+                {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
                (context/with-phase-context
                  {:kw :authorize-user-key :msg "authorize-user-key"}
                  (ssh-key/authorize-key
@@ -95,7 +103,9 @@
                (sudoers/install)
                (user user-name :create-home true :shell :bash)
                (sudoers/sudoers
-                {} {} {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+                {}
+                {:default {:env_keep "SSH_AUTH_SOCK"}}
+                {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
                (context/with-phase-context
                  {:kw :authorize-user-key :msg "authorize-user-key"}
                  (ssh-key/authorize-key

@@ -32,7 +32,9 @@
      (doseq [kp public-key-paths]
        (authorize-user-key username kp))
      (sudoers/sudoers
-      {} {} {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})))
+      {}
+      {:default {:env_keep "SSH_AUTH_SOCK"}}
+      {username {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})))
 
 (def with-automated-admin-user
   (server-spec
