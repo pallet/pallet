@@ -29,8 +29,8 @@
         (install :f nil)))
   (is (build-actions {}
         (assoc-settings :f {:install-strategy :deb
-                            :deb {:remote-file "http://somewhere.com/"
-                                  :name "xx"}
-                            :package-source {:name "xx"}
+                            :debs {:remote-file "http://somewhere.com/"
+                                   :name "xx"}
+                            :package-source {:name "xx" :apt {:path "abc"}}
                             :packages []})
         (install :f nil))))

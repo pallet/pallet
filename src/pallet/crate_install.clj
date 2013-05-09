@@ -130,7 +130,8 @@
   [facility instance-id]
   (let [{:keys [debs package-source packages]}
         (get-settings facility {:instance-id instance-id})
-        path (-> package-source :aptitude :path)]
+        path (or (-> package-source :apt :path)
+                 (-> package-source :aptitude :path))]
     (with-action-options
       {:action-id ::deb-install
        :always-before #{::update-package-source ::install-package-source}}
