@@ -110,6 +110,7 @@
   [session {:keys [context node-value-path] :as action} action-type
    [options script]]
   (logging/trace "ssh-script-on-target")
+  (logging/trace "action %s options %s" action options)
   (let [endpoint (endpoint session)]
     (logutils/with-context [:target (:server endpoint)]
       (logging/infof
@@ -128,8 +129,9 @@
                          (str " -----------------------------------------\n"
                               script
                               "\n------------------------------------------"))
-          (logging/debugf "%s:%s send script via %s as %s"
-                          (:server endpoint) (:port endpoint) tmpfile (or sudo-user "root"))
+          (logging/debugf
+           "%s:%s send script via %s as %s"
+           (:server endpoint) (:port endpoint) tmpfile (or sudo-user "root"))
           (logging/debugf "%s   <== ----------------------------------------"
                           (:server endpoint))
           (transport/send-text
@@ -141,7 +143,8 @@
                         connection
                         (script-builder/build-code session action tmpfile)
                         {:output-f (log-script-output
-                                    (:server endpoint) (:user authentication))})
+                                    (:server endpoint) (:user authentication))
+                         :agent-forwarding (:ssh-agent-forwarding action)})
                 [result session] (execute/parse-shell-result session result)
                 result (update-in result [:out] clean-f)
                 result (assoc result :script script)
