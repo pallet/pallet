@@ -13,7 +13,8 @@
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
    [pallet.environment-impl :refer [get-for]]
-   [pallet.script.lib :as lib]
+   [pallet.script.lib :as lib
+    :refer [chgrp chmod chown dirname path-group path-mode path-owner]]
    [pallet.script.lib :refer [wait-while]]
    [pallet.stevedore :as action-plan]
    [pallet.stevedore :as stevedore]
@@ -42,6 +43,25 @@
     (.getPath (io/file remote-path))
     (.getPath (io/file remote-md5-path))]
    session])
+
+(defn create-path-with-template
+  [new-path template-path]
+  (stevedore/script
+   (do
+     (set! dirpath @(dirname ~new-path))
+     (set! templatepath @(dirname ~template-path))
+     (if (= "." @templatepath)
+       (set! templatepath @("pwd")))
+     ("while" (!= "/" @dirpath) ";do"
+      ~(stevedore/chained-script
+        (set! d @dirpath)               ; copy these and update
+        (set! t @templatepath)          ; so we can continue on any failure
+        (set! dirpath @(dirname @dirpath))
+        (set! templatepath @(dirname @templatepath))
+        (chgrp @(path-group @t) @d)
+        (chmod @(path-mode @t) @d)
+        (chown @(path-owner @t) @d))
+      ("; done")))))
 
 (implement-action remote-file-action :direct
   {:action-type :script :location :target}
@@ -74,7 +94,8 @@
          ;; create the directory if required - note this is not the final
          ;; directory
          (stevedore/chained-script
-          (lib/mkdir @(lib/dirname ~new-path) :path true))
+          (lib/mkdir @(lib/dirname ~new-path) :path true)
+          ~(create-path-with-template new-path path))
 
          ;; Create the new content
          (cond

@@ -16,6 +16,7 @@
             with-remote-file]]
    [pallet.actions-impl
     :refer [copy-filename md5-filename new-filename remote-file-action]]
+   [pallet.actions.direct.remote-file :refer [create-path-with-template]]
    [pallet.algo.fsmop :refer [complete? failed? wait-for]]
    [pallet.api :refer [group-spec lift plan-fn with-admin-user]]
    [pallet.argument :refer [delayed]]
@@ -54,6 +55,9 @@
   []
   (assoc *admin-user* :username (test-utils/test-username) :no-sudo true))
 
+(deftest create-path-with-template-test
+  (is (pallet.actions.direct.remote-file/create-path-with-template
+       "a/b/c/d" "/c/d")))
 
 (deftest remote-file*-test
   (is remote-file*)
@@ -64,6 +68,7 @@
             "remote-file path"
             (stevedore/chained-script
              (lib/mkdir @(lib/dirname ~(new-filename nil "path")) :path true)
+             ~(create-path-with-template (new-filename nil "path") "path")
              (lib/download-file "http://a.com/b" (new-filename nil "path"))
              (if (file-exists? (new-filename nil "path"))
                (do
@@ -85,6 +90,7 @@
             "remote-file path"
             (stevedore/chained-script
              (lib/mkdir @(lib/dirname ~(new-filename nil "path")) :path true)
+             ~(create-path-with-template (new-filename nil "path") "path")
              (lib/download-file
               "http://a.com/b" (new-filename nil "path") :proxy "http://proxy/")
              (if (file-exists? (new-filename nil "path"))
@@ -107,7 +113,8 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             (lib/mkdir @(lib/dirname ~(new-filename nil "path")) :path true))
+             (lib/mkdir @(lib/dirname ~(new-filename nil "path")) :path true)
+             ~(create-path-with-template (new-filename nil "path") "path"))
             (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
             (stevedore/chained-script
              (if (file-exists? (new-filename nil "path"))
@@ -128,7 +135,8 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             (lib/mkdir @(lib/dirname ~(new-filename nil "path")) :path true))
+             (lib/mkdir @(lib/dirname ~(new-filename nil "path")) :path true)
+             ~(create-path-with-template (new-filename nil "path") "path"))
             (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
             (stevedore/chained-script
              (if (file-exists? (new-filename nil "path"))
@@ -162,6 +170,7 @@
            (stevedore/checked-script
             "remote-file path"
             (lib/mkdir @(lib/dirname ~(new-filename nil "path")) :path true)
+            ~(create-path-with-template (new-filename nil "path") "path")
             (lib/heredoc (new-filename nil "path") "a 1\n" {}))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
