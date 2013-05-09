@@ -5,7 +5,7 @@
    [pallet.action :refer [with-action-options]]
    [pallet.actions :refer [exec-script* plan-when plan-when-not remote-file]]
    [pallet.crate :refer [defplan os-family]]
-   [pallet.stevedore :as action-plan]
+   [pallet.action-plan :as action-plan]
    [pallet.stevedore :as stevedore]))
 
 (defplan system-environment

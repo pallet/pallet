@@ -5,7 +5,7 @@
    [pallet.actions :refer [service]]
    [pallet.actions-impl :refer [init-script-path]]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as action-plan]
+   [pallet.action-plan :as action-plan]
    [pallet.stevedore :as stevedore]
    [pallet.utils :refer [apply-map]]))
 

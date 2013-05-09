@@ -5,7 +5,7 @@
    [pallet.action :refer [action-fn implement-action]]
    [pallet.actions :refer [directories directory]]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as action-plan]
+   [pallet.action-plan :as action-plan]
    [pallet.stevedore :as stevedore]))
 
 (defn adjust-directory

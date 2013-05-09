@@ -1,8 +1,8 @@
 (ns pallet.actions.direct.rsync
   (:require
+   [clojure.tools.logging :as logging]
    [pallet.action :refer [implement-action]]
    [pallet.actions :refer [rsync]]
-   [pallet.context :as logging]
    [pallet.core.session :refer [admin-user target-ip]]
    [pallet.stevedore :as stevedore]))
 
