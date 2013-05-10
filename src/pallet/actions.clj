@@ -469,9 +469,6 @@ Content can also be copied from a blobstore.
         md5-path (md5-filename script-dir path)]
     (when local-file
       (transfer-file local-file new-path md5-path))
-    (with-action-options {:sudo-user nil :script-prefix :sudo :script-dir nil}
-      remote-pallet-path-action
-      (remote-pallet-path-action new-path path))
     ;; we run as root so we don't get permission issues
     (with-action-options (merge
                           {:script-prefix :sudo :sudo-user nil}
@@ -590,9 +587,6 @@ option and :unpack :unzip.
         md5-path (md5-filename script-dir path)]
     (when local-file
       (transfer-file local-file new-path md5-path))
-    (with-action-options {:sudo-user nil :script-prefix :sudo :script-dir nil}
-      remote-pallet-path-action
-      (remote-pallet-path-action new-path path))
     ;; we run as root so we don't get permission issues
     (with-action-options (merge
                           {:script-prefix :sudo :sudo-user nil}

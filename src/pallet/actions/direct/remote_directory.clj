@@ -10,6 +10,7 @@
             new-filename
             remote-directory-action
             remote-file-action]]
+   [pallet.actions.direct.remote-file :refer [create-path-with-template]]
    [pallet.script.lib :as lib :refer [user-default-group]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.stevedore :refer [with-source-line-comments]]))

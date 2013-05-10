@@ -29,7 +29,6 @@
        (binding [pallet.action-plan/*defining-context* nil]
          (with-session {:user *admin-user*}
            (stevedore/do-script
-            (create-path-with-template "/var/lib/pallet/path.new" "/path")
             (stevedore/checked-commands
              "remote-directory"
              (-> (directory* {} "/path" :owner "fred" :recursive false)
@@ -66,7 +65,6 @@
        (with-session {:user *admin-user*}
          (binding [pallet.action-plan/*defining-context* nil]
            (stevedore/do-script
-            (create-path-with-template "/var/lib/pallet/path.new" "/path")
             (stevedore/checked-commands
              "remote-directory"
              (-> (directory* {} "/path" :owner "fred" :recursive false)

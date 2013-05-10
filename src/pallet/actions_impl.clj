@@ -7,8 +7,9 @@
    [pallet.common.context :refer [throw-map]]
    [pallet.context :as context]
    [pallet.core.session :refer [session]]
+   [pallet.crate :refer (admin-user)]
    [pallet.script.lib :as lib]
-   [pallet.script.lib :refer [file state-root]]
+   [pallet.script.lib :refer [file state-root user-home]]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [fragment]]))
 
@@ -49,11 +50,6 @@
              nodes."
        :dynamic true}
   *force-overwrite* false)
-
-(defaction remote-pallet-path-action
-  "An action that ensures that a remote /var/lib/pallet path exists, with
-   ownership and permissions to match a path in the filesystem."
-  [path template-path])
 
 (defaction remote-file-action
   "An action that implements most of remote-file, but requires a helper in order
@@ -108,13 +104,14 @@ to deal with local file transfer."
 
 ;;; Note that we can not use remote evaluated expressions in these paths, as
 ;;; they are used locally.
+
 (defn- adjust-root
   [^String script-dir ^String path]
   (if (.startsWith path "/")
     path
     (fragment
      (file ~(or script-dir
-                (fragment (file "/admin-home" ~(-> (session) :user :username))))
+                (fragment (user-home ~(:username (admin-user)))))
            ~path))))
 
 (defn new-filename

@@ -647,19 +647,19 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (package "p1")
             (package "p2" :disable ["r1"] :priority 25)))))))
 
-;; (deftest add-rpm-test
-;;   (is (script-no-comment=
-;;        (first
-;;         (build-actions centos-session
-;;           (remote-file "jpackage-utils-compat" :url "http:url")
-;;           (exec-checked-script
-;;            "Install rpm jpackage-utils-compat"
-;;            (if-not ("rpm" -q @("rpm" -pq "jpackage-utils-compat")
-;;                         > "/dev/null" "2>&1")
-;;              (do ("rpm" -U --quiet "jpackage-utils-compat"))))))
-;;        (first
-;;         (build-actions centos-session
-;;           (add-rpm "jpackage-utils-compat" :url "http:url"))))))
+(deftest add-rpm-test
+  (is (script-no-comment=
+       (first
+        (build-actions centos-session
+          (remote-file "jpackage-utils-compat" :url "http:url")
+          (exec-checked-script
+           "Install rpm jpackage-utils-compat"
+           (if-not ("rpm" -q @("rpm" -pq "jpackage-utils-compat")
+                        > "/dev/null" "2>&1")
+             (do ("rpm" -U --quiet "jpackage-utils-compat"))))))
+       (first
+        (build-actions centos-session
+          (add-rpm "jpackage-utils-compat" :url "http:url"))))))
 
 (deftest debconf-set-selections-test
   (is (script-no-comment=

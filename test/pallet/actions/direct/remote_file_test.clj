@@ -29,8 +29,8 @@
    [pallet.core.user :refer [*admin-user*]]
    [pallet.local.execute :as local]
    [pallet.script :as script]
-   [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]
+   [pallet.script.lib :as lib :refer [user-home]]
+   [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.test-executors :as test-executors]
    [pallet.test-utils :as test-utils]
    [pallet.test-utils
@@ -67,6 +67,10 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
+             ~(create-path-with-template
+               "path"
+               (str
+                "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
              (lib/download-file "http://a.com/b" (new-filename nil "path"))
              (if (file-exists? (new-filename nil "path"))
                (do
@@ -87,6 +91,10 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
+             ~(create-path-with-template
+               "path"
+               (str
+                "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
              (lib/download-file
               "http://a.com/b" (new-filename nil "path") :proxy "http://proxy/")
              (if (file-exists? (new-filename nil "path"))
@@ -108,6 +116,9 @@
       (is (script-no-comment=
            (stevedore/checked-commands
             "remote-file path"
+            (create-path-with-template
+             "path"
+             (str "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
             (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
             (stevedore/chained-script
              (if (file-exists? (new-filename nil "path"))
@@ -127,6 +138,9 @@
       (is (script-no-comment=
            (stevedore/checked-commands
             "remote-file path"
+            (create-path-with-template
+             "path"
+             (str "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
             (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
             (stevedore/chained-script
              (if (file-exists? (new-filename nil "path"))
@@ -159,6 +173,9 @@
       (is (script-no-comment=
            (stevedore/checked-script
             "remote-file path"
+            ~(create-path-with-template
+              "path"
+              (str "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
             (lib/heredoc (new-filename nil "path") "a 1\n" {}))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
@@ -195,7 +212,7 @@
                (is (not (failed? op)))
                (is (nil? (phase-errors op)))
                (logging/infof "r-f-t content: session %s" session)
-               (->> session :results (mapcat :result) second :out))))
+               (->> session :results (mapcat :result) first :out))))
         (is (script-no-comment=
              "xxx\n" (slurp (.getPath tmp))))))
     (testing "overwrite on existing content and no md5"
@@ -218,7 +235,7 @@
           (is (not (failed? op)))
           (is (not (seq (phase-errors op))))
           (is (re-matches #"(?sm)remote-file .*SUCCESS\n"
-                          (->> session :results (mapcat :result) second :out))
+                          (->> session :results (mapcat :result) first :out))
               (is (= "xxx\n" (slurp (.getPath tmp))))))))
     (testing "non-existant local-file"
       (is (thrown-with-msg? RuntimeException
@@ -511,7 +528,7 @@
                (is (not (failed? op)))
                (is (nil? (phase-errors op)))
                (logging/infof "r-f-t content: session %s" session)
-               (->> session :results (mapcat :result) second :out))))
+               (->> session :results (mapcat :result) first :out))))
         (is (= "xxx\n" (slurp (.getPath tmp))))))))
 
 (deftest transfer-file-to-local-test

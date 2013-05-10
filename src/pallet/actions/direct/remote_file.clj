@@ -9,8 +9,7 @@
             transfer-file-to-local
             wait-for-file]]
    [pallet.actions-impl
-    :refer [copy-filename md5-filename new-filename remote-file-action
-            remote-pallet-path-action]]
+    :refer [copy-filename md5-filename new-filename remote-file-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
    [pallet.environment-impl :refer [get-for]]
@@ -49,7 +48,7 @@
 (defn create-path-with-template
   "Create the /var/lib/pallet directory if required, ensuring correct
 permissions. Note this is not the final directory."
-  [new-path template-path]
+  [template-path new-path]
   (stevedore/script
    (do
      (set! dirpath @(dirname ~new-path))
@@ -65,13 +64,6 @@ permissions. Note this is not the final directory."
         (chain-or (chmod @(path-mode @t) @d) ":")
         (chain-or (chown @(path-owner @t) @d) ":"))
       ("; done")))))
-
-(implement-action remote-pallet-path-action :direct
-  {:action-type :script :location :target}
-  [session path template-path]
-  [[{:language :bash}
-    (create-path-with-template path template-path)]
-   session])
 
 (implement-action remote-file-action :direct
   {:action-type :script :location :target}
@@ -104,6 +96,8 @@ permissions. Note this is not the final directory."
         :create
         (action-plan/checked-commands
          (str "remote-file " path)
+
+         (create-path-with-template path new-path)
 
          ;; Create the new content
          (cond
