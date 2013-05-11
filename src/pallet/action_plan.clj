@@ -587,17 +587,19 @@
                         :action (-> action
                                     (update-in [:action] dissoc :impls)
                                     (dissoc :node-value-path)))]
-         (->>
-          action
-          (evaluate-arguments session)
-          (executor session)
-          ((fn [r] (logging/tracef "rv is %s" r) r))
-          ((fn [r] (if (map? r)
-                     (merge {:context (context-string context)}
-                            (select-keys (:action action) [:action-symbol])
-                            r)
-                     r)))
-          (set-node-value-with-return-value node-value-path))))
+          (->>
+           action
+           (evaluate-arguments session)
+           (executor session)
+           ((fn [r] (logging/tracef "rv is %s" r) r))
+           ((fn [[rv session]]
+              [(if (map? rv)
+                 (merge {:context (context-string context)}
+                        (select-keys (:action action) [:action-symbol])
+                        rv)
+                 rv)
+               session]))
+           (set-node-value-with-return-value node-value-path))))
       (catch Exception e
         (logging/errorf e "Exception in execute-action-map")
         [{:error {:type :pallet/action-execution-error
