@@ -177,6 +177,9 @@
 (script/defscript chown [owner file & {:as options}])
 (script/defimpl chown :default [owner file & {:as options}]
   ("chown" ~(stevedore/map-to-arg-string options) ~owner ~file))
+(script/defimpl chown [#{:darwin :os-x}]
+  [owner file & {:keys [recursive force]}]
+  ("chown" ~(stevedore/map-to-arg-string {:R recursive :f force}) ~owner ~file))
 
 (script/defscript chgrp [group file & {:as options}])
 (script/defimpl chgrp :default [group file & {:as options}]
