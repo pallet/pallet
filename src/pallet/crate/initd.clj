@@ -2,7 +2,7 @@
   "Provides service supervision via initd"
   (:require
    [clojure.tools.logging :refer [debugf]]
-   [pallet.actions :refer [exec-checked-script file remote-file]]
+   [pallet.actions :refer [exec-checked-script remote-file]]
    [pallet.actions.direct.service :refer [service-impl]]
    [pallet.api :as api]
    [pallet.api :refer [plan-fn]]
@@ -12,7 +12,7 @@
     :refer [service-supervisor
             service-supervisor-available?
             service-supervisor-config]]
-   [pallet.script.lib :refer [etc-init]]
+   [pallet.script.lib :refer [etc-init file]]
    [pallet.stevedore :refer [fragment]]
    [pallet.utils :refer [apply-map]]))
 
