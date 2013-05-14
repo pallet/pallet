@@ -1,0 +1,15 @@
+language: java
+jdk: openjdk6
+# Override the default java install script which will run mvn install
+install: echo ""
+
+# Before the script runs we need to set-up some ssh keys and download the settings file
+# to use
+before_script:
+        - ssh-keygen -N "" -f ~/.ssh/id_rsa
+        - cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+        - git clone https://github.com/pallet/pallet-settings-xml.git pallet-settings
+script: 
+        - mvn --settings pallet-settings/settings.xml -Dzi.version=0.5.5 compile
+        - mvn --settings pallet-settings/settings.xml -Dzi.version=0.5.5 zi:compile
+        - mvn --settings pallet-settings/settings.xml -Dzi.version=0.5.5 test
