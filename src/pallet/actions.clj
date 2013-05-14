@@ -291,7 +291,8 @@ value is itself an action return value."
    (optional-path [:template]) string?
    (optional-path [:values]) (map-schema :loose [])
    (optional-path [:action]) keyword?
-   (optional-path [:blob]) string?
+   (optional-path [:blob]) (map-schema :strict
+                                       [[:container] string? [:path] string?])
    (optional-path [:blobstore]) any-value  ; cheating to avoid adding a reqiure
    (optional-path [:insecure]) any-value
    (optional-path [:overwrite-changes]) any-value
