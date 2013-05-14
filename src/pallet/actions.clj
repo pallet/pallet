@@ -301,6 +301,7 @@ value is itself an action return value."
    (optional-path [:owner]) string?
    (optional-path [:group]) string?
    (optional-path [:mode]) [:or string? number?]
+   (optional-path [:force] any-value)
    (optional-path [:verify]) any-value])
 
 (defmacro check-remote-file-arguments
