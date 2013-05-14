@@ -624,6 +624,7 @@
                      :async true)]
                 @result
                 (is (not (failed? result)))
+                (is (nil? (phase-errors result)))
                 (when (failed? result)
                   (when-let [e (:exception @result)]
                     (print-stack-trace (root-cause e))))
@@ -652,6 +653,7 @@
                      :async true)]
                 @result
                 (is (not (failed? result)))
+                (is (nil? (phase-errors result)))
                 (if (failed? result)
                   (when-let [e (:exception @result)]
                     (print-cause-trace e)))
@@ -678,6 +680,7 @@
                      :user user
                      :async true)]
                 (is @result)
+                (is (nil? (phase-errors result)))
                 (when (failed? result)
                   (when-let [e (:exception @result)]
                     (print-cause-trace e)))
@@ -706,6 +709,7 @@
                      :async true)]
                 (is @result)
                 (is (not (failed? result)))
+                (is (nil? (phase-errors result)))
                 (is @seen)
                 (is (= (slurp (.getPath tmp-file-2)) "test\n"))
                 (flush)))
