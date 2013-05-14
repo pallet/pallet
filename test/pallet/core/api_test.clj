@@ -177,7 +177,7 @@
         ga (clj-action [session] [1 session])
         g1 (group-spec
             :g1
-            :phases {:p (plan-fn (exec-script "ls"))
+            :phases {:p (plan-fn (exec-script "ls /"))
                      :g (plan-fn (ga))})
         service (node-list-service [n1])
         service-state (service-state service [g1])
@@ -197,7 +197,7 @@
         (is (not errors))
         (is (seq result))
         (is (:out (first result)))
-        (is (.contains (:out (first result)) "src"))))
+        (is (.contains (:out (first result)) "bin"))))
     (testing "group"
       (let [targets [(assoc g1 :target-type :group)]
             [r plan-state] ((action-plans service-state {} :g targets) {:ps 1})
