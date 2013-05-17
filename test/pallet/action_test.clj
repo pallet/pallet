@@ -1,13 +1,13 @@
 (ns pallet.action-test
-  (:use
-   clojure.test
-   pallet.action
-   pallet.action-impl
-   [pallet.action-plan :only [translate]]
-   [pallet.core.session :only [session with-session]]
-   [pallet.node-value :only [node-value?]]
-   [pallet.session.action-plan :only [get-action-plan]]
-   [pallet.test-utils :only [test-session]]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.action :refer :all]
+   [pallet.action-impl :refer :all]
+   [pallet.action-plan :refer [translate]]
+   [pallet.core.session :refer [session with-session]]
+   [pallet.node-value :refer [node-value?]]
+   [pallet.session.action-plan :refer [get-action-plan]]
+   [pallet.test-utils :refer [test-session]]))
 
 (deftest declare-action-test
   (testing "default execution"

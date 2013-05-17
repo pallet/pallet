@@ -1,13 +1,10 @@
 (ns pallet.compute.node-list-test
   (:require
-   [pallet.compute.node-list :as node-list]
+   [clojure.test :refer :all]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :as compute]
-   [pallet.node :as node])
-  (:use
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   clojure.test)
-  (:import
-   pallet.compute.node_list.Node))
+   [pallet.compute.node-list :as node-list]
+   [pallet.node :as node]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

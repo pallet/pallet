@@ -2,20 +2,19 @@
   "# Pallet Crate Writing API"
   (:require
    [clojure.string :as string]
+   [clojure.tools.macro :refer [name-with-attributes]]
+   [pallet.action
+    :refer [declare-action
+            declare-aggregated-crate-action
+            declare-collected-crate-action]]
+   [pallet.argument :refer [delayed-fn]]
+   [pallet.context :refer [with-phase-context]]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.session :as session]
+   [pallet.core.session :refer [session session!]]
    [pallet.execute :as execute]
-   [pallet.node :as node])
-  (:use
-   [clojure.tools.macro :only [name-with-attributes]]
-   [pallet.action
-    :only [declare-action
-           declare-aggregated-crate-action
-           declare-collected-crate-action]]
-   [pallet.argument :only [delayed-fn]]
-   [pallet.context :only [with-phase-context]]
-   [pallet.core.session :only [session session!]]
-   [pallet.utils :only [compiler-exception local-env]]))
+   [pallet.node :as node]
+   [pallet.utils :refer [apply-map compiler-exception local-env]]))
 
 
 ;;; The phase pipeline is used in actions and crate functions. The phase
@@ -276,7 +275,12 @@
   []
   (if-let [node (session/target-node (session))]
     (node/compute-service node)
-    (:compute session)))
+    (-> (session) :environment :compute)))
+
+(defn blobstore
+  "Returns the current blobstore."
+  []
+  (-> (session) :environment :blobstore))
 
 (defn target-flag?
   "Returns a DelayedFunction that is a predicate for whether the flag is set"
@@ -333,3 +337,22 @@
       (session) [:plan-state]
       plan-state/update-settings
       (session/target-id (session)) facility f args options))))
+
+(defn service-phases
+  "Return a map of service phases for the specified facility, options and
+  service function.  Optionally, specify :actions with a sequence of keywords
+  for the actions you wish to generate service control phases for."
+  [facility options service-f
+   & {:keys [actions] :or {actions [:start :stop :restart]}}]
+  (letfn [(service-phases [action]
+            (let [f #(apply-map service-f :action action options)]
+              [[action f]
+               [(keyword (str (name action) "-" (name facility))) f]]))]
+    (into {} (mapcat service-phases actions))))
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (defplan 'defun) (def-aggregate-plan-fn 'defun))
+;; eval: (define-clojure-indent (def-collect-plan-fn 'defun))
+;; eval: (define-clojure-indent (phase-context 2)(defmethod-plan 2))
+;; End:

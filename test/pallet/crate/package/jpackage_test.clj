@@ -1,10 +1,11 @@
 (ns pallet.crate.package.jpackage-test
-  (:use
-   pallet.crate.package.jpackage
-   clojure.test
-   [pallet.build-actions :only [build-actions]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.test-utils :only [make-node]]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.crate.package.jpackage
+    :refer [add-jpackage jpackage-utils package-manager-update-jpackage]]
+   [pallet.test-utils :refer [make-node]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

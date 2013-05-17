@@ -2,14 +2,17 @@
   "Base operation primitives for pallet."
   (:require
    [clojure.tools.logging :as logging]
-   [pallet.core.api :as api])
-  (:use
-   [pallet.algo.fsmop :only [dofsm execute update-state map*]]
-   [pallet.algo.fsm.fsm-dsl :only
-    [event-handler event-machine-config fsm-name initial-state on-enter state
-     state-driver valid-transitions]]
-   [pallet.map-merge :only [merge-keys]]
-   [pallet.node :only [id]]))
+   [pallet.algo.fsm.fsm-dsl
+    :refer [event-handler
+            event-machine-config
+            fsm-name
+            on-enter
+            state
+            valid-transitions]]
+   [pallet.algo.fsmop :refer [dofsm execute map* update-state wait-for]]
+   [pallet.core.api :as api]
+   [pallet.map-merge :refer [merge-keys]]
+   [pallet.node :refer [id]]))
 ;;; ## Wrap non-FSM functions in simple FSM
 
 ;;; TODO: Provide support for controlling retry count, standoff, etc, although
@@ -143,6 +146,30 @@
   ([state-flag]
      (execute-on-unflagged state-flag build-and-execute-phase)))
 
+
+(def ^{:doc "The bootstrap phase is executed with the image credentials, and
+only not flagged with a :bootstrapped keyword."}
+  default-phase-meta
+  {:bootstrap
+   {:execution-settings-f (api/environment-image-execution-settings)
+    :phase-execution-f (execute-on-unflagged :bootstrapped)}})
+
+;; It's not nice that this can not be in p.core.api
+(defn phases-with-meta
+  "Takes a `phases-map` and applies the default phase metadata and the
+  `phases-meta` to the phases in it."
+  [phases-map phases-meta]
+  (reduce-kv
+   (fn [result k v]
+     (let [dm (default-phase-meta k)
+           pm (get phases-meta k)]
+       (assoc result k (if (or dm pm)
+                         ;; explicit overrides default
+                         (vary-meta v #(merge dm % pm))
+                         v))))
+   nil
+   (or phases-map {})))
+
 ;;; ## Result predicates
 (defn successful-result?
   "Filters `target-results`, a map from target to result map, for successful
@@ -185,3 +212,19 @@
   [compute-service group-nodes]
   (logging/debugf "remove-group-nodes %s" group-nodes)
   (map* (map #(remove-nodes compute-service (key %) (val %)) group-nodes)))
+
+;;; # Exception reporting
+(defn throw-operation-exception
+  "If the operation has a logged exception, throw it. This will block on the
+   operation being complete or failed."
+  [operation]
+  (api/throw-operation-exception @operation))
+
+(defn phase-errors
+  "Return the phase errors for an operation"
+  [operation]
+  (api/phase-errors (wait-for operation)))
+
+(defn throw-phase-errors
+  [operation]
+  (api/throw-phase-errors (wait-for operation)))

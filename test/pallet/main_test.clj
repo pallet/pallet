@@ -1,12 +1,11 @@
 (ns pallet.main-test
-  (:use pallet.main)
   (:require
    [clojure.string :as string]
+   [clojure.test :refer :all]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.task :refer [*suppress-exit*]])
-  (:use
-   clojure.test
-   pallet.test-utils))
+   [pallet.main :refer :all]
+   [pallet.task :refer [*suppress-exit*]]
+   [pallet.test-utils :refer :all]))
 
 
 (defmacro with-err-str

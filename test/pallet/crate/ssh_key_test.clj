@@ -1,31 +1,34 @@
 (ns pallet.crate.ssh-key-test
-  (:use pallet.crate.ssh-key)
   (:require
-   [pallet.action :as action]
+   [clojure.test :refer :all]
+   [clojure.tools.logging :as logging]
+   [pallet.actions :refer [directory exec-checked-script file remote-file user]]
+   [pallet.algo.fsmop :refer [failed?]]
+   [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.build-actions :as build-actions]
-   [pallet.crate.automated-admin-user :as automated-admin-user]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.context :as context]
+   [pallet.core.user :refer [*admin-user*]]
+   [pallet.crate.ssh-key :refer :all]
    [pallet.live-test :as live-test]
-   [pallet.phase :as phase]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [pallet.template :as template]
-   [pallet.utils :as utils]
-   [clojure.tools.logging :as logging]
-   [clojure.string :as string])
-  (:use
-   clojure.test
-   pallet.test-utils
-   [pallet.actions :only [directory exec-checked-script file remote-file user]]
-   [pallet.api :only [lift plan-fn]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.crate :only [get-settings]]))
+   [pallet.test-utils
+    :refer [make-localhost-compute
+            no-location-info
+            test-username
+            with-ubuntu-script-template]]
+   [pallet.utils :refer [with-temp-file]]))
 
 (use-fixtures
  :once
  with-ubuntu-script-template
  (logging-threshold-fixture)
  no-location-info)
+
+(defn- local-test-user
+  []
+  (assoc *admin-user* :username (test-username) :no-sudo true))
 
 (deftest authorize-key-test
   (is (script-no-comment=
@@ -269,6 +272,26 @@
     (logging/debug (format "check-public-key key is %s" key))
     (is (string? key))
     [key session]))
+
+(deftest config-test
+  (with-temp-file [tmp ""]
+    (let [compute (make-localhost-compute :group-name "local")
+          op (lift
+              (group-spec "local")
+              :phase (plan-fn
+                       (config "github.com" {"StrictHostKeyChecking" "no"}
+                               :config-file (.getPath tmp))
+                       (config "somewhere" {"StrictHostKeyChecking" "no"}
+                               :config-file (.getPath tmp))
+                       (config "github.com" {"StrictHostKeyChecking" "yes"}
+                               :config-file (.getPath tmp)))
+              :compute compute
+              :user (local-test-user)
+              :async true)
+          session @op]
+      (is (not (failed? op)))
+      (is (= "Host somewhere\n  StrictHostKeyChecking = no\nHost github.com\n  StrictHostKeyChecking = yes\n"
+             (slurp tmp))))))
 
 (deftest live-test
   (live-test/test-for

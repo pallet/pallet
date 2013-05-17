@@ -1,9 +1,7 @@
 (ns pallet.task.config
   "Create a pallet configuration file in ~/.pallet/config.clj"
   (:require
-   [clojure.java.io :as io])
-  (:use
-   [pallet.configure :only [config-file-path]]))
+   [pallet.configure :refer [config-file-path]]))
 
 (defn write-config-clj
   [^java.io.File file]

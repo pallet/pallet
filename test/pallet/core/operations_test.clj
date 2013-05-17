@@ -1,17 +1,17 @@
 (ns pallet.core.operations-test
   (:refer-clojure :exclude [delay])
-  (:use
-   clojure.test
-   pallet.core.operations
-   [pallet.actions :only [exec-script]]
-   [pallet.algo.fsmop :only [failed? operate]]
-   [pallet.api :only [group-spec plan-fn]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.compute :only [nodes]]
-   [pallet.core.api :only [phase-errors]]
-   [pallet.core.user :only [*admin-user*]]
-   [pallet.node :only [group-name]]
-   [pallet.test-utils :only [clj-action make-localhost-compute]]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.actions :refer [exec-script]]
+   [pallet.algo.fsmop :refer [failed? operate]]
+   [pallet.api :refer [group-spec plan-fn]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.compute :refer [nodes]]
+   [pallet.core.operations :refer :all]
+   [pallet.core.primitives :refer [phase-errors]]
+   [pallet.core.user :refer [*admin-user*]]
+   [pallet.node :refer [group-name]]
+   [pallet.test-utils :refer [clj-action make-localhost-compute]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

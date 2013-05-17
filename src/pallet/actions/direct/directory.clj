@@ -2,12 +2,11 @@
   "A directory manipulation action, to create and remove directories
    with given ownership and mode."
   (:require
-   [pallet.action-plan :as action-plan]
+   [pallet.action :refer [action-fn implement-action]]
+   [pallet.actions :refer [directories directory]]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore])
-  (:use
-   [pallet.action :only [implement-action action-fn]]
-   [pallet.actions :only [directories directory]]))
+   [pallet.action-plan :as action-plan]
+   [pallet.stevedore :as stevedore]))
 
 (defn adjust-directory
   "Script to set the ownership and mode of a directory."

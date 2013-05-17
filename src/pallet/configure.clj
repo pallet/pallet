@@ -8,20 +8,19 @@
    service definitions can also be specified as clojure maps in
    ~/.pallet/services/*.clj"
   (:require
-   [clojure.java.io :refer [resource]]
    [chiba.plugin :refer [data-plugins]]
-   [pallet.blobstore :as blobstore]
-   [pallet.common.deprecate :as deprecate]
-   [pallet.compute :as compute :refer [instantiate-provider]]
-   [pallet.environment :as environment]
-   [pallet.utils :as utils :refer [apply-map]]
+   [clojure.core.incubator :refer [-?>]]
    [clojure.java.io :as java-io]
+   [clojure.java.io :refer [resource]]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
-   [clojure.walk :as walk])
-  (:use
-   [clojure.core.incubator :only [-?>]]
-   [pallet.core.user :only [make-user]]))
+   [clojure.walk :as walk]
+   [pallet.blobstore :as blobstore]
+   [pallet.common.deprecate :as deprecate]
+   [pallet.compute :refer [instantiate-provider]]
+   [pallet.core.user :refer [make-user]]
+   [pallet.environment :as environment]
+   [pallet.utils :as utils]))
 
 (def ^{:private true
        :doc "A var to be set by defpallet, so that it may be loaded from any
@@ -220,8 +219,12 @@
 
 `provider-options` is a map of provider options to be merged
 with the service configuration in the configuration file."
-  [service provider-options]
-  (compute-service-from-config (pallet-config) service provider-options))
+  ([service provider-options]
+     (compute-service-from-config (pallet-config) service provider-options))
+  ([]
+     (let [config (pallet-config)]
+       (compute-service-from-config
+        config (default-compute-service config) {}))))
 
 (defn compute-service
   "Instantiate a compute service.
@@ -317,8 +320,12 @@ with the service configuration in the configuration file."
 
 (defn blobstore-service-from-config-file
   "Create a blobstore service form a configuration map."
-  [service options]
-  (blobstore-from-config (pallet-config) service options))
+  ([service options]
+     (blobstore-from-config (pallet-config) service options))
+  ([]
+     (let [config (pallet-config)]
+       (blobstore-from-config
+        config (default-compute-service config) {}))))
 
 (defn blobstore-service
   "Instantiate a blobstore service.
@@ -350,8 +357,8 @@ with the service configuration in the configuration file."
       (blobstore-service-from-property)
       (blobstore-service-from-config-var)
       (blobstore-service-from-config-file)))
-  ([service-name]
-     (blobstore-service-from-config-file service-name)))
+  ([service-name & {:as options}]
+     (blobstore-service-from-config-file service-name options)))
 
 ;;; Admin user
 

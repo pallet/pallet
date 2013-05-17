@@ -1,31 +1,34 @@
 (ns pallet.api
   "# Pallet API"
   (:require
-   [clojure.java.io :refer [resource input-stream]]
+   [clojure.java.io :refer [input-stream resource]]
+   [clojure.pprint :refer [print-table]]
    [clojure.set :refer [union]]
    [clojure.string :refer [blank?]]
-   [clojure.pprint :refer [print-table]]
+   [clojure.tools.logging :as logging]
+   [pallet.algo.fsmop :refer [dofsm operate result succeed]]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
-   [pallet.contracts :refer [check-converge-options check-group-spec
-                             check-lift-options check-node-spec
-                             check-server-spec check-user]]
-   [pallet.core.user :as user]
+   [pallet.contracts
+    :refer [check-converge-options
+            check-group-spec
+            check-lift-options
+            check-node-spec
+            check-server-spec
+            check-user]]
    [pallet.core.api :refer [environment-image-execution-settings]]
-   [pallet.core.operations :as ops]
-   [pallet.core.primitives :refer [execute-on-unflagged]]
-   [pallet.core.session :refer [session-context]]
-   [clojure.tools.logging :as logging])
-  (:use
    [pallet.core.api-impl
-    :only [merge-specs merge-spec-algorithm node-has-group-name?]]
-   [pallet.crate :only [phase-context]]
-   [pallet.algo.fsmop :only [dofsm operate result succeed]]
-   [pallet.environment :only [group-with-environment merge-environments]]
-   [pallet.node :only [node? node-map]]
-   [pallet.plugin :only [load-plugins]]
-   [pallet.thread-expr :only [when->]]
-   [pallet.utils :only [apply-map maybe-update-in]]))
+    :refer [merge-spec-algorithm merge-specs node-has-group-name?]]
+   [pallet.core.operations :as ops]
+   [pallet.core.primitives :refer [execute-on-unflagged phases-with-meta]]
+   [pallet.core.session :refer [session-context]]
+   [pallet.core.user :as user]
+   [pallet.crate :refer [phase-context]]
+   [pallet.environment :refer [group-with-environment merge-environments]]
+   [pallet.node :refer [node-map node?]]
+   [pallet.plugin :refer [load-plugins]]
+   [pallet.thread-expr :refer [when->]]
+   [pallet.utils :refer [apply-map maybe-update-in]]))
 
 
 ;;; ## Pallet version
@@ -102,28 +105,6 @@ value in a map passed to the `:phases-meta` clause of a `server-spec` or
 `group-spec`."
   [flag-kw]
   {:phase-execution-f (execute-on-unflagged flag-kw)})
-
-(def ^{:doc "The bootstrap phase is executed with the image credentials, and
-only not flagged with a :bootstrapped keyword."}
-  default-phase-meta
-  {:bootstrap
-   (merge (execute-with-image-credentials-metadata)
-          (execute-on-unflagged-metadata :bootstrapped))})
-
-(defn- phases-with-meta
-  "Takes a `phases-map` and applies the default phase metadata and the
-  `phases-meta` to the phases in it."
-  [phases-map phases-meta]
-  (reduce-kv
-   (fn [result k v]
-     (let [dm (default-phase-meta k)
-           pm (get phases-meta k)]
-       (assoc result k (if (or dm pm)
-                         ;; explicit overrides default
-                         (vary-meta v #(merge dm % pm))
-                         v))))
-   nil
-   (or phases-map {})))
 
 ;;; #### Phase Extension
 
@@ -394,6 +375,7 @@ specified in the `:extends` argument."
                         :or {phase [:configure]}
                         :as options}]
   (check-converge-options options)
+  (logging/tracef "environment %s" environment)
   (let [[phases phase-map] (process-phases phase)
         groups (if (map? group-spec->count)
                  [group-spec->count]
@@ -453,6 +435,9 @@ applied.
 
 `:compute`
 : a compute service.
+
+`:blobstore`
+: a blobstore service.
 
 `:phase`
 : a phase keyword, phase function, or sequence of these.
@@ -571,6 +556,9 @@ of group specs to nodes. Examples:
 
 `:compute`
 : a compute service.
+
+`:blobstore`
+: a blobstore service.
 
 `:phase`
 : a phase keyword, phase function, or sequence of these.
@@ -786,3 +774,8 @@ insufficient.
                  (for [{:keys [node roles]} (:targets op)]
                    (assoc (select-keys (node-map node) ks)
                      :roles roles)))))
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (cluster-spec 1)(group-spec 1))
+;; End:

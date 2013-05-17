@@ -1,9 +1,9 @@
 (ns pallet.task.converge-test
-  (:use pallet.task.converge)
-  (:use
-   clojure.test
-   pallet.test-utils
-   [pallet.api :only [group-spec lift]]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.api :refer [group-spec lift]]
+   [pallet.task.converge :refer :all]
+   [pallet.test-utils :refer :all]))
 
 (def a (group-spec "a"))
 (def b (group-spec "b"))

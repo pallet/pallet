@@ -3,16 +3,19 @@
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
+   [pallet.action :refer [defaction]]
+   [pallet.common.context :refer [throw-map]]
    [pallet.context :as context]
    [pallet.core.session :refer [session]]
-   [pallet.script.lib :refer [file state-root] :as lib]
-   [pallet.stevedore :refer [fragment] :as stevedore])
-  (:use
-   [pallet.action :only [defaction]]
-   [pallet.common.context :only [throw-map]]
-   [pallet.utils :only [apply-map]]))
+   [pallet.crate :refer (admin-user)]
+   [pallet.script.lib :as lib]
+   [pallet.script.lib :refer [file state-root user-home]]
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :refer [fragment]]))
 
-(defmacro checked-script
+(defmacro ^{:requires [#'stevedore/checked-script context/phase-contexts
+                       string/join]}
+  checked-script
   "Return a stevedore script that uses the current context to label the
    action"
   [name & script]
@@ -101,23 +104,29 @@ to deal with local file transfer."
 
 ;;; Note that we can not use remote evaluated expressions in these paths, as
 ;;; they are used locally.
+
 (defn- adjust-root
-  [^String path]
+  [^String script-dir ^String path]
   (if (.startsWith path "/")
     path
-    (fragment (file "/admin-home" ~(-> (session) :user :username) ~path))))
+    (fragment
+     (file ~(or script-dir
+                (fragment (user-home ~(:username (admin-user)))))
+           ~path))))
 
 (defn new-filename
   "Generate a temporary file name for a given path."
-  [path]
-  (fragment (str (state-root) "/pallet" ~(str (adjust-root path) ".new"))))
+  [script-dir path]
+  (fragment
+   (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".new"))))
 
 (defn md5-filename
   "Generate a md5 file name for a given path."
-  [path]
-  (fragment (str (state-root) "/pallet" ~(str (adjust-root path) ".md5"))))
+  [script-dir path]
+  (fragment
+   (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".md5"))))
 
 (defn copy-filename
-  "Generate a md5 file name for a given path."
-  [path]
-  (fragment (str (state-root) "/pallet" ~(adjust-root path))))
+  "Generate a file name for a copy of the given path."
+  [script-dir path]
+  (fragment (str (state-root) "/pallet" ~(adjust-root script-dir path))))

@@ -1,10 +1,10 @@
 (ns pallet.execute-test
-  (:use
-   clojure.test
-   pallet.execute
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.node :only [id]]
-   [pallet.test-utils :only [test-session]]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.execute :refer [parse-flag-values parse-flags parse-shell-result]]
+   [pallet.node :refer [id]]
+   [pallet.test-utils :refer [test-session]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

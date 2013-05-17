@@ -1,8 +1,8 @@
 (ns pallet.version-dispatch-test
-  (:use
-   clojure.test
-   pallet.version-dispatch
-   [pallet.compute :only [os-hierarchy]]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.compute :refer [os-hierarchy]]
+   [pallet.version-dispatch :refer :all]))
 
 (defmulti-version os-ver [os os-ver ver arg] #'os-hierarchy)
 

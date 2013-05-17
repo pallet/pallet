@@ -1,11 +1,18 @@
 (ns pallet.contracts
   "Contracts that can be enforced in pallet code."
   (:require
-   [clj-schema.schema :refer [constraints def-map-schema map-schema
-                              optional-path predicate-schema seq-schema
-                              sequence-of set-of wild]]
+   [clj-schema.schema
+    :refer [constraints
+            def-map-schema
+            map-schema
+            optional-path
+            seq-schema
+            sequence-of
+            set-of
+            wild]]
    [clj-schema.validation :refer [validation-errors]]
-   [clojure.string :refer [join] :as string]
+   [clojure.string :as string]
+   [clojure.string :refer [join]]
    [clojure.tools.logging :refer [errorf]]
    [pallet.blobstore :refer [blobstore?]]
    [pallet.compute :refer [compute-service?]]))
@@ -144,11 +151,11 @@
 ;;; We use macros so the stack trace reflects the calling location.
 (def ^{:dynamic true} *verify-contracts* true)
 
-(defn check-spec
+(defn ^{:requires [validation-errors #'errorf join]} check-spec
   [m spec &form]
-  (if *verify-contracts*
-    (let [spec-name (string/replace (name spec) "-schema" "")]
-      `(let [m# ~m]
+  (let [spec-name (string/replace (name spec) "-schema" "")]
+    `(when *verify-contracts*
+       (let [m# ~m]
          (if-let [errs# (seq (validation-errors ~spec m#))]
            (do
              (errorf ~(str "Invalid " spec-name ":"))
@@ -160,8 +167,7 @@
                {:errors errs#
                 :line ~(:line (meta &form))
                 :file ~*file*}))))
-         m#))
-    m))
+         m#))))
 
 (defmacro check-node-spec
   [m]
@@ -186,3 +192,27 @@
 (defmacro check-converge-options
   [m]
   (check-spec m `converge-options-schema &form))
+
+(defn check-keys*
+  [m keys spec msg &form]
+  `(when *verify-contracts*
+     (let [m# (select-keys ~m ~keys)
+           spec# ~spec
+           msg# ~msg]
+       (if-let [errs# (seq (validation-errors spec# m#))]
+         (do
+           (errorf (str "Invalid " msg#  ":"))
+           (doseq [err# errs#]
+             (errorf (str "  " msg# " error: %s") err#))
+           (throw
+            (ex-info
+             (format (str "Invalid " msg# ": %s") (join " " errs#))
+             {:errors errs#
+              :line ~(:line (meta &form))
+              :file ~*file*}))))
+       m#)))
+
+(defmacro check-keys
+  "Check keys in m"
+  [m keys spec msg]
+  (check-keys* m keys spec msg &form))

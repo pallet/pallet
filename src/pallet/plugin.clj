@@ -1,6 +1,5 @@
-(ns pallet.plugin
-  (:use
-   [chiba.plugin :only [plugins]]))
+(ns pallet.plugin (:require
+                   [chiba.plugin :refer [plugins]]))
 
 (defn load-plugins
   "Load pallet plugins"

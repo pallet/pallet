@@ -1,12 +1,12 @@
 (ns pallet.crate.sudoers-test
-  (:use pallet.crate.sudoers)
-  (:use
-   clojure.test
-   pallet.test-utils
-   [pallet.actions :only [remote-file]]
-   [pallet.build-actions :only [build-actions]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.core.session :only [session with-session]]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.actions :refer [remote-file]]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.core.session :refer [session with-session]]
+   [pallet.crate.sudoers :refer [sudoers]]
+   [pallet.test-utils :refer [make-node test-session with-private-vars]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

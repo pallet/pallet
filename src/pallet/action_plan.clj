@@ -13,24 +13,22 @@
    calling the implementation with the action-map arguments.
 
    Note this is an implementation namespace."
-  {:author "Hugo Duncan"}
   (:require
+   [clojure.algo.monads :refer [defmonad domonad m-map m-seq state-m]]
+   [clojure.set :refer [union]]
+   [clojure.stacktrace :refer [print-cause-trace]]
+   [clojure.string :as string]
+   [clojure.string :refer [trim]]
+   [clojure.tools.logging :as logging]
+   [pallet.action-impl :refer :all]
    [pallet.argument :as argument]
    [pallet.context :as context]
-   [pallet.stevedore :as stevedore]
-   [clojure.tools.logging :as logging]
-   [clojure.string :as string])
-  (:use
-   [clojure.algo.monads :only [defmonad domonad m-seq m-map state-m]]
-   [clojure.set :only [union]]
-   [clojure.string :only [trim]]
-   [clojure.stacktrace :only [print-cause-trace]]
-   [pallet.context :only [with-context in-phase-context-scope]]
-   [pallet.core.session :only [session with-session]]
-   [pallet.node-value :only [make-node-value set-node-value]]
+   [pallet.context :refer [in-phase-context-scope with-context]]
+   [pallet.core.session :refer [session with-session]]
+   [pallet.node-value :refer [make-node-value set-node-value]]
    [pallet.session.action-plan
-    :only [dissoc-action-plan get-session-action-plan]]
-   pallet.action-impl))
+    :refer [dissoc-action-plan get-session-action-plan]]
+   [pallet.stevedore :as stevedore]))
 
 ;;; ## Action Plan Data Structure
 
@@ -585,12 +583,23 @@
     [nil session]
     (try
       (binding [*defining-context* context]
-        (->>
-         action
-         (evaluate-arguments session)
-         (executor session)
-         ((fn [r] (logging/tracef "rv is %s" r) r))
-         (set-node-value-with-return-value node-value-path)))
+        (let [session (assoc session
+                        :action (-> action
+                                    (update-in [:action] dissoc :impls)
+                                    (dissoc :node-value-path)))]
+          (->>
+           action
+           (evaluate-arguments session)
+           (executor session)
+           ((fn [r] (logging/tracef "rv is %s" r) r))
+           ((fn [[rv session]]
+              [(if (map? rv)
+                 (merge {:context (context-string context)}
+                        (select-keys (:action action) [:action-symbol])
+                        rv)
+                 rv)
+               session]))
+           (set-node-value-with-return-value node-value-path))))
       (catch Exception e
         (logging/errorf e "Exception in execute-action-map")
         [{:error {:type :pallet/action-execution-error

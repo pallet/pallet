@@ -1,10 +1,9 @@
 (ns pallet.enlive
   "Wrappers for enlive to enable template specialisation and use xml."
-  (:use
-   [pallet.template :only [find-template]]
-   clojure.tools.logging)
   (:require
-   [net.cgrand.enlive-html :as enlive]))
+   [clojure.tools.logging :refer [error]]
+   [net.cgrand.enlive-html :as enlive]
+   [pallet.template :refer [find-template]]))
 
 (defn elt
  ([tag] (elt tag nil))

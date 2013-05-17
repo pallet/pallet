@@ -1,11 +1,11 @@
 (ns pallet.script.lib
   "Script library for abstracting target host script differences"
   (:require
+   [clojure.string :as string]
    [pallet.script :as script]
-   [pallet.stevedore :as stevedore
-    :refer [chained-script script with-source-line-comments]]
-   [pallet.thread-expr :as thread-expr]
-   [clojure.string :as string]))
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :refer [chained-script script with-source-line-comments]]
+   [pallet.thread-expr :as thread-expr]))
 
 ;;; basic
 (defn- translate-options
@@ -109,6 +109,40 @@
   [path]
   ("dirname" ~path))
 
+(script/defscript path-owner
+  "Return the owner of the given path"
+  [path])
+(script/defimpl path-owner :default
+  [path]
+  ("stat" "-c%u" ~path))
+(script/defimpl path-owner [#{:darwin :os-x}] [path]
+  ("stat" "-f" "%Su" ~path))
+
+(script/defscript path-group
+  "Return the group of the given path"
+  [path])
+(script/defimpl path-group :default
+  [path]
+  ("stat" "-c%g" ~path))
+(script/defimpl path-group [#{:darwin :os-x}] [path]
+  ("stat" "-f" "%Sg" ~path))
+
+(script/defscript path-mode
+  "Return the mode of the given path"
+  [path])
+(script/defimpl path-mode :default
+  [path]
+  ("stat" "-c%a" ~path))
+(script/defimpl path-mode [#{:darwin :os-x}] [path]
+  ("stat" "-f" "%Op" ~path))
+
+(script/defscript user-default-group
+  "Return the user's default group"
+  [user])
+(script/defimpl user-default-group :default
+  [user]
+  ("id" "-ng" ~user))
+
 (script/defscript ls [pattern & {:keys [sort-by-time sort-by-size reverse]}])
 (script/defimpl ls :default
   [pattern & {:keys [sort-by-time sort-by-size reverse]}]
@@ -143,6 +177,9 @@
 (script/defscript chown [owner file & {:as options}])
 (script/defimpl chown :default [owner file & {:as options}]
   ("chown" ~(stevedore/map-to-arg-string options) ~owner ~file))
+(script/defimpl chown [#{:darwin :os-x}]
+  [owner file & {:keys [recursive force]}]
+  ("chown" ~(stevedore/map-to-arg-string {:R recursive :f force}) ~owner ~file))
 
 (script/defscript chgrp [group file & {:as options}])
 (script/defimpl chgrp :default [group file & {:as options}]
@@ -848,7 +885,9 @@
 
 (script/defimpl selinux-file-type :default
   [path type]
-  (if (&& (~has-command? chcon) (directory? "/etc/selinux"))
+  (if (&& (~has-command? chcon)
+          (&& (directory? "/etc/selinux")
+              ("stat" --format "%C" ~path "2>&-")))
     ("chcon" -Rv ~(str "--type=" type) ~path)))
 
 (script/defscript selinux-bool

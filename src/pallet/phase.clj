@@ -3,14 +3,8 @@
    calls to crate functions or actions. A phase has an implicitly
    defined pre and post phase."
   (:require
-   [pallet.context :as context])
-  (:use
-   [clojure.tools.macro :only [name-with-attributes]]
-   [pallet.action :only [declare-aggregated-crate-action declare-action]]
-   [pallet.common.context :only [throw-map]]
-   [pallet.core.session :only [session session! session-context]]
-   [pallet.session.verify :only [check-session]]
-   [pallet.utils :only [compiler-exception local-env]]))
+   [pallet.core.session :refer [session session! session-context]]
+   [pallet.session.verify :refer [check-session]]))
 
 (defn pre-phase-name
   "Return the name for the pre-phase for the given `phase`."
@@ -38,7 +32,8 @@
       (when p
         (keyword p)))))
 
-(defmacro schedule-in-pre-phase
+(defmacro ^{:requires [#'session-context session! session]}
+  schedule-in-pre-phase
   "Specify that the body should be executed in the pre-phase."
   [& body]
   `(session-context
@@ -58,7 +53,8 @@
       ~@body
       (session! (assoc (session) :phase phase#)))))
 
-(defmacro check-session-thread
+(defmacro ^{:requires [check-session]}
+  check-session-thread
   "Add session checking to a sequence of calls which thread a session
    map. e.g.
 

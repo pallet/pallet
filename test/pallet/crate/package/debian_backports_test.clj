@@ -1,12 +1,10 @@
 (ns pallet.crate.package.debian-backports-test
-  (:use
-   pallet.crate.package.debian-backports
-   clojure.test
-   [pallet.actions :only [package-source]]
-   [pallet.build-actions :only [build-actions]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]])
   (:require
-   [pallet.build-actions :as build-actions]
+   [clojure.test :refer :all]
+   [pallet.actions :refer [package-source]]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.crate.package.debian-backports :refer [add-debian-backports]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]))
 

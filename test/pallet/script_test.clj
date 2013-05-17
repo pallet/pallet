@@ -2,11 +2,11 @@
   "Simple script functions for testing."
   (:require
    [clojure.string :as string]
-   [pallet.script.lib :refer [exit]])
-  (:use
-   [pallet.stevedore :only [script]]))
+   [pallet.script.lib :refer [exit]]
+   [pallet.stevedore :refer [script]]))
 
-(defmacro testing-script
+(defmacro ^{:requires [exit #'script string/join]}
+  testing-script
   "Top level test form"
   [test-name & body]
   `(string/join

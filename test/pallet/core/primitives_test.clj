@@ -1,15 +1,13 @@
 (ns pallet.core.primitives-test
   (:require
-   [pallet.core.api :as api])
-  (:use
-   [clojure.data :only [diff]]
-   clojure.test
-   pallet.core.primitives
-   [pallet.algo.fsmop :only [dofsm operate status report-operation]]
-   [pallet.api :only [group-spec plan-fn]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.compute.node-list :only [make-node node-list-service]]
-   [pallet.test-utils :only [clj-action make-localhost-compute]]))
+   [clojure.test :refer :all]
+   [pallet.algo.fsmop :refer [dofsm operate]]
+   [pallet.api :refer [group-spec plan-fn]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.compute.node-list :refer [make-node node-list-service]]
+   [pallet.core.api :as api]
+   [pallet.core.primitives :refer :all]
+   [pallet.test-utils :refer [clj-action make-localhost-compute]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

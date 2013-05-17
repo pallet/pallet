@@ -1,7 +1,7 @@
 (ns pallet.version-dispatch
   "Dispatch that is version aware.
 
-A version is a dotted string, eg. \"1.0.3\", which is represented as a vector
+A version is a dotted string, e.g. \"1.0.3\", which is represented as a vector
 `[1 0 3]`.
 
 A version specification is either a version vector, which matches a single
@@ -12,12 +12,11 @@ open end to the range.
 The basic idea is that you wish to dispatch on hierarchy where the dispatched
 data may provide a version."
   (:require
-   [clojure.string :as string])
-  (:use
-   [pallet.compute :only [os-hierarchy]]
-   [pallet.crate :only [os-family os-version phase-context]]
+   [clojure.string :as string]
+   [pallet.compute :refer [os-hierarchy]]
+   [pallet.crate :refer [os-family os-version phase-context]]
    [pallet.versions
-    :only [as-version-vector version-less version-matches? version-spec-less]]))
+    :refer [as-version-vector version-matches? version-spec-less]]))
 
 (defn ^{:internal true} hierarchy-vals
   "Returns all values in a hierarchy, whether parents or children."

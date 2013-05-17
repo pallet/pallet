@@ -2,11 +2,9 @@
   "Add a service definition to pallet."
   (:require
    [clojure.java.io :as io]
-   [clojure.string :as string]
-   [pallet.compute :as compute])
-  (:use
-   [pallet.configure :only [config-file-path]]
-   [pallet.task.config :only [write-config-clj-unless-exists]]))
+   [pallet.compute :as compute]
+   [pallet.configure :refer [config-file-path]]
+   [pallet.task.config :refer [write-config-clj-unless-exists]]))
 
 (defn warn-on-invalid-provider-name
   [provider-name available-services]

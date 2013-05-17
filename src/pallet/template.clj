@@ -1,18 +1,12 @@
 (ns pallet.template
   "Template file writing"
   (:require
-   [pallet.action-plan :as action-plan]
-   [pallet.compute :as compute]
-   [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]
+   [clojure.tools.logging :as logging]
+   [pallet.actions :refer [remote-file]]
+   [pallet.core.session :refer [group-name os-family packager]]
    [pallet.strint :as strint]
    [pallet.utils :as utils]
-   [clojure.string :as string]
-   [clojure.tools.logging :as logging])
-  (:use
-   [pallet.actions :only [remote-file]]
-   [pallet.core.session :only [group-name packager os-family]]
-   [pallet.utils :only [apply-map]]))
+   [pallet.utils :refer [apply-map]]))
 
 (defn ^java.net.URL get-resource
   "Loads a resource. Returns a URI."
@@ -79,7 +73,8 @@
 (defn- apply-template-file
   [[file-spec content]]
   (logging/trace (str "apply-template-file " file-spec \newline content))
-  (apply-map remote-file (:path file-spec) :content content file-spec))
+  (apply-map remote-file (:path file-spec) :content content
+             (dissoc file-spec :path)))
 
 (defn apply-templates
   [template-fn args]

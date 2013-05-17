@@ -1,5 +1,4 @@
-(ns pallet.task.version
-  "Print Pallet's version to standard out.")
+(ns pallet.task.version "Print Pallet's version to standard out.")
 
 (defn version
   {:no-service-required true

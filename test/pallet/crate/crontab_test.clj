@@ -1,25 +1,27 @@
 (ns pallet.crate.crontab-test
-  (:use pallet.crate.crontab)
   (:require
-   [pallet.live-test :as live-test]
-   [pallet.test-utils :refer [no-location-info]])
-  (:use
-   clojure.test
-   [clojure.string :only [trim]]
-   [pallet.action :only [clj-action]]
-   [pallet.actions :only [exec-checked-script remote-file remote-file-content]]
-   [pallet.algo.fsmop :only [operate complete?]]
-   [pallet.api :only [plan-fn]]
-   [pallet.build-actions :only [build-actions]]
-   [pallet.core.operations :only [lift]]
-   [pallet.crate :only [admin-user]]
-   [pallet.crate.automated-admin-user :only [automated-admin-user]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.environment :only [get-for]]
-   [pallet.live-test :only [test-for test-nodes images]]
-   [pallet.node-value :only [node-value]]
-   [pallet.script.lib :only [user-home]]
-   [pallet.stevedore :only [script]]))
+   [clojure.string :refer [trim]]
+   [clojure.test :refer :all]
+   [pallet.action :refer [clj-action]]
+   [pallet.actions :refer [exec-checked-script remote-file remote-file-content]]
+   [pallet.algo.fsmop :refer [complete? operate]]
+   [pallet.api :refer [plan-fn]]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.core.operations :refer [lift]]
+   [pallet.crate :refer [admin-user]]
+   [pallet.crate.automated-admin-user :refer [automated-admin-user]]
+   [pallet.crate.crontab
+    :refer [system-crontabs
+            system-settings
+            user-crontabs
+            user-settings
+            with-crontab]]
+   [pallet.environment-impl :refer [get-for]]
+   [pallet.live-test :refer [images test-for test-nodes]]
+   [pallet.script.lib :refer [user-home]]
+   [pallet.stevedore :refer [script]]
+   [pallet.test-utils :refer [no-location-info]]))
 
 (use-fixtures :once (logging-threshold-fixture) no-location-info)
 

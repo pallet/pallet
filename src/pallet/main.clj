@@ -1,12 +1,10 @@
 (ns pallet.main
-  (:gen-class)
   (:require
    [clojure.stacktrace :refer [print-cause-trace]]
-   [clojure.string :as string]
    [clojure.tools.cli :refer [cli]]
    [clojure.tools.logging :as logging]
-   [clojure.walk :as walk]
-   [pallet.task :refer [abort exit report-error]]))
+   [pallet.task :refer [abort exit report-error]])
+  (:gen-class))
 
 (defn read-targets
   ([dir]

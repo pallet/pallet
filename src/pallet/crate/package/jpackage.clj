@@ -1,11 +1,16 @@
 (ns pallet.crate.package.jpackage
   "Actions for working with the jpackage repository"
-  (:use
-   [pallet.action :only [with-action-options]]
-   [pallet.actions :only [add-rpm package package-manager package-source
-                          plan-when plan-when-not]]
-   [pallet.crate :only [defplan assoc-settings get-settings
-                        os-family os-version]]))
+  (:require
+   [pallet.action :refer [with-action-options]]
+   [pallet.actions
+    :refer [add-rpm
+            package
+            package-manager
+            package-source
+            plan-when
+            plan-when-not]]
+   [pallet.crate
+    :refer [assoc-settings defplan get-settings os-family os-version]]))
 
 ;; The source for this rpm is available here:
 ;; http://plone.lucidsolutions.co.nz/linux/centos/

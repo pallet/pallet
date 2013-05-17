@@ -1,15 +1,11 @@
 (ns pallet.compute.hybrid-test
   (:require
+   [clojure.test :refer :all]
    [pallet.common.logging.logutils :as logutils]
+   [pallet.compute :as compute]
    [pallet.compute.hybrid :as hybrid]
    [pallet.compute.node-list :as node-list]
-   [pallet.configure :as configure]
-   [pallet.compute :as compute]
-   [pallet.utils :as utils])
-  (:use
-   clojure.test)
-  (:import
-   pallet.compute.node_list.Node))
+   [pallet.configure :as configure]))
 
 
 (use-fixtures :once (logutils/logging-threshold-fixture))

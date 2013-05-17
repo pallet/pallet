@@ -1,19 +1,24 @@
 (ns pallet.actions
   "Pallet's action primitives."
   (:require
+   [clj-schema.schema
+    :refer [constraints def-map-schema map-schema optional-path sequence-of]]
    [clojure.java.io :as io]
    [clojure.set :refer [intersection]]
    [clojure.string :refer [trim]]
    [clojure.tools.logging :as logging]
    [pallet.action
-    :refer [clj-action defaction with-action-options enter-scope leave-scope]]
+    :refer [clj-action defaction enter-scope get-action-options leave-scope
+            with-action-options]]
    [pallet.actions-impl :refer :all]
-   [pallet.argument :as argument :refer [delayed]]
-   [pallet.crate :refer [role->nodes-map packager phase-context target]]
+   [pallet.argument :as argument :refer [delayed delayed-argument?]]
+   [pallet.contracts :refer [any-value check-spec]]
+   [pallet.crate :refer [admin-user packager phase-context role->nodes-map
+                         target]]
    [pallet.node-value :refer [node-value]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
-   [pallet.utils :refer [apply-map tmpfile log-multiline]]))
+   [pallet.utils :refer [apply-map log-multiline tmpfile]]))
 
 ;;; # Direct Script Execution
 
@@ -36,7 +41,8 @@
   [& script]
   `(exec-script* (stevedore/script ~@script)))
 
-(defmacro exec-checked-script
+(defmacro ^{:requires [#'checked-script]}
+  exec-checked-script
   "Execute a bash script remotely, throwing if any element of the
    script fails. The script is expressed in stevedore."
   {:pallet/plan-fn true}
@@ -269,7 +275,39 @@ value is itself an action return value."
   ^{:doc "A vector of the options accepted by remote-file.  Can be used for
           option forwarding when calling remote-file from other crates."}
   all-options
-  (concat content-options version-options ownership-options))
+  (concat content-options version-options ownership-options [:verify]))
+
+(def-map-schema remote-file-arguments
+  :strict
+  (constraints
+   (fn [m] (some (set content-options) (keys m))))
+  [(optional-path [:local-file]) string?
+   (optional-path [:remote-file]) string?
+   (optional-path [:url]) string?
+   (optional-path [:md5]) string?
+   (optional-path [:md5-url]) string?
+   (optional-path [:content]) [:or string? delayed-argument?]
+   (optional-path [:literal]) any-value
+   (optional-path [:template]) string?
+   (optional-path [:values]) (map-schema :loose [])
+   (optional-path [:action]) keyword?
+   (optional-path [:blob]) (map-schema :strict
+                                       [[:container] string? [:path] string?])
+   (optional-path [:blobstore]) any-value  ; cheating to avoid adding a reqiure
+   (optional-path [:insecure]) any-value
+   (optional-path [:overwrite-changes]) any-value
+   (optional-path [:no-versioning]) any-value
+   (optional-path [:max-versions]) number?
+   (optional-path [:flag-on-changed]) string?
+   (optional-path [:owner]) string?
+   (optional-path [:group]) string?
+   (optional-path [:mode]) [:or string? number?]
+   (optional-path [:force]) any-value
+   (optional-path [:verify]) any-value])
+
+(defmacro check-remote-file-arguments
+  [m]
+  (check-spec m `remote-file-arguments &form))
 
 (defaction transfer-file
   "Function to transfer a local file to a remote path.
@@ -422,16 +460,28 @@ Content can also be copied from a blobstore.
                   verify]
            :as options}]
   {:pre [path]}
+  (check-remote-file-arguments options)
   (verify-local-file-exists local-file)
-  (when local-file
-    (transfer-file local-file (new-filename path) (md5-filename path)))
-  (with-action-options local-file-options
-    (remote-file-action
-     path
-     (merge
-      {:install-new-files *install-new-files*
-       :overwrite-changes *force-overwrite*} ; capture bound values
-      options))))
+  (let [action-options (get-action-options)
+        script-dir (:script-dir action-options)
+        user (if (= :sudo (:script-prefix action-options :sudo))
+               (:sudo-user action-options)
+               (:username (admin-user)))
+        new-path (new-filename script-dir path)
+        md5-path (md5-filename script-dir path)]
+    (when local-file
+      (transfer-file local-file new-path md5-path))
+    ;; we run as root so we don't get permission issues
+    (with-action-options (merge
+                          {:script-prefix :sudo :sudo-user nil}
+                          local-file-options)
+      (remote-file-action
+       path
+       (merge
+        {:install-new-files *install-new-files* ; capture bound values
+         :overwrite-changes *force-overwrite*
+         :owner user}
+        options)))))
 
 (defn with-remote-file
   "Function to call f with a local copy of the sessioned remote path.
@@ -530,15 +580,26 @@ option and :unpack :unzip.
                 recursive true}
            :as options}]
   (verify-local-file-exists local-file)
-  (when local-file
-    (transfer-file local-file (new-filename path) (md5-filename path)))
-  (with-action-options local-file-options
-    (remote-directory-action
-     path
-     (merge
-      {:install-new-files *install-new-files*
-       :overwrite-changes *force-overwrite*} ; capture bound values
-      options))))
+  (let [action-options (get-action-options)
+        script-dir (:script-dir action-options)
+        user (if (= :sudo (:script-prefix action-options :sudo))
+               (:sudo-user action-options)
+               (:username (admin-user)))
+        new-path (new-filename script-dir path)
+        md5-path (md5-filename script-dir path)]
+    (when local-file
+      (transfer-file local-file new-path md5-path))
+    ;; we run as root so we don't get permission issues
+    (with-action-options (merge
+                          {:script-prefix :sudo :sudo-user nil}
+                          local-file-options)
+      (remote-directory-action
+       path
+       (merge
+        {:install-new-files *install-new-files* ; capture bound values
+         :overwrite-changes *force-overwrite*
+         :owner user}
+        options)))))
 
 (defaction wait-for-file
   "Wait for a file to exist"
@@ -579,7 +640,7 @@ option and :unpack :unzip.
       (doseq [p (or (options packager)
                     (when (#{:apt :aptitude} packager)
                       (options (first (disj #{:apt :aptitude} packager)))))]
-        (package p)))))
+        (apply-map package p (dissoc options :aptitude :brew :pacman :yum))))))
 
 (defaction package-manager
   "Package manager controls.
@@ -860,3 +921,9 @@ Deprecated in favour of pallet.crate.service/service."
       (log-multiline ~err ~fmt (trim (:err ~script-return-value))))
     (when (not= ~exit :none)
       (log-multiline ~exit ~fmt (:exit ~script-return-value)))))
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (plan-when 1)(plan-when-not 1))
+;; eval: (define-clojure-indent (with-action-values 1)(with-service-restart 1))
+;; End:

@@ -2,8 +2,8 @@
   (:require
    [clojure.test :refer [deftest is testing]]
    [pallet.action :refer [action-fn with-action-options]]
-   [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.actions :refer [exec-script plan-when plan-when-not]]
+   [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.compute :refer [nodes]]
    [pallet.core.api-impl :refer [with-script-for-node]]
    [pallet.executors :refer :all]
@@ -25,6 +25,7 @@
             :form (pallet.actions/exec-script* "f")
             :context nil
             :args ["f"]
+            :action-symbol pallet.actions/exec-script*,
             :action
             {:action-symbol pallet.actions/exec-script*,
              :execution :in-sequence
@@ -44,6 +45,7 @@
                :form (pallet.actions/exec-script* "f"),
                :context ("plan-when"),
                :args ("f"),
+               :action-symbol pallet.actions/exec-script*,
                :action
                {:action-symbol pallet.actions/exec-script*,
                 :execution :in-sequence,
@@ -51,6 +53,7 @@
              []],
             :context ("plan-when"),
             :args (true),
+            :action-symbol pallet.actions-impl/if-action,
             :action
             {:action-symbol pallet.actions-impl/if-action,
              :execution :in-sequence,
@@ -74,12 +77,14 @@
                :form (pallet.actions/exec-script* "g"),
                :context ("plan-when-not"),
                :args ("g"),
+               :action-symbol pallet.actions/exec-script*,
                :action
                {:action-symbol pallet.actions/exec-script*,
                 :execution :in-sequence,
                 :precedence {}}}]],
             :context ("plan-when-not"),
             :args (true),
+            :action-symbol pallet.actions-impl/if-action,
             :action
             {:action-symbol pallet.actions-impl/if-action,
              :execution :in-sequence,
@@ -94,6 +99,7 @@
              :form (pallet.actions/exec-script* "g"),
              :context nil,
              :args ("g"),
+             :action-symbol pallet.actions/exec-script*,
              :action
              {:action-symbol pallet.actions/exec-script*,
               :execution :in-sequence,

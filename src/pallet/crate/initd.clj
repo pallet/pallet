@@ -4,13 +4,15 @@
    [clojure.tools.logging :refer [debugf]]
    [pallet.actions :refer [exec-checked-script remote-file]]
    [pallet.actions.direct.service :refer [service-impl]]
-   [pallet.api :as api :refer [plan-fn]]
+   [pallet.api :as api]
+   [pallet.api :refer [plan-fn]]
    [pallet.core.session :refer [session]]
    [pallet.crate :refer [get-settings update-settings]]
    [pallet.crate.service
-    :refer [service-supervisor service-supervisor-available?
+    :refer [service-supervisor
+            service-supervisor-available?
             service-supervisor-config]]
-   [pallet.script.lib :refer [file etc-init]]
+   [pallet.script.lib :refer [etc-init file]]
    [pallet.stevedore :refer [fragment]]
    [pallet.utils :refer [apply-map]]))
 

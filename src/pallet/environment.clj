@@ -19,17 +19,16 @@
    The merging of values between scopes is key specific, and is determined by
    `merge-key-algorithm`."
   (:require
-   [pallet.common.deprecate :as deprecate]
+   [clojure.core.incubator :refer [-?>]]
+   [clojure.walk :as walk]
+   [pallet.core.primitives :refer [phases-with-meta]]
+   [pallet.core.session :refer [session]]
+   [pallet.core.user :refer [make-user]]
+   [pallet.environment-impl :refer [get-for]]
    [pallet.local.execute :as local]
-   [pallet.map-merge :as map-merge :refer [merge-key]]
-   [pallet.utils :as utils]
-   [clojure.set :as set]
-   [clojure.tools.logging :as logging]
-   [clojure.walk :as walk])
-  (:use
-   [clojure.core.incubator :only [-?>]]
-   [pallet.core.session :only [session]]
-   [pallet.core.user :only [make-user]]))
+   [pallet.map-merge :as map-merge]
+   [pallet.map-merge :refer [merge-key]]
+   [pallet.utils :as utils :refer [maybe-update-in]]))
 
 (defprotocol Environment
   "A protocol for accessing an environment."
@@ -156,28 +155,6 @@
                   env-map)]
     env-map))
 
-(defn get-for
-  "Retrieve the environment value at the path specified by keys.
-   When no default value is specified, then raise an `:environment-not-found` if
-   no environment value is set.
-
-       (get-for {:p {:a {:b 1} {:d 2}}} [:p :a :d])
-       ;=> 2"
-  ([session keys]
-     {:pre [(sequential? keys)]}
-     (let [result (get-in (:environment session) keys ::not-set)]
-       (when (= ::not-set result)
-         (throw
-          (ex-info
-           (format
-            "Could not find keys %s in session :environment"
-            (if (sequential? keys) (vec keys) keys))
-           {:type :environment-not-found
-            :key-not-set keys})))
-       result))
-  ([session keys default]
-     (get-in (:environment session) keys default)))
-
 (defn get-environment
   "Environment accessor."
   ([keys]
@@ -189,6 +166,8 @@
   "Add the environment to a group."
   [environment group]
   (merge-environments
-   (select-keys environment node-keys)
+   (maybe-update-in (select-keys environment node-keys)
+                    [:phases] phases-with-meta {})
    group
-   (-?> environment :groups group)))
+   (maybe-update-in (-?> environment :groups group)
+                    [:phases] phases-with-meta {})))

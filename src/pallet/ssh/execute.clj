@@ -4,23 +4,22 @@
    [clojure.java.io :as io]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
+   [pallet.action-impl :refer [action-symbol]]
+   [pallet.action-plan :refer [context-label]]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
    [pallet.execute :as execute
     :refer [clean-logs log-script-output result-with-error-map]]
    [pallet.local.execute :as local]
-   [pallet.script.lib :refer [chown mkdir exit]]
+   [pallet.node :as node]
+   [pallet.script-builder :as script-builder]
+   [pallet.script.lib :as lib]
+   [pallet.script.lib :refer [chown exit mkdir]]
+   [pallet.stevedore :as stevedore]
    [pallet.transport :as transport]
    [pallet.transport.local]
    [pallet.transport.ssh]
-   [pallet.node :as node]
-   [pallet.script.lib :as lib]
-   [pallet.script-builder :as script-builder]
-   [pallet.stevedore :as stevedore]
-   [pallet.utils :refer [log-multiline]])
-  (:use
-   [pallet.action-plan :only [context-label]]
-   [pallet.action-impl :only [action-symbol]]))
+   [pallet.utils :refer [log-multiline]]))
 
 (def ssh-connection (transport/factory :ssh {}))
 (def local-connection (transport/factory :local {}))
@@ -111,6 +110,7 @@
   [session {:keys [context node-value-path] :as action} action-type
    [options script]]
   (logging/trace "ssh-script-on-target")
+  (logging/trace "action %s options %s" action options)
   (let [endpoint (endpoint session)]
     (logutils/with-context [:target (:server endpoint)]
       (logging/infof
@@ -129,8 +129,9 @@
                          (str " -----------------------------------------\n"
                               script
                               "\n------------------------------------------"))
-          (logging/debugf "%s:%s send script via %s as %s"
-                          (:server endpoint) (:port endpoint) tmpfile (or sudo-user "root"))
+          (logging/debugf
+           "%s:%s send script via %s as %s"
+           (:server endpoint) (:port endpoint) tmpfile (or sudo-user "root"))
           (logging/debugf "%s   <== ----------------------------------------"
                           (:server endpoint))
           (transport/send-text
@@ -142,7 +143,8 @@
                         connection
                         (script-builder/build-code session action tmpfile)
                         {:output-f (log-script-output
-                                    (:server endpoint) (:user authentication))})
+                                    (:server endpoint) (:user authentication))
+                         :agent-forwarding (:ssh-agent-forwarding action)})
                 [result session] (execute/parse-shell-result session result)
                 result (update-in result [:out] clean-f)
                 result (assoc result :script script)
@@ -161,6 +163,8 @@
             (logging/trace "ssh-script-on-target done")
             (logging/debugf "%s   <== ----------------------------------------"
                             (:server endpoint))
+            (when (:new-login-after-action action)
+              (transport/close connection))
             [result session]))))))
 
 (defn- ssh-upload

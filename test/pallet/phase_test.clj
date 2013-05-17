@@ -1,11 +1,16 @@
 (ns pallet.phase-test
-  (:use pallet.phase)
-  (:use
-   clojure.test
-   [pallet.api :only [plan-fn]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.core.session :only [session with-session]]
-   [pallet.test-utils :only [test-session]]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.api :refer [plan-fn]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.core.session :refer [session with-session]]
+   [pallet.phase
+    :refer [all-phases-for-phase
+            post-phase-name
+            pre-phase-name
+            schedule-in-post-phase
+            schedule-in-pre-phase]]
+   [pallet.test-utils :refer [test-session]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

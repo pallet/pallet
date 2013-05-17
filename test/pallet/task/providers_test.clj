@@ -1,7 +1,7 @@
 (ns pallet.task.providers-test
-  (:use
-   clojure.test
-   pallet.task.providers))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.task.providers :refer :all]))
 
 (deftest providers-output-test
   (let [out (with-out-str (providers))]

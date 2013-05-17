@@ -13,14 +13,13 @@
          [[\"host1\" \"fullstack\" \"192.168.1.101\" :ubuntu]
           [\"host2\" \"fullstack\" \"192.168.1.102\" :ubuntu]])"
   (:require
+   [clojure.string :as string]
    [pallet.compute :as compute]
-   [pallet.compute.jvm :as jvm]
    [pallet.compute.implementation :as implementation]
+   [pallet.compute.jvm :as jvm]
    [pallet.environment :as environment]
    [pallet.node :as node]
-   [clojure.string :as string])
-  (:use
-   [pallet.utils :only [apply-map]]))
+   [pallet.utils :refer [apply-map]]))
 
 (defrecord Node
     [name group-name ip os-family os-version id ssh-port private-ip is-64bit
@@ -73,11 +72,11 @@
 (deftype NodeTagStatic
     [static-tags]
   pallet.compute.NodeTagReader
-  (node-tag [_ node tag-name] 
+  (node-tag [_ node tag-name]
     (get static-tags tag-name))
-  (node-tag [_ node tag-name default-value] 
+  (node-tag [_ node tag-name default-value]
     (or (get static-tags tag-name) default-value))
-  (node-tags [_ node] 
+  (node-tags [_ node]
     static-tags)
   pallet.compute.NodeTagWriter
   (tag-node! [_ node tag-name value]

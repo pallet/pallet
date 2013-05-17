@@ -4,16 +4,23 @@
   (:require
    [clojure.tools.logging :refer [debugf warnf]]
    [pallet.action :refer [with-action-options]]
+   [pallet.actions :as actions]
    [pallet.actions
-    :refer [directory exec-checked-script plan-when plan-when-not remote-file]
-    :as actions]
-   [pallet.api :as api :refer [plan-fn]]
+    :refer [directory
+            exec-checked-script
+            file
+            plan-when
+            plan-when-not
+            remote-file]]
+   [pallet.api :as api]
+   [pallet.api :refer [plan-fn]]
    [pallet.crate :refer [get-settings target-flag? update-settings]]
    [pallet.crate.service
-    :refer [service-supervisor service-supervisor-available?
+    :refer [service-supervisor
+            service-supervisor-available?
             service-supervisor-config]]
-   [pallet.script.lib :refer [state-root file flag?]]
-   [pallet.stevedore :refer [fragment script]]
+   [pallet.script.lib :refer [state-root]]
+   [pallet.stevedore :refer [fragment]]
    [pallet.utils :refer [apply-map]]))
 
 (defn nohup-path []

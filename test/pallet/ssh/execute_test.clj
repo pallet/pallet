@@ -2,14 +2,17 @@
   (:require
    [clojure.test :refer :all]
    [pallet.compute.node-list :refer [make-localhost-node]]
+   [pallet.core.api-impl :refer [with-script-for-node]]
    [pallet.core.user :refer [*admin-user*]]
-   [pallet.ssh.execute :refer [get-connection with-connection]]
+   [pallet.ssh.execute
+    :refer [get-connection ssh-script-on-target with-connection]]
    [pallet.transport :as transport]))
 
 (def open-channel clj-ssh.ssh/open-channel)
 
 (deftest with-connection-test
-  (let [session {:server {:node (make-localhost-node)}
+  (let [session {:server {:node (make-localhost-node)
+                          :image {:os-family :ubuntu}}
                  :user *admin-user*}]
     (testing "default"
       (with-connection session
@@ -21,7 +24,8 @@
           [connection]
           (is connection))
         (is (= original-connection (get-connection session))
-            "connection cached")))
+            "connection cached")
+        (is (transport/open? (get-connection session)))))
     (testing "fail on general open-channel exception"
       (with-redefs [clj-ssh.ssh/open-channel
                     (fn [session session-type]
@@ -68,4 +72,22 @@
           (is @seen)
           (is (= 3 @c))                 ; 1 failed + sftp +exec
           (is (not= original-connection (get-connection session))
-              "new cached connection"))))))
+              "new cached connection"))))
+    (testing "new session after :new-login-after-action"
+      (with-script-for-node (:server session)
+        (let [original-connection (get-connection session)]
+          (ssh-script-on-target
+           session {:node-value-path (keyword (name (gensym "nv")))}
+           nil [{} "echo 1"])
+          (is (= original-connection (get-connection session)))
+          (ssh-script-on-target
+           session {:node-value-path (keyword (name (gensym "nv")))
+                    :new-login-after-action true}
+           nil [{} "echo 1"])
+          (is (not= original-connection (get-connection session)))
+          (let [second-connection (get-connection session)]
+            (ssh-script-on-target
+             session {:node-value-path (keyword (name (gensym "nv")))}
+             nil [{} "echo 1"])
+            (is (not= original-connection (get-connection session)))
+            (is (= second-connection (get-connection session)))))))))

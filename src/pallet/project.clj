@@ -11,7 +11,7 @@ defproject refers to pallet.project.loader/defproject."
    [clojure.set :refer [intersection]]
    [clojure.string :as string]
    [clojure.tools.logging :refer [debugf tracef]]
-   [pallet.api :as api :refer [cluster-spec extend-specs]]
+   [pallet.api :refer [cluster-spec extend-specs]]
    [pallet.contracts :refer [check-group-spec]]
    [pallet.utils :refer [log-multiline]]))
 
@@ -117,8 +117,9 @@ which defaults to #{:default}.  The groups can be filtered by the roles set, and
 by group-names."
   ([{:keys [groups provider service] :as pallet-project} provider-kw
     selectors roles group-names]
-     (debugf "spec-from-project selectors %s roles %s group-names %s"
-             selectors roles group-names)
+     (debugf
+      "spec-from-project selectors %s roles %s group-names %s provider %s"
+      selectors roles group-names provider-kw)
      (let [selectors (or selectors #{:default})
            variants (get-in provider [provider-kw :variants])
            ;; if variants are given we select from them, otherwise just
@@ -152,7 +153,7 @@ by group-names."
                              ensure-group-count)
                             groups)))]
        (debugf
-        "spec-from-project found %s variants and %s groups"
+        "spec-from-project for %s found %s variants and %s groups"
                selectors (count variants) (count groups))
        (debugf "spec-from-project groups %s" (mapv :group-name groups))
        (log-multiline

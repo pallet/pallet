@@ -4,9 +4,7 @@
    [clojure.stacktrace :as stacktrace]
    [clojure.tools.logging :as logging])
   (:import
-   java.util.concurrent.CancellationException
-   java.util.concurrent.ExecutionException
-   java.util.concurrent.Future))
+   (java.util.concurrent CancellationException ExecutionException Future)))
 
 (def
   ^{:doc "Keep track of pending operations, so they can be cancelled."

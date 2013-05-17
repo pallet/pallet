@@ -1,15 +1,14 @@
 (ns pallet.crate.nohup-test
-  (:use
-   clojure.test
-   pallet.test-utils)
   (:require
+   [clojure.test :refer :all]
    [pallet.actions :refer [remote-file]]
    [pallet.api :refer [plan-fn] :as api]
    [pallet.build-actions :as build-actions]
+   [pallet.crate.nohup :as nohup]
    [pallet.crate.service :refer [service-supervisor-config]]
    [pallet.crate.service-test :refer [service-supervisor-test]]
-   [pallet.crate.nohup :as nohup]
-   [pallet.stevedore :refer [fragment]]))
+   [pallet.stevedore :refer [fragment]]
+   [pallet.test-utils :refer :all]))
 
 (defn nohup-test [config]
   (service-supervisor-test :nohup config {:process-name "sleep 100"}))

@@ -1,23 +1,23 @@
 (ns pallet.test-utils
   (:require
-   [clojure.string :as string]
-   [pallet.action-plan :as action-plan]
-   [pallet.common.deprecate :as deprecate]
-   [pallet.execute :as execute]
-   [pallet.script :as script]
-   [pallet.stevedore :as stevedore]
-   [pallet.compute.node-list :as node-list]
    [clojure.java.io :as io]
-   clojure.tools.logging)
-  (:use
-   clojure.test
-   [pallet.api :only [group-spec server-spec]]
-   [pallet.action :only [declare-action implement-action]]
-   [pallet.common.context :only [throw-map]]
-   [pallet.core.user :only [*admin-user*]]
-   [pallet.execute :only [target-flag?]]
-   [pallet.session.verify :only [add-session-verification-key]]
-   [pallet.utils :only [apply-map]]))
+   [clojure.string :as string]
+   [clojure.test :refer :all]
+   [clojure.tools.logging]
+   [pallet.action :refer [declare-action implement-action]]
+   [pallet.action-plan :as action-plan]
+   [pallet.actions-impl :as actions-impl]
+   [pallet.api :refer [group-spec server-spec]]
+   [pallet.common.context :refer [throw-map]]
+   [pallet.common.deprecate :as deprecate]
+   [pallet.compute.node-list :as node-list]
+   [pallet.core.user :refer [*admin-user*]]
+   [pallet.execute :as execute]
+   [pallet.execute :refer [target-flag?]]
+   [pallet.script :as script]
+   [pallet.session.verify :refer [add-session-verification-key]]
+   [pallet.stevedore :as stevedore]
+   [pallet.utils :refer [apply-map]]))
 
 (defmacro with-private-vars [[ns fns] & tests]
   "Refers private fns from ns and runs tests in context.  From users mailing
@@ -49,10 +49,11 @@ list, Alan Dipert and MeikelBrandmeyer."
       (finally (System/setOut out#)))))
 
 
-(defmacro with-location-info
+(defmacro ^{:requires [actions-impl/*script-location-info*]}
+  with-location-info
   "A scope for enabling or disabling location info"
   [b & body]
-  `(binding [pallet.actions-impl/*script-location-info* ~b]
+  `(binding [actions-impl/*script-location-info* ~b]
      ~@body))
 
 (def no-location-info

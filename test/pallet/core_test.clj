@@ -1,3 +1,1 @@
-(ns pallet.core-test
-  (:use
-   pallet.core))
+(ns pallet.core-test)

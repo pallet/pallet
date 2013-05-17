@@ -1,9 +1,10 @@
 (ns pallet.core.data-api
-  (:require  [pallet.node :as node])
-  (:use [pallet.compute :only [service-properties]]
-        [pallet.compute.node-list :only [node-list-service]]
-        [pallet.api :only [lift group-spec plan-fn]]
-        [pallet.executors :only [action-plan-data]]))
+  (:require
+   [pallet.api :refer [group-spec lift plan-fn]]
+   [pallet.compute :refer [service-properties]]
+   [pallet.compute.node-list :refer [node-list-service]]
+   [pallet.executors :refer [action-plan-data]]
+   [pallet.node :as node]))
 
 (defn service-map-from-compute [compute]
   (service-properties compute))
@@ -29,7 +30,7 @@
   (let [compute (node-list-service [node])
         group-name (second node)
         os-family (nth node 3)]
-    (let [group (merge (group-spec group-name :node {:os-family os-family})
+    (let [group (merge (group-spec group-name :image {:os-family os-family})
                        (when settings-phase
                          {:phases {:settings (plan-fn (settings-phase))}}))]
       (lift [group]

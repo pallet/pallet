@@ -1,12 +1,11 @@
 (ns pallet.script-builder-test
-  (:use pallet.script-builder)
-  (:use clojure.test
-        clojure.tools.logging)
   (:require
-   [clojure.string :as string]
+   [clojure.test :refer :all]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.test-utils :as test-utils :refer [remove-source-line-comments]]
-   [pallet.script :as script]))
+   [pallet.script :as script]
+   [pallet.script-builder :refer [build-code prolog sudo-cmd-for]]
+   [pallet.test-utils :as test-utils]
+   [pallet.test-utils :refer [remove-source-line-comments]]))
 
 (use-fixtures :once (logutils/logging-threshold-fixture))
 
@@ -48,15 +47,22 @@
 
 (deftest build-code-test
   (script/with-script-context [:ubuntu]
-    (is (= {:execv ["/usr/bin/sudo" "-n" "/usr/bin/env" "/bin/bash"]}
+    (is (= {:execv ["/usr/bin/sudo" "-n"
+                    "/usr/bin/env" "SSH_AUTH_SOCK=\"${SSH_AUTH_SOCK}\""
+                    "/bin/bash"]}
            (build-code {:user {}} {})))
-    (is (= {:execv ["/usr/bin/env" "/bin/bash"]}
+    (is (= {:execv ["/usr/bin/env" "SSH_AUTH_SOCK=\"${SSH_AUTH_SOCK}\""
+                    "/bin/bash"]}
            (build-code {:user {:no-sudo true}} {})))
-    (is (= {:execv ["/usr/bin/env" "/bin/bash"]}
+    (is (= {:execv ["/usr/bin/env" "SSH_AUTH_SOCK=\"${SSH_AUTH_SOCK}\""
+                    "/bin/bash"]}
            (build-code {:user {}} {:script-prefix :no-prefix})))
     (is (= {:execv
-            ["/usr/bin/sudo" "-n" "-u" "fred" "/usr/bin/env" "/bin/bash"]}
+            ["/usr/bin/sudo" "-n" "-u" "fred"
+             "/usr/bin/env" "SSH_AUTH_SOCK=\"${SSH_AUTH_SOCK}\""
+             "/bin/bash"]}
            (build-code {:user {}} {:sudo-user "fred"})))
     (is (= {:execv
-            ["/usr/bin/sudo" "-n" "-u" "fred" "/usr/bin/env" "/bin/bash"]}
+            ["/usr/bin/sudo" "-n" "-u" "fred"
+             "/usr/bin/env" "SSH_AUTH_SOCK=\"${SSH_AUTH_SOCK}\"" "/bin/bash"]}
            (build-code {:user {:sudo-user "fred"}} {})))))

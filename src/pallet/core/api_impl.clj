@@ -1,12 +1,10 @@
 (ns pallet.core.api-impl
   "Implementation functions for the core api."
   (:require
-   [pallet.compute :as compute]
-   [pallet.node :as node])
-  (:use
-   [pallet.map-merge :only [merge-keys]]
-   [pallet.script :only [with-script-context]]
-   [pallet.stevedore :only [with-script-language]]))
+   [pallet.map-merge :refer [merge-keys]]
+   [pallet.node :as node]
+   [pallet.script :refer [with-script-context]]
+   [pallet.stevedore :refer [with-script-language]]))
 
 (def
   ^{:doc "Map from key to merge algorithm. Specifies how specs are merged."}
@@ -62,7 +60,8 @@
              (when-let [version (node/os-version node)]
                (keyword (format "%s-%s" (name family) version)))])))
 
-(defmacro with-script-for-node
+(defmacro ^{:requires [#'with-script-context #'with-script-language]}
+  with-script-for-node
   "Set up the script context for a server"
   [target & body]
   `(with-script-context (script-template-for-node ~target)

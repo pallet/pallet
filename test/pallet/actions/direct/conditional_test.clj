@@ -1,18 +1,16 @@
 (ns pallet.actions.direct.conditional-test
-  (:require pallet.actions.direct.conditional)
-  (:use
-   clojure.test
-   [pallet.api :only [group-spec lift plan-fn]]
-   [pallet.build-actions :only [build-actions]]
-   [pallet.actions :only [exec-script plan-when plan-when-not]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.core.user :only [*admin-user*]]
-   [pallet.algo.fsmop :only [complete? failed?]]
-   [pallet.node-value :only [assign-node-value make-node-value node-value]]
-   [pallet.stevedore :only [script]]
-   [pallet.test-utils
-    :only [make-localhost-compute make-node test-username]]
-   [pallet.utils :pnly [with-temporary tmpfile]]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.actions :refer [exec-script plan-when plan-when-not]]
+   [pallet.algo.fsmop :refer [failed?]]
+   [pallet.api :refer [group-spec lift plan-fn]]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.core.user :refer [*admin-user*]]
+   [pallet.node-value :refer [assign-node-value make-node-value]]
+   [pallet.stevedore :refer [script]]
+   [pallet.test-utils :refer [make-localhost-compute test-username]]
+   [pallet.utils :refer [tmpfile with-temporary]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

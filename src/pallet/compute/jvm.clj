@@ -1,5 +1,4 @@
-(ns pallet.compute.jvm
-  "Information from local jvm")
+(ns pallet.compute.jvm "Information from local jvm")
 
 (def jvm-os-map
   {"Mac OS X" :os-x})

@@ -1,18 +1,16 @@
 (ns pallet.actions.direct.service-test
-  (:use
-   clojure.test
-   [pallet.actions
-    :only [service with-service-restart service-script
-           exec-checked-script remote-file]]
-   [pallet.actions-impl :refer [service-script-path]]
-   [pallet.build-actions :as build-actions]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.stevedore :only [script]]
-   [pallet.test-utils :only [make-node no-location-info]])
   (:require
-   pallet.actions.direct.exec-script
-   pallet.actions.direct.remote-file
-   pallet.actions.direct.service))
+   [clojure.test :refer :all]
+   [pallet.actions
+    :refer [exec-checked-script
+            remote-file
+            service
+            service-script
+            with-service-restart]]
+   [pallet.actions-impl :refer [service-script-path]]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.test-utils :refer [make-node no-location-info]]))
 
 (use-fixtures :once (logging-threshold-fixture) no-location-info)
 

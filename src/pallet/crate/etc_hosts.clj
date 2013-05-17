@@ -2,20 +2,26 @@
   "/etc/hosts file."
   (:require
    [clojure.string :as string]
+   [clojure.string :refer [blank?]]
+   [clojure.tools.logging :refer [debugf]]
+   [pallet.actions
+    :refer [as-action exec-checked-script plan-when-not remote-file sed]]
+   [pallet.compute :refer [os-hierarchy]]
+   [pallet.crate
+    :refer [defmethod-plan
+            defmulti-plan
+            defplan
+            get-settings
+            os-family
+            target-name
+            target-node
+            target-node
+            update-settings]]
    [pallet.node :as node]
+   [pallet.node :refer [primary-ip private-ip]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
-   [pallet.utils :as utils])
-  (:use
-   [clojure.string :only [blank?]]
-   [clojure.tools.logging :only [debugf]]
-   [pallet.actions
-    :only [as-action exec-checked-script plan-when-not remote-file sed]]
-   [pallet.compute :only [os-hierarchy]]
-   [pallet.crate
-    :only [defmethod-plan defmulti-plan defplan get-settings os-family
-           target-node target-name target-node update-settings]]
-   [pallet.node :only [primary-ip private-ip]]))
+   [pallet.utils :as utils]))
 
 ;;; ## Add entries to the host file settings
 (defn merge-hosts [& ms]

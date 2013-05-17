@@ -1,17 +1,17 @@
 (ns pallet.local.execute
   "Local execution of pallet actions"
   (:require
-   [clojure.string :as string]
    [clojure.java.io :as io]
+   [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.compute.jvm :as jvm]
    [pallet.execute :as execute
     :refer [log-script-output result-with-error-map status-lines]]
-   [pallet.transport :as transport]
-   [pallet.transport.local]
    [pallet.script :as script]
    [pallet.script-builder :as script-builder]
    [pallet.stevedore :as stevedore]
+   [pallet.transport :as transport]
+   [pallet.transport.local]
    [pallet.utils :refer [log-multiline]]))
 
 (def local-connection
@@ -58,7 +58,10 @@
         script (script-builder/build-script options value action)
         tmpfile (java.io.File/createTempFile "pallet" "script")]
     (try
-      (log-multiline :debug " (L) -=> %s" script)
+      (log-multiline :debug " (L) ==> %s"
+                     (str " -----------------------------------------\n"
+                          script
+                          "\n------------------------------------------"))
       (spit tmpfile script)
       (let [result (transport/exec
                     local-connection
@@ -68,6 +71,7 @@
           (logging/warnf
            "script-on-origin: Could not chmod script file: %s"
            (:out result))))
+      (logging/debugf "(L)   <== ----------------------------------------")
       (let [cmd (build-code session action tmpfile)
             _ (logging/debugf "localhost %s" cmd)
             result (transport/exec
@@ -78,8 +82,9 @@
         (when-let [e (:err result)]
           (when-not (string/blank? e)
             (doseq [^String l (string/split-lines e)
-                    :when (not (.startsWith l "#> "))]  ; logged elsewhere
+                    :when (not (.startsWith l "#> "))] ; logged elsewhere
               (logging/warnf "localhost %s" l))))
+        (logging/debugf "(L)   <== ----------------------------------------")
         [(result-with-error-map "localhost" "Error executing script" result)
          session])
       (finally (.delete tmpfile)))))

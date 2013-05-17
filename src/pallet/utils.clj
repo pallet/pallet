@@ -4,14 +4,10 @@
    [clojure.java.io :as io]
    [clojure.pprint :as pprint]
    [clojure.string :as string]
-   [clojure.tools.logging :as logging])
-  (:use
-   clojure.tools.logging
-   [pallet.common.deprecate :only [deprecated]])
+   [clojure.tools.logging :as logging]
+   [pallet.common.deprecate :refer [deprecated]])
   (:import
-   (java.security
-    NoSuchAlgorithmException
-    MessageDigest)
+   (java.security MessageDigest NoSuchAlgorithmException)
    (org.apache.commons.codec.binary Base64)))
 
 (defn pprint-lines
@@ -295,7 +291,8 @@ value to assoc. The assoc only occurs if the value is non-nil."
     `(clojure.core/with-redefs [~@bindings] ~@body)
     `(binding [~@bindings] ~@body)))
 
-(defmacro compiler-exception
+(defmacro ^{:requires [io/file]}
+  compiler-exception
   "Create a compiler exception that wraps a cause and includes source location."
   [exception]
   `(let [e# ~exception

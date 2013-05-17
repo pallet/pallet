@@ -1,6 +1,7 @@
 (ns pallet.config-file.format-test
-  (:use clojure.test)
-  (:use pallet.config-file.format))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.config-file.format :refer :all]))
 
 (deftest sectioned-properties-test
   (is (= "[a]\nb = 1\n\n[b]\nc = some-path\n\n"

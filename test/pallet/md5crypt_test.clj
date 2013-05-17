@@ -1,6 +1,7 @@
 (ns pallet.md5crypt-test
-  (:use pallet.md5crypt)
-  (:use clojure.test))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.md5crypt :refer :all]))
 
 (deftest salt-test
   (is (= 8 (count (salt))))

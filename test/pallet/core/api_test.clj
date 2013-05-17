@@ -1,19 +1,24 @@
 (ns pallet.core.api-test
   (:require
-   [pallet.node :as node])
-  (:use
-   clojure.test
-   [pallet.action :only [clj-action]]
-   [pallet.actions :only [exec-script]]
-   [pallet.action-plan :only [stop-execution-on-error]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
+   [clojure.test :refer :all]
+   [pallet.action :refer [clj-action]]
+   [pallet.action-plan :refer [stop-execution-on-error]]
+   [pallet.actions :refer [exec-script]]
+   [pallet.api :refer [group-spec plan-fn]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute.node-list
-    :only [make-node make-localhost-node node-list-service]]
-   [pallet.api :only [group-spec plan-fn]]
-   [pallet.core.api-impl :only [with-script-for-node]]
-   [pallet.core.user :only [*admin-user*]]
-   [pallet.executors :only [default-executor]]
-   pallet.core.api))
+    :refer [make-localhost-node make-node node-list-service]]
+   [pallet.core.api
+    :refer [action-plan
+            action-plans
+            execute-action-plan
+            group-deltas
+            nodes-to-remove
+            service-state]]
+   [pallet.core.api-impl :refer [with-script-for-node]]
+   [pallet.core.user :refer [*admin-user*]]
+   [pallet.executors :refer [default-executor]]
+   [pallet.node :as node]))
 
 (use-fixtures :once (logging-threshold-fixture))
 
@@ -172,7 +177,7 @@
         ga (clj-action [session] [1 session])
         g1 (group-spec
             :g1
-            :phases {:p (plan-fn (exec-script "ls"))
+            :phases {:p (plan-fn (exec-script "ls /"))
                      :g (plan-fn (ga))})
         service (node-list-service [n1])
         service-state (service-state service [g1])
@@ -192,7 +197,7 @@
         (is (not errors))
         (is (seq result))
         (is (:out (first result)))
-        (is (.contains (:out (first result)) "src"))))
+        (is (.contains (:out (first result)) "bin"))))
     (testing "group"
       (let [targets [(assoc g1 :target-type :group)]
             [r plan-state] ((action-plans service-state {} :g targets) {:ps 1})

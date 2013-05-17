@@ -1,9 +1,8 @@
 (ns pallet.crate.network-service-test
-  (:use
-   clojure.test
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]])
   (:require
+   [clojure.test :refer :all]
    [pallet.build-actions :as build-actions]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.crate.network-service :as network-service]))
 
 (use-fixtures :once (logging-threshold-fixture))

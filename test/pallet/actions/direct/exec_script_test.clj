@@ -1,26 +1,28 @@
 (ns pallet.actions.direct.exec-script-test
-  (:use
-   clojure.test
-   [pallet.build-actions :only [build-actions let-actions]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.actions :only [exec-script* exec-script exec-checked-script exec]]
-   [pallet.api :only [group-spec lift server-spec plan-fn]]
-   [pallet.core.api :only [phase-errors throw-phase-errors]]
-   [pallet.core.user :only [*admin-user*]]
-   [pallet.algo.fsmop :only [failed? complete?]]
-   [pallet.node :only [hostname]]
-   [pallet.node-value :only [node-value]]
-   [pallet.script.lib :only [ls]]
-   [pallet.script-builder :only [interpreter]]
-   [pallet.test-utils
-    :only [no-source-line-comments no-location-info script-action test-username
-           with-bash-script-language with-location-info]])
   (:require
-   pallet.actions.direct.exec-script
+   [clojure.test :refer :all]
+   [pallet.actions :refer [exec exec-checked-script exec-script exec-script*]]
+   [pallet.algo.fsmop :refer [failed?]]
+   [pallet.api :refer [group-spec lift plan-fn server-spec]]
+   [pallet.build-actions :refer [build-actions let-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
-   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
-   [pallet.utils :as utils]))
+   [pallet.core.primitives :refer [phase-errors throw-phase-errors]]
+   [pallet.core.user :refer [*admin-user*]]
+   [pallet.node :refer [hostname]]
+   [pallet.node-value :refer [node-value]]
+   [pallet.script-builder :refer [interpreter]]
+   [pallet.script.lib :refer [ls]]
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :refer [with-source-line-comments]]
+   [pallet.test-utils
+    :refer [no-location-info
+            no-source-line-comments
+            script-action
+            test-username
+            with-bash-script-language
+            with-location-info]]))
 
 (use-fixtures
  :once

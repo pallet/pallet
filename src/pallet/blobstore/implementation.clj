@@ -1,9 +1,7 @@
 (ns pallet.blobstore.implementation
   "Implementation details"
   (:require
-   [pallet.utils :as utils])
-  (:use
-   [chiba.plugin :only [plugins]]))
+   [chiba.plugin :refer [plugins]]))
 
 (defmulti service
   "Instantiate a blobstore. Providers should implement a method for this.

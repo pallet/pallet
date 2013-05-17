@@ -1,17 +1,18 @@
 (ns pallet.crate-install-test
-  (:use
-   clojure.test
-   pallet.crate-install
-   [pallet.build-actions :only [build-actions]]
-   [pallet.crate :only [assoc-settings]]))
-
+  (:require
+   [clojure.test :refer :all]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.crate :refer [assoc-settings]]
+   [pallet.crate-install :refer :all]))
 
 (deftest install-test
   (is (build-actions {}
-        (assoc-settings :f {:install-strategy :packages})
+        (assoc-settings :f {:install-strategy :packages
+                            :packages []})
         (install :f nil)))
   (is (build-actions {}
         (assoc-settings :f {:install-strategy :package-source
+                            :package-source {:name "my-source"}
                             :packages []
                             :package-options {}})
         (install :f nil)))
@@ -28,8 +29,8 @@
         (install :f nil)))
   (is (build-actions {}
         (assoc-settings :f {:install-strategy :deb
-                            :deb {:remote-file "http://somewhere.com/"
-                                  :name "xx"}
-                            :package-source {:name "xx"}
+                            :debs {:remote-file "http://somewhere.com/"
+                                   :name "xx"}
+                            :package-source {:name "xx" :apt {:path "abc"}}
                             :packages []})
         (install :f nil))))

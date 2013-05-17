@@ -1,16 +1,13 @@
 (ns pallet.crate.crontab
   "crontab management"
   (:require
-   [clojure.tools.logging :as logging]
+   [pallet.actions :refer [content-options exec-checked-script file remote-file]]
+   [pallet.api :refer [plan-fn server-spec]]
+   [pallet.crate :refer [assoc-settings defplan get-settings update-settings]]
    [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore :refer [with-source-line-comments]])
-  (:use
-   [pallet.actions
-    :only [content-options exec-checked-script file remote-file]]
-   [pallet.api :only [server-spec plan-fn]]
-   [pallet.crate
-    :only [defplan assoc-settings get-settings update-settings]]
-   [pallet.utils :only [apply-map]]))
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :refer [with-source-line-comments]]
+   [pallet.utils :refer [apply-map]]))
 
 (def system-cron-dir "/etc/cron.d")
 

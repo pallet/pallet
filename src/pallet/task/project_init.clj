@@ -1,8 +1,8 @@
 (ns pallet.task.project-init
   "Initialise a project."
   (:require
-   [pallet.task-utils :refer [create-pallet-project]]
-   [pallet.task :refer [abort]]))
+   [pallet.task :refer [abort]]
+   [pallet.task-utils :refer [create-pallet-project]]))
 
 (defn project-init
   "Initialise a project, creating a pallet.clj configuration file."

@@ -1,19 +1,13 @@
 (ns pallet.actions.direct.service
   "Service control. Deprecated in favour of pallet.crate.service."
-  (:use
-   clojure.tools.logging
-   [pallet.action :only [implement-action]]
-   [pallet.actions :only [service]]
-   [pallet.actions-impl :only [init-script-path]]
-   [pallet.utils :only [apply-map]])
   (:require
-   [pallet.action-plan :as action-plan]
-   [pallet.actions.direct.remote-file :as remote-file]
-   [pallet.context :as context]
-   [pallet.script :as script]
+   [pallet.action :refer [implement-action]]
+   [pallet.actions :refer [service]]
+   [pallet.actions-impl :refer [init-script-path]]
    [pallet.script.lib :as lib]
+   [pallet.action-plan :as action-plan]
    [pallet.stevedore :as stevedore]
-   [clojure.string :as string]))
+   [pallet.utils :refer [apply-map]]))
 
 (defmulti service-impl
   (fn [session service-name & {:keys [action if-flag if-stopped

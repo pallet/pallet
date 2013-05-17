@@ -1,10 +1,10 @@
 (ns pallet.crate.package.centos-test
-  (:use
-   pallet.crate.package.centos
-   clojure.test
-   [pallet.actions :only [package package-source]]
-   [pallet.build-actions :only [build-actions]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.actions :refer [package package-source]]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.crate.package.centos :refer [add-repository]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

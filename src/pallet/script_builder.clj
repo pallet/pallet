@@ -2,13 +2,17 @@
   "Build scripts with prologues, epilogues, etc, and command lines for
    running them in different environments"
   (:require
-   [clojure.string :as string :refer [split]]
-   [pallet.script :as script]
-   [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
-   [pallet.stevedore.bash :as bash])
-  (:use
+   [clojure.tools.logging :refer [debugf]]
+   [clojure.string :as string]
+   [clojure.string :refer [split]]
    [pallet.script.lib
-    :only [bash env env-var-pairs exit heredoc make-temp-file mkdir rm sudo]]))
+    :refer [bash env env-var-pairs exit heredoc make-temp-file mkdir rm sudo]]
+   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :refer [fragment with-source-line-comments]]
+   [pallet.stevedore.bash :refer [infix-operators]]))
+
+;; keep slamhound from removing the pallet.stevedore.bash require
+infix-operators
 
 (defn prolog []  (str "#!" (fragment (env)) " bash\n"))
 (def epilog "\nexit $?")
@@ -22,6 +26,9 @@
 (defn sudo-cmd-for
   "Construct a sudo command prefix for the specified user."
   [{:keys [no-sudo password sudo-user sudo-password username] :as user}]
+  (debugf
+   "sudo-cmd-for %s"
+   (select-keys user [:no-sudo :password :sudo-user :sudo-password :username]))
   (if (or (and (= username "root") (not sudo-user))
           no-sudo)
     nil
@@ -39,6 +46,7 @@
   (fn [kw session action] kw))
 (defmethod prefix :default [_ _ _] nil)
 (defmethod prefix :sudo [_ session action]
+  (debugf "prefix sudo %s" (into {} (merge (:user session) action)))
   (sudo-cmd-for (merge (:user session) action)))
 
 (defn build-script
@@ -52,7 +60,7 @@ future)."
    (prolog)
    (if script-dir
      (stevedore/script
-      (~mkdir ~script-dir :path true)
+      (chain-or (~mkdir ~script-dir :path true) (exit 1))
       ("cd" ~script-dir))
      "")
    (if (and (= language :bash) script-trace)
@@ -77,6 +85,14 @@ future)."
                    sudo-user]
             :as action}
    & args]
+  (debugf
+   "%s"
+   (select-keys action
+                [:default-script-prefix :script-dir :script-env :script-prefix
+                 :sudo-user]))
+  (debugf
+   "prefix kw %s"
+   (:script-prefix session (or script-prefix default-script-prefix :sudo)))
   (with-source-line-comments false
     {:execv
      (->>
@@ -87,9 +103,11 @@ future)."
                            (or script-prefix default-script-prefix :sudo))
                           session
                           action)]
+         (debugf "prefix %s" prefix)
          (string/split prefix #" "))
        [(fragment (env))]
-       (env-var-pairs (or script-env (:script-env session)))
+       (env-var-pairs (merge {:SSH_AUTH_SOCK (fragment @SSH_AUTH_SOCK)}
+                             (or script-env (:script-env session))))
        (interpreter {:language :bash})
        args)
       (filter identity))}))

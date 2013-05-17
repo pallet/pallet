@@ -1,17 +1,20 @@
 (ns pallet.task.up
   "Bring up nodes."
   (:require
-   [clojure.pprint :refer [pprint print-table]]
+   [clojure.pprint :refer [pprint]]
    [clojure.stacktrace :refer [print-cause-trace]]
    [clojure.string :as string]
-   [clojure.tools.logging :as logging]
-   [pallet.algo.fsmop :refer [complete? failed? wait-for]]
-   [pallet.api :as api :refer [print-targets]]
+   [pallet.algo.fsmop :refer [failed? wait-for]]
+   [pallet.api :as api]
+   [pallet.api :refer [print-targets]]
    [pallet.compute :refer [service-properties]]
-   [pallet.core.api :refer [phase-errors]]
+   [pallet.core.primitives :refer [phase-errors]]
    [pallet.node :refer [node-map]]
    [pallet.task-utils
-    :refer [comma-sep->kw-seq comma-sep->seq pallet-project process-args
+    :refer [comma-sep->kw-seq
+            comma-sep->seq
+            pallet-project
+            process-args
             project-groups]]
    [pallet.utils :refer [apply-map]]))
 
@@ -87,8 +90,12 @@
                                     {:phase phases}))
                            (dissoc :config :project)
                            (assoc :environment
-                             (or (:environment request)
-                                 (-> request :project :environment)))))]
+                             (assoc
+                                 (or (:environment request)
+                                     (-> request :project :environment))
+                               :project (dissoc
+                                         (-> request :project)
+                                         :environment)))))]
         (wait-for op)
         (if (failed? op)
           (binding [*out* *err*]

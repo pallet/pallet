@@ -1,5 +1,5 @@
-(ns pallet.md5crypt
-  (:import [java.security NoSuchAlgorithmException MessageDigest]))
+(ns pallet.md5crypt (:import
+                     (java.security MessageDigest)))
 
 (defonce salt-chars
   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")

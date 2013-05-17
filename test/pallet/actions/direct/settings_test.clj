@@ -1,17 +1,18 @@
 (ns pallet.actions.direct.settings-test
-  (:use
-   [clojure.stacktrace :only [print-cause-trace print-stack-trace root-cause]]
-   [pallet.actions :only [assoc-settings assoc-in-settings remote-file-content]]
-   [pallet.algo.fsmop :only [failed?]]
-   [pallet.api :only [group-spec lift plan-fn with-admin-user]]
-   [pallet.argument :only [delayed]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.core.user :only [*admin-user*]]
-   [pallet.crate :only [get-node-settings target-node]]
-   [pallet.test-utils
-    :only [clj-action make-localhost-compute test-username]]
-   [pallet.utils :only [tmpfile with-temporary]]
-   [clojure.test :only [deftest is testing use-fixtures]]))
+  (:require
+   [clojure.stacktrace :refer [print-cause-trace]]
+   [clojure.test :refer :all]
+   [pallet.actions :refer [assoc-in-settings assoc-settings remote-file-content]]
+   [pallet.algo.fsmop :refer [failed?]]
+   [pallet.api :refer [group-spec lift plan-fn with-admin-user]]
+   [pallet.argument :refer [delayed]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.core.user :refer [*admin-user*]]
+   [pallet.crate :refer [get-node-settings target-node]]
+   [pallet.test-utils :refer [make-localhost-compute test-username]]
+   [pallet.utils :refer [tmpfile with-temporary]]))
+
+(require 'pallet.executors)
 
 (use-fixtures :once (logging-threshold-fixture))
 

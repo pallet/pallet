@@ -1,46 +1,47 @@
 (ns pallet.actions.direct.remote-file-test
-  (:use
-   [clojure.stacktrace :only [print-cause-trace print-stack-trace root-cause]]
-   [pallet.actions
-    :only [as-action exec-script plan-when remote-file remote-file-content
-           with-action-values transfer-file transfer-file-to-local
-           with-remote-file]]
-   [pallet.actions-impl
-    :only [remote-file-action *install-new-files* *force-overwrite*
-           copy-filename new-filename md5-filename]]
-   [pallet.algo.fsmop :only [complete? failed? wait-for]]
-   [pallet.api :only [group-spec lift plan-fn with-admin-user]]
-   [pallet.argument :only [delayed]]
-   [pallet.compute :only [nodes]]
-   [pallet.core.api :only [throw-operation-exception phase-errors]]
-   [pallet.core.session :only [with-session]]
-   [pallet.core.user :only [*admin-user*]]
-   [pallet.node-value :only [node-value]]
-   [pallet.stevedore :only [script]]
-   [pallet.test-utils
-    :only [clj-action make-localhost-compute make-node test-session
-           verify-flag-not-set verify-flag-set]]
-   [pallet.utils :only [with-temporary tmpdir]]
-   clojure.test)
   (:require
-   pallet.actions.direct.remote-file
+   [clojure.java.io :as io]
+   [clojure.stacktrace :refer [print-cause-trace print-stack-trace root-cause]]
+   [clojure.string :as string]
+   [clojure.test :refer :all]
+   [clojure.tools.logging :as logging]
    [pallet.action :as action]
+   [pallet.actions
+    :refer [exec-script
+            plan-when
+            remote-file
+            remote-file-content
+            transfer-file-to-local
+            with-action-values
+            with-remote-file]]
+   [pallet.actions-impl
+    :refer [copy-filename md5-filename new-filename remote-file-action]]
+   [pallet.actions.direct.remote-file :refer [create-path-with-template]]
+   [pallet.algo.fsmop :refer [complete? failed? wait-for]]
+   [pallet.api :refer [group-spec lift plan-fn with-admin-user]]
+   [pallet.argument :refer [delayed]]
    [pallet.build-actions :as build-actions]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.compute :as compute]
-   [pallet.core.api :refer [phase-errors]]
-   [pallet.execute :as execute]
+   [pallet.compute :refer [nodes]]
+   [pallet.contracts :refer [*verify-contracts*]]
+   [pallet.core.primitives :refer [phase-errors]]
+   [pallet.core.session :refer [with-session]]
+   [pallet.core.user :refer [*admin-user*]]
    [pallet.local.execute :as local]
-   [pallet.phase :as phase]
    [pallet.script :as script]
-   [pallet.script.lib :as lib]
-   [pallet.stevedore :as stevedore]
-   [pallet.test-utils :as test-utils]
+   [pallet.script.lib :as lib :refer [user-home]]
+   [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.test-executors :as test-executors]
+   [pallet.test-utils :as test-utils]
+   [pallet.test-utils
+    :refer [clj-action
+            make-localhost-compute
+            make-node
+            test-session
+            verify-flag-not-set
+            verify-flag-set]]
    [pallet.utils :as utils]
-   [clojure.java.io :as io]
-   [clojure.string :as string]
-   [clojure.tools.logging :as logging]))
+   [pallet.utils :refer [tmpdir with-temporary]]))
 
 (use-fixtures
  :once
@@ -54,6 +55,9 @@
   []
   (assoc *admin-user* :username (test-utils/test-username) :no-sudo true))
 
+(deftest create-path-with-template-test
+  (is (pallet.actions.direct.remote-file/create-path-with-template
+       "a/b/c/d" "/c/d")))
 
 (deftest remote-file*-test
   (is remote-file*)
@@ -63,13 +67,18 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true)
-             (lib/download-file "http://a.com/b" (new-filename "path"))
-             (if (file-exists? (new-filename "path"))
+             ~(create-path-with-template
+               "path"
+               (str
+                "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
+             (lib/download-file "http://a.com/b" (new-filename nil "path"))
+             (if (file-exists? (new-filename nil "path"))
                (do
                  (lib/cp
-                  (new-filename "path") (copy-filename "path") :force true)
-                 (lib/mv (new-filename "path") path :force true)))))
+                  (new-filename nil "path")
+                  (copy-filename nil "path")
+                  :force true)
+                 (lib/mv (new-filename nil "path") path :force true)))))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
               (remote-file*
@@ -82,14 +91,19 @@
            (stevedore/checked-commands
             "remote-file path"
             (stevedore/chained-script
-             (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true)
+             ~(create-path-with-template
+               "path"
+               (str
+                "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
              (lib/download-file
-              "http://a.com/b" (new-filename "path") :proxy "http://proxy/")
-             (if (file-exists? (new-filename "path"))
+              "http://a.com/b" (new-filename nil "path") :proxy "http://proxy/")
+             (if (file-exists? (new-filename nil "path"))
                (do
                  (lib/cp
-                  (new-filename "path") (copy-filename "path") :force true)
-                 (lib/mv (new-filename "path") path :force true)))))
+                  (new-filename nil "path")
+                  (copy-filename nil "path")
+                  :force true)
+                 (lib/mv (new-filename nil "path") path :force true)))))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
               (remote-file*
@@ -102,15 +116,18 @@
       (is (script-no-comment=
            (stevedore/checked-commands
             "remote-file path"
+            (create-path-with-template
+             "path"
+             (str "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
+            (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
             (stevedore/chained-script
-             (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true))
-            (stevedore/script (~lib/heredoc (new-filename "path") "xxx" {}))
-            (stevedore/chained-script
-             (if (file-exists? (new-filename "path"))
+             (if (file-exists? (new-filename nil "path"))
                (do
                  (lib/cp
-                  (new-filename "path") (copy-filename "path") :force true)
-                 (lib/mv (new-filename "path") path :force true)))))
+                  (new-filename nil "path")
+                  (copy-filename nil "path")
+                  :force true)
+                 (lib/mv (new-filename nil "path") path :force true)))))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
               (remote-file* {} "path" {:content "xxx" :no-versioning true
@@ -121,15 +138,18 @@
       (is (script-no-comment=
            (stevedore/checked-commands
             "remote-file path"
+            (create-path-with-template
+             "path"
+             (str "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
+            (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
             (stevedore/chained-script
-             (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true))
-            (stevedore/script (~lib/heredoc (new-filename "path") "xxx" {}))
-            (stevedore/chained-script
-             (if (file-exists? (new-filename "path"))
+             (if (file-exists? (new-filename nil "path"))
                (do
                  (lib/cp
-                  (new-filename "path") (copy-filename "path") :force true)
-                 (lib/mv (new-filename "path") "path" :force true)))
+                  (new-filename nil "path")
+                  (copy-filename nil "path")
+                  :force true)
+                 (lib/mv (new-filename nil "path") "path" :force true)))
              (~lib/chown "o" "path")
              (~lib/chgrp "g" "path")
              (~lib/chmod "m" "path")))
@@ -153,8 +173,10 @@
       (is (script-no-comment=
            (stevedore/checked-script
             "remote-file path"
-            (lib/mkdir @(lib/dirname ~(new-filename "path")) :path true)
-            (lib/heredoc (new-filename "path") "a 1\n" {}))
+            ~(create-path-with-template
+              "path"
+              (str "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
+            (lib/heredoc (new-filename nil "path") "a 1\n" {}))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
               (remote-file*
@@ -223,6 +245,12 @@
                     "file1" :local-file "/some/non-existing/file"
                     :owner "user1")))))
     (testing "no content specified"
+      (is (thrown-with-msg?
+           Exception #".*Constraint failed.*"
+           (->
+            (build-actions/build-actions
+                {} (remote-file "file1" :owner "user1"))))))
+    (testing "no content specified (no verification)"
       (is (=
            (str
             "{:error {:type :pallet/action-execution-error, "
@@ -231,13 +259,14 @@
             "remote-file file1 specified without content.\", :cause "
             "#<IllegalArgumentException java.lang.IllegalArgumentException: "
             "remote-file file1 specified without content.>}}")
-           (->
-            (build-actions/build-actions
-                {} (remote-file "file1" :owner "user1"))
-            second
-            :errors
-            first
-            str))))
+           (binding [*verify-contracts* false]
+             (->
+              (build-actions/build-actions
+                  {} (remote-file "file1" :owner "user1"))
+              second
+              :errors
+              first
+              str)))))
 
     (testing "local-file script"
       (utils/with-temporary [tmp (utils/tmpfile)]
@@ -281,7 +310,7 @@
                      (map :node (:targets result)))))
               (is (.canRead target-tmp))
               (is (= "text" (slurp (.getPath target-tmp))))
-              (is (slurp (md5-filename (.getPath target-tmp))))
+              (is (slurp (md5-filename nil (.getPath target-tmp))))
               (testing "with md5 guard same content"
                 (logging/info "remote-file test: local-file with md5 guard")
                 (let [compute (make-localhost-compute :group-name "local")
@@ -328,7 +357,7 @@
                                  (remote-file (.getPath target-tmp)
                                               :content "$(hostname)"
                                               :mode "0666"
-                                              :flag-on-changed :changed))
+                                              :flag-on-changed "changed"))
                         :compute compute
                         :user user
                         :async true)
@@ -347,7 +376,7 @@
                           (let [nv (remote-file
                                     (.getPath target-tmp)
                                     :content "$(hostname)"
-                                    :mode "0666" :flag-on-changed :changed)]
+                                    :mode "0666" :flag-on-changed "changed")]
                             (verify-flag-not-set :changed)
                             ((clj-action
                                [session nv]
@@ -368,7 +397,7 @@
                  :phase (plan-fn
                           (let [nv (remote-file
                                     (.getPath target-tmp) :content "abc"
-                                    :mode "0666" :flag-on-changed :changed)]
+                                    :mode "0666" :flag-on-changed "changed")]
                             (verify-flag-set :changed)
                             ((clj-action
                                [session nv]
@@ -476,7 +505,31 @@
                :phase (plan-fn
                         (remote-file (.getPath target-tmp) :action :delete))
                :user user)
-              (is (not (.exists target-tmp))))))))))
+              (is (not (.exists target-tmp))))))))
+    (testing "with :script-dir"
+      (utils/with-temporary [tmp (utils/tmpfile)]
+        (.delete tmp)
+        (is (script-no-comment=
+             (str "remote-file " (.getName tmp) "...\n"
+                  "MD5 sum is 6de9439834c9147569741d3c9c9fc010 "
+                  (.getName tmp) "\n"
+                  "#> remote-file " (.getName tmp) " : SUCCESS")
+             (let [compute (make-localhost-compute :group-name "local")
+                   op (lift
+                       (group-spec "local")
+                       :phase (plan-fn
+                                (action/with-action-options
+                                  {:script-dir (.getParent tmp)}
+                                  (remote-file (.getName tmp) :content "xxx")))
+                       :compute compute
+                       :user (local-test-user)
+                       :async true)
+                   session @op]
+               (is (not (failed? op)))
+               (is (nil? (phase-errors op)))
+               (logging/infof "r-f-t content: session %s" session)
+               (->> session :results (mapcat :result) first :out))))
+        (is (= "xxx\n" (slurp (.getPath tmp))))))))
 
 (deftest transfer-file-to-local-test
   (utils/with-temporary [remote-file (utils/tmpfile)
@@ -571,6 +624,7 @@
                      :async true)]
                 @result
                 (is (not (failed? result)))
+                (is (nil? (phase-errors result)))
                 (when (failed? result)
                   (when-let [e (:exception @result)]
                     (print-stack-trace (root-cause e))))
@@ -599,6 +653,7 @@
                      :async true)]
                 @result
                 (is (not (failed? result)))
+                (is (nil? (phase-errors result)))
                 (if (failed? result)
                   (when-let [e (:exception @result)]
                     (print-cause-trace e)))
@@ -625,6 +680,7 @@
                      :user user
                      :async true)]
                 (is @result)
+                (is (nil? (phase-errors result)))
                 (when (failed? result)
                   (when-let [e (:exception @result)]
                     (print-cause-trace e)))
@@ -653,6 +709,7 @@
                      :async true)]
                 (is @result)
                 (is (not (failed? result)))
+                (is (nil? (phase-errors result)))
                 (is @seen)
                 (is (= (slurp (.getPath tmp-file-2)) "test\n"))
                 (flush)))

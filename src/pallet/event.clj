@@ -1,8 +1,8 @@
 (ns pallet.event
- "Pallet events. Provides ability to hook into pallet event stream."
- (:require
-  [clojure.string :as string]
-  [clojure.tools.logging :as logging]))
+  "Pallet events. Provides ability to hook into pallet event stream."
+  (:require
+   [clojure.string :as string]
+   [clojure.tools.logging :as logging]))
 
 ;; should be part of session
 (defonce ^{:private true} publishers (atom {}))

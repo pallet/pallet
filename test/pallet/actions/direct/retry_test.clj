@@ -1,10 +1,10 @@
 (ns pallet.actions.direct.retry-test
-  (:use
-   clojure.test
-   [pallet.actions :only [loop-until retry-until]]
-   [pallet.build-actions :only [build-actions]]
-   [pallet.common.logging.logutils :only [logging-threshold-fixture]]
-   [pallet.stevedore :only [script]]))
+  (:require
+   [clojure.test :refer :all]
+   [pallet.actions :refer [loop-until retry-until]]
+   [pallet.build-actions :refer [build-actions]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.stevedore :refer [script]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

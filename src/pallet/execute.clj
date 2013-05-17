@@ -1,22 +1,11 @@
 (ns pallet.execute
   "Execute actions."
   (:require
-   [pallet.common.filesystem :as filesystem]
-   [pallet.compute :as compute]
-   [pallet.compute.jvm :as jvm]
-   [pallet.context :as context]
-   [pallet.script :as script]
-   [pallet.script-builder :as script-builder]
-   [pallet.stevedore :as stevedore]
-   [pallet.utils :as utils]
+   [clojure.set :refer [union]]
    [clojure.string :as string]
-   [clojure.java.io :as io]
-   [pallet.shell :as shell]
-   [clojure.tools.logging :as logging])
-  (:use
-   [clojure.set :only [union]]
-   [pallet.core.plan-state :only [update-settings get-settings]]
-   [pallet.core.session :only [target-id]]))
+   [clojure.tools.logging :as logging]
+   [pallet.core.plan-state :refer [get-settings update-settings]]
+   [pallet.core.session :refer [target-id]]))
 
 (defn normalise-eol
   "Convert eol into platform specific value"
