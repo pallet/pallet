@@ -1,5 +1,126 @@
 Unstable development branch
 
+# 0.8.0-beta.10
+
+## Features
+
+- Enable ssh-agent forwarding
+  The :ssh-agent-forwarding action option can be used to enable ssh agent 
+  forwarding.
+
+- Add context and action-symbol to result map
+
+- Add crate-install-settings schema
+  Provides a schema for checking install strategy keys in crate settings.
+
+- Add pallet.crate/service-phases
+  Function returns a map of service phases for service actions.
+
+- Add remote-file-arguments schema check
+
+- Remove pallet.repl
+  This is now in it's own project, pallet-repl.
+
+- Add crate-install :archive method
+  Can be used to install from tarball/zip.
+
+- Add check-keys macro for map subset verification
+  Can be used to check a selection of keys against a schema.
+
+- Add config function in p.crate.ssh-key
+  The config function can be used to manipulate ssh config file entries.
+
+- Use :new-login-after-action in p.crate.environment
+  Fixes #214
+
+- Add :new-login-after-action action option
+  The option is a boolean flag to indicate a the current ssh-session should
+  be closed after the current action, to force a new login shell.
+
+- Add blobstore function to pallet.crate
+
+- Add local vairables for clojure-mode indents
+
+## Fixes
+
+- Check a file has security context before updating it
+  If a file does not have a security context then the context can not
+  be updated.
+
+- Fix schema predicate for :blob in remote-file-arguments
+
+- Add missing :force to remote-file-arguments
+
+- Fix requires in initd crate
+
+- Allow :apt in :deb crate-install method
+
+- Update local exec logging to match ssh
+
+- Add debug logging to script-builder
+
+- Ensure correct permissions under /var/lib/pallet
+  The ownership and permissions under /var/lib/pallet should mirror the
+  ownership and permissiond of the reflected filesystem, otherwise difficult
+  to understand permission problems occur.
+
+- Correct several namespace requires
+  These were messed up by slamhound.
+
+- Fix /var/lib/pallet path when using :script-dir
+  When an action is executing, make the action map available in the session
+  :action key, and use this to ensure the correct path is built under
+  /var/lib/pallet.
+
+  Fixes #238
+
+- Fix mock-exec-plan to generate a valid group
+  Fixes pallet.core.data-api/mock-exec-plan so that the group spec it 
+  generates matches the group-spec schema.
+
+- Enable default metadata on phases from environment
+  When phases are defined in the environment, this ensures that the phases
+  have the default metadata applied to them.
+
+- Split error handling between p.c.primitives & api
+  The existing operations error handling (throw-operation-exception,
+  phase-errors and throw-phase-errors) is moved to p.c.primitives, and the
+  functions in p.c.api now take a result as argument.
+
+- Factor out get-for into p.environment-impl
+
+- Update service abstraction doc strings
+
+- Make contract verification a runtime decision
+
+- Add delayed-argument? predicate
+
+- Normalize ns forms
+
+- Add tests for contracts
+
+- Fix update settings action for nil options
+
+- Use default blobstore in task main-invoker
+
+- Fix pallet.crate/compute-service and blobstore
+
+- Add :blobstore to lift and converge docstring
+
+- Allow blobstore-service to pass provider options
+
+- Add no arg arities to *-from-config-file
+
+- Allow options to pallet.actions/packages
+
+- Fix pallet.crate/compute-service for no node case
+
+- Log environment at TRACE in commit
+
+- Propogate project map to :environment in up task
+
+- Log :environment value when key not found
+
 # 0.8.0-beta.9
 
 ## Features
