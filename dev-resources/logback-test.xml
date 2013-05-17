@@ -89,6 +89,7 @@
   <logger name="pallet.execute" level="DEBUG"/>
   <logger name="pallet.core.api" level="DEBUG"/>
   <logger name="pallet.core.primitives" level="DEBUG"/>
+  <logger name="pallet.project" level="TRACE"/>
   <logger name="pallet.core.operations" level="DEBUG"/>
   <logger name="pallet.crate.nohup" level="DEBUG"/>
   <logger name="pallet.script-builder" level="DEBUG"/>

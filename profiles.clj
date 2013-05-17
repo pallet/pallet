@@ -27,7 +27,7 @@
  :jclouds {:repositories
            {"sonatype"
             "https://oss.sonatype.org/content/repositories/releases/"}
-           :dependencies [[org.cloudhoist/pallet-jclouds "1.5.2"]
+           :dependencies [[org.cloudhoist/pallet-jclouds "1.5.3-SNAPSHOT"]
                           [org.jclouds/jclouds-allblobstore "1.5.5"]
                           [org.jclouds/jclouds-allcompute "1.5.5"]
                           [org.jclouds.driver/jclouds-slf4j "1.5.5"

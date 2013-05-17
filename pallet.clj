@@ -17,6 +17,16 @@
                 {:image {:os-family :ubuntu :os-version-matches "12.04"
                          :os-64-bit true}}
                 :group-suffix "u1204"
+                :selectors #{:default}}]}
+             :cloudstack
+             {:variants
+              [{:node-spec
+                {:image {:os-family :ubuntu
+                         :os-version-matches "13.04"
+                         :os-64-bit true
+                         :image-id "5a536efc-e935-4d77-912d-7585694b1501"}
+                 :network {:inbound-ports [22]}}
+                :group-suffix "u1304"
                 :selectors #{:default}}]}}
 
   :groups [remote-file-test rsync-test
@@ -24,6 +34,7 @@
            (group-spec "initd-test"
              :extends [with-automated-admin-user
                        initd-test-spec]
+             :packager :apt
              :roles #{:live-test :default :initd})
            (group-spec "nohup-test"
              :extends [with-automated-admin-user
