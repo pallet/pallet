@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.core.user documentation</title>
+    <title>pallet.environment-impl documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <link href="css/codox-md.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
@@ -42,98 +42,29 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.user.html#var-*admin-user*">*admin-user*</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.user.html#var--%3EUser">-&gt;User</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.user.html#var-default-private-key-path">default-private-key-path</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.user.html#var-default-public-key-path">default-public-key-path</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.user.html#var-make-user">make-user</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.user.html#var-map-%3EUser">map-&gt;User</a></li>
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.environment-impl.html#var-get-for">get-for</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.core.user documentation</h2>
-        <div class="doc"><p>Admin user</p>
+        <h2 class="namespace-title">pallet.environment-impl documentation</h2>
+        <div class="doc"><p>Implementation namespace for the pallet environment.</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-*admin-user*" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/user.clj#L60">*admin-user*</a></h3>
-            <h4 class="var-type var" id="var-type">var</h4>
-            
-            
-            
-            <div class="doc"><p>The admin user is used for running remote admin commands that require
-root permissions.  The default admin user is taken from the
-pallet.admin.username property.  If not specified then the user.name property
-is used. The admin user can also be specified in config.clj when running
-tasks from the command line.</p>
-</div>
-          </div><div class="public">
-            <h3><a id="var--%3EUser" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/user.clj#L13">-&gt;User</a></h3>
+            <h3><a id="var-get-for" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/environment_impl.clj#L5">get-for</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[username public-key-path private-key-path public-key private-key passphrase password sudo-password no-sudo sudo-user]</div>
+            <div class="usage">[session keys]</div><div class="usage">[session keys default]</div>
             
             
-            <div class="doc"><p>Positional factory function for class pallet.core.user.User.</p>
-</div>
-          </div><div class="public">
-            <h3><a id="var-default-private-key-path" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/user.clj#L3">default-private-key-path</a></h3>
-            <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[]</div>
-            
-            
-            <div class="doc"><p>Return the default private key path.</p>
-</div>
-          </div><div class="public">
-            <h3><a id="var-default-public-key-path" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/user.clj#L8">default-public-key-path</a></h3>
-            <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[]</div>
-            
-            
-            <div class="doc"><p>Return the default public key path</p>
-</div>
-          </div><div class="public">
-            <h3><a id="var-make-user" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/user.clj#L20">make-user</a></h3>
-            <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[username {:keys [public-key-path private-key-path public-key private-key passphrase password sudo-password no-sudo sudo-user], :as options}]</div>
-            
-            
-            <div class="doc"><p>Creates a User record with the given username and options. Generally used
-   in conjunction with <em>admin-user</em> and pallet.api/with-admin-user, or passed
-   to <code>lift</code> or <code>converge</code> as the named :user argument.</p>
+            <div class="doc"><p>Retrieve the environment value at the path specified by keys.
+When no default value is specified, then raise an <code>:environment-not-found</code> if
+no environment value is set.</p>
 
-<p>   Options:</p>
-
-<p><code>:public-key-path</code>
-: path string to public key file</p>
-
-<p><code>:private-key-path</code>
-: path string to private key file</p>
-
-<p><code>:public-key</code>
-: public key as a string or byte array</p>
-
-<p><code>:private-key</code>
-: private key as a string or byte array</p>
-
-<p><code>:passphrase</code>
-: passphrase for private key</p>
-
-<p><code>:password</code>
-: ssh user password</p>
-
-<p><code>:sudo-password</code>
-: password for sudo (defaults to :password)</p>
-
-<p><code>:sudo-user</code>
-: the user to sudo to</p>
-
-<p><code>:no-sudo</code>
-: flag to not use sudo (e.g. when the user has root privileges).</p>
-</div>
-          </div><div class="public">
-            <h3><a id="var-map-%3EUser" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/user.clj#L13">map-&gt;User</a></h3>
-            <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[m__5665__auto__]</div>
-            
-            
-            <div class="doc"><p>Factory function for class pallet.core.user.User, taking a map of keywords to field values.</p>
+<pre><code>(get-for {:p {:a {:b 1} {:d 2}}} [:p :a :d])
+;=&gt; 2
+</code></pre>
 </div>
           </div>
         </div>
