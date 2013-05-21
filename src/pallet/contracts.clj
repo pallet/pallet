@@ -118,7 +118,7 @@
   [(optional-path [:algorithms]) (map-schema :loose [])
    (optional-path [:user]) user-schema
    (optional-path [:executor]) fn?
-   (optional-path [:compute]) compute-service?])
+   (optional-path [:compute]) [:or compute-service? nil?]])
 
 (def phase-with-args-schema
   (seq-schema
@@ -131,7 +131,7 @@
 
 (def-map-schema lift-options-schema
   environment-strict-schema
-  [(optional-path [:compute]) compute-service?
+  [(optional-path [:compute]) [:or compute-service? nil?]
    (optional-path [:blobstore]) [:or nil? blobstore?]
    (optional-path [:phase]) [:or phase-schema (sequence-of phase-schema)]
    (optional-path [:environment]) (map-schema :loose environment-strict-schema)
@@ -146,7 +146,8 @@
    (optional-path [:timeout-val]) any-value])
 
 (def-map-schema converge-options-schema
-  lift-options-schema)
+  lift-options-schema
+  [[:compute] compute-service?])
 
 ;;; We use macros so the stack trace reflects the calling location.
 (def ^{:dynamic true} *verify-contracts* true)
