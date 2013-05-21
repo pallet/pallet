@@ -3,7 +3,8 @@
    [clojure.test :refer :all]
    [pallet.actions :refer [remote-file]]
    [pallet.build-actions :refer [build-actions]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]))
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.crate.limits-conf :as limits-conf]))
 
 (use-fixtures :once (logging-threshold-fixture))
 

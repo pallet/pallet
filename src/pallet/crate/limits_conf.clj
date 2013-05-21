@@ -57,7 +57,6 @@
 
 (defn- format-host-limits
   [entries]
-  (println "entries " entries)
   (string/join "\n" (map format-entry entries)))
 
 (defn configure
