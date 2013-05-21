@@ -3,7 +3,9 @@
    [clojure.tools.logging :as logging]
    [pallet.action :refer [implement-action]]
    [pallet.actions :refer [rsync]]
+   [pallet.crate :refer [target-node]]
    [pallet.core.session :refer [admin-user target-ip]]
+   [pallet.node :refer [ssh-port]]
    [pallet.stevedore :as stevedore]))
 
 (def ^{:private true}
@@ -15,7 +17,8 @@
   (logging/debugf "rsync %s to %s" from to)
   (let [extra-options (dissoc options :port)
         ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
-                 (if port (format "-p %s" port)))
+                 (if-let [port (or port (ssh-port (target-node)))]
+                   (format "-p %s" port)))
         cmd (format
              cmd ssh
              (if (seq extra-options)
