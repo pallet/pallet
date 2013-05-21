@@ -225,9 +225,10 @@
   (let [counts (counts specs)
         op (operate
             (converge
+             service
              counts
              (service-state service counts)
-             phases service (environment service) {}))]
+             {} (environment service) phases {}))]
     @op
     (when (or (not (complete? op)) (some :errors (:result @op)))
       (let [e (or
