@@ -9,7 +9,9 @@
    [pallet.stevedore :as stevedore]))
 
 (def ^{:private true}
-  cmd "/usr/bin/rsync -e '%s' -r --delete --copy-links -F -F%s %s %s@%s:%s")
+  cmd "/usr/bin/rsync -e '%s' -F -F %s %s %s@%s:%s")
+
+(def default-options {:r true :delete true :copy-links true})
 
 (implement-action rsync :direct
                   {:action-type :script :location :origin}
@@ -21,10 +23,7 @@
                    (format "-p %s" port)))
         cmd (format
              cmd ssh
-             (if (seq extra-options)
-               (str " " (stevedore/map-to-arg-string extra-options))
-               "")
-
+             (stevedore/map-to-arg-string (merge default-options extra-options))
              from (:username (admin-user session))
              (target-ip session) to)]
     [[{:language :bash}
