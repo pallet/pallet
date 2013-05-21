@@ -122,4 +122,4 @@ list, Alan Dipert and MeikelBrandmeyer."
   `(action/bash-action ~@args))
 
 (defmacro clj-action [& args]
-  `(action/bash-action ~@args))
+  `(action/clj-action ~@args))
