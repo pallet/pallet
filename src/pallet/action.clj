@@ -27,6 +27,7 @@
    [pallet.core.session :refer [session session!]]
    [pallet.session.action-plan
     :refer [assoc-action-plan get-action-plan update-action-plan]]
+   [pallet.stevedore :refer [with-source-line-comments]]
    [pallet.utils :refer [compiler-exception]]))
 
 ;;; # Session precedence
@@ -57,12 +58,33 @@
 
 (defmacro ^{:indent 1} with-action-options
   "Set up local precedence relations between actions, and allows override
-   of user options, :script-dir, :script-sudo, :script-prefix and
-   :new-login-after-action."
+of user options.
+
+`:script-dir`
+: Controls the directory the script is executed in.
+
+`:sudo-user`
+: Controls the user the action runs as.
+
+`:script-prefix`
+: Specify a prefix for the script. Disable sudo using `:no-sudo`. Defaults to
+  `:sudo`.
+
+`:script-env`
+: Specify a map of environment variables.
+
+`:script-comments`
+: Control the generation of script line number comments
+
+`:new-login-after-action`
+: Force a new ssh login after the action.  Useful if the action effects the
+  login environment and you want the affect to be visible immediately."
   [m & body]
-  `(let [p# (get-action-options)]
-     (update-action-options ~m)
-     (let [v# (do ~@body)]
+  `(let [p# (get-action-options)
+         m# ~m]
+     (update-action-options m#)
+     (let [v# (with-source-line-comments (:script-comments (merge p# m#) true)
+                ~@body)]
        (assoc-action-options p#)
        v#)))
 

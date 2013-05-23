@@ -110,3 +110,20 @@
                                  (exec-script "g"))))
                first
                (dissoc :action-id))))))
+
+(defn echo-fn [f]
+  (let [compute (make-localhost-compute :group-name "local")
+        op (lift (group-spec "local")
+                 :phase f
+                 :compute compute
+                 :environment {:algorithms
+                               {:executor echo-executor}})]
+    (-> op :results first :result)))
+
+(deftest action-comments-test
+  (testing "script-comments"
+    (is (= '([{:language :bash} "g"])
+           (-> (echo-fn (plan-fn
+                          (with-action-options {:script-comments false}
+                            (exec-script
+                             ("g"))))))))))

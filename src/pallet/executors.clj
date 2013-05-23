@@ -22,17 +22,21 @@
    [pallet.echo.execute :as echo]
    [pallet.local.execute :as local]
    [pallet.node :refer [primary-ip]]
-   [pallet.ssh.execute :as ssh]))
+   [pallet.ssh.execute :as ssh]
+   [pallet.stevedore :refer [with-source-line-comments]]))
 
 (require 'pallet.actions.direct)
 
 (defn direct-script
   "Execute the direct action implementation, which returns script or other
   argument data, and metadata."
-  [session {:keys [args script-dir] :as action}]
+  [session {:keys [args script-dir script-comments] :or {script-comments true}
+            :as action}]
   (let [{:keys [metadata f]} (implementation action :direct)
         {:keys [action-type location]} metadata
-        [script session] (apply f (assoc session :script-dir script-dir) args)]
+        [script session] (with-source-line-comments script-comments
+                           (apply f
+                                  (assoc session :script-dir script-dir) args))]
     (logging/tracef "direct-script %s %s" f (vec args))
     (logging/tracef "direct-script %s" script)
     [script action-type location session]))
