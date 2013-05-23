@@ -101,16 +101,26 @@
                              (fn reducer [[results plan-state] phase]
                                (dofsm reduce-phases
                                  [meta (result
-                                       (phase-meta phase (first targets)))
-                                 f (result (or (:phase-execution-f meta)
-                                               phase-execution-f))
+                                        (phase-meta phase (first targets)))
+                                  f (result (or (:phase-execution-f meta)
+                                                phase-execution-f))
                                   [r ps] (f
                                           service-state plan-state environment
                                           phase targets
                                           (or
                                            (:execution-settings-f meta)
                                            execution-settings-f))
-                                  results1 (result (concat results r))
+                                  results1 (result
+                                            (concat
+                                             results
+                                             (->>
+                                              r
+                                              (map
+                                               (fn [x]
+                                                 (update-in x
+                                                  [:plan-state]
+                                                  dissoc
+                                                  :node-values))))))
                                   _ (result
                                      (when post-phase-f
                                        (post-phase-f targets phase r)))

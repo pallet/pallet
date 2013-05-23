@@ -415,7 +415,7 @@ specified in the `:extends` argument."
 
       (-> converge-result
           (update-in [:results] concat results)
-          (assoc :plan-state plan-state)))))
+          (assoc :plan-state (dissoc plan-state :node-values))))))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
