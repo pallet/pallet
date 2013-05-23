@@ -83,8 +83,7 @@ of user options.
   `(let [p# (get-action-options)
          m# ~m]
      (update-action-options m#)
-     (let [v# (with-source-line-comments (:script-comments (merge p# m#) true)
-                ~@body)]
+     (let [v# (do ~@body)]
        (assoc-action-options p#)
        v#)))
 

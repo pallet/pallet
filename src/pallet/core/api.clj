@@ -6,6 +6,7 @@
    [clojure.string :as string]
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :refer [debugf tracef]]
+   [pallet.action :refer [get-action-options]]
    [pallet.action-plan :refer [execute stop-execution-on-error translate]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :refer [destroy-node destroy-nodes-in-group nodes run-nodes]]
@@ -17,6 +18,7 @@
    [pallet.session.action-plan
     :refer [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :refer [add-session-verification-key check-session]]
+   [pallet.stevedore :refer [with-source-line-comments]]
    [pallet.utils :refer [maybe-assoc maybe-update-in obfuscate]]))
 
 (let [v (atom nil)]
@@ -58,7 +60,9 @@
                 {:service-state service-state
                  :plan-state plan-state
                  :environment environment}))
-              (apply plan-fn args)
+              (with-source-line-comments
+                (:script-comments (get-action-options) true)
+                (apply plan-fn args))
               (check-session (session) '(plan-fn))
               (session))]
       (let [[action-plan session] (get-session-action-plan s)
