@@ -39,7 +39,7 @@
 (defn action-options
   "Return any action-options currently defined on the session."
   [session]
-  (get session action-options-key))
+  (get-in session [:plan-state action-options-key]))
 
 (defn get-action-options
   "Return any action-options currently defined on the session."
@@ -49,12 +49,12 @@
 (defn update-action-options
   "Update any precedence modifiers defined on the session"
   [m]
-  (session! (update-in (session) [action-options-key] merge m)))
+  (session! (update-in (session) [:plan-state action-options-key] merge m)))
 
 (defn assoc-action-options
   "Set precedence modifiers defined on the session."
   [m]
-  (session! (assoc (session) action-options-key m)))
+  (session! (assoc-in (session) [:plan-state action-options-key] m)))
 
 (defmacro ^{:indent 1} with-action-options
   "Set up local precedence relations between actions, and allows override
