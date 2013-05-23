@@ -36,14 +36,14 @@
 
 (deftest service-test
   (is
-   (script-no-comment=
-    "echo 'Add testenv environment to /etc/environment...';\n{\nif ! ( [ -e /etc/environment ] ); then\n{ cat > /etc/environment <<EOFpallet\n# environment file created by pallet\n\nEOFpallet\n }\nfi\npallet_set_env() {\nk=$1\nv=$2\ns=$3\nif ! ( grep \"${s}\" /etc/environment 2>&- ); then\nsed -i -e \"/$${k}=/ d\" /etc/environment && \\\nsed -i -e \"$ a \\\\\n${s}\" /etc/environment || \\\nexit 1\nfi\n} && \\\nvv=\"1\"\npallet_set_env \"A\" \"${vv}\" \"A=\\\"${vv}\\\"\" && \\\nvv=\"b\"\npallet_set_env \"B\" \"${vv}\" \"B=\\\"${vv}\\\"\"\n } || { echo '#> Add testenv environment to /etc/environment : FAIL'; exit 1;} >&2 \necho '#> Add testenv environment to /etc/environment : SUCCESS'"
+   (=
+    "echo 'Add testenv environment to /etc/environment...';\n{\nif ! ( [ -e /etc/environment ] ); then\n{ cat > /etc/environment <<EOFpallet\n# environment file created by pallet\n\nEOFpallet\n }\nfi\npallet_set_env() {\nk=$1\nv=$2\ns=$3\nif ! ( grep \"${s}\" /etc/environment 2>&- ); then\nsed -i -e \"/$${k}=/ d\" /etc/environment && sed -i -e \"$ a \\\\\n${s}\" /etc/environment || exit 1\nfi\n} && vv=\"1\"\npallet_set_env \"A\" \"${vv}\" \"A=\\\"${vv}\\\"\" && vv=\"b\"\npallet_set_env \"B\" \"${vv}\" \"B=\\\"${vv}\\\"\"\n } || { echo '#> Add testenv environment to /etc/environment : FAIL'; exit 1;} >&2 \necho '#> Add testenv environment to /etc/environment : SUCCESS'\n\n"
     (first
      (build-actions {}
        (system-environment "testenv" {"A" 1 :B "b"})))))
   (is
-   (script-no-comment=
-    "echo 'Add testenv environment to /etc/environment...';\n{\nif ! ( [ -e /etc/environment ] ); then\n{ cat > /etc/environment <<EOFpallet\n# environment file created by pallet\n\nEOFpallet\n }\nfi\npallet_set_env() {\nk=$1\nv=$2\ns=$3\nif ! ( grep \"${s}\" /etc/environment 2>&- ); then\nsed -i -e \"/$${k}=/ d\" /etc/environment && \\\nsed -i -e \"$ a \\\\\n${s}\" /etc/environment || \\\nexit 1\nfi\n} && \\\nvv='1'\npallet_set_env \"A\" \"${vv}\" \"A=\\\"${vv}\\\"\" && \\\nvv='b'\npallet_set_env \"B\" \"${vv}\" \"B=\\\"${vv}\\\"\"\n } || { echo '#> Add testenv environment to /etc/environment : FAIL'; exit 1;} >&2 \necho '#> Add testenv environment to /etc/environment : SUCCESS'"
+   (=
+    "echo 'Add testenv environment to /etc/environment...';\n{\nif ! ( [ -e /etc/environment ] ); then\n{ cat > /etc/environment <<EOFpallet\n# environment file created by pallet\n\nEOFpallet\n }\nfi\npallet_set_env() {\nk=$1\nv=$2\ns=$3\nif ! ( grep \"${s}\" /etc/environment 2>&- ); then\nsed -i -e \"/$${k}=/ d\" /etc/environment && sed -i -e \"$ a \\\\\n${s}\" /etc/environment || exit 1\nfi\n} && vv='1'\npallet_set_env \"A\" \"${vv}\" \"A=\\\"${vv}\\\"\" && vv='b'\npallet_set_env \"B\" \"${vv}\" \"B=\\\"${vv}\\\"\"\n } || { echo '#> Add testenv environment to /etc/environment : FAIL'; exit 1;} >&2 \necho '#> Add testenv environment to /etc/environment : SUCCESS'\n\n"
     (first
      (build-actions {}
        (system-environment "testenv" {"A" 1 :B "b"} :literal true))))))

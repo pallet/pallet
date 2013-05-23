@@ -9,12 +9,14 @@
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [script]]
    [pallet.test-utils
-    :refer [with-bash-script-language with-ubuntu-script-template]]))
+    :refer [with-bash-script-language with-ubuntu-script-template
+            with-no-source-line-comments]]))
 
 (use-fixtures
  :once
  with-ubuntu-script-template
  with-bash-script-language
+ with-no-source-line-comments
  (logging-threshold-fixture))
 
 (deftest file-test

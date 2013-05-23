@@ -61,7 +61,7 @@
                  :plan-state plan-state
                  :environment environment}))
               (with-source-line-comments
-                (:script-comments (get-action-options) true)
+                (:script-comments (get-action-options))
                 (apply plan-fn args))
               (check-session (session) '(plan-fn))
               (session))]

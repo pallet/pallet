@@ -3,6 +3,7 @@
   (:require
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
+   [pallet.action :refer [action-options-key]]
    [pallet.action-plan :as action-plan]
    [pallet.action-plan :refer [stop-execution-on-error]]
    [pallet.api :refer [group-spec plan-fn]]
@@ -92,6 +93,8 @@
                     :is-64bit (get-in session [:is-64bit] true))))
         session (update-in session [:server] merge (:group session))
         session (update-in session [:service-state] #(or % [(:server session)]))
+        session (update-in session [:plan-state action-options-key]
+                           #(merge {:script-comments nil} %))
         session (update-in session [:phase] #(or % :test-phase))]
     (add-session-verification-key session)))
 
