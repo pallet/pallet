@@ -183,5 +183,6 @@
                 session @result]
             (is (failed? result))
             (is (phase-errors result))
+            (is (= 1 (count (phase-errors result))))
             (is (thrown? clojure.lang.ExceptionInfo
                  (throw-phase-errors result)))))))))

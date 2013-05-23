@@ -333,18 +333,17 @@
      (keyword (name state-name)))))
 
 ;;; # Exception reporting
-(defn throw-operation-exception
-  "If the result has a logged exception, throw it. This will block on the
-   operation being complete or failed."
-  [result]
-  (when-let [e (:exception result)]
-    (throw e)))
-
 (defn phase-errors
-  "Return the phase errors for an operation"
+  "Return a sequence of phase errors for an operation.
+   Each element in the sequence represents a failed action, and is a map,
+   with :target, :error, :context and all the return value keys for the return
+   value of the failed action."
   [result]
-  (when (:phase-errors result)
-    (mapcat :errors (:results result))))
+  (->>
+   (:results result)
+   (map #(update-in % [:result] (fn [r] (filter :error r))))
+   (mapcat #(map (fn [r] (merge (dissoc % :result) r)) (:result %)))
+   seq))
 
 (defn throw-phase-errors
   [result]

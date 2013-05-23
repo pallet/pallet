@@ -9,7 +9,8 @@
             on-enter
             state
             valid-transitions]]
-   [pallet.algo.fsmop :refer [dofsm execute map* update-state wait-for]]
+   [pallet.algo.fsmop
+    :refer [dofsm execute fail-reason map* update-state wait-for]]
    [pallet.core.api :as api]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.node :refer [id]]))
@@ -215,10 +216,12 @@ only not flagged with a :bootstrapped keyword."}
 
 ;;; # Exception reporting
 (defn throw-operation-exception
-  "If the operation has a logged exception, throw it. This will block on the
+  "If the result has a logged exception, throw it. This will block on the
    operation being complete or failed."
   [operation]
-  (api/throw-operation-exception @operation))
+  (when-let [f (fail-reason operation)]
+    (when-let [e (:exception f)]
+      (throw e))))
 
 (defn phase-errors
   "Return the phase errors for an operation"

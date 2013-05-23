@@ -139,24 +139,15 @@
                                               distinct))
                                   _ (succeed
                                      (not (some :errors r))
-                                     (merge
-                                      {:phase-errors true
-                                       :phase phase
-                                       :results results1}
-                                      (when-let [e (some
-                                                    #(some
-                                                      (comp :cause :error)
-                                                      (:errors %))
-                                                    results1)]
-                                        (logging/errorf
-                                         e "Phase Error in %s" phase)
-                                        {:exception e})))]
+                                     :phase-errors)]
                                  [results1 ps]))
                              [[] plan-state]
                              phases)]
-      {:results results
-       :targets targets
-       :plan-state plan-state})))
+      (do
+        (logging/tracef "lift (count results) %s" (count results))
+        {:results results
+         :targets targets
+         :plan-state plan-state}))))
 
 (defn delay
   "Returns a delay fsm.
@@ -223,11 +214,11 @@ Other options as taken by `lift`."
    "lift-partitions :phases %s :targets %s"
    (vec phases) (vec (map :group-name targets)))
   (dofsm lift-phases
-    [[results plan-state]
+    [[outer-results plan-state]
      (reduce*
-      (fn phase-reducer [[results plan-state] phase]
+      (fn phase-reducer [[acc-results plan-state] phase]
         (dofsm lift-partitions
-          [[results plan-state]
+          [[lift-results plan-state]
            (reduce*
             (fn target-reducer [[r plan-state] targets]
               (dofsm reduce-phases
@@ -235,19 +226,30 @@ Other options as taken by `lift`."
                  (lift
                   service-state plan-state environment [phase]
                   (assoc options :targets targets))]
-                [(concat r results) plan-state]))
-            [results plan-state]
+                (do
+                  (logging/tracef "back from lift")
+                  (logging/tracef
+                   "lift-partitions (count r) %s (count results) %s"
+                   (count r) (count results))
+                  [(concat r results) plan-state])))
+            [acc-results plan-state]
             (let [fns (comp
                        (juxt :partition-f :post-phase-f :post-phase-fsm
                              :phase-execution-f)
                        meta #(api/target-phase % phase))]
               (partition-targets targets phase partition-f)))]
-          [results plan-state]))
+          (do
+            (logging/tracef "back from phase loop")
+            (logging/tracef "(count lift-results) %s" (count lift-results))
+            [lift-results plan-state])))
       [[] plan-state]
       phases)]
-    {:results results
-     :targets targets
-     :plan-state plan-state}))
+    (do
+      (logging/tracef "back from partitions")
+      (logging/tracef "(count outer-results) %s" (count outer-results))
+      {:results outer-results
+       :targets targets
+       :plan-state plan-state})))
 
 (defn converge
   "Converge the `groups`, using the specified service-state to provide the
