@@ -6,6 +6,7 @@
    [clojure.set :refer [union]]
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :as logging]
+   [pallet.action :refer [action-options-key]]
    [pallet.algo.fsmop :refer [dofsm operate result succeed]]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
@@ -371,7 +372,8 @@ specified in the `:extends` argument."
   "Returns a FSM to converge the existing compute resources with the counts
    specified in `group-spec->count`.  Options are as for `converge`."
   [group-spec->count & {:keys [compute blobstore user phase
-                               all-nodes all-node-set environment plan-state]
+                               all-nodes all-node-set environment plan-state
+                               debug]
                         :or {phase [:configure]}
                         :as options}]
   (check-converge-options options)
@@ -394,7 +396,10 @@ specified in the `:extends` argument."
         targets (groups-with-phases targets phase-map)
         groups (map (partial group-with-environment environment) groups)
         targets (map (partial group-with-environment environment) targets)
-        lift-options (select-keys options ops/lift-options)]
+        lift-options (select-keys options ops/lift-options)
+        plan-state (assoc (or plan-state {})
+                     action-options-key
+                     (select-keys debug [:script-comments :script-trace]))]
     (doseq [group groups] (check-group-spec group))
     (dofsm converge
       [nodes-set (all-group-nodes compute groups all-node-set)
@@ -491,7 +496,8 @@ the admin-user on the nodes.
   should return a map with `:user`, `:executor` and `:executor-status-fn` keys."
   [group-spec->count & {:keys [compute blobstore user phase
                                all-nodes all-node-set environment
-                               async timeout-ms timeout-val]
+                               async timeout-ms timeout-val
+                               debug plan-state]
                         :or {phase [:configure]}
                         :as options}]
   (load-plugins)
@@ -505,7 +511,8 @@ the admin-user on the nodes.
 (defn lift*
   "Returns a FSM to lift the running nodes in the specified node-set by applying
    the specified phases.  Options as specified in `lift`."
-  [node-set & {:keys [compute phase all-node-set environment]
+  [node-set & {:keys [compute phase all-node-set environment
+                      debug plan-state]
                :or {phase [:configure]}
                :as options}]
   (check-lift-options options)
@@ -523,7 +530,9 @@ the admin-user on the nodes.
         targets (groups-with-phases targets phase-map)
         groups (map (partial group-with-environment environment) groups)
         targets (map (partial group-with-environment environment) targets)
-        plan-state {}
+        plan-state (assoc (or plan-state {})
+                     action-options-key
+                     (select-keys debug [:script-comments :script-trace]))
         lift-options (select-keys options ops/lift-options)]
     (doseq [group groups] (check-group-spec group))
     (dofsm lift
@@ -613,7 +622,8 @@ the admin-user on the nodes.
   [node-set & {:keys [compute phase all-node-set environment
                       async timeout-ms timeout-val
                       partition-f post-phase-f post-phase-fsm
-                      phase-execution-f execution-settings-f]
+                      phase-execution-f execution-settings-f
+                      debug plan-state]
                :or {phase [:configure]}
                :as options}]
   (load-plugins)

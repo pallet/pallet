@@ -34,7 +34,7 @@
 
 ;;; Precedence for actions can be overridden by setting the precedence map
 ;;; on the session.
-(def ^{:no-doc true :private true} action-options-key ::action-precedence)
+(def ^{:no-doc true :internal true} action-options-key ::action-precedence)
 
 (defn action-options
   "Return any action-options currently defined on the session."

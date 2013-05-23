@@ -143,7 +143,9 @@
    (optional-path [:post-phase-fsm]) fn?
    (optional-path [:async]) any-value
    (optional-path [:timeout-ms]) number?
-   (optional-path [:timeout-val]) any-value])
+   (optional-path [:timeout-val]) any-value
+   (optional-path [:debug :script-comments]) any-value
+   (optional-path [:debug :script-trace]) any-value])
 
 (def-map-schema converge-options-schema
   lift-options-schema
