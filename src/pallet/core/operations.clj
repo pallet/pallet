@@ -148,7 +148,7 @@
                                               (remove nil?)
                                               distinct))
                                   _ (succeed
-                                     (not (some :errors r))
+                                     (not (some :error (mapcat :result r)))
                                      :phase-errors)]
                                  [results1 ps]))
                              [[] plan-state]

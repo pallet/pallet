@@ -161,14 +161,12 @@
   (tracef "execute-action-plan*")
   (with-session session
     (let [[result session] (execute
-                            action-plan session executor execute-status-fn)
-          errors (seq (remove (complement :error) result))
-          value {:target target
-                 :target-type target-type
-                 :plan-state (:plan-state session)
-                 :result result
-                 :phase (phase-kw phase)}]
-      (maybe-assoc value :errors errors))))
+                            action-plan session executor execute-status-fn)]
+      {:target target
+       :target-type target-type
+       :plan-state (:plan-state session)
+       :result result
+       :phase (phase-kw phase)})))
 
 (defmulti execute-action-plan
   "Execute the `action-plan` on the `target`."

@@ -24,6 +24,7 @@
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :refer [nodes]]
    [pallet.contracts :refer [*verify-contracts*]]
+   [pallet.core.api :as core-api]
    [pallet.core.primitives :refer [phase-errors]]
    [pallet.core.session :refer [with-session]]
    [pallet.core.user :refer [*admin-user*]]
@@ -264,7 +265,7 @@
               (build-actions/build-actions
                   {} (remote-file "file1" :owner "user1"))
               second
-              :errors
+              build-actions/action-phase-errors
               first
               str)))))
 

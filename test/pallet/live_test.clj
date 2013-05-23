@@ -18,11 +18,12 @@
   (:require
    [clojure.string :as string]
    [clojure.tools.logging :refer [debugf tracef]]
-   [pallet.algo.fsmop :refer [complete? operate]]
+   [pallet.algo.fsmop :refer [complete? fail-reason operate]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
    [pallet.core.api :refer [service-state]]
    [pallet.core.operations :refer [converge]]
+   [pallet.core.primitives :refer [phase-errors]]
    [pallet.environment :refer [environment]]
    [pallet.node :as configure]
    [pallet.node :as node]))
@@ -230,10 +231,10 @@
              (service-state service counts)
              {} (environment service) phases {}))]
     @op
-    (when (or (not (complete? op)) (some :errors (:result @op)))
+    (when (or (not (complete? op)) (phase-errors @op))
       (let [e (or
                (:exception @op)
-               (some #(some (comp :cause :error) (:errors %)) (:results @op)))]
+               (some #(some (comp :cause :error) %) (phase-errors @op)))]
         (if e
           (debugf e "live-test build-nodes failed: %s" @op)
           (debugf "live-test build-nodes failed: %s" @op))
