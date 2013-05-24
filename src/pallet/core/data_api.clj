@@ -4,26 +4,10 @@
    [pallet.compute :refer [service-properties]]
    [pallet.compute.node-list :refer [node-list-service]]
    [pallet.executors :refer [action-plan-data]]
-   [pallet.node :as node]))
+   [pallet.node :as node :refer [node-map]]))
 
 (defn service-map-from-compute [compute]
   (service-properties compute))
-
-(defn node-map [node]
-  (try
-    {:proxy-port (:port (node/proxy node))
-     :ssh-port (node/ssh-port node)
-     :primary-ip (node/primary-ip node)
-     :private-ip (node/private-ip node)
-     :is-64bit? (node/is-64bit? node)
-     :group-name (name (node/group-name node))
-     :hostname (node/hostname node)
-     :os-family (node/os-family node)
-     :os-version (node/os-version node)
-     :running? (node/running? node)
-     :terminated? (node/terminated? node)
-     :id (node/id node)}
-    (catch Exception e {:primary-ip "N/A" :host-name "N/A"})))
 
 (defn nodes [compute]
   (for [node (pallet.compute/nodes compute)]
