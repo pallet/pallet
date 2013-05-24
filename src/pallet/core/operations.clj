@@ -4,7 +4,8 @@
    [clojure.tools.logging :as logging]
    [pallet.algo.fsmop :refer [delay-for dofsm reduce* result succeed]]
    [pallet.core.api :as api]
-   [pallet.core.primitives :as primitives])
+   [pallet.core.primitives :as primitives]
+   [pallet.node :refer [node-map]])
   (:refer-clojure :exclude [delay]))
 
 (defn node-count-adjuster
@@ -16,6 +17,10 @@
     [group-deltas         (result (api/group-deltas targets groups))
      nodes-to-remove      (result (api/nodes-to-remove targets group-deltas))
      nodes-to-add         (result (api/nodes-to-add group-deltas))
+     old-nodes            (result (->>
+                                   (vals nodes-to-remove)
+                                   (mapcat :nodes)
+                                   (map (comp node-map :node))))
      [results1 plan-state] (primitives/build-and-execute-phase
                             targets plan-state environment
                             :destroy-server
@@ -35,7 +40,7 @@
      new-nodes (primitives/create-group-nodes
                 compute-service environment nodes-to-add)]
     {:new-nodes new-nodes
-     :old-nodes (mapcat :nodes (vals nodes-to-remove))
+     :old-nodes old-nodes
      :targets (->> targets
                    (concat new-nodes)
                    (remove (set (mapcat :nodes (vals nodes-to-remove)))))
