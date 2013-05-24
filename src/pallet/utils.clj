@@ -32,6 +32,11 @@
    (keyword? arg) (name arg)
    :else (str arg)))
 
+(defn first-line
+  "Return the first line of a string."
+  [s]
+  (first (string/split-lines (str s))))
+
 (defmacro apply-map
   [& args]
   `(apply ~@(drop-last args) (apply concat ~(last args))))

@@ -144,7 +144,11 @@
       {:form `(~action-symbol ~@args
                ~@(when blocks
                    (map #(map :form %) blocks)))
-       :script script
+       :script (if (and (sequential? script) (map? (first script)))
+                 (update-in script [0] dissoc :summary)
+                 script)
+       :summary (when (and (sequential? script) (map? (first script)))
+                  (:summary (first script)))
        :action-type action-type
        :location location}
       (when blocks

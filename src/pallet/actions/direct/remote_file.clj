@@ -2,9 +2,12 @@
   "Action to specify remote file content."
   (:require
    [clojure.java.io :as io]
+   [clojure.string :as string]
    [pallet.action :refer [implement-action]]
+   [pallet.action-plan :as action-plan]
    [pallet.actions
-    :refer [delete-local-path
+    :refer [content-options
+            delete-local-path
             transfer-file
             transfer-file-to-local
             wait-for-file]]
@@ -17,10 +20,10 @@
     :refer [canonical-path chgrp chmod chown dirname exit path-group path-mode
             path-owner user-default-group]]
    [pallet.script.lib :refer [wait-while]]
-   [pallet.action-plan :as action-plan]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [fragment]]
-   [pallet.template :as templates]))
+   [pallet.template :as templates]
+   [pallet.utils :refer [first-line]]))
 
 (implement-action delete-local-path :direct
   {:action-type :fn/clojure :location :origin}
@@ -65,6 +68,12 @@ permissions. Note this is not the final directory."
         (chain-or (chown @(path-owner @t) @d) ":"))
       ("; done")))))
 
+(defn- summarise-content
+  [m]
+  (if (:content m)
+    (update-in m [:content] #(str (first-line %) "..."))
+    m))
+
 (implement-action remote-file-action :direct
   {:action-type :script :location :target}
   [session path {:keys [action url local-file remote-file link
@@ -82,7 +91,14 @@ permissions. Note this is not the final directory."
                  :or {action :create max-versions 5
                       install-new-files true}
                  :as options}]
-  [[{:language :bash}
+  [[{:language :bash
+     :summary (str "remote-file " path " "
+                   (string/join
+                    " "
+                    (->> (select-keys options content-options)
+                         (summarise-content)
+                         (apply concat)
+                         (map pr-str))))}
     (let [new-path (new-filename (-> session :action :script-dir) path)
           md5-path (md5-filename (-> session :action :script-dir) path)
           copy-path (copy-filename (-> session :action :script-dir) path)

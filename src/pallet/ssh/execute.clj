@@ -117,7 +117,7 @@
        "%s %s %s"
        (:server endpoint)
        (or (context-label action) "")
-       (action-symbol (:action action)))
+       (or (:summary options) ""))
       (with-connection session [connection]
         (let [authentication (transport/authentication connection)
               script (script-builder/build-script options script action)
@@ -147,14 +147,21 @@
                          :agent-forwarding (:ssh-agent-forwarding action)})
                 [result session] (execute/parse-shell-result session result)
                 result (update-in result [:out] clean-f)
-                result (assoc result :script script)
                 result (result-with-error-map
-                         (:server endpoint) "Error executing script" result)
+                        (:server endpoint) "Error executing script" result)
                 ;; Set the node-value to the result of execution, rather than
                 ;; the script.
                 session (assoc-in
                          session [:plan-state :node-values node-value-path]
-                         result)]
+                         result)
+                result (assoc result
+                         :script (if (and (sequential? script)
+                                          (map? (first script)))
+                                   (update-in script [0] dissoc :summary)
+                                   script)
+                         :summary (when (and (sequential? script)
+                                             (map? (first script)))
+                                    (:summary options)))]
             (logging/trace "ssh-script-on-target remove script file")
             (transport/exec
              connection
