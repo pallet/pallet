@@ -115,11 +115,6 @@
       "Use of :providers key in ~/.pallet/config.clj is "
       "deprecated. Please change to use :services."))))
 
-(defn- cake-project-environment
-  "Read an environment from the cake-project if it exists"
-  []
-  (-?> 'cake/*project* resolve var-get :environment))
-
 ;;; Compute service
 (defn default-compute-service
   "Returns the default compute service"
@@ -169,8 +164,6 @@
                           [:environment]
                           #(environment/merge-environments
                             environment
-                            (environment/eval-environment
-                             (cake-project-environment))
                             (environment/eval-environment %))))
         :else nil))))
 
