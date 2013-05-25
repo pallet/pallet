@@ -78,17 +78,17 @@
   "Convert a node into a map representing the node."
   [node]
   (try
-    {:proxy (node/proxy node)
-     :ssh-port (node/ssh-port node)
-     :primary-ip (node/primary-ip node)
-     :private-ip (node/private-ip node)
-     :is-64bit? (node/is-64bit? node)
-     :group-name (name (node/group-name node))
-     :hostname (node/hostname node)
-     :os-family (node/os-family node)
-     :os-version (node/os-version node)
-     :running? (node/running? node)
-     :terminated? (node/terminated? node)
-     :id (node/id node)}
+    {:proxy (proxy node)
+     :ssh-port (ssh-port node)
+     :primary-ip (primary-ip node)
+     :private-ip (private-ip node)
+     :is-64bit? (is-64bit? node)
+     :group-name (name (group-name node))
+     :hostname (hostname node)
+     :os-family (os-family node)
+     :os-version (os-version node)
+     :running? (running? node)
+     :terminated? (terminated? node)
+     :id (id node)}
     (catch Exception e
       {:primary-ip "N/A" :host-name "N/A"})))
