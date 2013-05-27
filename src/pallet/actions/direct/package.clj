@@ -221,7 +221,8 @@
    :location :target}
   [session & args]
   (logging/tracef "package %s" (vec args))
-  [[{:language :bash}
+  [[{:language :bash
+     :summary (str "package " (string/join " " (apply concat args)))}
     (adjust-packages
      session (map #(apply package-map session %) (distinct args)))]
    session])
@@ -378,7 +379,8 @@
                     :scopes [\"partner\"]})"
   {:action-type :script :location :target}
   [session & args]
-  [[{:language :bash}
+  [[{:language :bash
+     :summary (str "package-source " (string/join " " args))}
     (stevedore/do-script*
      (map (fn [x] (apply package-source* session x)) args))]
    session])
@@ -548,7 +550,8 @@
   {:action-type :script :location :target}
   [session & package-manager-args]
   (logging/tracef "package-manager-args %s" (vec package-manager-args))
-  [[{:language :bash}
+  [[{:language :bash
+     :summary (str "package-manager " (string/join " " package-manager-args))}
     (stevedore/do-script*
      (map #(apply package-manager* session %) (distinct package-manager-args)))]
    session])
