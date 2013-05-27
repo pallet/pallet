@@ -420,7 +420,8 @@ specified in the `:extends` argument."
 
       (-> converge-result
           (update-in [:results] concat results)
-          (assoc :plan-state (dissoc plan-state :node-values))))))
+          (assoc :plan-state (dissoc plan-state :node-values)
+                 :environment environment)))))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
@@ -546,7 +547,8 @@ the admin-user on the nodes.
        results (ops/lift-partitions
                 nodes-set plan-state environment (remove #{:settings} phases)
                 lift-options)]
-      results)))
+      (assoc results
+        :environment environment))))
 
 (defn lift
   "Lift the running nodes in the specified node-set by applying the specified
