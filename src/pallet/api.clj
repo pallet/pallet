@@ -397,9 +397,10 @@ specified in the `:extends` argument."
         groups (map (partial group-with-environment environment) groups)
         targets (map (partial group-with-environment environment) targets)
         lift-options (select-keys options ops/lift-options)
-        plan-state (assoc (or plan-state {})
-                     action-options-key
-                     (select-keys debug [:script-comments :script-trace]))]
+        initial-plan-state (assoc (or plan-state {})
+                             action-options-key
+                             (select-keys debug
+                                          [:script-comments :script-trace]))]
     (doseq [group groups] (check-group-spec group))
     (dofsm converge
       [nodes-set (all-group-nodes compute groups all-node-set)
@@ -410,7 +411,8 @@ specified in the `:extends` argument."
 
        {:keys [new-nodes plan-state targets service-state] :as converge-result}
        (ops/converge
-        compute groups nodes-set plan-state environment phases lift-options)
+        compute groups nodes-set initial-plan-state environment
+        phases lift-options)
 
        {:keys [plan-state results]}
        (ops/lift-partitions
@@ -421,7 +423,8 @@ specified in the `:extends` argument."
       (-> converge-result
           (update-in [:results] concat results)
           (assoc :plan-state (dissoc plan-state :node-values)
-                 :environment environment)))))
+                 :environment environment
+                 :initial-plan-state initial-plan-state)))))
 
 (defn converge
   "Converge the existing compute resources with the counts specified in
@@ -531,9 +534,10 @@ the admin-user on the nodes.
         targets (groups-with-phases targets phase-map)
         groups (map (partial group-with-environment environment) groups)
         targets (map (partial group-with-environment environment) targets)
-        plan-state (assoc (or plan-state {})
-                     action-options-key
-                     (select-keys debug [:script-comments :script-trace]))
+        initial-plan-state (assoc (or plan-state {})
+                             action-options-key
+                             (select-keys debug
+                                          [:script-comments :script-trace]))
         lift-options (select-keys options ops/lift-options)]
     (doseq [group groups] (check-group-spec group))
     (dofsm lift
@@ -543,12 +547,14 @@ the admin-user on the nodes.
           (or compute (seq nodes-set))
           {:error :no-nodes-and-no-compute-service})
        {:keys [plan-state]} (ops/lift
-                             nodes-set plan-state environment [:settings] {})
+                             nodes-set initial-plan-state environment
+                             [:settings] {})
        results (ops/lift-partitions
                 nodes-set plan-state environment (remove #{:settings} phases)
                 lift-options)]
       (assoc results
-        :environment environment))))
+        :environment environment
+        :initial-plan-state initial-plan-state))))
 
 (defn lift
   "Lift the running nodes in the specified node-set by applying the specified
