@@ -8,7 +8,7 @@
    [pallet.thread-expr :as thread-expr]))
 
 ;;; basic
-(defn- translate-options
+(defn translate-options
   [options translations]
   (reduce
    (fn [options [from to]]
