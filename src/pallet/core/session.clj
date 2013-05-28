@@ -105,12 +105,14 @@
 (defn os-family
   "OS-Family of the target-node."
   [session]
-  (node/os-family (target-node session)))
+  (or (node/os-family (target-node session))
+      (-> session :server :image :os-family)))
 
 (defn os-version
   "OS-Family of the target-node."
   [session]
-  (node/os-version (target-node session)))
+  (or (node/os-version (target-node session))
+      (-> session :server :image :os-version)))
 
 (defn group-name
   "Group name of the target-node."
