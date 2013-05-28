@@ -709,13 +709,13 @@
 
 (script/defscript debconf-set-selections [& selections])
 (script/defimpl debconf-set-selections :default [& selections] "")
-(script/defimpl debconf-set-selections [#{:aptitude}] [& selections]
+(script/defimpl debconf-set-selections [#{:aptitude :apt}] [& selections]
   ("{ debconf-set-selections"
    ~(str "<<EOF\n" (string/join \newline selections) "\nEOF\n}")))
 
 (script/defscript package-manager-non-interactive [])
 (script/defimpl package-manager-non-interactive :default [] "")
-(script/defimpl package-manager-non-interactive [#{:aptitude}] []
+(script/defimpl package-manager-non-interactive [#{:aptitude :apt}] []
   (~debconf-set-selections
    "debconf debconf/frontend select noninteractive"
    "debconf debconf/frontend seen false"))
