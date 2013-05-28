@@ -4,7 +4,6 @@
    [pallet.actions :refer [exec-script]]
    [pallet.api
     :refer [cluster-spec
-            converge
             extend-specs
             group-nodes
             group-spec
@@ -15,7 +14,6 @@
             server-spec]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :refer [nodes]]
-   [pallet.compute.node-list :refer [node-list-service]]
    [pallet.core.primitives :refer [default-phase-meta]]
    [pallet.core.session :refer [session session! with-session]]
    [pallet.core.user :refer [default-private-key-path default-public-key-path]]
@@ -88,14 +86,6 @@
       (some
        (partial re-find #"/bin")
        (->> (mapcat :results op) (mapcat :out))))))
-
-(deftest converge-test
-  (testing "converge on node-list"
-    (let [compute (node-list-service [])
-          group (group-spec "spec")
-          op (converge {group 1} :compute compute)]
-      (is op)
-      (is (nil? (:new-nodes op))))))
 
 (deftest lift-with-environment-test
   (testing "lift with environment"

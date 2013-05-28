@@ -101,8 +101,7 @@ support."
         "Node list contains a node without os-family"
         {:type :no-os-family-specified}))))
   ;; Not implemented
-  (run-nodes [compute group-spec node-count user init-script options]
-    nil)
+  ;; (run-nodes [node-type node-count request init-script options])
   ;; (reboot "Reboot the specified nodes")
   (boot-if-down [compute nodes] nil)
   ;; (shutdown-node "Shutdown a node.")
