@@ -10,20 +10,7 @@
    [pallet.crate :refer (admin-user)]
    [pallet.script.lib :as lib]
    [pallet.script.lib :refer [file state-root user-home]]
-   [pallet.stevedore :as stevedore]
-   [pallet.stevedore :refer [fragment]]))
-
-(defmacro ^{:requires [#'stevedore/checked-script context/phase-contexts
-                       string/join]}
-  checked-script
-  "Return a stevedore script that uses the current context to label the
-   action"
-  [name & script]
-  `(stevedore/checked-script
-    (if-let [context# (seq (context/phase-contexts))]
-      (str (string/join ": " context#) " " ~name)
-      ~name)
-    ~@script))
+   [pallet.stevedore :refer [fragment script]]))
 
 (def ^:dynamic *script-location-info* true)
 
@@ -78,7 +65,7 @@ to deal with local file transfer."
 (defn init-script-path
   "Path to the specified initd script"
   [service-name]
-  (str (stevedore/script (~lib/etc-init)) "/" service-name))
+  (str (script (~lib/etc-init)) "/" service-name))
 
 ;;; # Service Supervision
 ;;; TODO - remove these
@@ -87,11 +74,11 @@ to deal with local file transfer."
 
 (defmethod service-script-path :initd
   [_ service-name]
-  (str (stevedore/fragment (lib/etc-init)) "/" service-name))
+  (str (fragment (lib/etc-init)) "/" service-name))
 
 (defmethod service-script-path :upstart
   [_ service-name]
-  (str (stevedore/fragment (lib/upstart-script-dir)) "/" service-name ".conf"))
+  (str (fragment (lib/upstart-script-dir)) "/" service-name ".conf"))
 
 ;;; # File names for transfers
 

@@ -53,16 +53,14 @@
   (fn action-plan [plan-state]
     (tracef "action-plan plan-state %s" plan-state)
     (let [s (with-session
-              (add-session-verification-key
-               (merge
-                {:user (:user environment *admin-user*)}
-                target-map
-                {:service-state service-state
-                 :plan-state plan-state
-                 :environment environment}))
-              (with-source-line-comments
-                (:script-comments (get-action-options))
-                (apply plan-fn args))
+                (add-session-verification-key
+                 (merge
+                  {:user (:user environment *admin-user*)}
+                  target-map
+                  {:service-state service-state
+                   :plan-state plan-state
+                   :environment environment}))
+              (apply plan-fn args)
               (check-session (session) '(plan-fn))
               (session))]
       (let [[action-plan session] (get-session-action-plan s)

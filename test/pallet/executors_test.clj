@@ -7,6 +7,7 @@
    [pallet.compute :refer [nodes]]
    [pallet.core.api-impl :refer [with-script-for-node]]
    [pallet.executors :refer :all]
+   [pallet.script.lib :as lib]
    [pallet.test-utils :refer [make-localhost-compute]]))
 
 (defn plan-data-fn [f]
@@ -154,9 +155,23 @@
     (-> op :results first :result)))
 
 (deftest action-comments-test
-  (testing "script-comments"
+  (testing "with no script comments"
     (is (= '([{:language :bash} "g"])
            (-> (echo-fn (plan-fn
                           (with-action-options {:script-comments false}
                             (exec-script
-                             ("g"))))))))))
+                             ("g")))))))))
+  (testing "with no script comments, calling script function"
+    (is (= '([{:language :bash} "which g\ng"])
+           (-> (echo-fn (plan-fn
+                          (with-action-options {:script-comments false}
+                            (exec-script
+                             (lib/which g)
+                             ("g")))))))))
+  (testing "with script comments"
+    (is (not= '([{:language :bash} "which g\ng"])
+              (-> (echo-fn (plan-fn
+                             (with-action-options {:script-comments true}
+                               (exec-script
+                                (lib/which g)
+                                ("g"))))))))))

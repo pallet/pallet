@@ -28,7 +28,7 @@
    [pallet.node-value :refer [make-node-value set-node-value]]
    [pallet.session.action-plan
     :refer [dissoc-action-plan get-session-action-plan]]
-   [pallet.stevedore :as stevedore]))
+   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]))
 
 ;;; ## Action Plan Data Structure
 
@@ -579,7 +579,10 @@
 (defn execute-action-map
   "Execute a single action, catching any exception and reporting it as
    an error map."
-  [executor session {:keys [node-value-path context] :as action}]
+  [executor session
+   {:keys [node-value-path context script-comments]
+    :or {script-comments false}
+    :as action}]
   (logging/tracef "execute-action-map %s %s %s" session action executor)
   (if (= ::stop (::flag session))
     [nil session]
@@ -589,19 +592,20 @@
                         :action (-> action
                                     (update-in [:action] dissoc :impls)
                                     (dissoc :node-value-path)))]
-          (->>
-           action
-           (evaluate-arguments session)
-           (executor session)
-           ((fn [r] (logging/tracef "rv is %s" r) r))
-           ((fn [[rv session]]
-              [(if (map? rv)
-                 (merge {:context (context-string context)}
-                        (select-keys (:action action) [:action-symbol])
-                        rv)
-                 rv)
-               session]))
-           (set-node-value-with-return-value node-value-path))))
+          (with-source-line-comments script-comments
+            (->>
+             action
+             (evaluate-arguments session)
+             (executor session)
+             ((fn [r] (logging/tracef "rv is %s" r) r))
+             ((fn [[rv session]]
+                [(if (map? rv)
+                   (merge {:context (context-string context)}
+                          (select-keys (:action action) [:action-symbol])
+                          rv)
+                   rv)
+                 session]))
+             (set-node-value-with-return-value node-value-path)))))
       (catch Exception e
         (logging/errorf e "Exception in execute-action-map")
         [{:error {:type :pallet/action-execution-error
