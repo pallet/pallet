@@ -229,6 +229,27 @@
        (script/with-script-context [:yum]
          (script (~list-installed-packages))))))
 
+(deftest debconf-test
+  (script/with-script-context [:apt]
+    (is (script-no-comment=
+          "{ debconf-set-selections <<EOF\ndebconf string\nEOF\n}"
+          (debconf-set-selections "debconf string")))
+    (is (script-no-comment=
+          (str "{ debconf-set-selections <<EOF\n"
+               "debconf debconf/frontend select noninteractive\n"
+               "debconf debconf/frontend seen false\nEOF\n"
+               "}")
+          (package-manager-non-interactive))))
+  (script/with-script-context [:aptitude]
+    (is (script-no-comment=
+          "{ debconf-set-selections <<EOF\ndebconf string\nEOF\n}"
+          (debconf-set-selections "debconf string")))
+    (is (script-no-comment=
+          (str "{ debconf-set-selections <<EOF\n"
+               "debconf debconf/frontend select noninteractive\n"
+               "debconf debconf/frontend seen false\nEOF\n"
+               "}")
+          (package-manager-non-interactive)))))
 
 
 
