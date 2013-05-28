@@ -23,7 +23,7 @@
     :default "default"]
    ["-g" "--groups" "A comma separated list of groups"]
    ["-r" "--roles" "A comma separated list of group roles"]
-   ["-p" "--phases" "A comma separated list of phases"]
+   ["-a" "--phases" "A comma separated list of phases"]
    ["-d" "--dry-run" "Don't run anything, just show matching groups"
     :flag true]
    ["-f" "--format" "Output nodes in a table [table,edn]"
