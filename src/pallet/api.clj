@@ -437,7 +437,7 @@ specified in the `:extends` argument."
        {:keys [plan-state results]}
        (ops/lift-partitions
         service-state plan-state environment
-        (concat [:settings :pallet/os :bootstrap] phases)
+        (concat [:pallet/os :settings :bootstrap] phases)
         (assoc lift-options :targets targets))]
 
       (-> converge-result
@@ -569,7 +569,7 @@ the admin-user on the nodes.
           {:error :no-nodes-and-no-compute-service})
        {:keys [plan-state]} (ops/lift
                              nodes-set initial-plan-state environment
-                             [:settings :pallet/os] {})
+                             [:pallet/os :settings] {})
        results (ops/lift-partitions
                 nodes-set plan-state environment (remove #{:settings} phases)
                 lift-options)]
