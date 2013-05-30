@@ -1,6 +1,8 @@
 (ns pallet.node
   "API for nodes in pallet"
   (:require
+   [clojure.stacktrace :refer [print-cause-trace]]
+   [clojure.tools.logging :refer [trace]]
    [pallet.compute :refer [node-tag node-taggable? node-tags tag-node!]])
   (:refer-clojure :exclude [proxy]))
 
@@ -91,4 +93,5 @@
      :terminated? (terminated? node)
      :id (id node)}
     (catch Exception e
+      (trace e (with-out-str (print-cause-trace e)))
       {:primary-ip "N/A" :host-name "N/A"})))
