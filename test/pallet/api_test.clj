@@ -95,7 +95,7 @@
           group (group-spec "spec")
           op (converge {group 1} :compute compute)]
       (is op)
-      (is (seq (:new-nodes op))))))
+      (is (empty? (:new-nodes op))))))
 
 (deftest lift-with-environment-test
   (testing "lift with environment"
