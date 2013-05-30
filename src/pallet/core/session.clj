@@ -3,6 +3,7 @@
   (:require
    [pallet.compute :as compute]
    [pallet.context :refer [with-context]]
+   [pallet.core.plan-state :refer [get-settings]]
    [pallet.core.thread-local
     :refer [thread-local thread-local! with-thread-locals]]
    [pallet.node :as node]
@@ -106,13 +107,17 @@
   "OS-Family of the target-node."
   [session]
   (or (node/os-family (target-node session))
-      (-> session :server :image :os-family)))
+      (-> session :server :image :os-family)
+      (-> (get-settings (:plan-state session) (target-id session) :pallet/os {})
+          :os-family)))
 
 (defn os-version
   "OS-Family of the target-node."
   [session]
   (or (node/os-version (target-node session))
-      (-> session :server :image :os-version)))
+      (-> session :server :image :os-version)
+      (-> (get-settings (:plan-state session) (target-id session) :pallet/os {})
+          :os-version)))
 
 (defn group-name
   "Group name of the target-node."

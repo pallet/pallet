@@ -25,6 +25,7 @@
    [pallet.core.session :refer [session-context]]
    [pallet.core.user :as user]
    [pallet.crate :refer [phase-context]]
+   [pallet.crate.os :refer [os]]
    [pallet.environment :refer [group-with-environment merge-environments]]
    [pallet.node :refer [node-map node?]]
    [pallet.plugin :refer [load-plugins]]
@@ -286,6 +287,24 @@ specified in the `:extends` argument."
   [service-or-provider-name & options]
   (apply configure/compute-service service-or-provider-name options))
 
+;;; ### plan functions
+(defmacro plan-fn
+  "Create a plan function from a sequence of plan function invocations.
+
+   eg. (plan-fn
+         (file \"/some-file\")
+         (file \"/other-file\"))
+
+   This generates a new plan function, and adds code to verify the state
+   around each plan function call."
+  [& body]
+  (let [n? (string? (first body))
+        n (when n? (first body))
+        body (if n? (rest body) body)]
+    (if n
+      `(fn [] (phase-context ~(gensym n) {} ~@body))
+      `(fn [] (session-context ~(gensym "a-plan-fn") {} ~@body)))))
+
 ;;; ## Operations
 ;;;
 
@@ -379,6 +398,7 @@ specified in the `:extends` argument."
   (check-converge-options options)
   (logging/tracef "environment %s" environment)
   (let [[phases phase-map] (process-phases phase)
+        phase-map (assoc phase-map :pallet/os (plan-fn (os)))
         groups (if (map? group-spec->count)
                  [group-spec->count]
                  group-spec->count)
@@ -417,7 +437,7 @@ specified in the `:extends` argument."
        {:keys [plan-state results]}
        (ops/lift-partitions
         service-state plan-state environment
-        (concat [:settings :bootstrap] phases)
+        (concat [:settings :pallet/os :bootstrap] phases)
         (assoc lift-options :targets targets))]
 
       (-> converge-result
@@ -521,6 +541,7 @@ the admin-user on the nodes.
                :as options}]
   (check-lift-options options)
   (let [[phases phase-map] (process-phases phase)
+        phase-map (assoc phase-map :pallet/os (plan-fn (os)))
         {:keys [groups targets]} (-> node-set
                                      expand-cluster-groups
                                      split-groups-and-targets)
@@ -548,7 +569,7 @@ the admin-user on the nodes.
           {:error :no-nodes-and-no-compute-service})
        {:keys [plan-state]} (ops/lift
                              nodes-set initial-plan-state environment
-                             [:settings] {})
+                             [:settings :pallet/os] {})
        results (ops/lift-partitions
                 nodes-set plan-state environment (remove #{:settings} phases)
                 lift-options)]
@@ -720,24 +741,6 @@ insufficient.
       (if timeout-ms
         (deref (group-nodes*) timeout-ms timeout-val)
         (deref (group-nodes*))))))
-
-;;; ### plan functions
-(defmacro plan-fn
-  "Create a plan function from a sequence of plan function invocations.
-
-   eg. (plan-fn
-         (file \"/some-file\")
-         (file \"/other-file\"))
-
-   This generates a new plan function, and adds code to verify the state
-   around each plan function call."
-  [& body]
-  (let [n? (string? (first body))
-        n (when n? (first body))
-        body (if n? (rest body) body)]
-    (if n
-      `(fn [] (phase-context ~(gensym n) {} ~@body))
-      `(fn [] (session-context ~(gensym "a-plan-fn") {} ~@body)))))
 
 ;;; ### Admin user
 (defn make-user

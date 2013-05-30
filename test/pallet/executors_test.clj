@@ -152,7 +152,8 @@
                  :compute compute
                  :environment {:algorithms
                                {:executor echo-executor}})]
-    (-> op :results first :result)))
+    (clojure.tools.logging/infof "op %s" op)
+    (-> op :results last :result)))
 
 (deftest action-comments-test
   (testing "with no script comments"
