@@ -79,7 +79,7 @@
   []
   (let [distro (exec-script (distro-detection))]
     (with-action-values [distro]
-      (when (and (number? (:exit os)) (zero? (:exit distro)))
+      (when (and (number? (:exit distro)) (zero? (:exit distro)))
         (let [distro (read-string (:out distro))]
           (-> distro
               (maybe-assoc :os-family
