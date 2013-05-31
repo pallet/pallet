@@ -1,14 +1,18 @@
 (ns pallet.executors-test
   (:require
-   [clojure.test :refer [deftest is testing]]
+   [clojure.test :refer [deftest is testing use-fixtures]]
    [pallet.action :refer [action-fn with-action-options]]
    [pallet.actions :refer [exec-script remote-file plan-when plan-when-not]]
    [pallet.api :refer [group-spec lift plan-fn]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :refer [nodes]]
    [pallet.core.api-impl :refer [with-script-for-node]]
    [pallet.executors :refer :all]
    [pallet.script.lib :as lib]
    [pallet.test-utils :refer [make-localhost-compute]]))
+
+
+(use-fixtures :once (logging-threshold-fixture))
 
 (defn plan-data-fn [f]
   (let [compute (make-localhost-compute :group-name "local")

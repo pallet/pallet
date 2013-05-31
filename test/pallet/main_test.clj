@@ -41,14 +41,16 @@
             (is (nil? (pallet-task ["help"]))))))
     (testing "invalid task"
       (testing "throws"
-        (is (thrown-with-msg? clojure.lang.ExceptionInfo
-              #"(?s)suppressed exit.*"
-              (pallet-task ["some-non-existing-task"]))))
+        (suppress-err
+         (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                               #"(?s)suppressed exit.*"
+                               (pallet-task ["some-non-existing-task"])))))
       (testing "exception has :exit-code"
-        (try
-          (pallet-task ["some-non-existing-task"])
-          (catch Exception e
-            (is (= 1 (:exit-code (ex-data e))))))))))
+        (suppress-err
+         (try
+           (pallet-task ["some-non-existing-task"])
+           (catch Exception e
+             (is (= 1 (:exit-code (ex-data e)))))))))))
 
 (deftest report-unexpected-exception-test
   (logutils/suppress-logging

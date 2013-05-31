@@ -1,10 +1,12 @@
 (ns pallet.ssh.credentials-test
   (:require
    [clojure.test :refer [deftest is testing]]
+   [pallet.common.logging.logutils :refer [with-log-to-string]]
    [pallet.core.user :refer [make-user]]
    [pallet.ssh.credentials :refer [ensure-ssh-credential
                                    generate-keypair-files
                                    ssh-credential-status]]
+   [pallet.test-utils :refer [suppress-output]]
    [pallet.utils :refer [tmpfile with-temp-file]]))
 
 (deftest ssh-credential-status-test
@@ -38,22 +40,27 @@
       (let [user (make-user "fred" {:public-key-path (.getPath pub)
                                     :private-key-path (.getPath priv)})]
         (testing "invalid key"
-          (is (thrown? Exception (ensure-ssh-credential user {}))))
+          (with-log-to-string []
+            (is (thrown? Exception (ensure-ssh-credential user {})))))
         (generate-keypair-files user {})
         (testing "Valid key"
           (is (nil? (ensure-ssh-credential user {}))))
         (testing "Missing private key"
-          (is (thrown? Exception
-                       (ensure-ssh-credential
-                        (assoc user :private-key-path "invalid-path!@")
-                        {}))))
+          (suppress-output
+           (with-log-to-string []
+             (is (thrown? Exception
+                          (ensure-ssh-credential
+                           (assoc user :private-key-path "invalid-path!@")
+                           {}))))))
         (testing "Missing public key"
-          (is (thrown? Exception
-                       (ensure-ssh-credential
-                        (assoc user :public-key-path "invalid-path!@")
-                        {}))))
+          (suppress-output
+           (with-log-to-string []
+             (is (thrown? Exception
+                          (ensure-ssh-credential
+                           (assoc user :public-key-path "invalid-path!@")
+                           {}))))))
         (testing "Password"
           (is (nil?
-                 (ensure-ssh-credential
-                  (make-user "fred" {:password "somepwd"})
-                  {}))))))))
+               (ensure-ssh-credential
+                (make-user "fred" {:password "somepwd"})
+                {}))))))))

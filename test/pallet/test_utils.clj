@@ -36,6 +36,12 @@ list, Alan Dipert and MeikelBrandmeyer."
   `(binding [*out* (io/writer dev-null)]
     ~@forms))
 
+(defmacro suppress-err
+  "Prevent stdout to reduce test log noise"
+  [& forms]
+  `(binding [*err* (io/writer dev-null)]
+    ~@forms))
+
 (def null-print-stream
   (java.io.PrintStream. dev-null))
 
