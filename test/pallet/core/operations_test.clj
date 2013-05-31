@@ -22,11 +22,22 @@
   (let [seen (atom nil)
         seen? (fn [] @seen)]
     [(clj-action [session]
-       (clojure.tools.logging/info (format "Seenfn %s" name))
+       (clojure.tools.logging/info (format "Seenfn %s %s" name @seen))
        (is (not @seen))
        (reset! seen true)
        [true session])
      seen?]))
+
+(defn count-fn
+  "Generate a local function, which uses an atom to record when it is called."
+  [name]
+  (let [count-atom (atom 0)
+        get-count (fn [] @count-atom)]
+    [(clj-action [session]
+       (clojure.tools.logging/info (format "count-fn %s %s" name @count-atom))
+       (swap! count-atom inc)
+       [true session])
+     get-count]))
 
 (deftest lift-test
   (let [user (assoc *admin-user* :no-sudo true)]
@@ -67,7 +78,7 @@
     (testing "lift two phases for two nodes in a group"
       (let [compute (node-list-service
                      [(make-localhost-node) (make-localhost-node)])
-            [localf seen?] (seen-fn "lift-test")
+            [localf get-count] (count-fn "lift-test")
             group (group-spec
                    (group-name (first (nodes compute)))
                    :phases {:p (plan-fn (exec-script "ls /"))
@@ -75,8 +86,9 @@
             node-set @(operate (group-nodes compute [group]))
             op (operate (lift node-set {} {:user user} [:p :p2] {}))
             {:keys [plan-state results targets]} @op]
-        (is (not (failed? op)))
+        (is (not (failed? op)) "operation failed")
         (is (= 2 (count targets)))
+        (is (= 2 (get-count)))
         (testing "results"
           (is (= 4 (count results)))
           (is (= #{:p :p2} (set (map :phase results)))))
