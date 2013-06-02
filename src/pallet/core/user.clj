@@ -1,4 +1,7 @@
-(ns pallet.core.user "Admin user")
+(ns pallet.core.user
+  "Admin user"
+  (:require
+   [pallet.utils :refer [maybe-update-in obfuscate]]))
 
 (defn default-private-key-path
   "Return the default private key path."
@@ -70,3 +73,10 @@
        (. System getProperty "user.name"))
    {:private-key-path (default-private-key-path)
      :public-key-path (default-public-key-path)}))
+
+(defn obfuscated-passwords
+  "Return a user with obfuscated passwords"
+  [user]
+  (-> user
+      (maybe-update-in [:password] obfuscate)
+      (maybe-update-in [:sudo-password] obfuscate)))

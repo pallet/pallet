@@ -12,14 +12,13 @@
    [pallet.compute :refer [destroy-node destroy-nodes-in-group nodes run-nodes]]
    [pallet.core.api-impl :refer :all]
    [pallet.core.session :refer [session with-session]]
-   [pallet.core.user :refer [*admin-user*]]
+   [pallet.core.user :refer [*admin-user* obfuscated-passwords]]
    [pallet.executors :refer [default-executor]]
    [pallet.node :refer [id image-user primary-ip tag tag! taggable?]]
    [pallet.session.action-plan
     :refer [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :refer [add-session-verification-key check-session]]
-   [pallet.stevedore :refer [with-source-line-comments]]
-   [pallet.utils :refer [maybe-assoc maybe-update-in obfuscate]]))
+   [pallet.stevedore :refer [with-source-line-comments]]))
 
 (let [v (atom nil)]
   (defn version
@@ -146,10 +145,7 @@
           user (if (or (:private-key-path user) (:private-key user))
                  (assoc user :temp-key true)
                  user)]
-      (debugf "Image-user is %s"
-              (-> user
-                  (maybe-update-in [:password] obfuscate)
-                  (maybe-update-in [:sudo-password] obfuscate)))
+      (debugf "Image-user is %s" (obfuscated-passwords user))
       {:user user
        :executor (get-in environment [:algorithms :executor] default-executor)
        :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
