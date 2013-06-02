@@ -30,8 +30,7 @@
 
 ;;; node-spec contains loose schema, as these vary by, and should be enforced by
 ;;; the providers.
-(def-map-schema image-spec-schema
-  :loose
+(def-map-schema :loose image-spec-schema
   [(optional-path [:image-id]) [:or string? keyword?]
    (optional-path [:image-description-matches]) string?
    (optional-path [:image-name-matches]) string?
@@ -45,23 +44,19 @@
    (optional-path [:hypervisor-matches]) string?
    (optional-path [:override-login-user]) string?])
 
-(def-map-schema location-spec-schema
-  :loose
+(def-map-schema :loose location-spec-schema
   [(optional-path [:location-id]) string?])
 
-(def-map-schema hardware-spec-schema
-  :loose
+(def-map-schema :loose hardware-spec-schema
   [(optional-path [:hardware-id]) string?
    (optional-path [:min-ram]) number?
    (optional-path [:min-cores]) number?
    (optional-path [:min-disk]) number?])
 
-(def-map-schema network-spec-schema
-  :loose
+(def-map-schema :loose network-spec-schema
   [(optional-path [:inbound-ports]) (sequence-of number?)])
 
-(def-map-schema qos-spec-schema
-  :loose
+(def-map-schema :loose qos-spec-schema
   [(optional-path [:spot-price]) number?]
   [(optional-path [:enable-monitoring]) any-value])
 
