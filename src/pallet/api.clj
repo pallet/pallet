@@ -21,7 +21,8 @@
    [pallet.core.api-impl
     :refer [merge-spec-algorithm merge-specs node-has-group-name?]]
    [pallet.core.operations :as ops]
-   [pallet.core.primitives :refer [execute-on-unflagged phases-with-meta]]
+   [pallet.core.primitives :refer [bootstrapped-meta execute-on-unflagged
+                                   phases-with-meta unbootstrapped-meta]]
    [pallet.core.session :refer [session-context]]
    [pallet.core.user :as user]
    [pallet.crate :refer [phase-context]]
@@ -392,13 +393,20 @@ specified in the `:extends` argument."
    specified in `group-spec->count`.  Options are as for `converge`."
   [group-spec->count & {:keys [compute blobstore user phase
                                all-nodes all-node-set environment plan-state
-                               debug]
-                        :or {phase [:configure]}
+                               debug os-detect]
+                        :or {phase [:configure]
+                             os-detect true}
                         :as options}]
   (check-converge-options options)
   (logging/tracef "environment %s" environment)
   (let [[phases phase-map] (process-phases phase)
-        phase-map (assoc phase-map :pallet/os (plan-fn (os)))
+        phase-map (if os-detect
+                    (assoc phase-map
+                      :pallet/os (vary-meta
+                                  (plan-fn (os)) merge unbootstrapped-meta)
+                      :pallet/os-bs (vary-meta
+                                     (plan-fn (os)) merge bootstrapped-meta))
+                    phase-map)
         groups (if (map? group-spec->count)
                  [group-spec->count]
                  group-spec->count)
@@ -438,7 +446,8 @@ specified in the `:extends` argument."
        {:keys [plan-state results]}
        (ops/lift-partitions
         service-state plan-state environment
-        (concat [:pallet/os :settings :bootstrap] phases)
+        (concat (when os-detect [:pallet/os-bs :pallet/os])
+                [:settings :bootstrap] phases)
         (assoc lift-options :targets targets))]
 
       (-> converge-result
@@ -518,7 +527,12 @@ the admin-user on the nodes.
 
 `:execution-settings-f`
 : specifies a function that will be called with a node argument, and which
-  should return a map with `:user`, `:executor` and `:executor-status-fn` keys."
+  should return a map with `:user`, `:executor` and `:executor-status-fn` keys.
+
+### OS detection
+
+`:os-detect`
+: controls detection of nodes' os (default true)."
   [group-spec->count & {:keys [compute blobstore user phase
                                all-nodes all-node-set environment
                                async timeout-ms timeout-val
@@ -537,12 +551,15 @@ the admin-user on the nodes.
   "Returns a FSM to lift the running nodes in the specified node-set by applying
    the specified phases.  Options as specified in `lift`."
   [node-set & {:keys [compute phase all-node-set environment
-                      debug plan-state]
-               :or {phase [:configure]}
+                      debug plan-state os-detect]
+               :or {phase [:configure]
+                    os-detect true}
                :as options}]
   (check-lift-options options)
   (let [[phases phase-map] (process-phases phase)
-        phase-map (assoc phase-map :pallet/os (plan-fn (os)))
+        phase-map (if os-detect
+                    (assoc phase-map :pallet/os (plan-fn (os)))
+                    phase-map)
         {:keys [groups targets]} (-> node-set
                                      expand-cluster-groups
                                      split-groups-and-targets)
@@ -571,7 +588,10 @@ the admin-user on the nodes.
           {:error :no-nodes-and-no-compute-service})
        {:keys [plan-state]} (ops/lift
                              nodes-set initial-plan-state environment
-                             [:pallet/os :settings] {})
+                             (concat
+                              (when os-detect [:pallet/os])
+                              [:settings])
+                             {})
        results (ops/lift-partitions
                 nodes-set plan-state environment (remove #{:settings} phases)
                 lift-options)]
@@ -649,8 +669,13 @@ the admin-user on the nodes.
 
 `:execution-settings-f`
 : specifies a function that will be called with a node argument, and which
-  should return a map with `:user`, `:executor` and `:executor-status-fn` keys."
-  [node-set & {:keys [compute phase all-node-set environment
+  should return a map with `:user`, `:executor` and `:executor-status-fn` keys.
+
+### OS detection
+
+`:os-detect`
+: controls detection of nodes' os (default true)."
+  [node-set & {:keys [compute phase user all-node-set environment
                       async timeout-ms timeout-val
                       partition-f post-phase-f post-phase-fsm
                       phase-execution-f execution-settings-f
