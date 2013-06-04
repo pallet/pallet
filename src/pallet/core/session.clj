@@ -192,10 +192,13 @@
    (node/packager (get-in session [:server :node]))))
 
 (defn admin-user
-  "User that remote commands are run under"
+  "User that remote commands are run under."
   [session]
-  {:pre [session (:user session)]}
-  (:user session))
+  {:pre [session (-> session :environment :user)]}
+  ;; Note: this is not (:user session), which is set to the actuall user used
+  ;; for authentication when executing scripts, and may be different, e.g. when
+  ;; bootstrapping.
+  (-> session :environment :user))
 
 (defn admin-group
   "User that remote commands are run under"

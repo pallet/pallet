@@ -113,7 +113,7 @@
                   (slurp (default-public-key-path))))))
              (first
               (build-actions/build-actions
-               {:user (make-user user-name)}
+                  {:environment {:user (make-user user-name)}}
                (automated-admin-user))))))))
 
 (deftest live-test

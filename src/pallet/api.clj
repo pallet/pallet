@@ -409,6 +409,7 @@ specified in the `:extends` argument."
         _ (logging/tracef "groups %s" (vec groups))
         _ (logging/tracef "targets %s" (vec targets))
         environment (merge-environments
+                     {:user user/*admin-user*}
                      (pallet.environment/environment compute)
                      environment
                      (select-keys options environment-args))
@@ -548,6 +549,7 @@ the admin-user on the nodes.
         _ (logging/tracef "groups %s" (vec groups))
         _ (logging/tracef "targets %s" (vec targets))
         environment (merge-environments
+                     {:user user/*admin-user*}
                      (and compute (pallet.environment/environment compute))
                      environment
                      (select-keys options environment-args))
@@ -703,6 +705,7 @@ insufficient.
   (let [[phases phase-map] (process-phases phases)
         targets (groups-with-phases targets phase-map)
         environment (merge-environments
+                     {:user user/*admin-user*}
                      environment
                      (select-keys options environment-args))]
     (letfn [(lift-nodes* []

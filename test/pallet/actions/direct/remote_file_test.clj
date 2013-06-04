@@ -62,7 +62,7 @@
 
 (deftest remote-file*-test
   (is remote-file*)
-  (with-session {:user {:username "fred"}}
+  (with-session {:environment {:user {:username "fred"}}}
     (testing "url"
       (is (script-no-comment=
            (stevedore/checked-commands

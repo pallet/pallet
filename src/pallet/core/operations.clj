@@ -97,6 +97,7 @@
     :or {targets service-state
          phase-execution-f primitives/build-and-execute-phase
          execution-settings-f (api/environment-execution-settings)}}]
+  {:pre [(:user environment)]}
   (logging/debugf
    "lift :phases %s :targets %s" (vec phases) (vec (map :group-name targets)))
   (letfn [(phase-meta [phase target]
@@ -225,6 +226,7 @@ Other options as taken by `lift`."
    {:keys [targets partition-f]
     :or {targets service-state}
     :as options}]
+  {:pre [(:user environment)]}
   (logging/debugf
    "lift-partitions :phases %s :targets %s"
    (vec phases) (vec (map :group-name targets)))
@@ -282,6 +284,7 @@ flag.
     :or {targets service-state
          execution-settings-f (api/environment-execution-settings)}
     :as options}]
+  {:pre [(:user environment)]}
   (logging/debugf
    "converge :phase %s :groups %s :settings-groups %s"
    (vec phases)

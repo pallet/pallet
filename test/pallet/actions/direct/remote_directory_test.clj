@@ -29,7 +29,7 @@
   (assert pallet.core.session/*session*)
   (is (script-no-comment=
        (binding [pallet.action-plan/*defining-context* nil]
-         (with-session {:user *admin-user*}
+         (with-session {:environment {:user *admin-user*}}
            (stevedore/do-script
             (stevedore/checked-commands
              "remote-directory"
@@ -64,7 +64,7 @@
                  :unpack :tar
                  :owner "fred")))))
   (is (script-no-comment=
-       (with-session {:user *admin-user*}
+       (with-session {:environment {:user *admin-user*}}
          (binding [pallet.action-plan/*defining-context* nil]
            (stevedore/do-script
             (stevedore/checked-commands

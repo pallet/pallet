@@ -12,7 +12,7 @@
    [pallet.compute :refer [destroy-node destroy-nodes-in-group nodes run-nodes]]
    [pallet.core.api-impl :refer :all]
    [pallet.core.session :refer [session with-session]]
-   [pallet.core.user :refer [*admin-user* obfuscated-passwords]]
+   [pallet.core.user :refer [obfuscated-passwords]]
    [pallet.executors :refer [default-executor]]
    [pallet.node :refer [id image-user primary-ip tag tag! taggable?]]
    [pallet.session.action-plan
@@ -54,7 +54,7 @@
     (let [s (with-session
                 (add-session-verification-key
                  (merge
-                  {:user (:user environment *admin-user*)}
+                  {:user (:user environment)}
                   target-map
                   {:service-state service-state
                    :plan-state plan-state
@@ -132,7 +132,7 @@
   "Returns execution settings based purely on the environment"
   []
   (fn [environment _]
-    {:user (:user environment *admin-user*)
+    {:user (:user environment)
      :executor (get-in environment [:algorithms :executor] default-executor)
      :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
                                  #'stop-execution-on-error)}))
@@ -285,7 +285,7 @@
    (fn [node] (assoc group :node node))
    (run-nodes
     compute-service group count
-    (:user environment *admin-user*)
+    (:user environment)
     nil
     (:provider-options environment nil))))
 
