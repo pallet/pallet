@@ -100,6 +100,7 @@
   {:pre [(:user environment)]}
   (logging/debugf
    "lift :phases %s :targets %s" (vec phases) (vec (map :group-name targets)))
+  (logging/tracef "lift environment %s" environment)
   (letfn [(phase-meta [phase target]
             (-> (api/target-phase target phase) meta))]
     (dofsm lift
@@ -110,6 +111,8 @@
                                         (phase-meta phase (first targets)))
                                   f (result (or (:phase-execution-f meta)
                                                 phase-execution-f))
+                                  _ (result (logging/tracef
+                                             "phase-execution-f %s" f))
                                   [r ps] (f
                                           service-state plan-state environment
                                           phase targets

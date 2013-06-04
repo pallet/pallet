@@ -416,6 +416,8 @@ specified in the `:extends` argument."
                                      split-groups-and-targets)
         _ (logging/tracef "groups %s" (vec groups))
         _ (logging/tracef "targets %s" (vec targets))
+        _ (logging/tracef "environment keys %s"
+                          (select-keys options environment-args))
         environment (merge-environments
                      {:user user/*admin-user*}
                      (pallet.environment/environment compute)
@@ -565,6 +567,9 @@ the admin-user on the nodes.
                                      split-groups-and-targets)
         _ (logging/tracef "groups %s" (vec groups))
         _ (logging/tracef "targets %s" (vec targets))
+        _ (logging/tracef "environment keys %s"
+                          (select-keys options environment-args))
+        _ (logging/tracef "options %s" options)
         environment (merge-environments
                      {:user user/*admin-user*}
                      (and compute (pallet.environment/environment compute))
