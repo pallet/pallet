@@ -14,6 +14,7 @@ data may provide a version."
   (:require
    [clojure.string :as string]
    [pallet.compute :refer [os-hierarchy]]
+   [pallet.core.version-dispatch :refer [match-less version-map]]
    [pallet.crate :refer [os-family os-version phase-context]]
    [pallet.versions
     :refer [as-version-vector version-matches? version-spec-less]]))
@@ -25,21 +26,6 @@ data may provide a version."
    (concat
     (keys (:parents hierarchy))
     (keys (:descendants hierarchy)))))
-
-(defn ^{:internal true} match-less
-  [hierarchy [i _] [j _]]
-  (let [osi (:os i)
-        os-versioni (:os-version i)
-        versioni (:version i)
-        osj (:os j)
-        os-versionj (:os-version j)
-        versionj (:version j)]
-    (cond
-      (and (isa? hierarchy osi osj) (not (isa? hierarchy osj osi))) true
-      (and (isa? hierarchy osj osi) (not (isa? hierarchy osi osj))) false
-      (version-spec-less os-versioni os-versionj) true
-      (version-spec-less os-versionj os-versioni) false
-      :else (version-spec-less versioni versionj))))
 
 (defn ^{:internal true} dispatch-version
   [sym os os-version version args hierarchy methods]
@@ -134,52 +120,13 @@ refers to a software package version of some sort, on the specified `os` and
                   {}
                 ~@body)))))
 
-;;; A map that is looked up based on os and os version. The key should be a map
-;;; with :os and :os-version keys.
-(defn ^{:internal true} lookup-os
-  "Pass nil to default-value if non required"
-  [os os-version hierarchy values default-value]
-  (letfn [(matches? [[i _]]
-            (and (isa? hierarchy os (:os i))
-                 (version-matches? os-version (:os-version i))))]
-    (if-let [[_ v] (first (sort
-                           (comparator (partial match-less hierarchy))
-                           (filter matches? values)))]
-      v
-      (if-let [[_ v] (:default values)]
-        v
-        default-value))))
-
-(declare os-map)
-
-(deftype VersionMap [^clojure.lang.IPersistentMap data]
-  clojure.lang.ILookup
-  (valAt [m key]
-    (lookup-os (:os key) (:os-version key) os-hierarchy data nil))
-  (valAt [m key default-value]
-    (lookup-os
-     (:os key) (:os-version key) os-hierarchy data default-value))
-  clojure.lang.IFn
-  (invoke [m key]
-    (lookup-os (:os key) (:os-version key) os-hierarchy data nil))
-  (invoke [m key default-value]
-   (lookup-os
-     (:os key) (:os-version key) os-hierarchy data default-value))
-  clojure.lang.IPersistentMap
-  (assoc [m key val]
-    (os-map (assoc data key val)))
-  (assocEx [m key val]
-    (os-map (.assocEx data key val)))
-  (without [m key]
-    (os-map (.without data key))))
-
 (defn os-map
   "Construct an os version map. The keys should be maps with :os-family
 and :os-version keys. The :os-family value should be take from the
 `os-hierarchy`. The :os-version should be a version vector, or a version range
 vector."
   [{:as os-value-pairs}]
-  (VersionMap. os-value-pairs))
+  (version-map os-hierarchy :os :os-version os-value-pairs))
 
 (defn os-map-lookup
   [os-map]
