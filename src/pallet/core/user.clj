@@ -1,5 +1,5 @@
 (ns pallet.core.user
-  "Admin user"
+  "User for authentication."
   (:require
    [pallet.utils :refer [maybe-update-in obfuscate]]))
 
