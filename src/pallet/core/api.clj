@@ -326,9 +326,11 @@
   [state-name]
   (fn [node]
     (debugf "has-state-flag %s %s" state-name (id (:node node)))
-    (get
-     (read-or-empty-map (tag (:node node) state-tag-name))
-     (keyword (name state-name)))))
+    (let [v (get
+             (read-or-empty-map (tag (:node node) state-tag-name))
+             (keyword (name state-name)))]
+      (tracef "has-state-flag %s" v)
+      v)))
 
 ;;; # Exception reporting
 (defn phase-errors
