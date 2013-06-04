@@ -53,12 +53,20 @@
    (optional-path [:min-cores]) number?
    (optional-path [:min-disk]) number?])
 
+(def-map-schema inbound-port-spec-schema
+  [[:start-port] number?
+   (optional-path [:end-port]) number?
+   (optional-path [:protocol]) string?])
+
+(def inbound-port-schema
+  [:or inbound-port-spec-schema number?])
+
 (def-map-schema :loose network-spec-schema
-  [(optional-path [:inbound-ports]) (sequence-of number?)])
+  [(optional-path [:inbound-ports]) (sequence-of inbound-port-schema)])
 
 (def-map-schema :loose qos-spec-schema
-  [(optional-path [:spot-price]) number?]
-  [(optional-path [:enable-monitoring]) any-value])
+  [(optional-path [:spot-price]) number?
+   (optional-path [:enable-monitoring]) any-value])
 
 (def-map-schema node-spec-schema
   [(optional-path [:image]) image-spec-schema
