@@ -8,6 +8,7 @@
    [pallet.action-plan :refer [context-label]]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
+   [pallet.core.user :refer [obfuscated-passwords]]
    [pallet.execute :as execute
     :refer [clean-logs log-script-output result-with-error-map]]
    [pallet.local.execute :as local]
@@ -25,7 +26,10 @@
 (def local-connection (transport/factory :local {}))
 
 (defn authentication
+  "Return the user to use for authentication.  This is not necessarily the
+  admin user (e.g. when bootstrapping, it is the image user)."
   [session]
+  (logging/debugf "authentication %s" (obfuscated-passwords (:user session)))
   {:user (:user session)})
 
 (defn endpoint
