@@ -736,7 +736,7 @@ insufficient.
     (letfn [(lift-nodes* []
               (operate
                (ops/lift-partitions
-                targets environment plan-state phases
+                targets plan-state environment phases
                 (dissoc options
                         :environment :plan-state :async
                         :timeout-val :timeout-ms))))]
