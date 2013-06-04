@@ -1,7 +1,7 @@
 (ns pallet.core.session
   "Functions for querying sessions."
   (:require
-   [pallet.compute :as compute]
+   [pallet.compute :as compute :refer [packager-for-os]]
    [pallet.context :refer [with-context]]
    [pallet.core.plan-state :refer [get-settings]]
    [pallet.core.thread-local
@@ -189,7 +189,8 @@
   [session]
   (or
    (-> session :server :packager)
-   (node/packager (get-in session [:server :node]))))
+   (node/packager (get-in session [:server :node]))
+   (packager-for-os (os-family session) (os-version session))))
 
 (defn admin-user
   "User that remote commands are run under."

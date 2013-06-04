@@ -85,10 +85,10 @@
                     :os-version (or (-> session :server :image :os-version)
                                     "10.04")
                     :packager (or (-> session :group :packager)
-                                  (compute/packager
-                                   {:os-family
-                                    (or (-> session :server :image :os-family)
-                                        :ubuntu)}))
+                                  (compute/packager-for-os
+                                   (or (-> session :server :image :os-family)
+                                       :ubuntu)
+                                   nil))
                     :id (or (-> session :server :node-id) :id)
                     :is-64bit (get-in session [:is-64bit] true))))
         session (update-in session [:server] merge (:group session))
