@@ -789,9 +789,10 @@ insufficient.
    (user/make-user
     username
     (merge
-     {:private-key-path (user/default-private-key-path)
-      :public-key-path (user/default-public-key-path)
-      :sudo-password (:password options)}
+     (if (:password options)
+       {:sudo-password (:password options)}
+       {:private-key-path (user/default-private-key-path)
+        :public-key-path (user/default-public-key-path)})
      options))))
 
 (defmacro with-admin-user
