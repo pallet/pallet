@@ -95,7 +95,7 @@
    {:keys [targets execution-settings-f phase-execution-f
            post-phase-f post-phase-fsm]
     :or {targets service-state
-         phase-execution-f primitives/build-and-execute-phase
+         phase-execution-f #'primitives/build-and-execute-phase
          execution-settings-f (api/environment-execution-settings)}}]
   {:pre [(:user environment)]}
   (logging/debugf
