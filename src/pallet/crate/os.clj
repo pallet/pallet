@@ -96,5 +96,8 @@
   (let [os (infer-os)
         distro (infer-distro)
         m (with-action-values [distro os]
-            (dissoc (merge os distro) :action-symbol :context))]
+            (->>
+             (dissoc (merge os distro) :action-symbol :context)
+             (remove #(#{:unknown "unknown"} (val %)))
+             (into {})))]
     (assoc-settings :pallet/os m)))
