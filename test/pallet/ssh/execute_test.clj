@@ -86,7 +86,7 @@
                     "new cached connection")))]
         (is log-out)))
     (testing "new session after :new-login-after-action"
-      (with-script-for-node (:server session)
+      (with-script-for-node (:server session) nil
         (let [original-connection (get-connection session)]
           (ssh-script-on-target
            session {:node-value-path (keyword (name (gensym "nv")))}

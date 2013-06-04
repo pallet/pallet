@@ -6,7 +6,6 @@
    [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :refer [nodes]]
-   [pallet.core.api-impl :refer [with-script-for-node]]
    [pallet.executors :refer :all]
    [pallet.script.lib :as lib]
    [pallet.test-utils :refer [make-localhost-compute]]))

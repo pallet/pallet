@@ -117,7 +117,7 @@
    "build-and-execute-phase %s on %s target(s)" phase (count targets))
   (logging/tracef "build-and-execute-phase plan-state %s" plan-state)
   (let [[action-plans plan-state]
-        ((api/action-plans service-state environment phase targets)
+        ((api/action-plans service-state plan-state environment phase targets)
          plan-state)]
     (logging/tracef
      "build-and-execute-phase execute %s actions %s"

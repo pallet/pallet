@@ -1,10 +1,14 @@
 (ns pallet.core.api-impl
   "Implementation functions for the core api."
   (:require
+   [clojure.tools.logging :refer [debugf warnf]]
+   [pallet.compute :refer [packager-for-os]]
+   [pallet.core.plan-state :refer [get-settings]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.node :as node]
    [pallet.script :refer [with-script-context]]
-   [pallet.stevedore :refer [with-script-language]]))
+   [pallet.stevedore :refer [with-script-language]]
+   [pallet.utils :refer [maybe-assoc]]))
 
 (def
   ^{:doc "Map from key to merge algorithm. Specifies how specs are merged."}
@@ -49,21 +53,56 @@
        {:node node}
        groups))))
 
-(defn script-template-for-node
-  [target]
-  {:pre [target (:node target)]}
+(defn target-os-details
+  [target plan-state]
   (let [node (:node target)
-        family (node/os-family node)]
-    (filter identity
-            [family
-             (or (:packager target) (node/packager node))
-             (when-let [version (node/os-version node)]
-               (keyword (format "%s-%s" (name family) version)))])))
+        node-id (node/id node)
+        node-map (-> {}
+                     (maybe-assoc :os-family (node/os-family node))
+                     (maybe-assoc :os-version (node/os-version node))
+                     (maybe-assoc :packager (node/packager node)))
+        detected (select-keys (get-settings plan-state node-id :pallet/os {})
+                              [:os-family :os-version])
+        warn-diff (fn [key from-node detected]
+                    (let [n (key from-node)
+                          d (key detected)]
+                      (when (and n d (not= n d))
+                        (warnf "%s mismatch: node returned %s, but %s detected"
+                               (name key) n d))))
+        _ (debugf "target-os-details node %s detected %s" node-map detected)
+        {:keys [os-family os-version] :as combined} (merge node-map
+                                                           detected
+                                                           (select-keys
+                                                            target [:packager]))
+        combined (update-in combined [:packager]
+                            #(or %
+                                 (when os-family
+                                   (packager-for-os os-family os-version))))]
+    (warn-diff :os-family node-map detected)
+    (warn-diff :os-version node-map detected)
+    combined))
+
+(defn script-template-for-node
+  [target plan-state]
+  {:pre [target (:node target)]}
+  (let [{:keys [os-family os-version packager]} (target-os-details
+                                                 target plan-state)
+        context (seq (filter
+                      identity
+                      [os-family
+                       packager
+                       (when os-version
+                         (keyword
+                          (format "%s-%s" (name os-family) os-version)))]))]
+    (debugf "Script context: %s" (vec context))
+    (when-not context
+      (debugf "No script context available: %s %s" target plan-state))
+    context))
 
 (defmacro ^{:requires [#'with-script-context #'with-script-language]}
   with-script-for-node
   "Set up the script context for a server"
-  [target & body]
-  `(with-script-context (script-template-for-node ~target)
+  [target plan-state & body]
+  `(with-script-context (script-template-for-node ~target ~plan-state)
      (with-script-language :pallet.stevedore.bash/bash
        ~@body)))

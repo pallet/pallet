@@ -83,16 +83,16 @@
   "Build action plans for the specified `phase` on all nodes or groups in the
   given `target`, within the context of the `service-state`. The `plan-state`
   contains all the settings, etc, for all groups."
-  (fn [service-state environment phase target]
+  (fn [service-state plan-state environment phase target]
     (tracef "target-action-plan %s" (:target-type target :node))
     (:target-type target :node)))
 
 (defmethod target-action-plan :node
-  [service-state environment phase target]
-  {:pre [target]}
+  [service-state plan-state environment phase target]
+  {:pre [target (:node target)]}
   (fn [plan-state]
     (logutils/with-context [:target (-> target :node primary-ip)]
-      (with-script-for-node target
+      (with-script-for-node target plan-state
         ((action-plan
           service-state environment
           (target-phase target phase) (phase-args phase)
@@ -100,7 +100,7 @@
          plan-state)))))
 
 (defmethod target-action-plan :group
-  [service-state environment phase group]
+  [service-state plan-state environment phase group]
   {:pre [group]}
   (fn [plan-state]
     (logutils/with-context [:target (-> group :group-name)]
@@ -111,7 +111,7 @@
        plan-state))))
 
 (defn action-plans
-  [service-state environment phase targets]
+  [service-state plan-state environment phase targets]
   (let [targets-with-phase (filter #(target-phase % phase) targets)]
     (tracef
      "action-plans: phase %s targets %s targets-with-phase %s"
@@ -120,7 +120,7 @@
       (domonad
        [action-plans
         (m-map
-         (partial target-action-plan service-state environment phase)
+         #(target-action-plan service-state plan-state environment phase %)
          targets-with-phase)]
        (map
         #(hash-map :target %1 :phase (phase-kw phase) :action-plan %2)
@@ -177,7 +177,7 @@
    {:keys [action-plan phase target-type target] :as action-plan-map}]
   (tracef "execute-action-plan :node")
   (logutils/with-context [:target (-> target :node primary-ip)]
-    (with-script-for-node target
+    (with-script-for-node target plan-state
       (execute-action-plan*
        {:server target
         :service-state service-state
