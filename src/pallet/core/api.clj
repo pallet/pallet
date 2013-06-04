@@ -132,6 +132,8 @@
   "Returns execution settings based purely on the environment"
   []
   (fn [environment _]
+    (debugf "environment-execution-settings %s" environment)
+    (debugf "Env user %s" (obfuscated-passwords (:user environment)))
     {:user (:user environment)
      :executor (get-in environment [:algorithms :executor] default-executor)
      :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
