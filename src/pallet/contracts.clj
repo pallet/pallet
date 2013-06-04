@@ -140,7 +140,8 @@
    (optional-path [:timeout-ms]) number?
    (optional-path [:timeout-val]) any-value
    (optional-path [:debug :script-comments]) any-value
-   (optional-path [:debug :script-trace]) any-value])
+   (optional-path [:debug :script-trace]) any-value
+   (optional-path [:os-detect]) any-value])
 
 (def-map-schema converge-options-schema
   lift-options-schema
