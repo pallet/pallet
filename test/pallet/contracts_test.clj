@@ -2,7 +2,7 @@
   (:require
    [clj-schema.schema :refer [map-schema]]
    [clojure.test :refer :all]
-   [pallet.common.logging.logutils :refer [with-log-to-string]]
+   [pallet.common.logging.logutils :refer [with-log-to-string suppress-logging]]
    [pallet.contracts :refer :all]))
 
 (deftest check-keys-test
@@ -22,12 +22,13 @@
         input2 {:network {:inbound-ports [{:start-port 22
                                            :end-port 25
                                            :protocol "UDP"}]}}
-        input3 {:network {:inbound-ports [{:port 80}]}} ;; unallowed key
+        input3 {:network {:inbound-ports [{:port 80}]}}      ;; unallowed key
         input4 {:network {:inbound-ports [{:end-port 80}]}}] ;; no start-port
     (is (= input1 (check-node-spec input1)))
     (is (= input2 (check-node-spec input2)))
-    (is (thrown? Exception (check-node-spec input3)))
-    (is (thrown? Exception (check-node-spec input4)))))
+    (suppress-logging
+     (is (thrown? Exception (check-node-spec input3)))
+     (is (thrown? Exception (check-node-spec input4))))))
 
 (deftest qos-schema-spec-test
   (let [input1 {:qos {}}
