@@ -92,7 +92,8 @@
   [(optional-path [:phases]) phases-schema
    (optional-path [:roles]) (set-of keyword?)
    (optional-path [:packager]) keyword?
-   (optional-path [:phases-meta]) phases-meta-schema])
+   (optional-path [:phases-meta]) phases-meta-schema
+   (optional-path [:default-phases]) (sequence-of keyword?)])
 
 (def-map-schema group-spec-schema
   node-spec-schema

@@ -135,6 +135,7 @@ value in a map passed to the `:phases-meta` clause of a `server-spec` or
                      Standard phases are:
      - :bootstrap    run on first boot of a new node
      - :configure    defines the configuration of the node
+   - :default-phases a sequence specifying the default phases
    - :phases-meta    metadata to add to the phases
    - :extends        takes a server-spec, or sequence thereof, and is used to
                      inherit phases, etc.
@@ -145,17 +146,17 @@ value in a map passed to the `:phases-meta` clause of a `server-spec` or
 
 For a given phase, inherited phase functions are run first, in the order
 specified in the `:extends` argument."
-  [& {:keys [phases phases-meta packager node-spec extends roles]
+  [& {:keys [phases phases-meta default-phases packager node-spec extends roles]
       :as options}]
   (check-server-spec
    (->
-    node-spec
     (or node-spec {})                    ; ensure we have a map and not nil
     (merge options)
     (when-> roles
             (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
     (extend-specs extends)
     (maybe-update-in [:phases] phases-with-meta phases-meta)
+    (update-in [:default-phases] #(or default-phases % [:configure]))
     (dissoc :extends :node-spec :phases-meta)
     (vary-meta assoc :type ::server-spec))))
 
@@ -167,13 +168,14 @@ specified in the `:extends` argument."
    `name` is used for the group name, which is set on each node and links a node
    to it's node-spec
 
-   - :extends  specify a server-spec, a group-spec, or sequence thereof
-               and is used to inherit phases, etc.
+   - :extends        specify a server-spec, a group-spec, or sequence thereof
+                     and is used to inherit phases, etc.
 
-   - :phases      used to define phases. Standard phases are:
-   - :phases-meta metadata to add to the phases
-   - :bootstrap   run on first boot of a new node
-   - :configure   defines the configuration of the node.
+   - :phases         used to define phases. Standard phases are:
+   - :phases-meta    metadata to add to the phases
+   - :default-phases a sequence specifying the default phases
+   - :bootstrap      run on first boot of a new node
+   - :configure      defines the configuration of the node.
 
    - :count          specify the target number of nodes for this node-spec
    - :packager       override the choice of packager to use
@@ -184,19 +186,20 @@ specified in the `:extends` argument."
   ;; membership, so that it does not need to be updated by functions that modify
   ;; a group's group-name.
   [name
-   & {:keys [extends count image phases phases-meta packager node-spec roles
-             node-filter]
+   & {:keys [extends count image phases phases-meta default-phases packager
+             node-spec roles node-filter]
       :as options}]
   {:pre [(or (nil? image) (map? image))]}
   (let [group-name (keyword (clojure.core/name name))]
     (check-group-spec
      (->
-      node-spec
+      (or node-spec {})
       (merge options)
       (when-> roles
               (update-in [:roles] #(if (keyword? %) #{%} (into #{} %))))
       (extend-specs extends)
       (maybe-update-in [:phases] phases-with-meta phases-meta)
+      (update-in [:default-phases] #(or default-phases % [:configure]))
       (dissoc :extends :node-spec :phases-meta)
       (assoc :group-name group-name)
       (vary-meta assoc :type ::group-spec)))))

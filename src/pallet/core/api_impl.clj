@@ -15,7 +15,8 @@
   merge-spec-algorithm
   {:phases :merge-phases
    :roles :union
-   :group-names :union})
+   :group-names :union
+   :default-phases :total-ordering})
 
 (defn merge-specs
   "Merge specs using the specified algorithms."
