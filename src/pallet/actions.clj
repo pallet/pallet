@@ -852,7 +852,7 @@ Deprecated in favour of pallet.crate.service/service."
      pallet.actions/remote-file
      (service-script-path service-impl service-name)
      :owner "root" :group "root" :mode "0755"
-     (merge {:action action} options))))
+     (merge {:action action} (dissoc options :service-impl)))))
 
 ;;; # Retry
 ;;; TODO: convert to use a nested scope in the action-plan
