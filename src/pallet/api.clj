@@ -31,7 +31,7 @@
    [pallet.node :refer [node-map node?]]
    [pallet.plugin :refer [load-plugins]]
    [pallet.thread-expr :refer [when->]]
-   [pallet.utils :refer [apply-map maybe-update-in]]))
+   [pallet.utils :refer [apply-map maybe-update-in total-order-merge]]))
 
 
 ;;; ## Pallet version
@@ -397,8 +397,7 @@ specified in the `:extends` argument."
   [group-spec->count & {:keys [compute blobstore user phase
                                all-nodes all-node-set environment plan-state
                                debug os-detect]
-                        :or {phase [:configure]
-                             os-detect true}
+                        :or {os-detect true}
                         :as options}]
   (check-converge-options options)
   (logging/tracef "environment %s" environment)
@@ -434,7 +433,10 @@ specified in the `:extends` argument."
         initial-plan-state (assoc (or plan-state {})
                              action-options-key
                              (select-keys debug
-                                          [:script-comments :script-trace]))]
+                                          [:script-comments :script-trace]))
+        phases (or (seq phases)
+                   (apply total-order-merge
+                          (map :default-phases (concat groups targets))))]
     (doseq [group groups] (check-group-spec group))
     (dofsm converge
       [nodes-set (all-group-nodes compute groups all-node-set)
@@ -542,7 +544,6 @@ the admin-user on the nodes.
                                all-nodes all-node-set environment
                                async timeout-ms timeout-val
                                debug plan-state]
-                        :or {phase [:configure]}
                         :as options}]
   (load-plugins)
   (if async
@@ -557,8 +558,7 @@ the admin-user on the nodes.
    the specified phases.  Options as specified in `lift`."
   [node-set & {:keys [compute phase all-node-set environment
                       debug plan-state os-detect]
-               :or {phase [:configure]
-                    os-detect true}
+               :or {os-detect true}
                :as options}]
   (check-lift-options options)
   (let [[phases phase-map] (process-phases phase)
@@ -586,7 +586,10 @@ the admin-user on the nodes.
                              action-options-key
                              (select-keys debug
                                           [:script-comments :script-trace]))
-        lift-options (select-keys options ops/lift-options)]
+        lift-options (select-keys options ops/lift-options)
+        phases (or (seq phases)
+                   (apply total-order-merge
+                          (map :default-phases (concat groups targets))))]
     (doseq [group groups] (check-group-spec group))
     (dofsm lift
       [nodes-set (all-group-nodes compute groups all-node-set)
@@ -688,7 +691,6 @@ the admin-user on the nodes.
                       partition-f post-phase-f post-phase-fsm
                       phase-execution-f execution-settings-f
                       debug plan-state]
-               :or {phase [:configure]}
                :as options}]
   (load-plugins)
   (if async
