@@ -368,3 +368,29 @@ value to assoc. The assoc only occurs if the value is non-nil."
   "Obfuscate a password, by replacing every character by an asterisk."
   [pw]
   (when pw (string/replace pw #"." "*")))
+
+(defn total-order-merge
+  "Merge the `seqs` sequences so that the ordering of the elements in result is
+  the same as the ordering of elements present in each of the specified
+  sequences.  Throws an exception if no ordering can be found that satisfies the
+  ordering in all the `seqs`."
+  [& seqs]
+  {:pre [(every? (some-fn nil? sequential?)
+  seqs)]}
+  (loop [m-seqs seqs
+         r []]
+    (if (seq m-seqs)
+      (let [first-elements (map first m-seqs)
+            other-elements (set (mapcat rest m-seqs))
+            candidates (remove other-elements first-elements)]
+        (if (seq candidates)
+          (recur
+           (->>
+            m-seqs
+            (map #(if (= (first candidates) (first %)) (rest %) %))
+            (filter seq))
+           (conj r (first candidates)))
+          (throw
+           (ex-info "No total ordering available"
+                    {:seqs seqs}))))
+      r)))
