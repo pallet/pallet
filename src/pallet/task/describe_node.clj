@@ -1,5 +1,5 @@
 (ns pallet.task.describe-node
-  "Adjust node counts."
+  "Describe the node definition."
   (:require
    [clojure.pprint :refer [pprint]]
    [pallet.task :refer [maybe-resolve-symbol-string]]))
