@@ -1,5 +1,5 @@
 (ns pallet.task.containers
-  "List contianers."
+  "List containers."
   (:require
    [pallet.blobstore :as blobstore]))
 

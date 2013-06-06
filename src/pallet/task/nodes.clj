@@ -1,5 +1,5 @@
 (ns pallet.task.nodes
-  "list nodes."
+  "List nodes."
   (:require
    [clojure.pprint :refer [pprint]]
    [pallet.api :refer [print-nodes]]
