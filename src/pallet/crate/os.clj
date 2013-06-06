@@ -1,7 +1,7 @@
 (ns pallet.crate.os
   "OS detection for pallet to determine os and version"
   (:require
-   [clojure.string :refer [blank? lower-case]]
+   [clojure.string :as string :refer [blank? lower-case]]
    [pallet.actions :refer [assoc-settings exec-script plan-when plan-when-not
                            with-action-values]]
    [pallet.crate :refer [defplan]]
@@ -59,13 +59,16 @@
    (println "  :release" (str "'\"'" @RELEASE:-unknown "'\"'"))
    (println "}")))
 
+(def pre-map-output #"(?m)[^{}]*\{")
+
 (defplan infer-os
   "Infer the OS family and version from a node"
   []
   (let [os (exec-script (os-detection))]
     (with-action-values [os]
       (when (and (number? (:exit os)) (zero? (:exit os)))
-        (let [os (read-string (:out os))]
+        (let [out (string/replace-first (:out os) pre-map-output "{")
+              os (read-string out)]
           (-> os
               (maybe-assoc :os-family
                            (when-not (blank? (:os os))
@@ -80,7 +83,8 @@
   (let [distro (exec-script (distro-detection))]
     (with-action-values [distro]
       (when (and (number? (:exit distro)) (zero? (:exit distro)))
-        (let [distro (read-string (:out distro))]
+        (let [out (string/replace-first (:out distro) pre-map-output "{")
+              distro (read-string out)]
           (-> distro
               (maybe-assoc :os-family
                            (when-not (blank? (:id distro))
