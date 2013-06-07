@@ -295,7 +295,10 @@
                         ".list")]
          (stevedore/chain-commands
           (if-let [package (os-map-lookup @ubuntu-ppa-add)]
-            (stevedore/script (~lib/install-package ~package)))
+            (stevedore/script
+             (chain-and
+              ("apt-cache" show ~package ">" "/dev/null") ; fail if unavailable
+              (~lib/install-package ~package))))
           (stevedore/script
            (when (not (file-exists? (lib/file "/etc/apt/sources.list.d"
                                               ~list-file)))

@@ -349,6 +349,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                 {}
               (exec-checked-script
                "Package source"
+               ("apt-cache" show "python-software-properties" ">" "/dev/null")
                (~lib/install-package "python-software-properties")
                (when
                    (not
@@ -371,6 +372,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                 {}
               (exec-checked-script
                "Package source"
+               ("apt-cache" show "software-properties-common" ">" "/dev/null")
                (~lib/install-package "software-properties-common")
                (when
                    (not
