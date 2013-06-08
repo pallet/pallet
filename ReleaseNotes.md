@@ -1,5 +1,181 @@
 Unstable development branch
 
+# 0.8.0-RC.1
+
+## Features
+
+- Add :default-phases to group and server specs
+
+  Allows the specification of the default phases to be run for a server or group
+  spec during a lift or converge.  Default phases are merged in an :extends
+  clause, and are overridden by an explicit :default-phases clause.
+
+  Implements #242
+
+- Add extended inbound-port spec
+  Allows specification of protocol and port ranges.
+
+- Add :os-detect option to lift and converge
+  This option can be used to control the detection of os-family and
+  os-version on each node.  By default, os detection is enabled.
+
+- packager reports based on detected os if needed
+  When the packager is not returned by the node, and the node does not
+  report an os-family and os-version, the use the detected os to determine
+  the packager.
+
+- Fall back on detected OS in with-script-for-node
+  When the node doesn't report os details, take the information from the
+  detected os details.
+
+- Infer os-family and os-version from node
+  When running a lift or converge, determine the os-family and os-version
+  from the node, putting the result into the settings under the :pallet/os
+  facility.
+
+- Fall back on image info for os family and version
+  When a node returns nil for os-family or os-version, try extracting the 
+  os-family and os-version from the group-spec.
+
+- Add summary metadata to package actions
+
+- Enable :debug options in converge and lift
+  Adds :script-trace and :script-comments options in :debug to control the
+  script generation.
+
+  Closes #239
+
+- Add :script-comments action-option
+  The :script-comments option controls the generation of source line numbers 
+  in the generated script.
+
+  Closes #241
+
+- Make rsync options fully configurable
+
+## Fixes
+
+- Fail ppa install if add-apt-repository unavailable
+
+- Don't set default ssh keys if password given
+  In pallet.api/make-user, do not specify the default key paths when a
+  password is passed.
+
+- Fix argument order in lift-nodes
+
+- Ensure admin-user is set and reported correctly
+  The admin user should always be in the environment.
+
+- Split out execute-on-unflagged
+  Adds execute-on-filtered, execute-and-flag and makes execute-on-unflagged
+  not set the flag on completion.
+
+  Allow actions to be run on unflagged nodes without the setting of the
+  flag.
+
+- Make packager lookup map based
+  This makes the lookup of packager based on os-family and os-version
+  extensible.
+
+- Factor VersionMap into p.core.version-dispatch
+  Generalise the version map lookup and move to
+  pallet.core.version-dispatch.
+
+- Guard PPA addition with apt list file check
+  Before installing a PPA, ensure it's .list file doesn't exist in
+  /etc/apt/sources.list.d.
+
+- Fix looseness in node-spec contracts
+
+- Add :apt to debconf script implementations
+
+- Factor out obfuscated-passwords function
+
+- Fix random failure in operations-test
+  The "lift two phases for two nodes in a group" test was failing, but not
+  reliably.  I think this was caused by the is condition in seen-fn failing.
+
+- Quieten test output
+
+- Implement run-nodes on node-list
+  Ensure calling converge on a node-list service doesn't cause an exception.
+
+  Fixes #244
+
+- Changed short option for phases cmd line argument
+  Fixes issue #9 (https://github.com/pallet/pallet-lein/issues/9) for pallet
+  lein plugin.
+
+  -p option is reserved for selecting provider
+
+- Fix no-checkouts profile
+
+- Add initial-plan-state to lift and converge result
+
+- Fix lift-nodes for changed lift-partitions args
+
+- Add environment to lift and converge results
+
+- Fix incorrect namespace prefix in p.node
+
+- Serialise :old-nodes in converge results
+  The old nodes are not accessible after they have been removed, so
+  serialise the node information before they are destroyed.
+
+- Refactor node-map to pallet.node
+  This avoids a circular dependency in pallet.core.operation if it tries to 
+  use pallet.core.data-api.
+
+- Add p.c.data-api/session-data to serialize a session.
+
+- Remove cake support from environment
+
+- Wrap config file read exceptions to show path
+  If an exception is thrown when reading a pallet config file, ensures the 
+  path of the config file appears in the exception message.
+
+- Rename aciton-options key to ::action-options
+
+- Move action-options into :plan-state
+  This will allow action options to be passed into lift and converge.
+
+- Remove :errors from results
+  Use pallet.core.api/phase-errors to return a denormalised sequence of
+  actions that failed.
+
+- Remove :node-values from results
+
+- Correct results on phase errors
+  The results were not returned correctly when phase errors occurred.  This 
+  ensures all phases are reported, not just the failing phase.
+
+  Updates to pallet-fsmop 0.3.0.
+
+- Default rsync port from target node
+  The ssh port is taken from the target node. Extra options can now be
+  specified.
+
+- Add limits-conf crate for configuring ulimits
+
+- Fix p.live-test for new p.c.o/converge
+
+- Allow compute-service to be nil in schema checks
+
+- Add :literal support to system-environment
+  Allow the use of shell expressions in the values passed to
+  system-environment, without them being expanded.
+
+  Fixes #158
+
+- Add pallet-repl as a dependency
+  If pallet-repl is not required, it can always be excluded.
+
+- Add ssh credential functions
+  Adds functions to verify and generate ssh credentials.
+
+- Update to script-exec 0.3.5
+
+
 # 0.8.0-beta.10
 
 ## Features
