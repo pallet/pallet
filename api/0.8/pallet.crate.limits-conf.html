@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.versions documentation</title>
+    <title>pallet.crate.limits-conf documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <link href="css/codox-md.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
@@ -42,71 +42,57 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-as-version-string">as-version-string</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-as-version-vector">as-version-vector</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-version-less">version-less</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-version-matches%3F">version-matches?</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-version-string">version-string</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-version-vector">version-vector</a></li>
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.limits-conf.html#var-configure">configure</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.limits-conf.html#var-server-spec">server-spec</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.limits-conf.html#var-settings">settings</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.limits-conf.html#var-ulimit">ulimit</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.versions documentation</h2>
-        <div class="doc"><p>Version handling for pallet</p>
+        <h2 class="namespace-title">pallet.crate.limits-conf documentation</h2>
+        <div class="doc"><p>Configure the /etc/security/limits.conf file.</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-as-version-string" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L27">as-version-string</a></h3>
+            <h3><a id="var-configure" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/limits_conf.clj#L62">configure</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version]</div>
+            <div class="usage">[{:keys [instance-id], :as options}]</div>
             
             
-            <div class="doc"><p>Take a version, as either a string or a version vector, and returns a
-version string.</p>
+            <div class="doc"><p>Writes the limit.conf file.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-as-version-vector" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L13">as-version-vector</a></h3>
+            <h3><a id="var-server-spec" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/limits_conf.clj#L75">server-spec</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version]</div>
+            <div class="usage">[{:keys [entries config-file], :as settings} &amp; {:keys [instance-id], :as options}]</div>
             
             
-            <div class="doc"><p>Take a version, as either a string or a version vector, and returns a
-version vector.</p>
+            <div class="doc"><p>Return a server spec for limits.conf configuration.  See the <code>settings</code>
+function for options to the settings map</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-version-less" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L33">version-less</a></h3>
+            <h3><a id="var-settings" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/limits_conf.clj#L29">settings</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[v1 v2]</div>
+            <div class="usage">[{:keys [entries config-file instance-id], :as settings}]</div>
             
             
-            <div class="doc"><p>Compare two version vectors.</p>
+            <div class="doc"><p>Configure limits.conf settings.
+The :entries value is a sequence of maps and vectors.  Each map must
+specify :domain, :type, :item and :value fields.  Each vectors specifies
+strings for the fields (in domain, type, item, value order).  The type and
+item values may optionally be keywords.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-version-matches%3F" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L56">version-matches?</a></h3>
+            <h3><a id="var-ulimit" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/limits_conf.clj#L41">ulimit</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version spec]</div>
+            <div class="usage">[entry &amp; {:keys [instance-id], :as options}]</div>
             
             
-            <div class="doc"><p>Predicate to test if a version matches a version spec. A version spec is a
-version, or two (possibly nil) versions in a vector, to specify a version
-range.</p>
-</div>
-          </div><div class="public">
-            <h3><a id="var-version-string" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L19">version-string</a></h3>
-            <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version-vector]</div>
-            
-            
-            <div class="doc"><p>Convert a a vector of version numbers to a dotted version string.
-E.g.,
-    (version-vector [1 2]) =&gt; "1.2"</p>
-</div>
-          </div><div class="public">
-            <h3><a id="var-version-vector" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L6">version-vector</a></h3>
-            <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version-string]</div>
-            
-            
-            <div class="doc"><p>Convert a dotted version string to a vector of version numbers.
-E.g.,
-    (version-vector "1.2") =&gt; [1 2]</p>
+            <div class="doc"><p>Declare a host entry.  This may be called multiple times to build limits
+incrementally.</p>
+
+<p>A host entry can be either a map with :domain, :type, :item and :value keys,
+or a vector specifying strings for the fields (in domain, type, item, value
+order).  The type and item vlaues may optionally be keywords.</p>
 </div>
           </div>
         </div>

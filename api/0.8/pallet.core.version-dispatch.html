@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.versions documentation</title>
+    <title>pallet.core.version-dispatch documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <link href="css/codox-md.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
@@ -42,71 +42,42 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-as-version-string">as-version-string</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-as-version-vector">as-version-vector</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-version-less">version-less</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-version-matches%3F">version-matches?</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-version-string">version-string</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-version-vector">version-vector</a></li>
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.version-dispatch.html#var--%3EVersionMap">-&gt;VersionMap</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.version-dispatch.html#var-lookup-os">lookup-os</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.core.version-dispatch.html#var-version-map">version-map</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.versions documentation</h2>
-        <div class="doc"><p>Version handling for pallet</p>
+        <h2 class="namespace-title">pallet.core.version-dispatch documentation</h2>
+        <div class="doc"><p>Version dispatch</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-as-version-string" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L27">as-version-string</a></h3>
+            <h3><a id="var--%3EVersionMap" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/version_dispatch.clj#L40">-&gt;VersionMap</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version]</div>
+            <div class="usage">[data hierarchy base-key version-key]</div>
             
             
-            <div class="doc"><p>Take a version, as either a string or a version vector, and returns a
-version string.</p>
+            <div class="doc"><p>Positional factory function for class pallet.core.version_dispatch.VersionMap.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-as-version-vector" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L13">as-version-vector</a></h3>
+            <h3><a id="var-lookup-os" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/version_dispatch.clj#L24">lookup-os</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version]</div>
+            <div class="usage">[base version hierarchy base-key version-key values default-value]</div>
             
             
-            <div class="doc"><p>Take a version, as either a string or a version vector, and returns a
-version vector.</p>
+            <div class="doc"><p>Pass nil to default-value if non required</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-version-less" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L33">version-less</a></h3>
+            <h3><a id="var-version-map" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/core/version_dispatch.clj#L68">version-map</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[v1 v2]</div>
+            <div class="usage">[hierarchy base-key version-key {:as os-value-pairs}]</div><div class="usage">[hierarchy base-key version-key]</div>
             
             
-            <div class="doc"><p>Compare two version vectors.</p>
-</div>
-          </div><div class="public">
-            <h3><a id="var-version-matches%3F" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L56">version-matches?</a></h3>
-            <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version spec]</div>
-            
-            
-            <div class="doc"><p>Predicate to test if a version matches a version spec. A version spec is a
-version, or two (possibly nil) versions in a vector, to specify a version
-range.</p>
-</div>
-          </div><div class="public">
-            <h3><a id="var-version-string" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L19">version-string</a></h3>
-            <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version-vector]</div>
-            
-            
-            <div class="doc"><p>Convert a a vector of version numbers to a dotted version string.
-E.g.,
-    (version-vector [1 2]) =&gt; "1.2"</p>
-</div>
-          </div><div class="public">
-            <h3><a id="var-version-vector" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L6">version-vector</a></h3>
-            <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version-string]</div>
-            
-            
-            <div class="doc"><p>Convert a dotted version string to a vector of version numbers.
-E.g.,
-    (version-vector "1.2") =&gt; [1 2]</p>
+            <div class="doc"><p>Construct a version map. The keys should be maps with <code>base-key</code> and
+<code>version-key</code> keys. The <code>base-key</code> value should be take from the
+<code>hierarchy</code>. The <code>version-key</code> value should be a version vector, or a version
+range vector.</p>
 </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 <html lang="en">
   <head>
-    <title>pallet.versions documentation</title>
+    <title>pallet.crate.os documentation</title>
     <link href="css/default.css" type="text/css" rel="stylesheet" />
     <link href="css/codox-md.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="js/jquery.min.js"></script>
@@ -42,71 +42,58 @@
       <div id="vars" class="sidebar">
         <h3>Public Vars</h3>
         <ul class="ns-var-links">
-          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-as-version-string">as-version-string</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-as-version-vector">as-version-vector</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-version-less">version-less</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-version-matches%3F">version-matches?</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-version-string">version-string</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.versions.html#var-version-vector">version-vector</a></li>
+          <li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.os.html#var-distro-detection">distro-detection</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.os.html#var-infer-distro">infer-distro</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.os.html#var-infer-os">infer-os</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.os.html#var-os">os</a></li><li class="ns-var-list"><a class="ns-var-link ns-var-name" href="pallet.crate.os.html#var-os-detection">os-detection</a></li>
         </ul>
       </div>
     </navigation>
     <article>
       <div id="content" class="namespace-docs">
-        <h2 class="namespace-title">pallet.versions documentation</h2>
-        <div class="doc"><p>Version handling for pallet</p>
+        <h2 class="namespace-title">pallet.crate.os documentation</h2>
+        <div class="doc"><p>OS detection for pallet to determine os and version</p>
 </div>
         <div class="ns-vars">
           <div class="public">
-            <h3><a id="var-as-version-string" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L27">as-version-string</a></h3>
+            <h3><a id="var-distro-detection" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/os.clj#L23">distro-detection</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version]</div>
+            <div class="usage">[]</div>
             
             
-            <div class="doc"><p>Take a version, as either a string or a version vector, and returns a
-version string.</p>
+            <div class="doc"><p>Returns a script, that when executed, should identify distro of a linux
+target.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-as-version-vector" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L13">as-version-vector</a></h3>
+            <h3><a id="var-infer-distro" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/os.clj#L80">infer-distro</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version]</div>
+            <div class="usage">[]</div>
             
             
-            <div class="doc"><p>Take a version, as either a string or a version vector, and returns a
-version vector.</p>
+            <div class="doc"><p>Infer the linux distribution from a node</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-version-less" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L33">version-less</a></h3>
+            <h3><a id="var-infer-os" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/os.clj#L64">infer-os</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[v1 v2]</div>
+            <div class="usage">[]</div>
             
             
-            <div class="doc"><p>Compare two version vectors.</p>
+            <div class="doc"><p>Infer the OS family and version from a node</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-version-matches%3F" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L56">version-matches?</a></h3>
+            <h3><a id="var-os" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/os.clj#L96">os</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version spec]</div>
+            <div class="usage">[]</div>
             
             
-            <div class="doc"><p>Predicate to test if a version matches a version spec. A version spec is a
-version, or two (possibly nil) versions in a vector, to specify a version
-range.</p>
+            <div class="doc"><p>Infer OS and distribution.  Puts a map into the settings' :pallet/os
+facility.</p>
 </div>
           </div><div class="public">
-            <h3><a id="var-version-string" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L19">version-string</a></h3>
+            <h3><a id="var-os-detection" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/crate/os.clj#L12">os-detection</a></h3>
             <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version-vector]</div>
+            <div class="usage">[]</div>
             
             
-            <div class="doc"><p>Convert a a vector of version numbers to a dotted version string.
-E.g.,
-    (version-vector [1 2]) =&gt; "1.2"</p>
-</div>
-          </div><div class="public">
-            <h3><a id="var-version-vector" class="source var-name" href="https://github.com/pallet/pallet/blob/develop/src/pallet/versions.clj#L6">version-vector</a></h3>
-            <h4 class="var-type fn" id="var-type">fn</h4>
-            <div class="usage">[version-string]</div>
-            
-            
-            <div class="doc"><p>Convert a dotted version string to a vector of version numbers.
-E.g.,
-    (version-vector "1.2") =&gt; [1 2]</p>
+            <div class="doc"><p>Returns a script, that when executed, should identify the os of a unix
+target.</p>
 </div>
           </div>
         </div>
