@@ -4,10 +4,13 @@
    [pallet.action :refer :all]
    [pallet.action-impl :refer :all]
    [pallet.action-plan :refer [translate]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.core.session :refer [session with-session]]
    [pallet.node-value :refer [node-value?]]
    [pallet.session.action-plan :refer [get-action-plan]]
    [pallet.test-utils :refer [test-session]]))
+
+(use-fixtures :once (logging-threshold-fixture))
 
 (deftest declare-action-test
   (testing "default execution"

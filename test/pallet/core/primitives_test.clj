@@ -43,6 +43,7 @@
                    targets
                    (api/environment-execution-settings)))
         [results plan-state] @op]
+    (is (nil? (phase-errors op)))
     (is @a)
     (is (= [true] (-> results first :result)))
     (is (= 1 (count (:node-values plan-state))))))

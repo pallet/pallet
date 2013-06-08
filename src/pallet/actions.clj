@@ -10,6 +10,7 @@
    [pallet.action
     :refer [clj-action defaction enter-scope get-action-options leave-scope
             with-action-options]]
+   [pallet.action-plan :refer [checked-script]]
    [pallet.actions-impl :refer :all]
    [pallet.argument :as argument :refer [delayed delayed-argument?]]
    [pallet.contracts :refer [any-value check-spec]]
@@ -39,7 +40,7 @@
   "Execute a bash script remotely. The script is expressed in stevedore."
   {:pallet/plan-fn true}
   [& script]
-  `(exec-script* (stevedore/script ~@script)))
+  `(exec-script* (delayed [_#] (stevedore/script ~@script))))
 
 (defmacro ^{:requires [#'checked-script]}
   exec-checked-script
@@ -48,12 +49,13 @@
   {:pallet/plan-fn true}
   [script-name & script]
   `(exec-script*
-    (checked-script
-     ~(if *script-location-info*
-        `(str ~script-name
-              " (" ~(.getName (io/file *file*)) ":" ~(:line (meta &form)) ")")
-        script-name)
-     ~@script)))
+    (delayed [_#]
+      (checked-script
+       ~(if *script-location-info*
+          `(str ~script-name
+                " (" ~(.getName (io/file *file*)) ":" ~(:line (meta &form)) ")")
+          script-name)
+       ~@script))))
 
 ;;; # Wrap arbitrary code
 (defmacro as-action

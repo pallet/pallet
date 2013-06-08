@@ -1,7 +1,9 @@
 (ns pallet.compute
   "Abstraction of the compute interface"
   (:require
-   [pallet.compute.implementation :as implementation]))
+   [pallet.compute.implementation :as implementation]
+   [pallet.core.version-dispatch :refer [version-map]]
+   [pallet.versions :refer [as-version-vector]]))
 
 ;;; Meta
 (defn supported-providers
@@ -139,6 +141,7 @@ Provider specific options may also be passed."
       (derive :ubuntu :debian-base)
       (derive :jeos :debian-base)
 
+      (derive :suse :suse-base)
       (derive :arch :arch-base)
       (derive :gentoo :gentoo-base)
       (derive :darwin :bsd-base)
@@ -165,44 +168,27 @@ Provider specific options may also be passed."
          {:type :pallet/unsupported-os})))))
 
 ;;; target mapping
+(def packager-map
+  (version-map os-hierarchy :os :os-version
+               {{:os :debian-base} :apt
+                {:os :rh-base} :yum
+                {:os :arch-base} :pacman
+                {:os :gentoo-base} :portage
+                {:os :suse-base} :zypper
+                {:os :os-x} :brew
+                {:os :darwin} :brew}))
+
 (defn packager-for-os
   "Package manager"
   [os-family os-version]
-  (cond
-    (#{:debian :jeos} os-family) :aptitude
-    (#{:ubuntu} os-family) :apt
-    (#{:centos :rhel :amzn-linux :fedora} os-family) :yum
-    (#{:arch} os-family) :pacman
-    (#{:suse} os-family) :zypper
-    (#{:gentoo} os-family) :portage
-    (#{:darwin :os-x} os-family) :brew
-    :else (throw
-           (ex-info
-            (format "Unknown packager for %s %s" os-family os-version)
-            {:type :unknown-packager}))))
-(defn packager
-  "Package manager"
-  [target]
   (or
-   (:packager target)
-   (let [os-family (:os-family target)]
-     (cond
-      (#{:debian :jeos} os-family) :aptitude
-      (#{:ubuntu} os-family) (let [version (:os-version target)]
-                               (if (= "11.10" version)
-                                 :apt
-                                 :aptitude))
-      (#{:centos :rhel :amzn-linux :fedora} os-family) :yum
-      (#{:arch} os-family) :pacman
-      (#{:suse} os-family) :zypper
-      (#{:gentoo} os-family) :portage
-      (#{:darwin :os-x} os-family) :brew
-      :else (throw
-             (ex-info
-              (format "Unknown packager for %s - :image %s" os-family target)
-              {:type :unknown-packager}))))))
+   (get packager-map {:os os-family :os-version (as-version-vector os-version)})
+   (throw
+    (ex-info
+     (format "Unknown packager for %s %s" os-family os-version)
+     {:type :unknown-packager}))))
 
-(defn base-distribution
+(defn ^:deprecated base-distribution
   "Base distribution for the target."
   [target]
   (or

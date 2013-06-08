@@ -11,13 +11,15 @@
    [pallet.core.user :refer [*admin-user*]]
    [pallet.stevedore :as stevedore]
    [pallet.test-utils
-    :refer [with-bash-script-language with-ubuntu-script-template]]
+    :refer [with-bash-script-language with-ubuntu-script-template
+            with-no-source-line-comments]]
    [pallet.utils :refer [tmpfile with-temporary]]))
 
 (use-fixtures
  :once
  with-ubuntu-script-template
  with-bash-script-language
+ with-no-source-line-comments
  (logging-threshold-fixture))
 
 (def directory* (action-fn directory :direct))
@@ -27,7 +29,7 @@
   (assert pallet.core.session/*session*)
   (is (script-no-comment=
        (binding [pallet.action-plan/*defining-context* nil]
-         (with-session {:user *admin-user*}
+         (with-session {:environment {:user *admin-user*}}
            (stevedore/do-script
             (stevedore/checked-commands
              "remote-directory"
@@ -62,7 +64,7 @@
                  :unpack :tar
                  :owner "fred")))))
   (is (script-no-comment=
-       (with-session {:user *admin-user*}
+       (with-session {:environment {:user *admin-user*}}
          (binding [pallet.action-plan/*defining-context* nil]
            (stevedore/do-script
             (stevedore/checked-commands

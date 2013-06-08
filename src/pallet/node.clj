@@ -1,6 +1,8 @@
 (ns pallet.node
   "API for nodes in pallet"
   (:require
+   [clojure.stacktrace :refer [print-cause-trace]]
+   [clojure.tools.logging :refer [trace]]
    [pallet.compute :refer [node-tag node-taggable? node-tags tag-node!]])
   (:refer-clojure :exclude [proxy]))
 
@@ -77,13 +79,19 @@
 (defn node-map
   "Convert a node into a map representing the node."
   [node]
-  {:primary-ip (primary-ip node)
-   :private-ip (private-ip node)
-   :ssh-port (ssh-port node)
-   :hostname (hostname node)
-   :group-name (group-name node)
-   :os-family (os-family node)
-   :os-version (os-version node)
-   :is-64bit? (is-64bit? node)
-   :terminated? (terminated? node)
-   :running? (running? node)})
+  (try
+    {:proxy (proxy node)
+     :ssh-port (ssh-port node)
+     :primary-ip (primary-ip node)
+     :private-ip (private-ip node)
+     :is-64bit? (is-64bit? node)
+     :group-name (name (group-name node))
+     :hostname (hostname node)
+     :os-family (os-family node)
+     :os-version (os-version node)
+     :running? (running? node)
+     :terminated? (terminated? node)
+     :id (id node)}
+    (catch Exception e
+      (trace e (with-out-str (print-cause-trace e)))
+      {:primary-ip "N/A" :host-name "N/A"})))

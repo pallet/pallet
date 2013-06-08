@@ -7,12 +7,14 @@
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.stevedore :as stevedore]
    [pallet.test-utils
-    :refer [with-bash-script-language with-ubuntu-script-template]]))
+    :refer [with-bash-script-language with-ubuntu-script-template
+            with-no-source-line-comments]]))
 
 (use-fixtures
  :once
  with-ubuntu-script-template
  with-bash-script-language
+ with-no-source-line-comments
  (logging-threshold-fixture))
 
 (def directory* (action-fn directory :direct))

@@ -1,8 +1,9 @@
 (ns pallet.core.session
   "Functions for querying sessions."
   (:require
-   [pallet.compute :as compute]
+   [pallet.compute :as compute :refer [packager-for-os]]
    [pallet.context :refer [with-context]]
+   [pallet.core.plan-state :refer [get-settings]]
    [pallet.core.thread-local
     :refer [thread-local thread-local! with-thread-locals]]
    [pallet.node :as node]
@@ -105,12 +106,18 @@
 (defn os-family
   "OS-Family of the target-node."
   [session]
-  (node/os-family (target-node session)))
+  (or (node/os-family (target-node session))
+      (-> session :server :image :os-family)
+      (-> (get-settings (:plan-state session) (target-id session) :pallet/os {})
+          :os-family)))
 
 (defn os-version
   "OS-Family of the target-node."
   [session]
-  (node/os-version (target-node session)))
+  (or (node/os-version (target-node session))
+      (-> session :server :image :os-version)
+      (-> (get-settings (:plan-state session) (target-id session) :pallet/os {})
+          :os-version)))
 
 (defn group-name
   "Group name of the target-node."
@@ -182,13 +189,17 @@
   [session]
   (or
    (-> session :server :packager)
-   (node/packager (get-in session [:server :node]))))
+   (node/packager (get-in session [:server :node]))
+   (packager-for-os (os-family session) (os-version session))))
 
 (defn admin-user
-  "User that remote commands are run under"
+  "User that remote commands are run under."
   [session]
-  {:pre [session (:user session)]}
-  (:user session))
+  {:pre [session (-> session :environment :user)]}
+  ;; Note: this is not (:user session), which is set to the actuall user used
+  ;; for authentication when executing scripts, and may be different, e.g. when
+  ;; bootstrapping.
+  (-> session :environment :user))
 
 (defn admin-group
   "User that remote commands are run under"

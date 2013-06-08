@@ -4,7 +4,8 @@
    [clojure.tools.logging :as logging]
    [pallet.algo.fsmop :refer [delay-for dofsm reduce* result succeed]]
    [pallet.core.api :as api]
-   [pallet.core.primitives :as primitives])
+   [pallet.core.primitives :as primitives]
+   [pallet.node :refer [node-map]])
   (:refer-clojure :exclude [delay]))
 
 (defn node-count-adjuster
@@ -16,6 +17,10 @@
     [group-deltas         (result (api/group-deltas targets groups))
      nodes-to-remove      (result (api/nodes-to-remove targets group-deltas))
      nodes-to-add         (result (api/nodes-to-add group-deltas))
+     old-nodes            (result (->>
+                                   (vals nodes-to-remove)
+                                   (mapcat :nodes)
+                                   (map (comp node-map :node))))
      [results1 plan-state] (primitives/build-and-execute-phase
                             targets plan-state environment
                             :destroy-server
@@ -35,7 +40,7 @@
      new-nodes (primitives/create-group-nodes
                 compute-service environment nodes-to-add)]
     {:new-nodes new-nodes
-     :old-nodes (mapcat :nodes (vals nodes-to-remove))
+     :old-nodes old-nodes
      :targets (->> targets
                    (concat new-nodes)
                    (remove (set (mapcat :nodes (vals nodes-to-remove)))))
@@ -90,10 +95,12 @@
    {:keys [targets execution-settings-f phase-execution-f
            post-phase-f post-phase-fsm]
     :or {targets service-state
-         phase-execution-f primitives/build-and-execute-phase
+         phase-execution-f #'primitives/build-and-execute-phase
          execution-settings-f (api/environment-execution-settings)}}]
+  {:pre [(:user environment)]}
   (logging/debugf
    "lift :phases %s :targets %s" (vec phases) (vec (map :group-name targets)))
+  (logging/tracef "lift environment %s" environment)
   (letfn [(phase-meta [phase target]
             (-> (api/target-phase target phase) meta))]
     (dofsm lift
@@ -101,16 +108,28 @@
                              (fn reducer [[results plan-state] phase]
                                (dofsm reduce-phases
                                  [meta (result
-                                       (phase-meta phase (first targets)))
-                                 f (result (or (:phase-execution-f meta)
-                                               phase-execution-f))
+                                        (phase-meta phase (first targets)))
+                                  f (result (or (:phase-execution-f meta)
+                                                phase-execution-f))
+                                  _ (result (logging/tracef
+                                             "phase-execution-f %s" f))
                                   [r ps] (f
                                           service-state plan-state environment
                                           phase targets
                                           (or
                                            (:execution-settings-f meta)
                                            execution-settings-f))
-                                  results1 (result (concat results r))
+                                  results1 (result
+                                            (concat
+                                             results
+                                             (->>
+                                              r
+                                              (map
+                                               (fn [x]
+                                                 (update-in x
+                                                  [:plan-state]
+                                                  dissoc
+                                                  :node-values))))))
                                   _ (result
                                      (when post-phase-f
                                        (post-phase-f targets phase r)))
@@ -138,25 +157,16 @@
                                               (remove nil?)
                                               distinct))
                                   _ (succeed
-                                     (not (some :errors r))
-                                     (merge
-                                      {:phase-errors true
-                                       :phase phase
-                                       :results results1}
-                                      (when-let [e (some
-                                                    #(some
-                                                      (comp :cause :error)
-                                                      (:errors %))
-                                                    results1)]
-                                        (logging/errorf
-                                         e "Phase Error in %s" phase)
-                                        {:exception e})))]
+                                     (not (some :error (mapcat :result r)))
+                                     :phase-errors)]
                                  [results1 ps]))
                              [[] plan-state]
                              phases)]
-      {:results results
-       :targets targets
-       :plan-state plan-state})))
+      (do
+        (logging/tracef "lift (count results) %s" (count results))
+        {:results results
+         :targets targets
+         :plan-state plan-state}))))
 
 (defn delay
   "Returns a delay fsm.
@@ -219,15 +229,16 @@ Other options as taken by `lift`."
    {:keys [targets partition-f]
     :or {targets service-state}
     :as options}]
+  {:pre [(:user environment)]}
   (logging/debugf
    "lift-partitions :phases %s :targets %s"
    (vec phases) (vec (map :group-name targets)))
   (dofsm lift-phases
-    [[results plan-state]
+    [[outer-results plan-state]
      (reduce*
-      (fn phase-reducer [[results plan-state] phase]
+      (fn phase-reducer [[acc-results plan-state] phase]
         (dofsm lift-partitions
-          [[results plan-state]
+          [[lift-results plan-state]
            (reduce*
             (fn target-reducer [[r plan-state] targets]
               (dofsm reduce-phases
@@ -235,19 +246,30 @@ Other options as taken by `lift`."
                  (lift
                   service-state plan-state environment [phase]
                   (assoc options :targets targets))]
-                [(concat r results) plan-state]))
-            [results plan-state]
+                (do
+                  (logging/tracef "back from lift")
+                  (logging/tracef
+                   "lift-partitions (count r) %s (count results) %s"
+                   (count r) (count results))
+                  [(concat r results) plan-state])))
+            [acc-results plan-state]
             (let [fns (comp
                        (juxt :partition-f :post-phase-f :post-phase-fsm
                              :phase-execution-f)
                        meta #(api/target-phase % phase))]
               (partition-targets targets phase partition-f)))]
-          [results plan-state]))
+          (do
+            (logging/tracef "back from phase loop")
+            (logging/tracef "(count lift-results) %s" (count lift-results))
+            [lift-results plan-state])))
       [[] plan-state]
       phases)]
-    {:results results
-     :targets targets
-     :plan-state plan-state}))
+    (do
+      (logging/tracef "back from partitions")
+      (logging/tracef "(count outer-results) %s" (count outer-results))
+      {:results outer-results
+       :targets targets
+       :plan-state plan-state})))
 
 (defn converge
   "Converge the `groups`, using the specified service-state to provide the
@@ -265,6 +287,7 @@ flag.
     :or {targets service-state
          execution-settings-f (api/environment-execution-settings)}
     :as options}]
+  {:pre [(:user environment)]}
   (logging/debugf
    "converge :phase %s :groups %s :settings-groups %s"
    (vec phases)

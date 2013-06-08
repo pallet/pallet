@@ -46,3 +46,20 @@
         f2 (fn [c] (fn [x] (c (* 2 x))))
         mw (middleware f1 f2)]
     (is (= 4 ((mw identity) 1)))))
+
+(deftest total-order-merge-test
+  (is (= [:a :b :c :d] (total-order-merge [:a :b] [:c :d])))
+  (is (= [:a :b :c] (total-order-merge [:a :b] [:b :c])))
+  (is (= [:a :b] (total-order-merge [:a :b] [:a :b])))
+  (is (= [:a :b :c] (total-order-merge [:b :c] [:a :b])))
+  (is (= [:a :b :c :d] (total-order-merge [:a :d] [:b :c :d])))
+  (is (= [:a :b :c :d :e :f] (total-order-merge [:a :b] [:c :d] [:e :f])))
+  (is (= [:a :b :c :d :e :f]
+         (total-order-merge
+          [:a :b :e] [:b :c :e] [:a :b :d :f] [:e :f] [:d :e])))
+  (is (= [:a :b :c :d :e :f]
+         (total-order-merge [:a :c] [:b :c][:b :d] [:c :e] [:d :f])))
+  (testing "no total ordering"
+    (is (thrown-with-msg? Exception #"No total ordering"
+                          (total-order-merge
+                           [:a :c] [:c :a])))))

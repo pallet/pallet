@@ -5,7 +5,8 @@
    [pallet.algo.fsmop :refer [failed?]]
    [pallet.api :refer [group-spec lift plan-fn server-spec]]
    [pallet.build-actions :refer [build-actions let-actions]]
-   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture
+                                           with-log-to-string]]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
    [pallet.core.primitives :refer [phase-errors throw-phase-errors]]
@@ -68,7 +69,7 @@
     (testing "with context"
       (is (script-no-comment=
            (stevedore/checked-commands
-            "context check"
+            "context: check"
             "ls file1")
            (first
             (build-actions {:phase-context "context"}
@@ -172,16 +173,22 @@
                  (println ~x)
                  (file-exists? "abcdef")))]
         (testing "failed script"
-          (let [local (group-spec "local" :phases {:configure f})
-                result (lift
-                        local
-                        :user (assoc *admin-user*
-                                :username (test-username) :no-sudo true)
-                        :phase [[:configure "hello"]]
-                        :compute service
-                        :async true)
-                session @result]
-            (is (failed? result))
-            (is (phase-errors result))
-            (is (thrown? clojure.lang.ExceptionInfo
-                 (throw-phase-errors result)))))))))
+          (let [log-out
+                (with-log-to-string []
+                  (let [local (group-spec "local" :phases {:configure f})
+                        result (lift
+                                local
+                                :user (assoc *admin-user*
+                                        :username (test-username) :no-sudo true)
+                                :phase [[:configure "hello"]]
+                                :compute service
+                                :async true)
+                        session @result]
+                    (is (failed? result))
+                    (is (phase-errors result))
+                    (is (= 1 (count (phase-errors result))))
+                    (is (thrown? clojure.lang.ExceptionInfo
+                                 (throw-phase-errors result)))))]
+            (is (re-find
+                 #"ERROR pallet.execute - localhost #> myscript"
+                 log-out))))))))

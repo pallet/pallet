@@ -4,6 +4,7 @@
    [pallet.actions :refer [exec-script]]
    [pallet.api
     :refer [cluster-spec
+            converge
             extend-specs
             group-nodes
             group-spec
@@ -14,6 +15,7 @@
             server-spec]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :refer [nodes]]
+   [pallet.compute.node-list :refer [node-list-service]]
    [pallet.core.primitives :refer [default-phase-meta]]
    [pallet.core.session :refer [session session! with-session]]
    [pallet.core.user :refer [default-private-key-path default-public-key-path]]
@@ -86,6 +88,14 @@
       (some
        (partial re-find #"/bin")
        (->> (mapcat :results op) (mapcat :out))))))
+
+(deftest converge-test
+  (testing "converge on node-list"
+    (let [compute (node-list-service [])
+          group (group-spec "spec")
+          op (converge {group 1} :compute compute)]
+      (is op)
+      (is (empty? (:new-nodes op))))))
 
 (deftest lift-with-environment-test
   (testing "lift with environment"
@@ -177,7 +187,7 @@
 
 (deftest server-spec-test
   (let [f (fn [] :f)]
-    (is (= {:phases {:a f}}
+    (is (= {:phases {:a f} :default-phases [:configure]}
            (server-spec :phases {:a f})))
     (testing "phases-meta"
       (let [spec (server-spec :phases {:a f}
@@ -194,34 +204,38 @@
       (let [spec (server-spec :phases {:bootstrap f})]
         (is (= (:bootstrap default-phase-meta)
                (-> spec :phases :bootstrap meta)))))
-    (is (= {:phases {:a f} :image {:image-id "2"}}
+    (is (= {:phases {:a f} :image {:image-id "2"} :default-phases [:configure]}
            (server-spec
             :phases {:a f} :node-spec (node-spec :image {:image-id "2"})))
         "node-spec merged in")
     (is (= {:phases {:a f} :image {:image-id "2"}
-            :hardware {:hardware-id "id"}}
+            :hardware {:hardware-id "id"}
+            :default-phases [:configure]}
            (server-spec
             :phases {:a f}
             :node-spec (node-spec :image {:image-id "2"})
             :hardware {:hardware-id "id"}))
         "node-spec keys moved to :node-spec keyword")
-    (is (= {:phases {:a f} :image {:image-id "2"}}
+    (is (= {:phases {:a f} :image {:image-id "2"} :default-phases [:configure]}
            (server-spec
             :extends (server-spec
                       :phases {:a f} :node-spec {:image {:image-id "2"}})))
         "extends a server-spec"))
-  (is (= {:roles #{:r1}} (server-spec :roles :r1)) "Allow roles as keyword")
-  (is (= {:roles #{:r1}} (server-spec :roles [:r1])) "Allow roles as sequence")
+  (is (= {:roles #{:r1} :default-phases [:configure]}
+         (server-spec :roles :r1)) "Allow roles as keyword")
+  (is (= {:roles #{:r1} :default-phases [:configure]}
+         (server-spec :roles [:r1])) "Allow roles as sequence")
   (testing "type"
     (is (= :pallet.api/server-spec (type (server-spec :roles :r1))))))
 
 (deftest group-spec-test
   (let [f (fn [])]
-    (is (= {:group-name :gn :phases {:a f}}
+    (is (= {:group-name :gn :phases {:a f} :default-phases [:configure]}
            (dissoc
             (group-spec "gn" :extends (server-spec :phases {:a f}))
             :node-filter)))
-    (is (= {:group-name :gn :phases {:a f} :image {:image-id "2"}}
+    (is (= {:group-name :gn :phases {:a f} :image {:image-id "2"}
+            :default-phases [:configure]}
            (dissoc
             (group-spec
                 "gn"
@@ -229,7 +243,8 @@
                         (server-spec :node-spec {:image {:image-id "2"}})])
             :node-filter)))
     (is (= {:group-name :gn :phases {:a f}
-            :image {:image-id "2"} :roles #{:r1 :r2 :r3}}
+            :image {:image-id "2"} :roles #{:r1 :r2 :r3}
+            :default-phases [:configure]}
            (dissoc
             (group-spec
                 "gn"
@@ -239,7 +254,25 @@
                          :node-spec {:image {:image-id "2"}} :roles [:r3])])
             :node-filter))))
   (testing "type"
-    (is (= :pallet.api/group-spec (type (group-spec "gn"))))))
+    (is (= :pallet.api/group-spec (type (group-spec "gn")))))
+  (testing "default-phases"
+    (testing "default"
+      (is (= [:configure] (:default-phases (group-spec "gn")))))
+    (testing "merging"
+      (is (= [:install :configure :test]
+             (:default-phases
+              (group-spec "gn"
+                :extends [(server-spec :default-phases [:configure])
+                          (server-spec :default-phases [:install :configure])
+                          (server-spec :default-phases [:test])])))))
+    (testing "explicit override"
+      (is (= [:install :configure]
+             (:default-phases
+              (group-spec "gn"
+                :extends [(server-spec :default-phases [:configure])
+                          (server-spec :default-phases [:install :configure])
+                          (server-spec :default-phases [:test])]
+                :default-phases [:install :configure])))))))
 
 (deftest cluster-spec-test
   (let [x (fn [x] (update-in x [:x] inc))

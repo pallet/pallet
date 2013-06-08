@@ -100,7 +100,7 @@
         g1 (group-spec :g1)
         service (node-list-service [n1])
         service-state (service-state service [g1])
-        [r plan-state] (with-script-for-node {:node n1}
+        [r plan-state] (with-script-for-node {:node n1} nil
                          ((action-plan
                            service-state {}
                            (plan-fn (exec-script "ls"))
@@ -115,7 +115,7 @@
         g1 (group-spec :g1)
         service (node-list-service [n1])
         service-state (service-state service [g1])
-          [r plan-state] (with-script-for-node {:node n1}
+          [r plan-state] (with-script-for-node {:node n1} nil
                          ((action-plan
                            service-state {}
                            (fn [x] (exec-script "ls" ~x))
@@ -137,7 +137,7 @@
         service-state (service-state service [g1])]
     (testing "nodes"
       (let [[r plan-state] ((action-plans
-                             service-state {} :p service-state) {:ps 1})
+                             service-state {} {} :p service-state) {:ps 1})
             r1 (first r)]
         (is (seq r))
         (is (map? plan-state))
@@ -148,7 +148,8 @@
         (is (= :p (:phase r1)))
         (is (= (assoc g1 :node n1 :group-names #{:g1}) (:target r1)))))
     (testing "nodes"
-      (let [[r plan-state] ((action-plans service-state {} :p service-state) {})
+      (let [[r plan-state] ((action-plans
+                             service-state {} {} :p service-state) {})
             r1 (first r)]
         (is (seq r))
         (is (= 1 (count r)))
@@ -159,7 +160,7 @@
         (is (= (assoc g1 :node n1 :group-names #{:g1}) (:target r1)))))
     (testing "group"
       (let [[r plan-state] ((action-plans
-                             service-state {} :g
+                             service-state {} {} :g
                              [(assoc g1 :target-type :group)])
                             {})
             r1 (first r)]
@@ -183,7 +184,7 @@
         service-state (service-state service [g1])
         user (assoc *admin-user* :no-sudo true)]
     (testing "nodes"
-      (let [[r plan-state] ((action-plans service-state {} :p service-state)
+      (let [[r plan-state] ((action-plans service-state {} {} :p service-state)
                             {:ps 1})
             action-plan (first r)
 
@@ -200,7 +201,8 @@
         (is (.contains (:out (first result)) "bin"))))
     (testing "group"
       (let [targets [(assoc g1 :target-type :group)]
-            [r plan-state] ((action-plans service-state {} :g targets) {:ps 1})
+            [r plan-state] ((action-plans
+                             service-state {} {} :g targets) {:ps 1})
             action-plan (first r)
 
             {:keys [result phase plan-state errors target]}

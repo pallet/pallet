@@ -21,9 +21,10 @@
    [pallet.api :refer [group-spec lift plan-fn with-admin-user]]
    [pallet.argument :refer [delayed]]
    [pallet.build-actions :as build-actions]
-   [pallet.common.logging.logutils :as logutils]
+   [pallet.common.logging.logutils :as logutils :refer [with-log-to-string]]
    [pallet.compute :refer [nodes]]
    [pallet.contracts :refer [*verify-contracts*]]
+   [pallet.core.api :as core-api]
    [pallet.core.primitives :refer [phase-errors]]
    [pallet.core.session :refer [with-session]]
    [pallet.core.user :refer [*admin-user*]]
@@ -61,7 +62,7 @@
 
 (deftest remote-file*-test
   (is remote-file*)
-  (with-session {:user {:username "fred"}}
+  (with-session {:environment {:user {:username "fred"}}}
     (testing "url"
       (is (script-no-comment=
            (stevedore/checked-commands
@@ -245,28 +246,30 @@
                     "file1" :local-file "/some/non-existing/file"
                     :owner "user1")))))
     (testing "no content specified"
-      (is (thrown-with-msg?
-           Exception #".*Constraint failed.*"
-           (->
-            (build-actions/build-actions
-                {} (remote-file "file1" :owner "user1"))))))
-    (testing "no content specified (no verification)"
-      (is (=
-           (str
-            "{:error {:type :pallet/action-execution-error, "
-            ":context nil, "
-            ":message \"Unexpected exception: "
-            "remote-file file1 specified without content.\", :cause "
-            "#<IllegalArgumentException java.lang.IllegalArgumentException: "
-            "remote-file file1 specified without content.>}}")
-           (binding [*verify-contracts* false]
+      (with-log-to-string []
+        (is (thrown-with-msg?
+             Exception #".*Constraint failed.*"
              (->
               (build-actions/build-actions
-                  {} (remote-file "file1" :owner "user1"))
-              second
-              :errors
-              first
-              str)))))
+                  {} (remote-file "file1" :owner "user1")))))))
+    (testing "no content specified (no verification)"
+      (with-log-to-string []
+        (is (=
+             (str
+              "{:error {:type :pallet/action-execution-error, "
+              ":context nil, "
+              ":message \"Unexpected exception: "
+              "remote-file file1 specified without content.\", :cause "
+              "#<IllegalArgumentException java.lang.IllegalArgumentException: "
+              "remote-file file1 specified without content.>}}")
+             (binding [*verify-contracts* false]
+               (->
+                (build-actions/build-actions
+                    {} (remote-file "file1" :owner "user1"))
+                second
+                build-actions/action-phase-errors
+                first
+                str))))))
 
     (testing "local-file script"
       (utils/with-temporary [tmp (utils/tmpfile)]

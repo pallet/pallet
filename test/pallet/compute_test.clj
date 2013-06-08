@@ -4,9 +4,9 @@
    [pallet.compute :refer :all]))
 
 (deftest packager-test
-  (is (= :aptitude (packager {:os-family :ubuntu})))
-  (is (= :yum (packager {:os-family :centos})))
-  (is (= :portage (packager {:os-family :gentoo}))))
+  (is (= :apt (packager-for-os :ubuntu nil)))
+  (is (= :yum (packager-for-os :centos nil)))
+  (is (= :portage (packager-for-os :gentoo nil))))
 
 (deftest base-distribution-test
   (is (= :debian (base-distribution {:os-family :ubuntu})))

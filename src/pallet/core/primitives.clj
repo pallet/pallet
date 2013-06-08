@@ -9,7 +9,8 @@
             on-enter
             state
             valid-transitions]]
-   [pallet.algo.fsmop :refer [dofsm execute map* update-state wait-for]]
+   [pallet.algo.fsmop
+    :refer [dofsm execute fail-reason map* result update-state wait-for]]
    [pallet.core.api :as api]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.node :refer [id]]))
@@ -115,8 +116,9 @@
   (logging/debugf
    "build-and-execute-phase %s on %s target(s)" phase (count targets))
   (logging/tracef "build-and-execute-phase plan-state %s" plan-state)
+  (logging/tracef "build-and-execute-phase environment %s" environment)
   (let [[action-plans plan-state]
-        ((api/action-plans service-state environment phase targets)
+        ((api/action-plans service-state plan-state environment phase targets)
          plan-state)]
     (logging/tracef
      "build-and-execute-phase execute %s actions %s"
@@ -125,34 +127,83 @@
     (execute-action-plans
      service-state plan-state environment execution-settings-f action-plans)))
 
-(defn execute-on-unflagged
+(defn execute-and-flag
   "Return a phase execution function, that will exacute a phase on nodes that
   don't have the specified state flag set. On successful completion the nodes
   have the state flag set."
   ([state-flag execute-f]
-     (logging/debugf "execute-on-unflagged state-flag %s" state-flag)
-     (fn execute-on-unflagged
+     (logging/tracef "execute-and-flag state-flag %s" state-flag)
+     (fn execute-and-flag
        [service-state plan-state environment phase targets execution-settings-f]
-       (dofsm execute-on-unflagged
-         [[results plan-state] (execute-f
+       (dofsm execute-and-flag
+         [results (result (logging/tracef "execute-and-flag %s" state-flag))
+          [results plan-state] (execute-f
                                 service-state plan-state environment phase
                                 (filter
                                  (complement (api/has-state-flag? state-flag))
                                  targets)
                                 execution-settings-f)
+          _ (result (logging/tracef
+                     "execute-and-flag %s setting flag" state-flag))
           _ (set-state-for-nodes
-             state-flag (map :target (remove :errors results)))]
+             state-flag (map :target (remove :errors results)))
+          _ (result (logging/tracef "execute-and-flag %s done" state-flag))]
          [results plan-state])))
+  ([state-flag]
+     (execute-and-flag state-flag build-and-execute-phase)))
+
+(defn execute-on-filtered
+  "Return a phase execution function, that will exacute a phase on nodes that
+  have the specified state flag set."
+  [filter-f execute-f]
+  (logging/tracef "execute-on-filtered")
+  (fn execute-on-filtered
+    [service-state plan-state environment phase targets execution-settings-f]
+    (dofsm execute-on-filtered
+      [results (result (logging/tracef "execute-on-filtered %s" execute-f))
+       [results plan-state] (execute-f
+                             service-state plan-state environment phase
+                             (filter-f targets)
+                             execution-settings-f)
+       _ (result(logging/tracef "execute-on-filtered ran"))]
+      [results plan-state])))
+
+(defn execute-on-flagged
+  "Return a phase execution function, that will exacute a phase on nodes that
+  have the specified state flag set."
+  ([state-flag execute-f]
+     (logging/tracef "execute-on-flagged state-flag %s" state-flag)
+     (execute-on-filtered
+      #(filter (api/has-state-flag? state-flag) %)
+      execute-f))
+  ([state-flag]
+     (execute-on-flagged state-flag build-and-execute-phase)))
+
+(defn execute-on-unflagged
+  "Return a phase execution function, that will exacute a phase on nodes that
+  have the specified state flag set."
+  ([state-flag execute-f]
+     (logging/tracef "execute-on-flagged state-flag %s" state-flag)
+     (execute-on-filtered
+      #(filter (complement (api/has-state-flag? state-flag)) %)
+      execute-f))
   ([state-flag]
      (execute-on-unflagged state-flag build-and-execute-phase)))
 
+(def ^{:doc "Executes on non bootstrapped nodes, with image credentials."}
+  unbootstrapped-meta
+  {:execution-settings-f (api/environment-image-execution-settings)
+   :phase-execution-f (execute-on-unflagged :bootstrapped)})
+
+(def ^{:doc "Executes on bootstrapped nodes, with admin user credentials."}
+  bootstrapped-meta
+  {:phase-execution-f (execute-on-flagged :bootstrapped)})
 
 (def ^{:doc "The bootstrap phase is executed with the image credentials, and
 only not flagged with a :bootstrapped keyword."}
   default-phase-meta
-  {:bootstrap
-   {:execution-settings-f (api/environment-image-execution-settings)
-    :phase-execution-f (execute-on-unflagged :bootstrapped)}})
+  {:bootstrap {:execution-settings-f (api/environment-image-execution-settings)
+               :phase-execution-f (execute-and-flag :bootstrapped)}})
 
 ;; It's not nice that this can not be in p.core.api
 (defn phases-with-meta
@@ -215,10 +266,12 @@ only not flagged with a :bootstrapped keyword."}
 
 ;;; # Exception reporting
 (defn throw-operation-exception
-  "If the operation has a logged exception, throw it. This will block on the
+  "If the result has a logged exception, throw it. This will block on the
    operation being complete or failed."
   [operation]
-  (api/throw-operation-exception @operation))
+  (when-let [f (fail-reason operation)]
+    (when-let [e (:exception f)]
+      (throw e))))
 
 (defn phase-errors
   "Return the phase errors for an operation"

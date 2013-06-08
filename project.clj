@@ -1,4 +1,4 @@
-(defproject com.palletops/pallet "0.8.0-beta.10"
+(defproject com.palletops/pallet "pallet-0.8.0-RC.1"
   :description
   "DevOps for the JVM.
 
@@ -21,11 +21,13 @@ unprecedented level of customization."
                  [com.palletops/chiba "0.2.0"]
                  [com.palletops/thread-expr "1.3.0"]
                  [com.palletops/pallet-common "0.4.0"]
-                 [com.palletops/script-exec "0.3.4"]
+                 [com.palletops/pallet-repl "0.8.0-beta.1"
+                  :exclusions [com.palletops/pallet]]
+                 [com.palletops/script-exec "0.3.5"]
                  [com.palletops/stevedore "0.8.0-beta.2"]
                  [enlive "1.0.1"
                   :exclusions [org.clojure/clojure]]
-                 [pallet-fsmop "0.2.7"]
+                 [pallet-fsmop "0.3.0"]
                  [pallet-map-merge "0.1.0"]
                  [org.clojars.runa/clj-schema "0.9.2"]
                  [useful "0.8.6"]

@@ -53,8 +53,7 @@
     (use '[pallet.configure :only [defpallet]])
     (load-file file)
     config
-    (catch java.io.FileNotFoundException _)
-    (catch java.lang.RuntimeException _))) ;; clojure 1.3 wraps the FileNotFound
+    (catch java.io.FileNotFoundException _)))
 
 (defn- home-dir
   "Returns full path to Pallet home dir ($PALLET_HOME or $HOME/.pallet)"
@@ -93,7 +92,17 @@
    (fn [config service]
      (assoc-in config [:services (key (first service))] (val (first service))))
    (if (.exists (config-file-path))
-     (read-config (.getAbsolutePath (config-file-path)))
+     (try
+       (read-config (.getAbsolutePath (config-file-path)))
+       (catch Exception e
+         (logging/errorf
+          e "Failed to read %s" (.getAbsolutePath (config-file-path)))
+         (throw
+          (ex-info
+           (str "Failed to read " (.getAbsolutePath (config-file-path)))
+           {:reason :failed-to-read-pallet-config
+            :path (.getAbsolutePath (config-file-path))}
+           e))))
      {})
    (concat (service-resources) (service-files))))
 
@@ -105,11 +114,6 @@
      (str
       "Use of :providers key in ~/.pallet/config.clj is "
       "deprecated. Please change to use :services."))))
-
-(defn- cake-project-environment
-  "Read an environment from the cake-project if it exists"
-  []
-  (-?> 'cake/*project* resolve var-get :environment))
 
 ;;; Compute service
 (defn default-compute-service
@@ -160,8 +164,6 @@
                           [:environment]
                           #(environment/merge-environments
                             environment
-                            (environment/eval-environment
-                             (cake-project-environment))
                             (environment/eval-environment %))))
         :else nil))))
 

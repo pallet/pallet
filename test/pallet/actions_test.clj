@@ -4,10 +4,14 @@
    [pallet.actions :refer :all]
    [pallet.algo.fsmop :refer [complete? failed?]]
    [pallet.api :refer [group-spec lift plan-fn]]
+   [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.crate :refer [target-node]]
    [pallet.node :refer [primary-ip]]
    [pallet.test-utils :refer [make-localhost-compute test-username]]))
+
+
+(use-fixtures :once (logging-threshold-fixture))
 
 (deftest one-node-filter-test
   (let [role->nodes {:r [{:node 1}{:node 2}{:node 3}]}]

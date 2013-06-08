@@ -23,7 +23,7 @@
    [pallet.core.session :refer [os-family packager]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
-   [pallet.stevedore :refer [checked-script with-source-line-comments]]
+   [pallet.stevedore :refer [checked-script fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map]]
    [pallet.version-dispatch :refer [os-map os-map-lookup]]))
 
@@ -221,7 +221,8 @@
    :location :target}
   [session & args]
   (logging/tracef "package %s" (vec args))
-  [[{:language :bash}
+  [[{:language :bash
+     :summary (str "package " (string/join " " (apply concat args)))}
     (adjust-packages
      session (map #(apply package-map session %) (distinct args)))]
    session])
@@ -287,11 +288,23 @@
    "Package source"
    (let [^String key-url (or (:url aptitude) (:url apt))]
      (if (and key-url (.startsWith key-url "ppa:"))
-       (stevedore/chain-commands
-        (if-let [package (os-map-lookup @ubuntu-ppa-add)]
-          (stevedore/script (~lib/install-package ~package)))
-        (stevedore/script (pipe (println "") ("add-apt-repository" ~key-url)))
-        (stevedore/script (~lib/update-package-list)))
+       (let [list-file (str
+                        (string/replace (subs key-url 4) "/" "-")
+                        "-"
+                        (fragment (lib/os-version-name))
+                        ".list")]
+         (stevedore/chain-commands
+          (if-let [package (os-map-lookup @ubuntu-ppa-add)]
+            (stevedore/script
+             (chain-and
+              ("apt-cache" show ~package ">" "/dev/null") ; fail if unavailable
+              (~lib/install-package ~package))))
+          (stevedore/script
+           (when (not (file-exists? (lib/file "/etc/apt/sources.list.d"
+                                              ~list-file)))
+             (chain-and
+              (pipe (println "") ("add-apt-repository" ~key-url))
+              (~lib/update-package-list))))))
        (->
         (remote-file*
          session
@@ -378,7 +391,8 @@
                     :scopes [\"partner\"]})"
   {:action-type :script :location :target}
   [session & args]
-  [[{:language :bash}
+  [[{:language :bash
+     :summary (str "package-source " (string/join " " args))}
     (stevedore/do-script*
      (map (fn [x] (apply package-source* session x)) args))]
    session])
@@ -548,7 +562,8 @@
   {:action-type :script :location :target}
   [session & package-manager-args]
   (logging/tracef "package-manager-args %s" (vec package-manager-args))
-  [[{:language :bash}
+  [[{:language :bash
+     :summary (str "package-manager " (string/join " " package-manager-args))}
     (stevedore/do-script*
      (map #(apply package-manager* session %) (distinct package-manager-args)))]
    session])

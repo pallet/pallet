@@ -4,7 +4,7 @@
    [clojure.pprint :refer [pprint]]
    [clojure.stacktrace :refer [print-cause-trace]]
    [clojure.string :as string]
-   [pallet.algo.fsmop :refer [failed? wait-for]]
+   [pallet.algo.fsmop :refer [failed? fail-reason wait-for]]
    [pallet.api :as api]
    [pallet.api :refer [print-targets]]
    [pallet.compute :refer [service-properties]]
@@ -23,7 +23,7 @@
     :default "default"]
    ["-g" "--groups" "A comma separated list of groups"]
    ["-r" "--roles" "A comma separated list of group roles"]
-   ["-p" "--phases" "A comma separated list of phases"]
+   ["-a" "--phases" "A comma separated list of phases"]
    ["-d" "--dry-run" "Don't run anything, just show matching groups"
     :flag true]
    ["-f" "--format" "Output nodes in a table [table,edn]"
@@ -102,7 +102,7 @@
             (println "An error occured")
             (when-let [e (seq (phase-errors op))]
               (pprint (->> e (map :error) (map #(dissoc % :type)))))
-            (when-let [e (:exception @op)]
+            (when-let [e (and (failed? op) (:exception (fail-reason op)))]
               (print-cause-trace e)
               (throw (ex-info "pallet up failed" {:exit-code 1} e)))
             (throw

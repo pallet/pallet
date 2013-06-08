@@ -36,6 +36,12 @@ list, Alan Dipert and MeikelBrandmeyer."
   `(binding [*out* (io/writer dev-null)]
     ~@forms))
 
+(defmacro suppress-err
+  "Prevent stdout to reduce test log noise"
+  [& forms]
+  `(binding [*err* (io/writer dev-null)]
+    ~@forms))
+
 (def null-print-stream
   (java.io.PrintStream. dev-null))
 
@@ -80,6 +86,12 @@ list, Alan Dipert and MeikelBrandmeyer."
   [f]
   "A test fixture for selection bash as the output language"
   (stevedore/with-script-language :pallet.stevedore.bash/bash
+    (f)))
+
+(defn with-no-source-line-comments
+  [f]
+  "A test fixture to remove source line comments"
+  (stevedore/with-source-line-comments nil
     (f)))
 
 (defn with-null-defining-context

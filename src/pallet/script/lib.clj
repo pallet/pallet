@@ -8,7 +8,7 @@
    [pallet.thread-expr :as thread-expr]))
 
 ;;; basic
-(defn- translate-options
+(defn translate-options
   [options translations]
   (reduce
    (fn [options [from to]]
@@ -225,6 +225,10 @@
        (if restriction (str restriction " ") "")
        expr-map quote-with))
    ~file))
+
+(script/defscript sed-ext [])
+(script/defimpl sed-ext :default [] "")
+(script/defimpl sed-ext [#{:darwin :os-x}] [] ".bak")
 
 (script/defscript md5sum [file & {:as options}])
 (script/defimpl md5sum :default [file & {:as options}]
@@ -705,13 +709,13 @@
 
 (script/defscript debconf-set-selections [& selections])
 (script/defimpl debconf-set-selections :default [& selections] "")
-(script/defimpl debconf-set-selections [#{:aptitude}] [& selections]
+(script/defimpl debconf-set-selections [#{:aptitude :apt}] [& selections]
   ("{ debconf-set-selections"
    ~(str "<<EOF\n" (string/join \newline selections) "\nEOF\n}")))
 
 (script/defscript package-manager-non-interactive [])
 (script/defimpl package-manager-non-interactive :default [] "")
-(script/defimpl package-manager-non-interactive [#{:aptitude}] []
+(script/defimpl package-manager-non-interactive [#{:aptitude :apt}] []
   (~debconf-set-selections
    "debconf debconf/frontend select noninteractive"
    "debconf debconf/frontend seen false"))
@@ -850,6 +854,12 @@
 (script/defscript pkg-sbin [])
 (script/defimpl pkg-sbin :default [] "/sbin")
 (script/defimpl pkg-sbin [:brew] [] "/usr/local/sbin")
+
+(script/defscript system-environment [])
+(script/defimpl system-environment :default [] "/etc/environment")
+(script/defimpl system-environment [#{:rhel :centos :fedora}] []
+  "/etc/profile.d")
+(script/defimpl system-environment [#{:darwin :os-x}] [] "/etc/profile")
 
 
 ;;; #Flags#

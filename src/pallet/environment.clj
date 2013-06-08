@@ -28,7 +28,7 @@
    [pallet.local.execute :as local]
    [pallet.map-merge :as map-merge]
    [pallet.map-merge :refer [merge-key]]
-   [pallet.utils :as utils :refer [maybe-update-in]]))
+   [pallet.utils :as utils :refer [maybe-update-in total-order-merge]]))
 
 (defprotocol Environment
   "A protocol for accessing an environment."
@@ -43,6 +43,10 @@
 (defmethod merge-key :merge-phases
   [_ _ val-in-result val-in-latter]
   (merge-with pipeline val-in-result val-in-latter))
+
+(defmethod merge-key :total-ordering
+  [_ _ val-in-result val-in-latter]
+  (total-order-merge val-in-result val-in-latter))
 
 (def
   ^{:doc

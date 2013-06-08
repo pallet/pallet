@@ -32,6 +32,7 @@
  :each
  test-utils/with-ubuntu-script-template
  test-utils/with-bash-script-language
+ test-utils/with-no-source-line-comments
  test-utils/with-null-defining-context
  test-utils/no-location-info)
 
@@ -70,10 +71,10 @@
              "Packages"
              (~lib/package-manager-non-interactive)
              "aptitude install -q -y java+ rubygems+ git- ruby_"
-             "aptitude search \"?and(?installed, ?name(^java$))\" | \\\ngrep \"java\""
-             "aptitude search \"?and(?installed, ?name(^rubygems$))\" | \\\ngrep \"rubygems\""
-             "! ( aptitude search \"?and(?installed, ?name(^git$))\" | \\\ngrep \"git\" )"
-             "! ( aptitude search \"?and(?installed, ?name(^ruby$))\" | \\\ngrep \"ruby\" )")))
+             "aptitude search \"?and(?installed, ?name(^java$))\" | grep \"java\""
+             "aptitude search \"?and(?installed, ?name(^rubygems$))\" | grep \"rubygems\""
+             "! ( aptitude search \"?and(?installed, ?name(^git$))\" | grep \"git\" )"
+             "! ( aptitude search \"?and(?installed, ?name(^ruby$))\" | grep \"ruby\" )")))
          (first
           (build-actions
               {:server {:packager :aptitude :image {:os-family :centos}}}
@@ -195,8 +196,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
   (testing "aptitude"
     (is (script-no-comment=
          (first
-          (build-actions
-              {}
+          (build-actions {}
             (exec-checked-script
              "package-manager configure :proxy http://192.168.2.37:3182"
              ~(->
@@ -207,8 +207,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                  :literal true})
                first second))))
          (first
-          (build-actions
-              {}
+          (build-actions {}
             (package-manager
              :configure :proxy "http://192.168.2.37:3182"))))))
   (testing "yum"
@@ -350,9 +349,15 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                 {}
               (exec-checked-script
                "Package source"
+               ("apt-cache" show "python-software-properties" ">" "/dev/null")
                (~lib/install-package "python-software-properties")
-               (pipe (println) ("add-apt-repository" "ppa:abc"))
-               (~lib/update-package-list))))
+               (when
+                   (not
+                    (file-exists?
+                     "/etc/apt/sources.list.d/abc-$(lsb_release -c -s).list"))
+                 (chain-and
+                  (pipe (println) ("add-apt-repository" "ppa:abc"))
+                  (~lib/update-package-list))))))
            (first
             (build-actions
                 {:server {:image {:os-family :ubuntu :os-version "12.04"}}}
@@ -367,9 +372,15 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                 {}
               (exec-checked-script
                "Package source"
+               ("apt-cache" show "software-properties-common" ">" "/dev/null")
                (~lib/install-package "software-properties-common")
-               (pipe (println) ("add-apt-repository" "ppa:abc"))
-               (~lib/update-package-list))))
+               (when
+                   (not
+                    (file-exists?
+                     "/etc/apt/sources.list.d/abc-$(lsb_release -c -s).list"))
+                 (chain-and
+                  (pipe (println) ("add-apt-repository" "ppa:abc"))
+                  (~lib/update-package-list))))))
            (first
             (build-actions
                 {:server {:image {:os-family :ubuntu :os-version "12.10"}}}

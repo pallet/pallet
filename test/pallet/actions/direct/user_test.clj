@@ -13,6 +13,7 @@
  :once
  test-utils/with-ubuntu-script-template
  test-utils/with-bash-script-language
+ test-utils/with-no-source-line-comments
  (logging-threshold-fixture))
 
 (deftest user*-create-test
