@@ -563,7 +563,8 @@
   [session & package-manager-args]
   (logging/tracef "package-manager-args %s" (vec package-manager-args))
   [[{:language :bash
-     :summary (str "package-manager " (string/join " " package-manager-args))}
+     :summary (str "package-manager "
+                   (string/join " " (map doall package-manager-args)))}
     (stevedore/do-script*
      (map #(apply package-manager* session %) (distinct package-manager-args)))]
    session])
