@@ -40,10 +40,7 @@
                     f-runner (fn async-fsm []
                                (try
                                  (event :success (f))
-                                 (catch Exception e
-                                   (logging/warn e "async-fsm failed")
-                                   (event :fail {:exception e}))
-                                 (catch AssertionError e
+                                 (catch Throwable e
                                    (logging/warn e "async-fsm failed")
                                    (event :fail {:exception e}))))]
                 (reset! async-f (execute f-runner))))]
