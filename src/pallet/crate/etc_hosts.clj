@@ -119,7 +119,8 @@
   []
   (let [content (format-hosts)]
     (remote-file (stevedore/fragment (~lib/etc-hosts))
-     :owner "root:root"
+     :owner "root"
+     :group "root"
      :mode 644
      :content content)))
 
