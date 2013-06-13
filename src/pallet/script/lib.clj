@@ -311,7 +311,15 @@
 
 (script/defscript tmp-dir [])
 (script/defimpl tmp-dir :default []
-  @TMPDIR-/tmp)
+  (deref TMPDIR :default-value
+         (deref TEMP :default-value
+                (deref TMP :default-value
+                       @(if (directory? "/tmp")
+                          (println "/tmp")
+                          (if (directory? "/var/tmp")
+                            (println "/var/tmp")
+                            (if (directory? "/use/tmp")
+                              (println "/usr/tmp"))))))))
 
 (script/defscript make-temp-file [pattern])
 (script/defimpl make-temp-file :default [pattern]
