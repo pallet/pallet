@@ -73,8 +73,8 @@
              "aptitude install -q -y java+ rubygems+ git- ruby_"
              "aptitude search \"?and(?installed, ?name(^java$))\" | grep \"java\""
              "aptitude search \"?and(?installed, ?name(^rubygems$))\" | grep \"rubygems\""
-             "! ( aptitude search \"?and(?installed, ?name(^git$))\" | grep \"git\" )"
-             "! ( aptitude search \"?and(?installed, ?name(^ruby$))\" | grep \"ruby\" )")))
+             "! { aptitude search \"?and(?installed, ?name(^git$))\" | grep \"git\"; }"
+             "! { aptitude search \"?and(?installed, ?name(^ruby$))\" | grep \"ruby\"; }")))
          (first
           (build-actions
               {:server {:packager :aptitude :image {:os-family :centos}}}
