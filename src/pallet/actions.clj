@@ -259,7 +259,7 @@ value is itself an action return value."
           option forwarding when calling remote-file from other crates."}
   content-options
   [:local-file :remote-file :url :md5 :content :literal :template :values
-   :action :blob :blobstore :insecure])
+   :action :blob :blobstore :insecure :link])
 
 (def
   ^{:doc "A vector of options for controlling versions. Can be used for option
