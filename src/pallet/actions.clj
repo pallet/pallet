@@ -533,6 +533,9 @@ Options:
 `:strip-components`
 : number of path compnents to remove when unpacking
 
+`:extract-files`
+: extract only the specified files or directories from the archive
+
 `:md5`
 : md5 of file to unpack
 
@@ -567,7 +570,15 @@ option and :unpack :unzip.
 
     (remote-directory session path
        :url \"http://a.com/path/file.\"
-       :unpack :unzip)"
+       :unpack :unzip)
+
+To install the content of an url pointing at a jar/tar/zip file, extracting
+only specified files or directories, use the :extract-files option.
+
+    (remote-directory session path
+       :url \"http://a.com/path/file.jar\"
+       :unpack :jar
+       :extract-files [\"dir/file\" \"file2\"])"
   {:pallet/plan-fn true}
   [path & {:keys [action url local-file remote-file
                   unpack tar-options unzip-options jar-options
