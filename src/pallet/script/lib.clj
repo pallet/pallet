@@ -824,6 +824,10 @@
 (script/defimpl pid-root :default []
   "/var/run")
 
+(script/defscript spool-root [])
+(script/defimpl spool-root :default []
+  "/var/spool")
+
 (script/defscript config-root [])
 (script/defimpl config-root :default []
   "/etc")
