@@ -391,6 +391,18 @@ specified in the `:extends` argument."
 (def ^{:doc "Arguments that are forwarded to be part of the environment"}
   environment-args [:compute :blobstore :user :provider-options])
 
+(defn group-node-maps
+  "Returns a FSM to converge the existing compute resources with the counts
+   specified in `group-spec->count`.  Options are as for `converge`."
+  [compute groups & {:keys [async timeout-ms timeout-val]
+                     :as options}]
+  (let [fsm (all-group-nodes compute groups nil)]
+    (if async
+      (operate fsm)
+      (if timeout-ms
+        (deref (operate fsm) timeout-ms timeout-val)
+        (deref (operate fsm))))))
+
 (defn converge*
   "Returns a FSM to converge the existing compute resources with the counts
    specified in `group-spec->count`.  Options are as for `converge`."
