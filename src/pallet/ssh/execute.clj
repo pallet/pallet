@@ -118,8 +118,8 @@
   (let [endpoint (endpoint session)]
     (logutils/with-context [:target (:server endpoint)]
       (logging/infof
-       "%s %s %s"
-       (:server endpoint)
+       "%s %s %s %s"
+       (:server endpoint) (:port endpoint)
        (or (context-label action) "")
        (or (:summary options) ""))
       (with-connection session [connection]
