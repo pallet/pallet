@@ -1,6 +1,7 @@
 (ns pallet.ssh.execute-test
   (:require
    [clojure.test :refer :all]
+   [clojure.tools.logging :refer [debugf]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture
                                            with-log-to-string]]
    [pallet.compute.node-list :refer [make-localhost-node]]
@@ -65,6 +66,7 @@
               (with-redefs [clj-ssh.ssh/open-channel
                             (fn [session session-type]
                               (swap! c inc)
+                              (debugf (Exception. "here") "Inc")
                               (if @a
                                 (open-channel session session-type)
                                 (do
@@ -84,7 +86,7 @@
                 (is (= 3 @c))                 ; 1 failed + sftp +exec
                 (is (not= original-connection (get-connection session))
                     "new cached connection")))]
-        (is log-out)))
+        (is log-out "exception is logged")))
     (testing "new session after :new-login-after-action"
       (with-script-for-node (:server session) nil
         (let [original-connection (get-connection session)]
