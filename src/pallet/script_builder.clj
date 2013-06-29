@@ -56,7 +56,9 @@ up the working directory (and possibly environment variables in the
 future)."
   [{:keys [language version interpreter] :or {language :bash} :as options}
    script
-   {:keys [script-dir script-trace] :as action}]
+   {:keys [script-dir script-trace script-hash]
+    :or {script-hash true}
+    :as action}]
   (str
    (prolog)
    (if script-dir
@@ -67,6 +69,9 @@ future)."
    (if (and (= language :bash) script-trace)
      "set -x\n"
      "")
+   (if (and (= language :bash) script-hash)
+     "set -h\n"
+     "set +h\n")
    (if (= language :bash)
      script
      (let [interpreter (or interpreter
