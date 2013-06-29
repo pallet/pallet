@@ -77,7 +77,7 @@
              "! { aptitude search \"?and(?installed, ?name(^ruby$))\" | grep \"ruby\"; }")))
          (first
           (build-actions
-              {:server {:packager :aptitude :image {:os-family :centos}}}
+              {:server {:packager :aptitude :image {:os-family :ubuntu}}}
             (package "java" :action :install)
             (package "rubygems")
             (package "git" :action :remove)
