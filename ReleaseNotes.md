@@ -134,7 +134,7 @@ Unstable development branch
   If an exception is thrown when reading a pallet config file, ensures the 
   path of the config file appears in the exception message.
 
-- Rename aciton-options key to ::action-options
+- Rename action-options key to ::action-options
 
 - Move action-options into :plan-state
   This will allow action options to be passed into lift and converge.
@@ -215,7 +215,7 @@ Unstable development branch
 
 - Add blobstore function to pallet.crate
 
-- Add local vairables for clojure-mode indents
+- Add local variables for clojure-mode indents
 
 ## Fixes
 
@@ -237,7 +237,7 @@ Unstable development branch
 
 - Ensure correct permissions under /var/lib/pallet
   The ownership and permissions under /var/lib/pallet should mirror the
-  ownership and permissiond of the reflected filesystem, otherwise difficult
+  ownership and permission of the reflected filesystem, otherwise difficult
   to understand permission problems occur.
 
 - Correct several namespace requires
@@ -493,7 +493,7 @@ Unstable development branch
 
   Closes #223.
 
-- Fix mergeing of environment phases
+- Fix merging of environment phases
 
 - Fix lift task for updated project-groups arity
 
@@ -621,7 +621,7 @@ Unstable development branch
 
 - Ensure asserts within plan functions are reported
 
-- Create temp directorys under TEMPDIR on osx
+- Create temp directories under TEMPDIR on osx
 
 - Make md5 checking on os x more robust
 
@@ -805,7 +805,7 @@ Unstable development branch
 - Remove dependency on CompilerException
 
 - Add dependency message on project file failure
-  When a task fails to load the projec pallet.clj file, output a message
+  When a task fails to load the project pallet.clj file, output a message
   that explains that a dependency needs to be added.
 
 - Change group ID to com.palletops, pom.xml, and lein project.clj
@@ -1083,7 +1083,7 @@ Unstable development branch
 
 - Make target-flag? callable as a plan function
 
-- Add target crate funtion
+- Add target crate function
   Returns the denormalised map for the target node.
 
 - Add assertf plan function
@@ -1178,11 +1178,11 @@ Unstable development branch
 
 - Fix use of package-source in crate-install
 
-- Add a confirmation to add-apt-repository in pacakage-source
+- Add a confirmation to add-apt-repository in package-source
 
 - Fix live-test
   Neither the environment nor existing nodes were being used when
-  convereging nodes for a test.
+  converging nodes for a test.
 
 - Ensure the state after a final plan function is verified
   Due to optimisations in clojure.algo.monads, the final state in a chain-s
@@ -1229,7 +1229,7 @@ Unstable development branch
 - Quieten p.actions.direct.settings-test
 
 - Factor out lift* and converge* in pallet.api
-  The lift* and converge* fuctions return the fsms used by left and
+  The lift* and converge* functions return the fsms used by left and
   converge respectively, without calling operate on them.
 
 - Improve etc-hosts docstring and tests
@@ -1360,7 +1360,7 @@ Unstable development branch
 - Fix rsync-directory action to not install rsync
   We would like to ensure rsync is installed, but this requires root
   permissions, and doesn't work when the action is run without root
-  permision.
+  permission.
 
 - Fix pipeline-when to correctly handle keywords used as functions
 
@@ -1380,7 +1380,7 @@ Unstable development branch
 - Add node tagging SPI
   Closes #139
 
-- Fix converge for denormailsed nodes
+- Fix converge for denormalised nodes
 
 - Fix pipeline-when for new stevedore test expression generation
 

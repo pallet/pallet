@@ -398,7 +398,7 @@ Options for version control are:
 : do not version the file
 
 `max-versions`
-: specfy the number of versions to keep (default 5)
+: specify the number of versions to keep (default 5)
 
 `flag-on-changed`
 : flag to set if file is changed
@@ -531,7 +531,7 @@ Options:
   components
 
 `:strip-components`
-: number of path compnents to remove when unpacking
+: number of path components to remove when unpacking
 
 `:extract-files`
 : extract only the specified files or directories from the archive
@@ -559,7 +559,7 @@ option.
        :url \"http://a.com/path/file.tgz\")
 
 If there is an md5 url with the tar file's md5, you can specify that as well,
-to prevent unecessary downloads and verify the content.
+to prevent unnecessary downloads and verify the content.
 
     (remote-directory session path
        :url \"http://a.com/path/file.tgz\"
@@ -663,7 +663,7 @@ only specified files or directories, use the :extract-files option.
    - :list-installed  - output a list of the installed packages
    - :add-scope       - enable a scope (eg. multiverse, non-free)
 
-   To refresh the list of packages known to the pakage manager:
+   To refresh the list of packages known to the package manager:
        (package-manager session :update)
 
    To enable multiverse on ubuntu:
@@ -829,7 +829,7 @@ Specify `:line` as a string, or `:package`, `:question`, `:type` and
   "Control services.
 
    - :action  accepts either startstop, restart, enable or disable keywords.
-   - :if-flag  makes start, stop, and restart confitional on the specified flag
+   - :if-flag  makes start, stop, and restart conditional on the specified flag
                as set, for example, by remote-file :flag-on-changed
    - :sequence-start  a sequence of [sequence-number level level ...], where
                       sequence number determines the order in which services

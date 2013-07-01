@@ -50,7 +50,7 @@ data may provide a version."
            :version version}))))))
 
 (defmacro defmulti-version
-  "Defines a multi-version funtion used to abstract over an operating system
+  "Defines a multi-version function used to abstract over an operating system
 hierarchy, where dispatch includes an optional `os-version`. The `version`
 refers to a software package version of some sort, on the specified `os` and
 `os-version`."
@@ -83,7 +83,7 @@ refers to a software package version of some sort, on the specified `os` and
               ~@body))))
 
 (defmacro defmulti-version-plan
-  "Defines a multi-version funtion used to abstract over an operating system
+  "Defines a multi-version function used to abstract over an operating system
 hierarchy, where dispatch includes an optional `os-version`. The `version`
 refers to a software package version of some sort, on the specified `os` and
 `os-version`."

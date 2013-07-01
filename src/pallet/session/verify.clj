@@ -10,11 +10,11 @@
 
 (defn check-session
   "Function that can check a session map to ensure it is a valid part of
-   phase definiton. It returns the session map.
+   phase definition. It returns the session map.
 
    If this fails, then it is likely that you have an incorrect crate function
    which is failing to return its session map properly, or you have a non crate
-   function in the phase defintion."
+   function in the phase definition."
   ([session]
      ;; we do not use a precondition in order to improve the error message
      (when-not (and session (map? session) (session-verification-key session))

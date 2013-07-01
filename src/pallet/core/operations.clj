@@ -184,7 +184,7 @@
   "Partition targets using the, possibly nil, default partitioning function f.
 
 There are three sources of partitioning applied.  The default passed to the
-function, a paritioning based on the partitioning and post-phase functions in
+function, a partioning based on the partitioning and post-phase functions in
 the target's metadata, and the target's partitioning function from the metadata.
 
 The partitioning by metadata is applied so that post-phase functions are applied

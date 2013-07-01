@@ -72,7 +72,7 @@
 
    :location  a map describing a predicate for matching location:
               location-id
-   :hardware  a map describing a predicate for matching harware:
+   :hardware  a map describing a predicate for matching hardware:
               min-cores min-ram smallest fastest biggest architecture
               hardware-id
    :network   a map for network connectivity options:

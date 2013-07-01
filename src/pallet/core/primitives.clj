@@ -125,7 +125,7 @@
      service-state plan-state environment execution-settings-f action-plans)))
 
 (defn execute-and-flag
-  "Return a phase execution function, that will exacute a phase on nodes that
+  "Return a phase execution function, that will execute a phase on nodes that
   don't have the specified state flag set. On successful completion the nodes
   have the state flag set."
   ([state-flag execute-f]
@@ -150,7 +150,7 @@
      (execute-and-flag state-flag build-and-execute-phase)))
 
 (defn execute-on-filtered
-  "Return a phase execution function, that will exacute a phase on nodes that
+  "Return a phase execution function, that will execute a phase on nodes that
   have the specified state flag set."
   [filter-f execute-f]
   (logging/tracef "execute-on-filtered")
@@ -166,7 +166,7 @@
       [results plan-state])))
 
 (defn execute-on-flagged
-  "Return a phase execution function, that will exacute a phase on nodes that
+  "Return a phase execution function, that will execute a phase on nodes that
   have the specified state flag set."
   ([state-flag execute-f]
      (logging/tracef "execute-on-flagged state-flag %s" state-flag)
@@ -177,7 +177,7 @@
      (execute-on-flagged state-flag build-and-execute-phase)))
 
 (defn execute-on-unflagged
-  "Return a phase execution function, that will exacute a phase on nodes that
+  "Return a phase execution function, that will execute a phase on nodes that
   have the specified state flag set."
   ([state-flag execute-f]
      (logging/tracef "execute-on-flagged state-flag %s" state-flag)
