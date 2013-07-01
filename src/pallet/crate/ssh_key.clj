@@ -83,7 +83,7 @@
      :filename path -- output file name (within ~user/.ssh directory)
      :type key-type -- key type selection
      :no-dir true   -- do note ensure directory exists
-     :passphrase    -- new passphrase for encrypring the private key
+     :passphrase    -- new passphrase for encrypting the private key
      :comment       -- comment for new key"
   [user & {:keys [type filename passphrase no-dir comment]
            :or {type "rsa" passphrase ""}
@@ -126,7 +126,7 @@ Passing a :filename value allows direct specification of the filename.
 (defplan config
   "Update an ssh config file. Sets the configuration for `host` to be that given
 by the key-value-map.  Optionally allows specification of the `user` whose ssh
-config ffile is to be modified, and the full `config-file` path."
+config file is to be modified, and the full `config-file` path."
   [host key-value-map & {:keys [user config-file]
                          :or {user (:username (admin-user))}}]
   (let [content (str "Host " host \newline

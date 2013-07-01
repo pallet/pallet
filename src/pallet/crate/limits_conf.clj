@@ -44,7 +44,7 @@
 
   A host entry can be either a map with :domain, :type, :item and :value keys,
   or a vector specifying strings for the fields (in domain, type, item, value
-  order).  The type and item vlaues may optionally be keywords."
+  order).  The type and item values may optionally be keywords."
   [entry & {:keys [instance-id] :as options}]
   {:pre [(or (vector? entry) (map? entry))]}
   (update-settings :limits-conf options

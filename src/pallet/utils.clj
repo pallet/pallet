@@ -96,7 +96,7 @@
        (find-var-with-require 'my.ns/a-symbol)
 
    If the namespace exists, but can not be loaded, and exception is thrown.  If
-   the namsepace is loaded, but the symbol is not found, then nil is returned."
+   the namespace is loaded, but the symbol is not found, then nil is returned."
   ([sym]
      (find-var-with-require (symbol (namespace sym)) (symbol (name sym))))
   ([ns sym]

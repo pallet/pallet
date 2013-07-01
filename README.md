@@ -11,7 +11,7 @@ command line.
 - reuse configuration in development, testing and production.
 - store all your configuration in a source code management system (eg. git),
   including role assignments.
-- configuration is re-used by compostion; just create new functions that call
+- configuration is re-used by composition; just create new functions that call
   existing crates with new arguments. No copy and modify required.
 - enable use of configuration crates (recipes) from versioned jar files.
 

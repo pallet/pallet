@@ -30,7 +30,7 @@ characters and that describes the changeset concisely, followed by a blank line,
 followed by a more detailed explanation.
 
 See [progit](http://progit.org/book/ch5-2.html#commit_guidelines) for a more
-complete explaination of commit messages.
+complete explanation of commit messages.
 
 ## Release Notes
 
