@@ -631,6 +631,7 @@ only specified files or directories, use the :extract-files option.
     - :enable [repo|(seq repo)]   enable specific repository
     - :disable [repo|(seq repo)]  disable specific repository
     - :priority n                 priority (0-100, default 50)
+    - :disable-service-start      disable service startup (default false)
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
