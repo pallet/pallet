@@ -13,7 +13,7 @@
    [clj-schema.validation :refer [validation-errors]]
    [clojure.string :as string]
    [clojure.string :refer [join]]
-   [clojure.tools.logging :refer [errorf]]
+   [clojure.tools.logging :refer [tracef errorf]]
    [pallet.blobstore :refer [blobstore?]]
    [pallet.compute :refer [compute-service?]]))
 
@@ -160,23 +160,30 @@
 ;;; We use macros so the stack trace reflects the calling location.
 (def ^{:dynamic true} *verify-contracts* true)
 
+(defn check-spec* [m spec spec-name line file]
+  {:pre [spec]}
+  (tracef "check-spec* %s" spec)
+  (when *verify-contracts*
+    (if-let [errs (seq (validation-errors spec m))]
+      (do
+        (errorf (str "Invalid " spec-name ":"))
+        (doseq [err errs]
+          (errorf (str "  " spec-name " error: %s") err))
+        (throw
+         (ex-info
+          (format (str "Invalid " spec-name ": %s") (join " " errs))
+          {:errors errs
+           :m m
+           :spec spec
+           :spec-name spec-name
+           :line line
+           :file file}))))
+    m))
+
 (defn ^{:requires [validation-errors #'errorf join]} check-spec
   [m spec &form]
   (let [spec-name (string/replace (name spec) "-schema" "")]
-    `(when *verify-contracts*
-       (let [m# ~m]
-         (if-let [errs# (seq (validation-errors ~spec m#))]
-           (do
-             (errorf ~(str "Invalid " spec-name ":"))
-             (doseq [err# errs#]
-               (errorf ~(str "  " spec-name " error: %s") err#))
-             (throw
-              (ex-info
-               (format ~(str "Invalid " spec-name ": %s") (join " " errs#))
-               {:errors errs#
-                :line ~(:line (meta &form))
-                :file ~*file*}))))
-         m#))))
+    `(check-spec* ~m ~spec ~spec-name ~(:line (meta &form)) ~*file*)))
 
 (defmacro check-node-spec
   [m]
