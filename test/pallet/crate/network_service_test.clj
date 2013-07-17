@@ -9,10 +9,20 @@
 
 (deftest wait-for-port-listen-test
   (is
-   (first
-    (build-actions/build-actions
-     {}
-     (network-service/wait-for-port-listen 80)))))
+   (re-find
+    #"netstat -lnt"
+    (first
+     (build-actions/build-actions
+      {}
+      (network-service/wait-for-port-listen 80)))))
+  (doseq [[protocol switch] [[:raw "w"] [:tcp "t"] [:udp "u"] [:udplite "U"]]]
+    (is
+     (re-find
+      (re-pattern (format "netstat -ln%s" switch))
+      (first
+       (build-actions/build-actions
+        {}
+        (network-service/wait-for-port-listen 80 :protocol protocol)))))))
 
 (deftest wait-for-http-status-test
   (is
