@@ -279,7 +279,7 @@ specified in the `:extends` argument."
                       (extend-specs [(select-keys group-spec [:phases])])))
                    (expand-group-spec-with-counts group-specs 1))))
      (dissoc :extends :node-spec)
-     (assoc :cluster-cluster-name (keyword cluster-name))
+     (assoc :cluster-name (keyword cluster-name))
      (vary-meta assoc :type ::cluster-spec))))
 
 ;;; ## Compute Service
