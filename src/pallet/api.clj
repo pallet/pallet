@@ -259,28 +259,28 @@ specified in the `:extends` argument."
    - :roles     roles for all group-specs in the cluster"
   [cluster-name
    & {:keys [extends groups phases node-spec roles] :as options}]
-  (->
-   options
-   (update-in [:groups]
-              (fn [group-specs]
-                (map
-                 (fn [group-spec]
-                   (->
-                    node-spec
-                    (merge (dissoc group-spec :phases))
-                    (update-in
-                     [:group-name]
-                     #(keyword (str (name cluster-name)
-                                    (if (blank? cluster-name) "" "-")
-                                    (name %))))
-                    (update-in [:roles] union roles)
-                    (extend-specs extends)
-                    (extend-specs [{:phases phases}])
-                    (extend-specs [(select-keys group-spec [:phases])])))
-                 (expand-group-spec-with-counts group-specs 1))))
-   (dissoc :extends :node-spec)
-   (assoc :cluster-cluster-name (keyword cluster-name))
-   (vary-meta assoc :type ::cluster-spec)))
+  (let [cluster-name (name cluster-name)
+        group-prefix (if (blank? cluster-name) "" (str cluster-name "-"))]
+    (->
+     options
+     (update-in [:groups]
+                (fn [group-specs]
+                  (map
+                   (fn [group-spec]
+                     (->
+                      node-spec
+                      (merge (dissoc group-spec :phases))
+                      (update-in
+                       [:group-name]
+                       #(keyword (str group-prefix (name %))))
+                      (update-in [:roles] union roles)
+                      (extend-specs extends)
+                      (extend-specs [{:phases phases}])
+                      (extend-specs [(select-keys group-spec [:phases])])))
+                   (expand-group-spec-with-counts group-specs 1))))
+     (dissoc :extends :node-spec)
+     (assoc :cluster-cluster-name (keyword cluster-name))
+     (vary-meta assoc :type ::cluster-spec))))
 
 ;;; ## Compute Service
 ;;;
