@@ -425,7 +425,7 @@
   {:action-type :script :location :target}
   [session & args]
   [[{:language :bash
-     :summary (str "package-source " (string/join " " args))}
+     :summary (str "package-source " (string/join " " (map vec args)))}
     (stevedore/do-script*
      (map (fn [x] (apply package-source* session x)) args))]
    session])
@@ -597,7 +597,7 @@
   (logging/tracef "package-manager-args %s" (vec package-manager-args))
   [[{:language :bash
      :summary (str "package-manager "
-                   (string/join " " (map doall package-manager-args)))}
+                   (string/join " " (distinct (map vec package-manager-args))))}
     (stevedore/do-script*
      (map #(apply package-manager* session %) (distinct package-manager-args)))]
    session])
