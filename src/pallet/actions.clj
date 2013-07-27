@@ -19,7 +19,8 @@
    [pallet.node-value :refer [node-value]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
-   [pallet.utils :refer [apply-map log-multiline tmpfile]]))
+   [pallet.utils :refer [apply-map log-multiline tmpfile]])
+  (:import clojure.lang.Keyword))
 
 ;;; # Direct Script Execution
 
@@ -283,27 +284,27 @@ value is itself an action return value."
   :strict
   (constraints
    (fn [m] (some (set content-options) (keys m))))
-  [(optional-path [:local-file]) string?
-   (optional-path [:remote-file]) string?
-   (optional-path [:url]) string?
-   (optional-path [:md5]) string?
-   (optional-path [:md5-url]) string?
-   (optional-path [:content]) [:or string? delayed-argument?]
+  [(optional-path [:local-file]) String
+   (optional-path [:remote-file]) String
+   (optional-path [:url]) String
+   (optional-path [:md5]) String
+   (optional-path [:md5-url]) String
+   (optional-path [:content]) [:or String delayed-argument?]
    (optional-path [:literal]) any-value
-   (optional-path [:template]) string?
+   (optional-path [:template]) String
    (optional-path [:values]) (map-schema :loose [])
-   (optional-path [:action]) keyword?
+   (optional-path [:action]) Keyword
    (optional-path [:blob]) (map-schema :strict
-                                       [[:container] string? [:path] string?])
+                                       [[:container] String [:path] String])
    (optional-path [:blobstore]) any-value  ; cheating to avoid adding a reqiure
    (optional-path [:insecure]) any-value
    (optional-path [:overwrite-changes]) any-value
    (optional-path [:no-versioning]) any-value
-   (optional-path [:max-versions]) number?
-   (optional-path [:flag-on-changed]) string?
-   (optional-path [:owner]) string?
-   (optional-path [:group]) string?
-   (optional-path [:mode]) [:or string? number?]
+   (optional-path [:max-versions]) Number
+   (optional-path [:flag-on-changed]) String
+   (optional-path [:owner]) String
+   (optional-path [:group]) String
+   (optional-path [:mode]) [:or String Number]
    (optional-path [:force]) any-value
    (optional-path [:verify]) any-value])
 

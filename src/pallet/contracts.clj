@@ -15,7 +15,9 @@
    [clojure.string :refer [join]]
    [clojure.tools.logging :refer [tracef errorf]]
    [pallet.blobstore :refer [blobstore?]]
-   [pallet.compute :refer [compute-service?]]))
+   [pallet.compute :refer [compute-service?]])
+  (:import clojure.lang.IFn
+           clojure.lang.Keyword))
 
 ;;; We put all the contract code here to hide the implementation of the contract
 ;;; checks.
@@ -31,41 +33,41 @@
 ;;; node-spec contains loose schema, as these vary by, and should be enforced by
 ;;; the providers.
 (def-map-schema :loose image-spec-schema
-  [(optional-path [:image-id]) [:or string? keyword?]
-   (optional-path [:image-description-matches]) string?
-   (optional-path [:image-name-matches]) string?
-   (optional-path [:image-version-matches]) string?
-   (optional-path [:os-family]) keyword?
+  [(optional-path [:image-id]) [:or String Keyword]
+   (optional-path [:image-description-matches]) String
+   (optional-path [:image-name-matches]) String
+   (optional-path [:image-version-matches]) String
+   (optional-path [:os-family]) Keyword
    (optional-path [:os-64-bit]) any-value
-   (optional-path [:os-arch-matches]) string?
-   (optional-path [:os-description-matches]) string?
-   (optional-path [:os-name-matches]) string?
-   (optional-path [:os-version-matches]) string?
-   (optional-path [:hypervisor-matches]) string?
-   (optional-path [:override-login-user]) string?])
+   (optional-path [:os-arch-matches]) String
+   (optional-path [:os-description-matches]) String
+   (optional-path [:os-name-matches]) String
+   (optional-path [:os-version-matches]) String
+   (optional-path [:hypervisor-matches]) String
+   (optional-path [:override-login-user]) String])
 
 (def-map-schema :loose location-spec-schema
-  [(optional-path [:location-id]) string?])
+  [(optional-path [:location-id]) String])
 
 (def-map-schema :loose hardware-spec-schema
-  [(optional-path [:hardware-id]) string?
-   (optional-path [:min-ram]) number?
-   (optional-path [:min-cores]) number?
-   (optional-path [:min-disk]) number?])
+  [(optional-path [:hardware-id]) String
+   (optional-path [:min-ram]) Number
+   (optional-path [:min-cores]) Number
+   (optional-path [:min-disk]) Number])
 
 (def-map-schema inbound-port-spec-schema
-  [[:start-port] number?
-   (optional-path [:end-port]) number?
-   (optional-path [:protocol]) string?])
+  [[:start-port] Number
+   (optional-path [:end-port]) Number
+   (optional-path [:protocol]) String])
 
 (def inbound-port-schema
-  [:or inbound-port-spec-schema number?])
+  [:or inbound-port-spec-schema Number])
 
 (def-map-schema :loose network-spec-schema
   [(optional-path [:inbound-ports]) (sequence-of inbound-port-schema)])
 
 (def-map-schema :loose qos-spec-schema
-  [(optional-path [:spot-price]) number?
+  [(optional-path [:spot-price]) Number
    (optional-path [:enable-monitoring]) any-value])
 
 (def-map-schema node-spec-schema
@@ -76,53 +78,53 @@
    (optional-path [:qos]) qos-spec-schema])
 
 (def-map-schema phases-schema
-  [[(wild keyword?)] fn?])
+  [[(wild Keyword)] IFn])
 
 (def-map-schema phase-meta-schema
-  [(optional-path [:phase-execution-f]) fn?
-   (optional-path [:execution-settings-f]) fn?
-   (optional-path [:post-phase-f]) fn?
-   (optional-path [:post-phase-fsm]) fn?])
+  [(optional-path [:phase-execution-f]) IFn
+   (optional-path [:execution-settings-f]) IFn
+   (optional-path [:post-phase-f]) IFn
+   (optional-path [:post-phase-fsm]) IFn])
 
 (def-map-schema phases-meta-schema
-  [[(wild keyword?)] phase-meta-schema])
+  [[(wild Keyword)] phase-meta-schema])
 
 (def-map-schema server-spec-schema
   node-spec-schema
   [(optional-path [:phases]) phases-schema
-   (optional-path [:roles]) (set-of keyword?)
-   (optional-path [:packager]) keyword?
+   (optional-path [:roles]) (set-of Keyword)
+   (optional-path [:packager]) Keyword
    (optional-path [:phases-meta]) phases-meta-schema
-   (optional-path [:default-phases]) (sequence-of keyword?)])
+   (optional-path [:default-phases]) (sequence-of Keyword)])
 
 (def-map-schema group-spec-schema
   node-spec-schema
   server-spec-schema
-  [[:group-name] keyword?
-   (optional-path [:node-filter]) fn?
-   (optional-path [:count]) number?])
+  [[:group-name] Keyword
+   (optional-path [:node-filter]) IFn
+   (optional-path [:count]) Number])
 
 (def-map-schema user-schema
   (constraints
    (fn [{:keys [password private-key-path private-key]}]
      (or password private-key private-key-path)))
-  [[:username] string?
-   (optional-path [:password]) [:or string? nil?]
-   (optional-path [:sudo-password]) [:or string? nil?]
+  [[:username] String
+   (optional-path [:password]) [:or String nil]
+   (optional-path [:sudo-password]) [:or String nil]
    (optional-path [:no-sudo]) any-value
-   (optional-path [:sudo-user]) [:or string? nil?]
+   (optional-path [:sudo-user]) [:or String nil]
    (optional-path [:temp-key]) any-value
-   (optional-path [:private-key-path]) [:or string? nil?]
-   (optional-path [:public-key-path]) [:or string? nil?]
-   (optional-path [:private-key]) [:or string? bytes? nil?]
-   (optional-path [:public-key]) [:or string? bytes? nil?]
-   (optional-path [:passphrase]) [:or string? bytes? nil?]])
+   (optional-path [:private-key-path]) [:or String nil]
+   (optional-path [:public-key-path]) [:or String nil]
+   (optional-path [:private-key]) [:or String bytes? nil]
+   (optional-path [:public-key]) [:or String bytes? nil]
+   (optional-path [:passphrase]) [:or String bytes? nil]])
 
 (def-map-schema environment-strict-schema
   [(optional-path [:algorithms]) (map-schema :loose [])
    (optional-path [:user]) user-schema
-   (optional-path [:executor]) fn?
-   (optional-path [:compute]) [:or compute-service? nil?]])
+   (optional-path [:executor]) IFn
+   (optional-path [:compute]) [:or compute-service? nil]])
 
 (def phase-with-args-schema
   (seq-schema
@@ -131,22 +133,22 @@
    any-value))
 
 (def phase-schema
-  [:or keyword? fn? phase-with-args-schema])
+  [:or Keyword IFn phase-with-args-schema])
 
 (def-map-schema lift-options-schema
   environment-strict-schema
-  [(optional-path [:compute]) [:or compute-service? nil?]
-   (optional-path [:blobstore]) [:or nil? blobstore?]
+  [(optional-path [:compute]) [:or compute-service? nil]
+   (optional-path [:blobstore]) [:or nil blobstore?]
    (optional-path [:phase]) [:or phase-schema (sequence-of phase-schema)]
    (optional-path [:environment]) (map-schema :loose environment-strict-schema)
    (optional-path [:user]) user-schema
-   (optional-path [:phase-execution-f]) fn?
-   (optional-path [:execution-settings-f]) fn?
-   (optional-path [:partition-f]) fn?
-   (optional-path [:post-phase-f]) fn?
-   (optional-path [:post-phase-fsm]) fn?
+   (optional-path [:phase-execution-f]) IFn
+   (optional-path [:execution-settings-f]) IFn
+   (optional-path [:partition-f]) IFn
+   (optional-path [:post-phase-f]) IFn
+   (optional-path [:post-phase-fsm]) IFn
    (optional-path [:async]) any-value
-   (optional-path [:timeout-ms]) number?
+   (optional-path [:timeout-ms]) Number
    (optional-path [:timeout-val]) any-value
    (optional-path [:debug :script-comments]) any-value
    (optional-path [:debug :script-trace]) any-value
