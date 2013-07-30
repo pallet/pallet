@@ -51,7 +51,8 @@
   [(optional-path [:hardware-id]) string?
    (optional-path [:min-ram]) number?
    (optional-path [:min-cores]) number?
-   (optional-path [:min-disk]) number?])
+   (optional-path [:min-disk]) number?
+   (optional-path [:hardware-model]) map?])
 
 (def-map-schema inbound-port-spec-schema
   [[:start-port] number?
