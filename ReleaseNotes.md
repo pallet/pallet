@@ -34,7 +34,7 @@ Unstable development branch
   facility.
 
 - Fall back on image info for os family and version
-  When a node returns nil for os-family or os-version, try extracting the 
+  When a node returns nil for os-family or os-version, try extracting the
   os-family and os-version from the group-spec.
 
 - Add summary metadata to package actions
@@ -46,7 +46,7 @@ Unstable development branch
   Closes #239
 
 - Add :script-comments action-option
-  The :script-comments option controls the generation of source line numbers 
+  The :script-comments option controls the generation of source line numbers
   in the generated script.
 
   Closes #241
@@ -82,7 +82,7 @@ Unstable development branch
   pallet.core.version-dispatch.
 
 - Guard PPA addition with apt list file check
-  Before installing a PPA, ensure it's .list file doesn't exist in
+  Before installing a PPA, ensure its .list file doesn't exist in
   /etc/apt/sources.list.d.
 
 - Fix looseness in node-spec contracts
@@ -123,7 +123,7 @@ Unstable development branch
   serialise the node information before they are destroyed.
 
 - Refactor node-map to pallet.node
-  This avoids a circular dependency in pallet.core.operation if it tries to 
+  This avoids a circular dependency in pallet.core.operation if it tries to
   use pallet.core.data-api.
 
 - Add p.c.data-api/session-data to serialize a session.
@@ -131,7 +131,7 @@ Unstable development branch
 - Remove cake support from environment
 
 - Wrap config file read exceptions to show path
-  If an exception is thrown when reading a pallet config file, ensures the 
+  If an exception is thrown when reading a pallet config file, ensures the
   path of the config file appears in the exception message.
 
 - Rename action-options key to ::action-options
@@ -146,7 +146,7 @@ Unstable development branch
 - Remove :node-values from results
 
 - Correct results on phase errors
-  The results were not returned correctly when phase errors occurred.  This 
+  The results were not returned correctly when phase errors occurred.  This
   ensures all phases are reported, not just the failing phase.
 
   Updates to pallet-fsmop 0.3.0.
@@ -181,7 +181,7 @@ Unstable development branch
 ## Features
 
 - Enable ssh-agent forwarding
-  The :ssh-agent-forwarding action option can be used to enable ssh agent 
+  The :ssh-agent-forwarding action option can be used to enable ssh agent
   forwarding.
 
 - Add context and action-symbol to result map
@@ -195,7 +195,7 @@ Unstable development branch
 - Add remote-file-arguments schema check
 
 - Remove pallet.repl
-  This is now in it's own project, pallet-repl.
+  This is now in its own project, pallet-repl.
 
 - Add crate-install :archive method
   Can be used to install from tarball/zip.
@@ -251,7 +251,7 @@ Unstable development branch
   Fixes #238
 
 - Fix mock-exec-plan to generate a valid group
-  Fixes pallet.core.data-api/mock-exec-plan so that the group spec it 
+  Fixes pallet.core.data-api/mock-exec-plan so that the group spec it
   generates matches the group-spec schema.
 
 - Enable default metadata on phases from environment
@@ -387,8 +387,8 @@ Unstable development branch
 
 - Make lift and converge synchronous by default
   pallet.api lift and converge revert to being synchronous by default.  Pass
-  :async true to enable the return of an Operation and have call complete 
-  asynchronously.  Also adds :timeout-ms and :timeout-val, that control the 
+  :async true to enable the return of an Operation and have call complete
+  asynchronously.  Also adds :timeout-ms and :timeout-val, that control the
   timeout behaviour of the synchronous operation.
 
   This breaking change as against 0.8 beta's, and is a reversion to 0.7
@@ -409,7 +409,7 @@ Unstable development branch
   Fixes #222
 
 - Rename return-value-expr to with-action-values
-  with-action-values is a clearer name.  return-value-expr remains, but is 
+  with-action-values is a clearer name.  return-value-expr remains, but is
   deprecated.
 
 - Rename node-predicate to node-filter in group-spec
@@ -455,16 +455,16 @@ Unstable development branch
   Now if values are nil empty string is logged instead.
 
 - Add live test for pallet.core.operations
-  Adds pallet.test-specs/operations-test with role :ops, which tests 
+  Adds pallet.test-specs/operations-test with role :ops, which tests
   p.c.o/lift and p.c.o/group-nodes, and operating on individual nodes.
 
 - Remove lift from pallet.core.operations/converge
   Factor out the lift from the tail of pallet.core.operations/converge, and
-  make pallet.api/converge use pallet.core.operations/converge and 
+  make pallet.api/converge use pallet.core.operations/converge and
   pallet.core.operations/lift.
 
 - Fix os-map-lookup
-  The os-map-lookup was incorrectly using the string returned by os-version, 
+  The os-map-lookup was incorrectly using the string returned by os-version,
   without converting it to a version vector.
 
 
@@ -571,7 +571,7 @@ Unstable development branch
 
 - Fix as-action
   as-action was not providing a state monad return value.  It now returns
-  the value of it's body and the input session as the monadic return value.
+  the value of its body and the input session as the monadic return value.
 
 - Add rsync integration test
 

@@ -7,7 +7,7 @@
 Pallet scripts are written using an embedding of shell script in [[http://clojure.org][Clojure]], and
 allows for abstraction of operating system variations.
 
-At it's simplest, the =script= macro takes one or more forms and converts them
+At its simplest, the =script= macro takes one or more forms and converts them
 to shell script.
 
 #+BEGIN_SRC clojure :tangle src/stevedore.clj

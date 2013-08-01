@@ -344,7 +344,7 @@ different ways.
 
 By default, the remote-file is versioned, and 5 versions are kept.
 
-The remote content is also verified against it's md5 hash.  If the contents
+The remote content is also verified against its md5 hash.  If the contents
 of the remote file have changed (e.g. have been edited on the remote machine)
 then by default the file will not be overwritten, and an error will be raised.
 To force overwrite, call `set-force-overwrite` before running `converge` or
