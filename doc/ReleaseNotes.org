@@ -231,7 +231,7 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
 - Add core/converge-cluster and lift-cluster
   Add's the ability to lift or converge one or more clusters.  Environment
-  specified on the cluster-spec is propogated to it's groups.
+  specified on the cluster-spec is propogated to its groups.
 
 - Automatically run the :settings phase on lift or converge
   In order to allow easy access to configuration metadata, run the
@@ -578,7 +578,7 @@ The release is on [[http://oss.sonatype.org/content/repositories/releases/org/cl
 
 ** Changes
 - Update jpackage functions to use jpackage-utils-compat-el5-0.0.1-1
-  Add a compatability package to allow jpackge to work with it's own
+  Add a compatability package to allow jpackge to work with its own
   jpackage-utils
 
 - Add pallet.package/add-rpm to install rpm files

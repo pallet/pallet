@@ -166,7 +166,7 @@ specified in the `:extends` argument."
   "Create a group-spec.
 
    `name` is used for the group name, which is set on each node and links a node
-   to it's node-spec
+   to its node-spec
 
    - :extends        specify a server-spec, a group-spec, or sequence thereof
                      and is used to inherit phases, etc.
