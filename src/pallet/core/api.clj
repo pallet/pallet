@@ -143,7 +143,9 @@
   "Returns execution settings based on the environment and the image user."
   []
   (fn [environment node]
-    (let [user (into {} (filter val (image-user (:node node))))
+    (let [user (or
+                (not-empty (into {} (filter val (image-user (:node node)))))
+                (:user environment))
           user (if (or (:private-key-path user) (:private-key user))
                  (assoc user :temp-key true)
                  user)]
