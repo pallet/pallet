@@ -334,7 +334,7 @@
   "Convert a scope to a single script function"
   [action-map]
   (if (= :nested-scope (:action-type action-map))
-    (assoc action-map :action-type :script/bash :target)
+    (assoc action-map :action-type :script/bash :location :target)
     action-map))
 
 (defn- script-type-scopes-in-scope
