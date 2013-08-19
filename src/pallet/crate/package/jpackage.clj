@@ -56,7 +56,7 @@
      redhat-el
 
    Installs the jpackage-utils package from the base repos at a
-   pritority of 25."
+   priority of 25."
   [& {:keys [version component releasever enabled]
       :or {component "redhat-el"
            releasever "$releasever"

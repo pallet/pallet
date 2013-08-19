@@ -311,11 +311,53 @@
 
 (script/defscript tmp-dir [])
 (script/defimpl tmp-dir :default []
-  @TMPDIR-/tmp)
+  (deref TMPDIR :default-value
+         (deref TEMP :default-value
+                (deref TMP :default-value
+                       @(if (directory? "/tmp")
+                          (println "/tmp")
+                          (if (directory? "/var/tmp")
+                            (println "/var/tmp")
+                            (if (directory? "/use/tmp")
+                              (println "/usr/tmp"))))))))
 
-(script/defscript make-temp-file [pattern])
-(script/defimpl make-temp-file :default [pattern]
-  @("mktemp" (quoted ~(str pattern "XXXXX"))))
+(script/defscript make-temp-file [pattern & {:keys [tmpdir]}])
+
+(script/defimpl make-temp-file :default
+  [pattern & {:keys [tmpdir]}]
+  ;; mktemp without --tmpdir, and -t with no option value
+  ~(if tmpdir
+     (if (string? tmpdir)
+       (script
+        ("("                            ; subprocess so TMPDIR is not clobbered
+         (set! TMPDIR (quoted ~tmpdir))
+         @("mktemp" -t (quoted ~(str pattern "XXXXX")))
+         ")"))
+       (script @("mktemp" -t (quoted ~(str pattern "XXXXX")))))
+     (script
+      @("mktemp" (quoted ~(str pattern "XXXXX"))))))
+
+(script/defimpl make-temp-file [:ubuntu]
+  [pattern & {:keys [tmpdir] :as options}]
+  ;; mktemp with --tmpdir
+  @("mktemp"
+    ~(stevedore/map-to-arg-string options :assign true)
+    (quoted ~(str pattern "XXXXX"))))
+
+(script/defimpl make-temp-file [:darwin :os-x]
+  [pattern & {:keys [tmpdir]}]
+  ;; mktemp without --tmpdir, and -t with an option value
+  ~(if tmpdir
+     (if (string? tmpdir)
+       (script
+        ("("                            ; subprocess so TMPDIR is not clobbered
+         (set! TMPDIR (quoted ~tmpdir))
+         @("mktemp" -t (quoted ~pattern) "XXXXX")
+         ")"))
+       (script @("mktemp" -t (quoted ~pattern) "XXXXX")))
+
+     (script
+      @("mktemp" (quoted ~(str pattern "XXXXX"))))))
 
 (script/defscript heredoc-in [cmd content {:keys [literal]}])
 (script/defimpl heredoc-in :default [cmd content {:keys [literal]}]
@@ -815,6 +857,10 @@
 (script/defscript pid-root [])
 (script/defimpl pid-root :default []
   "/var/run")
+
+(script/defscript spool-root [])
+(script/defimpl spool-root :default []
+  "/var/spool")
 
 (script/defscript config-root [])
 (script/defimpl config-root :default []

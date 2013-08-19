@@ -19,7 +19,8 @@
    [pallet.node-value :refer [node-value]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
-   [pallet.utils :refer [apply-map log-multiline tmpfile]]))
+   [pallet.utils :refer [apply-map log-multiline tmpfile]])
+  (:import clojure.lang.Keyword))
 
 ;;; # Direct Script Execution
 
@@ -259,7 +260,7 @@ value is itself an action return value."
           option forwarding when calling remote-file from other crates."}
   content-options
   [:local-file :remote-file :url :md5 :content :literal :template :values
-   :action :blob :blobstore :insecure])
+   :action :blob :blobstore :insecure :link])
 
 (def
   ^{:doc "A vector of options for controlling versions. Can be used for option
@@ -283,27 +284,27 @@ value is itself an action return value."
   :strict
   (constraints
    (fn [m] (some (set content-options) (keys m))))
-  [(optional-path [:local-file]) string?
-   (optional-path [:remote-file]) string?
-   (optional-path [:url]) string?
-   (optional-path [:md5]) string?
-   (optional-path [:md5-url]) string?
-   (optional-path [:content]) [:or string? delayed-argument?]
+  [(optional-path [:local-file]) String
+   (optional-path [:remote-file]) String
+   (optional-path [:url]) String
+   (optional-path [:md5]) String
+   (optional-path [:md5-url]) String
+   (optional-path [:content]) [:or String delayed-argument?]
    (optional-path [:literal]) any-value
-   (optional-path [:template]) string?
+   (optional-path [:template]) String
    (optional-path [:values]) (map-schema :loose [])
-   (optional-path [:action]) keyword?
+   (optional-path [:action]) Keyword
    (optional-path [:blob]) (map-schema :strict
-                                       [[:container] string? [:path] string?])
+                                       [[:container] String [:path] String])
    (optional-path [:blobstore]) any-value  ; cheating to avoid adding a reqiure
    (optional-path [:insecure]) any-value
    (optional-path [:overwrite-changes]) any-value
    (optional-path [:no-versioning]) any-value
-   (optional-path [:max-versions]) number?
-   (optional-path [:flag-on-changed]) string?
-   (optional-path [:owner]) string?
-   (optional-path [:group]) string?
-   (optional-path [:mode]) [:or string? number?]
+   (optional-path [:max-versions]) Number
+   (optional-path [:flag-on-changed]) String
+   (optional-path [:owner]) String
+   (optional-path [:group]) String
+   (optional-path [:mode]) [:or String Number]
    (optional-path [:force]) any-value
    (optional-path [:verify]) any-value])
 
@@ -343,7 +344,7 @@ different ways.
 
 By default, the remote-file is versioned, and 5 versions are kept.
 
-The remote content is also verified against it's md5 hash.  If the contents
+The remote content is also verified against its md5 hash.  If the contents
 of the remote file have changed (e.g. have been edited on the remote machine)
 then by default the file will not be overwritten, and an error will be raised.
 To force overwrite, call `set-force-overwrite` before running `converge` or
@@ -398,7 +399,7 @@ Options for version control are:
 : do not version the file
 
 `max-versions`
-: specfy the number of versions to keep (default 5)
+: specify the number of versions to keep (default 5)
 
 `flag-on-changed`
 : flag to set if file is changed
@@ -531,7 +532,10 @@ Options:
   components
 
 `:strip-components`
-: number of path compnents to remove when unpacking
+: number of path components to remove when unpacking
+
+`:extract-files`
+: extract only the specified files or directories from the archive
 
 `:md5`
 : md5 of file to unpack
@@ -556,7 +560,7 @@ option.
        :url \"http://a.com/path/file.tgz\")
 
 If there is an md5 url with the tar file's md5, you can specify that as well,
-to prevent unecessary downloads and verify the content.
+to prevent unnecessary downloads and verify the content.
 
     (remote-directory session path
        :url \"http://a.com/path/file.tgz\"
@@ -567,7 +571,15 @@ option and :unpack :unzip.
 
     (remote-directory session path
        :url \"http://a.com/path/file.\"
-       :unpack :unzip)"
+       :unpack :unzip)
+
+To install the content of an url pointing at a jar/tar/zip file, extracting
+only specified files or directories, use the :extract-files option.
+
+    (remote-directory session path
+       :url \"http://a.com/path/file.jar\"
+       :unpack :jar
+       :extract-files [\"dir/file\" \"file2\"])"
   {:pallet/plan-fn true}
   [path & {:keys [action url local-file remote-file
                   unpack tar-options unzip-options jar-options
@@ -620,6 +632,7 @@ option and :unpack :unzip.
     - :enable [repo|(seq repo)]   enable specific repository
     - :disable [repo|(seq repo)]  disable specific repository
     - :priority n                 priority (0-100, default 50)
+    - :disable-service-start      disable service startup (default false)
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
@@ -652,7 +665,7 @@ option and :unpack :unzip.
    - :list-installed  - output a list of the installed packages
    - :add-scope       - enable a scope (eg. multiverse, non-free)
 
-   To refresh the list of packages known to the pakage manager:
+   To refresh the list of packages known to the package manager:
        (package-manager session :update)
 
    To enable multiverse on ubuntu:
@@ -818,7 +831,7 @@ Specify `:line` as a string, or `:package`, `:question`, `:type` and
   "Control services.
 
    - :action  accepts either startstop, restart, enable or disable keywords.
-   - :if-flag  makes start, stop, and restart confitional on the specified flag
+   - :if-flag  makes start, stop, and restart conditional on the specified flag
                as set, for example, by remote-file :flag-on-changed
    - :sequence-start  a sequence of [sequence-number level level ...], where
                       sequence number determines the order in which services

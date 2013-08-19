@@ -57,7 +57,7 @@
   (fn [service-map group-spec]
     (service-map
      (or
-      (f group-spec)
+      (f service-map group-spec)
       (throw
        (RuntimeException.
         (str "No dispatch for group " group-spec)))))))
@@ -82,6 +82,8 @@
     (configure/compute-service-from-map definition)
     definition))
 
+;;; sub-services is either a sequence of service keywords, or a map
+;;; from service name to a service configuration map.
 (defmethod implementation/service :hybrid
   [provider {:keys [sub-services
                     groups-for-services

@@ -536,7 +536,7 @@
             (nil? (second action-plan)))))
 
 (defn map-action-f
-  "Map exec-action over actions in the action-plan, applying sesssion."
+  "Map exec-action over actions in the action-plan, applying session."
   [exec-action action-plan session]
   ((domonad action-exec-m [v (m-map exec-action action-plan)] v)
    session))

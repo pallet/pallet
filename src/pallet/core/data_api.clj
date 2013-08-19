@@ -15,7 +15,7 @@
 
 (defn- mock-exec-plan
   "Creates mock provider with a mock node, and a mock group, and then lifts
- the plan funcion `pfn` on such group. "
+ the plan function `pfn` on such group. "
   [executor pfn node & {:keys [settings-phase ]}]
   (let [compute (node-list-service [node])
         group-name (second node)

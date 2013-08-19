@@ -7,7 +7,7 @@
   "Provide information on the supported and enabled providers."
   {:no-service-required true}
   [& _]
-  (println "Pallet uses it's own and jcloud's providers.\n")
+  (println "Pallet uses its own and jcloud's providers.\n")
   (doseq [name (supported-providers)]
     (println (format "  %s" name)))
   (println "\nProviders can be enabled by adding a dependency on a pallet or\n")

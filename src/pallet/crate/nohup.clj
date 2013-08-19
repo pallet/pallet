@@ -8,7 +8,6 @@
    [pallet.actions
     :refer [directory
             exec-checked-script
-            file
             plan-when
             plan-when-not
             remote-file]]
@@ -19,7 +18,7 @@
     :refer [service-supervisor
             service-supervisor-available?
             service-supervisor-config]]
-   [pallet.script.lib :refer [state-root]]
+   [pallet.script.lib :refer [file state-root]]
    [pallet.stevedore :refer [fragment]]
    [pallet.utils :refer [apply-map]]))
 

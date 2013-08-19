@@ -34,7 +34,7 @@ Unstable development branch
   facility.
 
 - Fall back on image info for os family and version
-  When a node returns nil for os-family or os-version, try extracting the 
+  When a node returns nil for os-family or os-version, try extracting the
   os-family and os-version from the group-spec.
 
 - Add summary metadata to package actions
@@ -46,7 +46,7 @@ Unstable development branch
   Closes #239
 
 - Add :script-comments action-option
-  The :script-comments option controls the generation of source line numbers 
+  The :script-comments option controls the generation of source line numbers
   in the generated script.
 
   Closes #241
@@ -82,7 +82,7 @@ Unstable development branch
   pallet.core.version-dispatch.
 
 - Guard PPA addition with apt list file check
-  Before installing a PPA, ensure it's .list file doesn't exist in
+  Before installing a PPA, ensure its .list file doesn't exist in
   /etc/apt/sources.list.d.
 
 - Fix looseness in node-spec contracts
@@ -123,7 +123,7 @@ Unstable development branch
   serialise the node information before they are destroyed.
 
 - Refactor node-map to pallet.node
-  This avoids a circular dependency in pallet.core.operation if it tries to 
+  This avoids a circular dependency in pallet.core.operation if it tries to
   use pallet.core.data-api.
 
 - Add p.c.data-api/session-data to serialize a session.
@@ -131,10 +131,10 @@ Unstable development branch
 - Remove cake support from environment
 
 - Wrap config file read exceptions to show path
-  If an exception is thrown when reading a pallet config file, ensures the 
+  If an exception is thrown when reading a pallet config file, ensures the
   path of the config file appears in the exception message.
 
-- Rename aciton-options key to ::action-options
+- Rename action-options key to ::action-options
 
 - Move action-options into :plan-state
   This will allow action options to be passed into lift and converge.
@@ -146,7 +146,7 @@ Unstable development branch
 - Remove :node-values from results
 
 - Correct results on phase errors
-  The results were not returned correctly when phase errors occurred.  This 
+  The results were not returned correctly when phase errors occurred.  This
   ensures all phases are reported, not just the failing phase.
 
   Updates to pallet-fsmop 0.3.0.
@@ -181,7 +181,7 @@ Unstable development branch
 ## Features
 
 - Enable ssh-agent forwarding
-  The :ssh-agent-forwarding action option can be used to enable ssh agent 
+  The :ssh-agent-forwarding action option can be used to enable ssh agent
   forwarding.
 
 - Add context and action-symbol to result map
@@ -195,7 +195,7 @@ Unstable development branch
 - Add remote-file-arguments schema check
 
 - Remove pallet.repl
-  This is now in it's own project, pallet-repl.
+  This is now in its own project, pallet-repl.
 
 - Add crate-install :archive method
   Can be used to install from tarball/zip.
@@ -215,7 +215,7 @@ Unstable development branch
 
 - Add blobstore function to pallet.crate
 
-- Add local vairables for clojure-mode indents
+- Add local variables for clojure-mode indents
 
 ## Fixes
 
@@ -237,7 +237,7 @@ Unstable development branch
 
 - Ensure correct permissions under /var/lib/pallet
   The ownership and permissions under /var/lib/pallet should mirror the
-  ownership and permissiond of the reflected filesystem, otherwise difficult
+  ownership and permission of the reflected filesystem, otherwise difficult
   to understand permission problems occur.
 
 - Correct several namespace requires
@@ -251,7 +251,7 @@ Unstable development branch
   Fixes #238
 
 - Fix mock-exec-plan to generate a valid group
-  Fixes pallet.core.data-api/mock-exec-plan so that the group spec it 
+  Fixes pallet.core.data-api/mock-exec-plan so that the group spec it
   generates matches the group-spec schema.
 
 - Enable default metadata on phases from environment
@@ -387,8 +387,8 @@ Unstable development branch
 
 - Make lift and converge synchronous by default
   pallet.api lift and converge revert to being synchronous by default.  Pass
-  :async true to enable the return of an Operation and have call complete 
-  asynchronously.  Also adds :timeout-ms and :timeout-val, that control the 
+  :async true to enable the return of an Operation and have call complete
+  asynchronously.  Also adds :timeout-ms and :timeout-val, that control the
   timeout behaviour of the synchronous operation.
 
   This breaking change as against 0.8 beta's, and is a reversion to 0.7
@@ -409,7 +409,7 @@ Unstable development branch
   Fixes #222
 
 - Rename return-value-expr to with-action-values
-  with-action-values is a clearer name.  return-value-expr remains, but is 
+  with-action-values is a clearer name.  return-value-expr remains, but is
   deprecated.
 
 - Rename node-predicate to node-filter in group-spec
@@ -455,16 +455,16 @@ Unstable development branch
   Now if values are nil empty string is logged instead.
 
 - Add live test for pallet.core.operations
-  Adds pallet.test-specs/operations-test with role :ops, which tests 
+  Adds pallet.test-specs/operations-test with role :ops, which tests
   p.c.o/lift and p.c.o/group-nodes, and operating on individual nodes.
 
 - Remove lift from pallet.core.operations/converge
   Factor out the lift from the tail of pallet.core.operations/converge, and
-  make pallet.api/converge use pallet.core.operations/converge and 
+  make pallet.api/converge use pallet.core.operations/converge and
   pallet.core.operations/lift.
 
 - Fix os-map-lookup
-  The os-map-lookup was incorrectly using the string returned by os-version, 
+  The os-map-lookup was incorrectly using the string returned by os-version,
   without converting it to a version vector.
 
 
@@ -493,7 +493,7 @@ Unstable development branch
 
   Closes #223.
 
-- Fix mergeing of environment phases
+- Fix merging of environment phases
 
 - Fix lift task for updated project-groups arity
 
@@ -571,7 +571,7 @@ Unstable development branch
 
 - Fix as-action
   as-action was not providing a state monad return value.  It now returns
-  the value of it's body and the input session as the monadic return value.
+  the value of its body and the input session as the monadic return value.
 
 - Add rsync integration test
 
@@ -621,7 +621,7 @@ Unstable development branch
 
 - Ensure asserts within plan functions are reported
 
-- Create temp directorys under TEMPDIR on osx
+- Create temp directories under TEMPDIR on osx
 
 - Make md5 checking on os x more robust
 
@@ -805,7 +805,7 @@ Unstable development branch
 - Remove dependency on CompilerException
 
 - Add dependency message on project file failure
-  When a task fails to load the projec pallet.clj file, output a message
+  When a task fails to load the project pallet.clj file, output a message
   that explains that a dependency needs to be added.
 
 - Change group ID to com.palletops, pom.xml, and lein project.clj
@@ -1083,7 +1083,7 @@ Unstable development branch
 
 - Make target-flag? callable as a plan function
 
-- Add target crate funtion
+- Add target crate function
   Returns the denormalised map for the target node.
 
 - Add assertf plan function
@@ -1178,11 +1178,11 @@ Unstable development branch
 
 - Fix use of package-source in crate-install
 
-- Add a confirmation to add-apt-repository in pacakage-source
+- Add a confirmation to add-apt-repository in package-source
 
 - Fix live-test
   Neither the environment nor existing nodes were being used when
-  convereging nodes for a test.
+  converging nodes for a test.
 
 - Ensure the state after a final plan function is verified
   Due to optimisations in clojure.algo.monads, the final state in a chain-s
@@ -1229,7 +1229,7 @@ Unstable development branch
 - Quieten p.actions.direct.settings-test
 
 - Factor out lift* and converge* in pallet.api
-  The lift* and converge* fuctions return the fsms used by left and
+  The lift* and converge* functions return the fsms used by left and
   converge respectively, without calling operate on them.
 
 - Improve etc-hosts docstring and tests
@@ -1360,7 +1360,7 @@ Unstable development branch
 - Fix rsync-directory action to not install rsync
   We would like to ensure rsync is installed, but this requires root
   permissions, and doesn't work when the action is run without root
-  permision.
+  permission.
 
 - Fix pipeline-when to correctly handle keywords used as functions
 
@@ -1380,7 +1380,7 @@ Unstable development branch
 - Add node tagging SPI
   Closes #139
 
-- Fix converge for denormailsed nodes
+- Fix converge for denormalised nodes
 
 - Fix pipeline-when for new stevedore test expression generation
 

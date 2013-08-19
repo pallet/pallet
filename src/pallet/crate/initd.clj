@@ -27,12 +27,13 @@
 
 (defn write-service
   [service-name {:keys [init-file] :as service-options} options]
-  (apply-map
-   remote-file
-   (init-script-path service-name)
-   :owner "root" :group "root" :mode "0755"
-   :literal true
-   init-file))
+  (when init-file                       ; enable use of pre-installed init files
+    (apply-map
+     remote-file
+     (init-script-path service-name)
+     :owner "root" :group "root" :mode "0755"
+     :literal true
+     init-file)))
 
 (defn jobs
   "Write out job definitions."

@@ -24,12 +24,12 @@ unprecedented level of customization."
                  [com.palletops/pallet-repl "0.8.0-beta.1"
                   :exclusions [com.palletops/pallet]]
                  [com.palletops/script-exec "0.3.5"]
-                 [com.palletops/stevedore "0.8.0-beta.2"]
+                 [com.palletops/stevedore "0.8.0-beta.4"]
                  [enlive "1.0.1"
                   :exclusions [org.clojure/clojure]]
-                 [pallet-fsmop "0.3.0"]
+                 [pallet-fsmop "0.3.1"]
                  [pallet-map-merge "0.1.0"]
-                 [org.clojars.runa/clj-schema "0.9.2"]
+                 [org.clojars.runa/clj-schema "0.9.4"]
                  [useful "0.8.6"]
                  [commons-codec "1.4"]]
   :classifiers {:tests {:source-paths ^:replace ["test"]

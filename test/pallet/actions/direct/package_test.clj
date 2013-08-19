@@ -53,6 +53,7 @@
              "Packages"
              (~lib/package-manager-non-interactive)
              (chain-and
+              (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
               "apt-get -q -y install java+ rubygems+ git- ruby_"
               ("dpkg" "--get-selections")))))
          (first
@@ -70,14 +71,15 @@
             (exec-checked-script
              "Packages"
              (~lib/package-manager-non-interactive)
+             (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
              "aptitude install -q -y java+ rubygems+ git- ruby_"
              "aptitude search \"?and(?installed, ?name(^java$))\" | grep \"java\""
              "aptitude search \"?and(?installed, ?name(^rubygems$))\" | grep \"rubygems\""
-             "! ( aptitude search \"?and(?installed, ?name(^git$))\" | grep \"git\" )"
-             "! ( aptitude search \"?and(?installed, ?name(^ruby$))\" | grep \"ruby\" )")))
+             "! { aptitude search \"?and(?installed, ?name(^git$))\" | grep \"git\"; }"
+             "! { aptitude search \"?and(?installed, ?name(^ruby$))\" | grep \"ruby\"; }")))
          (first
           (build-actions
-              {:server {:packager :aptitude :image {:os-family :centos}}}
+              {:server {:packager :aptitude :image {:os-family :ubuntu}}}
             (package "java" :action :install)
             (package "rubygems")
             (package "git" :action :remove)
@@ -543,6 +545,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (stevedore/checked-script
             "Packages"
             (~lib/package-manager-non-interactive)
+            (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
             (chain-and
              ("apt-get" -q -y install p1- p4_ p2+ p3+)
              ("dpkg" "--get-selections")))
@@ -553,12 +556,36 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                {:package "p2" :action :install}
                {:package "p3" :action :upgrade}
                {:package "p4" :action :remove :purge true}]))))))
+  (testing "apt with disabled package start"
+    (script/with-script-context [:apt]
+      (is (script-no-comment=
+           (stevedore/checked-script
+            "Packages"
+            (~lib/package-manager-non-interactive)
+            (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
+            (chain-and
+             ("trap" enableStart EXIT)
+             ("{" ("cat" > "/usr/sbin/policy-rc.d"
+                   "<<EOFpallet\n#!/bin/sh\nexit 101\nEOFpallet\n") "}")
+             ("apt-get" -q -y install p1- p4_ p2+ p3+)
+             ("enableStart")
+             ("trap" - EXIT)
+             ("dpkg" "--get-selections")))
+           (binding [pallet.action-plan/*defining-context* nil]
+             (adjust-packages
+              ubuntu-session
+              [{:package "p1" :action :remove :disable-service-start true}
+               {:package "p2" :action :install :disable-service-start true}
+               {:package "p3" :action :upgrade :disable-service-start true}
+               {:package "p4" :action :remove :purge true
+                :disable-service-start true}]))))))
   (testing "aptitude"
     (script/with-script-context [:aptitude]
       (is (script-no-comment=
            (stevedore/checked-script
             "Packages"
             (~lib/package-manager-non-interactive)
+            (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
             ("aptitude" install -q -y p1- p4_ p2+ p3+)
             (not (pipe
                   ("aptitude" search (quoted "?and(?installed, ?name(^p1$))"))
@@ -585,6 +612,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (stevedore/checked-script
             "Packages"
             (~lib/package-manager-non-interactive)
+            (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
             ("aptitude" install -q -y -t r1 p2+)
             ("aptitude" install -q -y p1+)
             (pipe
@@ -604,6 +632,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            (stevedore/checked-script
             "Packages"
             (~lib/package-manager-non-interactive)
+            (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
             ("aptitude" install -q -y p1+)
             ("aptitude" install -q -y -o "'APT::Get::AllowUnauthenticated=true'" p2+)
             (pipe

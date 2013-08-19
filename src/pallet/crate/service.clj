@@ -92,7 +92,7 @@ Specifies an instance id, should there be more than one instance of the
 supervisor (not the facility)."
   [{:keys [supervisor service-name] :as settings}
    {:keys [action if-flag if-stopped instance-id] :as options}]
-  {:pre [supervisor]}
+  {:pre [supervisor service-name]}
   (service-supervisor supervisor settings options))
 
 ;;; ## Service Configuration

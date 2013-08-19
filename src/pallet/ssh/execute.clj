@@ -15,7 +15,7 @@
    [pallet.node :as node]
    [pallet.script-builder :as script-builder]
    [pallet.script.lib :as lib]
-   [pallet.script.lib :refer [chown exit mkdir]]
+   [pallet.script.lib :refer [chown env exit mkdir]]
    [pallet.stevedore :as stevedore]
    [pallet.transport :as transport]
    [pallet.transport.local]
@@ -45,13 +45,17 @@
 (defn- ssh-mktemp
   "Create a temporary remote file using the `ssh-session` and the filename
   `prefix`"
-  [connection prefix]
+  [connection prefix script-env]
   (logging/tracef "ssh-mktemp %s" (bean connection))
-  (let [result (transport/exec
-                connection
-                {:execv [(stevedore/script
-                          (println (~lib/make-temp-file ~prefix)))]}
-                {})]
+  (let [cmd (stevedore/script
+             ((env ~@(mapcat identity script-env))
+              (println
+               (~lib/make-temp-file
+                ~prefix
+                :tmpdir ~(get script-env "TMPDIR")))))
+        result (transport/exec connection {:execv [cmd]} {})]
+    (logging/tracef "ssh-mktemp script-env %s" script-env)
+    (logging/tracef "ssh-mktemp %s %s" cmd result)
     (if (zero? (:exit result))
       (string/trim (result :out))
       (throw
@@ -118,14 +122,14 @@
   (let [endpoint (endpoint session)]
     (logutils/with-context [:target (:server endpoint)]
       (logging/infof
-       "%s %s %s"
-       (:server endpoint)
+       "%s %s %s %s"
+       (:server endpoint) (:port endpoint)
        (or (context-label action) "")
        (or (:summary options) ""))
       (with-connection session [connection]
         (let [authentication (transport/authentication connection)
               script (script-builder/build-script options script action)
-              tmpfile (ssh-mktemp connection "pallet")
+              tmpfile (ssh-mktemp connection "pallet" (:script-env action))
               sudo-user (or (:sudo-user action)
                             (-> authentication :user :sudo-user))]
 
