@@ -81,7 +81,7 @@
 (defn service-resources
   "Read all service definitions in pallet_services/ resources."
   []
-  (for [path (data-plugins "pallet_services/")]
+  (for [path (data-plugins "pallet_services/" #"\.DS_Store")]
     (read-string (slurp (resource path)))))
 
 (defn pallet-config
