@@ -19,7 +19,7 @@ git add ReleaseNotes.md README.md \
 && mvn release:clean \
 && mvn release:prepare \
 && mvn release:perform \
-&& mvn mvn nexus-staging:release
+&& mvn nexus-staging:release
 
 mvn site
 
