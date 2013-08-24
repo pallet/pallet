@@ -82,6 +82,12 @@ list, Alan Dipert and MeikelBrandmeyer."
   (script/with-script-context [:ubuntu]
     (f)))
 
+(defn with-centos-script-template
+  [f]
+  "A test fixture for selection ubuntu as the script context"
+  (script/with-script-context [:centos]
+    (f)))
+
 (defn with-bash-script-language
   [f]
   "A test fixture for selection bash as the output language"
