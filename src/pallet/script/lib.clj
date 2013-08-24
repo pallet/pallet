@@ -1,5 +1,6 @@
 (ns pallet.script.lib
   "Script library for abstracting target host script differences"
+  (:refer-clojure :exclude [source])
   (:require
    [clojure.string :as string]
    [pallet.script :as script]
@@ -21,6 +22,14 @@
 (script/defscript exit [value])
 (script/defimpl exit :default [value]
   ("exit" ~value))
+
+(script/defscript export [name value])
+(script/defimpl export :default [name value]
+  ("export" (str ~name "=" ~value)))
+
+(script/defscript source [path])
+(script/defimpl source :default [path]
+  ("source" ~path))
 
 (script/defscript xargs [script])
 (script/defimpl xargs :default
