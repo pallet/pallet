@@ -1,6 +1,8 @@
 language: clojure
+before_install:
+  - git clone https://github.com/pallet/pallet-settings-xml.git
+install: mvn --settings pallet-settings-xml/settings.xml install -DskipTests=true
 before_script:
   - ssh-keygen -N "" -f ~/.ssh/id_rsa
   - cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
-script: mvn test
-install: mvn install -DskipTests=true
+script: mvn --settings pallet-settings-xml/settings.xml test
