@@ -1,5 +1,10 @@
 The latest release is 0.7.4
 
+# 0.7.5
+
+- Fix #272
+  Assoc call requires key-val pairs
+
 # 0.7.4
 
 - Backport #223 to 0.7.x
