@@ -952,7 +952,8 @@
   [path type]
   (if (&& (~has-command? chcon)
           (&& (directory? "/etc/selinux")
-              ("stat" --format "%C" ~path "2>&-")))
+              (&& (file-exists? "/selinux/enforce")
+                  ("stat" --format "%C" ~path "2>&-"))))
     ("chcon" -Rv ~(str "--type=" type) ~path)))
 
 (script/defscript selinux-bool
