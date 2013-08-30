@@ -35,7 +35,7 @@
                        (deref "actual") "\\)\\)"))
          (let "failcount" (+ "failcount" 1)))))
   ([expected actual]
-     `(is= expected actual nil)))
+     `(is= ~expected ~actual nil)))
 
 (defmacro is-true
   "Test for true (ie 0)"
