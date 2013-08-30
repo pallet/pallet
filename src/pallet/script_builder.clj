@@ -88,33 +88,30 @@ future)."
 (defn build-code
   "Builds a code map, describing the command to execute a script."
   [session {:keys [default-script-prefix script-context script-dir script-env
-                   script-prefix sudo-user]
+                   script-env-fwd script-prefix sudo-user]
             :as action}
    & args]
   (debugf
    "%s"
    (select-keys action
-                [:default-script-prefix :script-dir :script-env :script-prefix
-                 :sudo-user :script-context]))
+                [:default-script-prefix :script-dir :script-env :script-env-fwd
+                 :script-prefix :sudo-user :script-context]))
   (debugf
    "prefix kw %s"
    (:script-prefix session (or script-prefix default-script-prefix :sudo)))
   (with-script-context (concat *script-context* script-context)
     (with-source-line-comments false
-      {:execv
-       (->>
-        (concat
-         (when-let [prefix (prefix
-                            (:script-prefix
-                             session
-                             (or script-prefix default-script-prefix :sudo))
-                            session
-                            action)]
-           (debugf "prefix %s" prefix)
-           (string/split prefix #" "))
-         [(fragment (env))]
-         (env-var-pairs (merge {:SSH_AUTH_SOCK (fragment @SSH_AUTH_SOCK)}
-                               (or script-env (:script-env session))))
-         (interpreter {:language :bash})
-         args)
-        (filter identity))})))
+      {:env-cmd (fragment (env))
+       :env (or script-env (:script-env session))
+       :env-fwd (or script-env-fwd (:script-env-fwd session) [:SSH_AUTH_SOCK])
+       :prefix (when-let [prefix (prefix
+                                  (:script-prefix
+                                   session
+                                   (or script-prefix
+                                       default-script-prefix
+                                       :sudo))
+                                  session
+                                  action)]
+                 (debugf "prefix %s" prefix)
+                 (string/split prefix #" "))
+       :execv (concat (interpreter {:language :bash}) args)})))

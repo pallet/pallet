@@ -47,22 +47,46 @@
 
 (deftest build-code-test
   (script/with-script-context [:ubuntu]
-    (is (= {:execv ["/usr/bin/sudo" "-n"
-                    "/usr/bin/env" "SSH_AUTH_SOCK=\"${SSH_AUTH_SOCK}\""
-                    "/bin/bash"]}
+    (is (= {:prefix ["/usr/bin/sudo" "-n"]
+            :env-cmd "/usr/bin/env"
+            :env nil
+            :env-fwd [:SSH_AUTH_SOCK]
+            :execv ["/bin/bash"]}
            (build-code {:user {}} {})))
-    (is (= {:execv ["/usr/bin/env" "SSH_AUTH_SOCK=\"${SSH_AUTH_SOCK}\""
-                    "/bin/bash"]}
+    (is (= {:prefix nil
+            :env-cmd "/usr/bin/env"
+            :env nil
+            :env-fwd [:SSH_AUTH_SOCK]
+            :execv ["/bin/bash"]}
            (build-code {:user {:no-sudo true}} {})))
-    (is (= {:execv ["/usr/bin/env" "SSH_AUTH_SOCK=\"${SSH_AUTH_SOCK}\""
-                    "/bin/bash"]}
+    (is (= {:prefix nil
+            :env-cmd "/usr/bin/env"
+            :env nil
+            :env-fwd [:SSH_AUTH_SOCK]
+            :execv ["/bin/bash"]}
            (build-code {:user {}} {:script-prefix :no-prefix})))
-    (is (= {:execv
-            ["/usr/bin/sudo" "-n" "-u" "fred"
-             "/usr/bin/env" "SSH_AUTH_SOCK=\"${SSH_AUTH_SOCK}\""
-             "/bin/bash"]}
+    (is (= {:prefix ["/usr/bin/sudo" "-n" "-u" "fred"]
+            :env-cmd "/usr/bin/env"
+            :env nil
+            :env-fwd [:SSH_AUTH_SOCK]
+            :execv
+            ["/bin/bash"]}
            (build-code {:user {}} {:sudo-user "fred"})))
-    (is (= {:execv
-            ["/usr/bin/sudo" "-n" "-u" "fred"
-             "/usr/bin/env" "SSH_AUTH_SOCK=\"${SSH_AUTH_SOCK}\"" "/bin/bash"]}
-           (build-code {:user {:sudo-user "fred"}} {})))))
+    (is (= {:prefix ["/usr/bin/sudo" "-n" "-u" "fred"]
+            :env-cmd "/usr/bin/env"
+            :env nil
+            :env-fwd [:SSH_AUTH_SOCK]
+            :execv ["/bin/bash"]}
+           (build-code {:user {:sudo-user "fred"}} {})))
+    (is (= {:prefix ["/usr/bin/sudo" "-n"]
+            :env-cmd "/usr/bin/env"
+            :env {:a "1"}
+            :env-fwd [:SSH_AUTH_SOCK]
+            :execv ["/bin/bash"]}
+           (build-code {:user {}} {:script-env {:a "1"}})))
+    (is (= {:prefix ["/usr/bin/sudo" "-n"]
+            :env-cmd "/usr/bin/env"
+            :env nil
+            :env-fwd [:a]
+            :execv ["/bin/bash"]}
+           (build-code {:user {}} {:script-env-fwd [:a]})))))

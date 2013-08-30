@@ -6,14 +6,19 @@
    [pallet.stevedore :refer [with-script-language]]))
 
 (deftest build-code-test
-  (is (= {:execv ["/usr/bin/env" "SSH_AUTH_SOCK=\"${SSH_AUTH_SOCK}\""
-                  "/bin/bash" "tmpf"]}
+  (is (= {:env-cmd "/usr/bin/env"
+          :env-fwd [:SSH_AUTH_SOCK]
+          :env nil
+          :prefix nil
+          :execv ["/bin/bash" "tmpf"]}
          (with-script-language :pallet.stevedore.bash/bash
            (with-script-context [:ubuntu]
              (build-code {} {} (java.io.File. "tmpf"))))))
-  (is (= {:execv ["/usr/bin/sudo" "-n"
-                  "/usr/bin/env" "SSH_AUTH_SOCK=\"${SSH_AUTH_SOCK}\""
-                  "/bin/bash" "tmpf"]}
+  (is (= {:prefix ["/usr/bin/sudo" "-n"]
+          :env-fwd [:SSH_AUTH_SOCK]
+          :env-cmd "/usr/bin/env"
+          :env nil
+          :execv ["/bin/bash" "tmpf"]}
          (with-script-language :pallet.stevedore.bash/bash
            (with-script-context [:ubuntu]
              (build-code {} {:script-prefix :sudo} (java.io.File. "tmpf")))))))
