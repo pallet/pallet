@@ -71,7 +71,7 @@
              ~(create-path-with-template
                "path"
                (str
-                "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
+                "/var/lib/pallet" "/home/fred" "/path.new"))
              (lib/download-file "http://a.com/b" (new-filename nil "path"))
              (if (file-exists? (new-filename nil "path"))
                (do
@@ -95,7 +95,7 @@
              ~(create-path-with-template
                "path"
                (str
-                "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
+                "/var/lib/pallet" "/home/fred" "/path.new"))
              (lib/download-file
               "http://a.com/b" (new-filename nil "path") :proxy "http://proxy/")
              (if (file-exists? (new-filename nil "path"))
@@ -119,7 +119,7 @@
             "remote-file path"
             (create-path-with-template
              "path"
-             (str "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
+             (str "/var/lib/pallet" "/home/fred" "/path.new"))
             (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
             (stevedore/chained-script
              (if (file-exists? (new-filename nil "path"))
@@ -141,7 +141,7 @@
             "remote-file path"
             (create-path-with-template
              "path"
-             (str "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
+             (str "/var/lib/pallet" "/home/fred" "/path.new"))
             (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
             (stevedore/chained-script
              (if (file-exists? (new-filename nil "path"))
@@ -176,7 +176,7 @@
             "remote-file path"
             ~(create-path-with-template
               "path"
-              (str "/var/lib/pallet" (fragment (user-home "fred")) "/path.new"))
+              (str "/var/lib/pallet" "/home/fred" "/path.new"))
             (lib/heredoc (new-filename nil "path") "a 1\n" {}))
            (binding [pallet.action-plan/*defining-context* nil]
              (->

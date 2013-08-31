@@ -86,11 +86,12 @@
                             "local-file copied correctly")))))}
       :roles #{:live-test :remote-file})))
 
-(def remote-directory-test
+(defn zipfile []
   (let [s (rand-str 10)
+        f (tmpfile)
         z (java.io.File/createTempFile "pallet_" ".zip")
         mkzip (fn []
-                (let [f (tmpfile)]
+                (let []
                   (.delete z)
                   (spit f s)
                   (try
@@ -102,6 +103,13 @@
                       (assert (zero? exit)))
                     (finally
                       (.delete f)))))]
+    {:s s
+     :z z
+     :f (.getName f)
+     :mkzip mkzip}))
+
+(def remote-directory-test
+  (let [{:keys [s f z mkzip]} (zipfile)]
     (group-spec "remote-file"
       :phases {:configure (plan-fn
                            (mkzip)
@@ -113,12 +121,33 @@
                            (delete-local-path (.getPath z)))
                :test (plan-fn
                       (exec-script*
-                       (testing-script
-                           "remote-directory"
+                       (testing-script "remote-directory"
                          (is-true
-                          (file-exists? (str "/var/lib/x/" ~(.getName z)))
+                          (file-exists? (str "/var/lib/x/" ~f))
                           "local-file extracted"))))}
       :roles #{:live-test :remote-directory})))
+
+(def remote-directory-relative-test
+  (let [{:keys [s f z mkzip]} (zipfile)]
+    (group-spec "remote-file"
+      :phases {:configure (plan-fn
+                           (mkzip)
+                           (package "zip")
+                           (remote-directory
+                            "fred"
+                            :unpack :unzip
+                            :local-file (.getPath z))
+                           (delete-local-path (.getPath z)))
+               :test (plan-fn
+                      (exec-script*
+                       (testing-script "remote-directory"
+                         (is-true
+                          (directory? "fred/")
+                          "directory exists")
+                         (is-true
+                          (file-exists? (str "fred/" ~f))
+                          "local-file extracted"))))}
+      :roles #{:live-test :remote-directory-relative})))
 
 (def rsync-test
   (let [s (rand-str 10)]
