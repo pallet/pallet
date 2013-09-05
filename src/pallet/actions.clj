@@ -88,9 +88,10 @@
                          (~(list `unquote 'pallet.script.lib/set-flag-value)
                           ~(name nv-kw)
                           @(do
-                             ~@(if is-stevedore?
-                                 (rest condition)
-                                 ["test" condition])
+                             (~@(if is-stevedore?
+                                  (rest condition)
+                                  ["test" condition])
+                              ">/dev/null 2>&1")
                              (~'println @~'?)))))] )]
          (if-action ~(if is-script?
                        `(delayed [s#]
@@ -121,9 +122,10 @@
                          (~(list `unquote `set-flag-value)
                           ~(name nv-kw)
                           @(do
-                             ~@(if is-stevedore?
-                                 (rest condition)
-                                 ["test" condition])
+                             (~@(if is-stevedore?
+                                  (rest condition)
+                                  ["test" condition])
+                              ">/dev/null 2>&1")
                              (~'println @~'?)))))])]
          (if-action ~(if is-script?
                        `(delayed [s#]
