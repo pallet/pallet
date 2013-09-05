@@ -4,7 +4,6 @@
    [clojure.test :refer :all]
    [pallet.common.logging.logutils :as logutils]
    [pallet.main :refer :all]
-   [pallet.task :refer [*suppress-exit*]]
    [pallet.test-utils :refer :all]))
 
 
@@ -35,7 +34,7 @@
 (def no-err no-out)
 
 (deftest pallet-task-test
-  (binding [*suppress-exit* true]
+  (binding [*exit-process?* false]
     (testing "help"
       (is (with-output [#"(?s)Pallet is a.*" no-err]
             (is (nil? (pallet-task ["help"]))))))

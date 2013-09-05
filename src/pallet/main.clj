@@ -3,7 +3,7 @@
    [clojure.stacktrace :refer [print-cause-trace]]
    [clojure.tools.cli :refer [cli]]
    [clojure.tools.logging :as logging]
-   [pallet.task :refer [abort exit report-error]])
+   [pallet.task :refer [abort report-error] :as task])
   (:gen-class))
 
 (defn read-targets
@@ -43,6 +43,16 @@
   (logging/errorf e "Exception")
   (binding [*out* *err*]
     (print-cause-trace e)))
+
+(def ^:dynamic *exit-process?*
+  "Bind to false to suppress process termination." true)
+
+(defn exit [exit-code]
+  (if *exit-process?*
+    (do
+      (shutdown-agents)
+      (System/exit exit-code))
+    (throw (ex-info "suppressed exit" {:exit-code exit-code}))))
 
 (def pallet-switches
   [["-P" "--service" "Service key to use (use add-service to create a service"]
@@ -175,9 +185,7 @@
          (when-let [exit-code (:exit-code (ex-data e))]
            (exit exit-code))
          (report-unexpected-exception e)
-         (exit 1))
-       (finally
-         (shutdown-agents)))
+         (exit 1)))
      (exit 0))
   ([] (apply -main *command-line-args*)))
 
