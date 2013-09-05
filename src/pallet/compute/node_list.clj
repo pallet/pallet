@@ -13,6 +13,7 @@
          [[\"host1\" \"fullstack\" \"192.168.1.101\" :ubuntu]
           [\"host2\" \"fullstack\" \"192.168.1.102\" :ubuntu]])"
   (:require
+   [clojure.java.io :as io]
    [clojure.string :as string]
    [pallet.compute :as compute]
    [pallet.compute.implementation :as implementation]
@@ -57,6 +58,28 @@
   (Node.
    name
    (keyword (clojure.core/name group-name))
+   ip
+   os-family
+   os-version
+   (or id (str name "-" (string/replace ip #"\." "-")))
+   ssh-port
+   private-ip
+   is-64bit
+   running
+   service
+   hardware
+   proxy
+   image-user))
+
+(defn node
+  "Returns a node, suitable for use in a node-list."
+  [ip
+   & {:keys [name group-name os-family id ssh-port private-ip is-64bit running
+             os-version service hardware proxy image-user]
+      :or {ssh-port 22 is-64bit true running true}}]
+  (Node.
+   (or name ip)
+   (or group-name ip)
    ip
    os-family
    os-version
@@ -165,6 +188,16 @@ support."
    make-node name group-name ip os-family
    (apply concat (merge {:id "localhost"} options))))
 
+(def possible-node-files
+  [".pallet-nodes"
+   (.getPath (io/file (System/getProperty "user.home") ".pallet" "nodes"))
+   "/etc/pallet/nodes"])
+
+(defn read-node-file
+  "Read the contents of node file if it exists."
+  [file]
+  (if (and file (.exists (io/file file)))
+    (read-string (slurp file))))
 
 ;;;; Compute Service SPI
 (defn supported-providers
@@ -173,14 +206,26 @@ support."
   [] [:node-list])
 
 (defmethod implementation/service :node-list
-  [_ {:keys [node-list environment tag-provider]
+  [_ {:keys [node-list environment tag-provider node-file]
       :or {tag-provider (NodeTagStatic. {:bootstrapped true})}}]
   (let [nodes (atom (vec
                      (map
                       #(if (vector? %)
-                         (apply make-node %)
-                         %)
-                      node-list)))
+                         (if (and (second %) (string? (second %)))
+                           (apply make-node %) ; backwards compatible
+                           (apply node %))
+                         (if (string? %)
+                           (node %)
+                           %))
+                      ;; An explicit node-list has priority,
+                      ;; then an explicit node-file,
+                      ;; then the standard node-file locations
+                      (or node-list
+                          (read-node-file
+                           (or node-file
+                               (first
+                                (filter #(.exists (io/file %))
+                                        possible-node-files))))))))
         nodelist (NodeList. nodes environment tag-provider)]
     (swap! nodes #(map (fn [node] (assoc node :service nodelist)) %))
     nodelist))
@@ -198,3 +243,14 @@ support."
   (apply-map
    compute/instantiate-provider
    :node-list (assoc options :node-list node-list)))
+
+(defn node-list
+  "Create a node-list compute service, based on a sequence of nodes. Each
+   node is passed as either a node object constructed with `make-node`,
+   or as a vector of arguments for `make-node`.
+
+   Optionally, an environment map can be passed using the :environment keyword.
+   See `pallet.environment`."
+  {:added "0.6.8"}
+  [& {:keys [node-list node-file environment tag-provider] :as options}]
+  (apply-map compute/instantiate-provider :node-list options))
