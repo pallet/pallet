@@ -15,13 +15,16 @@
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
+   [clojure.tools.logging :as logging]
    [pallet.compute :as compute]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.jvm :as jvm]
    [pallet.core.protocols :as impl :refer
     [node-tag]]
    [pallet.node :as node]
-   [pallet.utils :refer [apply-map]]))
+   [pallet.utils :refer [apply-map]])
+  (:import
+   java.net.InetAddress))
 
 (defrecord Node
     [name group-name ip os-family os-version id ssh-port private-ip is-64bit
@@ -49,6 +52,21 @@
   (proxy [node] proxy))
 
 ;;; Node utilities
+(def ^:private ip-resolve-failed-msg
+  "Unable to resolve %s, maybe provide an ip for the node using :ip")
+
+(defn- ip-for-name
+  "Resolve the given hostname to an ip address."
+  [n]
+  (try
+    (let [^InetAddress addr (InetAddress/getByName n)]
+      (.getHostAddress addr))
+    (catch java.net.UnknownHostException e
+      (let [msg (format ip-resolve-failed-msg n)]
+        (logging/error msg)
+        (throw
+         (ex-info msg {:type :pallet/unable-to-resolve :host n} e))))))
+
 (defn make-node
   "Returns a node, suitable for use in a node-list."
   [name group-name ip os-family
@@ -77,21 +95,22 @@
    & {:keys [ip group-name os-family id ssh-port private-ip is-64bit running
              os-version service hardware proxy image-user]
       :or {ssh-port 22 is-64bit true running true}}]
-  (Node.
-   name
-   (or group-name name)
-   (or ip name)
-   os-family
-   os-version
-   (or id (str name "-" (string/replace ip #"\." "-")))
-   ssh-port
-   private-ip
-   is-64bit
-   running
-   service
-   hardware
-   proxy
-   image-user))
+  (let [ip (or ip (ip-for-name name))]
+    (Node.
+     name
+     (or group-name name)
+     ip
+     os-family
+     os-version
+     (or id (str name "-" (string/replace ip #"\." "-")))
+     ssh-port
+     private-ip
+     is-64bit
+     running
+     service
+     hardware
+     proxy
+     image-user)))
 
 (deftype NodeTagStatic
     [static-tags]
