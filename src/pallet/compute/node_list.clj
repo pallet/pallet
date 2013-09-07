@@ -280,7 +280,7 @@ support."
        (throw
         (ex-info
          (str "Invalid node-file data " (pr-str data)
-              " in " file
+              " in " (pr-str file)
               ".  Map values for each group should be a vector of nodes.")
          {:type :pallet/invalid-node-file
           :file file
@@ -298,7 +298,7 @@ support."
    :else (throw
           (ex-info
            (str "Invalid node-file data " (pr-str data)
-                " in " file
+                " in " (pr-str file)
                 ".  Expect a map from group-name to vector of nodes.")
            {:type :pallet/invalid-node-file
             :file file
@@ -307,8 +307,9 @@ support."
 (defn read-node-file
   "Read the contents of node file if it exists."
   [file]
-  (let [data (read-file file)]
-    (node-file-data->node-list data file)))
+  (when file
+    (let [data (read-file file)]
+      (node-file-data->node-list data file))))
 
 ;;;; Compute Service SPI
 (defn supported-providers
@@ -320,14 +321,11 @@ support."
   [_ {:keys [node-list environment tag-provider node-file]
       :or {tag-provider (NodeTagStatic. {:bootstrapped true})}}]
   (let [nodes (atom
-               (mapv
-                node-data->node
-                ;; An explicit node-list has priority,
-                ;; then an explicit node-file,
-                ;; then the standard node-file locations
-                (or node-list
-                    (read-node-file
-                     (or node-file (available-node-file))))))
+               ;; An explicit node-list has priority,
+               ;; then an explicit node-file,
+               ;; then the standard node-file locations
+               (or (and node-list (mapv node-data->node (or node-list)))
+                   (read-node-file (or node-file (available-node-file)))))
         nodelist (NodeList. nodes environment tag-provider)]
     (swap! nodes #(map (fn [node] (assoc node :service nodelist)) %))
     nodelist))
