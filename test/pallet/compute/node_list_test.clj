@@ -4,7 +4,8 @@
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
-   [pallet.node :as node]))
+   [pallet.node :as node]
+   [pallet.utils :refer [tmpfile with-temporary with-temp-file]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 
@@ -60,3 +61,15 @@
   (is (thrown? Exception (node-list/node "unresolvable")))
   (is (node-list/node "localhost"))
   (is (= "localhost" (node/group-name (node-list/node "localhost")))))
+
+(deftest read-node-file-test
+  (testing "valid node-file"
+    (with-temp-file [nf (pr-str {:a ["localhost"]})]
+      (is (node-list/read-node-file nf) "map"))
+    (with-temp-file [nf (pr-str ["localhost"])]
+      (is (node-list/read-node-file nf) "vector")))
+  (testing "invalid node-file"
+    (with-temp-file [nf "abcdef"]
+      (is (thrown? Exception (node-list/read-node-file nf))))
+    (with-temp-file [nf (pr-str {:a "localhost"})]
+      (is (thrown? Exception (node-list/read-node-file nf))))))

@@ -207,16 +207,27 @@ support."
    make-node name group-name ip os-family
    (apply concat (merge {:id "localhost"} options))))
 
-(defn node-date->node
+(defn node-data->node
   "Convert an external node data specification to a node."
-  [node-data]
-  (if (vector? node-data)
-    (if (and (second node-data) (string? (second node-data)))
-      (apply make-node node-data) ; backwards compatible
-      (apply node node-data))
-    (if (string? node-data)
-      (node node-data)
-      node-data)))
+  ([node-data]
+     (if (vector? node-data)
+       (if (and (second node-data) (string? (second node-data)))
+         (apply make-node node-data)    ; backwards compatible
+         (apply node node-data))
+       (if (string? node-data)
+         (node node-data)
+         node-data)))
+  ([node-data group-name]
+     (if (vector? node-data)
+       (apply node :group-name group-name node-data)
+       (if (string? node-data)
+         (node node-data)
+         (throw (ex-info
+                 (str
+                  "Invalid node-list node data " (pr-str node-data)
+                  ".  See pallet.compute.node-list/node for valid arguments.")
+                 {:type :pallet/invalid-node-list
+                  :node-data node-data}))))))
 
 (def possible-node-files
   [".pallet-nodes"
@@ -232,11 +243,50 @@ support."
        (filter #(.exists (io/file %))
                possible-node-files))))
 
-(defn read-node-file
+(defn- read-file
   "Read the contents of node file if it exists."
   [file]
   (if (and file (.exists (io/file file)))
     (read-string (slurp file))))
+
+(defn- node-file-data->node-list
+  [data file]
+  (cond
+   (map? data)
+   (do
+     (when-not (every? vector? (vals data))
+       (throw
+        (ex-info
+         (str "Invalid node-file data " (pr-str data)
+              " in " file
+              ".  Map values for each group should be a vector of nodes.")
+         {:type :pallet/invalid-node-file
+          :file file
+          :node-file-data data})))
+     (reduce-kv
+      (fn [nodes group group-nodes]
+        (concat nodes (map
+                       #(node-data->node % (name group))
+                       group-nodes)))
+      []
+      data))
+
+   (vector? data) (map node-data->node data)
+
+   :else (throw
+          (ex-info
+           (str "Invalid node-file data " (pr-str data)
+                " in " file
+                ".  Expect a map from group-name to vector of nodes.")
+           {:type :pallet/invalid-node-file
+            :file file
+            :node-file-data data}))))
+
+(defn read-node-file
+  "Read the contents of node file if it exists."
+  [file]
+  (let [data (read-file file)]
+    (node-file-data->node-list data file)))
 
 ;;;; Compute Service SPI
 (defn supported-providers
@@ -249,7 +299,7 @@ support."
       :or {tag-provider (NodeTagStatic. {:bootstrapped true})}}]
   (let [nodes (atom
                (mapv
-                node-date->node
+                node-data->node
                 ;; An explicit node-list has priority,
                 ;; then an explicit node-file,
                 ;; then the standard node-file locations
