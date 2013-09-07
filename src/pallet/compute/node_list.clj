@@ -13,12 +13,15 @@
          [[\"host1\" \"fullstack\" \"192.168.1.101\" :ubuntu]
           [\"host2\" \"fullstack\" \"192.168.1.102\" :ubuntu]])"
   (:require
+   [clj-schema.schema
+    :refer [def-map-schema optional-path seq-schema sequence-of set-of wild]]
    [clojure.java.io :as io]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.compute :as compute]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.jvm :as jvm]
+   [pallet.contracts :refer [check-spec]]
    [pallet.environment :as environment]
    [pallet.node :as node]
    [pallet.utils :refer [apply-map]])
@@ -88,12 +91,30 @@
    proxy
    image-user))
 
+(def-map-schema node-args-schema
+  [(optional-path [:ip]) String
+   (optional-path [:group-name]) String
+   (optional-path [:os-family]) keyword?
+   (optional-path [:id]) String
+   (optional-path [:ssh-port]) number?
+   (optional-path [:private-ip]) String
+   (optional-path [:is-64bit]) wild
+   (optional-path [:running]) wild
+   (optional-path [:proxy]) pallet.node.NodeProxy
+   (optional-path [:image-user]) pallet.node.NodeImage])
+
+(defmacro check-node-args-spec
+  [m]
+  (check-spec m `node-args-schema &form))
+
 (defn node
   "Returns a node, suitable for use in a node-list."
   [name
    & {:keys [ip group-name os-family id ssh-port private-ip is-64bit running
              os-version service hardware proxy image-user]
-      :or {ssh-port 22 is-64bit true running true}}]
+      :or {ssh-port 22 is-64bit true running true}
+      :as args}]
+  (check-node-args-spec args)
   (let [ip (or ip (ip-for-name name))]
     (Node.
      name
