@@ -336,3 +336,8 @@ full action to do that."
   "Leave the current action scope."
   []
   (session! (update-action-plan (session) pop-block)))
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (clj-action 'defun))
+;; End:
