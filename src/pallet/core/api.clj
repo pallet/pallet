@@ -345,6 +345,13 @@
    (mapcat #(map (fn [r] (merge (dissoc % :result) r)) (:result %)))
    seq))
 
+(defn phase-error-exceptions
+  "Return a sequence of exceptions from phase errors for an operation. "
+  [result]
+  (->>  (phase-errors result)
+        (map (comp :cause :error))
+        (filter identity)))
+
 (defn throw-phase-errors
   [result]
   (when-let [e (phase-errors result)]
