@@ -188,10 +188,30 @@ support."
    make-node name group-name ip os-family
    (apply concat (merge {:id "localhost"} options))))
 
+(defn node-date->node
+  "Convert an external node data specification to a node."
+  [node-data]
+  (if (vector? node-data)
+    (if (and (second node-data) (string? (second node-data)))
+      (apply make-node node-data) ; backwards compatible
+      (apply node node-data))
+    (if (string? node-data)
+      (node node-data)
+      node-data)))
+
 (def possible-node-files
   [".pallet-nodes"
    (.getPath (io/file (System/getProperty "user.home") ".pallet" "nodes"))
    "/etc/pallet/nodes"])
+
+(defn available-node-file
+  "Return the first available node-file as specified by PALLET_HOSTS,
+  or possible-node-files."
+  []
+  (or (System/getenv "PALLET_HOSTS")
+      (first
+       (filter #(.exists (io/file %))
+               possible-node-files))))
 
 (defn read-node-file
   "Read the contents of node file if it exists."
@@ -208,25 +228,15 @@ support."
 (defmethod implementation/service :node-list
   [_ {:keys [node-list environment tag-provider node-file]
       :or {tag-provider (NodeTagStatic. {:bootstrapped true})}}]
-  (let [nodes (atom (vec
-                     (map
-                      #(if (vector? %)
-                         (if (and (second %) (string? (second %)))
-                           (apply make-node %) ; backwards compatible
-                           (apply node %))
-                         (if (string? %)
-                           (node %)
-                           %))
-                      ;; An explicit node-list has priority,
-                      ;; then an explicit node-file,
-                      ;; then the standard node-file locations
-                      (or node-list
-                          (read-node-file
-                           (or node-file
-                               (System/getenv "PALLET_HOSTS")
-                               (first
-                                (filter #(.exists (io/file %))
-                                        possible-node-files))))))))
+  (let [nodes (atom
+               (mapv
+                node-date->node
+                ;; An explicit node-list has priority,
+                ;; then an explicit node-file,
+                ;; then the standard node-file locations
+                (or node-list
+                    (read-node-file
+                     (or node-file (available-node-file))))))
         nodelist (NodeList. nodes environment tag-provider)]
     (swap! nodes #(map (fn [node] (assoc node :service nodelist)) %))
     nodelist))
