@@ -72,14 +72,14 @@
 
 (defn node
   "Returns a node, suitable for use in a node-list."
-  [ip
-   & {:keys [name group-name os-family id ssh-port private-ip is-64bit running
+  [name
+   & {:keys [ip group-name os-family id ssh-port private-ip is-64bit running
              os-version service hardware proxy image-user]
       :or {ssh-port 22 is-64bit true running true}}]
   (Node.
-   (or name ip)
-   (or group-name ip)
-   ip
+   name
+   (or group-name name)
+   (or ip name)
    os-family
    os-version
    (or id (str name "-" (string/replace ip #"\." "-")))
