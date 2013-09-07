@@ -223,6 +223,7 @@ support."
                       (or node-list
                           (read-node-file
                            (or node-file
+                               (System/getenv "PALLET_HOSTS")
                                (first
                                 (filter #(.exists (io/file %))
                                         possible-node-files))))))))
