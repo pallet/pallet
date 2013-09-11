@@ -11,7 +11,10 @@
 (def ^{:private true}
   cmd "/usr/bin/rsync -e '%s' -F -F %s %s %s@%s:%s")
 
-(def default-options {:r true :delete true :copy-links true})
+(def default-options {:r true :delete true :copy-links true
+                      :rsync-path "sudo rsync"
+                      :owner true
+                      :perms true})
 
 (implement-action rsync :direct
                   {:action-type :script :location :origin}
