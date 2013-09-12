@@ -16,7 +16,7 @@
    [pallet.script-builder :as script-builder]
    [pallet.script.lib :as lib]
    [pallet.script.lib :refer [chown env exit mkdir]]
-   [pallet.stevedore :as stevedore]
+   [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.transport :as transport]
    [pallet.transport.local]
    [pallet.transport.ssh]
@@ -52,7 +52,7 @@
               (println
                (~lib/make-temp-file
                 ~prefix
-                :tmpdir ~(get script-env "TMPDIR")))))
+                :tmpdir ~(or (get script-env "TMPDIR") true)))))
         result (transport/exec connection {:execv [cmd]} {})]
     (logging/tracef "ssh-mktemp script-env %s" script-env)
     (logging/tracef "ssh-mktemp %s %s" cmd result)
@@ -129,9 +129,10 @@
       (with-connection session [connection]
         (let [authentication (transport/authentication connection)
               script (script-builder/build-script options script action)
-              tmpfile (ssh-mktemp connection "pallet" (:script-env action))
               sudo-user (or (:sudo-user action)
-                            (-> authentication :user :sudo-user))]
+                            (-> authentication :user :sudo-user))
+              tmpfile (ssh-mktemp
+                       connection "pallet" (:script-env action))]
 
           (log-multiline :debug (str (:server endpoint) " ==> %s")
                          (str " -----------------------------------------\n"
@@ -147,9 +148,11 @@
            {:mode (if sudo-user 0644 0600)})
           (logging/trace "ssh-script-on-target execute script file")
           (let [clean-f (clean-logs (:user authentication))
+                cmd (script-builder/build-code session action tmpfile)
+                _ (logging/debugf "ssh-script-on-target command %s" cmd)
                 result (transport/exec
                         connection
-                        (script-builder/build-code session action tmpfile)
+                        cmd
                         {:output-f (log-script-output
                                     (:server endpoint) (:user authentication))
                          :agent-forwarding (:ssh-agent-forwarding action)})
@@ -172,9 +175,7 @@
                                     (:summary options)))]
             (logging/trace "ssh-script-on-target remove script file")
             (transport/exec
-             connection
-             {:execv [(stevedore/script ("rm" -f ~tmpfile))]}
-             {})
+             connection {:execv [(fragment ("rm" -f ~tmpfile))]} {})
             (logging/trace "ssh-script-on-target done")
             (logging/debugf "%s   <== ----------------------------------------"
                             (:server endpoint))
