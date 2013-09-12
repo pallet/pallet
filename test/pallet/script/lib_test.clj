@@ -1,4 +1,5 @@
 (ns pallet.script.lib-test
+  (:refer-clojure :exclude [alias source])
   (:require
    [clojure.test :refer :all]
    [pallet.script :as script]
