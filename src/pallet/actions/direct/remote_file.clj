@@ -56,11 +56,17 @@ permissions. Note this is not the final directory."
    (do
      (set! dirpath @(dirname ~new-path))
      (set! templatepath @(dirname @(canonical-path ~template-path)))
+     (when (not (directory? @templatepath))
+       (println @templatepath ": Directory does not exist.")
+       (exit 1))
      (chain-or (lib/mkdir @dirpath :path true) (exit 1))
      ("while" (!= "/" @templatepath) ";do"
       ~(stevedore/chained-script
         (set! d @dirpath)               ; copy these and update
         (set! t @templatepath)          ; so we can continue on any failure
+        (when (not (directory? @templatepath))
+          (println @templatepath ": Directory does not exist.")
+          (exit 1))
         (set! dirpath @(dirname @dirpath))
         (set! templatepath @(dirname @templatepath))
         (chain-or (chgrp @(path-group @t) @d) ":")
