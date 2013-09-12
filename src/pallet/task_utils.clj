@@ -1,6 +1,7 @@
 (ns pallet.task-utils
   "Task helpers that depend on pallet implementation"
   (:require
+   [clojure.java.io :refer [file]]
    [clojure.string :as string]
    [clojure.tools.cli :refer [cli]]
    [clojure.tools.logging :refer [fatalf]]
@@ -39,7 +40,8 @@
   [lein-project]
   (let [project-name (:name lein-project)
         pallet-file (or (:pallet-file lein-project)
-                        (when (and project-name (:root lein-project))
+                        (when (or (and project-name (:root lein-project))
+                                  (.exists (file "project.clj")))
                           default-pallet-file))]
     (if pallet-file
       (if (pallet-file-exists? pallet-file)
@@ -47,10 +49,10 @@
           (read-project pallet-file)
           (catch java.io.FileNotFoundException e
             (fatalf e "Could not read pallet configuration for project from %s"
-                    pallet-file)
+                    (.getAbsolutePath (file pallet-file)))
             (abort
              (str "Could not read pallet configuration for project from "
-                  pallet-file)))
+                  (.getAbsolutePath (file pallet-file)))))
           (catch Exception e
             (if-let [project-file (:project-file (ex-data e))]
               (if-let [[_ path]
