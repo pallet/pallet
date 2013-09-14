@@ -49,14 +49,15 @@
    script fails. The script is expressed in stevedore."
   {:pallet/plan-fn true}
   [script-name & script]
-  `(exec-script*
-    (delayed [_#]
-      (checked-script
-       ~(if *script-location-info*
-          `(str ~script-name
-                " (" ~(.getName (io/file *file*)) ":" ~(:line (meta &form)) ")")
-          script-name)
-       ~@script))))
+  (let [file (.getName (io/file *file*))
+        line (:line (meta &form))]
+    `(exec-script*
+      (delayed [_#]
+               (checked-script
+                ~(if *script-location-info*
+                   `(str ~script-name " (" ~file ":" ~line ")")
+                   script-name)
+                ~@script)))))
 
 ;;; # Wrap arbitrary code
 (defmacro as-action
