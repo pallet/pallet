@@ -69,13 +69,19 @@
         [(do ~@body) ~'&session]))))
 
 ;;; # Flow Control
+(defn ^:internal plan-flag-kw
+  "Generator for plan flag keywords"
+  []
+  (keyword (name (gensym "flag"))))
+
 (defmacro plan-when
   "Execute the crate-fns-or-actions, only when condition is true."
   {:indent 1
    :pallet/plan-fn true}
   [condition & crate-fns-or-actions]
   (let [nv (gensym "nv")
-        nv-kw (keyword (name nv))
+        nv-kw (gensym "nv-kw")
+        m (meta &form)
         is-stevedore? (and (sequential? condition)
                            (symbol? (first condition))
                            (#{#'stevedore/script #'stevedore/fragment}
@@ -83,17 +89,21 @@
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-context plan-when {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
-                 [nv `(with-source-line-comments false
-                        (exec-checked-script
-                         (str "Check " ~condition)
-                         (~(list `unquote 'pallet.script.lib/set-flag-value)
-                          ~(name nv-kw)
-                          @(do
-                             (~@(if is-stevedore?
-                                  (rest condition)
-                                  ["test" condition])
-                              ">/dev/null 2>&1")
-                             (~'println @~'?)))))] )]
+                 [nv-kw `(plan-flag-kw)
+                  nv `(with-source-line-comments false
+                        ~(with-meta
+                           `(exec-checked-script
+                             (str "Check " ~condition)
+                             (~(list `unquote
+                                     'pallet.script.lib/set-flag-value)
+                              ~(list `unquote nv-kw)
+                              @(do
+                                 (~@(if is-stevedore?
+                                      (rest condition)
+                                      ["test" condition])
+                                  ">/dev/null 2>&1")
+                                 (~'println @~'?))))
+                           m))])]
          (if-action ~(if is-script?
                        `(delayed [s#]
                                  (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
@@ -109,7 +119,8 @@
    :pallet/plan-fn true}
   [condition & crate-fns-or-actions]
   (let [nv (gensym "nv")
-        nv-kw (keyword (name nv))
+        nv-kw (gensym "nv-kw")
+        m (meta &form)
         is-stevedore? (and (sequential? condition)
                            (symbol? (first condition))
                            (#{#'stevedore/script #'stevedore/fragment}
@@ -117,21 +128,24 @@
         is-script? (or (string? condition) is-stevedore?)]
     `(phase-context plan-when-not {:condition ~(list 'quote condition)}
        (let [~@(when is-script?
-                 [nv `(with-source-line-comments false
-                        (exec-checked-script
-                         (str "Check not " ~condition)
-                         (~(list `unquote `set-flag-value)
-                          ~(name nv-kw)
-                          @(do
-                             (~@(if is-stevedore?
-                                  (rest condition)
-                                  ["test" condition])
-                              ">/dev/null 2>&1")
-                             (~'println @~'?)))))])]
+                 [nv-kw `(plan-flag-kw)
+                  nv `(with-source-line-comments false
+                        ~(with-meta
+                           `(exec-checked-script
+                             (str "Check not " ~condition)
+                             (~(list `unquote `set-flag-value)
+                              ~(list `unquote nv-kw)
+                              @(do
+                                 (~@(if is-stevedore?
+                                      (rest condition)
+                                      ["test" condition])
+                                  ">/dev/null 2>&1")
+                                 (~'println @~'?))))
+                           m))])]
          (if-action ~(if is-script?
                        `(delayed [s#]
-                          (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
-                             "0"))
+                                 (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
+                                    "0"))
                        `(delayed [~'&session] ~condition))))
        (enter-scope)
        (leave-scope)
