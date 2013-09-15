@@ -3,7 +3,7 @@
    [clojure.test :refer :all]
    [pallet.action :refer [action-fn]]
    [pallet.actions :refer [directory remote-directory]]
-   [pallet.actions-impl :refer [remote-file-action]]
+   [pallet.actions.decl :refer [remote-file-action]]
    [pallet.actions.direct.remote-file :refer [create-path-with-template]]
    [pallet.build-actions :as build-actions]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]

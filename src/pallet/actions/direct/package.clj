@@ -19,7 +19,9 @@
             package-source
             package-source-changed-flag
             sed]]
-   [pallet.actions-impl :refer [remote-file-action]]
+   [pallet.actions.decl :refer [remote-file-action
+                                packages-action
+                                package-repository-action]]
    [pallet.core.session :refer [os-family packager]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -31,6 +33,7 @@
 
 (def ^{:private true}
   remote-file* (action-fn remote-file-action :direct))
+
 (def ^{:private true}
   sed* (action-fn sed :direct))
 
@@ -428,6 +431,14 @@
      :summary (str "package-source " (string/join " " (map vec args)))}
     (stevedore/do-script*
      (map (fn [x] (apply package-source* session x)) args))]
+   session])
+
+(implement-action package-repository-action :direct
+                  {:action-type :script :location :target}
+  [session options]
+  [[{:language :bash
+     :summary (str "package-repository " (:repository-name options))}
+    (package-source* session options)]
    session])
 
 (defn add-scope*

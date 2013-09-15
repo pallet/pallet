@@ -7,10 +7,8 @@
    [pallet.action-plan :refer [checked-commands]]
    [pallet.actions :refer [directory]]
    [pallet.actions-impl
-    :refer [md5-filename
-            new-filename
-            remote-directory-action
-            remote-file-action]]
+    :refer [md5-filename new-filename]]
+   [pallet.actions.decl :refer [remote-directory-action remote-file-action]]
    [pallet.actions.direct.remote-file :refer [create-path-with-template]]
    [pallet.script.lib :as lib :refer [user-default-group]]
    [pallet.stevedore :as stevedore :refer [fragment]]

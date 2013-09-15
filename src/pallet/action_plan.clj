@@ -711,7 +711,7 @@
                   (ffirst
                    ((domonad action-exec-m [v (m-map exec-action b)] v)
                     session)))
-        blocks (when (= 'pallet.actions-impl/if-action (:action-symbol action))
+        blocks (when (= 'pallet.actions.decl/if-action (:action-symbol action))
                  [(self-fn (first blocks) session)
                   (self-fn (second blocks) session)])]
     [(merge

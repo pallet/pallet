@@ -3,7 +3,6 @@
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
-   [pallet.action :refer [defaction]]
    [pallet.common.context :refer [throw-map]]
    [pallet.context :as context]
    [pallet.core.session :refer [session]]
@@ -13,10 +12,6 @@
    [pallet.stevedore :refer [fragment script]]))
 
 (def ^:dynamic *script-location-info* true)
-
-(defaction if-action
-  "An 'if' flow control action, that claims the next (up to two) nested scopes."
-  [condition])
 
 (defn verify-local-file-exists
   [local-file]
@@ -37,30 +32,6 @@
              nodes."
        :dynamic true}
   *force-overwrite* false)
-
-(defaction remote-file-action
-  "An action that implements most of remote-file, but requires a helper in order
-to deal with local file transfer."
-  [path {:keys [action url local-file
-                remote-file link content literal template values md5 md5-url
-                owner group mode force blob blobstore overwrite-changes
-                install-new-files no-versioning max-versions
-                flag-on-changed force insecure]
-         :or {action :create max-versions 5}
-         :as options}])
-
-
-(defaction remote-directory-action
-  [path {:keys [action url local-file remote-file
-                unpack tar-options unzip-options jar-options
-                strip-components md5 md5-url owner group recursive]
-         :or {action :create
-              tar-options "xz"
-              unzip-options "-o"
-              jar-options "xf"
-              strip-components 1
-              recursive true}
-         :as options}])
 
 (defn init-script-path
   "Path to the specified initd script"

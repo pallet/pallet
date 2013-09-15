@@ -3,15 +3,17 @@
   (:require
    [clj-schema.schema
     :refer [constraints def-map-schema map-schema optional-path sequence-of]]
-   [clojure.java.io :as io]
    [clojure.set :refer [intersection]]
    [clojure.string :refer [trim]]
    [clojure.tools.logging :as logging]
    [pallet.action
     :refer [clj-action defaction enter-scope get-action-options leave-scope
             with-action-options]]
-   [pallet.action-plan :refer [checked-script]]
    [pallet.actions-impl :refer :all]
+   [pallet.actions.crate.package :as cp]
+   [pallet.actions.decl :as decl
+    :refer [if-action remote-file-action remote-directory-action
+            packages-action]]
    [pallet.argument :as argument :refer [delayed delayed-argument?]]
    [pallet.contracts :refer [any-value check-spec]]
    [pallet.crate :refer [admin-user packager phase-context role->nodes-map
@@ -19,45 +21,17 @@
    [pallet.node-value :refer [node-value]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
-   [pallet.utils :refer [apply-map log-multiline tmpfile]])
+   [pallet.utils :refer [apply-map log-multiline tmpfile]]
+   [useful.ns :refer [defalias]])
   (:import clojure.lang.Keyword))
 
-;;; # Direct Script Execution
+(defalias exec decl/exec)
+(defalias exec-script* decl/exec-script*)
+(defalias exec-script decl/exec-script)
+(defalias exec-checked-script decl/exec-checked-script)
 
-;;; Sometimes pallet's other actions will not suffice for what you would like to
-;;; achieve, so the exec-script actions allow you to execute arbitrary script.
-(defaction exec
-  "Execute script on the target node. The `script` is a plain string. `type`
-   specifies the script language (default :bash). You can override the
-   interpreter path using the `:interpreter` option."
-  [{:keys [language interpreter version] :or {language :bash}} script])
-
-
-(defaction exec-script*
-  "Execute script on the target node. The script is a plain string."
-  [script])
-
-(defmacro exec-script
-  "Execute a bash script remotely. The script is expressed in stevedore."
-  {:pallet/plan-fn true}
-  [& script]
-  `(exec-script* (delayed [_#] (stevedore/script ~@script))))
-
-(defmacro ^{:requires [#'checked-script]}
-  exec-checked-script
-  "Execute a bash script remotely, throwing if any element of the
-   script fails. The script is expressed in stevedore."
-  {:pallet/plan-fn true}
-  [script-name & script]
-  (let [file (.getName (io/file *file*))
-        line (:line (meta &form))]
-    `(exec-script*
-      (delayed [_#]
-               (checked-script
-                ~(if *script-location-info*
-                   `(str ~script-name " (" ~file ":" ~line ")")
-                   script-name)
-                ~@script)))))
+(defalias all-packages cp/packages)
+(defalias package-repository cp/package-repository)
 
 ;;; # Wrap arbitrary code
 (defmacro as-action
@@ -640,6 +614,8 @@ only specified files or directories, use the :extract-files option.
            :as options}])
 
 ;;; # Packages
+(defalias package-source-changed-flag decl/package-source-changed-flag)
+
 (defaction package
   "Install or remove a package.
 
@@ -674,6 +650,11 @@ only specified files or directories, use the :extract-files option.
                       (options (first (disj #{:apt :aptitude} packager)))))]
         (apply-map package p (dissoc options :aptitude :brew :pacman :yum))))))
 
+(defaction all-packages
+  "Install a list of packages."
+  [packages]
+  (packages-action (packager) packages))
+
 (defaction package-manager
   "Package manager controls.
 
@@ -694,7 +675,6 @@ only specified files or directories, use the :extract-files option.
    :execution :aggregated}
   [action & options])
 
-(def package-source-changed-flag "packagesourcechanged")
 
 (defaction package-source
   "Control package sources.
@@ -743,6 +723,53 @@ only specified files or directories, use the :extract-files option.
   {:always-before #{package-manager package}
    :execution :aggregated}
   [name & {:keys [aptitude yum]}])
+
+(defn package-repository
+  "Control package repository.
+   Options are a map of packager specific options.
+
+## aptitude and apt-get
+
+`:source-type source-string`
+: the source type (default \"deb\")
+
+`:url url-string`
+: the repository url
+
+`:scopes seq`
+: scopes to enable for repository
+
+`:release release-name`
+: override the release name
+
+`:key-url url-string`
+: url for key
+
+`:key-server hostname`
+: hostname to use as a keyserver
+
+`:key-id id`
+: id for key to look it up from keyserver
+
+## yum
+
+`:name name`
+: repository name
+
+`:url url-string`
+: repository base url
+
+`:gpgkey url-string`
+: gpg key url for repository
+
+## Example
+
+    (package-repository
+       {:repository-name \"Partner\"
+        :url \"http://archive.canonical.com/\"
+        :scopes [\"partner\"]})"
+  [{:as options}]
+  (cp/package-repository options))
 
 (defaction add-rpm
   "Add an rpm.  Source options are as for remote file."
