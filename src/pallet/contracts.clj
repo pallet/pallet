@@ -32,7 +32,8 @@
 
 ;;; node-spec contains loose schema, as these vary by, and should be enforced by
 ;;; the providers.
-(def-map-schema :loose image-spec-schema
+(def-map-schema image-spec-schema
+  :loose
   [(optional-path [:image-id]) [:or String Keyword]
    (optional-path [:image-description-matches]) String
    (optional-path [:image-name-matches]) String
@@ -46,10 +47,12 @@
    (optional-path [:hypervisor-matches]) String
    (optional-path [:override-login-user]) String])
 
-(def-map-schema :loose location-spec-schema
+(def-map-schema location-spec-schema
+  :loose
   [(optional-path [:location-id]) String])
 
-(def-map-schema :loose hardware-spec-schema
+(def-map-schema hardware-spec-schema
+  :loose
   [(optional-path [:hardware-id]) String
    (optional-path [:min-ram]) Number
    (optional-path [:min-cores]) Number
@@ -63,10 +66,12 @@
 (def inbound-port-schema
   [:or inbound-port-spec-schema Number])
 
-(def-map-schema :loose network-spec-schema
+(def-map-schema network-spec-schema
+  :loose
   [(optional-path [:inbound-ports]) (sequence-of inbound-port-schema)])
 
-(def-map-schema :loose qos-spec-schema
+(def-map-schema qos-spec-schema
+  :loose
   [(optional-path [:spot-price]) Number
    (optional-path [:enable-monitoring]) any-value])
 
