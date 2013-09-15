@@ -11,8 +11,8 @@
             transfer-file
             transfer-file-to-local
             wait-for-file]]
-   [pallet.actions-impl
-    :refer [copy-filename md5-filename new-filename remote-file-action]]
+   [pallet.actions-impl :refer [copy-filename md5-filename new-filename]]
+   [pallet.actions.decl :refer [remote-file-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
    [pallet.environment-impl :refer [get-for]]

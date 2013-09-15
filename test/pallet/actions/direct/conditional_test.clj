@@ -64,9 +64,9 @@
               op (lift
                   (group-spec "local")
                   :phase (plan-fn
-                           (exec-script ("touch" (quoted ~(.getPath tmp))))
-                           (plan-when (script (file-exists? ~(.getPath tmp)))
-                             (exec-script (println "tmp found"))))
+                          (exec-script ("touch" (quoted ~(.getPath tmp))))
+                          (plan-when (script (file-exists? ~(.getPath tmp)))
+                            (exec-script (println "tmp found"))))
                   :compute compute
                   :user (local-test-user)
                   :async true)

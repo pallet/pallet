@@ -14,8 +14,8 @@
             transfer-file-to-local
             with-action-values
             with-remote-file]]
-   [pallet.actions-impl
-    :refer [copy-filename md5-filename new-filename remote-file-action]]
+   [pallet.actions-impl :refer [copy-filename md5-filename new-filename]]
+   [pallet.actions.decl :refer [remote-file-action]]
    [pallet.actions.direct.remote-file :refer [create-path-with-template]]
    [pallet.algo.fsmop :refer [complete? failed? wait-for]]
    [pallet.api :refer [group-spec lift plan-fn with-admin-user]]
