@@ -2,19 +2,43 @@
   (:require
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
-   [pallet.actions :refer [package]]
-   [pallet.crate :refer [admin-group def-collect-plan-fn defplan phase-context]]
+   [pallet.actions :refer [package remote-file]]
+   [pallet.api :as api :refer [plan-fn]]
+   [pallet.crate :refer [admin-group assoc-settings def-collect-plan-fn defplan
+                         get-settings phase-context update-settings]]
+   [pallet.crate-install :as crate-install]
+   [pallet.script.lib :refer [file config-root]]
+   [pallet.stevedore :refer [fragment]]
    [pallet.template :as template]
-   [pallet.utils :as utils]))
+   [pallet.utils :as utils :refer [conj-distinct]]))
 
 ;; TODO - add recogintion of +key or key+
 ;; TODO - add escaping according to man page
 ;; TODO - dsl for sudoers, eg. (alias "user1" "user2" :as :ADMINS)
 
+
+(defn default-specs
+  []
+  (let [admin-group (admin-group)]
+    (array-map
+     "root" {:ALL {:run-as-user :ALL}}
+     (str "%" admin-group)
+     {:ALL {:run-as-user :ALL}})))
+
+(defn default-settings
+  []
+  {:sudoers-file (fragment (file (config-root) sudoers))
+   :args [[(array-map) (array-map) (default-specs)]]
+   :install-strategy :packages
+   :packages ["sudo"]})
+
+(defplan settings
+  [settings & {:keys [instance-id] :as options}]
+  (assoc-settings ::sudoers (merge (default-settings) settings) options))
+
 (defplan install
-  [& {:keys [package-name action]
-      :or {package-name "sudo" action :install}}]
-  (package package-name :action action))
+  [{:keys [instance-id]}]
+  (crate-install/install ::sudoers instance-id))
 
 (defplan default-specs
   []
@@ -41,11 +65,12 @@
        "\n"))
 
 (defn- defaults-for [defaults key type]
-  (apply
-   str
-   (map
-    #(write-defaults type (utils/as-string (first %)) (second %))
-    (defaults key))))
+  (if defaults
+    (apply
+     str
+     (map
+      #(write-defaults type (utils/as-string (first %)) (second %))
+      (defaults key)))))
 
 (defn- defaults [defaults]
   (str
@@ -61,9 +86,10 @@
        "\n"))
 
 (defn- aliases-for [aliases key type]
-  (apply
-   str
-   (map #(write-aliases type (name (first %)) (second %)) (aliases key))))
+  (if aliases
+    (apply
+     str
+     (map #(write-aliases type (name (first %)) (second %)) (aliases key)))))
 
 (defn- aliases [aliases]
   (apply str
@@ -106,13 +132,12 @@
 (defn- specs [spec-map]
   (string/join "\n" (map write-spec spec-map)))
 
-(template/deftemplate sudoer-templates
-  [aliases-map default-map spec-map]
-  {{:path "/etc/sudoers" :owner "root" :mode "0440"}
-   (str
-    (aliases aliases-map)
-    (defaults default-map)
-    (specs spec-map))})
+(defn sudoers-config
+  [[aliases-map default-map spec-map]]
+  (str
+   (aliases aliases-map)
+   (defaults default-map)
+   (specs spec-map)))
 
 (defn- merge-user-spec [m1 m2]
   (cond
@@ -125,7 +150,7 @@
     (IllegalArgumentException.
      "do not know how to merge mixed style user specs"))))
 
-(defn- sudoer-merge [initial args]
+(defn- sudoer-merge [args]
   (letfn [(merge-fn [m initial-keys args-keys]
                     (let [additional-keys
                           (filter
@@ -136,13 +161,16 @@
                         (map
                          #(vector % (m %))
                          (concat initial-keys additional-keys))))))]
-    (reduce (fn [v1 v2]
-              (map #(merge-fn
-                     (merge-with merge-user-spec %1 %2) (keys %1) (keys %2))
-                   v1 v2))
-            initial args)))
+    (if (seq args)
+      (reduce (fn [v1 v2]
+                (map (fn sudoer-merge-reduce
+                       [a b]
+                       (merge-fn
+                        (merge-with merge-user-spec a b) (keys a) (keys b)))
+                     v1 v2))
+              args))))
 
-(def-collect-plan-fn sudoers
+(defn sudoers
   "Sudo configuration. Generates a sudoers file.
 By default, root and an admin group are already present.
 
@@ -162,13 +190,35 @@ specs [ { [\"user1\" \"user2\"]
             :KILL { :run-as-user \"operator\" :tags :NOPASSWORD }
             [\"/usr/bin/*\" \"/usr/local/bin/*\"]
             { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }"
-  [aliases defaults specs]
-  (fn [& args]
-    (logging/trace "apply-sudoers")
-    (phase-context sudoers {}
-      (let [specs (default-specs)]
-        (template/apply-templates
-         sudoer-templates
-         (sudoer-merge
-          [(array-map) (array-map) specs]
-          args))))))
+  [aliases defaults specs & {:keys [instance-id] :as options}]
+  (update-settings ::sudoers options
+                   update-in [:args] conj-distinct [aliases defaults specs]))
+
+(defn configure
+  "Install the sudoers configuration based on settings"
+  [{:keys [instance-id] :as options}]
+  (let [{:keys [sudoers-file args]} (get-settings ::sudoers options)]
+    ;; TODO fix this to not use templates, but remote-file
+    (logging/debugf "Sudoers configure %s" (pr-str args))
+    (assert sudoers-file "No sudoers-file in settings for sudoers")
+    (remote-file
+     sudoers-file
+     :mode "0440"
+     :owner "root"
+     :group (admin-group)
+     :content (sudoers-config (sudoer-merge args)))))
+
+(defn server-spec
+  "Returns a server-spec that installs sudoers in the configure phase."
+  [{:keys [] :as settings} & {:keys [instance-id] :as options}]
+  (api/server-spec
+   :phases {:settings (plan-fn (pallet.crate.sudoers/settings settings))
+            :install (plan-fn (install options))
+            :configure (plan-fn (configure options))}))
+
+;; (defn bootstrap-spec
+;;   "Returns a server-spec that installs sudoers in the bootstrap phase."
+;;   [{:keys [] :as settings} & {:keys [instance-id] :as options}]
+;;     (api/server-spec
+;;    :phases {:settings (plan-fn (pallet.crate.sudoers/settings settings))
+;;             :bootstrap (plan-fn (configure options))}))
