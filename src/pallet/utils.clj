@@ -394,3 +394,8 @@ value to assoc. The assoc only occurs if the value is non-nil."
            (ex-info "No total ordering available"
                     {:seqs seqs}))))
       r)))
+
+(defn conj-distinct
+  "Conj, returning a vector, removing duplicates in the resulting vector."
+  [coll arg]
+  (vec (distinct (conj (or coll []) arg))))

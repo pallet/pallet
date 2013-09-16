@@ -5,7 +5,8 @@
    [pallet.build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.core.session :refer [session with-session]]
-   [pallet.crate.sudoers :refer [sudoers]]
+   [pallet.crate :refer [admin-group]]
+   [pallet.crate.sudoers :as sudoers]
    [pallet.test-utils :refer [make-node test-session with-private-vars]]))
 
 (use-fixtures :once (logging-threshold-fixture))
@@ -37,27 +38,27 @@
     (with-session (test-session {:server {:node (make-node :g1)}})
       (let [default-specs (#'pallet.crate.sudoers/default-specs)]
         (is (= [{} {} default-specs]
-               (sudoer-merge [{} {} default-specs] [])))))
+               (sudoer-merge [[{} {} default-specs]])))))
     (is (= [{} {} {"user" {:ALL {}}}]
-             (sudoer-merge [{} {} {}] [[{} {} {"user" {:ALL {}}}]])))
+           (sudoer-merge [[{} {} {}] [{} {} {"user" {:ALL {}}}]])))
     (is (= [{} {} {"user" {["/bin/ls"] {} :ALL {:run-as :ALL}}}]
-             (sudoer-merge [{} {} {"user" {["/bin/ls"] {}}}]
-                           [[{} {} {"user" {:ALL {:run-as :ALL}}}]])))
+           (sudoer-merge [[{} {} {"user" {["/bin/ls"] {}}}]
+                          [{} {} {"user" {:ALL {:run-as :ALL}}}]])))
     (is (= [{} {} (array-map "user1" {} "user2" {})]
-             (sudoer-merge [{} {} (array-map "user1" {})]
-                           [[{} {} (array-map "user2" {})]])))
+           (sudoer-merge [[{} {} (array-map "user1" {})]
+                          [{} {} (array-map "user2" {})]])))
     (is (= [{} {} (array-map
                    "user2" {} "user1" {} "user3" {} "user4" {}
                    "user5" {} "user6" {} "user7" {} "user8" {} "user0" {})]
-             (sudoer-merge [{} {} (array-map "user2" {})]
-                           [[{} {} (array-map "user1" {})]
-                            [{} {} (array-map "user3" {})]
-                            [{} {} (array-map "user4" {})]
-                            [{} {} (array-map "user5" {})]
-                            [{} {} (array-map "user6" {})]
-                            [{} {} (array-map "user7" {})]
-                            [{} {} (array-map "user8" {})]
-                            [{} {} (array-map "user0" {})]]))))
+           (sudoer-merge [[{} {} (array-map "user2" {})]
+                          [{} {} (array-map "user1" {})]
+                          [{} {} (array-map "user3" {})]
+                          [{} {} (array-map "user4" {})]
+                          [{} {} (array-map "user5" {})]
+                          [{} {} (array-map "user6" {})]
+                          [{} {} (array-map "user7" {})]
+                          [{} {} (array-map "user8" {})]
+                          [{} {} (array-map "user0" {})]]))))
 
   (deftest merge-test
     (is (= [{} {} (array-map "root" {:ALL {:run-as-user :ALL}}
@@ -67,8 +68,8 @@
            (with-session (test-session {:server {:node (make-node :g1)}})
              (let [default-specs (#'pallet.crate.sudoers/default-specs)]
                (sudoer-merge
-                [{} {} default-specs]
-                [[{} {} (array-map "user1" [{:host "h1" :ALL {}}])]
+                [[{} {} default-specs]
+                 [{} {} (array-map "user1" [{:host "h1" :ALL {}}])]
                  [{} {} (array-map "user2" {:host "h2" :ALL {}})]]))))))
 
   (deftest test-param-string
@@ -250,10 +251,10 @@ ALL CDROM = NOPASSWD: /sbin/umount /CDROM,/sbin/mount -o nosuid\\,nodev /dev/cd0
 (deftest test-man-page-example
   (is (=
        (first
-        (build-actions {:phase-context "sudoers"}
+        (build-actions {}
           (remote-file
            "/etc/sudoers"
-           :mode "0440" :owner "root"
+           :mode "0440" :owner "root" :group (admin-group)
            :content
            "User_Alias FULLTIMERS = millert,mikef,dowdy
 User_Alias PARTTIMERS = bostley,jwfox,crawl
@@ -303,7 +304,8 @@ WEBMASTERS www = (www) ALL,(root) /usr/bin/su www
 ALL CDROM = NOPASSWD: /sbin/umount /CDROM,/sbin/mount -o nosuid\\,nodev /dev/cd0a /CDROM")))
        (first
         (build-actions {}
-          (sudoers
+          (sudoers/settings {})
+          (sudoers/sudoers
            (array-map
             :user (array-map
                    :FULLTIMERS ["millert" "mikef" "dowdy"]
@@ -373,4 +375,5 @@ ALL CDROM = NOPASSWD: /sbin/umount /CDROM,/sbin/mount -o nosuid\\,nodev /dev/cd0
                   :host :CDROM
                   ["/sbin/umount /CDROM"
                    "/sbin/mount -o nosuid\\,nodev /dev/cd0a /CDROM"]
-                  {:tags :NOPASSWD}))))))))
+                  {:tags :NOPASSWD})))
+          (sudoers/configure {}))))))
