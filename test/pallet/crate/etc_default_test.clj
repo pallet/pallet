@@ -3,7 +3,7 @@
    [clojure.test :refer :all]
    [pallet.action :refer [action-fn]]
    [pallet.actions :refer [remote-file]]
-   [pallet.actions-impl :refer [remote-file-action]]
+   [pallet.actions.decl :refer [remote-file-action]]
    [pallet.build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.crate :refer [phase-context]]

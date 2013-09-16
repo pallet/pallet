@@ -41,11 +41,10 @@
 
 (deftest exec-script*-test
   (let [v (promise)
-        rv (let-actions
-            {}
-            (let [nv (exec-script* "ls file1")]
-              (deliver v nv)
-              nv))]
+        rv (let-actions {}
+             (let [nv (exec-script* "ls file1")]
+               (deliver v nv)
+               nv))]
     (is (= "ls file1\n" (first rv)))
     (is (= [{:language :bash} "ls file1"] (node-value @v (second rv))))))
 
@@ -76,10 +75,9 @@
               (exec-checked-script "check" (~ls "file1")))))))))
 
 (deftest exec-test
-  (let [rv (let-actions
-            {}
-            (let [nv (exec {:language :python} "print 'Hello, world!'")]
-              nv))]
+  (let [rv (let-actions {}
+             (let [nv (exec {:language :python} "print 'Hello, world!'")]
+               nv))]
     (is (= "print 'Hello, world!'\n" (first rv)))))
 
 (def print-action

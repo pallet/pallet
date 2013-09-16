@@ -145,5 +145,5 @@
 
 ;; Local Variables:
 ;; mode: clojure
-;; eval: (define-clojure-indent (build-actions 1))
+;; eval: (define-clojure-indent (build-actions 1)(let-actions 1))
 ;; End:

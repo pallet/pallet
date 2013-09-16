@@ -13,7 +13,7 @@
             packages
             remote-file
             sed]]
-   [pallet.actions-impl :refer [remote-file-action]]
+   [pallet.actions.decl :refer [remote-file-action]]
    [pallet.actions.direct.package
     :refer [add-scope* adjust-packages package-manager* package-source*]]
    [pallet.api :refer [group-spec]]

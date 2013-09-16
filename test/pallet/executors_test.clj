@@ -27,12 +27,12 @@
             :summary nil
             :action-type :script
             :script [{:language :bash} "f"]
-            :form (pallet.actions/exec-script* "f")
+            :form (pallet.actions.decl/exec-script* "f")
             :context nil
             :args ["f"]
-            :action-symbol pallet.actions/exec-script*,
+            :action-symbol pallet.actions.decl/exec-script*,
             :action
-            {:action-symbol pallet.actions/exec-script*,
+            {:action-symbol pallet.actions.decl/exec-script*,
              :execution :in-sequence
              :precedence {}}})
          (plan-data-fn (plan-fn (exec-script "f")))))
@@ -40,29 +40,29 @@
             :summary nil
             :action-type :flow/if,
             :script true,
-            :form (pallet.actions-impl/if-action
+            :form (pallet.actions.decl/if-action
                    true
-                   [(pallet.actions/exec-script* "f")]
+                   [(pallet.actions.decl/exec-script* "f")]
                    []),
             :blocks
             [[{:location :target,
                :action-type :script,
                :script [{:language :bash} "f"],
                :summary nil
-               :form (pallet.actions/exec-script* "f"),
+               :form (pallet.actions.decl/exec-script* "f"),
                :context ("plan-when"),
                :args ("f"),
-               :action-symbol pallet.actions/exec-script*,
+               :action-symbol pallet.actions.decl/exec-script*,
                :action
-               {:action-symbol pallet.actions/exec-script*,
+               {:action-symbol pallet.actions.decl/exec-script*,
                 :execution :in-sequence,
                 :precedence {}}}]
              []],
             :context ("plan-when"),
             :args (true),
-            :action-symbol pallet.actions-impl/if-action,
+            :action-symbol pallet.actions.decl/if-action,
             :action
-            {:action-symbol pallet.actions-impl/if-action,
+            {:action-symbol pallet.actions.decl/if-action,
              :execution :in-sequence,
              :precedence {}}})
          (plan-data-fn (plan-fn
@@ -73,29 +73,29 @@
             :action-type :flow/if,
             :script true,
             :form
-            (pallet.actions-impl/if-action
+            (pallet.actions.decl/if-action
              true
              []
-             [(pallet.actions/exec-script* "g")]),
+             [(pallet.actions.decl/exec-script* "g")]),
             :blocks
             [[]
              [{:location :target,
                :action-type :script,
                :script [{:language :bash} "g"],
                :summary nil
-               :form (pallet.actions/exec-script* "g"),
+               :form (pallet.actions.decl/exec-script* "g"),
                :context ("plan-when-not"),
                :args ("g"),
-               :action-symbol pallet.actions/exec-script*,
+               :action-symbol pallet.actions.decl/exec-script*,
                :action
-               {:action-symbol pallet.actions/exec-script*,
+               {:action-symbol pallet.actions.decl/exec-script*,
                 :execution :in-sequence,
                 :precedence {}}}]],
             :context ("plan-when-not"),
             :args (true),
-            :action-symbol pallet.actions-impl/if-action,
+            :action-symbol pallet.actions.decl/if-action,
             :action
-            {:action-symbol pallet.actions-impl/if-action,
+            {:action-symbol pallet.actions.decl/if-action,
              :execution :in-sequence,
              :precedence {}}})
          (plan-data-fn (plan-fn
@@ -106,12 +106,12 @@
              :summary nil
              :action-type :script,
              :script [{:language :bash} "g"],
-             :form (pallet.actions/exec-script* "g"),
+             :form (pallet.actions.decl/exec-script* "g"),
              :context nil,
              :args ("g"),
-             :action-symbol pallet.actions/exec-script*,
+             :action-symbol pallet.actions.decl/exec-script*,
              :action
-             {:action-symbol pallet.actions/exec-script*,
+             {:action-symbol pallet.actions.decl/exec-script*,
               :execution :in-sequence,
               :precedence {}},
              :script-dir "abc",}
@@ -125,7 +125,7 @@
              :sudo-user nil
              :script-prefix :sudo,
              :action-type :script,
-             :form (pallet.actions-impl/remote-file-action
+             :form (pallet.actions.decl/remote-file-action
                     "p"
                     {:content "line 1\nline 2",
                      :install-new-files true,
@@ -137,9 +137,9 @@
                      :install-new-files true,
                      :overwrite-changes nil,
                      :owner nil}),
-             :action-symbol pallet.actions-impl/remote-file-action
+             :action-symbol pallet.actions.decl/remote-file-action
              :action
-             {:action-symbol pallet.actions-impl/remote-file-action
+             {:action-symbol pallet.actions.decl/remote-file-action
               :execution :in-sequence,
               :precedence {}}
              :summary "remote-file p :content \"line 1...\""}

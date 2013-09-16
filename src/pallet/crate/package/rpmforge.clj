@@ -3,7 +3,7 @@
   (:require
    [pallet.action :refer [action-fn with-action-options]]
    [pallet.actions :refer [exec-checked-script package package-manager]]
-   [pallet.actions-impl :refer [remote-file-action]]
+   [pallet.actions.decl :refer [remote-file-action]]
    [pallet.core.session :refer [session]]
    [pallet.crate :refer [defplan]]))
 

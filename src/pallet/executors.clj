@@ -131,7 +131,7 @@
         exec-action (session-exec-action session)
         self-fn (fn [b session]
                   (first (map-action-f exec-action b session)))
-        blocks (when (= 'pallet.actions-impl/if-action action-symbol)
+        blocks (when (= 'pallet.actions.decl/if-action action-symbol)
                  [(self-fn (first blocks) session)
                   (self-fn (second blocks) session)])]
     [(merge

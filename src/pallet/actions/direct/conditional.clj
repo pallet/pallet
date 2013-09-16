@@ -2,7 +2,7 @@
   "Conditional action execution."
   (:require
    [pallet.action :refer [implement-action]]
-   [pallet.actions-impl :refer [if-action]]))
+   [pallet.actions.decl :refer [if-action]]))
 
 (implement-action if-action :direct
   {:action-type :flow/if :location :origin}
