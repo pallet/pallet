@@ -300,7 +300,7 @@
     (stevedore/checked-commands
      "Package source"
      (let [key-url (or (:url aptitude) (:url apt))]
-       (if (and key-url (.startsWith key-url "ppa:"))
+       (when (and key-url (.startsWith key-url "ppa:"))
          (stevedore/chain-commands
           (stevedore/script (~lib/install-package "python-software-properties"))
           (stevedore/script (add-apt-repository -y ~key-url)))
@@ -309,19 +309,19 @@
           (format (source-location packager) name)
           :content (format-source packager name (packager options))
           :literal (= packager :yum))))
-     (if-let [key-id (or (:key-id aptitude) (:key-id apt))]
-       (if (#{:aptitude :apt} packager)
+     (when-let [key-id (or (:key-id aptitude) (:key-id apt))]
+       (when (#{:aptitude :apt} packager)
          (let [key-server (or (:key-server aptitude) (:key-server apt)
                               *default-apt-keyserver*)]
            (stevedore/script
             (apt-key
              adv
              "--keyserver" ~key-server
-             "--recv-keys" ~(:key-id aptitude))))))
-     (if-let [key-url (or (:key-url aptitude) (:key-url apt))]
-       (if (#{:aptitude :apt} packager)
+             "--recv-keys" ~key-id)))))
+     (when-let [key-url (or (:key-url aptitude) (:key-url apt))]
+       (when (#{:aptitude :apt} packager)
          (stevedore/chain-commands
-          (remote-file* session "aptkey.tmp" :url (:key-url aptitude))
+          (remote-file* session "aptkey.tmp" :url key-url)
           (stevedore/script (apt-key add aptkey.tmp)))))
      (when-let [key (and (= packager :yum) (:gpgkey yum))]
        (stevedore/script (rpm "--import" ~key))))))
