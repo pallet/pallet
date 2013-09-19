@@ -5,12 +5,12 @@
    [pallet.action :refer [clj-action]]
    [pallet.actions :refer [exec-checked-script remote-file remote-file-content]]
    [pallet.algo.fsmop :refer [complete? operate]]
-   [pallet.api :refer [plan-fn]]
+   [pallet.api :refer [extend-specs plan-fn]]
    [pallet.build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.core.operations :refer [lift]]
    [pallet.crate :refer [admin-user]]
-   [pallet.crate.automated-admin-user :refer [automated-admin-user]]
+   [pallet.crate.automated-admin-user :refer [with-automated-admin-user]]
    [pallet.crate.crontab
     :refer [system-crontabs
             system-settings
@@ -61,8 +61,7 @@
   (test-for [image (images)]
     (test-nodes [compute node-map node-types]
         {:crontab
-         (merge
-          with-crontab
+         (extend-specs
           {:image image
            :count 1
            :phases
@@ -70,7 +69,6 @@
                         (let [user (admin-user)]
                           (user-settings
                            (:username user) {:content crontab-for-test})))
-            :bootstrap (automated-admin-user)
             :configure (plan-fn
                          (system-crontabs :action :create)
                          (user-crontabs :action :create))
@@ -81,10 +79,13 @@
                                        (script (~user-home ~(:username user)))
                                        "/crontab.in"))
                             v ((clj-action [session]
-                                           (let [f (get-for session [:file-checker])]
+                                 (let [f (get-for session
+                                                  [:file-checker])]
                                              (f session fcontent))
                                            [nil session]))]
-                        v))}})}
+                        v))}}
+          [with-automated-admin-user
+          with-crontab])}
       (let [op (operate
                 (lift [(:crontab node-types)] nil [:verify] compute
                       {:file-checker
