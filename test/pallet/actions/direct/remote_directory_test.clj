@@ -2,10 +2,10 @@
   (:require
    [clojure.test :refer :all]
    [pallet.action :refer [action-fn]]
-   [pallet.actions :refer [directory remote-directory]]
+   [pallet.actions :refer [directory exec-checked-script remote-directory]]
    [pallet.actions.decl :refer [remote-file-action]]
    [pallet.actions.direct.remote-file :refer [create-path-with-template]]
-   [pallet.build-actions :as build-actions]
+   [pallet.build-actions :as build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.core.session :refer [with-session]]
    [pallet.core.user :refer [*admin-user*]]
@@ -29,35 +29,32 @@
 (deftest remote-directory-test
   (assert pallet.core.session/*session*)
   (is (script-no-comment=
-       (binding [pallet.action-plan/*defining-context* nil]
-         (with-session {:environment {:user *admin-user*}}
-           (stevedore/do-script
-            (stevedore/checked-commands
-             "remote-directory"
-             (-> (directory* {} "/path" :owner "fred" :recursive false)
-                 first second)
-             (-> (remote-file*
-                  {}
-                  (fragment (lib/file (lib/tmp-dir) "file.tgz"))
-                  {:url "http://site.com/a/file.tgz" :md5 nil})
-                 first second)
-             (stevedore/script
-              (when (or (not (file-exists?
-                              (lib/file (lib/tmp-dir) "file.tgz.md5")))
-                        (or (not (file-exists? "/path/.pallet.directory.md5"))
-                            (not ("diff" (lib/file (lib/tmp-dir) "file.tgz.md5")
-                                  "/path/.pallet.directory.md5"))))
-                ~(stevedore/checked-script
-                  (str "Untar " (fragment (lib/file (lib/tmp-dir) "file.tgz")))
-                  (var rdf @("readlink" -f (lib/file (lib/tmp-dir) "file.tgz")))
-                  ("cd" "/path")
-                  ("tar" xz "--strip-components=1" -f "${rdf}")
-                  ("cd" -))
-                (when (file-exists? (lib/file (lib/tmp-dir) "file.tgz.md5"))
-                  ("cp" (lib/file (lib/tmp-dir) "file.tgz.md5")
-                   "/path/.pallet.directory.md5"))))
-             (-> (directory* {} "/path" :owner "fred" :recursive true)
-                 first second)))))
+       (first
+        (build-actions {}
+          (directory "/path" :owner "fred" :recursive false)
+          (exec-checked-script
+           "remote-directory"
+           ~(-> (remote-file*
+                 {}
+                 (fragment (lib/file (lib/tmp-dir) "file.tgz"))
+                 {:url "http://site.com/a/file.tgz" :md5 nil}) first
+                 second)
+           ~(stevedore/script
+             (when (or (not (file-exists?
+                             (lib/file (lib/tmp-dir) "file.tgz.md5")))
+                       (or (not (file-exists? "/path/.pallet.directory.md5"))
+                           (not ("diff" (lib/file (lib/tmp-dir) "file.tgz.md5")
+                                 "/path/.pallet.directory.md5"))))
+               ~(stevedore/checked-script
+                 (str "Untar " (fragment (lib/file (lib/tmp-dir) "file.tgz")))
+                 (var rdf @("readlink" -f (lib/file (lib/tmp-dir) "file.tgz")))
+                 ("cd" "/path")
+                 ("tar" xz "--strip-components=1" -f "${rdf}")
+                 ("cd" -))
+               (when (file-exists? (lib/file (lib/tmp-dir) "file.tgz.md5"))
+                 ("cp" (lib/file (lib/tmp-dir) "file.tgz.md5")
+                  "/path/.pallet.directory.md5")))))
+          (directory "/path" :owner "fred" :recursive true)))
        (first (build-actions/build-actions
                   {}
                 (remote-directory
@@ -66,32 +63,31 @@
                  :unpack :tar
                  :owner "fred")))))
   (is (script-no-comment=
-       (with-session {:environment {:user *admin-user*}}
-         (binding [pallet.action-plan/*defining-context* nil]
-           (stevedore/do-script
-            (stevedore/checked-commands
-             "remote-directory"
-             (-> (directory* {} "/path" :owner "fred" :recursive false)
-                 first second)
-             (-> (remote-file*
-                  {} (fragment (lib/file (lib/tmp-dir) "file.tgz"))
-                  {:url "http://site.com/a/file.tgz" :md5 nil})
-                 first second)
-             (stevedore/script
-              (when (or (not (file-exists?
-                              (lib/file (lib/tmp-dir) "file.tgz.md5")))
-                        (or (not (file-exists? "/path/.pallet.directory.md5"))
-                            (not ("diff" (lib/file (lib/tmp-dir) "file.tgz.md5")
-                                  "/path/.pallet.directory.md5"))))
-                ~(stevedore/checked-script
-                  (str "Untar " (fragment (lib/file (lib/tmp-dir) "file.tgz")))
-                  (var rdf @("readlink" -f (lib/file (lib/tmp-dir) "file.tgz")))
-                  ("cd" "/path")
-                  ("tar" xz "--strip-components=1" -f "${rdf}")
-                  ("cd" -))
-                (when (file-exists? (lib/file (lib/tmp-dir) "file.tgz.md5"))
-                  ("cp" (lib/file (lib/tmp-dir) "file.tgz.md5")
-                   "/path/.pallet.directory.md5"))))))))
+       (first
+        (build-actions {}
+          (directory "/path" :owner "fred" :recursive false)
+          (exec-checked-script
+           "remote-directory"
+
+           ~(-> (remote-file*
+                 {} (fragment (lib/file (lib/tmp-dir) "file.tgz"))
+                 {:url "http://site.com/a/file.tgz" :md5 nil})
+                first second)
+           ~(stevedore/script
+             (when (or (not (file-exists?
+                             (lib/file (lib/tmp-dir) "file.tgz.md5")))
+                       (or (not (file-exists? "/path/.pallet.directory.md5"))
+                           (not ("diff" (lib/file (lib/tmp-dir) "file.tgz.md5")
+                                 "/path/.pallet.directory.md5"))))
+               ~(stevedore/checked-script
+                 (str "Untar " (fragment (lib/file (lib/tmp-dir) "file.tgz")))
+                 (var rdf @("readlink" -f (lib/file (lib/tmp-dir) "file.tgz")))
+                 ("cd" "/path")
+                 ("tar" xz "--strip-components=1" -f "${rdf}")
+                 ("cd" -))
+               (when (file-exists? (lib/file (lib/tmp-dir) "file.tgz.md5"))
+                 ("cp" (lib/file (lib/tmp-dir) "file.tgz.md5")
+                  "/path/.pallet.directory.md5")))))))
        (first (build-actions/build-actions
                   {}
                 (remote-directory
@@ -101,18 +97,16 @@
                  :owner "fred"
                  :recursive false)))))
   (is (script-no-comment=
-       (with-session {:environment {:user *admin-user*}}
-         (binding [pallet.action-plan/*defining-context* nil]
-           (stevedore/do-script
-            (stevedore/checked-commands
-             "remote-directory"
-             (-> (directory* {} "/path" :owner "fred" :recursive false)
-                 first second)
-             (-> (remote-file*
+       (first
+         (build-actions {}
+           (directory "/path" :owner "fred" :recursive false)
+           (exec-checked-script
+            "remote-directory"
+            ~(-> (remote-file*
                   {} (fragment (lib/file (lib/tmp-dir) "file.tgz"))
                   {:url "http://site.com/a/file.tgz" :md5 nil})
                  first second)
-             (stevedore/script
+            ~(stevedore/script
               (when (or (not (file-exists?
                               (lib/file (lib/tmp-dir) "file.tgz.md5")))
                         (or (not (file-exists? "/path/.pallet.directory.md5"))
@@ -126,7 +120,7 @@
                   ("cd" -))
                 (when (file-exists? (lib/file (lib/tmp-dir) "file.tgz.md5"))
                   ("cp" (lib/file (lib/tmp-dir) "file.tgz.md5")
-                   "/path/.pallet.directory.md5"))))))))
+                   "/path/.pallet.directory.md5")))))))
        (first (build-actions/build-actions
                   {}
                 (remote-directory

@@ -600,13 +600,16 @@ only specified files or directories, use the :extract-files option.
     (with-action-options (merge
                           {:script-prefix :sudo :sudo-user nil}
                           local-file-options)
+      (directory path :owner owner :group group :recursive false)
       (remote-directory-action
        path
        (merge
         {:install-new-files *install-new-files* ; capture bound values
          :overwrite-changes *force-overwrite*
          :owner user}
-        options)))))
+        options))
+      (when recursive
+        (directory path :owner owner :group group :recursive recursive)))))
 
 (defaction wait-for-file
   "Wait for a file to exist"

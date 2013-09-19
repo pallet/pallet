@@ -18,8 +18,6 @@
 (require 'pallet.actions.direct.remote-file)
 
 (def ^{:private true}
-  directory* (action-fn directory :direct))
-(def ^{:private true}
   remote-file* (action-fn remote-file-action :direct))
 
 (defn- source-to-cmd-and-path
@@ -77,10 +75,6 @@
                         extract-files (string/join \space extract-files)]
                     (checked-commands
                      "remote-directory"
-                     (->
-                      (directory*
-                       session path :owner owner :group group :recursive false)
-                      first second)
                      cmd
                      (stevedore/script
                       (when (or (not (file-exists? ~tar-md5))
@@ -110,13 +104,5 @@
                                 ("jar" ~jar-options @rdf ~extract-files)
                                 ("cd" -)))
                         (when (file-exists? ~tar-md5)
-                          ("cp" ~tar-md5 ~path-md5))))
-                     (if recursive
-                       (->
-                        (directory*
-                         session path
-                         :owner owner
-                         :group group
-                         :recursive recursive)
-                        first second)))))))]
+                          ("cp" ~tar-md5 ~path-md5)))))))))]
    session])
