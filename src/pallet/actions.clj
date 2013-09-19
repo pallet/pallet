@@ -229,13 +229,15 @@ value is itself an action return value."
                       group]
                :or {action :create recursive true force true path true}}])
 
-(defaction directories
+(defn directories
   "Directory management of multiple directories with the same
    owner/group/permissions.
 
    `options` are as for `directory` and are applied to each directory in
    `paths`"
-  [paths & options])
+  [paths & options]
+  (doseq [path paths]
+    (apply directory path options)))
 
 ;;; # Remote File Content
 

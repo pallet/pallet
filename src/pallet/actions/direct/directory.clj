@@ -2,7 +2,7 @@
   "A directory manipulation action, to create and remove directories
    with given ownership and mode."
   (:require
-   [pallet.action :refer [action-fn implement-action]]
+   [pallet.action :refer [implement-action]]
    [pallet.actions :refer [directories directory]]
    [pallet.script.lib :as lib]
    [pallet.action-plan :as action-plan]
@@ -52,15 +52,4 @@
               dir-path
               :path path :mode mode :verbose verbose
               :owner owner :group group :recursive recursive))]
-   session])
-
-(implement-action directories :direct
-  {:action-type :script :location :target}
-  [session paths & options]
-  [[{:language :bash}
-    (stevedore/chain-commands*
-      (map
-       #(-> (apply (action-fn directory :direct) session % options)
-            first second)
-       paths))]
    session])

@@ -62,12 +62,10 @@
 
 (deftest directories-test
   (is (script-no-comment=
-       (str
-        (binding [pallet.action-plan/*defining-context* nil]
-          (stevedore/chain-commands
-           (-> (directory* {} "d1" :owner "o") first second)
-           (-> (directory* {} "d2" :owner "o") first second)))
-        \newline)
+       (first
+        (build-actions {}
+          (directory "d1" :owner "o") first second
+          (directory "d2" :owner "o") first second))
        (first
         (build-actions {}
           (directories ["d1" "d2"] :owner "o"))))))
