@@ -25,7 +25,7 @@
    [pallet.context :as context]
    [pallet.context :refer [in-phase-context-scope with-context]]
    [pallet.core.session :refer [session with-session]]
-   [pallet.node-value :refer [make-node-value set-node-value]]
+   [pallet.node-value :refer [make-node-value node-value-symbol set-node-value]]
    [pallet.session.action-plan
     :refer [dissoc-action-plan get-session-action-plan]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]))
@@ -139,8 +139,8 @@
   (let [node-value-path (if (#{:aggregated :collected}
                              (action-map-execution action-map))
                           (or (find-node-value-path action-plan action-map)
-                              (gensym "nv"))
-                          (gensym "nv"))]
+                              (node-value-symbol))
+                          (node-value-symbol))]
     [(make-node-value node-value-path)
      (add-action-map
       action-plan (assoc action-map :node-value-path node-value-path))]))
@@ -536,7 +536,7 @@
             (nil? (second action-plan)))))
 
 (defn map-action-f
-  "Map exec-action over actions in the action-plan, applying sesssion."
+  "Map exec-action over actions in the action-plan, applying session."
   [exec-action action-plan session]
   ((domonad action-exec-m [v (m-map exec-action action-plan)] v)
    session))

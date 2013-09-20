@@ -41,7 +41,7 @@ Encapsulates the location of the action-plans in the session.")
   (target-path* (:phase session) (-> session :target-id)))
 
 ;; (defn mv-session-action-plan
-;;   "Move the session action-plan into it's target specific location"
+;;   "Move the session action-plan into its target specific location"
 ;;   [session]
 ;;   (let [action-plan (action-plan-key session)]
 ;;     [action-plan

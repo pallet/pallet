@@ -81,7 +81,7 @@
 (defn service-resources
   "Read all service definitions in pallet_services/ resources."
   []
-  (for [path (data-plugins "pallet_services/")]
+  (for [path (data-plugins "pallet_services/" #"\.DS_Store")]
     (read-string (slurp (resource path)))))
 
 (defn pallet-config
@@ -90,7 +90,18 @@
   []
   (reduce
    (fn [config service]
-     (assoc-in config [:services (key (first service))] (val (first service))))
+     (try
+       (assoc-in config [:services (key (first service))] (val (first service)))
+       (catch Exception e
+         (logging/errorf
+          e "Incorrect service definition %s"
+          (pr-str service))
+         (throw
+          (ex-info
+           "Incorrect service definition"
+           {:reason :invalid-service-definition
+            :path (.getAbsolutePath (config-file-path))
+            :service (pr-str service)})))))
    (if (.exists (config-file-path))
      (try
        (read-config (.getAbsolutePath (config-file-path)))

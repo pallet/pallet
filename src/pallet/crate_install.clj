@@ -19,17 +19,19 @@
    [pallet.crate
     :refer [defmethod-plan defmulti-plan get-settings target-flag?]]
    [pallet.crate.package-repo :refer [rebuild-repository repository-packages]]
-   [pallet.utils :refer [apply-map]]))
+   [pallet.utils :refer [apply-map]])
+  (:import clojure.lang.IPersistentVector
+           clojure.lang.Keyword))
 
 (def-map-schema crate-install-settings
   :strict
-  [[:install-strategy] keyword?
-   (optional-path [:packages]) (sequence-of string?)
-   (optional-path [:package-source]) (map-schema :loose [[:name] string?])
+  [[:install-strategy] Keyword
+   (optional-path [:packages]) (sequence-of String)
+   (optional-path [:package-source]) (map-schema :loose [[:name] String])
    (optional-path [:package-options]) (map-schema :loose [])
-   (optional-path [:preseeds]) (sequence-of vector?)
+   (optional-path [:preseeds]) (sequence-of IPersistentVector)
    (optional-path [:rpm]) (map-schema
-                           :strict remote-file-arguments [[:name] string?])
+                           :strict remote-file-arguments [[:name] String])
    (optional-path [:debs]) remote-file-arguments
    (optional-path [:install-source]) remote-file-arguments
    (optional-path [:install-dir]) remote-file-arguments])
@@ -59,7 +61,7 @@
         (get-settings facility {:instance-id instance-id})]
     (check-keys
      settings [:packages]
-     (map-schema :strict [[:packages] (sequence-of string?)])
+     (map-schema :strict [[:packages] (sequence-of String)])
      "packages install-strategy settings values")
     (doseq [p preseeds]
       (debconf-set-selections p))
@@ -77,8 +79,8 @@
     (check-keys
      settings [:package-source :packages]
      (map-schema :strict
-                 [[:package-source] (map-schema :loose [[:name] string?])
-                  [:packages] (sequence-of string?)])
+                 [[:package-source] (map-schema :loose [[:name] String])
+                  [:packages] (sequence-of String)])
      "package-source install-strategy settings values")
     (apply-map actions/package-source (:name package-source) package-source)
     (let [modified? (target-flag? package-source-changed-flag)]
@@ -100,7 +102,7 @@
      settings [:rpm]
      (map-schema
       :strict
-      [[:rpm] (map-schema :strict remote-file-arguments [[:name] string?])])
+      [[:rpm] (map-schema :strict remote-file-arguments [[:name] String])])
      "packages install-strategy settings values")
 
     (with-action-options {:always-before `package/package}
@@ -115,8 +117,8 @@
      settings [:rpm :packages]
      (map-schema
       :strict
-      [[:rpm] (map-schema :strict remote-file-arguments [[:name] string?])
-       [:packages] (sequence-of string?)])
+      [[:rpm] (map-schema :strict remote-file-arguments [[:name] String])
+       [:packages] (sequence-of String)])
      "packages install-strategy settings values")
     (with-action-options {:always-before `package/package}
       (apply-map add-rpm (:name rpm) (dissoc rpm :name)))
@@ -155,6 +157,6 @@
         (get-settings facility {:instance-id instance-id})]
     (check-keys
      settings [:install-dir :install-source]
-     (map-schema :strict [[:install-dir] string? [:install-source] string?])
+     (map-schema :strict [[:install-dir] String [:install-source] String])
      "archive install-strategy settings values")
     (apply-map remote-directory install-dir install-source)))

@@ -6,8 +6,8 @@
        ;;                   "marg" "-d" "autodoc/marginalia/0.8/"]
        ;;           "codox" ["with-profile" "+doc" "doc"]
        ;;           "doc" ["do" "codox," "marg"]}
-       :checkout-deps-shares [:source-paths :test-paths :resource-paths
-                              :compile-path]
+       :checkout-deps-shares ^:replace [:source-paths :test-paths
+                                        :resource-paths :compile-path]
        :plugins [[codox/codox.leiningen "0.6.4"]
                  [lein-marginalia "0.7.1"]]}
  :doc {:dependencies [[com.palletops/pallet-codox "0.1.0"]]
@@ -33,4 +33,5 @@
                           [org.jclouds.driver/jclouds-slf4j "1.5.5"
                            :exclusions [org.slf4j/slf4j-api]]
                           [org.jclouds.driver/jclouds-sshj "1.5.5"]]}
- :vmfest {:dependencies [[com.palletops/pallet-vmfest "0.3.0-alpha.5"]]}}
+ :vmfest {:dependencies [[com.palletops/pallet-vmfest "0.3.0-alpha.5"]]}
+ :pallet-lein {:plugins [[com.palletops/pallet-lein "0.8.0-alpha.1"]]}}

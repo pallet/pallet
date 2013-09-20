@@ -11,16 +11,23 @@
    Options:
    - :standoff      time between checking port state (seconds)
    - :max-retries   number of times to test port state before erroring
-   - :service-name  name of service to use in messages (defaults to port)"
+   - :service-name  name of service to use in messages (defaults to port)
+   - :protocol      name of the network protocol family (:raw, :tcp, :udp or :udplite, defaults to :tcp)"
 
-  [port & {:keys [max-retries standoff service-name]
-           :or {max-retries 5 standoff 2
+  [port & {:keys [max-retries standoff service-name protocol]
+           :or {max-retries 5 standoff 2 protocol :tcp
                 service-name (str "port " port)}}]
   (exec-checked-script
    (format "Wait for %s to be in a listen state" service-name)
    (group (chain-or (let x 0) true))
    (while
-       (pipe ("netstat" -lnt) ("awk" ~(format "'$4 ~ /:%s$/ {exit 1}'" port)))
+       (pipe ("netstat" ~(format "-ln%s" (case protocol
+                                           :raw "w"
+                                           :tcp "t"
+                                           :udp "u"
+                                           :udplite "U")
+                                 ))
+             ("awk" ~(format "'$4 ~ /:%s$/ {exit 1}'" port)))
      (let x (+ x 1))
      (if (= ~max-retries @x)
        (do

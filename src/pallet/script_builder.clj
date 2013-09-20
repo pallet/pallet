@@ -5,6 +5,7 @@
    [clojure.tools.logging :refer [debugf]]
    [clojure.string :as string]
    [clojure.string :refer [split]]
+   [pallet.script :refer [with-script-context *script-context*]]
    [pallet.script.lib
     :refer [bash env env-var-pairs exit heredoc make-temp-file mkdir rm sudo]]
    [pallet.stevedore :as stevedore]
@@ -55,7 +56,9 @@ up the working directory (and possibly environment variables in the
 future)."
   [{:keys [language version interpreter] :or {language :bash} :as options}
    script
-   {:keys [script-dir script-trace] :as action}]
+   {:keys [script-dir script-trace script-hash]
+    :or {script-hash true}
+    :as action}]
   (str
    (prolog)
    (if script-dir
@@ -66,6 +69,9 @@ future)."
    (if (and (= language :bash) script-trace)
      "set -x\n"
      "")
+   (if (and (= language :bash) script-hash)
+     "set -h\n"
+     "set +h\n")
    (if (= language :bash)
      script
      (let [interpreter (or interpreter
@@ -81,33 +87,31 @@ future)."
 
 (defn build-code
   "Builds a code map, describing the command to execute a script."
-  [session {:keys [default-script-prefix script-dir script-env script-prefix
-                   sudo-user]
+  [session {:keys [default-script-prefix script-context script-dir script-env
+                   script-env-fwd script-prefix sudo-user]
             :as action}
    & args]
   (debugf
    "%s"
    (select-keys action
-                [:default-script-prefix :script-dir :script-env :script-prefix
-                 :sudo-user]))
+                [:default-script-prefix :script-dir :script-env :script-env-fwd
+                 :script-prefix :sudo-user :script-context]))
   (debugf
    "prefix kw %s"
    (:script-prefix session (or script-prefix default-script-prefix :sudo)))
-  (with-source-line-comments false
-    {:execv
-     (->>
-      (concat
-       (when-let [prefix (prefix
-                          (:script-prefix
-                           session
-                           (or script-prefix default-script-prefix :sudo))
-                          session
-                          action)]
-         (debugf "prefix %s" prefix)
-         (string/split prefix #" "))
-       [(fragment (env))]
-       (env-var-pairs (merge {:SSH_AUTH_SOCK (fragment @SSH_AUTH_SOCK)}
-                             (or script-env (:script-env session))))
-       (interpreter {:language :bash})
-       args)
-      (filter identity))}))
+  (with-script-context (concat *script-context* script-context)
+    (with-source-line-comments false
+      {:env-cmd (fragment (env))
+       :env (or script-env (:script-env session))
+       :env-fwd (or script-env-fwd (:script-env-fwd session) [:SSH_AUTH_SOCK])
+       :prefix (when-let [prefix (prefix
+                                  (:script-prefix
+                                   session
+                                   (or script-prefix
+                                       default-script-prefix
+                                       :sudo))
+                                  session
+                                  action)]
+                 (debugf "prefix %s" prefix)
+                 (string/split prefix #" "))
+       :execv (concat (interpreter {:language :bash}) args)})))

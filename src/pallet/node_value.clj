@@ -90,3 +90,8 @@
 (defn get-node-value
   [nv]
   (fn [session] [(node-value nv session) session]))
+
+(defn node-value-symbol
+  "Return a node value symbol"
+  []
+  (gensym "nv"))

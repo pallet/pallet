@@ -1,6 +1,8 @@
 (ns pallet.ssh.execute-test
   (:require
+   [clojure.string :refer [trim]]
    [clojure.test :refer :all]
+   [clojure.tools.logging :refer [debugf]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture
                                            with-log-to-string]]
    [pallet.compute.node-list :refer [make-localhost-node]]
@@ -65,6 +67,7 @@
               (with-redefs [clj-ssh.ssh/open-channel
                             (fn [session session-type]
                               (swap! c inc)
+                              (debugf (Exception. "here") "Inc")
                               (if @a
                                 (open-channel session session-type)
                                 (do
@@ -81,10 +84,10 @@
                   (transport/exec connection {:execv ["echo" "1"]} {})
                   (reset! seen true))
                 (is @seen)
-                (is (= 3 @c))                 ; 1 failed + sftp +exec
+                (is (= 3 @c))           ; 1 failed + sftp +exec
                 (is (not= original-connection (get-connection session))
                     "new cached connection")))]
-        (is log-out)))
+        (is log-out "exception is logged")))
     (testing "new session after :new-login-after-action"
       (with-script-for-node (:server session) nil
         (let [original-connection (get-connection session)]
@@ -102,4 +105,37 @@
              session {:node-value-path (keyword (name (gensym "nv")))}
              nil [{} "echo 1"])
             (is (not= original-connection (get-connection session)))
-            (is (= second-connection (get-connection session)))))))))
+            (is (= second-connection (get-connection session)))))))
+    (testing "agent-forward"
+      (with-script-for-node (:server session) nil
+        (let [[r s] (ssh-script-on-target
+                     session {:node-value-path (keyword (name (gensym "nv")))}
+                     nil [{} "echo $SSH_AUTH_SOCK"])]
+          (is (= "" (trim (:out r)))))
+        (let [[r s] (ssh-script-on-target
+                     session {:node-value-path (keyword (name (gensym "nv")))
+                              :ssh-agent-forwarding true}
+                     nil [{} "echo $SSH_AUTH_SOCK"])]
+          (is (not= "" (trim (:out r)))))))
+    (testing "env"
+      (with-script-for-node (:server session) nil
+        (let [[r s] (ssh-script-on-target
+                     session {:node-value-path (keyword (name (gensym "nv")))}
+                     nil [{} "echo $XXX"])]
+          (is (= "" (trim (:out r)))))
+        (let [[r s] (ssh-script-on-target
+                     session {:node-value-path (keyword (name (gensym "nv")))
+                              :script-env {:XXX "abcd"}}
+                     nil [{} "echo $XXX"])]
+          (is (= "abcd" (trim (:out r)))))))
+    (testing "env-fwd"
+      (with-script-for-node (:server session) nil
+        (let [[r s] (ssh-script-on-target
+                     session {:node-value-path (keyword (name (gensym "nv")))}
+                     nil [{} "echo $SSH_CLIENT"])]
+          (is (= "" (trim (:out r)))))
+        (let [[r s] (ssh-script-on-target
+                     session {:node-value-path (keyword (name (gensym "nv")))
+                              :script-env-fwd [:SSH_CLIENT]}
+                     nil [{} "echo $SSH_CLIENT"])]
+          (is (= "127.0.0.1" (subs (:out r) 0 9))))))))

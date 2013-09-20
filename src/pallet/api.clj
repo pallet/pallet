@@ -72,7 +72,7 @@
 
    :location  a map describing a predicate for matching location:
               location-id
-   :hardware  a map describing a predicate for matching harware:
+   :hardware  a map describing a predicate for matching hardware:
               min-cores min-ram smallest fastest biggest architecture
               hardware-id
    :network   a map for network connectivity options:
@@ -166,7 +166,7 @@ specified in the `:extends` argument."
   "Create a group-spec.
 
    `name` is used for the group name, which is set on each node and links a node
-   to it's node-spec
+   to its node-spec
 
    - :extends        specify a server-spec, a group-spec, or sequence thereof
                      and is used to inherit phases, etc.
@@ -259,28 +259,28 @@ specified in the `:extends` argument."
    - :roles     roles for all group-specs in the cluster"
   [cluster-name
    & {:keys [extends groups phases node-spec roles] :as options}]
-  (->
-   options
-   (update-in [:groups]
-              (fn [group-specs]
-                (map
-                 (fn [group-spec]
-                   (->
-                    node-spec
-                    (merge (dissoc group-spec :phases))
-                    (update-in
-                     [:group-name]
-                     #(keyword (str (name cluster-name)
-                                    (if (blank? cluster-name) "" "-")
-                                    (name %))))
-                    (update-in [:roles] union roles)
-                    (extend-specs extends)
-                    (extend-specs [{:phases phases}])
-                    (extend-specs [(select-keys group-spec [:phases])])))
-                 (expand-group-spec-with-counts group-specs 1))))
-   (dissoc :extends :node-spec)
-   (assoc :cluster-cluster-name (keyword cluster-name))
-   (vary-meta assoc :type ::cluster-spec)))
+  (let [cluster-name (name cluster-name)
+        group-prefix (if (blank? cluster-name) "" (str cluster-name "-"))]
+    (->
+     options
+     (update-in [:groups]
+                (fn [group-specs]
+                  (map
+                   (fn [group-spec]
+                     (->
+                      node-spec
+                      (merge (dissoc group-spec :phases))
+                      (update-in
+                       [:group-name]
+                       #(keyword (str group-prefix (name %))))
+                      (update-in [:roles] union roles)
+                      (extend-specs extends)
+                      (extend-specs [{:phases phases}])
+                      (extend-specs [(select-keys group-spec [:phases])])))
+                   (expand-group-spec-with-counts group-specs 1))))
+     (dissoc :extends :node-spec)
+     (assoc :cluster-name (keyword cluster-name))
+     (vary-meta assoc :type ::cluster-spec))))
 
 ;;; ## Compute Service
 ;;;
@@ -390,6 +390,18 @@ specified in the `:extends` argument."
 
 (def ^{:doc "Arguments that are forwarded to be part of the environment"}
   environment-args [:compute :blobstore :user :provider-options])
+
+(defn group-node-maps
+  "Returns a FSM to converge the existing compute resources with the counts
+   specified in `group-spec->count`.  Options are as for `converge`."
+  [compute groups & {:keys [async timeout-ms timeout-val]
+                     :as options}]
+  (let [fsm (all-group-nodes compute groups nil)]
+    (if async
+      (operate fsm)
+      (if timeout-ms
+        (deref (operate fsm) timeout-ms timeout-val)
+        (deref (operate fsm))))))
 
 (defn converge*
   "Returns a FSM to converge the existing compute resources with the counts

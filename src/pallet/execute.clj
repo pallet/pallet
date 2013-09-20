@@ -93,7 +93,7 @@
     session))
 
 (defn set-target-flag-values
-  "Set flag valuess for target."
+  "Set flag values for target."
   [session flag-values]
   (if (seq flag-values)
     (update-in

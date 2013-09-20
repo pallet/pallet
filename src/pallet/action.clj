@@ -93,7 +93,7 @@ of user options.
 ;;; Actions are primitives that may be called in a phase or crate function. An
 ;;; action can have multiple implementations. At this level, actions are
 ;;; represented by the function that inserts an action map for the action into
-;;; the action plan.  This inserter function has the action on it's :action
+;;; the action plan.  This inserter function has the action on its :action
 ;;; metadata key.
 
 (defn insert-action
@@ -336,3 +336,8 @@ full action to do that."
   "Leave the current action scope."
   []
   (session! (update-action-plan (session) pop-block)))
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (clj-action 'defun)(implement-action 4))
+;; End:

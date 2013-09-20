@@ -142,3 +142,8 @@
 (defn action-phase-errors
   [result]
   (filter :error (:result result)))
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (build-actions 1))
+;; End:

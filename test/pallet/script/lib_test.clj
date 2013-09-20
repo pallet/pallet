@@ -1,4 +1,5 @@
 (ns pallet.script.lib-test
+  (:refer-clojure :exclude [alias source])
   (:require
    [clojure.test :refer :all]
    [pallet.script :as script]
@@ -48,8 +49,12 @@
        (script (~chmod "0666" "file1")))))
 
 (deftest tmpdir-test
-  (is (script-no-comment= "${TMPDIR-/tmp}"
-                          (script (~tmp-dir)))))
+  (is (= "${TMPDIR:-${TEMP:-${TMP:-$(if [ -d /tmp ]; then echo /tmp;else
+if [ -d /var/tmp ]; then echo /var/tmp;else
+if [ -d /use/tmp ]; then echo /usr/tmp;fi
+fi
+fi)}}}"
+         (fragment (~tmp-dir)))))
 
 (deftest normalise-md5-test
   (is (script-no-comment=

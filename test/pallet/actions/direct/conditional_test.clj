@@ -87,7 +87,22 @@
                   :async true)
               session @op]
           (is (not (failed? op)))
-          (is (nil? (->> session :results (mapcat :result) last :out))))))
+          (is (nil? (->> session :results (mapcat :result) last :out)))))
+      (testing "with test that outputs to stdout"
+        (.delete tmp)
+        (let [compute (make-localhost-compute :group-name "local")
+              op (lift
+                  (group-spec "local")
+                  :phase (plan-fn
+                           (plan-when (script ("ls"))
+                             (exec-script (println "tmp found"))))
+                  :compute compute
+                  :user (local-test-user)
+                  :async true)
+              session @op]
+          (is (not (failed? op)))
+          (is (= "tmp found\n"
+                 (->> session :results (mapcat :result) last :out))))))
     (testing "plan-when-not"
       (testing "with true condition"
         (let [compute (make-localhost-compute :group-name "local")
@@ -119,4 +134,18 @@
               session @op]
           (is (not (failed? op)))
           (is (= "tmp not found\n"
-                 (->> session :results (mapcat :result) last :out))))))))
+                 (->> session :results (mapcat :result) last :out)))))
+      (testing "with test that outputs to stdout"
+        (.delete tmp)
+        (let [compute (make-localhost-compute :group-name "local")
+              op (lift
+                  (group-spec "local")
+                  :phase (plan-fn
+                           (plan-when-not (script ("ls"))
+                             (exec-script (println "tmp found"))))
+                  :compute compute
+                  :user (local-test-user)
+                  :async true)
+              session @op]
+          (is (not (failed? op)))
+          (is (nil? (->> session :results (mapcat :result) last :out))))))))

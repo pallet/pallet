@@ -5,7 +5,9 @@
 
 (require
  '[pallet.test-specs
-   :refer [remote-file-test rsync-test operations-test rolling-lift-test
+   :refer [remote-directory-test remote-directory-relative-test
+           remote-file-test rsync-test
+           operations-test rolling-lift-test
            partitioning-test exec-meta-test]]
  '[pallet.crate.initd-test :refer [initd-test-spec]]
  '[pallet.crate.nohup-test :refer [nohup-test-spec]])
@@ -19,7 +21,8 @@
                 :group-suffix "u1204"
                 :selectors #{:default}}]}}
 
-  :groups [remote-file-test rsync-test
+  :groups [remote-directory-test remote-file-test remote-directory-relative-test
+           rsync-test
            operations-test rolling-lift-test partitioning-test exec-meta-test
            (group-spec "initd-test"
              :extends [with-automated-admin-user

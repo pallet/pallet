@@ -2,6 +2,7 @@
   "Action to specify the content of a remote directory.  At present the
    content can come from a downloaded tar or zip file."
   (:require
+   [clojure.string :as string]
    [pallet.action :refer [action-fn implement-action]]
    [pallet.action-plan :refer [checked-commands]]
    [pallet.actions :refer [directory]]
@@ -49,7 +50,7 @@
   [session path {:keys [action url local-file remote-file
                         unpack tar-options unzip-options jar-options
                         strip-components md5 md5-url owner group recursive
-                        install-new-files overwrite-changes]
+                        install-new-files overwrite-changes extract-files]
                  :or {action :create
                       tar-options "xz"
                       unzip-options "-o"
@@ -74,7 +75,8 @@
                                                install-new-files
                                                overwrite-changes)
                         tar-md5 (str tarpath ".md5")
-                        path-md5 (str path "/.pallet.directory.md5")]
+                        path-md5 (str path "/.pallet.directory.md5")
+                        extract-files (string/join \space extract-files)]
                     (checked-commands
                      "remote-directory"
                      (->
@@ -94,19 +96,20 @@
                                 ("tar"
                                  ~tar-options
                                  ~(str "--strip-components=" strip-components)
-                                 -f @rdf)
+                                 -f @rdf
+                                 ~extract-files)
                                 ("cd" -))
                           :unzip (stevedore/checked-script
                                   (format "Unzip %s" tarpath)
                                   (var rdf @("readlink" -f ~tarpath))
                                   ("cd" ~path)
-                                  ("unzip" ~unzip-options @rdf)
+                                  ("unzip" ~unzip-options @rdf ~extract-files)
                                   ("cd" -))
                           :jar (stevedore/checked-script
                                 (format "Unjar %s" tarpath)
                                 (var rdf @("readlink" -f ~tarpath))
                                 ("cd" ~path)
-                                ("jar" ~jar-options @rdf)
+                                ("jar" ~jar-options @rdf ~extract-files)
                                 ("cd" -)))
                         (when (file-exists? ~tar-md5)
                           ("cp" ~tar-md5 ~path-md5))))

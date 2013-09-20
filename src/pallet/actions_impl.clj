@@ -98,7 +98,9 @@ to deal with local file transfer."
     path
     (fragment
      (file ~(or script-dir
-                (fragment (user-home ~(:username (admin-user)))))
+                ;; use /home so we have a path tha doesn't
+                ;; involve shell vars
+                (str "/home/" (:username (admin-user))))
            ~path))))
 
 (defn new-filename

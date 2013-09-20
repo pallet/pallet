@@ -11,7 +11,7 @@ command line.
 - reuse configuration in development, testing and production.
 - store all your configuration in a source code management system (eg. git),
   including role assignments.
-- configuration is re-used by compostion; just create new functions that call
+- configuration is re-used by composition; just create new functions that call
   existing crates with new arguments. No copy and modify required.
 - enable use of configuration crates (recipes) from versioned jar files.
 
@@ -44,7 +44,7 @@ Installation is with maven or your favourite maven repository aware build tool.
 ### lein project.clj
 
 ```clojure
-:dependencies [[com.palletops/pallet 0.8.0-RC.1"]]
+:dependencies [[com.palletops/pallet "0.8.0-RC.2"]]
 ```
 
 ### maven pom.xml
@@ -54,7 +54,7 @@ Installation is with maven or your favourite maven repository aware build tool.
   <dependency>
     <groupId>com.palletops</groupId>
     <artifactId>pallet</artifactId>
-    <version>0.8.0-RC.1</version>
+    <version>0.8.0-RC.2</version>
   </dependency>
 <dependencies>
 

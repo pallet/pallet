@@ -34,7 +34,7 @@
     false-expr))
 
 (defn multilang-script
-  "Feature for multi-langauge script execution."
+  "Feature for multi-language script execution."
   [] true)
 
 (defn run-nodes-without-bootstrap

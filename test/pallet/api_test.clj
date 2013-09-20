@@ -182,6 +182,10 @@
          (node-spec :image {})))
   (is (= {:hardware {}}
          (node-spec :hardware {})))
+  (is (= {:location {:subnet-id "subnet-xxxx"}}
+         (node-spec :location {:subnet-id "subnet-xxxx"})))
+  (is (= {:hardware {:hardware-model "xxxx"}}
+         (node-spec :hardware {:hardware-model "xxxx"})))
   (testing "type"
     (is (= :pallet.api/node-spec (type (node-spec :hardware {}))))))
 

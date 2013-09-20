@@ -59,12 +59,21 @@
   (checked-commands
    "Packages"
    (stevedore/script (~lib/package-manager-non-interactive))
+   (stevedore/script (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d")))
    (stevedore/chain-commands*
     (for [[opts packages] (->>
                            packages
-                           (group-by #(select-keys % [:enable :allow-unsigned]))
+                           (group-by #(select-keys % [:enable :allow-unsigned
+                                                      :disable-service-start]))
                            (sort-by #(apply min (map :priority (second %)))))]
-      (stevedore/script
+      (stevedore/chained-script
+       ~(if (:disable-service-start opts)
+          (do
+            (stevedore/script
+             (chain-and
+              ("trap" enableStart EXIT)
+              (lib/heredoc "/usr/sbin/policy-rc.d" "#!/bin/sh\nexit 101" {}))))
+          "")
        ("aptitude"
         install -q -y
         ~(string/join " " (map #(str "-t " %) (:enable opts)))
@@ -84,39 +93,55 @@
               (throw
                (IllegalArgumentException.
                 (str
-                 action " is not a valid action for package action"))))))))))
+                 action " is not a valid action for package action")))))))
+       ~(if (:disable-service-start opts)
+          (do
+            (stevedore/script
+             (chain-and
+              ("enableStart")
+              ("trap" - EXIT))))
+          ""))))
    ;; aptitude doesn't report failed installed in its exit code
    ;; so explicitly check for success
    (stevedore/chain-commands*
     (for [{:keys [package action]} packages
           :let [escaped-package (string/escape package aptitude-escape-map)]]
       (cond
-        (#{:install :upgrade} action)
-        (stevedore/script
-         (pipe ("aptitude"
-                search
-                (quoted
-                 (str "?and(?installed, ?name(^" ~escaped-package "$))")))
-               ("grep" (quoted ~package))))
-        (= :remove action)
-        (stevedore/script
-         (not (pipe ("aptitude"
-                     search
-                     (quoted
-                      (str "?and(?installed, ?name(^" ~escaped-package "$))")))
-                    ("grep" (quoted ~package))))))))))
+       (#{:install :upgrade} action)
+       (stevedore/script
+        (pipe ("aptitude"
+               search
+               (quoted
+                (str "?and(?installed, ?name(^" ~escaped-package "$))")))
+              ("grep" (quoted ~package))))
+       (= :remove action)
+       (stevedore/script
+        (not (pipe ("aptitude"
+                    search
+                    (quoted
+                     (str "?and(?installed, ?name(^" ~escaped-package "$))")))
+                   ("grep" (quoted ~package))))))))))
 
 (defmethod adjust-packages :apt
   [session packages]
   (checked-commands
    "Packages"
    (stevedore/script (~lib/package-manager-non-interactive))
+   (stevedore/script (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d")))
    (stevedore/chain-commands*
     (for [[opts packages] (->>
                            packages
-                           (group-by #(select-keys % [:enable :allow-unsigned]))
+                           (group-by #(select-keys % [:enable :allow-unsigned
+                                                      :disable-service-start]))
                            (sort-by #(apply min (map :priority (second %)))))]
-      (stevedore/script
+      (stevedore/chained-script
+       ~(if (:disable-service-start opts)
+          (do
+            (stevedore/script
+             (chain-and
+              ("trap" enableStart EXIT)
+              (lib/heredoc "/usr/sbin/policy-rc.d" "#!/bin/sh\nexit 101" {}))))
+          "")
        ("apt-get"
         -q -y install
         ~(string/join " " (map #(str "-t " %) (:enable opts)))
@@ -134,7 +159,14 @@
               (throw
                (IllegalArgumentException.
                 (str
-                 action " is not a valid action for package action"))))))))))
+                 action " is not a valid action for package action")))))))
+       ~(if (:disable-service-start opts)
+          (do
+            (stevedore/script
+             (chain-and
+              ("enableStart")
+              ("trap" - EXIT))))
+          ""))))
    (stevedore/script (~lib/list-installed-packages))))
 
 (def ^{:private true :doc "Define the order of actions"}
@@ -214,6 +246,7 @@
     - :disable [repo|(seq repo)]   disable specific repository
     - :priority n                  priority (0-100, default 50)
     - :allow-unsigned [true|false] allow unsigned packages
+    - :disable-service-start       disable service startup (default false)
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
@@ -392,7 +425,7 @@
   {:action-type :script :location :target}
   [session & args]
   [[{:language :bash
-     :summary (str "package-source " (string/join " " args))}
+     :summary (str "package-source " (string/join " " (map vec args)))}
     (stevedore/do-script*
      (map (fn [x] (apply package-source* session x)) args))]
    session])
@@ -563,7 +596,8 @@
   [session & package-manager-args]
   (logging/tracef "package-manager-args %s" (vec package-manager-args))
   [[{:language :bash
-     :summary (str "package-manager " (string/join " " package-manager-args))}
+     :summary (str "package-manager "
+                   (string/join " " (distinct (map vec package-manager-args))))}
     (stevedore/do-script*
      (map #(apply package-manager* session %) (distinct package-manager-args)))]
    session])
