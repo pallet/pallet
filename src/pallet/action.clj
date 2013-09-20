@@ -339,5 +339,5 @@ full action to do that."
 
 ;; Local Variables:
 ;; mode: clojure
-;; eval: (define-clojure-indent (clj-action 'defun))
+;; eval: (define-clojure-indent (clj-action 'defun)(implement-action 4))
 ;; End:
