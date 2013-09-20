@@ -1,5 +1,192 @@
 Unstable development branch
 
+# 0.8.0-RC.2
+
+## Features
+
+- Add an alias script function
+  Allows setting shell aliases cleanly.
+
+- Add export and source script functions
+
+- Add pallet.core phase-error-exceptions
+  Returns a sequence of the exceptions raised while running phases.
+
+- Add with-centos-script-template for testing
+
+- Added network protocol option to wait-for-port-listen.
+  The wait-for-port-listen fn uses netstat to detect if a service is
+  listening on a specific TCP port. This patch adds additional support for
+  the :udp, :udplite and :raw protocol families.
+
+- Add :disable-service-start to package action
+  Allows the installation of packages withot the automatic startup of the
+  services they provide.
+
+- Add :extract-files option to 'remote-directory
+  Allows the specification of which files or directories to extract from a
+  jar, zip or tar archive.
+
+- Allow control of hashing in scripts
+  The :script-hash option can be used to control whether the shell hashes
+  executable paths.  Defaults to true.
+
+- Allow action specific script context
+  The :script-context action option can be used to specify a sequence of
+  additional script context keywords for an action.
+
+- Allow tmpdir specification in make-temp-file
+
+- Add spool-root to p.script.lib
+  Returns the root directory for spool files, usually /var/spool.
+
+- Add group-node-maps to return node maps
+  Returns a sequence of node maps for the specified group specs.
+
+- Make init script creation optional
+  Packages often install init scripts.  This makes the writing of an init
+  script optional, allowing pallet's initd service abstraction to be used
+  with package provided init scripts.
+
+- Add :link to content-options
+
+- Update to stevedore 0.8.0-beta.5
+
+- Upgrade to useful 0.10.3
+
+- Update to pallet-repl 0.8.0-beta.2
+
+- Use *exit-process* in pallet.main
+  This is compatible with leiningen's main, which should make it simpler to
+  use pallet with grenchman.
+
+## Fixes
+
+- Refactor plan-when and plan-when-not
+  Refactored so that the flag keyword generation is via a function, which
+  can be redef'd for testing.  Also fixed the line number on the generated
+  script.
+
+- Refactor line number in exec-checked-script
+
+- Factor out node-value-symbol
+
+- Fix shadowing of alias in p.script.lib-test
+
+- Fix scripts for non-root sudo user
+  The permissions for scripts to be run by a non-root sudo user were failing
+  if the admin user's home directory didn't have execute permissions for the
+  user.
+
+  Fixed by writing the scripts to the system temp directory.
+
+- task-utils locates pallet.clj even if no project
+  The pallet.clj file should be used if in the current directory, even if no
+  project map is passed.
+
+- Make rsync action preserve ownership and perms
+  The default options for the rsync task are changed to preserve ownership
+  and file permissions.
+
+- Fix remote-file for missing parent directories
+  A missing parent directory was causing an infinite loop.
+
+- Add emacs variables to pallet.action
+
+- Suppress output in plan-when script tests
+  Tests that generated output where confusing the plan-when detection of the
+  test exit status.
+
+  Fixes #282
+
+- Fix remote-directory with relative path
+  Fixes #280.
+
+- Add file local variables to build-actions
+
+- Add remote-directory live test
+  Test remote-directory with a local zip file. Can be run with:
+
+  lein with-profile +pallet-lein,+vmfest pallet up --roles remote-directory
+
+- Fix the 2-arg arity of is= in script-test
+
+- Fix environment forwarding
+  This was broken when executing script on a local machine.  The
+  :script-env action option takes a map of environment variables to set. The
+  :script-env-fwd action option takes a sequence of environment variables to
+  forward.
+
+- Fix #277. Check for /selinux/enforce before issuing 'chcon'.
+
+- Ignore .DS_Store file in ~/.pallet/services
+  Reading configuration was trying to interpret the file as a pallet
+  configuration map.
+
+  Fixes #276
+
+- Ensure :checkout-deps-shares is overriden in lein 2.3.x
+
+- Add better logging on config file format errors
+
+- fix typo in cluster-spec (:cluster-name instead of :cluster-cluster-name)
+
+- fix cluster-spec to not break when cluster-name is a keyword
+
+- enhance logging in package namespace to resolve lazyseqs
+
+- Add node-spec test for :hardware-model
+
+- Fix some grammatical errors
+  * Thanks for your work on pallet!
+  * Fixed instances of `it's` that should have been `its`
+   * Only use `its` when it can be substituted for `it is`
+
+- Use Classes in clj-schema constraints
+  Using classes rather than functions gives improved validation failure
+  messages.
+
+- Add test for node-spec with :subnet-id
+
+- Add service-name precondition to service function
+
+- Factor out check-spec* function from check-spec
+
+- fix some typos
+
+- Fix os-family in package-test
+
+- add missing :all-node-set in 'lift-options-schema'.
+
+- Ensure ssh-mktemp respects TMPDIR in :script-env
+
+- Log ssh port when executing remote scripts
+
+- Fix ensure-service-dispatch in hybrid provider
+
+- Make p.script.lib/tmp-dir more robust
+  Try $TMPDIR, $TEMP, $TMP, /tmp, /var/tmp and /usr/tmp.
+
+  Fixes #237
+
+- Update to stevedore 0.8.0-beta.3
+
+- fix leiningen spec
+  Was just missing a quote.
+
+- Fix bug in pallet.crate.etc-hosts/hosts
+
+- Fixed error on nohup service start
+  Wrong "file" primitive was used - an action instead of script - in
+  generation of service starting script.
+
+- Update to pallet-fsmop 0.3.1
+
+- Catch Error in p.c.primitives/async-fsm
+
+- Fix package-manager :summary for lazy seqs
+
+
 # 0.8.0-RC.1
 
 ## Features
