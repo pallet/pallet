@@ -3,11 +3,7 @@
   (:require
    [clojure.string :as string]
    [clojure.tools.macro :refer [name-with-attributes]]
-   [pallet.action
-    :refer [declare-action
-            declare-aggregated-crate-action
-            declare-collected-crate-action]]
-   [pallet.argument :refer [delayed-fn]]
+   [pallet.action :refer [declare-action]]
    [pallet.context :refer [with-phase-context]]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.session :as session]
@@ -75,45 +71,45 @@
         `(defn ~sym
            ~@(map output-body rest))))))
 
-(defmacro def-aggregate-plan-fn
-  "Define a crate function where arguments on successive calls are conjoined,
-   and passed to the function specified in the body."
-  {:arglists '[[name doc-string? attr-map? [params*] f]]
-   :indent 'defun}
-  [sym & args]
-  (let [[sym [args f & rest]] (name-with-attributes sym args)
-        sym (vary-meta sym assoc :pallet/plan-fn true)
-        id (gensym (name sym))]
-    (when (seq rest)
-      (throw (compiler-exception
-              (IllegalArgumentException.
-               (format
-                "Extra arguments passed to def-aggregate-plan-fn: %s"
-                (vec rest))))))
-    `(let [action# (declare-aggregated-crate-action '~sym ~f)]
-       (defplan ~sym
-         [~@args]
-         (action# ~@args)))))
+;; (defmacro def-aggregate-plan-fn
+;;   "Define a crate function where arguments on successive calls are conjoined,
+;;    and passed to the function specified in the body."
+;;   {:arglists '[[name doc-string? attr-map? [params*] f]]
+;;    :indent 'defun}
+;;   [sym & args]
+;;   (let [[sym [args f & rest]] (name-with-attributes sym args)
+;;         sym (vary-meta sym assoc :pallet/plan-fn true)
+;;         id (gensym (name sym))]
+;;     (when (seq rest)
+;;       (throw (compiler-exception
+;;               (IllegalArgumentException.
+;;                (format
+;;                 "Extra arguments passed to def-aggregate-plan-fn: %s"
+;;                 (vec rest))))))
+;;     `(let [action# (declare-aggregated-crate-action '~sym ~f)]
+;;        (defplan ~sym
+;;          [~@args]
+;;          (action# ~@args)))))
 
-(defmacro def-collect-plan-fn
-  "Define a crate function where arguments on successive calls are conjoined,
-   and passed to the function specified in the body."
-  {:arglists '[[name doc-string? attr-map? [params*] f]]
-   :indent 'defun}
-  [sym & args]
-  (let [[sym [args f & rest]] (name-with-attributes sym args)
-        sym (vary-meta sym assoc :pallet/plan-fn true)
-        id (gensym (name sym))]
-    (when (seq rest)
-      (throw (compiler-exception
-              (IllegalArgumentException.
-               (format
-                "Extra arguments passed to def-collect-plan-fn: %s"
-                (vec rest))))))
-    `(let [action# (declare-collected-crate-action '~sym ~f)]
-       (defplan ~sym
-         [~@args]
-         (action# ~@args)))))
+;; (defmacro def-collect-plan-fn
+;;   "Define a crate function where arguments on successive calls are conjoined,
+;;    and passed to the function specified in the body."
+;;   {:arglists '[[name doc-string? attr-map? [params*] f]]
+;;    :indent 'defun}
+;;   [sym & args]
+;;   (let [[sym [args f & rest]] (name-with-attributes sym args)
+;;         sym (vary-meta sym assoc :pallet/plan-fn true)
+;;         id (gensym (name sym))]
+;;     (when (seq rest)
+;;       (throw (compiler-exception
+;;               (IllegalArgumentException.
+;;                (format
+;;                 "Extra arguments passed to def-collect-plan-fn: %s"
+;;                 (vec rest))))))
+;;     `(let [action# (declare-collected-crate-action '~sym ~f)]
+;;        (defplan ~sym
+;;          [~@args]
+;;          (action# ~@args)))))
 
 ;;; Multi-method for plan functions
 (defmacro defmulti-plan
@@ -283,10 +279,10 @@
   (-> (session) :environment :blobstore))
 
 (defn target-flag?
-  "Returns a DelayedFunction that is a predicate for whether the flag is set"
+  "A predicate for whether the flag is set"
   {:pallet/plan-fn true}
   [flag]
-  (delayed-fn #(execute/target-flag? % (keyword (name flag)))))
+  (execute/target-flag? (session) (keyword (name flag))))
 
 ;;; ## Settings
 (defn get-settings
@@ -321,6 +317,19 @@
        (session/target-id (session)) facility kv-pairs options)))
   ([facility kv-pairs]
      (assoc-settings facility kv-pairs {})))
+
+(defn assoc-in-settings
+  "Set the settings for the specified host facility. The instance-id allows
+   the specification of specific instance of the facility (the default is
+   :default)."
+  ([facility path value {:keys [instance-id] :as options}]
+     (session!
+      (update-in
+       (session) [:plan-state]
+       plan-state/update-settings
+       (session/target-id (session)) facility assoc-in [path value] options)))
+  ([facility path value]
+     (assoc-in-settings facility path value {})))
 
 (defn update-settings
   "Update the settings for the specified host facility. The instance-id allows

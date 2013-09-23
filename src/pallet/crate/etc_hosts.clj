@@ -5,7 +5,7 @@
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :refer [debugf]]
    [pallet.actions
-    :refer [as-action exec-checked-script plan-when-not remote-file sed]]
+    :refer [exec-checked-script exec-script remote-file sed]]
    [pallet.compute :refer [os-hierarchy]]
    [pallet.crate
     :refer [defmethod-plan
@@ -47,7 +47,7 @@
   (let [r (exec-checked-script
            "hostname"
            (hostname ~(if fqdn "-f" "")))]
-    (as-action (:out @r))))
+    (:out r)))
 
 (defplan reverse-dns
   "Get the hostname reported for the specified ip."
@@ -55,7 +55,7 @@
   (let [r (exec-checked-script
            (str "reverse DNS for " ip)
            (pipe ("host" ~ip) ("awk" "'{print $NF}'")))]
-    (as-action (:out @r))))
+    (:out r)))
 
 (defplan resolve-dns
   "Get the ip for a hostname."
@@ -63,7 +63,7 @@
   (let [r (exec-checked-script
            (str "Resolve DNS for " hostname)
            (pipe ("host" ~hostname) ("awk" "'{print $NF}'")))]
-    (as-action (:out @r))))
+    (:out r)))
 
 
 (defplan host-entry
@@ -74,14 +74,13 @@
     :or {use-hostname true use-private-ip true}}]
   (let [h (when use-hostname (hostname {:fqdn true}))
         n (target-node)]
-    (as-action
-     {(or (and use-private-ip (private-ip n))
-          (primary-ip n))
-      (vec
-       (filter identity
-               [(if (and use-hostname (not (blank? (:out @h))))
-                  (:out @h)
-                  (target-name))]))})))
+    {(or (and use-private-ip (private-ip n))
+         (primary-ip n))
+     (vec
+      (filter identity
+              [(if (and use-hostname (not (blank? (:out @h))))
+                 (:out @h)
+                 (target-name))]))}))
 
 
 ;;; ## Localhost and other Aliases
@@ -157,7 +156,7 @@
 hostname is not in /etc/hosts."
   []
   (let [node-name (target-name)]
-    (plan-when-not (stevedore/script ("grep" ~node-name (lib/etc-hosts)))
+    (when-not (:exit (exec-script ("grep" ~node-name (lib/etc-hosts))))
       (exec-checked-script
        "Add self hostname"
        (println ">>" (lib/etc-hosts))

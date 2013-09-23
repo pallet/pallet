@@ -3,9 +3,9 @@
    [clojure.java.io :as io]
    [clojure.test :refer :all]
    [pallet.actions :refer [rsync rsync-directory]]
-   [pallet.algo.fsmop :refer [complete?]]
    [pallet.api :refer [group-spec lift plan-fn with-admin-user]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.core.api :refer [phase-errors]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.test-utils :refer [make-localhost-compute test-username]]
    [pallet.utils :as utils]))
@@ -38,7 +38,7 @@
                                "/" (.getName dir)
                                "/" (.getName tmp)))]
           @op
-          (is (complete? op))
+          (is (not (phase-errors @op)))
           (is (.canRead target-tmp))
           (is (= "text" (slurp (.getPath target-tmp))))
           (.delete target-tmp))
@@ -56,7 +56,7 @@
                                "/" (.getName dir)
                                "/" (.getName tmp)))]
           @op
-          (is (complete? op))
+          (is (not (phase-errors @op)))
           (is (.canRead target-tmp))
           (is (= "text" (slurp (.getPath target-tmp))))
           (.delete target-tmp))))))

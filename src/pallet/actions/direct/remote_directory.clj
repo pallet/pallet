@@ -4,11 +4,11 @@
   (:require
    [clojure.string :as string]
    [pallet.action :refer [action-fn implement-action]]
-   [pallet.action-plan :refer [checked-commands]]
    [pallet.actions :refer [directory]]
    [pallet.actions-impl
     :refer [md5-filename new-filename]]
-   [pallet.actions.decl :refer [remote-directory-action remote-file-action]]
+   [pallet.actions.decl
+    :refer [checked-commands remote-directory-action remote-file-action]]
    [pallet.actions.direct.remote-file :refer [create-path-with-template]]
    [pallet.script.lib :as lib :refer [user-default-group]]
    [pallet.stevedore :as stevedore :refer [fragment]]

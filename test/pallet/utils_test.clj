@@ -35,11 +35,11 @@
     (remove-ns 'pallet.utils-test-bad-ns)
     (is (thrown? Exception
                  (find-var-with-require 'pallet.utils-test-bad-ns 'sym)))
-    ;; test twice to exercice issue with require still creating a namespace on
-    ;; failure
-    (is (thrown? Exception
-                 (find-var-with-require 'pallet.utils-test-bad-ns 'sym)))))
-
+    (testing "doesn't leave partially constructed namespace"
+      ;; test twice to exercice issue with require still creating a
+      ;; namespace on failure
+      (is (thrown? Exception
+                   (find-var-with-require 'pallet.utils-test-bad-ns 'sym))))))
 
 (deftest middleware-test
   (let [f1 (fn [c] (fn [x] (c (inc x))))

@@ -18,12 +18,11 @@
   (:require
    [clojure.string :as string]
    [clojure.tools.logging :refer [debugf tracef]]
-   [pallet.algo.fsmop :refer [complete? fail-reason operate]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :as compute]
-   [pallet.core.api :refer [service-state]]
+   [pallet.core.api :refer [phase-errors service-state]]
    [pallet.core.operations :refer [converge]]
-   [pallet.core.primitives :refer [phase-errors]]
+   [pallet.core.primitives :refer [async-operation]]
    [pallet.environment :refer [environment]]
    [pallet.node :as configure]
    [pallet.node :as node]))
@@ -224,14 +223,15 @@
   "Build nodes using the node-types specs"
   [service node-types specs phases]
   (let [counts (counts specs)
-        op (operate
-            (converge
-             service
-             counts
-             (service-state service counts)
-             {} (environment service) phases {}))]
+        op
+        (converge
+         (async-operation)
+         service
+         counts
+         (service-state service counts)
+         {} (environment service) phases {})]
     @op
-    (when (or (not (complete? op)) (phase-errors @op))
+    (when (phase-errors @op)
       (let [e (or
                (:exception @op)
                (some #(some (comp :cause :error) %) (phase-errors @op)))]

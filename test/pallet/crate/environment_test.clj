@@ -1,6 +1,7 @@
 (ns pallet.crate.environment-test
   (:require
    [clojure.test :refer :all]
+   [pallet.action-options :refer [with-action-options]]
    [pallet.actions :refer [file]]
    [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.build-actions :refer [build-actions]]
@@ -13,7 +14,7 @@
                                      system-environment-file]]
    [pallet.script :refer [with-script-context]]
    [pallet.stevedore :refer [with-script-language]]
-   [pallet.test-utils :refer [clj-action make-node test-username]]
+   [pallet.test-utils :refer [make-node test-username]]
    [pallet.utils :refer [tmpfile with-temporary]]))
 
 (use-fixtures :once (logging-threshold-fixture))
@@ -36,14 +37,14 @@
 
 (deftest service-test
   (is
-   (=
-    "echo 'system-environment: plan-when: Add testenv environment to /etc/environment...';\n{\nif ! ( [ -e /etc/environment ] ); then\n{ cat > /etc/environment <<EOFpallet\n# environment file created by pallet\n\nEOFpallet\n }\nfi\npallet_set_env() {\nk=$1\nv=$2\ns=$3\nif ! ( grep \"${s}\" /etc/environment 2>&- ); then\nsed -i -e \"/$${k}=/ d\" /etc/environment && sed -i -e \"$ a \\\\\n${s}\" /etc/environment || exit 1\nfi\n} && vv=\"1\"\npallet_set_env \"A\" \"${vv}\" \"A=\\\"${vv}\\\"\" && vv=\"b\"\npallet_set_env \"B\" \"${vv}\" \"B=\\\"${vv}\\\"\"\n } || { echo '#> system-environment: plan-when: Add testenv environment to /etc/environment : FAIL'; exit 1;} >&2 \necho '#> system-environment: plan-when: Add testenv environment to /etc/environment : SUCCESS'\n\n"
+   (script-no-comment=
+    "echo 'system-environment: Add testenv environment to /etc/environment...';\n{\nif ! ( [ -e /etc/environment ] ); then\n{ cat > /etc/environment <<EOFpallet\n# environment file created by pallet\n\nEOFpallet\n }\nfi\npallet_set_env() {\nk=$1\nv=$2\ns=$3\nif ! ( grep \"${s}\" /etc/environment 2>&- ); then\nsed -i -e \"/$${k}=/ d\" /etc/environment && sed -i -e \"$ a \\\\\n${s}\" /etc/environment || exit 1\nfi\n} && vv=\"1\"\npallet_set_env \"A\" \"${vv}\" \"A=\\\"${vv}\\\"\" && vv=\"b\"\npallet_set_env \"B\" \"${vv}\" \"B=\\\"${vv}\\\"\"\n } || { echo '#> system-environment: Add testenv environment to /etc/environment : FAIL'; exit 1;} >&2 \necho '#> system-environment: Add testenv environment to /etc/environment : SUCCESS'\n"
     (first
      (build-actions {}
        (system-environment "testenv" {"A" 1 :B "b"})))))
   (is
-   (=
-    "echo 'system-environment: plan-when: Add testenv environment to /etc/environment...';\n{\nif ! ( [ -e /etc/environment ] ); then\n{ cat > /etc/environment <<EOFpallet\n# environment file created by pallet\n\nEOFpallet\n }\nfi\npallet_set_env() {\nk=$1\nv=$2\ns=$3\nif ! ( grep \"${s}\" /etc/environment 2>&- ); then\nsed -i -e \"/$${k}=/ d\" /etc/environment && sed -i -e \"$ a \\\\\n${s}\" /etc/environment || exit 1\nfi\n} && vv='1'\npallet_set_env \"A\" \"${vv}\" \"A=\\\"${vv}\\\"\" && vv='b'\npallet_set_env \"B\" \"${vv}\" \"B=\\\"${vv}\\\"\"\n } || { echo '#> system-environment: plan-when: Add testenv environment to /etc/environment : FAIL'; exit 1;} >&2 \necho '#> system-environment: plan-when: Add testenv environment to /etc/environment : SUCCESS'\n\n"
+   (script-no-comment=
+    "echo 'system-environment: Add testenv environment to /etc/environment...';\n{\nif ! ( [ -e /etc/environment ] ); then\n{ cat > /etc/environment <<EOFpallet\n# environment file created by pallet\n\nEOFpallet\n }\nfi\npallet_set_env() {\nk=$1\nv=$2\ns=$3\nif ! ( grep \"${s}\" /etc/environment 2>&- ); then\nsed -i -e \"/$${k}=/ d\" /etc/environment && sed -i -e \"$ a \\\\\n${s}\" /etc/environment || exit 1\nfi\n} && vv='1'\npallet_set_env \"A\" \"${vv}\" \"A=\\\"${vv}\\\"\" && vv='b'\npallet_set_env \"B\" \"${vv}\" \"B=\\\"${vv}\\\"\"\n } || { echo '#> system-environment: Add testenv environment to /etc/environment : FAIL'; exit 1;} >&2 \necho '#> system-environment: Add testenv environment to /etc/environment : SUCCESS'\n\n"
     (first
      (build-actions {}
        (system-environment "testenv" {"A" 1 :B "b"} :literal true))))))
@@ -55,16 +56,15 @@
           node (make-localhost-node)
           a (atom nil)
           path (.getAbsolutePath env-file)
-          get-sysenv (clj-action [session]
-                       [(reset! a (system-environment-file
-                                   "pallet-testenv" {:path path}))
-                        session])
+          get-sysenv (fn []
+                       (reset! a (system-environment-file
+                                  "pallet-testenv" {:path path})))
           local (group-spec "local")]
       (testing "insert"
         (let [result (lift {local node}
                            :user user
                            :phase (plan-fn
-                                    (pallet.action/with-action-options
+                                    (with-action-options
                                       {:script-trace true}
                                       (system-environment
                                        "pallet-testenv"

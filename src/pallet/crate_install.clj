@@ -4,7 +4,7 @@
    [clj-schema.schema
     :refer [def-map-schema map-schema optional-path sequence-of]]
    [clojure.tools.logging :refer [debugf tracef]]
-   [pallet.action :refer [with-action-options]]
+   [pallet.action-options :refer [with-action-options]]
    [pallet.actions :as actions]
    [pallet.actions
     :refer [add-rpm
@@ -12,7 +12,6 @@
             package
             package-manager
             package-source-changed-flag
-            plan-when
             remote-directory
             remote-file-arguments]]
    [pallet.contracts :refer [check-keys]]
@@ -85,7 +84,7 @@
     (apply-map actions/package-source (:name package-source) package-source)
     (let [modified? (target-flag? package-source-changed-flag)]
       (with-action-options {:always-before #{package}}
-        (plan-when modified?
+        (when modified?
           (package-manager :update)))
       (tracef "packages %s options %s" (vec packages) package-options)
       (doseq [p preseeds]

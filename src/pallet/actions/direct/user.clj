@@ -63,7 +63,7 @@
   {:action-type :script :location :target}
   [session & user-args]
   [[{:language :bash}
-    (string/join \newline (map #(apply user* session %) user-args))]
+    (apply user* session user-args)]
    session])
 
 

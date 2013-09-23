@@ -3,14 +3,13 @@
   (:require
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
-   [pallet.action :refer [action-options-key]]
-   [pallet.action-plan :as action-plan]
-   [pallet.action-plan :refer [stop-execution-on-error]]
+   [pallet.action-options :refer [action-options-key]]
    [pallet.api :refer [group-spec plan-fn]]
    [pallet.compute :as compute]
    [pallet.context :as context]
    [pallet.context :refer [with-phase-context]]
-   [pallet.core.api :refer [action-plan execute-action-plan]]
+   [pallet.core.api
+    :refer [action-plan execute-phase-on-target stop-execution-on-error]]
    [pallet.core.api-impl :refer [with-script-for-node]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.environment :as environment]
@@ -31,30 +30,30 @@
   "Join the result of execute-action-plan, executing local actions.
    Useful for testing."
   [session f]
-  (binding [action-plan/*defining-context* (context/phase-contexts)]
-    (with-script-for-node (-> session :server) (-> session :plan-state)
-      (let [phase (:phase session)
-            _ (assert phase)
-            [action-plan plan-state]
-            ((action-plan
-              (:service-state session) (:environment session) f nil session)
-             (:plan-state session))
+  (with-script-for-node (-> session :server) (-> session :plan-state)
+    (let [phase (:phase session)
+          _ (assert phase)
+          ;; [action-plan plan-state]
+          ;; ((action-plan
+          ;;   (:service-state session) (:environment session) f nil session)
+          ;;  (:plan-state session))
 
-            {:keys [result] :as result-map}
-            (execute-action-plan
-             (:service-state session)
-             plan-state
-             (:environment session)
-             (:user session *admin-user*)
-             echo-executor
-             stop-execution-on-error
-             {:action-plan action-plan
-              :phase (:phase session)
-              :target (:server session)})]
-        [(str
-          (string/join "\n" (map (comp trim-if-string second) result))
-          \newline)
-         result-map]))))
+          {:keys [plan-state result] :as result-map}
+          (execute-phase-on-target
+           (:service-state session)
+           (:plan-state session)
+           (:environment session)
+           phase
+           (fn test-exec-setttings-fn [_ _]
+             {:user (:user session *admin-user*)
+              :executor echo-executor
+              :execute-status-fn stop-execution-on-error})
+           (assoc (:server session) :phases {phase f}))]
+      (logging/debugf "build-actions result-map %s" result-map)
+      [(str
+        (string/join "\n" (map (comp trim-if-string :script) result))
+        \newline)
+       result-map])))
 
 (defn build-session
   "Takes the session map, and tries to add the most keys possible.

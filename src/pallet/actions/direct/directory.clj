@@ -4,8 +4,8 @@
   (:require
    [pallet.action :refer [implement-action]]
    [pallet.actions :refer [directories directory]]
+   [pallet.actions.decl :refer [checked-script checked-commands]]
    [pallet.script.lib :as lib]
-   [pallet.action-plan :as action-plan]
    [pallet.stevedore :as stevedore]))
 
 (defn adjust-directory
@@ -27,7 +27,7 @@
 (defn make-directory
   "Script to create a directory."
   [dir-path & {:keys [path verbose mode recursive] :as opts}]
-  (action-plan/checked-commands
+  (checked-commands
    (str "Directory " dir-path)
    (stevedore/script
     (~lib/mkdir ~dir-path :path ~path :verbose ~verbose :mode ~mode))
@@ -41,7 +41,7 @@
                        :as options}]
   [[{:language :bash}
     (case action
-      :delete (action-plan/checked-script
+      :delete (checked-script
                (str "Delete directory " dir-path)
                (~lib/rm ~dir-path :recursive ~recursive :force ~force))
       :create (make-directory

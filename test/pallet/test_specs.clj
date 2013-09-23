@@ -5,9 +5,7 @@
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :refer [debugf infof]]
    [pallet.actions
-    :refer [as-action
-            assoc-in-settings
-            delete-local-path
+    :refer [delete-local-path
             directory
             exec-checked-script
             exec-script
@@ -16,9 +14,7 @@
             package
             remote-directory
             remote-file
-            rsync-directory
-            with-action-values]]
-   [pallet.algo.fsmop :refer [operate]]
+            rsync-directory]]
    [pallet.api
     :refer [execute-on-unflagged-metadata
             execute-with-image-credentials-metadata
@@ -26,8 +22,10 @@
             plan-fn] :as api]
    [pallet.core.operations :as ops]
    [pallet.core.plan-state :as ps]
+   [pallet.core.primitives :refer [async-operation]]
    [pallet.crate
     :refer [admin-user
+            assoc-in-settings
             compute-service
             defplan
             get-settings
@@ -182,47 +180,45 @@
     :count 2
     :phases {:settings (plan-fn
                          (let [nv (exec-script ("hostname"))]
-                           (assoc-in-settings [:ops :hostname] nv)))
+                           (assoc-in-settings :ops [:hostname] nv)))
              :configure (plan-fn
                           (on-one-node  ; run on just one of the two nodes
                            [:ops]
-                           (as-action
-                            ;; use a new thread so session is not bound
-                            @(future
-                               (ops-test-plan
-                                (compute-service)
-                                (distinct
-                                 (map #(dissoc % :node) (targets))))))))
+                           ;; use a new thread so session is not bound
+                           @(future
+                              (ops-test-plan
+                               (compute-service)
+                               (distinct
+                                (map #(dissoc % :node) (targets)))))))
              :tag (plan-fn
                     (let [{:keys [hostname]} (get-settings :ops)]
                       (tag! (target-node) "hostname" (:out hostname))))
              :test (plan-fn
                      ;; assert that every node has an opstest tag
-                     (as-action
-                      (assert
-                       (every?
-                        #(not (blank? (tag % "hostname")))
-                        (target-nodes))))
-                     ;; reset the tags
-                     (as-action (tag! (target-node) "hostname" "")))}
+                    (assert
+                     (every?
+                      #(not (blank? (tag % "hostname")))
+                      (target-nodes)))
+                    ;; reset the tags
+                    (tag! (target-node) "hostname" ""))}
     :roles #{:live-test :ops}))
 
 (defn ops-test-plan
   [compute groups]
   ;; Run settings on all the nodes to get settings
-  (let [nodes @(operate (ops/group-nodes compute groups))
-        {:keys [plan-state]} @(operate (ops/lift nodes [:settings] {} {} {}))]
+  (let [nodes (ops/group-nodes (async-operation) compute groups)
+        {:keys [plan-state]} (ops/lift (async-operation) nodes [:settings] {} {} {})]
     (assert (= 2 (count nodes)) "Incorrect node count")
     (assert (every? #(ps/get-settings plan-state (id (:node %)) :ops {}) nodes)
             "Has hostname in :ops settings for each node")
     ;; set the tag on the first node
-    @(operate (ops/lift [(first nodes)] [:tag] {} plan-state {}))
+    (ops/lift (async-operation) [(first nodes)] [:tag] {} plan-state {})
     (assert (not (blank? (tag (:node (first nodes)) "hostname")))
             "first node has tag")
     (assert (blank? (tag (:node (second nodes)) "hostname"))
             "second node has no tag")
     ;; set the tag on the second node
-    @(operate (ops/lift [(second nodes)] [:tag] {} plan-state {}))
+    (ops/lift (async-operation) [(second nodes)] [:tag] {} plan-state {})
     (assert (not (blank? (tag (:node (first nodes)) "hostname")))
             "first node has tag")
     (assert (not (blank? (tag (:node (second nodes)) "hostname")))
@@ -235,32 +231,30 @@
     :count 2
     :phases {:settings (plan-fn
                          (let [nv (exec-script ("hostname"))]
-                           (assoc-in-settings [:rolling :hostname] nv)))
+                           (assoc-in-settings :rolling [:hostname] nv)))
              :configure (plan-fn
                           (infof "rolling-test-plan configure")
                           (on-one-node  ; run on just one of the two nodes
                            [:rolling]
-                           (as-action
-                            (infof "rolling-test-plan configure action")
-                            ;; use a new thread so session is not bound
-                            @(future
-                               (rolling-test-plan
-                                (compute-service)
-                                (distinct
-                                 (map #(dissoc % :node) (targets))))))))
+                           (infof "rolling-test-plan configure action")
+                           ;; use a new thread so session is not bound
+                           @(future
+                              (rolling-test-plan
+                               (compute-service)
+                               (distinct
+                                (map #(dissoc % :node) (targets)))))))
              :tag (plan-fn
                        (let [{:keys [hostname]} (get-settings :rolling)]
                          (infof "rolling-lift-test tag with %s" (:out hostname))
                          (tag! (target-node) "hostname" (:out hostname))))
              :test (plan-fn
                      ;; assert that every node has a hostname tag
-                     (as-action
-                      (assert
-                       (every?
-                        #(not (blank? (tag % "hostname")))
-                        (target-nodes))))
-                     ;; reset the tags
-                     (as-action (tag! (target-node) "hostname" "")))}
+                    (assert
+                     (every?
+                      #(not (blank? (tag % "hostname")))
+                      (target-nodes)))
+                    ;; reset the tags
+                    (tag! (target-node) "hostname" ""))}
     :roles #{:live-test :rolling}))
 
 (defn rolling-test-plan
@@ -278,14 +272,14 @@
     (api/lift-nodes nodes [:tag]
                     :plan-state plan-state
                     :partition-by identity
-                    :post-phase-fsm (ops/delay 10 :s))))
+                    :post-phase-f (Thread/sleep 10000))))
 
 ;;; test partitioning via metadata
 (def partitioning-test
   (group-spec "rolling-test"
     :count 2
     :phases {:settings (plan-fn
-                         (assoc-in-settings [:rolling :hostname] (target-name)))
+                        (assoc-in-settings :rolling [:hostname] (target-name)))
              :tag (with-meta
                     (plan-fn
                       (let [{:keys [hostname]} (get-settings :rolling)]
@@ -299,13 +293,12 @@
                    (execute-on-unflagged-metadata :ls))
              :test (plan-fn
                      ;; assert that every node has a hostname tag
-                     (as-action
-                      (assert
-                       (every?
-                        #(not (blank? (tag % "hostname")))
-                        (target-nodes))))
-                     ;; reset the tags
-                     (as-action (tag! (target-node) "hostname" "")))}
+                    (assert
+                     (every?
+                      #(not (blank? (tag % "hostname")))
+                      (target-nodes)))
+                    ;; reset the tags
+                    (tag! (target-node) "hostname" ""))}
     :roles #{:live-test :partition}))
 
 ;;; test execution-settings-f via metadata
@@ -316,8 +309,7 @@
     {:bootstrap (plan-fn)                ; so we don't get automated-admin-user
      :configure (plan-fn
                   (let [v (exec-script "ls")]
-                    (with-action-values [v]
-                      (assert (zero? (:exit v)) "Non-zero exit")
-                      (assert (:out v) "Has some output"))))}
+                    (assert (zero? (:exit v)) "Non-zero exit")
+                    (assert (:out v) "Has some output")))}
     :phases-meta {:configure (execute-with-image-credentials-metadata)}
     :roles #{:live-test :exec-meta}))

@@ -5,7 +5,7 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.action-impl :refer [action-symbol]]
-   [pallet.action-plan :refer [context-label]]
+   [pallet.actions.decl :refer [context-string]]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
    [pallet.core.user :refer [obfuscated-passwords]]
@@ -124,7 +124,7 @@
       (logging/infof
        "%s %s %s %s"
        (:server endpoint) (:port endpoint)
-       (or (context-label action) "")
+       (or (context-string) "")
        (or (:summary options) ""))
       (with-connection session [connection]
         (let [authentication (transport/authentication connection)
@@ -218,20 +218,21 @@
   (assert (-> session :server :node) "Target node in session")
   (with-connection session [connection]
     (let [endpoint (transport/endpoint connection)]
-      (let [[file remote-name remote-md5-name] value]
+      (let [{:keys [local-path remote-path remote-md5-path]} value]
         (logging/debugf
-         "Remote file %s:%s from %s" (:server endpoint) remote-md5-name file)
+         "Remote local-path %s:%s from %s"
+         (:server endpoint) remote-md5-path local-path)
         (let [md5 (try
                     (filesystem/with-temp-file [md5-copy]
                       (transport/receive
-                       connection remote-md5-name (.getPath md5-copy))
+                       connection remote-md5-path (.getPath md5-copy))
                       (slurp md5-copy))
                     (catch Exception _ nil))]
           (if md5
             (filesystem/with-temp-file [local-md5-file]
-              (logging/debugf "Calculating md5 for %s" file)
+              (logging/debugf "Calculating md5 for %s" local-path)
               (local/local-script
-               ((~lib/md5sum ~file) ">" ~(.getPath local-md5-file))
+               ((~lib/md5sum ~local-path) ">" ~(.getPath local-md5-file))
                (~lib/normalise-md5 ~(.getPath local-md5-file)))
               (let [local-md5 (slurp local-md5-file)]
                 (logging/debugf
@@ -239,21 +240,21 @@
                 (if (not=
                      (first (string/split md5 #" "))
                      (first (string/split local-md5 #" ")) )
-                  (ssh-upload session connection file remote-name)
+                  (ssh-upload session connection local-path remote-path)
                   (logging/infof
                    "%s:%s is already up to date"
-                   (:server endpoint) remote-name))))
-            (ssh-upload session connection file remote-name))))
+                   (:server endpoint) remote-path))))
+            (ssh-upload session connection local-path remote-path))))
       [value session])))
 
 (defn ssh-to-local
   "Transfer a file from the target machine to the origin via ssh."
   [session value]
   (with-connection session [connection]
-    (let [[remote-file local-file] value]
+    (let [{:keys [remote-path local-path]} value]
       (logging/infof
-       "Transferring file %s from node to %s" remote-file local-file)
-      (transport/receive connection remote-file local-file))
+       "Transferring file %s from node to %s" remote-path local-path)
+      (transport/receive connection remote-path local-path))
     [value session]))
 
 

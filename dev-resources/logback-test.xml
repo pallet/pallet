@@ -70,7 +70,7 @@
     <appender-ref ref="COMPUTEFILE" />
   </logger>
 
-  <logger name="pallet" level="DEBUG">
+  <logger name="pallet" level="TRACE">
     <appender-ref ref="PALLETFILE" />
   </logger>
 
@@ -81,15 +81,18 @@
   <logger name="pallet.configure" level="INFO"/>
   <logger name="pallet.executors" level="INFO"/>
   <logger name="pallet.stevedore" level="DEBUG"/>
+  <logger name="pallet.action" level="TRACE"/>
   <logger name="pallet.action-plan" level="DEBUG"/>
   <logger name="pallet.algo.fsm" level="WARN"/>
   <logger name="pallet.algo.fsmop" level="WARN"/>
   <logger name="pallet.action-plan" level="DEBUG"/>
   <logger name="pallet.executors" level="INFO"/>
   <logger name="pallet.execute" level="DEBUG"/>
-  <logger name="pallet.core.api" level="DEBUG"/>
-  <logger name="pallet.core.primitives" level="DEBUG"/>
-  <logger name="pallet.core.operations" level="DEBUG"/>
+  <logger name="pallet.local.execute" level="TRACE"/>
+  <logger name="pallet.ssh.execute" level="TRACE"/>
+  <logger name="pallet.core.api" level="TRACE"/>
+  <logger name="pallet.core.primitives" level="TRACE"/>
+  <logger name="pallet.core.operations" level="TRACE"/>
   <logger name="pallet.crate.nohup" level="DEBUG"/>
   <logger name="pallet.script-builder" level="DEBUG"/>
   <logger name="pallet.transport" level="DEBUG"/>

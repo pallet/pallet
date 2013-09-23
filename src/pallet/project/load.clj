@@ -5,7 +5,7 @@
 ;;; Anything in here is visible in the pallet.clj project file.
 ;;; The explicit require is to prevent slamhound removing it.
 (require
- '[pallet.action :refer [with-action-options]]
+ '[pallet.action-options :refer [with-action-options]]
  '[pallet.actions :refer :all :exclude [update-settings assoc-settings]]
  '[pallet.api :refer :all]
  '[pallet.crate :refer :all :exclude [compute-service]]

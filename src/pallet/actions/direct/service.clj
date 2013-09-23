@@ -3,9 +3,9 @@
   (:require
    [pallet.action :refer [implement-action]]
    [pallet.actions :refer [service]]
+   [pallet.actions.decl :refer [checked-script]]
    [pallet.actions-impl :refer [init-script-path]]
    [pallet.script.lib :as lib]
-   [pallet.action-plan :as action-plan]
    [pallet.stevedore :as stevedore]
    [pallet.utils :refer [apply-map]]))
 
@@ -45,22 +45,22 @@
                            :or {action :start}
                            :as options}]
   (if (#{:enable :disable :start-stop} action)
-      (action-plan/checked-script
-       (format "Configure service %s" service-name)
-       (~lib/configure-service ~service-name ~action ~options))
-      (if if-flag
+    (checked-script
+     (format "Configure service %s" service-name)
+     (~lib/configure-service ~service-name ~action ~options))
+    (if if-flag
+      (stevedore/script
+       (println ~(name action) ~service-name "if config changed")
+       (if (== "1" (~lib/flag? ~if-flag))
+         ("service" ~service-name ~(name action))))
+      (if if-stopped
         (stevedore/script
-         (println ~(name action) ~service-name "if config changed")
-         (if (== "1" (~lib/flag? ~if-flag))
+         (println ~(name action) ~service-name "if stopped")
+         (if-not ("service" ~service-name status)
            ("service" ~service-name ~(name action))))
-        (if if-stopped
-          (stevedore/script
-           (println ~(name action) ~service-name "if stopped")
-           (if-not ("service" ~service-name status)
-             ("service" ~service-name ~(name action))))
-          (stevedore/script
-           (println ~(name action) ~service-name)
-           ("service" ~service-name ~(name action)))))))
+        (stevedore/script
+         (println ~(name action) ~service-name)
+         ("service" ~service-name ~(name action)))))))
 
 
 (implement-action service :direct

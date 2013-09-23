@@ -4,7 +4,6 @@
    [clojure.java.io :as io]
    [clojure.string :as string]
    [pallet.action :refer [implement-action]]
-   [pallet.action-plan :as action-plan]
    [pallet.actions
     :refer [content-options
             delete-local-path
@@ -12,7 +11,8 @@
             transfer-file-to-local
             wait-for-file]]
    [pallet.actions-impl :refer [copy-filename md5-filename new-filename]]
-   [pallet.actions.decl :refer [remote-file-action]]
+   [pallet.actions.decl
+    :refer [checked-commands checked-script remote-file-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
    [pallet.environment-impl :refer [get-for]]
@@ -30,22 +30,22 @@
   [session ^java.io.File local-path]
   [(fn [session]
      (.delete (io/file local-path))
-     [local-path session])
+     [{:path local-path} session])
    session])
 
 (implement-action transfer-file-to-local :direct
   {:action-type :transfer/to-local :location :origin}
   [session remote-path local-path]
-  [[(.getPath (io/file remote-path))
-    (.getPath (io/file local-path))]
+  [{:remote-path (.getPath (io/file remote-path))
+    :local-path (.getPath (io/file local-path))}
    session])
 
 (implement-action transfer-file :direct
   {:action-type :transfer/from-local :location :origin}
   [session local-path remote-path remote-md5-path]
-  [[(.getPath (io/file local-path))
-    (.getPath (io/file remote-path))
-    (.getPath (io/file remote-md5-path))]
+  [{:local-path (.getPath (io/file local-path))
+    :remote-path (.getPath (io/file remote-path))
+    :remote-md5-path (.getPath (io/file remote-md5-path))}
    session])
 
 (defn create-path-with-template
@@ -116,7 +116,7 @@ permissions. Note this is not the final directory."
                     options)]
       (case action
         :create
-        (action-plan/checked-commands
+        (checked-commands
          (str "remote-file " path)
 
          (create-path-with-template path new-path)
@@ -176,7 +176,7 @@ permissions. Note this is not the final directory."
                       ~(select-keys options [:literal])))
            link (stevedore/script
                  (~lib/ln ~link ~path :force ~true :symbolic ~true))
-           blob (action-plan/checked-script
+           blob (checked-script
                  "Download blob"
                  (~lib/download-request
                   ~new-path
@@ -269,7 +269,7 @@ permissions. Note this is not the final directory."
               "2>" "/dev/null")
              (~lib/tail "" :max-lines ~(str "+" (inc max-versions)))
              (~lib/xargs (~lib/rm "" :force ~true))))))
-        :delete (action-plan/checked-script
+        :delete (checked-script
                  (str "delete remote-file " path)
                  (~lib/rm ~path :force ~force))))]
    session])

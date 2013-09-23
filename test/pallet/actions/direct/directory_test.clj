@@ -22,8 +22,7 @@
 (deftest directory*-test
   (is (script-no-comment=
        (stevedore/checked-commands "Directory file1" "mkdir -p file1")
-       (binding [pallet.action-plan/*defining-context* nil]
-         (-> (directory* {} "file1") first second)))))
+       (-> (directory* {} "file1") first second))))
 
 (deftest directory-test
   (is (script-no-comment=

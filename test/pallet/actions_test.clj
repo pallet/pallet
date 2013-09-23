@@ -2,9 +2,9 @@
   (:require
    [clojure.test :refer :all]
    [pallet.actions :refer :all]
-   [pallet.algo.fsmop :refer [complete? failed?]]
    [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.core.api :refer [phase-errors]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.crate :refer [target-node]]
    [pallet.node :refer [primary-ip]]
@@ -40,13 +40,13 @@
         op (lift
             (group-spec "local")
             :phase (plan-fn
-                     (as-action (swap! counter inc))
-                     (as-action (swap! counter inc))
-                     (as-action (reset! ip (primary-ip (target-node)))))
+                    (swap! counter inc)
+                    (swap! counter inc)
+                    (reset! ip (primary-ip (target-node))))
             :compute compute
             :user (local-test-user)
             :async true)
         session @op]
-    (is (not (failed? op)))
+    (is (not (phase-errors op)))
     (is (= 2 @counter))
     (is (= "127.0.0.1" @ip))))

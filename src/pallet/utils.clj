@@ -107,6 +107,7 @@
        (catch Exception e
          ;; require on a bad namespace still instantiates the namespace
          (remove-ns ns)
+         (dosync (commute @#'clojure.core/*loaded-libs* disj ns))
          (throw e)))
      (try
        (when-let [v (ns-resolve ns sym)]

@@ -1,8 +1,9 @@
 (ns pallet.executors-test
   (:require
    [clojure.test :refer [deftest is testing use-fixtures]]
-   [pallet.action :refer [action-fn with-action-options]]
-   [pallet.actions :refer [exec-script remote-file plan-when plan-when-not]]
+   [pallet.action :refer [action-fn]]
+   [pallet.action-options :refer [with-action-options]]
+   [pallet.actions :refer [exec-script remote-file]]
    [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :refer [nodes]]
@@ -23,128 +24,60 @@
     (-> op :results first :result)))
 
 (deftest action-plan-data-test
-  (is (= `({:location :target
-            :summary nil
+  (is (= `({:summary nil
             :action-type :script
             :script [{:language :bash} "f"]
             :form (pallet.actions.decl/exec-script* "f")
             :context nil
             :args ["f"]
-            :action-symbol pallet.actions.decl/exec-script*,
+            ;; :action-symbol pallet.actions.decl/exec-script*,
             :action
             {:action-symbol pallet.actions.decl/exec-script*,
              :execution :in-sequence
              :precedence {}}})
          (plan-data-fn (plan-fn (exec-script "f")))))
-  (is (= '({:location :origin,
-            :summary nil
-            :action-type :flow/if,
-            :script true,
-            :form (pallet.actions.decl/if-action
-                   true
-                   [(pallet.actions.decl/exec-script* "f")]
-                   []),
-            :blocks
-            [[{:location :target,
-               :action-type :script,
-               :script [{:language :bash} "f"],
-               :summary nil
-               :form (pallet.actions.decl/exec-script* "f"),
-               :context ("plan-when"),
-               :args ("f"),
-               :action-symbol pallet.actions.decl/exec-script*,
-               :action
-               {:action-symbol pallet.actions.decl/exec-script*,
-                :execution :in-sequence,
-                :precedence {}}}]
-             []],
-            :context ("plan-when"),
-            :args (true),
-            :action-symbol pallet.actions.decl/if-action,
-            :action
-            {:action-symbol pallet.actions.decl/if-action,
-             :execution :in-sequence,
-             :precedence {}}})
-         (plan-data-fn (plan-fn
-                         (plan-when (= 1 1)
-                           (exec-script "f"))))))
-  (is (= '({:location :origin,
-            :summary nil
-            :action-type :flow/if,
-            :script true,
-            :form
-            (pallet.actions.decl/if-action
-             true
-             []
-             [(pallet.actions.decl/exec-script* "g")]),
-            :blocks
-            [[]
-             [{:location :target,
-               :action-type :script,
-               :script [{:language :bash} "g"],
-               :summary nil
-               :form (pallet.actions.decl/exec-script* "g"),
-               :context ("plan-when-not"),
-               :args ("g"),
-               :action-symbol pallet.actions.decl/exec-script*,
-               :action
-               {:action-symbol pallet.actions.decl/exec-script*,
-                :execution :in-sequence,
-                :precedence {}}}]],
-            :context ("plan-when-not"),
-            :args (true),
-            :action-symbol pallet.actions.decl/if-action,
-            :action
-            {:action-symbol pallet.actions.decl/if-action,
-             :execution :in-sequence,
-             :precedence {}}})
-         (plan-data-fn (plan-fn
-                         (plan-when-not (= 1 1)
-                           (exec-script "g"))))))
   (testing "action options"
-    (is (= '{:location :target,
-             :summary nil
+    (is (= '{:summary nil
              :action-type :script,
              :script [{:language :bash} "g"],
              :form (pallet.actions.decl/exec-script* "g"),
              :context nil,
              :args ("g"),
-             :action-symbol pallet.actions.decl/exec-script*,
+             ;; :action-symbol pallet.actions.decl/exec-script*,
              :action
              {:action-symbol pallet.actions.decl/exec-script*,
               :execution :in-sequence,
               :precedence {}},
              :script-dir "abc",}
            (-> (plan-data-fn (plan-fn
-                               (with-action-options {:script-dir "abc"}
-                                 (exec-script "g"))))
+                              (with-action-options {:script-dir "abc"}
+                                (exec-script "g"))))
                first
                (dissoc :action-id)))))
   (testing "summary"
-    (is (= '{:location :target,
-             :sudo-user nil
-             :script-prefix :sudo,
-             :action-type :script,
+    (is (= '{:sudo-user nil
+             :script-prefix :sudo
+             :action-type :script
              :form (pallet.actions.decl/remote-file-action
                     "p"
-                    {:content "line 1\nline 2",
-                     :install-new-files true,
-                     :overwrite-changes nil,
-                     :owner nil}),
-             :context nil,
+                    {:content "line 1\nline 2"
+                     :install-new-files true
+                     :overwrite-changes false
+                     :owner nil})
+             :context nil
              :args ("p"
-                    {:content "line 1\nline 2",
-                     :install-new-files true,
-                     :overwrite-changes nil,
-                     :owner nil}),
-             :action-symbol pallet.actions.decl/remote-file-action
+                    {:content "line 1\nline 2"
+                     :install-new-files true
+                     :overwrite-changes false
+                     :owner nil})
+             ;; :action-symbol pallet.actions.decl/remote-file-action
              :action
              {:action-symbol pallet.actions.decl/remote-file-action
-              :execution :in-sequence,
+              :execution :in-sequence
               :precedence {}}
              :summary "remote-file p :content \"line 1...\""}
            (-> (plan-data-fn (plan-fn
-                               (remote-file "p" :content "line 1\nline 2")))
+                              (remote-file "p" :content "line 1\nline 2")))
                first
                (dissoc :action-id :script))))))
 
@@ -159,19 +92,19 @@
     (-> op :results last :result)))
 
 (deftest action-comments-test
-  (testing "with no script comments"
-    (is (= '([{:language :bash} "g"])
-           (-> (echo-fn (plan-fn
-                          (with-action-options {:script-comments false}
-                            (exec-script
-                             ("g")))))))))
-  (testing "with no script comments, calling script function"
-    (is (= '([{:language :bash} "which g\ng"])
-           (-> (echo-fn (plan-fn
-                          (with-action-options {:script-comments false}
-                            (exec-script
-                             (lib/which g)
-                             ("g")))))))))
+  ;; (testing "with no script comments"
+  ;;   (is (= '([{:language :bash} "g"])
+  ;;          (-> (echo-fn (plan-fn
+  ;;                         (with-action-options {:script-comments false}
+  ;;                           (exec-script
+  ;;                            ("g")))))))))
+  ;; (testing "with no script comments, calling script function"
+  ;;   (is (= '([{:language :bash} "which g\ng"])
+  ;;          (-> (echo-fn (plan-fn
+  ;;                         (with-action-options {:script-comments false}
+  ;;                           (exec-script
+  ;;                            (lib/which g)
+  ;;                            ("g")))))))))
   (testing "with script comments"
     (is (not= '([{:language :bash} "which g\ng"])
               (-> (echo-fn (plan-fn

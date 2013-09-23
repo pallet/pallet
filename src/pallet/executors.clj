@@ -1,8 +1,7 @@
 (ns pallet.executors
   "Action executors for pallet.
 
-   An action has a :action-type. Known types include :script
-   and :fn/clojure.
+   An action has a :action-type. Known types include :script.
 
    An action has a :location, :origin for execution on the node running
    pallet, and :target for the target node.
@@ -10,7 +9,6 @@
    The action-type determines how the action should be handled:
 
    :script - action produces script for execution on remote machine
-   :fn/clojure  - action is a function for local execution
    :transfer/to-local - action is a function specifying remote source
                         and local destination.
    :transfer/from-local - action is a function specifying local source
@@ -18,7 +16,7 @@
   (:require
    [clojure.tools.logging :as logging]
    [pallet.action :refer [implementation]]
-   [pallet.action-plan :refer [execute-if map-action-f session-exec-action]]
+   [pallet.context :as context]
    [pallet.echo.execute :as echo]
    [pallet.local.execute :as local]
    [pallet.node :refer [primary-ip]]
@@ -57,8 +55,8 @@
                            session action action-type script)
                           (ssh/ssh-script-on-target
                            session action action-type script))
-      [:fn/clojure :origin] (local/clojure-on-origin session action script)
-      [:flow/if :origin] (execute-if session action script)
+      ;; [:fn/clojure :origin] (local/clojure-on-origin session action script)
+      ;; [:flow/if :origin] (execute-if session action script)
       [:transfer/from-local :origin] (ssh/ssh-from-local session script)
       [:transfer/to-local :origin] (ssh/ssh-to-local session script)
       (throw
@@ -79,8 +77,8 @@
                          session action action-type script)
       [:script :target] (ssh/ssh-script-on-target
                          session action action-type script)
-      [:fn/clojure :origin] (local/clojure-on-origin session action script)
-      [:flow/if :origin] (execute-if session action script)
+      ;; [:fn/clojure :origin] (local/clojure-on-origin session action script)
+      ;; [:flow/if :origin] (execute-if session action script)
       [:transfer/from-local :origin] (ssh/ssh-from-local session script)
       [:transfer/to-local :origin] (ssh/ssh-to-local session script)
       (throw
@@ -111,10 +109,12 @@
     (case [action-type location]
       [:script :target] (echo/echo-bash session script)
       [:script :origin] (echo/echo-bash session script)
-      [:fn/clojure :origin] (echo/echo-clojure session script)
-      [:flow/if :origin] (execute-if session action script)
-      [:transfer/from-local :origin] (echo/echo-transfer session script)
-      [:transfer/to-local :origin] (echo/echo-transfer session script)
+      ;; [:fn/clojure :origin] (echo/echo-clojure session script)
+      ;; [:flow/if :origin] (execute-if session action script)
+      [:transfer/from-local :origin]
+      (echo/echo-transfer session script :transfer/from-local)
+      [:transfer/to-local :origin]
+      (echo/echo-transfer session script :transfer/to-local)
       (throw
        (ex-info
         (format "No suitable echo executor found for %s (%s, %s)"
@@ -127,27 +127,27 @@
   "Return an action's data."
   [session {:keys [action args blocks] :as action-m}]
   (let [action-symbol (:action-symbol action)
-        [script action-type location session] (direct-script session action-m)
-        exec-action (session-exec-action session)
-        self-fn (fn [b session]
-                  (first (map-action-f exec-action b session)))
-        blocks (when (= 'pallet.actions.decl/if-action action-symbol)
-                 [(self-fn (first blocks) session)
-                  (self-fn (second blocks) session)])]
+        [script action-type session] (direct-script session action-m)
+        ;; exec-action (session-exec-action session)
+        ;; self-fn (fn [b session]
+        ;;           (first (map-action-f exec-action b session)))
+        ;; blocks (when (= 'pallet.actions.decl/if-action action-symbol)
+        ;;          [(self-fn (first blocks) session)
+        ;;           (self-fn (second blocks) session)])
+        ]
+    (logging/warnf "action-plan-data %s" (pr-str action-m))
     [(merge
       (-> action-m
-          (dissoc :node-value-path)
           (update-in [:action] dissoc :impls))
-      {:form `(~action-symbol ~@args
-               ~@(when blocks
-                   (map #(map :form %) blocks)))
+      {:context (context/phase-contexts)
+       :form `(~action-symbol ~@args
+                              ;; ~@(when blocks
+                   ;; (map #(map :form %) blocks))
+                              )
        :script (if (and (sequential? script) (map? (first script)))
                  (update-in script [0] dissoc :summary)
                  script)
        :summary (when (and (sequential? script) (map? (first script)))
                   (:summary (first script)))
-       :action-type action-type
-       :location location}
-      (when blocks
-        {:blocks blocks}))
+       :action-type action-type})
      session]))

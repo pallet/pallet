@@ -33,7 +33,6 @@
  test-utils/with-ubuntu-script-template
  test-utils/with-bash-script-language
  test-utils/with-no-source-line-comments
- test-utils/with-null-defining-context
  test-utils/no-location-info)
 
 (use-fixtures
@@ -45,64 +44,117 @@
 
 (deftest test-install-example
   (testing "apt"
-    (is (script-no-comment=
-         (first
-          (build-actions
-              {}
-            (exec-checked-script
-             "Packages"
-             (~lib/package-manager-non-interactive)
-             (chain-and
-              (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
-              "apt-get -q -y install java+ rubygems+ git- ruby_"
-              ("dpkg" "--get-selections")))))
-         (first
-          (build-actions
-              {}
-            (package "java" :action :install)
-            (package "rubygems")
-            (package "git" :action :remove)
-            (package "ruby" :action :remove :purge true))))))
+    (testing "package"
+      (is (script-no-comment=
+           (first
+            (build-actions
+                {}
+              (exec-checked-script
+               "Packages"
+               (~lib/package-manager-non-interactive)
+               (chain-and
+                (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
+                "apt-get -q -y install java+"
+                ("dpkg" "--get-selections")))
+              (exec-checked-script
+               "Packages"
+               (~lib/package-manager-non-interactive)
+               (chain-and
+                (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
+                "apt-get -q -y install rubygems+"
+                ("dpkg" "--get-selections")))
+              (exec-checked-script
+               "Packages"
+               (~lib/package-manager-non-interactive)
+               (chain-and
+                (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
+                "apt-get -q -y install git-"
+                ("dpkg" "--get-selections")))
+              (exec-checked-script
+               "Packages"
+               (~lib/package-manager-non-interactive)
+               (chain-and
+                (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
+                "apt-get -q -y install ruby_"
+                ("dpkg" "--get-selections")))))
+           (first
+            (build-actions
+                {}
+              (package "java" :action :install)
+              (package "rubygems")
+              (package "git" :action :remove)
+              (package "ruby" :action :remove :purge true)))))))
   (testing "aptitude"
-    (is (script-no-comment=
-         (first
-          (build-actions
-              {:server {:packager :aptitude :image {:os-family :ubuntu}}}
-            (exec-checked-script
-             "Packages"
-             (~lib/package-manager-non-interactive)
-             (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
-             "aptitude install -q -y java+ rubygems+ git- ruby_"
-             "aptitude search \"?and(?installed, ?name(^java$))\" | grep \"java\""
-             "aptitude search \"?and(?installed, ?name(^rubygems$))\" | grep \"rubygems\""
-             "! { aptitude search \"?and(?installed, ?name(^git$))\" | grep \"git\"; }"
-             "! { aptitude search \"?and(?installed, ?name(^ruby$))\" | grep \"ruby\"; }")))
-         (first
-          (build-actions
-              {:server {:packager :aptitude :image {:os-family :ubuntu}}}
-            (package "java" :action :install)
-            (package "rubygems")
-            (package "git" :action :remove)
-            (package "ruby" :action :remove :purge true))))))
+    (testing "package"
+      (is (script-no-comment=
+           (first
+            (build-actions
+                {:server {:packager :aptitude :image {:os-family :ubuntu}}}
+              (exec-checked-script
+               "Packages"
+               (~lib/package-manager-non-interactive)
+               (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
+               "aptitude install -q -y java+"
+               "aptitude search \"?and(?installed, ?name(^java$))\" | grep \"java\"")
+              (exec-checked-script
+               "Packages"
+               (~lib/package-manager-non-interactive)
+               (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
+               "aptitude install -q -y rubygems+"
+               "aptitude search \"?and(?installed, ?name(^rubygems$))\" | grep \"rubygems\"")
+              (exec-checked-script
+               "Packages"
+               (~lib/package-manager-non-interactive)
+               (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
+               "aptitude install -q -y git-"
+               "! { aptitude search \"?and(?installed, ?name(^git$))\" | grep \"git\"; }")
+              (exec-checked-script
+               "Packages"
+               (~lib/package-manager-non-interactive)
+               (defn enableStart [] (lib/rm "/usr/sbin/policy-rc.d"))
+               "aptitude install -q -y ruby_"
+               "! { aptitude search \"?and(?installed, ?name(^ruby$))\" | grep \"ruby\"; }")))
+           (first
+            (build-actions
+                {:server {:packager :aptitude :image {:os-family :ubuntu}}}
+              (package "java" :action :install)
+              (package "rubygems")
+              (package "git" :action :remove)
+              (package "ruby" :action :remove :purge true)))))))
   (testing "yum"
-    (is (script-no-comment=
-         (first
-          (build-actions
-              {:server {:tag :n :image {:os-family :centos}}}
-            (exec-checked-script
-             "Packages"
-             "yum install -q -y java rubygems"
-             "yum remove -q -y git ruby"
-             "yum upgrade -q -y maven2"
-             ("yum" list installed))))
-         (first
-          (build-actions
-              {:server {:tag :n :image {:os-family :centos}}}
-            (package "java" :action :install)
-            (package "rubygems")
-            (package "maven2" :action :upgrade)
-            (package "git" :action :remove)
-            (package "ruby" :action :remove :purge true))))))
+    (testing "package"
+      (is (script-no-comment=
+           (first
+            (build-actions
+                {:server {:tag :n :image {:os-family :centos}}}
+              (exec-checked-script
+               "Packages"
+               "yum install -q -y java"
+               ("yum" list installed))
+              (exec-checked-script
+               "Packages"
+               "yum install -q -y rubygems"
+               ("yum" list installed))
+              (exec-checked-script
+               "Packages"
+               "yum upgrade -q -y maven2"
+               ("yum" list installed))
+              (exec-checked-script
+               "Packages"
+               "yum remove -q -y git"
+               ("yum" list installed))
+              (exec-checked-script
+               "Packages"
+               "yum remove -q -y ruby"
+               ("yum" list installed))))
+           (first
+            (build-actions
+                {:server {:tag :n :image {:os-family :centos}}}
+              (package "java" :action :install)
+              (package "rubygems")
+              (package "maven2" :action :upgrade)
+              (package "git" :action :remove)
+              (package "ruby" :action :remove :purge true)))))))
   (testing "pacman"
     (is (script-no-comment=
          (first
@@ -110,10 +162,18 @@
               {:server {:tag :n :image {:os-family :arch}}}
             (exec-checked-script
              "Packages"
-             "pacman -S --noconfirm --noprogressbar java"
-             "pacman -S --noconfirm --noprogressbar rubygems"
-             "pacman -S --noconfirm --noprogressbar maven2"
-             "pacman -R --noconfirm git"
+             "pacman -S --noconfirm --noprogressbar java")
+            (exec-checked-script
+             "Packages"
+             "pacman -S --noconfirm --noprogressbar rubygems")
+            (exec-checked-script
+             "Packages"
+             "pacman -S --noconfirm --noprogressbar maven2")
+            (exec-checked-script
+             "Packages"
+             "pacman -R --noconfirm git")
+            (exec-checked-script
+             "Packages"
              "pacman -R --noconfirm --nosave ruby")))
          (first
           (build-actions
@@ -168,17 +228,15 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
         ("cp" -p "/etc/apt/sources.list" @tmpfile)
         ("awk" "'{if ($1 ~ /^deb.*/ && ! /multiverse/  ) print $0 \" \" \" multiverse \" ; else print; }'" "/etc/apt/sources.list" > @tmpfile)
         ("mv" -f @tmpfile "/etc/apt/sources.list"))
-       (binding [pallet.action-plan/*defining-context* nil]
-         (package-manager* ubuntu-session :multiverse))))
+       (package-manager* ubuntu-session :multiverse)))
   (is (script-no-comment=
        (stevedore/checked-script
         "package-manager update "
         (chain-or
          ("aptitude" update "-q=2" -y)
          true))
-       (binding [pallet.action-plan/*defining-context* nil]
-         (script/with-script-context [:aptitude]
-           (package-manager* ubuntu-session :update))))))
+       (script/with-script-context [:aptitude]
+         (package-manager* ubuntu-session :update)))))
 
 (deftest package-manager-update-test
   (testing "yum"
@@ -317,12 +375,11 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             {:content "deb http://somewhere/apt $(lsb_release -c -s) main\n"
              :flag-on-changed "packagesourcechanged"})
            first second))
-         (binding [pallet.action-plan/*defining-context* nil]
-           (package-source*
-            ubuntu-session
-            "source1"
-            :aptitude {:url "http://somewhere/apt" :scopes ["main"]}
-            :yum {:url "http://somewhere/yum"}))))
+         (package-source*
+          ubuntu-session
+          "source1"
+          :aptitude {:url "http://somewhere/apt" :scopes ["main"]}
+          :yum {:url "http://somewhere/yum"})))
     (is
      (script-no-comment=
 
@@ -337,13 +394,12 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           :literal true
           :flag-on-changed "packagesourcechanged"})
         first second))
-      (binding [pallet.action-plan/*defining-context* nil]
-        (package-source*
-         centos-session
-         "source1"
-         :aptitude {:url "http://somewhere/apt"
-                    :scopes ["main"]}
-         :yum {:url "http://somewhere/yum"}))))
+      (package-source*
+       centos-session
+       "source1"
+       :aptitude {:url "http://somewhere/apt"
+                  :scopes ["main"]}
+       :yum {:url "http://somewhere/yum"})))
     (testing "ppa pre 12.10"
       (is (script-no-comment=
            (first
@@ -402,14 +458,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
            first second)
           (stevedore/script
            ("apt-key" adv "--keyserver" subkeys.pgp.net "--recv-keys" 1234)))
-         (binding [pallet.action-plan/*defining-context* nil]
-           (package-source*
-            ubuntu-session
-            "source1"
-            :aptitude {:url "http://somewhere/apt"
-                       :scopes ["main"]
-                       :key-id 1234}
-            :yum {:url "http://somewhere/yum"}))))
+         (package-source*
+          ubuntu-session
+          "source1"
+          :aptitude {:url "http://somewhere/apt"
+                     :scopes ["main"]
+                     :key-id 1234}
+          :yum {:url "http://somewhere/yum"})))
     (testing "key-server"
       (is (script-no-comment=
            (stevedore/checked-commands
@@ -423,15 +478,14 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              first second)
             (stevedore/script
              ("apt-key" adv "--keyserver" keys.ubuntu.com "--recv-keys" 1234)))
-           (binding [pallet.action-plan/*defining-context* nil]
-             (package-source*
-              ubuntu-session
-              "source1"
-              :aptitude {:url "http://somewhere/apt"
-                         :scopes ["main"]
-                         :key-server "keys.ubuntu.com"
-                         :key-id 1234}
-              :yum {:url "http://somewhere/yum"})))))))
+           (package-source*
+            ubuntu-session
+            "source1"
+            :aptitude {:url "http://somewhere/apt"
+                       :scopes ["main"]
+                       :key-server "keys.ubuntu.com"
+                       :key-id 1234}
+            :yum {:url "http://somewhere/yum"}))))))
 
 (deftest package-source-test
   (let [a (group-spec "a" :packager :aptitude)
@@ -496,48 +550,6 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
                    :aptitude ["git-apt"]
                    :yum ["git-yum"])))))))
 
-(deftest ordering-test
-  (testing "package-source alway precedes packages"
-    (is (script-no-comment=
-         (first
-          (build-actions
-              {}
-            (package-source "s" :aptitude {:url "http://somewhere/apt"})
-            (package "p")))
-         (first
-          (build-actions
-              {}
-            (package "p")
-            (package-source "s" :aptitude {:url "http://somewhere/apt"}))))))
-
-  (testing "package-manager alway precedes packages"
-    (is (script-no-comment=
-         (first
-          (build-actions
-              {}
-            (package-manager :update)
-            (package "p")))
-         (first
-          (build-actions
-              {}
-            (package "p")
-            (package-manager :update))))))
-
-  (testing "package-source alway precedes packages and package-manager"
-    (is (script-no-comment=
-         (first
-          (build-actions
-              {}
-            (package-source "s" :aptitude {:url "http://somewhere/apt"})
-            (package-manager :update)
-            (package "p")))
-         (first
-          (build-actions
-              {}
-            (package "p")
-            (package-manager :update)
-            (package-source "s" :aptitude {:url "http://somewhere/apt"})))))))
-
 (deftest adjust-packages-test
   (testing "apt"
     (script/with-script-context [:apt]
@@ -549,13 +561,12 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (chain-and
              ("apt-get" -q -y install p1- p4_ p2+ p3+)
              ("dpkg" "--get-selections")))
-           (binding [pallet.action-plan/*defining-context* nil]
-             (adjust-packages
-              ubuntu-session
-              [{:package "p1" :action :remove}
-               {:package "p2" :action :install}
-               {:package "p3" :action :upgrade}
-               {:package "p4" :action :remove :purge true}]))))))
+           (adjust-packages
+            ubuntu-session
+            [{:package "p1" :action :remove}
+             {:package "p2" :action :install}
+             {:package "p3" :action :upgrade}
+             {:package "p4" :action :remove :purge true}])))))
   (testing "apt with disabled package start"
     (script/with-script-context [:apt]
       (is (script-no-comment=
@@ -571,14 +582,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              ("enableStart")
              ("trap" - EXIT)
              ("dpkg" "--get-selections")))
-           (binding [pallet.action-plan/*defining-context* nil]
-             (adjust-packages
-              ubuntu-session
-              [{:package "p1" :action :remove :disable-service-start true}
-               {:package "p2" :action :install :disable-service-start true}
-               {:package "p3" :action :upgrade :disable-service-start true}
-               {:package "p4" :action :remove :purge true
-                :disable-service-start true}]))))))
+           (adjust-packages
+            ubuntu-session
+            [{:package "p1" :action :remove :disable-service-start true}
+             {:package "p2" :action :install :disable-service-start true}
+             {:package "p3" :action :upgrade :disable-service-start true}
+             {:package "p4" :action :remove :purge true
+              :disable-service-start true}])))))
   (testing "aptitude"
     (script/with-script-context [:aptitude]
       (is (script-no-comment=
@@ -599,13 +609,12 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (not (pipe
                   ("aptitude" search (quoted "?and(?installed, ?name(^p4$))"))
                   ("grep" (quoted "p4")))))
-           (binding [pallet.action-plan/*defining-context* nil]
-             (adjust-packages
-              (assoc-in ubuntu-session [:server :packager] :aptitude)
-              [{:package "p1" :action :remove}
-               {:package "p2" :action :install}
-               {:package "p3" :action :upgrade}
-               {:package "p4" :action :remove :purge true}]))))))
+           (adjust-packages
+            (assoc-in ubuntu-session [:server :packager] :aptitude)
+            [{:package "p1" :action :remove}
+             {:package "p2" :action :install}
+             {:package "p3" :action :upgrade}
+             {:package "p4" :action :remove :purge true}])))))
   (testing "aptitude with enable"
     (script/with-script-context [:aptitude]
       (is (script-no-comment=
@@ -621,11 +630,10 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (pipe
              ("aptitude" search (quoted "?and(?installed, ?name(^p2$))"))
              ("grep" (quoted "p2"))))
-           (binding [pallet.action-plan/*defining-context* nil]
-             (adjust-packages
-              (assoc-in ubuntu-session [:server :packager] :aptitude)
-              [{:package "p1" :action :install :priority 20}
-               {:package "p2" :action :install :enable ["r1"] :priority 2}]))))))
+           (adjust-packages
+            (assoc-in ubuntu-session [:server :packager] :aptitude)
+            [{:package "p1" :action :install :priority 20}
+             {:package "p2" :action :install :enable ["r1"] :priority 2}])))))
   (testing "aptitude with allow-unsigned"
     (script/with-script-context [:aptitude]
       (is (script-no-comment=
@@ -641,11 +649,10 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
             (pipe
              ("aptitude" search (quoted "?and(?installed, ?name(^p2$))"))
              ("grep" (quoted "p2"))))
-           (binding [pallet.action-plan/*defining-context* nil]
-             (adjust-packages
-              (assoc-in ubuntu-session [:server :packager] :aptitude)
-              [{:package "p1" :action :install}
-               {:package "p2" :action :install :allow-unsigned true}]))))))
+           (adjust-packages
+            (assoc-in ubuntu-session [:server :packager] :aptitude)
+            [{:package "p1" :action :install}
+             {:package "p2" :action :install :allow-unsigned true}])))))
   (testing "yum"
     (is (script-no-comment=
          (stevedore/checked-script
@@ -654,14 +661,13 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           ("yum" remove -q -y p1 p4)
           ("yum" upgrade -q -y p3)
           ("yum" list installed))
-         (binding [pallet.action-plan/*defining-context* nil]
-           (script/with-script-context [:yum]
-             (adjust-packages
-              centos-session
-              [{:package "p1" :action :remove}
-               {:package "p2" :action :install}
-               {:package "p3" :action :upgrade}
-               {:package "p4" :action :remove :purge true}]))))))
+         (script/with-script-context [:yum]
+           (adjust-packages
+            centos-session
+            [{:package "p1" :action :remove}
+             {:package "p2" :action :install}
+             {:package "p3" :action :upgrade}
+             {:package "p4" :action :remove :purge true}])))))
   (testing "yum with disable and priority"
     (is (script-no-comment=
          (stevedore/checked-script
@@ -669,19 +675,23 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
           ("yum" install -q -y "--disablerepo=r1" p2)
           ("yum" install -q -y p1)
           ("yum" list installed))
-         (binding [pallet.action-plan/*defining-context* nil]
-           (script/with-script-context [:yum]
-             (adjust-packages
-              centos-session
-              [{:package "p1" :action :install :priority 50}
-               {:package "p2" :action :install :disable ["r1"]
-                :priority 25}])))))
+         (script/with-script-context [:yum]
+           (adjust-packages
+            centos-session
+            [{:package "p1" :action :install :priority 50}
+             {:package "p2" :action :install :disable ["r1"]
+              :priority 25}]))))
     (is (script-no-comment=
-         (stevedore/checked-script
-          "Packages"
-          ("yum" install -q -y "--disablerepo=r1" p2)
-          ("yum" install -q -y p1)
-          ("yum" list installed))
+         (first
+          (build-actions centos-session
+            (exec-checked-script
+             "Packages"
+             ("yum" install -q -y p1)
+             ("yum" list installed))
+            (exec-checked-script
+             "Packages"
+             ("yum" install -q -y "--disablerepo=r1" p2)
+             ("yum" list installed))))
          (first
           (build-actions centos-session
             (package "p1")

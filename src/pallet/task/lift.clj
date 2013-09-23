@@ -4,10 +4,9 @@
    [clojure.pprint :refer [print-table]]
    [clojure.stacktrace :refer [print-cause-trace]]
    [clojure.tools.logging :as logging]
-   [pallet.algo.fsmop :refer [complete? wait-for]]
    [pallet.api :as api]
    [pallet.api :refer [print-targets]]
-   [pallet.core.primitives :refer [phase-errors]]
+   [pallet.core.api :refer [phase-errors]]
    [pallet.task :refer [abort maybe-resolve-symbol-string]]
    [pallet.task-utils :refer [pallet-project project-groups]]))
 
@@ -50,15 +49,15 @@
                            (dissoc :config :project)
                            (assoc :environment
                              (or (:environment request)
-                                 (-> request :project :environment)))))))]
-    (wait-for op)
-    (if (complete? op)
-      (print-targets @op)
+                                 (-> request :project :environment)))))))
+        result (deref op (* 30 60 1000) nil)]
+    (if (or (nil? result) (phase-errors result) (:exception result))
+      (print-targets result)
       (binding [*out* *err*]
         (println "An error occured")
-        (when-let [e (seq (phase-errors op))]
+        (when-let [e (seq (phase-errors result))]
           (print-table (->> e (map :error) (map #(dissoc % :type)))))
-        (when-let [e (:exception @op)]
+        (when-let [e (:exception result)]
           (print-cause-trace e)
           (throw (ex-info "pallet up failed" {} e)))
         (println "See logs for further details")))))

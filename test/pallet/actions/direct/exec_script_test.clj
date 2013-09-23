@@ -2,17 +2,15 @@
   (:require
    [clojure.test :refer :all]
    [pallet.actions :refer [exec exec-checked-script exec-script exec-script*]]
-   [pallet.algo.fsmop :refer [failed?]]
    [pallet.api :refer [group-spec lift plan-fn server-spec]]
    [pallet.build-actions :refer [build-actions let-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture
                                            with-log-to-string]]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
-   [pallet.core.primitives :refer [phase-errors throw-phase-errors]]
+   [pallet.core.api :refer [phase-errors throw-phase-errors]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.node :refer [hostname]]
-   [pallet.node-value :refer [node-value]]
    [pallet.script-builder :refer [interpreter]]
    [pallet.script.lib :refer [ls]]
    [pallet.stevedore :as stevedore]
@@ -46,7 +44,8 @@
                (deliver v nv)
                nv))]
     (is (= "ls file1\n" (first rv)))
-    (is (= [{:language :bash} "ls file1"] (node-value @v (second rv))))))
+    (is (= {:script-options {:language :bash} :script "ls file1"}
+           @v))))
 
 (deftest exec-script-test
   (is (= "ls file1\n"
@@ -182,11 +181,10 @@
                                 :compute service
                                 :async true)
                         session @result]
-                    (is (failed? result))
-                    (is (phase-errors result))
-                    (is (= 1 (count (phase-errors result))))
+                    (is (phase-errors @result))
+                    (is (= 1 (count (phase-errors @result))))
                     (is (thrown? clojure.lang.ExceptionInfo
-                                 (throw-phase-errors result)))))]
+                                 (throw-phase-errors @result)))))]
             (is (re-find
                  #"ERROR pallet.execute - localhost #> myscript"
                  log-out))))))))

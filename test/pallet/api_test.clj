@@ -74,6 +74,7 @@
                     (group-name (first (nodes compute)))
                   :phases {:p (plan-fn (exec-script "ls /"))})
           op (lift [group] :phase :p :compute compute :async true)]
+      (is op)
       (is @op)
       (some
        (partial re-find #"/bin")

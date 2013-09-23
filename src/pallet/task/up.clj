@@ -4,11 +4,10 @@
    [clojure.pprint :refer [pprint]]
    [clojure.stacktrace :refer [print-cause-trace]]
    [clojure.string :as string]
-   [pallet.algo.fsmop :refer [failed? fail-reason wait-for]]
    [pallet.api :as api]
    [pallet.api :refer [print-targets]]
    [pallet.compute :refer [service-properties]]
-   [pallet.core.primitives :refer [phase-errors]]
+   [pallet.core.api :refer [phase-errors]]
    [pallet.node :refer [node-map]]
    [pallet.task-utils
     :refer [comma-sep->kw-seq
@@ -95,19 +94,19 @@
                                      (-> request :project :environment))
                                :project (dissoc
                                          (-> request :project)
-                                         :environment)))))]
-        (wait-for op)
-        (if (failed? op)
+                                         :environment)))))
+            result (deref op (* 30 60 1000) nil)]
+        (if (or (nil? result) (phase-errors result) (:exception result))
           (binding [*out* *err*]
             (println "An error occured")
-            (when-let [e (seq (phase-errors op))]
+            (when-let [e (seq (phase-errors result))]
               (pprint (->> e (map :error) (map #(dissoc % :type)))))
-            (when-let [e (and (failed? op) (:exception (fail-reason op)))]
+            (when-let [e (:exception result)]
               (print-cause-trace e)
               (throw (ex-info "pallet up failed" {:exit-code 1} e)))
             (throw
              (ex-info "See logs for further details" {:exit-code 1})))
           (when-not quiet
             (if (= format "edn")
-              (pprint (map node-map (map :node (:targets @op))))
-              (print-targets @op))))))))
+              (pprint (map node-map (map :node (:targets result))))
+              (print-targets result))))))))

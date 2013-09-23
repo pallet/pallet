@@ -2,11 +2,10 @@
   "Set up the system environment."
   (:require
    [clojure.string :as string]
-   [pallet.action :refer [with-action-options]]
-   [pallet.actions :refer [exec-script* plan-when plan-when-not remote-file]]
-   [pallet.argument :refer [delayed]]
+   [pallet.action-options :refer [with-action-options]]
+   [pallet.actions :refer [exec-script* remote-file]]
+   [pallet.actions.decl :refer [checked-commands*]]
    [pallet.crate :refer [defplan os-family]]
-   [pallet.action-plan :as action-plan]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]))
 
@@ -28,34 +27,33 @@
   [env-name key-value-pairs & {:keys [path shared literal] :as options}]
   (let [[path shared] (system-environment-file env-name options)
         quote (if literal "'" "\"")]
-    (plan-when shared
+    (when shared
       (with-action-options {:new-login-after-action true}
         (exec-script*
-         (delayed [_]
-           (action-plan/checked-commands*
-            (format "Add %s environment to %s" env-name path)
-            (conj
-             (for [[k v] key-value-pairs]
-               (stevedore/script
-                (var vv (str ~quote ~v ~quote)) ; v can contain multi-line
-                                        ; expressions
-                ("pallet_set_env"
-                 (quoted ~k)
-                 (quoted @vv)
-                 (quoted (str ~(name k) "=\\\"" @vv "\\\"")))))
+         (checked-commands*
+          (format "Add %s environment to %s" env-name path)
+          (conj
+           (for [[k v] key-value-pairs]
              (stevedore/script
-              (if-not (file-exists? ~path)
-                (lib/heredoc ~path "# environment file created by pallet\n" {}))
-              (defn pallet_set_env [k v s]
-                (if-not ("grep" (quoted @s) ~path "2>&-")
-                  (chain-or
-                   (chain-and
-                    ("sed" -i (~lib/sed-ext)
-                     -e (quoted "/$${k}=/ d") ~path)
-                    ("sed" -i (~lib/sed-ext)
-                     -e (quoted "$ a \\\\\n${s}") ~path))
-                   ("exit" 1)))))))))))
-    (plan-when-not shared
+              (var vv (str ~quote ~v ~quote)) ; v can contain multi-line
+                                        ; expressions
+              ("pallet_set_env"
+               (quoted ~k)
+               (quoted @vv)
+               (quoted (str ~(name k) "=\\\"" @vv "\\\"")))))
+           (stevedore/script
+            (if-not (file-exists? ~path)
+              (lib/heredoc ~path "# environment file created by pallet\n" {}))
+            (defn pallet_set_env [k v s]
+              (if-not ("grep" (quoted @s) ~path "2>&-")
+                (chain-or
+                 (chain-and
+                  ("sed" -i (~lib/sed-ext)
+                   -e (quoted "/$${k}=/ d") ~path)
+                  ("sed" -i (~lib/sed-ext)
+                   -e (quoted "$ a \\\\\n${s}") ~path))
+                 ("exit" 1))))))))))
+    (when-not shared
       (with-action-options {:new-login-after-action true}
         (remote-file
          path

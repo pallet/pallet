@@ -3,9 +3,8 @@
   (:require
    [clojure.pprint :refer [print-table]]
    [clojure.stacktrace :refer [print-cause-trace]]
-   [pallet.algo.fsmop :refer [complete? wait-for]]
    [pallet.api :as api]
-   [pallet.core.primitives :refer [phase-errors]]
+   [pallet.core.api :refer [phase-errors]]
    [pallet.task-utils :refer [pallet-project process-args project-groups]]
    [pallet.utils :refer [apply-map]]))
 
@@ -38,16 +37,16 @@
                          (dissoc :config :project)
                          (assoc :environment
                            (or (:environment request)
-                               (-> request :project :environment)))))]
-      (wait-for op)
-      (if (complete? op)
-        (when-not quiet
-          (println "Removed" (count (:old-nodes @op)) "nodes"))
+                               (-> request :project :environment)))))
+          result (deref op (* 30 60 1000) nil)]
+      (if (or (nil? result) (phase-errors result) (:exception result))
         (binding [*out* *err*]
           (println "An error occured")
-          (when-let [e (seq (phase-errors op))]
+          (when-let [e (seq (phase-errors result))]
             (print-table (->> e (map :error) (map #(dissoc % :type)))))
-          (when-let [e (:exception @op)]
+          (when-let [e (:exception result)]
             (print-cause-trace e)
             (throw (ex-info "pallet down failed" {:exit-code 1} e)))
-          (throw (ex-info "See logs for further details" {:exit-code 1})))))))
+          (throw (ex-info "See logs for further details" {:exit-code 1})))
+        (when-not quiet
+          (println "Removed" (count (:old-nodes result)) "nodes"))))))

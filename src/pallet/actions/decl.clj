@@ -2,10 +2,10 @@
   "Action declarations"
   (:require
    [clojure.java.io :as io]
+   [clojure.string :as string]
    [pallet.action :refer [defaction]]
-   [pallet.action-plan :refer [checked-script]]
    [pallet.actions-impl :refer :all]
-   [pallet.argument :as argument :refer [delayed delayed-argument?]]
+   [pallet.context :as context]
    [pallet.stevedore :as stevedore]))
 
 ;;; # Direct Script Execution
@@ -27,7 +27,37 @@
   "Execute a bash script remotely. The script is expressed in stevedore."
   {:pallet/plan-fn true}
   [& script]
-  `(exec-script* (delayed [_#] (stevedore/script ~@script))))
+  `(exec-script* (stevedore/script ~@script)))
+
+(defn context-string
+  "The string that is used to represent the phase context for :in-sequence
+  actions."
+  {:no-doc true}
+  []
+  (when-let [ctxt (seq (context/phase-contexts))]
+    (str (string/join ": " ctxt) ": ")))
+
+(defmacro checked-script
+  "Return a stevedore script that uses the current context to label the
+   action"
+  [name & script]
+  `(stevedore/checked-script
+    (str (context-string) ~name)
+    ~@script))
+
+(defmacro checked-commands*
+  "Return a stevedore script that uses the current context to label the
+   action"
+  [name scripts]
+  `(stevedore/checked-commands*
+    (str (context-string) ~name)
+    ~scripts))
+
+(defn checked-commands
+  "Return a stevedore script that uses the current context to label the
+   action"
+  [name & script]
+  (checked-commands* name script))
 
 (defmacro ^{:requires [#'checked-script]}
   exec-checked-script
@@ -38,12 +68,11 @@
   (let [file (.getName (io/file *file*))
         line (:line (meta &form))]
     `(exec-script*
-      (delayed [_#]
-               (checked-script
-                ~(if *script-location-info*
-                   `(str ~script-name " (" ~file ":" ~line ")")
-                   script-name)
-                ~@script)))))
+      (checked-script
+       ~(if *script-location-info*
+          `(str ~script-name " (" ~file ":" ~line ")")
+          script-name)
+       ~@script))))
 
 
 (defaction if-action
@@ -75,10 +104,6 @@ to deal with local file transfer."
          :as options}])
 
 (def package-source-changed-flag "packagesourcechanged")
-
-(defaction packages-action
-  "Install a list of packages."
-  [packager packages])
 
 (defaction package-repository-action
   "Control package repository.

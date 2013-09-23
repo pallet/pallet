@@ -1,7 +1,8 @@
 (ns pallet.crate.package.rpmforge
   "Actions for working with the rpmforge repository"
   (:require
-   [pallet.action :refer [action-fn with-action-options]]
+   [pallet.action :refer [action-fn]]
+   [pallet.action-options :refer [with-action-options]]
    [pallet.actions :refer [exec-checked-script package package-manager]]
    [pallet.actions.decl :refer [remote-file-action]]
    [pallet.core.session :refer [session]]

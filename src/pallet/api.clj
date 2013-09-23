@@ -6,8 +6,7 @@
    [clojure.set :refer [union]]
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :as logging]
-   [pallet.action :refer [action-options-key]]
-   [pallet.algo.fsmop :refer [dofsm operate result succeed]]
+   [pallet.action-options :refer [action-options-key]]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
    [pallet.contracts
@@ -17,17 +16,20 @@
             check-node-spec
             check-server-spec
             check-user]]
-   [pallet.core.api :refer [environment-image-execution-settings]]
+   [pallet.core.api :as api :refer [environment-image-execution-settings
+                                    stop-execution-on-error]]
    [pallet.core.api-impl
     :refer [merge-spec-algorithm merge-specs node-has-group-name?]]
    [pallet.core.operations :as ops]
-   [pallet.core.primitives :refer [bootstrapped-meta execute-on-unflagged
-                                   phases-with-meta unbootstrapped-meta]]
+   [pallet.core.primitives
+    :refer [async-operation bootstrapped-meta exec-operation
+            execute-on-unflagged phases-with-meta unbootstrapped-meta]]
    [pallet.core.session :refer [session-context]]
    [pallet.core.user :as user]
    [pallet.crate :refer [phase-context]]
    [pallet.crate.os :refer [os]]
    [pallet.environment :refer [group-with-environment merge-environments]]
+   [pallet.executors :refer [default-executor]]
    [pallet.node :refer [node-map node?]]
    [pallet.plugin :refer [load-plugins]]
    [pallet.thread-expr :refer [when->]]
@@ -376,41 +378,34 @@ specified in the `:extends` argument."
       %))))
 
 (defn- all-group-nodes
-  "Returns a FSM to retrieve the service state for the specified groups"
-  [compute groups all-node-set]
+  "Returns the service state for the specified groups"
+  [operation compute groups all-node-set]
   (if compute
     (ops/group-nodes
+     operation
      compute
      (concat
       groups
       (map
        (fn [g] (update-in g [:phases] select-keys [:settings]))
-       all-node-set)))
-    (result nil)))
+       all-node-set)))))
 
 (def ^{:doc "Arguments that are forwarded to be part of the environment"}
   environment-args [:compute :blobstore :user :provider-options])
 
 (defn group-node-maps
-  "Returns a FSM to converge the existing compute resources with the counts
-   specified in `group-spec->count`.  Options are as for `converge`."
-  [compute groups & {:keys [async timeout-ms timeout-val]
-                     :as options}]
-  (let [fsm (all-group-nodes compute groups nil)]
-    (if async
-      (operate fsm)
-      (if timeout-ms
-        (deref (operate fsm) timeout-ms timeout-val)
-        (deref (operate fsm))))))
+  "Return the nodes for the specified groups."
+  [compute groups & {:keys [async timeout-ms timeout-val] :as options}]
+  (exec-operation #(all-group-nodes % compute groups nil) options))
 
 (defn converge*
   "Returns a FSM to converge the existing compute resources with the counts
    specified in `group-spec->count`.  Options are as for `converge`."
-  [group-spec->count & {:keys [compute blobstore user phase
-                               all-nodes all-node-set environment plan-state
-                               debug os-detect]
-                        :or {os-detect true}
-                        :as options}]
+  [operation group-spec->count & {:keys [compute blobstore user phase
+                                         all-nodes all-node-set environment
+                                         plan-state debug os-detect]
+                                  :or {os-detect true}
+                                  :as options}]
   (check-converge-options options)
   (logging/tracef "environment %s" environment)
   (let [[phases phase-map] (process-phases phase)
@@ -433,7 +428,10 @@ specified in the `:extends` argument."
         _ (logging/tracef "environment keys %s"
                           (select-keys options environment-args))
         environment (merge-environments
-                     {:user user/*admin-user*}
+                     {:user user/*admin-user*
+                      :algorithms
+                      {:executor #'default-executor
+                       :execute-status-fn #'stop-execution-on-error}}
                      (pallet.environment/environment compute)
                      environment
                      (select-keys options environment-args))
@@ -450,24 +448,25 @@ specified in the `:extends` argument."
                    (apply total-order-merge
                           (map :default-phases (concat groups targets))))]
     (doseq [group groups] (check-group-spec group))
-    (dofsm converge
-      [nodes-set (all-group-nodes compute groups all-node-set)
-       nodes-set (result (concat nodes-set targets))
-       _ (succeed
-          (or compute (seq nodes-set))
-          {:error :no-nodes-and-no-compute-service})
+    (let [nodes-set (all-group-nodes operation compute groups all-node-set)
+          nodes-set (concat nodes-set targets)
+          _ (when-not (or compute (seq nodes-set))
+              (throw (ex-info
+                      "No source of nodes"
+                      {:error :no-nodes-and-no-compute-service})))
 
-       {:keys [new-nodes plan-state targets service-state] :as converge-result}
-       (ops/converge
-        compute groups nodes-set initial-plan-state environment
-        phases lift-options)
+          {:keys [new-nodes plan-state targets service-state] :as converge-result}
+          (ops/converge operation
+                        compute groups nodes-set initial-plan-state
+                        environment phases lift-options)
 
-       {:keys [plan-state results]}
-       (ops/lift-partitions
-        service-state plan-state environment
-        (concat (when os-detect [:pallet/os-bs :pallet/os])
-                [:settings :bootstrap] phases)
-        (assoc lift-options :targets targets))]
+          {:keys [plan-state results]}
+          (ops/lift-partitions
+           operation
+           service-state plan-state environment
+           (concat (when os-detect [:pallet/os-bs :pallet/os])
+                   [:settings :bootstrap] phases)
+           (assoc lift-options :targets targets))]
 
       (-> converge-result
           (update-in [:results] concat results)
@@ -558,20 +557,16 @@ the admin-user on the nodes.
                                debug plan-state]
                         :as options}]
   (load-plugins)
-  (if async
-    (operate (apply-map converge* group-spec->count options))
-    (if timeout-ms
-      (deref (operate (apply-map converge* group-spec->count options))
-             timeout-ms timeout-val)
-      (deref (operate (apply-map converge* group-spec->count options))))))
+  (exec-operation #(apply-map converge* % group-spec->count options)
+                  (select-keys options [:async :timeout-ms :timeout-val])))
 
 (defn lift*
   "Returns a FSM to lift the running nodes in the specified node-set by applying
    the specified phases.  Options as specified in `lift`."
-  [node-set & {:keys [compute phase all-node-set environment
-                      debug plan-state os-detect]
-               :or {os-detect true}
-               :as options}]
+  [operation node-set & {:keys [compute phase all-node-set environment
+                                debug plan-state os-detect]
+                         :or {os-detect true}
+                         :as options}]
   (check-lift-options options)
   (let [[phases phase-map] (process-phases phase)
         phase-map (if os-detect
@@ -586,7 +581,10 @@ the admin-user on the nodes.
                           (select-keys options environment-args))
         _ (logging/tracef "options %s" options)
         environment (merge-environments
-                     {:user user/*admin-user*}
+                     {:user user/*admin-user*
+                      :algorithms
+                      {:executor #'default-executor
+                       :execute-status-fn #'stop-execution-on-error}}
                      (and compute (pallet.environment/environment compute))
                      environment
                      (select-keys options environment-args))
@@ -603,21 +601,22 @@ the admin-user on the nodes.
                    (apply total-order-merge
                           (map :default-phases (concat groups targets))))]
     (doseq [group groups] (check-group-spec group))
-    (dofsm lift
-      [nodes-set (all-group-nodes compute groups all-node-set)
-       nodes-set (result (concat nodes-set targets))
-       _ (succeed
-          (or compute (seq nodes-set))
-          {:error :no-nodes-and-no-compute-service})
-       {:keys [plan-state]} (ops/lift
-                             nodes-set initial-plan-state environment
-                             (concat
-                              (when os-detect [:pallet/os])
-                              [:settings])
-                             {})
-       results (ops/lift-partitions
-                nodes-set plan-state environment (remove #{:settings} phases)
-                lift-options)]
+    (let [nodes-set (all-group-nodes operation compute groups all-node-set)
+          nodes-set (concat nodes-set targets)
+          _ (when-not (or compute (seq nodes-set))
+              (throw (ex-info "No source of nodes"
+                              {:error :no-nodes-and-no-compute-service})))
+          {:keys [plan-state]} (ops/lift
+                                operation
+                                nodes-set initial-plan-state environment
+                                (concat
+                                 (when os-detect [:pallet/os])
+                                 [:settings])
+                                {})
+          results (ops/lift-partitions
+                   operation
+                   nodes-set plan-state environment (remove #{:settings} phases)
+                   lift-options)]
       (assoc results
         :environment environment
         :initial-plan-state initial-plan-state))))
@@ -705,12 +704,8 @@ the admin-user on the nodes.
                       debug plan-state]
                :as options}]
   (load-plugins)
-  (if async
-    (operate (apply-map lift* node-set options))
-    (if timeout-ms
-      (deref (operate (apply-map lift* node-set options))
-             timeout-ms timeout-val)
-      (deref (operate (apply-map lift* node-set options))))))
+  (exec-operation #(apply-map lift* % node-set options)
+                  (select-keys options [:async :timeout-ms :timeout-val])))
 
 (defn lift-nodes
   "Lift `targets`, a sequence of node-maps, using the specified `phases`.  This
@@ -755,18 +750,14 @@ insufficient.
                      {:user user/*admin-user*}
                      environment
                      (select-keys options environment-args))]
-    (letfn [(lift-nodes* []
-              (operate
-               (ops/lift-partitions
-                targets plan-state environment phases
-                (dissoc options
-                        :environment :plan-state :async
-                        :timeout-val :timeout-ms))))]
-      (if async
-        (lift-nodes*)
-        (if timeout-ms
-          (deref (lift-nodes*) timeout-ms timeout-val)
-          (deref (lift-nodes*)))))))
+    (letfn [(lift-nodes* [operation]
+              (ops/lift-partitions
+               operation
+               targets plan-state environment phases
+               (dissoc options
+                       :environment :plan-state :async
+                       :timeout-val :timeout-ms)))]
+      (exec-operation lift-nodes* options))))
 
 (defn group-nodes
   "Return a sequence of node-maps for each node in the specified group-specs.
@@ -784,13 +775,9 @@ insufficient.
 
 `:timeout-val`
 : a value to be returned should the operation time out."
-  [compute groups & {:keys [async timeout-ms timeout-val]}]
-  (letfn [(group-nodes* [] (operate (ops/group-nodes compute groups)))]
-    (if async
-      (group-nodes*)
-      (if timeout-ms
-        (deref (group-nodes*) timeout-ms timeout-val)
-        (deref (group-nodes*))))))
+  [compute groups & {:keys [async timeout-ms timeout-val] :as options}]
+  (letfn [(group-nodes* [operation] (ops/group-nodes operation compute groups))]
+    (exec-operation group-nodes* options)))
 
 ;;; ### Admin user
 (defn make-user

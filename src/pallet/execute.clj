@@ -5,7 +5,8 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.core.plan-state :refer [get-settings update-settings]]
-   [pallet.core.session :refer [target-id]]))
+   [pallet.core.session :refer [target-id]]
+   [pallet.utils :refer [maybe-assoc]]))
 
 (defn normalise-eol
   "Convert eol into platform specific value"
@@ -155,7 +156,9 @@
   [session {:keys [out] :as result}]
   (let [flags (parse-flags out)
         values (parse-flag-values out)]
-    [(assoc result :flags flags :flag-values values)
+    [(-> result
+         (maybe-assoc :flags flags)
+         (maybe-assoc :flag-values values))
      (->
       session
       (set-target-flags flags)

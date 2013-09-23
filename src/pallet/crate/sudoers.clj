@@ -4,7 +4,7 @@
    [clojure.tools.logging :as logging]
    [pallet.actions :refer [package remote-file]]
    [pallet.api :as api :refer [plan-fn]]
-   [pallet.crate :refer [admin-group assoc-settings def-collect-plan-fn defplan
+   [pallet.crate :refer [admin-group assoc-settings defplan
                          get-settings phase-context update-settings]]
    [pallet.crate-install :as crate-install]
    [pallet.script.lib :refer [file config-root]]

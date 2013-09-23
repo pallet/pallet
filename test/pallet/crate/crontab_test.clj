@@ -2,13 +2,13 @@
   (:require
    [clojure.string :refer [trim]]
    [clojure.test :refer :all]
-   [pallet.action :refer [clj-action]]
    [pallet.actions :refer [exec-checked-script remote-file remote-file-content]]
-   [pallet.algo.fsmop :refer [complete? operate]]
    [pallet.api :refer [extend-specs plan-fn]]
    [pallet.build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.core.api :refer [phase-errors]]
    [pallet.core.operations :refer [lift]]
+   [pallet.core.primitives :refer [async-operation]]
    [pallet.crate :refer [admin-user]]
    [pallet.crate.automated-admin-user :refer [with-automated-admin-user]]
    [pallet.crate.crontab
@@ -17,6 +17,7 @@
             user-crontabs
             user-settings
             with-crontab]]
+   [pallet.core.session :refer [session]]
    [pallet.environment-impl :refer [get-for]]
    [pallet.live-test :refer [images test-for test-nodes]]
    [pallet.script.lib :refer [user-home]]
@@ -78,21 +79,20 @@
                                       (str
                                        (script (~user-home ~(:username user)))
                                        "/crontab.in"))
-                            v ((clj-action [session]
-                                 (let [f (get-for session
-                                                  [:file-checker])]
-                                             (f session fcontent))
-                                           [nil session]))]
+                            v (let [f (get-for (session) [:file-checker])]
+                                (f (session) fcontent))]
                         v))}}
           [with-automated-admin-user
           with-crontab])}
-      (let [op (operate
-                (lift [(:crontab node-types)] nil [:verify] compute
-                      {:file-checker
-                       (bound-fn [session fcontent]
-                         (let [content (fcontent session)]
-                           (is (= crontab-for-test (trim content))
-                               "Remote file matches")))}
-                      {}))]
+        (let [op (async-operation)
+              res (lift
+                   op
+                   [(:crontab node-types)] nil [:verify] compute
+                   {:file-checker
+                    (bound-fn [session fcontent]
+                      (let [content (fcontent session)]
+                        (is (= crontab-for-test (trim content))
+                            "Remote file matches")))}
+                   {})]
         @op
-        (is (complete? op))))))
+        (is (not (phase-errors @op)))))))

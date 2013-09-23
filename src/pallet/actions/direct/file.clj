@@ -2,7 +2,7 @@
   "File manipulation."
   (:require
    [pallet.action :refer [implement-action]]
-   [pallet.action-plan :as action-plan]
+   [pallet.actions.decl :refer [checked-script checked-commands]]
    [pallet.actions :refer [fifo file sed symbolic-link]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]))
@@ -43,13 +43,13 @@
                    :as options}]
   [[{:language :bash}
     (case action
-      :delete (action-plan/checked-script
+      :delete (checked-script
                (str "delete file " path)
                (~lib/rm ~path :force ~force))
-      :create (action-plan/checked-commands
+      :create (checked-commands
                (str "file " path)
                (touch-file path options))
-      :touch (action-plan/checked-commands
+      :touch (checked-commands
               (str "file " path)
               (touch-file path options)))]
    session])
@@ -60,10 +60,10 @@
                         :or {action :create force true}}]
   [[{:language :bash}
     (case action
-      :delete (action-plan/checked-script
+      :delete (checked-script
                (str "Link %s " name)
                (~lib/rm ~name :force ~force))
-      :create (action-plan/checked-script
+      :create (checked-script
                (format "Link %s as %s" from name)
                (~lib/ln ~from ~name :force ~force :symbolic ~true)))]
    session])
@@ -74,10 +74,10 @@
                    :or {action :create} :as options}]
   [[{:language :bash}
     (case action
-      :delete (action-plan/checked-script
+      :delete (checked-script
                (str "fifo " path)
                (~lib/rm ~path :force ~force))
-      :create (action-plan/checked-commands
+      :create (checked-commands
                (str "fifo " path)
                (stevedore/script
                 (if-not (file-exists? ~path)
@@ -90,7 +90,7 @@
   [session path exprs-map
    & {:keys [seperator no-md5 restriction] :as options}]
   [[{:language :bash}
-    (action-plan/checked-script
+    (checked-script
      (format "sed file %s" path)
      (~lib/sed-file ~path ~exprs-map ~options)
      ~(when-not no-md5

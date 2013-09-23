@@ -3,11 +3,11 @@
    [clojure.test :refer :all]
    [clojure.tools.logging :as logging]
    [pallet.actions :refer [directory exec-checked-script file remote-file user]]
-   [pallet.algo.fsmop :refer [failed?]]
    [pallet.api :refer [group-spec lift plan-fn]]
    [pallet.build-actions :as build-actions]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.context :as context]
+   [pallet.core.api :refer [phase-errors]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.crate.ssh-key :refer :all]
    [pallet.live-test :as live-test]
@@ -289,7 +289,7 @@
               :user (local-test-user)
               :async true)
           session @op]
-      (is (not (failed? op)))
+      (is (not (phase-errors @op)))
       (is (= "Host somewhere\n  StrictHostKeyChecking = no\nHost github.com\n  StrictHostKeyChecking = yes\n"
              (slurp tmp))))))
 

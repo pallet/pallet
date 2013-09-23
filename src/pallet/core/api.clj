@@ -6,17 +6,13 @@
    [clojure.string :as string]
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :refer [debugf tracef]]
-   [pallet.action :refer [get-action-options]]
-   [pallet.action-plan :refer [execute stop-execution-on-error translate]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :refer [destroy-node destroy-nodes-in-group nodes run-nodes]]
    [pallet.core.api-impl :refer :all]
-   [pallet.core.session :refer [session with-session]]
+   [pallet.core.session :refer [session session! with-session]]
    [pallet.core.user :refer [obfuscated-passwords]]
-   [pallet.executors :refer [default-executor]]
+   [pallet.execute :refer [parse-shell-result]]
    [pallet.node :refer [id image-user primary-ip tag tag! taggable?]]
-   [pallet.session.action-plan
-    :refer [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :refer [add-session-verification-key check-session]]
    [pallet.stevedore :refer [with-source-line-comments]]))
 
@@ -39,32 +35,41 @@
     (tracef "service-state %s" (vec nodes))
     (filter identity (map (node->node-map groups) nodes))))
 
-;;; ## Action Plan Building
-(defn action-plan
-  "Build the action plan for the specified `plan-fn` on the given `node`, within
-  the context of the `service-state`. The `plan-state` contains all the
-  settings, etc, for all groups. `target-map` is a map for the session
-  describing the target."
-  [service-state environment plan-fn args target-map]
-  {:pre [(not (map? plan-fn)) (fn? plan-fn)
-         (map? target-map)
-         (or (nil? environment) (map? environment))]}
-  (fn action-plan [plan-state]
-    (tracef "action-plan plan-state %s" plan-state)
-    (let [s (with-session
-                (add-session-verification-key
-                 (merge
-                  {:user (:user environment)}
-                  target-map
-                  {:service-state service-state
-                   :plan-state plan-state
-                   :environment environment}))
-              (apply plan-fn args)
-              (check-session (session) '(plan-fn))
-              (session))]
-      (let [[action-plan session] (get-session-action-plan s)
-            [action-plan session] (translate action-plan session)]
-        [action-plan (:plan-state session)]))))
+;;; # Execute action on a target node
+
+(defn execute-action
+  "Execute an action map within the context of the current session."
+  [session action]
+  (debugf "execute-action %s" (pr-str action))
+  (let [executor (get-in session [::executor])
+        execute-status-fn (get-in session [::execute-status-fn])
+        _ (debugf "execute-action executor %s" (pr-str executor))
+        _ (debugf "execute-action execute-status-fn %s" (pr-str execute-status-fn))
+        _ (assert executor "No executor in session")
+        _ (assert execute-status-fn "No execute-status-fn in session")
+        [{:keys [out] :as rv} _ :as rrv] (executor session action)
+        _ (debugf "execute-action rrv %s" (pr-str rrv))
+        _ (assert (map? rv) (str "Action return value must be a map: " (pr-str rrv)))
+        [rv session] (parse-shell-result session rv)]
+    ;; TODO add retries, timeouts, etc
+    (session!
+     (update-in session [:results] (fnil conj []) rv))
+    (execute-status-fn rv)
+    rv))
+
+
+;;; # Execute a phase on a target node
+(defn stop-execution-on-error
+  ":execute-status-fn algorithm to stop execution on an error"
+  [result]
+  (when (:error result)
+    (debugf "Stopping execution %s" (:error result))
+    (let [msg (-> result :error :message)]
+      (throw (ex-info
+              (str "Phase stopped on error" (if msg (str " - " msg)))
+              {:error (:error result)
+               :message msg}
+              (-> result :error :exception))))))
 
 (defn phase-args [phase]
   (if (keyword? phase)
@@ -77,54 +82,102 @@
     (first phase)))
 
 (defn target-phase [target phase]
+  (debugf "target-phase %s %s" target phase)
   (-> target :phases (get (phase-kw phase))))
+
+(defn action-plan
+  "Build the action plan for the specified `plan-fn` on the given `node`, within
+  the context of the `service-state`. The `plan-state` contains all the
+  settings, etc, for all groups. `target-map` is a map for the session
+  describing the target."
+  [service-state environment phase execution-settings-f target-kw target]
+  {:pre [(map? target)
+         (or (nil? environment) (map? environment))]}
+  (let [plan-fn (target-phase target phase)
+        args (phase-args phase)
+        target-map {target-kw target}
+        phase-kw (phase-kw phase)]
+    (assert (and (not (map? plan-fn)) (fn? plan-fn))
+            "plan-fn should be a function")
+    (fn action-plan [plan-state]
+      (let [{:keys [user executor execute-status-fn]}
+            (execution-settings-f environment target-map)
+
+            [rv session] (with-session
+                           (add-session-verification-key
+                            (merge {:user (:user environment)}
+                                   target-map
+                                   {:service-state service-state
+                                    :plan-state plan-state
+                                    :environment environment
+                                    ::executor executor
+                                    ::execute-status-fn execute-status-fn}))
+                           [(apply plan-fn args) (session)])]
+        {:result (:results session)
+         :plan-state (:plan-state session)
+         :target target
+         :phase phase-kw
+         :phase-args args}))))
 
 (defmulti target-action-plan
   "Build action plans for the specified `phase` on all nodes or groups in the
   given `target`, within the context of the `service-state`. The `plan-state`
   contains all the settings, etc, for all groups."
-  (fn [service-state plan-state environment phase target]
+  (fn target-action-plan
+    [service-state plan-state environment phase execution-settings-f target]
     (tracef "target-action-plan %s" (:target-type target :node))
     (:target-type target :node)))
 
 (defmethod target-action-plan :node
-  [service-state plan-state environment phase target]
-  {:pre [target (:node target)]}
+  [service-state plan-state environment phase execution-settings-f target]
+  {:pre [target (:node target) phase]}
   (fn [plan-state]
     (logutils/with-context [:target (-> target :node primary-ip)]
       (with-script-for-node target plan-state
         ((action-plan
-          service-state environment
-          (target-phase target phase) (phase-args phase)
-          {:server target})
+          service-state
+          environment
+          phase
+          execution-settings-f
+          :server target)
          plan-state)))))
 
 (defmethod target-action-plan :group
-  [service-state plan-state environment phase group]
+  [service-state plan-state environment phase execution-settings-f group]
   {:pre [group]}
   (fn [plan-state]
     (logutils/with-context [:target (-> group :group-name)]
       ((action-plan
-        service-state environment
-        (target-phase group phase) (phase-args phase)
-        {:group group})
+        service-state
+        environment
+        phase
+        execution-settings-f
+        :group group)
        plan-state))))
 
-(defn action-plans
-  [service-state plan-state environment phase targets]
-  (let [targets-with-phase (filter #(target-phase % phase) targets)]
-    (tracef
-     "action-plans: phase %s targets %s targets-with-phase %s"
-     phase (vec targets) (vec targets-with-phase))
-    (with-monad state-m
-      (domonad
-       [action-plans
-        (m-map
-         #(target-action-plan service-state plan-state environment phase %)
-         targets-with-phase)]
-       (map
-        #(hash-map :target %1 :phase (phase-kw phase) :action-plan %2)
-        targets-with-phase action-plans)))))
+(defn execute-phase-on-target
+  "Execute a phase on a single target."
+  [service-state plan-state environment phase execution-settings-f target-map]
+  (let [f (target-action-plan
+           service-state plan-state environment phase execution-settings-f
+           target-map)]
+    (f plan-state)))
+
+
+
+;; (defn execute-phase
+;;   [service-state plan-state environment phase execution-settings-f targets]
+;;   (let [targets-with-phase (filter #(target-phase % phase) targets)
+;;         result-chans (doall
+;;                       (for [target targets-with-phase]
+;;                         (execute-phase-on-target
+;;                          service-state plan-state environment phase
+;;                          execution-settings-f target)))
+;;         timeout (timeout (* 5 60 1000))] ; TODO make this configurable
+;;     (tracef
+;;      "action-plans: phase %s targets %s targets-with-phase %s"
+;;      phase (vec targets) (vec targets-with-phase))
+;;     (map #(alts!! % timeout) result-chans)))
 
 
 ;;; ## Action Plan Execution
@@ -133,11 +186,10 @@
   []
   (fn [environment _]
     (debugf "environment-execution-settings %s" environment)
-    (debugf "Env user %s" (obfuscated-passwords (:user environment)))
+    (debugf "Env user %s" (obfuscated-passwords (into {} (:user environment))))
     {:user (:user environment)
-     :executor (get-in environment [:algorithms :executor] default-executor)
-     :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
-                                 #'stop-execution-on-error)}))
+     :executor (get-in environment [:algorithms :executor])
+     :execute-status-fn (get-in environment [:algorithms :execute-status-fn])}))
 
 (defn environment-image-execution-settings
   "Returns execution settings based on the environment and the image user."
@@ -149,57 +201,10 @@
                  user)]
       (debugf "Image-user is %s" (obfuscated-passwords user))
       {:user user
-       :executor (get-in environment [:algorithms :executor] default-executor)
-       :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
-                                   #'stop-execution-on-error)})))
+       :executor (get-in environment [:algorithms :executor])
+       :execute-status-fn (get-in environment
+                                  [:algorithms :execute-status-fn])})))
 
-
-(defn execute-action-plan*
-  "Execute the `action-plan` on the `target`."
-  [session executor execute-status-fn
-   {:keys [action-plan phase target-type target]}]
-  (tracef "execute-action-plan*")
-  (with-session session
-    (let [[result session] (execute
-                            action-plan session executor execute-status-fn)]
-      {:target target
-       :target-type target-type
-       :plan-state (:plan-state session)
-       :result result
-       :phase (phase-kw phase)})))
-
-(defmulti execute-action-plan
-  "Execute the `action-plan` on the `target`."
-  (fn [service-state plan-state environment user executor execute-status-fn
-       {:keys [action-plan phase target]}]
-    (:target-type target :node)))
-
-(defmethod execute-action-plan :node
-  [service-state plan-state environment user executor execute-status-fn
-   {:keys [action-plan phase target-type target] :as action-plan-map}]
-  (tracef "execute-action-plan :node")
-  (logutils/with-context [:target (-> target :node primary-ip)]
-    (with-script-for-node target plan-state
-      (execute-action-plan*
-       {:server target
-        :service-state service-state
-        :plan-state plan-state
-        :user user
-        :environment environment}
-       executor execute-status-fn action-plan-map))))
-
-(defmethod execute-action-plan :group
-  [service-state plan-state environment user executor execute-status-fn
-   {:keys [action-plan phase target-type target] :as action-plan-map}]
-  (tracef "execute-action-plan :group")
-  (logutils/with-context [:target (-> target :group-name)]
-    (execute-action-plan*
-     {:group target
-      :service-state service-state
-      :plan-state plan-state
-      :user user
-      :environment environment}
-     executor execute-status-fn action-plan-map)))
 
 ;;; ## Calculation of node count adjustments
 (defn group-delta
@@ -333,17 +338,28 @@
       v)))
 
 ;;; # Exception reporting
+(defn phase-errors-in-results
+  "Return a sequence of phase errors for a sequence of result maps.
+   Each element in the sequence represents a failed action, and is a map,
+   with :target, :error, :context and all the return value keys for the return
+   value of the failed action."
+  [results]
+  (seq
+   (concat
+    (->>
+     results
+     (map #(update-in % [:result] (fn [r] (filter :error r))))
+     (mapcat #(map (fn [r] (merge (dissoc % :result) r)) (:result %))))
+    (filter :error results))))
+
 (defn phase-errors
   "Return a sequence of phase errors for an operation.
    Each element in the sequence represents a failed action, and is a map,
    with :target, :error, :context and all the return value keys for the return
    value of the failed action."
   [result]
-  (->>
-   (:results result)
-   (map #(update-in % [:result] (fn [r] (filter :error r))))
-   (mapcat #(map (fn [r] (merge (dissoc % :result) r)) (:result %)))
-   seq))
+  (debugf "phase-errors %s" (vec (:results result)))
+  (phase-errors-in-results (:results result)))
 
 (defn phase-error-exceptions
   "Return a sequence of exceptions from phase errors for an operation. "
@@ -358,4 +374,7 @@
     (throw
      (ex-info
       (str "Phase errors: " (string/join " " (map (comp :message :error) e)))
-      {:errors e}))))
+      {:errors e}
+      (->> (map (comp :exeception :error) e)
+           (filter identity)
+           first)))))

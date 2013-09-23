@@ -2,43 +2,46 @@
   "Built in operations"
   (:require
    [clojure.tools.logging :as logging]
-   [pallet.algo.fsmop :refer [delay-for dofsm reduce* result succeed]]
    [pallet.core.api :as api]
    [pallet.core.primitives :as primitives]
-   [pallet.node :refer [node-map]])
-  (:refer-clojure :exclude [delay]))
+   [pallet.node :refer [node-map]]))
 
 (defn node-count-adjuster
   "Adjusts node counts. Groups are expected to have node counts on them."
-  [compute-service groups service-state plan-state environment targets
+  [{:keys [op status! value!] :as operation}
+   compute-service groups service-state plan-state environment targets
    execution-settings-f]
   {:pre [compute-service]}
-  (dofsm node-count-adjuster
-    [group-deltas         (result (api/group-deltas targets groups))
-     nodes-to-remove      (result (api/nodes-to-remove targets group-deltas))
-     nodes-to-add         (result (api/nodes-to-add group-deltas))
-     old-nodes            (result (->>
-                                   (vals nodes-to-remove)
-                                   (mapcat :nodes)
-                                   (map (comp node-map :node))))
-     [results1 plan-state] (primitives/build-and-execute-phase
-                            targets plan-state environment
-                            :destroy-server
-                            (mapcat :nodes (vals nodes-to-remove))
-                            execution-settings-f)
-     _ (primitives/remove-group-nodes compute-service nodes-to-remove)
-     [results2 plan-state] (primitives/build-and-execute-phase
-                            targets plan-state environment
-                            :destroy-group
-                            (api/groups-to-remove group-deltas)
-                            execution-settings-f)
-     [results3 plan-state] (primitives/build-and-execute-phase
-                            targets plan-state environment
-                            :create-group
-                            (api/groups-to-create group-deltas)
-                            execution-settings-f)
-     new-nodes (primitives/create-group-nodes
-                compute-service environment nodes-to-add)]
+  (let [group-deltas (api/group-deltas targets groups)
+        nodes-to-remove (api/nodes-to-remove targets group-deltas)
+        nodes-to-add (api/nodes-to-add group-deltas)
+        old-nodes (->>
+                   (vals nodes-to-remove)
+                   (mapcat :nodes)
+                   (map (comp node-map :node)))
+        [results1 plan-state] (primitives/execute-phase
+                               targets plan-state environment
+                               :destroy-server
+                               (mapcat :nodes (vals nodes-to-remove))
+                               execution-settings-f)
+        _ (status! :node-count-adjuster/destroy-server-phase-run)
+        _ (primitives/remove-group-nodes compute-service nodes-to-remove)
+        _ (status! :node-count-adjuster/nodes-removed)
+        [results2 plan-state] (primitives/execute-phase
+                               targets plan-state environment
+                               :destroy-group
+                               (api/groups-to-remove group-deltas)
+                               execution-settings-f)
+        _ (status! :node-count-adjuster/destroy-group-run)
+        [results3 plan-state] (primitives/execute-phase
+                               targets plan-state environment
+                               :create-group
+                               (api/groups-to-create group-deltas)
+                               execution-settings-f)
+        _ (status! :node-count-adjuster/create-group-run)
+        new-nodes (primitives/create-group-nodes
+                   compute-service environment nodes-to-add)
+        _ (status! :node-count-adjuster/nodes-created)]
     {:new-nodes new-nodes
      :old-nodes old-nodes
      :targets (->> targets
@@ -52,9 +55,9 @@
 
 ;;; ## Top level operations
 (defn group-nodes
-  [compute groups]
-  (dofsm group-nodes
-    [service-state (primitives/service-state compute groups)]
+  [{:keys [op status! value!] :as operation} compute groups]
+  (let [service-state (api/service-state compute groups)]
+    (status! :pallet.operations/group-nodes-run)
     service-state))
 
 (def ^{:doc "A sequence of keywords, listing the lift-options"}
@@ -74,7 +77,7 @@
 
 `:phase-execution-f`
 : specifies the function used to execute a phase on the targets.  Defaults
-  to `pallet.core.primitives/build-and-execute-phase`.
+  to `pallet.core.primitives/execute-phase`.
 
 `:post-phase-f`
 : specifies an optional function that is run after a phase is applied.  It is
@@ -91,11 +94,11 @@
 `:execution-settings-f`
 : specifies a function that will be called with a node argument, and which
   should return a map with `:user`, `:executor` and `:executor-status-fn` keys."
-  [service-state plan-state environment phases
+  [operation service-state plan-state environment phases
    {:keys [targets execution-settings-f phase-execution-f
            post-phase-f post-phase-fsm]
     :or {targets service-state
-         phase-execution-f #'primitives/build-and-execute-phase
+         phase-execution-f #'primitives/execute-phase
          execution-settings-f (api/environment-execution-settings)}}]
   {:pre [(:user environment)]}
   (logging/debugf
@@ -103,82 +106,72 @@
   (logging/tracef "lift environment %s" environment)
   (letfn [(phase-meta [phase target]
             (-> (api/target-phase target phase) meta))]
-    (dofsm lift
-      [[results plan-state] (reduce*
-                             (fn reducer [[results plan-state] phase]
-                               (dofsm reduce-phases
-                                 [meta (result
-                                        (phase-meta phase (first targets)))
-                                  f (result (or (:phase-execution-f meta)
-                                                phase-execution-f))
-                                  _ (result (logging/tracef
-                                             "phase-execution-f %s" f))
-                                  [r ps] (f
-                                          service-state plan-state environment
-                                          phase targets
-                                          (or
-                                           (:execution-settings-f meta)
-                                           execution-settings-f))
-                                  results1 (result
-                                            (concat
-                                             results
-                                             (->>
-                                              r
-                                              (map
-                                               (fn [x]
-                                                 (update-in x
-                                                  [:plan-state]
-                                                  dissoc
-                                                  :node-values))))))
-                                  _ (result
-                                     (when post-phase-f
-                                       (post-phase-f targets phase r)))
-                                  _ (result
-                                     (doseq [f (->>
-                                                targets
-                                                (map
-                                                 (comp
-                                                  :post-phase-f
-                                                  #(phase-meta phase %)))
-                                                (remove nil?)
-                                                distinct)]
-                                       (f targets phase r)))
-                                  _ (if post-phase-fsm
-                                      (post-phase-fsm targets phase r)
-                                      (result nil))
-                                  _ (reduce* (fn post-reducer [_ f]
-                                               (f targets phase r))
-                                             nil
-                                             (->>
-                                              targets
-                                              (map
-                                               (comp :post-phase-fsm
-                                                     #(phase-meta phase %)))
-                                              (remove nil?)
-                                              distinct))
-                                  _ (succeed
-                                     (not (some :error (mapcat :result r)))
-                                     :phase-errors)]
-                                 [results1 ps]))
-                             [[] plan-state]
-                             phases)]
+    (let [[results plan-state] (reduce
+                                (fn reducer [[results plan-state] phase]
+                                  (let [meta (phase-meta phase (first targets))
+                                        f  (or (:phase-execution-f meta)
+                                               phase-execution-f)
+                                        _  (logging/debugf
+                                            "phase-execution-f %s" f)
+                                        [r ps] (f
+                                                service-state plan-state
+                                                environment phase targets
+                                                (or
+                                                 (:execution-settings-f meta)
+                                                 execution-settings-f))
+                                        _ (logging/debugf "result %s %s" (vec r) ps)
+                                        results1 (vec (concat results r))
+                                        _ (when post-phase-f
+                                            (post-phase-f targets phase r))
+                                        _ (doseq [f (->>
+                                                     targets
+                                                     (map
+                                                      (comp
+                                                       :post-phase-f
+                                                       #(phase-meta phase %)))
+                                                     (remove nil?)
+                                                     distinct)]
+                                            (f targets phase r))
+                                        _ (when post-phase-fsm
+                                            (post-phase-fsm targets phase r))
+                                        _ (reduce
+                                           (fn post-reducer [_ f]
+                                             (f targets phase r))
+                                           nil
+                                           (->>
+                                            targets
+                                            (map
+                                             (comp :post-phase-fsm
+                                                   #(phase-meta phase %)))
+                                            (remove nil?)
+                                            distinct))]
+                                    ;; (when (some :error (mapcat :result r))
+                                    ;;   (logging/debugf
+                                    ;;    "Errors %s"
+                                    ;;    (some :error (mapcat :result r)))
+                                    ;;   (throw (ex-info
+                                    ;;           "Errors"
+                                    ;;           {:type :pallet/phase-errors})))
+                                    [results1 ps]))
+                                [[] plan-state]
+                                phases)]
       (do
         (logging/tracef "lift (count results) %s" (count results))
         {:results results
          :targets targets
          :plan-state plan-state}))))
 
-(defn delay
-  "Returns a delay fsm.
+;; (defn delay
+;;   "Returns a delay fsm.
 
-## Options
+;; ## Options
 
-`:units`
-: the units for the delay. A keyword from, :ns, :us, :ms, :s, :mins, :hours"
-  ([delay units]
-     (delay-for delay units))
-  ([delay]
-     (delay-for delay :ms)))
+;; `:units`
+;; : the units for the delay. A keyword from, :ns, :us, :ms, :s, :mins, :hours"
+;;   ([delay units]
+;;      (delay-for delay units))
+;;   ([delay]
+;;      (delay-for delay :ms)))
 
 (defn ^:internal partition-targets
   "Partition targets using the, possibly nil, default partitioning function f.
@@ -225,7 +218,7 @@ Options are as for `lift`, with the addition of:
   any :partition metadata on the phase, or no partitioning otherwise.
 
 Other options as taken by `lift`."
-  [service-state plan-state environment phases
+  [operation service-state plan-state environment phases
    {:keys [targets partition-f]
     :or {targets service-state}
     :as options}]
@@ -233,37 +226,36 @@ Other options as taken by `lift`."
   (logging/debugf
    "lift-partitions :phases %s :targets %s"
    (vec phases) (vec (map :group-name targets)))
-  (dofsm lift-phases
-    [[outer-results plan-state]
-     (reduce*
-      (fn phase-reducer [[acc-results plan-state] phase]
-        (dofsm lift-partitions
-          [[lift-results plan-state]
-           (reduce*
-            (fn target-reducer [[r plan-state] targets]
-              (dofsm reduce-phases
-                [{:keys [results plan-state]}
-                 (lift
-                  service-state plan-state environment [phase]
-                  (assoc options :targets targets))]
-                (do
-                  (logging/tracef "back from lift")
-                  (logging/tracef
-                   "lift-partitions (count r) %s (count results) %s"
-                   (count r) (count results))
-                  [(concat r results) plan-state])))
-            [acc-results plan-state]
-            (let [fns (comp
-                       (juxt :partition-f :post-phase-f :post-phase-fsm
-                             :phase-execution-f)
-                       meta #(api/target-phase % phase))]
-              (partition-targets targets phase partition-f)))]
-          (do
-            (logging/tracef "back from phase loop")
-            (logging/tracef "(count lift-results) %s" (count lift-results))
-            [lift-results plan-state])))
-      [[] plan-state]
-      phases)]
+  (let [[outer-results plan-state]
+        (reduce
+         (fn phase-reducer [[acc-results plan-state] phase]
+           (let [[lift-results plan-state]
+                 (reduce
+                  (fn target-reducer [[r plan-state] targets]
+                    (let
+                        [{:keys [results plan-state]}
+                         (lift
+                          operation
+                          service-state plan-state environment [phase]
+                          (assoc options :targets targets))]
+                      (do
+                        (logging/tracef "back from lift")
+                        (logging/tracef
+                         "lift-partitions (count r) %s (count results) %s"
+                         (count r) (count results))
+                        [(concat r results) plan-state])))
+                  [acc-results plan-state]
+                  (let [fns (comp
+                             (juxt :partition-f :post-phase-f :post-phase-fsm
+                                   :phase-execution-f)
+                             meta #(api/target-phase % phase))]
+                    (partition-targets targets phase partition-f)))]
+             (do
+               (logging/tracef "back from phase loop")
+               (logging/tracef "(count lift-results) %s" (count lift-results))
+               [lift-results plan-state])))
+         [[] plan-state]
+         phases)]
     (do
       (logging/tracef "back from partitions")
       (logging/tracef "(count outer-results) %s" (count outer-results))
@@ -282,7 +274,7 @@ flag.
 `:targets`
 : used to restrict the nodes on which the phases are run to a subset of
   `service-state`.  Defaults to `service-state`."
-  [compute groups service-state plan-state environment phases
+  [operation compute groups service-state plan-state environment phases
    {:keys [targets execution-settings-f]
     :or {targets service-state
          execution-settings-f (api/environment-execution-settings)}
@@ -293,10 +285,10 @@ flag.
    (vec phases)
    (vec (map :group-name groups))
    (vec (map :group-name targets)))
-  (dofsm converge
-    [{:keys [new-nodes old-nodes targets service-state plan-state results]
-      :as result}
-     (node-count-adjuster
-      compute groups service-state plan-state environment targets
-      execution-settings-f)]
+  (let [{:keys [new-nodes old-nodes targets service-state plan-state results]
+         :as result}
+        (node-count-adjuster
+         operation
+         compute groups service-state plan-state environment targets
+         execution-settings-f)]
     result))

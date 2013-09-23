@@ -5,12 +5,12 @@
    [clojure.test :refer :all]
    [clojure.tools.logging]
    [pallet.action :refer [declare-action implement-action]]
-   [pallet.action-plan :as action-plan]
    [pallet.actions-impl :as actions-impl]
    [pallet.api :refer [group-spec server-spec]]
    [pallet.common.context :refer [throw-map]]
    [pallet.common.deprecate :as deprecate]
    [pallet.compute.node-list :as node-list]
+   [pallet.core.session :refer [session]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.execute :as execute]
    [pallet.execute :refer [target-flag?]]
@@ -100,12 +100,6 @@ list, Alan Dipert and MeikelBrandmeyer."
   (stevedore/with-source-line-comments nil
     (f)))
 
-(defn with-null-defining-context
-  "A test fixture for binding null context"
-  [f]
-  (binding [action-plan/*defining-context* nil]
-    (f)))
-
 (defn make-node
   "Simple node for testing"
   [node-name & {:as options}]
@@ -174,23 +168,11 @@ list, Alan Dipert and MeikelBrandmeyer."
     `(with-redefs [~@bindings] ~@body)
     `(binding [~@bindings] ~@body)))
 
-(defmacro clj-action
-  "Creates a clojure action with a :direct implementation."
-  {:indent 1}
-  [args & impl]
-  (let [action-sym (gensym "clj-action")]
-    `(let [action# (declare-action '~action-sym {})]
-       (implement-action action# :direct
-         {:action-type :fn/clojure :location :origin}
-         ~args
-         [(fn ~action-sym [~(first args)] ~@impl) ~(first args)])
-       action#)))
-
 (defmacro script-action
   "Creates a script action with a :direct implementation."
   {:indent 1}
   [args & impl]
-  (let [action-sym (gensym "clj-action")]
+  (let [action-sym (gensym "script-action")]
     `(let [action# (declare-action '~action-sym {})]
        (implement-action action# :direct
          {:action-type :script :location :target}
@@ -198,38 +180,21 @@ list, Alan Dipert and MeikelBrandmeyer."
          ~@impl)
        action#)))
 
-(def
-  ^{:doc "Verify that the specified flag is set for the current target."}
-  verify-flag-set
-  (clj-action
-    [session flag]
-    (when-not (target-flag? session flag)
-      (throw-map
-       (format "Verification that flag %s was set failed" flag)
-       {:flag flag}))
-    [flag session]))
+(defn verify-flag-set
+  "Verify that the specified flag is set for the current target."
+  [flag]
+  (when-not (target-flag? (session) flag)
+    (throw-map
+     (format "Verification that flag %s was set failed" flag)
+     {:flag flag})))
 
-(def
-  ^{:doc "Verify that the specified flag is not set for the current target."}
-  verify-flag-not-set
-  (clj-action
-   [session flag]
-  (when (target-flag? session flag)
+(defn verify-flag-not-set
+  "Verify that the specified flag is not set for the current target."
+  [flag]
+  (when (target-flag? (session) flag)
     (throw-map
      (format "Verification that flag %s was not set failed" flag)
-     {:flag flag}))
-  [flag session]))
-
-;;; Actions
-;; (def ^{:doc "An action to set parameters"}
-;;   parameters
-;;   (clj-action [session & {:as keyvector-value-pairs}]
-;;     [keyvector-value-pairs
-;;      (assoc session
-;;        :parameters (reduce
-;;                     #(apply assoc-in %1 %2)
-;;                     (:parameters session)
-;;                     keyvector-value-pairs))]))
+     {:flag flag})))
 
 (defn bash
   "Create a bash literal string as returned by an action function"
@@ -242,6 +207,7 @@ list, Alan Dipert and MeikelBrandmeyer."
       (string/replace #"\s+# [\w\d_]+.clj:\d+" "")
       (string/replace #" \([\w\d_]+.clj:\d+\)\.\.\." "...")
       (string/replace #" \([\w\d_]+.clj:\d+\) : " " : ")
+      (string/replace #"\\\n" "")
       (string/trim)))
 
 ;;; A test method that strips location and source comments

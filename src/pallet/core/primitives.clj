@@ -1,108 +1,101 @@
 (ns pallet.core.primitives
   "Base operation primitives for pallet."
   (:require
+   [clojure.core.async :as async :refer [alt!! alts!! chan go thread timeout]]
    [clojure.tools.logging :as logging]
-   [pallet.algo.fsm.fsm-dsl
-    :refer [event-handler
-            event-machine-config
-            fsm-name
-            on-enter
-            state
-            valid-transitions]]
-   [pallet.algo.fsmop
-    :refer [dofsm execute fail-reason map* result update-state wait-for]]
    [pallet.core.api :as api]
    [pallet.map-merge :refer [merge-keys]]
-   [pallet.node :refer [id]]))
-;;; ## Wrap non-FSM functions in simple FSM
+   [pallet.node :refer [id]]
+   [pallet.operation :refer [Status]]))
 
-;;; TODO: Provide support for controlling retry count, standoff, etc, although
-;;; this might be better added externally.
-(defn async-fsm
-  "Returns a FSM specification for running the specified function in a future.
-  Assumes failures in the underlying function cause an exception to be thrown,
-  and that the function takes no arguments."
-  [f]
-  (let [async-f (atom nil)]
-    (letfn [(running [state event event-data]
-              (case event
-                :success (update-state
-                          state :completed assoc :result event-data)
-                :fail (update-state
-                       state :failed assoc :fail-reason event-data)
-                :abort (do
-                         (when-let [async-f @async-f]
-                           (future-cancel async-f))
-                         (update-state
-                          state :aborted assoc :fail-reason event-data))))
-            (run-async [{:keys [em state-data] :as state}]
-              (let [event (:event em)
-                    f-runner (fn async-fsm []
-                               (try
-                                 (event :success (f))
-                                 (catch Throwable e
-                                   (logging/warn e "async-fsm failed")
-                                   (event :fail {:exception e}))))]
-                (reset! async-f (execute f-runner))))]
-      (event-machine-config
-        (fsm-name (str f))
-        (state :running
-          (valid-transitions :completed :failed :aborted)
-          (on-enter run-async)
-          (event-handler running))))))
+(deftype AsyncOperation
+    [status completed-promise]
+  Status
+  (status [_] @status)
+  clojure.lang.IDeref
+  (deref [op] (deref completed-promise))
+  clojure.lang.IBlockingDeref
+  (deref [op timeout-ms timeout-val]
+    (deref completed-promise timeout-ms timeout-val))
+  clojure.lang.IPending
+  (isRealized [this] (realized? completed-promise)))
 
-;;; ## Node state
-(defn set-state-for-node
-  "Sets the boolean `state-name` flag on `node`."
-  [state-name node]
-  (logging/debugf "set-state-for-node %s %s" state-name (:id (:node node)))
-  (async-fsm (partial api/set-state-for-node state-name node)))
+(defn async-operation
+  "Return a map with an operation, a status update function, and a return value
+update function."
+  []
+  (let [status (atom [])
+        p (promise)]
+    {:op (AsyncOperation. status p)
+     :status! #(swap! status conj %)
+     :value! #(deliver p %)}))
 
-(defn set-state-for-nodes
-  "Sets the boolean `state-name` flag on `nodes`."
-  [state-name nodes]
-  (logging/debugf "set-state-for-nodes %s %s"
-                  state-name (mapv (comp id :node) nodes))
-  (map* (map (partial set-state-for-node state-name) nodes)))
+(defn exec-operation
+  "Execute a function using an operation.
 
-;;; ## Compute service state
-(defn service-state
-  "Define an operation that builds a representation of the available nodes."
-  [compute groups]
-  (async-fsm (partial api/service-state compute groups)))
+The function must accept a single operation argument.
 
+Depending on the flags returns an operation value and executes asynchronously,
+or executes synchronously with an optional timeout."
+  [f {:keys [async timeout-ms timeout-val] :as options}]
+  (let [{:keys [value! op] :as operation} (async-operation)]
+    (if async
+      (do (go
+           (try
+             (value! (f operation))
+             (catch Error e
+               (logging/errorf e "Error in asynch op")
+               (clojure.stacktrace/print-cause-trace e))))
+          op)
+      (if timeout-ms
+        (deref (do (f operation) op) timeout-ms timeout-val)
+        (f operation)))))
 
-;;; ## Action plan execution
-(defn execute-action-plan
-  "Executes an action-plan on the specified node."
-  [service-state plan-state environment execution-settings-f
-   {:keys [action-plan phase target-type target] :as action-plan-map}]
-  {:pre [action-plan-map action-plan target]}
-  (let [{:keys [user executor executor-status-fn]} (execution-settings-f
-                                                    environment target)]
-    (async-fsm
-     (partial
-      api/execute-action-plan
-      service-state
-      plan-state environment user
-      executor executor-status-fn action-plan-map))))
+(defn map-async
+  "Apply f to each element of s in a thread per s.
 
-(defn execute-action-plans
-  "Execute `action-plans`, a sequence of action-plan maps.
-   `execution-settings-f` is a function of target, that returns a map with
-   :user, :executor and :executor-status-fn keys."
-  [service-state plan-state environment execution-settings-f action-plans]
-  (dofsm execute-action-plans
-    [results (map*
-              (map
-               (partial
-                execute-action-plan service-state plan-state
-                environment execution-settings-f)
-               action-plans))]
-    [results
-     (reduce (partial merge-keys {}) plan-state (map :plan-state results))]))
+Returns a sequence of the results.  Each element in the result is a
+vector, containing the result of the function call as the first
+element, and any exception thrown as the second element.  A nil
+element in the result signifies a timeout."
 
-(defn build-and-execute-phase
+  ;; TODO control the number of threads used here, or under some
+  ;; configurable place - might depend on the executor being used
+  ;; (eg., a message queue based executor might not need limiting),
+  ;; though should probably be configurable separately to this.
+
+  [f s {:keys [timeout] :or {timeout (* 5 60 1000)}}]
+  (if false
+    (let [channels (conj (doall (for [i s]
+                                  (thread
+                                   (try
+                                     [(f i)]
+                                     (catch Throwable e
+                                       ;; (logging/errorf e "Error")
+                                       ;; (clojure.stacktrace/print-cause-trace e)
+                                       [nil e])))))
+                         (async/timeout timeout))]
+      (->> (repeatedly (count s) #(alts!! channels))
+           (mapv first)))
+    (doall (for [i s]
+             (try
+               [(f i)]
+               (catch Throwable e
+                 ;; (logging/errorf e "Error")
+                 ;; (clojure.stacktrace/print-cause-trace e)
+                 [nil e]))))))
+
+(defn- map-targets
+  [f targets plan-state]
+  (let [r (->> (map-async f targets {})
+               (map #(if-let [r (first %)]
+                       r
+                       (if-let [e (second %)]
+                         {:error {:exception e}})))
+               (filter identity))]
+    [r (reduce merge plan-state (map :plan-state r))]))
+
+(defn execute-phase
   "Build and execute the specified phase.
 
   `target-type`
@@ -111,43 +104,40 @@
   [service-state plan-state environment phase targets execution-settings-f]
   {:pre [phase]}
   (logging/debugf
-   "build-and-execute-phase %s on %s target(s)" phase (count targets))
-  (logging/tracef "build-and-execute-phase plan-state %s" plan-state)
-  (logging/tracef "build-and-execute-phase environment %s" environment)
-  (let [[action-plans plan-state]
-        ((api/action-plans service-state plan-state environment phase targets)
-         plan-state)]
-    (logging/tracef
-     "build-and-execute-phase execute %s actions %s"
-     (vec (map (comp count :action-plan) action-plans)) plan-state)
-    (logging/tracef "build-and-execute-phase plan-state %s" plan-state)
-    (execute-action-plans
-     service-state plan-state environment execution-settings-f action-plans)))
+   "execute-phase %s on %s target(s)" phase (count targets))
+  (logging/tracef "execute-phase plan-state %s" plan-state)
+  (logging/tracef "execute-phase environment %s" environment)
+  (let [f (fn b-a-e [target]
+            (api/execute-phase-on-target
+             service-state plan-state environment phase execution-settings-f
+             target))
+        targets-with-phase (filter #(api/target-phase % phase) targets)]
+    (map-targets f targets-with-phase plan-state)))
 
-(defn execute-and-flag
+(defn execute-phase-and-flag
   "Return a phase execution function, that will execute a phase on nodes that
   don't have the specified state flag set. On successful completion the nodes
   have the state flag set."
-  ([state-flag execute-f]
-     (logging/tracef "execute-and-flag state-flag %s" state-flag)
-     (fn execute-and-flag
-       [service-state plan-state environment phase targets execution-settings-f]
-       (dofsm execute-and-flag
-         [results (result (logging/tracef "execute-and-flag %s" state-flag))
-          [results plan-state] (execute-f
-                                service-state plan-state environment phase
-                                (filter
-                                 (complement (api/has-state-flag? state-flag))
-                                 targets)
-                                execution-settings-f)
-          _ (result (logging/tracef
-                     "execute-and-flag %s setting flag" state-flag))
-          _ (set-state-for-nodes
-             state-flag (map :target (remove :errors results)))
-          _ (result (logging/tracef "execute-and-flag %s done" state-flag))]
-         [results plan-state])))
-  ([state-flag]
-     (execute-and-flag state-flag build-and-execute-phase)))
+  [state-flag]
+  (fn
+    [service-state plan-state environment phase targets execution-settings-f]
+    (logging/debugf
+     "execute-phase %s on %s target(s)" phase (count targets))
+    (logging/tracef "execute-phase plan-state %s" plan-state)
+    (logging/tracef "execute-phase environment %s" environment)
+
+    (let [f #(let [r (api/execute-phase-on-target
+                      service-state plan-state environment phase
+                      execution-settings-f %)]
+               (when (some :error (:result r))
+                 (api/set-state-for-node state-flag %))
+               r)
+          targets-with-phase (->>
+                              targets
+                              (filter (complement
+                                       (api/has-state-flag? state-flag)))
+                              (filter #(api/target-phase % phase)))]
+      (map-targets f targets-with-phase plan-state))))
 
 (defn execute-on-filtered
   "Return a phase execution function, that will execute a phase on nodes that
@@ -156,14 +146,9 @@
   (logging/tracef "execute-on-filtered")
   (fn execute-on-filtered
     [service-state plan-state environment phase targets execution-settings-f]
-    (dofsm execute-on-filtered
-      [results (result (logging/tracef "execute-on-filtered %s" execute-f))
-       [results plan-state] (execute-f
-                             service-state plan-state environment phase
-                             (filter-f targets)
-                             execution-settings-f)
-       _ (result(logging/tracef "execute-on-filtered ran"))]
-      [results plan-state])))
+    (execute-f
+     service-state plan-state environment phase targets execution-settings-f
+     (filter-f targets))))
 
 (defn execute-on-flagged
   "Return a phase execution function, that will execute a phase on nodes that
@@ -174,7 +159,7 @@
       #(filter (api/has-state-flag? state-flag) %)
       execute-f))
   ([state-flag]
-     (execute-on-flagged state-flag build-and-execute-phase)))
+     (execute-on-flagged state-flag execute-phase)))
 
 (defn execute-on-unflagged
   "Return a phase execution function, that will execute a phase on nodes that
@@ -185,7 +170,7 @@
       #(filter (complement (api/has-state-flag? state-flag)) %)
       execute-f))
   ([state-flag]
-     (execute-on-unflagged state-flag build-and-execute-phase)))
+     (execute-on-unflagged state-flag execute-phase)))
 
 (def ^{:doc "Executes on non bootstrapped nodes, with image credentials."}
   unbootstrapped-meta
@@ -200,7 +185,7 @@
 only not flagged with a :bootstrapped keyword."}
   default-phase-meta
   {:bootstrap {:execution-settings-f (api/environment-image-execution-settings)
-               :phase-execution-f (execute-and-flag :bootstrapped)}})
+               :phase-execution-f (execute-phase-and-flag :bootstrapped)}})
 
 ;; It's not nice that this can not be in p.core.api
 (defn phases-with-meta
@@ -225,6 +210,35 @@ only not flagged with a :bootstrapped keyword."}
   [result]
   (not (:errors result)))
 
+(defn create-group-nodes
+  "Create nodes for groups."
+  [compute-service environment group-counts]
+  (logging/debugf
+   "create-group-nodes %s %s %s"
+   compute-service environment group-counts)
+  (let [r (map-async
+           #(api/create-nodes
+             compute-service environment (key %) (:delta (val %)))
+           group-counts
+           {})]
+    (when-let [e (some second r)]
+      (throw e))
+    (mapcat first r)))
+
+(defn remove-group-nodes
+  "Removes nodes from groups. `group-nodes` is a map from group to a sequence of
+  nodes"
+  [compute-service group-nodes]
+  (logging/debugf "remove-group-nodes %s" group-nodes)
+  (let [r (map-async
+           #(api/remove-nodes compute-service (key %) (val %))
+           group-nodes
+           {})]
+    (when-let [e (some second r)]
+      (throw e))
+    (mapcat first r)))
+
+#_(
 ;;; ## Node count adjustment
 (defn create-nodes
   "Create `count` nodes for a `group`."
@@ -278,3 +292,9 @@ only not flagged with a :bootstrapped keyword."}
 (defn throw-phase-errors
   [operation]
   (api/throw-phase-errors (wait-for operation)))
+)
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (target-exec 1))
+;; End:

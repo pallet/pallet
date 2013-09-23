@@ -8,7 +8,6 @@
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
    [pallet.action :refer [action-fn implement-action]]
-   [pallet.action-plan :refer [checked-commands]]
    [pallet.actions
     :refer [add-rpm
             debconf-set-selections
@@ -19,9 +18,9 @@
             package-source
             package-source-changed-flag
             sed]]
-   [pallet.actions.decl :refer [remote-file-action
-                                packages-action
-                                package-repository-action]]
+   [pallet.actions.decl :refer [checked-commands
+                                package-repository-action
+                                remote-file-action]]
    [pallet.core.session :refer [os-family packager]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
@@ -258,9 +257,8 @@
   [session & args]
   (logging/tracef "package %s" (vec args))
   [[{:language :bash
-     :summary (str "package " (string/join " " (apply concat args)))}
-    (adjust-packages
-     session (map #(apply package-map session %) (distinct args)))]
+     :summary (str "package " (string/join " " args))}
+    (adjust-packages session [(apply package-map session args)])]
    session])
 
 (def source-location
@@ -428,9 +426,8 @@
   {:action-type :script :location :target}
   [session & args]
   [[{:language :bash
-     :summary (str "package-source " (string/join " " (map vec args)))}
-    (stevedore/do-script*
-     (map (fn [x] (apply package-source* session x)) args))]
+     :summary (str "package-source " (string/join " " args))}
+    (apply package-source* session args)]
    session])
 
 (implement-action package-repository-action :direct
@@ -607,10 +604,8 @@
   [session & package-manager-args]
   (logging/tracef "package-manager-args %s" (vec package-manager-args))
   [[{:language :bash
-     :summary (str "package-manager "
-                   (string/join " " (distinct (map vec package-manager-args))))}
-    (stevedore/do-script*
-     (map #(apply package-manager* session %) (distinct package-manager-args)))]
+     :summary (str "package-manager " (string/join " " package-manager-args))}
+    (apply package-manager* session package-manager-args)]
    session])
 
 (implement-action add-rpm :direct

@@ -7,18 +7,16 @@
   "Echo a bash action. Do not execute."
   [session script]
   (logging/tracef "echo-bash %s" script)
-  [script session])
-
-(defn echo-clojure
-  "Echo a clojure action (which returns nil)"
-  [session f]
-  (logging/trace "echo-clojure")
-  (f session))
+  [{:script-options (first script)
+    :script (second script)}
+   session])
 
 (defn echo-transfer
   "echo transfer of files"
-  [session value]
+  [session value action-type]
   (logging/trace "Local transfer")
-  (doseq [[from to] value]
-    (logging/debugf "Copying %s to %s" from to))
+  (doseq [{:keys [remote-path local-path remote-md5-path]} value]
+    (logging/debugf
+     "Copying %s local-path %s remote-path %s remote-md5-path %s"
+     action-type local-path remote-path remote-md5-path))
   [value session])

@@ -3,14 +3,9 @@
   really recommended for production use."
   (:require
    [clojure.tools.logging :refer [debugf warnf]]
-   [pallet.action :refer [with-action-options]]
+   [pallet.action-options :refer [with-action-options]]
    [pallet.actions :as actions]
-   [pallet.actions
-    :refer [directory
-            exec-checked-script
-            plan-when
-            plan-when-not
-            remote-file]]
+   [pallet.actions :refer [directory exec-checked-script remote-file]]
    [pallet.api :as api]
    [pallet.api :refer [plan-fn]]
    [pallet.crate :refer [get-settings target-flag? update-settings]]
@@ -103,14 +98,13 @@
       (warnf "Requested action %s on service %s not implemented via nohup"
              action service-name)
       (if if-flag
-        (plan-when (target-flag? if-flag)
+        (when (target-flag? if-flag)
           (exec-checked-script
            (str ~(name action) " " ~service-name " if config changed")
            (~(service-script-path service-name) ~(name action))))
         (if if-stopped
           (case action
-            :start (plan-when-not
-                       (fragment ("pgrep" -f (quoted ~process-name)))
+            :start (when-not (fragment ("pgrep" -f (quoted ~process-name)))
                      (start-nohup-service service-name user))
             :stop nil
             :restart nil)

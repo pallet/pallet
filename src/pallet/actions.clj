@@ -6,19 +6,15 @@
    [clojure.set :refer [intersection]]
    [clojure.string :refer [trim]]
    [clojure.tools.logging :as logging]
-   [pallet.action
-    :refer [clj-action defaction enter-scope get-action-options leave-scope
-            with-action-options]]
+   [pallet.action :refer [defaction]]
+   [pallet.action-options :refer [get-action-options with-action-options]]
    [pallet.actions-impl :refer :all]
    [pallet.actions.crate.package :as cp]
    [pallet.actions.decl :as decl
-    :refer [if-action remote-file-action remote-directory-action
-            packages-action]]
-   [pallet.argument :as argument :refer [delayed delayed-argument?]]
+    :refer [if-action remote-file-action remote-directory-action]]
    [pallet.contracts :refer [any-value check-spec]]
    [pallet.crate :refer [admin-user packager phase-context role->nodes-map
                          target]]
-   [pallet.node-value :refer [node-value]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline tmpfile]]
@@ -33,141 +29,132 @@
 (defalias all-packages cp/packages)
 (defalias package-repository cp/package-repository)
 
-;;; # Wrap arbitrary code
-(defmacro as-action
-  "Wrap arbitrary clojure code to be run as an action"
-  {:pallet/plan-fn true}
-  [& body]
-  `((clj-action [~'&session]
-      (binding [pallet.argument/*session* ~'&session]
-        [(do ~@body) ~'&session]))))
-
 ;;; # Flow Control
 (defn ^:internal plan-flag-kw
   "Generator for plan flag keywords"
   []
   (keyword (name (gensym "flag"))))
 
-(defmacro plan-when
-  "Execute the crate-fns-or-actions, only when condition is true."
-  {:indent 1
-   :pallet/plan-fn true}
-  [condition & crate-fns-or-actions]
-  (let [nv (gensym "nv")
-        nv-kw (gensym "nv-kw")
-        m (meta &form)
-        is-stevedore? (and (sequential? condition)
-                           (symbol? (first condition))
-                           (#{#'stevedore/script #'stevedore/fragment}
-                            (resolve (first condition))))
-        is-script? (or (string? condition) is-stevedore?)]
-    `(phase-context plan-when {:condition ~(list 'quote condition)}
-       (let [~@(when is-script?
-                 [nv-kw `(plan-flag-kw)
-                  nv `(with-source-line-comments false
-                        ~(with-meta
-                           `(exec-checked-script
-                             (str "Check " ~condition)
-                             (~(list `unquote
-                                     'pallet.script.lib/set-flag-value)
-                              ~(list `unquote nv-kw)
-                              @(do
-                                 (~@(if is-stevedore?
-                                      (rest condition)
-                                      ["test" condition])
-                                  ">/dev/null 2>&1")
-                                 (~'println @~'?))))
-                           m))])]
-         (if-action ~(if is-script?
-                       `(delayed [s#]
-                                 (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
-                                    "0"))
-                       `(delayed [~'&session] ~condition))))
-       (enter-scope)
-       ~@crate-fns-or-actions
-       (leave-scope))))
+;; (defmacro plan-when
+;;   "Execute the crate-fns-or-actions, only when condition is true."
+;;   {:indent 1
+;;    :pallet/plan-fn true}
+;;   [condition & crate-fns-or-actions]
+;;   (let [nv (gensym "nv")
+;;         nv-kw (gensym "nv-kw")
+;;         m (meta &form)
+;;         is-stevedore? (and (sequential? condition)
+;;                            (symbol? (first condition))
+;;                            (#{#'stevedore/script #'stevedore/fragment}
+;;                             (resolve (first condition))))
+;;         is-script? (or (string? condition) is-stevedore?)]
+;;     `(phase-context plan-when {:condition ~(list 'quote condition)}
+;;        (let [~@(when is-script?
+;;                  [nv-kw `(plan-flag-kw)
+;;                   nv `(with-source-line-comments false
+;;                         ~(with-meta
+;;                            `(exec-checked-script
+;;                              (str "Check " ~condition)
+;;                              (~(list `unquote
+;;                                      'pallet.script.lib/set-flag-value)
+;;                               ~(list `unquote nv-kw)
+;;                               @(do
+;;                                  (~@(if is-stevedore?
+;;                                       (rest condition)
+;;                                       ["test" condition])
+;;                                   ">/dev/null 2>&1")
+;;                                  (~'println @~'?))))
+;;                            m))])]
+;;          (if-action ~(if is-script?
+;;                        `(delayed [s#]
+;;                                  (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
+;;                                     "0"))
+;;                        `(delayed [~'&session] ~condition))))
+;;        (enter-scope)
+;;        ~@crate-fns-or-actions
+;;        (leave-scope))))
 
-(defmacro plan-when-not
-  "Execute the crate-fns-or-actions, only when condition is false."
-  {:indent 1
-   :pallet/plan-fn true}
-  [condition & crate-fns-or-actions]
-  (let [nv (gensym "nv")
-        nv-kw (gensym "nv-kw")
-        m (meta &form)
-        is-stevedore? (and (sequential? condition)
-                           (symbol? (first condition))
-                           (#{#'stevedore/script #'stevedore/fragment}
-                            (resolve (first condition))))
-        is-script? (or (string? condition) is-stevedore?)]
-    `(phase-context plan-when-not {:condition ~(list 'quote condition)}
-       (let [~@(when is-script?
-                 [nv-kw `(plan-flag-kw)
-                  nv `(with-source-line-comments false
-                        ~(with-meta
-                           `(exec-checked-script
-                             (str "Check not " ~condition)
-                             (~(list `unquote `set-flag-value)
-                              ~(list `unquote nv-kw)
-                              @(do
-                                 (~@(if is-stevedore?
-                                      (rest condition)
-                                      ["test" condition])
-                                  ">/dev/null 2>&1")
-                                 (~'println @~'?))))
-                           m))])]
-         (if-action ~(if is-script?
-                       `(delayed [s#]
-                                 (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
-                                    "0"))
-                       `(delayed [~'&session] ~condition))))
-       (enter-scope)
-       (leave-scope)
-       (enter-scope)
-       ~@crate-fns-or-actions
-       (leave-scope))))
+;; (defmacro plan-when-not
+;;   "Execute the crate-fns-or-actions, only when condition is false."
+;;   {:indent 1
+;;    :pallet/plan-fn true}
+;;   [condition & crate-fns-or-actions]
+;;   (let [nv (gensym "nv")
+;;         nv-kw (gensym "nv-kw")
+;;         m (meta &form)
+;;         is-stevedore? (and (sequential? condition)
+;;                            (symbol? (first condition))
+;;                            (#{#'stevedore/script #'stevedore/fragment}
+;;                             (resolve (first condition))))
+;;         is-script? (or (string? condition) is-stevedore?)]
+;;     `(phase-context plan-when-not {:condition ~(list 'quote condition)}
+;;        (let [~@(when is-script?
+;;                  [nv-kw `(plan-flag-kw)
+;;                   nv `(with-source-line-comments false
+;;                         ~(with-meta
+;;                            `(exec-checked-script
+;;                              (str "Check not " ~condition)
+;;                              (~(list `unquote `set-flag-value)
+;;                               ~(list `unquote nv-kw)
+;;                               @(do
+;;                                  (~@(if is-stevedore?
+;;                                       (rest condition)
+;;                                       ["test" condition])
+;;                                   ">/dev/null 2>&1")
+;;                                  (~'println @~'?))))
+;;                            m))])]
+;;          (if-action ~(if is-script?
+;;                        `(delayed [s#]
+;;                                  (= (-> (node-value ~nv s#) :flag-values ~nv-kw)
+;;                                     "0"))
+;;                        `(delayed [~'&session] ~condition))))
+;;        (enter-scope)
+;;        (leave-scope)
+;;        (enter-scope)
+;;        ~@crate-fns-or-actions
+;;        (leave-scope))))
 
-(defmacro with-action-values
-  "Creates an action that can transform action return values.  The return
-value is itself an action return value."
-  {:pallet/plan-fn true}
-  [[& return-values] & body]
-  (let [session (gensym "session")]
-    `((clj-action [~session]
-       [(let [~@(mapcat #(vector % `(node-value ~% ~session)) return-values)]
-          (logging/tracef "with-action-values %s" ~(vec return-values))
-          ~@body)
-        ~session]))))
+;; (defmacro with-action-values
+;;   "Creates an action that can transform action return values.  The return
+;; value is itself an action return value."
+;;   {:pallet/plan-fn true}
+;;   [[& return-values] & body]
+;;   (let [session (gensym "session")]
+;;     `((clj-action [~session]
+;;        [(let [~@(mapcat #(vector % `(node-value ~% ~session)) return-values)]
+;;           (logging/tracef "with-action-values %s" ~(vec return-values))
+;;           ~@body)
+;;         ~session]))))
 
-(defmacro return-value-expr
-  "Creates an action that can transform return values"
-  {:pallet/plan-fn true
-   :deprecated "0.8.0-beta.8"}
-  [[& return-values] & body]
-  (let [session (gensym "session")]
-    `((clj-action [~session]
-       [(let [~@(mapcat #(vector % `(node-value ~% ~session)) return-values)]
-          (logging/tracef "return-value-expr %s" ~(vec return-values))
-          ~@body)
-        ~session]))))
+;; (defmacro return-value-expr
+;;   "Creates an action that can transform return values"
+;;   {:pallet/plan-fn true
+;;    :deprecated "0.8.0-beta.8"}
+;;   [[& return-values] & body]
+;;   (let [session (gensym "session")]
+;;     `((clj-action [~session]
+;;        [(let [~@(mapcat #(vector % `(node-value ~% ~session)) return-values)]
+;;           (logging/tracef "return-value-expr %s" ~(vec return-values))
+;;           ~@body)
+;;         ~session]))))
 
-(defaction assoc-settings
-  "Set the settings for the specified host facility. The instance-id allows
-   the specification of specific instance of the facility (the default is
-   :default)."
-  [facility kv-pairs & {:keys [instance-id]}])
+;; (defaction assoc-settings
+;;   "Set the settings for the specified host facility. The instance-id allows
+;;    the specification of specific instance of the facility (the default is
+;;    :default)."
+;;   [facility kv-pairs & {:keys [instance-id]}])
 
-(defaction assoc-in-settings
-  "Put the specified `value` (possible a `NodeValue`) into the settings
-  for `path`, a vector of `[facility & keys]`, specifying a facility an a path."
-  [path value & {:keys [instance-id]}])
+;; (defaction assoc-in-settings
+;;   "Put the specified `value` (possible a `NodeValue`) into the settings
+;;   for `path`, a vector of `[facility & keys]`, specifying a facility an a path."
+;;   [path value & {:keys [instance-id]}])
 
-(defaction update-settings
-  "Update the settings for the specified host facility. The instance-id allows
-   the specification of specific instance of the facility (the default is
-   :default)."
-  [facility options-or-f & args]
-  {:arglists '[[facility options f & args] [facility f & args]]})
+;; (defaction update-settings
+;;   "Update the settings for the specified host facility. The instance-id allows
+;;    the specification of specific instance of the facility (the default is
+;;    :default)."
+;;   [facility options-or-f & args]
+;;   {:arglists '[[facility options f & args] [facility f & args]]})
 
 ;;; # Simple File Management
 (defaction file
@@ -282,7 +269,7 @@ value is itself an action return value."
    (optional-path [:url]) String
    (optional-path [:md5]) String
    (optional-path [:md5-url]) String
-   (optional-path [:content]) [:or String delayed-argument?]
+   (optional-path [:content]) String
    (optional-path [:literal]) any-value
    (optional-path [:template]) String
    (optional-path [:values]) (map-schema :loose [])
@@ -497,9 +484,8 @@ Content can also be copied from a blobstore.
    another action."
   {:pallet/plan-fn true}
   [path]
-  (let [nv (exec-script (~lib/cat ~path))
-        c (with-action-values [nv] (:out nv))]
-    c))
+  (let [nv (exec-script (~lib/cat ~path))]
+    (:out nv)))
 
 ;;; # Remote Directory Content
 
@@ -634,8 +620,6 @@ only specified files or directories, use the :extract-files option.
 
    Package management occurs in one shot, so that the package manager can
    maintain a consistent view."
-  {:execution :aggregated
-   :always-after #{:package-manager :package-source}}
   [package-name & {:keys [action y force purge enable disable priority]
                    :or {action :install
                         y true
@@ -655,10 +639,10 @@ only specified files or directories, use the :extract-files option.
                       (options (first (disj #{:apt :aptitude} packager)))))]
         (apply-map package p (dissoc options :aptitude :brew :pacman :yum))))))
 
-(defaction all-packages
-  "Install a list of packages."
-  [packages]
-  (packages-action (packager) packages))
+;; (defn all-packages
+;;   "Install a list of packages."
+;;   [packages]
+;;   (packages-action (packager) packages))
 
 (defaction package-manager
   "Package manager controls.
@@ -676,8 +660,6 @@ only specified files or directories, use the :extract-files option.
 
    To enable non-free on debian:
        (package-manager session :add-scope :scope :non-free)"
-  {:always-before package
-   :execution :aggregated}
   [action & options])
 
 
@@ -868,8 +850,6 @@ Specify `:line` as a string, or `:package`, `:question`, `:type` and
 
 `:force`
 : Force user removal."
-  {:execution :aggregated
-   :always-after #{group}}
   [username & {:keys [action shell base-dir home system create-home
                       password shell comment group groups remove force append]
                :or {action :manage}
@@ -967,7 +947,7 @@ Deprecated in favour of pallet.crate.service/service."
   [roles & body]
   `(let [target# (target)
          role->nodes# (role->nodes-map)]
-     (plan-when
+     (when
          (= target# (one-node-filter role->nodes# ~roles))
        ~@body)))
 

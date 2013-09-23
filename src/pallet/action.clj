@@ -2,18 +2,7 @@
   "Actions are the primitives that are called by crate functions.
 
    Actions can have multiple implementations, but by default most are
-   implemented as script to be executed on the remote node.
-
-   An action has an :execution, which is one of :aggregated, :in-sequence,
-   :collected, :delayed-crate-fn or :aggregated-crate-fn.
-
-   Calls to :aggregated actions will be grouped, and run before
-   :in-sequence actions. Calls to :collected actions will be grouped, and run
-   after :in-sequence actions.
-
-   Calls to :delayed-crate-fn and :aggregated-crate-fn actions are evaluated
-   at action plan translation time, which provides a mechanism for calling
-   crate functions after all other crate functions have been called."
+   implemented as script."
   (:require
    [clojure.tools.macro :refer [name-with-attributes]]
    [pallet.action-impl
@@ -21,105 +10,36 @@
             action-symbol
             add-action-implementation!
             make-action]]
-   [pallet.action-plan
-    :refer [action-map pop-block push-block schedule-action-map]]
+   [pallet.action-options :refer [action-options]]
    [pallet.common.context :refer [throw-map]]
+   [pallet.core.api :refer [execute-action]]
    [pallet.core.session :refer [session session!]]
-   [pallet.session.action-plan
-    :refer [assoc-action-plan get-action-plan update-action-plan]]
    [pallet.stevedore :refer [with-source-line-comments]]
    [pallet.utils :refer [compiler-exception]]))
 
-;;; # Session precedence
-
-;;; Precedence for actions can be overridden by setting the precedence map
-;;; on the session.
-(def ^{:no-doc true :internal true} action-options-key ::action-options)
-
-(defn action-options
-  "Return any action-options currently defined on the session."
-  [session]
-  (get-in session [:plan-state action-options-key]))
-
-(defn get-action-options
-  "Return any action-options currently defined on the session."
-  []
-  (action-options (session)))
-
-(defn update-action-options
-  "Update any precedence modifiers defined on the session"
-  [m]
-  (session! (update-in (session) [:plan-state action-options-key] merge m)))
-
-(defn assoc-action-options
-  "Set precedence modifiers defined on the session."
-  [m]
-  (session! (assoc-in (session) [:plan-state action-options-key] m)))
-
-(defmacro ^{:indent 1} with-action-options
-  "Set up local precedence relations between actions, and allows override
-of user options.
-
-`:script-dir`
-: Controls the directory the script is executed in.
-
-`:sudo-user`
-: Controls the user the action runs as.
-
-`:script-prefix`
-: Specify a prefix for the script. Disable sudo using `:no-sudo`. Defaults to
-  `:sudo`.
-
-`:script-env`
-: Specify a map of environment variables.
-
-`:script-comments`
-: Control the generation of script line number comments
-
-`:new-login-after-action`
-: Force a new ssh login after the action.  Useful if the action effects the
-  login environment and you want the affect to be visible immediately."
-  [m & body]
-  `(let [p# (get-action-options)
-         m# ~m]
-     (update-action-options m#)
-     (let [v# (do ~@body)]
-       (assoc-action-options p#)
-       v#)))
-
-
 ;;; ## Actions
+(defn action-map
+  "Return an action map for the given `action` and `args`. The action
+   map is an instance of an action.  The returned map has the
+   following keys:
+
+   - :action          the action that is scheduled,
+   - :args            the arguments to pass to the action function,"
+  [action arg-vector options]
+  (merge options {:action action :args arg-vector}))
 
 ;;; Actions are primitives that may be called in a phase or crate function. An
-;;; action can have multiple implementations. At this level, actions are
-;;; represented by the function that inserts an action map for the action into
-;;; the action plan.  This inserter function has the action on its :action
-;;; metadata key.
-
-(defn insert-action
-  "Registers an action map in the action plan for execution. This function is
-   responsible for creating a node-value (as node-value-path's have to be unique
-   for all instances of an aggregated action) as a handle to the value that will
-   be returned when the action map is executed."
-  [session action-map]
-  {:pre [session (map? session)]}
-  (let [[node-value action-plan] (schedule-action-map
-                                  (get-action-plan session) action-map)]
-    [node-value (assoc-action-plan session action-plan)]))
-
-(defn- action-inserter-fn
+;;; action can have multiple implementations.
+(defn- action-execute-fn
   "Return an action inserter function. This is used for anonymous actions. The
   argument list is not enforced."
   [action]
-  ^{:action action
-    :pallet/plan-fn true}
+  ^{:action action}
   (fn action-fn [& argv]
-    (let [session (session)
-          [nv session] (insert-action
-                        session
-                        (action-map action argv (action-options session)))]
-      (session! session)
-      nv)))
+    (let [session (session)]
+      (execute-action
+       session
+       (action-map action argv (action-options session))))))
 
 (defn declare-action
   "Declare an action. The action-name is a symbol (not necessarily referring to
@@ -151,7 +71,7 @@ of user options.
                 action-symbol
                 (:execution metadata :in-sequence)
                 (dissoc metadata :execution))]
-    (action-inserter-fn action)))
+    (action-execute-fn action)))
 
 (defn- args-with-map-as
   "Ensures that an argument map contains an :as element, by which the map can be
@@ -205,20 +125,16 @@ of user options.
          ^{:action action#}
          (fn ~action-name
            [~@args]
-           (let [session# (session)
-                 [nv# session#] (insert-action
-                                 session#
-                                 (action-map
-                                  action#
-                                  ~(arg-values args)
-                                  (action-options session#)))]
-             (session! session#)
-             nv#))))))
+           (let [session# (session)]
+             (execute-action
+              session#
+              (action-map
+               action# ~(arg-values args) (action-options session#)))))))))
 
 (defn implement-action*
   "Define an implementation of an action given the `action-inserter` function."
   [action-inserter dispatch-val metadata f]
-  {:pre [(fn? action-inserter) (-> action-inserter meta :action) (fn? f)]}
+  {:pre [(fn? f)]}
   (let [action (-> action-inserter meta :action)]
     (when-not (keyword? dispatch-val)
       (throw
@@ -234,16 +150,11 @@ of user options.
   on."
   {:arglists '[[action-name dispatch-val attr-map? [params*]]]
    :indent 2}
-  [action-inserter dispatch-val & body]
-  (let [[impl-name [args & body]] (name-with-attributes action-inserter body)]
-    `(let [inserter# ~action-inserter]
-       ;; (when-not (-> inserter# meta :action)
-       ;;   (throw
-       ;;    (compiler-exception
-       ;;     (IllegalArgumentException.
-       ;;      "action-inserter has no :action metadata"))))
+  [action dispatch-val & body]
+  (let [[impl-name [args & body]] (name-with-attributes action body)]
+    `(let [action# ~action]
        (implement-action*
-        inserter# ~dispatch-val
+        action# ~dispatch-val
         ~(meta impl-name)
         (fn ~(symbol (str impl-name "-" (name dispatch-val)))
           [~@args] ~@body)))))
@@ -266,8 +177,8 @@ of user options.
 (defn action-fn
   "Returns the function for an implementation of an action from an action
    inserter."
-  [action-inserter dispatch-val]
-  (let [action (-> action-inserter meta :action)
+  [action dispatch-val]
+  (let [action (-> action meta :action)
         m (action-implementation action dispatch-val)]
     (if m
       (:f m)
@@ -278,66 +189,7 @@ of user options.
        {:dispatch-val dispatch-val
         :action action}))))
 
-(defn declare-delayed-crate-action
-  "Declare an action for a delayed crate function. A delayed crate function
-   becomes an action with a single, :default, implementation."
-  [sym f]
-  (let [action (declare-action sym {:execution :delayed-crate-fn})]
-    (implement-action* action :default {} f)
-    action))
-
-(defn declare-aggregated-crate-action
-  "Declare an action for an aggregated crate function. A delayed crate function
-   becomes an action with a single, :default, implementation."
-  [sym f]
-  (let [action (declare-action sym {:execution :aggregated-crate-fn})]
-    (implement-action* action :default {} f)
-    action))
-
-(defn declare-collected-crate-action
-  "Declare an action for an collected crate function. A delayed crate function
-   becomes an action with a single, :default, implementation."
-  [sym f]
-  (let [action (declare-action sym {:execution :collected-crate-fn})]
-    (implement-action* action :default {} f)
-    action))
-
-(defmacro clj-action-fn
-  "Creates a clojure action with a :direct implementation. The first argument
-will be the session. The clojure code can not return a modified session (use a
-full action to do that."
-  {:indent 1} [args & impl]
-  (let [action-sym (gensym "clj-action")]
-    `(let [action# (declare-action '~action-sym {})]
-       (implement-action action# :direct
-         {:action-type :fn/clojure :location :origin}
-         ~args
-         [(fn ~action-sym [~(first args)] ~@impl) ~(first args)])
-       action#)))
-
-(defmacro clj-action
-  "Creates a clojure action with a :direct implementation."
-  {:indent 1}
-  [args & impl]
-  (let [action-sym (gensym "clj-action")]
-    `(let [action# (declare-action '~action-sym {})]
-       (implement-action action# :direct
-         {:action-type :fn/clojure :location :origin}
-         ~args
-         [(fn ~action-sym [~(first args)] ~@impl) ~(first args)])
-       action#)))
-
-(defn enter-scope
-  "Enter a new action scope."
-  []
-  (session! (update-action-plan (session) push-block)))
-
-(defn leave-scope
-  "Leave the current action scope."
-  []
-  (session! (update-action-plan (session) pop-block)))
-
 ;; Local Variables:
 ;; mode: clojure
-;; eval: (define-clojure-indent (clj-action 'defun) (implement-action 3))
+;; eval: (define-clojure-indent (defaction 'defun)(implement-action 3))
 ;; End:

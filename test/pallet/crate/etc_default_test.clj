@@ -10,12 +10,10 @@
    [pallet.crate.etc-default :as default]
    [pallet.test-utils
     :refer [with-bash-script-language
-            with-null-defining-context
             with-ubuntu-script-template]]))
 
 (use-fixtures :once
               with-ubuntu-script-template with-bash-script-language
-              with-null-defining-context
               (logging-threshold-fixture))
 
 (def remote-file* (action-fn remote-file-action :direct))

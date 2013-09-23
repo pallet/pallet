@@ -1,14 +1,12 @@
 (ns pallet.crate.package.jpackage
   "Actions for working with the jpackage repository"
   (:require
-   [pallet.action :refer [with-action-options]]
+   [pallet.action-options :refer [with-action-options]]
    [pallet.actions
     :refer [add-rpm
             package
             package-manager
-            package-source
-            plan-when
-            plan-when-not]]
+            package-source]]
    [pallet.crate
     :refer [assoc-settings defplan get-settings os-family os-version]]))
 
@@ -30,12 +28,11 @@
   []
   (let [os-family (os-family)
         os-version (os-version)]
-    (plan-when
-        (or
-         (= :fedora os-family)
-         (and
-          (#{:rhel :centos} os-family)
-          (re-matches #"5\.[0-5]" os-version)))
+    (when (or
+           (= :fedora os-family)
+           (and
+            (#{:rhel :centos} os-family)
+            (re-matches #"5\.[0-5]" os-version)))
       (with-action-options {:action-id ::install-jpackage-compat}
         (add-rpm
          "jpackage-utils-compat-el5-0.0.1-1"
@@ -64,7 +61,7 @@
            enabled 0}}]
   (let [os-family (os-family)
         os-version (os-version)
-        no-updates (and                 ; missing updates for fedora 13, 14
+        no-updates (and            ; missing updates for fedora 13, 14
                     (= version "5.0")
                     (= :fedora os-family)
                     (try
@@ -112,16 +109,16 @@
            :failovermethod "priority"
            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
            :enabled enabled})
-    (plan-when-not no-updates
-                       (package-source
-                        (format "jpackage-%s-updates" component)
-                        :yum {:mirrorlist (mirrorlist
-                                           (str component "-" releasever)
-                                           "free"
-                                           (str version "-updates"))
-                              :failovermethod "priority"
-                              ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
-                              :enabled enabled}))
+    (when-not no-updates
+      (package-source
+       (format "jpackage-%s-updates" component)
+       :yum {:mirrorlist (mirrorlist
+                          (str component "-" releasever)
+                          "free"
+                          (str version "-updates"))
+             :failovermethod "priority"
+             ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
+             :enabled enabled}))
     (assoc-settings :jpackage-repos {:repos jpackage-repos})))
 
 (defplan package-manager-update-jpackage

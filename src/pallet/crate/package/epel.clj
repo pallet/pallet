@@ -1,7 +1,7 @@
 (ns pallet.crate.package.epel
   "Actions for working with the epel repository"
   (:require
-   [pallet.action :refer [with-action-options]]
+   [pallet.action-options :refer [with-action-options]]
    [pallet.actions :refer [exec-checked-script package package-manager]]
    [pallet.crate :refer [defplan]]))
 
