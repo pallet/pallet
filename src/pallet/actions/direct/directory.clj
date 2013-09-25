@@ -35,21 +35,19 @@
 
 (implement-action directory :direct
   {:action-type :script :location :target}
-  [session dir-path & {:keys [action recursive force path mode verbose owner
-                              group]
-                       :or {action :create recursive true force true path true}
-                       :as options}]
-  [[{:language :bash}
-    (case action
-      :delete (checked-script
-               (str "Delete directory " dir-path)
-               (~lib/rm ~dir-path :recursive ~recursive :force ~force))
-      :create (make-directory
-               dir-path
-               :path path :mode mode :verbose verbose
+  [dir-path & {:keys [action recursive force path mode verbose owner group]
+               :or {action :create recursive true force true path true}
+               :as options}]
+  [{:language :bash}
+   (case action
+     :delete (checked-script
+              (str "Delete directory " dir-path)
+              (~lib/rm ~dir-path :recursive ~recursive :force ~force))
+     :create (make-directory
+              dir-path
+              :path path :mode mode :verbose verbose
                :owner owner :group group :recursive recursive)
       :touch (make-directory
               dir-path
               :path path :mode mode :verbose verbose
-              :owner owner :group group :recursive recursive))]
-   session])
+              :owner owner :group group :recursive recursive))])

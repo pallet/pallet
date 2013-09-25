@@ -5,7 +5,6 @@
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions :refer [exec-checked-script package package-manager]]
    [pallet.actions.decl :refer [remote-file-action]]
-   [pallet.core.session :refer [session]]
    [pallet.crate :refer [defplan]]))
 
 ;;; TODO remove this and use plan-when
@@ -22,15 +21,13 @@
   [& {:keys [version distro arch]
       :or {version "0.5.2-2" distro "el5" arch "i386"}}]
   (with-action-options {:always-before #{package-manager package}}
-    (let [session (session)]
-      (exec-checked-script
-       "Add rpmforge repositories"
-       (chain-or
-        (if (= "0" @(pipe ("rpm" -qa) ("grep" rpmforge) ("wc" -l)))
-          (do
-            ~(first
-              (remote-file*
-               session
-               "rpmforge.rpm"
-               {:url (format rpmforge-url-pattern version distro arch)}))
-            ("rpm" -U --quiet "rpmforge.rpm"))))))))
+    (exec-checked-script
+     "Add rpmforge repositories"
+     (chain-or
+      (if (= "0" @(pipe ("rpm" -qa) ("grep" rpmforge) ("wc" -l)))
+        (do
+          ~(first
+            (remote-file*
+             "rpmforge.rpm"
+             {:url (format rpmforge-url-pattern version distro arch)}))
+          ("rpm" -U --quiet "rpmforge.rpm")))))))

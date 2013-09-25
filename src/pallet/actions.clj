@@ -3,6 +3,7 @@
   (:require
    [clj-schema.schema
     :refer [constraints def-map-schema map-schema optional-path sequence-of]]
+   [clojure.java.io :as io]
    [clojure.set :refer [intersection]]
    [clojure.string :refer [trim]]
    [clojure.tools.logging :as logging]
@@ -15,9 +16,10 @@
    [pallet.contracts :refer [any-value check-spec]]
    [pallet.crate :refer [admin-user packager phase-context role->nodes-map
                          target]]
+   [pallet.environment :refer [get-environment]]
    [pallet.script.lib :as lib :refer [set-flag-value]]
    [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
-   [pallet.utils :refer [apply-map log-multiline tmpfile]]
+   [pallet.utils :refer [apply-map log-multiline maybe-assoc tmpfile]]
    [useful.ns :refer [defalias]])
   (:import clojure.lang.Keyword))
 
@@ -279,6 +281,7 @@
    (optional-path [:blobstore]) any-value  ; cheating to avoid adding a reqiure
    (optional-path [:insecure]) any-value
    (optional-path [:overwrite-changes]) any-value
+   (optional-path [:install-new-files]) any-value
    (optional-path [:no-versioning]) any-value
    (optional-path [:max-versions]) Number
    (optional-path [:flag-on-changed]) String
@@ -300,10 +303,6 @@ Prefer remote-file or remote-directory over direct use of this action."
 (defaction transfer-file-to-local
   "Function to transfer a remote file to a local path."
   [remote-path local-path])
-
-(defaction delete-local-path
-  "Function to delete a local path."
-  [local-path])
 
 (defn set-install-new-files
   "Set boolean flag to control installation of new files"
@@ -451,7 +450,8 @@ Content can also be copied from a blobstore.
                (:sudo-user action-options)
                (:username (admin-user)))
         new-path (new-filename script-dir path)
-        md5-path (md5-filename script-dir path)]
+        md5-path (md5-filename script-dir path)
+        copy-path (copy-filename script-dir path)]
     (when local-file
       (transfer-file local-file new-path md5-path))
     ;; we run as root so we don't get permission issues
@@ -461,9 +461,15 @@ Content can also be copied from a blobstore.
       (remote-file-action
        path
        (merge
-        {:install-new-files *install-new-files* ; capture bound values
-         :overwrite-changes *force-overwrite*
-         :owner user}
+        (maybe-assoc
+         {:install-new-files *install-new-files* ; capture bound values
+          :overwrite-changes *force-overwrite*
+          :owner user
+          :proxy (get-environment [:proxy] nil)
+          :pallet/new-path new-path
+          :pallet/md5-path md5-path
+          :pallet/copy-path copy-path}
+         :blobstore (get-environment [:blobstore] nil))
         options)))))
 
 (defn with-remote-file
@@ -477,7 +483,7 @@ Content can also be copied from a blobstore.
     (phase-context with-remote-file-fn {:local-path local-path}
       (transfer-file-to-local path local-path)
       (apply f local-path args)
-      (delete-local-path local-path))))
+      (.delete (io/file local-path)))))
 
 (defn remote-file-content
   "Return a function that returns the content of a file, when used inside
@@ -579,7 +585,8 @@ only specified files or directories, use the :extract-files option.
                (:sudo-user action-options)
                (:username (admin-user)))
         new-path (new-filename script-dir path)
-        md5-path (md5-filename script-dir path)]
+        md5-path (md5-filename script-dir path)
+        copy-path (copy-filename script-dir path)]
     (when local-file
       (transfer-file local-file new-path md5-path))
     ;; we run as root so we don't get permission issues
@@ -592,7 +599,12 @@ only specified files or directories, use the :extract-files option.
        (merge
         {:install-new-files *install-new-files* ; capture bound values
          :overwrite-changes *force-overwrite*
-         :owner user}
+         :owner user
+         :blobstore (get-environment [:blobstore] nil)
+         :proxy (get-environment [:proxy] nil)
+         :pallet/new-path new-path
+         :pallet/md5-path md5-path
+         :pallet/copy-path copy-path}
         options))
       (when recursive
         (directory path :owner owner :group group :recursive recursive)))))

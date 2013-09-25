@@ -80,8 +80,8 @@
     (is (= "print 'Hello, world!'\n" (first rv)))))
 
 (def print-action
-  (script-action [session x]
-    [[{:language :python} (str "print '" x "'")] session]))
+  (script-action [x]
+   [{:language :python} (str "print '" x "'")]))
 
 (deftest lift-all-node-set-test
   (let [local (group-spec

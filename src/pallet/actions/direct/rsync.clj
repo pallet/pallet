@@ -3,9 +3,8 @@
    [clojure.tools.logging :as logging]
    [pallet.action :refer [implement-action]]
    [pallet.actions :refer [rsync]]
-   [pallet.crate :refer [target-node]]
-   [pallet.core.session :refer [admin-user target-ip]]
-   [pallet.node :refer [ssh-port]]
+   [pallet.crate :refer [admin-user target-node]]
+   [pallet.node :refer [primary-ip ssh-port]]
    [pallet.stevedore :as stevedore]))
 
 (def ^{:private true}
@@ -16,9 +15,8 @@
                       :owner true
                       :perms true})
 
-(implement-action rsync :direct
-                  {:action-type :script :location :origin}
-                  [session from to {:keys [port] :as options}]
+(implement-action rsync :direct {:action-type :script :location :origin}
+  [from to {:keys [ip username port] :as options}]
   (logging/debugf "rsync %s to %s" from to)
   (let [extra-options (dissoc options :port)
         ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
@@ -27,8 +25,9 @@
         cmd (format
              cmd ssh
              (stevedore/map-to-arg-string (merge default-options extra-options))
-             from (:username (admin-user session))
-             (target-ip session) to)]
-    [[{:language :bash}
-      (stevedore/checked-commands (format "rsync %s to %s" from to) cmd)]
-     session]))
+             from
+             (or username (:username (admin-user)))
+             (or ip (primary-ip (target-node)))
+             to)]
+    [{:language :bash}
+     (stevedore/checked-commands (format "rsync %s to %s" from to) cmd)]))

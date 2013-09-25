@@ -21,7 +21,7 @@
    [pallet.actions.decl :refer [checked-commands
                                 package-repository-action
                                 remote-file-action]]
-   [pallet.core.session :refer [os-family packager]]
+   [pallet.crate :refer [os-family packager]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [checked-script fragment with-source-line-comments]]
@@ -37,8 +37,8 @@
   sed* (action-fn sed :direct))
 
 (defmulti adjust-packages
-  (fn [session & _]
-    (packager session)))
+  (fn [& _]
+    (packager)))
 
 ;; http://algebraicthunk.net/~dburrows/projects/aptitude/doc/en/ch02s03s01.html
 (def ^{:private true} aptitude-escape-map
@@ -56,7 +56,7 @@
 ;; aptitude and apt can install, remove and purge all in one command, so we just
 ;; need to split by enable/disable options.
 (defmethod adjust-packages :aptitude
-  [session packages]
+  [packages]
   (logging/tracef "adjust-packages :aptitude %s" (vec packages))
   (checked-commands
    "Packages"
@@ -125,7 +125,7 @@
                    ("grep" (quoted ~package))))))))))
 
 (defmethod adjust-packages :apt
-  [session packages]
+  [packages]
   (checked-commands
    "Packages"
    (stevedore/script (~lib/package-manager-non-interactive))
@@ -177,7 +177,7 @@
 ;; `yum` has separate install, remove and purge commands, so we just need to
 ;; split by enable/disable options and by command.  We install before removing.
 (defmethod adjust-packages :yum
-  [session packages]
+  [packages]
   (checked-commands
    "Packages"
    (stevedore/chain-commands*
@@ -204,7 +204,7 @@
 
 
 (defmethod adjust-packages :default
-  [session packages]
+  [packages]
   (checked-commands
    "Packages"
    (stevedore/chain-commands*
@@ -225,7 +225,7 @@
 
 (defn- package-map
   "Convert the args into a single map"
-  [session package-name
+  [package-name
    & {:keys [action y force purge priority enable disable allow-unsigned]
       :as options}]
   (logging/tracef "package-map %s %s" package-name options)
@@ -254,12 +254,11 @@
    maintain a consistent view."
   {:action-type :script
    :location :target}
-  [session & args]
+  [& args]
   (logging/tracef "package %s" (vec args))
-  [[{:language :bash
-     :summary (str "package " (string/join " " args))}
-    (adjust-packages session [(apply package-map session args)])]
-   session])
+  [{:language :bash
+    :summary (str "package " (string/join " " args))}
+   (adjust-packages [(apply package-map args)])])
 
 (def source-location
   {:aptitude "/etc/apt/sources.list.d/%s.list"
@@ -307,8 +306,8 @@
 
 (defmulti package-source*
   "Add a packager source."
-  (fn  [session name & {:keys [apt aptitude yum] :as options}]
-    (packager session)))
+  (fn  [name & {:keys [apt aptitude yum] :as options}]
+    (packager)))
 
 (def ubuntu-ppa-add
   (atom                                 ; allow for open extension
@@ -317,7 +316,7 @@
      {:os :ubuntu :os-version [[12 10] nil]} "software-properties-common"})))
 
 (defn- package-source-apt
-  [session name & {:keys [apt aptitude yum] :as options}]
+  [name & {:keys [apt aptitude yum] :as options}]
   (checked-commands
    "Package source"
    (let [^String key-url (or (:url aptitude) (:url apt))]
@@ -341,12 +340,11 @@
               (~lib/update-package-list))))))
        (->
         (remote-file*
-         session
          (format (source-location :apt) name)
          {:content (format-source
                     :apt name (or (:apt options) (:aptitude options)))
           :flag-on-changed package-source-changed-flag})
-        first second)))
+        second)))
    (if-let [key-id (or (:key-id aptitude) (:key-id apt))]
      (let [key-server (or (:key-server aptitude) (:key-server apt)
                           *default-apt-keyserver*)]
@@ -359,43 +357,41 @@
      (stevedore/chain-commands
       (->
        (remote-file*
-        session "aptkey.tmp"
+        "aptkey.tmp"
         {:url key-url :flag-on-changed package-source-changed-flag})
-       first second)
+       second)
       (stevedore/script ("apt-key" add aptkey.tmp))))))
 
 (defmethod package-source* :aptitude
-  [session name & {:keys [apt aptitude yum] :as options}]
-  (apply-map package-source-apt session name options))
+  [name & {:keys [apt aptitude yum] :as options}]
+  (apply-map package-source-apt name options))
 
 (defmethod package-source* :apt
-  [session name & {:keys [apt aptitude yum] :as options}]
-  (apply-map package-source-apt session name options))
+  [name & {:keys [apt aptitude yum] :as options}]
+  (apply-map package-source-apt name options))
 
 (defmethod package-source* :yum
-  [session name & {:keys [apt aptitude yum] :as options}]
-  (let [packager (packager session)]
+  [name & {:keys [apt aptitude yum] :as options}]
+  (let [packager (packager)]
     (checked-commands
      "Package source"
      (->
       (remote-file*
-       session
        (format (source-location packager) name)
        {:content (format-source packager name (packager options))
         :literal true
         :flag-on-changed package-source-changed-flag})
-      first second)
+      second)
      (when-let [key (and (= packager :yum) (:gpgkey yum))]
        (stevedore/script ("rpm" "--import" ~key))))))
 
 (defmethod package-source* :default
-  [session name & {:as options}]
-  (let [packager (packager session)]
+  [name & {:as options}]
+  (let [packager (packager)]
     (checked-commands
      "Package source"
      (->
       (remote-file*
-       session
        (format (source-location packager) name)
        {:content (format-source packager name (packager options))
         :flag-on-changed package-source-changed-flag})
@@ -424,19 +420,17 @@
          :aptitude {:url \"http://archive.canonical.com/\"
                     :scopes [\"partner\"]})"
   {:action-type :script :location :target}
-  [session & args]
-  [[{:language :bash
-     :summary (str "package-source " (string/join " " args))}
-    (apply package-source* session args)]
-   session])
+  [& args]
+  [{:language :bash
+    :summary (str "package-source " (string/join " " args))}
+   (apply package-source* args)])
 
 (implement-action package-repository-action :direct
                   {:action-type :script :location :target}
-  [session options]
-  [[{:language :bash
-     :summary (str "package-repository " (:repository-name options))}
-    (package-source* session options)]
-   session])
+  [options]
+  [{:language :bash
+    :summary (str "package-repository " (:repository-name options))}
+   (package-source* options)])
 
 (defn add-scope*
   "Add a scope to all the existing package sources. Aptitude specific."
@@ -459,26 +453,26 @@
 
 (defmulti configure-package-manager
   "Configure the package manager"
-  (fn [session packager options] packager))
+  (fn [packager options] packager))
 
 (defmulti package-manager-option
   "Provide packager specific options"
-  (fn [session packager option value] [packager option]))
+  (fn [packager option value] [packager option]))
 
 (defmethod package-manager-option [:aptitude :proxy]
-  [session packager proxy proxy-url]
+  [packager proxy proxy-url]
   (format "ACQUIRE::http::proxy \"%s\";" proxy-url))
 
 (defmethod package-manager-option [:apt :proxy]
-  [session packager proxy proxy-url]
-  (package-manager-option session :aptitude proxy proxy-url))
+  [packager proxy proxy-url]
+  (package-manager-option :aptitude proxy proxy-url))
 
 (defmethod package-manager-option [:yum :proxy]
-  [session packager proxy proxy-url]
+  [packager proxy proxy-url]
   (format "proxy=%s" proxy-url))
 
 (defmethod package-manager-option [:pacman :proxy]
-  [session packager proxy proxy-url]
+  [packager proxy proxy-url]
   (format
    (str "XferCommand = /usr/bin/wget "
         "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\" "
@@ -490,42 +484,40 @@
        "kernel-unsupported"))
 
 (defmethod package-manager-option [:yum :installonlypkgs]
-  [session packager installonly packages]
+  [packager installonly packages]
   (format
    "installonlypkgs=%s %s" (string/join " " packages) default-installonlypkgs))
 
 (defmethod configure-package-manager :aptitude
-  [session packager {:keys [priority prox] :or {priority 50} :as options}]
+  [packager {:keys [priority prox] :or {priority 50} :as options}]
   (->
    (remote-file*
-    session
     (format "/etc/apt/apt.conf.d/%spallet" priority)
     {:content (string/join
                \newline
                (map
-                #(package-manager-option session packager (key %) (val %))
+                #(package-manager-option packager (key %) (val %))
                 (dissoc options :priority)))
      :literal true})
-   first second))
+   second))
 
 (defmethod configure-package-manager :apt
-  [session packager {:as options}]
-  (configure-package-manager session :aptitude options))
+  [packager {:as options}]
+  (configure-package-manager :aptitude options))
 
 (defmethod configure-package-manager :yum
-  [session packager {:keys [proxy] :as options}]
+  [packager {:keys [proxy] :as options}]
   (stevedore/chain-commands
    (->
     (remote-file*
-     session
      "/etc/yum.pallet.conf"
      {:content (string/join
                 \newline
                 (map
-                 #(package-manager-option session packager (key %) (val %))
+                 #(package-manager-option packager (key %) (val %))
                  (dissoc options :priority)))
       :literal true})
-    first second)
+    second)
    ;; include yum.pallet.conf from yum.conf
    (stevedore/script
     (if (not @("fgrep" "yum.pallet.conf" "/etc/yum.conf"))
@@ -535,38 +527,36 @@
         "EOFpallet")))))
 
 (defmethod configure-package-manager :pacman
-  [session packager {:keys [proxy] :as options}]
+  [packager {:keys [proxy] :as options}]
   (stevedore/chain-commands
    (->
     (remote-file*
-     session
      "/etc/pacman.pallet.conf"
      {:content (string/join
                 \newline
                 (map
-                 #(package-manager-option session packager (key %) (val %))
+                 #(package-manager-option packager (key %) (val %))
                  (dissoc options :priority)))
       :literal true})
-    first second)
+    second)
    ;; include pacman.pallet.conf from pacman.conf
    (stevedore/script
     (if (not @("fgrep" "pacman.pallet.conf" "/etc/pacman.conf"))
       (do
         ~(-> (sed*
-              session
               "/etc/pacman.conf"
               "a Include = /etc/pacman.pallet.conf"
               :restriction "/\\[options\\]/")
-             first second))))))
+             second))))))
 
 (defmethod configure-package-manager :default
-  [session packager {:as options}]
+  [packager {:as options}]
   (comment "do nothing"))
 
 (defn package-manager*
   "Package management."
-  [session action & options]
-  (let [packager (packager session)]
+  [action & options]
+  (let [packager (packager)]
     (checked-commands
      (format "package-manager %s %s" (name action) (string/join " " options))
      (case action
@@ -579,7 +569,7 @@
        :debconf (if (#{:aptitude :apt} packager)
                   (stevedore/script
                    (apply ~lib/debconf-set-selections ~options)))
-       :configure (configure-package-manager session packager options)
+       :configure (configure-package-manager packager options)
        (throw (IllegalArgumentException.
                (str action
                     " is not a valid action for package-manager action")))))))
@@ -593,100 +583,95 @@
    - :add-scope       - enable a scope (eg. multiverse, non-free)
 
    To refresh the list of packages known to the pakage manager:
-       (package-manager session :update)
+       (package-manager :update)
 
    To enable multiverse on ubuntu:
-       (package-manager session :add-scope :scope :multiverse)
+       (package-manager :add-scope :scope :multiverse)
 
    To enable non-free on debian:
-       (package-manager session :add-scope :scope :non-free)"
+       (package-manager :add-scope :scope :non-free)"
   {:action-type :script :location :target}
-  [session & package-manager-args]
+  [& package-manager-args]
   (logging/tracef "package-manager-args %s" (vec package-manager-args))
-  [[{:language :bash
-     :summary (str "package-manager " (string/join " " package-manager-args))}
-    (apply package-manager* session package-manager-args)]
-   session])
+  [{:language :bash
+    :summary (str "package-manager " (string/join " " package-manager-args))}
+   (apply package-manager* package-manager-args)])
 
 (implement-action add-rpm :direct
-  "Add an rpm.  Source options are as for remote file."
   {:action-type :script :location :target}
-  [session rpm-name & {:as options}]
-  [[{:language :bash}
-    (stevedore/do-script
-     (-> (remote-file*
-          session rpm-name
-          (merge
-           {:install-new-files pallet.actions-impl/*install-new-files*
-            :overwrite-changes pallet.actions-impl/*force-overwrite*}
-           options))
-         first second)
-     (checked-script
-      (format "Install rpm %s" rpm-name)
-      (if-not ("rpm" -q @("rpm" -pq ~rpm-name) > "/dev/null" "2>&1")
-        (do ("rpm" -U --quiet ~rpm-name)))))]
-   session])
+  [rpm-name & {:as options}]
+  [{:language :bash}
+   (stevedore/do-script
+    (->
+     (remote-file*
+      rpm-name
+      (merge
+       {:install-new-files pallet.actions-impl/*install-new-files*
+        :overwrite-changes pallet.actions-impl/*force-overwrite*}
+       options))
+     second)
+    (checked-script
+     (format "Install rpm %s" rpm-name)
+     (if-not ("rpm" -q @("rpm" -pq ~rpm-name) > "/dev/null" "2>&1")
+       (do ("rpm" -U --quiet ~rpm-name)))))])
 
 (implement-action install-deb :direct
   "Install a deb file.  Source options are as for remote file."
   {:action-type :script :location :target}
-  [session deb-name & {:as options}]
-  [[{:language :bash}
-    (stevedore/do-script
-     (-> (remote-file*
-          session deb-name
-          (merge
-           {:install-new-files pallet.actions-impl/*install-new-files*
-            :overwrite-changes pallet.actions-impl/*force-overwrite*}
-           options))
-         first second)
-     (checked-script
-      (format "Install deb %s" deb-name)
-      ("dpkg" -i --skip-same-version ~deb-name)))]
-   session])
+  [deb-name & {:as options}]
+  [{:language :bash}
+   (stevedore/do-script
+    (-> (remote-file*
+         deb-name
+         (merge
+          {:install-new-files pallet.actions-impl/*install-new-files*
+           :overwrite-changes pallet.actions-impl/*force-overwrite*}
+          options))
+        second)
+    (checked-script
+     (format "Install deb %s" deb-name)
+     ("dpkg" -i --skip-same-version ~deb-name)))])
 
 (implement-action debconf-set-selections :direct
   "Set debconf selections.
 Specify :line, or the other options."
   {:action-type :script :location :target}
-  [session {:keys [line package question type value]}]
+  [{:keys [line package question type value]}]
   {:pre [(or line (and package question type (not (nil? value))))]}
-  [[{:language :bash}
-    (stevedore/do-script
-     (checked-script
-      (format "Preseed %s"
-              (or line (string/join " " [package question type value])))
-      (pipe
-       (println
-        (quoted ~@(if line
-                    [line]
-                    [(name package) question (name type) (pr-str value)])))
-       ("/usr/bin/debconf-set-selections"))))]
-   session])
+  [{:language :bash}
+   (stevedore/do-script
+    (checked-script
+     (format "Preseed %s"
+             (or line (string/join " " [package question type value])))
+     (pipe
+      (println
+       (quoted ~@(if line
+                   [line]
+                   [(name package) question (name type) (pr-str value)])))
+      ("/usr/bin/debconf-set-selections"))))])
 
 (implement-action minimal-packages :direct
   "Add minimal packages for pallet to function"
   {:action-type :script :location :target}
-  [session]
-  (let [os-family (os-family session)]
-    [[{:language :bash}
-      (cond
-        (#{:ubuntu :debian} os-family) (checked-script
-                                        "Add minimal packages"
-                                        (~lib/update-package-list)
-                                        (~lib/install-package "coreutils")
-                                        (~lib/install-package "sudo"))
-        (= :arch os-family) (checked-script
-                             "Add minimal packages"
-                             ("{" (chain-or pacman-db-upgrade true) "; } "
-                              "2> /dev/null")
-                             (~lib/update-package-list)
-                             (~lib/upgrade-package "pacman")
-                             (println "  checking for pacman-db-upgrade")
-                             ("{" (chain-or (chain-and
-                                             pacman-db-upgrade
-                                             (~lib/update-package-list))
-                                            true) "; } "
-                              "2> /dev/null")
-                             (~lib/install-package "sudo")))]
-     session]))
+  []
+  (let [os-family (os-family)]
+    [{:language :bash}
+     (cond
+      (#{:ubuntu :debian} os-family) (checked-script
+                                      "Add minimal packages"
+                                      (~lib/update-package-list)
+                                      (~lib/install-package "coreutils")
+                                      (~lib/install-package "sudo"))
+      (= :arch os-family) (checked-script
+                           "Add minimal packages"
+                           ("{" (chain-or pacman-db-upgrade true) "; } "
+                            "2> /dev/null")
+                           (~lib/update-package-list)
+                           (~lib/upgrade-package "pacman")
+                           (println "  checking for pacman-db-upgrade")
+                           ("{" (chain-or (chain-and
+                                           pacman-db-upgrade
+                                           (~lib/update-package-list))
+                                          true) "; } "
+                                          "2> /dev/null")
+                           (~lib/install-package "sudo")))]))

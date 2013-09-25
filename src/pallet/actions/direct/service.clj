@@ -10,17 +10,17 @@
    [pallet.utils :refer [apply-map]]))
 
 (defmulti service-impl
-  (fn [session service-name & {:keys [action if-flag if-stopped
+  (fn [service-name & {:keys [action if-flag if-stopped
                                       service-impl]
                                :or {action :start service-impl :initd}
                                :as options}]
     service-impl))
 
 (defmethod service-impl :initd
-  [session service-name & {:keys [action if-flag if-stopped
-                                  service-impl]
-                           :or {action :start}
-                           :as options}]
+  [service-name & {:keys [action if-flag if-stopped
+                          service-impl]
+                   :or {action :start}
+                   :as options}]
   (if (#{:enable :disable :start-stop} action)
     (stevedore/checked-script
      (format "Configure service %s" service-name)
@@ -40,10 +40,10 @@
          (~(init-script-path service-name) ~(name action)))))))
 
 (defmethod service-impl :upstart
-  [session service-name & {:keys [action if-flag if-stopped
-                                  service-impl]
-                           :or {action :start}
-                           :as options}]
+  [service-name & {:keys [action if-flag if-stopped
+                          service-impl]
+                   :or {action :start}
+                   :as options}]
   (if (#{:enable :disable :start-stop} action)
     (checked-script
      (format "Configure service %s" service-name)
@@ -65,7 +65,6 @@
 
 (implement-action service :direct
   {:action-type :script :location :target}
-  [session service-name & {:as options}]
-  [[{:language :bash}
-    (apply-map service-impl session service-name options)]
-   session])
+  [service-name & {:as options}]
+  [{:language :bash}
+   (apply-map service-impl service-name options)])

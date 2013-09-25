@@ -21,7 +21,7 @@
        (script
         (if-not (~lib/user-exists? "user1")
           (~lib/create-user "user1" {:shell "/bin/bash"})))
-       (user* {} "user1" :action :create :shell :bash))))
+       (user* "user1" :action :create :shell :bash))))
 
 (deftest user*-modify-test
   (is (script-no-comment=
@@ -29,35 +29,35 @@
         (if (~lib/user-exists? "user1")
           ":"
           (~lib/create-user "user1" {})))
-       (user* {} "user1" :action :manage)))
+       (user* "user1" :action :manage)))
   (is (script-no-comment=
        (script
         (if (~lib/user-exists? "user1")
           (~lib/modify-user "user1" {:p "p"})
           (~lib/create-user "user1" {:p "p"})))
        (pallet.script/with-script-context [:fedora]
-         (user* {} "user1" :action :manage :password "p")))))
+         (user* "user1" :action :manage :password "p")))))
 
 (deftest user*-lock-test
   (is (script-no-comment=
        (script
         (if (~lib/user-exists? "user1")
           (~lib/lock-user "user1")))
-       (user* {} "user1" :action :lock))))
+       (user* "user1" :action :lock))))
 
 (deftest user*-unlock-test
   (is (script-no-comment=
        (script
         (if (~lib/user-exists? "user1")
           (~lib/unlock-user "user1")))
-       (user* {} "user1" :action :unlock))))
+       (user* "user1" :action :unlock))))
 
 (deftest user*-remove-test
   (is (script-no-comment=
        (script
         (if (~lib/user-exists? "user1")
           (~lib/remove-user "user1" {})))
-       (user* {} "user1" :action :remove))))
+       (user* "user1" :action :remove))))
 
 (deftest group-create-test
   (is (script-no-comment=

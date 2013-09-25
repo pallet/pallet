@@ -5,8 +5,7 @@
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :refer [debugf infof]]
    [pallet.actions
-    :refer [delete-local-path
-            directory
+    :refer [directory
             exec-checked-script
             exec-script
             exec-script*
@@ -56,7 +55,7 @@
                               (directory "/var/lib")
                               (remote-file "/var/lib/file"
                                            :local-file (.getPath f))
-                              (delete-local-path (.getPath f))))
+                              (.delete f)))
                :test (plan-fn
                        (let [u (:username (admin-user))]
                          (exec-script*
@@ -116,7 +115,7 @@
                             "/var/lib/x"
                             :unpack :unzip
                             :local-file (.getPath z))
-                           (delete-local-path (.getPath z)))
+                           (.delete z))
                :test (plan-fn
                       (exec-script*
                        (testing-script "remote-directory"
@@ -135,7 +134,7 @@
                             "fred"
                             :unpack :unzip
                             :local-file (.getPath z))
-                           (delete-local-path (.getPath z)))
+                           (.delete z))
                :test (plan-fn
                       (exec-script*
                        (testing-script "remote-directory"
@@ -159,7 +158,7 @@
                               (rsync-directory
                                (str (.getPath d) "/")
                                "some/path/")
-                              (delete-local-path (.getPath f))))
+                              (.delete f)))
                :test (plan-fn
                        (let [u (:username (admin-user))]
                          (exec-script*

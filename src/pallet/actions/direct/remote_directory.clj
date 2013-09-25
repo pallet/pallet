@@ -5,8 +5,8 @@
    [clojure.string :as string]
    [pallet.action :refer [action-fn implement-action]]
    [pallet.actions :refer [directory]]
-   [pallet.actions-impl
-    :refer [md5-filename new-filename]]
+   [pallet.actions-impl :refer [md5-filename new-filename]]
+   [pallet.action-options :refer [get-action-options]]
    [pallet.actions.decl
     :refer [checked-commands remote-directory-action remote-file-action]]
    [pallet.actions.direct.remote-file :refer [create-path-with-template]]
@@ -21,8 +21,9 @@
   remote-file* (action-fn remote-file-action :direct))
 
 (defn- source-to-cmd-and-path
-  [session path url local-file remote-file md5 md5-url
-   install-new-files overwrite-changes]
+  [path url local-file remote-file md5 md5-url
+   install-new-files overwrite-changes
+   new-path md5-path]
   (cond
    url (let [tarpath (str
                       (with-source-line-comments false
@@ -30,57 +31,61 @@
                       (.getName
                        (java.io.File. (.getFile (java.net.URL. url)))))]
          [(->
-           (remote-file* session tarpath
+           (remote-file* tarpath
                          {:url url :md5 md5 :md5-url md5-url
                           :install-new-files install-new-files
                           :overwrite-changes overwrite-changes})
-           first second)
+           second)
           tarpath])
-   local-file [""
-               (new-filename (-> session :action :script-dir) path)
-               (md5-filename (-> session :action :script-dir) path)]
+   local-file ["" new-path md5-path]
    remote-file ["" remote-file (str remote-file ".md5")]))
 
-(implement-action remote-directory-action :direct
-  {:action-type :script :location :target}
-  [session path {:keys [action url local-file remote-file
-                        unpack tar-options unzip-options jar-options
-                        strip-components md5 md5-url owner group recursive
-                        install-new-files overwrite-changes extract-files]
-                 :or {action :create
-                      tar-options "xz"
-                      unzip-options "-o"
-                      jar-options "xf"
-                      strip-components 1
-                      recursive true
-                      install-new-files true}
-                 :as options}]
-  [[{:language :bash}
-    (case action
-      :create (let [url (options :url)
-                    unpack (options :unpack :tar)
-                    options (if (and owner (not group))
-                              (assoc options
-                                :group (fragment @(user-default-group ~owner)))
-                              options)]
-                (when (and (or url local-file remote-file) unpack)
-                  (let [[cmd tarpath tar-md5] (source-to-cmd-and-path
-                                               session path
-                                               url local-file remote-file
-                                               md5 md5-url
-                                               install-new-files
-                                               overwrite-changes)
-                        tar-md5 (str tarpath ".md5")
-                        path-md5 (str path "/.pallet.directory.md5")
-                        extract-files (string/join \space extract-files)]
-                    (checked-commands
-                     "remote-directory"
-                     cmd
-                     (stevedore/script
-                      (when (or (not (file-exists? ~tar-md5))
-                                (or (not (file-exists? ~path-md5))
-                                    (not ("diff" ~tar-md5 ~path-md5))))
-                        ~(condp = unpack
+(implement-action
+    remote-directory-action :direct {:action-type :script :location :target}
+  [path {:keys [action url local-file remote-file
+                unpack tar-options unzip-options jar-options
+                strip-components md5 md5-url owner group recursive
+                install-new-files overwrite-changes extract-files]
+         :or {action :create
+              tar-options "xz"
+              unzip-options "-o"
+              jar-options "xf"
+              strip-components 1
+              recursive true
+              install-new-files true}
+         :as options}]
+  [{:language :bash}
+   (case action
+     :create (let [url (options :url)
+                   unpack (options :unpack :tar)
+                   options (if (and owner (not group))
+                             (assoc options
+                               :group (fragment @(user-default-group ~owner)))
+                             options)]
+               (when (and (or url local-file remote-file) unpack)
+                 (let [script-dir (:script-dir (get-action-options))
+                       [cmd tarpath tar-md5]
+                       (source-to-cmd-and-path
+                        path
+                        url local-file remote-file
+                        md5 md5-url
+                        install-new-files
+                        overwrite-changes
+                        (:pallet/new-path
+                         options (new-filename script-dir path))
+                        (:pallet/md5-path
+                         options (md5-filename script-dir path)))
+                       tar-md5 (str tarpath ".md5")
+                       path-md5 (str path "/.pallet.directory.md5")
+                       extract-files (string/join \space extract-files)]
+                   (checked-commands
+                    "remote-directory"
+                    cmd
+                    (stevedore/script
+                     (when (or (not (file-exists? ~tar-md5))
+                               (or (not (file-exists? ~path-md5))
+                                   (not ("diff" ~tar-md5 ~path-md5))))
+                       ~(condp = unpack
                           :tar (stevedore/checked-script
                                 (format "Untar %s" tarpath)
                                 (var rdf @("readlink" -f ~tarpath))
@@ -103,6 +108,5 @@
                                 ("cd" ~path)
                                 ("jar" ~jar-options @rdf ~extract-files)
                                 ("cd" -)))
-                        (when (file-exists? ~tar-md5)
-                          ("cp" ~tar-md5 ~path-md5)))))))))]
-   session])
+                       (when (file-exists? ~tar-md5)
+                         ("cp" ~tar-md5 ~path-md5)))))))))])

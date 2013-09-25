@@ -63,13 +63,21 @@
                     {:content "line 1\nline 2"
                      :install-new-files true
                      :overwrite-changes false
-                     :owner nil})
+                     :owner nil
+                     :proxy nil
+                     :pallet/new-path "/var/lib/pallet/home/duncan/p.new"
+                     :pallet/md5-path "/var/lib/pallet/home/duncan/p.md5"
+                     :pallet/copy-path "/var/lib/pallet/home/duncan/p"})
              :context nil
              :args ("p"
                     {:content "line 1\nline 2"
                      :install-new-files true
                      :overwrite-changes false
-                     :owner nil})
+                     :owner nil
+                     :proxy nil
+                     :pallet/new-path "/var/lib/pallet/home/duncan/p.new"
+                     :pallet/md5-path "/var/lib/pallet/home/duncan/p.md5"
+                     :pallet/copy-path "/var/lib/pallet/home/duncan/p"})
              ;; :action-symbol pallet.actions.decl/remote-file-action
              :action
              {:action-symbol pallet.actions.decl/remote-file-action

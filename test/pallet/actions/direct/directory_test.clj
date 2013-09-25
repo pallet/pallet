@@ -22,7 +22,7 @@
 (deftest directory*-test
   (is (script-no-comment=
        (stevedore/checked-commands "Directory file1" "mkdir -p file1")
-       (-> (directory* {} "file1") first second))))
+       (-> (directory* "file1") second))))
 
 (deftest directory-test
   (is (script-no-comment=

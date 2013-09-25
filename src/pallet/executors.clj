@@ -28,20 +28,20 @@
 (defn direct-script
   "Execute the direct action implementation, which returns script or other
   argument data, and metadata."
-  [session {:keys [args script-dir] :as action}]
+  [{:keys [args script-dir] :as action}]
   (let [{:keys [metadata f]} (implementation action :direct)
         {:keys [action-type location]} metadata
-        [script session] (apply f (assoc session :script-dir script-dir) args)]
+        script-vec (apply f args)]
     (logging/tracef "direct-script %s %s" f (vec args))
-    (logging/tracef "direct-script %s" script)
-    [script action-type location session]))
+    (logging/tracef "direct-script %s" script-vec)
+    [script-vec action-type location]))
 
 (defn default-executor
   "The standard direct executor for pallet. Target actions for localhost
    are executed via shell, rather than via ssh."
   [session action]
   (logging/debugf "default-executor")
-  (let [[script action-type location session] (direct-script session action)
+  (let [[script action-type location] (direct-script action)
         localhost? (fn [session]
                      (let [ip (-> session :server :node primary-ip)]
                        (#{"127.0.0.1"} ip)))]
@@ -69,7 +69,7 @@
 (defn force-target-via-ssh-executor
   "Direct executor where target actions are always over ssh."
   [session action]
-  (let [[script action-type location session] (direct-script session action)]
+  (let [[script action-type location] (direct-script action)]
     (logging/tracef "force-target-via-ssh-executor %s %s" action-type location)
     (logging/tracef "force-target-via-ssh-executor script %s" script)
     (case [action-type location]
@@ -90,7 +90,7 @@
 
 (defn bootstrap-executor
   [session action]
-  (let [[script action-type location session] (direct-script session action)]
+  (let [[script action-type location] (direct-script action)]
     (case [action-type location]
       [:script :target] (echo/echo-bash session script)
       (throw
@@ -103,7 +103,7 @@
 
 (defn echo-executor
   [session action]
-  (let [[script action-type location session] (direct-script session action)]
+  (let [[script action-type location] (direct-script action)]
     (logging/tracef
      "echo-executor %s %s %s" (:name action) action-type location)
     (case [action-type location]
@@ -127,7 +127,7 @@
   "Return an action's data."
   [session {:keys [action args blocks] :as action-m}]
   (let [action-symbol (:action-symbol action)
-        [script action-type session] (direct-script session action-m)
+        [script action-type] (direct-script action-m)
         ;; exec-action (session-exec-action session)
         ;; self-fn (fn [b session]
         ;;           (first (map-action-f exec-action b session)))

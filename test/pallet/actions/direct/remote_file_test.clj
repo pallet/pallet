@@ -8,7 +8,9 @@
    [pallet.action :as action]
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions
-    :refer [exec-script
+    :refer [exec-checked-script
+            exec-script
+            exec-script*
             remote-file
             remote-file-content
             transfer-file-to-local
@@ -17,7 +19,7 @@
    [pallet.actions.decl :refer [remote-file-action]]
    [pallet.actions.direct.remote-file :refer [create-path-with-template]]
    [pallet.api :refer [group-spec lift plan-fn with-admin-user]]
-   [pallet.build-actions :as build-actions]
+   [pallet.build-actions :as build-actions :refer [build-script]]
    [pallet.common.logging.logutils :as logutils :refer [with-log-to-string]]
    [pallet.compute :refer [nodes]]
    [pallet.contracts :refer [*verify-contracts*]]
@@ -57,126 +59,143 @@
 
 (deftest remote-file*-test
   (is remote-file*)
-  (with-session {:environment {:user {:username "fred"}}}
+  (let [session {:environment {:user {:username "fred"}}}]
     (testing "url"
       (is (script-no-comment=
-           (stevedore/checked-commands
-            "remote-file path"
-            (stevedore/chained-script
-             ~(create-path-with-template
-               "path"
-               (str
-                "/var/lib/pallet" "/home/fred" "/path.new"))
-             (lib/download-file "http://a.com/b" (new-filename nil "path"))
-             (if (file-exists? (new-filename nil "path"))
-               (do
-                 (lib/cp
-                  (new-filename nil "path")
-                  (copy-filename nil "path")
-                  :force true)
-                 (lib/mv (new-filename nil "path") path :force true)))))
-           (->
-            (remote-file*
-             {} "path"
-             {:url "http://a.com/b" :no-versioning true
-              :install-new-files true})
-            first second))))
+           (build-script session
+             (exec-checked-script
+              "remote-file path"
+              ~(stevedore/chained-script
+                ~(create-path-with-template
+                  "path"
+                  (str
+                   "/var/lib/pallet" "/home/fred" "/path.new"))
+                (lib/download-file "http://a.com/b" (new-filename nil "path"))
+                (if (file-exists? (new-filename nil "path"))
+                  (do
+                    (lib/cp
+                     (new-filename nil "path")
+                     (copy-filename nil "path")
+                     :force true)
+                    (lib/mv (new-filename nil "path") path :force true))))))
+           (build-script session
+             (exec-script*
+              (->
+               (remote-file*
+                "path"
+                {:url "http://a.com/b" :no-versioning true
+                 :install-new-files true})
+               second))))))
     (testing "url with proxy"
       (is (script-no-comment=
-           (stevedore/checked-commands
-            "remote-file path"
-            (stevedore/chained-script
-             ~(create-path-with-template
-               "path"
-               (str
-                "/var/lib/pallet" "/home/fred" "/path.new"))
-             (lib/download-file
-              "http://a.com/b" (new-filename nil "path") :proxy "http://proxy/")
-             (if (file-exists? (new-filename nil "path"))
-               (do
-                 (lib/cp
-                  (new-filename nil "path")
-                  (copy-filename nil "path")
-                  :force true)
-                 (lib/mv (new-filename nil "path") path :force true)))))
-           (->
-            (remote-file*
-             {:environment {:proxy "http://proxy/"}}
-             "path" {:url "http://a.com/b" :no-versioning true
-                     :install-new-files true})
-            first second))))
+           (build-script session
+             (exec-checked-script
+              "remote-file path"
+              ~(stevedore/chained-script
+                ~(create-path-with-template
+                  "path"
+                  (str
+                   "/var/lib/pallet" "/home/fred" "/path.new"))
+                (lib/download-file
+                 "http://a.com/b"
+                 (new-filename nil "path")
+                 :proxy "http://proxy/")
+                (if (file-exists? (new-filename nil "path"))
+                  (do
+                    (lib/cp
+                     (new-filename nil "path")
+                     (copy-filename nil "path")
+                     :force true)
+                    (lib/mv (new-filename nil "path") path :force true))))))
+           (build-script
+               (assoc-in session [:environment :proxy] "http://proxy/")
+             (remote-file
+              "path" :url "http://a.com/b" :no-versioning true)))))
 
     (testing "no-versioning"
       (is (script-no-comment=
-           (stevedore/checked-commands
-            "remote-file path"
-            (create-path-with-template
-             "path"
-             (str "/var/lib/pallet" "/home/fred" "/path.new"))
-            (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
-            (stevedore/chained-script
-             (if (file-exists? (new-filename nil "path"))
-               (do
-                 (lib/cp
-                  (new-filename nil "path")
-                  (copy-filename nil "path")
-                  :force true)
-                 (lib/mv (new-filename nil "path") path :force true)))))
-           (->
-            (remote-file* {} "path" {:content "xxx" :no-versioning true
+           (build-script session
+             (exec-checked-script
+              "remote-file path"
+              ~(create-path-with-template
+                "path"
+                (str "/var/lib/pallet" "/home/fred" "/path.new"))
+              ~(stevedore/script
+                (~lib/heredoc (new-filename nil "path") "xxx" {}))
+              ~(stevedore/chained-script
+                (if (file-exists? (new-filename nil "path"))
+                  (do
+                    (lib/cp
+                     (new-filename nil "path")
+                     (copy-filename nil "path")
+                     :force true)
+                    (lib/mv (new-filename nil "path") path :force true))))))
+           (build-script session
+             (exec-script*
+              (->
+               (remote-file* "path" {:content "xxx" :no-versioning true
                                      :install-new-files true})
-            first second))))
+               second))))))
 
     (testing "no-versioning with owner, group and mode"
       (is (script-no-comment=
-           (stevedore/checked-commands
-            "remote-file path"
-            (create-path-with-template
-             "path"
-             (str "/var/lib/pallet" "/home/fred" "/path.new"))
-            (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
-            (stevedore/chained-script
-             (if (file-exists? (new-filename nil "path"))
-               (do
-                 (lib/cp
-                  (new-filename nil "path")
-                  (copy-filename nil "path")
-                  :force true)
-                 (lib/mv (new-filename nil "path") "path" :force true)))
-             (~lib/chown "o" "path")
-             (~lib/chgrp "g" "path")
-             (~lib/chmod "m" "path")))
-           (->
-            (remote-file*
-             {} "path" {:content "xxx" :owner "o" :group "g" :mode "m"
+           (build-script session
+             (exec-checked-script
+              "remote-file path"
+              ~(create-path-with-template
+                "path"
+                (str "/var/lib/pallet" "/home/fred" "/path.new"))
+              ~(stevedore/script
+                (~lib/heredoc (new-filename nil "path") "xxx" {}))
+              ~(stevedore/chained-script
+                (if (file-exists? (new-filename nil "path"))
+                  (do
+                    (lib/cp
+                     (new-filename nil "path")
+                     (copy-filename nil "path")
+                     :force true)
+                    (lib/mv (new-filename nil "path") "path" :force true)))
+                (~lib/chown "o" "path")
+                (~lib/chgrp "g" "path")
+                (~lib/chmod "m" "path"))))
+           (build-script session
+             (exec-script*
+              (->
+               (remote-file*
+                "path" {:content "xxx" :owner "o" :group "g" :mode "m"
                         :no-versioning true :install-new-files true})
-            first second))))
+               second))))))
 
     (testing "delete"
       (is (script-no-comment=
-           (stevedore/checked-script
-            "delete remote-file path"
-            ("rm" "--force" "path"))
-           (->
-            (remote-file* {} "path" {:action :delete :force true})
-            first second))))
-    (script/with-script-context [:ubuntu]
-      (is (script-no-comment=
-           (stevedore/checked-script
+           (build-script {}
+             (exec-checked-script
+              "delete remote-file path"
+              ("rm" "--force" "path")))
+           (build-script {}
+             (exec-script*
+              (->
+               (remote-file* "path" {:action :delete :force true})
+               second))))))
+    (is (script-no-comment=
+         (build-script session
+           (exec-checked-script
             "remote-file path"
             ~(create-path-with-template
               "path"
               (str "/var/lib/pallet" "/home/fred" "/path.new"))
-            (lib/heredoc (new-filename nil "path") "a 1\n" {}))
-           (->
-            (remote-file*
-             (test-session
-              {:server {:node (make-node "n" :group-name "n")}}
-              {:group {:group-name :n :image {:os-family :ubuntu}}})
-             "path"
-             {:template "template/strint" :values {'a 1}
-              :no-versioning true :install-new-files nil})
-            first second))))))
+            (lib/heredoc (new-filename nil "path") "a 1\n" {})))
+         (build-script (test-session
+                        session
+                        {:server {:node (make-node "n" :group-name "n")}}
+                        {:group {:group-name :n :image {:os-family :ubuntu}}})
+           (exec-script*
+            (->
+             (remote-file*
+              "path"
+              {:template "template/strint" :values {'a 1}
+               :no-versioning true :install-new-files nil})
+             second)))))))
 
 (deftest remote-file-test
   (with-admin-user

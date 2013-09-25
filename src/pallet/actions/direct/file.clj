@@ -38,10 +38,10 @@
 
 (implement-action file :direct
   {:action-type :script :location :target}
-  [session path & {:keys [action owner group mode force]
-                   :or {action :create force true}
-                   :as options}]
-  [[{:language :bash}
+  [path & {:keys [action owner group mode force]
+           :or {action :create force true}
+           :as options}]
+  [{:language :bash}
     (case action
       :delete (checked-script
                (str "delete file " path)
@@ -50,49 +50,45 @@
                (str "file " path)
                (touch-file path options))
       :touch (checked-commands
-              (str "file " path)
-              (touch-file path options)))]
-   session])
+             (str "file " path)
+             (touch-file path options)))])
 
 (implement-action symbolic-link :direct
   {:action-type :script :location :target}
-  [session from name & {:keys [action owner group mode force]
+  [from name & {:keys [action owner group mode force]
                         :or {action :create force true}}]
-  [[{:language :bash}
-    (case action
-      :delete (checked-script
-               (str "Link %s " name)
-               (~lib/rm ~name :force ~force))
-      :create (checked-script
-               (format "Link %s as %s" from name)
-               (~lib/ln ~from ~name :force ~force :symbolic ~true)))]
-   session])
+  [{:language :bash}
+   (case action
+     :delete (checked-script
+              (str "Link %s " name)
+              (~lib/rm ~name :force ~force))
+     :create (checked-script
+              (format "Link %s as %s" from name)
+              (~lib/ln ~from ~name :force ~force :symbolic ~true)))])
 
 (implement-action fifo :direct
   {:action-type :script :location :target}
-  [session path & {:keys [action owner group mode force]
-                   :or {action :create} :as options}]
-  [[{:language :bash}
-    (case action
-      :delete (checked-script
-               (str "fifo " path)
-               (~lib/rm ~path :force ~force))
-      :create (checked-commands
-               (str "fifo " path)
-               (stevedore/script
-                (if-not (file-exists? ~path)
-                  ("mkfifo" ~path)))
-               (adjust-file path options)))]
-   session])
+  [path & {:keys [action owner group mode force]
+           :or {action :create} :as options}]
+  [{:language :bash}
+   (case action
+     :delete (checked-script
+              (str "fifo " path)
+              (~lib/rm ~path :force ~force))
+     :create (checked-commands
+              (str "fifo " path)
+              (stevedore/script
+               (if-not (file-exists? ~path)
+                 ("mkfifo" ~path)))
+              (adjust-file path options)))])
 
 (implement-action sed :direct
   {:action-type :script :location :target}
-  [session path exprs-map
+  [path exprs-map
    & {:keys [seperator no-md5 restriction] :as options}]
-  [[{:language :bash}
-    (checked-script
-     (format "sed file %s" path)
-     (~lib/sed-file ~path ~exprs-map ~options)
-     ~(when-not no-md5
-        (write-md5-for-file path (str path ".md5"))))]
-   session])
+  [{:language :bash}
+   (checked-script
+    (format "sed file %s" path)
+    (~lib/sed-file ~path ~exprs-map ~options)
+    ~(when-not no-md5
+       (write-md5-for-file path (str path ".md5"))))])

@@ -121,6 +121,17 @@
      {:pre [(or (nil? session#) (map? session#))]}
      (build-actions* (plan-fn ~@body) session#)))
 
+(defmacro build-script
+  "Outputs the remote actions specified in the body for the specified phases.
+   This is useful in testing.
+
+   `session` should be a map (but was historically a vector of keyword
+   pairs).  See `build-session`."
+  [session & body]
+  `(let [session# ~session]
+     {:pre [(or (nil? session#) (map? session#))]}
+     (first (build-actions* (plan-fn ~@body) session#))))
+
 (defmacro let-actions
   "Outputs the remote actions specified in the body for the specified phases.
    This is useful in testing.
@@ -144,5 +155,6 @@
 
 ;; Local Variables:
 ;; mode: clojure
-;; eval: (define-clojure-indent (build-actions 1)(let-actions 1))
+;; eval: (define-clojure-indent (build-actions 1)(build-script 1))
+;; eval: (define-clojure-indent (let-actions 1))
 ;; End:
