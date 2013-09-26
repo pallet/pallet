@@ -3,9 +3,8 @@
   (:require
    [clojure.tools.logging :as logging]
    [pallet.core.api :as api]
-   [pallet.core.primitives :as primitives]
-   [pallet.node :refer [node-map]]
-   [pallet.operation :refer [status!]]))
+   [pallet.core.primitives :as primitives :refer [status!]]
+   [pallet.node :refer [node-map]]))
 
 (defn node-count-adjuster
   "Adjusts node counts. Groups are expected to have node counts on them."

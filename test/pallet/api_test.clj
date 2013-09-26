@@ -1,5 +1,6 @@
 (ns pallet.api-test
   (:require
+   [clojure.core.async :refer [<!! alts!! chan timeout]]
    [clojure.test :refer :all]
    [pallet.actions :refer [exec-script]]
    [pallet.api
@@ -16,7 +17,7 @@
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :refer [nodes]]
    [pallet.compute.node-list :refer [node-list-service]]
-   [pallet.core.primitives :refer [default-phase-meta]]
+   [pallet.core.primitives :refer [async-operation default-phase-meta]]
    [pallet.core.session :refer [session session! with-session]]
    [pallet.core.user :refer [default-private-key-path default-public-key-path]]
    [pallet.environment :refer [get-environment]]
@@ -75,6 +76,44 @@
                   :phases {:p (plan-fn (exec-script "ls /"))})
           op (lift [group] :phase :p :compute compute :async true)]
       (is op)
+      (is @op)
+      (some
+       (partial re-find #"/bin")
+       (->> (mapcat :results @op) (mapcat :out)))))
+  (testing "lift on group with explicit status-chan"
+    (let [compute (make-localhost-compute)
+          channel (chan)
+          group (group-spec
+                    (group-name (first (nodes compute)))
+                  :phases {:p (plan-fn
+                               (exec-script
+                                (println
+                                 "lift on group with explicit status-chan")
+                                ("ls /")))})
+          op (lift [group] :phase :p :compute compute
+                   :status-chan channel :async true)
+          t (timeout 10000)]
+      (is op)
+      (is (first (alts!! [channel t])))
+      (loop [v (alts!! [channel t])]
+        (when (first v) (recur (alts!! [channel t]))))
+      (is @op)
+      (some
+       (partial re-find #"/bin")
+       (->> (mapcat :results @op) (mapcat :out)))))
+  (testing "lift on group with explicit operation"
+    (let [compute (make-localhost-compute)
+          operation (async-operation {})
+          group (group-spec
+                    (group-name (first (nodes compute)))
+                  :phases {:p (plan-fn
+                               (exec-script
+                                (println
+                                 "lift on group with explicit operation")
+                                ("ls /")))})
+          op (lift [group] :phase :p :compute compute
+                   :operation operation :async true)]
+      (is (= op operation))
       (is @op)
       (some
        (partial re-find #"/bin")

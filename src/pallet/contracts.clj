@@ -15,7 +15,8 @@
    [clojure.string :refer [join]]
    [clojure.tools.logging :refer [tracef errorf]]
    [pallet.blobstore :refer [blobstore?]]
-   [pallet.compute :refer [compute-service?]])
+   [pallet.compute :refer [compute-service?]]
+   [pallet.core.protocols :refer [channel? operation?]])
   (:import clojure.lang.IFn
            clojure.lang.Keyword))
 
@@ -144,6 +145,8 @@
    (optional-path [:user]) user-schema
    (optional-path [:phase-execution-f]) IFn
    (optional-path [:execution-settings-f]) IFn
+   (optional-path [:operation]) operation?
+   (optional-path [:status-chan]) channel?
    (optional-path [:partition-f]) IFn
    (optional-path [:post-phase-f]) IFn
    (optional-path [:post-phase-fsm]) IFn
