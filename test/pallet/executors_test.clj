@@ -55,39 +55,46 @@
                first
                (dissoc :action-id)))))
   (testing "summary"
-    (is (= '{:sudo-user nil
-             :script-prefix :sudo
-             :action-type :script
-             :form (pallet.actions.decl/remote-file-action
-                    "p"
-                    {:content "line 1\nline 2"
-                     :install-new-files true
-                     :overwrite-changes false
-                     :owner nil
-                     :proxy nil
-                     :pallet/new-path "/var/lib/pallet/home/duncan/p.new"
-                     :pallet/md5-path "/var/lib/pallet/home/duncan/p.md5"
-                     :pallet/copy-path "/var/lib/pallet/home/duncan/p"})
-             :context nil
-             :args ("p"
-                    {:content "line 1\nline 2"
-                     :install-new-files true
-                     :overwrite-changes false
-                     :owner nil
-                     :proxy nil
-                     :pallet/new-path "/var/lib/pallet/home/duncan/p.new"
-                     :pallet/md5-path "/var/lib/pallet/home/duncan/p.md5"
-                     :pallet/copy-path "/var/lib/pallet/home/duncan/p"})
-             ;; :action-symbol pallet.actions.decl/remote-file-action
-             :action
-             {:action-symbol pallet.actions.decl/remote-file-action
-              :execution :in-sequence
-              :precedence {}}
-             :summary "remote-file p :content \"line 1...\""}
-           (-> (plan-data-fn (plan-fn
-                              (remote-file "p" :content "line 1\nline 2")))
-               first
-               (dissoc :action-id :script))))))
+    (let [user (System/getProperty "user.name")]
+      (is (= {:sudo-user nil
+              :script-prefix :sudo
+              :action-type :script
+              :form `(pallet.actions.decl/remote-file-action
+                      "p"
+                      {:content "line 1\nline 2"
+                       :install-new-files true
+                       :overwrite-changes false
+                       :owner nil
+                       :proxy nil
+                       :pallet/new-path
+                       ~(str "/var/lib/pallet/home/" user "/p.new")
+                       :pallet/md5-path
+                       ~(str "/var/lib/pallet/home/" user "/p.md5")
+                       :pallet/copy-path
+                       ~(str "/var/lib/pallet/home/" user "/p")})
+              :context nil
+              :args `("p"
+                      {:content "line 1\nline 2"
+                       :install-new-files true
+                       :overwrite-changes false
+                       :owner nil
+                       :proxy nil
+                       :pallet/new-path
+                       ~(str "/var/lib/pallet/home/" user "/p.new")
+                       :pallet/md5-path
+                       ~(str "/var/lib/pallet/home/" user "/p.md5")
+                       :pallet/copy-path
+                       ~(str "/var/lib/pallet/home/" user "/p")})
+              ;; :action-symbol pallet.actions.decl/remote-file-action
+              :action
+              {:action-symbol 'pallet.actions.decl/remote-file-action
+               :execution :in-sequence
+               :precedence {}}
+              :summary "remote-file p :content \"line 1...\""}
+             (-> (plan-data-fn (plan-fn
+                                (remote-file "p" :content "line 1\nline 2")))
+                 first
+                 (dissoc :action-id :script)))))))
 
 (defn echo-fn [f]
   (let [compute (make-localhost-compute :group-name "local")
