@@ -225,7 +225,7 @@
   (let [counts (counts specs)
         op
         (converge
-         (async-operation)
+         (async-operation {})
          service
          counts
          (service-state service counts)

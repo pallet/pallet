@@ -4,11 +4,12 @@
    [clojure.tools.logging :as logging]
    [pallet.core.api :as api]
    [pallet.core.primitives :as primitives]
-   [pallet.node :refer [node-map]]))
+   [pallet.node :refer [node-map]]
+   [pallet.operation :refer [status!]]))
 
 (defn node-count-adjuster
   "Adjusts node counts. Groups are expected to have node counts on them."
-  [{:keys [op status! value!] :as operation}
+  [operation
    compute-service groups service-state plan-state environment targets
    execution-settings-f]
   {:pre [compute-service]}
@@ -24,24 +25,24 @@
                                :destroy-server
                                (mapcat :nodes (vals nodes-to-remove))
                                execution-settings-f)
-        _ (status! :node-count-adjuster/destroy-server-phase-run)
+        _ (status! operation :node-count-adjuster/destroy-server-phase-run)
         _ (primitives/remove-group-nodes compute-service nodes-to-remove)
-        _ (status! :node-count-adjuster/nodes-removed)
+        _ (status! operation :node-count-adjuster/nodes-removed)
         [results2 plan-state] (primitives/execute-phase
                                targets plan-state environment
                                :destroy-group
                                (api/groups-to-remove group-deltas)
                                execution-settings-f)
-        _ (status! :node-count-adjuster/destroy-group-run)
+        _ (status! operation :node-count-adjuster/destroy-group-run)
         [results3 plan-state] (primitives/execute-phase
                                targets plan-state environment
                                :create-group
                                (api/groups-to-create group-deltas)
                                execution-settings-f)
-        _ (status! :node-count-adjuster/create-group-run)
+        _ (status! operation :node-count-adjuster/create-group-run)
         new-nodes (primitives/create-group-nodes
                    compute-service environment nodes-to-add)
-        _ (status! :node-count-adjuster/nodes-created)]
+        _ (status! operation :node-count-adjuster/nodes-created)]
     {:new-nodes new-nodes
      :old-nodes old-nodes
      :targets (->> targets
@@ -55,9 +56,9 @@
 
 ;;; ## Top level operations
 (defn group-nodes
-  [{:keys [op status! value!] :as operation} compute groups]
+  [operation compute groups]
   (let [service-state (api/service-state compute groups)]
-    (status! :pallet.operations/group-nodes-run)
+    (status! operation :pallet.operations/group-nodes-run)
     service-state))
 
 (def ^{:doc "A sequence of keywords, listing the lift-options"}

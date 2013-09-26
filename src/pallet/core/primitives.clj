@@ -1,17 +1,26 @@
 (ns pallet.core.primitives
   "Base operation primitives for pallet."
   (:require
-   [clojure.core.async :as async :refer [alt!! alts!! chan go thread timeout]]
+   [clojure.core.async :as async
+    :refer [>!! alt!! alts!! chan go sliding-buffer thread timeout]]
    [clojure.tools.logging :as logging]
    [pallet.core.api :as api]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.node :refer [id]]
-   [pallet.operation :refer [Status]]))
+   [pallet.operation :refer [Status StatusUpdate DeliverValue status! value!]]))
 
 (deftype AsyncOperation
-    [status completed-promise]
+    [status status-chan completed-promise]
   Status
   (status [_] @status)
+  StatusUpdate
+  (status! [_ v]
+    (>!! status-chan v)
+    (swap! status conj v))
+  DeliverValue
+  (value! [_ v]
+    (>!! status-chan {:op :completed :value v})
+    (deliver completed-promise v))
   clojure.lang.IDeref
   (deref [op] (deref completed-promise))
   clojure.lang.IBlockingDeref
@@ -23,12 +32,10 @@
 (defn async-operation
   "Return a map with an operation, a status update function, and a return value
 update function."
-  []
+  [{:keys [status-chan] :or {status-chan (chan (sliding-buffer 100))}}]
   (let [status (atom [])
         p (promise)]
-    {:op (AsyncOperation. status p)
-     :status! #(swap! status conj %)
-     :value! #(deliver p %)}))
+    (AsyncOperation. status status-chan p)))
 
 (defn exec-operation
   "Execute a function using an operation.
@@ -37,18 +44,21 @@ The function must accept a single operation argument.
 
 Depending on the flags returns an operation value and executes asynchronously,
 or executes synchronously with an optional timeout."
-  [f {:keys [async timeout-ms timeout-val] :as options}]
-  (let [{:keys [value! op] :as operation} (async-operation)]
+  [f {:keys [async operation status-chan timeout-ms timeout-val]
+      :as options}]
+  (let [operation (or operation
+                      (async-operation (select-keys options [:status-chan])))]
     (if async
       (do (go
            (try
-             (value! (f operation))
-             (catch Error e
+             (value! operation (f operation))
+             (catch Throwable e
                (logging/errorf e "Error in asynch op")
-               (clojure.stacktrace/print-cause-trace e))))
-          op)
+               (clojure.stacktrace/print-cause-trace e)
+               (value! operation e))))
+          operation)
       (if timeout-ms
-        (deref (do (f operation) op) timeout-ms timeout-val)
+        (deref (do (f operation) operation) timeout-ms timeout-val)
         (f operation)))))
 
 (defn map-async

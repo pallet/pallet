@@ -205,19 +205,19 @@
 (defn ops-test-plan
   [compute groups]
   ;; Run settings on all the nodes to get settings
-  (let [nodes (ops/group-nodes (async-operation) compute groups)
-        {:keys [plan-state]} (ops/lift (async-operation) nodes [:settings] {} {} {})]
+  (let [nodes (ops/group-nodes (async-operation {}) compute groups)
+        {:keys [plan-state]} (ops/lift (async-operation {}) nodes [:settings] {} {} {})]
     (assert (= 2 (count nodes)) "Incorrect node count")
     (assert (every? #(ps/get-settings plan-state (id (:node %)) :ops {}) nodes)
             "Has hostname in :ops settings for each node")
     ;; set the tag on the first node
-    (ops/lift (async-operation) [(first nodes)] [:tag] {} plan-state {})
+    (ops/lift (async-operation {}) [(first nodes)] [:tag] {} plan-state {})
     (assert (not (blank? (tag (:node (first nodes)) "hostname")))
             "first node has tag")
     (assert (blank? (tag (:node (second nodes)) "hostname"))
             "second node has no tag")
     ;; set the tag on the second node
-    (ops/lift (async-operation) [(second nodes)] [:tag] {} plan-state {})
+    (ops/lift (async-operation {}) [(second nodes)] [:tag] {} plan-state {})
     (assert (not (blank? (tag (:node (first nodes)) "hostname")))
             "first node has tag")
     (assert (not (blank? (tag (:node (second nodes)) "hostname")))

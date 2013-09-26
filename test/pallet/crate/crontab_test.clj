@@ -84,7 +84,7 @@
                         v))}}
           [with-automated-admin-user
           with-crontab])}
-        (let [op (async-operation)
+        (let [op (async-operation {})
               res (lift
                    op
                    [(:crontab node-types)] nil [:verify] compute

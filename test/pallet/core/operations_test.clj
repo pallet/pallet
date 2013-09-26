@@ -50,7 +50,7 @@
             group (group-spec
                       (group-name (first (nodes compute)))
                     :phases {:p (plan-fn (exec-script "ls /"))})
-            operation (async-operation)
+            operation (async-operation {})
             node-set (group-nodes operation compute [group])
             op (lift operation node-set ps env [:p] {})
             {:keys [plan-state results targets]} op]
@@ -70,7 +70,7 @@
                              :p2 (plan-fn
                                   (localf)
                                   (exec-script "ls /"))})
-            operation (async-operation)
+            operation (async-operation {})
             node-set (group-nodes operation compute [group])
             op (lift operation node-set ps env [:p :p2] {})
             {:keys [plan-state results targets]} op]
@@ -94,7 +94,7 @@
                              :p2 (plan-fn
                                   (exec-script "ls /")
                                   (localf))})
-            operation (async-operation)
+            operation (async-operation {})
             node-set (group-nodes operation compute [group])
             op (lift operation node-set ps env [:p :p2] {})
             {:keys [plan-state results targets]} op]
