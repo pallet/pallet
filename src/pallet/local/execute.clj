@@ -58,7 +58,7 @@
         script (script-builder/build-script options value action)
         tmpfile (java.io.File/createTempFile "pallet" "script")]
     (try
-      (log-multiline :debug " (L) ==> %s"
+      (log-multiline :debug " localhost ==> %s"
                      (str " -----------------------------------------\n"
                           script
                           "\n------------------------------------------"))
@@ -71,7 +71,7 @@
           (logging/warnf
            "script-on-origin: Could not chmod script file: %s"
            (:out result))))
-      (logging/debugf "(L)   <== ----------------------------------------")
+      (logging/debugf "localhost <== ----------------------------------------")
       (let [cmd (build-code session action tmpfile)
             _ (logging/debugf "localhost %s" cmd)
             result (transport/exec
@@ -84,7 +84,8 @@
             (doseq [^String l (string/split-lines e)
                     :when (not (.startsWith l "#> "))] ; logged elsewhere
               (logging/warnf "localhost %s" l))))
-        (logging/debugf "(L)   <== ----------------------------------------")
+        (logging/debugf
+         "localhost <== ----------------------------------------")
         [(result-with-error-map "localhost" "Error executing script" result)
          session])
       (finally (.delete tmpfile)))))
