@@ -1,6 +1,7 @@
 (ns pallet.event
   "Pallet events. Provides ability to hook into pallet event stream."
   (:require
+   [clojure.core.async :refer [>!! chan]]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]))
 
@@ -45,6 +46,12 @@
     (when-let [ns (:ns m)] (format " [%s:%s]" ns (:line m))))))
 
 (add-publisher :log #'log-publisher)
+
+(defn async-publisher
+  "Return a publisher for pushing events onto a channel"
+  [channel]
+  (fn [m]
+    (>!! channel m)))
 
 (defn session-event
   "Session event publisher"
