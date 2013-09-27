@@ -560,7 +560,8 @@ the admin-user on the nodes.
   (exec-operation
    #(apply-map converge* % group-spec->count options)
    (select-keys
-    options [:async :operation :status-chan :timeout-ms :timeout-val])))
+    options [:async :operation :status-chan :close-status-chan?
+             :timeout-ms :timeout-val])))
 
 (defn lift*
   "Returns a FSM to lift the running nodes in the specified node-set by applying
@@ -709,7 +710,8 @@ the admin-user on the nodes.
   (exec-operation
    #(apply-map lift* % node-set options)
    (select-keys
-    options [:async :operation :status-chan :timeout-ms :timeout-val])))
+    options [:async :operation :status-chan :close-status-chan?
+             :timeout-ms :timeout-val])))
 
 (defn lift-nodes
   "Lift `targets`, a sequence of node-maps, using the specified `phases`.  This

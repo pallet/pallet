@@ -10,7 +10,7 @@
    [pallet.node :refer [id]]))
 
 (deftype AsyncOperation
-    [status status-chan completed-promise]
+    [status status-chan completed-promise close-status-chan?]
   Status
   (impl/status [_] @status)
   StatusUpdate
@@ -21,7 +21,8 @@
   (impl/value! [_ v]
     (>!! status-chan {:op :completed :value v})
     (deliver completed-promise v)
-    (close! status-chan))
+    (when close-status-chan?
+      (close! status-chan)))
   clojure.lang.IDeref
   (deref [op] (deref completed-promise))
   clojure.lang.IBlockingDeref
@@ -33,10 +34,12 @@
 (defn async-operation
   "Return a map with an operation, a status update function, and a return value
 update function."
-  [{:keys [status-chan] :or {status-chan (chan (sliding-buffer 100))}}]
+  [{:keys [close-status-chan? status-chan]
+    :or {status-chan (chan (sliding-buffer 100))
+         close-status-chan? true}}]
   (let [status (atom [])
         p (promise)]
-    (AsyncOperation. status status-chan p)))
+    (AsyncOperation. status status-chan p close-status-chan?)))
 
 (defn status
   "Return the status of an operation"

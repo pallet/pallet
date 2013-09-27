@@ -147,6 +147,7 @@
    (optional-path [:execution-settings-f]) IFn
    (optional-path [:operation]) operation?
    (optional-path [:status-chan]) channel?
+   (optional-path [:close-status-chan?]) wild
    (optional-path [:partition-f]) IFn
    (optional-path [:post-phase-f]) IFn
    (optional-path [:post-phase-fsm]) IFn
