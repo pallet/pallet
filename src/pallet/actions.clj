@@ -323,6 +323,7 @@ value is itself an action return value."
    (optional-path [:group]) String
    (optional-path [:mode]) [:or String Number]
    (optional-path [:force]) any-value
+   (optional-path [:link]) String
    (optional-path [:verify]) any-value])
 
 (defmacro check-remote-file-arguments
