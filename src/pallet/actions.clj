@@ -172,6 +172,7 @@
    (optional-path [:group]) String
    (optional-path [:mode]) [:or String Number]
    (optional-path [:force]) wild
+   (optional-path [:link]) String
    (optional-path [:verify]) wild])
 
 (defmacro check-remote-file-arguments
