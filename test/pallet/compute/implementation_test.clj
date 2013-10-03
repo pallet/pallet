@@ -4,4 +4,4 @@
    [pallet.compute.implementation :refer :all]))
 
 (deftest supported-providers-test
-  (is (= #{"node-list" "localhost" "hybrid"} (set (supported-providers)))))
+  (is (= #{:node-list :localhost :hybrid} (set (supported-providers)))))

@@ -75,7 +75,7 @@
                  (make-node "n2" "g1" "192.168.1.2" :linux)]
         g1 (group-spec :g1 :count 1)
         service (node-list-service [n1 n2])]
-    (is (= {g1 {:actual 2 :target 1 :delta -1}}
+    (is (= [[g1 {:actual 2 :target 1 :delta -1}]]
            (group-deltas (service-state service [g1]) [g1])))))
 
 (deftest nodes-to-remove-test

@@ -1,13 +1,20 @@
 (ns pallet.session.verify
   (:require
-   [pallet.common.context :refer [throw-map]]))
+   [clojure.core.typed :refer [ann]]
+   [pallet.common.context :refer [throw-map]]
+   [pallet.core.types :refer [Keyword Session]]))
 
+(ann session-verification-key Keyword)
 (def session-verification-key :pallet.phase/session-verification)
 
+;; TODO remove :no-check when core.typed can handle assoc
+(ann ^:no-check add-session-verification-key [Session -> Session])
 (defn add-session-verification-key
   [session]
   (assoc session session-verification-key true))
 
+(ann check-session (Fn [Session -> Session]
+                       [Session Any -> Session]))
 (defn check-session
   "Function that can check a session map to ensure it is a valid part of
    phase definition. It returns the session map.
@@ -17,7 +24,8 @@
    function in the phase definition."
   ([session]
      ;; we do not use a precondition in order to improve the error message
-     (when-not (and session (map? session) (session-verification-key session))
+     (when-not (and session (map? session)
+                    (get session session-verification-key))
        (throw-map
         "Invalid session map in phase. Check for non crate functions
       improper crate functions, or problems in threading the session map
@@ -32,7 +40,8 @@
      session)
   ([session form]
      ;; we do not use a precondition in order to improve the error message
-     (when-not (and session (map? session) (session-verification-key session))
+     (when-not (and session (map? session)
+                    (get session session-verification-key))
        (throw-map
         (format
          (str

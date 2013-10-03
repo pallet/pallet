@@ -14,31 +14,31 @@
 (deftest make-node-test
   (let [nl (atom nil)]
     (is (= (pallet.compute.node_list.Node.
-            "n" "t" "1.2.3.4" :ubuntu "10.2" "n-1-2-3-4" 22 "4.3.2.1" false true
+            "n" :t "1.2.3.4" :ubuntu "10.2" "n-1-2-3-4" 22 "4.3.2.1" false true
             nl {:ram 512} {:host "h"} {:username "u"})
            (node-list/make-node
-            "n" "t" "1.2.3.4" :ubuntu :private-ip "4.3.2.1" :is-64bit false
+            "n" :t "1.2.3.4" :ubuntu :private-ip "4.3.2.1" :is-64bit false
             :os-version "10.2" :service nl :hardware {:ram 512}
             :proxy {:host "h"} :image-user {:username "u"})))))
 
 (deftest service-test
   (is (instance?
-       pallet.compute.ComputeService
-       (compute/instantiate-provider "node-list" :node-list [])))
+       pallet.core.protocols.ComputeService
+       (compute/instantiate-provider :node-list :node-list [])))
   (is (instance?
        pallet.compute.node_list.NodeList
-       (compute/instantiate-provider "node-list" :node-list []))))
+       (compute/instantiate-provider :node-list :node-list []))))
 
 (deftest nodes-test
-  (let [node (node-list/make-node "n" "t" "1.2.3.4" :ubuntu)
-        node-list (compute/instantiate-provider "node-list" :node-list [node])]
+  (let [node (node-list/make-node "n" :t "1.2.3.4" :ubuntu)
+        node-list (compute/instantiate-provider :node-list :node-list [node])]
     (is (= [(assoc node :service node-list)] (compute/nodes node-list)))
     (is (instance? pallet.compute.node_list.Node
                    (first (compute/nodes node-list))))))
 
 (deftest tags-test
-  (let [node (node-list/make-node "n" "t" "1.2.3.4" :ubuntu)
-        node-list (compute/instantiate-provider "node-list" :node-list [node])
+  (let [node (node-list/make-node "n" :t "1.2.3.4" :ubuntu)
+        node-list (compute/instantiate-provider :node-list :node-list [node])
         node (first (compute/nodes node-list))]
     (is (= node-list (node/compute-service node)))
     (is (nil? (node/tag node "some-tag")))
@@ -50,7 +50,7 @@
 
 (deftest close-test
   (is (nil? (compute/close
-             (compute/instantiate-provider "node-list" :node-list [])))))
+             (compute/instantiate-provider :node-list :node-list [])))))
 
 (deftest make-localhost-node-test
   (let [node (node-list/make-localhost-node)]

@@ -1,25 +1,53 @@
 (ns pallet.core.user
   "User for authentication."
   (:require
+   [clojure.core.typed :refer [ann ann-record Nilable]]
+   [pallet.core.types :refer []]
    [pallet.utils :refer [maybe-update-in obfuscate]]))
 
+(ann default-private-key-path [-> String])
 (defn default-private-key-path
   "Return the default private key path."
   []
   (str (System/getProperty "user.home") "/.ssh/id_rsa"))
 
+(ann default-public-key-path [-> String])
 (defn default-public-key-path
   "Return the default public key path"
   []
   (str (System/getProperty "user.home") "/.ssh/id_rsa.pub"))
 
+(ann-record User [username :- String
+                  public-key-path :- (Nilable String)
+                  private-key-path :- (Nilable String)
+                  public-key :- (Nilable String)
+                  private-key :- (Nilable String)
+                  passphrase :- (Nilable String)
+                  password :- (Nilable String)
+                  sudo-password :- (Nilable String)
+                  no-sudo :- (Nilable boolean)
+                  sudo-user :- (Nilable String)])
 (defrecord User
     [username public-key-path private-key-path public-key private-key
      passphrase password sudo-password no-sudo sudo-user])
 
+(ann user? (predicate User))
 (defn user? [user]
   (instance? pallet.core.user.User user))
 
+;; TODO remove :no-check when core-type makes fields optional in map->
+(ann ^:no-check make-user
+     [String (HMap :optional
+                   {:public-key-path String
+                    :private-key-path String
+                    :public-key String
+                    :private-key String
+                    :passphrase String
+                    :password String
+                    :sudo-password String
+                    :no-sudo boolean
+                    :sudo-user String}
+                   :complete? true) -> User])
 (defn make-user
   "Creates a User record with the given username and options. Generally used
    in conjunction with *admin-user* and pallet.api/with-admin-user, or passed
@@ -60,6 +88,7 @@
              :as options}]
   (map->User (assoc options :username username)))
 
+(ann *admin-user* User)
 (def
   ^{:doc "The admin user is used for running remote admin commands that require
    root permissions.  The default admin user is taken from the
@@ -69,11 +98,14 @@
     :dynamic true}
   *admin-user*
   (make-user
-   (or (. System getProperty "pallet.admin.username")
-       (. System getProperty "user.name"))
+   (let [username (or (. System getProperty "pallet.admin.username")
+                      (. System getProperty "user.name"))]
+     (assert username)
+     username)
    {:private-key-path (default-private-key-path)
-     :public-key-path (default-public-key-path)}))
+    :public-key-path (default-public-key-path)}))
 
+(ann obfuscated-passwords [User -> User])
 (defn obfuscated-passwords
   "Return a user with obfuscated passwords"
   [user]

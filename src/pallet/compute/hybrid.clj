@@ -4,10 +4,11 @@
    [clojure.tools.logging :as logging]
    [pallet.compute.implementation :as implementation]
    [pallet.configure :as configure]
+   [pallet.core.protocols :as impl]
    [pallet.node :as node]))
 
 (defn supported-providers []
-  ["hybrid"])
+  [:hybrid])
 
 (defn- services
   "Return the service objects from the service map"
@@ -16,7 +17,7 @@
 
 (deftype HybridService
     [service-map dispatch environment]
-  pallet.compute/ComputeService
+  pallet.core.protocols/ComputeService
   (nodes [compute]
     (mapcat pallet.compute/nodes (services service-map)))
   (run-nodes [compute group-spec node-count user init-script options]
@@ -46,7 +47,7 @@
     (pallet.compute/destroy-node (node/compute-service node) node))
   (images [compute] (mapcat pallet.compute/images (services service-map)))
   (close [compute] (mapcat pallet.compute/close (services service-map)))
-  pallet.environment.Environment
+  pallet.core.protocols.Environment
   (environment [_]
     (apply merge (conj (map pallet.environment/environment
                                      (vals service-map))

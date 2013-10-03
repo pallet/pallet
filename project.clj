@@ -14,6 +14,7 @@ unprecedented level of customization."
 
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/core.incubator "0.1.0"]
+                 [org.clojure/core.typed "0.2.14-SNAPSHOT"]
                  [org.clojure/tools.logging "0.2.0"]
                  [org.clojure/tools.macro "0.1.1"]
                  [org.clojure/tools.cli "0.2.2"]
@@ -33,4 +34,5 @@ unprecedented level of customization."
                  [org.flatland/useful "0.10.3"]
                  [commons-codec "1.4"]]
   :classifiers {:tests {:source-paths ^:replace ["test"]
-                        :resource-paths ^:replace []}})
+                        :resource-paths ^:replace []}}
+  :core.typed {:check [pallet.core.api]})

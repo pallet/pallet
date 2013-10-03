@@ -1,11 +1,22 @@
 (ns pallet.compute
   "Abstraction of the compute interface"
   (:require
+   [clojure.core.typed
+    :refer [ann
+            AnyInteger Hierarchy Map Nilable NilableNonEmptySeq NonEmptySeqable
+            Seq]]
+   [pallet.core.type-annotations]
+   [pallet.core.protocols :as impl :refer [ComputeService Node]]
+   [pallet.core.types
+    :refer [GroupSpec GroupName Keyword ProviderIdentifier TargetMap
+            User]]
    [pallet.compute.implementation :as implementation]
    [pallet.core.version-dispatch :refer [version-map]]
+   [pallet.utils :refer [maybe-assoc]]
    [pallet.versions :refer [as-version-vector]]))
 
 ;;; Meta
+(ann supported-providers [-> (NilableNonEmptySeq ProviderIdentifier)])
 (defn supported-providers
   "Return a list of supported provider names.
 Each name is suitable to be passed to compute-service."
@@ -13,10 +24,14 @@ Each name is suitable to be passed to compute-service."
   (implementation/supported-providers))
 
 ;;; Compute Service instantiation
+(ann missing-provider-re java.util.regex.Pattern)
 (def ^:private
   missing-provider-re
   #"No method in multimethod 'service' for dispatch value: (.*)")
 
+(ann instantiate-provider
+     [ProviderIdentifier & :optional {:identity String :credential String}
+      -> pallet.core.protocols/ComputeService])
 (defn instantiate-provider
   "Instantiate a compute service. The provider name should be a recognised
 jclouds provider, \"node-list\", \"hybrid\", or \"localhost\". The other
@@ -37,9 +52,10 @@ Provider specific options may also be passed."
   (try
     (implementation/service provider-name options)
     (catch IllegalArgumentException e
-      (if-let [[_ provider] (re-find missing-provider-re (.getMessage e))]
+      (if-let [[_ provider] (if-let [msg (.getMessage e)]
+                              (re-find missing-provider-re msg))]
         (let [cause (cond
-                     (= provider ":vmfest")
+                     (= provider :vmfest)
                      "Possible missing dependency on pallet-vmfest."
                      (find-ns 'pallet.compute.jclouds)
                      "Possible missing dependency on a jclouds provider."
@@ -60,65 +76,84 @@ Provider specific options may also be passed."
 
 ;; However, the executor uses the session abstraction, so that would need
 ;; passing too
-(defprotocol ComputeService
-  (nodes [compute] "List nodes")
-  (run-nodes
-    [compute group-spec node-count user init-script options]
-    "Start node-count nodes for group-spec, executing an init-script
-     on each, using the specified user and options.")
-  (reboot [compute nodes]
-    "Reboot the specified nodes")
-  (boot-if-down
-   [compute nodes]
-   "Boot the specified nodes, if they are not running.")
-  (shutdown-node [compute node user] "Shutdown a node.")
-  (shutdown [compute nodes user] "Shutdown specified nodes")
-  (ensure-os-family
-   [compute group-spec]
-   "Called on startup of a new node to ensure group-spec has an os-family
-   attached to it.")
-  (destroy-nodes-in-group [compute group-name])
-  (destroy-node [compute node])
-  (images [compute])
-  (close [compute]))
+(ann nodes [ComputeService -> (Nilable (NonEmptySeqable Node))])
+(defn nodes [compute]
+  (impl/nodes compute))
 
+(ann run-nodes [ComputeService GroupSpec AnyInteger User (Nilable String)
+                (Map Any Any) -> (Nilable (NonEmptySeqable Node))])
+(defn run-nodes
+  "Start node-count nodes for group-spec, executing an init-script on
+  each, using the specified user and options."
+  [compute group-spec node-count user init-script options]
+  (impl/run-nodes compute group-spec node-count user init-script options))
+
+(ann reboot [ComputeService (Seq Node) -> nil])
+(defn reboot
+  "Reboot the specified nodes"
+  [compute nodes]
+  (impl/reboot compute nodes))
+
+(ann boot-if-down [ComputeService (Seq Node) -> nil])
+(defn boot-if-down
+  "Boot the specified nodes, if they are not running."
+  [compute nodes]
+  (impl/boot-if-down compute nodes))
+
+(ann shutdown-node [ComputeService Node User -> nil])
+(defn shutdown-node
+  "Shutdown a node."
+  [compute node user]
+  (impl/shutdown-node compute node user))
+
+(ann shutdown [ComputeService (Seq Node) User -> nil])
+(defn shutdown
+  "Shutdown specified nodes"
+  [compute nodes user]
+  (impl/shutdown compute nodes user))
+
+(ann ensure-os-family [ComputeService GroupSpec -> nil])
+(defn ensure-os-family
+ "Called on startup of a new node to ensure group-spec has an os-family
+   attached to it."
+ [compute group-spec]
+ (impl/ensure-os-family compute group-spec))
+
+(ann destroy-nodes-in-group [ComputeService GroupName -> nil])
+(defn destroy-nodes-in-group
+  [compute group-name]
+  (impl/destroy-nodes-in-group compute group-name))
+
+(ann destroy-node [ComputeService Node -> nil])
+(defn destroy-node
+  [compute node]
+  (impl/destroy-node compute node))
+
+(ann images [ComputeService -> (Seq Map)])
+(defn images [compute]
+  (impl/images compute))
+
+(ann close [ComputeService -> nil])
+(defn close [compute]
+  (impl/close compute))
+
+(ann ^:no-check compute-service? [Any -> boolean])
 (defn compute-service?
   "Predicate for the argument satisfying the ComputeService protocol."
   [c]
-  (satisfies? ComputeService c))
+  (satisfies? pallet.core.protocols/ComputeService c))
 
-(defprotocol ComputeServiceProperties
-  (service-properties [compute]
-    "Return a map of service details.  Contains a :provider key at a minimum.
-    May contain current credentials."))
-
-(defprotocol NodeTagReader
-  "Provides a SPI for tagging nodes with values."
-  (node-tag [compute node tag-name] [compute node tag-name default-value]
-    "Return the specified tag on the node.")
-  (node-tags [compute node]
-    "Return the tags on the node."))
-
-(defprotocol NodeTagWriter
-  "Provides a SPI for adding tags to nodes."
-  (tag-node! [compute node tag-name value]
-    "Set a value on the given tag-name on the node.")
-  (node-taggable? [compute node]
-    "Predicate to test the availability of tags on a node."))
-
-
-;; (defn nodes-by-tag [nodes]
-;;   (reduce #(assoc %1
-;;              (keyword (tag %2))
-;;              (conj (get %1 (keyword (tag %2)) []) %2)) {} nodes))
-
-;; (defn node-counts-by-tag [nodes]
-;;   (reduce #(assoc %1
-;;              (keyword (tag %2))
-;;              (inc (get %1 (keyword (tag %2)) 0))) {} nodes))
+(ann service-properties [ComputeService -> Map])
+(defn service-properties
+  "Return a map of service details.  Contains a :provider key at a minimum.
+  May contain current credentials."
+  [compute]
+  (impl/service-properties compute))
 
 ;;; Hierarchies
 
+(ann ^:no-check os-hierarchy Hierarchy)
+;; TODO fix the no-check when derive has correct annotations
 (def os-hierarchy
   (-> (make-hierarchy)
       (derive :linux :os)
@@ -168,6 +203,7 @@ Provider specific options may also be passed."
          {:type :pallet/unsupported-os})))))
 
 ;;; target mapping
+(ann packager-map pallet.core.version_dispatch.VersionMap)
 (def packager-map
   (version-map os-hierarchy :os :os-version
                {{:os :debian-base} :apt
@@ -178,35 +214,22 @@ Provider specific options may also be passed."
                 {:os :os-x} :brew
                 {:os :darwin} :brew}))
 
+(ann packager-for-os [Keyword (Nilable String) -> Keyword])
 (defn packager-for-os
   "Package manager"
   [os-family os-version]
   (or
-   (get packager-map {:os os-family :os-version (as-version-vector os-version)})
+   (get packager-map (maybe-assoc
+                      {:os os-family}
+                      :os-version (and os-version
+                                       (as-version-vector os-version))))
    (throw
     (ex-info
      (format "Unknown packager for %s %s" os-family os-version)
      {:type :unknown-packager}))))
 
-(defn ^:deprecated base-distribution
-  "Base distribution for the target."
-  [target]
-  (or
-   (:base-distribution target)
-   (let [os-family (:os-family target)]
-     (cond
-      (#{:ubuntu :debian :jeos} os-family) :debian
-      (#{:centos :rhel :amzn-linux :fedora} os-family) :rh
-      (#{:arch} os-family) :arch
-      (#{:suse} os-family) :suse
-      (#{:gentoo} os-family) :gentoo
-      (#{:darwin :os-x} os-family) :os-x
-      :else (throw
-             (ex-info
-              (format "Unknown base-distribution for %s - target is %s"
-                      os-family target)
-              {:type :unknown-packager}))))))
-
+(ann admin-group (Fn [TargetMap -> String]
+                     [Keyword (Nilable String) -> String]))
 (defn admin-group
   "User that remote commands are run under"
   ([target]

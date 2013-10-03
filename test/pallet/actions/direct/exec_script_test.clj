@@ -89,7 +89,7 @@
                 :phases {:configure (plan-fn (print-action "hello"))})
         localhost (node-list/make-localhost-node :group-name "local")
         service (compute/instantiate-provider
-                 "node-list" :node-list [localhost])]
+                 :node-list :node-list [localhost])]
     (testing "python"
       (let [session (lift
                      local
@@ -110,7 +110,7 @@
 (deftest lift-arguments-test
   (let [localhost (node-list/make-localhost-node :group-name "local")
         service (compute/instantiate-provider
-                 "node-list" :node-list [localhost])]
+                 :node-list :node-list [localhost])]
     (testing "simple phase"
       (let [local (group-spec "local"
                     :phases {:configure (fn [x]
@@ -163,7 +163,7 @@
     (with-location-info true
       (let [localhost (node-list/make-localhost-node :group-name "local")
             service (compute/instantiate-provider
-                     "node-list" :node-list [localhost])
+                     :node-list :node-list [localhost])
             f (fn [x]
                 (exec-checked-script
                  "myscript"

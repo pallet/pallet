@@ -2,6 +2,7 @@
   "Blobstore abstraction"
   (:require
    [pallet.blobstore.implementation :as implementation]
+   [pallet.core.protocols :as impl]
    [pallet.utils :as utils]))
 
 ;;; Blobstore service instantiation
@@ -12,27 +13,35 @@
   (implementation/load-providers)
   (implementation/service provider-name options))
 
-(defprotocol Blobstore
-  (sign-blob-request
-   [blobstore container path request-map]
-   "Create a signed request")
-  (put
-   [blobstore container path payload]
-   "Upload a file, string, input stream, etc")
-  (put-file
-   [blobstore container path file]
-   "Upload a file")
-  (containers
-   [blobstore]
-   "List containers")
-  (close
-   [blobstore]
-   "Close the blobstore"))
+(defn sign-blob-request
+ "Create a signed request"
+ [blobstore container path request-map]
+ (impl/sign-blob-request blobstore container path request-map))
+
+(defn put
+ "Upload a file, string, input stream, etc"
+ [blobstore container path payload]
+ (impl/put blobstore container path payload))
+
+(defn put-file
+ "Upload a file"
+ [blobstore container path file]
+ (impl/put-file blobstore container path file))
+
+(defn containers
+ "List containers"
+ [blobstore]
+ (impl/containers blobstore))
+
+(defn close
+ "Close the blobstore"
+ [blobstore]
+ (impl/close blobstore))
 
 (defn blobstore?
   "Predicate to test if argument is a blobstore."
   [b]
-  (satisfies? Blobstore b))
+  (satisfies? pallet.core.protocols/Blobstore b))
 
 ;;; Add deprecated forwarding functions
 ;;;  blobstore-from-map

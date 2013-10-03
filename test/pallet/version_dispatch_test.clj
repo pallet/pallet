@@ -58,7 +58,7 @@
       (is (= 1 (:f m)))
       (testing "ifn lookup"
         (is (= 1 (m :f)))
-        (is (= 1 (m :f ::x))))))
+        (is (= ::x (m :f ::x))))))
   (testing "exact"
     (let [m (os-map
              {{:os :ubuntu :os-version [12 04]} 1})

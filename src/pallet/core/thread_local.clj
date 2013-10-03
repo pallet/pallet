@@ -15,7 +15,10 @@ initial value using `with-thread-locals`.
      (with-thread-locals [*t1* {}]
       (assert (= (thread-local *tl*) {}))
       (thread-local! *tl* {:a 1})
-      (assert (= (thread-local *tl*) {:a 1})))")
+      (assert (= (thread-local *tl*) {:a 1})))"
+  (:require
+   [clojure.core.typed :refer [ann tc-ignore Atom1]]
+   [pallet.core.types :refer [Session]]))
 
 ;;; We need a dynamic var to provide a thread local place. Var's do not provide
 ;;; a way to set the thread local value however, so we use an atom in a dynamic
@@ -29,8 +32,10 @@ initial value using `with-thread-locals`.
   (let [bindings (partition 2 bindings)
         thread-id (gensym "thread")]
     `(let [~@(when *assert* `[~thread-id (.getId (Thread/currentThread))])]
-       (assert (every? (complement bound?)
-                       ~(vec (map #(list `var (first %)) bindings))))
+       ;; TODO - remove tc-ignore when every? is smarter
+       (assert (tc-ignore
+                (every? (complement bound?)
+                        ~(vec (map #(list `var (first %)) bindings)))))
        (binding
            ~(vec (mapcat
                   #(list
@@ -40,11 +45,13 @@ initial value using `with-thread-locals`.
                   bindings))
          ~@body))))
 
+(ann thread-local (All [x] [(clojure.lang.IDeref x) -> x]))
 (defn thread-local
   "Get the value of the thread local"
   [sym]
   (deref sym))
 
+(ann thread-local! (All [x] [(Atom1 x) x -> x]))
 (defn thread-local!
   "Reset the value of a thread local"
   [sym value]

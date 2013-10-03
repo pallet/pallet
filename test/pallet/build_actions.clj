@@ -78,7 +78,7 @@
                  #(or
                    %
                    (test-utils/make-node
-                    (-> session :server :group-name)
+                    (or (-> session :server :group-name) "testnode")
                     :os-family (or (-> session :server :image :os-family)
                                    :ubuntu)
                     :os-version (or (-> session :server :image :os-version)

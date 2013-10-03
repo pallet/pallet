@@ -8,14 +8,6 @@
   (is (= :yum (packager-for-os :centos nil)))
   (is (= :portage (packager-for-os :gentoo nil))))
 
-(deftest base-distribution-test
-  (is (= :debian (base-distribution {:os-family :ubuntu})))
-  (is (= :rh (base-distribution {:os-family :centos})))
-  (is (= :gentoo (base-distribution {:os-family :gentoo})))
-  (is (= :arch (base-distribution {:os-family :arch})))
-  (is (= :suse (base-distribution {:os-family :suse}))))
-
-
 (defmulti-os testos [session])
 (defmethod testos :linux [session] :linux)
 (defmethod testos :debian [session] :debian)

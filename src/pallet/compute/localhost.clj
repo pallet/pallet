@@ -13,24 +13,25 @@ Node removal functions are no-ops."
    [pallet.compute.implementation :as implementation]
    [pallet.compute.node-list :as node-list]
    [pallet.core.api :refer [set-state-for-node]]
+   [pallet.core.protocols :as impl]
    [pallet.node :as node]))
 
 (deftype NodeTagEphemeral
     [tags]
-  pallet.compute.NodeTagReader
+  pallet.core.protocols.NodeTagReader
   (node-tag [_ node tag-name]
     (@tags tag-name))
   (node-tag [_ node tag-name default-value]
     (@tags tag-name default-value))
   (node-tags [_ node]
     @tags)
-  pallet.compute.NodeTagWriter
+  pallet.core.protocols.NodeTagWriter
   (tag-node! [_ node tag-name value]
     (swap! tags assoc tag-name value))
   (node-taggable? [_ node] true))
 
 (deftype LocalhostService [node environment tag-provider]
-  pallet.compute/ComputeService
+  impl/ComputeService
   (nodes [compute] [@node])
   (run-nodes [compute group-spec node-count user init-script options]
     (reset! node (node-list/make-localhost-node
@@ -51,21 +52,21 @@ Node removal functions are no-ops."
   (destroy-node [compute node])
   (images [compute])
   (close [compute])
-  pallet.environment.Environment
+  pallet.core.protocols.Environment
   (environment [_] environment)
-  pallet.compute.NodeTagReader
+  pallet.core.protocols.NodeTagReader
   (node-tag [compute node tag-name]
-    (compute/node-tag tag-provider node tag-name))
+    (impl/node-tag tag-provider node tag-name))
   (node-tag [compute node tag-name default-value]
-    (compute/node-tag tag-provider node tag-name default-value))
+    (impl/node-tag tag-provider node tag-name default-value))
   (node-tags [compute node]
-    (compute/node-tags tag-provider node))
-  pallet.compute.NodeTagWriter
+    (impl/node-tags tag-provider node))
+  pallet.core.protocols.NodeTagWriter
   (tag-node! [compute node tag-name value]
-    (compute/tag-node! tag-provider node tag-name value))
+    (impl/tag-node! tag-provider node tag-name value))
   (node-taggable? [compute node]
-    (compute/node-taggable? tag-provider node))
-  pallet.compute.ComputeServiceProperties
+    (impl/node-taggable? tag-provider node))
+  pallet.core.protocols.ComputeServiceProperties
   (service-properties [_]
     {:provider :localhost
      :environment environment}))
@@ -75,7 +76,7 @@ Node removal functions are no-ops."
 (defn supported-providers
   {:no-doc true
    :doc "Returns a sequence of providers that are supported"}
-  [] ["localhost"])
+  [] [:localhost])
 
 ;; service factory implementation for localhost provider
 

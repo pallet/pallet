@@ -248,7 +248,7 @@ only not flagged with a :bootstrapped keyword."}
    compute-service environment group-counts)
   (let [r (map-async
            #(api/create-nodes
-             compute-service environment (key %) (:delta (val %)))
+             compute-service environment (first %) (:delta (second %)))
            group-counts
            {})]
     (when-let [e (some second r)]
@@ -286,7 +286,7 @@ only not flagged with a :bootstrapped keyword."}
     [results (map*
               (map
                #(create-nodes
-                 compute-service environment (key %) (:delta (val %)))
+                 compute-service environment (first %) (:delta (second %)))
                group-counts))]
     (apply concat results)))
 

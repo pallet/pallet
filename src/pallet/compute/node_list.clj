@@ -17,14 +17,15 @@
    [pallet.compute :as compute]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.jvm :as jvm]
-   [pallet.environment :as environment]
+   [pallet.core.protocols :as impl :refer
+    [node-tag]]
    [pallet.node :as node]
    [pallet.utils :refer [apply-map]]))
 
 (defrecord Node
     [name group-name ip os-family os-version id ssh-port private-ip is-64bit
      running service hardware proxy image-user]
-  pallet.node.Node
+  pallet.core.protocols.Node
   (ssh-port [node] ssh-port)
   (primary-ip [node] ip)
   (private-ip [node] private-ip)
@@ -37,13 +38,13 @@
   (hostname [node] name)
   (id [node] id)
   (compute-service [node] service)
-  pallet.node.NodePackager
+  pallet.core.protocols.NodePackager
   (packager [node] (compute/packager-for-os os-family os-version))
-  pallet.node.NodeHardware
+  pallet.core.protocols.NodeHardware
   (hardware [node] hardware)
-  pallet.node.NodeImage
+  pallet.core.protocols.NodeImage
   (image-user [node] image-user)
-  pallet.node.NodeProxy
+  pallet.core.protocols.NodeProxy
   (proxy [node] proxy))
 
 ;;; Node utilities
@@ -55,7 +56,7 @@
       :or {ssh-port 22 is-64bit true running true}}]
   (Node.
    name
-   group-name
+   (keyword (clojure.core/name group-name))
    ip
    os-family
    os-version
@@ -71,14 +72,14 @@
 
 (deftype NodeTagStatic
     [static-tags]
-  pallet.compute.NodeTagReader
+  pallet.core.protocols.NodeTagReader
   (node-tag [_ node tag-name]
     (get static-tags tag-name))
   (node-tag [_ node tag-name default-value]
     (or (get static-tags tag-name) default-value))
   (node-tags [_ node]
     static-tags)
-  pallet.compute.NodeTagWriter
+  pallet.core.protocols.NodeTagWriter
   (tag-node! [_ node tag-name value]
     (throw
      (ex-info
@@ -91,7 +92,7 @@ support."
 
 (deftype NodeList
     [node-list environment tag-provider]
-  pallet.compute.ComputeService
+  pallet.core.protocols.ComputeService
   (nodes [compute-service] @node-list)
   (ensure-os-family
     [compute-service group-spec]
@@ -113,40 +114,38 @@ support."
     (swap! node-list (fn [nl] (remove #(= (node/group-name %) group) nl))))
 
   (close [compute])
-  pallet.environment.Environment
+  pallet.core.protocols.Environment
   (environment [_] environment)
-  pallet.compute.NodeTagReader
+  pallet.core.protocols.NodeTagReader
   (node-tag [compute node tag-name]
-    (compute/node-tag tag-provider node tag-name))
+    (impl/node-tag tag-provider node tag-name))
   (node-tag [compute node tag-name default-value]
-    (compute/node-tag tag-provider node tag-name default-value))
+    (impl/node-tag tag-provider node tag-name default-value))
   (node-tags [compute node]
-    (compute/node-tags tag-provider node))
-  pallet.compute.NodeTagWriter
+    (impl/node-tags tag-provider node))
+  pallet.core.protocols.NodeTagWriter
   (tag-node! [compute node tag-name value]
-    (compute/tag-node! tag-provider node tag-name value))
+    (impl/tag-node! tag-provider node tag-name value))
   (node-taggable? [compute node]
-    (compute/node-taggable? tag-provider node))
-  pallet.compute.ComputeServiceProperties
+    (impl/node-taggable? tag-provider node))
+  pallet.core.protocols.ComputeServiceProperties
   (service-properties [_]
     {:provider :node-list
      :nodes @node-list
      :environment environment}))
 
-
-
-(defmethod clojure.core/print-method Node
-  [^Node node ^java.io.Writer writer]
-  (.write
-   writer
-   (format
-    "%14s\t %s %s public: %s  private: %s  %s"
-    (:group-name node)
-    (:os-family node)
-    (:running node)
-    (:ip node)
-    (:private-ip node)
-    (:id node))))
+;; (defmethod clojure.core/print-method Node
+;;   [^Node node ^java.io.Writer writer]
+;;   (.write
+;;    writer
+;;    (format
+;;     "%14s\t %s %s public: %s  private: %s  %s"
+;;     (:group-name node)
+;;     (:os-family node)
+;;     (:running node)
+;;     (:ip node)
+;;     (:private-ip node)
+;;     (:id node))))
 
 (defn make-localhost-node
   "Make a node representing the local host. This calls `make-node` with values
@@ -171,7 +170,7 @@ support."
 (defn supported-providers
   {:no-doc true
    :doc "Returns a sequence of providers that are supported"}
-  [] ["node-list"])
+  [] [:node-list])
 
 (defmethod implementation/service :node-list
   [_ {:keys [node-list environment tag-provider]

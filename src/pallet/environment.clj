@@ -22,6 +22,7 @@
    [clojure.core.incubator :refer [-?>]]
    [clojure.walk :as walk]
    [pallet.core.primitives :refer [phases-with-meta]]
+   [pallet.core.protocols :as impl]
    [pallet.core.session :refer [session]]
    [pallet.core.user :refer [make-user]]
    [pallet.environment-impl :refer [get-for]]
@@ -30,9 +31,8 @@
    [pallet.map-merge :refer [merge-key]]
    [pallet.utils :as utils :refer [maybe-update-in total-order-merge]]))
 
-(defprotocol Environment
-  "A protocol for accessing an environment."
-  (environment [_] "Returns an environment map"))
+(defn environment [x]
+  (impl/environment x))
 
 (defn pipeline
   [a b]
