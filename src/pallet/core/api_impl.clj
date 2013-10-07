@@ -2,7 +2,7 @@
   "Implementation functions for the core api."
   (:require
    [clojure.core.typed
-    :refer [ann def-alias fn>
+    :refer [ann def-alias fn> inst
             Map Nilable NilableNonEmptySeq NonEmptySeqable Seq Vec]]
    [clojure.tools.logging :refer [debugf warnf]]
    [pallet.compute :refer [packager-for-os]]
@@ -85,52 +85,47 @@
   (and (map? x)
        (empty? (dissoc x :os-family :os-version :packager))))
 
-(ann target-os-details [TargetMap PlanState -> OsDetailsMap])
+;; (ann ^:no-check nilable-kw-map? (predicate (U nil (Map Keyword Any))))
+;; (defn nilable-kw-map? [x]
+;;   (or (nil? x) (map? x) (every? keyword? (keys x))))
+
+;; TODO remove the no-check when building maps in steps is easily typable
+(ann ^:no-check target-os-details [TargetMap PlanState -> OsDetailsMap])
 (defn target-os-details
   [target plan-state]
-  (let [node (:node target)
+  (let [node (get target :node)
         node-id (node/id node)
-        node-map (assert-type-predicate
-                  (-> {}
-                      (maybe-assoc :os-family (node/os-family node))
-                      (maybe-assoc :os-version (node/os-version node))
-                      (maybe-assoc :packager (node/packager node)))
-                  os-details-map?)
-        detected (assert-type-predicate
-                  (select-keys
-                   (assert-type-predicate
-                    (get-settings plan-state node-id :pallet/os {}) map?)
-                   [:os-family :os-version])
-                  os-details-map?)
+        node-map (-> {}
+                     (maybe-assoc :os-family (node/os-family node))
+                     (maybe-assoc :os-version (node/os-version node))
+                     (maybe-assoc :packager (node/packager node)))
+        detected (get-settings plan-state node-id :pallet/os {})
         warn-diff (fn> [kw :- Keyword
                         from-node :- OsDetailsMap
                         detected :- OsDetailsMap]
-                       ;; TODO - switch to keyword invocation when supported
-                       ;; in core.typed
-                       (let [n (get from-node kw)
-                             d (get detected kw)]
-                         (when (and n d (not= n d))
-                           (warnf
-                            "%s mismatch: node returned %s, but %s detected"
-                            (name kw) n d))))
+                    ;; TODO - switch to keyword invocation when supported
+                    ;; in core.typed
+                    (let [n (get from-node kw)
+                          d (get detected kw)]
+                      (when (and n d (not= n d))
+                        (warnf
+                         "%s mismatch: node returned %s, but %s detected"
+                         (name kw) n d))))
         _ (debugf "target-os-details node %s detected %s" node-map detected)
         ;; TODO - rewrite this to use map destructuring when core.typed
         ;; supports it
-        combined (assert-type-predicate
-                  (merge node-map
-                         detected
-                         (select-keys
-                          target [:packager]))
-                  os-details-map?)
+        combined (merge node-map
+                        detected
+                        (select-keys target [:packager]))
         ;; {:keys [os-family os-version]} combined
         os-family (get combined :os-family)
         os-version (get combined :os-version)
         combined (update-in
                   combined [:packager]
                   (fn> [x :- (Nilable Keyword)]
-                       (or x
-                           (when os-family
-                             (packager-for-os os-family os-version)))))]
+                    (or x
+                        (if os-family
+                          (packager-for-os os-family os-version)))))]
     (warn-diff :os-family node-map detected)
     (warn-diff :os-version node-map detected)
     combined))

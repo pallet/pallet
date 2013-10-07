@@ -49,16 +49,3 @@
   (is (version-matches? [1 2] [1 2]))
   (is (version-matches? [1 2 3] [1 2]))
   (is (version-matches? [1 2 3] [[1 2] [1 3]])))
-
-(deftest version-spec-less-test
-  (is (version-spec-less [1 2] [[1 0] [1 4]]))
-  (is (not (version-spec-less [[1 0] [1 4]] [1 2])))
-  (is (version-spec-less [[1 2] [1 3]] [[1 0] [1 4]]))
-  (is (version-spec-less [[1 0] [1 3]] [[1 0] [1 4]]))
-  (is (version-spec-less [[1 2] [1 4]] [[1 0] [1 4]]))
-  (is (not (version-spec-less [[1 0] [1 4]] [[1 0] [1 4]])))
-  (is (not (version-spec-less [[1 0] [1 4]] [[1 2] [1 3]])))
-  (is (version-spec-less [[1 2] [1 3]] [[1 0] [2 0]]))
-  (is (version-spec-less [[1 1] [1 4]] [[1 0] [2 0]]))
-  (is (not (version-spec-less [[1 0] [2 0]] [[1 2] [1 3]])))
-  (is (not (version-spec-less [[1 0] [2 0]] [[1 1] [1 4]]))))

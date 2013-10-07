@@ -55,7 +55,8 @@
         {:image (HMap :mandatory {:os-family Keyword})
          :group-names (Set GroupName)
          :roles Set
-         :phases (Map Keyword [Any * -> Any])}
+         :phases (Map Keyword [Any * -> Any])
+         :packager Keyword}
         :mandatory
         {:node Node}))
 
@@ -268,3 +269,8 @@
   `(let [x# ~x]
      (assert (instance? ~type-sym x#))
      x#))
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (doseq> 1)(fn> 1)(for> 1)(loop> 1))
+;; End:

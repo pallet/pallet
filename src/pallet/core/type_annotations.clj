@@ -53,8 +53,9 @@
       [(Map Any Any) (NonEmptySeqable Any) -> Any]
       [(Map Any Any) (NonEmptySeqable Any) Any -> Any]))
 (ann ^:no-check clojure.core/select-keys
-     (All [k v]
-          [(Map k v) (Seqable k) -> (Map k v)]))
+     (U (All [k v]
+          [(Map k v) (Seqable k) -> (Map k v)])
+        [nil (Seqable Any) -> (HMap :mandatory {} :complete? true)]))
 (ann ^:no-check clojure.core/val
      (All [x]
           [(clojure.lang.IMapEntry Any x) -> x]))
@@ -159,3 +160,8 @@
 (ann ^:no-check clojure.tools.logging/log*
      [clojure.tools.logging.impl/Logger Keyword (Nilable Throwable)
       (Nilable String) -> nil])
+
+;; Local Variables:
+;; mode: clojure
+;; eval: (define-clojure-indent (ann 1)(All 1))
+;; End:

@@ -30,6 +30,17 @@ E.g.,
     true
     false))
 
+(ann ^:no-check nilable-version-vector? (predicate (U nil VersionVector)))
+(defn nilable-version-vector?
+  "Predicate to check for a version vector."
+  [x]
+  (if (or (nil? x)
+          (and (vector? x)
+               (every? number? x)
+               (seq x)))
+    true
+    false))
+
 (ann ^:no-check version-range? (predicate VersionRange))
 (defn version-range?
   "Predicate to check for a version range."
@@ -45,6 +56,12 @@ E.g.,
   "Predicate to check for a version spec."
   [x]
   (or (version-vector? x) (version-range? x)))
+
+(ann ^:no-check nilable-version-spec? (predicate (U nil VersionSpec)))
+(defn nilable-version-spec?
+  "Predicate to check for a version spec."
+  [x]
+  (or (nil? x)(version-spec? x)))
 
 (ann as-version-vector [(U String VersionVector) -> VersionVector])
 (defn as-version-vector
@@ -115,30 +132,6 @@ version string."
                                     (not
                                      (version-less to version)))))
    (nil? spec) true))
-
-(ann version-spec-less [(U VersionSpec nil) (U VersionSpec nil) -> boolean])
-(defn version-spec-less
-  [spec1 spec2]
-  (cond
-   (version-vector? spec1) (if (number? (first spec2))
-                             (> (count spec1) (count spec2))
-                             true)
-   (version-vector? spec2) false
-   :else
-   (let [[from1 to1] spec1
-         [from2 to2] spec2]
-     ;; TODO simplify this so the type checker doesn't barf
-     (assert (or (version-range? spec1) (nil? spec1)))
-     (assert (not (number? from1)))
-     (assert (not (number? to1)))
-     (assert (or (version-range? spec2) (nil? spec2)))
-     (assert (not (number? spec2)))
-     (assert (not (number? from2)))
-     (assert (not (number? to2)))
-     (and (not (version-less from1 from2))
-          (not (version-less to2 to1))
-          (not= spec1 spec2)))))
-
 
 ;; Local Variables:
 ;; mode: clojure

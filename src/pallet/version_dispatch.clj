@@ -14,10 +14,11 @@ data may provide a version."
   (:require
    [clojure.string :as string]
    [pallet.compute :refer [os-hierarchy]]
-   [pallet.core.version-dispatch :refer [match-less version-map]]
+   [pallet.versions :refer [version-spec?]]
+   [pallet.core.version-dispatch
+    :refer [os-match-less version-spec-more-specific version-map]]
    [pallet.crate :refer [os-family os-version phase-context]]
-   [pallet.versions
-    :refer [as-version-vector version-matches? version-spec-less]]))
+   [pallet.versions :refer [as-version-vector version-matches?]]))
 
 (defn ^{:internal true} hierarchy-vals
   "Returns all values in a hierarchy, whether parents or children."
@@ -34,7 +35,10 @@ data may provide a version."
                  (version-matches? os-version (:os-version i))
                  (version-matches? version (:version i))))]
     (if-let [[_ f] (first (sort
-                           (comparator (partial match-less hierarchy))
+                           (comparator
+                            (fn [x y]
+                              ((os-match-less hierarchy)
+                               (key x) (key y))))
                            (filter matches? methods)))]
       (apply f os os-version version args)
       (if-let [f (:default methods)]
