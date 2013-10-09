@@ -294,11 +294,12 @@
     (juxt
      (inst identity GroupSpec)
      (fn> [group :- GroupSpec]
-          (group-delta (filter
-                        (fn> [t :- TargetMap]
-                             (node-in-group? (get t :node) group))
-                        targets)
-                       group)))
+       ;; TODO - remove seq when CTYP-84 fixed
+       (group-delta (seq (filter
+                          (fn> [t :- TargetMap]
+                            (node-in-group? (get t :node) group))
+                          targets))
+                    group)))
     groups)))
 
 ;; TODO remove no-check when core.typed can handle first, second on Vector*

@@ -10,7 +10,7 @@ value that must be a VersionSpec."
    [pallet.core.type-annotations]
    [pallet.core.types
     :refer [assert-type-predicate assert-not-nil assert-object-or-nil
-            Keyword MapEntry OsVersionMap VersionVector VersionSpec]]
+            Keyword OsVersionMap VersionVector VersionSpec]]
    [pallet.versions
     :refer [as-version-vector nilable-version-vector? nilable-version-spec?
             version-less version-matches? version-range? version-spec?
