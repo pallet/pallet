@@ -570,6 +570,7 @@ the admin-user on the nodes.
                                 debug plan-state os-detect]
                          :or {os-detect true}
                          :as options}]
+  (logging/trace "Lift*")
   (check-lift-options options)
   (let [[phases phase-map] (process-phases phase)
         phase-map (if os-detect
@@ -604,11 +605,13 @@ the admin-user on the nodes.
                    (apply total-order-merge
                           (map :default-phases (concat groups targets))))]
     (doseq [group groups] (check-group-spec group))
+    (logging/trace "Lift ready to start")
     (let [nodes-set (all-group-nodes operation compute groups all-node-set)
           nodes-set (concat nodes-set targets)
           _ (when-not (or compute (seq nodes-set))
               (throw (ex-info "No source of nodes"
                               {:error :no-nodes-and-no-compute-service})))
+          _ (logging/trace "Retrieved nodes")
           settings-result (ops/lift
                            operation
                            nodes-set initial-plan-state environment
@@ -710,7 +713,9 @@ the admin-user on the nodes.
                       phase-execution-f execution-settings-f
                       debug plan-state]
                :as options}]
+  (logging/trace "Lift")
   (load-plugins)
+  (logging/trace "Plugins loaded")
   (exec-operation
    #(apply-map lift* % node-set options)
    (select-keys
