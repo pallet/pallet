@@ -62,6 +62,7 @@
                              provider
                              (.getMessage e)))))
                   (filter symbol?)
+                  doall
                   seq)]
       (reset! provider-list loaded)))
   @provider-list)
