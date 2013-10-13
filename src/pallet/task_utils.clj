@@ -111,12 +111,12 @@ filtered by selectors, groups and roles."
   and a help string."
   [task args switches]
   (try
-    (apply cli args switches)
+    (apply cli args task switches)
     (catch Exception e
       (report-error
-       (str (str (.getMessage e) " for '" task "'") \newline \newline
-            (last (apply cli nil switches))))
+       (str (.getMessage e) \newline \newline
+            (last (apply cli nil task switches))))
       (throw (ex-info
-              (str "Pallet " task " task failed")
+              (str "Pallet task failed")
               {:exit-code 1}
               e)))))
