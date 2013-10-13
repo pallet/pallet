@@ -338,7 +338,8 @@ support."
 
    Optionally, an environment map can be passed using the :environment keyword.
    See `pallet.environment`."
-  {:added "0.6.8"}
+  {:added "0.6.8"
+   :deprecated true}
   [node-list & {:keys [environment tag-provider] :as options}]
   (apply-map
    compute/instantiate-provider
@@ -351,6 +352,6 @@ support."
 
    Optionally, an environment map can be passed using the :environment keyword.
    See `pallet.environment`."
-  {:added "0.6.8"}
+  {:added "0.9.0"}
   [& {:keys [node-list node-file environment tag-provider] :as options}]
   (apply-map compute/instantiate-provider :node-list options))
