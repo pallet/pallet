@@ -17,7 +17,7 @@
             check-server-spec
             check-user]]
    [pallet.core.api :as api :refer [environment-image-execution-settings
-                                    stop-execution-on-error]]
+                                    phase-errors stop-execution-on-error]]
    [pallet.core.api-impl
     :refer [merge-spec-algorithm merge-specs node-has-group-name?]]
    [pallet.core.operations :as ops]
@@ -609,20 +609,24 @@ the admin-user on the nodes.
           _ (when-not (or compute (seq nodes-set))
               (throw (ex-info "No source of nodes"
                               {:error :no-nodes-and-no-compute-service})))
-          {:keys [plan-state]} (ops/lift
-                                operation
-                                nodes-set initial-plan-state environment
-                                (concat
-                                 (when os-detect [:pallet/os])
-                                 [:settings])
-                                {})
-          results (ops/lift-partitions
-                   operation
-                   nodes-set plan-state environment (remove #{:settings} phases)
-                   lift-options)]
-      (assoc results
-        :environment environment
-        :initial-plan-state initial-plan-state))))
+          settings-result (ops/lift
+                           operation
+                           nodes-set initial-plan-state environment
+                           (concat
+                            (when os-detect [:pallet/os])
+                            [:settings])
+                           {})]
+      (if (phase-errors settings-result)
+        settings-result
+        (let [{:keys [plan-state]} settings-result
+              results (ops/lift-partitions
+                       operation
+                       nodes-set plan-state environment
+                       (remove #{:settings} phases)
+                       lift-options)]
+          (assoc results
+            :environment environment
+            :initial-plan-state initial-plan-state))))))
 
 (defn lift
   "Lift the running nodes in the specified node-set by applying the specified
