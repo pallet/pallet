@@ -25,7 +25,7 @@
    [pallet.core.user :refer [obfuscated-passwords]]
    [pallet.execute :refer [parse-shell-result]]
    [pallet.node
-    :refer [id image-user primary-ip tag tag! taggable? terminated?]]
+    :refer [id image-user group-name primary-ip tag tag! taggable? terminated?]]
    [pallet.session.verify :refer [add-session-verification-key check-session]]
    [pallet.stevedore :refer [with-source-line-comments]])
   (:import
@@ -53,6 +53,17 @@
   (let [nodes (remove terminated? (nodes compute-service))]
     (tracef "service-state %s" (vec nodes))
     (seq (remove nil? (map (node->node-map groups) nodes)))))
+
+
+(defn service-groups
+  "Query the available nodes in a `compute-service`, returning a group-spec
+  for each group found."
+  [compute-service]
+  (->> (nodes compute-service)
+       (remove terminated?)
+       (map group-name)
+       (map #(hash-map :group-name %))
+       (map #(vary-meta % assoc :type ::group-spec))))
 
 ;;; # Execute action on a target node
 (ann execute-action [Session Action -> ActionResult])
