@@ -60,7 +60,7 @@
 (deftest node-test
   (is (thrown? Exception (node-list/node "unresolvable")))
   (is (node-list/node "localhost"))
-  (is (= "localhost" (node/group-name (node-list/node "localhost")))))
+  (is (= :localhost (node/group-name (node-list/node "localhost")))))
 
 (deftest read-node-file-test
   (testing "valid node-file"
