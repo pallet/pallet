@@ -104,6 +104,7 @@
   (let [default-config (or (:defaults options) (configure/pallet-config))
         admin-user (find-admin-user
                     default-config (:project options) (:service options))
+        _ (logging/trace "Locating compute service")
         compute (try
                   (find-compute-service
                    options default-config
@@ -117,6 +118,7 @@
                           (println msg)
                           (throw (ex-info msg {:exit-code 1})))
                         (throw e)))))]
+    (logging/tracef "Compute service located %s" (boolean compute))
     (if compute
       (try
         (let [blobstore (find-blobstore
@@ -124,6 +126,7 @@
                          (:project options) (:service options))]
           (try
             (log-info admin-user)
+            (logging/trace "Applying task")
             (apply task
                    {:compute compute
                     :blobstore blobstore
@@ -136,6 +139,7 @@
                      (environment/environment compute))}
                    params)
             (finally ;; make sure we don't hang on exceptions
+              (logging/trace "Finished task")
               (when blobstore
                 (blobstore/close blobstore)))))
         (finally ;; make sure we don't hang on exceptions
