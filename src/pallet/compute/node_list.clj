@@ -356,8 +356,9 @@ support."
   `make-node`, or as a vector of arguments for `make-node`.
 
   If no `:node-list` is not passed, this will look for a file
-  describing the nodes.  Default locations are ./.pallet-nodes.edn,
-  ~/.pallet/nodes.edn and /etc/pallet/nodes.edn.
+  describing the nodes.  Default locations are ${PALLET_HOSTS},
+  ./.pallet-nodes.edn, ~/.pallet/nodes.edn and /etc/pallet/nodes.edn,
+  in that order of priority.
 
   A node descriptor in the nodes config file is either an IP (or
   resolvable DNS name) string, or a vector of options to be passed as
