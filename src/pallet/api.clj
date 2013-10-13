@@ -621,10 +621,11 @@ the admin-user on the nodes.
                            {})]
       (if (phase-errors settings-result)
         settings-result
-        (let [{:keys [plan-state]} settings-result
-              results (ops/lift-partitions
+        (let [results (ops/lift-partitions
                        operation
-                       nodes-set plan-state environment
+                       nodes-set
+                       (:plan-state settings-result)
+                       environment
                        (remove #{:settings} phases)
                        lift-options)]
           (assoc results
