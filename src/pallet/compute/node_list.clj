@@ -15,6 +15,7 @@
   (:require
    [clj-schema.schema
     :refer [def-map-schema optional-path seq-schema sequence-of set-of wild]]
+   [clojure.edn :as edn]
    [clojure.java.io :as io]
    [clojure.string :as string]
    [clojure.tools.logging :as logging]
@@ -73,6 +74,7 @@
 
 (defn make-node
   "Returns a node, suitable for use in a node-list."
+  {:deprecated true}
   [name group-name ip os-family
    & {:keys [id ssh-port private-ip is-64bit running os-version service
              hardware proxy image-user]
@@ -111,6 +113,7 @@
 
 (defn node
   "Returns a node, suitable for use in a node-list."
+  {:added "0.9.0"}
   [name
    & {:keys [ip group-name os-family id ssh-port private-ip is-64bit running
              os-version service hardware proxy image-user]
@@ -252,9 +255,9 @@ support."
                   :node-data node-data}))))))
 
 (def possible-node-files
-  [".pallet-nodes"
-   (.getPath (io/file (System/getProperty "user.home") ".pallet" "nodes"))
-   "/etc/pallet/nodes"])
+  [".pallet-nodes.edn"
+   (.getPath (io/file (System/getProperty "user.home") ".pallet" "nodes.edn"))
+   "/etc/pallet/nodes.edn"])
 
 (defn available-node-file
   "Return the first available node-file as specified by PALLET_HOSTS,
@@ -269,7 +272,7 @@ support."
   "Read the contents of node file if it exists."
   [file]
   (if (and file (.exists (io/file file)))
-    (read-string (slurp file))))
+    (edn/read-string (slurp file))))
 
 (defn- node-file-data->node-list
   [data file]
@@ -346,12 +349,23 @@ support."
    :node-list (assoc options :node-list node-list)))
 
 (defn node-list
-  "Create a node-list compute service, based on a sequence of nodes. Each
-   node is passed as either a node object constructed with `make-node`,
-   or as a vector of arguments for `make-node`.
+  "Create a node-list compute service, based on a sequence of
+  nodes. Each node is passed as either a node object constructed with
+  `make-node`, or as a vector of arguments for `make-node`.
 
-   Optionally, an environment map can be passed using the :environment keyword.
-   See `pallet.environment`."
+  If no `:node-list` is not passed, this will look for a file
+  describing the nodes.  Default locations are ./.pallet-nodes.edn,
+  ~/.pallet/nodes.edn and /etc/pallet/nodes.edn.
+
+  A node descriptor in the nodes config file is either an IP (or
+  resolvable DNS name) string, or a vector of options to be passed as
+  arguments to `pallet.compute.node-list/node`.
+
+  The node file is either a vector of node descriptions, or a map from
+  group name to vector of node descriptors.
+
+  Optionally, an environment map can be passed using the :environment
+  keyword.  See `pallet.environment`."
   {:added "0.9.0"}
   [& {:keys [node-list node-file environment tag-provider] :as options}]
   (apply-map compute/instantiate-provider :node-list options))
