@@ -243,7 +243,7 @@ support."
      (if (vector? node-data)
        (apply node :group-name group-name node-data)
        (if (string? node-data)
-         (node node-data)
+         (node node-data :group-name group-name)
          (throw (ex-info
                  (str
                   "Invalid node-list node data " (pr-str node-data)
