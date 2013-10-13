@@ -99,7 +99,7 @@
 
 (def-map-schema node-args-schema
   [(optional-path [:ip]) String
-   (optional-path [:group-name]) String
+   (optional-path [:group-name]) keyword?
    (optional-path [:os-family]) keyword?
    (optional-path [:id]) String
    (optional-path [:ssh-port]) number?
@@ -125,7 +125,7 @@
   (let [ip (or ip (ip-for-name name))]
     (Node.
      name
-     (or group-name name)
+     (or group-name (keyword name))
      ip
      os-family
      os-version
@@ -226,7 +226,7 @@ support."
        :os-family (pallet.compute.jvm/os-family)"
   [& {:keys [name group-name ip os-family id]
       :or {name "localhost"
-           group-name "local"
+           group-name :local
            ip "127.0.0.1"
            os-family (jvm/os-family)}
       :as options}]
@@ -293,7 +293,7 @@ support."
      (reduce-kv
       (fn [nodes group group-nodes]
         (concat nodes (map
-                       #(node-data->node % (name group))
+                       #(node-data->node % (keyword group))
                        group-nodes)))
       []
       data))
