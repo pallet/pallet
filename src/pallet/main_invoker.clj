@@ -51,6 +51,10 @@
    (configure/compute-service-from-config (:pallet project) profile {})
    (configure/compute-service-from-config defaults profile {})))
 
+(defn node-list-compute-service
+  []
+  (compute/instantiate-provider :node-list))
+
 (defn find-compute-service
   "Look for a compute service in the following sequence:
      Check pallet.config.service property
@@ -69,7 +73,8 @@
     defaults project (default-compute-service defaults))
    (compute-service-from-config-files
     @transient-services project
-    (default-compute-service @transient-services))))
+    (default-compute-service @transient-services))
+   (node-list-compute-service)))
 
 (defn blobstore-service-from-config-files
   [defaults project profile]
