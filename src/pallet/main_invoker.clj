@@ -136,13 +136,13 @@
                      (environment/environment compute))}
                    params)
             (finally ;; make sure we don't hang on exceptions
-             (when blobstore
-               (blobstore/close blobstore)))))
+              (when blobstore
+                (blobstore/close blobstore)))))
         (finally ;; make sure we don't hang on exceptions
-         (compute/close compute)))
+          (compute/close compute)))
       (do
         (println "Error: no credentials supplied\n\n")
-        ((main/resolve-task "help"))
+        ((main/resolve-task "help") {})
         (throw (ex-info "Error: no credentials supplied" {:exit-code 1}))))))
 
 (defn invoke-no-service
