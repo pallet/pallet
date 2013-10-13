@@ -48,7 +48,9 @@
   (id [node] id)
   (compute-service [node] service)
   pallet.core.protocols.NodePackager
-  (packager [node] (compute/packager-for-os os-family os-version))
+  (packager [node]
+    (when os-family
+      (compute/packager-for-os os-family os-version)))
   pallet.core.protocols.NodeHardware
   (hardware [node] hardware)
   pallet.core.protocols.NodeImage
