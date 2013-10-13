@@ -2,6 +2,7 @@
   "OS detection for pallet to determine os and version"
   (:require
    [clojure.string :as string :refer [blank? lower-case]]
+   [clojure.tools.logging :refer [debugf]]
    [pallet.actions :refer [exec-script]]
    [pallet.crate :refer [assoc-settings defplan]]
    [pallet.stevedore :refer [script]]
@@ -67,13 +68,15 @@
     (when (and (number? (:exit os)) (zero? (:exit os)))
       (let [out (string/replace-first (:out os) pre-map-output "{")
             os (read-string out)]
-        (-> os
-            (maybe-assoc :os-family
-                         (when-not (blank? (:os os))
-                           (keyword (lower-case (:os os)))))
-            (maybe-assoc :os-version
-                         (when-not (blank? (:rev os))
-                           (lower-case (:rev os)))))))))
+        (->> (-> os
+                 (maybe-assoc :os-family
+                              (when-not (blank? (:os os))
+                                (keyword (lower-case (:os os)))))
+                 (maybe-assoc :os-version
+                              (when-not (blank? (:rev os))
+                                (lower-case (:rev os)))))
+             (remove #(#{:unknown "unknown"} (val %)))
+             (into {}))))))
 
 (defplan infer-distro
   "Infer the linux distribution from a node"
@@ -82,13 +85,15 @@
     (when (and (number? (:exit distro)) (zero? (:exit distro)))
       (let [out (string/replace-first (:out distro) pre-map-output "{")
             distro (read-string out)]
-        (-> distro
-            (maybe-assoc :os-family
-                         (when-not (blank? (:id distro))
-                           (keyword (lower-case (:id distro)))))
-            (maybe-assoc :os-version
-                         (when-not (blank? (:release distro))
-                           (lower-case (:release distro)))))))))
+        (->> (-> distro
+                 (maybe-assoc :os-family
+                              (when-not (blank? (:id distro))
+                                (keyword (lower-case (:id distro)))))
+                 (maybe-assoc :os-version
+                              (when-not (blank? (:release distro))
+                                (lower-case (:release distro)))))
+             (remove #(#{:unknown "unknown"} (val %)))
+             (into {}))))))
 
 (defplan os
   "Infer OS and distribution.  Puts a map into the settings' :pallet/os
@@ -96,8 +101,6 @@
   []
   (let [os (infer-os)
         distro (infer-distro)
-        m (->>
-           (dissoc (merge os distro) :action-symbol :context)
-           (remove #(#{:unknown "unknown"} (val %)))
-           (into {}))]
+        m (dissoc (merge os distro) :action-symbol :context)]
+    (debugf "os %s %s %s" os distro m)
     (assoc-settings :pallet/os m)))
