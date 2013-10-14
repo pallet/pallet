@@ -288,6 +288,10 @@
   [flag]
   (delayed-fn #(execute/target-flag? % (keyword (name flag)))))
 
+(defn target-flag-value
+  [flag]
+  (execute/target-flag-value (session) flag))
+
 ;;; ## Settings
 (defn get-settings
   "Retrieve the settings for the specified host facility. The instance-id allows

@@ -1,4 +1,4 @@
-(defproject com.palletops/pallet "0.8.0-RC.2"
+(defproject com.palletops/pallet "0.8.0-RC.3"
   :description
   "DevOps for the JVM.
 

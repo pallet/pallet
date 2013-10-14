@@ -1,5 +1,22 @@
 Unstable development branch
 
+# 0.8.0-RC.3
+
+## Features
+
+- Add p.crate/target-flag-value for querying flags
+  Provides a simple function for query values set with the set-flag-value
+  script function.
+
+## Fixes
+
+- Fix help task invocation on no credentials
+
+- Add :link to schema for remote-file
+
+- Make localhost script logging self consistent
+  The logging was using a mix of "localhost" and "(L)".
+
 # 0.8.0-RC.2
 
 ## Features

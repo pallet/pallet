@@ -137,7 +137,7 @@
          (compute/close compute)))
       (do
         (println "Error: no credentials supplied\n\n")
-        ((main/resolve-task "help"))
+        ((main/resolve-task "help") {})
         (throw (ex-info "Error: no credentials supplied" {:exit-code 1}))))))
 
 (defn invoke-no-service

@@ -98,7 +98,7 @@
   (if (seq flag-values)
     (update-in
      session [:plan-state]
-     update-settings (target-id session) :flag-values union [flag-values] {})
+     update-settings (target-id session) :flag-values merge flag-values {})
     session))
 
 (defn set-target-flags
@@ -128,6 +128,14 @@
   ([flag]
      (fn [session]
        [(target-flag? session flag) session])))
+
+(defn target-flag-value
+  "Get flag value for target."
+  [session flag]
+  (let [r (get-settings
+           (:plan-state session) (target-id session) :flag-values {})]
+    (logging/debugf "target-flag-value %s %s" (pr-str flag) (pr-str r))
+    (get r flag)))
 
 (defn parse-flags
   "Parse flags from the output stream of an action."
