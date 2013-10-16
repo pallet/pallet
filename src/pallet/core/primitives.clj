@@ -143,7 +143,10 @@
           _ (result (logging/tracef
                      "execute-and-flag %s setting flag" state-flag))
           _ (set-state-for-nodes
-             state-flag (map :target (remove :errors results)))
+             state-flag
+             (->> results
+                  (remove #(some :error (:result %)) results)
+                  (map :target )))
           _ (result (logging/tracef "execute-and-flag %s done" state-flag))]
          [results plan-state])))
   ([state-flag]
