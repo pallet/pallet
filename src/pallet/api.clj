@@ -21,8 +21,9 @@
    [pallet.core.api-impl
     :refer [merge-spec-algorithm merge-specs node-has-group-name?]]
    [pallet.core.operations :as ops]
-   [pallet.core.primitives :refer [bootstrapped-meta execute-on-unflagged
-                                   phases-with-meta unbootstrapped-meta]]
+   [pallet.core.primitives
+    :refer [bootstrapped-meta execute-and-flag execute-on-unflagged
+            phases-with-meta unbootstrapped-meta]]
    [pallet.core.session :refer [session-context]]
    [pallet.core.user :as user]
    [pallet.crate :refer [phase-context]]
@@ -108,6 +109,15 @@ value in a map passed to the `:phases-meta` clause of a `server-spec` or
 `group-spec`."
   [flag-kw]
   {:phase-execution-f (execute-on-unflagged flag-kw)})
+
+(defn execute-and-flag-metadata
+  "Returns a metadata map that specifies a phase should be run only if
+the specified `flag-kw` is not set on a node.  When the phase complete
+the flag will be set.  The map is suitable for use as a value in a map
+passed to the `:phases-meta` clause of a `server-spec` or
+`group-spec`."
+  [flag-kw]
+  {:phase-execution-f (execute-and-flag flag-kw)})
 
 ;;; #### Phase Extension
 
