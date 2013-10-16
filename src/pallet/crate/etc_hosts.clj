@@ -152,12 +152,13 @@
 (defplan set-hostname
   "Set the hostname on a node. Note that sudo may stop working if the
 hostname is not in /etc/hosts."
-  []
+  [& {:keys [update-etc-hosts] :or {update-etc-hosts true}}]
   (let [node-name (target-name)]
-    (when-not (:exit (exec-script ("grep" ~node-name (lib/etc-hosts))))
-      (exec-checked-script
-       "Add self hostname"
-       (println ">>" (lib/etc-hosts))
-       ((println ~(node/primary-ip (target-node)) " " ~node-name)
-        ">>" (lib/etc-hosts))))
+    (when update-etc-hosts
+      (when-not (:exit (exec-script ("grep" ~node-name (lib/etc-hosts))))
+        (exec-checked-script
+         "Add self hostname"
+         (println ">>" (lib/etc-hosts))
+         ((println ~(node/primary-ip (target-node)) " " ~node-name)
+          ">>" (lib/etc-hosts)))))
     (set-hostname* node-name)))
