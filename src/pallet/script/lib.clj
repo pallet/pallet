@@ -300,6 +300,28 @@
                (format "--proxy %s:%s" (.getHost url) (.getPort url)))
              "")
           ~(if insecure "--insecure" "")
+          ~url)
+    (if (~has-command? wget)
+      ("wget" "-O" (quoted ~path) --tries 5 --no-verbose --progress=dot:mega
+            ~(if proxy
+               (format
+                "-e \"http_proxy = %s\" -e \"ftp_proxy = %s\"" proxy proxy)
+               "")
+            ~(if insecure "--no-check-certificate" "")
+            (quoted ~url))
+      (do
+        (println "No download utility available")
+        (exit 1)))))
+
+(script/defimpl download-file [#{:darwin :os-x}] [url path & {:keys [proxy insecure]}]
+  (if (~has-command? curl)
+    ("curl" "-o" ~path
+          --retry 5 --silent --show-error --fail --location
+          ~(if proxy
+             (let [url (java.net.URL. proxy)]
+               (format "--proxy %s:%s" (.getHost url) (.getPort url)))
+             "")
+          ~(if insecure "--insecure" "")
           (quoted ~url))
     (if (~has-command? wget)
       ("wget" "-O" (quoted ~path) --tries 5 --no-verbose --progress=dot:mega
