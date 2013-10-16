@@ -88,7 +88,7 @@
                        ~(condp = unpack
                           :tar (stevedore/checked-script
                                 (format "Untar %s" tarpath)
-                                (var rdf @("readlink" -f ~tarpath))
+                                (var rdf @(lib/canonical-path ~tarpath))
                                 ("cd" ~path)
                                 ("tar"
                                  ~tar-options
@@ -98,13 +98,13 @@
                                 ("cd" -))
                           :unzip (stevedore/checked-script
                                   (format "Unzip %s" tarpath)
-                                  (var rdf @("readlink" -f ~tarpath))
+                                  (var rdf @(lib/canonical-path ~tarpath))
                                   ("cd" ~path)
                                   ("unzip" ~unzip-options @rdf ~extract-files)
                                   ("cd" -))
                           :jar (stevedore/checked-script
                                 (format "Unjar %s" tarpath)
-                                (var rdf @("readlink" -f ~tarpath))
+                                (var rdf @(lib/canonical-path ~tarpath))
                                 ("cd" ~path)
                                 ("jar" ~jar-options @rdf ~extract-files)
                                 ("cd" -)))
