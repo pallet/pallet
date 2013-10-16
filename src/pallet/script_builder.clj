@@ -81,6 +81,7 @@ future)."
        (let [interpreter (or interpreter
                              (pallet.script-builder/interpreter options))]
          (stevedore/script
+          (var t (str (~make-temp-file "pallet") "." ~language))
           (var t (~make-temp-file "pallet"))
           (heredoc @t ~script {:literal true})
           ((str ~interpreter) @t)
