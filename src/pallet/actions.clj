@@ -959,4 +959,5 @@ Deprecated in favour of pallet.crate.service/service."
 ;; mode: clojure
 ;; eval: (define-clojure-indent (plan-when 1)(plan-when-not 1))
 ;; eval: (define-clojure-indent (with-action-values 1)(with-service-restart 1))
+;; eval: (define-clojure-indent (on-one-node 1))
 ;; End:
