@@ -145,8 +145,8 @@
           _ (set-state-for-nodes
              state-flag
              (->> results
-                  (remove #(some :error (:result %)) results)
-                  (map :target )))
+                  (remove #(some :error (:result %)))
+                  (map :target)))
           _ (result (logging/tracef "execute-and-flag %s done" state-flag))]
          [results plan-state])))
   ([state-flag]
