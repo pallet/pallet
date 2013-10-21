@@ -450,3 +450,14 @@ value to assoc. The assoc only occurs if the value is non-nil."
   potentially unsafe ID"
   [^String unsafe-id]
   (base64-md5 unsafe-id))
+
+(defn count-by
+  "Take a sequence and a key function, and returns a map with the
+  count of each key."
+  [key-fn s]
+  (reduce (fn [cnts e] (update-in cnts [(key-fn e)] (fnil inc 0))) {} s))
+
+(defn count-values
+  "Take a sequence, and returns a map with the count of each value."
+  [s]
+  (reduce (fn [cnts e] (update-in cnts [e] (fnil inc 0))) {} s))

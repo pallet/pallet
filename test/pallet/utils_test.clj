@@ -73,3 +73,9 @@
       (is (= (:as arg) ref))))
   (testing "plain symbol"
     (is (= '[a a] (map-arg-and-ref 'a)))))
+
+(deftest count-by-test
+  (is (= {:a 1 :b 2} (count-by :k [{:k :a} {:k :b} {:k :b}]))))
+
+(deftest count-values-test
+  (is (= {:a 1 :b 2} (count-values [:b :a :b]))))
