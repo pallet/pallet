@@ -35,7 +35,8 @@
     (if-let [errs (seq (validation-errors spec m))]
       (let [e (ex-info
                (format (str "Invalid " spec-name ": %s") (join " " errs))
-               {:errors errs
+               {:type :pallet/schema-validation
+                :errors errs
                 :m m
                 :spec spec
                 :spec-name spec-name
