@@ -3,7 +3,17 @@
   (:require
    [clojure.core.typed :refer [ann loop> Nilable NilableNonEmptySeq]]
    [clojure.string :as string]
+   [clojure.tools.logging :refer [warnf]]
    [pallet.core.types :refer [VersionVector VersionRange VersionSpec]]))
+
+(defn read-version-number
+  "Read a version number from a string, ignoring alphabetic chars."
+  [s]
+  (try
+    (Integer/parseInt (string/replace s #"[a-zA-Z-_]" ""))
+    (catch Exception e
+      (warnf "Could not obtain an integer from version component '%s'. %s"
+             s (.getMessage e)))))
 
 (ann version-vector [String -> VersionVector])
 (defn version-vector
@@ -11,9 +21,12 @@
 E.g.,
     (version-vector \"1.2\") => [1 2]"
   [version-string]
-  (let [v (map read-string (string/split version-string #"\.-"))]
+  (let [v (->>
+           (string/split version-string #"\.-")
+           (map read-version-number)
+           (filterv identity))]
     (assert (every? number? v))
-    (vec v)))
+    v))
 
 ;; (ann version-vector?
 ;;      [Any -> boolean
