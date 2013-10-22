@@ -2,7 +2,7 @@
   "Provides service supervision via initd"
   (:require
    [clojure.tools.logging :refer [debugf]]
-   [pallet.actions :refer [exec-checked-script remote-file]]
+   [pallet.actions :refer [exec-checked-script plan-when remote-file]]
    [pallet.actions.direct.service :refer [service-impl]]
    [pallet.api :as api]
    [pallet.api :refer [plan-fn]]
@@ -58,10 +58,16 @@
    {:keys [action if-flag if-stopped instance-id]
     :or {action :start}
     :as options}]
-  (exec-checked-script
-   (str "Initd " (name action) " " service-name)
-   ~(apply-map service-impl (session) service-name
-               (assoc options :service-impl :initd))))
+  (if if-flag
+    (plan-when (target-flag? if-flag)
+      (exec-checked-script
+       (str "Initd " (name action) " " service-name)
+       ~(apply-map service-impl (session) service-name
+                   (assoc options :service-impl :initd))))
+    (exec-checked-script
+       (str "Initd " (name action) " " service-name)
+       ~(apply-map service-impl (session) service-name
+                   (assoc options :service-impl :initd)))))
 
 (defn server-spec [settings & {:keys [instance-id] :as options}]
   (api/server-spec
