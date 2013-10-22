@@ -157,7 +157,8 @@
                         cmd
                         {:output-f (log-script-output
                                     (:server endpoint) (:user authentication))
-                         :agent-forwarding (:ssh-agent-forwarding action)})
+                         :agent-forwarding (:ssh-agent-forwarding action)
+                         :pty (:ssh-pty action true)})
                 ;; TODO fix this by putting the flags into the executor
                 ;; [result session] (execute/parse-shell-result session result)
                 result (update-in result [:out] clean-f)
