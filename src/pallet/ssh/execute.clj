@@ -155,7 +155,8 @@
                         cmd
                         {:output-f (log-script-output
                                     (:server endpoint) (:user authentication))
-                         :agent-forwarding (:ssh-agent-forwarding action)})
+                         :agent-forwarding (:ssh-agent-forwarding action)
+                         :pty (:ssh-pty action true)})
                 [result session] (execute/parse-shell-result session result)
                 result (update-in result [:out] clean-f)
                 result (result-with-error-map
