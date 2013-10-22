@@ -1,14 +1,25 @@
 (ns pallet.versions
   "Version handling for pallet"
   (:require
+   [clojure.tools.logging :refer [warnf]]
    [clojure.string :as string]))
+
+(defn read-version-number
+  "Read a version number from a string, ignoring alphabetic chars."
+  [s]
+  (try
+    (Integer/parseInt (string/replace s #"[a-zA-Z-_]" ""))
+    (catch Exception e
+      (warnf "Could not obtain an integer from version component '%s'. %s"
+             s (.getMessage e)))))
 
 (defn version-vector
   "Convert a dotted version string to a vector of version numbers.
 E.g.,
     (version-vector \"1.2\") => [1 2]"
   [version-string]
-  (vec (map read-string (string/split version-string #"\."))))
+  (filterv identity (map read-version-number
+                         (string/split version-string #"\."))))
 
 (defn as-version-vector
   "Take a version, as either a string or a version vector, and returns a
