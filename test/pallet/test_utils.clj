@@ -156,7 +156,7 @@ list, Alan Dipert and MeikelBrandmeyer."
 (defn target-server
   "Build the target server for the session map"
   [& {:as options}]
-  {:server (apply server-spec (apply concat options))})
+  {:server (apply group-spec (apply concat options))})
 
 (defn group
   "Build a group for the session map"
