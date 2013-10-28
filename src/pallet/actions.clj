@@ -765,6 +765,11 @@ Specify `:line` as a string, or `:package`, `:question`, `:type` and
   {:always-before #{package-manager package-source package}}
   [])
 
+(defmulti repository
+  "Install the specified repository as a package source.
+The :id key must contain a recognised repository."
+  (fn [{:keys [id]}]
+    id))
 
 ;;; # Synch local file to remote
 (defaction rsync
