@@ -7,6 +7,7 @@
    [pallet.action :refer [with-action-options]]
    [pallet.actions :as actions]
    [pallet.actions
+    :as actions
     :refer [add-rpm
             debconf-set-selections
             package
@@ -18,6 +19,8 @@
    [pallet.contracts :refer [check-keys]]
    [pallet.crate
     :refer [defmethod-plan defmulti-plan get-settings target-flag?]]
+   [pallet.crate.package.epel :refer [add-epel]]
+   [pallet.crate.package.debian-backports :refer [add-debian-backports]]
    [pallet.crate.package-repo :refer [rebuild-repository repository-packages]]
    [pallet.utils :refer [apply-map]])
   (:import clojure.lang.IPersistentVector
@@ -73,16 +76,22 @@
 ;; changes.
 (defmethod-plan install :package-source
   [facility instance-id]
-  (let [{:keys [package-source packages package-options preseeds] :as settings}
+  (let [{:keys [package-source packages package-options preseeds repository]
+         :as settings}
         (get-settings facility {:instance-id instance-id})]
     (debugf "package source %s %s" facility package-source)
     (check-keys
      settings [:package-source :packages]
      (map-schema :strict
-                 [[:package-source] (map-schema :loose [[:name] String])
+                 [(optional-path [:package-source]) (map-schema
+                                                     :loose [[:name] String])
+                  (optional-path [:repository]) (map-schema
+                                                 :loose [[:repository] Keyword])
                   [:packages] (sequence-of String)])
      "package-source install-strategy settings values")
-    (apply-map actions/package-source (:name package-source) package-source)
+    (if repository
+      (actions/repository repository)
+      (apply-map actions/package-source (:name package-source) package-source))
     (let [modified? (target-flag? package-source-changed-flag)]
       (with-action-options {:always-before #{package}}
         (plan-when modified?
