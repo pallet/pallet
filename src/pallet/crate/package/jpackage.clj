@@ -6,10 +6,12 @@
     :refer [add-rpm
             package
             package-manager
-            package-source]]
+            package-source
+            repository]]
    [pallet.plan :refer [defplan]]
    [pallet.settings :refer [assoc-settings get-settings]]
-   [pallet.spec :refer [os-family os-version]]))
+   [pallet.target :refer [os-family os-version]]
+   [pallet.utils :refer [apply-map]]))
 
 ;; The source for this rpm is available here:
 ;; http://plone.lucidsolutions.co.nz/linux/centos/
@@ -55,13 +57,13 @@
 
    Installs the jpackage-utils package from the base repos at a
    priority of 25."
-  [& {:keys [version component releasever enabled]
+  [session & {:keys [version component releasever enabled]
       :or {component "redhat-el"
            releasever "$releasever"
            version "5.0"
            enabled 0}}]
-  (let [os-family (os-family)
-        os-version (os-version)
+  (let [os-family (os-family session)
+        os-version (os-version session)
         no-updates (and            ; missing updates for fedora 13, 14
                     (= version "5.0")
                     (= :fedora os-family)
@@ -79,18 +81,21 @@
                           (when-not no-updates
                             (format "jpackage-%s-updates" component))]))]
     (package-source
+     session
      "jpackage-generic"
      :yum {:mirrorlist (mirrorlist "generic" "free" version)
            :failovermethod "priority"
            ;;gpgkey "http://www.jpackage.org/jpackage.asc"
            :enabled enabled})
     (package-source
+     session
      "jpackage-generic-non-free"
      :yum {:mirrorlist (mirrorlist "generic" "non-free" version)
            :failovermethod "priority"
            ;;gpgkey "http://www.jpackage.org/jpackage.asc"
            :enabled enabled})
     (package-source
+     session
      (format "jpackage-%s" component)
      :yum {:mirrorlist (mirrorlist
                         (str component "-" releasever) "free" version)
@@ -98,12 +103,14 @@
            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
            :enabled enabled})
     (package-source
+     session
      "jpackage-generic-updates"
      :yum {:mirrorlist (mirrorlist "generic" "free" (str version "-updates"))
            :failovermethod "priority"
            ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
            :enabled enabled})
     (package-source
+     session
      "jpackage-generic-updates-non-free"
      :yum {:mirrorlist (mirrorlist
                         "generic" "non-free" (str version "-updates"))
@@ -112,6 +119,7 @@
            :enabled enabled})
     (when-not no-updates
       (package-source
+       session
        (format "jpackage-%s-updates" component)
        :yum {:mirrorlist (mirrorlist
                           (str component "-" releasever)
@@ -120,13 +128,18 @@
              :failovermethod "priority"
              ;;:gpgkey "http://www.jpackage.org/jpackage.asc"
              :enabled enabled}))
-    (assoc-settings :jpackage-repos {:repos jpackage-repos})))
+    (assoc-settings session :jpackage-repos {:repos jpackage-repos})))
 
 (defplan package-manager-update-jpackage
   "Update the package lists for the jpackage repositories"
-  []
-  (let [{:keys [repos]} (get-settings :jpackage-repos)]
+  [session]
+  (let [{:keys [repos]} (get-settings session :jpackage-repos)]
     (package-manager
+     session
      :update
      :disable ["*"]
      :enable repos)))
+
+(defmethod repository :jpackage
+  [args]
+  (apply-map add-jpackage args))

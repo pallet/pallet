@@ -2,8 +2,11 @@
   "Actions for working with the epel repository"
   (:require
    [pallet.action-options :refer [with-action-options]]
-   [pallet.actions :refer [exec-checked-script package package-manager]]
-   [pallet.crate :refer [defplan]]))
+   [pallet.actions
+    :refer [exec-checked-script package package-manager repository]]
+   [pallet.crate :refer [defplan]]
+   [pallet.stevedore :refer [fragment]]
+   [pallet.utils :refer [apply-map]]))
 
 (defplan add-epel
   "Add the EPEL repository"
@@ -15,6 +18,11 @@
      ("rpm"
       -U --quiet
       ~(format
-        "http://download.fedora.redhat.com/pub/epel/5/%s/epel-release-%s.noarch.rpm"
-        "$(uname -i)"
+        "http://download.fedoraproject.org/pub/epel/%s/%s/epel-release-%s.noarch.rpm"
+        (first version)
+        (fragment @(pipe ("uname" -i) ("sed" "s/\\d86/386/")))
         version)))))
+
+(defmethod repository :epel
+  [args]
+  (apply-map add-epel args))

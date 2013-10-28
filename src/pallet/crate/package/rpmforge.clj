@@ -3,9 +3,11 @@
   (:require
    [pallet.action :refer [action-fn]]
    [pallet.action-options :refer [with-action-options]]
-   [pallet.actions :refer [exec-checked-script package package-manager]]
+   [pallet.actions
+    :refer [exec-checked-script package package-manager repository]]
    [pallet.actions.decl :refer [remote-file-action]]
-   [pallet.crate :refer [defplan]]))
+   [pallet.crate :refer [defplan]]
+   [pallet.utils :refer [apply-map]]))
 
 ;;; TODO remove this and use plan-when
 (def ^{:private true}
@@ -32,3 +34,7 @@
              "rpmforge.rpm"
              {:url (format rpmforge-url-pattern version distro arch)}))
           ("rpm" -U --quiet "rpmforge.rpm")))))))
+
+(defmethod repository :rpmforge
+  [args]
+  (apply-map add-rpmforge args))
