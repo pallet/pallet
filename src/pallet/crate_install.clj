@@ -7,6 +7,7 @@
    [pallet.action-options :refer [with-action-options]]
    [pallet.actions :as actions]
    [pallet.actions
+    :as actions
     :refer [add-rpm
             debconf-set-selections
             package
@@ -15,6 +16,8 @@
             remote-directory
             remote-file-arguments]]
    [pallet.contracts :refer [check-keys]]
+   [pallet.crate.package.epel :refer [add-epel]]
+   [pallet.crate.package.debian-backports :refer [add-debian-backports]]
    [pallet.crate.package-repo :refer [rebuild-repository repository-packages]]
    [pallet.plan :refer [defmethod-plan defmulti-plan]]
    [pallet.settings :refer [get-settings]]
@@ -72,16 +75,22 @@
 ;; changes.
 (defmethod-plan install :package-source
   [session facility instance-id]
-  (let [{:keys [package-source packages package-options preseeds] :as settings}
+  (let [{:keys [package-source packages package-options preseeds repository]
+         :as settings}
         (get-settings session facility {:instance-id instance-id})]
     (debugf "package source %s %s" facility package-source)
     (check-keys
      settings [:package-source :packages]
      (map-schema :strict
-                 [[:package-source] (map-schema :loose [[:name] String])
+                 [(optional-path [:package-source]) (map-schema
+                                                     :loose [[:name] String])
+                  (optional-path [:repository]) (map-schema
+                                                 :loose [[:repository] Keyword])
                   [:packages] (sequence-of String)])
      "package-source install-strategy settings values")
-    (apply-map actions/package-source session (:name package-source) package-source)
+    (if repository
+      (actions/repository repository)
+      (actions/package-source session (:name package-source) package-source))
     (let [modified? true ;; TODO (target-flag? package-source-changed-flag)
           ]
       (with-action-options session {:always-before #{package}}
