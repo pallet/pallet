@@ -17,13 +17,8 @@
   (:import clojure.lang.IFn
            clojure.lang.Keyword))
 
-;;; We put all the contract code here to hide the implementation of the contract
-;;; checks.
-
-
 ;;; ## Basic types
 (def bytes? #(= (class (byte-array [])) (class %)))
-
 
 ;;; We use macros so the stack trace reflects the calling location.
 (def ^{:dynamic true} *verify-contracts* true)
