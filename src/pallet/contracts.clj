@@ -75,7 +75,8 @@
    (optional-path [:location]) location-spec-schema
    (optional-path [:hardware]) hardware-spec-schema
    (optional-path [:network]) network-spec-schema
-   (optional-path [:qos]) qos-spec-schema])
+   (optional-path [:qos]) qos-spec-schema
+   (optional-path [:provider]) (map-schema :loose [])])
 
 (def-map-schema phases-schema
   [[(wild Keyword)] IFn])
