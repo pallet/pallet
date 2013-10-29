@@ -42,10 +42,13 @@ permissions. Note this is not the final directory."
   (stevedore/script
    (do
      (set! dirpath @(dirname ~new-path))
-     (set! templatepath @(dirname @(canonical-path ~template-path)))
+     (set! templatepath @(dirname @(if (file-exists? ~template-path)
+                                     (canonical-path ~template-path)
+                                     (println ~template-path))))
      (when (not (directory? @templatepath))
        (println @templatepath ": Directory does not exist.")
        (exit 1))
+     (set! templatepath @(canonical-path @templatepath))
      (chain-or (lib/mkdir @dirpath :path true) (exit 1))
      ("while" (!= "/" @templatepath) ";do"
       ~(stevedore/chained-script
