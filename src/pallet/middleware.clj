@@ -8,7 +8,7 @@
    [clojure.tools.logging :as logging :refer [debugf]]
    [pallet.node :as node]
    [pallet.plan :as api :refer [errors plan-fn]]
-   [pallet.session :refer [set-executor set-user]]
+   [pallet.session :as session :refer [set-executor set-user]]
    [pallet.tag :as tag]
    [pallet.target :as target]))
 
@@ -35,7 +35,15 @@
                      (filter (inst val Any) (target/image-user target)))
           user (if (or (get user :private-key-path) (get user :private-key))
                  (assoc user :temp-key true)
-                 user)]
+                 user)
+          user (if (some user [:private-key-path :private-key :password])
+                 user
+                 ;; use credentials from the admin user if no
+                 ;; credentials are supplied by the image (but allow
+                 ;; image to specify the username)
+                 (merge
+                  (session/user session)
+                  user))]
       (debugf "image-user %s" user)
       (handler (set-user session user) target plan-fn))))
 
