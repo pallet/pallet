@@ -13,13 +13,20 @@
          [[\"host1\" \"fullstack\" \"192.168.1.101\" :ubuntu]
           [\"host2\" \"fullstack\" \"192.168.1.102\" :ubuntu]])"
   (:require
+   [clj-schema.schema
+    :refer [def-map-schema optional-path seq-schema sequence-of set-of wild]]
+   [clojure.java.io :as io]
    [clojure.string :as string]
+   [clojure.tools.logging :as logging]
    [pallet.compute :as compute]
    [pallet.compute.implementation :as implementation]
    [pallet.compute.jvm :as jvm]
+   [pallet.contracts :refer [check-spec]]
    [pallet.environment :as environment]
    [pallet.node :as node]
-   [pallet.utils :refer [apply-map]]))
+   [pallet.utils :refer [apply-map]])
+  (:import
+   java.net.InetAddress))
 
 (defrecord Node
     [name group-name ip os-family os-version id ssh-port private-ip is-64bit
@@ -47,6 +54,21 @@
   (proxy [node] proxy))
 
 ;;; Node utilities
+(def ^:private ip-resolve-failed-msg
+  "Unable to resolve %s, maybe provide an ip for the node using :ip")
+
+(defn- ip-for-name
+  "Resolve the given hostname to an ip address."
+  [n]
+  (try
+    (let [^InetAddress addr (InetAddress/getByName n)]
+      (.getHostAddress addr))
+    (catch java.net.UnknownHostException e
+      (let [msg (format ip-resolve-failed-msg n)]
+        (logging/error msg)
+        (throw
+         (ex-info msg {:type :pallet/unable-to-resolve :host n} e))))))
+
 (defn make-node
   "Returns a node, suitable for use in a node-list."
   [name group-name ip os-family
@@ -68,6 +90,47 @@
    hardware
    proxy
    image-user))
+
+(def-map-schema node-args-schema
+  [(optional-path [:ip]) String
+   (optional-path [:group-name]) String
+   (optional-path [:os-family]) keyword?
+   (optional-path [:id]) String
+   (optional-path [:ssh-port]) number?
+   (optional-path [:private-ip]) String
+   (optional-path [:is-64bit]) wild
+   (optional-path [:running]) wild
+   (optional-path [:proxy]) pallet.node.NodeProxy
+   (optional-path [:image-user]) pallet.node.NodeImage])
+
+(defmacro check-node-args-spec
+  [m]
+  (check-spec m `node-args-schema &form))
+
+(defn node
+  "Returns a node, suitable for use in a node-list."
+  [name
+   & {:keys [ip group-name os-family id ssh-port private-ip is-64bit running
+             os-version service hardware proxy image-user]
+      :or {ssh-port 22 is-64bit true running true}
+      :as args}]
+  (check-node-args-spec args)
+  (let [ip (or ip (ip-for-name name))]
+    (Node.
+     name
+     (or group-name name)
+     ip
+     os-family
+     os-version
+     (or id (str name "-" (string/replace ip #"\." "-")))
+     ssh-port
+     private-ip
+     is-64bit
+     running
+     service
+     hardware
+     proxy
+     image-user)))
 
 (deftype NodeTagStatic
     [static-tags]
@@ -166,6 +229,87 @@ support."
    make-node name group-name ip os-family
    (apply concat (merge {:id "localhost"} options))))
 
+(defn node-data->node
+  "Convert an external node data specification to a node."
+  ([node-data]
+     (if (vector? node-data)
+       (if (and (second node-data) (string? (second node-data)))
+         (apply make-node node-data)    ; backwards compatible
+         (apply node node-data))
+       (if (string? node-data)
+         (node node-data)
+         node-data)))
+  ([node-data group-name]
+     (if (vector? node-data)
+       (apply node :group-name group-name node-data)
+       (if (string? node-data)
+         (node node-data)
+         (throw (ex-info
+                 (str
+                  "Invalid node-list node data " (pr-str node-data)
+                  ".  See pallet.compute.node-list/node for valid arguments.")
+                 {:type :pallet/invalid-node-list
+                  :node-data node-data}))))))
+
+(def possible-node-files
+  [".pallet-nodes"
+   (.getPath (io/file (System/getProperty "user.home") ".pallet" "nodes"))
+   "/etc/pallet/nodes"])
+
+(defn available-node-file
+  "Return the first available node-file as specified by PALLET_HOSTS,
+  or possible-node-files."
+  []
+  (or (System/getenv "PALLET_HOSTS")
+      (first
+       (filter #(.exists (io/file %))
+               possible-node-files))))
+
+(defn- read-file
+  "Read the contents of node file if it exists."
+  [file]
+  (if (and file (.exists (io/file file)))
+    (read-string (slurp file))))
+
+(defn- node-file-data->node-list
+  [data file]
+  (cond
+   (map? data)
+   (do
+     (when-not (every? vector? (vals data))
+       (throw
+        (ex-info
+         (str "Invalid node-file data " (pr-str data)
+              " in " (pr-str file)
+              ".  Map values for each group should be a vector of nodes.")
+         {:type :pallet/invalid-node-file
+          :file file
+          :node-file-data data})))
+     (reduce-kv
+      (fn [nodes group group-nodes]
+        (concat nodes (map
+                       #(node-data->node % (name group))
+                       group-nodes)))
+      []
+      data))
+
+   (vector? data) (map node-data->node data)
+
+   :else (throw
+          (ex-info
+           (str "Invalid node-file data " (pr-str data)
+                " in " (pr-str file)
+                ".  Expect a map from group-name to vector of nodes.")
+           {:type :pallet/invalid-node-file
+            :file file
+            :node-file-data data}))))
+
+(defn read-node-file
+  "Read the contents of node file if it exists."
+  [file]
+  (when file
+    (let [data (read-file file)]
+      (node-file-data->node-list data file))))
 
 ;;;; Compute Service SPI
 (defn supported-providers
@@ -174,14 +318,14 @@ support."
   [] ["node-list"])
 
 (defmethod implementation/service :node-list
-  [_ {:keys [node-list environment tag-provider]
+  [_ {:keys [node-list environment tag-provider node-file]
       :or {tag-provider (NodeTagStatic. {:bootstrapped true})}}]
-  (let [nodes (atom (vec
-                     (map
-                      #(if (vector? %)
-                         (apply make-node %)
-                         %)
-                      node-list)))
+  (let [nodes (atom
+               ;; An explicit node-list has priority,
+               ;; then an explicit node-file,
+               ;; then the standard node-file locations
+               (or (and node-list (mapv node-data->node (or node-list)))
+                   (read-node-file (or node-file (available-node-file)))))
         nodelist (NodeList. nodes environment tag-provider)]
     (swap! nodes #(map (fn [node] (assoc node :service nodelist)) %))
     nodelist))
@@ -199,3 +343,14 @@ support."
   (apply-map
    compute/instantiate-provider
    :node-list (assoc options :node-list node-list)))
+
+(defn node-list
+  "Create a node-list compute service, based on a sequence of nodes. Each
+   node is passed as either a node object constructed with `make-node`,
+   or as a vector of arguments for `make-node`.
+
+   Optionally, an environment map can be passed using the :environment keyword.
+   See `pallet.environment`."
+  {:added "0.6.8"}
+  [& {:keys [node-list node-file environment tag-provider] :as options}]
+  (apply-map compute/instantiate-provider :node-list options))
