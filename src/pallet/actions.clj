@@ -765,6 +765,11 @@ Specify `:line` as a string, or `:package`, `:question`, `:type` and
   {:always-before #{package-manager package-source package}}
   [])
 
+(defmulti repository
+  "Install the specified repository as a package source.
+The :id key must contain a recognised repository."
+  (fn [{:keys [id]}]
+    id))
 
 ;;; # Synch local file to remote
 (defaction rsync
@@ -959,4 +964,5 @@ Deprecated in favour of pallet.crate.service/service."
 ;; mode: clojure
 ;; eval: (define-clojure-indent (plan-when 1)(plan-when-not 1))
 ;; eval: (define-clojure-indent (with-action-values 1)(with-service-restart 1))
+;; eval: (define-clojure-indent (on-one-node 1))
 ;; End:

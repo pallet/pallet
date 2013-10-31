@@ -63,3 +63,13 @@
     (is (thrown-with-msg? Exception #"No total ordering"
                           (total-order-merge
                            [:a :c] [:c :a])))))
+
+(deftest count-by-test
+  (is (= {:a 1 :b 2} (count-by :k [{:k :a} {:k :b} {:k :b}]))))
+
+(deftest count-values-test
+  (is (= {:a 1 :b 2} (count-values [:b :a :b]))))
+
+(deftest map-seq-test
+  (is (nil? (map-seq {})))
+  (is (= {:a 1} (map-seq {:a 1}))))

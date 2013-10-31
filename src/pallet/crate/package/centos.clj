@@ -1,8 +1,9 @@
 (ns pallet.crate.package.centos
   "Actions for working with the centos repositories"
   (:require
-   [pallet.actions :refer [package package-source]]
-   [pallet.crate :refer [defplan is-64bit?]]))
+   [pallet.actions :refer [package package-source repository]]
+   [pallet.crate :refer [defplan is-64bit?]]
+   [pallet.utils :refer [apply-map]]))
 
 (def ^{:private true} centos-repo
   "http://mirror.centos.org/centos/%s/%s/%s/repodata/repomd.xml")
@@ -27,3 +28,7 @@
            :gpgkey (format centos-repo-key (str (first version)))
            :priority priority
            :enabled enabled})))
+
+(defmethod repository :centos
+  [args]
+  (apply-map add-repository args))

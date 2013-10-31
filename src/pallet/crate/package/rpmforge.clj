@@ -2,10 +2,12 @@
   "Actions for working with the rpmforge repository"
   (:require
    [pallet.action :refer [action-fn with-action-options]]
-   [pallet.actions :refer [exec-checked-script package package-manager]]
+   [pallet.actions
+    :refer [exec-checked-script package package-manager repository]]
    [pallet.actions-impl :refer [remote-file-action]]
    [pallet.core.session :refer [session]]
-   [pallet.crate :refer [defplan]]))
+   [pallet.crate :refer [defplan]]
+   [pallet.utils :refer [apply-map]]))
 
 ;;; TODO remove this and use plan-when
 (def ^{:private true}
@@ -33,3 +35,7 @@
                "rpmforge.rpm"
                {:url (format rpmforge-url-pattern version distro arch)}))
             ("rpm" -U --quiet "rpmforge.rpm"))))))))
+
+(defmethod repository :rpmforge
+  [args]
+  (apply-map add-rpmforge args))

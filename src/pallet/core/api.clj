@@ -146,8 +146,19 @@
     (let [user (into {} (filter val (image-user (:node node))))
           user (if (or (:private-key-path user) (:private-key user))
                  (assoc user :temp-key true)
-                 user)]
-      (debugf "Image-user is %s" (obfuscated-passwords user))
+                 user)
+          user (if (some user [:private-key-path :private-key :password])
+                 user
+                 ;; use credentials from the admin user if no
+                 ;; credentials are supplied by the image (but allow
+                 ;; image to specify the username)
+                 (merge
+                  (select-keys (:user environment)
+                               [:private-key :public-key
+                                :public-key-path :private-key-path
+                                :password])
+                  user))]
+      (debugf "Image-user is %s" (pr-str (obfuscated-passwords user)))
       {:user user
        :executor (get-in environment [:algorithms :executor] default-executor)
        :executor-status-fn (get-in environment [:algorithms :execute-status-fn]
@@ -358,4 +369,5 @@
     (throw
      (ex-info
       (str "Phase errors: " (string/join " " (map (comp :message :error) e)))
-      {:errors e}))))
+      {:errors e}
+      (-> (first e) :message :exception)))))

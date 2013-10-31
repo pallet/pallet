@@ -8,9 +8,11 @@
             package-manager
             package-source
             plan-when
-            plan-when-not]]
+            plan-when-not
+            repository]]
    [pallet.crate
-    :refer [assoc-settings defplan get-settings os-family os-version]]))
+    :refer [assoc-settings defplan get-settings os-family os-version]]
+   [pallet.utils :refer [apply-map]]))
 
 ;; The source for this rpm is available here:
 ;; http://plone.lucidsolutions.co.nz/linux/centos/
@@ -132,3 +134,7 @@
      :update
      :disable ["*"]
      :enable repos)))
+
+(defmethod repository :jpackage
+  [args]
+  (apply-map add-jpackage args))

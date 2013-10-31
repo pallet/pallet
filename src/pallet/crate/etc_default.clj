@@ -24,7 +24,8 @@
                     "/" filename))]
     (remote-file
      file
-     :owner "root:root"
+     :owner "root"
+     :group "root"
      :mode 644
      :content (string/join
                \newline

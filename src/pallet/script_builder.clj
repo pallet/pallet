@@ -54,7 +54,9 @@ infix-operators
   "Builds a script. The script is wrapped in a shell script to set
 up the working directory (and possibly environment variables in the
 future)."
-  [{:keys [language version interpreter] :or {language :bash} :as options}
+  [{:keys [language version interpreter interpreter-args]
+    :or {language :bash}
+    :as options}
    script
    {:keys [script-dir script-trace script-hash]
     :or {script-hash true}
@@ -77,9 +79,9 @@ future)."
      (let [interpreter (or interpreter
                            (pallet.script-builder/interpreter options))]
        (stevedore/script
-        (var t (~make-temp-file "pallet"))
+        (var t (str (~make-temp-file "pallet") "." ~language))
         (~heredoc @t ~script {:literal true})
-        ((str ~interpreter) @t)
+        ((str ~interpreter) ~@interpreter-args @t)
         (var r @?)
         (rm @t)
         (exit @r))))

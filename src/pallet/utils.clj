@@ -195,6 +195,11 @@ value to assoc. The assoc only occurs if the value is non-nil."
     m
     (assoc m k v)))
 
+(defn map-seq
+  "Given an argument, returns the argument, or nil if passed an empty map."
+  [m]
+  (if (not= {} m) m))
+
 (defmacro pipe
   "Build a session processing pipeline from the specified forms."
   [& forms]
@@ -394,3 +399,14 @@ value to assoc. The assoc only occurs if the value is non-nil."
            (ex-info "No total ordering available"
                     {:seqs seqs}))))
       r)))
+
+(defn count-by
+  "Take a sequence and a key function, and returns a map with the
+  count of each key."
+  [key-fn s]
+  (reduce (fn [cnts e] (update-in cnts [(key-fn e)] (fnil inc 0))) {} s))
+
+(defn count-values
+  "Take a sequence, and returns a map with the count of each value."
+  [s]
+  (reduce (fn [cnts e] (update-in cnts [e] (fnil inc 0))) {} s))
