@@ -252,6 +252,11 @@ value to assoc. The assoc only occurs if the value is non-nil."
     m
     (assoc m k v)))
 
+(defn map-seq
+  "Given an argument, returns the argument, or nil if passed an empty map."
+  [m]
+  (if (not= {} m) m))
+
 (defmacro pipe
   "Build a session processing pipeline from the specified forms."
   [& forms]
