@@ -27,7 +27,8 @@
           (phase-context write {}
             (remote-file
              "/etc/default/tomcat6"
-             :owner "root:root"
+             :owner "root"
+             :group "root"
              :mode 644
              :content
              "JAVA_OPTS=\"-Djava.awt.headless=true -Xmx1024m\"\nJSP_COMPILER=\"javac\""))))
@@ -42,7 +43,8 @@
           (phase-context write {}
             (remote-file
              "/etc/tomcat/tomcat6"
-             :owner "root:root"
+             :owner "root"
+             :group "root"
              :mode 644
              :content "JAVA_OPTS=\"-Djava.awt.headless=true\""))))
        (first
