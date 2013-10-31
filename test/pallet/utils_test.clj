@@ -69,3 +69,7 @@
 
 (deftest count-values-test
   (is (= {:a 1 :b 2} (count-values [:b :a :b]))))
+
+(deftest map-seq-test
+  (is (nil? (map-seq {})))
+  (is (= {:a 1} (map-seq {:a 1}))))
