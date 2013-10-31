@@ -417,7 +417,8 @@ specified in the `:extends` argument."
   "Returns a FSM to converge the existing compute resources with the counts
    specified in `group-spec->count`.  Options are as for `converge`."
   [group-spec->count & {:keys [compute blobstore user phase
-                               all-nodes all-node-set environment plan-state
+                               all-node-set consider-groups
+                               environment plan-state
                                debug os-detect]
                         :or {os-detect true}
                         :as options}]
@@ -463,6 +464,7 @@ specified in the `:extends` argument."
     (dofsm converge
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
+       consider-set (all-group-nodes compute consider-groups all-node-set)
        _ (succeed
           (or compute (seq nodes-set))
           {:error :no-nodes-and-no-compute-service})
@@ -472,15 +474,21 @@ specified in the `:extends` argument."
         compute groups nodes-set initial-plan-state environment
         phases lift-options)
 
-       {:keys [plan-state results]}
+       {:keys [plan-state] :as lift1}
        (ops/lift-partitions
         service-state plan-state environment
         (concat (when os-detect [:pallet/os-bs :pallet/os])
-                [:settings :bootstrap] phases)
+                [:settings])
+        (assoc lift-options :targets (distinct (concat consider-set targets))))
+
+       {:keys [plan-state results]}
+       (ops/lift-partitions
+        service-state plan-state environment
+        (concat [:bootstrap] phases)
         (assoc lift-options :targets targets))]
 
       (-> converge-result
-          (update-in [:results] concat results)
+          (update-in [:results] concat (:results lift1) results)
           (assoc :plan-state (dissoc plan-state :node-values)
                  :environment environment
                  :initial-plan-state initial-plan-state)))))
@@ -511,7 +519,13 @@ applied.
 : a phase keyword, phase function, or sequence of these.
 
 `:user`
-the admin-user on the nodes.
+: the admin-user on the nodes.
+
+`:consider-groups`
+: a sequence of group-specs, which should have just the :settings
+  phase run on them, so that their configuration is available for
+  other nodes to query.  The numbe of nodes in these groups will not
+  be adjusted.
 
 ### Partitioning
 
@@ -563,7 +577,7 @@ the admin-user on the nodes.
 `:os-detect`
 : controls detection of nodes' os (default true)."
   [group-spec->count & {:keys [compute blobstore user phase
-                               all-nodes all-node-set environment
+                               all-node-set environment
                                async timeout-ms timeout-val
                                debug plan-state]
                         :as options}]
@@ -578,7 +592,7 @@ the admin-user on the nodes.
 (defn lift*
   "Returns a FSM to lift the running nodes in the specified node-set by applying
    the specified phases.  Options as specified in `lift`."
-  [node-set & {:keys [compute phase all-node-set environment
+  [node-set & {:keys [compute phase all-node-set consider-groups environment
                       debug plan-state os-detect]
                :or {os-detect true}
                :as options}]
@@ -616,15 +630,19 @@ the admin-user on the nodes.
     (dofsm lift
       [nodes-set (all-group-nodes compute groups all-node-set)
        nodes-set (result (concat nodes-set targets))
+       consider-set (all-group-nodes compute consider-groups all-node-set)
        _ (succeed
           (or compute (seq nodes-set))
           {:error :no-nodes-and-no-compute-service})
+
        {:keys [plan-state]} (ops/lift
-                             nodes-set initial-plan-state environment
+                             (distinct (concat consider-set nodes-set))
+                             initial-plan-state environment
                              (concat
                               (when os-detect [:pallet/os])
                               [:settings])
                              {})
+
        results (ops/lift-partitions
                 nodes-set plan-state environment (remove #{:settings} phases)
                 lift-options)]
@@ -657,7 +675,12 @@ of group specs to nodes. Examples:
 : a phase keyword, phase function, or sequence of these.
 
 `:user`
-the admin-user on the nodes.
+: the admin-user on the nodes.
+
+`:consider-groups`
+: a sequence of group-specs, which should have just the :settings
+  phase run on them, so that their configuration is available for
+  other nodes to query.
 
 ### Partitioning
 
