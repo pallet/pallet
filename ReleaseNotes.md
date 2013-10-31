@@ -1,5 +1,74 @@
 Unstable development branch
 
+# 0.8.0-RC.4
+
+## Features
+
+- Add :provider in node-spec
+  Allow provider specific options under the :provider key in a node-map. The
+  value should be a map where each key is a provider keyword, and the value
+  is a map of provider specific options.
+
+- Add :repository to :package-source crate-install
+  Allow adding well known repositories as a package source.
+
+- Add repository multimethod
+  The multimethod provides an abstraction for adding a repository to a
+  package manager.
+
+## Fixes
+
+- Replaced readlink with canonical-path in remote-directory
+
+- Add :consider-groups option to lift and converge
+  Replaces all-nodes, that was not ported from 0.7.
+
+- Allow image-user to return no credentials
+  When creating nodes, some providers can create nodes that are authorised
+  with the admin user credentials.  If no credential is returned by
+  image-user, merge the credentials from the admin user.
+
+- Fix create-path-with-template with missing dir
+  When creating a file with a missing parent directory,
+  create-path-with-template was hanging.
+
+- Normalise group setting in etc-default
+
+- Add cause to phase-error exception
+
+- Allow passing of ssh-pty option
+
+- Fix if-flag for initd service implementation
+
+- Ignore alphas in version numnbers
+  When building a version vector, ignore alpha characters in components.
+  Ignores version components that contain only alpha characters.
+
+- Add count-by and count-values to pallet.utils
+
+- Fix error checking in execute-and-flag
+
+- Add a :type to excpetion on schema fail
+
+- Add language to temp file extension for scripts
+  Some interpreters require a specific extension.
+
+- Allow scripts to set interpreter arguments
+  When using the exec action, passing a sequence to :interpreter-args will
+  result in these flags being used with the interpreter to invoke the
+  script.
+
+- Make update of /etc/hosts optional in set-hostname
+  If DNS is set up, we may not want to configure /etc/hosts on hostname
+  changes.
+
+- Fix error detection in flag-and-execute
+
+- Add execute-and-flag-metadata to pallet.api
+  Produces a map that when applied to a phase will ensure the phase is
+  executed only once.
+
+
 # 0.8.0-RC.3
 
 ## Features
