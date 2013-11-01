@@ -455,7 +455,8 @@ specified in the `:extends` argument."
                       "No source of nodes"
                       {:error :no-nodes-and-no-compute-service})))
 
-          {:keys [new-nodes plan-state targets service-state] :as converge-result}
+          {:keys [new-nodes plan-state targets service-state]
+           :as converge-result}
           (ops/converge operation
                         compute groups nodes-set initial-plan-state
                         environment phases lift-options)

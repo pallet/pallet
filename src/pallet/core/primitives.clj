@@ -245,7 +245,7 @@ only not flagged with a :bootstrapped keyword."}
   [compute-service environment group-counts]
   (logging/debugf
    "create-group-nodes %s %s %s"
-   compute-service environment group-counts)
+   compute-service environment (vec group-counts))
   (let [r (map-async
            #(api/create-nodes
              compute-service environment (first %) (:delta (second %)))

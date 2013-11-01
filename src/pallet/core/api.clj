@@ -76,15 +76,17 @@
    (let [executor (get session ::executor)
          execute-status-fn (get session ::execute-status-fn)
          _ (debugf "execute-action executor %s" (pr-str executor))
-         _ (debugf "execute-action execute-status-fn %s" (pr-str execute-status-fn))
+         _ (debugf "execute-action execute-status-fn %s"
+                   (pr-str execute-status-fn))
          _ (assert executor "No executor in session")
          _ (assert execute-status-fn "No execute-status-fn in session")
          ;; TODO use destructuring when core.typed can grok it
          rrv (executor session action)
          [rv _] rrv
          out (:out rv)
-         _ (debugf "execute-action rrv %s" (pr-str rrv))
-         _ (assert (map? rv) (str "Action return value must be a map: " (pr-str rrv)))
+         _ (debugf "execute-action rv %s" (pr-str rv))
+         _ (assert (map? rv)
+                   (str "Action return value must be a map: " (pr-str rrv)))
          [rv session] (parse-shell-result session rv)]
      ;; TODO add retries, timeouts, etc
      (session!
@@ -126,7 +128,7 @@
 ;; TODO remove no-check when get gets smarter
 (ann ^:no-check target-phase [PhaseTarget Phase -> [Any * -> Any]])
 (defn target-phase [target phase]
-  (debugf "target-phase %s %s" target phase)
+  (tracef "target-phase %s %s" target phase)
   ;; TODO switch back to keyword invocation when core.typed can handle it
   (get (get target :phases) (phase-kw phase)))
 
@@ -426,11 +428,11 @@
   "Removes `nodes` from `group`. If `all` is true, then all nodes for the group
   are being removed."
   [compute-service group {:keys [nodes all]}]
-  (debugf "remove-nodes")
+  (debugf "remove-nodes all %s nodes %s" all nodes)
   (if all
-    (destroy-nodes-in-group compute-service (get group :group-name))
+    (destroy-nodes-in-group compute-service (:group-name group))
     (doseq> [node :- TargetMap nodes]
-            (destroy-node compute-service (get node :node)))))
+            (destroy-node compute-service (:node node)))))
 
 ;;; # Node state tagging
 (ann state-tag-name String)
