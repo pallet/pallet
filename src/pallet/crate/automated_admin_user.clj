@@ -70,8 +70,8 @@
   (server-spec
    :phases {:settings (plan-fn
                        (sudoers/settings {})
-                       (settings {}))
+                       (settings {})
+                       (create-admin-user))
             :bootstrap (plan-fn
                         (package-manager :update)
-                        (create-admin-user)
                         (configure {}))}))
