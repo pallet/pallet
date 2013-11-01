@@ -177,8 +177,8 @@ element in the result signifies a timeout."
   (fn execute-on-filtered
     [service-state plan-state environment phase targets execution-settings-f]
     (execute-f
-     service-state plan-state environment phase targets execution-settings-f
-     (filter-f targets))))
+     service-state plan-state environment phase (filter-f targets)
+     execution-settings-f)))
 
 (defn execute-on-flagged
   "Return a phase execution function, that will execute a phase on nodes that
