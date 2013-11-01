@@ -168,7 +168,7 @@
   ;; TODO - change back to keyword when core.type can invoke them
   (map (fn> [t :- TargetMap] (get t :node)) (get session :service-state)))
 
-(ann ^:no-check nodes-in-group [Session GroupName -> (Nilable (NonEmptySeqable Node))])
+(ann ^:no-check nodes-in-group [Session GroupName -> ServiceState])
 (defn nodes-in-group
   "All nodes in the same tag as the target-node, or with the specified
   group-name."
@@ -179,9 +179,7 @@
     (fn> [t :- TargetMap]
          (or (= (:group-name t) group-name)
              (when-let [group-names (:group-names t)]
-               (get group-names group-name)))))
-   ;; TODO - change back to keyword when core.type can invoke them
-   (map (fn> [t :- TargetMap] (get t :node)))))
+               (get group-names group-name)))))))
 
 (ann ^:no-check groups-with-role [Session -> (Seqable GroupSpec)])
 (defn groups-with-role
