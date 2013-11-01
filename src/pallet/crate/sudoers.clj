@@ -205,7 +205,7 @@ specs [ { [\"user1\" \"user2\"]
      sudoers-file
      :mode "0440"
      :owner "root"
-     :group (admin-group)
+     :group "root"
      :content (sudoers-config (sudoer-merge args)))))
 
 (defn server-spec
