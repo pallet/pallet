@@ -304,12 +304,12 @@ specified in the `:extends` argument."
    This generates a new plan function, and adds code to verify the state
    around each plan function call."
   [& body]
-  (let [n? (string? (first body))
-        n (when n? (first body))
+  (let [n? (or (string? (first body)) (and (next body) (symbol? (first body))))
+        n (when n? (name (first body)))
         body (if n? (rest body) body)]
     (if n
       `(fn [] (phase-context ~(gensym n) {} ~@body))
-      `(fn [] (session-context ~(gensym "a-plan-fn") {} ~@body)))))
+      `(fn [] (phase-context ~(gensym "a-plan-fn") {} ~@body)))))
 
 ;;; ## Operations
 ;;;
