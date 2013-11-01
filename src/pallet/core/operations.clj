@@ -106,55 +106,63 @@
   (logging/tracef "lift environment %s" environment)
   (letfn [(phase-meta [phase target]
             (-> (api/target-phase target phase) meta))]
-    (let [[results plan-state] (reduce
-                                (fn reducer [[results plan-state] phase]
-                                  (let [meta (phase-meta phase (first targets))
-                                        f  (or (:phase-execution-f meta)
-                                               phase-execution-f)
-                                        _  (logging/debugf
-                                            "phase-execution-f %s" f)
-                                        [r ps] (f
-                                                service-state plan-state
-                                                environment phase targets
-                                                (or
-                                                 (:execution-settings-f meta)
-                                                 execution-settings-f))
-                                        _ (logging/debugf "result %s %s" (vec r) ps)
-                                        results1 (vec (concat results r))
-                                        _ (when post-phase-f
-                                            (post-phase-f targets phase r))
-                                        _ (doseq [f (->>
-                                                     targets
-                                                     (map
-                                                      (comp
-                                                       :post-phase-f
-                                                       #(phase-meta phase %)))
-                                                     (remove nil?)
-                                                     distinct)]
-                                            (f targets phase r))
-                                        _ (when post-phase-fsm
-                                            (post-phase-fsm targets phase r))
-                                        _ (reduce
-                                           (fn post-reducer [_ f]
-                                             (f targets phase r))
-                                           nil
-                                           (->>
-                                            targets
-                                            (map
-                                             (comp :post-phase-fsm
-                                                   #(phase-meta phase %)))
-                                            (remove nil?)
-                                            distinct))]
-                                    ;; (when (some :error (mapcat :result r))
-                                    ;;   (logging/debugf
-                                    ;;    "Errors %s"
-                                    ;;    (some :error (mapcat :result r)))
-                                    ;;   (throw (ex-info
-                                    ;;           "Errors"
-                                    ;;           {:type :pallet/phase-errors})))
-                                    [results1 ps]))
-                                [[] plan-state]
-                                phases)]
+    (let [[results plan-state]
+          (reduce
+           (fn reducer [[results plan-state] phase]
+             (if (::stop-lift plan-state)
+               [results plan-state]
+               (let [meta (phase-meta phase (first targets))
+                     f  (or (:phase-execution-f meta)
+                            phase-execution-f)
+                     _  (logging/debugf
+                         "phase-execution-f %s" f)
+                     [r ps] (f
+                             service-state plan-state
+                             environment phase targets
+                             (or
+                              (:execution-settings-f meta)
+                              execution-settings-f))
+                     _ (logging/debugf "result %s %s" (vec r) ps)
+                     results1 (vec (concat results r))
+                     _ (when post-phase-f
+                         (post-phase-f targets phase r))
+                     _ (doseq [f (->>
+                                  targets
+                                  (map
+                                   (comp
+                                    :post-phase-f
+                                    #(phase-meta phase %)))
+                                  (remove nil?)
+                                  distinct)]
+                         (f targets phase r))
+                     _ (when post-phase-fsm
+                         (post-phase-fsm targets phase r))
+                     _ (reduce
+                        (fn post-reducer [_ f]
+                          (f targets phase r))
+                        nil
+                        (->>
+                         targets
+                         (map
+                          (comp :post-phase-fsm
+                                #(phase-meta phase %)))
+                         (remove nil?)
+                         distinct))
+                     ps (if (some :error r)
+                          (do
+                            (logging/debugf "stop-lift detected")
+                            (assoc ps ::stop-lift true))
+                          ps)]
+                 ;; (when (some :error (mapcat :result r))
+                 ;;   (logging/debugf
+                 ;;    "Errors %s"
+                 ;;    (some :error (mapcat :result r)))
+                 ;;   (throw (ex-info
+                 ;;           "Errors"
+                 ;;           {:type :pallet/phase-errors})))
+                 [results1 ps])))
+           [[] plan-state]
+           phases)]
       (do
         (logging/tracef "lift (count results) %s" (count results))
         {:results results
