@@ -20,7 +20,7 @@ unprecedented level of customization."
                  [org.clojure/tools.macro "0.1.1"]
                  [org.clojure/tools.cli "0.2.4"]
                  [org.clojure/algo.monads "0.1.0"]
-                 [org.clojure/core.async "0.1.222.0-83d0c2-alpha"
+                 [org.clojure/core.async "0.1.242.0-44b1e3-alpha"
                   :exclusions [org.clojure/clojurescript]]
                  [com.palletops/chiba "0.2.0"]
                  [com.palletops/thread-expr "1.3.0"]
