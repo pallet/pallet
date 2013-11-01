@@ -538,8 +538,4 @@
              ((inst comp ActionErrorMap String PhaseResult) :message :error)
              e)))
       {:errors e}
-      (->> ((inst map (U Exception nil) PhaseResult)
-            ((inst comp ActionErrorMap Throwable PhaseResult) :exception :error)
-            e)
-           (filter identity)
-           first)))))
+      (first (phase-error-exceptions result))))))
