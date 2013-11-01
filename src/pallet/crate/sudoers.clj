@@ -16,6 +16,7 @@
 ;; TODO - add escaping according to man page
 ;; TODO - dsl for sudoers, eg. (alias "user1" "user2" :as :ADMINS)
 
+(def facility ::sudoers)
 
 (defn default-specs
   []
@@ -34,11 +35,11 @@
 
 (defplan settings
   [settings & {:keys [instance-id] :as options}]
-  (assoc-settings ::sudoers (merge (default-settings) settings) options))
+  (assoc-settings facility (merge (default-settings) settings) options))
 
 (defplan install
   [{:keys [instance-id]}]
-  (crate-install/install ::sudoers instance-id))
+  (crate-install/install facility instance-id))
 
 (defplan default-specs
   []
@@ -191,16 +192,19 @@ specs [ { [\"user1\" \"user2\"]
             [\"/usr/bin/*\" \"/usr/local/bin/*\"]
             { :run-as-user \"root\" :tags [:NOEXEC :NOPASSWORD} }"
   [aliases defaults specs & {:keys [instance-id] :as options}]
-  (update-settings ::sudoers options
+  (logging/debugf "sudoers %s" (get-settings facility options))
+  (update-settings facility options
                    update-in [:args] conj-distinct [aliases defaults specs]))
 
 (defn configure
   "Install the sudoers configuration based on settings"
   [{:keys [instance-id] :as options}]
-  (let [{:keys [sudoers-file args]} (get-settings ::sudoers options)]
-    ;; TODO fix this to not use templates, but remote-file
-    (logging/debugf "Sudoers configure %s" (pr-str args))
-    (assert sudoers-file "No sudoers-file in settings for sudoers")
+  (let [{:keys [sudoers-file args] :as settings}
+        (get-settings facility options)]
+    (logging/debugf "Sudoers configure %s" (pr-str settings))
+    (assert sudoers-file
+            (str "No sudoers-file in settings for sudoers: "
+                 settings))
     (remote-file
      sudoers-file
      :mode "0440"
