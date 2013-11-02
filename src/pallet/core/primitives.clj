@@ -4,10 +4,12 @@
    [clojure.core.async :as async
     :refer [>!! alt!! alts!! close! chan go sliding-buffer thread timeout]]
    [clojure.tools.logging :as logging]
+   [pallet.async :refer [timeout-chan]]
    [pallet.core.api :as api]
    [pallet.core.protocols :as impl :refer [Status StatusUpdate DeliverValue]]
    [pallet.map-merge :refer [merge-keys]]
-   [pallet.node :refer [id]]))
+   [pallet.node :refer [id]]
+   [pallet.utils :refer [deep-merge]]))
 
 (deftype AsyncOperation
     [status status-chan completed-promise close-status-chan?]
@@ -81,49 +83,30 @@ or executes synchronously with an optional timeout."
         (deref (g) timeout-ms timeout-val)
         (deref (g))))))
 
-(defn map-async
-  "Apply f to each element of s in a thread per s.
-
-Returns a sequence of the results.  Each element in the result is a
-vector, containing the result of the function call as the first
-element, and any exception thrown as the second element.  A nil
-element in the result signifies a timeout."
-
-  ;; TODO control the number of threads used here, or under some
-  ;; configurable place - might depend on the executor being used
-  ;; (eg., a message queue based executor might not need limiting),
-  ;; though should probably be configurable separately to this.
-
-  [f s {:keys [timeout] :or {timeout (* 5 60 1000)}}]
-  (if false
-    (let [channels (conj (doall (for [i s]
-                                  (thread
-                                   (try
-                                     [(f i)]
-                                     (catch Throwable e
-                                       ;; (logging/errorf e "Error")
-                                       ;; (clojure.stacktrace/print-cause-trace e)
-                                       [nil e])))))
-                         (async/timeout timeout))]
-      (->> (repeatedly (count s) #(alts!! channels))
-           (mapv first)))
-    (doall (for [i s]
-             (try
-               [(f i)]
-               (catch Throwable e
-                 ;; (logging/errorf e "Error")
-                 ;; (clojure.stacktrace/print-cause-trace e)
-                 [nil e]))))))
-
+;;; # Async
 (defn- map-targets
+  "Returns a channel which will return the result of applying f to
+  targets, reducing the results into a tuple containing a result
+  vector and a plan-state."
   [f targets plan-state]
-  (let [r (->> (map-async f targets {})
-               (map #(if-let [r (first %)]
-                       r
-                       (if-let [e (second %)]
-                         {:error {:exception e}})))
-               (filter identity))]
-    [r (reduce merge plan-state (map :plan-state r))]))
+  (logging/debugf "map-targets on %s targets" (count targets))
+  (->> (map f targets)
+       (async/merge)
+       (async/reduce
+        (fn [[results plan-state] r]
+          [(conj results r) (deep-merge plan-state (:plan-state r))])
+        [[] plan-state])))
+
+;; (async/map< #(if-let [r (first %)]
+;;                r
+;;                (if-let [e (second %)]
+;;                  {:error {:exception e}})))
+
+;; (logging/debugf "map-targets %s" (vec r))
+;; [r (reduce deep-merge plan-state (map :plan-state r))])
+
+;; TODO make timeout configurable
+;; (take-channel (count targets) (* 5 60 1000))
 
 (defn execute-phase
   "Build and execute the specified phase.
@@ -240,17 +223,60 @@ only not flagged with a :bootstrapped keyword."}
   [result]
   (not (:errors result)))
 
+
+(defn map-async
+  "Apply f to each element of s in a thread per s.
+
+Returns a sequence of channels which can be used to read the results
+of each function application.  Each element in the result is a vector,
+containing the result of the function call as the first element, and a
+map containing any exception thrown, or timeout, as the second
+element."
+
+  ;; TODO control the number of threads used here, or under some
+  ;; configurable place - might depend on the executor being used
+  ;; (eg., a message queue based executor might not need limiting),
+  ;; though should probably be configurable separately to this.
+
+  [f s timeout-ms]
+  (if false
+    ;; this can be used to test code sequentially
+    (doall (for [i s]
+             (try
+               [(f i)]
+               (catch Throwable e
+                 (println "Caught" e)
+                 (logging/errorf e "Unexpected exception")
+                 (clojure.stacktrace/print-cause-trace e)
+                 [nil e]))))
+    (for [i s]
+      (timeout-chan
+       (thread
+        (try
+          [(f i)]
+          (catch Throwable e [nil {:exception e :target i}])))
+       timeout-ms))))
+
+(defn take-channel
+  "Take n items from a channel, with a specified timeout"
+  [n timeout-ms channel]
+  (->> (repeatedly n #(alts!! [channel (async/timeout timeout-ms)]))
+       (mapv first)))
+
 (defn create-group-nodes
   "Create nodes for groups."
   [compute-service environment group-counts]
   (logging/debugf
    "create-group-nodes %s %s %s"
    compute-service environment (vec group-counts))
-  (let [r (map-async
-           #(api/create-nodes
-             compute-service environment (first %) (:delta (second %)))
-           group-counts
-           {})]
+  (let [r (->> (map-async
+                #(api/create-nodes
+                  compute-service environment (first %) (:delta (second %)))
+                group-counts
+                (* 5 60 1000))
+               async/merge
+               ;; TODO make timeout configurable
+               (take-channel (count group-counts) (* 5 60 1000)))]
     (when-let [e (some second r)]
       (throw e))
     (mapcat first r)))
@@ -260,69 +286,16 @@ only not flagged with a :bootstrapped keyword."}
   nodes"
   [compute-service group-nodes]
   (logging/debugf "remove-group-nodes %s" group-nodes)
-  (let [r (map-async
-           #(api/remove-nodes compute-service (key %) (val %))
-           group-nodes
-           {})]
+  (let [r (->> (map-async
+                #(api/remove-nodes compute-service (key %) (val %))
+                group-nodes
+                (* 5 60 1000))
+               async/merge
+               ;; TODO make timeout configurable
+               (take-channel (count group-nodes) (* 30 1000)))]
     (when-let [e (some second r)]
       (throw e))
     (mapcat first r)))
-
-#_(
-;;; ## Node count adjustment
-(defn create-nodes
-  "Create `count` nodes for a `group`."
-  [compute-service environment group count]
-  (async-fsm
-   (partial api/create-nodes compute-service environment group count)))
-
-(defn create-group-nodes
-  "Create nodes for groups."
-  [compute-service environment group-counts]
-  (logging/debugf
-   "create-group-nodes %s %s %s"
-   compute-service environment group-counts)
-  (dofsm create-group-nodes
-    [results (map*
-              (map
-               #(create-nodes
-                 compute-service environment (first %) (:delta (second %)))
-               group-counts))]
-    (apply concat results)))
-
-(defn remove-nodes
-  "Removes `nodes` from `group`. If `all` is true, then all nodes for the group
-  are being removed."
-  [compute-service group {:keys [nodes all] :as remove-node-map}]
-  (logging/debugf "remove-nodes %s" remove-node-map)
-  (async-fsm
-   (partial api/remove-nodes compute-service group remove-node-map)))
-
-(defn remove-group-nodes
-  "Removes nodes from groups. `group-nodes` is a map from group to a sequence of
-  nodes"
-  [compute-service group-nodes]
-  (logging/debugf "remove-group-nodes %s" group-nodes)
-  (map* (map #(remove-nodes compute-service (key %) (val %)) group-nodes)))
-
-;;; # Exception reporting
-(defn throw-operation-exception
-  "If the result has a logged exception, throw it. This will block on the
-   operation being complete or failed."
-  [operation]
-  (when-let [f (fail-reason operation)]
-    (when-let [e (:exception f)]
-      (throw e))))
-
-(defn phase-errors
-  "Return the phase errors for an operation"
-  [operation]
-  (api/phase-errors (wait-for operation)))
-
-(defn throw-phase-errors
-  [operation]
-  (api/throw-phase-errors (wait-for operation)))
-)
 
 ;; Local Variables:
 ;; mode: clojure

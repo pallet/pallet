@@ -2,6 +2,7 @@
   "Base level API for pallet"
   (:require
    [clojure.algo.monads :refer [domonad m-map state-m with-monad]]
+   [clojure.core.async :as async :refer [chan close! go put! thread <! >!]]
    [clojure.core.typed
     :refer [ann ann-form def-alias doseq> fn> letfn> inst tc-ignore
             AnyInteger Map Nilable NilableNonEmptySeq
@@ -11,6 +12,7 @@
    [clojure.string :as string]
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :refer [debugf tracef]]
+   [pallet.async :refer [timeout-chan]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :refer [destroy-node destroy-nodes-in-group nodes run-nodes]]
    [pallet.core.api-impl :refer :all]
@@ -22,7 +24,7 @@
             ExecSettingsFn GroupName GroupSpec IncompleteServiceState Keyword
             Phase PhaseResult PhaseTarget PlanState Result ServiceState Session
             TargetMap TargetPhaseResult User]]
-   [pallet.core.user :refer [obfuscated-passwords]]
+   [pallet.core.user :refer [*admin-user* obfuscated-passwords]]
    [pallet.execute :refer [parse-shell-result]]
    [pallet.node
     :refer [id image-user group-name primary-ip tag tag! taggable? terminated?]]
@@ -65,6 +67,42 @@
        (map #(hash-map :group-name %))
        (map #(vary-meta % assoc :type ::group-spec))))
 
+
+;;; ## Action Plan Execution
+;; TODO remove no-check when find out why this hangs core.typed
+(ann ^:no-check environment-execution-settings [-> ExecSettingsFn])
+(defn environment-execution-settings
+  "Returns execution settings based purely on the environment"
+  []
+  (fn> [environment :- EnvironmentMap
+        _ :- PhaseTarget]
+    (debugf "environment-execution-settings %s" environment)
+    (debugf "Env user %s" (obfuscated-passwords (into {} (:user environment))))
+    {:user (:user environment)
+     :executor (get-in environment [:algorithms :executor])
+     :execute-status-fn (get-in environment [:algorithms :execute-status-fn])}))
+
+;; TODO remove :no-check when core.typed's map types are more powerful
+(ann ^:no-check environment-image-execution-settings [-> ExecSettingsFn])
+(defn environment-image-execution-settings
+  "Returns execution settings based on the environment and the image user."
+  []
+  (fn> [environment :- EnvironmentMap
+        node :- PhaseTarget]
+       (let [user (into {} (filter (inst val Any)
+                                   (image-user (assert-not-nil
+                                                (get node :node)))))
+             user (if (or (get user :private-key-path) (get user :private-key))
+                    (assoc user :temp-key true)
+                    user)]
+         (tc-ignore
+          (debugf "Image-user is %s" (obfuscated-passwords user)))
+         {:user user
+          ;; TODO revert to get-in when core.typed powerful enough
+          :executor (get (get environment :algorithms) :executor)
+          :execute-status-fn (get (get environment :algorithms)
+                                  :execute-status-fn)})))
+
 ;;; # Execute action on a target node
 (ann execute-action [Session Action -> ActionResult])
 ;; TODO - remove tc-gnore when update-in has more smarts
@@ -89,11 +127,12 @@
                    (str "Action return value must be a map: " (pr-str rrv)))
          [rv session] (parse-shell-result session rv)]
      ;; TODO add retries, timeouts, etc
-     (session!
-      (update-in session [:phase-results]
-                 (fnil conj [])
-                 rv))
-     (execute-status-fn rv)
+     (put! (::result-ch session) [rv (:plan-state session)])
+     (try
+       (execute-status-fn rv)
+       (catch Exception e
+         (close! (:result-ch session))
+         (throw e)))
      rv)))
 
 
@@ -141,8 +180,11 @@
   "Build the action plan for the specified `plan-fn` on the given `node`, within
   the context of the `service-state`. The `plan-state` contains all the
   settings, etc, for all groups. `target-map` is a map for the session
-  describing the target."
-  [service-state environment phase execution-settings-f target-kw target]
+  describing the target.
+
+  Return a channel with the target phase result map."
+  [service-state environment phase execution-settings-f target-kw target
+   result-ch]
   {:pre [(map? target)
          (or (nil? environment) (map? environment))]}
   (let [plan-fn (target-phase target phase)
@@ -152,24 +194,25 @@
             "plan-fn should be a function")
     (fn> action-plan [plan-state :- PlanState]
          (let [{:keys [user executor execute-status-fn]}
-               (execution-settings-f environment target)
-               [rv session]
-               (with-session
-                 (add-session-verification-key
-                  (merge {:user (get environment :user)}
-                         {:service-state service-state
-                          :plan-state plan-state
-                          :environment environment
-                          target-kw target
-                          ::executor executor
-                          ::execute-status-fn execute-status-fn}))
-                 ;; TODO remove tc-ignore if core.type supports apply
-                 [(tc-ignore (apply plan-fn args)) (session)])]
-           {:result (:phase-results session)
-            :plan-state (:plan-state session)
-            :target target
-            :phase phase-kw
-            :phase-args args}))))
+               (execution-settings-f environment target)]
+           (with-session
+             (add-session-verification-key
+              (merge {:user (get environment :user)}
+                     {:service-state service-state
+                      :plan-state plan-state
+                      :environment environment
+                      target-kw target
+                      ::executor executor
+                      ::execute-status-fn execute-status-fn
+                      ::result-ch result-ch}))
+             (try
+               (apply plan-fn args)
+               (close! result-ch)
+               (catch Throwable e
+                 (put! result-ch
+                       [{:error {:type :exception :exception e}}
+                        (:plan-state (session))])
+                 (close! result-ch))))))))
 
 ;; TODO remove no-check when commons is type checked
 (ann ^:no-check target-action-plan
@@ -180,12 +223,14 @@
   given `target`, within the context of the `service-state`. The `plan-state`
   contains all the settings, etc, for all groups."
   (fn target-action-plan
-    [service-state plan-state environment phase execution-settings-f target]
+    [service-state plan-state environment phase execution-settings-f target
+     result-ch]
     (tracef "target-action-plan %s" (:target-type target :node))
     (:target-type target :node)))
 
 (defmethod target-action-plan :node
-  [service-state plan-state environment phase execution-settings-f target]
+  [service-state plan-state environment phase execution-settings-f target
+   result-ch]
   {:pre [target (:node target) phase]}
   (fn [plan-state]
     (logutils/with-context [:target (get (get target :node) primary-ip)]
@@ -195,11 +240,13 @@
           environment
           phase
           execution-settings-f
-          :server target)
+          :server target
+          result-ch)
          plan-state)))))
 
 (defmethod target-action-plan :group
-  [service-state plan-state environment phase execution-settings-f group]
+  [service-state plan-state environment phase execution-settings-f group
+   result-ch]
   {:pre [group]}
   (fn [plan-state]
     (logutils/with-context [:target (-> group :group-name)]
@@ -208,71 +255,39 @@
         environment
         phase
         execution-settings-f
-        :group group)
+        :group group
+        result-ch)
        plan-state))))
 
 (ann execute-phase-on-target
-     [ServiceState PlanState EnvironmentMap Phase ExecSettingsFn TargetMap
-      -> TargetPhaseResult])
+     (Fn [ServiceState PlanState EnvironmentMap Phase ExecSettingsFn TargetMap
+          -> TargetPhaseResult]
+         [Phase TargetMap -> TargetPhaseResult]))
 (defn execute-phase-on-target
   "Execute a phase on a single target."
-  [service-state plan-state environment phase execution-settings-f target-map]
-  (let [f (target-action-plan
-           service-state plan-state environment phase execution-settings-f
-           target-map)]
-    (f plan-state)))
-
-
-
-;; (defn execute-phase
-;;   [service-state plan-state environment phase execution-settings-f targets]
-;;   (let [targets-with-phase (filter #(target-phase % phase) targets)
-;;         result-chans (doall
-;;                       (for [target targets-with-phase]
-;;                         (execute-phase-on-target
-;;                          service-state plan-state environment phase
-;;                          execution-settings-f target)))
-;;         timeout (timeout (* 5 60 1000))] ; TODO make this configurable
-;;     (tracef
-;;      "action-plans: phase %s targets %s targets-with-phase %s"
-;;      phase (vec targets) (vec targets-with-phase))
-;;     (map #(alts!! % timeout) result-chans)))
-
-
-;;; ## Action Plan Execution
-;; TODO remove no-check when find out why this hangs core.typed
-(ann ^:no-check environment-execution-settings [-> ExecSettingsFn])
-(defn environment-execution-settings
-  "Returns execution settings based purely on the environment"
-  []
-  (fn> [environment :- EnvironmentMap
-        _ :- PhaseTarget]
-    (debugf "environment-execution-settings %s" environment)
-    (debugf "Env user %s" (obfuscated-passwords (into {} (:user environment))))
-    {:user (:user environment)
-     :executor (get-in environment [:algorithms :executor])
-     :execute-status-fn (get-in environment [:algorithms :execute-status-fn])}))
-
-;; TODO remove :no-check when core.typed's map types are more powerful
-(ann ^:no-check environment-image-execution-settings [-> ExecSettingsFn])
-(defn environment-image-execution-settings
-  "Returns execution settings based on the environment and the image user."
-  []
-  (fn> [environment :- EnvironmentMap
-        node :- PhaseTarget]
-       (let [user (into {} (filter (inst val Any)
-                                   (image-user (assert-not-nil
-                                                (get node :node)))))
-             user (if (or (get user :private-key-path) (get user :private-key))
-                    (assoc user :temp-key true)
-                    user)]
-         (tc-ignore
-          (debugf "Image-user is %s" (obfuscated-passwords user)))
-         {:user user
-          ;; TODO revert to get-in when core.typed powerful enough
-          :executor (get (get environment :algorithms) :executor)
-          :execute-status-fn (get (get environment :algorithms)
-                                  :execute-status-fn)})))
+  ([service-state plan-state environment phase execution-settings-f target-map]
+     (let [result-ch (chan)
+           f (target-action-plan
+              service-state plan-state environment phase execution-settings-f
+              target-map result-ch)
+           timeout-ms (* 5 60 1000)
+           r (async/reduce
+              (fn [m [r plan-state]]
+                (-> m
+                    (update-in [:result] (fnil conj []) r)
+                    (assoc :plan-state plan-state)))
+              {:target target-map
+               :phase (phase-kw phase)
+               :phase-args (phase-args phase)}
+              (timeout-chan result-ch timeout-ms))]
+       (thread
+        (f plan-state))
+       (debugf "action-plan result %s" r)
+       r))
+  ([phase target-map]
+     (execute-phase-on-target
+      [] {} {:user *admin-user*}
+      phase (environment-execution-settings) target-map)))
 
 ;;; ## Calculation of node count adjustments
 (def-alias NodeDeltaMap (HMap :mandatory {:actual AnyInteger
@@ -428,7 +443,7 @@
   "Removes `nodes` from `group`. If `all` is true, then all nodes for the group
   are being removed."
   [compute-service group {:keys [nodes all]}]
-  (debugf "remove-nodes all %s nodes %s" all nodes)
+  (debugf "remove-nodes all %s nodes %s" all (vector nodes))
   (if all
     (destroy-nodes-in-group compute-service (:group-name group))
     (doseq> [node :- TargetMap nodes]

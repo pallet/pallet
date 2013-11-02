@@ -1,6 +1,7 @@
 (ns pallet.core.operations
   "Built in operations"
   (:require
+   [clojure.core.async :refer [<!!]]
    [clojure.tools.logging :as logging]
    [pallet.core.api :as api]
    [pallet.core.primitives :as primitives :refer [status!]]
@@ -19,25 +20,25 @@
                    (vals nodes-to-remove)
                    (mapcat :nodes)
                    (map (comp node-map :node)))
-        [results1 plan-state] (primitives/execute-phase
-                               targets plan-state environment
-                               :destroy-server
-                               (mapcat :nodes (vals nodes-to-remove))
-                               execution-settings-f)
+        [results1 plan-state] (<!! (primitives/execute-phase
+                                    targets plan-state environment
+                                    :destroy-server
+                                    (mapcat :nodes (vals nodes-to-remove))
+                                    execution-settings-f))
         _ (status! operation :node-count-adjuster/destroy-server-phase-run)
         _ (primitives/remove-group-nodes compute-service nodes-to-remove)
         _ (status! operation :node-count-adjuster/nodes-removed)
-        [results2 plan-state] (primitives/execute-phase
-                               targets plan-state environment
-                               :destroy-group
-                               (api/groups-to-remove group-deltas)
-                               execution-settings-f)
+        [results2 plan-state] (<!! (primitives/execute-phase
+                                    targets plan-state environment
+                                    :destroy-group
+                                    (api/groups-to-remove group-deltas)
+                                    execution-settings-f))
         _ (status! operation :node-count-adjuster/destroy-group-run)
-        [results3 plan-state] (primitives/execute-phase
-                               targets plan-state environment
-                               :create-group
-                               (api/groups-to-create group-deltas)
-                               execution-settings-f)
+        [results3 plan-state] (<!! (primitives/execute-phase
+                                    targets plan-state environment
+                                    :create-group
+                                    (api/groups-to-create group-deltas)
+                                    execution-settings-f))
         _ (status! operation :node-count-adjuster/create-group-run)
         new-nodes (primitives/create-group-nodes
                    compute-service environment nodes-to-add)
@@ -116,12 +117,12 @@
                             phase-execution-f)
                      _  (logging/debugf
                          "phase-execution-f %s" f)
-                     [r ps] (f
-                             service-state plan-state
-                             environment phase targets
-                             (or
-                              (:execution-settings-f meta)
-                              execution-settings-f))
+                     ch (f service-state plan-state
+                           environment phase targets
+                           (or (:execution-settings-f meta)
+                               execution-settings-f))
+                     _ (logging/debugf "channel %s" ch)
+                     [r ps] (<!! ch)
                      _ (logging/debugf "result %s %s" (vec r) ps)
                      results1 (vec (concat results r))
                      _ (when post-phase-f
@@ -164,6 +165,7 @@
            [[] plan-state]
            phases)]
       (do
+        (logging/debugf "lift plan-state %s %s" phases (pr-str plan-state))
         (logging/tracef "lift (count results) %s" (count results))
         {:results results
          :targets targets
