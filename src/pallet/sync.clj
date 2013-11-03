@@ -70,3 +70,21 @@ of a phase, across all targets in the parent phase."
 (defn dump
   [sync-service]
   (impl/dump-state sync-service))
+
+(defn sync-phase*
+  "Wrap function f in phase synchronisation for target"
+  [sync-service phase target options f]
+  (try
+    (if (enter-phase sync-service phase target options)
+      (f))
+    (catch Exception e
+      (clojure.stacktrace/print-cause-trace e)
+      (println (dump sync-service))
+      (abort-phase sync-service phase target)
+      (throw e))
+    (finally
+      (leave-phase sync-service phase target))))
+
+(defmacro sync-phase
+  [sync-service [phase-name target options] & body]
+  `(sync-phase* ~sync-service ~phase-name ~target ~options (fn [] ~@body)))

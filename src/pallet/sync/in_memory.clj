@@ -2,6 +2,7 @@
   "An in memory phase synchronisation service."
   (:require
    [clojure.core.async :refer [put!]]
+   [clojure.tools.logging :refer [debugf]]
    [pallet.sync.protocols :as protocols]))
 
 (defn current-phase
@@ -54,6 +55,7 @@
   "Return a predicate for a target being in the specified phase subtree."
   [phase]
   (fn [[target state]]
+    {:pre [(:phase state)]}
     (= phase (subvec (:phase state) 0 (count phase)))))
 
 (defn blocked-on-phase
@@ -67,6 +69,7 @@
   "Predicate for all targets with the parent phase of phase being blocked
   on the current phase."
   [state phase]
+  {:pre [(seq phase)]}
   (let [parent-phase (pop phase)]
     (every? (blocked-on-phase phase)
             (filter (in-phase parent-phase) (:target-state state)))))
@@ -134,19 +137,24 @@
 (deftype InMemorySyncService [state]
   protocols/SyncService
   (enter-phase [_ phase targets options]
+    (debugf "enter-phase phase: %s targets: %s options: %s"
+            phase targets options)
     (let [previous-phase (common-current-phase (:target-state @state) targets)
           guard-fn (:guard-fn options)
           guard (if guard-fn (guard-fn) true)]
-      (swap! state push-phase phase targets options guard)
-      previous-phase)
+      (swap! state push-phase phase targets options guard))
     (if-let [guard-fn (:guard-fn options)]
       (guard-fn)
       true))
   (leave-phase [_ phase target synch-ch]
     (let [new-state (swap! state set-blocked target synch-ch)
-          phase (current-phase (:target-state new-state) target)]
-      (when (all-blocked? new-state phase)
-        (let [new-state (swap! state unblock-phase phase)]
+          phase-vector (current-phase (:target-state new-state) target)]
+      (assert (seq phase-vector)
+              (str "Leave on empty phase stack: " @state))
+      (assert (= phase (last phase-vector))
+              (str "Mismatch in phase stack: " phase ", " phase-vector))
+      (when (all-blocked? new-state phase-vector)
+        (let [new-state (swap! state unblock-phase phase-vector)]
           (release-targets new-state)))))
   (abort-phase [_ phase target]
     (swap! state set-aborted target))
