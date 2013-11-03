@@ -11,6 +11,12 @@
   {:pre [(map? target-map)]}
   (:phase (target-map target)))
 
+(defn current-phases
+  "Return a sequence of distinct current phase vectors."
+  [target-map]
+  {:pre [(map? target-map)]}
+  (distinct (map :phase (vals target-map))))
+
 (defn common-current-phase
   "Return the common current phase vector for the targets."
   [target-map targets]
@@ -65,14 +71,21 @@
     (and (= phase (:phase state))
          (:blocked state))))
 
-(defn all-blocked?
+(defn all-targets-with-common-parent-blocked?
   "Predicate for all targets with the parent phase of phase being blocked
   on the current phase."
   [state phase]
-  {:pre [(seq phase)]}
+  {:pre [(seq phase)
+         (seq (:target-state state))]}
   (let [parent-phase (pop phase)]
     (every? (blocked-on-phase phase)
             (filter (in-phase parent-phase) (:target-state state)))))
+
+(defn all-blocked?
+  "Predicate for all targets being blocked."
+  [state]
+  {:pre [(seq (:target-state state))]}
+  (every? :blocked (vals (:target-state state))))
 
 (defn unblock-target
   [state phase]
@@ -153,9 +166,25 @@
               (str "Leave on empty phase stack: " @state))
       (assert (= phase (last phase-vector))
               (str "Mismatch in phase stack: " phase ", " phase-vector))
-      (when (all-blocked? new-state phase-vector)
+      (if (all-targets-with-common-parent-blocked? new-state phase-vector)
         (let [new-state (swap! state unblock-phase phase-vector)]
-          (release-targets new-state)))))
+          ;; (locking _
+          ;;   (println "leave" phase target "release")
+          ;;   (clojure.pprint/pprint new-state) (flush))
+          (release-targets new-state))
+        (when (all-blocked? new-state)
+          ;; (locking _
+          ;;   (println "leave" phase target "all blocked")
+          ;;   (clojure.pprint/pprint new-state) (flush))
+          (throw (ex-info
+                  (str
+                   "Phase progress is undecidable, and all targets blocked."
+                   "  Add phase synchronisation to enable progress."
+                   "  Current phases: " (vec (current-phases new-state)))
+                  {:op :phase-sync/leave-phase
+                   :reason :all-blocked
+                   :targets (keys new-state)
+                   :phase-vectors (vec (current-phases new-state))}))))))
   (abort-phase [_ phase target]
     (swap! state set-aborted target))
   protocols/StateDumper
