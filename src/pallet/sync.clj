@@ -4,7 +4,8 @@
 A hierarchical phase syncronisation service that synchronises on exit
 of a phase, across all targets in the parent phase."
   (:require
-   [clojure.core.async :as async :refer [chan close! <!!]]
+   [clojure.core.async :as async :refer [chan close! go thread <! <!!]]
+   [clojure.tools.logging :refer [debugf]]
    [pallet.sync.protocols :as impl]))
 
 (defn enter-phase-targets
@@ -52,39 +53,54 @@ of a phase, across all targets in the parent phase."
   try around the phase body).
 
   Return {:state :continue} if execution can continue, {:state :abort}
-  if execution should abort."
-  [sync-service phase target]
-  (let [ch (chan)]
-    (impl/leave-phase sync-service phase target ch)
-    (let [r (<!! ch)]
-      (close! ch) r)))
+  if execution should abort.
+
+  When called with a channel, will execute asynchronously, putting
+  a value on ch when the leave can take place."
+  ([sync-service phase target]
+     (let [ch (chan)]
+       (impl/leave-phase sync-service phase target ch)
+       (let [r (<!! ch)]
+         (close! ch)
+         r)))
+  ([sync-service phase target ch]
+     (impl/leave-phase sync-service phase target ch)))
 
 (defn abort-phase
-  "Abort the current phase on the target.
+  "Abort the current phase on the target.  `reason` must be a map.
 
-  This should be called if the phase is aborted for some reason (e.g. it throws
-  an exception)."
-  [sync-service phase target]
-  (impl/abort-phase sync-service phase target))
+  This should be called if the phase is aborted for some reason
+  (e.g. it throws an exception)."
+  [sync-service phase target reason]
+  {:pre [(map? reason)]}
+  (impl/abort-phase sync-service phase target reason))
 
 (defn dump
   [sync-service]
   (impl/dump-state sync-service))
 
 (defn sync-phase*
-  "Wrap function f in phase synchronisation for target"
+  "Execute function f in phase synchronisation for target"
   [sync-service phase target options f]
-  (try
-    (if (enter-phase sync-service phase target options)
-      (f))
-    (catch Exception e
-      (clojure.stacktrace/print-cause-trace e)
-      (println (dump sync-service))
-      (abort-phase sync-service phase target)
-      (throw e))
-    (finally
-      (leave-phase sync-service phase target))))
+  (let [completion-ch (chan)]
+    (go
+     (try
+       (if (enter-phase sync-service phase target options)
+         (<! (thread
+              (try
+                (f)
+                (catch Exception e
+                  (abort-phase sync-service phase target {:exception e})
+                  e)))))
+       (catch Exception e
+         (abort-phase sync-service phase target {:exception e})
+         e)
+       (finally
+         (leave-phase sync-service phase target completion-ch)))
+     (let [r (<! completion-ch)]
+       (debugf "sync-phase* return %s" r)
+       r))))
 
-(defmacro sync-phase
-  [sync-service [phase-name target options] & body]
-  `(sync-phase* ~sync-service ~phase-name ~target ~options (fn [] ~@body)))
+;; (defmacro sync-phase
+;;   [sync-service [phase-name target options] & body]
+;;   `(sync-phase* ~sync-service ~phase-name ~target ~options (fn [] ~@body)))

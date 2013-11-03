@@ -90,6 +90,7 @@
   <logger name="pallet.execute" level="DEBUG"/>
   <logger name="pallet.local.execute" level="TRACE"/>
   <logger name="pallet.ssh.execute" level="TRACE"/>
+  <logger name="pallet.sync" level="TRACE"/>
   <logger name="pallet.core.api" level="TRACE"/>
   <logger name="pallet.core.primitives" level="TRACE"/>
   <logger name="pallet.core.operations" level="TRACE"/>

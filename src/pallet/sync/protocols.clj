@@ -8,7 +8,7 @@
   (leave-phase [_ phase target synch-ch]
     "Leave the phase on the target.
     Synchronises across all targets in the parent phase.")
-  (abort-phase [_ phase target]
+  (abort-phase [_ phase target reason]
     "Abort execution of the current phase on the target"))
 
 (defprotocol StateDumper

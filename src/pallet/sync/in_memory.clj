@@ -2,7 +2,7 @@
   "An in memory phase synchronisation service."
   (:require
    [clojure.core.async :refer [put!]]
-   [clojure.tools.logging :refer [debugf]]
+   [clojure.tools.logging :refer [debugf tracef]]
    [pallet.sync.protocols :as protocols]))
 
 (defn current-phase
@@ -53,9 +53,9 @@
 
 (defn set-aborted
   "Set the target as aborted for the phase."
-  [state target]
+  [state target reason]
   {:pre [(not (:blocked ((:target-state state) target)))]}
-  (assoc-in state [:target-state target :aborted] true))
+  (assoc-in state [:target-state target :aborted] reason))
 
 (defn in-phase
   "Return a predicate for a target being in the specified phase subtree."
@@ -122,7 +122,8 @@
 (defn default-leave-value
   [unblock]
   (if (some :aborted (vals unblock))
-    {:state :abort}
+    {:state :abort
+     :reasons (->> (vals unblock) (filter :aborted) (map :aborted))}
     {:state :continue}))
 
 (defn release-targets
@@ -137,6 +138,26 @@
       (when-let [on-complete-fn (and guard (:on-complete-fn options))]
         (on-complete-fn)))
     (put! async-ch v)))
+
+(defn release-with-blocked-error
+  [state]
+  (let [phases (vec (current-phases state))
+        e (ex-info
+           (str
+            "Phase progress is undecidable, and all targets blocked."
+            "  Add phase synchronisation to enable progress."
+            "  Current phases: " phases)
+           {:op :phase-sync/leave-phase
+            :reason :all-blocked
+            :targets (keys state)
+            :phase-vectors phases})
+        v {:state :abort
+           :reasons [{:exception e}]}]
+    (doseq [[target {:keys [blocked phase]}] (:target-state state)]
+      (assert blocked
+              "target must be blocked to be released with all-blocked error")
+      (debugf "release %s %s" phase target)
+      (put! blocked v))))
 
 ;; # InMemorySyncService
 
@@ -160,6 +181,7 @@
       (guard-fn)
       true))
   (leave-phase [_ phase target synch-ch]
+    (debugf "leave %s %s" phase target)
     (let [new-state (swap! state set-blocked target synch-ch)
           phase-vector (current-phase (:target-state new-state) target)]
       (assert (seq phase-vector)
@@ -168,25 +190,15 @@
               (str "Mismatch in phase stack: " phase ", " phase-vector))
       (if (all-targets-with-common-parent-blocked? new-state phase-vector)
         (let [new-state (swap! state unblock-phase phase-vector)]
-          ;; (locking _
-          ;;   (println "leave" phase target "release")
-          ;;   (clojure.pprint/pprint new-state) (flush))
+          (debugf "leave %s %s release" phase target)
+          (tracef "leave with new-state %s" new-state)
           (release-targets new-state))
         (when (all-blocked? new-state)
-          ;; (locking _
-          ;;   (println "leave" phase target "all blocked")
-          ;;   (clojure.pprint/pprint new-state) (flush))
-          (throw (ex-info
-                  (str
-                   "Phase progress is undecidable, and all targets blocked."
-                   "  Add phase synchronisation to enable progress."
-                   "  Current phases: " (vec (current-phases new-state)))
-                  {:op :phase-sync/leave-phase
-                   :reason :all-blocked
-                   :targets (keys new-state)
-                   :phase-vectors (vec (current-phases new-state))}))))))
-  (abort-phase [_ phase target]
-    (swap! state set-aborted target))
+          (debugf "leave %s %s all blocked" phase target)
+          (tracef "leave with new-state %s" new-state)
+          (release-with-blocked-error new-state)))))
+  (abort-phase [_ phase target reason]
+    (swap! state set-aborted target reason))
   protocols/StateDumper
   (dump-state [_] @state))
 
