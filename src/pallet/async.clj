@@ -1,18 +1,10 @@
 (ns pallet.async
   "Generally useful async functions"
   (:require
-   [clojure.core.async :refer [alts! chan close! go put! timeout]]))
+   [clojure.core.async :refer [alts! chan close! go put! timeout]]
+   [clojure.tools.logging :refer [errorf]]))
 
 ;;; # Async
-;; (defn timeout-chan
-;;   "Returns a channel that returns a value from the input channel,
-;;   or timeout-value, if the input channel ch does not supply a value
-;;   before timeout-ms passes."
-;;   [ch timeout-ms timeout-value]
-;;   (go
-;;    (let [[v c] (alts! [ch (timeout timeout-ms)])]
-;;      (or v timeout-value))))
-
 
 (defn timeout-chan
   "Returns a channel that will receive values from ch until ch is closed, or
@@ -27,3 +19,11 @@
          (recur (alts! [ch timeout-ch]))))
      (close! out-ch))
     out-ch))
+
+(defmacro go-logged
+  [& body]
+  `(go
+    (try
+      ~@body
+      (catch Throwable e#
+        (errorf e# "Unexpected exception terminating go block")))))
