@@ -12,11 +12,13 @@
    [clojure.string :as string]
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :refer [debugf tracef]]
-   [pallet.async :refer [timeout-chan]]
+   [pallet.async :refer [go-logged timeout-chan]]
    [pallet.common.logging.logutils :as logutils]
    [pallet.compute :refer [destroy-node destroy-nodes-in-group nodes run-nodes]]
    [pallet.core.api-impl :refer :all]
+   [pallet.core.plan-state :refer [get-scopes]]
    [pallet.core.protocols :refer [ComputeService]]
+   [pallet.core.recorder :refer [record]]
    [pallet.core.session :refer [session session! with-session]]
    [pallet.core.types
     :refer [assert-not-nil assert-type-predicate keyword-map?
@@ -27,9 +29,11 @@
    [pallet.core.user :refer [*admin-user* obfuscated-passwords]]
    [pallet.execute :refer [parse-shell-result]]
    [pallet.node
-    :refer [id image-user group-name primary-ip tag tag! taggable? terminated?]]
+    :refer [compute-service id image-user group-name primary-ip
+            tag tag! taggable? terminated?]]
    [pallet.session.verify :refer [add-session-verification-key check-session]]
-   [pallet.stevedore :refer [with-source-line-comments]])
+   [pallet.stevedore :refer [with-source-line-comments]]
+   [pallet.sync :refer [sync-phase*]])
   (:import
    clojure.lang.IMapEntry
    pallet.core.protocols.Node))
@@ -111,8 +115,8 @@
    "Execute an action map within the context of the current session."
    [session action]
    (debugf "execute-action %s" (pr-str action))
-   (let [executor (get session ::executor)
-         execute-status-fn (get session ::execute-status-fn)
+   (let [executor (get session :executor)
+         execute-status-fn (get session :execute-status-fn)
          _ (debugf "execute-action executor %s" (pr-str executor))
          _ (debugf "execute-action execute-status-fn %s"
                    (pr-str execute-status-fn))
@@ -127,7 +131,7 @@
                    (str "Action return value must be a map: " (pr-str rrv)))
          [rv session] (parse-shell-result session rv)]
      ;; TODO add retries, timeouts, etc
-     (put! (::result-ch session) [rv (:plan-state session)])
+     (record (:recorder session) rv)
      (try
        (execute-status-fn rv)
        (catch Exception e
@@ -163,6 +167,8 @@
   (if (keyword? phase)
     phase
     (first phase)))
+
+
 
 ;; TODO remove no-check when get gets smarter
 (ann ^:no-check target-phase [PhaseTarget Phase -> [Any * -> Any]])
@@ -202,9 +208,8 @@
                       :plan-state plan-state
                       :environment environment
                       target-kw target
-                      ::executor executor
-                      ::execute-status-fn execute-status-fn
-                      ::result-ch result-ch}))
+                      :executor executor
+                      :execute-status-fn execute-status-fn}))
              (try
                (apply plan-fn args)
                (close! result-ch)
@@ -286,8 +291,81 @@
        r))
   ([phase target-map]
      (execute-phase-on-target
-      [] {} {:user *admin-user*}
+      [target-map] {} {:user *admin-user*}
       phase (environment-execution-settings) target-map)))
+
+
+
+(defn target-phase-fn
+  "Return a phase synchronised function for target and phase.
+  The phase function will take a sync-service as an argument, and
+  return a completion channel."
+  [target phase]
+  (debugf "target-phase-fn %s" (phase-kw phase))
+  (debugf "target-phase-fn target %s" target)
+  (let [phase-kw (phase-kw phase)
+        phase-args (phase-args phase)
+        f (or (-> target :phases phase-kw)
+              (constantly nil))]
+    (debugf "target-phase-fn f %s" f)
+    (fn synced-phase [sync-service session]
+      (debugf "synced-phase %s" phase-kw)
+      (debugf "synced-phase %s %s" f phase-args)
+      (sync-phase*
+       sync-service phase target {}
+       (fn phase-wrapper []
+         (debugf "synced-phase %s %s %s" phase-kw f phase-args)
+         (with-session session
+           (with-script-for-node target (:plan-state session)
+             (apply f phase-args))))))))
+
+(defn target-fn
+  "Return a phase synchronised function for target and sequence of
+  phase functions.  The phase function will take a sync-service as an
+  argument."
+  [target phase-fns]
+  (fn [sync-service session]
+    (debugf "target-fn")
+    (debugf "target-fn for %s phases" (count phase-fns))
+    (go-logged
+     (let [completion-ch (chan)]
+       (loop [fs phase-fns]
+         (when-let [f (first fs)]
+           (debugf "target-fn call phase %s" f)
+           (let [{:keys [state] :as leave} (<! (f sync-service session))]
+             (debugf "target-fn phase returned %s" leave)
+             (if (= :continue state)
+               (recur (rest fs))
+               leave))))))))
+
+(defn session-for
+  [target service-state {:keys [recorder plan-state sync-service
+                                executor execute-status-fn]
+                         :as components}]
+  (merge
+   components
+   {:user (get-scopes
+           plan-state
+           (merge {:group (:group-name target)
+                   :universe true}
+                  (if-let [node (:node target)]
+                    {:host (id node)
+                     :service (compute-service node)}))
+           :user)}
+   {(:target-type target :node) target
+    :service-state service-state}))
+
+(defn execute
+  "Execute matching targets and phase functions."
+  [target-phase-fns service-state
+   {:keys [recorder plan-state sync-service
+                            executor execute-status-fn]
+                     :as components}]
+  (doseq [[target phase-fn] target-phase-fns]
+    (go-logged
+     (with-session (session-for target service-state components)
+       (phase-fn sync-service)))))
+
 
 ;;; ## Calculation of node count adjustments
 (def-alias NodeDeltaMap (HMap :mandatory {:actual AnyInteger

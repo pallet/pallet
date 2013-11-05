@@ -26,20 +26,32 @@
       ;; we need to enter top level phases all at once, so the set
       ;; of all targets is known
       (enter-phase-targets s :start (map :i fs))
-      (doseq [{:keys [p f a i]} fs]
-        (sync-phase* s :a i {:on-complete-fn #(reset! a true)} f))
-      (Thread/sleep 200)                ; allow time for phases to run
-      (is (every? (comp nil? deref :a) fs)
-          "should not sync if no phase function has completed")
-      (deliver (:p (first fs)) true)
-      (Thread/sleep 200)                ; allow time for phases to run
-      (is (every? (comp nil? deref :a) fs)
-          "should not sync if only one phase function completes")
-      (doseq [{:keys [p]} (rest fs)]
-        (deliver p true))
-      (Thread/sleep 200)                ; allow time for phases to run
-      (is (every? (comp deref :a) fs)
-          "should sync if every phase function completes"))))
+      (let [chans (doall
+                   (for [{:keys [p f a i]} fs]
+                     (sync-phase*
+                      s :a i {:on-complete-fn #(reset! a true)} f)))]
+        (Thread/sleep 200)              ; allow time for phases to run
+        (is (every? (comp nil? deref :a) fs)
+            "should not sync if no phase function has completed")
+        (deliver (:p (first fs)) true)
+        (Thread/sleep 200)              ; allow time for phases to run
+        (is (every? (comp nil? deref :a) fs)
+            "should not sync if only one phase function completes")
+        (doseq [{:keys [p]} (rest fs)]
+          (deliver p true))
+        (let [t (timeout 1000)
+              m (async/merge chans)
+              res (repeatedly 3 #(alts!! [m t]))]
+          (is (every? #(not= t (second %)) res)
+              "should not timeout")
+          (is (every? first res)
+              "should all leave with a value")
+          (is (every? #(:state (first %)) res)
+              "should all leave with a :state")
+          (is (every? #(= :continue (:state (first %))) res)
+              "should all leave with a :continue state"))
+        (is (every? (comp deref :a) fs)
+            "should sync if every phase function completes")))))
 
 (deftest single-subphase-complete-test
   (testing "Three targets with common sub-phase"

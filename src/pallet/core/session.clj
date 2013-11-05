@@ -6,7 +6,7 @@
             Atom1 Map Nilable NilableNonEmptySeq NonEmptySeqable Seqable]]
    [pallet.compute :as compute :refer [packager-for-os]]
    [pallet.context :refer [with-context]]
-   [pallet.core.plan-state :refer [get-settings]]
+   [pallet.core.plan-state :refer [get-settings get-scopes]]
    [pallet.core.protocols :refer [Node]]
    [pallet.core.thread-local
     :refer [thread-local thread-local! with-thread-locals]]
@@ -232,16 +232,26 @@
    (node/packager (get (get session :server) :node))
    (packager-for-os (os-family session) (os-version session))))
 
+(defn target-scopes
+  [target]
+  (merge {:group (:group-name target)
+          :universe true}
+         (if-let [node (:node target)]
+           {:host (node/id node)
+            :service (node/compute-service node)
+            :provider (:provider
+                       (compute/service-properties
+                        (node/compute-service node)))})))
+
 (ann admin-user [Session -> User])
 (defn admin-user
   "User that remote commands are run under."
   [session]
-  {:pre [session (-> session :environment :user)]}
+  {:post [%]}
   ;; Note: this is not (:user session), which is set to the actuall user used
   ;; for authentication when executing scripts, and may be different, e.g. when
   ;; bootstrapping.
-  ;; TODO - change to get-in when core.typed understands get.in
-  (get (get session :environment) :user))
+  (get-scopes (:plan-state session) (target-scopes (target session)) [:user]))
 
 (ann admin-group [Session -> String])
 (defn admin-group

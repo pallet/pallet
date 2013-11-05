@@ -6,6 +6,7 @@ of a phase, across all targets in the parent phase."
   (:require
    [clojure.core.async :as async :refer [chan close! go thread <! <!!]]
    [clojure.tools.logging :refer [debugf]]
+   [pallet.async :refer [go-logged]]
    [pallet.sync.protocols :as impl]))
 
 (defn enter-phase-targets
@@ -83,13 +84,16 @@ of a phase, across all targets in the parent phase."
   "Execute function f in phase synchronisation for target"
   [sync-service phase target options f]
   (let [completion-ch (chan)]
-    (go
+    (go-logged
      (try
        (if (enter-phase sync-service phase target options)
          (<! (thread
               (try
+                (debugf "sync-phase* call %s" f)
                 (f)
-                (catch Exception e
+                (debugf "sync-phase* completed %s" f)
+                (catch Throwable e
+                  (debugf e "sync-phase* exception in %s" f)
                   (abort-phase sync-service phase target {:exception e})
                   e)))))
        (catch Exception e

@@ -1,6 +1,7 @@
 (ns pallet.crate
   "# Pallet Crate Writing API"
   (:require
+   [clojure.core.async :refer [<!!]]
    [clojure.string :as string]
    [clojure.tools.macro :refer [name-with-attributes]]
    [pallet.action :refer [declare-action]]
@@ -10,6 +11,7 @@
    [pallet.core.session :refer [session session!]]
    [pallet.execute :as execute]
    [pallet.node :as node]
+   [pallet.sync :refer [sync-phase*]]
    [pallet.utils :refer [apply-map compiler-exception local-env]]))
 
 
@@ -358,6 +360,21 @@
               [[action f]
                [(keyword (str (name action) "-" (name facility))) f]]))]
     (into {} (mapcat service-phases actions))))
+
+(defmacro sync-phase
+  [[phase-name & {:keys [] :as options}] & body]
+  `(let [s# (session/session)
+         sl# pallet.stevedore/*script-language*
+         sc# pallet.script/*script-context*]
+     (<!! (sync-phase*
+           (:sync-service (session))
+           ~phase-name
+           (target) ~options
+           (fn []
+             (session/with-session s#
+               (pallet.stevedore/with-script-language sl#
+                 (pallet.script/with-script-context sc#
+                   ~@body))))))))
 
 ;; Local Variables:
 ;; mode: clojure

@@ -1,12 +1,14 @@
 (ns pallet.api
   "# Pallet API"
   (:require
+   [clojure.core.async :as async :refer [go <!]]
    [clojure.java.io :refer [input-stream resource]]
    [clojure.pprint :refer [print-table]]
    [clojure.set :refer [union]]
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :as logging]
    [pallet.action-options :refer [action-options-key]]
+   [pallet.async :refer [go-logged]]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
    [pallet.contracts
@@ -16,14 +18,19 @@
             check-node-spec
             check-server-spec
             check-user]]
-   [pallet.core.api :as api :refer [environment-image-execution-settings
-                                    phase-errors stop-execution-on-error]]
+   [pallet.core.api :as api
+    :refer [environment-image-execution-settings
+            phase-errors session-for stop-execution-on-error
+            target-fn target-phase-fn]]
    [pallet.core.api-impl
     :refer [merge-spec-algorithm merge-specs node-has-group-name?]]
    [pallet.core.operations :as ops]
+   [pallet.core.plan-state.in-memory :refer [in-memory-plan-state]]
    [pallet.core.primitives
     :refer [async-operation bootstrapped-meta exec-operation
             execute-on-unflagged phases-with-meta unbootstrapped-meta]]
+   [pallet.core.recorder :refer [results]]
+   [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
    [pallet.core.session :refer [session-context]]
    [pallet.core.user :as user]
    [pallet.crate :refer [phase-context]]
@@ -32,6 +39,8 @@
    [pallet.executors :refer [default-executor]]
    [pallet.node :refer [node-map node?]]
    [pallet.plugin :refer [load-plugins]]
+   [pallet.sync :refer [enter-phase-targets]]
+   [pallet.sync.in-memory :refer [in-memory-sync-service]]
    [pallet.thread-expr :refer [when->]]
    [pallet.utils :refer [apply-map maybe-update-in total-order-merge]]))
 
@@ -850,6 +859,68 @@ insufficient.
                  (for [{:keys [node roles]} (:targets op)]
                    (assoc (select-keys (node-map node) ks)
                      :roles roles)))))
+
+
+(defn default-components
+  []
+  {:recorder (in-memory-recorder)
+   :plan-state (in-memory-plan-state)
+   :sync-service (in-memory-sync-service)
+   :executor #'default-executor
+   :execute-status-fn #'stop-execution-on-error})
+
+(defn execute-phase-fn
+  "Execute matching targets and phase functions."
+  [target phase-fn service-state
+   {:keys [recorder plan-state sync-service
+           executor execute-status-fn]
+    :as components}]
+  (go-logged
+   (logging/debugf "execute-phase-fn on %s" target)
+   (phase-fn sync-service (session-for target service-state components))))
+
+(defn execute-target-phase-fns
+  "Execute matching targets and phase functions."
+  [target-phase-fns service-state
+   {:keys [recorder plan-state sync-service
+           executor execute-status-fn]
+    :as components}]
+  (logging/debugf "execute-target-phase-fns")
+  (->>
+   (for [[target phase-fn] target-phase-fns]
+     (execute-phase-fn target phase-fn service-state components))
+   (async/merge)
+   (async/reduce (constantly true) true)))
+
+(defn phase-fn-for
+  [target phase]
+  (logging/debugf "phase-fn-for %s" phase)
+  (vector
+   target
+   (target-fn
+    target
+    (mapv #(target-phase-fn target %) phase))))
+
+(defn lift2
+  [targets & {:keys [phase
+                     service-state recorder plan-state sync-service
+                     executor execute-status-fn]
+              :as options}]
+  (let [components (merge (default-components)
+                          (select-keys options
+                                       [:recorder :plan-state :sync-service
+                                        :executor :execute-status-fn]))
+        target-phase-fns (mapv #(phase-fn-for % phase) targets)]
+    (enter-phase-targets (:sync-service components) ::register-targets targets)
+    (logging/debugf "lift2 %s" phase)
+    (go-logged
+     (logging/debugf "lift2 running")
+     (<! (execute-target-phase-fns
+          target-phase-fns
+          (distinct (concat targets service-state))
+          components))
+     (results (:recorder components)))))
+
 
 ;; Local Variables:
 ;; mode: clojure

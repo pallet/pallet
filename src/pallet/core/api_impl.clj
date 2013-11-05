@@ -154,6 +154,10 @@
   with-script-for-node
   "Set up the script context for a server"
   [target plan-state & body]
-  `(with-script-context (script-template-for-node ~target ~plan-state)
-     (with-script-language :pallet.stevedore.bash/bash
-       ~@body)))
+  `(let [target# ~target]
+     (if (:node target#)
+       (with-script-context (script-template-for-node target# ~plan-state)
+         (with-script-language :pallet.stevedore.bash/bash
+           ~@body))
+       (do
+         ~@body))))
