@@ -644,8 +644,10 @@ applied.
                              {})
 
        results (ops/lift-partitions
-                nodes-set plan-state environment (remove #{:settings} phases)
-                lift-options)]
+                (distinct (concat consider-set nodes-set))
+                plan-state environment (remove #{:settings} phases)
+                (assoc lift-options
+                  :targets nodes-set))]
       (assoc results
         :environment environment
         :initial-plan-state initial-plan-state))))
