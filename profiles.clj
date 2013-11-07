@@ -7,7 +7,7 @@
        ;;           "codox" ["with-profile" "+doc" "doc"]
        ;;           "doc" ["do" "codox," "marg"]}
        :checkout-deps-shares ^:replace [:source-paths :test-paths
-                                        :resource-paths :compile-path]
+                                        :compile-path]
        :plugins [[codox/codox.leiningen "0.6.4"]
                  [lein-marginalia "0.7.1"]]}
  :doc {:dependencies [[com.palletops/pallet-codox "0.1.0"]]
