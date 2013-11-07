@@ -261,7 +261,8 @@
                         (target-nodes))))
                      ;; reset the tags
                      (as-action (tag! (target-node) "hostname" "")))}
-    :roles #{:live-test :rolling}))
+    :roles #{:live-test :rolling}
+    :default-phases [:configure :test]))
 
 (defn rolling-test-plan
   [compute groups]
@@ -277,8 +278,8 @@
      "Has hostname in :rolling settings for each node")
     (api/lift-nodes nodes [:tag]
                     :plan-state plan-state
-                    :partition-by identity
-                    :post-phase-fsm (ops/delay 10 :s))))
+                    :partition-f #(partition 1 %)
+                    :post-phase-fsm (fn [_ _ _] (ops/delay 10 :s)))))
 
 ;;; test partitioning via metadata
 (def partitioning-test
@@ -306,7 +307,8 @@
                         (target-nodes))))
                      ;; reset the tags
                      (as-action (tag! (target-node) "hostname" "")))}
-    :roles #{:live-test :partition}))
+    :roles #{:live-test :partition}
+    :default-phases [:tag :ls :test]))
 
 ;;; test execution-settings-f via metadata
 (def exec-meta-test
