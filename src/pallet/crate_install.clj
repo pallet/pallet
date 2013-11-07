@@ -78,7 +78,7 @@
   (let [{:keys [package-source packages package-options preseeds repository]
          :as settings}
         (get-settings session facility {:instance-id instance-id})]
-    (debugf "package source %s %s" facility package-source)
+    (debugf "package source %s %s %s" facility package-source repository)
     (check-keys
      settings [:package-source :packages]
      (map-schema :strict
