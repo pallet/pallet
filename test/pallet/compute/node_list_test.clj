@@ -5,6 +5,7 @@
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
    [pallet.node :as node]
+   [pallet.tag :refer [has-state-flag?]]
    [pallet.utils :refer [tmpfile with-temporary with-temp-file]]))
 
 (use-fixtures :once (logging-threshold-fixture))
@@ -24,7 +25,7 @@
 
 (deftest service-test
   (is (instance?
-       pallet.core.protocols.ComputeService
+       pallet.compute.protocols.ComputeService
        (compute/instantiate-provider :node-list :node-list [])))
   (is (instance?
        pallet.compute.node_list.NodeList
@@ -47,7 +48,7 @@
     (is (= {"pallet/state" "{:bootstrapped true}"} (node/tags node)))
     (is (thrown? Exception (node/tag! node "tag" "value")))
     (is (not (node/taggable? node)))
-    (is (= true (node/tag node :bootstrapped)))))
+    (is ((has-state-flag? :bootstrapped) {:node node}))))
 
 (deftest close-test
   (is (nil? (compute/close
@@ -60,7 +61,7 @@
 (deftest node-test
   (is (thrown? Exception (node-list/node "unresolvable")))
   (is (node-list/node "localhost"))
-  (is (= :localhost (node/group-name (node-list/node "localhost")))))
+  (is (node/has-base-name? (node-list/node "localhost") "localhost")))
 
 (deftest read-node-file-test
   (testing "valid node-file"
