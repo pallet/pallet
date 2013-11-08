@@ -197,7 +197,8 @@ to the correct targets in lift."
      targets
      (clojure.core/partition-by fns)
      (mapcat
-      #(let [[pf & _] (fns (first %))]
+      #(let [[pf & _] (fns (first %))
+             pf       (or f pf)]
          (if pf
            (pf %)
            [%]))))))
