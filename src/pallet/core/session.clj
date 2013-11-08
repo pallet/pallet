@@ -1,5 +1,41 @@
 (ns pallet.core.session
-  "Functions for querying sessions."
+  "Functions for querying sessions.
+
+The session is a map with well defined keys:
+
+`:execution-state`
+: a map of values used by the pallet implementation to record values
+  while executing.
+
+- `:executor`
+  : an function to execute actions.
+
+- `:execute-status-fn`
+  : an function to process the result of an action and flag continue/abort.
+
+- `:recorder`
+  : an implementation of the Record and Results protocols.
+
+- `:action-options`
+  : the current action options
+
+- `:user`
+  : the default admin user
+
+- `:compute`
+  : the default compute service
+
+`:plan-state`
+: an implementation of the StateGet and StateUpdate protocols.
+
+`:service-state`
+: a sequence of all known targets.
+
+`:server`
+: the current target server
+
+`:group`
+: the current target group"
   (:require
    [clojure.core.typed
     :refer [ann fn> tc-ignore
@@ -9,7 +45,7 @@
    [pallet.core.plan-state :refer [get-settings get-scopes]]
    [pallet.core.protocols :refer [Node]]
    [pallet.core.thread-local
-    :refer [thread-local thread-local! with-thread-locals]]
+    :refer [swap-thread-local! thread-local thread-local! with-thread-locals]]
    [pallet.core.types
     :refer [GroupName GroupSpec Keyword ServiceState Session TargetMap User]]
    [pallet.node :as node]
@@ -34,18 +70,79 @@
   []
   (assert (bound? #'*session*)
           "Session not bound.  The session is only bound within a phase.")
-  (thread-local *session*))
+  ;; (thread-local *session*)
+  @*session*
+  )
 
 (defmacro ^{:requires [#'with-thread-locals]}
   with-session
   [session & body]
-  `(with-thread-locals [*session* ~session]
+  `(binding [*session* (atom ~session)]
      ~@body))
 
 (ann session! [Session -> Session])
 (defn session!
   [session]
-  (thread-local! *session* session))
+  (reset! *session* session))
+
+;;; ## Session modifiers
+(defn assoc-session!
+  "Assoc key value pairs in the session."
+  [& kvs]
+  (apply swap! *session* assoc kvs))
+
+(defn update-in-session!
+  "Assoc key value pairs in the session."
+  [ks f args]
+  (clojure.tools.logging/debugf "update-in-session! %s %s %s" ks f args)
+  (apply swap! *session* update-in ks f args))
+
+(defn plan-state!
+  "Set the plan state"
+  [m]
+  {:pre [(satisfies? pallet.core.plan-state.protocols/StateGet m)]}
+  (assoc-session! :plan-state m))
+
+(defn plan-state
+  "Get the plan state"
+  []
+  (:plan-state (session)))
+
+(defn service-state!
+  "Set the service state"
+  [s]
+  (assoc-session! :service-state s))
+
+(defn recorder!
+  "Set the action recorder"
+  [f]
+  (assoc-session! :recorder f))
+
+(defn recorder
+  "Get the action recorder"
+  []
+  (:recorder (session)))
+
+(defmacro with-recorder
+  "Set the recorder for the scope of the body."
+  [recorder & body]
+  `(let [r# (recorder)]
+     (try
+       (recorder! ~recorder)
+       ~@body
+       (finally (recorder! r#)))))
+
+(defn executor!
+  "Set the action executor"
+  [f]
+  (assoc-session! :executor f))
+
+(defn execute-status-fn!
+  "Set the action execute status function"
+  [f]
+  (assoc-session! :execute-status-fn f))
+
+
 
 ;;; ## Session Context
 ;;; The session context is used in pallet core code.
@@ -248,7 +345,7 @@
   "User that remote commands are run under."
   [session]
   {:post [%]}
-  ;; Note: this is not (:user session), which is set to the actuall user used
+  ;; Note: this is not (:user session), which is set to the actual user used
   ;; for authentication when executing scripts, and may be different, e.g. when
   ;; bootstrapping.
   (get-scopes (:plan-state session) (target-scopes (target session)) [:user]))

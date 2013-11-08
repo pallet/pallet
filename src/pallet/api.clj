@@ -8,7 +8,7 @@
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :as logging]
    [pallet.action-options :refer [action-options-key]]
-   [pallet.async :refer [go-logged]]
+   [pallet.async :refer [go-logged timeout-chan]]
    [pallet.compute :as compute]
    [pallet.configure :as configure]
    [pallet.contracts
@@ -31,7 +31,7 @@
             execute-on-unflagged phases-with-meta unbootstrapped-meta]]
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
-   [pallet.core.session :refer [session-context]]
+   [pallet.core.session :refer [session-context with-session]]
    [pallet.core.user :as user]
    [pallet.crate :refer [phase-context]]
    [pallet.crate.os :refer [os]]
@@ -901,6 +901,7 @@ insufficient.
     target
     (mapv #(target-phase-fn target %) phase))))
 
+
 (defn lift2
   [targets & {:keys [phase
                      service-state recorder plan-state sync-service
@@ -908,18 +909,18 @@ insufficient.
               :as options}]
   (let [components (merge (default-components)
                           (select-keys options
-                                       [:recorder :plan-state :sync-service
-                                        :executor :execute-status-fn]))
-        target-phase-fns (mapv #(phase-fn-for % phase) targets)]
-    (enter-phase-targets (:sync-service components) ::register-targets targets)
-    (logging/debugf "lift2 %s" phase)
+                                       [:recorder :plan-state
+                                        :executor :execute-status-fn]))]
     (go-logged
-     (logging/debugf "lift2 running")
-     (<! (execute-target-phase-fns
-          target-phase-fns
-          (distinct (concat targets service-state))
-          components))
-     (results (:recorder components)))))
+     (with-session components
+       (loop [phase phase]
+         (let [p (first phase)]
+           (if p
+             (if (errors< (for [target targets]
+                            (api/execute target (target-phase-fn target p))))
+               (results (:recorder components))
+               (recur (rest phase)))
+             (results (:recorder components)))))))))
 
 
 ;; Local Variables:

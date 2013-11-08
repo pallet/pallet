@@ -12,14 +12,20 @@
    [clojure.string :as string]
    [clojure.string :refer [blank?]]
    [clojure.tools.logging :refer [debugf tracef]]
-   [pallet.async :refer [go-logged timeout-chan]]
+   [pallet.async :refer [go-logged map-async timeout-chan]]
    [pallet.common.logging.logutils :as logutils]
-   [pallet.compute :refer [destroy-node destroy-nodes-in-group nodes run-nodes]]
+   [pallet.compute :refer [destroy-node destroy-nodes-in-group nodes run-nodes
+                           service-properties]]
    [pallet.core.api-impl :refer :all]
    [pallet.core.plan-state :refer [get-scopes]]
    [pallet.core.protocols :refer [ComputeService]]
-   [pallet.core.recorder :refer [record]]
-   [pallet.core.session :refer [session session! with-session]]
+   [pallet.core.recorder :refer [record results]]
+   [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
+   [pallet.core.recorder.juxt :refer [juxt-recorder]]
+   [pallet.core.session
+    :refer [assoc-session! plan-state recorder session session!
+            update-in-session!
+            with-recorder with-session]]
    [pallet.core.types
     :refer [assert-not-nil assert-type-predicate keyword-map?
             Action ActionErrorMap ActionResult EnvironmentMap ExecSettings
@@ -37,6 +43,14 @@
   (:import
    clojure.lang.IMapEntry
    pallet.core.protocols.Node))
+
+(defmacro go-session
+  "A wrapper for a core.async go block that does session forwarding"
+  [& body]
+  `(let [session# (session)]
+     (go-logged
+      (session! session#)
+      ~@body)))
 
 (ann version (Fn [-> (Nilable String)]))
 (let [v (atom (ann-form nil (Nilable String)))]
@@ -297,9 +311,8 @@
 
 
 (defn target-phase-fn
-  "Return a phase synchronised function for target and phase.
-  The phase function will take a sync-service as an argument, and
-  return a completion channel."
+  "Return the phase function for target and phase.
+  The phase function will have no arguments."
   [target phase]
   (debugf "target-phase-fn %s" (phase-kw phase))
   (debugf "target-phase-fn target %s" target)
@@ -308,16 +321,31 @@
         f (or (-> target :phases phase-kw)
               (constantly nil))]
     (debugf "target-phase-fn f %s" f)
-    (fn synced-phase [sync-service session]
-      (debugf "synced-phase %s" phase-kw)
-      (debugf "synced-phase %s %s" f phase-args)
-      (sync-phase*
-       sync-service phase target {}
-       (fn phase-wrapper []
-         (debugf "synced-phase %s %s %s" phase-kw f phase-args)
-         (with-session session
-           (with-script-for-node target (:plan-state session)
-             (apply f phase-args))))))))
+    (fn synced-phase []
+      (apply f phase-args))))
+
+;; (defn target-phase-fn
+;;   "Return a phase synchronised function for target and phase.
+;;   The phase function will take a sync-service as an argument, and
+;;   return a completion channel."
+;;   [target phase]
+;;   (debugf "target-phase-fn %s" (phase-kw phase))
+;;   (debugf "target-phase-fn target %s" target)
+;;   (let [phase-kw (phase-kw phase)
+;;         phase-args (phase-args phase)
+;;         f (or (-> target :phases phase-kw)
+;;               (constantly nil))]
+;;     (debugf "target-phase-fn f %s" f)
+;;     (fn synced-phase []
+;;       (debugf "synced-phase %s" phase-kw)
+;;       (debugf "synced-phase %s %s" f phase-args)
+;;       (sync-phase*
+;;        sync-service phase target {}
+;;        (fn phase-wrapper []
+;;          (debugf "synced-phase %s %s %s" phase-kw f phase-args)
+;;          (with-session session
+;;            (with-script-for-node target (:plan-state session)
+;;              (apply f phase-args))))))))
 
 (defn target-fn
   "Return a phase synchronised function for target and sequence of
@@ -355,16 +383,51 @@
    {(:target-type target :node) target
     :service-state service-state}))
 
+(defn session-target
+  "Returns a target keyword, value tuple for the target"
+  [target]
+  [(if (:node target) :server :group) target])
+
 (defn execute
-  "Execute matching targets and phase functions."
-  [target-phase-fns service-state
-   {:keys [recorder plan-state sync-service
-                            executor execute-status-fn]
-                     :as components}]
-  (doseq [[target phase-fn] target-phase-fns]
-    (go-logged
-     (with-session (session-for target service-state components)
-       (phase-fn sync-service)))))
+  "Execute matching targets and phase functions.
+  Returns a channel, which will yield a result for the phase-fn."
+  [target phase-fn]
+  (go-session
+   (apply assoc-session! (session-target target))
+   (with-script-for-node target (plan-state)
+     (let [r (in-memory-recorder)]
+       (with-recorder (juxt-recorder [r (recorder)])
+         (phase-fn)
+         (results r))))))
+
+(defn execute-phase
+  "Execute the specified phase on target.
+  Return a channel for the result."
+  [target phase]
+  (execute target (target-phase-fn target phase)))
+
+(defn errors?
+  "Check for errors reported by the sequence of channels.  This provides
+  a synchronisation point."
+  [chans]
+  (->> chans
+       (mapv #(timeout-chan % (* 5 60 1000)))
+       async/merge
+       (reduce (fn [r v]
+                 (or r (nil? v) (:error v)))
+               nil)
+       <!))
+
+;; (defn execute
+;;   "Execute matching targets and phase functions."
+;;   [target-phase-fns service-state
+;;    {:keys [recorder plan-state sync-service
+;;                             executor execute-status-fn]
+;;                      :as components}]
+;;   (doseq [[target phase-fn] target-phase-fns]
+;;     (go-logged
+;;      (with-session (session-for target service-state components)
+;;        (phase-fn sync-service)))))
 
 
 ;;; ## Calculation of node count adjustments
@@ -500,19 +563,27 @@
 
 ;;; ## Node creation and removal
 ;; TODO remove :no-check when core.type understands assoc
+
 (ann ^:no-check create-nodes
      [ComputeService EnvironmentMap GroupSpec AnyInteger
       -> (Seq TargetMap)])
 (defn create-nodes
   "Create `count` nodes for a `group`."
-  [compute-service environment group count]
+  [compute-service group count]
   ((inst map TargetMap Node)
    (fn> [node :- Node] (assoc group :node node))
-   (run-nodes
-    compute-service group count
-    (:user environment)
-    nil
-    (:provider-options environment nil))))
+   (let [targets (run-nodes
+                  compute-service group count
+                  (:user (:execution-state (session)))
+                  nil
+                  (get-scopes
+                   (plan-state)
+                   {:provider (:provider (service-properties compute-service))
+                    ;; :service ()
+                    }
+                   [:provider-options]))]
+     (update-in-session! [:service-state] concat targets)
+     targets)))
 
 (ann remove-nodes [ComputeService GroupSpec
                    (HMap :mandatory {:nodes (Seq TargetMap) :all boolean})
@@ -562,6 +633,53 @@
               (keyword (name state-name))))]
       (tracef "has-state-flag %s" v)
       v)))
+
+(defn create-group-nodes
+  "Create nodes for groups."
+  [compute-service environment group-counts]
+  (debugf
+   "create-group-nodes %s %s %s"
+   compute-service environment (vec group-counts))
+  (map-async
+   #(create-nodes
+     compute-service (:user environment) (first %) (:delta (second %)))
+   group-counts
+   (* 5 60 1000)))
+
+(defn remove-group-nodes
+  "Removes nodes from groups. `group-nodes` is a map from group to a sequence of
+  nodes"
+  [compute-service group-nodes]
+  (debugf "remove-group-nodes %s" group-nodes)
+  (map-async
+   #(remove-nodes compute-service (key %) (val %))
+   group-nodes
+   (* 5 60 1000)))
+
+(defn node-count-adjuster
+  "Adjusts node counts. Groups are expected to have node counts on them."
+  [compute-service groups targets]
+  {:pre [compute-service]}
+  (let [group-deltas (group-deltas targets groups)
+        nodes-to-remove (nodes-to-remove targets group-deltas)
+        nodes-to-add (nodes-to-add group-deltas)
+        old-nodes (->>
+                   (vals nodes-to-remove)
+                   (mapcat :nodes)
+                   (map (comp node-map :node)))]
+
+    (when-not (errors?
+               (map #(execute-phase % :destroy-server)
+                    (vals nodes-to-remove)))
+      (remove-group-nodes compute-service nodes-to-remove)
+
+      (map #(execute-phase % :destroy-group)
+           (groups-to-remove group-deltas)))
+
+    (when-not (errors?
+               (map #(execute-phase % :create-group)
+                    (groups-to-create group-deltas)))
+      (create-group-nodes compute-service nodes-to-add))))
 
 ;;; # Exception reporting
 ;; TODO remove no-check when IllegalArgumentException not thrown by core.typed

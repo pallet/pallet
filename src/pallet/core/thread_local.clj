@@ -58,3 +58,10 @@ initial value using `with-thread-locals`.
   (assert (= (-> sym meta :thread-id) (.getId (Thread/currentThread)))
           "Attempting to set thread local from incorrect thread.")
   (reset! sym value))
+
+(defn swap-thread-local!
+  "Swap the value of a thread local"
+  [sym f args]
+  (assert (= (-> sym meta :thread-id) (.getId (Thread/currentThread)))
+          "Attempting to set thread local from incorrect thread.")
+  (apply swap! sym f args))

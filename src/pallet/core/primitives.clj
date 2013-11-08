@@ -224,38 +224,6 @@ only not flagged with a :bootstrapped keyword."}
   (not (:errors result)))
 
 
-(defn map-async
-  "Apply f to each element of s in a thread per s.
-
-Returns a sequence of channels which can be used to read the results
-of each function application.  Each element in the result is a vector,
-containing the result of the function call as the first element, and a
-map containing any exception thrown, or timeout, as the second
-element."
-
-  ;; TODO control the number of threads used here, or under some
-  ;; configurable place - might depend on the executor being used
-  ;; (eg., a message queue based executor might not need limiting),
-  ;; though should probably be configurable separately to this.
-
-  [f s timeout-ms]
-  (if false
-    ;; this can be used to test code sequentially
-    (doall (for [i s]
-             (try
-               [(f i)]
-               (catch Throwable e
-                 (println "Caught" e)
-                 (logging/errorf e "Unexpected exception")
-                 (clojure.stacktrace/print-cause-trace e)
-                 [nil e]))))
-    (for [i s]
-      (timeout-chan
-       (thread
-        (try
-          [(f i)]
-          (catch Throwable e [nil {:exception e :target i}])))
-       timeout-ms))))
 
 (defn take-channel
   "Take n items from a channel, with a specified timeout"
@@ -263,39 +231,6 @@ element."
   (->> (repeatedly n #(alts!! [channel (async/timeout timeout-ms)]))
        (mapv first)))
 
-(defn create-group-nodes
-  "Create nodes for groups."
-  [compute-service environment group-counts]
-  (logging/debugf
-   "create-group-nodes %s %s %s"
-   compute-service environment (vec group-counts))
-  (let [r (->> (map-async
-                #(api/create-nodes
-                  compute-service environment (first %) (:delta (second %)))
-                group-counts
-                (* 5 60 1000))
-               async/merge
-               ;; TODO make timeout configurable
-               (take-channel (count group-counts) (* 5 60 1000)))]
-    (when-let [e (some second r)]
-      (throw e))
-    (mapcat first r)))
-
-(defn remove-group-nodes
-  "Removes nodes from groups. `group-nodes` is a map from group to a sequence of
-  nodes"
-  [compute-service group-nodes]
-  (logging/debugf "remove-group-nodes %s" group-nodes)
-  (let [r (->> (map-async
-                #(api/remove-nodes compute-service (key %) (val %))
-                group-nodes
-                (* 5 60 1000))
-               async/merge
-               ;; TODO make timeout configurable
-               (take-channel (count group-nodes) (* 30 1000)))]
-    (when-let [e (some second r)]
-      (throw e))
-    (mapcat first r)))
 
 ;; Local Variables:
 ;; mode: clojure

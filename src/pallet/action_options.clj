@@ -1,7 +1,7 @@
 (ns pallet.action-options
   "Options for controlling the behaviour of actions."
   (:require
-   [pallet.core.session :refer [session session!]]))
+   [pallet.core.session :refer [execution-state session update-in-session!]]))
 
 ;;; # Action Options
 
@@ -12,7 +12,7 @@
 (defn action-options
   "Return any action-options currently defined on the session."
   [session]
-  (get-in session [:plan-state action-options-key]))
+  (action-options-key (execution-state)))
 
 (defn get-action-options
   "Return any action-options currently defined on the session."
@@ -22,12 +22,12 @@
 (defn update-action-options
   "Update any precedence modifiers defined on the session"
   [m]
-  (session! (update-in (session) [:plan-state action-options-key] merge m)))
+  (update-in-session! [:execution-state action-options-key] merge [m]))
 
 (defn assoc-action-options
   "Set precedence modifiers defined on the session."
   [m]
-  (session! (assoc-in (session) [:plan-state action-options-key] m)))
+  (update-in-session! [:execution-state action-options-key] assoc m))
 
 (defmacro ^{:indent 1} with-action-options
   "Set up local options for actions, and allow override of user
@@ -57,5 +57,6 @@ options.
          m# ~m]
      (update-action-options m#)
      (let [v# (do ~@body)]
-       (assoc-action-options p#)
+       (when (seq p#)
+         (assoc-action-options p#))
        v#)))

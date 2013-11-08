@@ -37,10 +37,12 @@ and does not need to consider a host, group tuple.
   Scopes which do not provide a value of path will not present in the
   result map."
   ([plan-state scopes path]
+     {:pre [(satisfies? impl/StateGet plan-state)]}
      (->> (impl/get-state plan-state scopes path ::not-found)
           (remove (comp #{::not-found} second))
           (into {})))
   ([plan-state scopes path default]
+     {:pre [(satisfies? impl/StateGet plan-state)]}
      (->> (impl/get-state plan-state scopes path default)
           (into {}))))
 
@@ -49,6 +51,7 @@ and does not need to consider a host, group tuple.
   Return `default`, or nil if not specified, if the path is not specified
   in scope."
   ([plan-state scope-kw scope-val path default]
+     {:pre [(satisfies? impl/StateGet plan-state)]}
      (-> (impl/get-state plan-state {scope-kw scope-val} path default)
          first second))
   ([plan-state scope-kw scope-val path]
@@ -59,6 +62,7 @@ and does not need to consider a host, group tuple.
   function f, passing the current state, and applying args.
   Return value is undefined."
   [plan-state scope-kw scope-val f & args]
+  {:pre [(satisfies? impl/StateUpdate plan-state)]}
   (impl/update-state plan-state scope-kw scope-val f args))
 
 ;;; # Process Scopes

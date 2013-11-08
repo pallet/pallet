@@ -214,6 +214,7 @@
 (defn admin-user
   "Id of the target-node."
   []
+  (clojure.tools.logging/debugf "session is %s" (pr-str (session)))
   (session/admin-user (session)))
 
 (defn os-family
@@ -312,11 +313,18 @@
    the specification of specific instance of the facility (the default is
    :default)."
   ([facility kv-pairs {:keys [instance-id] :as options}]
-     (session!
-      (update-in
-       (session) [:plan-state]
-       plan-state/assoc-settings
-       (session/target-id (session)) facility kv-pairs options)))
+     (plan-state/assoc-settings
+      (:plan-state (session))
+      (session/target-id (session))
+      facility
+      kv-pairs
+      options)
+     ;; (session!
+     ;;  (update-in
+     ;;   (session) [:plan-state]
+     ;;   plan-state/assoc-settings
+     ;;   (session/target-id (session)) facility kv-pairs options))
+     )
   ([facility kv-pairs]
      (assoc-settings facility kv-pairs {})))
 
@@ -325,11 +333,17 @@
    the specification of specific instance of the facility (the default is
    :default)."
   ([facility path value {:keys [instance-id] :as options}]
-     (session!
-      (update-in
-       (session) [:plan-state]
-       plan-state/update-settings
-       (session/target-id (session)) facility assoc-in [path value] options)))
+     (plan-state/update-settings
+      (:plan-state (session))
+      (session/target-id (session))
+      facility
+      assoc-in [path value] options)
+     ;; (session!
+     ;;  (update-in
+     ;;   (session) [:plan-state]
+     ;;   plan-state/update-settings
+     ;;   (session/target-id (session)) facility assoc-in [path value] options))
+     )
   ([facility path value]
      (assoc-in-settings facility path value {})))
 
@@ -343,11 +357,17 @@
                            [f-or-opts (first args) (rest args)]
                            [nil f-or-opts args])]
     (assert f "nil update function")
-    (session!
-     (update-in
-      (session) [:plan-state]
-      plan-state/update-settings
-      (session/target-id (session)) facility f args options))))
+    (plan-state/update-settings
+     (:plan-state (session))
+     (session/target-id (session))
+     facility
+     f args options)
+    ;; (session!
+    ;;  (update-in
+    ;;   (session) [:plan-state]
+    ;;   plan-state/update-settings
+    ;;   (session/target-id (session)) facility f args options))
+    ))
 
 (defn service-phases
   "Return a map of service phases for the specified facility, options and

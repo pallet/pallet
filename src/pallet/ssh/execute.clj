@@ -115,7 +115,7 @@
 
 (defn ssh-script-on-target
   "Execute a bash action on the target via ssh."
-  [session {:keys [context node-value-path] :as action} action-type
+  [session {:keys [context] :as action} action-type
    [options script]]
   (logging/trace "ssh-script-on-target")
   (logging/trace "action %s options %s" action options)
@@ -162,9 +162,6 @@
                         (:server endpoint) "Error executing script" result)
                 ;; Set the node-value to the result of execution, rather than
                 ;; the script.
-                session (assoc-in
-                         session [:plan-state :node-values node-value-path]
-                         result)
                 result (assoc result
                          :script (if (and (sequential? script)
                                           (map? (first script)))
