@@ -350,7 +350,8 @@ support."
 
 (defmethod implementation/service :node-list
   [_ {:keys [node-list environment tag-provider node-file]
-      :or {tag-provider (NodeTagStatic. {:bootstrapped true})}}]
+      :or {tag-provider
+           (NodeTagStatic. {"pallet/state" "{:bootstrapped true}"})}}]
   (let [nodes (atom
                ;; An explicit node-list has priority,
                ;; then an explicit node-file,
