@@ -253,11 +253,7 @@ Other options as taken by `lift`."
                    (count r) (count results))
                   [(concat r results) plan-state])))
             [acc-results plan-state]
-            (let [fns (comp
-                       (juxt :partition-f :post-phase-f :post-phase-fsm
-                             :phase-execution-f)
-                       meta #(api/target-phase % phase))]
-              (partition-targets targets phase partition-f)))]
+            (partition-targets targets phase partition-f))]
           (do
             (logging/tracef "back from phase loop")
             (logging/tracef "(count lift-results) %s" (count lift-results))
