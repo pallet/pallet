@@ -15,7 +15,7 @@
 
 (defrecord User
     [username public-key-path private-key-path public-key private-key
-     passphrase password sudo-password no-sudo sudo-user])
+     passphrase password sudo-password no-sudo sudo-user state-root])
 
 (defn user? [user]
   (instance? pallet.core.user.User user))
@@ -52,11 +52,15 @@
 : the user to sudo to
 
 `:no-sudo`
-: flag to not use sudo (e.g. when the user has root privileges)."
+: flag to not use sudo (e.g. when the user has root privileges).
+
+`:state-root`
+: directory on target to use for pallet state files.  Defaults to /var/lib/pallet."
   [username {:keys [public-key-path private-key-path
                     public-key private-key
                     passphrase
-                    password sudo-password no-sudo sudo-user]
+                    password sudo-password no-sudo sudo-user
+                    state-root]
              :as options}]
   (map->User (assoc options :username username)))
 

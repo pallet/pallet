@@ -26,7 +26,7 @@
    [pallet.contracts :refer [*verify-contracts*]]
    [pallet.core.api :as core-api]
    [pallet.core.primitives :refer [phase-errors]]
-   [pallet.core.session :refer [with-session]]
+   [pallet.core.session :refer [session with-session]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.local.execute :as local]
    [pallet.script :as script]
@@ -41,8 +41,7 @@
             test-session
             verify-flag-not-set
             verify-flag-set]]
-   [pallet.utils :as utils]
-   [pallet.utils :refer [tmpdir with-temporary]]))
+   [pallet.utils :as utils :refer [deep-merge tmpdir with-temporary]]))
 
 (use-fixtures
  :once
@@ -72,18 +71,20 @@
                "path"
                (str
                 "/var/lib/pallet" "/home/fred" "/path.new"))
-             (lib/download-file "http://a.com/b" (new-filename nil "path"))
-             (if (file-exists? (new-filename nil "path"))
+             (lib/download-file "http://a.com/b"
+                                ~(new-filename (session) nil "path"))
+             (if (file-exists? ~(new-filename (session) nil "path"))
                (do
                  (lib/cp
-                  (new-filename nil "path")
-                  (copy-filename nil "path")
+                  ~(new-filename (session) nil "path")
+                  ~(copy-filename (session) nil "path")
                   :force true)
-                 (lib/mv (new-filename nil "path") path :force true)))))
+                 (lib/mv ~(new-filename (session) nil "path") path
+                         :force true)))))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
               (remote-file*
-               {} "path"
+               (session) "path"
                {:url "http://a.com/b" :no-versioning true
                 :install-new-files true})
               first second)))))
@@ -97,69 +98,76 @@
                (str
                 "/var/lib/pallet" "/home/fred" "/path.new"))
              (lib/download-file
-              "http://a.com/b" (new-filename nil "path") :proxy "http://proxy/")
-             (if (file-exists? (new-filename nil "path"))
+              "http://a.com/b" ~(new-filename (session) nil "path")
+              :proxy "http://proxy/")
+             (if (file-exists? ~(new-filename (session) nil "path"))
                (do
                  (lib/cp
-                  (new-filename nil "path")
-                  (copy-filename nil "path")
+                  ~(new-filename (session) nil "path")
+                  ~(copy-filename (session) nil "path")
                   :force true)
-                 (lib/mv (new-filename nil "path") path :force true)))))
+                 (lib/mv ~(new-filename (session) nil "path") path
+                         :force true)))))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
               (remote-file*
-               {:environment {:proxy "http://proxy/"}}
+               (deep-merge (session) {:environment {:proxy "http://proxy/"}})
                "path" {:url "http://a.com/b" :no-versioning true
                        :install-new-files true})
               first second)))))
 
     (testing "no-versioning"
-      (is (script-no-comment=
-           (stevedore/checked-commands
-            "remote-file path"
-            (create-path-with-template
-             "path"
-             (str "/var/lib/pallet" "/home/fred" "/path.new"))
-            (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
-            (stevedore/chained-script
-             (if (file-exists? (new-filename nil "path"))
-               (do
-                 (lib/cp
-                  (new-filename nil "path")
-                  (copy-filename nil "path")
-                  :force true)
-                 (lib/mv (new-filename nil "path") path :force true)))))
-           (binding [pallet.action-plan/*defining-context* nil]
-             (->
-              (remote-file* {} "path" {:content "xxx" :no-versioning true
-                                       :install-new-files true})
-              first second)))))
+      (let [session (session)
+            nf (new-filename session nil "path")
+            cf (copy-filename session nil "path")]
+        (is (script-no-comment=
+             (stevedore/checked-commands
+              "remote-file path"
+              (create-path-with-template
+               "path"
+               (str "/var/lib/pallet" "/home/fred" "/path.new"))
+              (stevedore/script
+               (lib/heredoc ~nf "xxx" {}))
+              (stevedore/chained-script
+               (if (file-exists? ~nf)
+                 (do
+                   (lib/cp ~nf ~cf :force true)
+                   (lib/mv ~nf path :force true)))))
+             (binding [pallet.action-plan/*defining-context* nil]
+               (->
+                (remote-file*
+                 session
+                 "path" {:content "xxx" :no-versioning true
+                         :install-new-files true})
+                first second))))))
 
     (testing "no-versioning with owner, group and mode"
-      (is (script-no-comment=
-           (stevedore/checked-commands
-            "remote-file path"
-            (create-path-with-template
-             "path"
-             (str "/var/lib/pallet" "/home/fred" "/path.new"))
-            (stevedore/script (~lib/heredoc (new-filename nil "path") "xxx" {}))
-            (stevedore/chained-script
-             (if (file-exists? (new-filename nil "path"))
-               (do
-                 (lib/cp
-                  (new-filename nil "path")
-                  (copy-filename nil "path")
-                  :force true)
-                 (lib/mv (new-filename nil "path") "path" :force true)))
-             (~lib/chown "o" "path")
-             (~lib/chgrp "g" "path")
-             (~lib/chmod "m" "path")))
-           (binding [pallet.action-plan/*defining-context* nil]
-             (->
-              (remote-file*
-               {} "path" {:content "xxx" :owner "o" :group "g" :mode "m"
-                          :no-versioning true :install-new-files true})
-              first second)))))
+      (let [session (session)
+            nf (new-filename session nil "path")
+            cf (copy-filename session nil "path")]
+        (is (script-no-comment=
+             (stevedore/checked-commands
+              "remote-file path"
+              (create-path-with-template
+               "path"
+               (str "/var/lib/pallet" "/home/fred" "/path.new"))
+              (stevedore/script
+               (lib/heredoc ~nf "xxx" {}))
+              (stevedore/chained-script
+               (if (file-exists? ~nf)
+                 (do
+                   (lib/cp ~nf ~cf :force true)
+                   (lib/mv ~nf "path" :force true)))
+               (lib/chown "o" "path")
+               (lib/chgrp "g" "path")
+               (lib/chmod "m" "path")))
+             (binding [pallet.action-plan/*defining-context* nil]
+               (->
+                (remote-file*
+                 session "path"
+                 {:content "xxx" :owner "o" :group "g" :mode "m"
+                  :no-versioning true :install-new-files true})
+                first second))))))
 
     (testing "delete"
       (is (script-no-comment=
@@ -168,7 +176,7 @@
             ("rm" "--force" "path"))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
-              (remote-file* {} "path" {:action :delete :force true})
+              (remote-file* (session) "path" {:action :delete :force true})
               first second)))))
     (script/with-script-context [:ubuntu]
       (is (script-no-comment=
@@ -177,11 +185,12 @@
             ~(create-path-with-template
               "path"
               (str "/var/lib/pallet" "/home/fred" "/path.new"))
-            (lib/heredoc (new-filename nil "path") "a 1\n" {}))
+            (lib/heredoc ~(new-filename (session) nil "path") "a 1\n" {}))
            (binding [pallet.action-plan/*defining-context* nil]
              (->
               (remote-file*
                (test-session
+                (session)
                 {:server {:node (make-node "n" :group-name "n")}}
                 {:group {:group-name :n :image {:os-family :ubuntu}}})
                "path"
@@ -313,7 +322,8 @@
                      (map :node (:targets result)))))
               (is (.canRead target-tmp))
               (is (= "text" (slurp (.getPath target-tmp))))
-              (is (slurp (md5-filename nil (.getPath target-tmp))))
+              (is (slurp (md5-filename {:environment {:user {}}}
+                                       nil (.getPath target-tmp))))
               (testing "with md5 guard same content"
                 (logging/info "remote-file test: local-file with md5 guard")
                 (let [compute (make-localhost-compute :group-name "local")
@@ -573,7 +583,8 @@
                :compute compute
                :phase (plan-fn
                         (with-remote-file
-                          check-content (.getPath remote-file) "text" path-atom))
+                          check-content
+                          (.getPath remote-file) "text" path-atom))
                :user user)
               (is @path-atom)
               (is (not= (.getPath remote-file) (.getPath @path-atom))))))

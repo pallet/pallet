@@ -18,7 +18,8 @@
             :passphrase passphrase
             :sudo-password password
             :no-sudo nil
-            :sudo-user nil}
+            :sudo-user nil
+            :state-root nil}
            (into {}
                  (make-user
                   username

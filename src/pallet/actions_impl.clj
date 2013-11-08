@@ -6,8 +6,8 @@
    [pallet.action :refer [defaction]]
    [pallet.common.context :refer [throw-map]]
    [pallet.context :as context]
-   [pallet.core.session :refer [session]]
-   [pallet.crate :refer (admin-user)]
+   [pallet.core.session :as session :refer [session]]
+   [pallet.crate :refer [admin-user]]
    [pallet.script.lib :as lib]
    [pallet.script.lib :refer [file state-root user-home]]
    [pallet.stevedore :refer [fragment script]]))
@@ -103,19 +103,22 @@ to deal with local file transfer."
                 (str "/home/" (:username (admin-user))))
            ~path))))
 
+(defn pallet-state-root
+  [session]
+  (or (:state-root (session/admin-user session))
+      (fragment (file (state-root) "pallet"))))
+
 (defn new-filename
   "Generate a temporary file name for a given path."
-  [script-dir path]
-  (fragment
-   (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".new"))))
+  [session script-dir path]
+  (str (pallet-state-root session) (str (adjust-root script-dir path) ".new")))
 
 (defn md5-filename
   "Generate a md5 file name for a given path."
-  [script-dir path]
-  (fragment
-   (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".md5"))))
+  [session script-dir path]
+  (str (pallet-state-root session) (str (adjust-root script-dir path) ".md5")))
 
 (defn copy-filename
   "Generate a file name for a copy of the given path."
-  [script-dir path]
-  (fragment (str (state-root) "/pallet" ~(adjust-root script-dir path))))
+  [session script-dir path]
+  (str (pallet-state-root session) (adjust-root script-dir path)))

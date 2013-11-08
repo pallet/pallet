@@ -108,9 +108,10 @@ permissions. Note this is not the final directory."
                          (summarise-content)
                          (apply concat)
                          (map pr-str))))}
-    (let [new-path (new-filename (-> session :action :script-dir) path)
-          md5-path (md5-filename (-> session :action :script-dir) path)
-          copy-path (copy-filename (-> session :action :script-dir) path)
+    (let [new-path (new-filename session (-> session :action :script-dir) path)
+          md5-path (md5-filename session (-> session :action :script-dir) path)
+          copy-path (copy-filename
+                     session (-> session :action :script-dir) path)
           versioning (if no-versioning nil :numbered)
           proxy (get-for session [:proxy] nil)
           options (if (and owner (not group))

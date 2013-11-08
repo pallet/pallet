@@ -41,8 +41,8 @@
            first second)
           tarpath])
    local-file [""
-               (new-filename (-> session :action :script-dir) path)
-               (md5-filename (-> session :action :script-dir) path)]
+               (new-filename session (-> session :action :script-dir) path)
+               (md5-filename session (-> session :action :script-dir) path)]
    remote-file ["" remote-file (str remote-file ".md5")]))
 
 (implement-action remote-directory-action :direct
