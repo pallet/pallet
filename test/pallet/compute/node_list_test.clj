@@ -4,6 +4,7 @@
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.compute :as compute]
    [pallet.compute.node-list :as node-list]
+   [pallet.core.api :refer [has-state-flag?]]
    [pallet.node :as node]))
 
 (use-fixtures :once (logging-threshold-fixture))
@@ -46,7 +47,7 @@
     (is (= {"pallet/state" "{:bootstrapped true}"} (node/tags node)))
     (is (thrown? Exception (node/tag! node "tag" "value")))
     (is (not (node/taggable? node)))
-    (is (= true (node/tag node :bootstrapped)))))
+    (is ((has-state-flag? :bootstrapped) {:node node}))))
 
 (deftest close-test
   (is (nil? (compute/close
