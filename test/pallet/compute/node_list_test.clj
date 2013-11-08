@@ -44,7 +44,7 @@
     (is (= node-list (node/compute-service node)))
     (is (nil? (node/tag node "some-tag")))
     (is (= ::x (node/tag node "some-tag" ::x)))
-    (is (= {:bootstrapped true} (node/tags node)))
+    (is (= {"pallet/state" "{:bootstrapped true}"} (node/tags node)))
     (is (thrown? Exception (node/tag! node "tag" "value")))
     (is (not (node/taggable? node)))
     (is (= true (node/tag node :bootstrapped)))))
