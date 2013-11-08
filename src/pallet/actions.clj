@@ -340,7 +340,8 @@ Content can also be copied from a blobstore.
       (transfer-file local-file new-path md5-path))
     ;; we run as root so we don't get permission issues
     (with-action-options session (merge
-                                  {:script-prefix :sudo :sudo-user nil}
+                                  {:script-prefix :sudo
+                                   :sudo-user (:sudo-user (admin-user))}
                                   local-file-options)
       (remote-file-action
        session
@@ -476,7 +477,8 @@ only specified files or directories, use the :extract-files option.
       (transfer-file local-file new-path md5-path))
     ;; we run as root so we don't get permission issues
     (with-action-options session (merge
-                                  {:script-prefix :sudo :sudo-user nil}
+                                  {:script-prefix :sudo
+                                   :sudo-user (:sudo-user (admin-user))}
                                   local-file-options)
       (directory path :owner owner :group group :recursive false)
       (remote-directory-action
