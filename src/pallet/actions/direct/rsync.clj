@@ -1,20 +1,25 @@
 (ns pallet.actions.direct.rsync
   (:require
    [clojure.tools.logging :as logging]
-   [pallet.action :refer [implement-action]]
+   [pallet.action :refer [get-action-options implement-action]]
    [pallet.actions :refer [rsync]]
    [pallet.crate :refer [target-node]]
    [pallet.core.session :refer [admin-user target-ip]]
    [pallet.node :refer [ssh-port]]
-   [pallet.stevedore :as stevedore]))
+   [pallet.script.lib :refer [sudo]]
+   [pallet.stevedore :as stevedore :refer [fragment]]))
 
 (def ^{:private true}
   cmd "/usr/bin/rsync -e '%s' -F -F %s %s %s@%s:%s")
 
-(def default-options {:r true :delete true :copy-links true
-                      :rsync-path "sudo rsync"
-                      :owner true
-                      :perms true})
+(defn default-options
+  [session]
+  {:r true :delete true :copy-links true
+   :rsync-path (let [sudo-user (or (:sudo-user (get-action-options))
+                                   (:sudo-user (admin-user session)))]
+                 (fragment ((sudo :no-promt true :user ~sudo-user) "rsync")))
+   :owner true
+   :perms true})
 
 (implement-action rsync :direct
                   {:action-type :script :location :origin}
@@ -26,7 +31,8 @@
                    (format "-p %s" port)))
         cmd (format
              cmd ssh
-             (stevedore/map-to-arg-string (merge default-options extra-options))
+             (stevedore/map-to-arg-string
+              (merge (default-options session) extra-options))
              from (:username (admin-user session))
              (target-ip session) to)]
     [[{:language :bash}
