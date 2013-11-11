@@ -1,8 +1,10 @@
 (ns pallet.core.recorder.protocols
-  "Protocols for the action recorder")
+  "Protocols for the action recorder"
+  (:require
+   [clojure.core.typed :refer [defprotocol>]]))
 
-(defprotocol Record
+(defprotocol> Record
   (record [_ result] "Record a result"))
 
-(defprotocol Results
+(defprotocol> Results
   (results [_] "Return recorded results"))

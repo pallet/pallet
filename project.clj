@@ -14,7 +14,7 @@ unprecedented level of customization."
 
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/core.incubator "0.1.0"]
-                 [org.clojure/core.typed "0.2.13"
+                 [org.clojure/core.typed "0.2.20-SNAPSHOT"
                   :exclusions [org.clojure/clojurescript]]
                  [org.clojure/tools.logging "0.2.0"]
                  [org.clojure/tools.macro "0.1.1"]
@@ -33,6 +33,8 @@ unprecedented level of customization."
                   :exclusions [org.clojure/clojure]]
                  [pallet-map-merge "0.1.0"]
                  [org.clojars.runa/clj-schema "0.9.4"]
+                 [prismatic/schema "0.1.6"]
+                 [circleci/schema-typer "0.1.1"]
                  [org.flatland/useful "0.10.3"]
                  [commons-codec "1.4"]]
   :classifiers {:tests {:source-paths ^:replace ["test"]

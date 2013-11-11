@@ -194,7 +194,7 @@
        (logging/tracef "flag-values %s" flag-values)
        flag-values))))
 
-(ann parse-shell-result [Session ActionResult -> Session])
+(ann ^:no-check parse-shell-result [Session ActionResult -> Session])
 ;; TODO remove tc-ignore when we have updated maybe-assoc
 (tc-ignore
  (defn parse-shell-result

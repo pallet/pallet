@@ -31,7 +31,7 @@
             execute-on-unflagged phases-with-meta unbootstrapped-meta]]
    [pallet.core.recorder :refer [results]]
    [pallet.core.recorder.in-memory :refer [in-memory-recorder]]
-   [pallet.core.session :refer [session-context with-session]]
+   [pallet.core.session :refer [session-context]]
    [pallet.core.user :as user]
    [pallet.crate :refer [phase-context]]
    [pallet.crate.os :refer [os]]
@@ -320,490 +320,574 @@ specified in the `:extends` argument."
       `(fn [] (phase-context ~(gensym n) {} ~@body))
       `(fn [] (phase-context ~(gensym "a-plan-fn") {} ~@body)))))
 
+;;; ## Execution modifiers
+(defn apply-target
+  "Apply a plan-fn to a target.
+
+  Examines the metadata on plan-fn to see if it is has a
+  :phase-execution-f, in which case it is called.  Otherwise it calls
+  `execute`."
+  [session target plan-fn]
+  (let [{:keys [phase-execution-f]} (meta plan-fn)]
+    ((or phase-execution-f execute) session target plan-fn)))
+
+(defn guard-execute
+  [session target plan-fn]
+  (let [{:keys [guard-fn]} (meta plan-fn)]
+    (if (or (nil? guard-fn) (guard-fn session target))
+      (execute session target plan-fn))))
+
+(defn execute-phase
+  "Execute the specified phase on target.
+  Return a channel for the result."
+  [target phase]
+  (execute target (target-phase-fn target phase)))
+
+;; TODO remove no-check when find out why this hangs core.typed
+(ann ^:no-check environment-execution-settings [-> ExecSettingsFn])
+(defn environment-execution-settings
+  "Returns execution settings based purely on the environment"
+  []
+  (fn> [environment :- EnvironmentMap
+        _ :- PhaseTarget]
+    (debugf "environment-execution-settings %s" environment)
+    (debugf "Env user %s" (obfuscated-passwords (into {} (:user environment))))
+    {:user (:user environment)
+     :executor (get-in environment [:algorithms :executor])
+     :execute-status-fn (get-in environment [:algorithms :execute-status-fn])}))
+
+;; TODO remove :no-check when core.typed's map types are more powerful
+(ann ^:no-check environment-image-execution-settings [-> ExecSettingsFn])
+(defn environment-image-execution-settings
+  "Returns execution settings based on the environment and the image user."
+  []
+  (fn> [environment :- EnvironmentMap
+        node :- PhaseTarget]
+       (let [user (into {} (filter (inst val Any)
+                                   (image-user (assert-not-nil
+                                                (get node :node)))))
+             user (if (or (get user :private-key-path) (get user :private-key))
+                    (assoc user :temp-key true)
+                    user)]
+         (tc-ignore
+          (debugf "Image-user is %s" (obfuscated-passwords user)))
+         {:user user
+          ;; TODO revert to get-in when core.typed powerful enough
+          :executor (get (get environment :algorithms) :executor)
+          :execute-status-fn (get (get environment :algorithms)
+                                  :execute-status-fn)})))
+
+;;; Node count adjuster
+(defn node-count-adjuster
+  "Adjusts node counts. Groups are expected to have node counts on them."
+  [compute-service groups targets]
+  {:pre [compute-service]}
+  (let [group-deltas (group-deltas targets groups)
+        nodes-to-remove (nodes-to-remove targets group-deltas)
+        nodes-to-add (nodes-to-add group-deltas)
+        old-nodes (->>
+                   (vals nodes-to-remove)
+                   (mapcat :nodes)
+                   (map (comp node-map :node)))]
+
+    (when-not (errors?
+               (map #(execute-phase % :destroy-server)
+                    (vals nodes-to-remove)))
+      (remove-group-nodes compute-service nodes-to-remove)
+
+      (map #(execute-phase % :destroy-group)
+           (groups-to-remove group-deltas)))
+
+    (when-not (errors?
+               (map #(execute-phase % :create-group)
+                    (groups-to-create group-deltas)))
+      (create-group-nodes compute-service nodes-to-add))))
+
+
 ;;; ## Operations
 ;;;
 
-(defn- process-phases
-  "Process phases. Returns a phase list and a phase-map. Functions specified in
-  `phases` are identified with a keyword and a map from keyword to function.
-  The return vector contains a sequence of phase keywords and the map
-  identifying the anonymous phases."
-  [phases]
-  (let [phases (if (or (keyword? phases) (fn? phases)) [phases] phases)]
-    (reduce
-     (fn [[phase-kws phase-map] phase]
-       (if (or (keyword? phase)
-               (and (or (vector? phase) (seq? phase)) (keyword? (first phase))))
-         [(conj phase-kws phase) phase-map]
-         (let [phase-kw (-> (gensym "phase")
-                            name keyword)]
-           [(conj phase-kws phase-kw)
-            (assoc phase-map phase-kw phase)])))
-     [[] {}] phases)))
-
-(defn- groups-with-phases
-  "Adds the phases from phase-map into each group in the sequence `groups`."
-  [groups phase-map]
-  (letfn [(add-phases [group]
-            (update-in group [:phases] merge phase-map))]
-    (map add-phases groups)))
-
-(defn expand-cluster-groups
-  "Expand a node-set into its groups"
-  [node-set]
-  (cond
-   (sequential? node-set) (mapcat expand-cluster-groups node-set)
-   (map? node-set) (if-let [groups (:groups node-set)]
-                     (mapcat expand-cluster-groups groups)
-                     [node-set])
-   :else [node-set]))
-
-(defn split-groups-and-targets
-  "Split a node-set into groups and targets. Returns a map with
-:groups and :targets keys"
-  [node-set]
-  (logging/tracef "split-groups-and-targets %s" (vec node-set))
-  (->
-   (group-by
-    #(if (and (map? %)
-              (every? map? (keys %))
-              (every?
-               (fn node-or-nodes? [x] (or (node? x) (sequential? x)))
-               (vals %)))
-       :targets
-       :groups)
-    node-set)
-   (update-in
-    [:targets]
-    #(mapcat
-      (fn [m]
-        (reduce
-         (fn [result [group nodes]]
-           (if (sequential? nodes)
-             (concat result (map (partial assoc group :node) nodes))
-             (conj result (assoc group :node nodes))))
-         []
-         m))
-      %))))
-
-(defn- all-group-nodes
-  "Returns the service state for the specified groups"
-  [operation compute groups all-node-set]
-  (if compute
-    (ops/group-nodes
-     operation
-     compute
-     (concat
-      groups
-      (map
-       (fn [g] (update-in g [:phases] select-keys [:settings]))
-       all-node-set)))))
-
-(def ^{:doc "Arguments that are forwarded to be part of the environment"}
-  environment-args [:compute :blobstore :user :provider-options])
-
-(defn group-node-maps
-  "Return the nodes for the specified groups."
-  [compute groups & {:keys [async timeout-ms timeout-val] :as options}]
-  (exec-operation #(all-group-nodes % compute groups nil) options))
-
-(defn converge*
-  "Returns a FSM to converge the existing compute resources with the counts
-   specified in `group-spec->count`.  Options are as for `converge`."
-  [operation group-spec->count & {:keys [compute blobstore user phase
-                                         all-nodes all-node-set environment
-                                         plan-state debug os-detect]
-                                  :or {os-detect true}
-                                  :as options}]
-  (check-converge-options options)
-  (logging/tracef "environment %s" environment)
-  (let [[phases phase-map] (process-phases phase)
-        phase-map (if os-detect
-                    (assoc phase-map
-                      :pallet/os (vary-meta
-                                  (plan-fn (os)) merge unbootstrapped-meta)
-                      :pallet/os-bs (vary-meta
-                                     (plan-fn (os)) merge bootstrapped-meta))
-                    phase-map)
-        groups (if (map? group-spec->count)
-                 [group-spec->count]
-                 group-spec->count)
-        groups (expand-group-spec-with-counts group-spec->count)
-        {:keys [groups targets]} (-> groups
-                                     expand-cluster-groups
-                                     split-groups-and-targets)
-        _ (logging/tracef "groups %s" (vec groups))
-        _ (logging/tracef "targets %s" (vec targets))
-        _ (logging/tracef "environment keys %s"
-                          (select-keys options environment-args))
-        environment (merge-environments
-                     {:user user/*admin-user*
-                      :algorithms
-                      {:executor #'default-executor
-                       :execute-status-fn #'stop-execution-on-error}}
-                     (pallet.environment/environment compute)
-                     environment
-                     (select-keys options environment-args))
-        groups (groups-with-phases groups phase-map)
-        targets (groups-with-phases targets phase-map)
-        groups (map (partial group-with-environment environment) groups)
-        targets (map (partial group-with-environment environment) targets)
-        lift-options (select-keys options ops/lift-options)
-        initial-plan-state (assoc (or plan-state {})
-                             action-options-key
-                             (select-keys debug
-                                          [:script-comments :script-trace]))
-        phases (or (seq phases)
-                   (apply total-order-merge
-                          (map :default-phases (concat groups targets))))]
-    (doseq [group groups] (check-group-spec group))
-    (let [nodes-set (all-group-nodes operation compute groups all-node-set)
-          nodes-set (concat nodes-set targets)
-          _ (when-not (or compute (seq nodes-set))
-              (throw (ex-info
-                      "No source of nodes"
-                      {:error :no-nodes-and-no-compute-service})))
-
-          {:keys [new-nodes plan-state targets service-state]
-           :as converge-result}
-          (ops/converge operation
-                        compute groups nodes-set initial-plan-state
-                        environment phases lift-options)
-
-          {:keys [plan-state results]}
-          (ops/lift-partitions
-           operation
-           service-state plan-state environment
-           (concat (when os-detect [:pallet/os-bs :pallet/os])
-                   [:settings :bootstrap] phases)
-           (assoc lift-options :targets targets))]
-
-      (-> converge-result
-          (update-in [:results] concat results)
-          (assoc :plan-state (dissoc plan-state :node-values)
-                 :environment environment
-                 :initial-plan-state initial-plan-state)))))
-
-(defn converge
-  "Converge the existing compute resources with the counts specified in
-`group-spec->count`. New nodes are started, or nodes are destroyed to obtain the
-specified node counts.
-
-`group-spec->count` can be a map from group-spec to node count, or can be a
-sequence of group-specs containing a :count key.
-
-This applies the `:bootstrap` phase to all new nodes and, by default,
-the :configure phase to all running nodes whose group-name matches a key in the
-node map.  Phases can also be specified with the `:phase` option, and will be
-applied to all matching nodes.  The :configure phase is the default phase
-applied.
-
-## Options
-
-`:compute`
-: a compute service.
-
-`:blobstore`
-: a blobstore service.
-
-`:phase`
-: a phase keyword, phase function, or sequence of these.
-
-`:user`
-the admin-user on the nodes.
-
-### Partitioning
-
-`:partition-f`
-: a function that takes a sequence of targets, and returns a sequence of
-  sequences of targets.  Used to partition or filter the targets.  Defaults to
-  any :partition metadata on the phase, or no partitioning otherwise.
-
-## Post phase options
-
-`:post-phase-f`
-: specifies an optional function that is run after a phase is applied.  It is
-  passed `targets`, `phase` and `results` arguments, and is called before any
-  error checking is done.  The return value is ignored, so this is for side
-  affect only.
-
-`:post-phase-fsm`
-: specifies an optional fsm returning function that is run after a phase is
-  applied.  It is passed `targets`, `phase` and `results` arguments, and is
-  called before any error checking is done.  The return value is ignored, so
-  this is for side affect only.
-
-### Asynchronous and Timeouts
-
-`:async`
-: a flag to control whether the function executes asynchronously.  When truthy,
-  the function returns an Operation that can be deref'd like a future.  When not
-  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
-
-`:timeout-ms`
-: an integral number of milliseconds to wait for completion before timeout.
-  Only applies if `:async` is not truthy (the default).
-
-`:timeout-val`
-: a value to be returned should the operation time out.
-
-### Algorithm options
-
-`:phase-execution-f`
-: specifies the function used to execute a phase on the targets.  Defaults
-  to `pallet.core.primitives/build-and-execute-phase`.
-
-`:execution-settings-f`
-: specifies a function that will be called with a node argument, and which
-  should return a map with `:user`, `:executor` and `:executor-status-fn` keys.
-
-### OS detection
-
-`:os-detect`
-: controls detection of nodes' os (default true)."
-  [group-spec->count & {:keys [compute blobstore user phase
-                               all-nodes all-node-set environment
-                               async timeout-ms timeout-val
-                               debug plan-state]
-                        :as options}]
-  (load-plugins)
-  (exec-operation
-   #(apply-map converge* % group-spec->count options)
-   (select-keys
-    options [:async :operation :status-chan :close-status-chan?
-             :timeout-ms :timeout-val])))
-
-(defn lift*
-  "Returns a FSM to lift the running nodes in the specified node-set by applying
-   the specified phases.  Options as specified in `lift`."
-  [operation node-set & {:keys [compute phase all-node-set environment
-                                debug plan-state os-detect]
-                         :or {os-detect true}
-                         :as options}]
-  (logging/trace "Lift*")
-  (check-lift-options options)
-  (let [[phases phase-map] (process-phases phase)
-        phase-map (if os-detect
-                    (assoc phase-map :pallet/os (plan-fn (os)))
-                    phase-map)
-        {:keys [groups targets]} (-> node-set
-                                     expand-cluster-groups
-                                     split-groups-and-targets)
-        _ (logging/tracef "groups %s" (vec groups))
-        _ (logging/tracef "targets %s" (vec targets))
-        _ (logging/tracef "environment keys %s"
-                          (select-keys options environment-args))
-        _ (logging/tracef "options %s" options)
-        environment (merge-environments
-                     {:user user/*admin-user*
-                      :algorithms
-                      {:executor #'default-executor
-                       :execute-status-fn #'stop-execution-on-error}}
-                     (and compute (pallet.environment/environment compute))
-                     environment
-                     (select-keys options environment-args))
-        groups (groups-with-phases groups phase-map)
-        targets (groups-with-phases targets phase-map)
-        groups (map (partial group-with-environment environment) groups)
-        targets (map (partial group-with-environment environment) targets)
-        initial-plan-state (assoc (or plan-state {})
-                             action-options-key
-                             (select-keys debug
-                                          [:script-comments :script-trace]))
-        lift-options (select-keys options ops/lift-options)
-        phases (or (seq phases)
-                   (apply total-order-merge
-                          (map :default-phases (concat groups targets))))]
-    (doseq [group groups] (check-group-spec group))
-    (logging/trace "Lift ready to start")
-    (let [nodes-set (all-group-nodes operation compute groups all-node-set)
-          nodes-set (concat nodes-set targets)
-          _ (when-not (or compute (seq nodes-set))
-              (throw (ex-info "No source of nodes"
-                              {:error :no-nodes-and-no-compute-service})))
-          _ (logging/trace "Retrieved nodes")
-          settings-result (ops/lift
-                           operation
-                           nodes-set initial-plan-state environment
-                           (concat
-                            (when os-detect [:pallet/os])
-                            [:settings])
-                           {})]
-      (if (phase-errors settings-result)
-        settings-result
-        (let [results (ops/lift-partitions
-                       operation
-                       nodes-set
-                       (:plan-state settings-result)
-                       environment
-                       (remove #{:settings} phases)
-                       lift-options)]
-          (assoc results
-            :environment environment
-            :initial-plan-state initial-plan-state))))))
-
-(defn lift
-  "Lift the running nodes in the specified node-set by applying the specified
-phases.  The compute service may be supplied as an option, otherwise the
-bound compute-service is used.  The configure phase is applied by default
-unless other phases are specified.
-
-node-set can be a group spec, a sequence of group specs, or a map
-of group specs to nodes. Examples:
-
-    [group-spec1 group-spec2 {group-spec #{node1 node2}}]
-    group-spec
-    {group-spec #{node1 node2}}
-
-## Options:
-
-`:compute`
-: a compute service.
-
-`:blobstore`
-: a blobstore service.
-
-`:phase`
-: a phase keyword, phase function, or sequence of these.
-
-`:user`
-the admin-user on the nodes.
-
-### Partitioning
-
-`:partition-f`
-: a function that takes a sequence of targets, and returns a sequence of
-  sequences of targets.  Used to partition or filter the targets.  Defaults to
-  any :partition metadata on the phase, or no partitioning otherwise.
-
-## Post phase options
-
-`:post-phase-f`
-: specifies an optional function that is run after a phase is applied.  It is
-  passed `targets`, `phase` and `results` arguments, and is called before any
-  error checking is done.  The return value is ignored, so this is for side
-  affect only.
-
-`:post-phase-fsm`
-: specifies an optional fsm returning function that is run after a phase is
-  applied.  It is passed `targets`, `phase` and `results` arguments, and is
-  called before any error checking is done.  The return value is ignored, so
-  this is for side affect only.
-
-### Asynchronous and Timeouts
-
-`:async`
-: a flag to control whether the function executes asynchronously.  When truthy,
-  the function returns an Operation that can be deref'd like a future.  When not
-  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
-
-`:timeout-ms`
-: an integral number of milliseconds to wait for completion before timeout.
-  Only applies if `:async` is not truthy (the default).
-
-`:timeout-val`
-: a value to be returned should the operation time out.
-
-### Algorithm options
-
-`:phase-execution-f`
-: specifies the function used to execute a phase on the targets.  Defaults
-  to `pallet.core.primitives/build-and-execute-phase`.
-
-`:execution-settings-f`
-: specifies a function that will be called with a node argument, and which
-  should return a map with `:user`, `:executor` and `:executor-status-fn` keys.
-
-### OS detection
-
-`:os-detect`
-: controls detection of nodes' os (default true)."
-  [node-set & {:keys [compute phase user all-node-set environment
-                      async timeout-ms timeout-val
-                      partition-f post-phase-f post-phase-fsm
-                      phase-execution-f execution-settings-f
-                      debug plan-state]
-               :as options}]
-  (logging/trace "Lift")
-  (load-plugins)
-  (logging/trace "Plugins loaded")
-  (exec-operation
-   #(apply-map lift* % node-set options)
-   (select-keys
-    options [:async :operation :status-chan :close-status-chan?
-             :timeout-ms :timeout-val])))
-
-(defn lift-nodes
-  "Lift `targets`, a sequence of node-maps, using the specified `phases`.  This
-provides a way of lifting phases, which doesn't tie you to working with all
-nodes in a group.  Consider using this only if the functionality in `lift` is
-insufficient.
-
-`phases`
-: a sequence of phase keywords (identifying phases) or plan functions, that
-  should be applied to the target nodes.  Note that there are no default phases.
-
-## Options:
-
-`:user`
-: the admin-user to use for operations on the target nodes.
-
-`:environment`
-: an environment map, to be merged into the environment.
-
-`:plan-state`
-: an state map, which can be used to passing settings across multiple lift-nodes
-  invocations.
-
-`:async`
-: a flag to control whether the function executes asynchronously.  When truthy,
-  the function returns an Operation that can be deref'd like a future.  When not
-  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
-
-`:timeout-ms`
-: an integral number of milliseconds to wait for completion before timeout.
-  Only applies if `:async` is not truthy (the default).
-
-`:timeout-val`
-: a value to be returned should the operation time out."
-  [targets phases
-   & {:keys [user environment plan-state async timeout-ms timeout-val]
-      :or {environment {} plan-state {}}
-      :as options}]
-  (let [[phases phase-map] (process-phases phases)
-        targets (groups-with-phases targets phase-map)
-        environment (merge-environments
-                     {:user user/*admin-user*}
-                     environment
-                     (select-keys options environment-args))]
-    (letfn [(lift-nodes* [operation]
-              (ops/lift-partitions
-               operation
-               targets plan-state environment phases
-               (dissoc options
-                       :environment :plan-state :async
-                       :timeout-val :timeout-ms)))]
-      (exec-operation lift-nodes* options))))
-
-(defn group-nodes
-  "Return a sequence of node-maps for each node in the specified group-specs.
-
-## Options:
-
-`:async`
-: a flag to control whether the function executes asynchronously.  When truthy,
-  the function returns an Operation that can be deref'd like a future.  When not
-  truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
-
-`:timeout-ms`
-: an integral number of milliseconds to wait for completion before timeout.
-  Only applies if `:async` is not truthy (the default).
-
-`:timeout-val`
-: a value to be returned should the operation time out."
-  [compute groups & {:keys [async timeout-ms timeout-val] :as options}]
-  (letfn [(group-nodes* [operation] (ops/group-nodes operation compute groups))]
-    (exec-operation group-nodes* options)))
+;; (defn- process-phases
+;;   "Process phases. Returns a phase list and a phase-map. Functions specified in
+;;   `phases` are identified with a keyword and a map from keyword to function.
+;;   The return vector contains a sequence of phase keywords and the map
+;;   identifying the anonymous phases."
+;;   [phases]
+;;   (let [phases (if (or (keyword? phases) (fn? phases)) [phases] phases)]
+;;     (reduce
+;;      (fn [[phase-kws phase-map] phase]
+;;        (if (or (keyword? phase)
+;;                (and (or (vector? phase) (seq? phase)) (keyword? (first phase))))
+;;          [(conj phase-kws phase) phase-map]
+;;          (let [phase-kw (-> (gensym "phase")
+;;                             name keyword)]
+;;            [(conj phase-kws phase-kw)
+;;             (assoc phase-map phase-kw phase)])))
+;;      [[] {}] phases)))
+
+;; (defn- groups-with-phases
+;;   "Adds the phases from phase-map into each group in the sequence `groups`."
+;;   [groups phase-map]
+;;   (letfn [(add-phases [group]
+;;             (update-in group [:phases] merge phase-map))]
+;;     (map add-phases groups)))
+
+;; (defn expand-cluster-groups
+;;   "Expand a node-set into its groups"
+;;   [node-set]
+;;   (cond
+;;    (sequential? node-set) (mapcat expand-cluster-groups node-set)
+;;    (map? node-set) (if-let [groups (:groups node-set)]
+;;                      (mapcat expand-cluster-groups groups)
+;;                      [node-set])
+;;    :else [node-set]))
+
+;; (defn split-groups-and-targets
+;;   "Split a node-set into groups and targets. Returns a map with
+;; :groups and :targets keys"
+;;   [node-set]
+;;   (logging/tracef "split-groups-and-targets %s" (vec node-set))
+;;   (->
+;;    (group-by
+;;     #(if (and (map? %)
+;;               (every? map? (keys %))
+;;               (every?
+;;                (fn node-or-nodes? [x] (or (node? x) (sequential? x)))
+;;                (vals %)))
+;;        :targets
+;;        :groups)
+;;     node-set)
+;;    (update-in
+;;     [:targets]
+;;     #(mapcat
+;;       (fn [m]
+;;         (reduce
+;;          (fn [result [group nodes]]
+;;            (if (sequential? nodes)
+;;              (concat result (map (partial assoc group :node) nodes))
+;;              (conj result (assoc group :node nodes))))
+;;          []
+;;          m))
+;;       %))))
+
+;; (defn- all-group-nodes
+;;   "Returns the service state for the specified groups"
+;;   [operation compute groups all-node-set]
+;;   (if compute
+;;     (ops/group-nodes
+;;      operation
+;;      compute
+;;      (concat
+;;       groups
+;;       (map
+;;        (fn [g] (update-in g [:phases] select-keys [:settings]))
+;;        all-node-set)))))
+
+;; (def ^{:doc "Arguments that are forwarded to be part of the environment"}
+;;   environment-args [:compute :blobstore :user :provider-options])
+
+;; (defn group-node-maps
+;;   "Return the nodes for the specified groups."
+;;   [compute groups & {:keys [async timeout-ms timeout-val] :as options}]
+;;   (exec-operation #(all-group-nodes % compute groups nil) options))
+
+;; (defn converge*
+;;   "Returns a FSM to converge the existing compute resources with the counts
+;;    specified in `group-spec->count`.  Options are as for `converge`."
+;;   [operation group-spec->count & {:keys [compute blobstore user phase
+;;                                          all-nodes all-node-set environment
+;;                                          plan-state debug os-detect]
+;;                                   :or {os-detect true}
+;;                                   :as options}]
+;;   (check-converge-options options)
+;;   (logging/tracef "environment %s" environment)
+;;   (let [[phases phase-map] (process-phases phase)
+;;         phase-map (if os-detect
+;;                     (assoc phase-map
+;;                       :pallet/os (vary-meta
+;;                                   (plan-fn (os)) merge unbootstrapped-meta)
+;;                       :pallet/os-bs (vary-meta
+;;                                      (plan-fn (os)) merge bootstrapped-meta))
+;;                     phase-map)
+;;         groups (if (map? group-spec->count)
+;;                  [group-spec->count]
+;;                  group-spec->count)
+;;         groups (expand-group-spec-with-counts group-spec->count)
+;;         {:keys [groups targets]} (-> groups
+;;                                      expand-cluster-groups
+;;                                      split-groups-and-targets)
+;;         _ (logging/tracef "groups %s" (vec groups))
+;;         _ (logging/tracef "targets %s" (vec targets))
+;;         _ (logging/tracef "environment keys %s"
+;;                           (select-keys options environment-args))
+;;         environment (merge-environments
+;;                      {:user user/*admin-user*
+;;                       :algorithms
+;;                       {:executor #'default-executor
+;;                        :execute-status-fn #'stop-execution-on-error}}
+;;                      (pallet.environment/environment compute)
+;;                      environment
+;;                      (select-keys options environment-args))
+;;         groups (groups-with-phases groups phase-map)
+;;         targets (groups-with-phases targets phase-map)
+;;         groups (map (partial group-with-environment environment) groups)
+;;         targets (map (partial group-with-environment environment) targets)
+;;         lift-options (select-keys options ops/lift-options)
+;;         initial-plan-state (assoc (or plan-state {})
+;;                              action-options-key
+;;                              (select-keys debug
+;;                                           [:script-comments :script-trace]))
+;;         phases (or (seq phases)
+;;                    (apply total-order-merge
+;;                           (map :default-phases (concat groups targets))))]
+;;     (doseq [group groups] (check-group-spec group))
+;;     (let [nodes-set (all-group-nodes operation compute groups all-node-set)
+;;           nodes-set (concat nodes-set targets)
+;;           _ (when-not (or compute (seq nodes-set))
+;;               (throw (ex-info
+;;                       "No source of nodes"
+;;                       {:error :no-nodes-and-no-compute-service})))
+
+;;           {:keys [new-nodes plan-state targets service-state]
+;;            :as converge-result}
+;;           (ops/converge operation
+;;                         compute groups nodes-set initial-plan-state
+;;                         environment phases lift-options)
+
+;;           {:keys [plan-state results]}
+;;           (ops/lift-partitions
+;;            operation
+;;            service-state plan-state environment
+;;            (concat (when os-detect [:pallet/os-bs :pallet/os])
+;;                    [:settings :bootstrap] phases)
+;;            (assoc lift-options :targets targets))]
+
+;;       (-> converge-result
+;;           (update-in [:results] concat results)
+;;           (assoc :plan-state (dissoc plan-state :node-values)
+;;                  :environment environment
+;;                  :initial-plan-state initial-plan-state)))))
+
+;; (defn converge
+;;   "Converge the existing compute resources with the counts specified in
+;; `group-spec->count`. New nodes are started, or nodes are destroyed to obtain the
+;; specified node counts.
+
+;; `group-spec->count` can be a map from group-spec to node count, or can be a
+;; sequence of group-specs containing a :count key.
+
+;; This applies the `:bootstrap` phase to all new nodes and, by default,
+;; the :configure phase to all running nodes whose group-name matches a key in the
+;; node map.  Phases can also be specified with the `:phase` option, and will be
+;; applied to all matching nodes.  The :configure phase is the default phase
+;; applied.
+
+;; ## Options
+
+;; `:compute`
+;; : a compute service.
+
+;; `:blobstore`
+;; : a blobstore service.
+
+;; `:phase`
+;; : a phase keyword, phase function, or sequence of these.
+
+;; `:user`
+;; the admin-user on the nodes.
+
+;; ### Partitioning
+
+;; `:partition-f`
+;; : a function that takes a sequence of targets, and returns a sequence of
+;;   sequences of targets.  Used to partition or filter the targets.  Defaults to
+;;   any :partition metadata on the phase, or no partitioning otherwise.
+
+;; ## Post phase options
+
+;; `:post-phase-f`
+;; : specifies an optional function that is run after a phase is applied.  It is
+;;   passed `targets`, `phase` and `results` arguments, and is called before any
+;;   error checking is done.  The return value is ignored, so this is for side
+;;   affect only.
+
+;; `:post-phase-fsm`
+;; : specifies an optional fsm returning function that is run after a phase is
+;;   applied.  It is passed `targets`, `phase` and `results` arguments, and is
+;;   called before any error checking is done.  The return value is ignored, so
+;;   this is for side affect only.
+
+;; ### Asynchronous and Timeouts
+
+;; `:async`
+;; : a flag to control whether the function executes asynchronously.  When truthy,
+;;   the function returns an Operation that can be deref'd like a future.  When not
+;;   truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
+
+;; `:timeout-ms`
+;; : an integral number of milliseconds to wait for completion before timeout.
+;;   Only applies if `:async` is not truthy (the default).
+
+;; `:timeout-val`
+;; : a value to be returned should the operation time out.
+
+;; ### Algorithm options
+
+;; `:phase-execution-f`
+;; : specifies the function used to execute a phase on the targets.  Defaults
+;;   to `pallet.core.primitives/build-and-execute-phase`.
+
+;; `:execution-settings-f`
+;; : specifies a function that will be called with a node argument, and which
+;;   should return a map with `:user`, `:executor` and `:executor-status-fn` keys.
+
+;; ### OS detection
+
+;; `:os-detect`
+;; : controls detection of nodes' os (default true)."
+;;   [group-spec->count & {:keys [compute blobstore user phase
+;;                                all-nodes all-node-set environment
+;;                                async timeout-ms timeout-val
+;;                                debug plan-state]
+;;                         :as options}]
+;;   (load-plugins)
+;;   (exec-operation
+;;    #(apply-map converge* % group-spec->count options)
+;;    (select-keys
+;;     options [:async :operation :status-chan :close-status-chan?
+;;              :timeout-ms :timeout-val])))
+
+;; (defn lift*
+;;   "Returns a FSM to lift the running nodes in the specified node-set by applying
+;;    the specified phases.  Options as specified in `lift`."
+;;   [operation node-set & {:keys [compute phase all-node-set environment
+;;                                 debug plan-state os-detect]
+;;                          :or {os-detect true}
+;;                          :as options}]
+;;   (logging/trace "Lift*")
+;;   (check-lift-options options)
+;;   (let [[phases phase-map] (process-phases phase)
+;;         phase-map (if os-detect
+;;                     (assoc phase-map :pallet/os (plan-fn (os)))
+;;                     phase-map)
+;;         {:keys [groups targets]} (-> node-set
+;;                                      expand-cluster-groups
+;;                                      split-groups-and-targets)
+;;         _ (logging/tracef "groups %s" (vec groups))
+;;         _ (logging/tracef "targets %s" (vec targets))
+;;         _ (logging/tracef "environment keys %s"
+;;                           (select-keys options environment-args))
+;;         _ (logging/tracef "options %s" options)
+;;         environment (merge-environments
+;;                      {:user user/*admin-user*
+;;                       :algorithms
+;;                       {:executor #'default-executor
+;;                        :execute-status-fn #'stop-execution-on-error}}
+;;                      (and compute (pallet.environment/environment compute))
+;;                      environment
+;;                      (select-keys options environment-args))
+;;         groups (groups-with-phases groups phase-map)
+;;         targets (groups-with-phases targets phase-map)
+;;         groups (map (partial group-with-environment environment) groups)
+;;         targets (map (partial group-with-environment environment) targets)
+;;         initial-plan-state (assoc (or plan-state {})
+;;                              action-options-key
+;;                              (select-keys debug
+;;                                           [:script-comments :script-trace]))
+;;         lift-options (select-keys options ops/lift-options)
+;;         phases (or (seq phases)
+;;                    (apply total-order-merge
+;;                           (map :default-phases (concat groups targets))))]
+;;     (doseq [group groups] (check-group-spec group))
+;;     (logging/trace "Lift ready to start")
+;;     (let [nodes-set (all-group-nodes operation compute groups all-node-set)
+;;           nodes-set (concat nodes-set targets)
+;;           _ (when-not (or compute (seq nodes-set))
+;;               (throw (ex-info "No source of nodes"
+;;                               {:error :no-nodes-and-no-compute-service})))
+;;           _ (logging/trace "Retrieved nodes")
+;;           settings-result (ops/lift
+;;                            operation
+;;                            nodes-set initial-plan-state environment
+;;                            (concat
+;;                             (when os-detect [:pallet/os])
+;;                             [:settings])
+;;                            {})]
+;;       (if (phase-errors settings-result)
+;;         settings-result
+;;         (let [results (ops/lift-partitions
+;;                        operation
+;;                        nodes-set
+;;                        (:plan-state settings-result)
+;;                        environment
+;;                        (remove #{:settings} phases)
+;;                        lift-options)]
+;;           (assoc results
+;;             :environment environment
+;;             :initial-plan-state initial-plan-state))))))
+
+;; (defn lift
+;;   "Lift the running nodes in the specified node-set by applying the specified
+;; phases.  The compute service may be supplied as an option, otherwise the
+;; bound compute-service is used.  The configure phase is applied by default
+;; unless other phases are specified.
+
+;; node-set can be a group spec, a sequence of group specs, or a map
+;; of group specs to nodes. Examples:
+
+;;     [group-spec1 group-spec2 {group-spec #{node1 node2}}]
+;;     group-spec
+;;     {group-spec #{node1 node2}}
+
+;; ## Options:
+
+;; `:compute`
+;; : a compute service.
+
+;; `:blobstore`
+;; : a blobstore service.
+
+;; `:phase`
+;; : a phase keyword, phase function, or sequence of these.
+
+;; `:user`
+;; the admin-user on the nodes.
+
+;; ### Partitioning
+
+;; `:partition-f`
+;; : a function that takes a sequence of targets, and returns a sequence of
+;;   sequences of targets.  Used to partition or filter the targets.  Defaults to
+;;   any :partition metadata on the phase, or no partitioning otherwise.
+
+;; ## Post phase options
+
+;; `:post-phase-f`
+;; : specifies an optional function that is run after a phase is applied.  It is
+;;   passed `targets`, `phase` and `results` arguments, and is called before any
+;;   error checking is done.  The return value is ignored, so this is for side
+;;   affect only.
+
+;; `:post-phase-fsm`
+;; : specifies an optional fsm returning function that is run after a phase is
+;;   applied.  It is passed `targets`, `phase` and `results` arguments, and is
+;;   called before any error checking is done.  The return value is ignored, so
+;;   this is for side affect only.
+
+;; ### Asynchronous and Timeouts
+
+;; `:async`
+;; : a flag to control whether the function executes asynchronously.  When truthy,
+;;   the function returns an Operation that can be deref'd like a future.  When not
+;;   truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
+
+;; `:timeout-ms`
+;; : an integral number of milliseconds to wait for completion before timeout.
+;;   Only applies if `:async` is not truthy (the default).
+
+;; `:timeout-val`
+;; : a value to be returned should the operation time out.
+
+;; ### Algorithm options
+
+;; `:phase-execution-f`
+;; : specifies the function used to execute a phase on the targets.  Defaults
+;;   to `pallet.core.primitives/build-and-execute-phase`.
+
+;; `:execution-settings-f`
+;; : specifies a function that will be called with a node argument, and which
+;;   should return a map with `:user`, `:executor` and `:executor-status-fn` keys.
+
+;; ### OS detection
+
+;; `:os-detect`
+;; : controls detection of nodes' os (default true)."
+;;   [node-set & {:keys [compute phase user all-node-set environment
+;;                       async timeout-ms timeout-val
+;;                       partition-f post-phase-f post-phase-fsm
+;;                       phase-execution-f execution-settings-f
+;;                       debug plan-state]
+;;                :as options}]
+;;   (logging/trace "Lift")
+;;   (load-plugins)
+;;   (logging/trace "Plugins loaded")
+;;   (exec-operation
+;;    #(apply-map lift* % node-set options)
+;;    (select-keys
+;;     options [:async :operation :status-chan :close-status-chan?
+;;              :timeout-ms :timeout-val])))
+
+;; (defn lift-nodes
+;;   "Lift `targets`, a sequence of node-maps, using the specified `phases`.  This
+;; provides a way of lifting phases, which doesn't tie you to working with all
+;; nodes in a group.  Consider using this only if the functionality in `lift` is
+;; insufficient.
+
+;; `phases`
+;; : a sequence of phase keywords (identifying phases) or plan functions, that
+;;   should be applied to the target nodes.  Note that there are no default phases.
+
+;; ## Options:
+
+;; `:user`
+;; : the admin-user to use for operations on the target nodes.
+
+;; `:environment`
+;; : an environment map, to be merged into the environment.
+
+;; `:plan-state`
+;; : an state map, which can be used to passing settings across multiple lift-nodes
+;;   invocations.
+
+;; `:async`
+;; : a flag to control whether the function executes asynchronously.  When truthy,
+;;   the function returns an Operation that can be deref'd like a future.  When not
+;;   truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
+
+;; `:timeout-ms`
+;; : an integral number of milliseconds to wait for completion before timeout.
+;;   Only applies if `:async` is not truthy (the default).
+
+;; `:timeout-val`
+;; : a value to be returned should the operation time out."
+;;   [targets phases
+;;    & {:keys [user environment plan-state async timeout-ms timeout-val]
+;;       :or {environment {} plan-state {}}
+;;       :as options}]
+;;   (let [[phases phase-map] (process-phases phases)
+;;         targets (groups-with-phases targets phase-map)
+;;         environment (merge-environments
+;;                      {:user user/*admin-user*}
+;;                      environment
+;;                      (select-keys options environment-args))]
+;;     (letfn [(lift-nodes* [operation]
+;;               (ops/lift-partitions
+;;                operation
+;;                targets plan-state environment phases
+;;                (dissoc options
+;;                        :environment :plan-state :async
+;;                        :timeout-val :timeout-ms)))]
+;;       (exec-operation lift-nodes* options))))
+
+;; (defn group-nodes
+;;   "Return a sequence of node-maps for each node in the specified group-specs.
+
+;; ## Options:
+
+;; `:async`
+;; : a flag to control whether the function executes asynchronously.  When truthy,
+;;   the function returns an Operation that can be deref'd like a future.  When not
+;;   truthy, `:timeout-ms` may be used to specify a timeout.  Defaults to nil.
+
+;; `:timeout-ms`
+;; : an integral number of milliseconds to wait for completion before timeout.
+;;   Only applies if `:async` is not truthy (the default).
+
+;; `:timeout-val`
+;; : a value to be returned should the operation time out."
+;;   [compute groups & {:keys [async timeout-ms timeout-val] :as options}]
+;;   (letfn [(group-nodes* [operation] (ops/group-nodes operation compute groups))]
+;;     (exec-operation group-nodes* options)))
 
 ;;; ### Admin user
 (defn make-user
@@ -830,17 +914,17 @@ insufficient.
         :public-key-path (user/default-public-key-path)})
      options))))
 
-(defmacro with-admin-user
-  "Specify the admin user for running remote commands.  The user is specified
-   either as pallet.utils.User record (see the pallet.utils/make-user
-   convenience fn) or as an argument list that will be passed to make-user.
+;; (defmacro with-admin-user
+;;   "Specify the admin user for running remote commands.  The user is specified
+;;    either as pallet.utils.User record (see the pallet.utils/make-user
+;;    convenience fn) or as an argument list that will be passed to make-user.
 
-   This is mainly for use at the repl, since the admin user can be specified
-   functionally using the :user key in a lift or converge call, or in the
-   environment."
-  [user & exprs]
-  `(binding [user/*admin-user* ~user]
-    ~@exprs))
+;;    This is mainly for use at the repl, since the admin user can be specified
+;;    functionally using the :user key in a lift or converge call, or in the
+;;    environment."
+;;   [user & exprs]
+;;   `(binding [user/*admin-user* ~user]
+;;     ~@exprs))
 
 (defn print-nodes
   "Print the targets of an operation"
@@ -861,6 +945,40 @@ insufficient.
                      :roles roles)))))
 
 
+
+;; (defn execute-phase-fn
+;;   "Execute matching targets and phase functions."
+;;   [target phase-fn service-state
+;;    {:keys [recorder plan-state sync-service
+;;            executor execute-status-fn]
+;;     :as components}]
+;;   (go-logged
+;;    (logging/debugf "execute-phase-fn on %s" target)
+;;    (phase-fn sync-service (session-for target service-state components))))
+
+;; (defn execute-target-phase-fns
+;;   "Execute matching targets and phase functions."
+;;   [target-phase-fns service-state
+;;    {:keys [recorder plan-state sync-service
+;;            executor execute-status-fn]
+;;     :as components}]
+;;   (logging/debugf "execute-target-phase-fns")
+;;   (->>
+;;    (for [[target phase-fn] target-phase-fns]
+;;      (execute-phase-fn target phase-fn service-state components))
+;;    (async/merge)
+;;    (async/reduce (constantly true) true)))
+
+;; (defn phase-fn-for
+;;   [target phase]
+;;   (logging/debugf "phase-fn-for %s" phase)
+;;   (vector
+;;    target
+;;    (target-fn
+;;     target
+;;     (mapv #(target-phase-fn target %) phase))))
+
+;;; # Session
 (defn default-components
   []
   {:recorder (in-memory-recorder)
@@ -869,58 +987,52 @@ insufficient.
    :executor #'default-executor
    :execute-status-fn #'stop-execution-on-error})
 
-(defn execute-phase-fn
-  "Execute matching targets and phase functions."
-  [target phase-fn service-state
-   {:keys [recorder plan-state sync-service
-           executor execute-status-fn]
-    :as components}]
+(defn session
+  "Creates a session object with the given components.
+  Default components will be used if not specified."
+  [{:keys [recorder plan-state executor execute-status-fn
+           service-state action-options]
+    :as options}]
+  (session/create
+   (merge default-components options)))
+
+;;; # Target queries
+(defn service-targets
+  "Return a sequence of targets for the groups in compute-service."
+  [compute-service groups]
+  (api/service-state compute-service groups))
+
+(defn default-phases
+  "Return a sequence with the default phases for `targets`, defaulting to
+ the session's system-targets."
+  [session & {:keys [targets]}])
+
+;;; # Operations
+(defn os-detect
+  "Apply OS detaection to targets, defaulting to all system-targets in
+  the session."
+  [session & {:keys [targets] :or {targets @(:system-targets session)}}]
+  (for [target targets]
+    (api/execute target
+                 (vary-meta (plan-fn (os)) merge unbootstrapped-meta)
+                 (vary-meta (plan-fn (os)) merge bootstrapped-meta))))
+
+(defn execute-settings
+  "Apply settings to targets, defaulting to all system-targets in the session."
+  [session & {:keys [targets]}])
+
+(defn execute-phases
+  "Execute the specified `phases` to `targets`, defaulting to all
+  system-targets."
+  [session & {:keys [phases targets] :or {targets system-targets}}]
   (go-logged
-   (logging/debugf "execute-phase-fn on %s" target)
-   (phase-fn sync-service (session-for target service-state components))))
-
-(defn execute-target-phase-fns
-  "Execute matching targets and phase functions."
-  [target-phase-fns service-state
-   {:keys [recorder plan-state sync-service
-           executor execute-status-fn]
-    :as components}]
-  (logging/debugf "execute-target-phase-fns")
-  (->>
-   (for [[target phase-fn] target-phase-fns]
-     (execute-phase-fn target phase-fn service-state components))
-   (async/merge)
-   (async/reduce (constantly true) true)))
-
-(defn phase-fn-for
-  [target phase]
-  (logging/debugf "phase-fn-for %s" phase)
-  (vector
-   target
-   (target-fn
-    target
-    (mapv #(target-phase-fn target %) phase))))
-
-
-(defn lift2
-  [targets & {:keys [phase
-                     service-state recorder plan-state sync-service
-                     executor execute-status-fn]
-              :as options}]
-  (let [components (merge (default-components)
-                          (select-keys options
-                                       [:recorder :plan-state
-                                        :executor :execute-status-fn]))]
-    (go-logged
-     (with-session components
-       (loop [phase phase]
-         (let [p (first phase)]
-           (if p
-             (if (errors< (for [target targets]
-                            (api/execute target (target-phase-fn target p))))
-               (results (:recorder components))
-               (recur (rest phase)))
-             (results (:recorder components)))))))))
+   (loop [phases phases]
+     (if-let [p (first phases)]
+       (if (errors? (for [target targets]
+                      (api/execute target (target-phase-fn target p))))
+         (results (:recorder session))
+         (recur (rest phases)))
+       (results (:recorder session))))))
 
 
 ;; Local Variables:

@@ -2,7 +2,7 @@
   "Blobstore abstraction"
   (:require
    [pallet.blobstore.implementation :as implementation]
-   [pallet.core.protocols :as impl]
+   [pallet.blobstore.protocols :as impl]
    [pallet.utils :as utils]))
 
 ;;; Blobstore service instantiation
@@ -41,7 +41,7 @@
 (defn blobstore?
   "Predicate to test if argument is a blobstore."
   [b]
-  (satisfies? pallet.core.protocols/Blobstore b))
+  (satisfies? pallet.blobstore.protocols/Blobstore b))
 
 ;;; Add deprecated forwarding functions
 ;;;  blobstore-from-map

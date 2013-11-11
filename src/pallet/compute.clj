@@ -6,10 +6,10 @@
             AnyInteger Hierarchy Map Nilable NilableNonEmptySeq NonEmptySeqable
             Seq]]
    [pallet.core.type-annotations]
-   [pallet.core.protocols :as impl :refer [ComputeService Node]]
-   [pallet.core.types
+   [pallet.core.types                   ; before any protocols
     :refer [GroupSpec GroupName Keyword ProviderIdentifier TargetMap
             User]]
+   [pallet.compute.protocols :as impl :refer [ComputeService Node]]
    [pallet.compute.implementation :as implementation]
    [pallet.core.version-dispatch :refer [version-map]]
    [pallet.utils :refer [maybe-assoc]]
@@ -31,7 +31,7 @@ Each name is suitable to be passed to compute-service."
 
 (ann instantiate-provider
      [ProviderIdentifier & :optional {:identity String :credential String}
-      -> pallet.core.protocols/ComputeService])
+      -> pallet.compute.protocols/ComputeService])
 (defn instantiate-provider
   "Instantiate a compute service. The provider name should be a recognised
 jclouds provider, \"node-list\", \"hybrid\", or \"localhost\". The other
@@ -141,7 +141,7 @@ Provider specific options may also be passed."
 (defn compute-service?
   "Predicate for the argument satisfying the ComputeService protocol."
   [c]
-  (satisfies? pallet.core.protocols/ComputeService c))
+  (satisfies? pallet.compute.protocols/ComputeService c))
 
 (ann service-properties [ComputeService -> Map])
 (defn service-properties
@@ -231,7 +231,7 @@ Provider specific options may also be passed."
 (ann admin-group (Fn [TargetMap -> String]
                      [Keyword (Nilable String) -> String]))
 (defn admin-group
-  "User that remote commands are run under"
+  "Default admin group for host"
   ([target]
      (admin-group (-> target :image :os-family) nil))
   ([os-family os-version]

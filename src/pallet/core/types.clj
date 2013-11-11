@@ -4,9 +4,16 @@
   (:require
    [clojure.core.typed
     :refer [ann ann-protocol def-alias
-            AnyInteger Map Nilable NilableNonEmptySeq NonEmptySeqable
+            AnyInteger Atom1 Coll Map Nilable NilableNonEmptySeq NonEmptySeqable
             NonEmptyVec Set Seq Seqable]]
-   [pallet.core.protocols :refer :all]))
+   [pallet.blobstore.protocols :refer [Blobstore]]
+   [pallet.compute.protocols :refer [ComputeService Node]]
+   [pallet.core.protocols :refer :all]
+   [pallet.core.recorder.protocols :refer :all]
+   [pallet.core.plan-state.protocols :refer :all])
+  (:import
+   clojure.lang.IMapEntry
+   clojure.lang.PersistentHashSet))
 
 ;;; # Pallet Types
 
@@ -53,39 +60,61 @@
   "Pallet group names are keywords."
   Keyword)
 
+(def-alias PlanFn
+  "Type for plan functions"
+  (Fn [Session -> Any]
+      [Session Any * -> Any]))
+
 (def-alias GroupSpec
   (HMap :mandatory {:group-name GroupName}
-        :optional {:group-names (Set GroupName)
+        :optional {:group-names (PersistentHashSet GroupName)
                    :image (HMap :mandatory {:os-family Keyword})
                    :node-filter [Node -> boolean]
-                   :roles Set
-                   :phases (Map Keyword [Any * -> Any])
+                   :roles (PersistentHashSet Keyword)
+                   :phases (Map Keyword PlanFn)
                    :count AnyInteger
                    :target-type (Value :group)}
-        :absent-keys #{:node}))
+        :absent-keys #{:node})
+  ;; (HMap :mandatory {:group-name GroupName}
+  ;;       :optional {:group-names (PersistentHashSet GroupName)
+  ;;                  :image (HMap :mandatory {:os-family Keyword})
+  ;;                  :node-filter [Node -> boolean]
+  ;;                  :roles (PersistentHashSet Keyword)
+  ;;                  :phases (Map Keyword [Any * -> Any])
+  ;;                  :count AnyInteger
+  ;;                  :target-type (Value :group)}
+  ;;       :absent-keys #{:node})
+  )
 
 (def-alias ^:internal IncompleteTargetMap
   "A partial target map.  May not have any os details."
-  (HMap :optional
-        {:image (HMap :mandatory {:os-family Keyword})
-         :group-names (Set GroupName)
-         :roles Set
-         :phases (Map Keyword [Any * -> Any])
-         :packager Keyword}
-        :mandatory
-        {:node Node}))
+  (Assoc GroupSpec
+         (Value :node) Node
+         (Value :packager) Keyword)
+  ;; (HMap :optional
+  ;;       {:image (HMap :mandatory {:os-family Keyword})
+  ;;        :group-names (Set GroupName)
+  ;;        :roles Set
+  ;;        :phases (Map Keyword [Any * -> Any])
+  ;;        :packager Keyword}
+  ;;       :mandatory
+  ;;       {:node Node})
+  )
 
 (def-alias TargetMap
   "A target map is the denormalised combination of a group-spec and a node."
+  ;; (Assoc IncompleteTargetMap
+  ;;        (Value :node) Node
+  ;;        (Value :image) (HMap :mandatory {:os-family Keyword}))
   (HMap :mandatory
         {:group-name GroupName
          :image (HMap :mandatory {:os-family Keyword})
          :node Node}
         :optional
-        {:roles Set
-         :group-names (Set GroupName)
+        {:roles (PersistentHashSet Keyword)
+         :group-names (PersistentHashSet GroupName)
          :packager Keyword
-         :phases (Map Keyword [Any * -> Any])}))
+         :phases (Map Keyword PlanFn)}))
 
 (def-alias ^:internal PhaseTarget
   "Phases are run against a group or against a specific node."
@@ -114,7 +143,7 @@ a priviledged user."
   "A description of how to proxy into a node."
   (HMap))
 
-(ann-protocol pallet.core.protocols/ComputeService
+(ann-protocol pallet.compute.protocols/ComputeService
   nodes [ComputeService -> (Nilable (NonEmptySeqable Node))]
   run-nodes [ComputeService GroupSpec AnyInteger User (Nilable String)
              (Map Any Any) -> (Nilable (NonEmptySeqable Node))]
@@ -128,26 +157,26 @@ a priviledged user."
   images [ComputeService -> (Seq Map)]
   close [ComputeService -> nil])
 
-(ann-protocol pallet.core.protocols/ComputeServiceProperties
+(ann-protocol pallet.compute.protocols/ComputeServiceProperties
   service-properties [ComputeService -> Map])
 
-(ann-protocol pallet.core.protocols/NodeTagReader
+(ann-protocol pallet.compute.protocols/NodeTagReader
   node-tag (Fn [ComputeService Node String -> String]
                [ComputeService Node String String -> String])
   node-tags [ComputeService Node -> (Map String String)])
 
-(ann-protocol pallet.core.protocols/NodeTagWriter
+(ann-protocol pallet.compute.protocols/NodeTagWriter
   tag-node! [ComputeService Node String String -> nil]
   node-taggable? [ComputeService Node -> Boolean])
 
-(ann-protocol pallet.core.protocols/Blobstore
+(ann-protocol pallet.compute.protocols/Blobstore
   sign-blob-request [Blobstore String String Map -> Map]
   put [Blobstore String String Any -> nil]
   put-file [Blobstore String String String -> nil]
   containers [Blobstore -> (Seq String)]
   close-blobstore [Blobstore -> nil])
 
-(ann-protocol pallet.core.protocols/Node
+(ann-protocol pallet.compute.protocols/Node
   ssh-port [Node -> AnyInteger]
   primary-ip [Node -> String]
   private-ip [Node -> String]
@@ -161,41 +190,67 @@ a priviledged user."
   id [Node -> String]
   compute-service [Node -> ComputeService])
 
-(ann-protocol pallet.core.protocols/NodePackager
+(ann-protocol pallet.compute.protocols/NodePackager
   packager [Node -> Keyword])
 
-(ann-protocol pallet.core.protocols/NodeImage
+(ann-protocol pallet.compute.protocols/NodeImage
   image-user [Node -> User])
 
-(ann-protocol pallet.core.protocols/NodeHardware
+(ann-protocol pallet.compute.protocols/NodeHardware
   hardware [Node -> Hardware])
 
-(ann-protocol pallet.core.protocols/NodeProxy
+(ann-protocol pallet.compute.protocols/NodeProxy
   proxy [Node -> Proxy])
 
 (ann pallet.core.protocols/channel? [Any -> Boolean])
 
-(def-alias ServiceState
+(def-alias TargetMapSeq
   "Describes the nodes that are available."
-  (Nilable (NonEmptySeqable TargetMap)))
+  ;; (Nilable (NonEmptySeqable TargetMap))
+  (Seqable TargetMap))
 
-(def-alias IncompleteServiceState
+(def-alias IncompleteTargetMapSeq
   "Describes the nodes that are available."
   (Nilable (NonEmptySeqable IncompleteTargetMap)))
 
+(def-alias ScopeMap
+  (Map Keyword Any))
+
+;; TODO - use (HVec Keyword Any) as key type when core.typed doesn't crash on it
+(def-alias ScopeValue
+  (IMapEntry Any Any))
+
+(ann-protocol pallet.core.plan-state.protocols/StateGet
+  get-state [StateGet ScopeMap (NonEmptyVec Keyword) Any
+             -> (Map Any Any)]) ;; TODO wanted (HVec Keyword Any) as key type
+
+(ann-protocol pallet.core.plan-state.protocols/StateUpdate
+  update-state [StateUpdate Keyword Any (Fn [Any * -> Any])
+                (Nilable (NonEmptySeqable Any))
+                -> Any])
+
 (def-alias PlanState
   "The plan-state holds arbitrary data."
-  (Map Any Any))
+  pallet.core.plan-state.protocols/StateGet)
 
 (def-alias ^:internal Action
   "Representation of an instance of an action to be executed."
   (HMap))
 
+(def-alias ActionOptions
+  (HMap :optional {:script-dir String
+                   :sudo-user String
+                   :script-prefix Keyword
+                   :script-env (HMap)
+                   :script-comments boolean
+                   :new-login-after-action boolean}))
+
 (def-alias ActionErrorMap
   "Represents details of any error that might occur in executing an action."
   (HMap :optional
         {:exception Throwable
-         :message String}))
+         :message String
+         :timeout boolean}))
 
 (def-alias ActionResult
   "The result of executing an action."
@@ -205,48 +260,76 @@ a priviledged user."
          :exit AnyInteger
          :error ActionErrorMap}))
 
+(def-alias Executor (Fn [Session Action -> ActionResult]))
+
+(def-alias ExecuteStatusFn (Fn [ActionResult -> ActionResult]))
+
+(def-alias Recorder pallet.core.recorder.protocols/Record)
+
+(def-alias ExecutionState
+  (HMap :mandatory {:executor Executor
+                    :execute-status-fn ExecuteStatusFn
+                    :recorder Recorder
+                    :action-options ActionOptions}))
+
+(def-alias BaseSession
+  (HMap :mandatory {:execution-state ExecutionState
+                    :plan-state StateGet
+                    :system-targets (Atom1 (Nilable TargetMapSeq))
+                    :type (Value :pallet.core.session/session)}))
+
+(def-alias Session
+  "The pallet session state."
+  ;; (HMap :mandatory {:execution-state ExecutionState
+  ;;                   :plan-state StateGet
+  ;;                   :system-targets (Atom1
+  ;;                                    (Nilable (NonEmptySeqable TargetMap)))
+  ;;                   :type (Value :pallet.core.session/session)
+  ;;                   :target TargetMap})
+  (Assoc BaseSession (Value :target) TargetMap)
+  ;; (HMap
+  ;;  :mandatory
+  ;;  {:plan-state PlanState
+  ;;   :environment EnvironmentMap
+  ;;   :service-state TargetMapSeq
+  ;;   :server TargetMap
+  ;;   :pallet.core.api/executor [Session Action -> '[ActionResult Session]]
+  ;;   :pallet.core.api/execute-status-fn [ActionResult -> nil]
+  ;;   :user User}
+  ;;  :optional
+  ;;  {:results (NonEmptySeqable PhaseResult)
+  ;;   :phase-results (NilableNonEmptySeq ActionResult)
+  ;;   :pallet.phase/session-verification boolean})
+  )
+
 (def-alias EnvironmentMap
   "Describes some well known keys in the environment map."
   (HMap :mandatory {:user User}
         :optional {:algorithms
                    (HMap :optional
                          {:executor Executor
-                          :execute-status-fn [ActionResult -> ActionResult]})
+                          :execute-status-fn ExecuteStatusFn})
                    :provider-options (Map Any Any)}))
 
 (ann-protocol pallet.core.protocols/Environment
   environment [Environment -> EnvironmentMap])
 
-;; TODO - update to use variable arity Vector* when core.typed supports it.
 (def-alias Phase
   "Describes the invocation of a phase."
-  (U Keyword
-     '[Keyword Any]
-     '[Keyword Any Any]
-     '[Keyword Any Any Any]
-     '[Keyword Any Any Any Any]))
+  (U Keyword (Vector* Keyword Any *)))
 
 (def-alias PhaseResult
   "Describe the result of executing a phase on a target."
   (HMap
-   :mandatory {:result (NilableNonEmptySeq ActionResult)}
-   :optional {:error ActionErrorMap}))
+   :mandatory {:action-results (NilableNonEmptySeq ActionResult)
+               :target TargetMap}
+   :optional {:error ActionErrorMap
+              :return-value Any}))
 
-(def-alias Session
-  "The result of a lift or converge."
-  (HMap
-   :mandatory
-   {:plan-state PlanState
-    :environment EnvironmentMap
-    :service-state ServiceState
-    :server TargetMap
-    :pallet.core.api/executor [Session Action -> '[ActionResult Session]]
-    :pallet.core.api/execute-status-fn [ActionResult -> nil]
-    :user User}
-   :optional
-   {:results (NonEmptySeqable PhaseResult)
-    :phase-results (NilableNonEmptySeq ActionResult)
-    :pallet.phase/session-verification boolean}))
+(def-alias ErrorMap
+  (TFn [[x :variance :covariant]]
+       (HMap :mandatory {:error (HMap :mandatory {:exception Throwable})
+                         :target x})))
 
 (def-alias Executor
   "Function type for a function that can execute actions."
@@ -268,7 +351,7 @@ a priviledged user."
   "The result of executing a phase on a target."
   (HMap :mandatory {:plan-state PlanState
                     :environment EnvironmentMap
-                    :service-state ServiceState
+                    :service-state TargetMapSeq
                     :pallet.core.api/executor [Session Action -> ActionResult]
                     :pallet.core.api/execute-status-fn [ActionResult -> nil]}))
 
@@ -297,6 +380,12 @@ a priviledged user."
   (HMap :optional {:os Keyword
                    :os-version VersionSpec
                    :version VersionSpec}))
+
+(ann-protocol pallet.core.recorder.protocols/Record
+  record [Record ActionResult -> Any])
+
+(ann-protocol pallet.core.recorder.protocols/Results
+  results [Results -> (Nilable (NonEmptySeqable ActionResult))])
 
 ;;; # Typing Utilities
 

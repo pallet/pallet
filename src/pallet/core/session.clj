@@ -28,120 +28,247 @@ The session is a map with well defined keys:
 `:plan-state`
 : an implementation of the StateGet and StateUpdate protocols.
 
-`:service-state`
-: a sequence of all known targets.
+`:system-targets`
+: an atom with a sequence of all known targets.  The sequence will be
+  updated when lift and converge are run.  It can be set explixitly.
 
-`:server`
+`:target`
 : the current target server
-
-`:group`
-: the current target group"
+"
   (:require
    [clojure.core.typed
-    :refer [ann fn> tc-ignore
+    :refer [ann def-alias fn> inst tc-ignore
             Atom1 Map Nilable NilableNonEmptySeq NonEmptySeqable Seqable]]
+   [pallet.core.types ;; before anything that uses the protocols this annotates
+    :refer [assert-type-predicate
+            ActionOptions BaseSession Executor ExecuteStatusFn GroupName
+            GroupSpec Keyword PlanState Recorder ScopeMap TargetMapSeq
+            Session TargetMap User]]
    [pallet.compute :as compute :refer [packager-for-os]]
+   [pallet.compute.protocols :refer [Node]]
    [pallet.context :refer [with-context]]
-   [pallet.core.plan-state :refer [get-settings get-scopes]]
-   [pallet.core.protocols :refer [Node]]
-   [pallet.core.thread-local
-    :refer [swap-thread-local! thread-local thread-local! with-thread-locals]]
-   [pallet.core.types
-    :refer [GroupName GroupSpec Keyword ServiceState Session TargetMap User]]
+   [pallet.core.plan-state :refer [get-settings get-scopes plan-state?]]
+   [pallet.core.plan-state.protocols :refer [StateGet]]
+   [pallet.core.recorder :refer [recorder?]]
+   [pallet.core.recorder.protocols :refer [Record]]
+   [pallet.core.user :refer [user?]]
    [pallet.node :as node]
-   [pallet.utils :as utils]))
+   [pallet.utils :as utils]
+   ;; [circle.schema-typer :refer [def-schema-alias def-validator]]
+   [schema.core :as schema :refer [required-key optional-key validate]]))
 
-;; Using the session var directly is to be avoided. It is a dynamic var in
-;; order to provide thread specific bindings. The value is expected to be an
-;; atom to allow in-place update semantics.
-;; TODO - remove :no-check
-(ann ^:no-check *session* (Atom1 Session))
-(def ^{:internal true :dynamic true :doc "Current session state"}
-  *session*)
+;; (defmethod circle.schema-typer/convert :default [s]
+;;   (if (instance? Class s)
+;;     (symbol (.getName s))
+;;     (assert nil (str "Don't know how to convert " (pr-str s)))))
 
-;;; # Session map low-level API
-;;; The aim here is to provide an API that could possibly be backed by something
-;;; other than a plain map.
+;; (defmethod circle.schema-typer/convert nil [s]
+;;   nil)
 
-;; TODO - remove :no-check
-(ann ^:no-check session [-> Session])
-(defn session
-  "Return the current session, which implements clojure's map interfaces."
-  []
-  (assert (bound? #'*session*)
-          "Session not bound.  The session is only bound within a phase.")
-  ;; (thread-local *session*)
-  @*session*
-  )
+;; (defmethod circle.schema-typer/convert clojure.lang.PersistentList [s]
+;;   (assert nil (str "Don't know how to convert " s))
+;;   (symbol (.getName s)))
 
-(defmacro ^{:requires [#'with-thread-locals]}
-  with-session
-  [session & body]
-  `(binding [*session* (atom ~session)]
-     ~@body))
+(ann execution-state (HMap))
+(def execution-state
+  {:executor clojure.lang.IFn
+   :execute-status-fn clojure.lang.IFn
+   :recorder pallet.core.recorder.protocols.Record
+   :action-options {schema/Keyword schema/Any}})
 
-(ann session! [Session -> Session])
-(defn session!
-  [session]
-  (reset! *session* session))
 
-;;; ## Session modifiers
-(defn assoc-session!
-  "Assoc key value pairs in the session."
-  [& kvs]
-  (apply swap! *session* assoc kvs))
+;; (def-schema-alias ExecutionState execution-state)
+;; (def-validator validate-execution-state ExecutionState execution-state)
 
-(defn update-in-session!
-  "Assoc key value pairs in the session."
-  [ks f args]
-  (clojure.tools.logging/debugf "update-in-session! %s %s %s" ks f args)
-  (apply swap! *session* update-in ks f args))
+(ann ^:no-check base-session (HMap))
+(def base-session
+  {:execution-state execution-state
+   :plan-state pallet.core.plan_state.protocols.StateGet
+   (optional-key :system-targets) clojure.lang.Atom; [TargetMap]
+   :type (schema/eq ::session)})
 
-(defn plan-state!
-  "Set the plan state"
-  [m]
-  {:pre [(satisfies? pallet.core.plan-state.protocols/StateGet m)]}
-  (assoc-session! :plan-state m))
+;; (def-schema-alias BaseSession base-session)
+;; (def-validator validate-base-session BaseSession base-session)
 
+(ann create [(HMap :optional {:recorder Record
+                              :plan-state StateGet
+                              :executor Executor
+                              :execute-status-fn ExecuteStatusFn
+                              :system-targets TargetMapSeq
+                              :action-options ActionOptions})
+             -> BaseSession])
+(defn create
+  "Create a session with the specified components."
+  [{:keys [recorder plan-state executor execute-status-fn
+           system-targets action-options]
+    :or {action-options {}}}]
+  {:pre [(plan-state? plan-state)
+         (recorder? recorder)
+         (fn? executor)
+         (fn? execute-status-fn)
+         (map? action-options)]
+   :post [(validate base-session %)]}
+  {:type ::session
+   :execution-state {:executor executor
+                     :execute-status-fn execute-status-fn
+                     :recorder recorder
+                     :action-options action-options}
+   :plan-state plan-state
+   :system-targets (atom system-targets)})
+
+
+;; ;; Using the session var directly is to be avoided. It is a dynamic var in
+;; ;; order to provide thread specific bindings. The value is expected to be an
+;; ;; atom to allow in-place update semantics.
+;; ;; TODO - remove :no-check
+;; (ann ^:no-check *session* (Atom1 Session))
+;; (def ^{:internal true :dynamic true :doc "Current session state"}
+;;   *session*)
+
+;; ;;; # Session map low-level API
+;; ;;; The aim here is to provide an API that could possibly be backed by something
+;; ;;; other than a plain map.
+
+;; ;; TODO - remove :no-check
+;; (ann ^:no-check session [-> Session])
+;; (defn session
+;;   "Return the current session, which implements clojure's map interfaces."
+;;   []
+;;   (assert (bound? #'*session*)
+;;           "Session not bound.  The session is only bound within a phase.")
+;;   ;; (thread-local *session*)
+;;   @*session*
+;;   )
+
+;; (defmacro ^{:requires [#'with-thread-locals]}
+;;   with-session
+;;   [session & body]
+;;   `(binding [*session* (atom ~session)]
+;;      ~@body))
+
+;; (ann session! [Session -> Session])
+;; (defn session!
+;;   [session]
+;;   (reset! *session* session))
+
+;; ;;; ## Session modifiers
+;; (defn assoc-session!
+;;   "Assoc key value pairs in the session."
+;;   [& kvs]
+;;   (apply swap! *session* assoc kvs))
+
+;; (defn update-in-session!
+;;   "Assoc key value pairs in the session."
+;;   [ks f args]
+;;   (clojure.tools.logging/debugf "update-in-session! %s %s %s" ks f args)
+;;   (apply swap! *session* update-in ks f args))
+
+;; (defn plan-state!
+;;   "Set the plan state"
+;;   [m]
+;;   {:pre [(satisfies? pallet.core.plan-state.protocols/StateGet m)]}
+;;   (assoc-session! :plan-state m))
+
+(ann plan-state [BaseSession -> PlanState])
 (defn plan-state
   "Get the plan state"
-  []
-  (:plan-state (session)))
+  [session]
+  (:plan-state session))
 
-(defn service-state!
-  "Set the service state"
-  [s]
-  (assoc-session! :service-state s))
+;; (defn system-targets!
+;;   "Set the service state"
+;;   [s]
+;;   (assoc-session! :system-targets s))
 
-(defn recorder!
-  "Set the action recorder"
-  [f]
-  (assoc-session! :recorder f))
+;; (defn recorder!
+;;   "Set the action recorder"
+;;   [f]
+;;   (assoc-session! :recorder f))
 
+(ann recorder [BaseSession -> Recorder])
 (defn recorder
   "Get the action recorder"
-  []
-  (:recorder (session)))
+  [session]
+  (-> session :execution-state :recorder))
 
-(defmacro with-recorder
-  "Set the recorder for the scope of the body."
-  [recorder & body]
-  `(let [r# (recorder)]
-     (try
-       (recorder! ~recorder)
-       ~@body
-       (finally (recorder! r#)))))
+;; (defmacro with-recorder
+;;   "Set the recorder for the scope of the body."
+;;   [recorder & body]
+;;   `(let [r# (recorder)]
+;;      (try
+;;        (recorder! ~recorder)
+;;        ~@body
+;;        (finally (recorder! r#)))))
 
-(defn executor!
-  "Set the action executor"
-  [f]
-  (assoc-session! :executor f))
+(ann executor [BaseSession -> Executor])
+(defn executor
+  "Get the action executor."
+  [session]
+  {:post [(fn? %)]}
+  (-> session :execution-state :executor))
 
-(defn execute-status-fn!
-  "Set the action execute status function"
-  [f]
-  (assoc-session! :execute-status-fn f))
+(ann execute-status-fn [BaseSession -> ExecuteStatusFn])
+(defn execute-status-fn
+  "Get the action execute status function"
+  [session]
+  {:post [(fn? %)]}
+  (-> session :execution-state :execute-status-fn))
 
+;; (defn executor!
+;;   "Set the action executor"
+;;   [f]
+;;   (assoc-session! :executor f))
+
+;; (defn execute-status-fn!
+;;   "Set the action execute status function"
+;;   [f]
+;;   (assoc-session! :execute-status-fn f))
+
+(def-alias SessionModifier
+  (TFn [[t :variance :contravariant]]
+       (All [[x :< BaseSession]] (Fn [x t -> x]))))
+
+(ann ^:no-check set-admin-user [BaseSession User -> BaseSession])
+(defn set-admin-user
+  "Return a session with `user` as the known admin user."
+  [session user]
+  {:post [(user? %)]}
+  (assoc-in session [:execution-state :user] user))
+
+(ann ^:no-check set-recorder [BaseSession Recorder -> BaseSession])
+(defn set-recorder
+  "Return a session with `recorder` as the action result recorder."
+  [session recorder]
+  {:post [(recorder? %)]}
+  (assoc-in session [:execution-state :recorder] recorder))
+
+(ann set-target [BaseSession TargetMap -> Session])
+(defn set-target
+  "Return a session with `:target` as the current target."
+  [session target]
+  (assoc session :target target))
+
+(ann set-system-targets
+  [BaseSession (Nilable TargetMapSeq) -> (Nilable TargetMapSeq)])
+(defn set-system-targets
+  "Return a session with `targets` as the known system-targets.  System targets
+  form the set of all nodes considered during a lift or converge."
+  [session targets]
+  (reset! (:system-targets session) targets))
+
+(ann add-system-targets
+  [BaseSession (Nilable TargetMapSeq) -> (Nilable TargetMapSeq)])
+(defn add-system-targets
+  [session targets]
+  (swap! (:system-targets session) (inst concat TargetMap) targets))
+
+(ann remove-system-targets
+  [BaseSession (Nilable TargetMapSeq) -> TargetMapSeq])
+(defn remove-system-targets
+  [session targets]
+  (swap! (:system-targets session)
+         (fn> [ts :- (Nilable TargetMapSeq)]
+           ((inst remove TargetMap TargetMap) (set targets) ts))))
 
 
 ;;; ## Session Context
@@ -178,13 +305,13 @@ The session is a map with well defined keys:
 (defn target
   "Target server."
   [session]
-  (-> session :server))
+  (-> session :target))
 
 (ann target-node [Session -> Node])
 (defn target-node
   "Target compute service node."
   [session]
-  (-> session :server :node))
+  (-> session :target :node))
 
 (ann target-name [Session -> String])
 (defn target-name
@@ -208,12 +335,12 @@ The session is a map with well defined keys:
 (defn target-roles
   "Roles of the target server."
   [session]
-  [(-> session :server :roles) session])
+  [(-> session :target :roles) session])
 
 (defn base-distribution
   "Base distribution of the target-node."
   [session]
-  (compute/base-distribution (-> session :server :image)))
+  (compute/base-distribution (-> session :target :image)))
 )
 
 (ann os-family [Session -> Keyword])
@@ -221,7 +348,7 @@ The session is a map with well defined keys:
   "OS-Family of the target-node."
   [session]
   (or (node/os-family (target-node session))
-      (-> session :server :image :os-family)
+      (-> session :target :image :os-family)
       (-> (get-settings (:plan-state session) (target-id session) :pallet/os {})
           :os-family)))
 
@@ -230,7 +357,7 @@ The session is a map with well defined keys:
   "OS-Family of the target-node."
   [session]
   (or (node/os-version (target-node session))
-      (-> session :server :image :os-version)
+      (-> session :target :image :os-version)
       (-> (get-settings (:plan-state session) (target-id session) :pallet/os {})
           :os-version)))
 
@@ -238,7 +365,7 @@ The session is a map with well defined keys:
 (defn group-name
   "Group name of the target-node."
   [session]
-  (-> session :server :group-name))
+  (-> session :target :group-name))
 
 (comment
    (defn safe-name
@@ -252,57 +379,63 @@ The session is a map with well defined keys:
       session])
    )
 
-(ann targets [Session -> ServiceState])
+(ann targets [BaseSession -> (Nilable TargetMapSeq)])
 (defn targets
   "Targets for current converge."
   [session]
-  (:service-state session))
+  @(:system-targets session))
 
-(ann ^:no-check target-nodes [Session -> (NilableNonEmptySeq Node)])
+(ann target-nodes [BaseSession -> (Seqable Node)])
 (defn target-nodes
   "Target nodes for current converge."
   [session]
-  ;; TODO - change back to keyword when core.type can invoke them
-  (map (fn> [t :- TargetMap] (get t :node)) (get session :service-state)))
+  (map (fn> [t :- TargetMap]
+         (:node t))
+       @(:system-targets session)))
 
-(ann ^:no-check nodes-in-group [Session GroupName -> ServiceState])
+(ann nodes-in-group [Session GroupName -> TargetMapSeq])
 (defn nodes-in-group
   "All nodes in the same tag as the target-node, or with the specified
   group-name."
   [session group-name]
   (->>
-   (:service-state session)
+   @(:system-targets session)
    (filter
     (fn> [t :- TargetMap]
          (or (= (:group-name t) group-name)
              (when-let [group-names (:group-names t)]
                (get group-names group-name)))))))
 
-(ann ^:no-check groups-with-role [Session -> (Seqable GroupSpec)])
+(ann ^:no-check groups-with-role [BaseSession -> (Seqable GroupSpec)])
 (defn groups-with-role
   "All target groups with the specified role."
   [session role]
   (->>
-   ;; TODO - change back to keyword when core.type can invoke them
-   (get session :service-state)
-   ;; TODO - change back to keyword when core.type can invoke them
-   (filter (fn> [t :- TargetMap] (get (get t :roles #{}) role)))
+   @(:system-targets session)
+   (filter (fn> [t :- TargetMap] ((:roles t #{}) role)))
    (map (fn> [t :- TargetMap] (dissoc t :node)))
-   distinct))
+   ((fn> [x :- TargetMapSeq] ((inst distinct TargetMap) x)))))
 
-(ann ^:no-check nodes-with-role [Session -> ServiceState])
+;; (defn groups-with-role
+;;   "All target groups with the specified role."
+;;   [session role]
+;;   (->>
+;;    @(:system-targets session)
+;;    (filter #((:roles % #{}) role))
+;;    (map #(dissoc % :node))
+;;    distinct))
+
+(ann ^:no-check nodes-with-role [BaseSession -> TargetMapSeq])
 (defn nodes-with-role
   "All target nodes with the specified role."
   [session role]
-  (filter
-   (fn> [node :- TargetMap]
-     (when-let [roles (:roles node)]
-       (get roles role)))
-   ;; TODO - change back to keyword when core.type can invoke them
-   (get session :service-state)))
+  (->> @(:system-targets session)
+       (filter
+        (fn> [node :- TargetMap]
+          (when-let [roles (:roles node)]
+            (roles role))))))
 
-;; TODO remove :no-check
-(ann ^:no-check role->nodes-map [Session -> (Map Keyword (Seqable Node))])
+(ann role->nodes-map [BaseSession -> (Map Keyword (Seqable Node))])
 (defn role->nodes-map
   "Returns a map from role to nodes."
   [session]
@@ -313,22 +446,19 @@ The session is a map with well defined keys:
                       role :- Keyword]
                      (update-in m [role] conj node))
                 m
-                ;; TODO - change back to keyword when core.type can invoke them
-                (get node :roles)))
+                (:roles node)))
    {}
-   ;; TODO - change back to keyword when core.type can invoke them
-   (get session :service-state)))
+   @(:system-targets session)))
 
 (ann packager [Session -> Keyword])
 (defn packager
   [session]
   (or
-   ;; TODO - change back to keyword when core.type can invoke them
-   (get (get session :server) :packager)
-   ;; TODO - change to get-in when core.typed understands get.in
-   (node/packager (get (get session :server) :node))
+   (-> session :target :packager)
+   (node/packager (-> session :target :node))
    (packager-for-os (os-family session) (os-version session))))
 
+(ann target-scopes [TargetMap -> ScopeMap])
 (defn target-scopes
   [target]
   (merge {:group (:group-name target)
@@ -344,11 +474,13 @@ The session is a map with well defined keys:
 (defn admin-user
   "User that remote commands are run under."
   [session]
-  {:post [%]}
+  {:post [(user? %)]}
   ;; Note: this is not (:user session), which is set to the actual user used
   ;; for authentication when executing scripts, and may be different, e.g. when
   ;; bootstrapping.
-  (get-scopes (:plan-state session) (target-scopes (target session)) [:user]))
+  (assert-type-predicate
+   (get-scopes (:plan-state session) (target-scopes (target session)) [:user])
+   user?))
 
 (ann admin-group [Session -> String])
 (defn admin-group

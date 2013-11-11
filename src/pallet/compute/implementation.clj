@@ -6,8 +6,9 @@
             Atom1 Nilable NilableNonEmptySeq Seq Set]]
    [chiba.plugin :refer [plugins]]
    [clojure.tools.logging :as logging]
-   [pallet.core.protocols :refer [ComputeService]]
-   [pallet.core.types :refer [ProviderIdentifier Symbol]]))
+   [pallet.core.types                   ; before any protocols
+    :refer [ProviderIdentifier Symbol]]
+   [pallet.compute.protocols :refer [ComputeService]]))
 
 (ann service [ProviderIdentifier
               (HMap :optional {:credential String :identity String})

@@ -3,10 +3,11 @@
   (:refer-clojure :exclude [proxy])
   (:require
    [clojure.core.typed :refer [ann AnyInteger Map Nilable]]
+   [pallet.core.types ;; before any protocols
+    :refer [GroupName Hardware Keyword Proxy User]]
    [clojure.stacktrace :refer [print-cause-trace]]
    [clojure.tools.logging :refer [trace]]
-   [pallet.core.protocols :as impl :refer [Node ComputeService]]
-   [pallet.core.types :refer [GroupName Hardware Keyword Proxy User]]))
+   [pallet.compute.protocols :as impl :refer [Node ComputeService]]))
 
 ;;; Nodes
 (ann ssh-port [Node -> AnyInteger])
@@ -109,11 +110,11 @@ keys may be present."
   [node]
   (impl/proxy node))
 
-(ann node? [Any -> boolean])
+(ann ^:no-check node? [Any -> boolean])
 (defn node?
   "Predicate to test whether an object implements the Node protocol"
   [obj]
-  (instance? pallet.core.protocols.Node obj))
+  (satisfies? Node obj))
 
 (ann node-in-group? [GroupName Node -> boolean])
 (defn node-in-group? [grp-name node]

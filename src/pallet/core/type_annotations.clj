@@ -2,9 +2,10 @@
   "Type annotations on non-pallet namespaces required for pallet."
   (:require
    [clojure.core.typed
-    :refer [ann ann-protocol non-nil-return
+    :refer [ann ann-protocol def-alias non-nil-return
             Atom1 Coll Map Nilable NilableNonEmptySeq NonEmptySeq
             NonEmptySeqable Seq Seqable Set]]
+   [clojure.core.typed.async :refer [ReadOnlyPort WriteOnlyPort]]
    [clojure.java.io]
    [clojure.string]
    [clojure.tools.logging])
@@ -45,13 +46,16 @@
 (ann ^:no-check clojure.core/assoc-in
      (All [[x :< (Map Any Any)]]
           [x (NonEmptySeqable Any) Any -> x]))
+
 (ann ^:no-check clojure.core/update-in
      (All [x y z ...]
           [x (NonEmptySeqable Any) [y z ... z -> y] z ... z -> x]))
+
 (ann ^:no-check clojure.core/get-in
      (Fn
       [(Map Any Any) (NonEmptySeqable Any) -> Any]
       [(Map Any Any) (NonEmptySeqable Any) Any -> Any]))
+
 (ann ^:no-check clojure.core/select-keys
      (U (All [k v]
           [(Map k v) (Seqable k) -> (Map k v)])
@@ -68,7 +72,7 @@
 (ann ^:no-check clojure.core/distinct
      (All [x]
           (Fn
-           [(NilableNonEmptySeq x) -> (NilableNonEmptySeq x)]
+           [(Seqable x) -> (Seqable x)]
            [(clojure.lang.IPersistentVector x)
             -> (clojure.lang.IPersistentVector x)])))
 
@@ -89,6 +93,12 @@
      (All [x]
           (Fn [(Seqable x) -> (Coll x)]
               [java.util.Comparator (Seqable x) -> (Coll x)])))
+
+(ann ^:no-check clojure.core/sort-by
+     (All [x]
+       (Fn [(Fn [x -> Any]) (Seqable x) -> (Coll x)]
+           [(Fn [x -> Any]) java.util.Comparator (Seqable x) -> (Coll x)])))
+
 (ann ^:no-check clojure.core/comparator
      (All [x]
           [[x x -> Boolean] -> java.util.Comparator]))
@@ -100,6 +110,9 @@
 (ann ^:no-check clojure.core/fn?
      (predicate clojure.lang.IFn))
 
+(ann ^:no-check clojure.core/vary-meta
+     (All [x b ...]
+       [x (Fn [(Map Any Any) b ... b -> (Map Any Any)]) b ... b -> x]))
 
 (ann ^:no-check clojure.set/union [Set * -> Set])
 (ann ^:no-check clojure.java.io/resource [String -> URL])
@@ -111,6 +124,14 @@
 (ann ^:no-check clojure.string/replace
      [CharSequence (U String java.util.regex.Pattern) CharSequence -> String])
 (ann ^:no-check clojure.string/blank? [CharSequence -> boolean])
+
+(ann ^:no-check clojure.core.async/<! (All [x] [(ReadOnlyPort x) -> (U nil x)]))
+(ann ^:no-check clojure.core.async/>! (All [x] [(WriteOnlyPort x) x -> nil]))
+(ann ^:no-check clojure.core.async/merge
+     (All [x] [(Seqable (ReadOnlyPort x)) -> (ReadOnlyPort x)]))
+
+(ann ^:no-check clojure.core.async/reduce
+     (All [r x] [[r x -> r] r (ReadOnlyPort x) -> r]))
 
 ;;; # Stevedore
 (ann ^:no-check pallet.script/*script-context* Keyword)
@@ -160,6 +181,14 @@
 (ann ^:no-check clojure.tools.logging/log*
      [clojure.tools.logging.impl/Logger Keyword (Nilable Throwable)
       (Nilable String) -> nil])
+
+(def-alias Schema Any)
+(ann ^:no-check schema.core/validate
+     (All [x] (Fn [Schema x -> x])))
+
+(ann ^:no-check schema.core/Any Schema)
+(ann ^:no-check schema.core/Keyword Schema)
+
 
 ;; Local Variables:
 ;; mode: clojure

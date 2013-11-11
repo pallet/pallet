@@ -1,18 +1,22 @@
 (ns pallet.async
   "Generally useful async functions"
   (:require
+   [clojure.core.typed :refer [ann for> AnyInteger Nilable Seqable]]
+   [clojure.core.typed.async :refer [go> ReadOnlyPort]]
    [clojure.core.async :refer [alts! chan close! go put! thread timeout]]
-   [clojure.tools.logging :refer [errorf]]))
+   [clojure.tools.logging :refer [errorf]]
+   [pallet.core.types :refer [ErrorMap]]))
 
 ;;; # Async
-
+(ann timeout-chan (All [x]
+                    [(ReadOnlyPort x) AnyInteger -> (ReadOnlyPort x)]))
 (defn timeout-chan
   "Returns a channel that will receive values from ch until ch is closed, or
   the specified timeout period expires."
   [ch timeout-ms]
   (let [out-ch (chan)
         timeout-ch (timeout timeout-ms)]
-    (go
+    (go>
      (loop [[v c] (alts! [ch timeout-ch])]
        (when v
          (put! out-ch v)
@@ -22,7 +26,7 @@
 
 (defmacro go-logged
   [& body]
-  `(go
+  `(go>
     (try
       ~@body
       (catch Throwable e#
@@ -30,7 +34,11 @@
         (errorf (clojure.stacktrace/root-cause e#)
                 "Unexpected exception terminating go block")))))
 
-
+(ann map-async
+  (All [x y]
+    [[y -> x] (Seqable y) AnyInteger
+     -> (Seqable (ReadOnlyPort
+                  '[(Nilable x) (Nilable (ErrorMap y))]))]))
 (defn map-async
   "Apply f to each element of s in a thread per s.
 
@@ -55,11 +63,13 @@ element."
                  (println "Caught" e)
                  (errorf e "Unexpected exception")
                  (clojure.stacktrace/print-cause-trace e)
-                 [nil e]))))
-    (for [i s]
+                 [nil {:error {:exception e}
+                       :target i}]))))
+    (for> :- (ReadOnlyPort '[(Nilable x) (Nilable (ErrorMap y))])
+          [i :- y s]
       (timeout-chan
        (thread
         (try
-          [(f i)]
-          (catch Throwable e [nil {:exception e :target i}])))
+          [(f i) nil]
+          (catch Throwable e [nil {:error {:exception e} :target i}])))
        timeout-ms))))

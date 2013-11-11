@@ -301,7 +301,8 @@ value to assoc. The assoc only occurs if the value is non-nil."
      (let [f# (ns-resolve '~'pallet.configure '~(or as-name name))]
        (apply f# args#))))
 
-(ann compare-and-swap!
+;; TODO - work out how to allow type variables in loop argument type
+(ann ^:no-check compare-and-swap!
      (All [v]
           [(Atom1 v) [v Any * -> v] Any * -> '[v v]]))
 (defn compare-and-swap!

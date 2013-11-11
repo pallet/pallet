@@ -13,19 +13,19 @@ Node removal functions are no-ops."
    [pallet.compute.implementation :as implementation]
    [pallet.compute.node-list :as node-list]
    [pallet.core.api :refer [set-state-for-node]]
-   [pallet.core.protocols :as impl]
+   [pallet.compute.protocols :as impl]
    [pallet.node :as node]))
 
 (deftype NodeTagEphemeral
     [tags]
-  pallet.core.protocols.NodeTagReader
+  pallet.compute.protocols.NodeTagReader
   (node-tag [_ node tag-name]
     (@tags tag-name))
   (node-tag [_ node tag-name default-value]
     (@tags tag-name default-value))
   (node-tags [_ node]
     @tags)
-  pallet.core.protocols.NodeTagWriter
+  pallet.compute.protocols.NodeTagWriter
   (tag-node! [_ node tag-name value]
     (swap! tags assoc tag-name value))
   (node-taggable? [_ node] true))
@@ -52,21 +52,21 @@ Node removal functions are no-ops."
   (destroy-node [compute node])
   (images [compute])
   (close [compute])
-  pallet.core.protocols.Environment
+  pallet.compute.protocols.Environment
   (environment [_] environment)
-  pallet.core.protocols.NodeTagReader
+  pallet.compute.protocols.NodeTagReader
   (node-tag [compute node tag-name]
     (impl/node-tag tag-provider node tag-name))
   (node-tag [compute node tag-name default-value]
     (impl/node-tag tag-provider node tag-name default-value))
   (node-tags [compute node]
     (impl/node-tags tag-provider node))
-  pallet.core.protocols.NodeTagWriter
+  pallet.compute.protocols.NodeTagWriter
   (tag-node! [compute node tag-name value]
     (impl/tag-node! tag-provider node tag-name value))
   (node-taggable? [compute node]
     (impl/node-taggable? tag-provider node))
-  pallet.core.protocols.ComputeServiceProperties
+  pallet.compute.protocols.ComputeServiceProperties
   (service-properties [_]
     {:provider :localhost
      :environment environment}))

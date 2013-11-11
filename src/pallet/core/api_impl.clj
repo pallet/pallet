@@ -4,14 +4,14 @@
    [clojure.core.typed
     :refer [ann def-alias fn> inst
             Map Nilable NilableNonEmptySeq NonEmptySeqable Seq Vec]]
-   [clojure.tools.logging :refer [debugf warnf]]
-   [pallet.compute :refer [packager-for-os]]
-   [pallet.core.plan-state :refer [get-settings]]
-   [pallet.core.protocols :refer [Node]]
    [pallet.core.types
     :refer [assert-type-predicate
             GroupName GroupSpec IncompleteTargetMap Keyword OsDetailsMap
             PlanState TargetMap]]
+   [clojure.tools.logging :refer [debugf warnf]]
+   [pallet.compute :refer [packager-for-os]]
+   [pallet.compute.protocols :refer [Node]]
+   [pallet.core.plan-state :refer [get-settings]]
    [pallet.map-merge :refer [merge-keys]]
    [pallet.node :as node]
    [pallet.script :refer [with-script-context]]

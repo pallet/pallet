@@ -2,7 +2,8 @@
   "User for authentication."
   (:require
    [clojure.core.typed :refer [ann ann-record Nilable]]
-   [pallet.core.types :refer []]
+   [pallet.contracts :refer [check-user]]
+   [pallet.core.types :refer [User]]
    [pallet.utils :refer [maybe-update-in obfuscate]]))
 
 (ann default-private-key-path [-> String])
@@ -17,23 +18,23 @@
   []
   (str (System/getProperty "user.home") "/.ssh/id_rsa.pub"))
 
-(ann-record User [username :- String
-                  public-key-path :- (Nilable String)
-                  private-key-path :- (Nilable String)
-                  public-key :- (Nilable String)
-                  private-key :- (Nilable String)
-                  passphrase :- (Nilable String)
-                  password :- (Nilable String)
-                  sudo-password :- (Nilable String)
-                  no-sudo :- (Nilable boolean)
-                  sudo-user :- (Nilable String)])
-(defrecord User
-    [username public-key-path private-key-path public-key private-key
-     passphrase password sudo-password no-sudo sudo-user])
+;; (ann-record User [username :- String
+;;                   public-key-path :- (Nilable String)
+;;                   private-key-path :- (Nilable String)
+;;                   public-key :- (Nilable String)
+;;                   private-key :- (Nilable String)
+;;                   passphrase :- (Nilable String)
+;;                   password :- (Nilable String)
+;;                   sudo-password :- (Nilable String)
+;;                   no-sudo :- (Nilable boolean)
+;;                   sudo-user :- (Nilable String)])
+;; (defrecord User
+;;     [username public-key-path private-key-path public-key private-key
+;;      passphrase password sudo-password no-sudo sudo-user])
 
-(ann user? (predicate User))
+(ann ^:no-check user? (predicate User))
 (defn user? [user]
-  (instance? pallet.core.user.User user))
+  (check-user user))
 
 ;; TODO remove :no-check when core-type makes fields optional in map->
 (ann ^:no-check make-user
@@ -86,7 +87,7 @@
                     passphrase
                     password sudo-password no-sudo sudo-user]
              :as options}]
-  (map->User (assoc options :username username)))
+  (assoc options :username username))
 
 (ann *admin-user* User)
 (def
