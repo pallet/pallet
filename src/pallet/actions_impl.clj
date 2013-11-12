@@ -80,18 +80,8 @@ to deal with local file transfer."
   [_ service-name]
   (str (fragment (lib/upstart-script-dir)) "/" service-name ".conf"))
 
-;;; # File names for transfers
 
-;;; These paths create a parallel directory tree under "/var/lib/pallet" which
-;;; contains the up/downloaded files, the md5s and the installed file history.
-
-;;; To facilitate md5 checks the basename of the generated copy-filename should
-;;; match the original basename, and the md5 file should be in the same
-;;; directory.
-
-;;; Note that we can not use remote evaluated expressions in these paths, as
-;;; they are used locally.
-
+;;; # File Names for Pallet Internals
 (defn- adjust-root
   [^String script-dir ^String path]
   (if (.startsWith path "/")
@@ -104,19 +94,55 @@ to deal with local file transfer."
            ~path))))
 
 (defn pallet-state-root
+  "This is where pallet will keep backups and md5 files."
   [session]
   (or (:state-root (session/admin-user session))
       (fragment (file (state-root) "pallet"))))
 
+;;; ## File Names for Transfers from localhost
+
+;;; These provide an upload path that will have ownership assigned
+;;; to the admin user, so that the admin user can always overwrite files
+;;; at these paths (ie. for re-upload).
+
+(defn upload-filename
+  "Generate a temporary file name for a given path."
+  [session script-dir path]
+  (str (pallet-state-root session)
+       (str "/home/" (:username (admin-user))) "/.pallet-uploads"
+       (adjust-root script-dir path)
+       ".new"))
+
+(defn upload-md5-filename
+  "Generate a temporary file name for a given path."
+  [session script-dir path]
+  (str (pallet-state-root session)
+       (str "/home/" (:username (admin-user))) "/.pallet-uploads"
+       (adjust-root script-dir path)
+       ".md5"))
+
+;;; ## File Names for Pallet State
+
+;;; These paths create a parallel directory tree under "/var/lib/pallet" which
+;;; contains the up/downloaded files, the md5s and the installed file history.
+
+;;; To facilitate md5 checks the basename of the generated copy-filename should
+;;; match the original basename, and the md5 file should be in the same
+;;; directory.
+
+;;; Note that we can not use remote evaluated expressions in these paths, as
+;;; they are used locally.
+
+
 (defn new-filename
   "Generate a temporary file name for a given path."
   [session script-dir path]
-  (str (pallet-state-root session) (str (adjust-root script-dir path) ".new")))
+  (str (pallet-state-root session) (adjust-root script-dir path) ".new"))
 
 (defn md5-filename
   "Generate a md5 file name for a given path."
   [session script-dir path]
-  (str (pallet-state-root session) (str (adjust-root script-dir path) ".md5")))
+  (str (pallet-state-root session) (adjust-root script-dir path) ".md5"))
 
 (defn copy-filename
   "Generate a file name for a copy of the given path."

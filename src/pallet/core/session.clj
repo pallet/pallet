@@ -208,6 +208,15 @@
    (node/os-family (target-node session))
    (node/os-version (target-node session))))
 
+(defn effective-user
+  "Return the effective user."
+  [session]
+  {:post [%]}
+  (or
+   (-> session :action :sudo-user)
+   (-> session :environment :user :sudo-user)
+   (-> session :environment :user)))
+
 (defn is-64bit?
   "Predicate for a 64 bit target"
   [session]

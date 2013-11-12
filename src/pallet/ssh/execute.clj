@@ -192,13 +192,14 @@
    file (:server (transport/endpoint connection)) remote-name)
   (if-let [dir (.getParent (io/file remote-name))]
     (let [prefix (or (script-builder/prefix :sudo session nil) "")
+          user (-> session :user :username)
+          _ (logging/debugf
+             "Transfer: ensure dir %s with ownership %s" dir user)
           {:keys [exit] :as rv} (transport/exec
                                  connection
                                  {:in (stevedore/script
                                        (~prefix (mkdir ~dir :path true))
-                                       (~prefix
-                                        (chown
-                                         ~(-> session :user :username) ~dir))
+                                       (~prefix (chown ~user ~dir))
                                        (exit "$?"))}
                                  {})]
       (if (zero? exit)
