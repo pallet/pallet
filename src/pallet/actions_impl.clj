@@ -10,7 +10,8 @@
    [pallet.crate :refer [admin-user]]
    [pallet.script.lib :as lib]
    [pallet.script.lib :refer [file state-root user-home]]
-   [pallet.stevedore :refer [fragment script]]))
+   [pallet.stevedore :refer [fragment script]]
+   [pallet.utils :refer [base64-md5]]))
 
 (def ^:dynamic *script-location-info* true)
 
@@ -109,17 +110,15 @@ to deal with local file transfer."
   "Generate a temporary file name for a given path."
   [session script-dir path]
   (str (pallet-state-root session)
-       (str "/home/" (:username (admin-user))) "/.pallet-uploads"
-       (adjust-root script-dir path)
-       ".new"))
+       (adjust-root nil (base64-md5 path))))
 
-(defn upload-md5-filename
-  "Generate a temporary file name for a given path."
-  [session script-dir path]
-  (str (pallet-state-root session)
-       (str "/home/" (:username (admin-user))) "/.pallet-uploads"
-       (adjust-root script-dir path)
-       ".md5"))
+;; (defn upload-md5-filename
+;;   "Generate a temporary file name for a given path."
+;;   [session script-dir path]
+;;   (str (pallet-state-root session)
+;;        (str "/home/" (:username (admin-user))) "/.pallet-uploads"
+;;        (adjust-root script-dir path)
+;;        ".md5"))
 
 ;;; ## File Names for Pallet State
 

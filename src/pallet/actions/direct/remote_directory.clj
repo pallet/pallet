@@ -26,7 +26,7 @@
 
 (defn- source-to-cmd-and-path
   [session path url local-file remote-file md5 md5-url
-   install-new-files overwrite-changes]
+   install-new-files overwrite-changes upload-path]
   (cond
    url (let [tarpath (str
                       (with-source-line-comments false
@@ -41,7 +41,7 @@
            first second)
           tarpath])
    local-file [""
-               (new-filename session (-> session :action :script-dir) path)
+               upload-path
                (md5-filename session (-> session :action :script-dir) path)]
    remote-file ["" remote-file (str remote-file ".md5")]))
 
@@ -63,6 +63,7 @@
     (case action
       :create (let [url (options :url)
                     unpack (options :unpack :tar)
+                    upload-path (:pallet.actions/upload-path options)
                     options (if (and owner (not group))
                               (assoc options
                                 :group (fragment @(user-default-group ~owner)))
@@ -73,7 +74,8 @@
                                                url local-file remote-file
                                                md5 md5-url
                                                install-new-files
-                                               overwrite-changes)
+                                               overwrite-changes
+                                               upload-path)
                         tar-md5 (str tarpath ".md5")
                         path-md5 (str path "/.pallet.directory.md5")
                         extract-files (string/join \space extract-files)]

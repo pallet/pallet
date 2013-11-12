@@ -325,7 +325,8 @@ value is itself an action return value."
    (optional-path [:mode]) [:or String Number]
    (optional-path [:force]) any-value
    (optional-path [:link]) String
-   (optional-path [:verify]) any-value])
+   (optional-path [:verify]) any-value
+   (optional-path [::upload-path]) String])
 
 (defmacro check-remote-file-arguments
   [m]
@@ -488,11 +489,11 @@ Content can also be copied from a blobstore.
         script-dir (:script-dir action-options)
         user (if (= :sudo (:script-prefix action-options :sudo))
                (:sudo-user action-options)
-               (:username (admin-user)))]
+               (:username (admin-user)))
+        upload-path (upload-filename (session) script-dir path)]
     (when local-file
-      (transfer-file local-file
-                     (upload-filename (session) script-dir path)
-                     (upload-md5-filename (session) script-dir path)))
+      (transfer-file local-file upload-path
+                     (md5-filename (session) script-dir path)))
     ;; we run as root so we don't get permission issues
     (with-action-options (merge
                           {:script-prefix :sudo
@@ -503,7 +504,8 @@ Content can also be copied from a blobstore.
        (merge
         {:install-new-files *install-new-files* ; capture bound values
          :overwrite-changes *force-overwrite*
-         :owner user}
+         :owner user
+         ::upload-path upload-path}
         options)))))
 
 (defn with-remote-file
@@ -618,11 +620,11 @@ only specified files or directories, use the :extract-files option.
         script-dir (:script-dir action-options)
         user (if (= :sudo (:script-prefix action-options :sudo))
                (:sudo-user action-options)
-               (:username (admin-user)))]
+               (:username (admin-user)))
+        upload-path (upload-filename (session) script-dir path)]
     (when local-file
-      (transfer-file local-file
-                     (upload-filename (session) script-dir path)
-                     (upload-md5-filename (session) script-dir path)))
+      (transfer-file local-file upload-path
+                     (md5-filename (session) script-dir path)))
     ;; we run as root so we don't get permission issues
     (with-action-options (merge
                           {:script-prefix :sudo
@@ -633,7 +635,8 @@ only specified files or directories, use the :extract-files option.
        (merge
         {:install-new-files *install-new-files* ; capture bound values
          :overwrite-changes *force-overwrite*
-         :owner user}
+         :owner user
+         ::upload-path upload-path}
         options)))))
 
 (defaction wait-for-file

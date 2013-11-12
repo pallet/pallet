@@ -13,7 +13,7 @@
             wait-for-file]]
    [pallet.actions-impl
     :refer [copy-filename md5-filename new-filename upload-filename
-            upload-md5-filename remote-file-action]]
+            remote-file-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
    [pallet.environment-impl :refer [get-for]]
@@ -170,15 +170,14 @@ permissions. Note this is not the final directory."
           content (stevedore/script
                    (~lib/heredoc
                     ~new-path ~content ~(select-keys options [:literal])))
-          local-file (let [up-path (upload-filename
-                                    session
-                                    (-> session :action :script-dir) path)
-                           up-md5-path (upload-md5-filename
-                                        session
-                                        (-> session :action :script-dir) path)]
+          local-file (let [upload-path (:pallet.actions/upload-path options)]
+                       (assert upload-path
+                               "No upload path specified for local file")
                        (stevedore/script
-                        (if-not (lib/diff ~up-md5-path ~md5-path)
-                          (lib/cp ~up-path ~new-path :force true))))
+                        (when (file-exists? ~upload-path)
+                          (chain-and
+                           (lib/cp ~upload-path ~new-path :force true)
+                           (lib/rm ~upload-path :force true)))))
           remote-file (stevedore/script
                        (~lib/cp ~remote-file ~new-path :force ~true))
           template (stevedore/script
@@ -273,6 +272,7 @@ permissions. Note this is not the final directory."
               (stevedore/chain-commands
                (file/write-md5-for-file path md5-path)
                (stevedore/script
+                (lib/chmod "666" ~md5-path) ; so local file uploaders can read
                 (println "MD5 sum is" @(~lib/cat ~md5-path)))))))
          ;; cleanup
          (if (and (not no-versioning) (pos? max-versions))
