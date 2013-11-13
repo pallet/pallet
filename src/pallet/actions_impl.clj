@@ -85,7 +85,8 @@ to deal with local file transfer."
 ;;; # File Names for Pallet Internals
 (defn- adjust-root
   [^String script-dir ^String path]
-  (if (.startsWith path "/")
+  (if (or (.startsWith path "/")
+          (.startsWith path "$"))
     path
     (fragment
      (file ~(or script-dir
