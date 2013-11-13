@@ -16,7 +16,8 @@
    [pallet.node :as node]
    [pallet.script-builder :as script-builder]
    [pallet.script.lib :as lib]
-   [pallet.script.lib :refer [chown env exit mkdir]]
+   [pallet.script.lib
+    :refer [chgrp chmod chown env exit mkdir path-group path-owner]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.transport :as transport]
    [pallet.transport.local]
@@ -212,19 +213,46 @@
                 rv))))
     (transport/send-stream
      connection (io/input-stream file) remote-name {:mode 0600}))
-  (let [effective-user (effective-username session)]
-    (when (not= effective-user (-> session :user :username))
-      (logging/debugf "Transfer: chown %s %s" effective-user remote-name)
-      (let [{:keys [exit] :as rv} (transport/exec
-                                   connection
-                                   {:in (stevedore/script
-                                         (chown ~effective-user ~remote-name)
-                                         (exit "$?"))}
-                                   {})]
-        (when-not (zero? exit)
-          (throw (ex-info
-                  (str "Failed to chown uploaded file " remote-name)
-                  rv)))))))
+  (let [effective-user (effective-username session)
+        state-group (-> session :user :state-group)]
+    (cond
+     state-group
+     (do (logging/debugf "Transfer: chgrp/mod %s %s" state-group remote-name)
+         (let [{:keys [exit out] :as rv}
+               (transport/exec
+                connection
+                {:in (stevedore/script
+                      (println "group is " @(path-group ~remote-name))
+                      (println "owner is " @(path-owner ~remote-name))
+                      (chain-and
+                       (when-not (= @(path-group ~remote-name) ~state-group)
+                         (chgrp ~state-group ~remote-name))
+                       (chmod "0666" ~remote-name))
+                      (exit "$?"))}
+                {})]
+           (when-not (zero? exit)
+             (throw (ex-info
+                     (str "Failed to chgrp/mod uploaded file " remote-name
+                          ".  " out)
+                     rv)))))
+
+     (not= effective-user (-> session :user :username))
+     (do (logging/debugf "Transfer: chown %s %s" effective-user remote-name)
+         (let [{:keys [exit out] :as rv}
+               (transport/exec
+                connection
+                {:in (stevedore/script
+                      (println "group is " @(path-group ~remote-name))
+                      (println "owner is " @(path-owner ~remote-name))
+                      (if-not (= @(path-owner ~remote-name) ~effective-user)
+                        (chown ~effective-user ~remote-name))
+                      (exit "$?"))}
+                {})]
+           (when-not (zero? exit)
+             (throw (ex-info
+                     (str "Failed to chown uploaded file " remote-name
+                          ".  " out)
+                     rv))))))))
 
 (defn ssh-from-local
   "Transfer a file from the origin machine to the target via ssh."

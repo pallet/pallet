@@ -15,7 +15,8 @@
 
 (defrecord User
     [username public-key-path private-key-path public-key private-key
-     passphrase password sudo-password no-sudo sudo-user state-root])
+     passphrase password sudo-password no-sudo sudo-user state-root
+     state-group])
 
 (defn user? [user]
   (instance? pallet.core.user.User user))
@@ -55,12 +56,19 @@
 : flag to not use sudo (e.g. when the user has root privileges).
 
 `:state-root`
-: directory on target to use for pallet state files.  Defaults to /var/lib/pallet."
+: directory on target to use for pallet state files.  Defaults to
+  /var/lib/pallet.
+
+`:state-group`
+: group shared between admin user and sudo-user.  Used when uploading
+  files. Needed only if the sudo user is unprivileged, and the admin
+  user can't chown/chgrp files.  "
+
   [username {:keys [public-key-path private-key-path
                     public-key private-key
                     passphrase
                     password sudo-password no-sudo sudo-user
-                    state-root]
+                    state-root state-group]
              :as options}]
   (map->User (assoc options :username username)))
 

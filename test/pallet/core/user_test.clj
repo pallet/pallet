@@ -19,7 +19,8 @@
             :sudo-password password
             :no-sudo nil
             :sudo-user nil
-            :state-root nil}
+            :state-root nil
+            :state-group nil}
            (into {}
                  (make-user
                   username

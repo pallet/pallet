@@ -120,7 +120,8 @@
    (optional-path [:private-key]) [:or String bytes? nil]
    (optional-path [:public-key]) [:or String bytes? nil]
    (optional-path [:passphrase]) [:or String bytes? nil]
-   (optional-path [:state-root]) [:or String nil]])
+   (optional-path [:state-root]) [:or String nil]
+   (optional-path [:state-group]) [:or String nil]])
 
 (def-map-schema environment-strict-schema
   [(optional-path [:algorithms]) (map-schema :loose [])
