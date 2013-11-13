@@ -5,9 +5,9 @@
    [pallet.actions :refer [directory remote-directory]]
    [pallet.actions-impl :refer [remote-file-action]]
    [pallet.actions.direct.remote-file :refer [create-path-with-template]]
-   [pallet.build-actions :as build-actions]
+   [pallet.build-actions :as build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
-   [pallet.core.session :refer [with-session]]
+   [pallet.core.session :refer [session with-session]]
    [pallet.core.user :refer [*admin-user*]]
    [pallet.script.lib :as lib]
    [pallet.stevedore :as stevedore :refer [fragment]]
@@ -37,7 +37,7 @@
              (-> (directory* {} "/path" :owner "fred" :recursive false)
                  first second)
              (-> (remote-file*
-                  {}
+                  (session)
                   (fragment (lib/file (lib/tmp-dir) "file.tgz"))
                   {:url "http://site.com/a/file.tgz" :md5 nil})
                  first second)
@@ -58,8 +58,7 @@
                    "/path/.pallet.directory.md5"))))
              (-> (directory* {} "/path" :owner "fred" :recursive true)
                  first second)))))
-       (first (build-actions/build-actions
-                  {}
+       (first (build-actions {:environment {:user *admin-user*}}
                 (remote-directory
                  "/path"
                  :url "http://site.com/a/file.tgz"
@@ -74,7 +73,7 @@
              (-> (directory* {} "/path" :owner "fred" :recursive false)
                  first second)
              (-> (remote-file*
-                  {} (fragment (lib/file (lib/tmp-dir) "file.tgz"))
+                  (session) (fragment (lib/file (lib/tmp-dir) "file.tgz"))
                   {:url "http://site.com/a/file.tgz" :md5 nil})
                  first second)
              (stevedore/script
@@ -92,8 +91,7 @@
                 (when (file-exists? (lib/file (lib/tmp-dir) "file.tgz.md5"))
                   ("cp" (lib/file (lib/tmp-dir) "file.tgz.md5")
                    "/path/.pallet.directory.md5"))))))))
-       (first (build-actions/build-actions
-                  {}
+       (first (build-actions {}
                 (remote-directory
                  "/path"
                  :url "http://site.com/a/file.tgz"
@@ -109,7 +107,7 @@
              (-> (directory* {} "/path" :owner "fred" :recursive false)
                  first second)
              (-> (remote-file*
-                  {} (fragment (lib/file (lib/tmp-dir) "file.tgz"))
+                  (session) (fragment (lib/file (lib/tmp-dir) "file.tgz"))
                   {:url "http://site.com/a/file.tgz" :md5 nil})
                  first second)
              (stevedore/script
@@ -127,8 +125,7 @@
                 (when (file-exists? (lib/file (lib/tmp-dir) "file.tgz.md5"))
                   ("cp" (lib/file (lib/tmp-dir) "file.tgz.md5")
                    "/path/.pallet.directory.md5"))))))))
-       (first (build-actions/build-actions
-                  {}
+       (first (build-actions {}
                 (remote-directory
                  "/path"
                  :url "http://site.com/a/file.tgz"

@@ -6,11 +6,12 @@
    [pallet.action :refer [defaction]]
    [pallet.common.context :refer [throw-map]]
    [pallet.context :as context]
-   [pallet.core.session :refer [session]]
-   [pallet.crate :refer (admin-user)]
+   [pallet.core.session :as session :refer [session]]
+   [pallet.crate :refer [admin-user]]
    [pallet.script.lib :as lib]
    [pallet.script.lib :refer [file state-root user-home]]
-   [pallet.stevedore :refer [fragment script]]))
+   [pallet.stevedore :refer [fragment script]]
+   [pallet.utils :refer [base64-md5]]))
 
 (def ^:dynamic *script-location-info* true)
 
@@ -80,7 +81,47 @@ to deal with local file transfer."
   [_ service-name]
   (str (fragment (lib/upstart-script-dir)) "/" service-name ".conf"))
 
-;;; # File names for transfers
+
+;;; # File Names for Pallet Internals
+(defn- adjust-root
+  [^String script-dir ^String path]
+  (if (or (.startsWith path "/")
+          (.startsWith path "$"))
+    path
+    (fragment
+     (file ~(or script-dir
+                ;; use /home so we have a path tha doesn't
+                ;; involve shell vars
+                (str "/home/" (:username (admin-user))))
+           ~path))))
+
+(defn pallet-state-root
+  "This is where pallet will keep backups and md5 files."
+  [session]
+  (or (:state-root (session/admin-user session))
+      (fragment (file (state-root) "pallet"))))
+
+;;; ## File Names for Transfers from localhost
+
+;;; These provide an upload path that will have ownership assigned
+;;; to the admin user, so that the admin user can always overwrite files
+;;; at these paths (ie. for re-upload).
+
+(defn upload-filename
+  "Generate a temporary file name for a given path."
+  [session script-dir path]
+  (str (pallet-state-root session)
+       (adjust-root nil (base64-md5 path))))
+
+;; (defn upload-md5-filename
+;;   "Generate a temporary file name for a given path."
+;;   [session script-dir path]
+;;   (str (pallet-state-root session)
+;;        (str "/home/" (:username (admin-user))) "/.pallet-uploads"
+;;        (adjust-root script-dir path)
+;;        ".md5"))
+
+;;; ## File Names for Pallet State
 
 ;;; These paths create a parallel directory tree under "/var/lib/pallet" which
 ;;; contains the up/downloaded files, the md5s and the installed file history.
@@ -92,30 +133,18 @@ to deal with local file transfer."
 ;;; Note that we can not use remote evaluated expressions in these paths, as
 ;;; they are used locally.
 
-(defn- adjust-root
-  [^String script-dir ^String path]
-  (if (.startsWith path "/")
-    path
-    (fragment
-     (file ~(or script-dir
-                ;; use /home so we have a path tha doesn't
-                ;; involve shell vars
-                (str "/home/" (:username (admin-user))))
-           ~path))))
 
 (defn new-filename
   "Generate a temporary file name for a given path."
-  [script-dir path]
-  (fragment
-   (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".new"))))
+  [session script-dir path]
+  (str (pallet-state-root session) (adjust-root script-dir path) ".new"))
 
 (defn md5-filename
   "Generate a md5 file name for a given path."
-  [script-dir path]
-  (fragment
-   (str (state-root) "/pallet" ~(str (adjust-root script-dir path) ".md5"))))
+  [session script-dir path]
+  (str (pallet-state-root session) (adjust-root script-dir path) ".md5"))
 
 (defn copy-filename
   "Generate a file name for a copy of the given path."
-  [script-dir path]
-  (fragment (str (state-root) "/pallet" ~(adjust-root script-dir path))))
+  [session script-dir path]
+  (str (pallet-state-root session) (adjust-root script-dir path)))

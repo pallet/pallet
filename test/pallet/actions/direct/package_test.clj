@@ -20,6 +20,7 @@
    [pallet.build-actions
     :refer [build-actions build-session centos-session ubuntu-session]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
+   [pallet.core.session :refer [session]]
    [pallet.crate :refer [phase-context]]
    [pallet.local.execute :as local]
    [pallet.script :as script]
@@ -203,7 +204,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              "package-manager configure :proxy http://192.168.2.37:3182"
              ~(->
                (remote-file*
-                {}
+                (session)
                 "/etc/apt/apt.conf.d/50pallet"
                 {:content "ACQUIRE::http::proxy \"http://192.168.2.37:3182\";"
                  :literal true})
@@ -221,7 +222,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              "package-manager configure :proxy http://192.168.2.37:3182"
              ~(->
                (remote-file*
-                {}
+                (session)
                 "/etc/yum.pallet.conf"
                 {:content "proxy=http://192.168.2.37:3182"
                  :literal true})
@@ -245,7 +246,7 @@ deb-src http://archive.ubuntu.com/ubuntu/ karmic main restricted"
              "package-manager configure :proxy http://192.168.2.37:3182"
              ~(->
                (remote-file*
-                {}
+                (session)
                 "/etc/pacman.pallet.conf"
                 {:content (str "XferCommand = /usr/bin/wget "
                                "-e \"http_proxy = http://192.168.2.37:3182\" "

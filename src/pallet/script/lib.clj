@@ -127,7 +127,7 @@
   [path])
 (script/defimpl path-owner :default
   [path]
-  ("stat" "-c%u" ~path))
+  ("stat" "-c%U" ~path))
 (script/defimpl path-owner [#{:darwin :os-x}] [path]
   ("stat" "-f" "%Su" ~path))
 
@@ -136,7 +136,7 @@
   [path])
 (script/defimpl path-group :default
   [path]
-  ("stat" "-c%g" ~path))
+  ("stat" "-c%G" ~path))
 (script/defimpl path-group [#{:darwin :os-x}] [path]
   ("stat" "-f" "%Sg" ~path))
 
