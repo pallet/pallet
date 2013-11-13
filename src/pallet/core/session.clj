@@ -87,6 +87,11 @@ The session is a map with well defined keys:
    (optional-key :system-targets) clojure.lang.Atom; [TargetMap]
    :type (schema/eq ::session)})
 
+(ann ^:no-check base-session? (predicate BaseSession))
+(defn base-session?
+  [x]
+  (schema/validate base-session? x))
+
 ;; (def-schema-alias BaseSession base-session)
 ;; (def-validator validate-base-session BaseSession base-session)
 

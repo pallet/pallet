@@ -2,6 +2,18 @@
   "# Pallet API"
   (:require
    [clojure.core.async :as async :refer [go <!]]
+   [clojure.core.typed
+    :refer [ann ann-form def-alias doseq> fn> letfn> inst tc-ignore
+            AnyInteger Map Nilable NilableNonEmptySeq
+            NonEmptySeqable Seq Seqable]]
+   [pallet.core.type-annotations]
+   [pallet.core.types                   ; before any protocols
+    :refer [assert-not-nil assert-type-predicate keyword-map?
+            Action ActionErrorMap ActionResult BaseSession EnvironmentMap
+            ErrorMap ExecSettings ExecSettingsFn GroupName GroupSpec
+            IncompleteTargetMapSeq Keyword Phase PhaseResult PhaseTarget PlanFn
+            PlanState Result TargetMapSeq Session TargetMap TargetPhaseResult
+            User]]
    [clojure.java.io :refer [input-stream resource]]
    [clojure.pprint :refer [print-table]]
    [clojure.set :refer [union]]
@@ -1002,38 +1014,73 @@ specified in the `:extends` argument."
   [compute-service groups]
   (api/service-state compute-service groups))
 
+(ann default-phases [TargetMapSeq -> (Seqable Keword)])
 (defn default-phases
-  "Return a sequence with the default phases for `targets`, defaulting to
- the session's system-targets."
-  [session & {:keys [targets]}])
+  "Return a sequence with the default phases for `targets`."
+  [targest]
+  (->> targets
+       (map :default-phases)
+       distinct
+       (apply total-order-merge)))
+
+;;; # Execution helpers
+(ann execute-plan-fns [BaseSession TargetMapSeq (Seqable PlanFn)
+                       -> (Seqable (ReadOnlyPort PhaseResult))])
+(defn execute-plan-fns
+  "Apply plan functions to targets.  Returns a sequence of channels that
+  will yield phase result maps."
+  [session targets plan-fns]
+  (for> :- (ReadOnlyPort PhaseResult)
+        [target :- TargetMap targets
+         plan :-PlanFn plan-fns]
+    (api/execute session target plan)))
+
+(ann execute-plan-fns [BaseSession TargetMapSeq Phase
+                       -> (Seqable (ReadOnlyPort PhaseResult))])
+(defn execute-phase
+  "Apply phase to targets.
+  Phase is either a keyword, or a vector of keyword and phase arguments."
+  [session targets phase]
+  (for> :- (ReadOnlyPort PhaseResult)
+        [target :- TargetMap targets
+         :let [plan (target-phase-fn )]
+         :when plan]
+    (api/execute session target plan)))
+
+(ann execute-plan-fns [BaseSession TargetMapSeq (Seqable Phase)
+                       -> (Seqable (ReadOnlyPort PhaseResult))])
+(defn execute-phases
+  "Execute the specified `phases` on `targets`."
+  [session targets phases]
+  (go-logged
+   (loop> [phases :- Phase phases]
+     (if-let [p (first phases)]
+       (if (errors? (api/execute-phase session targets phase))
+         (results (recorder session))
+         (recur (rest phases)))
+       (results (recorder session))))))
 
 ;;; # Operations
+(ann os-detect-phases [-> (Seqable PlanFn)])
+(defn os-detect-phases
+  "Return OS detection phases.  These phases will update the plan-state
+  as a side effect.  There are two phases returned; one for bootstrapped
+  nodes, and one for non-bootstrapped nodes.  Both should always be run
+  to ensure that the detection is applied."
+  []
+  [(vary-meta (plan-fn (os)) merge unbootstrapped-meta)
+   (vary-meta (plan-fn (os)) merge bootstrapped-meta)])
+
+(ann os-detect [BaseSession TargetMapSeq
+                -> (Seqable (ReadOnlyPort PhaseResult))])
 (defn os-detect
-  "Apply OS detaection to targets, defaulting to all system-targets in
-  the session."
-  [session & {:keys [targets] :or {targets @(:system-targets session)}}]
-  (for [target targets]
-    (api/execute target
-                 (vary-meta (plan-fn (os)) merge unbootstrapped-meta)
-                 (vary-meta (plan-fn (os)) merge bootstrapped-meta))))
+  "Apply OS detection to targets.  The results of the detection will
+  be put into the plan-state."
+  [session targets]
+  (execute-plan-fns session targets (os-detect-phases)))
 
-(defn execute-settings
-  "Apply settings to targets, defaulting to all system-targets in the session."
-  [session & {:keys [targets]}])
 
-(defn execute-phases
-  "Execute the specified `phases` to `targets`, defaulting to all
-  system-targets."
-  [session & {:keys [phases targets] :or {targets system-targets}}]
-  (go-logged
-   (loop [phases phases]
-     (if-let [p (first phases)]
-       (if (errors? (for [target targets]
-                      (api/execute target (target-phase-fn target p))))
-         (results (:recorder session))
-         (recur (rest phases)))
-       (results (:recorder session))))))
-
+(defn lift [])
 
 ;; Local Variables:
 ;; mode: clojure

@@ -80,13 +80,20 @@ Provider specific options may also be passed."
 (defn nodes [compute]
   (impl/nodes compute))
 
-(ann run-nodes [ComputeService GroupSpec AnyInteger User (Nilable String)
+(ann run-nodes [ComputeService NodeSpec AnyInteger User (Nilable String)
                 (Map Any Any) -> (Nilable (NonEmptySeqable Node))])
 (defn run-nodes
   "Start node-count nodes for group-spec, executing an init-script on
   each, using the specified user and options."
   [compute group-spec node-count user init-script options]
   (impl/run-nodes compute group-spec node-count user init-script options))
+
+(ann tag-nodes [ComputeService (Seqable Node) Tags ->
+                (Nilable (NonEmptySeqable Node))])
+(defn tag-nodes
+  "Set the `tags` on all `nodes`."
+  [compute nodes tags]
+  (impl/tag-nodes compute nodes tags))
 
 (ann reboot [ComputeService (Seq Node) -> nil])
 (defn reboot

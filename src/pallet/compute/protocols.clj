@@ -41,11 +41,13 @@
 (defprotocol> ComputeService
   (nodes [compute] "List nodes")
   (run-nodes
-    [compute group-spec node-count user init-script options]
-    "Start node-count nodes for group-spec, executing an init-script
-     on each, using the specified user and options.")
-  (reboot [compute nodes]
-    "Reboot the specified nodes")
+   [compute node-spec user node-count]
+   "Start `node-count` nodes using `node-spec`, authorising the public
+   key of the specified `user` if possible.")
+  (tag-nodes
+   [compute nodes tags]
+   "Tag the `nodes` in `compute-service` with the `tags`.")
+  (reboot [compute nodes] "Reboot the specified nodes")
   (boot-if-down
    [compute nodes]
    "Boot the specified nodes, if they are not running.")

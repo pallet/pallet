@@ -143,10 +143,18 @@ a priviledged user."
   "A description of how to proxy into a node."
   (HMap))
 
+(def-alias Tags
+  "Tags on nodes are represented as a map from a String or Named to a
+  String or Named value."
+  (Map (U String Named) (U String Named)))
+
 (ann-protocol pallet.compute.protocols/ComputeService
-  nodes [ComputeService -> (Nilable (NonEmptySeqable Node))]
-  run-nodes [ComputeService GroupSpec AnyInteger User (Nilable String)
-             (Map Any Any) -> (Nilable (NonEmptySeqable Node))]
+  nodes [ComputeService -> (Nilable (NonEmptySeqable (ReadOnlyPort TargetMap)))]
+  run-nodes [ComputeService NodeSpec User AnyInteger
+             -> (Nilable (NonEmptySeqable Node))]
+  tag-nodes [ComputeService (Seqable Node) Tags
+             -> (ReadOnlyPort
+                 (Map Node (Nilable (HMap :mandatory {:error (ErrorMap)}))))]
   reboot [ComputeService (Seq Node) -> nil]
   boot-if-down [ComputeService (Seq Node) -> nil]
   shutdown-node [ComputeService Node User -> nil]
@@ -428,5 +436,5 @@ complain that they can't return values of type Any."
 
 ;; Local Variables:
 ;; mode: clojure
-;; eval: (define-clojure-indent (doseq> 1)(fn> 1)(for> 1)(loop> 1))
+;; eval: (define-clojure-indent (doseq> 1)(fn> 1)(for> 3)(loop> 1))
 ;; End:
