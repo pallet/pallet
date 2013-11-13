@@ -8,6 +8,7 @@
    [pallet.action-plan :refer [context-label]]
    [pallet.common.filesystem :as filesystem]
    [pallet.common.logging.logutils :as logutils]
+   [pallet.core.session :refer [effective-username]]
    [pallet.core.user :refer [obfuscated-passwords]]
    [pallet.execute :as execute
     :refer [clean-logs log-script-output result-with-error-map]]
@@ -15,7 +16,8 @@
    [pallet.node :as node]
    [pallet.script-builder :as script-builder]
    [pallet.script.lib :as lib]
-   [pallet.script.lib :refer [chown env exit mkdir]]
+   [pallet.script.lib
+    :refer [chgrp chmod chown env exit mkdir path-group path-owner]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.transport :as transport]
    [pallet.transport.local]
@@ -191,14 +193,16 @@
    "Transferring file %s from local to %s:%s"
    file (:server (transport/endpoint connection)) remote-name)
   (if-let [dir (.getParent (io/file remote-name))]
-    (let [prefix (or (script-builder/prefix :sudo session nil) "")
+    (let [  ; prefix (or (script-builder/prefix :sudo session nil) "")
+          user (-> session :user :username)
+          _ (logging/debugf
+             "Transfer: ensure dir %s with ownership %s" dir user)
           {:keys [exit] :as rv} (transport/exec
                                  connection
                                  {:in (stevedore/script
-                                       (~prefix (mkdir ~dir :path true))
-                                       (~prefix
-                                        (chown
-                                         ~(-> session :user :username) ~dir))
+                                       (mkdir ~dir :path true)
+                                       ;; (~prefix (mkdir ~dir :path true))
+                                       ;; (~prefix (chown ~user ~dir))
                                        (exit "$?"))}
                                  {})]
       (if (zero? exit)
@@ -208,7 +212,47 @@
                 (str "Failed to create target directory " dir)
                 rv))))
     (transport/send-stream
-     connection (io/input-stream file) remote-name {:mode 0600})))
+     connection (io/input-stream file) remote-name {:mode 0600}))
+  (let [effective-user (effective-username session)
+        state-group (-> session :user :state-group)]
+    (cond
+     state-group
+     (do (logging/debugf "Transfer: chgrp/mod %s %s" state-group remote-name)
+         (let [{:keys [exit out] :as rv}
+               (transport/exec
+                connection
+                {:in (stevedore/script
+                      (println "group is " @(path-group ~remote-name))
+                      (println "owner is " @(path-owner ~remote-name))
+                      (chain-and
+                       (when-not (= @(path-group ~remote-name) ~state-group)
+                         (chgrp ~state-group ~remote-name))
+                       (chmod "0666" ~remote-name))
+                      (exit "$?"))}
+                {})]
+           (when-not (zero? exit)
+             (throw (ex-info
+                     (str "Failed to chgrp/mod uploaded file " remote-name
+                          ".  " out)
+                     rv)))))
+
+     (not= effective-user (-> session :user :username))
+     (do (logging/debugf "Transfer: chown %s %s" effective-user remote-name)
+         (let [{:keys [exit out] :as rv}
+               (transport/exec
+                connection
+                {:in (stevedore/script
+                      (println "group is " @(path-group ~remote-name))
+                      (println "owner is " @(path-owner ~remote-name))
+                      (if-not (= @(path-owner ~remote-name) ~effective-user)
+                        (chown ~effective-user ~remote-name))
+                      (exit "$?"))}
+                {})]
+           (when-not (zero? exit)
+             (throw (ex-info
+                     (str "Failed to chown uploaded file " remote-name
+                          ".  " out)
+                     rv))))))))
 
 (defn ssh-from-local
   "Transfer a file from the origin machine to the target via ssh."

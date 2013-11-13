@@ -126,7 +126,9 @@
             :passphrase passphrase
             :sudo-password password
             :no-sudo nil
-            :sudo-user nil}
+            :sudo-user nil
+            :state-root nil
+            :state-group nil}
            (into {} (make-user username
                                :password password
                                :private-key-path private-key-path
@@ -141,7 +143,9 @@
             :passphrase nil
             :sudo-password nil
             :no-sudo nil
-            :sudo-user nil}
+            :sudo-user nil
+            :state-root nil
+            :state-group nil}
            (into {} (make-user username))))
     (is (= {:username username
             :password nil
@@ -152,7 +156,9 @@
             :passphrase nil
             :sudo-password password
             :no-sudo nil
-            :sudo-user nil}
+            :sudo-user nil
+            :state-root nil
+            :state-group nil}
            (into {} (make-user username :sudo-password password))))
     (is (= {:username username
             :password nil
@@ -163,7 +169,9 @@
             :passphrase nil
             :sudo-password nil
             :no-sudo true
-            :sudo-user nil}
+            :sudo-user nil
+            :state-root nil
+            :state-group nil}
            (into {} (make-user username :no-sudo true))))
     (is (= {:username username
             :password nil
@@ -174,7 +182,9 @@
             :passphrase nil
             :sudo-password nil
             :no-sudo nil
-            :sudo-user "fred"}
+            :sudo-user "fred"
+            :state-root nil
+            :state-group nil}
            (into {} (make-user username :sudo-user "fred"))))))
 
 (deftest node-spec-test

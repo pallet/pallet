@@ -12,7 +12,8 @@
             transfer-file-to-local
             wait-for-file]]
    [pallet.actions-impl
-    :refer [copy-filename md5-filename new-filename remote-file-action]]
+    :refer [copy-filename md5-filename new-filename upload-filename
+            remote-file-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
    [pallet.environment-impl :refer [get-for]]
@@ -84,22 +85,22 @@ permissions. Note this is not the final directory."
     m))
 
 (implement-action remote-file-action :direct
-  {:action-type :script :location :target}
-  [session path {:keys [action url local-file remote-file link
-                        content literal
-                        template values
-                        md5 md5-url
-                        owner group mode force
-                        blob blobstore
-                        install-new-files
-                        overwrite-changes no-versioning max-versions
-                        flag-on-changed
-                        force
-                        insecure
-                        verify]
-                 :or {action :create max-versions 5
-                      install-new-files true}
-                 :as options}]
+                  {:action-type :script :location :target}
+                  [session path {:keys [action url local-file remote-file link
+                                        content literal
+                                        template values
+                                        md5 md5-url
+                                        owner group mode force
+                                        blob blobstore
+                                        install-new-files
+                                        overwrite-changes no-versioning max-versions
+                                        flag-on-changed
+                                        force
+                                        insecure
+                                        verify]
+                                 :or {action :create max-versions 5
+                                      install-new-files true}
+                                 :as options}]
   [[{:language :bash
      :summary (str "remote-file " path " "
                    (string/join
@@ -108,9 +109,10 @@ permissions. Note this is not the final directory."
                          (summarise-content)
                          (apply concat)
                          (map pr-str))))}
-    (let [new-path (new-filename (-> session :action :script-dir) path)
-          md5-path (md5-filename (-> session :action :script-dir) path)
-          copy-path (copy-filename (-> session :action :script-dir) path)
+    (let [new-path (new-filename session (-> session :action :script-dir) path)
+          md5-path (md5-filename session (-> session :action :script-dir) path)
+          copy-path (copy-filename
+                     session (-> session :action :script-dir) path)
           versioning (if no-versioning nil :numbered)
           proxy (get-for session [:proxy] nil)
           options (if (and owner (not group))
@@ -126,72 +128,79 @@ permissions. Note this is not the final directory."
 
          ;; Create the new content
          (cond
-           (and url md5) (stevedore/chained-script
-                          (if (chain-or (not (file-exists? ~path))
-                                  (!= ~md5 @((pipe
-                                              (~lib/md5sum ~path)
-                                              (~lib/cut
-                                               "" :fields 1 :delimiter " ")))))
-                            ~(stevedore/chained-script
-                              (~lib/download-file
-                               ~url ~new-path
-                               :proxy ~proxy :insecure ~insecure))))
-           ;; Download md5 to temporary directory.
-           (and url md5-url) (stevedore/chained-script
-                              (var tmpdir (quoted (lib/make-temp-dir "rf")))
-                              (var basefile
-                                   (quoted
-                                    (str @tmpdir "/" @(lib/basename ~path))))
-                              (var newmd5path (quoted (str @basefile ".md5")))
-                              (lib/download-file
-                               ~md5-url @newmd5path :proxy ~proxy
-                               :insecure ~insecure)
-                              (lib/normalise-md5 @newmd5path)
-                              (if (chain-or (not (file-exists? ~md5-path))
-                                      (not (lib/diff @newmd5path ~md5-path)))
-                                (do
-                                  (lib/download-file
-                                   ~url ~new-path :proxy ~proxy
-                                   :insecure ~insecure)
-                                  (lib/ln ~new-path @basefile)
-                                  (if-not (~lib/md5sum-verify @newmd5path)
-                                    (do
-                                      (println ~(str "Download of " url
-                                                     " failed to match md5"))
-                                      (lib/rm @tmpdir
-                                              :force ~true :recursive ~true)
-                                      (lib/exit 1)))))
-                              (lib/rm @tmpdir :force ~true :recursive ~true))
-           url (stevedore/chained-script
-                (~lib/download-file
-                 ~url ~new-path :proxy ~proxy :insecure ~insecure))
-           content (stevedore/script
+          (and url md5) (stevedore/chained-script
+                         (if (chain-or (not (file-exists? ~path))
+                                       (!= ~md5 @((pipe
+                                                   (~lib/md5sum ~path)
+                                                   (~lib/cut
+                                                    "" :fields 1 :delimiter " ")))))
+                           ~(stevedore/chained-script
+                             (~lib/download-file
+                              ~url ~new-path
+                              :proxy ~proxy :insecure ~insecure))))
+          ;; Download md5 to temporary directory.
+          (and url md5-url) (stevedore/chained-script
+                             (var tmpdir (quoted (lib/make-temp-dir "rf")))
+                             (var basefile
+                                  (quoted
+                                   (str @tmpdir "/" @(lib/basename ~path))))
+                             (var newmd5path (quoted (str @basefile ".md5")))
+                             (lib/download-file
+                              ~md5-url @newmd5path :proxy ~proxy
+                              :insecure ~insecure)
+                             (lib/normalise-md5 @newmd5path)
+                             (if (chain-or (not (file-exists? ~md5-path))
+                                           (not (lib/diff @newmd5path ~md5-path)))
+                               (do
+                                 (lib/download-file
+                                  ~url ~new-path :proxy ~proxy
+                                  :insecure ~insecure)
+                                 (lib/ln ~new-path @basefile)
+                                 (if-not (~lib/md5sum-verify @newmd5path)
+                                   (do
+                                     (println ~(str "Download of " url
+                                                    " failed to match md5"))
+                                     (lib/rm @tmpdir
+                                             :force ~true :recursive ~true)
+                                     (lib/exit 1)))))
+                             (lib/rm @tmpdir :force ~true :recursive ~true))
+          url (stevedore/chained-script
+               (~lib/download-file
+                ~url ~new-path :proxy ~proxy :insecure ~insecure))
+          content (stevedore/script
+                   (~lib/heredoc
+                    ~new-path ~content ~(select-keys options [:literal])))
+          local-file (let [upload-path (:pallet.actions/upload-path options)]
+                       (assert upload-path
+                               "No upload path specified for local file")
+                       (stevedore/script
+                        (when (file-exists? ~upload-path)
+                          (chain-and
+                           (lib/cp ~upload-path ~new-path :force true)
+                           (lib/rm ~upload-path :force true)))))
+          remote-file (stevedore/script
+                       (~lib/cp ~remote-file ~new-path :force ~true))
+          template (stevedore/script
                     (~lib/heredoc
-                     ~new-path ~content ~(select-keys options [:literal])))
-           local-file nil ; already copied in remote-file wrapper
-           remote-file (stevedore/script
-                        (~lib/cp ~remote-file ~new-path :force ~true))
-           template (stevedore/script
-                     (~lib/heredoc
-                      ~new-path
-                      ~(templates/interpolate-template
-                        template (or values {}) session)
-                      ~(select-keys options [:literal])))
-           link (stevedore/script
-                 (~lib/ln ~link ~path :force ~true :symbolic ~true))
-           blob (action-plan/checked-script
-                 "Download blob"
-                 (~lib/download-request
-                  ~new-path
-                  ~(blobstore/sign-blob-request
-                    (or blobstore (get-for session [:blobstore] nil)
-                        (throw (IllegalArgumentException.
-                                "No :blobstore given for blob content.") ))
-                    (:container blob) (:path blob)
-                    {:method :get})))
-           :else (throw
-                  (IllegalArgumentException.
-                   (str "remote-file " path " specified without content."))))
+                     ~new-path
+                     ~(templates/interpolate-template
+                       template (or values {}) session)
+                     ~(select-keys options [:literal])))
+          link (stevedore/script
+                (~lib/ln ~link ~path :force ~true :symbolic ~true))
+          blob (action-plan/checked-script
+                "Download blob"
+                (~lib/download-request
+                 ~new-path
+                 ~(blobstore/sign-blob-request
+                   (or blobstore (get-for session [:blobstore] nil)
+                       (throw (IllegalArgumentException.
+                               "No :blobstore given for blob content.") ))
+                   (:container blob) (:path blob)
+                   {:method :get})))
+          :else (throw
+                 (IllegalArgumentException.
+                  (str "remote-file " path " specified without content."))))
 
          ;; process the new file accordingly
          (when verify
@@ -207,7 +216,7 @@ permissions. Note this is not the final directory."
                  (do
                    ~(stevedore/chain-commands
                      (stevedore/script
-                      (lib/cp           ; copy to copy-path with versioning
+                      (lib/cp      ; copy to copy-path with versioning
                        ~new-path ~copy-path :backup ~versioning :force ~true)
                       (lib/mv ~new-path ~path :force ~true))
                      (if flag-on-changed
@@ -263,6 +272,7 @@ permissions. Note this is not the final directory."
               (stevedore/chain-commands
                (file/write-md5-for-file path md5-path)
                (stevedore/script
+                (lib/chmod "666" ~md5-path) ; so local file uploaders can read
                 (println "MD5 sum is" @(~lib/cat ~md5-path)))))))
          ;; cleanup
          (if (and (not no-versioning) (pos? max-versions))
