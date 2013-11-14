@@ -272,7 +272,7 @@ permissions. Note this is not the final directory."
               (stevedore/chain-commands
                (file/write-md5-for-file path md5-path)
                (stevedore/script
-                (lib/chmod "666" ~md5-path) ; so local file uploaders can read
+                (lib/chmod "664" ~md5-path) ; so local file uploaders can read
                 (println "MD5 sum is" @(~lib/cat ~md5-path)))))))
          ;; cleanup
          (if (and (not no-versioning) (pos? max-versions))
