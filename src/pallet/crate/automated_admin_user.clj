@@ -1,10 +1,14 @@
 (ns pallet.crate.automated-admin-user
   (:require
-   [pallet.actions :refer [package-manager user]]
+   [pallet.actions :refer [directory package-manager user]]
+   [pallet.actions-impl :as actions-impl]
    [pallet.api :refer [plan-fn server-spec]]
+   [pallet.core.session :refer [session]]
    [pallet.crate :refer [admin-user defplan]]
    [pallet.crate.ssh-key :as ssh-key]
-   [pallet.crate.sudoers :as sudoers]))
+   [pallet.crate.sudoers :as sudoers]
+   [pallet.script.lib :refer [file user-default-group]]
+   [pallet.stevedore :refer [fragment]]))
 
 (defplan authorize-user-key
   "Authorise a single key, specified as a path or as a byte array."
@@ -29,6 +33,14 @@
   ([username & public-key-paths]
      (sudoers/install)
      (user username :create-home true :shell :bash)
+     (let [state-root (#'actions-impl/pallet-state-root (session))]
+       (directory
+        (fragment
+         (file ~state-root "home" ~username))
+        :owner username
+        :group (if-let [group (:state-group (admin-user))]
+                 group
+                 (fragment @(user-default-group ~username)))))
      (doseq [kp public-key-paths]
        (authorize-user-key username kp))
      (sudoers/sudoers

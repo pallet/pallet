@@ -1,7 +1,7 @@
 (ns pallet.crate.automated-admin-user-test
   (:require
    [clojure.test :refer :all]
-   [pallet.actions :refer [exec-checked-script user]]
+   [pallet.actions :refer [directory exec-checked-script user]]
    [pallet.api :refer [lift make-user node-spec plan-fn server-spec]]
    [pallet.build-actions :as build-actions]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
@@ -12,7 +12,9 @@
    [pallet.crate.automated-admin-user :refer [automated-admin-user]]
    [pallet.crate.ssh-key :as ssh-key]
    [pallet.crate.sudoers :as sudoers]
-   [pallet.live-test :as live-test]))
+   [pallet.live-test :as live-test]
+   [pallet.script.lib :refer [file user-default-group]]
+   [pallet.stevedore :refer [fragment]]))
 
 (use-fixtures :once (logging-threshold-fixture))
 
@@ -23,6 +25,10 @@
              {:phase-context "automated-admin-user"}
              (sudoers/install)
              (user "fred" :create-home true :shell :bash)
+             (directory
+              "/var/lib/pallet/home/fred"
+              :owner "fred"
+              :group (fragment @(user-default-group fred)))
              (sudoers/sudoers
               {}
               {:default {:env_keep "SSH_AUTH_SOCK"}}
@@ -42,6 +48,10 @@
              {:phase-context "automated-admin-user"}
              (sudoers/install)
              (user "fred" :create-home true :shell :bash)
+             (directory
+              "/var/lib/pallet/home/fred"
+              :owner "fred"
+              :group (fragment @(user-default-group fred)))
              (sudoers/sudoers
               {}
               {:default {:env_keep "SSH_AUTH_SOCK"}}
@@ -62,6 +72,10 @@
              {:phase-context "automated-admin-user"}
              (sudoers/install)
              (user "fred" :create-home true :shell :bash)
+             (directory
+              "/var/lib/pallet/home/fred"
+              :owner "fred"
+              :group (fragment @(user-default-group fred)))
              (sudoers/sudoers
               {}
               {:default {:env_keep "SSH_AUTH_SOCK"}}
@@ -82,6 +96,10 @@
                {:phase-context "automated-admin-user"}
                (sudoers/install)
                (user user-name :create-home true :shell :bash)
+               (directory
+                (str "/var/lib/pallet/home/" user-name)
+                :owner user-name
+                :group (fragment @(user-default-group ~user-name)))
                (sudoers/sudoers
                 {}
                 {:default {:env_keep "SSH_AUTH_SOCK"}}
@@ -102,6 +120,10 @@
                {:phase-context "automated-admin-user"}
                (sudoers/install)
                (user user-name :create-home true :shell :bash)
+               (directory
+                (str "/var/lib/pallet/home/" user-name)
+                :owner user-name
+                :group (fragment @(user-default-group ~user-name)))
                (sudoers/sudoers
                 {}
                 {:default {:env_keep "SSH_AUTH_SOCK"}}
@@ -113,7 +135,7 @@
                   (slurp (default-public-key-path))))))
              (first
               (build-actions/build-actions
-                  {:environment {:user (make-user user-name)}}
+               {:environment {:user (make-user user-name)}}
                (automated-admin-user))))))))
 
 (deftest live-test
