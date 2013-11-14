@@ -347,7 +347,7 @@
   service function.  Optionally, specify :actions with a sequence of keywords
   for the actions you wish to generate service control phases for."
   [facility options service-f
-   & {:keys [actions] :or {actions [:start :stop :restart]}}]
+   & {:keys [actions] :or {actions [:start :stop :restart :status]}}]
   (letfn [(service-phases [action]
             (let [f #(apply-map service-f :action action options)]
               [[action f]
