@@ -782,6 +782,10 @@ The :id key must contain a recognised repository."
   "Use rsync to copy files from local-path to remote-path"
   [local-path remote-path {:keys [port]}])
 
+(defaction rsync-to-local
+  "Use rsync to copy files from remote-path to local-path"
+  [remote-path local-path {:keys [port]}])
+
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
   {:pallet/plan-fn true}
@@ -793,6 +797,13 @@ The :id key must contain a recognised repository."
     ;; (package "rsync")
     (directory to :owner owner :group group :mode mode)
     (rsync from to options)))
+
+(defn rsync-to-local-directory
+  "Rsync from a local directory to a remote directory."
+  {:pallet/plan-fn true}
+  [from to & {:keys [owner group mode port] :as options}]
+  (phase-context rsync-directory-fn {:name :rsync-directory}
+    (rsync-to-local from to options)))
 
 ;;; # Users and Groups
 (defaction group
