@@ -708,6 +708,19 @@ The :id key must contain a recognised repository."
                   :ip (primary-ip (node (target session)))}
                  options)))
 
+(defaction rsync-to-local*
+  "Use rsync to copy files from remote-path to local-path"
+  [session remote-path local-path {:keys [port]}])
+
+(defaction rsync-to-local
+  "Use rsync to copy files from remote-path to local-path"
+  [session remote-path local-path {:keys [port ip username]}]
+  (rsync-to-local* session local-path remote-path
+                   (merge {:port (ssh-port (node (target session)))
+                           :username (:username (admin-user session))
+                           :ip (primary-ip (node (target session)))}
+                          options)))
+
 (defn rsync-directory
   "Rsync from a local directory to a remote directory."
   {:pallet/plan-fn true}
@@ -719,6 +732,13 @@ The :id key must contain a recognised repository."
     ;; (package "rsync")
     (directory session to :owner owner :group group :mode mode)
     (rsync session from to options)))
+
+(defn rsync-to-local-directory
+  "Rsync from a local directory to a remote directory."
+  {:pallet/plan-fn true}
+  [session from to & {:keys [owner group mode port] :as options}]
+  (plan-context rsync-directory-fn {:name :rsync-directory}
+    (rsync-to-local session from to options)))
 
 ;;; # Users and Groups
 (defaction group
