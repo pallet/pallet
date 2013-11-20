@@ -411,7 +411,9 @@ value to assoc. The assoc only occurs if the value is non-nil."
             (filter seq))
            (conj r (first candidates)))
           (throw
-           (ex-info "No total ordering available"
+           (ex-info (str "No total ordering available: "
+                         (vec first-elements) ", "
+                         (vec other-elements))
                     {:seqs seqs}))))
       r)))
 
