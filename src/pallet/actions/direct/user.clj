@@ -16,10 +16,12 @@
 
 (defn user*
   "Require a user"
-  [username & {:keys [action shell base-dir home system create-home
-                      password shell comment groups remove force append]
-               :or {action :manage}
-               :as options}]
+  [action-options username
+   & {:keys [action shell base-dir home system create-home
+             password shell comment groups remove force append]
+      :or {action :manage}
+      :as options}]
+  {:pre [(string? username)]}
   (let [opts (if-let [shell (get shell-names shell shell)]
                (merge options {:shell shell})
                options)]
