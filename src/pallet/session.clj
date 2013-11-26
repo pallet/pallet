@@ -328,3 +328,7 @@ The session is a map with well defined keys:
   {:pre [(target-session? session)]
    :post [(map? %)]}
   (-> session :target))
+
+(defn file-uploader
+  [session]
+  (-> session :execution-state :action-options :file-uploader))

@@ -16,13 +16,28 @@
             package-source-action remote-file-action remote-directory-action]]
    [pallet.actions.impl :refer :all]
    [pallet.contracts :refer [check-spec]]
+   [pallet.core.file-upload :refer :all]
    [pallet.environment :refer [get-environment]]
    [pallet.node :refer [primary-ip ssh-port]]
    [pallet.plan :refer [defplan plan-context]]
-   [pallet.script.lib :as lib :refer [set-flag-value]]
-   [pallet.session :refer [target]]
+;; =======
+;;    [pallet.action
+;;     :refer [clj-action defaction enter-scope get-action-options leave-scope
+;;             with-action-options]]
+;;    [pallet.action-plan :refer [checked-script]]
+;;    [pallet.actions-impl :refer :all]
+;;    [pallet.argument :as argument :refer [delayed delayed-argument?]]
+;;    [pallet.contracts :refer [any-value check-spec]]
+;;    [pallet.core.file-upload :refer :all]
+;;    [pallet.core.session :refer [session]]
+;;    [pallet.crate :refer [admin-user packager phase-context role->nodes-map
+;;                          target]]
+;;    [pallet.node-value :refer [node-value]]
+;; >>>>>>> a1fde3a... Add file upload protocol
+   [pallet.script.lib :as lib :refer [set-flag-value user-home]]
+   [pallet.session :refer [file-uploader target]]
    [pallet.target :refer [admin-user node packager]]
-   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
+   [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline maybe-assoc tmpfile]]
    [useful.ns :refer [defalias]])
   (:import clojure.lang.Keyword))
@@ -333,11 +348,20 @@ Content can also be copied from a blobstore.
         user (if (= :sudo (:script-prefix action-options :sudo))
                (:sudo-user action-options)
                (:username (admin-user)))
-        new-path (new-filename script-dir path)
-        md5-path (md5-filename script-dir path)
-        copy-path (copy-filename script-dir path)]
+        file-uploader (file-uploader session)
+        abs-path (if (or (.startsWith path "/")
+                            (.startsWith path "$(")
+                            (.startsWith path "`"))
+                      path
+                      (if script-dir
+                        (str script-dir "/" path)
+                        (fragment
+                         (file (user-home (:username (admin-user session)))
+                               path))))
+        upload-path (if local-file
+                      (upload-file-path file-uploader session abs-path))]
     (when local-file
-      (transfer-file local-file new-path md5-path))
+      (upload-file (session) local-file abs-path action-options))
     ;; we run as root so we don't get permission issues
     (with-action-options session (merge
                                   {:script-prefix :sudo
@@ -351,10 +375,7 @@ Content can also be copied from a blobstore.
          {:install-new-files *install-new-files* ; capture bound values
           :overwrite-changes *force-overwrite*
           :owner user
-          :proxy (get-environment session [:proxy] nil)
-          :pallet/new-path new-path
-          :pallet/md5-path md5-path
-          :pallet/copy-path copy-path}
+          :proxy (get-environment session [:proxy] nil)}
          :blobstore (get-environment session [:blobstore] nil))
         options)))))
 
