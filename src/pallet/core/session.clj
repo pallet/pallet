@@ -54,6 +54,10 @@
 
 
 ;;; # Session accessors
+(defn file-uploader
+  [session]
+  (::file-uploader session))
+
 
 (defn safe-id
   "Computes a configuration and filesystem safe identifier corresponding to a

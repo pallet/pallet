@@ -14,6 +14,7 @@
    [pallet.actions-impl :refer :all]
    [pallet.argument :as argument :refer [delayed delayed-argument?]]
    [pallet.contracts :refer [any-value check-spec]]
+   [pallet.core.file-upload :refer :all]
    [pallet.core.session :refer [session]]
    [pallet.crate :refer [admin-user packager phase-context role->nodes-map
                          target]]
@@ -490,10 +491,19 @@ Content can also be copied from a blobstore.
         user (if (= :sudo (:script-prefix action-options :sudo))
                (:sudo-user action-options)
                (:username (admin-user)))
-        upload-path (upload-filename (session) script-dir path)]
+        file-uploader (file-uploader (session))
+        abs-path (if (or (.startsWith path "/")
+                            (.startsWith path "$(")
+                            (.startsWith path "`"))
+                      path
+                      (if script-dir
+                        (str script-dir "/" path)
+                        (fragment
+                         (file (user-home (:username (admin-user))) path))))
+        upload-path (if local-file
+                      (upload-file-path file-uploader (session) abs-path))]
     (when local-file
-      (transfer-file local-file upload-path
-                     (md5-filename (session) script-dir path)))
+      (upload-file (session) local-file abs-path action-options))
     ;; we run as root so we don't get permission issues
     (with-action-options (merge
                           {:script-prefix :sudo

@@ -24,20 +24,28 @@
    :owner true
    :perms true})
 
+(defn rsync-command
+  [from to username address port options]
+  (let [ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
+                 (if port (format "-p %s" port))) ]
+    (format
+     cmd ssh
+     (stevedore/map-to-arg-string options)
+     from username
+     address to)))
+
 (implement-action rsync :direct
                   {:action-type :script :location :origin}
                   [session from to {:keys [port] :as options}]
   (logging/debugf "rsync %s to %s" from to)
   (let [extra-options (dissoc options :port)
-        ssh (str "/usr/bin/ssh -o \"StrictHostKeyChecking no\" "
-                 (if-let [port (or port (ssh-port (target-node)))]
-                   (format "-p %s" port)))
-        cmd (format
-             cmd ssh
-             (stevedore/map-to-arg-string
-              (merge (default-options session) extra-options))
-             from (:username (admin-user session))
-             (target-ip session) to)]
+        port (or port (ssh-port (target-node)))
+        cmd (rsync-command
+             from to
+             (:username (admin-user session))
+             (target-ip session)
+             port
+             (merge (default-options session) extra-options))]
     (logging/debugf "rsync %s" cmd)
     [[{:language :bash}
       (stevedore/checked-commands (format "rsync %s to %s" from to) cmd)]
