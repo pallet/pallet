@@ -3,7 +3,7 @@
   (:require
    [clojure.java.io :as io]
    [clojure.string :as string]
-   [pallet.action :refer [implement-action]]
+   [pallet.action :refer [action-options implement-action]]
    [pallet.action-plan :as action-plan]
    [pallet.actions
     :refer [content-options
@@ -16,15 +16,19 @@
             remote-file-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
+   [pallet.core.file-upload :refer [upload-file upload-file-path]]
    [pallet.environment-impl :refer [get-for]]
    [pallet.script.lib :as lib
     :refer [canonical-path chgrp chmod chown dirname exit path-group path-mode
             path-owner user-default-group]]
    [pallet.script.lib :refer [wait-while]]
+   [pallet.ssh.file-upload.sftp-upload :refer [sftp-upload]]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [fragment]]
    [pallet.template :as templates]
    [pallet.utils :refer [first-line]]))
+
+(def file-uploader (sftp-upload {}))
 
 (implement-action delete-local-path :direct
   {:action-type :fn/clojure :location :origin}
@@ -43,10 +47,18 @@
 
 (implement-action transfer-file :direct
   {:action-type :transfer/from-local :location :origin}
-  [session local-path remote-path remote-md5-path]
+  [session local-path remote-path]
   [[(.getPath (io/file local-path))
     (.getPath (io/file remote-path))
-    (.getPath (io/file remote-md5-path))]
+    (fn []
+      ;; return function that will do the upload
+      (let [action-options (action-options session)
+            uploader (or (:file-uploader action-options)
+                         file-uploader)]
+        (upload-file uploader session
+                     (.getPath (io/file local-path))
+                     (.getPath (io/file remote-path))
+                     action-options)))]
    session])
 
 (defn create-path-with-template
@@ -109,7 +121,9 @@ permissions. Note this is not the final directory."
                          (summarise-content)
                          (apply concat)
                          (map pr-str))))}
-    (let [new-path (new-filename session (-> session :action :script-dir) path)
+    (let [action-options (action-options session)
+          uploader (or (:file-uploader action-options) file-uploader)
+          new-path (new-filename session (-> session :action :script-dir) path)
           md5-path (md5-filename session (-> session :action :script-dir) path)
           copy-path (copy-filename
                      session (-> session :action :script-dir) path)
@@ -170,7 +184,8 @@ permissions. Note this is not the final directory."
           content (stevedore/script
                    (~lib/heredoc
                     ~new-path ~content ~(select-keys options [:literal])))
-          local-file (let [upload-path (:pallet.actions/upload-path options)]
+          local-file (let [upload-path (upload-file-path
+                                        uploader session path action-options)]
                        (assert upload-path
                                "No upload path specified for local file")
                        (stevedore/script

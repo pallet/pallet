@@ -18,6 +18,7 @@
    [pallet.session.action-plan
     :refer [assoc-action-plan get-session-action-plan]]
    [pallet.session.verify :refer [add-session-verification-key check-session]]
+   [pallet.ssh.file-upload.sftp-upload :refer [sftp-upload]]
    [pallet.stevedore :refer [with-source-line-comments]]))
 
 (let [v (atom nil)]

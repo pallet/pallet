@@ -54,10 +54,6 @@
 
 
 ;;; # Session accessors
-(defn file-uploader
-  [session]
-  (::file-uploader session))
-
 
 (defn safe-id
   "Computes a configuration and filesystem safe identifier corresponding to a
@@ -199,8 +195,10 @@
 (defn admin-user
   "User that remote commands are run under."
   [session]
-  {:pre [session (-> session :environment :user)]}
-  ;; Note: this is not (:user session), which is set to the actuall user used
+  {:pre [(map? session)
+         (or (map? (-> session :environment)) (println "session" session) (flush))
+         (-> session :environment :user)]}
+  ;; Note: this is not (:user session), which is set to the actual user used
   ;; for authentication when executing scripts, and may be different, e.g. when
   ;; bootstrapping.
   (-> session :environment :user))

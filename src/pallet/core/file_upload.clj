@@ -5,8 +5,8 @@
 (defn upload-file-path
   "Return the path to which upload-file would upload a file for
     target-path"
-  [uploader target-path action-options]
-  (impl/upload-file-path uploader target-path action-options))
+  [uploader session target-path action-options]
+  (impl/upload-file-path uploader session target-path action-options))
 
 (defn upload-file
   "Upload a file to the target-path, and return any script needed to
@@ -17,6 +17,6 @@
 
     action-options can contain a :sudo-user, specify the user to install
     the file as."
-  [uploader session local-path target-path file-options action-options]
+  [uploader session local-path target-path action-options]
   (impl/upload-file
-   uploader session local-path target-path file-options action-options))
+   uploader session local-path target-path action-options))

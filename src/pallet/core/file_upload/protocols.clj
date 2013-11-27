@@ -2,7 +2,7 @@
   "Protocols for file upload")
 
 (defprotocol FileUpload
-  (upload-file-path [_ target-path action-options]
+  (upload-file-path [_ session target-path action-options]
     "Return the path to which upload-file would upload a file for
     target-path")
   (upload-file [_ session local-path target-path action-options]

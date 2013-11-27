@@ -61,7 +61,7 @@
                            session action action-type script))
       [:fn/clojure :origin] (local/clojure-on-origin session action script)
       [:flow/if :origin] (execute-if session action script)
-      [:transfer/from-local :origin] (ssh/ssh-from-local session script)
+      [:transfer/from-local :origin] [((last script)) session]
       [:transfer/to-local :origin] (ssh/ssh-to-local session script)
       (throw
        (ex-info

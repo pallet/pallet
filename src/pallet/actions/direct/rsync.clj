@@ -18,9 +18,13 @@
 (defn default-options
   [session]
   {:r true :delete true :copy-links true
-   :rsync-path (let [sudo-user (or (:sudo-user (get-action-options))
-                                   (:sudo-user (admin-user session)))]
-                 (fragment ((sudo :no-promt true :user ~sudo-user) "rsync")))
+   :rsync-path (let [admin-user (admin-user session)
+                     sudo-user (or (:sudo-user (get-action-options))
+                                   (and (not (:no-sudo admin-user))
+                                        (:sudo-user admin-user)))]
+                 (if sudo-user
+                   (fragment ((sudo :no-promt true :user ~sudo-user) "rsync"))
+                   "rsync"))
    :owner true
    :perms true})
 
