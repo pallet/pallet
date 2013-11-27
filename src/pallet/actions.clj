@@ -20,26 +20,21 @@
    [pallet.environment :refer [get-environment]]
    [pallet.node :refer [primary-ip ssh-port]]
    [pallet.plan :refer [defplan plan-context]]
-;; =======
-;;    [pallet.action
-;;     :refer [clj-action defaction enter-scope get-action-options leave-scope
-;;             with-action-options]]
-;;    [pallet.action-plan :refer [checked-script]]
-;;    [pallet.actions-impl :refer :all]
-;;    [pallet.argument :as argument :refer [delayed delayed-argument?]]
-;;    [pallet.contracts :refer [any-value check-spec]]
-;;    [pallet.core.file-upload :refer :all]
-;;    [pallet.core.session :refer [session]]
-;;    [pallet.crate :refer [admin-user packager phase-context role->nodes-map
-;;                          target]]
-;;    [pallet.node-value :refer [node-value]]
-;; >>>>>>> a1fde3a... Add file upload protocol
    [pallet.script.lib :as lib :refer [set-flag-value user-home]]
    [pallet.session :refer [file-uploader target]]
    [pallet.target :refer [admin-user node packager]]
    [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline maybe-assoc tmpfile]]
    [useful.ns :refer [defalias]])
+;; =======
+;;    [pallet.core.session :refer [session]]
+;;    [pallet.crate :refer [admin-user packager phase-context role->nodes-map
+;;                          target]]
+;;    [pallet.node-value :refer [node-value]]
+;;    [pallet.script.lib :as lib :refer [set-flag-value user-home]]
+;;    [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
+;;    [pallet.utils :refer [apply-map log-multiline tmpfile]])
+;; >>>>>>> 8491b02... Set the file-uploader from action-options
   (:import clojure.lang.Keyword))
 
 (defalias exec decl/exec)
@@ -197,7 +192,7 @@
 (defaction transfer-file
   "Function to transfer a local file to a remote path.
 Prefer remote-file or remote-directory over direct use of this action."
-  [session local-path remote-path remote-md5-path])
+  [session local-path remote-path])
 
 (defaction transfer-file-to-local
   "Function to transfer a remote file to a local path."
@@ -348,36 +343,27 @@ Content can also be copied from a blobstore.
         user (if (= :sudo (:script-prefix action-options :sudo))
                (:sudo-user action-options)
                (:username (admin-user)))
-        file-uploader (file-uploader session)
         abs-path (if (or (.startsWith path "/")
-                            (.startsWith path "$(")
-                            (.startsWith path "`"))
-                      path
-                      (if script-dir
-                        (str script-dir "/" path)
-                        (fragment
-                         (file (user-home (:username (admin-user session)))
-                               path))))
-        upload-path (if local-file
-                      (upload-file-path file-uploader session abs-path))]
+                         (.startsWith path "$(")
+                         (.startsWith path "`"))
+                   path
+                   (if script-dir
+                     (str script-dir "/" path)
+                     (fragment
+                      (lib/file (user-home ~(:username (admin-user session)))
+                                path))))]
     (when local-file
-      (upload-file (session) local-file abs-path action-options))
-    ;; we run as root so we don't get permission issues
-    (with-action-options session (merge
-                                  {:script-prefix :sudo
-                                   :sudo-user (:sudo-user (admin-user))}
-                                  local-file-options)
-      (remote-file-action
-       session
-       path
-       (merge
-        (maybe-assoc
+      (transfer-file local-file path))
+    (remote-file-action
+     path
+     (merge
+      (maybe-assoc
          {:install-new-files *install-new-files* ; capture bound values
           :overwrite-changes *force-overwrite*
           :owner user
           :proxy (get-environment session [:proxy] nil)}
          :blobstore (get-environment session [:blobstore] nil))
-        options)))))
+      options))))
 
 (defn with-remote-file
   "Function to call f with a local copy of the sessioned remote path.
@@ -495,7 +481,7 @@ only specified files or directories, use the :extract-files option.
         md5-path (md5-filename script-dir path)
         copy-path (copy-filename script-dir path)]
     (when local-file
-      (transfer-file local-file new-path md5-path))
+      (transfer-file local-file path))
     ;; we run as root so we don't get permission issues
     (with-action-options session (merge
                                   {:script-prefix :sudo

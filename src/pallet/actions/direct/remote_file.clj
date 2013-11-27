@@ -14,13 +14,18 @@
     :refer [checked-commands checked-script remote-file-action]]
    [pallet.actions.direct.file :as file]
    [pallet.blobstore :as blobstore]
+   [pallet.core.file-upload :refer [upload-file upload-file-path]]
+   ;; [pallet.environment-impl :refer [get-for]]
    [pallet.script.lib :as lib
     :refer [canonical-path chgrp chmod chown dirname exit path-group path-mode
             path-owner user-default-group]]
    [pallet.script.lib :refer [wait-while]]
+   [pallet.ssh.file-upload.sftp-upload :refer [sftp-upload]]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [fragment]]
    [pallet.utils :refer [first-line]]))
+
+(def file-uploader (sftp-upload {}))
 
 (implement-action transfer-file-to-local :direct
   {:action-type :transfer/to-local :location :origin}
@@ -30,10 +35,17 @@
 
 (implement-action transfer-file :direct
   {:action-type :transfer/from-local :location :origin}
-  [action-options local-path remote-path remote-md5-path]
-  {:local-path (.getPath (io/file local-path))
-   :remote-path (.getPath (io/file remote-path))
-   :remote-md5-path (.getPath (io/file remote-md5-path))})
+  [action-options local-path remote-path]
+  [(.getPath (io/file local-path))
+   (.getPath (io/file remote-path))
+   (fn [session]
+     ;; return function that will do the upload
+     (let [uploader (or (:file-uploader action-options)
+                        file-uploader)]
+       (upload-file uploader session
+                    (.getPath (io/file local-path))
+                    (.getPath (io/file remote-path))
+                    action-options)))])
 
 (defn create-path-with-template
   "Create the /var/lib/pallet directory if required, ensuring correct
@@ -96,10 +108,10 @@ permissions. Note this is not the final directory."
                         (summarise-content)
                         (apply concat)
                         (map pr-str))))}
-   (let [script-dir (:script-dir action-options)
-         new-path (:pallet/new-path options (new-filename script-dir path))
-         md5-path (:pallet/md5-path options (md5-filename script-dir path))
-         copy-path (:pallet/copy-path options (copy-filename script-dir path))
+   (let [uploader (or (:file-uploader action-options) file-uploader)
+         new-path (new-filename action-options (-> action-options :script-dir) path)
+         md5-path (md5-filename action-options (-> action-options :script-dir) path)
+         copy-path (copy-filename action-options (-> action-options :script-dir) path)
          versioning (if no-versioning nil :numbered)
          options (if (and owner (not group))
                    (assoc options
@@ -109,7 +121,6 @@ permissions. Note this is not the final directory."
        :create
        (checked-commands
         (str "remote-file " path)
-
         (create-path-with-template path new-path)
 
         ;; Create the new content
@@ -156,7 +167,15 @@ permissions. Note this is not the final directory."
          content (stevedore/script
                   (~lib/heredoc
                    ~new-path ~content ~(select-keys options [:literal])))
-         local-file nil        ; already copied in remote-file wrapper
+         local-file (let [upload-path (upload-file-path
+                                       uploader path action-options)]
+                      (assert upload-path
+                              "No upload path specified for local file")
+                      (stevedore/script
+                       (when (file-exists? ~upload-path)
+                         (chain-and
+                          (lib/cp ~upload-path ~new-path :force true)
+                          (lib/rm ~upload-path :force true)))))
          remote-file (stevedore/script
                       (~lib/cp ~remote-file ~new-path :force ~true))
          ;; TODO make template support use content (ie action independent)

@@ -3,7 +3,7 @@
   (:require
    [pallet.actions.direct.rsync :refer [rsync-command]]
    [pallet.local.execute :refer [local-checked-script]]
-   [pallet.core.session :refer [effective-username]]
+   [pallet.target :refer [effective-username]]
    [pallet.core.file-upload.protocols :refer [FileUpload]]))
 
 (defn target
@@ -28,4 +28,4 @@
     [_ session local-path target-path action-options]
     (let [eff (effective-username session)]
       (rsync-upload-file
-       local-path (target target-path) file-options action-options))))
+       local-path (target target-path) action-options))))

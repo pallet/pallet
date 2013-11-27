@@ -17,6 +17,6 @@
 
     action-options can contain a :sudo-user, specify the user to install
     the file as."
-  [uploader session local-path target-path file-options action-options]
+  [uploader session local-path target-path action-options]
   (impl/upload-file
    uploader session local-path target-path action-options))

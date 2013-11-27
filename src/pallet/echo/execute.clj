@@ -15,8 +15,8 @@
   "echo transfer of files"
   [session value action-type]
   (logging/trace "Local transfer")
-  (doseq [{:keys [remote-path local-path remote-md5-path]} value]
+  (doseq [{:keys [remote-path local-path]} value]
     (logging/debugf
-     "Copying %s local-path %s remote-path %s remote-md5-path %s"
-     action-type local-path remote-path remote-md5-path))
+     "Copying %s local-path %s remote-path %s"
+     action-type local-path remote-path))
   [value session])
