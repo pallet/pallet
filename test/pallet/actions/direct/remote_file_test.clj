@@ -18,6 +18,7 @@
    [pallet.actions.decl :refer [remote-file-action]]
    [pallet.actions.direct.remote-file :refer [create-path-with-template]]
    [pallet.actions.impl :refer [copy-filename md5-filename new-filename]]
+   [pallet.actions.direct.remote-file :refer [default-node-state]]
    [pallet.api :refer [group-spec lift plan-fn with-admin-user]]
    [pallet.build-actions :as build-actions :refer [build-script]]
    [pallet.common.logging.logutils :as logutils :refer [with-log-to-string]]
@@ -27,7 +28,8 @@
    [pallet.local.execute :as local]
    [pallet.script :as script]
    [pallet.script.lib :as lib :refer [user-home]]
-   [pallet.session :refer [with-session]]
+   [pallet.ssh.node-state :refer [verify-checksum]]
+   [pallet.ssh.node-state.state-root :refer [create-path-with-template]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.test-executors :as test-executors]
    [pallet.test-utils :as test-utils]
@@ -53,9 +55,16 @@
   []
   (assoc *admin-user* :username (test-utils/test-username) :no-sudo true))
 
-(deftest create-path-with-template-test
-  (is (pallet.actions.direct.remote-file/create-path-with-template
-       "a/b/c/d" "/c/d")))
+;; (deftest remote-file*-test
+;;   (is remote-file*)
+;;   (with-session {:environment {:user {:username "fred"}}}
+;;     (let [upload-path ()])
+;;     (testing "url"
+;;       (is (script-no-comment=
+;;            (stevedore/checked-commands
+;;             "remote-file path"
+;;             (verify-checksum default-node-state (session) "path")
+;;             (stevedore/chained-script
 
 (deftest remote-file*-test
   (is remote-file*)
@@ -221,9 +230,9 @@
                (is (not (phase-errors @op)))
                (is (nil? (phase-errors @op)))
                (logging/infof "r-f-t content: session %s" session)
-               (->> session :results (mapcat :result) first :out))))
-        (is (script-no-comment=
-             "xxx\n" (slurp (.getPath tmp))))))
+               (->> session :results (mapcat :result) first :out)))
+            "generated a checksum")
+        (is (= "xxx\n" (slurp (.getPath tmp))) "wrote the content")))
     (testing "overwrite on existing content and no md5"
       ;; note that the lift has to run with the same user as the java
       ;; process, otherwise there will be permission errors

@@ -8,7 +8,18 @@
    [pallet.actions.impl :refer [md5-filename new-filename]]
    [pallet.actions.decl
     :refer [checked-commands remote-directory-action remote-file-action]]
-   [pallet.actions.direct.remote-file :refer [create-path-with-template]]
+   [pallet.actions.direct.remote-file :refer [file-uploader]]
+   [pallet.core.file-upload :refer [upload-file-path]]
+
+;; =======
+;;    [pallet.actions-impl
+;;     :refer [md5-filename
+;;             new-filename
+;;             remote-directory-action
+;;             remote-file-action]]
+;;    [pallet.actions.direct.remote-file :refer [file-uploader]]
+;;    [pallet.core.file-upload :refer [upload-file-path]]
+;; >>>>>>> 280ae0b... Add node-state protocols
    [pallet.script.lib :as lib :refer [user-default-group]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.stevedore :refer [with-source-line-comments]]))
@@ -56,25 +67,23 @@
          :as options}]
   [{:language :bash}
    (case action
-     :create (let [url (options :url)
+     :create (let [uploader (file-uploader action-options)
+                   url (options :url)
                    unpack (options :unpack :tar)
+                   upload-path (upload-file-path uploader path action-options)
                    options (if (and owner (not group))
                              (assoc options
                                :group (fragment @(user-default-group ~owner)))
                              options)]
                (when (and (or url local-file remote-file) unpack)
-                 (let [script-dir (:script-dir action-options)
-                       [cmd tarpath tar-md5]
+                 (let [[cmd tarpath tar-md5]
                        (source-to-cmd-and-path
                         path
                         url local-file remote-file
                         md5 md5-url
                         install-new-files
                         overwrite-changes
-                        (:pallet/new-path
-                         options (new-filename script-dir path))
-                        (:pallet/md5-path
-                         options (md5-filename script-dir path)))
+                        upload-path)
                        tar-md5 (str tarpath ".md5")
                        path-md5 (str path "/.pallet.directory.md5")
                        extract-files (string/join \space extract-files)]

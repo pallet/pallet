@@ -8,7 +8,6 @@
    [pallet.build-actions :as build-actions :refer [build-actions build-script]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.script.lib :as lib]
-   [pallet.session :refer [with-session]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.test-utils
     :refer [with-bash-script-language with-ubuntu-script-template
@@ -27,7 +26,6 @@
 (def remote-file* (action-fn remote-file-action :direct))
 
 (deftest remote-directory-test
-  (assert pallet.session/*session*)
   (is (script-no-comment=
        (build-script {}
          (directory "/path" :owner "fred" :recursive false)
