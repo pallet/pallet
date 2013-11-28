@@ -11,6 +11,7 @@
     :refer [chgrp chmod chown dirname env exit file mkdir path-group
             path-owner user-home]]
    [pallet.ssh.execute :refer [with-connection]]
+   [pallet.core.file-upload :refer [file-uploader]]
    [pallet.core.file-upload.protocols :refer [FileUpload]]
    [pallet.core.session :refer [admin-user]]
    [pallet.stevedore :refer [fragment]]
@@ -117,3 +118,7 @@
   (map->SftpUpload (merge
                     {:upload-root "/tmp"}
                     options)))
+
+(defmethod file-uploader :sftp
+  [_ options]
+  (sftp-upload options))

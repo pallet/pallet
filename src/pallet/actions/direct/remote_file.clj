@@ -25,14 +25,16 @@
    [pallet.ssh.file-upload.sftp-upload :refer [sftp-upload]]
    [pallet.ssh.node-state
     :refer [new-file-content record-checksum verify-checksum]]
-   [pallet.ssh.node-state.state-root :refer [state-root-node-state]]
+   [pallet.ssh.node-state.state-root
+    :refer [state-root-backup state-root-checksum]]
    [pallet.stevedore :as stevedore]
    [pallet.stevedore :refer [fragment script]]
    [pallet.template :as templates]
    [pallet.utils :refer [first-line]]))
 
 (def default-file-uploader (sftp-upload {}))
-(def default-node-state (state-root-node-state {}))
+(def default-checksum (state-root-checksum {}))
+(def default-backup (state-root-backup {}))
 
 (defn file-uploader
   [action-options]
@@ -103,7 +105,8 @@
                          (map pr-str))))}
     (let [action-options (action-options session)
           uploader (file-uploader action-options)
-          node-state (or (:node-state action-options) default-node-state)
+          file-checksum (or (:file-checksum action-options) default-checksum)
+          file-backup (or (:file-backup action-options) default-backup)
 
           new-path (upload-file-path uploader session path action-options)
           md5-path (str new-path ".md5")
@@ -121,7 +124,7 @@
          ;; check for local modifications
          (if overwrite-changes
            ""
-           (verify-checksum node-state session path))
+           (verify-checksum file-checksum session path))
 
          ;; Create the new content
          (cond
@@ -218,10 +221,10 @@
                 (if flag-on-changed
                   (script (lib/set-flag ~flag-on-changed)))
                 (new-file-content
-                 node-state session path
+                 file-backup session path
                  (select-keys
                   options [:max-versions :no-versioning :versioning]))
-                (record-checksum node-state session path))))))
+                (record-checksum file-checksum session path))))))
 
         :delete (action-plan/checked-script
                  (str "delete remote-file " path)

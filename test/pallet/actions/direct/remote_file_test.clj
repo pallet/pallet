@@ -16,7 +16,6 @@
             with-remote-file]]
    [pallet.actions-impl
     :refer [copy-filename md5-filename new-filename remote-file-action]]
-   [pallet.actions.direct.remote-file :refer [default-node-state]]
    [pallet.algo.fsmop :refer [complete? failed? wait-for]]
    [pallet.api :refer [group-spec lift plan-fn with-admin-user]]
    [pallet.argument :refer [delayed]]

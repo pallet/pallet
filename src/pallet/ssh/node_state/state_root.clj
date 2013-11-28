@@ -8,6 +8,7 @@
     :refer [canonical-path cat chgrp chmod chown cp diff dirname exit file ls
             md5sum md5sum-verify mkdir path-group path-mode path-owner rm
             tail user-home xargs]]
+   [pallet.ssh.node-state :refer [file-backup file-checksum]]
    [pallet.ssh.node-state.protocols :refer [FileBackup FileChecksum]]
    [pallet.stevedore :refer [chain-commands chained-script fragment script]]))
 
@@ -145,15 +146,16 @@ permissions. Note this is not the final directory."
    (script
     (println "MD5 sum is" @(cat ~md5-path)))))
 
-(defrecord StateRoot [state-root]
+(defrecord StateRootBackup [state-root]
   FileBackup
   (new-file-content
     [_ session path options]
     ;; create the state-root dir
     (let [state-path (state-path session state-root path)]
       (create-path-with-template path state-path)
-      (record path state-path options)))
+      (record path state-path options))))
 
+(defrecord StateRootChecksum [state-root]
   FileChecksum
   (verify-checksum [_ session path]
     (let [state-path (state-path session state-root path)]
@@ -161,9 +163,23 @@ permissions. Note this is not the final directory."
 
   (record-checksum [_ session path]
     (let [state-path (state-path session state-root path)]
+      (create-path-with-template path state-path)
       (record-md5 path (md5-path state-path)))))
 
-(defn state-root-node-state
-  "Returns a state-root instance that can verify md5's and keep backups."
+(defn state-root-backup
+  "Return a state-root backup instance that can keep backups."
   [{:keys [state-root] :as options}]
-  (map->StateRoot options))
+  (map->StateRootBackup options))
+
+(defn state-root-checksum
+  "Return a state-root checksum instance that can verify md5 checksums."
+  [{:keys [state-root] :as options}]
+  (map->StateRootChecksum options))
+
+(defmethod file-backup :state-root
+  [_ options]
+  (state-root-backup options))
+
+(defmethod file-checksum :state-root
+  [_ options]
+  (state-root-checksum options))
