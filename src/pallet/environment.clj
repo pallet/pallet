@@ -26,6 +26,8 @@
   (:require
    [clojure.walk :as walk]
    [pallet.environment.protocols :as impl]
+   [pallet.core.file-upload :as file-upload]
+   [pallet.ssh.node-state :as node-state]
    [pallet.local.execute :as local]
    [pallet.map-merge :as map-merge :refer [merge-key]]
    [pallet.session :as session]
@@ -138,6 +140,28 @@
       %)
    algorithms))
 
+(defn- eval-action-options
+  "Evaluate an action-option map.  This will construct action options
+  from keywords, if present.
+  e.g :file-uploader [:sftp {}]"
+  [{:keys [file-backup file-checksum file-uploader] :as options}]
+  (let [options (if (vector? file-uploader)
+                  (assoc options
+                    :file-uploader (apply file-upload/file-uploader
+                                          file-uploader))
+                  options)
+        options (if (vector? file-checksum)
+                  (assoc options
+                    :file-checksum (apply node-state/file-checksum
+                                          file-checksum))
+                  options)
+        options (if (vector? file-backup)
+                  (assoc options
+                    :file-backup (apply node-state/file-backup
+                                          file-backup))
+                  options)]
+    options))
+
 (defn shell-expand-keys
   "Shell-expand the values matching the specified keys"
   [user-map keys]
@@ -175,6 +199,9 @@
                   (if (every? fn? (vals algorithms))
                     env-map
                     (assoc env-map :algorithms (eval-algorithms algorithms)))
+                  env-map)
+        env-map (if-let [action-options (:action-options env-map)]
+                  (assoc env-map :algorithms (eval-action-options action-options))
                   env-map)]
     env-map))
 

@@ -18,3 +18,11 @@
   "Save the MD5 for the file at path."
   [ns session path]
   (impl/record-checksum ns session path))
+
+(defmulti file-backup
+  "Instantiate a file-backup provider based on keyword and option map."
+  (fn [kw options] kw))
+
+(defmulti file-checksum
+  "Instantiate a file-checksum provider based on keyword and option map."
+  (fn [kw options] kw))

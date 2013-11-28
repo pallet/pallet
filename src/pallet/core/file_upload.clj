@@ -20,3 +20,7 @@
   [uploader session local-path target-path action-options]
   (impl/upload-file
    uploader session local-path target-path action-options))
+
+(defmulti file-uploader
+  "Instantiate a file-upload provider based on keyword and option map."
+  (fn [kw options] kw))
