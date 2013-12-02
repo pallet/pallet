@@ -152,8 +152,9 @@ permissions. Note this is not the final directory."
     [_ session path options]
     ;; create the state-root dir
     (let [state-path (state-path session state-root path)]
-      (create-path-with-template path state-path)
-      (record path state-path options))))
+      (chain-commands
+       (create-path-with-template path state-path)
+       (record path state-path options)))))
 
 (defrecord StateRootChecksum [state-root]
   FileChecksum
