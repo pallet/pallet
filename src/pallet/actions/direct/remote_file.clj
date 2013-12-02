@@ -17,8 +17,8 @@
    [pallet.core.file-upload :refer [upload-file upload-file-path]]
    ;; [pallet.environment-impl :refer [get-for]]
    [pallet.script.lib :as lib
-    :refer [canonical-path chgrp chmod chown dirname exit path-group path-mode
-            path-owner user-default-group]]
+    :refer [canonical-path chgrp chmod chown dirname exit mkdir
+            path-group path-mode path-owner user-default-group]]
    [pallet.script.lib :refer [wait-while]]
    [pallet.ssh.file-upload.sftp-upload :refer [sftp-upload]]
    [pallet.ssh.node-state
@@ -108,6 +108,10 @@
          (if overwrite-changes
            ""
            (verify-checksum file-checksum action-options path))
+
+         ;; create upload dir if needed
+         (stevedore/script
+          (mkdir @(dirname ~new-path) :path true))
 
          ;; Create the new content
          (cond
