@@ -1,7 +1,7 @@
 (ns pallet.actions.direct.rsync
   (:require
    [clojure.tools.logging :as logging]
-   [pallet.action :refer [get-action-options implement-action]]
+   [pallet.action :refer [action-options implement-action]]
    [pallet.actions :refer [rsync rsync-to-local]]
    [pallet.crate :refer [target-node]]
    [pallet.core.session :refer [admin-user target-ip]]
@@ -15,16 +15,18 @@
 (def ^{:private true}
   cmd-to-local "/usr/bin/rsync -e '%s' -F -F %s '%s@%s:%s' %s")
 
+(defn rsync-sudo-user [session]
+  (let [admin-user (admin-user session)]
+    (or (:sudo-user (action-options session))
+        (and (not (:no-sudo admin-user))
+             (:sudo-user admin-user "root")))))
+
 (defn default-options
   [session]
   {:r true :delete true :copy-links true
-   :rsync-path (let [admin-user (admin-user session)
-                     sudo-user (or (:sudo-user (get-action-options))
-                                   (and (not (:no-sudo admin-user))
-                                        (:sudo-user admin-user)))]
-                 (if sudo-user
-                   (fragment ((sudo :no-promt true :user ~sudo-user) "rsync"))
-                   "rsync"))
+   :rsync-path (if-let [sudo-user (rsync-sudo-user session)]
+                 (fragment ((sudo :no-promt true :user ~sudo-user) "rsync"))
+                 "rsync")
    :owner true
    :perms true})
 

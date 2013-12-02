@@ -24,6 +24,7 @@
    [pallet.compute :refer [nodes]]
    [pallet.contracts :refer [*verify-contracts*]]
    [pallet.core.api :as core-api]
+   [pallet.core.file-upload.rsync-upload :refer [rsync-upload]]
    [pallet.core.primitives :refer [phase-errors]]
    [pallet.core.session :refer [session with-session]]
    [pallet.core.user :refer [*admin-user*]]
@@ -541,6 +542,40 @@
                (logging/infof "r-f-t content: session %s" session)
                (->> session :results (mapcat :result) first :out))))
         (is (= "xxx\n" (slurp (.getPath tmp))))))))
+
+(deftest rsync-file-upload-test
+  (testing "local-file via rsync"
+    (utils/with-temporary [tmp (utils/tmpfile)
+                           target-tmp (utils/tmpfile)]
+      ;; this is convoluted to get around the "t" sticky bit on temp dirs
+      (let [user (local-test-user)]
+        (.delete target-tmp)
+        (io/copy "text" tmp)
+        (let [compute (make-localhost-compute :group-name "local")
+              local (group-spec "local")]
+          (testing "local-file"
+            (logging/debugf "local-file is %s" (.getPath tmp))
+            (let [op (lift
+                      local
+                      :phase (plan-fn
+                              (remote-file
+                               (.getPath target-tmp)
+                               :local-file (.getPath tmp)
+                               :mode "0666"))
+                      :environment {:action-options
+                                    {:file-uploader (rsync-upload {})}}
+                      :compute compute
+                      :user user
+                      :async true)
+                  result (wait-for op)]
+              (is (complete? op))
+              (is (nil? (:exception @op)))
+              (is (nil? (phase-errors op)))
+              (is (some
+                   #(= (first (nodes compute)) %)
+                   (map :node (:targets result)))))
+            (is (.canRead target-tmp))
+            (is (= "text" (slurp (.getPath target-tmp))))))))))
 
 (deftest transfer-file-to-local-test
   (utils/with-temporary [remote-file (utils/tmpfile)
