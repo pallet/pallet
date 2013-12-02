@@ -3,6 +3,13 @@
    [clojure.tools.logging :as logging]
    [pallet.action :refer [implement-action]]
    [pallet.actions :refer [rsync* rsync-to-local*]]
+;; =======
+;;    [pallet.action :refer [action-options implement-action]]
+;;    [pallet.actions :refer [rsync rsync-to-local]]
+;;    [pallet.crate :refer [target-node]]
+;;    [pallet.core.session :refer [admin-user target-ip]]
+;;    [pallet.node :refer [ssh-port]]
+;; >>>>>>> e0ab406... Add rsync file uploader
    [pallet.script.lib :refer [sudo]]
    [pallet.stevedore :as stevedore :refer [fragment]]))
 
@@ -12,14 +19,17 @@
 (def ^{:private true}
   cmd-to-local "/usr/bin/rsync -e '%s' -F -F %s '%s@%s:%s' %s")
 
+(defn rsync-sudo-user [action-options]
+  (or (:sudo-user action-options)
+      (and (not (:no-sudo action-options))
+           (:sudo-user action-options "root"))))
+
 (defn default-options
   [action-options]
   {:r true :delete true :copy-links true
-   :rsync-path (let [sudo-user (and (not (:no-sudo action-options))
-                                    (:sudo-user action-options "root"))]
-                 (if sudo-user
-                   (fragment ((sudo :no-promt true :user ~sudo-user) "rsync"))
-                   "rsync"))
+   :rsync-path (if-let [sudo-user (rsync-sudo-user action-options)]
+                 (fragment ((sudo :no-promt true :user ~sudo-user) "rsync"))
+                 "rsync")
    :owner true
    :perms true})
 
