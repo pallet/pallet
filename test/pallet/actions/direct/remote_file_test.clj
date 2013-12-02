@@ -32,6 +32,7 @@
    [pallet.script :as script]
    [pallet.script.lib :as lib :refer [user-home]]
    [pallet.ssh.node-state :refer [verify-checksum]]
+   [pallet.ssh.node-state.no-state :refer [no-backup no-checksum]]
    [pallet.ssh.node-state.state-root :refer [create-path-with-template]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.test-executors :as test-executors]
@@ -564,6 +565,42 @@
                                :mode "0666"))
                       :environment {:action-options
                                     {:file-uploader (rsync-upload {})}}
+                      :compute compute
+                      :user user
+                      :async true)
+                  result (wait-for op)]
+              (is (complete? op))
+              (is (nil? (:exception @op)))
+              (is (nil? (phase-errors op)))
+              (is (some
+                   #(= (first (nodes compute)) %)
+                   (map :node (:targets result)))))
+            (is (.canRead target-tmp))
+            (is (= "text" (slurp (.getPath target-tmp))))))))))
+
+
+(deftest no-state-upload-test
+  (testing "local-file via rsync"
+    (utils/with-temporary [tmp (utils/tmpfile)
+                           target-tmp (utils/tmpfile)]
+      ;; this is convoluted to get around the "t" sticky bit on temp dirs
+      (let [user (local-test-user)]
+        (.delete target-tmp)
+        (io/copy "text" tmp)
+        (let [compute (make-localhost-compute :group-name "local")
+              local (group-spec "local")]
+          (testing "local-file"
+            (logging/debugf "local-file is %s" (.getPath tmp))
+            (let [op (lift
+                      local
+                      :phase (plan-fn
+                              (remote-file
+                               (.getPath target-tmp)
+                               :local-file (.getPath tmp)
+                               :mode "0666"))
+                      :environment {:action-options
+                                    {:file-backup (no-backup)
+                                     :file-checksum (no-checksum)}}
                       :compute compute
                       :user user
                       :async true)
