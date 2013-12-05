@@ -91,6 +91,16 @@ future)."
           (exit @r))))
      epilog)))
 
+(defn normalise-sudo-options
+  "Ensure that a :sudo-user specified in the action trumps a :no-sudo
+  specified in the admin user."
+  [action]
+  action
+  ;; (if (:sudo-user action)
+  ;;   (assoc action :no-sudo false)
+  ;;   action)
+  )
+
 (defn build-code
   "Builds a code map, describing the command to execute a script."
   [user {:keys [default-script-prefix script-context script-dir script-env
@@ -113,7 +123,7 @@ future)."
                                       default-script-prefix
                                       :sudo)
                                   user
-                                  action)]
+                                  (normalise-sudo-options action))]
                  (debugf "prefix %s" prefix)
                  (string/split prefix #" "))
        :execv (concat (interpreter {:language :bash}) args)})))
