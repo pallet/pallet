@@ -16,16 +16,17 @@
   cmd-to-local "/usr/bin/rsync -e '%s' -F -F %s '%s@%s:%s' %s")
 
 (defn rsync-sudo-user [session]
-  (let [admin-user (admin-user session)]
+  (let [user (:user session)]
     (or (:sudo-user (action-options session))
-        (and (not (:no-sudo admin-user))
-             (:sudo-user admin-user "root")))))
+        (and (not (:no-sudo user))
+             (or (:sudo-user user)
+                 "root")))))
 
 (defn default-options
   [session]
   {:r true :delete true :copy-links true
    :rsync-path (if-let [sudo-user (rsync-sudo-user session)]
-                 (fragment ((sudo :no-promt true :user ~sudo-user) "rsync"))
+                 (fragment ((sudo :no-prompt true :user ~sudo-user) "rsync"))
                  "rsync")
    :owner true
    :perms true})
