@@ -214,10 +214,11 @@
   "Return the effective username."
   [session]
   {:post [%]}
+  (clojure.tools.logging/debugf "effective-username %s %s" (:action session) (:user session))
   (or
    (-> session :action :sudo-user)
-   (-> session :environment :user :sudo-user)
-   (-> session :environment :user :username)))
+   (-> session :user (:sudo-user (if-not (-> session :user :no-sudo) "root")))
+   (-> session :user :username)))
 
 (defn is-64bit?
   "Predicate for a 64 bit target"

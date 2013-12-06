@@ -13,7 +13,7 @@
    [pallet.ssh.execute :refer [with-connection]]
    [pallet.core.file-upload :refer [file-uploader]]
    [pallet.core.file-upload.protocols :refer [FileUpload]]
-   [pallet.core.session :refer [admin-user]]
+   [pallet.core.session :refer [admin-user effective-username]]
    [pallet.stevedore :refer [fragment]]
    [pallet.transport :as transport]
    [pallet.utils :refer [base64-md5]])
@@ -98,11 +98,10 @@
 (defrecord SftpUpload [upload-root]
   FileUpload
   (upload-file-path [_ session target-path action-options]
-    (target upload-root (:username (admin-user session)) target-path))
+    (target upload-root (effective-username session) target-path))
   (upload-file
     [_ session local-path target-path action-options]
-    (let [target (target
-                  upload-root (:username (admin-user session)) target-path)
+    (let [target (target upload-root (effective-username session) target-path)
           target-md5-path (str target ".md5")]
       (with-connection session [connection]
         (let [target-md5 (sftp-remote-md5 connection target-md5-path)
