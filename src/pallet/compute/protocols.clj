@@ -57,7 +57,7 @@
    [compute group-spec]
    "Called on startup of a new node to ensure group-spec has an os-family
    attached to it.")
-  (destroy-nodes-in-group [compute group-name])
+  (destroy-nodes [compute nodes])
   (destroy-node [compute node])
   (images [compute])
   (close [compute]))

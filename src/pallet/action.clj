@@ -13,7 +13,6 @@
    [pallet.action-options :refer [action-options]]
    [pallet.common.context :refer [throw-map]]
    [pallet.core.api :refer [execute-action]]
-   [pallet.core.session :refer [session session!]]
    [pallet.stevedore :refer [with-source-line-comments]]
    [pallet.utils :refer [compiler-exception]]))
 
@@ -35,11 +34,10 @@
   argument list is not enforced."
   [action]
   ^{:action action}
-  (fn action-fn [& argv]
-    (let [session (session)]
-      (execute-action
-       session
-       (action-map action argv (action-options session))))))
+  (fn action-fn [session & argv]
+    (execute-action
+     session
+     (action-map action argv (action-options session)))))
 
 (defn declare-action
   "Declare an action. The action-name is a symbol (not necessarily referring to

@@ -259,32 +259,32 @@
 
 ;;; Not sure here what the arguments should be; maybe a node-spec,
 ;;; and a set of roles to tag the nodes with.
-(ann ^:no-check create-nodes
-     [Session ComputeService User NodeSpec Tags AnyInteger -> (Seq TargetMap)])
-(defn create-nodes
-  "Create `count` nodes using `node-spec` to define the properties of the
-  nodes, and setting `tags` on them.  `user` will be authorised on the node,
-  if it has a public key."
-  [session compute-service user node-spec tags count]
-  {:pre [(base-session? session)
-         (compute-service? compute-service)
-         (user? user)]}
-  ((inst map TargetMap Node)
-   (fn> [node :- Node] (assoc group :node node))
-   (let [targets (run-nodes compute-service node-spec user count)]
-     (tag-nodes compute-service (map :node targets) tags)
-     (add-system-targets session targets)
-     targets)))
+;; (ann ^:no-check create-nodes
+;;      [Session ComputeService User NodeSpec Tags AnyInteger -> (Seq TargetMap)])
+;; (defn create-nodes
+;;   "Create `count` nodes using `node-spec` to define the properties of the
+;;   nodes, and setting `tags` on them.  `user` will be authorised on the node,
+;;   if it has a public key."
+;;   [session compute-service user node-spec tags count]
+;;   {:pre [(base-session? session)
+;;          (compute-service? compute-service)
+;;          (user? user)]}
+;;   ((inst map TargetMap Node)
+;;    (fn> [node :- Node] (assoc group :node node))
+;;    (let [targets (run-nodes compute-service node-spec user count)]
+;;      (tag-nodes compute-service (map :node targets) tags)
+;;      (add-system-targets session targets)
+;;      targets)))
 
-(ann remove-nodes [Session ComputeService TargetMapSeq
-                   -> nil])
-(defn remove-nodes
-  "Removes `nodes` from `group`. If `all` is true, then all nodes for the group
-  are being removed."
-  [session compute-service targets]
-  (debugf "remove-nodes %s targets" (vector targets))
-  (destroy-nodes compute-service (map (:node target) targets))
-  (remove-system-targets session targets))
+;; (ann remove-nodes [Session ComputeService TargetMapSeq
+;;                    -> nil])
+;; (defn remove-nodes
+;;   "Removes `nodes` from `group`. If `all` is true, then all nodes for the group
+;;   are being removed."
+;;   [session compute-service targets]
+;;   (debugf "remove-nodes %s targets" (vector targets))
+;;   (destroy-nodes compute-service (map (:node target) targets))
+;;   (remove-system-targets session targets))
 
 
 ;; TODO remove no-check when IllegalArgumentException not thrown by core.typed

@@ -80,13 +80,13 @@ Provider specific options may also be passed."
 (defn nodes [compute]
   (impl/nodes compute))
 
-(ann run-nodes [ComputeService NodeSpec AnyInteger User (Nilable String)
-                (Map Any Any) -> (Nilable (NonEmptySeqable Node))])
+(ann run-nodes [ComputeService NodeSpec User AnyInteger
+                -> (Nilable (NonEmptySeqable Node))])
 (defn run-nodes
   "Start node-count nodes for group-spec, executing an init-script on
   each, using the specified user and options."
-  [compute group-spec node-count user init-script options]
-  (impl/run-nodes compute group-spec node-count user init-script options))
+  [compute node-spec user node-count]
+  (impl/run-nodes compute node-spec user node-count))
 
 (ann tag-nodes [ComputeService (Seqable Node) Tags ->
                 (Nilable (NonEmptySeqable Node))])
@@ -126,10 +126,10 @@ Provider specific options may also be passed."
  [compute group-spec]
  (impl/ensure-os-family compute group-spec))
 
-(ann destroy-nodes-in-group [ComputeService GroupName -> nil])
-(defn destroy-nodes-in-group
-  [compute group-name]
-  (impl/destroy-nodes-in-group compute group-name))
+(ann destroy-nodes [ComputeService Nodes -> nil])
+(defn destroy-nodes
+  [compute nodes]
+  (impl/destroy-nodes compute nodes))
 
 (ann destroy-node [ComputeService Node -> nil])
 (defn destroy-node

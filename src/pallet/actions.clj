@@ -8,7 +8,7 @@
    [clojure.string :refer [trim]]
    [clojure.tools.logging :as logging]
    [pallet.action :refer [defaction]]
-   [pallet.action-options :refer [get-action-options with-action-options]]
+   [pallet.action-options :refer [action-options with-action-options]]
    [pallet.actions-impl :refer :all]
    [pallet.actions.crate.package :as cp]
    [pallet.actions.decl :as decl

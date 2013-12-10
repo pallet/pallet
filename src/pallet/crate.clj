@@ -8,7 +8,6 @@
    [pallet.context :refer [with-phase-context]]
    [pallet.core.plan-state :as plan-state]
    [pallet.core.session :as session]
-   [pallet.core.session :refer [session session!]]
    [pallet.execute :as execute]
    [pallet.node :as node]
    [pallet.sync :refer [sync-phase*]]
