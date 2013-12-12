@@ -57,32 +57,6 @@
      (reset! v (if-let [version (slurp (io/resource "pallet-version"))]
                        (string/trim version))))))
 
-(ann service-state [ComputeService (Nilable (NonEmptySeqable GroupSpec))
-                    -> IncompleteTargetMapSeq])
-(defn service-state
-  "Query the available nodes in a `compute-service`, filtering for nodes in the
-  specified `groups`. Returns a sequence that contains a node-map for each
-  matching node."
-  [compute-service groups]
-  (let [nodes (remove terminated? (nodes compute-service))]
-    (tracef "service-state %s" (vec nodes))
-    (seq (remove nil? (map (node->node-map groups) nodes)))))
-
-(ann ^:no-check service-groups [ComputeService -> (Seqable GroupSpec)])
-(defn service-groups
-  "Query the available nodes in a `compute-service`, returning a group-spec
-  for each group found."
-  [compute-service]
-  (->> (nodes compute-service)
-       (remove terminated?)
-       (map group-name)
-       (map (fn> [gn :- GroupName] {:group-name gn}))
-       (map (fn> [m :- (HMap :mandatory {:group-name GroupName})]
-              ((inst vary-meta
-                     (HMap :mandatory {:group-name GroupName})
-                     Keyword Keyword)
-               m assoc :type :pallet.api/group-spec)))))
-
 ;;; ## Action Plan Execution
 
 ;;; # Execute action on a target node
@@ -93,24 +67,21 @@
   [session action]
   (debugf "execute-action %s" (pr-str action))
   (let [executor (executor session)
-        execute-status-fn (execute-status-fn session)
-        _ (debugf "execute-action executor %s" (pr-str executor))
-        _ (debugf "execute-action execute-status-fn %s"
-                  (pr-str execute-status-fn))
-        _ (assert executor "No executor in session")
-        _ (assert execute-status-fn "No execute-status-fn in session")
-        ;; TODO use destructuring when core.typed can grok it
-        rv (executor session action)
-        ;; [rv _] rrv
-        out (:out rv)
-        _ (debugf "execute-action rv %s" (pr-str rv))
-        _ (assert (map? rv)
-                  (str "Action return value must be a map: " (pr-str rv)))
-        session (parse-shell-result session rv)]
-    ;; TODO add retries, timeouts, etc
-    (record (recorder session) rv)
-    (execute-status-fn rv)
-    rv))
+        execute-status-fn (execute-status-fn session)]
+    (assert executor "No executor in session")
+    (assert execute-status-fn "No execute-status-fn in session")
+    (debugf "execute-action executor %s" (pr-str executor))
+    (debugf "execute-action execute-status-fn %s" (pr-str execute-status-fn))
+    (let [rv (executor session action)]
+      (debugf "execute-action rv %s" (pr-str rv))
+      (assert (map? rv) (str "Action return value must be a map: " (pr-str rv)))
+      (record (recorder session) rv)
+      (execute-status-fn rv)
+      rv)))
+
+;; These should be part of the executor
+      ;; session (parse-shell-result session rv)
+      ;; TODO add retries, timeouts, etc
 
 
 ;;; # Execute a phase on a target node

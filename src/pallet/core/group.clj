@@ -1,6 +1,34 @@
 (ns pallet.core.group
   "Group functions for adjusting nodes")
 
+
+(ann service-state [ComputeService (Nilable (NonEmptySeqable GroupSpec))
+                    -> IncompleteTargetMapSeq])
+(defn service-state
+  "Query the available nodes in a `compute-service`, filtering for nodes in the
+  specified `groups`. Returns a sequence that contains a node-map for each
+  matching node."
+  [compute-service groups]
+  (let [nodes (remove terminated? (nodes compute-service))]
+    (tracef "service-state %s" (vec nodes))
+    (seq (remove nil? (map (node->node-map groups) nodes)))))
+
+(ann ^:no-check service-groups [ComputeService -> (Seqable GroupSpec)])
+(defn service-groups
+  "Query the available nodes in a `compute-service`, returning a group-spec
+  for each group found."
+  [compute-service]
+  (->> (nodes compute-service)
+       (remove terminated?)
+       (map group-name)
+       (map (fn> [gn :- GroupName] {:group-name gn}))
+       (map (fn> [m :- (HMap :mandatory {:group-name GroupName})]
+              ((inst vary-meta
+                     (HMap :mandatory {:group-name GroupName})
+                     Keyword Keyword)
+               m assoc :type :pallet.api/group-spec)))))
+
+
 ;;; ## Calculation of node count adjustments
 (def-alias NodeDeltaMap (HMap :mandatory {:actual AnyInteger
                                           :target AnyInteger
