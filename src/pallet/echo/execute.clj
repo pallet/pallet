@@ -19,6 +19,6 @@
   "echo transfer of files"
   [session value]
   (logging/trace "Local transfer")
-  (doseq [[from to] value]
+  (let [[from to] value]
     (logging/debugf "Copying %s to %s" from to))
   [value session])

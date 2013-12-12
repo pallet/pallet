@@ -4,7 +4,6 @@
    [pallet.action :refer [action-fn]]
    [pallet.actions :refer [directory remote-directory]]
    [pallet.actions-impl :refer [remote-file-action]]
-   [pallet.actions.direct.remote-file :refer [create-path-with-template]]
    [pallet.build-actions :as build-actions :refer [build-actions]]
    [pallet.common.logging.logutils :refer [logging-threshold-fixture]]
    [pallet.core.session :refer [session with-session]]
@@ -30,7 +29,8 @@
   (assert pallet.core.session/*session*)
   (is (script-no-comment=
        (binding [pallet.action-plan/*defining-context* nil]
-         (with-session {:environment {:user *admin-user*}}
+         (with-session {:environment {:user *admin-user*}
+                        :user *admin-user*}
            (stevedore/do-script
             (stevedore/checked-commands
              "remote-directory"
@@ -65,7 +65,8 @@
                  :unpack :tar
                  :owner "fred")))))
   (is (script-no-comment=
-       (with-session {:environment {:user *admin-user*}}
+       (with-session {:environment {:user *admin-user*}
+                      :user *admin-user*}
          (binding [pallet.action-plan/*defining-context* nil]
            (stevedore/do-script
             (stevedore/checked-commands
@@ -99,7 +100,8 @@
                  :owner "fred"
                  :recursive false)))))
   (is (script-no-comment=
-       (with-session {:environment {:user *admin-user*}}
+       (with-session {:environment {:user *admin-user*}
+                      :user *admin-user*}
          (binding [pallet.action-plan/*defining-context* nil]
            (stevedore/do-script
             (stevedore/checked-commands

@@ -96,7 +96,8 @@
         session (update-in session [:plan-state action-options-key]
                            #(merge {:script-comments nil} %))
         session (update-in session [:phase] #(or % :test-phase))
-        session (update-in session [:environment :user] #(or % *admin-user*))]
+        session (update-in session [:environment :user] #(or % *admin-user*))
+        session (update-in session [:user] #(or % *admin-user*))]
     (add-session-verification-key session)))
 
 (defn build-actions*

@@ -11,7 +11,8 @@
             new-filename
             remote-directory-action
             remote-file-action]]
-   [pallet.actions.direct.remote-file :refer [create-path-with-template]]
+   [pallet.actions.direct.remote-file :refer [file-uploader]]
+   [pallet.core.file-upload :refer [upload-file-path]]
    [pallet.script.lib :as lib :refer [user-default-group]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.stevedore :refer [with-source-line-comments]]))
@@ -61,9 +62,10 @@
                  :as options}]
   [[{:language :bash}
     (case action
-      :create (let [url (options :url)
+      :create (let [uploader (file-uploader options)
+                    url (options :url)
                     unpack (options :unpack :tar)
-                    upload-path (:pallet.actions/upload-path options)
+                    upload-path (upload-file-path uploader session path options)
                     options (if (and owner (not group))
                               (assoc options
                                 :group (fragment @(user-default-group ~owner)))

@@ -14,12 +14,13 @@
    [pallet.actions-impl :refer :all]
    [pallet.argument :as argument :refer [delayed delayed-argument?]]
    [pallet.contracts :refer [any-value check-spec]]
+   [pallet.core.file-upload :refer :all]
    [pallet.core.session :refer [session]]
    [pallet.crate :refer [admin-user packager phase-context role->nodes-map
                          target]]
    [pallet.node-value :refer [node-value]]
-   [pallet.script.lib :as lib :refer [set-flag-value]]
-   [pallet.stevedore :as stevedore :refer [with-source-line-comments]]
+   [pallet.script.lib :as lib :refer [set-flag-value user-home]]
+   [pallet.stevedore :as stevedore :refer [fragment with-source-line-comments]]
    [pallet.utils :refer [apply-map log-multiline tmpfile]])
   (:import clojure.lang.Keyword))
 
@@ -335,7 +336,7 @@ value is itself an action return value."
 (defaction transfer-file
   "Function to transfer a local file to a remote path.
 Prefer remote-file or remote-directory over direct use of this action."
-  [local-path remote-path remote-md5-path])
+  [local-path remote-path])
 
 (defaction transfer-file-to-local
   "Function to transfer a remote file to a local path."
@@ -490,23 +491,25 @@ Content can also be copied from a blobstore.
         user (if (= :sudo (:script-prefix action-options :sudo))
                (:sudo-user action-options)
                (:username (admin-user)))
-        upload-path (upload-filename (session) script-dir path)]
+        abs-path (if (or (.startsWith path "/")
+                         (.startsWith path "$(")
+                         (.startsWith path "`"))
+                   path
+                   (if script-dir
+                     (str script-dir "/" path)
+                     (fragment
+                      (lib/file (user-home ~(:username (admin-user)))
+                                path))))]
     (when local-file
-      (transfer-file local-file upload-path
-                     (md5-filename (session) script-dir path)))
+      (transfer-file local-file path))
     ;; we run as root so we don't get permission issues
-    (with-action-options (merge
-                          {:script-prefix :sudo
-                           :sudo-user (:sudo-user (admin-user))}
-                          local-file-options)
-      (remote-file-action
-       path
-       (merge
-        {:install-new-files *install-new-files* ; capture bound values
-         :overwrite-changes *force-overwrite*
-         :owner user
-         ::upload-path upload-path}
-        options)))))
+    (remote-file-action
+     path
+     (merge
+      {:install-new-files *install-new-files* ; capture bound values
+       :overwrite-changes *force-overwrite*
+       :owner user}
+      options))))
 
 (defn with-remote-file
   "Function to call f with a local copy of the sessioned remote path.
@@ -623,8 +626,7 @@ only specified files or directories, use the :extract-files option.
                (:username (admin-user)))
         upload-path (upload-filename (session) script-dir path)]
     (when local-file
-      (transfer-file local-file upload-path
-                     (md5-filename (session) script-dir path)))
+      (transfer-file local-file upload-path))
     ;; we run as root so we don't get permission issues
     (with-action-options (merge
                           {:script-prefix :sudo

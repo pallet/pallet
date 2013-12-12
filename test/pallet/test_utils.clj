@@ -73,6 +73,11 @@ list, Alan Dipert and MeikelBrandmeyer."
   [] (or (. System getProperty "ssh.username")
          (. System getProperty "user.name")))
 
+(defn test-unprivileged-username
+  "Function to get test username. This is a function to avoid issues with AOT."
+  [] (or (. System getProperty "unprivileged.username")
+         "unpriv-user"))
+
 (def ubuntu-session {:server {:image {:os-family :ubuntu}}})
 (def centos-session {:server {:image {:os-family :centos}}})
 
