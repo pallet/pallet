@@ -175,7 +175,7 @@ support."
 
 (defmethod implementation/service :node-list
   [_ {:keys [node-list environment tag-provider]
-      :or {tag-provider (NodeTagStatic. {:bootstrapped true})}}]
+      :or {tag-provider (NodeTagStatic. {"pallet/state" "{:bootstrapped true}"})}}]
   (let [nodes (atom (vec
                      (map
                       #(if (vector? %)

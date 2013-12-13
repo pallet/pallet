@@ -11,7 +11,8 @@
             new-filename
             remote-directory-action
             remote-file-action]]
-   [pallet.actions.direct.remote-file :refer [create-path-with-template]]
+   [pallet.actions.direct.remote-file :refer [file-uploader]]
+   [pallet.core.file-upload :refer [upload-file-path]]
    [pallet.script.lib :as lib :refer [user-default-group]]
    [pallet.stevedore :as stevedore :refer [fragment]]
    [pallet.stevedore :refer [with-source-line-comments]]))
@@ -26,7 +27,7 @@
 
 (defn- source-to-cmd-and-path
   [session path url local-file remote-file md5 md5-url
-   install-new-files overwrite-changes]
+   install-new-files overwrite-changes upload-path]
   (cond
    url (let [tarpath (str
                       (with-source-line-comments false
@@ -41,8 +42,8 @@
            first second)
           tarpath])
    local-file [""
-               (new-filename (-> session :action :script-dir) path)
-               (md5-filename (-> session :action :script-dir) path)]
+               upload-path
+               (md5-filename session (-> session :action :script-dir) path)]
    remote-file ["" remote-file (str remote-file ".md5")]))
 
 (implement-action remote-directory-action :direct
@@ -61,8 +62,10 @@
                  :as options}]
   [[{:language :bash}
     (case action
-      :create (let [url (options :url)
+      :create (let [uploader (file-uploader options)
+                    url (options :url)
                     unpack (options :unpack :tar)
+                    upload-path (upload-file-path uploader session path options)
                     options (if (and owner (not group))
                               (assoc options
                                 :group (fragment @(user-default-group ~owner)))
@@ -73,7 +76,8 @@
                                                url local-file remote-file
                                                md5 md5-url
                                                install-new-files
-                                               overwrite-changes)
+                                               overwrite-changes
+                                               upload-path)
                         tar-md5 (str tarpath ".md5")
                         path-md5 (str path "/.pallet.directory.md5")
                         extract-files (string/join \space extract-files)]

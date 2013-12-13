@@ -99,18 +99,19 @@
     (let [user-name "fredxxx"]
       (is (= (first
               (build-actions/build-actions
-               {:phase-context "automated-admin-user"}
-               (sudoers/install)
-               (user user-name :create-home true :shell :bash)
-               (sudoers/sudoers
-                {}
-                {:default {:env_keep "SSH_AUTH_SOCK"}}
-                {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
-               (context/with-phase-context
-                 {:kw :authorize-user-key :msg "authorize-user-key"}
-                 (ssh-key/authorize-key
-                  user-name
-                  (slurp (default-public-key-path))))))
+                  {:phase-context "automated-admin-user"
+                   :environment {:user (make-user user-name)}}
+                (sudoers/install)
+                (user user-name :create-home true :shell :bash)
+                (sudoers/sudoers
+                 {}
+                 {:default {:env_keep "SSH_AUTH_SOCK"}}
+                 {user-name {:ALL {:run-as-user :ALL :tags :NOPASSWD}}})
+                (context/with-phase-context
+                  {:kw :authorize-user-key :msg "authorize-user-key"}
+                  (ssh-key/authorize-key
+                   user-name
+                   (slurp (default-public-key-path))))))
              (first
               (build-actions/build-actions
                   {:environment {:user (make-user user-name)}}

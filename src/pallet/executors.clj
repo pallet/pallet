@@ -17,7 +17,7 @@
                           and remote destination."
   (:require
    [clojure.tools.logging :as logging]
-   [pallet.action :refer [implementation]]
+   [pallet.action :refer [implementation with-action-options]]
    [pallet.action-plan :refer [execute-if map-action-f session-exec-action]]
    [pallet.echo.execute :as echo]
    [pallet.local.execute :as local]
@@ -31,12 +31,14 @@
   "Execute the direct action implementation, which returns script or other
   argument data, and metadata."
   [session {:keys [args script-dir] :as action}]
-  (let [{:keys [metadata f]} (implementation action :direct)
-        {:keys [action-type location]} metadata
-        [script session] (apply f (assoc session :script-dir script-dir) args)]
-    (logging/tracef "direct-script %s %s" f (vec args))
-    (logging/tracef "direct-script %s" script)
-    [script action-type location session]))
+  (with-action-options action           ; allow actions to interrogate options
+    (let [{:keys [metadata f]} (implementation action :direct)
+          {:keys [action-type location]} metadata
+          [script session] (apply
+                            f (assoc session :script-dir script-dir) args)]
+      (logging/tracef "direct-script %s %s" f (vec args))
+      (logging/tracef "direct-script %s" script)
+      [script action-type location session])))
 
 (defn default-executor
   "The standard direct executor for pallet. Target actions for localhost
@@ -59,7 +61,7 @@
                            session action action-type script))
       [:fn/clojure :origin] (local/clojure-on-origin session action script)
       [:flow/if :origin] (execute-if session action script)
-      [:transfer/from-local :origin] (ssh/ssh-from-local session script)
+      [:transfer/from-local :origin] [((last script)) session]
       [:transfer/to-local :origin] (ssh/ssh-to-local session script)
       (throw
        (ex-info

@@ -4,3 +4,5 @@ before_script:
   - ssh-keygen -N "" -f ~/.ssh/id_rsa
   - cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 script: lein2 test
+notifications:
+  irc: "irc.freenode.org#pallet"
